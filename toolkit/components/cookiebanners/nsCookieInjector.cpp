@@ -327,7 +327,7 @@ nsresult nsCookieInjector::InjectCookiesFromRules(
         c.Host(), c.Path(), c.Name(), c.Value(), c.IsSecure(), c.IsHttpOnly(),
         c.IsSession(), c.Expiry(), &aOriginAttributes, c.SameSite(),
         static_cast<nsICookie::schemeType>(c.SchemeMap()),
-        /* is partitioned: */ false);
+        /* is partitioned: */ false, nullptr);
     NS_ENSURE_SUCCESS(rv, rv);
 
     aHasInjectedCookie = true;

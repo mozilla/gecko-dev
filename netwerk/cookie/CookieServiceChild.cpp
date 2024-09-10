@@ -182,9 +182,10 @@ IPCResult CookieServiceChild::RecvRemoveAll() {
   return IPC_OK();
 }
 
-IPCResult CookieServiceChild::RecvRemoveCookie(const CookieStruct& aCookie,
-                                               const OriginAttributes& aAttrs) {
-  RemoveSingleCookie(aCookie, aAttrs);
+IPCResult CookieServiceChild::RecvRemoveCookie(
+    const CookieStruct& aCookie, const OriginAttributes& aAttrs,
+    const Maybe<nsID>& aOperationID) {
+  RemoveSingleCookie(aCookie, aAttrs, aOperationID);
 
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
   if (obsService) {
@@ -194,7 +195,8 @@ IPCResult CookieServiceChild::RecvRemoveCookie(const CookieStruct& aCookie,
 }
 
 void CookieServiceChild::RemoveSingleCookie(const CookieStruct& aCookie,
-                                            const OriginAttributes& aAttrs) {
+                                            const OriginAttributes& aAttrs,
+                                            const Maybe<nsID>& aOperationID) {
   nsCString baseDomain;
   CookieCommons::GetBaseDomainFromHost(mTLDService, aCookie.host(), baseDomain);
   CookieKey key(baseDomain, aAttrs);
@@ -218,18 +220,20 @@ void CookieServiceChild::RemoveSingleCookie(const CookieStruct& aCookie,
         cookie->Path().Equals(aCookie.path()) &&
         cookie->Expiry() <= aCookie.expiry()) {
       cookiesList->RemoveElementAt(i);
-      NotifyObservers(cookie, aAttrs, CookieNotificationAction::CookieDeleted);
+      NotifyObservers(cookie, aAttrs, CookieNotificationAction::CookieDeleted,
+                      aOperationID);
       break;
     }
   }
 }
 
 IPCResult CookieServiceChild::RecvAddCookie(const CookieStruct& aCookie,
-                                            const OriginAttributes& aAttrs) {
+                                            const OriginAttributes& aAttrs,
+                                            const Maybe<nsID>& aOperationID) {
   RefPtr<Cookie> cookie = Cookie::Create(aCookie, aAttrs);
 
   CookieNotificationAction action = RecordDocumentCookie(cookie, aAttrs);
-  NotifyObservers(cookie, aAttrs, action);
+  NotifyObservers(cookie, aAttrs, action, aOperationID);
 
   // signal test code to check their cookie list
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
@@ -246,7 +250,7 @@ IPCResult CookieServiceChild::RecvRemoveBatchDeletedCookies(
   MOZ_ASSERT(aCookiesList.Length() == aAttrsList.Length());
   for (uint32_t i = 0; i < aCookiesList.Length(); i++) {
     CookieStruct cookieStruct = aCookiesList.ElementAt(i);
-    RemoveSingleCookie(cookieStruct, aAttrsList.ElementAt(i));
+    RemoveSingleCookie(cookieStruct, aAttrsList.ElementAt(i), Nothing());
   }
 
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
@@ -642,7 +646,8 @@ void CookieServiceChild::AddCookieFromDocument(
 
 void CookieServiceChild::NotifyObservers(Cookie* aCookie,
                                          const OriginAttributes& aAttrs,
-                                         CookieNotificationAction aAction) {
+                                         CookieNotificationAction aAction,
+                                         const Maybe<nsID>& aOperationID) {
   nsICookieNotification::Action notificationAction;
   switch (aAction) {
     case CookieNotificationAction::NoActionNeeded:
@@ -671,7 +676,8 @@ void CookieServiceChild::NotifyObservers(Cookie* aCookie,
                                        baseDomain);
 
   nsCOMPtr<nsICookieNotification> notification =
-      new CookieNotification(notificationAction, aCookie, baseDomain);
+      new CookieNotification(notificationAction, aCookie, baseDomain, false,
+                             nullptr, 0, aOperationID.ptrOr(nullptr));
 
   os->NotifyObservers(
       notification,

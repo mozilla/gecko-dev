@@ -89,7 +89,8 @@ class CookieService final : public nsICookieService,
    * with OriginAttributes parameter.
    */
   nsresult Remove(const nsACString& aHost, const OriginAttributes& aAttrs,
-                  const nsACString& aName, const nsACString& aPath);
+                  const nsACString& aName, const nsACString& aPath,
+                  const nsID* aOperationID);
 
   bool SetCookiesFromIPC(const nsACString& aBaseDomain,
                          const OriginAttributes& aAttrs, nsIURI* aHostURI,
