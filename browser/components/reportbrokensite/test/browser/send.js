@@ -177,6 +177,14 @@ async function getExpectedWebCompatInfo(tab, snapshot, fullAppData = false) {
         "gfx.webrender.software",
         false
       ),
+      thirdPartyCookieBlockingEnabled: Services.prefs.getBoolPref(
+        "network.cookie.cookieBehavior.optInPartitioning",
+        false
+      ),
+      thirdPartyCookieBlockingEnabledInPbm: Services.prefs.getBoolPref(
+        "network.cookie.cookieBehavior.optInPartitioning.pbmode",
+        false
+      ),
     },
     security: {
       antispyware: securityStringToArray(registeredAntiSpyware),

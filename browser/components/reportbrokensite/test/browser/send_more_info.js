@@ -67,6 +67,10 @@ async function reformatExpectedWebCompatInfo(tab, overrides) {
     opaqueResponseBlocking: "browser.opaqueResponseBlocking",
     resistFingerprintingEnabled: "privacy.resistFingerprinting",
     softwareWebrender: "gfx.webrender.software",
+    thirdPartyCookieBlockingEnabled:
+      "network.cookie.cookieBehavior.optInPartitioning",
+    thirdPartyCookieBlockingEnabledInPbm:
+      "network.cookie.cookieBehavior.optInPartitioning.pbmode",
   })) {
     if (key in prefs) {
       finalPrefs[pref] = prefs[key];
