@@ -92,7 +92,10 @@ void ScrollSnapInfo::ForEachValidTargetFor(
     // Ignore snap points if snapping to the point would leave the snap area
     // outside of the snapport.
     // https://drafts.csswg.org/css-scroll-snap-1/#snap-scope
-    if (!snappedPort.Intersects(target.mSnapArea)) {
+    //
+    // NOTE: We don't use BaseRect::Intersects() here since the function returns
+    // false in cases where the given rectangle is empty.
+    if (!snappedPort.EdgeInclusiveIntersection(target.mSnapArea)) {
       continue;
     }
 
