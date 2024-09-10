@@ -417,6 +417,8 @@ urlbar-searchmode-history =
     .label = History
 urlbar-searchmode-actions =
     .label = Actions
+urlbar-searchmode-exit-button =
+    .tooltiptext = Close
 
 urlbar-searchmode-popup-description = This time search with:
 urlbar-searchmode-popup-search-settings = Search Settings
