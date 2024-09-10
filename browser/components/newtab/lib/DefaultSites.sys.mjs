@@ -6,19 +6,19 @@ const DEFAULT_SITES_MAP = new Map([
   // This first item is the global list fallback for any unexpected geos
   [
     "",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://www.amazon.com/,https://twitter.com/",
+    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.reddit.com/,https://twitter.com/",
   ],
   [
     "US",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.amazon.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
+    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
   ],
   [
     "CA",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://www.amazon.ca/,https://twitter.com/",
+    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.wikipedia.org/,https://twitter.com/",
   ],
   [
     "DE",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.amazon.de/,https://www.ebay.de/,https://www.wikipedia.org/,https://www.reddit.com/",
+    "https://www.youtube.com/,https://www.facebook.com/,https://www.ebay.de/,https://www.wikipedia.org/,https://www.reddit.com/",
   ],
   [
     "PL",
@@ -30,11 +30,11 @@ const DEFAULT_SITES_MAP = new Map([
   ],
   [
     "GB",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.amazon.co.uk/,https://www.bbc.co.uk/,https://www.ebay.co.uk/",
+    "https://www.youtube.com/,https://www.facebook.com/,https://www.reddit.com/,https://www.bbc.co.uk/,https://www.ebay.co.uk/",
   ],
   [
     "FR",
-    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.amazon.fr/,https://www.leboncoin.fr/,https://twitter.com/",
+    "https://www.youtube.com/,https://www.facebook.com/,https://www.wikipedia.org/,https://www.leboncoin.fr/,https://twitter.com/",
   ],
   [
     "CN",
