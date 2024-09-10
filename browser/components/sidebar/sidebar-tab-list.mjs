@@ -42,9 +42,11 @@ export class SidebarTabList extends FxviewTabListBase {
     return html`
       <sidebar-tab-row
         ?active=${i == this.activeIndex}
-        .closedId=${ifDefined(tabItem.closedId || tabItem.closedId)}
+        .canClose=${ifDefined(tabItem.canClose)}
+        .closedId=${ifDefined(tabItem.closedId)}
         compact
         .currentActiveElementId=${this.currentActiveElementId}
+        .closeRequested=${tabItem.closeRequested}
         .fxaDeviceId=${ifDefined(tabItem.fxaDeviceId)}
         .favicon=${tabItem.icon}
         .hasPopup=${this.hasPopup}
@@ -111,7 +113,10 @@ export class SidebarTabRow extends FxviewTabRowBase {
         href="chrome://browser/content/sidebar/sidebar-tab-row.css"
       />
       <a
-        class="fxview-tab-row-main"
+        class=${classMap({
+          "fxview-tab-row-main": true,
+        })}
+        disabled=${this.closeRequested}
         data-l10n-args=${ifDefined(this.primaryL10nArgs)}
         data-l10n-id=${ifDefined(this.primaryL10nId)}
         href=${ifDefined(this.url)}

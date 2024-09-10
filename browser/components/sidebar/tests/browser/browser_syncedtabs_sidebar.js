@@ -34,6 +34,7 @@ const tabClients = [
         availableCommands: {
           "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
         },
+        secondaryL10nArgs: '{"deviceName": "My Desktop"}',
       },
       {
         device: "My desktop",
@@ -48,6 +49,7 @@ const tabClients = [
         availableCommands: {
           "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
         },
+        secondaryL10nArgs: '{"deviceName": "My Desktop"}',
       },
     ],
   },
@@ -68,9 +70,8 @@ const tabClients = [
         lastUsed: 1655291890, // Wed Jun 15 2022 11:18:10 GMT+0000
         client: 2,
         fxaDeviceId: "2",
-        availableCommands: {
-          "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
-        },
+        availableCommands: {},
+        secondaryL10nArgs: '{"deviceName": "My iphone"}',
       },
       {
         device: "My iphone",
@@ -82,9 +83,8 @@ const tabClients = [
         lastUsed: 1655727485, // Mon Jun 20 2022 12:18:05 GMT+0000
         client: 2,
         fxaDeviceId: "2",
-        availableCommands: {
-          "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
-        },
+        availableCommands: {},
+        secondaryL10nArgs: '{"deviceName": "My iphone"}',
       },
     ],
   },
@@ -126,32 +126,48 @@ add_task(async function test_tabs() {
         content
       );
 
-      // We need to use renderRoot since Lit components querySelector
-      // won't return the right things
-      await BrowserTestUtils.waitForCondition(
-        () => row.renderRoot.querySelector(".dismiss-button") !== null,
-        `Dismiss button should appear for tab ${j + 1}`
-      );
-      // Check the presence of the dismiss button
-      const dismissButton = row.renderRoot.querySelector(".dismiss-button");
-      Assert.ok(dismissButton, `Dismiss button is present on tab ${j + 1}.`);
-      // Simulate clicking the dismiss button
-      EventUtils.synthesizeMouseAtCenter(dismissButton, {}, content);
-
-      await TestUtils.waitForCondition(() => {
-        const undoButton = row.renderRoot.querySelector(".undo-button");
-        return undoButton && undoButton.style.display !== "none";
-      }, `Undo button is shown after dismissing tab ${j + 1}.`);
-
-      // Simulate clicking the undo button
-      const undoButton = row.renderRoot.querySelector(".undo-button");
-      EventUtils.synthesizeMouseAtCenter(undoButton, {}, content);
-      await TestUtils.waitForCondition(() => {
-        return (
-          row.renderRoot.querySelector(".dismiss-button") &&
-          !row.renderRoot.querySelector(".undo-button")
+      // We set the second client to not have CloseTab as an available command
+      // to ensure we properly test that path
+      if (client.id === 2) {
+        Assert.ok(
+          !row.renderRoot.querySelector(".dismiss-button"),
+          `Dismiss button should NOT appear for tab ${
+            j + 1
+          } on the client that does not have available commands.`
         );
-      }, `Dismiss button is restored after undoing tab ${j + 1}.`);
+      } else {
+        // We need to use renderRoot since Lit components querySelector
+        // won't return the right things
+        await BrowserTestUtils.waitForCondition(
+          () => row.renderRoot.querySelector(".dismiss-button") !== null,
+          `Dismiss button should appear for tab ${j + 1}`
+        );
+        // Check the presence of the dismiss button
+        const dismissButton = row.renderRoot.querySelector(".dismiss-button");
+        Assert.ok(dismissButton, `Dismiss button is present on tab ${j + 1}.`);
+        // Simulate clicking the dismiss button
+        EventUtils.synthesizeMouseAtCenter(dismissButton, {}, content);
+
+        await TestUtils.waitForCondition(() => {
+          const undoButton = row.renderRoot.querySelector(".undo-button");
+          return undoButton && undoButton.style.display !== "none";
+        }, `Undo button is shown after dismissing tab ${j + 1}.`);
+
+        // Simulate clicking the undo button
+        const undoButton = row.renderRoot.querySelector(".undo-button");
+        EventUtils.synthesizeMouseAtCenter(
+          row.mainEl,
+          { type: "mouseover" },
+          content
+        );
+        EventUtils.synthesizeMouseAtCenter(undoButton, {}, content);
+        await TestUtils.waitForCondition(() => {
+          return (
+            row.renderRoot.querySelector(".dismiss-button") &&
+            !row.renderRoot.querySelector(".undo-button")
+          );
+        }, `Dismiss button is restored after undoing tab ${j + 1}.`);
+      }
     }
   }
 
@@ -184,4 +200,45 @@ add_task(async function test_syncedtabs_searchbox_focus() {
     searchTextbox,
     "Check search box is focused"
   );
+  SidebarController.hide();
+});
+
+add_task(async function test_close_remote_tab_context_menu() {
+  const sandbox = sinon.createSandbox();
+  sandbox.stub(lazy.SyncedTabsErrorHandler, "getErrorType").returns(null);
+  sandbox.stub(lazy.TabsSetupFlowManager, "uiStateIndex").value(4);
+  sandbox.stub(lazy.SyncedTabs, "getTabClients").resolves(tabClients);
+  sandbox
+    .stub(lazy.SyncedTabs, "createRecentTabsList")
+    .resolves(tabClients.flatMap(client => client.tabs));
+
+  await SidebarController.show("viewTabsSidebar");
+  const { contentDocument } = SidebarController.browser;
+  const component = contentDocument.querySelector("sidebar-syncedtabs");
+  Assert.ok(component, "Synced tabs panel is shown.");
+  const contextMenu = SidebarController.currentContextMenu;
+
+  // Verify that the context menu is available
+  info("Check if the context menu is present in the DOM.");
+  Assert.ok(contextMenu, "Context menu is present.");
+
+  // Verify "Close Remote Tab" context menu item
+  info("Verify 'Close Remote Tab' context menu item.");
+  const rows = await TestUtils.waitForCondition(() => {
+    const { rowEls } = component.cards[0].querySelector("sidebar-tab-list");
+    return rowEls.length && rowEls;
+  }, "Device has the correct number of tabs.");
+  await openAndWaitForContextMenu(contextMenu, rows[0], () => {
+    const closeTabMenuItem = contextMenu.querySelector(
+      "#sidebar-context-menu-close-remote-tab"
+    );
+    Assert.ok(closeTabMenuItem, "'Close Remote Tab' menu item is present.");
+    Assert.ok(
+      !closeTabMenuItem.disabled,
+      "'Close Remote Tab' menu item is enabled."
+    );
+  });
+
+  SidebarController.hide();
+  sandbox.restore();
 });
