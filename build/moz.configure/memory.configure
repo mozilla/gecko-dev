@@ -70,10 +70,11 @@ set_config("MOZ_REPLACE_MALLOC_STATIC", replace_malloc_static)
 # crash reporter.
 @depends(
     build_project,
+    milestone,
     target,
     when="--enable-jemalloc",
 )
-def phc_default(build_project, target):
+def phc_default(build_project, milestone, target):
     if build_project == "js":
         return False
 
@@ -85,6 +86,7 @@ def phc_default(build_project, target):
         (target.os == "GNU" and target.kernel == "Linux")
         or (target.kernel == "WINNT")
         or (target.os == "OSX")
+        or (target.os == "Android" and milestone.is_early_beta_or_earlier)
     )
 
 
