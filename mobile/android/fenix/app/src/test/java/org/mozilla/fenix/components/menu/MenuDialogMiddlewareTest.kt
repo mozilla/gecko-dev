@@ -667,6 +667,8 @@ class MenuDialogMiddlewareTest {
     fun `GIVEN selected tab has external app WHEN open in app action is dispatched THEN the site is opened in app`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissWasCalled = false
+
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
                 url = url,
@@ -677,6 +679,7 @@ class MenuDialogMiddlewareTest {
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
         val getRedirect: AppLinksUseCases.GetAppLinkRedirect = mock()
@@ -696,12 +699,15 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(openAppLinkRedirect).invoke(appIntent = intent)
+        assertTrue(dismissWasCalled)
     }
 
     @Test
     fun `GIVEN selected tab does not have external app WHEN open in app action is dispatched THEN the site is not opened in app`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"
+        var dismissWasCalled = false
+
         val browserMenuState = BrowserMenuState(
             selectedTab = createTab(
                 url = url,
@@ -712,6 +718,7 @@ class MenuDialogMiddlewareTest {
             menuState = MenuState(
                 browserMenuState = browserMenuState,
             ),
+            onDismiss = { dismissWasCalled = true },
         )
 
         val getRedirect: AppLinksUseCases.GetAppLinkRedirect = mock()
@@ -728,6 +735,7 @@ class MenuDialogMiddlewareTest {
         store.waitUntilIdle()
 
         verify(openAppLinkRedirect, never()).invoke(appIntent = intent)
+        assertFalse(dismissWasCalled)
     }
 
     @Test
