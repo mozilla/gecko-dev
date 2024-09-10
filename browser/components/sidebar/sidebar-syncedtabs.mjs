@@ -30,7 +30,6 @@ class SyncedTabsInSidebar extends SidebarPage {
   constructor() {
     super();
     this.onSearchQuery = this.onSearchQuery.bind(this);
-    this.onSecondaryAction = this.onSecondaryAction.bind(this);
   }
 
   connectedCallback() {
@@ -49,21 +48,10 @@ class SyncedTabsInSidebar extends SidebarPage {
   }
 
   handleContextMenuEvent(e) {
-    this.triggerNode = this.findTriggerNode(e, "sidebar-tab-row");
+    this.triggerNode = this.findTriggerNode(e, "fxview-tab-row");
     if (!this.triggerNode) {
       e.preventDefault();
-      return;
     }
-    const contextMenu = this._contextMenu;
-    const closeTabMenuItem = contextMenu.querySelector(
-      "#sidebar-context-menu-close-remote-tab"
-    );
-    closeTabMenuItem.setAttribute(
-      "data-l10n-args",
-      this.triggerNode.secondaryL10nArgs
-    );
-    // Enable the feature only if the device supports it
-    closeTabMenuItem.disabled = !this.triggerNode.canClose;
   }
 
   handleCommandEvent(e) {
@@ -74,13 +62,6 @@ class SyncedTabsInSidebar extends SidebarPage {
           this.triggerNode.title
         );
         break;
-      case "sidebar-context-menu-close-remote-tab":
-        this.requestOrRemoveTabToClose(
-          this.triggerNode.url,
-          this.triggerNode.fxaDeviceId,
-          this.triggerNode.secondaryActionClass
-        );
-        break;
       default:
         super.handleCommandEvent(e);
         break;
@@ -89,22 +70,6 @@ class SyncedTabsInSidebar extends SidebarPage {
 
   handleSidebarFocusedEvent() {
     this.searchTextbox?.focus();
-  }
-
-  onSecondaryAction(e) {
-    const { url, fxaDeviceId, secondaryActionClass } = e.originalTarget;
-    this.requestOrRemoveTabToClose(url, fxaDeviceId, secondaryActionClass);
-  }
-
-  requestOrRemoveTabToClose(url, fxaDeviceId, secondaryActionClass) {
-    if (secondaryActionClass === "dismiss-button") {
-      // Set new pending close tab
-      this.controller.requestCloseRemoteTab(fxaDeviceId, url);
-    } else if (secondaryActionClass === "undo-button") {
-      // User wants to undo
-      this.controller.removePendingTabToClose(fxaDeviceId, url);
-    }
-    this.requestUpdate();
   }
 
   /**
@@ -172,13 +137,12 @@ class SyncedTabsInSidebar extends SidebarPage {
       icon
       class=${deviceType}
     >
-      <sidebar-tab-list
+      <fxview-tab-list
         compactRows
-        .tabItems=${tabItems}
+        .tabItems=${ifDefined(tabItems)}
         .updatesPaused=${false}
         .searchQuery=${this.controller.searchQuery}
         @fxview-tab-list-primary-action=${navigateToLink}
-        @fxview-tab-list-secondary-action=${this.onSecondaryAction}
       />
     </moz-card>`;
   }
@@ -228,63 +192,15 @@ class SyncedTabsInSidebar extends SidebarPage {
    */
   deviceListTemplate() {
     return Object.values(this.controller.getRenderInfo()).map(
-      ({ name: deviceName, deviceType, tabItems, canClose, tabs }) => {
+      ({ name: deviceName, deviceType, tabItems, tabs }) => {
         if (tabItems.length) {
-          return this.deviceTemplate(
-            deviceName,
-            deviceType,
-            this.getTabItems(tabItems, deviceName, canClose)
-          );
+          return this.deviceTemplate(deviceName, deviceType, tabItems);
         } else if (tabs.length) {
           return this.noSearchResultsTemplate(deviceName, deviceType);
         }
         return this.noDeviceTabsTemplate(deviceName, deviceType);
       }
     );
-  }
-
-  getTabItems(items, deviceName, canClose) {
-    return items
-      .map(item => {
-        // We always show the option to close remotely on right-click but
-        // disable it if the device doesn't support actually closing it
-        let secondaryL10nId = "synced-tabs-context-close-tab-title";
-        let secondaryL10nArgs = JSON.stringify({ deviceName });
-        if (!canClose) {
-          return {
-            ...item,
-            canClose,
-            secondaryL10nId,
-            secondaryL10nArgs,
-          };
-        }
-
-        // Default show the close/dismiss button
-        let secondaryActionClass = "dismiss-button";
-        item.closeRequested = false;
-
-        // If this item has been requested to be closed, show
-        // the undo instead
-        if (item.url === this.controller.lastClosedURL) {
-          secondaryActionClass = "undo-button";
-          secondaryL10nId = "text-action-undo";
-          secondaryL10nArgs = null;
-          item.closeRequested = true;
-        }
-
-        return {
-          ...item,
-          canClose,
-          secondaryActionClass,
-          secondaryL10nId,
-          secondaryL10nArgs,
-        };
-      })
-      .filter(
-        item =>
-          !this.controller.isURLQueuedToClose(item.fxaDeviceId, item.url) ||
-          item.url === this.controller.lastClosedURL
-      );
   }
 
   render() {

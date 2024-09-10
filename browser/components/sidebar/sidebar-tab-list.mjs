@@ -42,20 +42,16 @@ export class SidebarTabList extends FxviewTabListBase {
     return html`
       <sidebar-tab-row
         ?active=${i == this.activeIndex}
-        .canClose=${ifDefined(tabItem.canClose)}
-        .closedId=${ifDefined(tabItem.closedId)}
+        .closedId=${ifDefined(tabItem.closedId || tabItem.closedId)}
         compact
         .currentActiveElementId=${this.currentActiveElementId}
-        .closeRequested=${tabItem.closeRequested}
-        .fxaDeviceId=${ifDefined(tabItem.fxaDeviceId)}
         .favicon=${tabItem.icon}
         .hasPopup=${this.hasPopup}
         .primaryL10nArgs=${ifDefined(tabItem.primaryL10nArgs)}
         .primaryL10nId=${tabItem.primaryL10nId}
         role="listitem"
         .searchQuery=${ifDefined(this.searchQuery)}
-        .secondaryActionClass=${this.secondaryActionClass ??
-        tabItem.secondaryActionClass}
+        .secondaryActionClass=${this.secondaryActionClass}
         .secondaryL10nArgs=${ifDefined(tabItem.secondaryL10nArgs)}
         .secondaryL10nId=${tabItem.secondaryL10nId}
         .sourceClosedId=${ifDefined(tabItem.sourceClosedId)}
@@ -98,7 +94,7 @@ export class SidebarTabRow extends FxviewTabRowBase {
         [this.secondaryActionClass]: this.secondaryActionClass,
       })}
       data-l10n-args=${ifDefined(this.secondaryL10nArgs)}
-      data-l10n-id=${ifDefined(this.secondaryL10nId)}
+      data-l10n-id=${this.secondaryL10nId}
       id="fxview-tab-row-secondary-button"
       type="icon ghost"
       @click=${this.secondaryActionHandler}
@@ -113,10 +109,7 @@ export class SidebarTabRow extends FxviewTabRowBase {
         href="chrome://browser/content/sidebar/sidebar-tab-row.css"
       />
       <a
-        class=${classMap({
-          "fxview-tab-row-main": true,
-        })}
-        disabled=${this.closeRequested}
+        class="fxview-tab-row-main"
         data-l10n-args=${ifDefined(this.primaryL10nArgs)}
         data-l10n-id=${ifDefined(this.primaryL10nId)}
         href=${ifDefined(this.url)}

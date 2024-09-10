@@ -233,13 +233,11 @@ function setupRecentDeviceListMocks() {
       name: "My desktop",
       isCurrentDevice: true,
       type: "desktop",
-      availableCommands: {},
     },
     {
       id: 2,
       name: "My iphone",
       type: "mobile",
-      availableCommands: {},
     },
   ]);
 
@@ -248,11 +246,6 @@ function setupRecentDeviceListMocks() {
     syncEnabled: true,
     email: "email@example.com",
   });
-
-  // whatever was passed in was the "found" client
-  sandbox
-    .stub(SyncedTabs._internal, "_getClientFxaDeviceId")
-    .callsFake(clientId => clientId);
 
   return sandbox;
 }
