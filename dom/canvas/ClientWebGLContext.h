@@ -1057,6 +1057,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
 
  private:
   std::optional<dom::PredefinedColorSpace> mDrawingBufferColorSpace;
+  std::optional<dom::PredefinedColorSpace> mUnpackColorSpace;
 
  public:
   auto DrawingBufferColorSpace() const {
@@ -1064,6 +1065,12 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
                                     : dom::PredefinedColorSpace::Srgb;
   }
   void SetDrawingBufferColorSpace(dom::PredefinedColorSpace);
+
+  auto UnpackColorSpace() const {
+    return mUnpackColorSpace ? *mUnpackColorSpace
+                             : dom::PredefinedColorSpace::Srgb;
+  }
+  void SetUnpackColorSpace(dom::PredefinedColorSpace);
 
   // -
 

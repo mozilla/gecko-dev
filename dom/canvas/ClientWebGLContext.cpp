@@ -744,6 +744,12 @@ void ClientWebGLContext::SetDrawingBufferColorSpace(
   Run<RPROC(SetDrawingBufferColorSpace)>(*mDrawingBufferColorSpace);
 }
 
+void ClientWebGLContext::SetUnpackColorSpace(
+    const dom::PredefinedColorSpace val) {
+  mUnpackColorSpace = val;
+  Run<RPROC(SetUnpackColorSpace)>(*mUnpackColorSpace);
+}
+
 void ClientWebGLContext::GetContextAttributes(
     dom::Nullable<dom::WebGLContextAttributes>& retval) {
   retval.SetNull();
