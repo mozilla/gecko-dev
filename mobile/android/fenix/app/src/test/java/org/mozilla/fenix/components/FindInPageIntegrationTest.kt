@@ -54,6 +54,7 @@ class FindInPageIntegrationTest {
 
         integration.launch()
 
+        assertEquals(true, integration.isFeatureActive)
         verify { engine.setDynamicToolbarMaxHeight(findInPageHeight) }
         verify { engineView.translationY = 0f }
         assertEquals(engineViewLayoutParams.topMargin, 0)
@@ -77,6 +78,7 @@ class FindInPageIntegrationTest {
 
         integration.launch()
 
+        assertEquals(true, integration.isFeatureActive)
         verify { engine.setDynamicToolbarMaxHeight(findInPageHeight) }
         verify { engineView.translationY = 0f }
         assertEquals(engineViewLayoutParams.topMargin, 0)
@@ -95,6 +97,7 @@ class FindInPageIntegrationTest {
 
         integration.feature.unbind()
 
+        assertEquals(false, integration.isFeatureActive)
         verify { appStore.dispatch(FindInPageAction.FindInPageDismissed) }
         verify { findInPageBar.isVisible = false }
         val updatedContentHeight = toolbar1.height + toolbar2.height

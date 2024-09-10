@@ -45,6 +45,13 @@ class FindInPageIntegration(
     @VisibleForTesting
     internal val feature by lazy { FindInPageFeature(store, view, engineView, ::onClose) }
     private var engineViewLayoutData: EngineViewLayoutData? = null
+    private var _isFeatureActive = false
+
+    /**
+     * Check if the find in page feature is active in this instant.
+     */
+    val isFeatureActive
+        get() = _isFeatureActive
 
     override fun start() {
         feature.start()
@@ -63,6 +70,7 @@ class FindInPageIntegration(
         view.visibility = View.GONE
         restorePreviousLayout()
         appStore.dispatch(FindInPageAction.FindInPageDismissed)
+        _isFeatureActive = false
     }
 
     /**
@@ -75,6 +83,7 @@ class FindInPageIntegration(
 
     private fun onLaunch(view: View, feature: LifecycleAwareFeature) {
         store.state.findCustomTabOrSelectedTab(sessionId)?.let { tab ->
+            _isFeatureActive = true
             prepareLayoutForFindBar()
 
             view.visibility = View.VISIBLE

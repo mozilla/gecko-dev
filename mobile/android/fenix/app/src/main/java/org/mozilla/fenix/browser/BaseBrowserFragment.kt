@@ -2482,8 +2482,10 @@ abstract class BaseBrowserFragment :
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
-        _browserToolbarView?.let {
-            onUpdateToolbarForConfigurationChange(it)
+        if (findInPageIntegration.get()?.isFeatureActive != true) {
+            _browserToolbarView?.let {
+                onUpdateToolbarForConfigurationChange(it)
+            }
         }
     }
 
