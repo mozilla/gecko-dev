@@ -377,13 +377,13 @@ class TestProvider extends UrlbarTestUtils.TestProvider {
       {
         name: DISMISS_ONE_COMMAND,
         l10n: {
-          id: "firefox-suggest-weather-command-not-interested",
+          id: "firefox-suggest-command-not-interested",
         },
       },
       {
         name: DISMISS_ALL_COMMAND,
         l10n: {
-          id: "firefox-suggest-weather-command-not-interested",
+          id: "firefox-suggest-command-not-interested",
         },
       },
     ];

@@ -11,9 +11,7 @@ const BASE_CONTENT = {
           alt_text: "Test alt",
         },
         email: {
-          link_text: {
-            string_id: "spotlight-focus-promo-email-link",
-          },
+          link_text: "Email yourself a link",
         },
         marketplace_buttons: ["ios", "android"],
       },

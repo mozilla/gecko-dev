@@ -315,10 +315,10 @@ skip-if = [
   "os != 'android'",
 ]
 
-["test_bug1913022.js"]
-
 ["test_bug1889130.js"]
 skip-if = ["os == 'win'"] # skip because 0.0.0.0 is invalid in windows platform
+
+["test_bug1913022.js"]
 
 ["test_cache-control_request.js"]
 
@@ -619,6 +619,7 @@ run-sequentially = "node server exceptions dont replay well"
 ["test_hpke_config_manager.js"]
 
 ["test_hpke_out_of_process.js"]
+firefox-appdir = "browser"
 skip-if = ["os == 'android'"] # Bug 1904406
 
 ["test_http1-proxy.js"]

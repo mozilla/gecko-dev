@@ -2,8 +2,12 @@
 <?xml-stylesheet href="chrome://global/skin" type="text/css"?>
 
 <window onload="start()"
-        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul">
+        xmlns="http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul"
+        xmlns:html="http://www.w3.org/1999/xhtml">
 
+<linkset>
+  <html:link rel="localization" href="browser/places.ftl"/>
+</linkset>
 <script src="chrome://mochikit/content/tests/SimpleTest/EventUtils.js"/>
 
 <hbox id="sidebar-search-container" align="center">

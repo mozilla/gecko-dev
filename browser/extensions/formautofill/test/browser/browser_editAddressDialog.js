@@ -440,7 +440,7 @@ add_task(async function test_countryAndStateFieldLabels() {
     for (let countryOption of doc.querySelector("#country").options) {
       // Clear L10N textContent to not leave leftovers between country tests
       for (const labelEl of doc.querySelectorAll(".label-text")) {
-        doc.l10n.setAttributes(labelEl, "");
+        delete labelEl.dataset["l10n-id"];
         labelEl.textContent = "";
       }
 
