@@ -34,9 +34,6 @@ struct CliArgs {
 
     #[clap(long, value_name = "FILE")]
     cpp_path: Utf8PathBuf,
-
-    #[clap(long, value_name = "FILE")]
-    fixture_cpp_path: Utf8PathBuf,
 }
 
 /// Configuration for all components, read from `uniffi.toml`
@@ -75,15 +72,21 @@ fn render(out_path: Utf8PathBuf, template: impl Template) -> Result<()> {
 
 fn render_cpp(
     path: Utf8PathBuf,
-    prefix: &str,
     components: &[Component],
+    fixture_components: &[Component],
     function_ids: &FunctionIds,
     object_ids: &ObjectIds,
     callback_ids: &CallbackIds,
 ) -> Result<()> {
     render(
         path,
-        CPPScaffoldingTemplate::new(prefix, components, function_ids, object_ids, callback_ids),
+        CPPScaffoldingTemplate::new(
+            components,
+            fixture_components,
+            function_ids,
+            object_ids,
+            callback_ids,
+        ),
     )
 }
 
@@ -119,15 +122,7 @@ pub fn run_main() -> Result<()> {
 
     render_cpp(
         args.cpp_path,
-        "UniFFI",
         &components.components,
-        &function_ids,
-        &object_ids,
-        &callback_ids,
-    )?;
-    render_cpp(
-        args.fixture_cpp_path,
-        "UniFFIFixtures",
         &components.fixture_components,
         &function_ids,
         &object_ids,
