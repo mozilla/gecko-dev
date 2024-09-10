@@ -104,7 +104,6 @@ struct ChannelPixelLayout;
 class Credential;
 class ClientSource;
 class Console;
-class CookieStore;
 class Crypto;
 class CustomElementRegistry;
 class DataTransfer;
@@ -654,8 +653,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   already_AddRefed<mozilla::dom::Console> GetConsole(JSContext* aCx,
                                                      mozilla::ErrorResult& aRv);
-
-  already_AddRefed<mozilla::dom::CookieStore> CookieStore();
 
   // https://w3c.github.io/webappsec-secure-contexts/#dom-window-issecurecontext
   bool IsSecureContext() const;
@@ -1377,7 +1374,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   RefPtr<mozilla::dom::Crypto> mCrypto;
   RefPtr<mozilla::dom::cache::CacheStorage> mCacheStorage;
   RefPtr<mozilla::dom::Console> mConsole;
-  RefPtr<mozilla::dom::CookieStore> mCookieStore;
   RefPtr<mozilla::dom::Worklet> mPaintWorklet;
   RefPtr<mozilla::dom::External> mExternal;
   RefPtr<mozilla::dom::InstallTriggerImpl> mInstallTrigger;

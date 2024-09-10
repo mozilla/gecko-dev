@@ -55,7 +55,6 @@ class ClientInfo;
 class ClientSource;
 class Clients;
 class Console;
-class CookieStore;
 class Crypto;
 class DOMString;
 class DebuggerNotificationManager;
@@ -483,8 +482,6 @@ class ServiceWorkerGlobalScope final : public WorkerGlobalScope {
 
   void EventListenerAdded(nsAtom* aType) override;
 
-  already_AddRefed<mozilla::dom::CookieStore> CookieStore();
-
   IMPL_EVENT_HANDLER(message)
   IMPL_EVENT_HANDLER(messageerror)
 
@@ -493,8 +490,6 @@ class ServiceWorkerGlobalScope final : public WorkerGlobalScope {
 
   IMPL_EVENT_HANDLER(push)
   IMPL_EVENT_HANDLER(pushsubscriptionchange)
-
-  IMPL_EVENT_HANDLER(cookiechange)
 
  private:
   ~ServiceWorkerGlobalScope();
@@ -505,7 +500,6 @@ class ServiceWorkerGlobalScope final : public WorkerGlobalScope {
   const nsString mScope;
   RefPtr<ServiceWorkerRegistration> mRegistration;
   SafeRefPtr<extensions::ExtensionBrowser> mExtensionBrowser;
-  RefPtr<mozilla::dom::CookieStore> mCookieStore;
 };
 
 class WorkerDebuggerGlobalScope final : public WorkerGlobalScopeBase {

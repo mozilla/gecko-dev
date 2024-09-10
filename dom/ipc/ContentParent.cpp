@@ -3845,8 +3845,6 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
     auto* cs = static_cast<CookieServiceParent*>(csParent);
-    MOZ_ASSERT(mCookieInContentListCache.IsEmpty());
-
     if (action == nsICookieNotification::COOKIES_BATCH_DELETED) {
       nsCOMPtr<nsIArray> cookieList;
       DebugOnly<nsresult> rv =
@@ -3868,7 +3866,7 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     nsCOMPtr<nsICookie> xpcCookie;
-    nsresult rv = notification->GetCookie(getter_AddRefs(xpcCookie));
+    DebugOnly<nsresult> rv = notification->GetCookie(getter_AddRefs(xpcCookie));
     NS_ASSERTION(NS_SUCCEEDED(rv) && xpcCookie, "couldn't get cookie");
 
     // only broadcast the cookie change to content processes that need it
@@ -3879,17 +3877,11 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
 
-    nsID* operationID = nullptr;
-    rv = notification->GetOperationID(&operationID);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return NS_OK;
-    }
-
     if (action == nsICookieNotification::COOKIE_DELETED) {
-      cs->RemoveCookie(cookie, operationID);
+      cs->RemoveCookie(cookie);
     } else if (action == nsICookieNotification::COOKIE_ADDED ||
                action == nsICookieNotification::COOKIE_CHANGED) {
-      cs->AddCookie(cookie, operationID);
+      cs->AddCookie(cookie);
     }
   } else if (!strcmp(aTopic, NS_NETWORK_LINK_TYPE_TOPIC)) {
     UpdateNetworkLinkType();
@@ -6139,17 +6131,6 @@ nsresult ContentParent::TransmitPermissionsForPrincipal(
   }
 
   return NS_OK;
-}
-
-void ContentParent::AddPrincipalToCookieInProcessCache(
-    nsIPrincipal* aPrincipal) {
-  MOZ_ASSERT(aPrincipal);
-  mCookieInContentListCache.AppendElement(aPrincipal);
-}
-
-void ContentParent::TakeCookieInProcessCache(
-    nsTArray<nsCOMPtr<nsIPrincipal>>& aList) {
-  aList.SwapElements(mCookieInContentListCache);
 }
 
 void ContentParent::TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal) {

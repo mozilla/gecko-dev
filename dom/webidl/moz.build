@@ -480,8 +480,6 @@ WEBIDL_FILES = [
     "Console.webidl",
     "ConstantSourceNode.webidl",
     "ConvolverNode.webidl",
-    "CookieChangeEvent.webidl",
-    "CookieStore.webidl",
     "CreateOfferRequest.webidl",
     "CredentialManagement.webidl",
     "Crypto.webidl",

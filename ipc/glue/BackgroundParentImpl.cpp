@@ -18,7 +18,6 @@
 #include "mozilla/dom/BackgroundSessionStorageServiceParent.h"
 #include "mozilla/dom/ClientManagerActors.h"
 #include "mozilla/dom/ContentParent.h"
-#include "mozilla/dom/CookieStoreParent.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/dom/EndpointForReportParent.h"
 #include "mozilla/dom/FetchParent.h"
@@ -819,27 +818,6 @@ bool BackgroundParentImpl::DeallocPBroadcastChannelParent(
   MOZ_ASSERT(aActor);
 
   delete static_cast<BroadcastChannelParent*>(aActor);
-  return true;
-}
-
-mozilla::dom::PCookieStoreParent*
-BackgroundParentImpl::AllocPCookieStoreParent() {
-  AssertIsInMainProcess();
-  AssertIsOnBackgroundThread();
-
-  RefPtr<mozilla::dom::CookieStoreParent> actor =
-      new mozilla::dom::CookieStoreParent();
-  return actor.forget().take();
-}
-
-bool BackgroundParentImpl::DeallocPCookieStoreParent(
-    PCookieStoreParent* aActor) {
-  AssertIsInMainProcess();
-  AssertIsOnBackgroundThread();
-  MOZ_ASSERT(aActor);
-
-  RefPtr<mozilla::dom::CookieStoreParent> actor =
-      dont_AddRef(static_cast<mozilla::dom::CookieStoreParent*>(aActor));
   return true;
 }
 

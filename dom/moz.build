@@ -37,7 +37,6 @@ DIRS += [
     "chrome-webidl",
     "clients",
     "commandhandler",
-    "cookiestore",
     "credentialmanagement",
     "crypto",
     "debugger",
