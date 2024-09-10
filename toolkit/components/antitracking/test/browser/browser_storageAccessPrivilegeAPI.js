@@ -274,7 +274,7 @@ add_task(async function test_privilege_api_with_dFPI() {
     await noStorageAccessInitially();
 
     is(document.cookie, "", "No cookies for me");
-    document.cookie = "name=partitioned";
+    document.cookie = "name=partitioned; SameSite=None; Secure; Partitioned;";
     is(
       document.cookie,
       "name=partitioned",
@@ -355,7 +355,7 @@ add_task(async function test_privilege_api_with_dFPI() {
     await noStorageAccessInitially();
 
     is(document.cookie, "", "No cookies for me");
-    document.cookie = "name=value";
+    document.cookie = "name=value; SameSite=None; Secure; Partitioned;";
     is(document.cookie, "name=value", "Setting cookie to partitioned context.");
   });
 
