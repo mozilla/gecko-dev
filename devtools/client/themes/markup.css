@@ -3,28 +3,17 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :root {
-  --markup-hidden-attr-name-color: var(--grey-43);
-  --markup-hidden-attr-value-color: var(--grey-55);
-  --markup-hidden-punctuation-color: var(--grey-43);
+  --markup-hidden-attr-name-color: light-dark(var(--grey-43), #787878);
+  --markup-hidden-attr-value-color: light-dark(var(--grey-55), #a4a4a4);
+  --markup-hidden-punctuation-color: light-dark(var(--grey-43), #787878);
   --markup-pseudoclass-disk-color: #e9c600;
-  --markup-hidden-tag-color: var(--grey-50);
-  --markup-outline: var(--theme-splitter-color);
-  --markup-drag-line: var(--grey-40);
-  --markup-drop-line: var(--blue-55);
-  --markup-overflow-causing-background-color: rgba(128, 0, 215, 0.15);
+  --markup-hidden-tag-color: light-dark(var(--grey-50), var(--grey-45));
+  --markup-outline: light-dark(var(--theme-splitter-color), var(--theme-selection-background));
+  --markup-drag-line: light-dark(var(--grey-40), var(--grey-55));
+  --markup-drop-line: light-dark(var(--blue-55), var(--blue-50));
+  --markup-overflow-causing-background-color: light-dark(rgba(128, 0, 215, 0.15), rgba(148, 0, 255, 0.38));
   --markup-new-attr-size: 2ch;
   --markup-new-attr-focused-margin-inline: 1ch 2px;
-}
-
-.theme-dark:root {
-  --markup-hidden-attr-name-color: #787878;
-  --markup-hidden-attr-value-color: #a4a4a4;
-  --markup-hidden-punctuation-color: #787878;
-  --markup-hidden-tag-color: var(--grey-45);
-  --markup-outline: var(--theme-selection-background);
-  --markup-drag-line: var(--grey-55);
-  --markup-drop-line: var(--blue-50);
-  --markup-overflow-causing-background-color: rgba(148, 0, 255, 0.38);
 }
 
 * {
