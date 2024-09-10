@@ -1,7 +1,7 @@
 # Runtime Metric Definition Subsystem: JOG
 
 ```{admonition} I'm Sorry
-Why is it caled JOG? Because it's concerned with... run... time.
+Why is it called JOG? Because it's concerned with... run... time.
 ```
 
 The normal mechanism for registering metrics,
