@@ -51,6 +51,8 @@ class CookieServiceParent : public PCookieServiceParent {
   bool ProcessingCookie() { return mProcessingCookie; }
 
   bool ContentProcessHasCookie(const Cookie& cookie);
+  bool ContentProcessHasCookie(const nsACString& aHost,
+                               const OriginAttributes& aOriginAttributes);
   bool InsecureCookieOrSecureOrigin(const Cookie& cookie);
   void UpdateCookieInContentList(nsIURI* aHostURI,
                                  const OriginAttributes& aOriginAttrs);
