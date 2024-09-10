@@ -407,11 +407,11 @@ def get_decision_parameters(graph_config, options):
     # Determine if this should be a backstop push.
     parameters["backstop"] = is_backstop(parameters)
 
-    # For the android perf tasks, run them half as often
+    # For the android perf tasks, run them 50% less often
     parameters["android_perftest_backstop"] = is_backstop(
         parameters,
-        push_interval=40,
-        time_interval=60 * 8,
+        push_interval=30,
+        time_interval=60 * 6,
         backstop_strategy="android_perftest_backstop",
     )
 
