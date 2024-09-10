@@ -345,11 +345,13 @@ networking:
       would not if we considered the server time.
     bugs:
       - https://bugzilla.mozilla.org/1909980
+      - https://bugzilla.mozilla.org/1916532
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1909980#c7
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1916532#c7
     notification_emails:
       - baku@mozilla.com
-    expires: 132
+    expires: 138
     denominator_metric: networking.set_cookie
 
   dns_lookup_time:
