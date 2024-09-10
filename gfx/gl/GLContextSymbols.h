@@ -459,6 +459,21 @@ struct GLContextSymbols final {
 
   // provoking_vertex
   void(GLAPIENTRY* fProvokingVertex)(GLenum);
+
+  // GL_EXT_semaphore
+  void(GLAPIENTRY* fDeleteSemaphoresEXT)(GLsizei, const GLuint*);
+  void(GLAPIENTRY* fGenSemaphoresEXT)(GLsizei, GLuint*);
+  void(GLAPIENTRY* fGetSemaphoreParameterui64vEXT)(GLuint, GLenum, GLuint64*);
+  realGLboolean(GLAPIENTRY* fIsSemaphoreEXT)(GLuint);
+  void(GLAPIENTRY* fSemaphoreParameterui64vEXT)(GLuint, GLenum,
+                                                const GLuint64*);
+  void(GLAPIENTRY* fSignalSemaphoreEXT)(GLuint, GLuint, const GLuint*, GLuint,
+                                        const GLuint*, const GLenum*);
+  void(GLAPIENTRY* fWaitSemaphoreEXT)(GLuint, GLuint, const GLuint*, GLuint,
+                                      const GLuint*, const GLenum*);
+
+  // GL_EXT_semaphore_fd
+  void(GLAPIENTRY* fImportSemaphoreFdEXT)(GLuint, GLenum, GLint);
 };
 
 }  // namespace gl

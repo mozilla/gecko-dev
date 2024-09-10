@@ -178,6 +178,8 @@ static const char* const sExtensionNames[] = {
     "GL_EXT_timer_query",
     "GL_EXT_transform_feedback",
     "GL_EXT_unpack_subimage",
+    "GL_EXT_semaphore",
+    "GL_EXT_semaphore_fd",
     "GL_IMG_read_format",
     "GL_IMG_texture_compression_pvrtc",
     "GL_IMG_texture_npot",
@@ -1495,6 +1497,30 @@ void GLContext::LoadMoreSymbols(const SymbolLoader& loader) {
                                       }}},
                                      END_SYMBOLS};
     fnLoadForFeature(symbols, GLFeature::provoking_vertex);
+  }
+
+  if (IsExtensionSupported(EXT_semaphore)) {
+    const SymLoadStruct symbols[] = {
+        {(PRFuncPtr*)&mSymbols.fDeleteSemaphoresEXT,
+         {{"glDeleteSemaphoresEXT"}}},
+        {(PRFuncPtr*)&mSymbols.fGenSemaphoresEXT, {{"glGenSemaphoresEXT"}}},
+        {(PRFuncPtr*)&mSymbols.fGetSemaphoreParameterui64vEXT,
+         {{"glGetSemaphoreParameterui64vEXT"}}},
+        {(PRFuncPtr*)&mSymbols.fIsSemaphoreEXT, {{"glIsSemaphoreEXT"}}},
+        {(PRFuncPtr*)&mSymbols.fSemaphoreParameterui64vEXT,
+         {{"glSemaphoreParameterui64vEXT"}}},
+        {(PRFuncPtr*)&mSymbols.fSignalSemaphoreEXT, {{"glSignalSemaphoreEXT"}}},
+        {(PRFuncPtr*)&mSymbols.fWaitSemaphoreEXT, {{"glWaitSemaphoreEXT"}}},
+        END_SYMBOLS};
+    fnLoadForExt(symbols, EXT_semaphore);
+  }
+
+  if (IsExtensionSupported(EXT_semaphore_fd)) {
+    const SymLoadStruct symbols[] = {
+        {(PRFuncPtr*)&mSymbols.fImportSemaphoreFdEXT,
+         {{"glImportSemaphoreFdEXT"}}},
+        END_SYMBOLS};
+    fnLoadForExt(symbols, EXT_semaphore_fd);
   }
 
   // Load developer symbols, don't fail if we can't find them.

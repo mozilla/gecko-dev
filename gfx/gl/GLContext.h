@@ -457,6 +457,8 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
     EXT_timer_query,
     EXT_transform_feedback,
     EXT_unpack_subimage,
+    EXT_semaphore,
+    EXT_semaphore_fd,
     IMG_read_format,
     IMG_texture_compression_pvrtc,
     IMG_texture_npot,
@@ -3429,6 +3431,68 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
   void fProvokingVertex(GLenum mode) const {
     BEFORE_GL_CALL;
     mSymbols.fProvokingVertex(mode);
+    AFTER_GL_CALL;
+  }
+
+  // -----------------------------------------------------------------------------
+  // GL_EXT_semaphore
+  void fDeleteSemaphoresEXT(GLsizei n, const GLuint* semaphores) {
+    BEFORE_GL_CALL;
+    mSymbols.fDeleteSemaphoresEXT(n, semaphores);
+    AFTER_GL_CALL;
+  }
+
+  void fGenSemaphoresEXT(GLsizei n, GLuint* semaphores) {
+    BEFORE_GL_CALL;
+    mSymbols.fGenSemaphoresEXT(n, semaphores);
+    AFTER_GL_CALL;
+  }
+
+  void fGetSemaphoreParameterui64vEXT(GLuint semaphore, GLenum pname,
+                                      GLuint64* params) {
+    BEFORE_GL_CALL;
+    mSymbols.fGetSemaphoreParameterui64vEXT(semaphore, pname, params);
+    AFTER_GL_CALL;
+  }
+
+  realGLboolean fIsSemaphoreEXT(GLuint semaphore) {
+    realGLboolean ret = false;
+    BEFORE_GL_CALL;
+    ret = mSymbols.fIsSemaphoreEXT(semaphore);
+    AFTER_GL_CALL;
+    return ret;
+  }
+
+  void fSemaphoreParameterui64vEXT(GLuint semaphore, GLenum pname,
+                                   const GLuint64* params) {
+    BEFORE_GL_CALL;
+    mSymbols.fSemaphoreParameterui64vEXT(semaphore, pname, params);
+    AFTER_GL_CALL;
+  }
+
+  void fSignalSemaphoreEXT(GLuint semaphore, GLuint numBufferBarriers,
+                           const GLuint* buffers, GLuint numTextureBarriers,
+                           const GLuint* textures, const GLenum* dstLayouts) {
+    BEFORE_GL_CALL;
+    mSymbols.fSignalSemaphoreEXT(semaphore, numBufferBarriers, buffers,
+                                 numTextureBarriers, textures, dstLayouts);
+    AFTER_GL_CALL;
+  }
+
+  void fWaitSemaphoreEXT(GLuint semaphore, GLuint numBufferBarriers,
+                         const GLuint* buffers, GLuint numTextureBarriers,
+                         const GLuint* textures, const GLenum* srcLayouts) {
+    BEFORE_GL_CALL;
+    mSymbols.fWaitSemaphoreEXT(semaphore, numBufferBarriers, buffers,
+                               numTextureBarriers, textures, srcLayouts);
+    AFTER_GL_CALL;
+  }
+
+  // -----------------------------------------------------------------------------
+  // GL_EXT_semaphore_fd
+  void fImportSemaphoreFdEXT(GLuint semaphore, GLenum handleType, GLint fd) {
+    BEFORE_GL_CALL;
+    mSymbols.fImportSemaphoreFdEXT(semaphore, handleType, fd);
     AFTER_GL_CALL;
   }
 
