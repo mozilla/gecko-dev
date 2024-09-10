@@ -7600,28 +7600,23 @@ size_t nsLayoutUtils::SizeOfTextRunsForFrames(nsIFrame* aFrame,
 
 /* static */
 void nsLayoutUtils::RecomputeSmoothScrollDefault() {
-  if (nsContentUtils::ShouldResistFingerprinting(
-          "We use the global RFP pref to maintain consistent scroll behavior "
-          "in the browser.",
-          RFPTarget::CSSPrefersReducedMotion)) {
-    // When resist fingerprinting is enabled, we should not default disable
-    // smooth scrolls when the user prefers-reduced-motion to avoid leaking
-    // the value of the OS pref to sites.
-    Preferences::SetBool(StaticPrefs::GetPrefName_general_smoothScroll(), true,
-                         PrefValueKind::Default);
-  } else {
-    // We want prefers-reduced-motion to determine the default
-    // value of the general.smoothScroll pref. If the user
-    // changed the pref we want to respect the change.
-    Preferences::SetBool(
-        StaticPrefs::GetPrefName_general_smoothScroll(),
-        !LookAndFeel::GetInt(LookAndFeel::IntID::PrefersReducedMotion, 0),
-        PrefValueKind::Default);
-  }
+  // We want prefers-reduced-motion to determine the default
+  // value of the general.smoothScroll pref. If the user
+  // changed the pref we want to respect the change.
+  Preferences::SetBool(
+      StaticPrefs::GetPrefName_general_smoothScroll(),
+      !LookAndFeel::GetInt(LookAndFeel::IntID::PrefersReducedMotion, 0),
+      PrefValueKind::Default);
 }
 
 /* static */
 bool nsLayoutUtils::IsSmoothScrollingEnabled() {
+  if (nsContentUtils::ShouldResistFingerprinting(
+          "We use the global RFP pref to maintain consistent scroll behavior "
+          "in the browser.",
+          RFPTarget::CSSPrefersReducedMotion)) {
+    return true;
+  }
   return StaticPrefs::general_smoothScroll();
 }
 
