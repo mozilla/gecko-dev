@@ -168,8 +168,6 @@ export class ReportBrokenSiteParent extends JSWindowActorParent {
       "extensions.InstallTrigger.enabled",
       "privacy.resistFingerprinting",
       "privacy.globalprivacycontrol.enabled",
-      "network.cookie.cookieBehavior.optInPartitioning",
-      "network.cookie.cookieBehavior.optInPartitioning.pbmode",
     ]) {
       prefs[name] = Services.prefs.getBoolPref(name, undefined);
     }

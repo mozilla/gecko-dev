@@ -709,12 +709,6 @@ export var ReportBrokenSite = new (class ReportBrokenSite {
       prefs["privacy.resistFingerprinting"]
     );
     gPrefs.softwareWebrender.set(prefs["gfx.webrender.software"]);
-    gPrefs.thirdPartyCookieBlockingEnabled.set(
-      prefs["network.cookie.cookieBehavior.optInPartitioning"]
-    );
-    gPrefs.thirdPartyCookieBlockingEnabledInPbm.set(
-      prefs["network.cookie.cookieBehavior.optInPartitioning.pbmode"]
-    );
 
     if (security) {
       for (const [name, value] of Object.entries(security)) {
