@@ -12,12 +12,12 @@ use crate::selector_map::PrecomputedHashMap;
 use crate::str::HTML_SPACE_CHARACTERS;
 use crate::values::computed::LengthPercentage as ComputedLengthPercentage;
 use crate::values::computed::{Context, Percentage, ToComputedValue};
-use crate::values::generics::position::GenericAnchorFunction as GenericAnchorFunction;
-use crate::values::generics::position::{AnchorSide, AspectRatio as GenericAspectRatio};
+use crate::values::generics::position::GenericAnchorFunction;
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
 use crate::values::generics::position::ZIndex as GenericZIndex;
+use crate::values::generics::position::{AnchorSide, AspectRatio as GenericAspectRatio};
 use crate::values::specified;
 use crate::values::specified::{AllowQuirks, Integer, LengthPercentage, NonNegativeNumber};
 use crate::values::DashedIdent;
@@ -1716,7 +1716,7 @@ impl Parse for AnchorFunction {
                 })
                 .ok();
             Ok(Self {
-                target_element: target_element.into(),
+                target_element: target_element.unwrap_or_else(DashedIdent::empty),
                 side,
                 fallback: fallback.into(),
             })

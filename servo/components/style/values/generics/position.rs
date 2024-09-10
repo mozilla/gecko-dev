@@ -12,6 +12,7 @@ use style_traits::ToCss;
 
 use crate::values::animated::ToAnimatedZero;
 use crate::values::generics::ratio::Ratio;
+use crate::values::generics::Optional;
 use crate::values::DashedIdent;
 
 /// A generic type for representing a CSS [position](https://drafts.csswg.org/css-values/#position).
@@ -227,7 +228,6 @@ pub struct GenericAspectRatio<N> {
 }
 
 pub use self::GenericAspectRatio as AspectRatio;
-use crate::values::generics::Optional;
 
 impl<N> AspectRatio<N> {
     /// Returns `auto`
@@ -251,16 +251,26 @@ impl<N> ToAnimatedZero for AspectRatio<N> {
 /// to length at computed time.
 ///
 /// https://drafts.csswg.org/css-anchor-position-1/#funcdef-anchor
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToShmem, ToComputedValue, ToResolvedValue)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToShmem,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+)]
 #[repr(C)]
-pub struct GenericAnchorFunction<Percentage, LengthPercentage>
-where
-    Percentage: ToCss,
-    LengthPercentage: ToCss,
-{
+pub struct GenericAnchorFunction<Percentage, LengthPercentage> {
     /// Anchor name of the element to anchor to.
     /// If omitted, selects the implicit anchor element.
-    pub target_element: Optional<DashedIdent>,
+    #[animation(constant)]
+    pub target_element: DashedIdent,
     /// Where relative to the target anchor element to position
     /// the anchored element to.
     pub side: AnchorSide<Percentage>,
@@ -278,8 +288,8 @@ where
         W: Write,
     {
         dest.write_str("anchor(")?;
-        if let Some(t) = self.target_element.as_ref() {
-            t.to_css(dest)?;
+        if !self.target_element.is_empty() {
+            self.target_element.to_css(dest)?;
             dest.write_str(" ")?;
         }
         self.side.to_css(dest)?;
@@ -294,7 +304,21 @@ where
 
 /// Keyword values for the anchor positioning function.
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem, Parse, ToComputedValue, ToResolvedValue
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
+    Parse,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
 )]
 #[repr(u8)]
 pub enum AnchorSideKeyword {
@@ -326,7 +350,21 @@ pub enum AnchorSideKeyword {
 
 /// Anchor side for the anchor positioning function.
 #[derive(
-    Clone, Copy, Debug, MallocSizeOf, PartialEq, Parse, SpecifiedValueInfo, ToCss, ToShmem, ToComputedValue, ToResolvedValue
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    Parse,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
 )]
 #[repr(C)]
 pub enum AnchorSide<P> {

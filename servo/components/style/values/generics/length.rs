@@ -5,12 +5,11 @@
 //! Generic types for CSS values related to length.
 
 use crate::parser::{Parse, ParserContext};
+use crate::values::generics::position::GenericAnchorFunction;
 #[cfg(feature = "gecko")]
 use crate::Zero;
 use cssparser::Parser;
 use style_traits::ParseError;
-use style_traits::ToCss;
-use crate::values::generics::position::GenericAnchorFunction;
 
 /// A `<length-percentage> | auto` value.
 #[allow(missing_docs)]
@@ -332,13 +331,23 @@ impl<LengthPercent> LengthPercentageOrNormal<LengthPercent> {
 /// as well as `LengthPercentageOrAuto | AnchorFunction`. This increases
 /// the size of the style struct, which would not be great.
 /// On the other hand, we trade for code duplication, so... :(
-#[derive(Clone, Debug, MallocSizeOf, PartialEq, SpecifiedValueInfo, ToCss, ToShmem, ToComputedValue, ToResolvedValue)]
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+)]
 #[repr(C)]
-pub enum GenericInset<P, LP>
-where
-    P: ToCss,
-    LP: ToCss,
-{
+pub enum GenericInset<P, LP> {
     /// A `<length-percentage>` value.
     LengthPercentage(LP),
     /// An `auto` value.
@@ -346,14 +355,14 @@ where
     /// Inset defined by the anchor element.
     ///
     /// <https://drafts.csswg.org/css-anchor-position-1/#anchor-pos>
-    AnchorFunction(Box<GenericAnchorFunction<P, LP>>),
+    AnchorFunction(
+        #[animation(field_bound)]
+        #[distance(field_bound)]
+        Box<GenericAnchorFunction<P, LP>>,
+    ),
 }
 
-impl<P, LP> GenericInset<P, LP>
-where
-    P: ToCss,
-    LP: ToCss,
-{
+impl<P, LP> GenericInset<P, LP> {
     /// `auto` value.
     #[inline]
     pub fn auto() -> Self {
