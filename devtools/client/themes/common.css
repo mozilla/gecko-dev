@@ -15,8 +15,23 @@
 
   --tab-line-hover-color: rgba(0,0,0,.2);
   --tab-line-selected-color: var(--blue-50);
-  --toggle-thumb-color: white;
+  --toggle-thumb-color: light-dark(white, var(--grey-40));
+  --toggle-thumb-color-pressed: white;
   --toggle-track-color: var(--grey-50);
+  --toggle-track-color-pressed: var(--blue-55);
+  --toggle-track-border-color: transparent;
+  /* In regular themes, the disabled style is handled by the lowered opacity,
+     the colors fall back to their "default" values */
+  --toggle-disabled-track-border-color: var(--toggle-track-border-color);
+  --toggle-disabled-track-color-pressed: var(--toggle-track-color-pressed);
+  --toggle-disabled-thumb-color: var(--toggle-disabled-thumb-color);
+  --toggle-track-disabled-opacity: 0.5;
+  /* We don't have distinct :hover style in regular themes, the colors fall back to their
+     "default" values */
+  --toggle-hover-track-color: var(--toggle-track-color);
+  --toggle-hover-track-border-color: var(--toggle-track-border-color);
+  --toggle-hover-track-color-pressed: var(--toggle-track-color-pressed);
+  --toggle-hover-thumb-color: var(--toggle-thumb-color);
 
   --searchbox-no-match-background-color: #ffe5e5;
   --searchbox-no-match-stroke-color: var(--red-60);
@@ -24,6 +39,25 @@
   /* Don't allow forced colors in DevTools if they're not supported */
   &:not([forced-colors-active]) {
     forced-color-adjust: none;
+  }
+
+  /* Forced Colors / High Contrast Mode specifics */
+  &[forced-colors-active] {
+    --toggle-track-color: ButtonFace;
+    --toggle-track-color-pressed: ButtonText;
+    --toggle-thumb-color: ButtonText;
+    --toggle-thumb-color-pressed: ButtonFace;
+    --toggle-track-border-color: ButtonText;
+    --toggle-hover-track-color: SelectedItemText;
+    --toggle-hover-track-border-color: SelectedItem;
+    --toggle-hover-track-color-pressed: SelectedItem;
+    --toggle-hover-thumb-color: SelectedItem;
+    /* In High Contrast Mode, the opacity is not lowered, so the disabled style is
+       handled by modifiying the colors */
+    --toggle-disabled-track-border-color: GrayText;
+    --toggle-disabled-track-color-pressed: GrayText;
+    --toggle-disabled-thumb-color: GrayText;
+    --toggle-track-disabled-opacity: 1;
   }
 }
 
@@ -35,8 +69,6 @@
   color-scheme: dark;
 
   --tab-line-hover-color: rgba(255,255,255,.2);
-  --toggle-thumb-color: var(--grey-40);
-
   --searchbox-no-match-background-color: #402325;
   --searchbox-no-match-stroke-color: var(--red-50);
 }
@@ -722,24 +754,41 @@ iframe {
   width: 2em;
   height: 1em;
   border-radius: 1em;
-  border: 1px solid transparent;
+  border: 1px solid var(--toggle-track-border-color);
   box-sizing: content-box;
-  /* Animate the thumb position between states of the checkbox. */
+  /* Animate the background color between states of the checkbox. */
   transition: background-color .1s ease-out;
+
+  &:checked {
+    --x-pos: 1.15em;
+    background-color: var(--toggle-track-color-pressed);
+  }
+
+  &:hover:not(:active, [disabled]) {
+    background-color: var(--toggle-hover-track-color);
+    border-color: var(--toggle-hover-track-border-color);
+
+    &:checked {
+      background-color: var(--toggle-hover-track-color-pressed);
+    }
+
+    &:not(:checked)::before {
+      background-color: var(--toggle-hover-thumb-color);
+    }
+  }
+
+  &[disabled] {
+    opacity: var(--toggle-track-disabled-opacity);
+    --toggle-track-border-color: var(--toggle-disabled-track-border-color);
+    --toggle-track-color-pressed: var(--toggle-disabled-track-color-pressed);
+    --toggle-thumb-color: var(--toggle-disabled-thumb-color);
+  }
 }
 
-.devtools-checkbox-toggle[disabled]{
-  opacity: 0.5;
-}
 
 /* For right-to-left layout, the toggle thumb goes in the opposite direction. */
 html[dir="rtl"] .devtools-checkbox-toggle {
   --x-pos: -.15em;
-}
-
-.devtools-checkbox-toggle:checked {
-  --x-pos: 1.15em;
-  background-color: var(--blue-55);
 }
 
 html[dir="rtl"] .devtools-checkbox-toggle:checked {
@@ -759,5 +808,13 @@ html[dir="rtl"] .devtools-checkbox-toggle:checked {
 }
 
 .devtools-checkbox-toggle:checked::before {
-  background-color: white;
+  background-color: var(--toggle-thumb-color-pressed);
+}
+
+/* Remove transition on toggle when prefers reduced motion is enabled */
+@media (prefers-reduced-motion) {
+  .devtools-checkbox-toggle,
+  .devtools-checkbox-toggle::before {
+    transition: none;
+  }
 }
