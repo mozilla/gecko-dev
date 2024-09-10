@@ -110,7 +110,7 @@ void SetRequestHelper(const nsAString& aDomain,
       true,   //  secure
       false,  // mHttpOnly,
       aSession, aSession ? PR_Now() : aExpires, &attrs, aSameSite,
-      nsICookie::SCHEME_HTTPS);
+      nsICookie::SCHEME_HTTPS, aPartitioned);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

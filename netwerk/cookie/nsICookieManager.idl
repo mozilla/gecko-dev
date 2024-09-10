@@ -142,7 +142,8 @@ interface nsICookieManager : nsISupports
                      in int64_t     aExpiry,
                      in OriginAttributesPtr aOriginAttributes,
                      in int32_t aSameSite,
-                     in nsICookie_schemeType aSchemeMap);
+                     in nsICookie_schemeType aSchemeMap,
+                     in boolean     aIsPartitioned);
 
   /**
    * Find whether a given cookie already exists.
