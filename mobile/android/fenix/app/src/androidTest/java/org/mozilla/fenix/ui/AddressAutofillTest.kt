@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui
 
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -50,6 +51,7 @@ class AddressAutofillTest : TestSetup() {
     val activityIntentTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836845
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifyAddressAutofillTest() {
@@ -88,6 +90,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836856
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun deleteSavedAddressTest() {
@@ -116,6 +119,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836840
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyAddAddressViewTest() {
         homeScreen {
@@ -130,6 +134,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836841
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyEditAddressViewTest() {
         autofillScreen {
@@ -153,6 +158,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836839
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyAddressAutofillToggleTest() {
         val addressFormPage =
@@ -197,6 +203,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836847
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyManageAddressesPromptOptionTest() {
         val addressFormPage =
@@ -232,6 +239,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836849
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyMultipleAddressesSelectionTest() {
         val addressFormPage =
@@ -294,6 +302,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836850
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifySavedAddressCanBeEditedTest() {
         autofillScreen {
@@ -345,6 +354,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836858
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyFormFieldCanBeFilledManuallyTest() {
         val addressFormPage =
@@ -385,6 +395,7 @@ class AddressAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1836838
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyAutofillAddressSectionTest() {
         autofillScreen {

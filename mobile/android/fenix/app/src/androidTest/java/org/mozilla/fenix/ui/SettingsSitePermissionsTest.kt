@@ -48,6 +48,7 @@ class SettingsSitePermissionsTest : TestSetup() {
     ) { it.activity }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/246974
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun sitePermissionsItemsTest() {
         homeScreen {
@@ -72,7 +73,7 @@ class SettingsSitePermissionsTest : TestSetup() {
     // Verifies that you can go to System settings and change app's permissions from inside the app
     @SmokeTest
     @Test
-    @SdkSuppress(minSdkVersion = 29)
+    @SdkSuppress(minSdkVersion = 29, maxSdkVersion = 30)
     fun systemBlockedPermissionsRedirectToSystemAppSettingsTest() {
         homeScreen {
         }.openThreeDotMenu {

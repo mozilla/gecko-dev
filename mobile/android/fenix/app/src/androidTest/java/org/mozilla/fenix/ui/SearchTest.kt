@@ -9,6 +9,7 @@ import android.hardware.camera2.CameraManager
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.Espresso
+import androidx.test.filters.SdkSuppress
 import mozilla.components.feature.sitepermissions.SitePermissionsRules
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
@@ -92,6 +93,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2154189
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifySearchBarItemsTest() {
         navigationToolbar {
@@ -172,6 +174,7 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1059459
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifyQRScanningCameraAccessDialogTest() {
@@ -908,6 +911,7 @@ class SearchTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1232631
     // Expected for app language set to Arabic
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifySearchEnginesFunctionalityUsingRTLLocaleTest() {
         val arabicLocale = Locale("ar", "AR")

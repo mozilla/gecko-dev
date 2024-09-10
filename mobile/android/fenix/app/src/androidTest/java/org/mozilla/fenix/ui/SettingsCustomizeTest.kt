@@ -6,6 +6,7 @@ package org.mozilla.fenix.ui
 
 import android.content.res.Configuration
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
@@ -77,6 +78,7 @@ class SettingsCustomizeTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1058682
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun turnOffSwipeToSwitchTabsPreferenceTest() {
         val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)

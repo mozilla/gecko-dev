@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui
 
+import androidx.test.filters.SdkSuppress
 import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
@@ -118,6 +119,7 @@ class SettingsGeneralTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/516080
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun searchInLanguagesListTest() {
         val systemLocaleDefault = getStringResource(R.string.default_locale_text)

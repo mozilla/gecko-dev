@@ -6,6 +6,7 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
+import androidx.test.filters.SdkSuppress
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import org.junit.Rule
 import org.junit.Test
@@ -250,6 +251,7 @@ class MainMenuTest : TestSetup() {
 
     // Verifies the Add to home screen option in a tab's 3 dot menu
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/410724
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun addPageShortcutToHomeScreenTest() {

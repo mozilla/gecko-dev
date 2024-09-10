@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -31,6 +32,7 @@ class PwaTest : TestSetup() {
     val activityTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/845695
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun externalLinkPWATest() {
         val externalLinkURL = "https://mozilla-mobile.github.io/testapp/downloads"
@@ -51,6 +53,7 @@ class PwaTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/845694
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun appLikeExperiencePWATest() {
         navigationToolbar {
@@ -69,6 +72,7 @@ class PwaTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/834200
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun installPWAFromTheMainMenuTest() {

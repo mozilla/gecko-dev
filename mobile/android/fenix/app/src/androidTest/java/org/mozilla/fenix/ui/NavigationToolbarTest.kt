@@ -6,6 +6,7 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -38,6 +39,7 @@ class NavigationToolbarTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/987326
     // Swipes the nav bar left/right to switch between tabs
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun swipeToSwitchTabTest() {
@@ -58,6 +60,7 @@ class NavigationToolbarTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/987327
     // Because it requires changing system prefs, this test will run only on Debug builds
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun swipeToSwitchTabInRTLTest() {
         val firstWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)

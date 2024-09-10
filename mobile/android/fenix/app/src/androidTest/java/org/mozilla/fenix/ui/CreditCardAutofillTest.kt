@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui
 
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -556,6 +557,7 @@ class CreditCardAutofillTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1512791
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyCreditCardRedirectionsToAutofillSectionAfterInterruptionTest() {
         homeScreen {

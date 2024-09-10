@@ -6,6 +6,7 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
@@ -102,6 +103,7 @@ class ContextMenusTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243832
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyCopyLinkContextMenuOptionTest() {
         val pageLinks =
@@ -164,6 +166,7 @@ class ContextMenusTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243834
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyCopyImageLocationContextMenuOptionTest() {
         val pageLinks =

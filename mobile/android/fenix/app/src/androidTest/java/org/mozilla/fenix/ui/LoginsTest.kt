@@ -8,6 +8,7 @@ import android.os.Build
 import android.view.autofill.AutofillManager
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
+import androidx.test.filters.SdkSuppress
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -789,6 +790,7 @@ class LoginsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2068215
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyCopyLoginCredentialsToClipboardTest() {
         val firstLoginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)

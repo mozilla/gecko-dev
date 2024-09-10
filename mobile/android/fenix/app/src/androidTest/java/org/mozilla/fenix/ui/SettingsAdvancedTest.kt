@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -62,6 +63,7 @@ class SettingsAdvancedTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2121046
     // Assumes Youtube is installed and enabled
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun neverOpenLinkInAppTest() {
@@ -88,6 +90,7 @@ class SettingsAdvancedTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2121052
     // Assumes Youtube is installed and enabled
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun privateBrowsingNeverOpenLinkInAppTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)

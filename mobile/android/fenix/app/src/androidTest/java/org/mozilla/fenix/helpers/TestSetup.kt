@@ -3,12 +3,16 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 package org.mozilla.fenix.helpers
 
+import android.Manifest
+import android.os.Build
 import android.util.Log
+import androidx.test.rule.GrantPermissionRule
 import kotlinx.coroutines.runBlocking
 import mozilla.components.browser.state.store.BrowserStore
 import okhttp3.mockwebserver.MockWebServer
 import org.junit.After
 import org.junit.Before
+import org.junit.Rule
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.nimbus.FxNimbus
@@ -24,6 +28,16 @@ import java.util.Locale
 open class TestSetup {
     lateinit var mockWebServer: MockWebServer
     lateinit var browserStore: BrowserStore
+
+    @get:Rule
+    val generalPermissionRule: GrantPermissionRule =
+        if (Build.VERSION.SDK_INT >= 33) {
+            GrantPermissionRule.grant(
+                Manifest.permission.POST_NOTIFICATIONS,
+            )
+        } else {
+            GrantPermissionRule.grant()
+        }
 
     @Before
     open fun setUp() {

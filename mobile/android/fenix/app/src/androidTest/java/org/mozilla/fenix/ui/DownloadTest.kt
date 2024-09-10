@@ -7,6 +7,7 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.intent.rule.IntentsRule
+import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -107,6 +108,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/451563
+    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun pauseResumeCancelDownloadTest() {
@@ -232,6 +234,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/457112
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun systemNotificationCantBeDismissedWhileInProgressTest() {
         downloadRobot {
@@ -275,6 +278,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1632384
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun warningWhenClosingPrivateTabsWhileDownloadingTest() {
         homeScreen {
@@ -339,6 +343,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/244125
+    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun restartDownloadFromAppNotificationAfterConnectionIsInterruptedTest() {
         downloadFile = "3GB.zip"
