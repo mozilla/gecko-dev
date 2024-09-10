@@ -19,15 +19,14 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=846380
      * predict exactly what value the input should take on for events at
      * certain coordinates.)
      */
-    input { margin: 0 !important; width: 200px !important; padding-inline: 100px; }
+    input { margin: 0 ! important; width: 200px ! important; }
   </style>
 </head>
 <body>
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=846380">Mozilla Bug 846380</a>
 <p id="display"></p>
 <div id="content">
-  <input id="range" type="range"><br>
-  <input id="range-appearance-none" type="range" style="appearance: none">
+  <input id="range" type="range">
 </div>
 <pre id="test">
 <script type="application/javascript">
@@ -41,13 +40,10 @@ const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
  * This test checks how the value of <input type=range> changes in response to
  * various mouse and touch events.
  **/
-SimpleTest.expectAssertions(0, 2); // bug 1917867
 SimpleTest.waitForExplicitFinish();
 SimpleTest.waitForFocus(function() {
-  for (let element of document.querySelectorAll("input[type=range]")) {
-    test(element, synthesizeMouse, "click", "mousedown", "mousemove", "mouseup");
-    test(element, synthesizeTouch, "tap", "touchstart", "touchmove", "touchend");
-  }
+  test(synthesizeMouse, "click", "mousedown", "mousemove", "mouseup");
+  test(synthesizeTouch, "tap", "touchstart", "touchmove", "touchend");
   SimpleTest.finish();
 });
 
@@ -66,9 +62,8 @@ function flush() {
   document.body.clientWidth;
 }
 
-function test(elem, synthesizeFunc, clickOrTap, startName, moveName, endName) {
-  info(`Testing ${elem.id}`);
-
+function test(synthesizeFunc, clickOrTap, startName, moveName, endName) {
+  var elem = document.getElementById("range");
   elem.focus();
   flush();
 
@@ -78,13 +73,6 @@ function test(elem, synthesizeFunc, clickOrTap, startName, moveName, endName) {
   var borderTop = parseFloat(window.getComputedStyle(elem).borderTopWidth);
   var paddingLeft = parseFloat(window.getComputedStyle(elem).paddingLeft);
   var paddingTop = parseFloat(window.getComputedStyle(elem).paddingTop);
-
-  // If themed then we use our border-box size.
-  if (elem.style.appearance != "none") {
-    width += borderLeft * 2 + paddingLeft * 2;
-    borderLeft = 0;
-    paddingLeft = 0;
-  }
 
   // Extrema for mouse/touch events:
   var midY = height / 2 + borderTop + paddingTop;
@@ -218,7 +206,7 @@ function test(elem, synthesizeFunc, clickOrTap, startName, moveName, endName) {
   synthesizeKey("KEY_Home");
   // The KEY_Home tests are disabled until I can figure out why they fail on Android -jwatt
   //is(elem.value, MINIMUM_OF_RANGE, "Test KEY_Home during a drag sets the value to the minimum of the range");
-  synthesizeFunc(elem, maxX+100, midY, { type: moveName });
+  synthesizeFunc(elem, midX+100, midY, { type: moveName });
   is(elem.value, MAXIMUM_OF_RANGE, "Test " + moveName + " outside range after key press that occurred during a drag changes the value");
   synthesizeFunc(elem, midX, midY, { type: moveName });
   is(elem.value, MIDDLE_OF_RANGE, "Test " + moveName + " in middle of range");
