@@ -323,8 +323,8 @@ void WorkerErrorReport::ReportError(
 
         MOZ_ASSERT(globalScope->GetWrapperPreserveColor() == global);
 
-        RefPtr<ErrorEvent> event =
-            ErrorEvent::Constructor(aTarget, u"error"_ns, init);
+        RefPtr<ErrorEvent> event = ErrorEvent::Constructor(
+            aTarget ? aTarget : globalScope, u"error"_ns, init);
         event->SetTrusted(true);
 
         if (NS_FAILED(EventDispatcher::DispatchDOMEvent(

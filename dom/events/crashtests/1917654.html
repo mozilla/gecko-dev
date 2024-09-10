@@ -1,0 +1,17 @@
+<script id="worker" type="javascript/worker">
+(() => {
+  const func_0 = (e) => {
+    e.returnValue = false
+  }
+  self.addEventListener("error", func_0, {"passive": true})
+  const ref = new WeakRef(self)
+  self.reportError(ref)
+})()
+</script>
+<script>
+window.addEventListener("DOMContentLoaded", () => {
+  const blob = new Blob([document.querySelector('#worker').textContent], { type: "text/javascript" })
+  const sw = new SharedWorker(window.URL.createObjectURL(blob))
+  sw.port.postMessage([], [])
+})
+</script>
