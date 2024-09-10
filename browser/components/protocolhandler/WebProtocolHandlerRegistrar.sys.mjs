@@ -111,11 +111,14 @@ WebProtocolHandlerRegistrar.prototype = {
       lazy.NimbusFeatures.mailto.getVariable("dualPrompt.onLocationChange")
     ) {
       this._ensureWebmailerCache();
-      observers.forEach(o => {
-        this._addedObservers++;
-        Services.obs.addObserver(this, o);
-      });
-      lazy.log.debug(`mailto observers activated: [${observers}]`);
+      // Make sure, that our local observers are never registered twice:
+      if (0 == this._addedObservers) {
+        observers.forEach(o => {
+          this._addedObservers++;
+          Services.obs.addObserver(this, o);
+        });
+        lazy.log.debug(`mailto observers activated: [${observers}]`);
+      }
     } else {
       // With `dualPrompt` and `dualPrompt.onLocationChange` toggled on we get
       // up to two notifications when we turn the feature off again, but we
