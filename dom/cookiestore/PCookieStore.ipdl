@@ -1,0 +1,62 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+include protocol PBackground;
+
+using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
+using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
+
+namespace mozilla {
+namespace dom {
+
+struct CookieData
+{
+  nsString name;
+  nsString value;
+};
+
+union MaybeCookieData
+{
+  CookieData;
+  void_t;
+};
+
+// This protocol is used for the CookieStore API
+[ManualDealloc]
+protocol PCookieStore
+{
+  manager PBackground;
+
+parent:
+  async GetRequest(nsString domain,
+                   OriginAttributes attrs,
+                   bool matchName,
+                   nsString name,
+                   nsCString path,
+                   bool onlyFirstMatch) returns (CookieData[] data);
+
+  async SetRequest(nsString domain,
+                   OriginAttributes attrs,
+                   nsString name,
+                   nsString value,
+                   bool session,
+                   int64_t expires,
+                   nsString path,
+                   int32_t sameSite,
+                   bool partitioned) returns (bool v);
+
+  async DeleteRequest(nsString domain,
+                      OriginAttributes attrs,
+                      nsString name,
+                      nsString path,
+                      bool partitioned) returns (bool v);
+
+  async Close();
+
+child:
+  async __delete__();
+};
+
+} // namespace dom
+} // namespace mozilla

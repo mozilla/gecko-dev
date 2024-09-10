@@ -29,6 +29,12 @@ class CookieChangeEvent final : public Event {
 
   void GetDeleted(nsTArray<CookieListItem>& aList) const;
 
+  static already_AddRefed<CookieChangeEvent> CreateForChangedCookie(
+      EventTarget* aEventTarget, const CookieListItem& aItem);
+
+  static already_AddRefed<CookieChangeEvent> CreateForDeletedCookie(
+      EventTarget* aEventTarget, const CookieListItem& aItem);
+
  private:
   ~CookieChangeEvent();
 

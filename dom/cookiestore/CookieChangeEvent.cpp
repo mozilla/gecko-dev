@@ -50,4 +50,30 @@ void CookieChangeEvent::GetDeleted(nsTArray<CookieListItem>& aList) const {
   return event.forget();
 }
 
+/* static */ already_AddRefed<CookieChangeEvent>
+CookieChangeEvent::CreateForChangedCookie(EventTarget* aEventTarget,
+                                          const CookieListItem& aItem) {
+  RefPtr<CookieChangeEvent> event =
+      new CookieChangeEvent(aEventTarget, nullptr, nullptr);
+
+  event->InitEvent(u"change"_ns, false, false);
+  event->SetTrusted(true);
+
+  event->mChanged.AppendElement(aItem);
+  return event.forget();
+}
+
+/* static */ already_AddRefed<CookieChangeEvent>
+CookieChangeEvent::CreateForDeletedCookie(EventTarget* aEventTarget,
+                                          const CookieListItem& aItem) {
+  RefPtr<CookieChangeEvent> event =
+      new CookieChangeEvent(aEventTarget, nullptr, nullptr);
+
+  event->InitEvent(u"change"_ns, false, false);
+  event->SetTrusted(true);
+
+  event->mDeleted.AppendElement(aItem);
+  return event.forget();
+}
+
 }  // namespace mozilla::dom

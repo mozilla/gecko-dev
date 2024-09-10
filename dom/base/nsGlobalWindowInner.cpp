@@ -5932,6 +5932,10 @@ nsresult nsGlobalWindowInner::FireDelayedDOMEvents(bool aIncludeSubWindows) {
   // Fires an offline status event if the offline status has changed
   FireOfflineStatusEventIfChanged();
 
+  if (mCookieStore) {
+    mCookieStore->FireDelayedDOMEvents();
+  }
+
   if (!aIncludeSubWindows) {
     return NS_OK;
   }

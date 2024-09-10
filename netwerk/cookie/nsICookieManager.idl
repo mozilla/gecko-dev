@@ -229,6 +229,11 @@ interface nsICookieManager : nsISupports
   Array<nsICookie> getCookiesFromHost(in AUTF8String aHost,
                                       in jsval aOriginAttributes);
 
+  [notxpcom]
+  nsresult getCookiesFromHostNative(in AUTF8String aHost,
+                                    in OriginAttributesPtr aOriginAttributes,
+                                    out Array<nsICookie> aCookies);
+
   /**
    * Returns an array of all cookies whose origin attributes matches aPattern
    *
