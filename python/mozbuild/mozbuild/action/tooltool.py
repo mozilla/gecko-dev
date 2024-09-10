@@ -963,56 +963,6 @@ def validate_tar_member(member, path):
         raise Exception("Attempted setuid or setgid in tar file: " + member.name)
 
 
-class TarFile(tarfile.TarFile):
-    def extract(self, member, path="", set_attrs=True, numeric_owner=False, **kwargs):
-        deferred_links = getattr(self, "_deferred_links", None)
-        if not isinstance(member, tarfile.TarInfo):
-            member = self.getmember(member)
-        targetpath = os.path.normcase(os.path.join(path, member.name))
-
-        if deferred_links is not None and member.issym():
-            if os.path.lexists(targetpath):
-                # Avoid FileExistsError on following os.symlink.
-                os.unlink(targetpath)
-            try:
-                os.symlink(member.linkname, targetpath)
-            except (NotImplementedError, OSError):
-                # On Windows, os.symlink can fail, in this case fallback to
-                # creating a copy. If the destination was not already created,
-                # defer the link creation.
-                source = os.path.normcase(
-                    os.path.join(os.path.dirname(targetpath), member.linkname)
-                )
-
-                if source in self._extracted_members:
-                    shutil.copy(source, targetpath)
-                    self.chown(member, targetpath, numeric_owner)
-                else:
-                    deferred_links.setdefault(source, []).append(
-                        (member, targetpath, numeric_owner)
-                    )
-            return
-
-        super(TarFile, self).extract(
-            member, path, set_attrs, numeric_owner=numeric_owner, **kwargs
-        )
-        if deferred_links is not None:
-            for tarinfo, linkpath, numeric_owner in deferred_links.pop(targetpath, []):
-                shutil.copy(targetpath, linkpath)
-                self.chown(tarinfo, linkpath, numeric_owner)
-            self._extracted_members.add(targetpath)
-
-    def extractall(self, *args, **kwargs):
-        self._deferred_links = {}
-        self._extracted_members = set()
-        super(TarFile, self).extractall(*args, **kwargs)
-        for links in self._deferred_links.values():
-            for tarinfo, linkpath, numeric_owner in links:
-                log.warn("Cannot create dangling symbolic link: %s", linkpath)
-        delattr(self, "_deferred_links")
-        delattr(self, "_extracted_members")
-
-
 def safe_extract(tar, path=".", *, numeric_owner=False):
     def _files(tar, path):
         for member in tar:
@@ -1032,7 +982,7 @@ def unpack_file(filename):
         base_file, tar_ext = os.path.splitext(tar_file)
         clean_path(base_file)
         log.info('untarring "%s"' % filename)
-        with TarFile.open(filename) as tar:
+        with tarfile.open(filename) as tar:
             safe_extract(tar)
     elif os.path.isfile(filename) and filename.endswith(".tar.zst"):
         import zstandard
@@ -1042,7 +992,7 @@ def unpack_file(filename):
         log.info('untarring "%s"' % filename)
         dctx = zstandard.ZstdDecompressor()
         with dctx.stream_reader(open(filename, "rb")) as fileobj:
-            with TarFile.open(fileobj=fileobj, mode="r|") as tar:
+            with tarfile.open(fileobj=fileobj, mode="r|") as tar:
                 safe_extract(tar)
     elif os.path.isfile(filename) and zipfile.is_zipfile(filename):
         base_file = filename.replace(".zip", "")
