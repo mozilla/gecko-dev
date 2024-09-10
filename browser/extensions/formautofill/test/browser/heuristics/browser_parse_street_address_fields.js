@@ -145,4 +145,25 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    description: "address field matches cc-number as well as address-line1",
+    fixtureData: `
+        <html><body><form>
+          <label for="first-name">First Name</label>
+          <input id="first-name">
+          <label for="last-name">Last Name</label>
+          <input id="last-name">
+          <label for="a1">Saisir une adresse numero de maison inclus</label>
+          <input id="a1">
+        </form></body></html>`,
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "given-name", reason: "regex-heuristic" },
+          { fieldName: "family-name", reason: "regex-heuristic" },
+          { fieldName: "address-line1", reason: "update-heuristic-alternate" },
+        ],
+      },
+    ],
+  },
 ]);

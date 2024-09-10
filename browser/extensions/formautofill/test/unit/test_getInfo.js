@@ -110,7 +110,7 @@ const TESTCASES = [
     description: 'input element with "submit" type',
     document: `<input id="targetElement" type="submit" />`,
     elementId: "targetElement",
-    expectedReturnValue: [null, null, null],
+    expectedReturnValue: [[], null, null],
   },
   {
     description: "The signature in 'name' attr of an email input",
@@ -130,7 +130,7 @@ const TESTCASES = [
                  <input id="targetElement" />
                </label>`,
     elementId: "targetElement",
-    expectedReturnValue: [null, null, null],
+    expectedReturnValue: [[], null, null],
   },
   {
     description: '"County" field with "United State" string',
@@ -261,7 +261,7 @@ add_task(async function test_regexp_list() {
       elementId: label,
       expectedReturnValue: SUPPORT_LIST[label]
         ? [SUPPORT_LIST[label], null, null]
-        : [null, null, null],
+        : [[], null, null],
     };
     info(testcase.description);
     info(testcase.document);
@@ -283,7 +283,7 @@ add_task(async function test_autofill_creditCards_autocomplete_off_pref() {
                     <label for="targetElement"> Card Number</label>
                     <input id="targetElement" type="text">
                   </form>`;
-  let expected = [null, null, null];
+  let expected = [[], null, null];
   info(`Set pref so that credit card autofill respects autocomplete="off"`);
   Services.prefs.setBoolPref(
     FormAutofill.AUTOFILL_CREDITCARDS_AUTOCOMPLETE_OFF_PREF,
@@ -326,7 +326,7 @@ add_task(async function test_autofill_addresses_autocomplete_off_pref() {
   let document = `<form autocomplete="off">
                     <input id="given-name">
                   </form>`;
-  let expected = [null, null, null];
+  let expected = [[], null, null];
   info(`Set pref so that address autofill respects autocomplete="off"`);
   Services.prefs.setBoolPref(
     FormAutofill.AUTOFILL_ADDRESSES_AUTOCOMPLETE_OFF_PREF,
