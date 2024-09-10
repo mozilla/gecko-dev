@@ -13,16 +13,16 @@
 //!
 //! This module manages the list of ComponentInterface and the object ids.
 
-use crate::render::cpp::ComponentInterfaceCppExt;
-use crate::{Config, ConfigMap};
+use crate::render::cpp::exposed_functions;
+use crate::{Component, Config, ConfigMap};
 use anyhow::{bail, Context, Result};
 use camino::Utf8PathBuf;
 use std::collections::{BTreeSet, HashMap, HashSet};
 use uniffi_bindgen::interface::{CallbackInterface, ComponentInterface, FfiFunction, Object};
 
 pub struct ComponentUniverse {
-    pub components: Vec<(ComponentInterface, Config)>,
-    pub fixture_components: Vec<(ComponentInterface, Config)>,
+    pub components: Vec<Component>,
+    pub fixture_components: Vec<Component>,
 }
 
 impl ComponentUniverse {
@@ -63,18 +63,16 @@ impl ComponentUniverse {
         Ok(())
     }
 
+    pub fn iter_components(&self) -> impl Iterator<Item = &Component> {
+        self.components.iter().chain(self.fixture_components.iter())
+    }
+
     pub fn iter_cis(&self) -> impl Iterator<Item = &ComponentInterface> {
-        self.components
-            .iter()
-            .chain(self.fixture_components.iter())
-            .map(|(ci, _)| ci)
+        self.iter_components().map(|component| &component.ci)
     }
 }
 
-fn parse_udl_files(
-    config_map: &ConfigMap,
-    fixture: bool,
-) -> Result<Vec<(ComponentInterface, Config)>> {
+fn parse_udl_files(config_map: &ConfigMap, fixture: bool) -> Result<Vec<Component>> {
     // Sort config entries to ensure consistent output
     let mut entries: Vec<_> = config_map.iter().collect();
     entries.sort_by_key(|(key, _)| *key);
@@ -82,7 +80,10 @@ fn parse_udl_files(
         .into_iter()
         .filter_map(|(_, config)| {
             if config.fixture == fixture {
-                Some(parse_udl_file(&config).map(|ci| (ci, config.clone())))
+                Some(parse_udl_file(&config).map(|ci| Component {
+                    ci,
+                    config: config.clone(),
+                }))
             } else {
                 None
             }
@@ -108,11 +109,7 @@ impl<'a> FunctionIds<'a> {
         Self {
             map: cis
                 .iter_cis()
-                .flat_map(|ci| {
-                    ci.exposed_functions()
-                        .into_iter()
-                        .map(move |f| (ci.namespace(), f.name()))
-                })
+                .flat_map(|ci| exposed_functions(ci).map(move |f| (ci.namespace(), f.name())))
                 .enumerate()
                 .map(|(i, (namespace, name))| ((namespace, name), i))
                 // Sort using BTreeSet to guarantee the IDs remain stable across runs
