@@ -3295,7 +3295,7 @@ static gfx::IntPoint GetIntegerDeltaForEvent(NSEvent* aEvent) {
   } else {
     ScrollWheelInput::ScrollMode scrollMode =
         ScrollWheelInput::SCROLLMODE_INSTANT;
-    if (StaticPrefs::general_smoothScroll() &&
+    if (nsLayoutUtils::IsSmoothScrollingEnabled() &&
         StaticPrefs::general_smoothScroll_mouseWheel()) {
       scrollMode = ScrollWheelInput::SCROLLMODE_SMOOTH;
     }

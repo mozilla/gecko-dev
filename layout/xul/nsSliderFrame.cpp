@@ -1540,7 +1540,7 @@ void nsSliderFrame::PageScroll(bool aClickAndHold) {
 
     mCurrentClickHoldDestination = Some(pos);
     sf->ScrollTo(pos,
-                 StaticPrefs::general_smoothScroll() &&
+                 nsLayoutUtils::IsSmoothScrollingEnabled() &&
                          StaticPrefs::general_smoothScroll_pages()
                      ? ScrollMode::Smooth
                      : ScrollMode::Instant,

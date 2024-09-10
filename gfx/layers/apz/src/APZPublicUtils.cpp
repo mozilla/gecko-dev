@@ -7,6 +7,7 @@
 #include "mozilla/layers/APZPublicUtils.h"
 
 #include "AsyncPanZoomController.h"
+#include "nsLayoutUtils.h"
 #include "mozilla/HelperMacros.h"
 #include "mozilla/StaticPrefs_general.h"
 
@@ -36,9 +37,10 @@ ScrollAnimationBezierPhysicsSettings ComputeBezierAnimationSettingsForOrigin(
   int32_t minMS = 0;
   int32_t maxMS = 0;
   bool isOriginSmoothnessEnabled = false;
+  bool isGeneralSmoothnessEnabled = nsLayoutUtils::IsSmoothScrollingEnabled();
 
 #define READ_DURATIONS(prefbase)                                              \
-  isOriginSmoothnessEnabled = StaticPrefs::general_smoothScroll() &&          \
+  isOriginSmoothnessEnabled = isGeneralSmoothnessEnabled &&                   \
                               StaticPrefs::general_smoothScroll_##prefbase(); \
   if (isOriginSmoothnessEnabled) {                                            \
     minMS = StaticPrefs::general_smoothScroll_##prefbase##_durationMinMS();   \
@@ -88,7 +90,8 @@ ScrollAnimationBezierPhysicsSettings ComputeBezierAnimationSettingsForOrigin(
 }
 
 ScrollMode GetScrollModeForOrigin(ScrollOrigin origin) {
-  if (!StaticPrefs::general_smoothScroll()) return ScrollMode::Instant;
+  bool isSmoothScrollingEnabled = nsLayoutUtils::IsSmoothScrollingEnabled();
+  if (!isSmoothScrollingEnabled) return ScrollMode::Instant;
   switch (origin) {
     case ScrollOrigin::Lines:
       return StaticPrefs::general_smoothScroll_lines() ? ScrollMode::Smooth
@@ -101,8 +104,8 @@ ScrollMode GetScrollModeForOrigin(ScrollOrigin origin) {
                                                        : ScrollMode::Instant;
     default:
       MOZ_ASSERT(false, "Unknown keyboard scroll origin");
-      return StaticPrefs::general_smoothScroll() ? ScrollMode::Smooth
-                                                 : ScrollMode::Instant;
+      return isSmoothScrollingEnabled ? ScrollMode::Smooth
+                                      : ScrollMode::Instant;
   }
 }
 

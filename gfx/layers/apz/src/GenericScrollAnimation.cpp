@@ -8,6 +8,7 @@
 
 #include "AsyncPanZoomController.h"
 #include "FrameMetrics.h"
+#include "nsLayoutUtils.h"
 #include "mozilla/layers/APZPublicUtils.h"
 #include "nsPoint.h"
 #include "ScrollAnimationPhysics.h"
@@ -28,7 +29,7 @@ GenericScrollAnimation::GenericScrollAnimation(AsyncPanZoomController& aApzc,
   // ScrollAnimationBezierPhysics (despite its name) handles the case of
   // general.smoothScroll being disabled whereas ScrollAnimationMSDPhysics does
   // not (ie it scrolls smoothly).
-  if (StaticPrefs::general_smoothScroll() &&
+  if (nsLayoutUtils::IsSmoothScrollingEnabled() &&
       StaticPrefs::general_smoothScroll_msdPhysics_enabled()) {
     mAnimationPhysics = MakeUnique<ScrollAnimationMSDPhysics>(aInitialPosition);
   } else {

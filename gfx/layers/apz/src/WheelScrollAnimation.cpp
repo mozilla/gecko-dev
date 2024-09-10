@@ -8,6 +8,7 @@
 
 #include <tuple>
 #include "AsyncPanZoomController.h"
+#include "nsLayoutUtils.h"
 #include "mozilla/StaticPrefs_general.h"
 #include "mozilla/layers/APZPublicUtils.h"
 #include "nsPoint.h"
@@ -35,7 +36,7 @@ WheelScrollAnimation::WheelScrollAnimation(
     ScrollWheelInput::ScrollDeltaType aDeltaType)
     : GenericScrollAnimation(aApzc, aInitialPosition,
                              OriginForDeltaType(aDeltaType)) {
-  MOZ_ASSERT(StaticPrefs::general_smoothScroll(),
+  MOZ_ASSERT(nsLayoutUtils::IsSmoothScrollingEnabled(),
              "We shouldn't be creating a WheelScrollAnimation if smooth "
              "scrolling is disabled");
   mDirectionForcedToOverscroll =
