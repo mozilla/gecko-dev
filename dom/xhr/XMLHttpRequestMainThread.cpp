@@ -135,13 +135,13 @@ const uint32_t XML_HTTP_REQUEST_ARRAYBUFFER_MIN_SIZE = 32 * 1024;
 const int32_t XML_HTTP_REQUEST_MAX_CONTENT_LENGTH_PREALLOCATE =
     1 * 1024 * 1024 * 1024LL;
 
-constexpr nsLiteralString kLiteralString_readystatechange =
-    u"readystatechange"_ns;
-constexpr nsLiteralString kLiteralString_xmlhttprequest = u"xmlhttprequest"_ns;
-constexpr nsLiteralString kLiteralString_DOMContentLoaded =
-    u"DOMContentLoaded"_ns;
-constexpr nsLiteralCString kLiteralString_charset = "charset"_ns;
-constexpr nsLiteralCString kLiteralString_UTF_8 = "UTF-8"_ns;
+namespace {
+const nsString kLiteralString_readystatechange = u"readystatechange"_ns;
+const nsString kLiteralString_xmlhttprequest = u"xmlhttprequest"_ns;
+const nsString kLiteralString_DOMContentLoaded = u"DOMContentLoaded"_ns;
+const nsCString kLiteralString_charset = "charset"_ns;
+const nsCString kLiteralString_UTF_8 = "UTF-8"_ns;
+}  // namespace
 
 #define NS_PROGRESS_EVENT_INTERVAL 50
 #define MAX_SYNC_TIMEOUT_WHEN_UNLOADING 10000 /* 10 secs */
