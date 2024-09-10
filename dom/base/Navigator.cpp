@@ -886,7 +886,7 @@ uint32_t Navigator::MaxTouchPoints(CallerType aCallerType) {
   if (aCallerType != CallerType::System &&
       nsContentUtils::ShouldResistFingerprinting(GetDocShell(),
                                                  RFPTarget::PointerEvents)) {
-    return 0;
+    return SPOOFED_MAX_TOUCH_POINTS;
   }
 
   nsCOMPtr<nsIWidget> widget =

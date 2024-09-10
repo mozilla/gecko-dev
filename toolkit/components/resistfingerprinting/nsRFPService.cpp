@@ -239,6 +239,12 @@ bool nsRFPService::IsRFPEnabledFor(
     const Maybe<RFPTarget>& aOverriddenFingerprintingSettings) {
   MOZ_ASSERT(aTarget != RFPTarget::AllTargets);
 
+#if SPOOFED_MAX_TOUCH_POINTS > 0
+  if (aTarget == RFPTarget::PointerId) {
+    return false;
+  }
+#endif
+
   if (StaticPrefs::privacy_resistFingerprinting_DoNotUseDirectly() ||
       (aIsPrivateMode &&
        StaticPrefs::privacy_resistFingerprinting_pbmode_DoNotUseDirectly())) {

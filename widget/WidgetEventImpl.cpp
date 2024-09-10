@@ -638,6 +638,10 @@ bool WidgetEvent::IsBlockedForFingerprintingResistance() const {
         return false;
       }
 
+      if (SPOOFED_MAX_TOUCH_POINTS > 0) {
+        return false;
+      }
+
       const WidgetPointerEvent* pointerEvent = AsPointerEvent();
 
       // We suppress the pointer events if it is not primary for fingerprinting
