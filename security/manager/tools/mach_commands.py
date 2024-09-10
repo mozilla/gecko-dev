@@ -7,7 +7,6 @@ import os
 from mach.decorators import Command, CommandArgument
 from mach.util import UserError
 from mozpack.files import FileFinder
-from mozpack.path import basedir
 
 
 def run_module_main_on(module, input_filename, output_is_binary):
@@ -65,17 +64,6 @@ def is_specification_file(filename):
     )
 
 
-def is_excluded_directory(directory, exclusions):
-    """Returns True if the given directory is in or is a
-    subdirectory of a directory in the list of exclusions and
-    False otherwise."""
-
-    for exclusion in exclusions:
-        if directory.startswith(exclusion):
-            return True
-    return False
-
-
 @Command(
     "generate-test-certs",
     category="devenv",
@@ -129,12 +117,9 @@ def find_all_specifications(command_context):
         "testing/xpcshell/moz-http2",
         "toolkit/mozapps/extensions/test/xpcshell/data/productaddons",
     ]
-    exclusions = ["security/manager/ssl/tests/unit/test_signed_apps"]
     finder = FileFinder(command_context.topsrcdir)
     for inclusion_path in inclusions:
         for f, _ in finder.find(inclusion_path):
-            if basedir(f, exclusions):
-                continue
             if is_specification_file(f):
                 specifications.append(os.path.join(command_context.topsrcdir, f))
     return specifications

@@ -1222,6 +1222,17 @@ add_test(function () {
   );
 });
 
+add_signature_test(COSEAndPKCS7WithSHA1OrSHA256, function () {
+  certdb.openSignedAppFileAsync(
+    Ci.nsIX509CertDB.AppXPCShellRoot,
+    original_app_path("alternate-root"),
+    check_open_result("alternate-root", Cr.NS_OK, [
+      Ci.nsIAppSignatureInfo.COSE_WITH_SHA256,
+      Ci.nsIAppSignatureInfo.PKCS7_WITH_SHA256,
+    ])
+  );
+});
+
 // TODO: tampered MF, tampered SF
 // TODO: too-large MF, too-large RSA, too-large SF
 // TODO: MF and SF that end immediately after the last main header

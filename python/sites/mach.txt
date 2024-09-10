@@ -62,6 +62,7 @@ vendored:third_party/python/appdirs
 vendored:third_party/python/attrs
 vendored:third_party/python/blessed
 vendored:third_party/python/build
+vendored:third_party/python/cbor2
 vendored:third_party/python/certifi
 vendored:third_party/python/chardet
 vendored:third_party/python/charset_normalizer

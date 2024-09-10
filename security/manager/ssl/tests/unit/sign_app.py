@@ -163,10 +163,11 @@ def getCert(subject, keyName, issuerName, ee, issuerKey="", validity=""):
     return pycert.Certificate(certSpecificationStream)
 
 
-def coseAlgorithmToSignatureParams(coseAlgorithm, issuerName, certValidity):
-    """Given a COSE algorithm ('ES256', 'ES384', 'ES512') and an issuer
-    name, returns a (algorithm id, pykey.ECCKey, encoded certificate)
-    triplet for use with coseSig.
+def coseAlgorithmToSignatureParams(coseAlgorithm, issuerName, issuerKey, certValidity):
+    """Given a COSE algorithm ('ES256', 'ES384', 'ES512'), an issuer
+    name, the name of the issuer's key, and a validity period, returns a
+    (algorithm id, pykey.ECCKey, encoded certificate) triplet for use
+    with coseSig.
     """
     if coseAlgorithm == "ES256":
         keyName = "secp256r1"
@@ -186,7 +187,7 @@ def coseAlgorithmToSignatureParams(coseAlgorithm, issuerName, certValidity):
         keyName,
         issuerName,
         True,
-        "default",
+        issuerKey,
         certValidity,
     )
     return (algId, key, ee.toDER())
@@ -197,6 +198,7 @@ def signZip(
     outputFile,
     issuerName,
     rootName,
+    rootKey,
     certValidity,
     manifestHashes,
     signatureHashes,
@@ -205,14 +207,15 @@ def signZip(
     emptySignerInfos,
     headerPaddingFactor,
 ):
-    """Given a directory containing the files to package up,
-    an output filename to write to, the name of the issuer of
-    the signing certificate, the name of trust anchor, a list of hash algorithms
-    to use in the manifest file, a similar list for the signature file,
-    a similar list for the pkcs#7 signature, a list of COSE signature algorithms
-    to include, whether the pkcs#7 signer info should be kept empty, and how
-    many MB to pad the manifests by (to test handling large manifest files),
-    packages up the files in the directory and creates the output as
+    """Given a directory containing the files to package up, an output
+    filename to write to, the name of the issuer of the signing
+    certificate, the name of trust anchor, the name of the trust
+    anchor's key, a list of hash algorithms to use in the manifest file,
+    a similar list for the signature file, a similar list for the pkcs#7
+    signature, a list of COSE signature algorithms to include, whether
+    the pkcs#7 signer info should be kept empty, and how many MB to pad
+    the manifests by (to test handling large manifest files), packages
+    up the files in the directory and creates the output as
     appropriate."""
     # The header of each manifest starts with the magic string
     # 'Manifest-Version: 1.0' and ends with a blank line. There can be
@@ -229,6 +232,7 @@ def signZip(
     # Append the blank line.
     mfEntries.append("")
 
+    issuerKey = rootKey
     with zipfile.ZipFile(outputFile, "w", zipfile.ZIP_DEFLATED) as outZip:
         for fullPath, internalPath in walkDirectory(appDirectory):
             with open(fullPath, "rb") as inputFile:
@@ -248,13 +252,14 @@ def signZip(
             intermediates = []
             coseIssuerName = issuerName
             if rootName:
+                issuerKey = "default"
                 coseIssuerName = "xpcshell signed app test issuer"
                 intermediate = getCert(
                     coseIssuerName,
-                    "default",
+                    issuerKey,
                     rootName,
                     False,
-                    "",
+                    rootKey,
                     certValidity,
                 )
                 intermediate = intermediate.toDER()
@@ -263,6 +268,7 @@ def signZip(
                 coseAlgorithmToSignatureParams(
                     coseAlgorithm,
                     coseIssuerName,
+                    issuerKey,
                     certValidity,
                 )
                 for coseAlgorithm in coseAlgorithms
@@ -294,6 +300,8 @@ def signZip(
                 + "subject:xpcshell signed app test signer\n"
                 + "extension:keyUsage:digitalSignature"
             )
+            if issuerKey != "default":
+                cmsSpecification += "\nissuerKey:%s" % issuerKey
             if certValidity:
                 cmsSpecification += "\nvalidity:%s" % certValidity
             cmsSpecificationStream = StringIO()
@@ -357,6 +365,13 @@ def main(outputFile, appPath, *args):
     )
     parser.add_argument("-r", "--root", action="store", help="Root name", default="")
     parser.add_argument(
+        "-k",
+        "--root-key",
+        action="store",
+        help="Root key name",
+        default="default",
+    )
+    parser.add_argument(
         "--cert-validity",
         action="store",
         help="Certificate validity; YYYYMMDD-YYYYMMDD or duration in days",
@@ -416,6 +431,7 @@ def main(outputFile, appPath, *args):
         outputFile,
         parsed.issuer,
         parsed.root,
+        parsed.root_key,
         parsed.cert_validity,
         [hashNameToFunctionAndIdentifier(h) for h in parsed.manifest_hash],
         [hashNameToFunctionAndIdentifier(h) for h in parsed.signature_hash],

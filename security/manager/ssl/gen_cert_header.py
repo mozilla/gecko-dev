@@ -2,49 +2,41 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+import textwrap
 
-def _file_byte_generator(filename):
-    with open(filename, "rb") as f:
-        contents = f.read()
-
-        if b"-----BEGIN CERTIFICATE-----" in contents:
-            raise Exception(f"{filename} contains a PEM certificate. Expected DER.")
-
-        # Treat empty files the same as a file containing a lone 0;
-        # a single-element array will fail cert verifcation just as an
-        # empty array would.
-        if not contents:
-            return ["\0"]
-
-        return contents
+from pyasn1_modules import pem
 
 
-def _create_header(array_name, cert_bytes):
-    hexified = ["0x%02x" % byte for byte in cert_bytes]
+def read_certificate(filename):
+    with open(filename, "r") as f:
+        try:
+            return pem.readPemFromFile(
+                f, "-----BEGIN CERTIFICATE-----", "-----END CERTIFICATE-----"
+            )
+        except UnicodeDecodeError:
+            raise Exception(
+                f"Could not decode {filename} (it should be a PEM-encoded certificate)"
+            )
 
-    substs = {"array_name": array_name, "bytes": ", ".join(hexified)}
-    return "const uint8_t %(array_name)s[] = {\n%(bytes)s\n};\n" % substs
 
-
-# Create functions named the same as the data arrays that we're going to
-# write to the headers, so we don't have to duplicate the names like so:
-#
-#   def arrayName(header, cert_filename):
-#     header.write(_create_header("arrayName", cert_filename))
-array_names = [
-    "addonsPublicIntermediate",
-    "addonsPublicRoot",
-    "addonsStageRoot",
-    "addonsStageIntermediate",
-    "contentSignatureDevRoot",
-    "contentSignatureLocalRoot",
-    "contentSignatureProdRoot",
-    "contentSignatureStageRoot",
-    "xpcshellRoot",
-]
-
-for n in array_names:
-    # Make sure the lambda captures the right string.
-    globals()[n] = lambda header, cert_filename, name=n: header.write(
-        _create_header(name, _file_byte_generator(cert_filename))
+def write_header(output, array_name, certificates):
+    certificate_names = []
+    for index, certificate in enumerate(certificates):
+        certificate_name = f"{array_name}{index}"
+        certificate_names.append(
+            f"mozilla::Span({certificate_name}, sizeof({certificate_name}))"
+        )
+        output.write(f"const uint8_t {certificate_name}[] = {{\n")
+        certificate_bytes = read_certificate(certificate)
+        hexified = ", ".join(["0x%02x" % byte for byte in certificate_bytes])
+        wrapped = textwrap.wrap(hexified)
+        for line in wrapped:
+            output.write(f"    {line}\n")
+        output.write("};\n")
+    output.write(
+        f'const mozilla::Span<const uint8_t> {array_name}[] = {{ {", ".join(certificate_names)} }};\n'
     )
+
+
+def generate(output, *args):
+    write_header(output, args[-1], args[0:-1])

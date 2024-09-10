@@ -52,33 +52,45 @@ AppTrustDomain::AppTrustDomain(nsTArray<Span<const uint8_t>>&& collectedCerts)
       mCertBlocklist(do_GetService(NS_CERT_STORAGE_CID)) {}
 
 nsresult AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot) {
+  if (!mTrustedRoots.IsEmpty()) {
+    return NS_ERROR_ALREADY_INITIALIZED;
+  }
   switch (trustedRoot) {
     case nsIX509CertDB::AppXPCShellRoot:
-      mTrustedRoot = {xpcshellRoot};
+      mTrustedRoots.AppendElements(xpcshellRoots,
+                                   MOZ_ARRAY_LENGTH(xpcshellRoots));
       break;
 
     case nsIX509CertDB::AddonsPublicRoot:
-      mTrustedRoot = {addonsPublicRoot};
+      mTrustedRoots.AppendElements(addonsPublicRoots,
+                                   MOZ_ARRAY_LENGTH(addonsPublicRoots));
       break;
 
     case nsIX509CertDB::AddonsStageRoot:
-      mTrustedRoot = {addonsStageRoot};
+      mTrustedRoots.AppendElements(addonsStageRoots,
+                                   MOZ_ARRAY_LENGTH(addonsStageRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureLocalRoot:
-      mTrustedRoot = {contentSignatureLocalRoot};
+      mTrustedRoots.AppendElements(
+          contentSignatureLocalRoots,
+          MOZ_ARRAY_LENGTH(contentSignatureLocalRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureProdRoot:
-      mTrustedRoot = {contentSignatureProdRoot};
+      mTrustedRoots.AppendElements(contentSignatureProdRoots,
+                                   MOZ_ARRAY_LENGTH(contentSignatureProdRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureStageRoot:
-      mTrustedRoot = {contentSignatureStageRoot};
+      mTrustedRoots.AppendElements(
+          contentSignatureStageRoots,
+          MOZ_ARRAY_LENGTH(contentSignatureStageRoots));
       break;
 
     case nsIContentSignatureVerifier::ContentSignatureDevRoot:
-      mTrustedRoot = {contentSignatureDevRoot};
+      mTrustedRoots.AppendElements(contentSignatureDevRoots,
+                                   MOZ_ARRAY_LENGTH(contentSignatureDevRoots));
       break;
 
     default:
@@ -90,12 +102,14 @@ nsresult AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot) {
   // The intermediate bundled with signed XPI files may have expired and be
   // considered invalid, which can result in bug 1548973.
   if (trustedRoot == nsIX509CertDB::AddonsPublicRoot) {
-    mAddonsIntermediate = {addonsPublicIntermediate};
+    mAddonsIntermediates.AppendElements(
+        addonsPublicIntermediates, MOZ_ARRAY_LENGTH(addonsPublicIntermediates));
   }
   // Similarly to the above logic for production, we hardcode the intermediate
   // stage certificate here, so that stage is equivalent to production.
   if (trustedRoot == nsIX509CertDB::AddonsStageRoot) {
-    mAddonsIntermediate = {addonsStageIntermediate};
+    mAddonsIntermediates.AppendElements(
+        addonsStageIntermediates, MOZ_ARRAY_LENGTH(addonsStageIntermediates));
   }
 
   return NS_OK;
@@ -103,25 +117,26 @@ nsresult AppTrustDomain::SetTrustedRoot(AppTrustedRoot trustedRoot) {
 
 pkix::Result AppTrustDomain::FindIssuer(Input encodedIssuerName,
                                         IssuerChecker& checker, Time) {
-  MOZ_ASSERT(!mTrustedRoot.IsEmpty());
-  if (mTrustedRoot.IsEmpty()) {
+  MOZ_ASSERT(!mTrustedRoots.IsEmpty());
+  if (mTrustedRoots.IsEmpty()) {
     return pkix::Result::FATAL_ERROR_INVALID_STATE;
   }
 
   nsTArray<Input> candidates;
-  Input rootInput;
-  pkix::Result rv =
-      rootInput.Init(mTrustedRoot.Elements(), mTrustedRoot.Length());
-  // This should never fail, since the possible roots are all hard-coded and
-  // they should never be too long.
-  if (rv != Success) {
-    return rv;
+  for (const auto& root : mTrustedRoots) {
+    Input rootInput;
+    pkix::Result rv = rootInput.Init(root.Elements(), root.Length());
+    // This should never fail, since the possible roots are all hard-coded and
+    // they should never be too long.
+    if (rv != Success) {
+      return rv;
+    }
+    candidates.AppendElement(std::move(rootInput));
   }
-  candidates.AppendElement(std::move(rootInput));
-  if (!mAddonsIntermediate.IsEmpty()) {
+  for (const auto& intermediate : mAddonsIntermediates) {
     Input intermediateInput;
-    rv = intermediateInput.Init(mAddonsIntermediate.Elements(),
-                                mAddonsIntermediate.Length());
+    pkix::Result rv =
+        intermediateInput.Init(intermediate.Elements(), intermediate.Length());
     // Again, this should never fail for the same reason as above.
     if (rv != Success) {
       return rv;
@@ -130,7 +145,8 @@ pkix::Result AppTrustDomain::FindIssuer(Input encodedIssuerName,
   }
   for (const auto& intermediate : mIntermediates) {
     Input intermediateInput;
-    rv = intermediateInput.Init(intermediate.Elements(), intermediate.Length());
+    pkix::Result rv =
+        intermediateInput.Init(intermediate.Elements(), intermediate.Length());
     // This is untrusted input, so skip any intermediates that are too large.
     if (rv != Success) {
       continue;
@@ -140,8 +156,8 @@ pkix::Result AppTrustDomain::FindIssuer(Input encodedIssuerName,
 
   for (const auto& candidate : candidates) {
     bool keepGoing;
-    rv = checker.Check(candidate, nullptr /*additionalNameConstraints*/,
-                       keepGoing);
+    pkix::Result rv = checker.Check(
+        candidate, nullptr /*additionalNameConstraints*/, keepGoing);
     if (rv != Success) {
       return rv;
     }
@@ -187,11 +203,11 @@ pkix::Result AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
                                           Input candidateCertDER,
                                           /*out*/ TrustLevel& trustLevel) {
   MOZ_ASSERT(policy.IsAnyPolicy());
-  MOZ_ASSERT(!mTrustedRoot.IsEmpty());
+  MOZ_ASSERT(!mTrustedRoots.IsEmpty());
   if (!policy.IsAnyPolicy()) {
     return pkix::Result::FATAL_ERROR_INVALID_ARGS;
   }
-  if (mTrustedRoot.IsEmpty()) {
+  if (mTrustedRoots.IsEmpty()) {
     return pkix::Result::FATAL_ERROR_INVALID_STATE;
   }
 
@@ -218,12 +234,14 @@ pkix::Result AppTrustDomain::GetCertTrust(EndEntityOrCA endEntityOrCA,
     return pkix::Result::ERROR_REVOKED_CERTIFICATE;
   }
 
-  // mTrustedRoot is the only trust anchor for this validation.
+  // mTrustedRoots are the only trust anchors for this validation.
   Span<const uint8_t> candidateCertDERSpan = {candidateCertDER.UnsafeGetData(),
                                               candidateCertDER.GetLength()};
-  if (mTrustedRoot == candidateCertDERSpan) {
-    trustLevel = TrustLevel::TrustAnchor;
-    return Success;
+  for (const auto& trustedRoot : mTrustedRoots) {
+    if (trustedRoot == candidateCertDERSpan) {
+      trustLevel = TrustLevel::TrustAnchor;
+      return Success;
+    }
   }
 
   trustLevel = TrustLevel::InheritsTrust;
