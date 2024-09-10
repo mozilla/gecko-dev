@@ -4429,10 +4429,18 @@ void ClientWebGLContext::TexImage(uint8_t funcDims, GLenum imageTarget,
     const auto sdType = sd.type();
     const auto& contextInfo = mNotLost->info;
 
+    // TODO (Bug 754256): Figure out the source colorSpace.
+    const auto& webgl = this;
+    dom::PredefinedColorSpace srcColorSpace = dom::PredefinedColorSpace::Srgb;
+    dom::PredefinedColorSpace dstColorSpace =
+        webgl->mUnpackColorSpace ? *webgl->mUnpackColorSpace
+                                 : dom::PredefinedColorSpace::Srgb;
+    bool sameColorSpace = (srcColorSpace == dstColorSpace);
+
     const auto fallbackReason = [&]() -> Maybe<std::string> {
-      auto fallbackReason =
-          BlitPreventReason(level, offset, respecFormat, pi, *desc,
-                            contextInfo.optionalRenderableFormatBits);
+      auto fallbackReason = BlitPreventReason(
+          level, offset, respecFormat, pi, *desc,
+          contextInfo.optionalRenderableFormatBits, sameColorSpace);
       if (fallbackReason) return fallbackReason;
 
       const bool canUploadViaSd = contextInfo.uploadableSdTypes[sdType];

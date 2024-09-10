@@ -314,6 +314,26 @@ TEST(Colorspaces, SrgbFromDisplayP3)
   EXPECT_NEAR(srgbLinear.z(), 0.096, 0.001);
 }
 
+TEST(Colorspaces, DisplayP3FromSrgb)
+{
+  const auto p3C = ColorspaceDesc{
+      Chromaticities::DisplayP3(),
+      PiecewiseGammaDesc::DisplayP3(),
+  };
+  const auto srgbC = ColorspaceDesc{
+      Chromaticities::Srgb(),
+      PiecewiseGammaDesc::Srgb(),
+  };
+  const auto p3FromSrgb = ColorspaceTransform::Create(srgbC, p3C);
+
+  // E.g.
+  // https://colorjs.io/apps/convert/?color=color(srgb%200.4%200.8%200.4)&precision=4
+  auto p3 = p3FromSrgb.DstFromSrc(vec3{{0.4, 0.8, 0.4}});
+  EXPECT_NEAR(p3.x(), 0.502, 0.001);
+  EXPECT_NEAR(p3.y(), 0.791, 0.001);
+  EXPECT_NEAR(p3.z(), 0.445, 0.001);
+}
+
 // -
 
 template <class Fn, class Tuple, size_t... I>

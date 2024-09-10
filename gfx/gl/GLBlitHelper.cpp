@@ -1715,9 +1715,6 @@ color::ColorspaceDesc ToColorspaceDesc(const gfx::YUVRangedColorSpace cs) {
   MOZ_CRASH("Bad YUVRangedColorSpace.");
 }
 
-static std::optional<color::ColorProfileDesc> ToColorProfileDesc(
-    gfx::ColorSpace2);
-
 }  // namespace gl
 namespace gfx {
 
@@ -1728,7 +1725,8 @@ namespace gl {
 
 // -
 
-static std::optional<color::ColorProfileDesc> ToColorProfileDesc(
+/* static */
+std::optional<color::ColorProfileDesc> GLBlitHelper::ToColorProfileDesc(
     const gfx::ColorSpace2 cspace) {
   color::ColorspaceDesc cspaceDesc;
   switch (cspace) {

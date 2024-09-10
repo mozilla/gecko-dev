@@ -200,6 +200,9 @@ class GLBlitHelper final {
   gfx::IntSize mYuvUploads_UVSize = {0, 0};
 
  public:
+  static std::optional<color::ColorProfileDesc> ToColorProfileDesc(
+      gfx::ColorSpace2);
+
   struct ColorLutKey : DeriveCmpOpMembers<ColorLutKey> {
     std::variant<gfx::ColorSpace2, gfx::YUVRangedColorSpace> src;
     gfx::ColorSpace2 dst;

@@ -408,6 +408,12 @@ bool TexUnpackBlob::ConvertIfNeeded(
     dstOrigin = srcOrigin;
   }
 
+  // TODO (Bug 754256): Figure out the source colorSpace.
+  dom::PredefinedColorSpace srcColorSpace = dom::PredefinedColorSpace::Srgb;
+  dom::PredefinedColorSpace dstColorSpace =
+      webgl->mUnpackColorSpace ? *webgl->mUnpackColorSpace
+                               : dom::PredefinedColorSpace::Srgb;
+
   if (srcFormat != dstFormat) {
     webgl->GeneratePerfWarning(
         "Conversion requires pixel reformatting. (%u->%u)", uint32_t(srcFormat),
@@ -421,6 +427,10 @@ bool TexUnpackBlob::ConvertIfNeeded(
   } else if (srcStride != dstStride) {
     webgl->GeneratePerfWarning("Conversion requires change in stride. (%u->%u)",
                                uint32_t(srcStride), uint32_t(dstStride));
+  } else if (srcColorSpace != dstColorSpace) {
+    webgl->GeneratePerfWarning(
+        "Conversion requires colorSpace conversion. (%u->%u)",
+        uint32_t(srcColorSpace), uint32_t(dstColorSpace));
   } else {
     return true;
   }
@@ -446,7 +456,8 @@ bool TexUnpackBlob::ConvertIfNeeded(
   bool wasTrivial;
   if (!ConvertImage(rowLength, rowCount, srcBegin, srcStride, srcOrigin,
                     srcFormat, srcIsPremult, dstBegin, dstStride, dstOrigin,
-                    dstFormat, dstIsPremult, &wasTrivial)) {
+                    dstFormat, dstIsPremult, srcColorSpace, dstColorSpace,
+                    &wasTrivial)) {
     webgl->ErrorImplementationBug("ConvertImage failed.");
     return false;
   }
@@ -673,7 +684,8 @@ bool TexUnpackImage::Validate(const WebGLContext* const webgl,
 Maybe<std::string> BlitPreventReason(
     const int32_t level, const ivec3& offset, const GLenum internalFormat,
     const webgl::PackingInfo& pi, const TexUnpackBlobDesc& desc,
-    const OptionalRenderableFormatBits optionalRenderableFormatBits) {
+    const OptionalRenderableFormatBits optionalRenderableFormatBits,
+    bool sameColorSpace) {
   const auto& size = desc.size;
   const auto& unpacking = desc.unpacking;
 
@@ -703,6 +715,10 @@ Maybe<std::string> BlitPreventReason(
       }
     }();
     if (premultReason) return premultReason;
+
+    if (!sameColorSpace) {
+      return "not same colorSpace";
+    }
 
     const auto formatReason = [&]() -> const char* {
       if (pi.type != LOCAL_GL_UNSIGNED_BYTE) {
@@ -800,9 +816,16 @@ bool TexUnpackImage::TexOrSubImage(bool isSubImage, bool needsRespec,
 
   // -
 
-  const auto reason =
-      BlitPreventReason(level, {xOffset, yOffset, zOffset}, dui->internalFormat,
-                        pi, mDesc, webgl->mOptionalRenderableFormatBits);
+  // TODO (Bug 754256): Figure out the source colorSpace.
+  dom::PredefinedColorSpace srcColorSpace = dom::PredefinedColorSpace::Srgb;
+  dom::PredefinedColorSpace dstColorSpace =
+      webgl->mUnpackColorSpace ? *webgl->mUnpackColorSpace
+                               : dom::PredefinedColorSpace::Srgb;
+  bool sameColorSpace = (srcColorSpace == dstColorSpace);
+
+  const auto reason = BlitPreventReason(
+      level, {xOffset, yOffset, zOffset}, dui->internalFormat, pi, mDesc,
+      webgl->mOptionalRenderableFormatBits, sameColorSpace);
   if (reason) {
     webgl->GeneratePerfWarning(
         "Failed to hit GPU-copy fast-path."
