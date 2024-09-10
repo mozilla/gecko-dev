@@ -286,7 +286,7 @@ nsresult nsDragSession::StartInvokingDragSession(nsIWidget* aWidget,
       dropResult = nsIDragService::DRAGDROP_ACTION_NONE;
 
     if (mDataTransfer) {
-      if (mozilla::StaticPrefs::widget_windows_allow_external_tab_drag()) {
+      if (!mozilla::StaticPrefs::widget_windows_allow_external_tab_drag()) {
         // Special case: if we're dropping a browser tab onto another
         // application, assume that application is lying if they say they're
         // prepared to handle it. (This is sadly common. See bug 1598915.)
