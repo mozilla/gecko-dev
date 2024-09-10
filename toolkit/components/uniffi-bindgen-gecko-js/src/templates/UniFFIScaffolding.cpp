@@ -29,56 +29,47 @@ using dom::UniFFIScaffoldingCallResult;
 
 // Define scaffolding functions from UniFFI
 extern "C" {
-  {%- for (ci, config) in components %}
-  {%- for func in ci.iter_user_ffi_function_definitions() %}
-  {{ func.cpp_return_type() }} {{ func.cpp_name() }}({{ func.cpp_arg_list() }});
-  {%- endfor %}
+  {%- for func in ffi_functions %}
+  {{ func.return_type }} {{ func.name }}({{ func.arg_types|join(", ") }});
   {%- endfor %}
 }
 
 // Define pointer types
-{%- for (ci, config) in components %}
-{%- for object in ci.object_definitions() %}
-{%- let pointer_type = ci.pointer_type(object) %}
-const static mozilla::uniffi::UniFFIPointerType {{ pointer_type }} {
-  "{{ "{}::{}"|format(ci.namespace(), object.name()) }}"_ns,
-  {{ object.ffi_object_clone().cpp_name() }},
-  {{ object.ffi_object_free().cpp_name() }},
+{%- for pointer_type in pointer_types %}
+const static mozilla::uniffi::UniFFIPointerType {{ pointer_type.name }} {
+  "{{ pointer_type.label }}"_ns,
+  {{ pointer_type.clone_fn }},
+  {{ pointer_type.free_fn }},
 };
-{%- endfor %}
 {%- endfor %}
 
 // Define the data we need per-callback interface
-{%- for (ci, config) in components %}
-{%- for cbi in ci.callback_interface_definitions() %}
+{%- for cbi in callback_interfaces %}
 MOZ_CAN_RUN_SCRIPT
-extern "C" int {{ cbi.c_handler(prefix) }}(uint64_t aHandle, uint32_t aMethod, const uint8_t* aArgsData, int32_t aArgsLen, RustBuffer* aOutBuffer) {
+extern "C" int {{ cbi.handler_fn }}(uint64_t aHandle, uint32_t aMethod, const uint8_t* aArgsData, int32_t aArgsLen, RustBuffer* aOutBuffer) {
     // Currently, we only support "fire-and-forget" async callbacks.  These are
     // callbacks that run asynchronously without returning anything.  The main
     // use case for callbacks is logging, which fits very well with this model.
     //
     // So, here we simple queue the callback and return immediately.
-    mozilla::uniffi::QueueCallback({{ callback_ids.get(ci, cbi) }}, aHandle, aMethod, aArgsData, aArgsLen);
+    mozilla::uniffi::QueueCallback({{ cbi.id }}, aHandle, aMethod, aArgsData, aArgsLen);
     return CALLBACK_INTERFACE_SUCCESS;
 }
-static StaticRefPtr<dom::UniFFICallbackHandler> {{ cbi.js_handler() }};
-{%- endfor %}
+static StaticRefPtr<dom::UniFFICallbackHandler> {{ cbi.static_var }};
 {%- endfor %}
 
 // Define a lookup function for our callback interface info
 Maybe<CallbackInterfaceInfo> {{ prefix }}GetCallbackInterfaceInfo(uint64_t aInterfaceId) {
     switch(aInterfaceId) {
-        {%- for (ci, config) in components %}
-        {%- for cbi in ci.callback_interface_definitions() %}
-        case {{ callback_ids.get(ci, cbi) }}: { // {{ callback_ids.name(ci, cbi) }}
+        {%- for cbi in callback_interfaces %}
+        case {{ cbi.id }}: {
             return Some(CallbackInterfaceInfo {
-                "{{ cbi.name() }}",
-                &{{ cbi.js_handler() }},
-                {{ cbi.c_handler(prefix) }},
-                {{ cbi.ffi_init_callback().name() }},
+                "{{ cbi.name }}",
+                &{{ cbi.static_var }},
+                {{ cbi.handler_fn }},
+                {{ cbi.init_fn }},
             });
         }
-        {%- endfor %}
         {%- endfor %}
 
         default:
@@ -169,45 +160,41 @@ UniquePtr<UniffiHandlerBase> {{ prefix }}GetHandler(uint64_t aId) {
 }
 
 Maybe<already_AddRefed<UniFFIPointer>> {{ prefix }}ReadPointer(const GlobalObject& aGlobal, uint64_t aId, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
-  {%- if has_any_objects %}
+  {%- if pointer_types.is_empty() %}
+  return Nothing();
+  {%- else %}
   const UniFFIPointerType* type;
   switch (aId) {
-    {%- for (ci, config) in components %}
-    {%- for object in ci.object_definitions() %}
-    case {{ object_ids.get(ci, object) }}: { // {{ object_ids.name(ci, object) }}
-      type = &{{ ci.pointer_type(object) }};
+    {%- for pointer_type in pointer_types %}
+    case {{ pointer_type.object_id }}: {
+      type = &{{ pointer_type.name }};
       break;
     }
-    {%- endfor %}
     {%- endfor %}
     default:
       return Nothing();
   }
   return Some(UniFFIPointer::Read(aArrayBuff, aPosition, type, aError));
-  {%- else %}
-  return Nothing();
   {%- endif %}
 }
 
 bool {{ prefix }}WritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIPointer& aPtr, const ArrayBuffer& aArrayBuff, long aPosition, ErrorResult& aError) {
-  {%- if has_any_objects %}
+  {%- if pointer_types.is_empty() %}
+  return false;
+  {%- else %}
   const UniFFIPointerType* type;
   switch (aId) {
-    {%- for (ci, config) in components %}
-    {%- for object in ci.object_definitions() %}
-    case {{ object_ids.get(ci, object) }}: { // {{ object_ids.name(ci, object) }}
-      type = &{{ ci.pointer_type(object) }};
+    {%- for pointer_type in pointer_types %}
+    case {{ pointer_type.object_id }}: {
+      type = &{{ pointer_type.name }};
       break;
     }
-    {%- endfor %}
     {%- endfor %}
     default:
       return false;
   }
   aPtr.Write(aArrayBuff, aPosition, type, aError);
   return true;
-  {%- else %}
-  return false;
   {%- endif %}
 }
 
