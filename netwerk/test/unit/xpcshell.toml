@@ -978,6 +978,12 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_proxy_pac.js"]
 
+["test_proxyDNS_leak.js"]
+skip-if = [
+  "os == 'android'",
+  "socketprocess_networking",
+]
+
 ["test_proxyconnect.js"]
 skip-if = [
   "tsan",
