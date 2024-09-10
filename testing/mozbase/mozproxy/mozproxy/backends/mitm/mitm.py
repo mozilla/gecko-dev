@@ -307,6 +307,8 @@ class Mitmproxy(Playback):
                             "--set",
                             "alt_server_replay_order_reversed=true",
                             "--set",
+                            "tls_version_client_min=TLS1_2",
+                            "--set",
                             "alt_server_replay={}".format(
                                 ",".join(
                                     [
