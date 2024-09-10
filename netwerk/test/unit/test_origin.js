@@ -15,7 +15,6 @@ function run_test() {
   prefs = Services.prefs;
 
   http2pref = prefs.getBoolPref("network.http.http2.enabled");
-  Services.prefs.setBoolPref("network.http.http2.allow-push", true);
 
   prefs.setBoolPref("network.http.http2.enabled", true);
   prefs.setCharPref(

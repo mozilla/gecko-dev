@@ -8,7 +8,6 @@ SetParentalControlEnabled(false);
 
 function setup() {
   Services.prefs.setBoolPref("network.dns.get-ttl", false);
-  Services.prefs.setBoolPref("network.http.http2.allow-push", true);
   h2Port = trr_test_setup();
 }
 
@@ -148,7 +147,7 @@ add_task(async function test_push() {
   setModeAndURI(3, "404");
 
   await new TRRDNSListener("push.example.org", "2018::2018");
-}).skip("H2 push is disabled");
+});
 
 add_task(test_AAAA_records);
 

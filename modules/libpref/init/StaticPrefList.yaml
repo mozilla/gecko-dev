@@ -13636,7 +13636,7 @@
 
 - name: network.http.http2.allow-push
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 - name: network.http.http2.push-allowance
