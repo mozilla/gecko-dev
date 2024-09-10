@@ -1828,34 +1828,6 @@ fail-if = [
   "os == 'linux'",
 ]
 
-# Bug 1673105 for mac+WR
-["generated/test_2_conformance2__textures__video__tex-2d-rgb565-rgb-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance2__textures__video__tex-2d-rgb5_a1-rgba-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance2__textures__video__tex-2d-rgb8-rgb-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance2__textures__video__tex-2d-rgba4-rgba-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance2__textures__video__tex-2d-rgba8-rgba-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance2__textures__video__tex-2d-srgb8-rgb-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance2__textures__video__tex-2d-srgb8_alpha8-rgba-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance__textures__video__tex-2d-rgb-rgb-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
-["generated/test_2_conformance__textures__video__tex-2d-rgba-rgba-unsigned_byte.html"]
-skip-if = ["os == 'mac'"]
-
 ["generated/test_conformance__extensions__angle-instanced-arrays.html"]
 skip-if = ["os == 'mac' && os_version == '10.15'"]
 
