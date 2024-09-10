@@ -61,7 +61,7 @@ struct CompilationDependencyTracker {
     return true;
   }
 
-  void reset() { dependencies.clear(); }
+  void reset() { dependencies.clearAndFree(); }
 };
 
 }  // namespace js::jit
