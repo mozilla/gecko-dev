@@ -52,13 +52,14 @@
             command="placesCmd_open:window"
             data-l10n-id="places-open-in-window"
             selection-type="single"
-            node-type="link"/>
+            node-type="link"
+            hide-if-private-browsing="true"/>
   <menuitem id="placesContext_open:newprivatewindow"
             command="placesCmd_open:privatewindow"
             data-l10n-id="places-open-in-private-window"
             selection-type="single"
             node-type="link"
-            hide-if-private-browsing="true"/>
+            hide-if-disabled-private-browsing="true"/>
   <menuitem id="placesContext_showInFolder"
             data-l10n-id="places-show-in-folder"
             command="placesCmd_showInFolder"

@@ -1302,6 +1302,40 @@ export var PlacesUIUtils = {
     }
   },
 
+  /**
+   * Determines whether the given "placesContext" menu item would open a link
+   * under some special conditions, but those special conditions cannot be met.
+   *
+   * @param {Element} item The menu or menu item to decide for.
+   *
+   * @returns {boolean} Whether the item is an "open" item that should be
+   *   hidden.
+   */
+  shouldHideOpenMenuItem(item) {
+    if (
+      item.hasAttribute("hide-if-disabled-private-browsing") &&
+      !lazy.PrivateBrowsingUtils.enabled
+    ) {
+      return true;
+    }
+
+    if (
+      item.hasAttribute("hide-if-private-browsing") &&
+      lazy.PrivateBrowsingUtils.isWindowPrivate(item.ownerGlobal)
+    ) {
+      return true;
+    }
+
+    if (
+      item.hasAttribute("hide-if-usercontext-disabled") &&
+      !Services.prefs.getBoolPref("privacy.userContext.enabled", false)
+    ) {
+      return true;
+    }
+
+    return false;
+  },
+
   async managedPlacesContextShowing(event) {
     let menupopup = event.target;
     let document = menupopup.ownerDocument;
@@ -1316,12 +1350,6 @@ export var PlacesUIUtils = {
         menupopup.triggerNode.menupopup
       );
     }
-    let linkItems = [
-      "placesContext_open:newtab",
-      "placesContext_open:newwindow",
-      "placesContext_openSeparator",
-      "placesContext_copy",
-    ];
     // Hide everything. We'll unhide the things we need.
     Array.from(menupopup.children).forEach(function (child) {
       child.hidden = true;
@@ -1343,12 +1371,18 @@ export var PlacesUIUtils = {
       openContainerInTabs_menuitem.disabled = !openContainerInTabs;
       openContainerInTabs_menuitem.hidden = false;
     } else {
-      linkItems.forEach(id => (document.getElementById(id).hidden = false));
-      document.getElementById("placesContext_open:newprivatewindow").hidden =
-        lazy.PrivateBrowsingUtils.isWindowPrivate(window) ||
-        !lazy.PrivateBrowsingUtils.enabled;
-      document.getElementById("placesContext_open:newcontainertab").hidden =
-        !Services.prefs.getBoolPref("privacy.userContext.enabled", false);
+      for (let id of [
+        "placesContext_open:newtab",
+        "placesContext_open:newcontainertab",
+        "placesContext_open:newwindow",
+        "placesContext_open:newprivatewindow",
+      ]) {
+        let item = document.getElementById(id);
+        item.hidden = this.shouldHideOpenMenuItem(item);
+      }
+      for (let id of ["placesContext_openSeparator", "placesContext_copy"]) {
+        document.getElementById(id).hidden = false;
+      }
     }
 
     event.target.ownerGlobal.updateCommands("places");
