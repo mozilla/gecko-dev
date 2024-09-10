@@ -167,6 +167,8 @@ class MOZ_STACK_CLASS NameOpEmitter {
 
   [[nodiscard]] bool isInitialize() const { return kind_ == Kind::Initialize; }
 
+  JSOp strictifySetNameOp(JSOp op) const;
+
  public:
   [[nodiscard]] bool emittedBindOp() const { return emittedBindOp_; }
 

@@ -281,6 +281,24 @@ bool NameOpEmitter::prepareForRhs() {
   return true;
 }
 
+JSOp NameOpEmitter::strictifySetNameOp(JSOp op) const {
+  switch (op) {
+    case JSOp::SetName:
+      if (bce_->sc->strict()) {
+        op = JSOp::StrictSetName;
+      }
+      break;
+    case JSOp::SetGName:
+      if (bce_->sc->strict()) {
+        op = JSOp::StrictSetGName;
+      }
+      break;
+    default:
+      MOZ_CRASH("Invalid SetName op");
+  }
+  return op;
+}
+
 #if defined(__clang__) && defined(XP_WIN) && \
     (defined(_M_X64) || defined(__x86_64__))
 // Work around a CPU bug. See bug 1524257.
@@ -289,18 +307,22 @@ __attribute__((__aligned__(32)))
 bool NameOpEmitter::emitAssignment() {
   MOZ_ASSERT(state_ == State::Rhs);
 
+  //                [stack] # If emittedBindOp_
+  //                [stack] ENV V
+  //                [stack] # else
+  //                [stack] V
+
   switch (loc_.kind()) {
     case NameLocation::Kind::Dynamic:
     case NameLocation::Kind::Import:
       MOZ_ASSERT(emittedBindOp_);
-      if (!bce_->emitAtomOp(bce_->strictifySetNameOp(JSOp::SetName),
-                            atomIndex_)) {
+      if (!bce_->emitAtomOp(strictifySetNameOp(JSOp::SetName), atomIndex_)) {
         return false;
       }
       break;
     case NameLocation::Kind::DynamicAnnexBVar:
       MOZ_ASSERT(emittedBindOp_);
-      if (!bce_->emitAtomOp(bce_->strictifySetNameOp(JSOp::SetName), name_)) {
+      if (!bce_->emitAtomOp(strictifySetNameOp(JSOp::SetName), name_)) {
         return false;
       }
       break;
@@ -310,9 +332,9 @@ bool NameOpEmitter::emitAssignment() {
         MOZ_ASSERT(bce_->outermostScope().hasNonSyntacticScopeOnChain() ==
                    bce_->sc->hasNonSyntacticScope());
         if (bce_->sc->hasNonSyntacticScope()) {
-          op = bce_->strictifySetNameOp(JSOp::SetName);
+          op = strictifySetNameOp(JSOp::SetName);
         } else {
-          op = bce_->strictifySetNameOp(JSOp::SetGName);
+          op = strictifySetNameOp(JSOp::SetGName);
         }
       } else {
         op = JSOp::InitGLexical;
@@ -389,25 +411,21 @@ bool NameOpEmitter::emitAssignment() {
             return false;
           }
         }
-      }
-      if (loc_.bindingKind() == BindingKind::NamedLambdaCallee) {
+      } else if (loc_.bindingKind() == BindingKind::NamedLambdaCallee) {
         // Assigning to the named lambda is a no-op in sloppy mode and throws
         // in strict mode.
+        if (!bce_->sc->strict()) {
+          break;
+        }
         op = JSOp::ThrowSetConst;
-        if (bce_->sc->strict()) {
-          if (!bce_->emitAtomOp(op, name_)) {
-            return false;
-          }
+      }
+      if (op == JSOp::ThrowSetConst) {
+        if (!bce_->emitAtomOp(op, name_)) {
+          return false;
         }
       } else {
-        if (op == JSOp::ThrowSetConst) {
-          if (!bce_->emitAtomOp(op, name_)) {
-            return false;
-          }
-        } else {
-          if (!bce_->emitEnvCoordOp(op, loc_.environmentCoordinate())) {
-            return false;
-          }
+        if (!bce_->emitEnvCoordOp(op, loc_.environmentCoordinate())) {
+          return false;
         }
       }
       if (op == JSOp::InitAliasedLexical) {

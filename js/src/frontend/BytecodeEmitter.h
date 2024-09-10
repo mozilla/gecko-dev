@@ -533,8 +533,6 @@ struct MOZ_STACK_CLASS BytecodeEmitter {
   [[nodiscard]] bool updateSourceCoordNotes(uint32_t offset);
   [[nodiscard]] bool updateSourceCoordNotesIfNonLiteral(ParseNode* node);
 
-  JSOp strictifySetNameOp(JSOp op);
-
   [[nodiscard]] bool emitCheck(JSOp op, ptrdiff_t delta,
                                BytecodeOffset* offset);
 

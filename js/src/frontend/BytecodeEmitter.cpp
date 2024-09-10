@@ -822,23 +822,6 @@ bool BytecodeEmitter::emitEnvCoordOp(JSOp op, EnvironmentCoordinate ec) {
   return true;
 }
 
-JSOp BytecodeEmitter::strictifySetNameOp(JSOp op) {
-  switch (op) {
-    case JSOp::SetName:
-      if (sc->strict()) {
-        op = JSOp::StrictSetName;
-      }
-      break;
-    case JSOp::SetGName:
-      if (sc->strict()) {
-        op = JSOp::StrictSetGName;
-      }
-      break;
-    default:;
-  }
-  return op;
-}
-
 bool BytecodeEmitter::checkSideEffects(ParseNode* pn, bool* answer) {
   AutoCheckRecursionLimit recursion(fc);
   if (!recursion.check(fc)) {
