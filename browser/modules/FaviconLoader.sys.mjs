@@ -543,7 +543,6 @@ class IconLoader {
       this.actor.sendAsyncMessage("Link:SetIcon", {
         pageURL: iconInfo.pageUri.spec,
         originalURL: iconInfo.iconUri.spec,
-        canUseForTab: !iconInfo.isRichIcon,
         expiration: undefined,
         iconURL: iconInfo.iconUri.spec,
         canStoreIcon:
@@ -557,7 +556,7 @@ class IconLoader {
     // Let the main process that a tab icon is possibly coming.
     this.actor.sendAsyncMessage("Link:LoadingIcon", {
       originalURL: iconInfo.iconUri.spec,
-      canUseForTab: !iconInfo.isRichIcon,
+      isRichIcon: iconInfo.isRichIcon,
     });
 
     try {
@@ -567,7 +566,6 @@ class IconLoader {
       this.actor.sendAsyncMessage("Link:SetIcon", {
         pageURL: iconInfo.pageUri.spec,
         originalURL: iconInfo.iconUri.spec,
-        canUseForTab: !iconInfo.isRichIcon,
         expiration,
         iconURL: dataURL,
         canStoreIcon,
@@ -583,7 +581,7 @@ class IconLoader {
         // Used mainly for tests currently.
         this.actor.sendAsyncMessage("Link:SetFailedIcon", {
           originalURL: iconInfo.iconUri.spec,
-          canUseForTab: !iconInfo.isRichIcon,
+          isRichIcon: iconInfo.isRichIcon,
         });
       }
     } finally {

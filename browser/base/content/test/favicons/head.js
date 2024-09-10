@@ -21,7 +21,7 @@ function waitForFaviconMessage(isTabIcon = undefined, expectedURL = undefined) {
       }
 
       // If requested filter out loads of the wrong kind of icon.
-      if (isTabIcon != undefined && isTabIcon != data.canUseForTab) {
+      if (isTabIcon != undefined && isTabIcon == data.isRichIcon) {
         return;
       }
 
@@ -35,13 +35,11 @@ function waitForFaviconMessage(isTabIcon = undefined, expectedURL = undefined) {
         resolve({
           iconURL: data.originalURL,
           dataURL: data.iconURL,
-          canUseForTab: data.canUseForTab,
           isRichIcon: data.isRichIcon,
         });
       } else {
         reject({
           iconURL: data.originalURL,
-          canUseForTab: data.canUseForTab,
           isRichIcon: data.isRichIcon,
         });
       }
