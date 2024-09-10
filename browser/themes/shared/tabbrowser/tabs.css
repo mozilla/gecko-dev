@@ -697,6 +697,10 @@ tab-group {
 /* Tab Overflow */
 
 #tabbrowser-arrowscrollbox {
+  &[orient="horizontal"] {
+    min-width: 1px;
+  }
+
   &:not([scrolledtostart])::part(overflow-start-indicator),
   &:not([scrolledtoend])::part(overflow-end-indicator) {
     width: 7px; /* The width is the sum of the inline margins */
@@ -710,10 +714,6 @@ tab-group {
     pointer-events: none;
     position: relative;
     border-bottom: .5px solid transparent;
-  }
-
-  &[orient="horizontal"] {
-    min-width: 1px;
   }
 
   &:not([scrolledtostart])::part(overflow-start-indicator) {
