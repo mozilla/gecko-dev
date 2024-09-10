@@ -398,12 +398,7 @@ JSObject* IonBindNameIC::update(JSContext* cx, HandleScript outerScript,
 
   TryAttachIonStub<BindNameIRGenerator>(cx, ic, ionScript, envChain, name);
 
-  RootedObject holder(cx);
-  if (!LookupNameUnqualified(cx, name, envChain, &holder)) {
-    return nullptr;
-  }
-
-  return holder;
+  return LookupNameUnqualified(cx, name, envChain);
 }
 
 /* static */
@@ -413,12 +408,7 @@ JSObject* IonGetIteratorIC::update(JSContext* cx, HandleScript outerScript,
 
   TryAttachIonStub<GetIteratorIRGenerator>(cx, ic, ionScript, value);
 
-  PropertyIteratorObject* iterObj = ValueToIterator(cx, value);
-  if (!iterObj) {
-    return nullptr;
-  }
-
-  return iterObj;
+  return ValueToIterator(cx, value);
 }
 
 /* static */

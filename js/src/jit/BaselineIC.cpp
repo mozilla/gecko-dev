@@ -1199,12 +1199,12 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
   TryAttachStub<BindNameIRGenerator>("BindName", cx, frame, stub, envChain,
                                      name);
 
-  RootedObject scope(cx);
-  if (!LookupNameUnqualified(cx, name, envChain, &scope)) {
+  JSObject* env = LookupNameUnqualified(cx, name, envChain);
+  if (!env) {
     return false;
   }
 
-  res.setObject(*scope);
+  res.setObject(*env);
   return true;
 }
 

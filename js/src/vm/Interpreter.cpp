@@ -2721,8 +2721,8 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
       ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
 
       // Assigning to an undeclared name adds a property to the global object.
-      ReservedRooted<JSObject*> env(&rootObject1);
-      if (!LookupNameUnqualified(cx, name, envChain, &env)) {
+      JSObject* env = LookupNameUnqualified(cx, name, envChain);
+      if (!env) {
         goto error;
       }
 
@@ -3604,10 +3604,9 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
     CASE(ImplicitThis) {
       ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
-      ReservedRooted<JSObject*> envObj(&rootObject0,
-                                       REGS.fp()->environmentChain());
-      ReservedRooted<JSObject*> env(&rootObject1);
-      if (!LookupNameWithGlobalDefault(cx, name, envObj, &env)) {
+      HandleObject envChain = REGS.fp()->environmentChain();
+      JSObject* env = LookupNameWithGlobalDefault(cx, name, envChain);
+      if (!env) {
         goto error;
       }
 
@@ -5203,12 +5202,12 @@ bool js::DeleteNameOperation(JSContext* cx, Handle<PropertyName*> name,
 bool js::ImplicitThisOperation(JSContext* cx, HandleObject scopeObj,
                                Handle<PropertyName*> name,
                                MutableHandleValue res) {
-  RootedObject obj(cx);
-  if (!LookupNameWithGlobalDefault(cx, name, scopeObj, &obj)) {
+  JSObject* env = LookupNameWithGlobalDefault(cx, name, scopeObj);
+  if (!env) {
     return false;
   }
 
-  res.set(ComputeImplicitThis(obj));
+  res.set(ComputeImplicitThis(env));
   return true;
 }
 

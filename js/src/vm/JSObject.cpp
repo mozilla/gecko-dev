@@ -1617,9 +1617,9 @@ bool js::LookupNameNoGC(JSContext* cx, PropertyName* name, JSObject* envChain,
   return true;
 }
 
-bool js::LookupNameWithGlobalDefault(JSContext* cx, Handle<PropertyName*> name,
-                                     HandleObject envChain,
-                                     MutableHandleObject objp) {
+JSObject* js::LookupNameWithGlobalDefault(JSContext* cx,
+                                          Handle<PropertyName*> name,
+                                          HandleObject envChain) {
   RootedId id(cx, NameToId(name));
 
   RootedObject pobj(cx);
@@ -1628,20 +1628,18 @@ bool js::LookupNameWithGlobalDefault(JSContext* cx, Handle<PropertyName*> name,
   RootedObject env(cx, envChain);
   for (; !env->is<GlobalObject>(); env = env->enclosingEnvironment()) {
     if (!LookupProperty(cx, env, id, &pobj, &prop)) {
-      return false;
+      return nullptr;
     }
     if (prop.isFound()) {
       break;
     }
   }
 
-  objp.set(env);
-  return true;
+  return env;
 }
 
-bool js::LookupNameUnqualified(JSContext* cx, Handle<PropertyName*> name,
-                               HandleObject envChain,
-                               MutableHandleObject objp) {
+JSObject* js::LookupNameUnqualified(JSContext* cx, Handle<PropertyName*> name,
+                                    HandleObject envChain) {
   RootedId id(cx, NameToId(name));
 
   RootedObject pobj(cx);
@@ -1650,58 +1648,56 @@ bool js::LookupNameUnqualified(JSContext* cx, Handle<PropertyName*> name,
   RootedObject env(cx, envChain);
   for (; !env->isUnqualifiedVarObj(); env = env->enclosingEnvironment()) {
     if (!LookupProperty(cx, env, id, &pobj, &prop)) {
-      return false;
+      return nullptr;
     }
     if (prop.isFound()) {
       break;
     }
   }
 
+  // Uninitialized lexicals can't appear on the prototype chain, so only check
+  // for TDZ and `const` bindings when |pobj == env|.
+  //
   // See note above RuntimeLexicalErrorObject.
   if (pobj == env) {
-    bool isTDZ = false;
-    if (prop.isFound() && name != cx->names().dot_this_) {
-      // Treat Debugger environments specially for TDZ checks, as they
-      // look like non-native environments but in fact wrap native
-      // environments.
+    MOZ_ASSERT(prop.isFound());
+
+    if (name != cx->names().dot_this_) {
+      // Treat Debugger environments specially for TDZ checks, as they look like
+      // non-native environments but in fact wrap native environments.
+      bool isTDZ;
       if (env->is<DebugEnvironmentProxy>()) {
         RootedValue v(cx);
-        Rooted<DebugEnvironmentProxy*> envProxy(
-            cx, &env->as<DebugEnvironmentProxy>());
+        auto envProxy = env.as<DebugEnvironmentProxy>();
         if (!DebugEnvironmentProxy::getMaybeSentinelValue(cx, envProxy, id,
                                                           &v)) {
-          return false;
+          return nullptr;
         }
         isTDZ = IsUninitializedLexical(v);
       } else {
         isTDZ = IsUninitializedLexicalSlot(env, prop);
       }
+
+      if (isTDZ) {
+        return RuntimeLexicalErrorObject::create(cx, env,
+                                                 JSMSG_UNINITIALIZED_LEXICAL);
+      }
     }
 
-    if (isTDZ) {
-      env = RuntimeLexicalErrorObject::create(cx, env,
-                                              JSMSG_UNINITIALIZED_LEXICAL);
-      if (!env) {
-        return false;
-      }
-    } else if (env->is<LexicalEnvironmentObject>() &&
-               !prop.propertyInfo().writable()) {
+    if (env->is<LexicalEnvironmentObject>() &&
+        !prop.propertyInfo().writable()) {
       // Assigning to a named lambda callee name is a no-op in sloppy mode.
       if (!(env->is<BlockLexicalEnvironmentObject>() &&
             env->as<BlockLexicalEnvironmentObject>().scope().kind() ==
                 ScopeKind::NamedLambda)) {
         MOZ_ASSERT(name != cx->names().dot_this_);
-        env =
-            RuntimeLexicalErrorObject::create(cx, env, JSMSG_BAD_CONST_ASSIGN);
-        if (!env) {
-          return false;
-        }
+        return RuntimeLexicalErrorObject::create(cx, env,
+                                                 JSMSG_BAD_CONST_ASSIGN);
       }
     }
   }
 
-  objp.set(env);
-  return true;
+  return env;
 }
 
 bool js::HasOwnProperty(JSContext* cx, HandleObject obj, HandleId id,
