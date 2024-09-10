@@ -105,7 +105,7 @@ struct MOZ_STACK_CLASS GCThingList {
 
   uint32_t length() const { return vector.length(); }
 
-  const ScriptThingsStackVector& objects() { return vector; }
+  const ScriptThingsStackVector& objects() const { return vector; }
 
   AbstractScopePtr getScope(size_t index) const;
 
