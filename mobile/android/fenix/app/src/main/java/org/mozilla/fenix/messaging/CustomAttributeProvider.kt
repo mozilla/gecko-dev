@@ -5,6 +5,7 @@
 package org.mozilla.fenix.messaging
 
 import android.content.Context
+import android.os.Build
 import androidx.core.app.NotificationManagerCompat
 import mozilla.components.service.nimbus.messaging.JexlAttributeProvider
 import mozilla.components.support.base.ext.areNotificationsEnabledSafe
@@ -47,6 +48,8 @@ object CustomAttributeProvider : JexlAttributeProvider {
                 // This camelCase attribute is a boolean value represented as a string.
                 // This is left for backwards compatibility.
                 "isFirstRun" to isFirstRun.toString(),
+                "device_manufacturer" to Build.MANUFACTURER,
+                "device_model" to Build.MODEL,
             ),
         )
     }
