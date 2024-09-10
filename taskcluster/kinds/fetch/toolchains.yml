@@ -696,7 +696,7 @@ mozilla-pdf.js:
     fetch:
         type: git
         repo: https://github.com/mozilla/pdf.js
-        revision: d64f334f98d4b7f1c2e09a731a63b68629c946f9
+        revision: 5369a24c9c41a10565e8003f01960f74b5cd8a21
 
 xmlstarlet-1.6.1:
     description: xmlstarlet for Android Performance Tests
