@@ -2408,9 +2408,7 @@ nsresult nsHttpHandler::SpeculativeConnectInternal(
     }
   }
 
-  // When ech is enabled, always do speculative connect with HTTPS RR.
-  return MaybeSpeculativeConnectWithHTTPSRR(ci, aCallbacks, 0,
-                                            EchConfigEnabled());
+  return SpeculativeConnect(ci, aCallbacks);
 }
 
 NS_IMETHODIMP
