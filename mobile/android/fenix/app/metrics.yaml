@@ -11978,6 +11978,23 @@ navigation_bar:
       - android-probes@mozilla.com
     expires: never
 
+  os_navigation_uses_gestures:
+    type: boolean
+    lifetime: application
+    description: |
+      Whether gesture navigation is used instead of the traditional navigation bar.
+    send_in_pings:
+      - metrics
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917757
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917757
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - android-probes@mozilla.com
+    expires: never
+
 address_toolbar:
   share_tapped:
     type: event
