@@ -595,11 +595,17 @@ export var ShellService = new Proxy(ShellServiceInternal, {
     if (name in target) {
       return target[name];
     }
-    if (target.shellService) {
+    // n.b. Functions may be present or absent dependent on whether the
+    // `nsIShellService` has been queried for the interface implementing it, as
+    // querying the interface adds it's functions to the queried JS object. This
+    // is more likely to happen for Firefox Desktop than a Firefox Background
+    // Task. The fix is to not rely on this behavior on the `nsIShellService`
+    // directly, and instead query the interface containing the function.
+    if (target.shellService && name in target.shellService) {
       return target.shellService[name];
     }
-    Services.console.logStringMessage(
-      `${name} not found in ShellService: ${target.shellService}`
+    lazy.log.warn(
+      `${name.toString()} not found in ShellService: ${target.shellService}`
     );
     return undefined;
   },
