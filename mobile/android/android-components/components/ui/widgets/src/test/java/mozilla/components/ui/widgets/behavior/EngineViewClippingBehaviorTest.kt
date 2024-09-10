@@ -28,6 +28,23 @@ import org.mockito.Mockito.verify
 class EngineViewClippingBehaviorTest {
 
     @Test
+    fun `GIVEN the behavior is just applied WHEN it is initialized THEN set a default clipping of 0`() {
+        val engineView: EngineView = spy(FakeEngineView(testContext))
+        val toolbar: View = mock()
+        doReturn(100).`when`(toolbar).height
+
+        EngineViewClippingBehavior(
+            mock(),
+            null,
+            engineView.asView(),
+            toolbar.height,
+            ToolbarPosition.BOTTOM,
+        )
+
+        verify(engineView).setVerticalClipping(0)
+    }
+
+    @Test
     fun `EngineView clipping and bottom toolbar offset are kept in sync`() {
         val engineView: EngineView = spy(FakeEngineView(testContext))
         val toolbar: View = mock()

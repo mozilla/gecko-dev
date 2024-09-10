@@ -60,6 +60,8 @@ class EngineViewClippingBehavior(
         } else {
             bottomToolbarChangedAction
         }
+
+        toolbarChangedAction.invoke(0f)
     }
 
     override fun layoutDependsOn(parent: CoordinatorLayout, child: View, dependency: View): Boolean {
