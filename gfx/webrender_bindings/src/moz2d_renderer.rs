@@ -307,7 +307,7 @@ struct CachedReader<'a> {
 
 impl<'a> CachedReader<'a> {
     /// Creates a new CachedReader.
-    pub fn new(buf: &'a [u8]) -> CachedReader {
+    pub fn new(buf: &'a [u8]) -> Self {
         CachedReader {
             reader: BlobReader::new(buf),
             cache: BTreeMap::new(),

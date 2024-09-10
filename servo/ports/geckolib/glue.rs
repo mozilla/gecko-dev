@@ -6373,7 +6373,7 @@ struct PrioritizedPropertyIter<'a> {
 }
 
 impl<'a> PrioritizedPropertyIter<'a> {
-    fn new(properties: &'a [PropertyValuePair]) -> PrioritizedPropertyIter {
+    fn new(properties: &'a [PropertyValuePair]) -> Self {
         use style::values::animated::compare_property_priority;
 
         // If we fail to convert a nsCSSPropertyID into a PropertyId we
