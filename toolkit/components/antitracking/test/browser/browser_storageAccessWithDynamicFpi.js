@@ -125,7 +125,7 @@ function getDataFromFirstParty(browser) {
 function createDataInThirdParty(browser, value) {
   return executeContentScript(browser, writeNetworkCookie, {
     page: TEST_3RD_PARTY_PARTITIONED_PAGE,
-    value,
+    value: value + ";SameSite=None;Secure;Partitioned;",
   });
 }
 function getDataFromThirdParty(browser) {
