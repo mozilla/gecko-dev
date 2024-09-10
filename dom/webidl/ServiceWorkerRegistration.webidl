@@ -7,6 +7,7 @@
  * http://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html
  * https://w3c.github.io/push-api/
  * https://notifications.spec.whatwg.org/
+ * https://wicg.github.io/cookie-store/#idl-index
  */
 
 [Func="ServiceWorkerVisible",
@@ -52,3 +53,11 @@ partial interface ServiceWorkerRegistration {
   [NewObject, Func="mozilla::dom::Notification::PrefEnabled"]
   Promise<sequence<Notification>> getNotifications(optional GetNotificationOptions filter = {});
 };
+
+/* Bug 1475599 - We decide to do not implement the entire cookie-store spec.
+ * Instead, we implement only the subset that is compatible with document.cookie
+[Exposed=(ServiceWorker,Window)]
+partial interface ServiceWorkerRegistration {
+  [SameObject] readonly attribute CookieStoreManager cookies;
+};
+*/

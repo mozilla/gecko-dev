@@ -2348,6 +2348,12 @@
   value: true
   mirror: always
 
+# Disable cookie-store API
+- name: dom.cookieStore.enabled
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+
 # Is support for CSSPseudoElement enabled?
 - name: dom.css_pseudo_element.enabled
   type: bool
