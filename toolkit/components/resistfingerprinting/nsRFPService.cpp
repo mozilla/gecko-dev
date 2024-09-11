@@ -2389,26 +2389,32 @@ void nsRFPService::GetMediaDeviceGroup(nsString& aGroup,
 }
 
 /* static */
-dom::OrientationType nsRFPService::OrientationSecondaryToPrimary(
-    dom::OrientationType aOrientation) {
-  switch (aOrientation) {
-    case dom::OrientationType::Landscape_secondary:
-      return dom::OrientationType::Landscape_primary;
-    case dom::OrientationType::Portrait_secondary:
-      return dom::OrientationType::Portrait_primary;
-    default:
-      return aOrientation;
+uint16_t nsRFPService::ViewportSizeToAngle(int32_t aWidth, int32_t aHeight) {
+#ifdef MOZ_WIDGET_ANDROID
+  bool neutral = aHeight >= aWidth;
+#else
+  bool neutral = aWidth >= aHeight;
+#endif
+  if (neutral) {
+    return 0;
   }
+  return 90;
 }
 
 /* static */
-uint16_t nsRFPService::OrientationSecondaryToPrimary(uint16_t aAngle) {
-  switch (aAngle) {
-    case 180:
-      return 0;
-    case 270:
-      return 90;
-    default:
-      return aAngle;
+dom::OrientationType nsRFPService::ViewportSizeToOrientationType(
+    int32_t aWidth, int32_t aHeight) {
+  if (aWidth >= aHeight) {
+    return dom::OrientationType::Landscape_primary;
   }
+  return dom::OrientationType::Portrait_primary;
+}
+
+/* static */
+dom::OrientationType nsRFPService::GetDefaultOrientationType() {
+#ifdef MOZ_WIDGET_ANDROID
+  return dom::OrientationType::Portrait_primary;
+#else
+  return dom::OrientationType::Landscape_primary;
+#endif
 }

@@ -384,13 +384,15 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   static void GetMediaDeviceGroup(nsString& aGroup,
                                   mozilla::dom::MediaDeviceKind aKind);
 
-  // Converts any OrientationType::SOMETHING_secondary to
-  // OrientationType::SOMETHING_primary
-  static mozilla::dom::OrientationType OrientationSecondaryToPrimary(
-      mozilla::dom::OrientationType aOrientation);
+  // Converts the viewport size to the angle.
+  static uint16_t ViewportSizeToAngle(int32_t aWidth, int32_t aHeight);
 
-  // Converts (exactly) 180 degrees to 0 degrees, 270 degrees to 90 degrees.
-  static uint16_t OrientationSecondaryToPrimary(uint16_t aAngle);
+  // Converts the viewport size to the orientation type.
+  static dom::OrientationType ViewportSizeToOrientationType(int32_t aWidth,
+                                                            int32_t aHeight);
+
+  // Returns the default orientation type for the given platform.
+  static dom::OrientationType GetDefaultOrientationType();
 
  private:
   nsresult Init();
