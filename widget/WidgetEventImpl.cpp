@@ -132,6 +132,7 @@ bool IsForbiddenDispatchingToNonElementContent(EventMessage aMessage) {
     case eDragStart:
     case eDrop:
     case eDragLeave:
+    case eQueryDropTargetHittest:
     // case mouse wheel related message target should be an Element node
     case eLegacyMouseLineOrPageScroll:
     case eLegacyMousePixelScroll:
@@ -551,7 +552,9 @@ bool WidgetEvent::WillBeSentToRemoteProcess() const {
 }
 
 bool WidgetEvent::IsIMERelatedEvent() const {
-  return HasIMEEventMessage() || IsQueryContentEvent() || IsSelectionEvent();
+  return HasIMEEventMessage() ||
+         (IsQueryContentEvent() && mMessage != eQueryDropTargetHittest) ||
+         IsSelectionEvent();
 }
 
 bool WidgetEvent::IsUsingCoordinates() const {
