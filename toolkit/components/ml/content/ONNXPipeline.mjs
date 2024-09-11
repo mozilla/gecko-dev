@@ -206,8 +206,6 @@ export class Pipeline {
     let start = Date.now();
     this.#modelCache = modelCache;
 
-    _logLevel = config.logLevel || "Error";
-
     // Setting up the Transformers.js environment
     // See https://huggingface.co/docs/transformers.js/api/env
 
@@ -300,6 +298,9 @@ export class Pipeline {
    * @returns {Promise<Pipeline>} The initialized pipeline instance.
    */
   static async initialize(modelCache, runtime, options) {
+    if (options.logLevel) {
+      _logLevel = options.logLevel;
+    }
     const taskName = options.taskName;
     lazy.console.debug(`Initializing Pipeline for task ${taskName}`);
     let config;
