@@ -257,6 +257,13 @@
         "description": "Clears the sites on the HSTS list.",
         "parameters": []
       },
+      {
+        "name": "isSessionHistoryInParentRunning",
+        "type": "function",
+        "async": true,
+        "description": "Checks if session history in parent (SHIP) is running.",
+        "parameters": []
+      },
 
       {
         "name": "triggerCookieBannerDetected",

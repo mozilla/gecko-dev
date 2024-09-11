@@ -355,6 +355,17 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
     }
 
     /**
+     * Sets whether Session History in Parent (SHIP) should be disabled or not.
+     *
+     * @param value A flag determining whether SHIP should be disabled or not.
+     * @return The builder instance.
+     */
+    public @NonNull Builder disableShip(final boolean value) {
+      getSettings().mDisableShip.set(value);
+      return this;
+    }
+
+    /**
      * When set, the specified {@link android.app.Service} will be started by an {@link
      * android.content.Intent} with action {@link GeckoRuntime#ACTION_CRASHED} when a crash is
      * encountered. Crash details can be found in the Intent extras, such as {@link
@@ -644,6 +655,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<Boolean>("javascript.options.use_fdlibm_for_sin_cos_tan", false);
   /* package */ final Pref<Integer> mUserCharacteristicPingCurrentVersion =
       new Pref<>("toolkit.telemetry.user_characteristics_ping.current_version", 0);
+  /* package */ PrefWithoutDefault<Boolean> mDisableShip =
+      new PrefWithoutDefault<Boolean>("fission.disableSessionHistoryInParent");
 
   /* package */ int mPreferredColorScheme = COLOR_SCHEME_SYSTEM;
 
@@ -1729,6 +1742,21 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
   public @NonNull GeckoRuntimeSettings setUserCharacteristicPingCurrentVersion(final int version) {
     mUserCharacteristicPingCurrentVersion.commit(version);
     return this;
+  }
+
+  /**
+   * Retrieve the status of the disable session history in parent (SHIP) preference. May be null if
+   * the value hasn't been specifically initialized.
+   *
+   * <p>Note, there is no conventional setter because this may only be set before Gecko is
+   * initialized.
+   *
+   * <p>Set before initialization using {@link Builder#disableShip(boolean)}.
+   *
+   * @return True if SHIP is disabled, false if SHIP is enabled.
+   */
+  public @Nullable Boolean getDisableShip() {
+    return mDisableShip.get();
   }
 
   // For internal use only

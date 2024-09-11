@@ -222,6 +222,10 @@ this.test = class extends ExtensionAPI {
           return sss.clearAll();
         },
 
+        async isSessionHistoryInParentRunning() {
+          return Services.appinfo.sessionHistoryInParent;
+        },
+
         async triggerCookieBannerDetected(tabId) {
           const actor = getActorForTab(tabId, "CookieBanner");
           return actor.receiveMessage({

@@ -6,7 +6,12 @@ package org.mozilla.geckoview.test
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
-import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
+import junit.framework.TestCase.assertFalse
+import junit.framework.TestCase.assertNull
+import junit.framework.TestCase.assertTrue
+import org.hamcrest.Matchers.endsWith
+import org.hamcrest.Matchers.equalTo
+import org.hamcrest.Matchers.nullValue
 import org.junit.Assume.assumeThat
 import org.junit.Ignore
 import org.junit.Test
@@ -299,5 +304,89 @@ class HistoryDelegateTest : BaseSessionTest() {
                 )
             }
         })
+    }
+
+    @Test fun fissionDisabledWithShipDisabled() {
+        // Check if this is a fission disabled run.
+        assumeThat(sessionRule.env.isFission, equalTo(false))
+
+        // Check preference with Gecko, this can be changed externally through configs.
+        val shipPref = sessionRule.getPrefs(
+            "fission.disableSessionHistoryInParent",
+        )
+
+        // Check if this is a SHIP disabled run.
+        assumeThat(
+            shipPref[0] as Boolean,
+            equalTo(true),
+        )
+
+        // Check preference with GeckoView
+        assertNull(
+            "Default will have no value since we are relying on Gecko.",
+            sessionRule.runtime.settings.disableShip,
+        )
+
+        // Verify SHIP is not running
+        assertFalse(
+            "SHIP is not running.",
+            sessionRule.isSessionHistoryInParentRunning,
+        )
+    }
+
+    @Test fun fissionDisabledWithShipEnabled() {
+        // Check if this is a fission disabled run.
+        assumeThat(sessionRule.env.isFission, equalTo(false))
+
+        // Check preference with Gecko, this can be changed externally through configs.
+        val shipPref = sessionRule.getPrefs(
+            "fission.disableSessionHistoryInParent",
+        )
+
+        // Check if this is a SHIP enabled run.
+        assumeThat(
+            shipPref[0] as Boolean,
+            equalTo(false),
+        )
+
+        // Check preference with GeckoView
+        assertNull(
+            "Default will have no value since we are relying on Gecko.",
+            sessionRule.runtime.settings.disableShip,
+        )
+
+        // Verify SHIP is running
+        assertTrue(
+            "SHIP is running.",
+            sessionRule.isSessionHistoryInParentRunning,
+        )
+    }
+
+    @Test fun fissionEnabledWithShipEnabled() {
+        // Check if this is a fission enabled run.
+        assumeThat(sessionRule.env.isFission, equalTo(true))
+
+        // Check preference with Gecko, this can be changed externally through configs.
+        val shipPref = sessionRule.getPrefs(
+            "fission.disableSessionHistoryInParent",
+        )
+
+        // Check if this is a SHIP enabled run.
+        assumeThat(
+            shipPref[0] as Boolean,
+            equalTo(false),
+        )
+
+        // Check preference with GeckoView
+        assertNull(
+            "Default will have no value since we are relying on Gecko.",
+            sessionRule.runtime.settings.disableShip,
+        )
+
+        // Verify SHIP is running
+        assertTrue(
+            "SHIP is running.",
+            sessionRule.isSessionHistoryInParentRunning,
+        )
     }
 }

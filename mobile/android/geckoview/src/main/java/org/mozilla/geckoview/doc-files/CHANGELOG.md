@@ -13,6 +13,12 @@ exclude: true
 
 ⚠️  breaking change and deprecation notices
 
+## v132
+-Added [`getDisableShip`][132.1] to get the setting for Session History in Parent (SHIP)) and [`disableShip`][132.2] to set the status of SHIP on the `GeckoRuntimeSettings` builder.
+
+[132.1]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getDisableShip()
+[132.2]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#disableShip(boolean)
+
 ## v131
 - Added [`GeckoDisplay.windowInsetsChanged`][131.1].
 - Added [`GeckoView.addWindowInsetsListener`][131.2] and [`GeckoView.removeWindowInsetsListener`][131.3] to allow listening WindowInsets changes of Activity's root window with multiple listeners.
@@ -1605,4 +1611,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 87b7eb1c251953b4a07f1a0c71ac1af4c73562b2
+[api-version]: af9caf1462fa1547e3c9f85105c89b930673fa7d

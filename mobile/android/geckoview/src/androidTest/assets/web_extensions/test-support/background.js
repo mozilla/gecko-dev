@@ -77,6 +77,9 @@ const APIS = {
   ClearHSTSState() {
     return browser.test.clearHSTSState();
   },
+  IsSessionHistoryInParentRunning() {
+    return browser.test.isSessionHistoryInParentRunning();
+  },
   TriggerCookieBannerDetected({ tab }) {
     return browser.test.triggerCookieBannerDetected(tab.id);
   },
