@@ -876,7 +876,7 @@ nscoord nsBlockFrame::MinISize(const IntrinsicSizeInput& aInput) {
                                           GetWritingMode());
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
             kidInput.mContext, kid, IntrinsicISizeType::MinISize,
-            kidInput.mPercentageBasis);
+            kidInput.mPercentageBasisForChildren);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {
@@ -959,7 +959,7 @@ nscoord nsBlockFrame::PrefISize(const IntrinsicSizeInput& aInput) {
                                           GetWritingMode());
         data.mCurrentLine = nsLayoutUtils::IntrinsicForContainer(
             kidInput.mContext, kid, IntrinsicISizeType::PrefISize,
-            kidInput.mPercentageBasis);
+            kidInput.mPercentageBasisForChildren);
         data.ForceBreak();
       } else {
         if (!curFrame->GetPrevContinuation() && TextIndentAppliesTo(line)) {

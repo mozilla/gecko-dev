@@ -604,8 +604,8 @@ nscoord nsTableCellFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
   const IntrinsicSizeInput innerInput(aInput, Inner()->GetWritingMode(),
                                       GetWritingMode());
   return nsLayoutUtils::IntrinsicForContainer(
-      innerInput.mContext, Inner(), aType, innerInput.mPercentageBasis,
-      nsLayoutUtils::IGNORE_PADDING);
+      innerInput.mContext, Inner(), aType,
+      innerInput.mPercentageBasisForChildren, nsLayoutUtils::IGNORE_PADDING);
 }
 
 /* virtual */ nsIFrame::IntrinsicSizeOffsetData

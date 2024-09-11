@@ -79,7 +79,7 @@ void nsPlaceholderFrame::AddFloatToIntrinsicISizeData(
         aInput, mOutOfFlowFrame->GetWritingMode(), GetWritingMode());
     const nscoord floatISize = nsLayoutUtils::IntrinsicForContainer(
         floatInput.mContext, mOutOfFlowFrame, aType,
-        floatInput.mPercentageBasis);
+        floatInput.mPercentageBasisForChildren);
     aData->mFloats.EmplaceBack(mOutOfFlowFrame, floatISize);
   }
 }
