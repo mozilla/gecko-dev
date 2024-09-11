@@ -122,6 +122,17 @@ if (typeof assertSuppressionChain === 'undefined' && typeof globalThis.Suppresse
     }
   }
 
+  var assertSuppressionChainAsync = function assertSuppressionChainAsync(f, suppressions) {
+    let thenCalled = false;
+    let catchCalled = false;
+    let e = null;
+    f().then(() => { thenCalled = true; }, err => { catchCalled = true; e = err; });
+    drainJobQueue();
+    assertEq(thenCalled, false);
+    assertEq(catchCalled, true);
+    assertSuppressionChain(() => { throw e; }, suppressions);
+  };
+
   var assertSuppressionChainErrorMessages = function assertSuppressionChainErrorMessages(fn, suppressions) {
     let caught = false;
     try {
@@ -135,4 +146,17 @@ if (typeof assertSuppressionChain === 'undefined' && typeof globalThis.Suppresse
       assertEq(caught, true);
     }
   }
+}
+
+if (typeof assertThrowsInstanceOfAsync === 'undefined') {
+  var assertThrowsInstanceOfAsync = function assertThrowsInstanceOfAsync(f, ctor, message) {
+    let thenCalled = false;
+    let catchCalled = false;
+    let e = null;
+    f().then(() => { thenCalled = true; }, err => { catchCalled = true; e = err; });
+    drainJobQueue();
+    assertEq(thenCalled, false);
+    assertEq(catchCalled, true);
+    assertThrowsInstanceOf(() => { throw e; }, ctor, message);
+  };
 }

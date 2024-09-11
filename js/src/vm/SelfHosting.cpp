@@ -6,6 +6,9 @@
 
 #include "vm/SelfHosting.h"
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "builtin/AsyncDisposableStackObject.h"
+#endif
 #include "mozilla/BinarySearch.h"
 #include "mozilla/Casting.h"
 #include "mozilla/Maybe.h"
@@ -412,6 +415,24 @@ static bool intrinsic_ThrowInternalError(JSContext* cx, unsigned argc,
   ThrowErrorWithType(cx, JSEXN_INTERNALERR, args);
   return false;
 }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+static bool intrinsic_CreateSuppressedError(JSContext* cx, unsigned argc,
+                                            Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+  MOZ_ASSERT(args.length() == 2);
+
+  JS::Rooted<JS::Value> error(cx, args[0]);
+  JS::Rooted<JS::Value> suppressed(cx, args[1]);
+
+  ErrorObject* suppressedError = CreateSuppressedError(cx, error, suppressed);
+  if (!suppressedError) {
+    return false;
+  }
+  args.rval().setObject(*suppressedError);
+  return true;
+}
+#endif
 
 /**
  * Handles an assertion failure in self-hosted code just like an assertion
@@ -1936,6 +1957,10 @@ static const JSFunctionSpec intrinsic_functions[] = {
           CallNonGenericSelfhostedMethod<Is<ArrayBufferObject>>, 2, 0),
     JS_FN("CallArrayIteratorMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<ArrayIteratorObject>>, 2, 0),
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    JS_FN("CallAsyncDisposableStackMethodIfWrapped",
+          CallNonGenericSelfhostedMethod<Is<AsyncDisposableStackObject>>, 2, 0),
+#endif
     JS_FN("CallAsyncIteratorHelperMethodIfWrapped",
           CallNonGenericSelfhostedMethod<Is<AsyncIteratorHelperObject>>, 2, 0),
     JS_FN("CallGeneratorMethodIfWrapped",
@@ -1971,6 +1996,9 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_FN("CreateMapIterationResultPair",
           intrinsic_CreateMapIterationResultPair, 0, 0),
     JS_FN("CreateSetIterationResult", intrinsic_CreateSetIterationResult, 0, 0),
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    JS_FN("CreateSuppressedError", intrinsic_CreateSuppressedError, 2, 0),
+#endif
     JS_FN("DecompileArg", intrinsic_DecompileArg, 2, 0),
     JS_FN("DefineDataProperty", intrinsic_DefineDataProperty, 4, 0),
     JS_FN("DefineProperty", intrinsic_DefineProperty, 6, 0),
@@ -1999,6 +2027,11 @@ static const JSFunctionSpec intrinsic_functions[] = {
     JS_INLINABLE_FN("GuardToArrayIterator",
                     intrinsic_GuardToBuiltin<ArrayIteratorObject>, 1, 0,
                     IntrinsicGuardToArrayIterator),
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    JS_INLINABLE_FN("GuardToAsyncDisposableStackHelper",
+                    intrinsic_GuardToBuiltin<AsyncDisposableStackObject>, 1, 0,
+                    IntrinsicGuardToAsyncDisposableStack),
+#endif
     JS_INLINABLE_FN("GuardToAsyncIteratorHelper",
                     intrinsic_GuardToBuiltin<AsyncIteratorHelperObject>, 1, 0,
                     IntrinsicGuardToAsyncIteratorHelper),

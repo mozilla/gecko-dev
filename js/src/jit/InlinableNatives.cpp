@@ -16,6 +16,9 @@
 #  include "builtin/intl/RelativeTimeFormat.h"
 #  include "builtin/intl/Segmenter.h"
 #endif
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+#  include "builtin/AsyncDisposableStackObject.h"
+#endif
 #include "builtin/MapObject.h"
 #include "js/experimental/JitInfo.h"
 #include "vm/ArrayBufferObject.h"
@@ -90,6 +93,10 @@ const JSClass* js::jit::InlinableNativeGuardToClass(InlinableNative native) {
       return &IteratorHelperObject::class_;
     case InlinableNative::IntrinsicGuardToAsyncIteratorHelper:
       return &AsyncIteratorHelperObject::class_;
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    case InlinableNative::IntrinsicGuardToAsyncDisposableStack:
+      return &AsyncDisposableStackObject::class_;
+#endif
 
     case InlinableNative::IntrinsicGuardToMapObject:
       return &MapObject::class_;
@@ -232,6 +239,9 @@ bool js::jit::CanInlineNativeCrossRealm(InlinableNative native) {
     case InlinableNative::IntrinsicTypedArrayByteOffset:
     case InlinableNative::IntrinsicTypedArrayElementSize:
     case InlinableNative::IntrinsicArrayIteratorPrototypeOptimizable:
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    case InlinableNative::IntrinsicGuardToAsyncDisposableStack:
+#endif
       MOZ_CRASH("Unexpected cross-realm intrinsic call");
 
     case InlinableNative::TestBailout:

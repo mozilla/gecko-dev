@@ -1920,6 +1920,8 @@ ErrorObject* js::CreateSuppressedError(JSContext* cx,
 // Explicit Resource Management Proposal
 // 7.5.4 AddDisposableResource ( disposeCapability, V, hint [ , method ] )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-adddisposableresource
+// TODO: It is known at compile time whether or not methodVal will be present.
+// thus consider splitting the function to avoid the branching. (Bug 1913999)
 bool js::AddDisposableResource(
     JSContext* cx, JS::Handle<ArrayObject*> disposeCapability,
     JS::Handle<JS::Value> val, UsingHint hint,

@@ -12,6 +12,18 @@
 
 namespace js {
 
+enum AdoptClosureSlots {
+  AdoptClosureSlot_ValueSlot = 0,
+  AdoptClosureSlot_OnDisposeSlot,
+};
+
+bool ThrowIfOnDisposeNotCallable(JSContext* cx,
+                                 JS::Handle<JS::Value> onDispose);
+
+bool AdoptClosure(JSContext* cx, unsigned argc, JS::Value* vp);
+
+// This is a shared base class for common functionality between
+// DisposableStackObject and AsyncDisposableStackObject.
 class DisposableStackObjectBase : public NativeObject {
  public:
   enum DisposableState : uint8_t { Pending, Disposed };

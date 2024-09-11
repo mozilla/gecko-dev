@@ -99,6 +99,10 @@ bool UsingEmitter::emitThrowIfException() {
 // Explicit Resource Management Proposal
 // DisposeResources ( disposeCapability, completion )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
+//
+// This implementation of DisposeResources is designed for using and await using
+// syntax and covers the complete algorithm as defined in the spec for
+// both sync and async disposals as necessary in bytecode.
 bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
                                    CompletionKind initialCompletion) {
   MOZ_ASSERT(initialCompletion != CompletionKind::Return);
