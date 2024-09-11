@@ -10,13 +10,52 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/net/CookieCommons.h"
+#include "mozilla/net/CookieServiceParent.h"
+#include "mozilla/net/NeckoParent.h"
 #include "mozilla/Unused.h"
 #include "nsICookieManager.h"
 #include "nsProxyRelease.h"
 
 using namespace mozilla::ipc;
+using namespace mozilla::net;
 
 namespace mozilla::dom {
+
+namespace {
+
+bool CheckContentProcessSecurity(ThreadsafeContentParentHandle* aParent,
+                                 const nsACString& aDomain,
+                                 const OriginAttributes& aOriginAttributes) {
+  AssertIsOnMainThread();
+
+  // ContentParent is null if we are dealing with the same process.
+  if (!aParent) {
+    return true;
+  }
+
+  RefPtr<ContentParent> contentParent = aParent->GetContentParent();
+  if (!contentParent) {
+    return true;
+  }
+
+  PNeckoParent* neckoParent =
+      LoneManagedOrNullAsserts(contentParent->ManagedPNeckoParent());
+  if (!neckoParent) {
+    return true;
+  }
+
+  PCookieServiceParent* csParent =
+      LoneManagedOrNullAsserts(neckoParent->ManagedPCookieServiceParent());
+  if (!csParent) {
+    return true;
+  }
+
+  auto* cs = static_cast<CookieServiceParent*>(csParent);
+
+  return cs->ContentProcessHasCookie(aDomain, aOriginAttributes);
+}
+
+}  // namespace
 
 CookieStoreParent::CookieStoreParent() { AssertIsOnBackgroundThread(); }
 
@@ -60,16 +99,19 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
     SetRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
-  InvokeAsync(
-      GetMainThreadSerialEventTarget(), __func__,
-      [self = RefPtr(this), aDomain, aOriginAttributes, aName, aValue, aSession,
-       aExpires, aPath, aSameSite, aPartitioned, aOperationID]() {
-        bool waitForNotification = self->SetRequestOnMainThread(
-            aDomain, aOriginAttributes, aName, aValue, aSession, aExpires,
-            aPath, aSameSite, aPartitioned, aOperationID);
-        return SetDeleteRequestPromise::CreateAndResolve(waitForNotification,
-                                                         __func__);
-      })
+  RefPtr<ThreadsafeContentParentHandle> parent =
+      BackgroundParent::GetContentParentHandle(Manager());
+
+  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
+              [self = RefPtr(this), parent = RefPtr(parent), aDomain,
+               aOriginAttributes, aName, aValue, aSession, aExpires, aPath,
+               aSameSite, aPartitioned, aOperationID]() {
+                bool waitForNotification = self->SetRequestOnMainThread(
+                    parent, aDomain, aOriginAttributes, aName, aValue, aSession,
+                    aExpires, aPath, aSameSite, aPartitioned, aOperationID);
+                return SetDeleteRequestPromise::CreateAndResolve(
+                    waitForNotification, __func__);
+              })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [aResolver = std::move(aResolver)](
                  const SetDeleteRequestPromise::ResolveOrRejectValue& aResult) {
@@ -86,12 +128,15 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvDeleteRequest(
     const nsID& aOperationID, DeleteRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
+  RefPtr<ThreadsafeContentParentHandle> parent =
+      BackgroundParent::GetContentParentHandle(Manager());
+
   InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
-              [self = RefPtr(this), aDomain, aOriginAttributes, aName, aPath,
-               aPartitioned, aOperationID]() {
+              [self = RefPtr(this), parent = RefPtr(parent), aDomain,
+               aOriginAttributes, aName, aPath, aPartitioned, aOperationID]() {
                 bool waitForNotification = self->DeleteRequestOnMainThread(
-                    aDomain, aOriginAttributes, aName, aPath, aPartitioned,
-                    aOperationID);
+                    parent, aDomain, aOriginAttributes, aName, aPath,
+                    aPartitioned, aOperationID);
                 return SetDeleteRequestPromise::CreateAndResolve(
                     waitForNotification, __func__);
               })
@@ -184,11 +229,18 @@ void CookieStoreParent::GetRequestOnMainThread(
 }
 
 bool CookieStoreParent::SetRequestOnMainThread(
-    const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
-    const nsAString& aName, const nsAString& aValue, bool aSession,
-    int64_t aExpires, const nsAString& aPath, int32_t aSameSite,
-    bool aPartitioned, const nsID& aOperationID) {
+    ThreadsafeContentParentHandle* aParent, const nsAString& aDomain,
+    const OriginAttributes& aOriginAttributes, const nsAString& aName,
+    const nsAString& aValue, bool aSession, int64_t aExpires,
+    const nsAString& aPath, int32_t aSameSite, bool aPartitioned,
+    const nsID& aOperationID) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  NS_ConvertUTF16toUTF8 domain(aDomain);
+
+  if (!CheckContentProcessSecurity(aParent, domain, aOriginAttributes)) {
+    return false;
+  }
 
   nsCOMPtr<nsICookieManager> service =
       do_GetService(NS_COOKIEMANAGER_CONTRACTID);
@@ -209,8 +261,8 @@ bool CookieStoreParent::SetRequestOnMainThread(
 
   OriginAttributes attrs(aOriginAttributes);
   nsresult rv = service->AddNative(
-      NS_ConvertUTF16toUTF8(aDomain), NS_ConvertUTF16toUTF8(aPath),
-      NS_ConvertUTF16toUTF8(aName), NS_ConvertUTF16toUTF8(aValue),
+      domain, NS_ConvertUTF16toUTF8(aPath), NS_ConvertUTF16toUTF8(aName),
+      NS_ConvertUTF16toUTF8(aValue),
       true,   //  secure
       false,  // mHttpOnly,
       aSession, aSession ? PR_Now() : aExpires, &attrs, aSameSite,
@@ -225,10 +277,16 @@ bool CookieStoreParent::SetRequestOnMainThread(
 }
 
 bool CookieStoreParent::DeleteRequestOnMainThread(
-    const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
-    const nsAString& aName, const nsAString& aPath, bool aPartitioned,
-    const nsID& aOperationID) {
+    ThreadsafeContentParentHandle* aParent, const nsAString& aDomain,
+    const OriginAttributes& aOriginAttributes, const nsAString& aName,
+    const nsAString& aPath, bool aPartitioned, const nsID& aOperationID) {
   MOZ_ASSERT(NS_IsMainThread());
+
+  NS_ConvertUTF16toUTF8 domain(aDomain);
+
+  if (!CheckContentProcessSecurity(aParent, domain, aOriginAttributes)) {
+    return false;
+  }
 
   nsCOMPtr<nsICookieManager> service =
       do_GetService(NS_COOKIEMANAGER_CONTRACTID);
@@ -236,11 +294,9 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
     return false;
   }
 
-  NS_ConvertUTF16toUTF8 domainUtf8(aDomain);
-
   OriginAttributes attrs(aOriginAttributes);
   nsTArray<RefPtr<nsICookie>> results;
-  nsresult rv = service->GetCookiesFromHostNative(domainUtf8, &attrs, results);
+  nsresult rv = service->GetCookiesFromHostNative(domain, &attrs, results);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }
@@ -290,8 +346,7 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
 
     notificationWatcher->CallbackWhenNotified(aOperationID, notificationCb);
 
-    rv = service->RemoveNative(domainUtf8, matchName, path, &attrs,
-                               &aOperationID);
+    rv = service->RemoveNative(domain, matchName, path, &attrs, &aOperationID);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return false;
     }
