@@ -1679,6 +1679,7 @@ class EditorToolbar {
   #colorPicker = null;
   #editor;
   #buttons = null;
+  #altText = null;
   constructor(editor) {
     this.#editor = editor;
   }
@@ -1741,6 +1742,7 @@ class EditorToolbar {
   }
   show() {
     this.#toolbar.classList.remove("hidden");
+    this.#altText?.shown();
   }
   #addDeleteButton() {
     const button = document.createElement("button");
@@ -1760,9 +1762,11 @@ class EditorToolbar {
     divider.className = "divider";
     return divider;
   }
-  addAltTextButton(button) {
+  async addAltText(altText) {
+    const button = await altText.render();
     this.#addListenersToElement(button);
     this.#buttons.prepend(button, this.#divider);
+    this.#altText = altText;
   }
   addColorPicker(colorPicker) {
     this.#colorPicker = colorPicker;
@@ -3576,7 +3580,9 @@ class AltText {
       if (this.#useNewAltTextFlow) {
         this.#editor._reportTelemetry({
           action: "pdfjs.image.alt_text.image_status_label_clicked",
-          data: { label: this.#label },
+          data: {
+            label: this.#label
+          }
         });
       }
     };
@@ -3693,6 +3699,14 @@ class AltText {
     }
     this.#altTextButton.disabled = !enabled;
   }
+  shown() {
+    this.#editor._reportTelemetry({
+      action: "pdfjs.image.alt_text.image_status_label_displayed",
+      data: {
+        label: this.#label
+      }
+    });
+  }
   destroy() {
     this.#altTextButton?.remove();
     this.#altTextButton = null;
@@ -3708,10 +3722,6 @@ class AltText {
     if (this.#useNewAltTextFlow) {
       const label = this.#label;
       const type = label === "review" ? "to-review" : label;
-      this.#editor._reportTelemetry({
-        action: "pdfjs.image.alt_text.image_status_label_displayed",
-        data: { label },
-      });
       button.classList.toggle("done", !!this.#altText);
       AltText._l10nPromise.get(`pdfjs-editor-new-alt-text-${type}-button-label`).then(msg => {
         button.setAttribute("aria-label", msg);
@@ -4405,7 +4415,7 @@ class AnnotationEditor {
     this._editToolbar = new EditorToolbar(this);
     this.div.append(this._editToolbar.render());
     if (this.#altText) {
-      this._editToolbar.addAltTextButton(await this.#altText.render());
+      await this._editToolbar.addAltText(this.#altText);
     }
     return this._editToolbar;
   }
@@ -9714,7 +9724,7 @@ function getDocument(src = {}) {
   }
   const docParams = {
     docId,
-    apiVersion: "4.5.252",
+    apiVersion: "4.5.255",
     data,
     password,
     disableAutoFetch,
@@ -11383,8 +11393,8 @@ class InternalRenderTask {
     }
   }
 }
-const version = "4.5.252";
-const build = "e44e4db52";
+const version = "4.5.255";
+const build = "0e063ffdd";
 
 ;// CONCATENATED MODULE: ./src/shared/scripting_utils.js
 function makeColorComp(n) {
@@ -17158,7 +17168,7 @@ class StampEditor extends AnnotationEditor {
   get telemetryFinalData() {
     return {
       type: "stamp",
-      hasAltText: !!this.altTextData?.altText,
+      hasAltText: !!this.altTextData?.altText
     };
   }
   static computeTelemetryFinalData(data) {
@@ -17198,7 +17208,8 @@ class StampEditor extends AnnotationEditor {
       this._reportTelemetry({
         action: "pdfjs.image.image_added",
         data: {
-          alt_text_modal: false
+          alt_text_modal: false,
+          alt_text_type: "empty"
         }
       });
       try {
@@ -18481,8 +18492,8 @@ class DrawLayer {
 
 
 
-const pdfjsVersion = "4.5.252";
-const pdfjsBuild = "e44e4db52";
+const pdfjsVersion = "4.5.255";
+const pdfjsBuild = "0e063ffdd";
 
 var __webpack_exports__AbortException = __webpack_exports__.AbortException;
 var __webpack_exports__AnnotationEditorLayer = __webpack_exports__.AnnotationEditorLayer;

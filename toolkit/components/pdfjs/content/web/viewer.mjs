@@ -2139,6 +2139,12 @@ class NewAltTextManager {
     });
     createAutomaticallyButton.addEventListener("click", async () => {
       const checked = createAutomaticallyButton.getAttribute("aria-pressed") !== "true";
+      this.#currentEditor._reportTelemetry({
+        action: "pdfjs.image.alt_text.ai_generation_check",
+        data: {
+          status: checked
+        }
+      });
       if (this.#uiManager) {
         this.#uiManager.setPreference("enableGuessAltText", checked);
         await this.#uiManager.mlManager.toggleService("altText", checked);
@@ -2385,7 +2391,8 @@ class NewAltTextManager {
     this.#currentEditor._reportTelemetry({
       action: "pdfjs.image.image_added",
       data: {
-        alt_text_modal: false
+        alt_text_modal: true,
+        alt_text_type: "skipped"
       }
     });
     this.#finish();
@@ -2429,7 +2436,8 @@ class NewAltTextManager {
     this.#currentEditor._reportTelemetry({
       action: "pdfjs.image.image_added",
       data: {
-        alt_text_modal: true
+        alt_text_modal: true,
+        alt_text_type: altText ? "present" : "empty"
       }
     });
     this.#currentEditor._reportTelemetry({
@@ -9270,7 +9278,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.5.252";
+    const viewerVersion = "4.5.255";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -13465,8 +13473,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.5.252";
-const pdfjsBuild = "e44e4db52";
+const pdfjsVersion = "4.5.255";
+const pdfjsBuild = "0e063ffdd";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
