@@ -245,6 +245,16 @@ struct AddDebugAnnotationImpl<nsPrintfCString> {
 };
 
 template <>
+struct AddDebugAnnotationImpl<NS_ConvertUTF16toUTF8> {
+  static void call(perfetto::EventContext& ctx, const char* const aKey,
+                   const NS_ConvertUTF16toUTF8& aValue) {
+    auto* arg = ctx.event()->add_debug_annotations();
+    arg->set_name(aKey);
+    arg->set_string_value(aValue.get());
+  }
+};
+
+template <>
 struct AddDebugAnnotationImpl<nsTDependentString<char>> {
   static void call(perfetto::EventContext& ctx, const char* const aKey,
                    const nsTDependentString<char>& aValue) {
