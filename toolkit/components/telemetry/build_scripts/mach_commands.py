@@ -20,8 +20,7 @@ GLEAN_EVENT_TEMPLATE = """
 {multiline_description}
     bugs: {bugs_alias}{bugs_list}
     data_reviews: {data_alias}{bugs_list}
-    notification_emails:
-{emails_list}
+    notification_emails: {emails_alias}{emails_list}
     expires: {expiry}
     extra_keys: {extra_alias}{extra_keys}
     telemetry_mirror: {legacy_enum}
@@ -74,7 +73,7 @@ def mach_gifft(command_context, telemetry_probe_name):
             # we need to generate Glean events for every combination of method
             # and object.
             category = e.category
-            bugs_alias = data_alias = extra_alias = ""
+            emails_alias = bugs_alias = data_alias = extra_alias = ""
             for m, o in itertools.product(e.methods, e.objects):
                 legacy_name = category + "." + m + "#" + o
                 name = m + "_" + o
@@ -107,9 +106,14 @@ def mach_gifft(command_context, telemetry_probe_name):
                         ),
                         LIST_INDENT,
                     )
-                emails_list = textwrap.indent(
-                    "\n".join(e._definition.get("notification_emails", [])), LIST_INDENT
-                )
+                if emails_alias:
+                    emails_list = ""
+                else:
+                    emails_alias = f"{category}_{m}_emails"
+                    emails_list = "\n" + textwrap.indent(
+                        "\n".join(e._definition.get("notification_emails", [])),
+                        LIST_INDENT,
+                    )
 
                 # expiry_version is a string like `"123.0a1"` or `"never"`,
                 # but Glean wants a number like `123` or `never`.
@@ -156,6 +160,9 @@ def mach_gifft(command_context, telemetry_probe_name):
                         bugs_list=bugs_list,
                         data_alias=(
                             f"&{data_alias}" if bugs_list else f"*{data_alias}"
+                        ),
+                        emails_alias=(
+                            f"&{emails_alias}" if emails_list else f"*{emails_alias}"
                         ),
                         emails_list=emails_list,
                         expiry=expiry,
