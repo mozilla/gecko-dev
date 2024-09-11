@@ -878,7 +878,7 @@ browsertime-upload:
 
 browsertime-network-bench:
     raptor:
-        apps: [firefox]
+        apps: [firefox, chrome, custom-car]
         subtests:
             - [h3-upload, h3-up]
             - [h3-download, h3-down]

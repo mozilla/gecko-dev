@@ -14289,7 +14289,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    **Description**: Measures HTTP/3 download throughput with a local server
 
    * **alert threshold**: 2.0
-   * **apps**: firefox
+   * **apps**: firefox, chrome, custom-car
    * **browser cycles**: 1
    * **browsertime args**: --browsertime.download_iterations=10 --firefox.preference=network.http.http3.enable:true
    * **custom data**: true
@@ -14351,6 +14351,16 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-network-bench-chrome-h3-download**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-network-bench-custom-car-h3-download**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-network-bench-firefox-h3-download**
         - ❌
         - ❌
@@ -14399,6 +14409,11 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-network-bench-chrome-h3-download**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-network-bench-firefox-h3-download**
         - ❌
         - ❌
@@ -14447,6 +14462,16 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-network-bench-chrome-h3-download**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-network-bench-custom-car-h3-download**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-network-bench-firefox-h3-download**
         - ❌
         - ❌
@@ -14469,7 +14494,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
    **Description**: Measures HTTP/3 file upload throughput with a local server
 
    * **alert threshold**: 2.0
-   * **apps**: firefox
+   * **apps**: firefox, chrome, custom-car
    * **browser cycles**: 1
    * **browsertime args**: --browsertime.upload_iterations=10 --firefox.preference=network.http.http3.enable:true
    * **custom data**: true
@@ -14531,6 +14556,16 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-network-bench-chrome-h3-upload**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-network-bench-custom-car-h3-upload**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-network-bench-firefox-h3-upload**
         - ❌
         - ❌
@@ -14579,6 +14614,11 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-network-bench-chrome-h3-upload**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-network-bench-firefox-h3-upload**
         - ❌
         - ❌
@@ -14627,6 +14667,16 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - autoland
         - mozilla-release
         - mozilla-beta
+      * - **browsertime-network-bench-chrome-h3-upload**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-network-bench-custom-car-h3-upload**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-network-bench-firefox-h3-upload**
         - ❌
         - ❌
