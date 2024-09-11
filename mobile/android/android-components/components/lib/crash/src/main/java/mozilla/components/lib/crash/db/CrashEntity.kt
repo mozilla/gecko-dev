@@ -97,6 +97,35 @@ internal data class CrashEntity(
     var remoteType: String?,
 )
 
+internal fun CrashEntity.toCrash(): Crash {
+    val breadcrumbs = Result.runCatching {
+        breadcrumbs
+            ?.map { Json.decodeFromString<Breadcrumb>(it).toBreadcrumb() }
+            ?.let { ArrayList(it) } ?: arrayListOf()
+    }.getOrDefault(arrayListOf())
+
+    return when (this.crashType) {
+        CrashType.NATIVE -> Crash.NativeCodeCrash(
+            timestamp = this.createdAt,
+            minidumpPath = this.minidumpPath,
+            minidumpSuccess = this.minidumpSuccess ?: false,
+            extrasPath = this.extrasPath,
+            processType = this.processType,
+            breadcrumbs = breadcrumbs,
+            remoteType = this.remoteType,
+            runtimeTags = this.runtimeTags,
+            uuid = this.uuid,
+        )
+        CrashType.UNCAUGHT -> Crash.UncaughtExceptionCrash(
+            timestamp = this.createdAt,
+            throwable = Throwable(message = this.stacktrace),
+            breadcrumbs = breadcrumbs,
+            runtimeTags = runtimeTags,
+            uuid = this.uuid,
+        )
+    }
+}
+
 internal fun Crash.toEntity(): CrashEntity {
     return when (this) {
         is Crash.NativeCodeCrash -> toEntity()

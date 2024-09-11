@@ -13,6 +13,8 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import mozilla.components.concept.base.crash.Breadcrumb
 import mozilla.components.lib.crash.db.CrashDao
 import mozilla.components.lib.crash.db.CrashDatabase
+import mozilla.components.lib.crash.db.CrashEntity
+import mozilla.components.lib.crash.db.CrashType
 import mozilla.components.lib.crash.service.CrashReporterService
 import mozilla.components.lib.crash.service.CrashTelemetryService
 import mozilla.components.support.test.any
@@ -1029,6 +1031,37 @@ class CrashReporterTest {
         `when`(crashDao.numberOfUnsentCrashes()).thenReturn(0)
 
         assertFalse(crashReporter.hasUnsentCrashReports())
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has unsent crashes WHEN calling unsentCrashReports THEN return list of unsent crashes`() = runTestOnMain {
+        val database: CrashDatabase = mock()
+        val crashDao: CrashDao = mock()
+
+        var crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            notificationsDelegate = mock(),
+            databaseProvider = { database },
+        )
+
+        val crashEntity = CrashEntity(
+            crashType = CrashType.NATIVE,
+            uuid = "6b6aea3f-55f1-46b2-a875-6c15530ed36e",
+            runtimeTags = mapOf(),
+            breadcrumbs = listOf(),
+            createdAt = 0L,
+            stacktrace = "<native crash>",
+            minidumpPath = null,
+            minidumpSuccess = null,
+            processType = null,
+            extrasPath = null,
+            remoteType = null,
+        )
+        `when`(database.crashDao()).thenReturn(crashDao)
+        `when`(crashDao.getCrashesWithoutReports()).thenReturn(listOf(crashEntity))
+
+        assertEquals(crashReporter.unsentCrashReports().first().uuid, "6b6aea3f-55f1-46b2-a875-6c15530ed36e")
     }
 
     @Test

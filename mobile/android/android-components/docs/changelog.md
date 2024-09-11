@@ -11,6 +11,7 @@ permalink: /changelog/
 
 * **lib-crash**
   * Adds `CrashReporter.hasUnsentCrashReports()` method, allowing the caller to find out if there is unsent crashes. [Bug 1904974](https://bugzilla.mozilla.org/show_bug.cgi?id=1904974)
+  * Adds `CrashReporter.unsentCrashReports()` method, allowing the caller to fetch all unsent crashes. [Bug 1904974](https://bugzilla.mozilla.org/show_bug.cgi?id=1904974)
 
 # 131.0
 * **All components**

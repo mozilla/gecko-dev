@@ -23,6 +23,7 @@ import mozilla.components.concept.base.crash.CrashReporting
 import mozilla.components.lib.crash.db.CrashDatabase
 import mozilla.components.lib.crash.db.insertCrashSafely
 import mozilla.components.lib.crash.db.insertReportSafely
+import mozilla.components.lib.crash.db.toCrash
 import mozilla.components.lib.crash.db.toEntity
 import mozilla.components.lib.crash.db.toReportEntity
 import mozilla.components.lib.crash.handler.ExceptionHandler
@@ -165,6 +166,14 @@ class CrashReporter internal constructor(
      */
     suspend fun hasUnsentCrashReports(): Boolean {
         return database.crashDao().numberOfUnsentCrashes() > 0
+    }
+
+    /**
+     * Fetches unsent crash reports from the crash reporter.
+     */
+    suspend fun unsentCrashReports(): List<Crash> {
+        return database.crashDao().getCrashesWithoutReports()
+            .map { it.toCrash() }
     }
 
     /**
