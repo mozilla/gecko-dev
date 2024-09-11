@@ -104,11 +104,28 @@
     <string name="mozac_feature_prompts_manage_logins_2">ຈັດການລະຫັດຜ່ານ</string>
     <!-- Content description for expanding the saved logins options in the select login prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">ຂະຫຍາຍການເຂົ້າສູ່ລະບົບທີ່ແນະນຳ</string>
+    <!-- Content description for expanding the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_expand_logins_content_description_2">ຂະຫຍາຍລະຫັດຜ່ານທີ່ບັນທຶກໄວ້</string>
     <!-- Content description for collapsing the saved logins options in the select login prompt -->
     <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">ຍຸບການເຂົ້າສູ່ລະບົບທີ່ແນະນຳ</string>
 
+    <!-- Content description for collapsing the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_collapse_logins_content_description_2">ຫຍໍ້ລະຫັດຜ່ານທີ່ບັນທຶກໄວ້</string>
     <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
     <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">ການລັອກອິນທີ່ໄດ້ຮັບການແນະນຳ</string>
+
+    <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
+    <string name="mozac_feature_prompts_saved_logins_2">ລະຫັດຜ່ານທີ່ບັນທຶກໄວ້</string>
+
+    <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_content_description">ແນະນຳລະຫັດຜ່ານທີ່ຄາດເດົາຍາກ</string>
+    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_2">ໃຊ້ລະຫັດຜ່ານທີ່ຄາດເດົາຍາກ</string>
+    <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_message">ໃຊ້ລະຫັດຜ່ານທີ່ຄາດເດົາຍາກ: %1$s</string>
+
+    <!-- Title for using the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_title">ໃຊ້ລະຫັດຜ່ານທີ່ຄາດເດົາຍາກບໍ່?</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">ສົ່ງຂໍ້ມູນຄືນສູ່ເວັບໄຊທນີ້ອີກບໍ?</string>
