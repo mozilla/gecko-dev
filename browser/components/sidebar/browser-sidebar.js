@@ -142,7 +142,7 @@ var SidebarController = {
 
     if (!this.sidebarRevampEnabled) {
       this.registerPrefSidebar(
-        "browser.megalist.enabled",
+        "browser.contextual-password-manager.enabled",
         "viewMegalistSidebar",
         {
           elementId: "sidebar-switcher-megalist",

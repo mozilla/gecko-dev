@@ -259,7 +259,7 @@ let JSWINDOWACTORS = {
     includeChrome: true,
     matches: ["chrome://global/content/megalist/megalist.html"],
     allFrames: true,
-    enablePreference: "browser.megalist.enabled",
+    enablePreference: "browser.contextual-password-manager.enabled",
   },
 
   AboutLogins: {

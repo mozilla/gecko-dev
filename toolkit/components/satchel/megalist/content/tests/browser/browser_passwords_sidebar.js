@@ -54,7 +54,7 @@ function checkPasswordCardFields(megalist) {
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [
-      ["browser.megalist.enabled", true],
+      ["browser.contextual-password-manager.enabled", true],
       ["signon.rememberSignons", true],
     ],
   });

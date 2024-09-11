@@ -21,11 +21,11 @@ add_task(async function test_megalist_menu() {
   const { document } = win;
   const item = document.getElementById("menu_megalistSidebar");
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.megalist.enabled", false]],
+    set: [["browser.contextual-password-manager.enabled", false]],
   });
   ok(item.hidden, "Megalist sidebar menu item hidden");
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.megalist.enabled", true]],
+    set: [["browser.contextual-password-manager.enabled", true]],
   });
   ok(!item.hidden, "Megalist sidebar menu item shown");
 });
