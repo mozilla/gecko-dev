@@ -1,6 +1,6 @@
 Metadata-Version: 2.1
 Name: glean_parser
-Version: 15.0.0
+Version: 15.0.1
 Summary: Parser tools for Mozilla's Glean telemetry
 Home-page: https://github.com/mozilla/glean_parser
 Author: The Glean Team
@@ -78,6 +78,10 @@ $ glean_parser check < ping.json
 # Changelog
 
 ## Unreleased
+
+## 15.0.1
+
+- Rust codegen: use correctly named parameter for events without extras ([#750](https://github.com/mozilla/glean_parser/pull/750))
 
 ## 15.0.0
 

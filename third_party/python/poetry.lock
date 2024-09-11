@@ -590,13 +590,13 @@ files = [
 
 [[package]]
 name = "glean-parser"
-version = "15.0.0"
+version = "15.0.1"
 description = "Parser tools for Mozilla's Glean telemetry"
 optional = false
 python-versions = "*"
 files = [
-    {file = "glean_parser-15.0.0-py3-none-any.whl", hash = "sha256:9cd2cf2e0b02141c7b75d12edd890a7c4ee62f11cc828969744d75e42051b6e4"},
-    {file = "glean_parser-15.0.0.tar.gz", hash = "sha256:b9ec85b8fc4c1ebc9c1ccb69afb948fe1387f2f1ce2e5c63a0a221f2961de8b6"},
+    {file = "glean_parser-15.0.1-py3-none-any.whl", hash = "sha256:01f90cb5b9fe54adf3875d2c7fda5b88a63dda7ae0cc4a23e9439feacf1df4dc"},
+    {file = "glean_parser-15.0.1.tar.gz", hash = "sha256:0752f21b26fef589f27d9ff633c08f8ea6b2783cc51ee3fd8cf2e2746d8423da"},
 ]
 
 [package.dependencies]
@@ -1600,4 +1600,4 @@ testing = ["func-timeout", "jaraco.itertools", "pytest (>=4.6)", "pytest-black (
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8"
-content-hash = "c273b01abe74a9a3d3da930046113ad38f949a9a074862c036da108cfd141c64"
+content-hash = "4d729c46ab03d914e32532a02f3d9fb29aafe715ccaa38c3f53d784b7bd390c5"

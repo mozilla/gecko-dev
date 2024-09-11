@@ -109,7 +109,7 @@ def type_name(obj):
                 generic = util.Camelize(obj.name) + suffix
             else:
                 if isinstance(obj, metrics.Event):
-                    generic = "NoExtra"
+                    generic = "NoExtraKeys"
                 else:
                     generic = "No" + suffix
 
