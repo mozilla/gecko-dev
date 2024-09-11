@@ -427,6 +427,7 @@ class DefaultSessionControlController(
                 searchEngine,
                 searchEngine == store.state.search.selectedOrDefaultSearchEngine,
                 searchAccessPoint,
+                activity.components.nimbus.events,
             )
         }
 

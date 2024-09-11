@@ -48,6 +48,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.Core
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGlobalAddonsManagementFragment
 import org.mozilla.fenix.search.SearchDialogFragmentDirections.Companion.actionGlobalSearchEngineFragment
@@ -92,7 +93,8 @@ class SearchDialogControllerTest {
         every { navController.currentDestination } returns mockk {
             every { id } returns R.id.searchDialogFragment
         }
-        every { MetricsUtils.recordSearchMetrics(searchEngine, any(), any()) } just Runs
+        every { activity.components.nimbus.events } returns mockk()
+        every { MetricsUtils.recordSearchMetrics(searchEngine, any(), any(), any()) } just Runs
     }
 
     @After

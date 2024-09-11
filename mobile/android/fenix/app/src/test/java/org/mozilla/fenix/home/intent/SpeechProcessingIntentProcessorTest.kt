@@ -84,6 +84,8 @@ class SpeechProcessingIntentProcessorTest {
     @Test
     fun `reads the speech processing extra`() {
         every { testContext.components.strictMode } returns TestStrictModeManager()
+        every { testContext.components.nimbus.events } returns mockk(relaxed = true)
+
         val intent = Intent().apply {
             putExtra(HomeActivity.OPEN_TO_BROWSER_AND_LOAD, true)
             putExtra(SPEECH_PROCESSING, "hello world")

@@ -28,6 +28,7 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.components.Core
 import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.crashes.CrashListActivity
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.telemetryName
@@ -139,6 +140,7 @@ class SearchDialogController(
                 searchEngine,
                 isDefaultEngine,
                 searchAccessPoint,
+                activity.components.nimbus.events,
             )
         }
 
@@ -218,6 +220,7 @@ class SearchDialogController(
                 searchEngine,
                 searchEngine == store.state.search.selectedOrDefaultSearchEngine,
                 searchAccessPoint,
+                activity.components.nimbus.events,
             )
         }
 

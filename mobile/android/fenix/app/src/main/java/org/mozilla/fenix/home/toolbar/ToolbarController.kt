@@ -14,6 +14,7 @@ import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.browser.BrowserAnimator
 import org.mozilla.fenix.components.metrics.MetricsUtils
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 
 /**
@@ -62,6 +63,7 @@ class DefaultToolbarController(
                 searchEngine,
                 searchEngine == store.state.search.selectedOrDefaultSearchEngine,
                 searchAccessPoint,
+                activity.components.nimbus.events,
             )
         }
     }

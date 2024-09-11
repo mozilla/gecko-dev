@@ -14,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mozilla.components.browser.state.search.SearchEngine
 import mozilla.components.support.base.log.logger.Logger
+import org.mozilla.experiments.nimbus.NimbusEventStore
 import org.mozilla.fenix.GleanMetrics.Events
 import org.mozilla.fenix.GleanMetrics.Metrics
 import java.io.IOException
@@ -37,14 +38,17 @@ object MetricsUtils {
 
     /**
      * Records the appropriate metric for performed searches.
-     * @engine the engine used for searching.
-     * @isDefault whether te engine is the default engine or not.
-     * @searchAccessPoint the source of the search. Can be one of the values of [Source].
+     *
+     * @param engine the engine used for searching.
+     * @param isDefault whether the engine is the default engine or not.
+     * @param searchAccessPoint the source of the search. Can be one of the values of [Source].
+     * @param nimbusEventStore used to record the search event in the Nimbus internal event store.
      */
     fun recordSearchMetrics(
         engine: SearchEngine,
         isDefault: Boolean,
         searchAccessPoint: Source,
+        nimbusEventStore: NimbusEventStore,
     ) {
         val identifier = if (engine.type == SearchEngine.Type.CUSTOM) "custom" else engine.id.lowercase()
         val source = searchAccessPoint.name.lowercase()
@@ -58,6 +62,7 @@ object MetricsUtils {
         }
 
         Events.performedSearch.record(Events.PerformedSearchExtra(performedSearchExtra))
+        nimbusEventStore.recordEvent("performed_search")
     }
 
     /**
