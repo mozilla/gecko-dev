@@ -19,8 +19,11 @@
   --highlighter-font-size: 11px;
   --highlighter-guide-color: hsl(200, 100%, 40%);
   --highlighter-infobar-color: hsl(210, 30%, 85%);
+  --highlighter-rulers-opacity: 0.8;
+  --highlighter-viewport-size-background-color: rgba(255, 255, 255, var(--highlighter-rulers-opacity));
 
   --grey-40: #b1b1b3;
+  --grey-80: #2a2a2e;
   --red-40: #ff3b6b;
   --yellow-60: #d7b600;
   --blue-60: #0060df;
@@ -398,7 +401,7 @@
 }
 
 .rulers-highlighter-elements > g {
-  opacity: 0.8;
+  opacity: var(--highlighter-rulers-opacity);
 }
 
 .rulers-highlighter-elements > g > rect {
@@ -410,13 +413,13 @@
 }
 
 .rulers-highlighter-ruler-markers {
-  stroke: #202020;
+  stroke: var(--grey-80);
 }
 
 .rulers-highlighter-horizontal-labels > text,
 .rulers-highlighter-vertical-labels > text {
   stroke: none;
-  fill: #202020;
+  fill: var(--grey-80);
   font: var(--highlighter-font-family);
   font-size: 9px;
   dominant-baseline: hanging;
@@ -436,7 +439,8 @@
   .viewport-size-on-resize-highlighter-viewport-infobar-container
 ) {
   shape-rendering: crispEdges;
-  background-color: rgba(255, 255, 255, 0.7);
+  background-color: var(--highlighter-viewport-size-background-color);
+  color: var(--grey-80);
   font: var(--highlighter-font-family);
   font-variant-numeric: tabular-nums;
   position: fixed;
