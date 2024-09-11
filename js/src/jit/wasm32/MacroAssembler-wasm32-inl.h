@@ -870,6 +870,11 @@ void MacroAssembler::branchTruncateDoubleMaybeModUint32(FloatRegister src,
   MOZ_CRASH();
 }
 
+void MacroAssembler::test32MovePtr(Condition cond, Register operand, Imm32 mask,
+                                   Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::test32MovePtr(Condition cond, const Address& addr,
                                    Imm32 mask, Register src, Register dest) {
   MOZ_CRASH();

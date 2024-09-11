@@ -2095,6 +2095,10 @@ void MacroAssembler::test32MovePtr(Condition, const Address&, Imm32, Register,
                                    Register) {
   MOZ_CRASH();
 }
+void MacroAssembler::test32MovePtr(Condition cond, Register operand, Imm32 mask,
+                                   Register src, Register dest) {
+  MOZ_CRASH();
+}
 void MacroAssembler::xor32(Register src, Register dest) {
   ma_xor(dest, dest, src);
 }

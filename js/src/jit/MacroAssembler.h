@@ -2214,6 +2214,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
                             const Address& src, Register dest)
       DEFINED_ON(arm, arm64, loong64, riscv64, wasm32, mips_shared, x86, x64);
 
+  inline void test32MovePtr(Condition cond, Register operand, Imm32 mask,
+                            Register src, Register dest)
+      DEFINED_ON(arm, arm64, loong64, riscv64, wasm32, mips_shared, x86, x64);
+
   inline void test32MovePtr(Condition cond, const Address& addr, Imm32 mask,
                             Register src, Register dest)
       DEFINED_ON(arm, arm64, loong64, riscv64, wasm32, mips_shared, x86, x64);

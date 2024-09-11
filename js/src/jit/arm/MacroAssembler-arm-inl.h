@@ -2412,6 +2412,13 @@ void MacroAssembler::test32LoadPtr(Condition cond, const Address& addr,
   ma_ldr(src, dest, scratch, Offset, cond);
 }
 
+void MacroAssembler::test32MovePtr(Condition cond, Register operand, Imm32 mask,
+                                   Register src, Register dest) {
+  MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
+  test32(operand, mask);
+  ma_mov(src, dest, LeaveCC, cond);
+}
+
 void MacroAssembler::test32MovePtr(Condition cond, const Address& addr,
                                    Imm32 mask, Register src, Register dest) {
   MOZ_ASSERT(cond == Assembler::Zero || cond == Assembler::NonZero);
