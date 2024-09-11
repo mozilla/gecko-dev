@@ -159,24 +159,21 @@ class BaseProcessLauncher {
                       std::vector<std::string>&& aExtraOpts)
       : mProcessType(aHost->mProcessType),
         mLaunchOptions(std::move(aHost->mLaunchOptions)),
-        mExtraOpts(std::move(aExtraOpts))
+        mExtraOpts(std::move(aExtraOpts)),
 #ifdef XP_WIN
-        ,
-        mGroupId(aHost->mGroupId)
+        mGroupId(aHost->mGroupId),
 #endif
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
-        ,
         mAllowedFilesRead(aHost->mAllowedFilesRead),
         mSandboxLevel(aHost->mSandboxLevel),
         mSandbox(aHost->mSandbox),
         mIsFileContent(aHost->mIsFileContent),
-        mEnableSandboxLogging(aHost->mEnableSandboxLogging)
+        mEnableSandboxLogging(aHost->mEnableSandboxLogging),
 #endif
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
-        ,
-        mDisableOSActivityMode(aHost->mDisableOSActivityMode)
+        mDisableOSActivityMode(aHost->mDisableOSActivityMode),
 #endif
-  {
+        mTmpDirName(aHost->mTmpDirName) {
     SprintfLiteral(mPidString, "%" PRIPID, base::GetCurrentProcId());
     aHost->mInitialChannelId.ToProvidedString(mInitialChannelIdString);
     SprintfLiteral(mChildIDString, "%d", aHost->mChildID);
@@ -249,6 +246,7 @@ class BaseProcessLauncher {
   // environment variable OS_ACTIVITY_MODE set to "disabled".
   bool mDisableOSActivityMode;
 #endif
+  nsCString mTmpDirName;
   LaunchResults mResults = LaunchResults();
   TimeStamp mStartTimeStamp = TimeStamp::Now();
   char mPidString[32];
@@ -417,7 +415,17 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
   }
   sGeckoChildProcessHosts->insertBack(this);
 #if defined(MOZ_SANDBOX) && defined(XP_LINUX)
-  if (aProcessType == GeckoProcessType_RDD) {
+  if (aProcessType == GeckoProcessType_Content) {
+#  if defined(MOZ_CONTENT_TEMP_DIR)
+    // The content process needs the content temp dir:
+    nsCOMPtr<nsIFile> contentTempDir;
+    nsresult rv = NS_GetSpecialDirectory(NS_APP_CONTENT_PROCESS_TEMP_DIR,
+                                         getter_AddRefs(contentTempDir));
+    if (NS_SUCCEEDED(rv)) {
+      contentTempDir->GetNativePath(mTmpDirName);
+    }
+#  endif
+  } else if (aProcessType == GeckoProcessType_RDD) {
     // The RDD process makes limited use of EGL.  If Mesa's shader
     // cache is enabled and the directory isn't explicitly set, then
     // it will try to getpwuid() the user which can cause problems
@@ -1181,6 +1189,18 @@ Result<Ok, LaunchError> LinuxProcessLauncher::DoSetup() {
     // anyway.
     mLaunchOptions->env_map["NO_AT_BRIDGE"] = "1";
   }
+
+#  ifdef MOZ_SANDBOX
+  if (!mTmpDirName.IsEmpty()) {
+    // Point a bunch of things that might want to write from content to our
+    // shiny new content-process specific tmpdir
+    mLaunchOptions->env_map[ENVIRONMENT_LITERAL("TMPDIR")] =
+        ENVIRONMENT_STRING(mTmpDirName.get());
+    // Partial fix for bug 1380051 (not persistent - should be)
+    mLaunchOptions->env_map[ENVIRONMENT_LITERAL("MESA_GLSL_CACHE_DIR")] =
+        ENVIRONMENT_STRING(mTmpDirName.get());
+  }
+#  endif  // MOZ_SANDBOX
 
   return Ok();
 }

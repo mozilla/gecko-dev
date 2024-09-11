@@ -1123,7 +1123,6 @@ enum JSRFPTarget {
 
 #ifdef XP_UNIX
 dictionary LibcConstants {
-  long EPERM;
   long EINTR;
   long EACCES;
   long EAGAIN;

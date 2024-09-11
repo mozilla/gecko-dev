@@ -312,6 +312,8 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
   // Removes the instance from sGeckoChildProcessHosts
   void RemoveFromProcessList();
 
+  // Linux-Only. Set this up before we're called from a different thread.
+  nsCString mTmpDirName;
   // Mac and Windows. Set this up before we're called from a different thread.
   nsCOMPtr<nsIFile> mProfileDir;
 

@@ -1191,7 +1191,6 @@ void ChromeUtils::DefineESModuleGetters(
 /* static */
 void ChromeUtils::GetLibcConstants(const GlobalObject&,
                                    LibcConstants& aConsts) {
-  aConsts.mEPERM.Construct(EPERM);
   aConsts.mEINTR.Construct(EINTR);
   aConsts.mEACCES.Construct(EACCES);
   aConsts.mEAGAIN.Construct(EAGAIN);
