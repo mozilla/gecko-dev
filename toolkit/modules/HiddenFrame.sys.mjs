@@ -2,9 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+/**
+ * This module contains `HiddenFrame`, a class which creates a windowless browser,
+ * and `HiddenBrowserManager` which is a singleton that can be used to manage
+ * creating and using multiple hidden frames.
+ */
+
 const XUL_PAGE = Services.io.newURI("chrome://global/content/win.xhtml");
 
 const gAllHiddenFrames = new Set();
+
+// The screen sizes to use for the background browser created by
+// `HiddenBrowserManager`.
+const BACKGROUND_WIDTH = 1024;
+const BACKGROUND_HEIGHT = 768;
 
 let cleanupRegistered = false;
 function ensureCleanupRegistered() {
@@ -121,3 +132,87 @@ export class HiddenFrame {
     this.#browser.loadURI(XUL_PAGE, loadURIOptions);
   }
 }
+
+/**
+ * A manager for hidden browsers. Responsible for creating and destroying a
+ * hidden frame to hold them.
+ */
+export const HiddenBrowserManager = new (class HiddenBrowserManager {
+  /**
+   * The hidden frame if one has been created.
+   *
+   * @type {HiddenFrame | null}
+   */
+  #frame = null;
+  /**
+   * The number of hidden browser elements currently in use.
+   *
+   * @type {number}
+   */
+  #browsers = 0;
+
+  /**
+   * Creates and returns a new hidden browser.
+   *
+   * @returns {Browser}
+   */
+  async #acquireBrowser() {
+    this.#browsers++;
+    if (!this.#frame) {
+      this.#frame = new HiddenFrame();
+    }
+
+    let frame = await this.#frame.get();
+    let doc = frame.document;
+    let browser = doc.createXULElement("browser");
+    browser.setAttribute("remote", "true");
+    browser.setAttribute("type", "content");
+    browser.setAttribute(
+      "style",
+      `
+        width: ${BACKGROUND_WIDTH}px;
+        min-width: ${BACKGROUND_WIDTH}px;
+        height: ${BACKGROUND_HEIGHT}px;
+        min-height: ${BACKGROUND_HEIGHT}px;
+      `
+    );
+    browser.setAttribute("maychangeremoteness", "true");
+    doc.documentElement.appendChild(browser);
+
+    return browser;
+  }
+
+  /**
+   * Releases the given hidden browser.
+   *
+   * @param {Browser} browser
+   *   The hidden browser element.
+   */
+  #releaseBrowser(browser) {
+    browser.remove();
+
+    this.#browsers--;
+    if (this.#browsers == 0) {
+      this.#frame.destroy();
+      this.#frame = null;
+    }
+  }
+
+  /**
+   * Calls a callback function with a new hidden browser.
+   * This function will return whatever the callback function returns.
+   *
+   * @param {Callback} callback
+   *   The callback function will be called with the browser element and may
+   *   be asynchronous.
+   * @returns {T}
+   */
+  async withHiddenBrowser(callback) {
+    let browser = await this.#acquireBrowser();
+    try {
+      return await callback(browser);
+    } finally {
+      this.#releaseBrowser(browser);
+    }
+  }
+})();

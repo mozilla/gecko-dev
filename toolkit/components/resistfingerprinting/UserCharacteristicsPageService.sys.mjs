@@ -6,7 +6,7 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  HiddenFrame: "resource://gre/modules/HiddenFrame.sys.mjs",
+  HiddenBrowserManager: "resource://gre/modules/HiddenFrame.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
@@ -27,94 +27,6 @@ ChromeUtils.defineLazyGetter(lazy, "contentPrefs", () => {
   );
 });
 
-const BACKGROUND_WIDTH = 1024;
-const BACKGROUND_HEIGHT = 768;
-
-/**
- * A manager for hidden browsers. Responsible for creating and destroying a
- * hidden frame to hold them.
- * All of this is copied from PageDataService.sys.mjs
- */
-class HiddenBrowserManager {
-  /**
-   * The hidden frame if one has been created.
-   *
-   * @type {HiddenFrame | null}
-   */
-  #frame = null;
-  /**
-   * The number of hidden browser elements currently in use.
-   *
-   * @type {number}
-   */
-  #browsers = 0;
-
-  /**
-   * Creates and returns a new hidden browser.
-   *
-   * @returns {Browser}
-   */
-  async #acquireBrowser() {
-    this.#browsers++;
-    if (!this.#frame) {
-      this.#frame = new lazy.HiddenFrame();
-    }
-
-    let frame = await this.#frame.get();
-    let doc = frame.document;
-    let browser = doc.createXULElement("browser");
-    browser.setAttribute("remote", "true");
-    browser.setAttribute("type", "content");
-    browser.setAttribute(
-      "style",
-      `
-        width: ${BACKGROUND_WIDTH}px;
-        min-width: ${BACKGROUND_WIDTH}px;
-        height: ${BACKGROUND_HEIGHT}px;
-        min-height: ${BACKGROUND_HEIGHT}px;
-      `
-    );
-    browser.setAttribute("maychangeremoteness", "true");
-    doc.documentElement.appendChild(browser);
-
-    return browser;
-  }
-
-  /**
-   * Releases the given hidden browser.
-   *
-   * @param {Browser} browser
-   *   The hidden browser element.
-   */
-  #releaseBrowser(browser) {
-    browser.remove();
-
-    this.#browsers--;
-    if (this.#browsers == 0) {
-      this.#frame.destroy();
-      this.#frame = null;
-    }
-  }
-
-  /**
-   * Calls a callback function with a new hidden browser.
-   * This function will return whatever the callback function returns.
-   *
-   * @param {Callback} callback
-   *   The callback function will be called with the browser element and may
-   *   be asynchronous.
-   * @returns {T}
-   */
-  async withHiddenBrowser(callback) {
-    let browser = await this.#acquireBrowser();
-    try {
-      return await callback(browser);
-    } finally {
-      this.#releaseBrowser(browser);
-    }
-  }
-}
-
 export class UserCharacteristicsPageService {
   classId = Components.ID("{ce3e9659-e311-49fb-b18b-7f27c6659b23}");
   QueryInterface = ChromeUtils.generateQI([
@@ -123,13 +35,6 @@ export class UserCharacteristicsPageService {
 
   _initialized = false;
   _isParentProcess = false;
-
-  /**
-   * A manager for hidden browsers.
-   *
-   * @type {HiddenBrowserManager}
-   */
-  _browserManager = new HiddenBrowserManager();
 
   /**
    * A map of hidden browsers to a resolve function that should be passed the
@@ -178,7 +83,7 @@ export class UserCharacteristicsPageService {
       remoteTypes: ["privilegedabout"],
     });
 
-    return this._browserManager.withHiddenBrowser(async browser => {
+    return lazy.HiddenBrowserManager.withHiddenBrowser(async browser => {
       lazy.console.debug(`In withHiddenBrowser`);
       try {
         let { promise, resolve } = Promise.withResolvers();
