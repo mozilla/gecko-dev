@@ -16,6 +16,8 @@ UNIFIED_SOURCES += [
     "CookieChangeEvent.cpp",
     "CookieStore.cpp",
     "CookieStoreChild.cpp",
+    "CookieStoreNotificationWatcher.cpp",
+    "CookieStoreNotificationWatcherWrapper.cpp",
     "CookieStoreNotifier.cpp",
     "CookieStoreParent.cpp",
 ]

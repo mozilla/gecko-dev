@@ -7,6 +7,7 @@
 #include "CookieStore.h"
 #include "CookieStoreChild.h"
 #include "CookieStoreNotifier.h"
+#include "CookieStoreNotificationWatcherWrapper.h"
 
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Promise.h"
@@ -219,6 +220,10 @@ already_AddRefed<CookieStore> CookieStore::Create(nsIGlobalObject* aGlobal) {
 CookieStore::CookieStore(nsIGlobalObject* aGlobal)
     : DOMEventTargetHelper(aGlobal) {
   mNotifier = CookieStoreNotifier::Create(this);
+
+  // This must be created _after_ CookieStoreNotifier because we rely on the
+  // notification order.
+  mNotificationWatcher = CookieStoreNotificationWatcherWrapper::Create(this);
 }
 
 CookieStore::~CookieStore() { Shutdown(); }
@@ -324,6 +329,21 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
           return;
         }
 
+        if (!self->mNotificationWatcher) {
+          promise->MaybeReject(NS_ERROR_UNEXPECTED);
+          return;
+        }
+
+        nsID operationID;
+        rv = nsID::GenerateUUIDInPlace(operationID);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          promise->MaybeReject(NS_ERROR_UNEXPECTED);
+          return;
+        }
+
+        self->mNotificationWatcher->ResolvePromiseWhenNotified(operationID,
+                                                               promise);
+
         RefPtr<CookieStoreChild::SetRequestPromise> ipcPromise =
             self->mActor->SendSetRequest(
                 aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
@@ -336,7 +356,7 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
                     ? INT64_MAX
                     : static_cast<int64_t>(aOptions.mExpires.Value() / 1000),
                 path, SameSiteToConst(aOptions.mSameSite),
-                aOptions.mPartitioned);
+                aOptions.mPartitioned, operationID);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
           return;
@@ -344,9 +364,15 @@ already_AddRefed<Promise> CookieStore::Set(const CookieInit& aOptions,
 
         ipcPromise->Then(
             NS_GetCurrentThread(), __func__,
-            [promise = RefPtr<dom::Promise>(promise)](
+            [promise = RefPtr<dom::Promise>(promise), self = RefPtr(self),
+             operationID](
                 const CookieStoreChild::SetRequestPromise::ResolveOrRejectValue&
-                    aResult) { promise->MaybeResolveWithUndefined(); });
+                    aResult) {
+              if (!aResult.ResolveValue()) {
+                self->mNotificationWatcher->ForgetOperationID(operationID);
+                promise->MaybeResolveWithUndefined();
+              }
+            });
       }));
 
   return promise.forget();
@@ -416,24 +442,44 @@ already_AddRefed<Promise> CookieStore::Delete(
           return;
         }
 
+        if (!self->mNotificationWatcher) {
+          promise->MaybeReject(NS_ERROR_UNEXPECTED);
+          return;
+        }
+
+        nsID operationID;
+        rv = nsID::GenerateUUIDInPlace(operationID);
+        if (NS_WARN_IF(NS_FAILED(rv))) {
+          promise->MaybeReject(NS_ERROR_UNEXPECTED);
+          return;
+        }
+
+        self->mNotificationWatcher->ResolvePromiseWhenNotified(operationID,
+                                                               promise);
+
         RefPtr<CookieStoreChild::DeleteRequestPromise> ipcPromise =
             self->mActor->SendDeleteRequest(
                 aOptions.mDomain.IsEmpty() ? nsString(baseDomain)
                                            : nsString(aOptions.mDomain),
                 cookiePrincipal->OriginAttributesRef(),
-                nsString(aOptions.mName), path, aOptions.mPartitioned);
+                nsString(aOptions.mName), path, aOptions.mPartitioned,
+                operationID);
         if (NS_WARN_IF(!ipcPromise)) {
           promise->MaybeResolveWithUndefined();
           return;
         }
 
-        ipcPromise->Then(NS_GetCurrentThread(), __func__,
-                         [promise = RefPtr<dom::Promise>(promise)](
-                             const CookieStoreChild::DeleteRequestPromise::
-                                 ResolveOrRejectValue& aResult) {
-                           MOZ_ASSERT(aResult.IsResolve());
-                           promise->MaybeResolveWithUndefined();
-                         });
+        ipcPromise->Then(
+            NS_GetCurrentThread(), __func__,
+            [promise = RefPtr<dom::Promise>(promise), self = RefPtr(self),
+             operationID](const CookieStoreChild::DeleteRequestPromise::
+                              ResolveOrRejectValue& aResult) {
+              MOZ_ASSERT(aResult.IsResolve());
+              if (!aResult.ResolveValue()) {
+                self->mNotificationWatcher->ForgetOperationID(operationID);
+                promise->MaybeResolveWithUndefined();
+              }
+            });
       }));
 
   return promise.forget();
