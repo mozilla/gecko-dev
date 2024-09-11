@@ -184,155 +184,41 @@ struct AddDebugAnnotationImpl<
 };
 
 // Specialize the various string representations.
-template <>
-struct AddDebugAnnotationImpl<mozilla::ProfilerString8View> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const mozilla::ProfilerString8View& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.StringView().data());
-  }
-};
+#  define ADD_DEBUG_STRING_ANNOTATION_IMPL(templatetype, stringtype,        \
+                                           paramtype, getter)               \
+    template <templatetype>                                                 \
+    struct AddDebugAnnotationImpl<stringtype> {                             \
+      static void call(perfetto::EventContext& ctx, const char* const aKey, \
+                       const paramtype aValue) {                            \
+        auto* arg = ctx.event()->add_debug_annotations();                   \
+        arg->set_name(aKey);                                                \
+        arg->set_string_value(getter);                                      \
+      }                                                                     \
+    };
 
-template <size_t N>
-struct AddDebugAnnotationImpl<nsAutoCStringN<N>> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsAutoCStringN<N>& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.get());
-  }
-};
+#  define ADD_DEBUG_STRING_ANNOTATION(type, getter) \
+    ADD_DEBUG_STRING_ANNOTATION_IMPL(, type, type&, getter)
 
-template <>
-struct AddDebugAnnotationImpl<nsCString> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsCString& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.get());
-  }
-};
+ADD_DEBUG_STRING_ANNOTATION(mozilla::ProfilerString8View,
+                            aValue.StringView().data())
+ADD_DEBUG_STRING_ANNOTATION_IMPL(size_t N, nsAutoCStringN<N>,
+                                 nsAutoCStringN<N>&, aValue.get())
+ADD_DEBUG_STRING_ANNOTATION(nsCString, aValue.get())
+ADD_DEBUG_STRING_ANNOTATION(nsAutoCString, aValue.get())
+ADD_DEBUG_STRING_ANNOTATION(nsTLiteralString<char>, aValue.get())
+ADD_DEBUG_STRING_ANNOTATION(nsPrintfCString, aValue.get())
+ADD_DEBUG_STRING_ANNOTATION(NS_ConvertUTF16toUTF8, aValue.get())
+ADD_DEBUG_STRING_ANNOTATION(nsTDependentString<char>, aValue.get())
 
-template <>
-struct AddDebugAnnotationImpl<nsAutoCString> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsAutoCString& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<nsTLiteralString<char>> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsTLiteralString<char>& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<nsPrintfCString> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsPrintfCString& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<NS_ConvertUTF16toUTF8> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const NS_ConvertUTF16toUTF8& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<nsTDependentString<char>> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsTDependentString<char>& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue.get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<nsACString> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsACString& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(nsAutoCString(aValue).get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<std::string> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const std::string& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue);
-  }
-};
-
-template <size_t N>
-struct AddDebugAnnotationImpl<char[N]> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const char* aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(aValue);
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<mozilla::ProfilerString16View> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const mozilla::ProfilerString16View& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<nsAString> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsAString& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<const nsAString&> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsAString& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
-  }
-};
-
-template <>
-struct AddDebugAnnotationImpl<nsString> {
-  static void call(perfetto::EventContext& ctx, const char* const aKey,
-                   const nsString& aValue) {
-    auto* arg = ctx.event()->add_debug_annotations();
-    arg->set_name(aKey);
-    arg->set_string_value(NS_ConvertUTF16toUTF8(aValue).get());
-  }
-};
+ADD_DEBUG_STRING_ANNOTATION(nsACString, nsAutoCString(aValue).get())
+ADD_DEBUG_STRING_ANNOTATION(std::string, aValue)
+ADD_DEBUG_STRING_ANNOTATION_IMPL(size_t N, char[N], char*, aValue)
+ADD_DEBUG_STRING_ANNOTATION(mozilla::ProfilerString16View,
+                            NS_ConvertUTF16toUTF8(aValue).get())
+ADD_DEBUG_STRING_ANNOTATION(nsAString, NS_ConvertUTF16toUTF8(aValue).get())
+ADD_DEBUG_STRING_ANNOTATION_IMPL(, const nsAString&, nsAString&,
+                                 NS_ConvertUTF16toUTF8(aValue).get())
+ADD_DEBUG_STRING_ANNOTATION(nsString, NS_ConvertUTF16toUTF8(aValue).get())
 
 // Main helper call that dispatches to proper specialization.
 template <typename T>
