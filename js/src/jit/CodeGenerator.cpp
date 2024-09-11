@@ -11598,30 +11598,7 @@ void CodeGenerator::visitBigIntPow(LBigIntPow* ins) {
   // register.
   masm.loadBigIntNonZero(lhs, base, ool->entry());
 
-  // MacroAssembler::pow32() adjusted to work on pointer-sized registers.
-  {
-    // m = base
-    // n = exponent
-
-    Label start, loop;
-    masm.jump(&start);
-    masm.bind(&loop);
-
-    // m *= m
-    masm.branchMulPtr(Assembler::Overflow, base, base, ool->entry());
-
-    masm.bind(&start);
-
-    // if ((n & 1) != 0) p *= m
-    Label even;
-    masm.branchTest32(Assembler::Zero, exponent, Imm32(1), &even);
-    masm.branchMulPtr(Assembler::Overflow, base, dest, ool->entry());
-    masm.bind(&even);
-
-    // n >>= 1
-    // if (n == 0) return p
-    masm.branchRshift32(Assembler::NonZero, Imm32(1), exponent, &loop);
-  }
+  masm.powPtr(base, exponent, dest, ool->entry());
 
   MOZ_ASSERT(temp1 == dest);
 

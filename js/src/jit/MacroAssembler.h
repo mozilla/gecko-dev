@@ -1360,6 +1360,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // |base| and |power| are preserved, the other input registers are clobbered.
   void pow32(Register base, Register power, Register dest, Register temp1,
              Register temp2, Label* onOver);
+  void powPtr(Register base, Register power, Register dest, Register temp1,
+              Register temp2, Label* onOver);
+  void powPtr(Register base, Register power, Register dest, Label* onOver);
 
   void sameValueDouble(FloatRegister left, FloatRegister right,
                        FloatRegister temp, Register dest);

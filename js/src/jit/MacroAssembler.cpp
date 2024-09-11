@@ -4758,18 +4758,19 @@ void MacroAssembler::pow32(Register base, Register power, Register dest,
   Label done;
   branch32(Assembler::Equal, base, Imm32(1), &done);
 
-  move32(base, temp1);   // runningSquare = x
-  move32(power, temp2);  // n = y
-
   // x^y where y < 0 returns a non-int32 value for any x != 1. Except when y is
   // large enough so that the result is no longer representable as a double with
   // fractional parts. We can't easily determine when y is too large, so we bail
   // here.
   // Note: it's important for this condition to match the code in CacheIR.cpp
   // (CanAttachInt32Pow) to prevent failure loops.
+  branchTest32(Assembler::Signed, power, power, onOver);
+
+  move32(base, temp1);   // runningSquare = x
+  move32(power, temp2);  // n = y
+
   Label start;
-  branchTest32(Assembler::NotSigned, power, power, &start);
-  jump(onOver);
+  jump(&start);
 
   Label loop;
   bind(&loop);
@@ -4783,6 +4784,67 @@ void MacroAssembler::pow32(Register base, Register power, Register dest,
   Label even;
   branchTest32(Assembler::Zero, temp2, Imm32(1), &even);
   branchMul32(Assembler::Overflow, temp1, dest, onOver);
+  bind(&even);
+
+  // n >>= 1
+  // if (n == 0) return result
+  branchRshift32(Assembler::NonZero, Imm32(1), temp2, &loop);
+
+  bind(&done);
+}
+
+void MacroAssembler::powPtr(Register base, Register power, Register dest,
+                            Label* onOver) {
+  powPtr(base, power, dest, base, power, onOver);
+}
+
+void MacroAssembler::powPtr(Register base, Register power, Register dest,
+                            Register temp1, Register temp2, Label* onOver) {
+  // Inline intptr-specialized implementation of BigInt::pow with overflow
+  // detection.
+
+  // Negative exponents are disallowed for any BigInts.
+  branchTestPtr(Assembler::Signed, power, power, onOver);
+
+  movePtr(ImmWord(1), dest);  // result = 1
+
+  // x^y where x == 1 returns 1 for any y.
+  Label done;
+  branchPtr(Assembler::Equal, base, ImmWord(1), &done);
+
+  // x^y where x == -1 returns 1 for even y, and -1 for odd y.
+  Label notNegativeOne;
+  branchPtr(Assembler::NotEqual, base, ImmWord(-1), &notNegativeOne);
+  test32MovePtr(Assembler::NonZero, power, Imm32(1), base, dest);
+  jump(&done);
+  bind(&notNegativeOne);
+
+  // x ** y with |x| > 1 and y >= DigitBits can't be pointer-sized.
+  branchPtr(Assembler::GreaterThanOrEqual, power, Imm32(BigInt::DigitBits),
+            onOver);
+
+  if (base != temp1) {
+    movePtr(base, temp1);  // runningSquare = x
+  }
+  if (power != temp2) {
+    movePtr(power, temp2);  // n = y
+  }
+
+  Label start;
+  jump(&start);
+
+  Label loop;
+  bind(&loop);
+
+  // runningSquare *= runningSquare
+  branchMulPtr(Assembler::Overflow, temp1, temp1, onOver);
+
+  bind(&start);
+
+  // if ((n & 1) != 0) result *= runningSquare
+  Label even;
+  branchTest32(Assembler::Zero, temp2, Imm32(1), &even);
+  branchMulPtr(Assembler::Overflow, temp1, dest, onOver);
   bind(&even);
 
   // n >>= 1
