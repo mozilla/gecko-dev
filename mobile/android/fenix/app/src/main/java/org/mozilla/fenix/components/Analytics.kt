@@ -120,6 +120,7 @@ class Analytics(
             enabled = true,
             nonFatalCrashIntent = pendingIntent,
             notificationsDelegate = context.components.notificationsDelegate,
+            useLegacyReporting = !context.settings().useNewCrashReporter,
         )
     }
 

@@ -240,7 +240,9 @@ class Components(private val context: Context) {
                 ),
             ),
         ).also {
-            it.dispatch(AppAction.CrashActionWrapper(CrashAction.Initialize))
+            if (context.settings().useNewCrashReporter) {
+                it.dispatch(AppAction.CrashActionWrapper(CrashAction.Initialize))
+            }
         }
     }
 

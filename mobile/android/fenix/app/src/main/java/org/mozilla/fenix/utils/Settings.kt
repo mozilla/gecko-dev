@@ -2259,4 +2259,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         appContext.getPreferenceKey(R.string.pref_key_crash_reporting_always_report),
         default = false,
     )
+
+    /**
+     * Indicates whether or not we should use the new crash reporter dialog.
+     */
+    var useNewCrashReporter by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_use_new_crash_reporter),
+        default = Config.channel.isNightlyOrDebug,
+    )
 }

@@ -423,4 +423,5 @@
     <!-- Crash reporting -->
     <string name="pref_key_crash_reporting_deferred_until" translatable="false">pref_key_crash_reporting_deferred_until</string>
     <string name="pref_key_crash_reporting_always_report" translatable="false">pref_key_crash_reporting_always_report</string>
+    <string name="pref_key_use_new_crash_reporter" translatable="false">pref_key_use_new_crash_reporter</string>
 </resources>
