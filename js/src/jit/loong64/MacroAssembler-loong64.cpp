@@ -3306,6 +3306,16 @@ void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
   enterFakeExitFrame(cxreg, scratch, type);
 }
 
+CodeOffset MacroAssembler::sub32FromMemAndBranchIfNegativeWithPatch(
+    Address address, Label* label) {
+  MOZ_CRASH("needs to be implemented on this platform");
+}
+
+void MacroAssembler::patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
+                                                          Imm32 imm) {
+  MOZ_CRASH("needs to be implemented on this platform");
+}
+
 // TODO(loong64): widenInt32 should be nop?
 void MacroAssembler::widenInt32(Register r) {
   move32To64SignExtend(r, Register64(r));

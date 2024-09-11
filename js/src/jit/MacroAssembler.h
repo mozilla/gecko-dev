@@ -2089,6 +2089,17 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Create an unconditional branch to the address given as argument.
   inline void branchToComputedAddress(const BaseIndex& address) PER_ARCH;
 
+  // Subtract a constant in the range 1 .. 127 inclusive from the value stored
+  // at `address`, write the result back to `address`, and jump to `label` if
+  // the updated value is negative.  The subtract is a 32-bit operation even
+  // though the value to be subtracted must fit in 7 bits.
+  CodeOffset sub32FromMemAndBranchIfNegativeWithPatch(
+      Address address, Label* label) PER_SHARED_ARCH;
+
+  // Patch in the value to be subtracted.  Must be 1 .. 127 inclusive.
+  void patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
+                                            Imm32 imm) PER_SHARED_ARCH;
+
  private:
   template <typename T, typename S, typename L>
   inline void branchPtrImpl(Condition cond, const T& lhs, const S& rhs, L label)

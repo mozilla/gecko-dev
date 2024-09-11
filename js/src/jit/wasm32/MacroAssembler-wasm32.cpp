@@ -326,6 +326,16 @@ void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
   MOZ_CRASH();
 }
 
+CodeOffset MacroAssembler::sub32FromMemAndBranchIfNegativeWithPatch(
+    Address address, Label* label) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
+                                                          Imm32 imm) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::floorFloat32ToInt32(FloatRegister src, Register dest,
                                          Label* fail) {
   MOZ_CRASH();

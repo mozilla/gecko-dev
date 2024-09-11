@@ -2130,6 +2130,46 @@ void MacroAssembler::widenInt32(Register r) {
   move32To64ZeroExtend(r, Register64(r));
 }
 
+CodeOffset MacroAssembler::sub32FromMemAndBranchIfNegativeWithPatch(
+    Address address, Label* label) {
+  vixl::UseScratchRegisterScope temps(this);
+  const ARMRegister value32 = temps.AcquireW();
+  MOZ_ASSERT(value32.asUnsized() != address.base);
+  Ldr(value32, toMemOperand(address));
+  // -128 is arbitrary, but makes `*address` count upwards, which may help
+  // to identify cases where the subsequent ::patch..() call was forgotten.
+  Subs(value32, value32, Operand(-128));
+  // Points immediately after the insn to patch
+  CodeOffset patchPoint = CodeOffset(currentOffset());
+  // This assumes that Str does not change the condition codes.
+  Str(value32, toMemOperand(address));
+  B(label, Assembler::Signed);
+  return patchPoint;
+}
+
+void MacroAssembler::patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
+                                                          Imm32 imm) {
+  int32_t val = imm.value;
+  // Patching it to zero would make the insn pointless
+  MOZ_RELEASE_ASSERT(val >= 1 && val <= 127);
+  Instruction* instrPtr = getInstructionAt(BufferOffset(offset.offset() - 4));
+  // 31   27   23 21    9  4
+  // |    |    |  |     |  |
+  // 0011 0001 00 imm12 Rn Rd = ADDS Wd, Wn|WSP, #imm12 // (expected)
+  // 0111 0001 00 imm12 Rn Rd = SUBS Wd, Wn|WSP, #imm12 // (replacement)
+  vixl::Instr oldInstr = instrPtr->InstructionBits();
+  // Check opcode bits and imm field are as expected
+  MOZ_ASSERT((oldInstr & 0b1111'1111'11'000000000000'00000'00000U) ==
+             0b0011'0001'00'000000000000'00000'00000U);
+  MOZ_RELEASE_ASSERT((oldInstr & 0b0000'0000'00'111111111111'00000'00000U) ==
+                     (128 << 10));  // 128 as created above
+  vixl::Instr newInstr =
+      0b0111'0001'00'000000000000'00000'00000U |  // opcode bits
+      (oldInstr & 0b11111'11111) |                // existing register fields
+      ((val & 0b111111111111) << 10);             // #val
+  instrPtr->SetInstructionBits(newInstr);
+}
+
 // ========================================================================
 // Convert floating point.
 

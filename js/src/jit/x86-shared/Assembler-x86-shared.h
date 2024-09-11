@@ -1406,17 +1406,15 @@ class AssemblerX86Shared : public AssemblerShared {
   void subl(Imm32 imm, Register dest) {
     masm.subl_ir(imm.value, dest.encoding());
   }
-  void subl(Imm32 imm, const Operand& op) {
+  size_t subl(Imm32 imm, const Operand& op) {
     switch (op.kind()) {
       case Operand::REG:
-        masm.subl_ir(imm.value, op.reg());
-        break;
+        return masm.subl_ir(imm.value, op.reg());
       case Operand::MEM_REG_DISP:
-        masm.subl_im(imm.value, op.disp(), op.base());
-        break;
+        return masm.subl_im(imm.value, op.disp(), op.base());
       case Operand::MEM_SCALE:
-        masm.subl_im(imm.value, op.disp(), op.base(), op.index(), op.scale());
-        break;
+        return masm.subl_im(imm.value, op.disp(), op.base(), op.index(),
+                            op.scale());
       default:
         MOZ_CRASH("unexpected operand kind");
     }

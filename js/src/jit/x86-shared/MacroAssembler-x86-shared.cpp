@@ -1102,6 +1102,29 @@ void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
   enterFakeExitFrame(cxreg, scratch, type);
 }
 
+CodeOffset MacroAssembler::sub32FromMemAndBranchIfNegativeWithPatch(
+    Address address, Label* label) {
+  // -128 is arbitrary, but makes `*address` count upwards, which may help
+  // to identify cases where the subsequent ::patch..() call was forgotten.
+  int numImmBytes = subl(Imm32(-128), Operand(address));
+  // This is vitally important for patching
+  MOZ_RELEASE_ASSERT(numImmBytes == 1);
+  // Points immediately after the location to patch
+  CodeOffset patchPoint = CodeOffset(currentOffset());
+  jSrc(Condition::Signed, label);
+  return patchPoint;
+}
+
+void MacroAssembler::patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
+                                                          Imm32 imm) {
+  int32_t val = imm.value;
+  // Patching it to zero would make the insn pointless
+  MOZ_RELEASE_ASSERT(val >= 1 && val <= 127);
+  uint8_t* ptr = (uint8_t*)masm.data() + offset.offset() - 1;
+  MOZ_RELEASE_ASSERT(*ptr == uint8_t(-128));  // as created above
+  *ptr = uint8_t(val) & 0x7F;
+}
+
 // ========================================================================
 // Primitive atomic operations.
 
