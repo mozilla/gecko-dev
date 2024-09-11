@@ -593,10 +593,12 @@ static inline JSValueType ValueTypeFromMIRType(MIRType type) {
     case MIRType::MagicIsConstructing:
     case MIRType::MagicUninitializedLexical:
       return JSVAL_TYPE_MAGIC;
-    default:
-      MOZ_ASSERT(type == MIRType::Object);
+    case MIRType::Object:
       return JSVAL_TYPE_OBJECT;
+    default:
+      break;
   }
+  MOZ_CRASH("bad type");
 }
 
 static inline JSValueTag MIRTypeToTag(MIRType type) {
@@ -688,10 +690,6 @@ static inline bool IsIntType(MIRType type) {
 static inline bool IsNumberType(MIRType type) {
   return type == MIRType::Int32 || type == MIRType::Double ||
          type == MIRType::Float32 || type == MIRType::Int64;
-}
-
-static inline bool IsNumericType(MIRType type) {
-  return IsNumberType(type) || type == MIRType::BigInt;
 }
 
 static inline bool IsTypeRepresentableAsDouble(MIRType type) {
