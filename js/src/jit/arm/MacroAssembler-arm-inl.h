@@ -712,6 +712,10 @@ void MacroAssembler::rshiftPtr(Register src, Register dest) {
   ma_lsr(src, dest, dest);
 }
 
+void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
+  flexibleRshift32(shift, srcDest);
+}
+
 void MacroAssembler::rshift32(Register src, Register dest) {
   ma_lsr(src, dest, dest);
 }

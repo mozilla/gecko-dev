@@ -707,6 +707,10 @@ void MacroAssembler::rshiftPtr(Register shift, Register dest) {
   Lsr(ARMRegister(dest, 64), ARMRegister(dest, 64), ARMRegister(shift, 64));
 }
 
+void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
+  rshiftPtr(shift, srcDest);
+}
+
 void MacroAssembler::rshift32(Register shift, Register dest) {
   Lsr(ARMRegister(dest, 32), ARMRegister(dest, 32), ARMRegister(shift, 32));
 }

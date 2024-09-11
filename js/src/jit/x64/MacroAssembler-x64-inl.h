@@ -361,6 +361,21 @@ void MacroAssembler::rshiftPtr(Register shift, Register srcDest) {
   shrq_cl(srcDest);
 }
 
+void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
+  if (HasBMI2()) {
+    shrxq(srcDest, shift, srcDest);
+    return;
+  }
+  if (shift == rcx) {
+    shrq_cl(srcDest);
+  } else {
+    // Shift amount must be in rcx.
+    xchg(shift, rcx);
+    shrq_cl(shift == srcDest ? rcx : srcDest == rcx ? shift : srcDest);
+    xchg(shift, rcx);
+  }
+}
+
 void MacroAssembler::rshift64(Imm32 imm, Register64 dest) {
   rshiftPtr(imm, dest.reg);
 }

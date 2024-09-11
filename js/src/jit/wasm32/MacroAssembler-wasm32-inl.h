@@ -1136,6 +1136,10 @@ void MacroAssembler::flexibleRshift32Arithmetic(Register shift,
   MOZ_CRASH();
 }
 
+void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::branchPrivatePtr(Condition cond, const Address& lhs,
                                       Register rhs, Label* label) {
   MOZ_CRASH();

@@ -1918,6 +1918,11 @@ void MacroAssembler::rshiftPtr(Imm32 imm, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   srli(dest, dest, imm.value);
 }
+
+void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
+  rshiftPtr(shift, srcDest);
+}
+
 void MacroAssembler::spectreBoundsCheck32(Register index, Register length,
                                           Register maybeScratch,
                                           Label* failure) {
