@@ -328,6 +328,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // The maximum number of recent searches we will show.
   ["recentsearches.maxResults", 5],
 
+  // Whether keyword exposures should be recorded for results with an
+  // `exposureTelemetry` value other than `NONE`.
+  ["recordKeywordExposures", false],
+
   // When true, URLs in the user's history that look like search result pages
   // are styled to look like search engine results instead of the usual history
   // results.
@@ -1572,21 +1576,6 @@ class Preferences {
         return nimbusValue === undefined
           ? this.get("autoFill.adaptiveHistory.useCountThreshold")
           : parseFloat(nimbusValue);
-      }
-      case "potentialExposureKeywords": {
-        // Get the keywords array from Nimbus or prefs and convert it to a Set.
-        // If the value comes from Nimbus, it will already be an array. If it
-        // comes from prefs, it should be a stringified array.
-        let value = this._readPref(pref);
-        if (typeof value == "string") {
-          try {
-            value = JSON.parse(value);
-          } catch (e) {}
-        }
-        if (!Array.isArray(value)) {
-          value = null;
-        }
-        return new Set(value);
       }
       case "exposureResults":
       case "quicksuggest.exposureSuggestionTypes":

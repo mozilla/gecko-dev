@@ -148,15 +148,6 @@ export class UrlbarController {
       this.notify(NOTIFICATIONS.QUERY_FINISHED, queryContext);
     }
 
-    // Record a potential exposure if the current search string matches one of
-    // the registered keywords.
-    if (!queryContext.isPrivate) {
-      let searchStr = queryContext.trimmedLowerCaseSearchString;
-      if (lazy.UrlbarPrefs.get("potentialExposureKeywords").has(searchStr)) {
-        this.engagementEvent.addPotentialExposure(searchStr);
-      }
-    }
-
     return queryContext;
   }
 
@@ -953,7 +944,7 @@ class TelemetryEvent {
     );
 
     if (!details.isSessionOngoing) {
-      this.#recordEndOfSessionTelemetry(details.searchString);
+      this.#recordEndOfSessionTelemetry(queryContext);
     }
 
     if (!skipLegacyTelemetry) {
@@ -1121,51 +1112,70 @@ class TelemetryEvent {
     Glean.urlbar[method].record(eventInfo);
   }
 
-  #recordEndOfSessionTelemetry(searchString) {
-    // exposures
-    if (this.#exposureResultTypes.size) {
-      let exposure = {
-        results: [...this.#exposureResultTypes].sort().join(","),
-      };
-      this._controller.logger.debug(
-        `exposure event: ${JSON.stringify(exposure)}`
-      );
-      Glean.urlbar.exposure.record(exposure);
-      this.#exposureResultTypes.clear();
+  #recordEndOfSessionTelemetry(queryContext) {
+    let exposures = this.#exposures;
+    this.#exposures = [];
+    this.#tentativeExposures = [];
+    this.#exposureResultTypesByQueryContext.delete(queryContext);
+    if (!exposures.length) {
+      return;
     }
-    this.#tentativeExposureResultTypes.clear();
 
-    // potential exposures
-    if (this.#potentialExposureKeywords.size) {
-      let normalizedSearchString = searchString.trim().toLowerCase();
-      for (let keyword of this.#potentialExposureKeywords) {
+    let exposureResultTypes = new Set();
+    let keywordExposureRecorded = false;
+    for (let { resultType, keyword, weakQueryContext } of exposures) {
+      exposureResultTypes.add(resultType);
+
+      // Record the `keyword_exposure` event if there's a keyword.
+      if (keyword) {
+        let exposureContext = weakQueryContext.get();
         let data = {
           keyword,
-          terminal: keyword == normalizedSearchString,
+          result: resultType,
+          terminal: exposureContext == queryContext,
         };
         this._controller.logger.debug(
-          `potential_exposure event: ${JSON.stringify(data)}`
+          `keyword_exposure event: ${JSON.stringify(data)}`
         );
-        Glean.urlbar.potentialExposure.record(data);
+        Glean.urlbar.keywordExposure.record(data);
+        keywordExposureRecorded = true;
       }
-      GleanPings.urlbarPotentialExposure.submit();
-      this.#potentialExposureKeywords.clear();
+    }
+
+    // Record the `exposure` event.
+    let exposure = {
+      results: [...exposureResultTypes].sort().join(","),
+    };
+    this._controller.logger.debug(
+      `exposure event: ${JSON.stringify(exposure)}`
+    );
+    Glean.urlbar.exposure.record(exposure);
+
+    // Submit the `urlbar-keyword-exposure` ping if any keyword exposure events
+    // were recorded above.
+    if (keywordExposureRecorded) {
+      GleanPings.urlbarKeywordExposure.submit();
     }
   }
 
   /**
-   * Registers an exposure for a result in the current urlbar session. All
-   * exposures that are added during a session are recorded in an exposure event
-   * at the end of the session. Exposures are cleared at the end of each session
-   * and do not carry over to the next session.
+   * Registers an exposure for a result in the current urlbar session, if the
+   * result should record exposure telemetry. All exposures that are added
+   * during a session are recorded in the `exposure` event at the end of the
+   * session. If keyword exposures are enabled, they will be recorded in the
+   * `urlbar-keyword-exposure` ping at the end of the session as well. Exposures
+   * are cleared at the end of each session and do not carry over.
    *
    * @param {UrlbarResult} result An exposure will be added for this result if
    *        exposures are enabled for its result type.
+   * @param {UrlbarQueryContext} queryContext The query context associated with
+   *        the result.
    */
-  addExposure(result) {
+  addExposure(result, queryContext) {
     if (result.exposureTelemetry) {
-      this.#exposureResultTypes.add(
-        lazy.UrlbarUtils.searchEngagementTelemetryType(result)
+      this.#addExposureResultType(
+        lazy.UrlbarUtils.searchEngagementTelemetryType(result),
+        queryContext
       );
     }
   }
@@ -1177,12 +1187,15 @@ class TelemetryEvent {
    *
    * @param {UrlbarResult} result A tentative exposure will be added for this
    *        result if exposures are enabled for its result type.
+   * @param {UrlbarQueryContext} queryContext The query context associated with
+   *        the result.
    */
-  addTentativeExposure(result) {
+  addTentativeExposure(result, queryContext) {
     if (result.exposureTelemetry) {
-      this.#tentativeExposureResultTypes.add(
-        lazy.UrlbarUtils.searchEngagementTelemetryType(result)
-      );
+      this.#tentativeExposures.push({
+        resultType: lazy.UrlbarUtils.searchEngagementTelemetryType(result),
+        weakQueryContext: Cu.getWeakReference(queryContext),
+      });
     }
   }
 
@@ -1192,10 +1205,15 @@ class TelemetryEvent {
    * recorded at the end of the session.
    */
   acceptTentativeExposures() {
-    for (let type of this.#tentativeExposureResultTypes) {
-      this.#exposureResultTypes.add(type);
+    if (this.#tentativeExposures.length) {
+      for (let { resultType, weakQueryContext } of this.#tentativeExposures) {
+        let queryContext = weakQueryContext.get();
+        if (queryContext) {
+          this.#addExposureResultType(resultType, queryContext);
+        }
+      }
+      this.#tentativeExposures = [];
     }
-    this.#tentativeExposureResultTypes.clear();
   }
 
   /**
@@ -1203,17 +1221,37 @@ class TelemetryEvent {
    * during the current urlbar session.
    */
   discardTentativeExposures() {
-    this.#tentativeExposureResultTypes.clear();
+    if (this.#tentativeExposures.length) {
+      this.#tentativeExposures = [];
+    }
   }
 
-  /**
-   * Registers a potential exposure in the current urlbar session.
-   *
-   * @param {string} keyword
-   *   The keyword that was matched.
-   */
-  addPotentialExposure(keyword) {
-    this.#potentialExposureKeywords.add(keyword);
+  #addExposureResultType(resultType, queryContext) {
+    // If we haven't yet added an exposure for this result type and context, add
+    // it now. The reason for this check is that the view can add exposures for
+    // the same results again and again due to the nature of its update process.
+    // Only one exposure per result should be recorded. This does mean we can't
+    // record separate exposures for different results of the same type in the
+    // same context, but since we only care about separate exposures per type in
+    // the context of keyword exposures and the results would necessarily have
+    // the same keyword in that case, that's fine.
+    let types = this.#exposureResultTypesByQueryContext.get(queryContext);
+    if (!types) {
+      types = new Set();
+      this.#exposureResultTypesByQueryContext.set(queryContext, types);
+    }
+    if (!types.has(resultType)) {
+      types.add(resultType);
+      this.#exposures.push({
+        resultType,
+        weakQueryContext: Cu.getWeakReference(queryContext),
+        keyword:
+          lazy.UrlbarPrefs.get("recordKeywordExposures") &&
+          !queryContext.isPrivate
+            ? queryContext.trimmedLowerCaseSearchString
+            : null,
+      });
+    }
   }
 
   #getInteractionType(
@@ -1407,7 +1445,41 @@ class TelemetryEvent {
 
   #previousSearchWordsSet = null;
 
-  #exposureResultTypes = new Set();
-  #tentativeExposureResultTypes = new Set();
-  #potentialExposureKeywords = new Set();
+  // These properties are used to record exposure telemetry. For general info on
+  // exposures, see [1]. For keyword exposures, see [2] and [3]. Here's a
+  // summary of how a result flows through the exposure telemetry code path:
+  //
+  // 1. The view makes the result's row visible and calls `addExposure()` for
+  //    it. (Or, if the result is a hidden exposure, the view would have made
+  //    its row visible.)
+  // 2. If exposure telemetry should be recorded for the result, we push its
+  //    telemetry type and some other data onto `#exposures`. If keyword
+  //    exposures are enabled, we also include the search string in the data. We
+  //    use `#exposureResultTypesByQueryContext` to efficiently make sure we add
+  //    at most one exposure per result to `#exposures`.
+  // 3. At the end of a session, we record a single `exposure` event that
+  //    includes all unique telemetry types in the `#exposures` data. We also
+  //    record one `keyword_exposure` event per search string in the data, with
+  //    each search string recorded as the `keyword` for that exposure. We clear
+  //    `#exposures` so that the data does not carry over into the next session.
+  //
+  // `#tentativeExposures` supports hidden exposures and is necessary due to how
+  // the view updates itself. When the view creates a row for a normal result,
+  // the row can start out hidden, and it's only unhidden if the query finishes
+  // without being canceled. When the view encounters a hidden-exposure result,
+  // it doesn't actually create a row for it, but if the hypothetical row would
+  // have started out visible, the view will call `addExposure()`. If the
+  // hypothetical row would have started out hidden, the view will call
+  // `addTentativeExposure()` and we'll add the result to `#tentativeExposures`.
+  // Once the query finishes and the view unhides its rows, it will call
+  // `acceptTentativeExposures()`, finally registering exposures for all such
+  // hidden-exposure results in the query. If instead the query is canceled, the
+  // view will remove its hidden rows and call `discardTentativeExposures()`.
+  //
+  // [1] https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/metrics/urlbar_exposure
+  // [2] https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/pings/urlbar-keyword-exposure
+  // [3] https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/metrics/urlbar_keyword_exposure
+  #exposures = [];
+  #tentativeExposures = [];
+  #exposureResultTypesByQueryContext = new WeakMap();
 }

@@ -282,15 +282,15 @@ urlbar:
     exposureResults:
       type: string
       setPref:
-        branch: default
         pref: browser.urlbar.exposureResults
+        branch: user
       description: >-
         Comma-separated list of result type combinations, that are used to determine if an exposure event should be fired.
     showExposureResults:
       type: boolean
       setPref:
-        branch: default
         pref: browser.urlbar.showExposureResults
+        branch: user
       description: >-
         Boolean used to determine if the results defined in `exposureResults` should be shown in search results. Should be false for Control branch of an experiment.
     pocketFeatureGate:
@@ -311,13 +311,6 @@ urlbar:
       description: >-
         The group-relative suggestedIndex of Pocket suggestions within the Firefox
         Suggest section.
-    potentialExposureKeywords:
-      type: json
-      fallbackPref: browser.urlbar.potentialExposureKeywords
-      description: >-
-        An array of keyword strings that will trigger the
-        `urlbar-potential-exposure` ping when the user types one during a urlbar
-        session.
     quickSuggestAllowPositionInSuggestions:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.allowPositionInSuggestions
@@ -360,7 +353,7 @@ urlbar:
       type: string
       setPref:
         pref: browser.urlbar.quicksuggest.exposureSuggestionTypes
-        branch: default
+        branch: user
       description: >-
         Comma-separated list of Suggest exposure suggestion types to enable.
         Exposure suggestions are used to test potential exposures. They trigger
@@ -368,11 +361,13 @@ urlbar:
         never visible. Set this variable to the `suggestion_type` defined in the
         remote settings record(s) that contains your keywords. If you want to
         test multiple suggestion types, separate them with commas, but also
-        consider using one experiment branch per type. Exposure suggestions are
-        recorded in telemetry with the "rust_exposure" result type. It's not
-        necessary to include "rust_exposure" in `exposureResults`. Unless you
-        are testing other results in the same experiment branch, it's also not
-        necessary to set `showExposureResults: false`.
+        consider using one experiment branch per type, especially if you are
+        also enabling keyword exposures. Exposure suggestions are recorded in
+        telemetry with the "rust_exposure" result type. It's not necessary to
+        include "rust_exposure" in `exposureResults`. Unless you are testing
+        other results in the same experiment branch, it's also not necessary to
+        set `showExposureResults: false`. To also record keyword exposures for
+        the "rust_exposure" result type, set `recordKeywordExposures: true`.
     quickSuggestImpressionCapsSponsoredEnabled:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.impressionCaps.sponsoredEnabled
@@ -461,6 +456,18 @@ urlbar:
         branch: default
         pref: browser.urlbar.recentsearches.maxResults
       description: The maximum number of recent searches to show.
+    recordKeywordExposures:
+      type: boolean
+      setPref:
+        pref: browser.urlbar.recordKeywordExposures
+        branch: user
+      description: >-
+        Whether keyword exposures should be recorded. When enabled, keyword
+        exposures will be recorded for all results defined in the
+        `exposureResults` variable. They will also be recorded for the
+        "rust_exposure" result type if `quickSuggestExposureSuggestionTypes` is
+        defined. Keyword exposures are recorded in the `urlbar-keyword-exposure`
+        ping. See that ping's description for more.
     recordNavigationalSuggestionTelemetry:
       type: boolean
       description: Whether to record navigational suggestion telemetry. Defaults to false.

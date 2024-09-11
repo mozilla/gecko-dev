@@ -20,18 +20,24 @@ quick-suggest:
   notification_emails:
     - najiang@mozilla.com
 
-urlbar-potential-exposure:
+urlbar-keyword-exposure:
   description: |
-    This ping is submitted at the end of urlbar sessions during which the user
-    typed a keyword defined by the Nimbus variable `potentialExposureKeywords`.
-    A "session" begins when the user focuses the urlbar and ends with an
-    engagement or abandonment. The ping will contain one
-    `urlbar.potential_exposure` event per unique keyword that is typed during
-    the session. This ping is not submitted for sessions in private windows.
+    This ping is submitted only when urlbar keyword exposures are enabled. See
+    the `recordKeywordExposures` urlbar Nimbus variable. When enabled, the ping
+    is submitted at the end of urlbar sessions during which one or more exposure
+    results are matched. (A "session" begins when the user focuses the urlbar
+    and ends with an engagement or abandonment.) Exposure results include all
+    results defined in the `exposureResults` variable. They also include the
+    "rust_exposure" result type if the `quickSuggestExposureSuggestionTypes`
+    variable is defined. The ping will contain one `urlbar.keyword_exposure`
+    event for each instance where a result is matched during the session. The
+    ping is not submitted for sessions in private windows.
   include_client_id: false
   bugs:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1881875
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1915507
   data_reviews:
     - https://bugzilla.mozilla.org/show_bug.cgi?id=1881875
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1915507
   notification_emails:
     - fx-search-telemetry@mozilla.com

@@ -68,7 +68,7 @@ skip-if = ["verify"] # Bug 1852375 - MerinoTestUtils.initWeather() doesn't play 
 
 ["browser_glean_telemetry_fakespot_engagement.js"]
 
-["browser_glean_telemetry_potential_exposure.js"]
+["browser_glean_telemetry_keyword_exposure.js"]
 
 ["browser_glean_telemetry_record_preferences.js"]
 

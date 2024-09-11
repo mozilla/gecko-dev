@@ -481,39 +481,44 @@ urlbar:
       - fx-search-telemetry@mozilla.com
     expires: never
 
-  potential_exposure:
+  keyword_exposure:
     type: event
     description: >
-      This event is recorded in the `urlbar-potential-exposure` ping, which is
-      submitted at the end of urlbar sessions during which the user typed a
-      keyword defined by the Nimbus variable `potentialExposureKeywords`. A
-      "session" begins when the user focuses the urlbar and ends with an
-      engagement or abandonment. The ping will contain one event per unique
-      keyword that is typed during the session. This ping is not submitted for
-      sessions in private windows.
+      When keyword exposures are enabled, this event is recorded in the
+      `urlbar-keyword-exposure` ping, which is submitted at the end of urlbar
+      sessions during which one or more exposure results are matched. The ping
+      will contain one `keyword_exposure` event for each instance where a result
+      is matched during the session. See the `urlbar-keyword-exposure` ping for
+      details.
     extra_keys:
+      result:
+        type: string
+        description: >
+          The type of result that was matched.
       keyword:
         type: string
         description: >
-          The matched keyword.
+          The keyword that matched the result.
       terminal:
         type: boolean
         description: >
-          Whether the matched keyword was present at the end of the urlbar
-          session. If true, the session ended with the keyword. If false, the
-          keyword was typed at some point during the session but the session
-          did not end with it.
+          Whether the matched result and keyword were present at the end of the
+          urlbar session. If true, the session ended with them. If false, the
+          result and keyword were matched at some point during the session but
+          the session did not end with them.
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881875
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1915507
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1881875
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1915507
     data_sensitivity:
       - stored_content
     notification_emails:
       - fx-search-telemetry@mozilla.com
     expires: never
     send_in_pings:
-      - urlbar-potential-exposure
+      - urlbar-keyword-exposure
 
   quick_suggest_contextual_opt_in:
     type: event

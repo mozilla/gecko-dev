@@ -1247,7 +1247,10 @@ export class UrlbarView {
         ) {
           // We can replace the row's current result with the new one.
           if (result.isHiddenExposure) {
-            this.controller.engagementEvent.addExposure(result);
+            this.controller.engagementEvent.addExposure(
+              result,
+              this.#queryContext
+            );
           } else {
             this.#updateRow(row, result);
           }
@@ -1317,13 +1320,19 @@ export class UrlbarView {
         newSpanCount <= this.#queryContext.maxResults && !seenMisplacedResult;
       if (result.isHiddenExposure) {
         if (canBeVisible) {
-          this.controller.engagementEvent.addExposure(result);
+          this.controller.engagementEvent.addExposure(
+            result,
+            this.#queryContext
+          );
         } else {
           // Add a tentative exposure: The hypothetical row for this
           // hidden-exposure result can't be visible now, but as long as it were
           // not marked stale in a later update, it would be shown when stale
           // rows are removed.
-          this.controller.engagementEvent.addTentativeExposure(result);
+          this.controller.engagementEvent.addTentativeExposure(
+            result,
+            this.#queryContext
+          );
         }
         continue;
       }
@@ -2221,7 +2230,10 @@ export class UrlbarView {
       let visible = this.#isElementVisible(item);
       if (visible) {
         if (item.result.exposureTelemetry) {
-          this.controller.engagementEvent.addExposure(item.result);
+          this.controller.engagementEvent.addExposure(
+            item.result,
+            this.#queryContext
+          );
         }
         this.visibleResults.push(item.result);
       }
