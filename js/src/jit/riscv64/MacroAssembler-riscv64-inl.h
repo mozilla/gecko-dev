@@ -1934,6 +1934,16 @@ void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   srai(dest, dest, imm.value);
 }
+
+void MacroAssembler::rshiftPtrArithmetic(Register shift, Register dest) {
+  sra(dest, dest, shift);
+}
+
+void MacroAssembler::flexibleRshiftPtrArithmetic(Register shift,
+                                                 Register srcDest) {
+  rshiftPtrArithmetic(shift, srcDest);
+}
+
 void MacroAssembler::rshiftPtr(Register shift, Register dest) {
   srl(dest, dest, shift);
 }

@@ -1411,6 +1411,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                  Register srcDest) PER_SHARED_ARCH;
   inline void lshiftPtr(Register shift, Register srcDest) PER_ARCH;
   inline void rshiftPtr(Register shift, Register srcDest) PER_ARCH;
+  inline void rshiftPtrArithmetic(Register shift, Register srcDest) PER_ARCH;
 
   // These variants do not have the above constraint, but may emit some extra
   // instructions on x86_shared. They also handle shift >= 32 consistently by
@@ -1424,6 +1425,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
                                          Register srcDest) PER_SHARED_ARCH;
   inline void flexibleLshiftPtr(Register shift, Register srcDest) PER_ARCH;
   inline void flexibleRshiftPtr(Register shift, Register srcDest) PER_ARCH;
+  inline void flexibleRshiftPtrArithmetic(Register shift,
+                                          Register srcDest) PER_ARCH;
 
   inline void lshift64(Register shift, Register64 srcDest) PER_ARCH;
   inline void rshift64(Register shift, Register64 srcDest) PER_ARCH;

@@ -409,6 +409,31 @@ void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   sarq(imm, dest);
 }
 
+void MacroAssembler::rshiftPtrArithmetic(Register shift, Register srcDest) {
+  if (Assembler::HasBMI2()) {
+    sarxq(srcDest, shift, srcDest);
+    return;
+  }
+  MOZ_ASSERT(shift == rcx);
+  sarq_cl(srcDest);
+}
+
+void MacroAssembler::flexibleRshiftPtrArithmetic(Register shift,
+                                                 Register srcDest) {
+  if (HasBMI2()) {
+    sarxq(srcDest, shift, srcDest);
+    return;
+  }
+  if (shift == rcx) {
+    sarq_cl(srcDest);
+  } else {
+    // Shift amount must be in rcx.
+    xchg(shift, rcx);
+    sarq_cl(shift == srcDest ? rcx : srcDest == rcx ? shift : srcDest);
+    xchg(shift, rcx);
+  }
+}
+
 void MacroAssembler::rshift64Arithmetic(Imm32 imm, Register64 dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   rshiftPtrArithmetic(imm, dest.reg);

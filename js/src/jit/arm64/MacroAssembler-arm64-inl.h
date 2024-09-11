@@ -762,6 +762,15 @@ void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   Asr(ARMRegister(dest, 64), ARMRegister(dest, 64), imm.value);
 }
 
+void MacroAssembler::rshiftPtrArithmetic(Register shift, Register dest) {
+  Asr(ARMRegister(dest, 64), ARMRegister(dest, 64), ARMRegister(shift, 64));
+}
+
+void MacroAssembler::flexibleRshiftPtrArithmetic(Register shift,
+                                                 Register srcDest) {
+  rshiftPtrArithmetic(shift, srcDest);
+}
+
 void MacroAssembler::rshift32Arithmetic(Register shift, Register dest) {
   Asr(ARMRegister(dest, 32), ARMRegister(dest, 32), ARMRegister(shift, 32));
 }

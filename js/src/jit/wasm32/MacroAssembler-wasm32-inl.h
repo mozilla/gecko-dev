@@ -140,6 +140,10 @@ void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   MOZ_CRASH();
 }
 
+void MacroAssembler::rshiftPtrArithmetic(Register shift, Register srcDest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::lshift64(Imm32 imm, Register64 dest) { MOZ_CRASH(); }
 
 void MacroAssembler::rshift64(Imm32 imm, Register64 dest) { MOZ_CRASH(); }
@@ -1146,6 +1150,11 @@ void MacroAssembler::flexibleLshiftPtr(Register shift, Register srcDest) {
 }
 
 void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::flexibleRshiftPtrArithmetic(Register shift,
+                                                 Register srcDest) {
   MOZ_CRASH();
 }
 

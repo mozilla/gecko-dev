@@ -742,6 +742,15 @@ void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   }
 }
 
+void MacroAssembler::rshiftPtrArithmetic(Register src, Register dest) {
+  ma_asr(src, dest, dest);
+}
+
+void MacroAssembler::flexibleRshiftPtrArithmetic(Register shift,
+                                                 Register srcDest) {
+  flexibleRshift32Arithmetic(shift, srcDest);
+}
+
 void MacroAssembler::rshift64Arithmetic(Imm32 imm, Register64 dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   if (!imm.value) {

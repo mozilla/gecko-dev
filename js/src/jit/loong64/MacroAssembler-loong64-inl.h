@@ -728,6 +728,15 @@ void MacroAssembler::rshiftPtrArithmetic(Imm32 imm, Register dest) {
   as_srai_d(dest, dest, imm.value);
 }
 
+void MacroAssembler::rshiftPtrArithmetic(Register shift, Register dest) {
+  as_sra_d(dest, dest, shift);
+}
+
+void MacroAssembler::flexibleRshiftPtrArithmetic(Register shift,
+                                                 Register srcDest) {
+  rshiftPtrArithmetic(shift, srcDest);
+}
+
 // ===============================================================
 // Rotation functions
 
