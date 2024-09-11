@@ -179,7 +179,7 @@
     <!-- This is the caption for not yet supported screen caption -->
     <string name="mozac_feature_addons_not_yet_supported_caption2">ພວກເຮົາກຳລັງສ້າງໃຫ້ມີການຊັບພອດການເລືອກ Extensions ທີ່ແນະນຳໃນຂັ້ນພື້ນຖານ.</string>
     <!-- This is the caption for the extension installation progress overlay -->
-    <string name="mozac_extension_install_progress_caption">ກຳລັງດາວໂຫຼດ ແລະ ກວດສອບສ່ວນຂະຫຍາຍ...</string>
+    <string name="mozac_extension_install_progress_caption">ກຳລັງດາວໂຫຼດ ແລະ ກວດສອບສ່ວນຂະຫຍາຍ…</string>
     <!-- Error shown when something unexpected happened while trying to get the extension list from the server -->
     <string name="mozac_feature_addons_failed_to_query_extensions">ລົ້ມເຫລວໃນການສອບຖາມສ່ວນຂະຫຍາຍ!</string>
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
