@@ -122,8 +122,8 @@ private fun TabToolsContent(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(all = 16.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(all = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         TabCounter(
