@@ -163,6 +163,27 @@ export class FirefoxProfileMigrator extends MigratorBase {
       Services.prefs.savePrefFile(newPrefsFile);
     }
 
+    function configureHomepage(resetSession) {
+      // We just refreshed the profile, so don't show the profile reset prompt
+      // on the homepage.
+      Services.prefs.setBoolPref("browser.disableResetPrompt", true);
+      if (resetSession) {
+        // We're resetting the user's session, not creating a new one. Set the
+        // homepage_override prefs so that the browser doesn't override our
+        // session with an unwanted homepage.
+        let buildID = Services.appinfo.platformBuildID;
+        let mstone = Services.appinfo.platformVersion;
+        Services.prefs.setCharPref(
+          "browser.startup.homepage_override.mstone",
+          mstone
+        );
+        Services.prefs.setCharPref(
+          "browser.startup.homepage_override.buildID",
+          buildID
+        );
+      }
+    }
+
     let types = MigrationUtils.resourceTypes;
     let places = getFileResource(types.HISTORY, [
       "places.sqlite",
@@ -190,13 +211,18 @@ export class FirefoxProfileMigrator extends MigratorBase {
     ]);
     let dictionary = getFileResource(types.OTHERDATA, ["persdict.dat"]);
 
+    // Determine if we want to restore the previous session or start a new one
+    const NEW_SESSION = "0";
+    const RESTORE_SESSION = "1";
+    let resetSession = Services.env.get("MOZ_RESET_PROFILE_SESSION");
+    Services.env.set("MOZ_RESET_PROFILE_SESSION", "");
+
     let session;
-    if (Services.env.get("MOZ_RESET_PROFILE_MIGRATE_SESSION")) {
-      // We only want to restore the previous firefox session if the profile refresh was
-      // triggered by user. The MOZ_RESET_PROFILE_MIGRATE_SESSION would be set when a user-triggered
-      // profile refresh happened in nsAppRunner.cpp. Hence, we detect the MOZ_RESET_PROFILE_MIGRATE_SESSION
-      // to see if session data migration is required.
-      Services.env.set("MOZ_RESET_PROFILE_MIGRATE_SESSION", "");
+    if (resetSession === RESTORE_SESSION) {
+      // We only want to restore the previous firefox session if the profile
+      // refresh was triggered by the user, such as through about:support. In
+      // these cases, MOZ_RESET_PROFILE_SESSION is set to restore, signaling
+      // that session data migration is required.
       let sessionCheckpoints = this._getFileObject(
         sourceProfileDir,
         "sessionCheckpoints.json"
@@ -221,23 +247,12 @@ export class FirefoxProfileMigrator extends MigratorBase {
             );
             migrationPromise.then(
               function () {
-                let buildID = Services.appinfo.platformBuildID;
-                let mstone = Services.appinfo.platformVersion;
                 // Force the browser to one-off resume the session that we give it:
                 Services.prefs.setBoolPref(
                   "browser.sessionstore.resume_session_once",
                   true
                 );
-                // Reset the homepage_override prefs so that the browser doesn't override our
-                // session with the "what's new" page:
-                Services.prefs.setCharPref(
-                  "browser.startup.homepage_override.mstone",
-                  mstone
-                );
-                Services.prefs.setCharPref(
-                  "browser.startup.homepage_override.buildID",
-                  buildID
-                );
+                configureHomepage(true);
                 savePrefs();
                 aCallback(true);
               },
@@ -248,6 +263,12 @@ export class FirefoxProfileMigrator extends MigratorBase {
           },
         };
       }
+    } else if (resetSession === NEW_SESSION) {
+      // If this is first startup and the profile refresh was triggered via the
+      // command line, such as through the stub installer, we do not restore the
+      // previous session.
+      configureHomepage();
+      savePrefs();
     }
 
     // Sync/FxA related data

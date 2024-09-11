@@ -492,6 +492,14 @@ class TestFirefoxRefresh(MarionetteTestCase):
         )
         self.assertFalse(result)
 
+    def checkRefreshPromptDisabled(self):
+        refreshPromptDisabled = self.runCode(
+            """
+          return Services.prefs.getStringPref("browser.disableResetPrompt", false);
+      """
+        )
+        self.assertTrue(refreshPromptDisabled)
+
     def checkProfile(self, has_migrated=False, expect_sync_user=True):
         self.checkPassword()
         self.checkBookmarkInMenu()
@@ -505,6 +513,7 @@ class TestFirefoxRefresh(MarionetteTestCase):
             self.checkBookmarkToolbarVisibility()
             self.checkSession()
             self.checkStartupMigrationStateCleared()
+            self.checkRefreshPromptDisabled()
 
     def createProfileData(self):
         self.savePassword()

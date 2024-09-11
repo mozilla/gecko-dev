@@ -5124,15 +5124,24 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
   }
 
   if (gDoProfileReset) {
-    if (EnvHasValue("MOZ_RESET_PROFILE_RESTART")) {
+    if (!EnvHasValue("MOZ_RESET_PROFILE_RESTART")) {
+      if (ARG_FOUND == CheckArgExists("first-startup")) {
+        // If the profile reset was initiated by the stub installer, we want to
+        // set MOZ_RESET_PROFILE_SESSION so we can check for it later when the
+        // Firefox Profile Migrator runs. At that point we set overrides to
+        // ensure users see the right homepage.
+        SaveToEnv("MOZ_RESET_PROFILE_SESSION=0");
+      } else if (gDoMigration) {
+        // Otherwise this is a profile reset and migration triggered via the
+        // command line during development and we want to restore the session
+        // and perform the approriate homepage overrides.
+        SaveToEnv("MOZ_RESET_PROFILE_SESSION=1");
+      }
+    } else {
+      // If the profile reset was initiated by the user, such as through
+      // about:support, we want to restore their session.
+      SaveToEnv("MOZ_RESET_PROFILE_SESSION=1");
       SaveToEnv("MOZ_RESET_PROFILE_RESTART=");
-      // We only want to restore the previous session if the profile refresh was
-      // triggered by user. And if it was a user-triggered profile refresh
-      // through, say, the safeMode dialog or the troubleshooting page, the
-      // MOZ_RESET_PROFILE_RESTART env variable would be set. Hence we set
-      // MOZ_RESET_PROFILE_MIGRATE_SESSION here so that Firefox profile migrator
-      // would migrate old session data later.
-      SaveToEnv("MOZ_RESET_PROFILE_MIGRATE_SESSION=1");
     }
     // Unlock the source profile.
     mProfileLock->Unlock();
