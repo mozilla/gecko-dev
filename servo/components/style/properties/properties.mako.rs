@@ -2722,6 +2722,16 @@ impl<'a> StyleBuilder<'a> {
         self.get_box().clone_zoom()
     }
 
+    /// The zoom we need to apply for this element, without including ancestor effective zooms.
+    pub fn resolved_specified_zoom(&self) -> computed::Zoom {
+        let zoom = self.specified_zoom();
+        if zoom.is_document() {
+            self.inherited_effective_zoom().inverted()
+        } else {
+            zoom
+        }
+    }
+
     /// Inherited zoom.
     pub fn inherited_effective_zoom(&self) -> computed::Zoom {
         self.inherited_style.effective_zoom
@@ -2758,7 +2768,7 @@ impl<'a> StyleBuilder<'a> {
         let lh = device.calc_line_height(&font, writing_mode, None);
         if line_height_base == LineHeightBase::InheritedStyle {
             // Apply our own zoom if our style source is the parent style.
-            computed::NonNegativeLength::new(self.get_box().clone_zoom().zoom(lh.px()))
+            computed::NonNegativeLength::new(self.resolved_specified_zoom().zoom(lh.px()))
         } else {
             lh
         }

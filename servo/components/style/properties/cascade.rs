@@ -1253,7 +1253,7 @@ impl<'b> Cascade<'b> {
         );
         debug_assert!(
             !text_scale.text_zoom_enabled(),
-            "We only ever disable text zoom (in svg:text), never enable it"
+            "We only ever disable text zoom never enable it"
         );
         let device = builder.device;
         builder.mutate_font().unzoom_fonts(device);
@@ -1263,9 +1263,8 @@ impl<'b> Cascade<'b> {
         debug_assert!(self.seen.contains(LonghandId::Zoom));
         // NOTE(emilio): Intentionally not using the effective zoom here, since all the inherited
         // zooms are already applied.
-        let zoom = builder.get_box().clone_zoom();
         let old_size = builder.get_font().clone_font_size();
-        let new_size = old_size.zoom(zoom);
+        let new_size = old_size.zoom(builder.resolved_specified_zoom());
         if old_size == new_size {
             return;
         }

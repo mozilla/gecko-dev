@@ -357,6 +357,18 @@ impl Zoom {
         self == Self::ONE
     }
 
+    /// Returns whether we're the `document` keyword.
+    #[inline]
+    pub fn is_document(self) -> bool {
+        self == Self::DOCUMENT
+    }
+
+    /// Returns the inverse of our value.
+    #[inline]
+    pub fn inverted(&self) -> Self {
+        Self(Self::ONE.0 / self.0)
+    }
+
     /// Returns the value as a float.
     #[inline]
     pub fn value(&self) -> f32 {
