@@ -7,6 +7,7 @@
 #include "builtin/DisposableStackObject.h"
 
 #include "builtin/Array.h"
+#include "builtin/DisposableStackObjectBase.h"
 #include "js/friend/ErrorMessages.h"
 #include "js/PropertyAndElement.h"
 #include "js/PropertySpec.h"
@@ -84,49 +85,6 @@ using namespace js;
 
 /* static */ bool DisposableStackObject::is(JS::Handle<JS::Value> val) {
   return val.isObject() && val.toObject().is<DisposableStackObject>();
-}
-
-ArrayObject* DisposableStackObject::getOrCreateDisposeCapability(
-    JSContext* cx) {
-  ArrayObject* disposablesList = nullptr;
-
-  if (isDisposableResourceStackEmpty()) {
-    disposablesList = NewDenseEmptyArray(cx);
-    if (!disposablesList) {
-      return nullptr;
-    }
-    setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT,
-                    ObjectValue(*disposablesList));
-  } else {
-    disposablesList = nonEmptyDisposableResourceStack();
-  }
-
-  return disposablesList;
-}
-
-inline bool DisposableStackObject::isDisposableResourceStackEmpty() const {
-  return getReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT).isUndefined();
-}
-
-inline void DisposableStackObject::clearDisposableResourceStack() {
-  setReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT, JS::UndefinedValue());
-}
-
-inline ArrayObject* DisposableStackObject::nonEmptyDisposableResourceStack()
-    const {
-  MOZ_ASSERT(!isDisposableResourceStackEmpty());
-  return &getReservedSlot(DISPOSABLE_RESOURCE_STACK_SLOT)
-              .toObject()
-              .as<ArrayObject>();
-}
-
-inline DisposableStackObject::DisposableState DisposableStackObject::state()
-    const {
-  return DisposableState(uint8_t(getReservedSlot(STATE_SLOT).toInt32()));
-}
-
-inline void DisposableStackObject::setState(DisposableState state) {
-  setReservedSlot(STATE_SLOT, JS::Int32Value(int32_t(state)));
 }
 
 /**

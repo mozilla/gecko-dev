@@ -7,22 +7,16 @@
 #ifndef builtin_DisposableStackObject_h
 #define builtin_DisposableStackObject_h
 
+#include "builtin/DisposableStackObjectBase.h"
 #include "vm/JSObject.h"
 #include "vm/NativeObject.h"
 
 namespace js {
 
-class DisposableStackObject : public NativeObject {
+class DisposableStackObject : public DisposableStackObjectBase {
  public:
-  enum DisposableState : uint8_t { Pending, Disposed };
-
   static const JSClass class_;
   static const JSClass protoClass_;
-
-  static constexpr uint32_t DISPOSABLE_RESOURCE_STACK_SLOT = 0;
-  static constexpr uint32_t STATE_SLOT = 1;
-
-  static constexpr uint32_t RESERVED_SLOTS = 2;
 
   static DisposableStackObject* create(
       JSContext* cx, JS::Handle<JSObject*> proto,
@@ -34,13 +28,7 @@ class DisposableStackObject : public NativeObject {
   static const JSPropertySpec properties[];
   static const JSFunctionSpec methods[];
 
-  ArrayObject* getOrCreateDisposeCapability(JSContext* cx);
   bool disposeResources(JSContext* cx);
-  inline bool isDisposableResourceStackEmpty() const;
-  inline void clearDisposableResourceStack();
-  inline ArrayObject* nonEmptyDisposableResourceStack() const;
-  inline DisposableState state() const;
-  inline void setState(DisposableState state);
 
   static bool is(JS::Handle<JS::Value> val);
   static bool finishInit(JSContext* cx, JS::Handle<JSObject*> ctor,

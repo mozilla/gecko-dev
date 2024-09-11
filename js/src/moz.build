@@ -471,6 +471,7 @@ if CONFIG["ENABLE_RECORD_TUPLE"]:
 if CONFIG["ENABLE_EXPLICIT_RESOURCE_MANAGEMENT"]:
     UNIFIED_SOURCES += [
         "builtin/DisposableStackObject.cpp",
+        "builtin/DisposableStackObjectBase.cpp",
         "vm/DisposableRecord.cpp",
     ]
 
