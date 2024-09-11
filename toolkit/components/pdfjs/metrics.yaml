@@ -382,6 +382,26 @@ pdfjs.image.alt_text:
           type: string
           description: alt_text, ai_generation.
 
+    ai_generation_check:
+      type: event
+      description: >
+        Recorded when the user interacts with the alt text setting in the alt text modal to create alt text with AI.
+      bugs:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1915434
+      data_reviews:
+        - https://bugzilla.mozilla.org/show_bug.cgi?id=1915434#c1
+      data_sensitivity:
+        - interaction
+      notification_emails:
+        - pdfjs-team@mozilla.com
+        - asafko@mozilla.com
+      expires: never
+      extra_keys:
+        status:
+          type: boolean
+          description: >
+            true (resp. false) if the user enables (resp. disables) the AI generation.
+
     settings_displayed:
       type: event
       description: >

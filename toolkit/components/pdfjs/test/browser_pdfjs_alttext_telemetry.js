@@ -441,7 +441,20 @@ add_task(async function test_telemetry_new_alt_text_count() {
       });
       Services.fog.testResetFOG();
 
+      telemetryPromise = getPromise("alt_text_edit");
+      const aiGenCheckPromise = getPromise("ai_generation_check");
       await clickOn(browser, "#newAltTextCreateAutomaticallyButton");
+      await telemetryPromise;
+
+      await Services.fog.testFlushAllChildren();
+      let value = Glean.pdfjsImage.altTextEdit.ai_generation.testGetValue();
+      Assert.ok(!value, "Should have ai_generation disabled");
+
+      await aiGenCheckPromise;
+      await testTelemetryEventExtra(Glean.pdfjsImageAltText.aiGenerationCheck, [
+        { status: "false" },
+      ]);
+
       await clickOn(browser, "#newAltTextNotNow");
 
       // Delete the editor and create a new one but without AI.
@@ -466,7 +479,7 @@ add_task(async function test_telemetry_new_alt_text_count() {
       await hitKey(browser, "VK_ESCAPE");
 
       await Services.fog.testFlushAllChildren();
-      let value = Glean.pdfjsImage.added.with_alt_text.testGetValue();
+      value = Glean.pdfjsImage.added.with_alt_text.testGetValue();
       Assert.equal(value, 2, "Should have 2 images with alt text");
 
       value = Glean.pdfjsImage.added.with_no_alt_text.testGetValue();
