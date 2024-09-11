@@ -3,11 +3,12 @@
 
 "use strict";
 
-add_task(async function test_notice_in_aboutprefences() {
+add_task(async function test_usermessaging() {
   await setupPolicyEngineWithJson({
     policies: {
       UserMessaging: {
         MoreFromMozilla: false,
+        FirefoxLabs: false,
       },
     },
   });
@@ -16,6 +17,10 @@ add_task(async function test_notice_in_aboutprefences() {
     let moreFromMozillaCategory = browser.contentDocument.getElementById(
       "category-more-from-mozilla"
     );
-    ok(moreFromMozillaCategory.hidden, "The category is hidden");
+    ok(moreFromMozillaCategory.hidden, "The more category is hidden");
+    let firefoxLabsCategory = browser.contentDocument.getElementById(
+      "category-experimental"
+    );
+    ok(firefoxLabsCategory.hidden, "The labs category is hidden");
   });
 });

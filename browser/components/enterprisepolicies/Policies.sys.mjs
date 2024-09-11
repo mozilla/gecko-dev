@@ -2552,6 +2552,13 @@ export var Policies = {
           param.Locked
         );
       }
+      if ("FirefoxLabs" in param) {
+        PoliciesUtils.setDefaultPref(
+          "browser.preferences.experimental",
+          param.FirefoxLabs,
+          param.Locked
+        );
+      }
     },
   },
 
