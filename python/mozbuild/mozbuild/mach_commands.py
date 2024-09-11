@@ -3287,6 +3287,7 @@ def package_l10n(command_context, verbose=False, locales=[]):
         )
         command_context.run_process(
             [
+                sys.executable,
                 mozpath.join(command_context.topsrcdir, "mach"),
                 "android",
                 "assemble-app",
@@ -3336,6 +3337,7 @@ def package_l10n(command_context, verbose=False, locales=[]):
         )
         command_context.run_process(
             [
+                sys.executable,
                 mozpath.join(command_context.topsrcdir, "mach"),
                 "android",
                 "archive-geckoview",
