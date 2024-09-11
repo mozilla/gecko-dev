@@ -4,14 +4,19 @@
 
 #include "WMFCDMProxyCallback.h"
 
+#include "GMPUtils.h"
+#include "mozilla/EMEUtils.h"
 #include "mozilla/WMFCDMProxy.h"
+
+namespace mozilla {
 
 #define RETURN_IF_NULL(proxy) \
   if (!proxy) {               \
     return;                   \
   }
 
-namespace mozilla {
+#define LOG(msg, ...) \
+  EME_LOG("WMFCDMProxyCallback[%p]@%s: " msg, this, __func__, ##__VA_ARGS__)
 
 WMFCDMProxyCallback::WMFCDMProxyCallback(WMFCDMProxy* aProxy) : mProxy(aProxy) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -40,9 +45,14 @@ void WMFCDMProxyCallback::OnSessionKeyStatusesChange(
         {
           auto caps = mProxy->Capabilites().Lock();
           for (const auto& keyInfo : keyStatuses.keyInfo()) {
-            keyStatusesChange |= caps->SetKeyStatus(
+            bool statusChanged = caps->SetKeyStatus(
                 keyInfo.keyId(), keyStatuses.sessionId(),
                 dom::Optional<dom::MediaKeyStatus>(keyInfo.status()));
+            keyStatusesChange |= statusChanged;
+            LOG("Session ID: %s, Key ID: %s, Status changed: %s",
+                NS_ConvertUTF16toUTF8(keyStatuses.sessionId()).get(),
+                ToHexString(keyInfo.keyId()).get(),
+                statusChanged ? "true" : "false");
           }
         }
         if (keyStatusesChange) {
@@ -69,4 +79,5 @@ void WMFCDMProxyCallback::Shutdown() {
 }
 
 #undef RETURN_IF_NULL
+#undef LOG
 }  // namespace mozilla
