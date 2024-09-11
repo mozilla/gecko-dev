@@ -249,6 +249,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Comma-separated list of Suggest exposure suggestion types to enable.
   ["quicksuggest.exposureSuggestionTypes", ""],
 
+  // Whether Suggest should be hidden in the settings UI even when enabled.
+  ["quicksuggest.hideSettingsUI", false],
+
   // Whether non-sponsored quick suggest results are subject to impression
   // frequency caps. This pref is a fallback for the Nimbus variable
   // `quickSuggestImpressionCapsNonSponsoredEnabled`.

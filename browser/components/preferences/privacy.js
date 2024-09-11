@@ -2737,7 +2737,10 @@ var gPrivacyPane = {
   _updateFirefoxSuggestToggle(onInit = false) {
     let container = document.getElementById("firefoxSuggestPrivacyContainer");
 
-    if (UrlbarPrefs.get("quickSuggestEnabled")) {
+    if (
+      UrlbarPrefs.get("quickSuggestEnabled") &&
+      !UrlbarPrefs.get("quickSuggestHideSettingsUI")
+    ) {
       container.removeAttribute("hidden");
     } else if (!onInit) {
       container.setAttribute("hidden", "true");

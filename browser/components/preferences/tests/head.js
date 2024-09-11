@@ -5,6 +5,14 @@ const { PermissionTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/PermissionTestUtils.sys.mjs"
 );
 
+ChromeUtils.defineLazyGetter(this, "QuickSuggestTestUtils", () => {
+  const { QuickSuggestTestUtils: module } = ChromeUtils.importESModule(
+    "resource://testing-common/QuickSuggestTestUtils.sys.mjs"
+  );
+  module.init(this);
+  return module;
+});
+
 const kDefaultWait = 2000;
 
 function is_element_visible(aElement, aMsg) {
@@ -332,4 +340,107 @@ async function mockDefaultFxAInstance() {
   registerCleanupFunction(unmock);
 
   return { mock, unmock };
+}
+
+/**
+ * Runs a test that checks the visibility of the Firefox Suggest preferences UI.
+ * An initial Suggest scenario is set and visibility is checked. Then a Nimbus
+ * experiment is installed and visibility is checked again. Finally the page is
+ * reopened and visibility is checked again.
+ *
+ * @param {array} initialScenarios
+ *   Array of Suggest scenario names. The test will be run once per scenario,
+ *   with each test starting with a given scenario.
+ * @param {object} initialExpected
+ *   The expected visibility after setting the initial scenario. It should be an
+ *   object that can be passed to `assertSuggestVisibility()`.
+ * @param {object} nimbusVariables
+ *   An object mapping Nimbus variable names to values.
+ * @param {object} newExpected
+ *   The expected visibility after installing the Nimbus experiment. It should
+ *   be an object that can be passed to `assertSuggestVisibility()`.
+ * @param {string} pane
+ *   The pref pane to open.
+ */
+async function doSuggestVisibilityTest({
+  initialScenarios,
+  initialExpected,
+  nimbusVariables,
+  newExpected = initialExpected,
+  pane = "search",
+}) {
+  for (let scenario of initialScenarios) {
+    info(
+      "Running Suggest visibility test: " +
+        JSON.stringify(
+          {
+            scenario,
+            initialExpected,
+            nimbusVariables,
+            newExpected,
+          },
+          null,
+          2
+        )
+    );
+
+    // Set the initial scenario.
+    await QuickSuggestTestUtils.setScenario(scenario);
+
+    // Open prefs and check the initial visibility.
+    await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
+    assertSuggestVisibility(initialExpected);
+
+    // Install a Nimbus experiment.
+    await QuickSuggestTestUtils.withExperiment({
+      valueOverrides: nimbusVariables,
+      callback: async () => {
+        // Check visibility again.
+        assertSuggestVisibility(newExpected);
+
+        // To make sure visibility is properly updated on load, close the tab,
+        // open the prefs again, and check visibility.
+        gBrowser.removeCurrentTab();
+        await openPreferencesViaOpenPreferencesAPI(pane, { leaveOpen: true });
+        assertSuggestVisibility(newExpected);
+      },
+    });
+
+    gBrowser.removeCurrentTab();
+  }
+
+  await QuickSuggestTestUtils.setScenario(null);
+}
+
+/**
+ * Checks the visibility of the Suggest UI.
+ *
+ * @param {object} expectedByElementId
+ *   An object that maps IDs of elements in the current tab to objects with the
+ *   following properties:
+ *
+ *   {bool} isVisible
+ *     Whether the element is expected to be visible.
+ *   {string} l10nId
+ *     The expected l10n ID of the element. Optional.
+ */
+function assertSuggestVisibility(expectedByElementId) {
+  let doc = gBrowser.selectedBrowser.contentDocument;
+  for (let [elementId, { isVisible, l10nId }] of Object.entries(
+    expectedByElementId
+  )) {
+    let element = doc.getElementById(elementId);
+    Assert.strictEqual(
+      BrowserTestUtils.isVisible(element),
+      isVisible,
+      "The element should be visible as expected"
+    );
+    if (l10nId) {
+      Assert.equal(
+        element.dataset.l10nId,
+        l10nId,
+        "The l10n ID should be correct for element " + elementId
+      );
+    }
+  }
 }

@@ -368,6 +368,21 @@ urlbar:
         other results in the same experiment branch, it's also not necessary to
         set `showExposureResults: false`. To also record keyword exposures for
         the "rust_exposure" result type, set `recordKeywordExposures: true`.
+    quickSuggestHideSettingsUI:
+      type: boolean
+      fallbackPref: browser.urlbar.quicksuggest.hideSettingsUI
+      description: >-
+        This variable is intended to be used in potential exposure experiments
+        in regions and locales where Suggest normally isn't enabled. Potential
+        exposure suggestions are implemented in Suggest, and this variable lets
+        us enable core Suggest functionality but keep it hidden. Set both
+        `quickSuggestEnabled` and `quickSuggestHideSettingsUI` to true, along
+        with `quickSuggestExposureSuggestionTypes`. This variable does NOT hide
+        visible suggestions and other UI that can be independently enabled with
+        other Nimbus variables. But since all visible suggestions are disabled
+        by default for users not in the Suggest population, as long as you don't
+        set any Nimbus variables to enable other suggestions and UI, Suggest
+        will remain hidden.
     quickSuggestImpressionCapsSponsoredEnabled:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.impressionCaps.sponsoredEnabled

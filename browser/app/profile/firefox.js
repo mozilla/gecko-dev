@@ -500,6 +500,9 @@ pref("browser.urlbar.quicksuggest.contextualOptIn.topPosition", true);
 // Whether the quick suggest feature in the urlbar is enabled.
 pref("browser.urlbar.quicksuggest.enabled", false);
 
+// Whether Suggest should be hidden in the settings UI even when enabled.
+pref("browser.urlbar.quicksuggest.hideSettingsUI", false);
+
 // Whether Firefox Suggest will use the new Rust backend instead of the original
 // JS backend.
 pref("browser.urlbar.quicksuggest.rustEnabled", true);

@@ -9,13 +9,165 @@ ChromeUtils.defineESModuleGetters(this, {
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
 });
 
-const CONTAINER_ID = "dataCollectionGroup";
+const CONTAINER_ID = "firefoxSuggestPrivacyContainer";
 const DATA_COLLECTION_TOGGLE_ID = "firefoxSuggestDataCollectionPrivacyToggle";
 const LEARN_MORE_CLASS = "firefoxSuggestLearnMore";
 
 // This test can take a while due to the many permutations some of these tasks
 // run through, so request a longer timeout.
 requestLongerTimeout(10);
+
+// The following tasks check the initial visibility of the Firefox Suggest UI
+// and the visibility after installing a Nimbus experiment.
+
+add_task(async function history_suggestDisabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["history"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: false },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: false,
+    },
+  });
+});
+
+add_task(async function history_suggestEnabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["history"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: false },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+    },
+    newExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+  });
+});
+
+add_task(async function history_suggestEnabled_hideSettingsUIDisabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["history"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: false },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+      quickSuggestHideSettingsUI: false,
+    },
+    newExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+  });
+});
+
+add_task(async function history_suggestEnabled_hideSettingsUIEnabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["history"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: false },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+      quickSuggestHideSettingsUI: true,
+    },
+  });
+});
+
+add_task(async function offlineOnline_suggestDisabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["offline", "online"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: false,
+    },
+    newExpected: {
+      [CONTAINER_ID]: { isVisible: false },
+    },
+  });
+});
+
+add_task(async function offlineOnline_suggestEnabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["offline", "online"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+    },
+  });
+});
+
+add_task(async function offlineOnline_hideSettingsUIDisabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["offline", "online"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+    nimbusVariables: {
+      quickSuggestHideSettingsUI: false,
+    },
+  });
+});
+
+add_task(async function offlineOnline_hideSettingsUIEnabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["offline", "online"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+    nimbusVariables: {
+      quickSuggestHideSettingsUI: true,
+    },
+    newExpected: {
+      [CONTAINER_ID]: { isVisible: false },
+    },
+  });
+});
+
+add_task(async function offlineOnline_suggestEnabled_hideSettingsUIDisabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["offline", "online"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+      quickSuggestHideSettingsUI: false,
+    },
+  });
+});
+
+add_task(async function offlineOnline_suggestEnabled_hideSettingsUIEnabled() {
+  await doSuggestVisibilityTest({
+    pane: "privacy",
+    initialScenarios: ["offline", "online"],
+    initialExpected: {
+      [CONTAINER_ID]: { isVisible: true },
+    },
+    nimbusVariables: {
+      quickSuggestEnabled: true,
+      quickSuggestHideSettingsUI: true,
+    },
+    newExpected: {
+      [CONTAINER_ID]: { isVisible: false },
+    },
+  });
+});
 
 // Clicks each of the checkboxes and toggles and makes sure the prefs and info box are updated.
 add_task(async function clickCheckboxesOrToggle() {
