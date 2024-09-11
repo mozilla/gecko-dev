@@ -173,3 +173,4 @@ def mach_gifft(command_context, telemetry_probe_name):
                     )
                 )
                 print()  # We want a newline between event definitions.
+            break
