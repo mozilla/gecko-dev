@@ -611,7 +611,9 @@ iframe {
   background-repeat: no-repeat;
   background-size: 10px;
   -moz-context-properties: fill;
-  fill: var(--theme-icon-dimmed-color);
+  /* Set color and use currentColor in fill so we adapt in High Contrast Mode */
+  color: var(--theme-icon-dimmed-color);
+  fill: currentColor;
   transform: rotate(-90deg);
 }
 
@@ -622,7 +624,7 @@ iframe {
 }
 
 .theme-selected ~ .theme-twisty {
-  fill: var(--theme-selection-color);
+  color: var(--theme-selection-color);
 }
 
 .theme-twisty:is(
