@@ -1175,20 +1175,6 @@ const AVAILABLE_INJECTIONS = [
       ],
     },
   },
-  {
-    id: "bug1905278",
-    platform: "all",
-    domain: "personalizedplates.revenue.tn.gov",
-    bug: "1905278",
-    contentScripts: {
-      matches: ["*://personalizedplates.revenue.tn.gov/*"],
-      css: [
-        {
-          file: "injections/css/bug1905278-personalizedplates.revenue.tn.gov-pointer-events.css",
-        },
-      ],
-    },
-  },
 ];
 
 module.exports = AVAILABLE_INJECTIONS;
