@@ -2348,12 +2348,6 @@
   value: true
   mirror: always
 
-# Disable cookie-store API
-- name: dom.cookieStore.enabled
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # Is support for CSSPseudoElement enabled?
 - name: dom.css_pseudo_element.enabled
   type: bool
@@ -12123,7 +12117,7 @@
 
 # Whether to support CHIPS(Cookies Having Independent Partitioned State).
 - name: network.cookie.CHIPS.enabled
-  type: RelaxedAtomicBool
+  type: bool
   value: true
   mirror: always
 

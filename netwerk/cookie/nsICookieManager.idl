@@ -80,8 +80,7 @@ interface nsICookieManager : nsISupports
   nsresult removeNative(in AUTF8String   aHost,
                         in ACString      aName,
                         in AUTF8String   aPath,
-                        in OriginAttributesPtr aOriginAttributes,
-                        in nsIDPtr     aOperationID);
+                        in OriginAttributesPtr aOriginAttributes);
 
   /**
    * Add a cookie. nsICookieService is the normal way to do this. This
@@ -143,9 +142,7 @@ interface nsICookieManager : nsISupports
                      in int64_t     aExpiry,
                      in OriginAttributesPtr aOriginAttributes,
                      in int32_t aSameSite,
-                     in nsICookie_schemeType aSchemeMap,
-                     in boolean     aIsPartitioned,
-                     in nsIDPtr     aOperationID);
+                     in nsICookie_schemeType aSchemeMap);
 
   /**
    * Find whether a given cookie already exists.
@@ -231,11 +228,6 @@ interface nsICookieManager : nsISupports
   [implicit_jscontext]
   Array<nsICookie> getCookiesFromHost(in AUTF8String aHost,
                                       in jsval aOriginAttributes);
-
-  [notxpcom]
-  nsresult getCookiesFromHostNative(in AUTF8String aHost,
-                                    in OriginAttributesPtr aOriginAttributes,
-                                    out Array<nsICookie> aCookies);
 
   /**
    * Returns an array of all cookies whose origin attributes matches aPattern

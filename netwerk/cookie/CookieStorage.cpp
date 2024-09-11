@@ -318,8 +318,7 @@ void CookieStorage::RemoveCookie(const nsACString& aBaseDomain,
                                  const OriginAttributes& aOriginAttributes,
                                  const nsACString& aHost,
                                  const nsACString& aName,
-                                 const nsACString& aPath,
-                                 const nsID* aOperationID) {
+                                 const nsACString& aPath) {
   CookieListIter matchIter{};
   RefPtr<Cookie> cookie;
   if (FindCookie(aBaseDomain, aOriginAttributes, aHost, aName, aPath,
@@ -330,8 +329,7 @@ void CookieStorage::RemoveCookie(const nsACString& aBaseDomain,
 
   if (cookie) {
     // Everything's done. Notify observers.
-    NotifyChanged(cookie, nsICookieNotification::COOKIE_DELETED, aBaseDomain,
-                  aOperationID);
+    NotifyChanged(cookie, nsICookieNotification::COOKIE_DELETED, aBaseDomain);
   }
 }
 
@@ -487,8 +485,7 @@ void CookieStorage::NotifyChanged(nsISupports* aSubject,
                                   const nsACString& aBaseDomain,
                                   bool aIsThirdParty,
                                   dom::BrowsingContext* aBrowsingContext,
-                                  bool aOldCookieIsSession,
-                                  const nsID* aOperationID) {
+                                  bool aOldCookieIsSession) {
   nsCOMPtr<nsIObserverService> os = services::GetObserverService();
   if (!os) {
     return;
@@ -508,9 +505,9 @@ void CookieStorage::NotifyChanged(nsISupports* aSubject,
     browsingContextId = aBrowsingContext->Id();
   }
 
-  nsCOMPtr<nsICookieNotification> notification = new CookieNotification(
-      aAction, cookie, aBaseDomain, aIsThirdParty, batchDeletedCookies,
-      browsingContextId, aOperationID);
+  nsCOMPtr<nsICookieNotification> notification =
+      new CookieNotification(aAction, cookie, aBaseDomain, aIsThirdParty,
+                             batchDeletedCookies, browsingContextId);
   // Notify for topic "private-cookie-changed" or "cookie-changed"
   os->NotifyObservers(notification, NotificationTopic(), u"");
 
@@ -596,8 +593,7 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
                               Cookie* aCookie, int64_t aCurrentTimeInUsec,
                               nsIURI* aHostURI, const nsACString& aCookieHeader,
                               bool aFromHttp, bool aIsThirdParty,
-                              dom::BrowsingContext* aBrowsingContext,
-                              const nsID* aOperationID) {
+                              dom::BrowsingContext* aBrowsingContext) {
   int64_t currentTime = aCurrentTimeInUsec / PR_USEC_PER_SEC;
 
   CookieListIter exactIter{};
@@ -711,8 +707,7 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
         COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
                           "previously stored cookie was deleted");
         NotifyChanged(oldCookie, nsICookieNotification::COOKIE_DELETED,
-                      aBaseDomain, false, aBrowsingContext, oldCookieIsSession,
-                      aOperationID);
+                      aBaseDomain, false, aBrowsingContext, oldCookieIsSession);
         return;
       }
 
@@ -839,7 +834,7 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
   // because observers may themselves attempt to mutate the list.
   if (purgedList) {
     NotifyChanged(purgedList, nsICookieNotification::COOKIES_BATCH_DELETED,
-                  ""_ns, false, nullptr, false, aOperationID);
+                  ""_ns);
   }
 
   // Notify for topic "private-cookie-changed" or "cookie-changed"
@@ -847,7 +842,7 @@ void CookieStorage::AddCookie(CookieParser* aCookieParser,
                 foundCookie ? nsICookieNotification::COOKIE_CHANGED
                             : nsICookieNotification::COOKIE_ADDED,
                 aBaseDomain, aIsThirdParty, aBrowsingContext,
-                oldCookieIsSession, aOperationID);
+                oldCookieIsSession);
 }
 
 void CookieStorage::UpdateCookieOldestTime(Cookie* aCookie) {

@@ -7,7 +7,6 @@
  * http://slightlyoff.github.io/ServiceWorker/spec/service_worker/index.html
  * http://w3c.github.io/push-api/
  * https://notifications.spec.whatwg.org/
- * https://wicg.github.io/cookie-store/#ServiceWorkerGlobalScope
  *
  * You are granted a license to use, reproduce and create derivative works of
  * this document.
@@ -48,13 +47,3 @@ partial interface ServiceWorkerGlobalScope {
 // Mixin the WebExtensions API globals (the actual properties are only available to
 // extension service workers, locked behind a Func="extensions::ExtensionAPIAllowed" annotation).
 ServiceWorkerGlobalScope includes ExtensionGlobalsMixin;
-
-// https://wicg.github.io/cookie-store/#ServiceWorkerGlobalScope
-partial interface ServiceWorkerGlobalScope {
-  [SameObject, Pref="dom.cookieStore.enabled"] readonly attribute CookieStore cookieStore;
-
-/* Bug 1475599 - We decide to do not implement the entire cookie-store spec.
- * Instead, we implement only the subset that is compatible with document.cookie
- attribute EventHandler oncookiechange;
- */
-};

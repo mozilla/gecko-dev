@@ -48,7 +48,6 @@
 #include "mozilla/dom/ClientSource.h"
 #include "mozilla/dom/Clients.h"
 #include "mozilla/dom/Console.h"
-#include "mozilla/dom/CookieStore.h"
 #include "mozilla/dom/DOMMozPromiseRequestHolder.h"
 #include "mozilla/dom/DebuggerNotification.h"
 #include "mozilla/dom/DebuggerNotificationBinding.h"
@@ -1100,8 +1099,7 @@ void SharedWorkerGlobalScope::Close() {
 }
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(ServiceWorkerGlobalScope, WorkerGlobalScope,
-                                   mClients, mExtensionBrowser, mRegistration,
-                                   mCookieStore)
+                                   mClients, mExtensionBrowser, mRegistration)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ServiceWorkerGlobalScope)
 NS_INTERFACE_MAP_END_INHERITING(WorkerGlobalScope)
 
@@ -1246,14 +1244,6 @@ ServiceWorkerGlobalScope::AcquireExtensionBrowser() {
   }
 
   return mExtensionBrowser.clonePtr();
-}
-
-already_AddRefed<CookieStore> ServiceWorkerGlobalScope::CookieStore() {
-  if (!mCookieStore) {
-    mCookieStore = CookieStore::Create(this);
-  }
-
-  return do_AddRef(mCookieStore);
 }
 
 bool WorkerDebuggerGlobalScope::WrapGlobalObject(

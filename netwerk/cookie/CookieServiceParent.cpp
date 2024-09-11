@@ -6,9 +6,9 @@
 #include "CookieCommons.h"
 #include "CookieLogging.h"
 #include "CookieServiceParent.h"
-#include "mozilla/dom/ContentParent.h"
 #include "mozilla/net/CookieService.h"
 #include "mozilla/net/CookieServiceParent.h"
+#include "mozilla/net/NeckoParent.h"
 
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/StoragePrincipalHelper.h"
@@ -25,9 +25,7 @@ using namespace mozilla::ipc;
 namespace mozilla {
 namespace net {
 
-CookieServiceParent::CookieServiceParent(dom::ContentParent* aContentParent) {
-  MOZ_ASSERT(aContentParent);
-
+CookieServiceParent::CookieServiceParent() {
   // Instantiate the cookieservice via the service manager, so it sticks around
   // until shutdown.
   nsCOMPtr<nsICookieService> cs = do_GetService(NS_COOKIESERVICE_CONTRACTID);
@@ -40,14 +38,6 @@ CookieServiceParent::CookieServiceParent(dom::ContentParent* aContentParent) {
   MOZ_ALWAYS_TRUE(mTLDService);
 
   mProcessingCookie = false;
-
-  nsTArray<nsCOMPtr<nsIPrincipal>> list;
-  aContentParent->TakeCookieInProcessCache(list);
-
-  for (nsIPrincipal* principal : list) {
-    nsCOMPtr<nsIURI> uri = principal->GetURI();
-    UpdateCookieInContentList(uri, principal->OriginAttributesRef());
-  }
 }
 
 void CookieServiceParent::RemoveBatchDeletedCookies(nsIArray* aCookieList) {
@@ -76,8 +66,7 @@ void CookieServiceParent::RemoveBatchDeletedCookies(nsIArray* aCookieList) {
 
 void CookieServiceParent::RemoveAll() { Unused << SendRemoveAll(); }
 
-void CookieServiceParent::RemoveCookie(const Cookie& cookie,
-                                       const nsID* aOperationID) {
+void CookieServiceParent::RemoveCookie(const Cookie& cookie) {
   const OriginAttributes& attrs = cookie.OriginAttributesRef();
   CookieStruct cookieStruct = cookie.ToIPC();
 
@@ -86,12 +75,10 @@ void CookieServiceParent::RemoveCookie(const Cookie& cookie,
   if (cookie.IsHttpOnly() || !InsecureCookieOrSecureOrigin(cookie)) {
     cookieStruct.value() = "";
   }
-  Unused << SendRemoveCookie(cookieStruct, attrs,
-                             aOperationID ? Some(*aOperationID) : Nothing());
+  Unused << SendRemoveCookie(cookieStruct, attrs);
 }
 
-void CookieServiceParent::AddCookie(const Cookie& cookie,
-                                    const nsID* aOperationID) {
+void CookieServiceParent::AddCookie(const Cookie& cookie) {
   const OriginAttributes& attrs = cookie.OriginAttributesRef();
   CookieStruct cookieStruct = cookie.ToIPC();
 
@@ -100,23 +87,17 @@ void CookieServiceParent::AddCookie(const Cookie& cookie,
   if (cookie.IsHttpOnly() || !InsecureCookieOrSecureOrigin(cookie)) {
     cookieStruct.value() = "";
   }
-  Unused << SendAddCookie(cookieStruct, attrs,
-                          aOperationID ? Some(*aOperationID) : Nothing());
+  Unused << SendAddCookie(cookieStruct, attrs);
 }
 
 bool CookieServiceParent::ContentProcessHasCookie(const Cookie& cookie) {
-  return ContentProcessHasCookie(cookie.Host(), cookie.OriginAttributesRef());
-}
-
-bool CookieServiceParent::ContentProcessHasCookie(
-    const nsACString& aHost, const OriginAttributes& aOriginAttributes) {
   nsCString baseDomain;
   if (NS_WARN_IF(NS_FAILED(CookieCommons::GetBaseDomainFromHost(
-          mTLDService, aHost, baseDomain)))) {
+          mTLDService, cookie.Host(), baseDomain)))) {
     return false;
   }
 
-  CookieKey cookieKey(baseDomain, aOriginAttributes);
+  CookieKey cookieKey(baseDomain, cookie.OriginAttributesRef());
   return mCookieKeysInContent.MaybeGet(cookieKey).isSome();
 }
 
@@ -307,14 +288,6 @@ IPCResult CookieServiceParent::RecvSetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
     nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
     const nsTArray<CookieStruct>& aCookies) {
-  if (!ContentProcessHasCookie(aBaseDomain, aOriginAttributes)) {
-#ifdef NIGHTLY_BUILD
-    return IPC_FAIL(this, "Invalid set-cookie request from content process");
-#else
-    return IPC_OK();
-#endif
-  }
-
   return SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp,
                     aIsThirdParty, aCookies);
 }

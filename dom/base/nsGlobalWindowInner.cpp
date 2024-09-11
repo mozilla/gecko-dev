@@ -108,7 +108,6 @@
 #include "mozilla/dom/ClientState.h"
 #include "mozilla/dom/ClientsBinding.h"
 #include "mozilla/dom/Console.h"
-#include "mozilla/dom/CookieStore.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/ContentFrameMessageManager.h"
 #include "mozilla/dom/ContentMediaController.h"
@@ -1261,7 +1260,6 @@ void nsGlobalWindowInner::FreeInnerObjects() {
   mScrollbars = nullptr;
 
   mConsole = nullptr;
-  mCookieStore = nullptr;
 
   mPaintWorklet = nullptr;
 
@@ -1452,7 +1450,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mScrollbars)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCrypto)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mConsole)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCookieStore)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mPaintWorklet)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mExternal)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mInstallTrigger)
@@ -1565,7 +1562,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mScrollbars)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mCrypto)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mConsole)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mCookieStore)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mPaintWorklet)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mExternal)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mInstallTrigger)
@@ -5932,10 +5928,6 @@ nsresult nsGlobalWindowInner::FireDelayedDOMEvents(bool aIncludeSubWindows) {
   // Fires an offline status event if the offline status has changed
   FireOfflineStatusEventIfChanged();
 
-  if (mCookieStore) {
-    mCookieStore->FireDelayedDOMEvents();
-  }
-
   if (!aIncludeSubWindows) {
     return NS_OK;
   }
@@ -7292,14 +7284,6 @@ already_AddRefed<Console> nsGlobalWindowInner::GetConsole(JSContext* aCx,
 
   RefPtr<Console> console = mConsole;
   return console.forget();
-}
-
-already_AddRefed<CookieStore> nsGlobalWindowInner::CookieStore() {
-  if (!mCookieStore) {
-    mCookieStore = CookieStore::Create(this);
-  }
-
-  return do_AddRef(mCookieStore);
 }
 
 bool nsGlobalWindowInner::IsSecureContext() const {

@@ -25,18 +25,13 @@ class CookieNotification final : public nsICookieNotification {
                               nsICookie* aCookie, const nsACString& aBaseDomain,
                               bool aIsThirdParty = false,
                               nsIArray* aBatchDeletedCookies = nullptr,
-                              uint64_t aBrowsingContextId = 0,
-                              const nsID* aOperationID = nullptr)
+                              uint64_t aBrowsingContextId = 0)
       : mAction(aAction),
         mCookie(aCookie),
         mBaseDomain(aBaseDomain),
         mIsThirdParty(aIsThirdParty),
         mBatchDeletedCookies(aBatchDeletedCookies),
-        mBrowsingContextId(aBrowsingContextId) {
-    if (aOperationID) {
-      mOperationID = aOperationID->Clone();
-    }
-  };
+        mBrowsingContextId(aBrowsingContextId) {};
 
  private:
   nsICookieNotification::Action mAction;
@@ -45,13 +40,8 @@ class CookieNotification final : public nsICookieNotification {
   bool mIsThirdParty;
   nsCOMPtr<nsIArray> mBatchDeletedCookies;
   uint64_t mBrowsingContextId = 0;
-  nsID* mOperationID = nullptr;
 
-  ~CookieNotification() {
-    if (mOperationID) {
-      free(mOperationID);
-    }
-  }
+  ~CookieNotification() = default;
 };
 
 }  // namespace mozilla::net

@@ -6,7 +6,6 @@
 #include "Cookie.h"
 #include "CookieCommons.h"
 #include "CookieLogging.h"
-#include "CookieNotification.h"
 #include "CookieParser.h"
 #include "CookieService.h"
 #include "mozilla/net/CookieServiceChild.h"
@@ -182,10 +181,9 @@ IPCResult CookieServiceChild::RecvRemoveAll() {
   return IPC_OK();
 }
 
-IPCResult CookieServiceChild::RecvRemoveCookie(
-    const CookieStruct& aCookie, const OriginAttributes& aAttrs,
-    const Maybe<nsID>& aOperationID) {
-  RemoveSingleCookie(aCookie, aAttrs, aOperationID);
+IPCResult CookieServiceChild::RecvRemoveCookie(const CookieStruct& aCookie,
+                                               const OriginAttributes& aAttrs) {
+  RemoveSingleCookie(aCookie, aAttrs);
 
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
   if (obsService) {
@@ -195,8 +193,7 @@ IPCResult CookieServiceChild::RecvRemoveCookie(
 }
 
 void CookieServiceChild::RemoveSingleCookie(const CookieStruct& aCookie,
-                                            const OriginAttributes& aAttrs,
-                                            const Maybe<nsID>& aOperationID) {
+                                            const OriginAttributes& aAttrs) {
   nsCString baseDomain;
   CookieCommons::GetBaseDomainFromHost(mTLDService, aCookie.host(), baseDomain);
   CookieKey key(baseDomain, aAttrs);
@@ -208,7 +205,7 @@ void CookieServiceChild::RemoveSingleCookie(const CookieStruct& aCookie,
   }
 
   for (uint32_t i = 0; i < cookiesList->Length(); i++) {
-    RefPtr<Cookie> cookie = cookiesList->ElementAt(i);
+    Cookie* cookie = cookiesList->ElementAt(i);
     // bug 1858366: In the case that we are updating a stale cookie
     // from the content process: the parent process will signal
     // a batch deletion for the old cookie.
@@ -220,20 +217,15 @@ void CookieServiceChild::RemoveSingleCookie(const CookieStruct& aCookie,
         cookie->Path().Equals(aCookie.path()) &&
         cookie->Expiry() <= aCookie.expiry()) {
       cookiesList->RemoveElementAt(i);
-      NotifyObservers(cookie, aAttrs, CookieNotificationAction::CookieDeleted,
-                      aOperationID);
       break;
     }
   }
 }
 
 IPCResult CookieServiceChild::RecvAddCookie(const CookieStruct& aCookie,
-                                            const OriginAttributes& aAttrs,
-                                            const Maybe<nsID>& aOperationID) {
+                                            const OriginAttributes& aAttrs) {
   RefPtr<Cookie> cookie = Cookie::Create(aCookie, aAttrs);
-
-  CookieNotificationAction action = RecordDocumentCookie(cookie, aAttrs);
-  NotifyObservers(cookie, aAttrs, action, aOperationID);
+  RecordDocumentCookie(cookie, aAttrs);
 
   // signal test code to check their cookie list
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
@@ -250,7 +242,7 @@ IPCResult CookieServiceChild::RecvRemoveBatchDeletedCookies(
   MOZ_ASSERT(aCookiesList.Length() == aAttrsList.Length());
   for (uint32_t i = 0; i < aCookiesList.Length(); i++) {
     CookieStruct cookieStruct = aCookiesList.ElementAt(i);
-    RemoveSingleCookie(cookieStruct, aAttrsList.ElementAt(i), Nothing());
+    RemoveSingleCookie(cookieStruct, aAttrsList.ElementAt(i));
   }
 
   nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
@@ -301,9 +293,8 @@ IPCResult CookieServiceChild::RecvTrackCookiesLoad(
              nsICookieService::BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN;
 }
 
-CookieServiceChild::CookieNotificationAction
-CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
-                                         const OriginAttributes& aAttrs) {
+void CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
+                                              const OriginAttributes& aAttrs) {
   nsAutoCString baseDomain;
   CookieCommons::GetBaseDomainFromHost(mTLDService, aCookie->Host(),
                                        baseDomain);
@@ -315,9 +306,6 @@ CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
   if (!cookiesList) {
     cookiesList = mCookiesMap.GetOrInsertNew(key);
   }
-
-  bool cookieFound = false;
-
   for (uint32_t i = 0; i < cookiesList->Length(); i++) {
     Cookie* cookie = cookiesList->ElementAt(i);
     if (cookie->Name().Equals(aCookie->Name()) &&
@@ -331,22 +319,19 @@ CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
           cookie->IsSession() == aCookie->IsSession() &&
           cookie->IsHttpOnly() == aCookie->IsHttpOnly()) {
         cookie->SetLastAccessed(aCookie->LastAccessed());
-        return CookieNotificationAction::NoActionNeeded;
+        return;
       }
       cookiesList->RemoveElementAt(i);
-      cookieFound = true;
       break;
     }
   }
 
   int64_t currentTime = PR_Now() / PR_USEC_PER_SEC;
   if (aCookie->Expiry() <= currentTime) {
-    return CookieNotificationAction::CookieDeleted;
+    return;
   }
 
   cookiesList->AppendElement(aCookie);
-  return cookieFound ? CookieNotificationAction::CookieChanged
-                     : CookieNotificationAction::CookieAdded;
 }
 
 NS_IMETHODIMP
@@ -513,10 +498,7 @@ CookieServiceChild::SetCookieStringFromHttp(nsIURI* aHostURI,
     cookie->SetCreationTime(
         Cookie::GenerateUniqueCreationTime(currentTimeInUsec));
 
-    CookieNotificationAction action =
-        RecordDocumentCookie(cookie, cookieOriginAttributes);
-    NotifyObservers(cookie, cookieOriginAttributes, action);
-
+    RecordDocumentCookie(cookie, cookieOriginAttributes);
     cookiesToSendRef.AppendElement(parser.CookieData());
   } while (moreCookies);
 
@@ -619,9 +601,7 @@ void CookieServiceChild::AddCookieFromDocument(
     }
   }
 
-  CookieNotificationAction action =
-      RecordDocumentCookie(&aCookie, aOriginAttributes);
-  NotifyObservers(&aCookie, aOriginAttributes, action);
+  RecordDocumentCookie(&aCookie, aOriginAttributes);
 
   if (CanSend()) {
     nsTArray<CookieStruct> cookiesToSend;
@@ -642,47 +622,6 @@ void CookieServiceChild::AddCookieFromDocument(
                                       aDocumentURI, false, aThirdParty,
                                       cookiesToSend);
   }
-}
-
-void CookieServiceChild::NotifyObservers(Cookie* aCookie,
-                                         const OriginAttributes& aAttrs,
-                                         CookieNotificationAction aAction,
-                                         const Maybe<nsID>& aOperationID) {
-  nsICookieNotification::Action notificationAction;
-  switch (aAction) {
-    case CookieNotificationAction::NoActionNeeded:
-      return;
-
-    case CookieNotificationAction::CookieAdded:
-      notificationAction = nsICookieNotification::COOKIE_ADDED;
-      break;
-
-    case CookieNotificationAction::CookieChanged:
-      notificationAction = nsICookieNotification::COOKIE_CHANGED;
-      break;
-
-    case CookieNotificationAction::CookieDeleted:
-      notificationAction = nsICookieNotification::COOKIE_DELETED;
-      break;
-  }
-
-  nsCOMPtr<nsIObserverService> os = services::GetObserverService();
-  if (!os) {
-    return;
-  }
-
-  nsAutoCString baseDomain;
-  CookieCommons::GetBaseDomainFromHost(mTLDService, aCookie->Host(),
-                                       baseDomain);
-
-  nsCOMPtr<nsICookieNotification> notification =
-      new CookieNotification(notificationAction, aCookie, baseDomain, false,
-                             nullptr, 0, aOperationID.ptrOr(nullptr));
-
-  os->NotifyObservers(
-      notification,
-      aAttrs.IsPrivateBrowsing() ? "private-cookie-changed" : "cookie-changed",
-      u"");
 }
 
 }  // namespace net

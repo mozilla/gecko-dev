@@ -109,7 +109,7 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
   void RemoveCookie(const nsACString& aBaseDomain,
                     const OriginAttributes& aOriginAttributes,
                     const nsACString& aHost, const nsACString& aName,
-                    const nsACString& aPath, const nsID* aOperationID);
+                    const nsACString& aPath);
 
   virtual void RemoveCookiesWithOriginAttributes(
       const OriginAttributesPattern& aPattern, const nsACString& aBaseDomain);
@@ -124,15 +124,13 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
                      nsICookieNotification::Action aAction,
                      const nsACString& aBaseDomain, bool aIsThirdParty = false,
                      dom::BrowsingContext* aBrowsingContext = nullptr,
-                     bool aOldCookieIsSession = false,
-                     const nsID* aOperationID = nullptr);
+                     bool aOldCookieIsSession = false);
 
   void AddCookie(CookieParser* aCookieParser, const nsACString& aBaseDomain,
                  const OriginAttributes& aOriginAttributes, Cookie* aCookie,
                  int64_t aCurrentTimeInUsec, nsIURI* aHostURI,
                  const nsACString& aCookieHeader, bool aFromHttp,
-                 bool aIsThirdParty, dom::BrowsingContext* aBrowsingContext,
-                 const nsID* aOperationID = nullptr);
+                 bool aIsThirdParty, dom::BrowsingContext* aBrowsingContext);
 
   // return true if we finish within the byte limit
   bool RemoveCookiesFromBackUntilUnderLimit(
