@@ -980,6 +980,47 @@ networking:
     expires: never
     telemetry_mirror: HTTP_UPLOAD_THROUGHPUT_MBPS_HTTP_3_100
 
+  http_3_ecn_ce_ect0_ratio:
+    type: labeled_custom_distribution
+    unit: integer
+    range_min: 0
+    range_max: 2000
+    bucket_count: 100
+    histogram_type: exponential
+    description: >
+      HTTP3: ECN CE to ECT0 ratio (multiply by 10000).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902065
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902065
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+    labels:
+      - tx
+      - rx
+
+  http_3_ecn_path_capability:
+    type: labeled_counter
+    description: >
+      Number of paths known to be ECN capable or not-capable.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902065
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902065
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+    labels:
+      - capable
+      - not-capable
+
   cache_metadata_first_read_time: &cache_metadata_first_read_time
     type: timing_distribution
     time_unit: millisecond

@@ -9,6 +9,7 @@ license = "MPL-2.0"
 name = "neqo_glue"
 
 [dependencies]
+firefox-on-glean = { path = "../../../toolkit/components/glean/api" }
 neqo-udp = { tag = "v0.9.0", git = "https://github.com/mozilla/neqo" }
 neqo-http3 = { tag = "v0.9.0", git = "https://github.com/mozilla/neqo" }
 neqo-transport = { tag = "v0.9.0", git = "https://github.com/mozilla/neqo" }

@@ -13699,6 +13699,14 @@
 #endif
   mirror: always
 
+# Send and receive IP ECN marks. Noop if network.http.http3.use_nspr_for_io is
+# true.
+- name: network.http.http3.ecn
+  type: RelaxedAtomicBool
+  value: false
+  mirror: always
+  rust: true
+
 - name: network.http.http3.enable_qlog
   type: RelaxedAtomicBool
   value: false

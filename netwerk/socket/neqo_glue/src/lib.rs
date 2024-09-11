@@ -56,6 +56,12 @@ pub struct NeqoHttp3Conn {
     socket: Option<neqo_udp::Socket<BorrowedSocket>>,
 }
 
+impl Drop for NeqoHttp3Conn {
+    fn drop(&mut self) {
+        self.record_stats_in_glean();
+    }
+}
+
 // Opaque interface to mozilla::net::NetAddr defined in DNS.h
 #[repr(C)]
 pub union NetAddr {
@@ -310,6 +316,53 @@ impl NeqoHttp3Conn {
         }));
         unsafe { Ok(RefPtr::from_raw(conn).unwrap()) }
     }
+
+    #[cfg(not(target_os = "android"))]
+    fn record_stats_in_glean(&self) {
+        use firefox_on_glean::metrics::networking as glean;
+        use neqo_common::IpTosEcn;
+
+        // Metric values must be recorded as integers. Glean does not support
+        // floating point distributions. In order to represent values <1, they
+        // are multiplied by `PRECISION_FACTOR`. A `PRECISION_FACTOR` of
+        // `10_000` allows one to represent fractions down to 0.0001.
+        const PRECISION_FACTOR: u64 = 10_000;
+
+        let stats = self.conn.transport_stats();
+
+        if stats.packets_tx == 0 {
+            return;
+        }
+
+        if static_prefs::pref!("network.http.http3.ecn") {
+            if stats.ecn_tx[IpTosEcn::Ect0] > 0 {
+                let ratio =
+                    (stats.ecn_tx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_tx[IpTosEcn::Ect0];
+                glean::http_3_ecn_ce_ect0_ratio
+                    .get(&"tx")
+                    .accumulate_single_sample_signed(ratio as i64);
+            }
+            if stats.ecn_rx[IpTosEcn::Ect0] > 0 {
+                let ratio =
+                    (stats.ecn_rx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_rx[IpTosEcn::Ect0];
+                glean::http_3_ecn_ce_ect0_ratio
+                    .get(&"rx")
+                    .accumulate_single_sample_signed(ratio as i64);
+            }
+            glean::http_3_ecn_path_capability
+                .get(&"capable")
+                .add(stats.ecn_paths_capable as i32);
+            glean::http_3_ecn_path_capability
+                .get(&"not-capable")
+                .add(stats.ecn_paths_not_capable as i32);
+        }
+    }
+
+    // Noop on Android for now, due to performance regressions.
+    // - <https://bugzilla.mozilla.org/show_bug.cgi?id=1898810>
+    // - <https://bugzilla.mozilla.org/show_bug.cgi?id=1906664>
+    #[cfg(target_os = "android")]
+    fn record_stats_in_glean(&self) {}
 }
 
 #[no_mangle]
@@ -491,10 +544,10 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
             break;
         }
         bytes_read += dgrams.iter().map(|d| d.len()).sum::<usize>();
-        // ECN support will be introduced with
-        // https://bugzilla.mozilla.org/show_bug.cgi?id=1902065.
-        for dgram in &mut dgrams {
-            dgram.set_tos(Default::default());
+        if !static_prefs::pref!("network.http.http3.ecn") {
+            for dgram in &mut dgrams {
+                dgram.set_tos(Default::default());
+            }
         }
         conn.conn
             .process_multiple_input(dgrams.iter(), Instant::now());
@@ -623,9 +676,9 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
         };
         match conn.conn.process_output(conn.last_output_time) {
             Output::Datagram(mut dg) => {
-                // ECN support will be introduced with
-                // https://bugzilla.mozilla.org/show_bug.cgi?id=1902065.
-                dg.set_tos(Default::default());
+                if !static_prefs::pref!("network.http.http3.ecn") {
+                    dg.set_tos(Default::default());
+                }
 
                 if static_prefs::pref!("network.http.http3.block_loopback_ipv6_addr")
                     && matches!(dg.destination(), SocketAddr::V6(addr) if addr.ip().is_loopback())
