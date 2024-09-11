@@ -199,6 +199,57 @@ add_task(async function testKeys() {
   equal(pong, 2, "Properties are not reifed");
 });
 
+//test values function
+add_task(async function testValues() {
+  let val;
+
+  // Test an object defined in JEXL
+  val = await FilterExpressions.eval("{foo: 1, bar: 2}|values");
+  Assert.deepEqual(
+    new Set(val),
+    new Set([1, 2]),
+    "values returns the values from an object in JEXL"
+  );
+
+  // Test an object in the context
+  let context = { ctxObject: { baz: "string", biff: NaN } };
+  val = await FilterExpressions.eval("ctxObject|values", context);
+
+  Assert.deepEqual(
+    new Set(val),
+    new Set(["string", NaN]),
+    "values returns the values from an object in the context"
+  );
+
+  // Test that values from the prototype are not included
+  context = { ctxObject: Object.create({ fooProto: 7 }) };
+  context.ctxObject.baz = 8;
+  context.ctxObject.biff = 5;
+  equal(
+    await FilterExpressions.eval("ctxObject.fooProto", context),
+    7,
+    "Prototype properties are accessible via property access"
+  );
+  val = await FilterExpressions.eval("ctxObject|values", context);
+  Assert.deepEqual(
+    new Set(val),
+    new Set([8, 5]),
+    "values does not return property values from the object's prototype chain"
+  );
+
+  // Return undefined for non-objects
+  equal(
+    await FilterExpressions.eval("ctxObject|values", { ctxObject: 45 }),
+    undefined,
+    "values returns undefined for numbers"
+  );
+  equal(
+    await FilterExpressions.eval("ctxObject|values", { ctxObject: null }),
+    undefined,
+    "values returns undefined for null"
+  );
+});
+
 add_task(async function testLength() {
   equal(
     await FilterExpressions.eval("[1, null, {a: 2, b: 3}, Infinity]|length"),
