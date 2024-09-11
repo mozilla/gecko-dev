@@ -1154,49 +1154,120 @@
   mir_op: true
 
 - name: BigIntAdd
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntSub
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntMul
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntDiv
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntMod
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntPow
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntBitAnd
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntBitOr
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntBitXor
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntLsh
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntRsh
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntIncrement
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntDecrement
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntNegate
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+  mir_op: true
 
 - name: BigIntBitNot
-  gen_boilerplate: false
+  result_type: WordSized
+  operands:
+    input: WordSized
+  call_instruction: true
+  mir_op: true
 
 - name: BigIntToIntPtr
   result_type: WordSized

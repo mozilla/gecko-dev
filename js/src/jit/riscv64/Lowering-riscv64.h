@@ -78,10 +78,6 @@ class LIRGeneratorRiscv64 : public LIRGeneratorShared {
   void lowerUModI64(MMod* mod);
   void lowerUrshD(MUrsh* mir);
   void lowerPowOfTwoI(MPow* mir);
-  void lowerBigIntDiv(MBigIntDiv* ins);
-  void lowerBigIntMod(MBigIntMod* ins);
-  void lowerBigIntLsh(MBigIntLsh* ins);
-  void lowerBigIntRsh(MBigIntRsh* ins);
   void lowerTruncateDToInt32(MTruncateToInt32* ins);
   void lowerTruncateFToInt32(MTruncateToInt32* ins);
   void lowerBuiltinInt64ToFloatingPoint(MBuiltinInt64ToFloatingPoint* ins);

@@ -72,11 +72,6 @@ class CodeGeneratorARM64 : public CodeGeneratorShared {
   void emitTableSwitchDispatch(MTableSwitch* mir, Register index,
                                Register base);
 
-  void emitBigIntDiv(LBigIntDiv* ins, Register dividend, Register divisor,
-                     Register output, Label* fail);
-  void emitBigIntMod(LBigIntMod* ins, Register dividend, Register divisor,
-                     Register output, Label* fail);
-
   void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
                         Register output);
   void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,

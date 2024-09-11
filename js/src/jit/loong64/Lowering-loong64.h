@@ -78,10 +78,6 @@ class LIRGeneratorLOONG64 : public LIRGeneratorShared {
   void lowerUModI64(MMod* mod);
   void lowerUrshD(MUrsh* mir);
   void lowerPowOfTwoI(MPow* mir);
-  void lowerBigIntDiv(MBigIntDiv* ins);
-  void lowerBigIntMod(MBigIntMod* ins);
-  void lowerBigIntLsh(MBigIntLsh* ins);
-  void lowerBigIntRsh(MBigIntRsh* ins);
   void lowerBigIntPtrDiv(MBigIntPtrDiv* ins);
   void lowerBigIntPtrMod(MBigIntPtrMod* ins);
   void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);

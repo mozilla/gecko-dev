@@ -20,11 +20,6 @@ class CodeGeneratorX64 : public CodeGeneratorX86Shared {
   ValueOperand ToValue(LInstruction* ins, size_t pos);
   ValueOperand ToTempValue(LInstruction* ins, size_t pos);
 
-  void emitBigIntDiv(LBigIntDiv* ins, Register dividend, Register divisor,
-                     Register output, Label* fail);
-  void emitBigIntMod(LBigIntMod* ins, Register dividend, Register divisor,
-                     Register output, Label* fail);
-
   void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
                         Register output);
   void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,

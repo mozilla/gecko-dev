@@ -490,28 +490,6 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   masm.bind(&done);
 }
 
-void CodeGeneratorRiscv64::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
-                                         Register divisor, Register output,
-                                         Label* fail) {
-  // Callers handle division by zero and integer overflow.
-  masm.ma_div64(/* result= */ dividend, dividend, divisor);
-
-  // Create and return the result.
-  masm.newGCBigInt(output, divisor, initialBigIntHeap(), fail);
-  masm.initializeBigInt(output, dividend);
-}
-
-void CodeGeneratorRiscv64::emitBigIntMod(LBigIntMod* ins, Register dividend,
-                                         Register divisor, Register output,
-                                         Label* fail) {
-  // Callers handle division by zero and integer overflow.
-  masm.ma_mod64(/* result= */ dividend, dividend, divisor);
-
-  // Create and return the result.
-  masm.newGCBigInt(output, divisor, initialBigIntHeap(), fail);
-  masm.initializeBigInt(output, dividend);
-}
-
 void CodeGenerator::visitWasmLoadI64(LWasmLoadI64* lir) {
   const MWasmLoad* mir = lir->mir();
 

@@ -100,11 +100,6 @@ class LIRGeneratorARM64 : public LIRGeneratorShared {
                                  MDefinition* rhs, MCompare::CompareType compTy,
                                  JSOp jsop);
 
-  void lowerBigIntLsh(MBigIntLsh* ins);
-  void lowerBigIntRsh(MBigIntRsh* ins);
-  void lowerBigIntDiv(MBigIntDiv* ins);
-  void lowerBigIntMod(MBigIntMod* ins);
-
   void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
   void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
   void lowerBigIntPtrDiv(MBigIntPtrDiv* ins);

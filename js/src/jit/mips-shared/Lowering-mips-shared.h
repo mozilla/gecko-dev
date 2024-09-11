@@ -66,9 +66,6 @@ class LIRGeneratorMIPSShared : public LIRGeneratorShared {
   void lowerWasmSelectI(MWasmSelect* select);
   void lowerWasmSelectI64(MWasmSelect* select);
 
-  void lowerBigIntLsh(MBigIntLsh* ins);
-  void lowerBigIntRsh(MBigIntRsh* ins);
-
   void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
   void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
 

@@ -204,45 +204,6 @@ void CodeGenerator::visitUDivOrModI64(LUDivOrModI64* lir) {
   masm.bind(&done);
 }
 
-void CodeGeneratorX64::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
-                                     Register divisor, Register output,
-                                     Label* fail) {
-  // Callers handle division by zero and integer overflow.
-
-  MOZ_ASSERT(dividend == rax);
-  MOZ_ASSERT(output == rdx);
-
-  // Sign extend the lhs into rdx to make rdx:rax.
-  masm.cqo();
-
-  masm.idivq(divisor);
-
-  // Create and return the result.
-  masm.newGCBigInt(output, divisor, initialBigIntHeap(), fail);
-  masm.initializeBigInt(output, dividend);
-}
-
-void CodeGeneratorX64::emitBigIntMod(LBigIntMod* ins, Register dividend,
-                                     Register divisor, Register output,
-                                     Label* fail) {
-  // Callers handle division by zero and integer overflow.
-
-  MOZ_ASSERT(dividend == rax);
-  MOZ_ASSERT(output == rdx);
-
-  // Sign extend the lhs into rdx to make rdx:rax.
-  masm.cqo();
-
-  masm.idivq(divisor);
-
-  // Move the remainder from rdx.
-  masm.movq(output, dividend);
-
-  // Create and return the result.
-  masm.newGCBigInt(output, divisor, initialBigIntHeap(), fail);
-  masm.initializeBigInt(output, dividend);
-}
-
 void CodeGeneratorX64::emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend,
                                         Register divisor, Register output) {
   // Callers handle division by zero and integer overflow.
