@@ -89,6 +89,14 @@ void LIRGeneratorMIPS64::lowerBigIntMod(MBigIntMod* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorMIPS64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  MOZ_CRASH("NYI");
+}
+
+void LIRGeneratorMIPS64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
+  MOZ_CRASH("NYI");
+}
+
 void LIRGeneratorMIPS64::lowerAtomicLoad64(MLoadUnboxedScalar* ins) {
   const LUse elements = useRegister(ins->elements());
   const LAllocation index =

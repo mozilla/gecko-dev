@@ -49,6 +49,12 @@ class CodeGeneratorNone : public CodeGeneratorShared {
   void emitBigIntMod(LBigIntMod*, Register, Register, Register, Label*) {
     MOZ_CRASH();
   }
+  void emitBigIntPtrDiv(LBigIntPtrDiv*, Register, Register, Register) {
+    MOZ_CRASH();
+  }
+  void emitBigIntPtrMod(LBigIntPtrMod*, Register, Register, Register) {
+    MOZ_CRASH();
+  }
   ValueOperand ToValue(LInstruction*, size_t) { MOZ_CRASH(); }
   ValueOperand ToTempValue(LInstruction*, size_t) { MOZ_CRASH(); }
   void generateInvalidateEpilogue() { MOZ_CRASH(); }

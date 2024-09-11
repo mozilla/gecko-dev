@@ -149,6 +149,11 @@ class CodeGeneratorLOONG64 : public CodeGeneratorShared {
   void emitBigIntMod(LBigIntMod* ins, Register dividend, Register divisor,
                      Register output, Label* fail);
 
+  void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
+                        Register output);
+  void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,
+                        Register output);
+
   template <typename T>
   void emitWasmLoadI64(T* ins);
   template <typename T>

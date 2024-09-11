@@ -3393,6 +3393,18 @@ bool WarpCacheIRTranspiler::emitBigIntPtrMul(IntPtrOperandId lhsId,
   return emitBigIntPtrBinaryArith<MBigIntPtrMul>(lhsId, rhsId, resultId);
 }
 
+bool WarpCacheIRTranspiler::emitBigIntPtrDiv(IntPtrOperandId lhsId,
+                                             IntPtrOperandId rhsId,
+                                             IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrDiv>(lhsId, rhsId, resultId);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrMod(IntPtrOperandId lhsId,
+                                             IntPtrOperandId rhsId,
+                                             IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrMod>(lhsId, rhsId, resultId);
+}
+
 bool WarpCacheIRTranspiler::emitBigIntPtrBitOr(IntPtrOperandId lhsId,
                                                IntPtrOperandId rhsId,
                                                IntPtrOperandId resultId) {

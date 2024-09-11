@@ -76,6 +76,12 @@ class CodeGeneratorARM64 : public CodeGeneratorShared {
                      Register output, Label* fail);
   void emitBigIntMod(LBigIntMod* ins, Register dividend, Register divisor,
                      Register output, Label* fail);
+
+  void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
+                        Register output);
+  void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,
+                        Register output);
+
   void emitSimpleBinaryI64(
       LInstructionHelper<INT64_PIECES, 2 * INT64_PIECES, 0>* lir, JSOp op);
 

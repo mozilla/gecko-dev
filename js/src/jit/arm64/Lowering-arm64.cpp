@@ -494,6 +494,24 @@ void LIRGeneratorARM64::lowerBigIntMod(MBigIntMod* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorARM64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrDiv(useRegister(ins->lhs()), useRegister(ins->rhs()),
+                    LDefinition::BogusTemp(), LDefinition::BogusTemp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+}
+
+void LIRGeneratorARM64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrMod(useRegister(ins->lhs()), useRegister(ins->rhs()), temp(),
+                    LDefinition::BogusTemp());
+  if (ins->canBeDivideByZero()) {
+    assignSnapshot(lir, ins->bailoutKind());
+  }
+  define(lir, ins);
+}
+
 #ifdef ENABLE_WASM_SIMD
 
 bool LIRGeneratorARM64::canFoldReduceSimd128AndBranch(wasm::SimdOp op) {

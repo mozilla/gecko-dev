@@ -578,6 +578,44 @@ void LIRGeneratorARM::lowerBigIntMod(MBigIntMod* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorARM::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  LDefinition temp1, temp2;
+  if (ARMFlags::HasIDIV()) {
+    temp1 = LDefinition::BogusTemp();
+    temp2 = LDefinition::BogusTemp();
+  } else {
+    temp1 = tempFixed(r0);
+    temp2 = tempFixed(r1);
+  }
+  auto* lir = new (alloc()) LBigIntPtrDiv(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp1, temp2);
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+  if (!ARMFlags::HasIDIV()) {
+    assignSafepoint(lir, ins);
+  }
+}
+
+void LIRGeneratorARM::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
+  LDefinition temp1, temp2;
+  if (ARMFlags::HasIDIV()) {
+    temp1 = temp();
+    temp2 = LDefinition::BogusTemp();
+  } else {
+    temp1 = tempFixed(r0);
+    temp2 = tempFixed(r1);
+  }
+  auto* lir = new (alloc()) LBigIntPtrMod(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp1, temp2);
+  if (ins->canBeDivideByZero()) {
+    assignSnapshot(lir, ins->bailoutKind());
+  }
+  define(lir, ins);
+  if (!ARMFlags::HasIDIV()) {
+    assignSafepoint(lir, ins);
+  }
+}
+
 void LIRGenerator::visitWasmNeg(MWasmNeg* ins) {
   if (ins->type() == MIRType::Int32) {
     define(new (alloc()) LNegI(useRegisterAtStart(ins->input())), ins);

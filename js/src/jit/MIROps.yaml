@@ -968,6 +968,12 @@
 - name: BigIntPtrMul
   gen_boilerplate: false
 
+- name: BigIntPtrDiv
+  gen_boilerplate: false
+
+- name: BigIntPtrMod
+  gen_boilerplate: false
+
 - name: BigIntPtrBitAnd
   gen_boilerplate: false
 

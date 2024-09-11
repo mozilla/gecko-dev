@@ -390,6 +390,14 @@ void LIRGeneratorLOONG64::lowerBigIntRsh(MBigIntRsh* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorLOONG64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  MOZ_CRASH("NYI");
+}
+
+void LIRGeneratorLOONG64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
+  MOZ_CRASH("NYI");
+}
+
 void LIRGeneratorLOONG64::lowerTruncateDToInt32(MTruncateToInt32* ins) {
   MDefinition* opd = ins->input();
   MOZ_ASSERT(opd->type() == MIRType::Double);

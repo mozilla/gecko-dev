@@ -1,5 +1,4 @@
-// Fallible BigInt division should have a resume point and its alias set
-// should record that exceptions can be thrown.
+// Fallible BigInt modulus should bail out on division by zero.
 function resumeAfterException(t) {
   for (var i = 0; i < 2; i++) {
     try {

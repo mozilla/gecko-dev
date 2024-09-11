@@ -595,6 +595,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared {
     emitSet(cond, dest);
   }
 
+  void cmpPtr(Register lhs, const Imm32 rhs) { cmpl(rhs, lhs); }
   void cmpPtr(Register lhs, const ImmWord rhs) { cmpl(Imm32(rhs.value), lhs); }
   void cmpPtr(Register lhs, const ImmPtr imm) {
     cmpPtr(lhs, ImmWord(uintptr_t(imm.value)));

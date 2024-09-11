@@ -44,6 +44,9 @@ class LIRGeneratorMIPS : public LIRGeneratorMIPSShared {
 
   void lowerBigIntDiv(MBigIntDiv* ins);
   void lowerBigIntMod(MBigIntMod* ins);
+
+  void lowerBigIntPtrDiv(MBigIntPtrDiv* ins);
+  void lowerBigIntPtrMod(MBigIntPtrMod* ins);
 };
 
 typedef LIRGeneratorMIPS LIRGeneratorSpecific;

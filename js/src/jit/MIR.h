@@ -5602,6 +5602,8 @@ class MBigIntPtrBinaryArithInstruction : public MBinaryInstruction,
     setMovable();
   }
 
+  static bool isMaybeZero(MDefinition* ins);
+
  public:
   bool congruentTo(const MDefinition* ins) const override {
     return binaryCongruentTo(ins);
@@ -5657,6 +5659,58 @@ class MBigIntPtrMul : public MBigIntPtrBinaryArithInstruction {
   bool canRecoverOnBailout() const override { return true; }
 
   ALLOW_CLONE(MBigIntPtrMul)
+};
+
+class MBigIntPtrDiv : public MBigIntPtrBinaryArithInstruction {
+  bool canBeDivideByZero_;
+
+  MBigIntPtrDiv(MDefinition* left, MDefinition* right)
+      : MBigIntPtrBinaryArithInstruction(classOpcode, left, right) {
+    canBeDivideByZero_ = isMaybeZero(right);
+
+    // Bails when the divisor is zero.
+    if (canBeDivideByZero_) {
+      setGuard();
+    }
+  }
+
+ public:
+  INSTRUCTION_HEADER(BigIntPtrDiv)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool canBeDivideByZero() const { return canBeDivideByZero_; }
+
+  [[nodiscard]] bool writeRecoverData(
+      CompactBufferWriter& writer) const override;
+  bool canRecoverOnBailout() const override { return true; }
+
+  ALLOW_CLONE(MBigIntPtrDiv)
+};
+
+class MBigIntPtrMod : public MBigIntPtrBinaryArithInstruction {
+  bool canBeDivideByZero_;
+
+  MBigIntPtrMod(MDefinition* left, MDefinition* right)
+      : MBigIntPtrBinaryArithInstruction(classOpcode, left, right) {
+    canBeDivideByZero_ = isMaybeZero(right);
+
+    // Bails when the divisor is zero.
+    if (canBeDivideByZero_) {
+      setGuard();
+    }
+  }
+
+ public:
+  INSTRUCTION_HEADER(BigIntPtrMod)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool canBeDivideByZero() const { return canBeDivideByZero_; }
+
+  [[nodiscard]] bool writeRecoverData(
+      CompactBufferWriter& writer) const override;
+  bool canRecoverOnBailout() const override { return true; }
+
+  ALLOW_CLONE(MBigIntPtrMod)
 };
 
 class MBigIntPtrBinaryBitwiseInstruction : public MBinaryInstruction,

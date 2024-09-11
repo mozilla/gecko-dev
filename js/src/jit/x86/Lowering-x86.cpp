@@ -746,6 +746,24 @@ void LIRGeneratorX86::lowerBigIntMod(MBigIntMod* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorX86::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrDiv(useRegister(ins->lhs()), useRegister(ins->rhs()),
+                    tempFixed(edx), LDefinition::BogusTemp());
+  assignSnapshot(lir, ins->bailoutKind());
+  defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
+}
+
+void LIRGeneratorX86::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrMod(useRegister(ins->lhs()), useRegister(ins->rhs()),
+                    tempFixed(eax), LDefinition::BogusTemp());
+  if (ins->canBeDivideByZero()) {
+    assignSnapshot(lir, ins->bailoutKind());
+  }
+  defineFixed(lir, ins, LAllocation(AnyRegister(edx)));
+}
+
 void LIRGenerator::visitSubstr(MSubstr* ins) {
   // Due to lack of registers on x86, we reuse the string register as
   // temporary. As a result we only need two temporary registers and take a

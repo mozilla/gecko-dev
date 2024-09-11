@@ -925,6 +925,62 @@ bool RBigIntPtrMul::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
+bool MBigIntPtrDiv::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrDiv));
+  return true;
+}
+
+RBigIntPtrDiv::RBigIntPtrDiv(CompactBufferReader& reader) {}
+
+bool RBigIntPtrDiv::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::div(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
+bool MBigIntPtrMod::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrMod));
+  return true;
+}
+
+RBigIntPtrMod::RBigIntPtrMod(CompactBufferReader& reader) {}
+
+bool RBigIntPtrMod::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::mod(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
 bool MBigIntPtrBitAnd::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrBitAnd));

@@ -862,6 +862,65 @@ void CodeGeneratorARM::emitBigIntMod(LBigIntMod* ins, Register dividend,
   masm.initializeBigInt(output, divisor);
 }
 
+void CodeGeneratorARM::emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend,
+                                        Register divisor, Register output) {
+  // Callers handle division by zero and integer overflow.
+
+  if (ARMFlags::HasIDIV()) {
+    masm.ma_sdiv(dividend, divisor, /* result= */ output);
+    return;
+  }
+
+  // idivmod returns the quotient in r0, and the remainder in r1.
+  MOZ_ASSERT(ToRegister(ins->temp0()) == r0);
+  MOZ_ASSERT(ToRegister(ins->temp1()) == r1);
+
+  LiveRegisterSet volatileRegs = liveVolatileRegs(ins);
+  volatileRegs.takeUnchecked(output);
+
+  masm.PushRegsInMask(volatileRegs);
+
+  using Fn = int64_t (*)(int, int);
+  masm.setupUnalignedABICall(output);
+  masm.passABIArg(dividend);
+  masm.passABIArg(divisor);
+  masm.callWithABI<Fn, __aeabi_idivmod>(ABIType::Int64,
+                                        CheckUnsafeCallWithABI::DontCheckOther);
+  masm.move32(r0, output);
+
+  masm.PopRegsInMask(volatileRegs);
+}
+
+void CodeGeneratorARM::emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend,
+                                        Register divisor, Register output) {
+  // Callers handle division by zero and integer overflow.
+
+  if (ARMFlags::HasIDIV()) {
+    ScratchRegisterScope scratch(masm);
+    masm.ma_smod(dividend, divisor, /* result= */ output, scratch);
+    return;
+  }
+
+  // idivmod returns the quotient in r0, and the remainder in r1.
+  MOZ_ASSERT(ToRegister(ins->temp0()) == r0);
+  MOZ_ASSERT(ToRegister(ins->temp1()) == r1);
+
+  LiveRegisterSet volatileRegs = liveVolatileRegs(ins);
+  volatileRegs.takeUnchecked(output);
+
+  masm.PushRegsInMask(volatileRegs);
+
+  using Fn = int64_t (*)(int, int);
+  masm.setupUnalignedABICall(output);
+  masm.passABIArg(dividend);
+  masm.passABIArg(divisor);
+  masm.callWithABI<Fn, __aeabi_idivmod>(ABIType::Int64,
+                                        CheckUnsafeCallWithABI::DontCheckOther);
+  masm.move32(r1, output);
+
+  masm.PopRegsInMask(volatileRegs);
+}
+
 void CodeGenerator::visitBitNotI(LBitNotI* ins) {
   const LAllocation* input = ins->getOperand(0);
   const LDefinition* dest = ins->getDef(0);

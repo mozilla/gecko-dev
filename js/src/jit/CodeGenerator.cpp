@@ -12117,6 +12117,129 @@ void CodeGenerator::visitBigIntPtrMul(LBigIntPtrMul* ins) {
   bailoutFrom(&bail, ins->snapshot());
 }
 
+void CodeGenerator::visitBigIntPtrDiv(LBigIntPtrDiv* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register rhs = ToRegister(ins->rhs());
+  Register output = ToRegister(ins->output());
+
+  // x / 0 throws an error.
+  Label bail;
+  if (ins->mir()->canBeDivideByZero()) {
+    masm.branchPtr(Assembler::Equal, rhs, Imm32(0), &bail);
+  }
+
+  static constexpr auto DigitMin = std::numeric_limits<
+      mozilla::SignedStdintTypeForSize<sizeof(BigInt::Digit)>::Type>::min();
+
+  // Handle an integer overflow from INT{32,64}_MIN / -1.
+  Label notOverflow;
+  masm.branchPtr(Assembler::NotEqual, lhs, ImmWord(DigitMin), &notOverflow);
+  masm.branchPtr(Assembler::Equal, rhs, Imm32(-1), &bail);
+  masm.bind(&notOverflow);
+
+  emitBigIntPtrDiv(ins, lhs, rhs, output);
+
+  bailoutFrom(&bail, ins->snapshot());
+}
+
+void CodeGenerator::visitBigIntPtrDivPowTwo(LBigIntPtrDivPowTwo* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register output = ToRegister(ins->output());
+  int32_t shift = ins->shift();
+  bool negativeDivisor = ins->negativeDivisor();
+
+  masm.movePtr(lhs, output);
+
+  if (shift) {
+    // Adjust the value so that shifting produces a correctly rounded result
+    // when the numerator is negative.
+    // See 10-1 "Signed Division by a Known Power of 2" in Henry S. Warren,
+    // Jr.'s Hacker's Delight.
+
+    constexpr size_t bits = BigInt::DigitBits;
+
+    if (shift > 1) {
+      // Copy the sign bit of the numerator. (= (2^bits - 1) or 0)
+      masm.rshiftPtrArithmetic(Imm32(bits - 1), output);
+    }
+
+    // Divide by 2^(bits - shift)
+    // i.e. (= (2^bits - 1) / 2^(bits - shift) or 0)
+    // i.e. (= (2^shift - 1) or 0)
+    masm.rshiftPtr(Imm32(bits - shift), output);
+
+    // If signed, make any 1 bit below the shifted bits to bubble up, such that
+    // once shifted the value would be rounded towards 0.
+    masm.addPtr(lhs, output);
+
+    masm.rshiftPtrArithmetic(Imm32(shift), output);
+
+    if (negativeDivisor) {
+      masm.negPtr(output);
+    }
+  } else if (negativeDivisor) {
+    Label bail;
+    masm.branchNegPtr(Assembler::Overflow, output, &bail);
+    bailoutFrom(&bail, ins->snapshot());
+  }
+}
+
+void CodeGenerator::visitBigIntPtrMod(LBigIntPtrMod* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register rhs = ToRegister(ins->rhs());
+  Register output = ToRegister(ins->output());
+  Register temp = ToRegister(ins->temp0());
+
+  // x % 0 throws an error.
+  if (ins->mir()->canBeDivideByZero()) {
+    bailoutCmpPtr(Assembler::Equal, rhs, Imm32(0), ins->snapshot());
+  }
+
+  static constexpr auto DigitMin = std::numeric_limits<
+      mozilla::SignedStdintTypeForSize<sizeof(BigInt::Digit)>::Type>::min();
+
+  masm.movePtr(lhs, temp);
+
+  // Handle an integer overflow from INT{32,64}_MIN / -1.
+  Label notOverflow;
+  masm.branchPtr(Assembler::NotEqual, lhs, ImmWord(DigitMin), &notOverflow);
+  masm.branchPtr(Assembler::NotEqual, rhs, Imm32(-1), &notOverflow);
+  masm.movePtr(ImmWord(0), temp);
+  masm.bind(&notOverflow);
+
+  emitBigIntPtrMod(ins, temp, rhs, output);
+}
+
+void CodeGenerator::visitBigIntPtrModPowTwo(LBigIntPtrModPowTwo* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register output = ToRegister(ins->output());
+  Register temp = ToRegister(ins->temp0());
+  int32_t shift = ins->shift();
+
+  masm.movePtr(lhs, output);
+  masm.movePtr(ImmWord((uintptr_t(1) << shift) - uintptr_t(1)), temp);
+
+  // Switch based on sign of the lhs.
+
+  // Positive numbers are just a bitmask.
+  Label negative;
+  masm.branchTestPtr(Assembler::Signed, lhs, lhs, &negative);
+
+  masm.andPtr(temp, output);
+
+  Label done;
+  masm.jump(&done);
+
+  // Negative numbers need a negate, bitmask, negate
+  masm.bind(&negative);
+
+  masm.negPtr(output);
+  masm.andPtr(temp, output);
+  masm.negPtr(output);
+
+  masm.bind(&done);
+}
+
 void CodeGenerator::visitBigIntPtrBitAnd(LBigIntPtrBitAnd* ins) {
   Register lhs = ToRegister(ins->lhs());
   const LAllocation* rhs = ins->rhs();

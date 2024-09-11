@@ -1232,6 +1232,38 @@
     rhs: WordSized
   mir_op: true
 
+- name: BigIntPtrDiv
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 2
+  mir_op: true
+
+- name: BigIntPtrDivPowTwo
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+  arguments:
+    shift: int32_t
+    negativeDivisor: bool
+
+- name: BigIntPtrMod
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 2
+  mir_op: true
+
+- name: BigIntPtrModPowTwo
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+  arguments:
+    shift: int32_t
+  num_temps: 1
+
 - name: BigIntPtrBitAnd
   result_type: WordSized
   operands:

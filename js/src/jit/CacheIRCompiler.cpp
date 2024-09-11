@@ -3847,6 +3847,74 @@ bool CacheIRCompiler::emitBigIntPtrMul(IntPtrOperandId lhsId,
   return true;
 }
 
+bool CacheIRCompiler::emitBigIntPtrDiv(IntPtrOperandId lhsId,
+                                       IntPtrOperandId rhsId,
+                                       IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register lhs = allocator.useRegister(masm, lhsId);
+  Register rhs = allocator.useRegister(masm, rhsId);
+  Register output = allocator.defineRegister(masm, resultId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  static constexpr auto DigitMin = std::numeric_limits<
+      mozilla::SignedStdintTypeForSize<sizeof(BigInt::Digit)>::Type>::min();
+
+  // Prevent division by 0.
+  masm.branchTestPtr(Assembler::Zero, rhs, rhs, failure->label());
+
+  // Prevent INTPTR_MIN / -1.
+  Label notOverflow;
+  masm.branchPtr(Assembler::NotEqual, lhs, ImmWord(DigitMin), &notOverflow);
+  masm.branchPtr(Assembler::Equal, rhs, Imm32(-1), failure->label());
+  masm.bind(&notOverflow);
+
+  LiveRegisterSet volatileRegs(GeneralRegisterSet::Volatile(),
+                               liveVolatileFloatRegs());
+  masm.movePtr(lhs, output);
+  masm.flexibleQuotientPtr(rhs, output, false, volatileRegs);
+  return true;
+}
+
+bool CacheIRCompiler::emitBigIntPtrMod(IntPtrOperandId lhsId,
+                                       IntPtrOperandId rhsId,
+                                       IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register lhs = allocator.useRegister(masm, lhsId);
+  Register rhs = allocator.useRegister(masm, rhsId);
+  Register output = allocator.defineRegister(masm, resultId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  static constexpr auto DigitMin = std::numeric_limits<
+      mozilla::SignedStdintTypeForSize<sizeof(BigInt::Digit)>::Type>::min();
+
+  // Prevent division by 0.
+  masm.branchTestPtr(Assembler::Zero, rhs, rhs, failure->label());
+
+  masm.movePtr(lhs, output);
+
+  // Prevent INTPTR_MIN / -1.
+  Label notOverflow;
+  masm.branchPtr(Assembler::NotEqual, lhs, ImmWord(DigitMin), &notOverflow);
+  masm.branchPtr(Assembler::NotEqual, rhs, Imm32(-1), &notOverflow);
+  masm.movePtr(ImmWord(0), output);
+  masm.bind(&notOverflow);
+
+  LiveRegisterSet volatileRegs(GeneralRegisterSet::Volatile(),
+                               liveVolatileFloatRegs());
+  masm.flexibleRemainderPtr(rhs, output, false, volatileRegs);
+  return true;
+}
+
 bool CacheIRCompiler::emitBigIntPtrBitOr(IntPtrOperandId lhsId,
                                          IntPtrOperandId rhsId,
                                          IntPtrOperandId resultId) {

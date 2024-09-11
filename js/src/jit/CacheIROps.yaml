@@ -2839,6 +2839,24 @@
     rhs: IntPtrId
     result: IntPtrId
 
+- name: BigIntPtrDiv
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
+- name: BigIntPtrMod
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
 - name: Int32BitOrResult
   shared: true
   transpile: true

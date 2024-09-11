@@ -2516,6 +2516,45 @@ void LIRGenerator::visitBigIntPtrMul(MBigIntPtrMul* ins) {
   define(lir, ins);
 }
 
+void LIRGenerator::visitBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  MOZ_ASSERT(ins->lhs()->type() == MIRType::IntPtr);
+  MOZ_ASSERT(ins->rhs()->type() == MIRType::IntPtr);
+
+  if (ins->rhs()->isConstant()) {
+    intptr_t rhs = ins->rhs()->toConstant()->toIntPtr();
+    if (mozilla::IsPowerOfTwo(mozilla::Abs(rhs))) {
+      int32_t shift = mozilla::FloorLog2(mozilla::Abs(rhs));
+      auto* lir = new (alloc())
+          LBigIntPtrDivPowTwo(useRegister(ins->lhs()), shift, rhs < 0);
+      if (shift == 0 && rhs < 0) {
+        assignSnapshot(lir, ins->bailoutKind());
+      }
+      define(lir, ins);
+      return;
+    }
+  }
+
+  lowerBigIntPtrDiv(ins);
+}
+
+void LIRGenerator::visitBigIntPtrMod(MBigIntPtrMod* ins) {
+  MOZ_ASSERT(ins->lhs()->type() == MIRType::IntPtr);
+  MOZ_ASSERT(ins->rhs()->type() == MIRType::IntPtr);
+
+  if (ins->rhs()->isConstant()) {
+    intptr_t rhs = ins->rhs()->toConstant()->toIntPtr();
+    if (mozilla::IsPowerOfTwo(mozilla::Abs(rhs))) {
+      int32_t shift = mozilla::FloorLog2(mozilla::Abs(rhs));
+      auto* lir = new (alloc())
+          LBigIntPtrModPowTwo(useRegister(ins->lhs()), temp(), shift);
+      define(lir, ins);
+      return;
+    }
+  }
+
+  lowerBigIntPtrMod(ins);
+}
+
 void LIRGenerator::visitBigIntPtrBitAnd(MBigIntPtrBitAnd* ins) {
   MOZ_ASSERT(ins->lhs()->type() == MIRType::IntPtr);
   MOZ_ASSERT(ins->rhs()->type() == MIRType::IntPtr);

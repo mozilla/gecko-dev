@@ -3315,6 +3315,21 @@ MDefinition* MBigIntPow::foldsTo(TempAllocator& alloc) {
   return this;
 }
 
+bool MBigIntPtrBinaryArithInstruction::isMaybeZero(MDefinition* ins) {
+  MOZ_ASSERT(ins->type() == MIRType::IntPtr);
+  if (ins->isBigIntToIntPtr()) {
+    ins = ins->toBigIntToIntPtr()->input();
+  }
+  if (ins->isConstant()) {
+    if (ins->type() == MIRType::IntPtr) {
+      return ins->toConstant()->toIntPtr() == 0;
+    }
+    MOZ_ASSERT(ins->type() == MIRType::BigInt);
+    return ins->toConstant()->toBigInt()->isZero();
+  }
+  return true;
+}
+
 MDefinition* MInt32ToIntPtr::foldsTo(TempAllocator& alloc) {
   MDefinition* def = input();
   if (def->isConstant()) {

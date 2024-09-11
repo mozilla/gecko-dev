@@ -515,6 +515,24 @@ void LIRGeneratorX64::lowerBigIntMod(MBigIntMod* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorX64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrDiv(useRegister(ins->lhs()), useRegister(ins->rhs()),
+                    tempFixed(rdx), LDefinition::BogusTemp());
+  assignSnapshot(lir, ins->bailoutKind());
+  defineFixed(lir, ins, LAllocation(AnyRegister(rax)));
+}
+
+void LIRGeneratorX64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
+  auto* lir = new (alloc())
+      LBigIntPtrMod(useRegister(ins->lhs()), useRegister(ins->rhs()),
+                    tempFixed(rax), LDefinition::BogusTemp());
+  if (ins->canBeDivideByZero()) {
+    assignSnapshot(lir, ins->bailoutKind());
+  }
+  defineFixed(lir, ins, LAllocation(AnyRegister(rdx)));
+}
+
 void LIRGenerator::visitWasmTruncateToInt64(MWasmTruncateToInt64* ins) {
   MDefinition* opd = ins->input();
   MOZ_ASSERT(opd->type() == MIRType::Double || opd->type() == MIRType::Float32);

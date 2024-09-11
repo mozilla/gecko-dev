@@ -25,6 +25,11 @@ class CodeGeneratorX64 : public CodeGeneratorX86Shared {
   void emitBigIntMod(LBigIntMod* ins, Register dividend, Register divisor,
                      Register output, Label* fail);
 
+  void emitBigIntPtrDiv(LBigIntPtrDiv* ins, Register dividend, Register divisor,
+                        Register output);
+  void emitBigIntPtrMod(LBigIntPtrMod* ins, Register dividend, Register divisor,
+                        Register output);
+
   void wasmStore(const wasm::MemoryAccessDesc& access, const LAllocation* value,
                  Operand dstAddr);
   template <typename T>

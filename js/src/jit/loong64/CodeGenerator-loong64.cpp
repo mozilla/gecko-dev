@@ -492,6 +492,20 @@ void CodeGeneratorLOONG64::emitBigIntMod(LBigIntMod* ins, Register dividend,
   masm.initializeBigInt(output, dividend);
 }
 
+void CodeGeneratorLOONG64::emitBigIntPtrDiv(LBigIntPtrDiv* ins,
+                                            Register dividend, Register divisor,
+                                            Register output, Label* fail) {
+  // Callers handle division by zero and integer overflow.
+  masm.as_div_d(/* result= */ output, dividend, divisor);
+}
+
+void CodeGeneratorLOONG64::emitBigIntPtrMod(LBigIntPtrMod* ins,
+                                            Register dividend, Register divisor,
+                                            Register output, Label* fail) {
+  // Callers handle division by zero and integer overflow.
+  masm.as_mod_d(/* result= */ output, dividend, divisor);
+}
+
 void CodeGenerator::visitWasmLoadI64(LWasmLoadI64* lir) {
   const MWasmLoad* mir = lir->mir();
 

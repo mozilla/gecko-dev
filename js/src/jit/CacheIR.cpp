@@ -14163,8 +14163,21 @@ AttachDecision BinaryArithIRGenerator::tryAttachBigIntPtr() {
       }
       return AttachDecision::NoAction;
     }
-    case JSOp::Div:
-    case JSOp::Mod:
+    case JSOp::Div: {
+      auto result = CheckedIntPtr(lhs) / rhs;
+      if (result.isValid()) {
+        break;
+      }
+      return AttachDecision::NoAction;
+    }
+    case JSOp::Mod: {
+      // We can't use mozilla::CheckedInt here, because it disallows negative
+      // inputs.
+      if (rhs != 0) {
+        break;
+      }
+      return AttachDecision::NoAction;
+    }
     case JSOp::Pow:
       return AttachDecision::NoAction;
     case JSOp::BitOr:
@@ -14205,6 +14218,16 @@ AttachDecision BinaryArithIRGenerator::tryAttachBigIntPtr() {
     case JSOp::Mul: {
       resultId = writer.bigIntPtrMul(lhsIntPtrId, rhsIntPtrId);
       trackAttached("BinaryArith.BigIntPtr.Mul");
+      break;
+    }
+    case JSOp::Div: {
+      resultId = writer.bigIntPtrDiv(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.Div");
+      break;
+    }
+    case JSOp::Mod: {
+      resultId = writer.bigIntPtrMod(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.Mod");
       break;
     }
     case JSOp::BitOr: {
