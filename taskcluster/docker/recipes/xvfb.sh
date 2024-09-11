@@ -24,7 +24,7 @@ cleanup_xvfb() {
 # number.  Up to 5 attempts will be made to start xvfb with a short delay
 # between retries
 try_xvfb() {
-    screen -dmS xvfb Xvfb :$2 -nolisten tcp -screen 0 $1 \
+    screen -dmS xvfb Xvfb :$2 -nolisten tcp -noreset -screen 0 $1 \
        > ~/artifacts/xvfb/xvfb.log 2>&1
     export DISPLAY=:$2
 
