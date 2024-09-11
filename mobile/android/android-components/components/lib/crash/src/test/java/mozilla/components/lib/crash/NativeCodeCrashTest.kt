@@ -61,7 +61,7 @@ class NativeCodeCrashTest {
             "minidumpPath",
             true,
             "extrasPath",
-            Crash.NativeCodeCrash.PROCESS_TYPE_MAIN,
+            Crash.NativeCodeCrash.PROCESS_TYPE_FOREGROUND_CHILD,
             breadcrumbs = arrayListOf(),
             remoteType = null,
         )

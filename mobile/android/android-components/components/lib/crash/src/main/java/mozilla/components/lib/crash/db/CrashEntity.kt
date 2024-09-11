@@ -69,6 +69,13 @@ internal data class CrashEntity(
     var minidumpPath: String?,
 
     /**
+     * The type of process the crash occurred in. Affects whether or not the crash is fatal
+     * or whether the application can recover from it.
+     */
+    @ColumnInfo(name = "processType", defaultValue = "null")
+    var processType: String?,
+
+    /**
      * Indicating whether or not the crash dump was successfully retrieved. If this is false, the
      * dump file may be corrupted or incomplete.
      */
@@ -107,6 +114,7 @@ private fun Crash.NativeCodeCrash.toEntity(): CrashEntity =
         stacktrace = "<native crash>",
         minidumpPath = minidumpPath,
         minidumpSuccess = minidumpSuccess,
+        processType = processType,
         extrasPath = extrasPath,
         remoteType = remoteType,
     )
@@ -121,6 +129,7 @@ private fun Crash.UncaughtExceptionCrash.toEntity(): CrashEntity =
         stacktrace = throwable.getStacktraceAsString(),
         minidumpPath = null,
         minidumpSuccess = null,
+        processType = null,
         extrasPath = null,
         remoteType = null,
     )
