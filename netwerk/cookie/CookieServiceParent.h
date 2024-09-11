@@ -36,9 +36,9 @@ class CookieServiceParent : public PCookieServiceParent {
 
   void RemoveAll();
 
-  void RemoveCookie(const Cookie& aCookie);
+  void RemoveCookie(const Cookie& aCookie, const nsID* aOperationID);
 
-  void AddCookie(const Cookie& aCookie);
+  void AddCookie(const Cookie& aCookie, const nsID* aOperationID);
 
   // This will return true if the CookieServiceParent is currently processing
   // an update from the content process. This is used in ContentParent to make

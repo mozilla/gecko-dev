@@ -72,4 +72,10 @@ interface nsICookieNotification : nsISupports {
      * BrowsingContext associated with browsingContextId. May be nullptr.
      */
     [infallible] readonly attribute BrowsingContext browsingContext;
+
+    /**
+     * Operation ID to track which nsICookieManager operation has generated
+     * this notification.
+     */
+    readonly attribute nsIDPtr operationID;
 };

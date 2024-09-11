@@ -80,7 +80,8 @@ interface nsICookieManager : nsISupports
   nsresult removeNative(in AUTF8String   aHost,
                         in ACString      aName,
                         in AUTF8String   aPath,
-                        in OriginAttributesPtr aOriginAttributes);
+                        in OriginAttributesPtr aOriginAttributes,
+                        in nsIDPtr     aOperationID);
 
   /**
    * Add a cookie. nsICookieService is the normal way to do this. This
@@ -143,7 +144,8 @@ interface nsICookieManager : nsISupports
                      in OriginAttributesPtr aOriginAttributes,
                      in int32_t aSameSite,
                      in nsICookie_schemeType aSchemeMap,
-                     in boolean     aIsPartitioned);
+                     in boolean     aIsPartitioned,
+                     in nsIDPtr     aOperationID);
 
   /**
    * Find whether a given cookie already exists.
