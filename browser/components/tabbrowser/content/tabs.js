@@ -1363,8 +1363,11 @@
           // popup to both of them.
           const newTab = document.getElementById("new-tab-button");
           const newTab2 = this.newTabButton;
+          const newTabVertical = document.getElementById(
+            "vertical-tabs-newtab-button"
+          );
 
-          for (let parent of [newTab, newTab2]) {
+          for (let parent of [newTab, newTab2, newTabVertical]) {
             if (!parent) {
               continue;
             }
