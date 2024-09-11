@@ -215,7 +215,14 @@ class Histogram {
    */
   bool GetHistogram(const nsACString& store, base::Histogram** h);
 
-  bool IsExpired() const { return mIsExpired; }
+  bool IsExpired() const {
+    if (mIsExpired) {
+      PROFILER_MARKER_TEXT("HistogramError", TELEMETRY,
+                           mozilla::MarkerStack::Capture(),
+                           "accessing expired histogram");
+    }
+    return mIsExpired;
+  }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
@@ -257,7 +264,14 @@ class KeyedHistogram {
 
   bool IsEmpty(const nsACString& aStore) const;
 
-  bool IsExpired() const { return mIsExpired; }
+  bool IsExpired() const {
+    if (mIsExpired) {
+      PROFILER_MARKER_TEXT("HistogramError", TELEMETRY,
+                           mozilla::MarkerStack::Capture(),
+                           "accessing expired histogram");
+    }
+    return mIsExpired;
+  }
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
@@ -684,18 +698,30 @@ nsresult internal_HistogramAdd(const StaticMutexAutoLock& aLock,
                                Histogram& histogram, const HistogramID id,
                                uint32_t value, ProcessID aProcessType) {
   // Check if we are allowed to record the data.
-  bool canRecordDataset =
-      CanRecordDataset(gHistogramInfos[id].dataset, internal_CanRecordBase(),
-                       internal_CanRecordExtended());
+  const HistogramInfo& h = gHistogramInfos[id];
+  bool canRecordDataset = CanRecordDataset(h.dataset, internal_CanRecordBase(),
+                                           internal_CanRecordExtended());
+  if (!canRecordDataset) {
+    return NS_OK;
+  }
+
   // If `histogram` is a non-parent-process histogram, then recording-enabled
   // has been checked in its owner process.
-  if (!canRecordDataset ||
-      (aProcessType == ProcessID::Parent && !internal_IsRecordingEnabled(id))) {
+  if (aProcessType == ProcessID::Parent && !internal_IsRecordingEnabled(id)) {
+    bool canRecordInProcess =
+        CanRecordInProcess(h.record_in_processes, XRE_GetProcessType());
+    PROFILER_MARKER_TEXT(
+        "HistogramError", TELEMETRY,
+        mozilla::MarkerStack::MaybeCapture(!canRecordInProcess),
+        nsPrintfCString(
+            "%s: %s",
+            canRecordInProcess ? "RecordingDisabled" : "CannotRecordInProcess",
+            h.name()));
     return NS_OK;
   }
 
   // Don't record if the current platform is not enabled
-  if (!CanRecordProduct(gHistogramInfos[id].products)) {
+  if (!CanRecordProduct(h.products)) {
     return NS_OK;
   }
 
@@ -705,7 +731,7 @@ nsresult internal_HistogramAdd(const StaticMutexAutoLock& aLock,
   if (value > INT_MAX) {
     TelemetryScalar::Add(
         mozilla::Telemetry::ScalarID::TELEMETRY_ACCUMULATE_CLAMPED_VALUES,
-        NS_ConvertASCIItoUTF16(gHistogramInfos[id].name()), 1);
+        NS_ConvertASCIItoUTF16(h.name()), 1);
     value = INT_MAX;
   }
 

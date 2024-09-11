@@ -1297,6 +1297,9 @@ void internal_LogScalarError(const nsACString& aScalarName, ScalarResult aSr) {
       return;
   }
 
+  PROFILER_MARKER_TEXT("ScalarError", TELEMETRY,
+                       mozilla::MarkerStack::Capture(),
+                       NS_ConvertUTF16toUTF8(errorMessage));
   LogToBrowserConsole(nsIScriptError::warningFlag, errorMessage);
 }
 
@@ -1385,6 +1388,10 @@ ScalarResult internal_CanRecordScalar(const StaticMutexAutoLock& lock,
                                       bool aForce = false) {
   // Make sure that we have a keyed scalar if we are trying to change one.
   if (internal_IsKeyedScalar(lock, aId) != aKeyed) {
+    const BaseScalarInfo& info = internal_GetScalarInfo(lock, aId);
+    PROFILER_MARKER_TEXT(
+        "ScalarError", TELEMETRY, mozilla::MarkerStack::Capture(),
+        nsPrintfCString("KeyedTypeMismatch for %s", info.name()));
     return ScalarResult::KeyedTypeMismatch;
   }
 
@@ -1396,6 +1403,10 @@ ScalarResult internal_CanRecordScalar(const StaticMutexAutoLock& lock,
 
   // Can we record in this process?
   if (!aForce && !internal_CanRecordProcess(lock, aId)) {
+    const BaseScalarInfo& info = internal_GetScalarInfo(lock, aId);
+    PROFILER_MARKER_TEXT(
+        "ScalarError", TELEMETRY, mozilla::MarkerStack::Capture(),
+        nsPrintfCString("CannotRecordInProcess for %s", info.name()));
     return ScalarResult::CannotRecordInProcess;
   }
 
@@ -1496,6 +1507,9 @@ nsresult internal_GetScalarByEnum(const StaticMutexAutoLock& lock,
           static_cast<const DynamicScalarInfo&>(info);
       if (dynInfo.mDynamicExpiration) {
         // The Dynamic scalar is expired.
+        PROFILER_MARKER_TEXT(
+            "ScalarError", TELEMETRY, mozilla::MarkerStack::Capture(),
+            nsPrintfCString("ExpiredDynamicScalar: %s", info.name()));
         return NS_ERROR_NOT_AVAILABLE;
       }
     }
@@ -1507,6 +1521,9 @@ nsresult internal_GetScalarByEnum(const StaticMutexAutoLock& lock,
   // The scalar storage wasn't already allocated. Check if the scalar is expired
   // and then allocate the storage, if needed.
   if (IsExpiredVersion(info.expiration())) {
+    PROFILER_MARKER_TEXT("ScalarError", TELEMETRY,
+                         mozilla::MarkerStack::Capture(),
+                         nsPrintfCString("ExpiredScalar: %s", info.name()));
     return NS_ERROR_NOT_AVAILABLE;
   }
 
