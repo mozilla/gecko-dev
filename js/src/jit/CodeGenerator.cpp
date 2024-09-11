@@ -12291,6 +12291,182 @@ void CodeGenerator::visitBigIntPtrBitXor(LBigIntPtrBitXor* ins) {
   masm.xorPtr(lhs, output);
 }
 
+void CodeGenerator::visitBigIntPtrLsh(LBigIntPtrLsh* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register output = ToRegister(ins->output());
+  Register temp = ToTempRegisterOrInvalid(ins->temp0());
+  Register tempShift = ToTempRegisterOrInvalid(ins->temp1());
+
+  if (ins->rhs()->isConstant()) {
+    intptr_t rhs = ToIntPtr(ins->rhs());
+
+    if (rhs >= intptr_t(BigInt::DigitBits)) {
+      MOZ_ASSERT(ins->mir()->fallible());
+
+      // x << DigitBits with x != 0n always exceeds pointer-sized storage.
+      masm.movePtr(ImmWord(0), output);
+      bailoutCmpPtr(Assembler::NotEqual, lhs, Imm32(0), ins->snapshot());
+    } else if (rhs <= -intptr_t(BigInt::DigitBits)) {
+      MOZ_ASSERT(!ins->mir()->fallible());
+
+      // x << -DigitBits == x >> DigitBits, which is either 0n or -1n.
+      masm.movePtr(lhs, output);
+      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+    } else if (rhs <= 0) {
+      MOZ_ASSERT(!ins->mir()->fallible());
+
+      // |x << -y| is computed as |x >> y|.
+      masm.movePtr(lhs, output);
+      masm.rshiftPtrArithmetic(Imm32(-rhs), output);
+    } else {
+      MOZ_ASSERT(ins->mir()->fallible());
+
+      masm.movePtr(lhs, output);
+      masm.lshiftPtr(Imm32(rhs), output);
+
+      // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
+      masm.movePtr(output, temp);
+      masm.rshiftPtrArithmetic(Imm32(rhs), temp);
+      bailoutCmpPtr(Assembler::NotEqual, temp, lhs, ins->snapshot());
+    }
+  } else {
+    Register rhs = ToRegister(ins->rhs());
+
+    Label done, bail;
+    MOZ_ASSERT(ins->mir()->fallible());
+
+    masm.movePtr(lhs, output);
+
+    // 0n << x == 0n
+    masm.branchPtr(Assembler::Equal, lhs, Imm32(0), &done);
+
+    // x << DigitBits with x != 0n always exceeds pointer-sized storage.
+    masm.branchPtr(Assembler::GreaterThanOrEqual, rhs, Imm32(BigInt::DigitBits),
+                   &bail);
+
+    // x << -DigitBits == x >> DigitBits, which is either 0n or -1n.
+    Label shift;
+    masm.branchPtr(Assembler::GreaterThan, rhs,
+                   Imm32(-int32_t(BigInt::DigitBits)), &shift);
+    {
+      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+      masm.jump(&done);
+    }
+    masm.bind(&shift);
+
+    // Move |rhs| into the designated shift register.
+    masm.movePtr(rhs, tempShift);
+
+    // |x << -y| is computed as |x >> y|.
+    Label leftShift;
+    masm.branchPtr(Assembler::GreaterThanOrEqual, rhs, Imm32(0), &leftShift);
+    {
+      masm.negPtr(tempShift);
+      masm.rshiftPtrArithmetic(tempShift, output);
+      masm.jump(&done);
+    }
+    masm.bind(&leftShift);
+
+    masm.lshiftPtr(tempShift, output);
+
+    // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
+    masm.movePtr(output, temp);
+    masm.rshiftPtrArithmetic(tempShift, temp);
+    masm.branchPtr(Assembler::NotEqual, temp, lhs, &bail);
+
+    masm.bind(&done);
+    bailoutFrom(&bail, ins->snapshot());
+  }
+}
+
+void CodeGenerator::visitBigIntPtrRsh(LBigIntPtrRsh* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register output = ToRegister(ins->output());
+  Register temp = ToTempRegisterOrInvalid(ins->temp0());
+  Register tempShift = ToTempRegisterOrInvalid(ins->temp1());
+
+  if (ins->rhs()->isConstant()) {
+    intptr_t rhs = ToIntPtr(ins->rhs());
+
+    if (rhs <= -intptr_t(BigInt::DigitBits)) {
+      MOZ_ASSERT(ins->mir()->fallible());
+
+      // x >> -DigitBits == x << DigitBits, which exceeds pointer-sized storage.
+      masm.movePtr(ImmWord(0), output);
+      bailoutCmpPtr(Assembler::NotEqual, lhs, Imm32(0), ins->snapshot());
+    } else if (rhs >= intptr_t(BigInt::DigitBits)) {
+      MOZ_ASSERT(!ins->mir()->fallible());
+
+      // x >> DigitBits is either 0n or -1n.
+      masm.movePtr(lhs, output);
+      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+    } else if (rhs < 0) {
+      MOZ_ASSERT(ins->mir()->fallible());
+
+      // |x >> -y| is computed as |x << y|.
+      masm.movePtr(lhs, output);
+      masm.lshiftPtr(Imm32(-rhs), output);
+
+      // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
+      masm.movePtr(output, temp);
+      masm.rshiftPtrArithmetic(Imm32(-rhs), temp);
+      bailoutCmpPtr(Assembler::NotEqual, temp, lhs, ins->snapshot());
+    } else {
+      MOZ_ASSERT(!ins->mir()->fallible());
+
+      masm.movePtr(lhs, output);
+      masm.rshiftPtrArithmetic(Imm32(rhs), output);
+    }
+  } else {
+    Register rhs = ToRegister(ins->rhs());
+
+    Label done, bail;
+    MOZ_ASSERT(ins->mir()->fallible());
+
+    masm.movePtr(lhs, output);
+
+    // 0n >> x == 0n
+    masm.branchPtr(Assembler::Equal, lhs, Imm32(0), &done);
+
+    // x >> -DigitBits == x << DigitBits, which exceeds pointer-sized storage.
+    masm.branchPtr(Assembler::LessThanOrEqual, rhs,
+                   Imm32(-int32_t(BigInt::DigitBits)), &bail);
+
+    // x >> DigitBits is either 0n or -1n.
+    Label shift;
+    masm.branchPtr(Assembler::LessThan, rhs, Imm32(BigInt::DigitBits), &shift);
+    {
+      masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+      masm.jump(&done);
+    }
+    masm.bind(&shift);
+
+    // Move |rhs| into the designated shift register.
+    masm.movePtr(rhs, tempShift);
+
+    // |x >> -y| is computed as |x << y|.
+    Label rightShift;
+    masm.branchPtr(Assembler::GreaterThanOrEqual, rhs, Imm32(0), &rightShift);
+    {
+      masm.negPtr(tempShift);
+      masm.lshiftPtr(tempShift, output);
+
+      // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
+      masm.movePtr(output, temp);
+      masm.rshiftPtrArithmetic(tempShift, temp);
+      masm.branchPtr(Assembler::NotEqual, temp, lhs, &bail);
+
+      masm.jump(&done);
+    }
+    masm.bind(&rightShift);
+
+    masm.rshiftPtrArithmetic(tempShift, output);
+
+    masm.bind(&done);
+    bailoutFrom(&bail, ins->snapshot());
+  }
+}
+
 void CodeGenerator::visitInt32ToStringWithBase(LInt32ToStringWithBase* lir) {
   Register input = ToRegister(lir->input());
   RegisterOrInt32 base = ToRegisterOrInt32(lir->base());

@@ -50,6 +50,8 @@ class LIRGeneratorX86Shared : public LIRGeneratorShared {
   void lowerWasmSelectI64(MWasmSelect* select);
   void lowerBigIntLsh(MBigIntLsh* ins);
   void lowerBigIntRsh(MBigIntRsh* ins);
+  void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
+  void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
   void lowerWasmBuiltinTruncateToInt32(MWasmBuiltinTruncateToInt32* ins);
   void lowerTruncateDToInt32(MTruncateToInt32* ins);
   void lowerTruncateFToInt32(MTruncateToInt32* ins);

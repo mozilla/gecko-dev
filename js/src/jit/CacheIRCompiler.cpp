@@ -3977,6 +3977,123 @@ bool CacheIRCompiler::emitBigIntPtrBitAnd(IntPtrOperandId lhsId,
   return true;
 }
 
+bool CacheIRCompiler::emitBigIntPtrLeftShift(IntPtrOperandId lhsId,
+                                             IntPtrOperandId rhsId,
+                                             IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register lhs = allocator.useRegister(masm, lhsId);
+  Register rhs = allocator.useRegister(masm, rhsId);
+  Register output = allocator.defineRegister(masm, resultId);
+  AutoScratchRegister scratch(allocator, masm);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  Label done;
+
+  masm.movePtr(lhs, output);
+
+  // 0n << x == 0n
+  masm.branchPtr(Assembler::Equal, lhs, Imm32(0), &done);
+
+  // x << DigitBits with x != 0n always exceeds pointer-sized storage.
+  masm.branchPtr(Assembler::GreaterThanOrEqual, rhs, Imm32(BigInt::DigitBits),
+                 failure->label());
+
+  // x << -DigitBits == x >> DigitBits, which is either 0n or -1n.
+  Label shift;
+  masm.branchPtr(Assembler::GreaterThan, rhs,
+                 Imm32(-int32_t(BigInt::DigitBits)), &shift);
+  {
+    masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+    masm.jump(&done);
+  }
+  masm.bind(&shift);
+
+  // |x << -y| is computed as |x >> y|.
+  Label leftShift;
+  masm.branchPtr(Assembler::GreaterThanOrEqual, rhs, Imm32(0), &leftShift);
+  {
+    masm.movePtr(rhs, scratch);
+    masm.negPtr(scratch);
+    masm.flexibleRshiftPtrArithmetic(scratch, output);
+    masm.jump(&done);
+  }
+  masm.bind(&leftShift);
+
+  masm.flexibleLshiftPtr(rhs, output);
+
+  // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
+  masm.movePtr(output, scratch);
+  masm.flexibleRshiftPtrArithmetic(rhs, scratch);
+  masm.branchPtr(Assembler::NotEqual, scratch, lhs, failure->label());
+
+  masm.bind(&done);
+  return true;
+}
+
+bool CacheIRCompiler::emitBigIntPtrRightShift(IntPtrOperandId lhsId,
+                                              IntPtrOperandId rhsId,
+                                              IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register lhs = allocator.useRegister(masm, lhsId);
+  Register rhs = allocator.useRegister(masm, rhsId);
+  Register output = allocator.defineRegister(masm, resultId);
+  AutoScratchRegister scratch1(allocator, masm);
+  AutoScratchRegister scratch2(allocator, masm);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  Label done;
+
+  masm.movePtr(lhs, output);
+
+  // 0n >> x == 0n
+  masm.branchPtr(Assembler::Equal, lhs, Imm32(0), &done);
+
+  // x >> -DigitBits == x << DigitBits, which exceeds pointer-sized storage.
+  masm.branchPtr(Assembler::LessThanOrEqual, rhs,
+                 Imm32(-int32_t(BigInt::DigitBits)), failure->label());
+
+  // x >> DigitBits is either 0n or -1n.
+  Label shift;
+  masm.branchPtr(Assembler::LessThan, rhs, Imm32(BigInt::DigitBits), &shift);
+  {
+    masm.rshiftPtrArithmetic(Imm32(BigInt::DigitBits - 1), output);
+    masm.jump(&done);
+  }
+  masm.bind(&shift);
+
+  // |x >> -y| is computed as |x << y|.
+  Label rightShift;
+  masm.branchPtr(Assembler::GreaterThanOrEqual, rhs, Imm32(0), &rightShift);
+  {
+    masm.movePtr(rhs, scratch1);
+    masm.negPtr(scratch1);
+    masm.flexibleLshiftPtr(scratch1, output);
+
+    // Check for overflow: ((lhs << rhs) >> rhs) == lhs.
+    masm.movePtr(output, scratch2);
+    masm.flexibleRshiftPtrArithmetic(scratch1, scratch2);
+    masm.branchPtr(Assembler::NotEqual, scratch2, lhs, failure->label());
+
+    masm.jump(&done);
+  }
+  masm.bind(&rightShift);
+
+  masm.flexibleRshiftPtrArithmetic(rhs, output);
+
+  masm.bind(&done);
+  return true;
+}
+
 bool CacheIRCompiler::emitTruncateDoubleToUInt32(NumberOperandId inputId,
                                                  Int32OperandId resultId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

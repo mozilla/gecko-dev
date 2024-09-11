@@ -390,6 +390,14 @@ void LIRGeneratorLOONG64::lowerBigIntRsh(MBigIntRsh* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGeneratorLOONG64::lowerBigIntPtrLsh(MBigIntPtrLsh* ins) {
+  MOZ_CRASH("NYI");
+}
+
+void LIRGeneratorLOONG64::lowerBigIntPtrRsh(MBigIntPtrRsh* ins) {
+  MOZ_CRASH("NYI");
+}
+
 void LIRGeneratorLOONG64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
   MOZ_CRASH("NYI");
 }

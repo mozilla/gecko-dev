@@ -14191,10 +14191,30 @@ AttachDecision BinaryArithIRGenerator::tryAttachBigIntPtr() {
       // Bitwise operations always return an intptr-sized result.
       break;
     }
-    case JSOp::Lsh:
-    case JSOp::Rsh:
+    case JSOp::Lsh: {
+      if (lhs == 0 || rhs <= 0) {
+        break;
+      }
+      if (size_t(rhs) < BigInt::DigitBits) {
+        intptr_t result = lhs << rhs;
+        if ((result >> rhs) == lhs) {
+          break;
+        }
+      }
       return AttachDecision::NoAction;
-
+    }
+    case JSOp::Rsh: {
+      if (lhs == 0 || rhs >= 0) {
+        break;
+      }
+      if (rhs > -intptr_t(BigInt::DigitBits)) {
+        intptr_t result = lhs << -rhs;
+        if ((result >> -rhs) == lhs) {
+          break;
+        }
+      }
+      return AttachDecision::NoAction;
+    }
     default:
       MOZ_CRASH("Unexpected OP");
   }
@@ -14253,6 +14273,16 @@ AttachDecision BinaryArithIRGenerator::tryAttachBigIntPtr() {
     case JSOp::BitAnd: {
       resultId = writer.bigIntPtrBitAnd(lhsIntPtrId, rhsIntPtrId);
       trackAttached("BinaryArith.BigIntPtr.BitAnd");
+      break;
+    }
+    case JSOp::Lsh: {
+      resultId = writer.bigIntPtrLeftShift(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.LeftShift");
+      break;
+    }
+    case JSOp::Rsh: {
+      resultId = writer.bigIntPtrRightShift(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.RightShift");
       break;
     }
     default:

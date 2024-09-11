@@ -105,6 +105,8 @@ class LIRGeneratorNone : public LIRGeneratorShared {
   void lowerBigIntDiv(MBigIntDiv*) { MOZ_CRASH(); }
   void lowerBigIntMod(MBigIntMod*) { MOZ_CRASH(); }
 
+  void lowerBigIntPtrLsh(MBigIntPtrLsh*) { MOZ_CRASH(); }
+  void lowerBigIntPtrRsh(MBigIntPtrRsh*) { MOZ_CRASH(); }
   void lowerBigIntPtrDiv(MBigIntPtrDiv*) { MOZ_CRASH(); }
   void lowerBigIntPtrMod(MBigIntPtrMod*) { MOZ_CRASH(); }
 

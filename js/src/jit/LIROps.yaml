@@ -1293,6 +1293,22 @@
     rhs: WordSized
   mir_op: true
 
+- name: BigIntPtrLsh
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 2
+  mir_op: true
+
+- name: BigIntPtrRsh
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 2
+  mir_op: true
+
 - name: Int32ToStringWithBase
   result_type: WordSized
   operands:

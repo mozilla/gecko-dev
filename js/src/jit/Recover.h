@@ -97,6 +97,8 @@ namespace jit {
   _(BigIntPtrBitAnd)              \
   _(BigIntPtrBitOr)               \
   _(BigIntPtrBitXor)              \
+  _(BigIntPtrLsh)                 \
+  _(BigIntPtrRsh)                 \
   _(Compare)                      \
   _(Concat)                       \
   _(StringLength)                 \
@@ -574,6 +576,22 @@ class RBigIntPtrBitOr final : public RInstruction {
 class RBigIntPtrBitXor final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrBitXor, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrLsh final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrLsh, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrRsh final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrRsh, 2)
 
   [[nodiscard]] bool recover(JSContext* cx,
                              SnapshotIterator& iter) const override;

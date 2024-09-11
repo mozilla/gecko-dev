@@ -2996,6 +2996,24 @@
     rhs: IntPtrId
     result: IntPtrId
 
+- name: BigIntPtrLeftShift
+  shared: true
+  transpile: true
+  cost_estimate: 3
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
+- name: BigIntPtrRightShift
+  shared: true
+  transpile: true
+  cost_estimate: 3
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
 - name: Int32NegationResult
   shared: true
   transpile: true

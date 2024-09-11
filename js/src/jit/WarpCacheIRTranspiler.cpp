@@ -3429,6 +3429,18 @@ bool WarpCacheIRTranspiler::emitBigIntPtrBitAnd(IntPtrOperandId lhsId,
   return emitBigIntPtrBinaryArith<MBigIntPtrBitAnd>(lhsId, rhsId, resultId);
 }
 
+bool WarpCacheIRTranspiler::emitBigIntPtrLeftShift(IntPtrOperandId lhsId,
+                                                   IntPtrOperandId rhsId,
+                                                   IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrLsh>(lhsId, rhsId, resultId);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrRightShift(IntPtrOperandId lhsId,
+                                                    IntPtrOperandId rhsId,
+                                                    IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrRsh>(lhsId, rhsId, resultId);
+}
+
 bool WarpCacheIRTranspiler::emitCallStringConcatResult(StringOperandId lhsId,
                                                        StringOperandId rhsId) {
   MDefinition* lhs = getOperand(lhsId);

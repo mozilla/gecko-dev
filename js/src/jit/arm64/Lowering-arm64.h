@@ -105,6 +105,8 @@ class LIRGeneratorARM64 : public LIRGeneratorShared {
   void lowerBigIntDiv(MBigIntDiv* ins);
   void lowerBigIntMod(MBigIntMod* ins);
 
+  void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
+  void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
   void lowerBigIntPtrDiv(MBigIntPtrDiv* ins);
   void lowerBigIntPtrMod(MBigIntPtrMod* ins);
 

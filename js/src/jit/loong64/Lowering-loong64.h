@@ -84,6 +84,8 @@ class LIRGeneratorLOONG64 : public LIRGeneratorShared {
   void lowerBigIntRsh(MBigIntRsh* ins);
   void lowerBigIntPtrDiv(MBigIntPtrDiv* ins);
   void lowerBigIntPtrMod(MBigIntPtrMod* ins);
+  void lowerBigIntPtrLsh(MBigIntPtrLsh* ins);
+  void lowerBigIntPtrRsh(MBigIntPtrRsh* ins);
   void lowerTruncateDToInt32(MTruncateToInt32* ins);
   void lowerTruncateFToInt32(MTruncateToInt32* ins);
   void lowerBuiltinInt64ToFloatingPoint(MBuiltinInt64ToFloatingPoint* ins);

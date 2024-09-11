@@ -5810,6 +5810,44 @@ class MBigIntPtrBitXor : public MBigIntPtrBinaryBitwiseInstruction {
   ALLOW_CLONE(MBigIntPtrBitXor)
 };
 
+class MBigIntPtrLsh : public MBigIntPtrBinaryBitwiseInstruction {
+  MBigIntPtrLsh(MDefinition* left, MDefinition* right)
+      : MBigIntPtrBinaryBitwiseInstruction(classOpcode, left, right) {}
+
+ public:
+  INSTRUCTION_HEADER(BigIntPtrLsh)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool fallible() const {
+    return !rhs()->isConstant() || rhs()->toConstant()->toIntPtr() > 0;
+  }
+
+  [[nodiscard]] bool writeRecoverData(
+      CompactBufferWriter& writer) const override;
+  bool canRecoverOnBailout() const override { return true; }
+
+  ALLOW_CLONE(MBigIntPtrLsh)
+};
+
+class MBigIntPtrRsh : public MBigIntPtrBinaryBitwiseInstruction {
+  MBigIntPtrRsh(MDefinition* left, MDefinition* right)
+      : MBigIntPtrBinaryBitwiseInstruction(classOpcode, left, right) {}
+
+ public:
+  INSTRUCTION_HEADER(BigIntPtrRsh)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool fallible() const {
+    return !rhs()->isConstant() || rhs()->toConstant()->toIntPtr() < 0;
+  }
+
+  [[nodiscard]] bool writeRecoverData(
+      CompactBufferWriter& writer) const override;
+  bool canRecoverOnBailout() const override { return true; }
+
+  ALLOW_CLONE(MBigIntPtrRsh)
+};
+
 class MConcat : public MBinaryInstruction,
                 public MixPolicy<ConvertToStringPolicy<0>,
                                  ConvertToStringPolicy<1>>::Data {
