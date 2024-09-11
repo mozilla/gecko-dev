@@ -518,8 +518,8 @@ nsresult nsFrameSelection::ConstrainFrameAndPointToAnchorSubtree(
     return NS_ERROR_NULL_POINTER;
   }
 
-  nsCOMPtr<nsIContent> anchorContent =
-      do_QueryInterface(mDomSelections[index]->GetAnchorNode());
+  nsCOMPtr<nsIContent> anchorContent = do_QueryInterface(
+      mDomSelections[index]->GetMayCrossShadowBoundaryAnchorNode());
   if (!anchorContent) {
     return NS_ERROR_FAILURE;
   }
