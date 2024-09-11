@@ -104,13 +104,16 @@ export class SearchModeSwitcher {
       anchor.setAttribute("open", true);
       anchor.setAttribute("aria-expanded", true);
 
-      this.#popup.addEventListener(
-        "popupshown",
-        () => {
-          this.#popup.querySelector("toolbarbutton").focus();
-        },
-        { once: true }
-      );
+      if (event.type == "keypress") {
+        // Focus the first item when opened by keypress only.
+        this.#popup.addEventListener(
+          "popupshown",
+          () => {
+            this.#popup.querySelector("toolbarbutton").focus();
+          },
+          { once: true }
+        );
+      }
 
       lazy.PanelMultiView.openPopup(this.#popup, anchor, {
         position: "bottomleft topleft",
