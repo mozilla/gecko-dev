@@ -301,8 +301,8 @@ add_task(async function () {
   // use open syscall
   if (isLinux() || isMac()) {
     // open a file for writing in the content temp dir, this should fail on
-    // macOS and work on Linux. The open handler in the content process closes
-    // the file for us
+    // macOS and Linux. The open handler in the content process closes the file
+    // for us
     let path = fileInTempDir().path;
     let flags = lazy.LIBC.O_CREAT | lazy.LIBC.O_WRONLY;
     let fd = await SpecialPowers.spawn(
@@ -310,19 +310,11 @@ add_task(async function () {
       [{ lib, path, flags }],
       callOpen
     );
-    if (isMac()) {
-      Assert.strictEqual(
-        fd,
-        -1,
-        "opening a file for writing in content temp is not permitted"
-      );
-    } else {
-      Assert.greaterOrEqual(
-        fd,
-        0,
-        "opening a file for writing in content temp is permitted"
-      );
-    }
+    Assert.strictEqual(
+      fd,
+      -1,
+      "opening a file for writing in content temp is not permitted"
+    );
   }
 
   // use fork syscall

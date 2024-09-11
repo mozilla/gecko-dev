@@ -132,11 +132,6 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
   static nsresult SetUserDataProfileDirectory(nsCOMPtr<nsIFile>& aFile,
                                               bool aLocal);
 
-#if defined(MOZ_CONTENT_TEMP_DIR)
-  // Load the temp directory for sandboxed content processes
-  nsresult LoadContentProcessTempDir();
-#endif
-
   void Append(nsIFile* aDirectory);
 
   // On OSX, mGREDir points to .app/Contents/Resources
@@ -149,10 +144,6 @@ class nsXREDirProvider final : public nsIDirectoryServiceProvider2,
   nsCOMPtr<nsIFile> mProfileLocalDir;
   bool mAppStarted = false;
   bool mPrefsInitialized = false;
-#if defined(MOZ_CONTENT_TEMP_DIR)
-  nsCOMPtr<nsIFile> mContentTempDir;
-  nsCOMPtr<nsIFile> mContentProcessSandboxTempDir;
-#endif
 };
 
 #endif
