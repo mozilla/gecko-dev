@@ -65,12 +65,6 @@ body {
 
   --toolbarbutton-border-radius: 4px;
 
-  --chrome-content-separator-color: ThreeDShadow;
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "sidebar.revamp") {
-    --chrome-content-separator-color: var(--lwt-sidebar-border-color, light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3)));
-  }
-
   --tabs-navbar-separator-color: ThreeDShadow;
   --tabs-navbar-separator-style: solid;
 
@@ -142,11 +136,6 @@ body {
     --tabs-navbar-separator-color: light-dark(rgba(0,0,0,.1), rgba(0,0,0,.3));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);
 
-    /* stylelint-disable-next-line media-query-no-invalid */
-    @media not (-moz-bool-pref: "sidebar.revamp") {
-      --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
-    }
-
     @media not (prefers-contrast) {
       --focus-outline-color: light-dark(#0061E0, #00DDFF);
     }
@@ -182,25 +171,6 @@ body {
   flex-direction: column;
   flex: 1;
   margin: 0;
-}
-
-/* Chrome/content separation */
-
-#navigator-toolbox {
-  border-bottom: 0.01px solid var(--chrome-content-separator-color);
-}
-
-/* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "sidebar.revamp") {
-  #navigator-toolbox {
-    /* This reserves space for the tabbox outline */
-    border-bottom-color: var(--toolbar-bgcolor);
-  }
-
-  #tabbrowser-tabbox {
-    outline: 0.01px solid var(--chrome-content-separator-color);
-    box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
-  }
 }
 
 /* Toolbox and Toolbars */
@@ -505,6 +475,16 @@ toolbarpaletteitem:has(> toolbarbutton.fxms-bmb-button),
        as that would resize the content area for all tabs including background
        tabs, which is what we explicitly want to avoid doing here. */
     margin-top: var(--bookmarks-toolbar-overlapping-browser-height);
+  }
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
+    .newTabBrowserPanel,
+    #sidebar-box {
+      /* z-index applied to account for box-shadow cutoff when bookmarks toolbar is present */
+      position: relative;
+      z-index: 1;
+    }
   }
 }
 
