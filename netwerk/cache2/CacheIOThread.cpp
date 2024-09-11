@@ -6,6 +6,7 @@
 #include "CacheFileIOManager.h"
 #include "CacheLog.h"
 #include "CacheObserver.h"
+#include "GeckoProfiler.h"
 
 #include "nsIRunnable.h"
 #include "nsISupportsImpl.h"
@@ -308,8 +309,6 @@ already_AddRefed<nsIEventTarget> CacheIOThread::Target() {
 
 // static
 void CacheIOThread::ThreadFunc(void* aClosure) {
-  // XXXmstange We'd like to register this thread with the profiler, but doing
-  // so causes leaks, see bug 1323100.
   NS_SetCurrentThreadName("Cache2 I/O");
 
   mozilla::IOInterposer::RegisterCurrentThread();
@@ -321,6 +320,7 @@ void CacheIOThread::ThreadFunc(void* aClosure) {
 }
 
 void CacheIOThread::ThreadFunc() {
+  char stackTop;
   nsCOMPtr<nsIThreadInternal> threadInternal;
 
   {
@@ -333,6 +333,9 @@ void CacheIOThread::ThreadFunc() {
         MakeRefPtr<ThreadEventQueue>(MakeUnique<mozilla::EventQueue>());
     nsCOMPtr<nsIThread> xpcomThread =
         nsThreadManager::get().CreateCurrentThread(queue);
+#if defined(MOZ_GECKO_PROFILER)
+    profiler_register_thread("Cache2 I/O", &stackTop);
+#endif
 
     threadInternal = do_QueryInterface(xpcomThread);
     if (threadInternal) threadInternal->SetObserver(this);
@@ -401,6 +404,9 @@ void CacheIOThread::ThreadFunc() {
   }  // lock
 
   if (threadInternal) threadInternal->SetObserver(nullptr);
+#if defined(MOZ_GECKO_PROFILER)
+  profiler_unregister_thread();
+#endif
 }
 
 void CacheIOThread::LoopOneLevel(uint32_t aLevel) {
