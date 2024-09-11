@@ -70,17 +70,27 @@ export class PdfjsParent extends JSWindowActorParent {
     this._boundToFindbar = null;
     this._findFailedString = null;
 
-    const guessAltText =
-      Services.prefs.getBoolPref("pdfjs.enableAltText", false) &&
-      Services.prefs.getBoolPref("pdfjs.enableGuessAltText", false) &&
-      Services.prefs.getBoolPref("pdfjs.enableAltTextModelDownload", false) &&
-      Services.prefs.getBoolPref("browser.ml.enable", false);
     PdfJsTelemetry.report({
       type: "editing",
       data: {
         type: "stamp",
         action: "pdfjs.image.alt_text_edit",
-        data: { guessAltText },
+        data: {
+          ask_to_edit:
+            Services.prefs.getBoolPref("pdfjs.enableAltText", false) &&
+            Services.prefs.getBoolPref(
+              "pdfjs.enableNewAltTextWhenAddingImage",
+              false
+            ),
+          ai_generation:
+            Services.prefs.getBoolPref("pdfjs.enableAltText", false) &&
+            Services.prefs.getBoolPref("pdfjs.enableGuessAltText", false) &&
+            Services.prefs.getBoolPref(
+              "pdfjs.enableAltTextModelDownload",
+              false
+            ) &&
+            Services.prefs.getBoolPref("browser.ml.enable", false),
+        },
       },
     });
   }

@@ -214,7 +214,8 @@ export class PdfJsTelemetry {
         break;
       }
       case "alt_text_edit":
-        Glean.pdfjsImage.altTextEdit.ai_generation.set(data.guessAltText);
+        Glean.pdfjsImage.altTextEdit.ask_to_edit.set(data.ask_to_edit);
+        Glean.pdfjsImage.altTextEdit.ai_generation.set(data.ai_generation);
         break;
     }
   }
