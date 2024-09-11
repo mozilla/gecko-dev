@@ -653,6 +653,12 @@ void MacroAssembler::branchMulPtr(Condition cond, Register src, Register dest,
   MOZ_ASSERT(cond == Assembler::Overflow);
   ma_mulPtrTestOverflow(dest, dest, src, label);
 }
+
+void MacroAssembler::branchNegPtr(Condition cond, Register reg, Label* label) {
+  MOZ_ASSERT(cond == Overflow);
+  negPtr(reg);
+  branchPtr(Assembler::Equal, reg, ImmWord(INTPTR_MIN), label);
+}
 void MacroAssembler::branchNeg32(Condition cond, Register reg, Label* label) {
   MOZ_ASSERT(cond == Overflow);
   neg32(reg);

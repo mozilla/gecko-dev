@@ -815,6 +815,10 @@ void MacroAssembler::branchMulPtr(Condition cond, Register src, Register dest,
   MOZ_CRASH();
 }
 
+void MacroAssembler::branchNegPtr(Condition cond, Register reg, Label* label) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
                                   Label* label) {
   MOZ_CRASH();

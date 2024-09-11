@@ -713,6 +713,12 @@ void MacroAssembler::branchMulPtr(Condition cond, Register src, Register dest,
   j(cond, label);
 }
 
+void MacroAssembler::branchNegPtr(Condition cond, Register reg, Label* label) {
+  MOZ_ASSERT(cond == Overflow);
+  negPtr(reg);
+  j(cond, label);
+}
+
 void MacroAssembler::decBranchPtr(Condition cond, Register lhs, Imm32 rhs,
                                   Label* label) {
   subPtr(rhs, lhs);
