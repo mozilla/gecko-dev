@@ -9,11 +9,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Card
 import androidx.compose.material.Text
@@ -28,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.LinkText
 import org.mozilla.fenix.compose.LinkTextState
-import org.mozilla.fenix.compose.annotation.LightDarkPreview
+import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(12.dp)
@@ -49,6 +51,7 @@ internal fun ExtensionsSubmenuBanner(
     onClick: () -> Unit,
 ) {
     Card(
+        modifier = Modifier.fillMaxWidth(),
         backgroundColor = FirefoxTheme.colors.layer1,
         border = BorderStroke(
             width = 0.5.dp,
@@ -56,27 +59,46 @@ internal fun ExtensionsSubmenuBanner(
         ),
         elevation = 0.dp,
         shape = ROUNDED_CORNER_SHAPE,
-        modifier = Modifier
-            .fillMaxWidth(),
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.padding(bottom = 24.dp),
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.ic_extensions_onboarding),
-                contentDescription = null,
-                modifier = Modifier.size(180.dp),
-            )
+        if (FirefoxTheme.windowSize.isNotSmall()) {
+            Row(
+                modifier = Modifier.padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(24.dp),
+            ) {
+                Image(
+                    modifier = Modifier.size(180.dp),
+                    painter = painterResource(id = R.drawable.ic_extensions_onboarding),
+                    contentDescription = null,
+                )
 
-            Spacer(modifier = Modifier.height(16.dp))
+                ExtensionsSubmenuBannerText(
+                    title = title,
+                    description = description,
+                    linkText = linkText,
+                    onClick = onClick,
+                )
+            }
+        } else {
+            Column(
+                modifier = Modifier.padding(bottom = 24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Image(
+                    modifier = Modifier.size(180.dp),
+                    painter = painterResource(id = R.drawable.ic_extensions_onboarding),
+                    contentDescription = null,
+                )
 
-            ExtensionsSubmenuBannerText(
-                title = title,
-                description = description,
-                linkText = linkText,
-                onClick = onClick,
-            )
+                Spacer(modifier = Modifier.height(16.dp))
+
+                ExtensionsSubmenuBannerText(
+                    title = title,
+                    description = description,
+                    linkText = linkText,
+                    onClick = onClick,
+                )
+            }
         }
     }
 }
@@ -88,10 +110,11 @@ private fun ExtensionsSubmenuBannerText(
     linkText: String,
     onClick: () -> Unit,
 ) {
+    val isWideScreen = FirefoxTheme.windowSize.isNotSmall()
     Column(
+        modifier = if (isWideScreen) Modifier else Modifier.padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(horizontal = 24.dp),
+        horizontalAlignment = if (isWideScreen) Alignment.Start else Alignment.CenterHorizontally,
     ) {
         Text(
             text = title,
@@ -103,7 +126,7 @@ private fun ExtensionsSubmenuBannerText(
             text = description,
             color = FirefoxTheme.colors.textPrimary,
             style = FirefoxTheme.typography.body2,
-            textAlign = TextAlign.Center,
+            textAlign = if (!isWideScreen) TextAlign.Center else null,
         )
 
         LinkText(
@@ -121,7 +144,7 @@ private fun ExtensionsSubmenuBannerText(
     }
 }
 
-@LightDarkPreview
+@FlexibleWindowLightDarkPreview
 @Composable
 private fun ExtensionsSubmenuBannerPreview() {
     FirefoxTheme {
