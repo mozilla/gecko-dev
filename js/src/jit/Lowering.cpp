@@ -2462,6 +2462,22 @@ void LIRGenerator::visitBigIntBitNot(MBigIntBitNot* ins) {
   assignSafepoint(lir, ins);
 }
 
+void LIRGenerator::visitBigIntToIntPtr(MBigIntToIntPtr* ins) {
+  MOZ_ASSERT(ins->input()->type() == MIRType::BigInt);
+
+  auto* lir = new (alloc()) LBigIntToIntPtr(useRegister(ins->input()));
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+}
+
+void LIRGenerator::visitIntPtrToBigInt(MIntPtrToBigInt* ins) {
+  MOZ_ASSERT(ins->input()->type() == MIRType::IntPtr);
+
+  auto* lir = new (alloc()) LIntPtrToBigInt(useRegister(ins->input()), temp());
+  define(lir, ins);
+  assignSafepoint(lir, ins);
+}
+
 void LIRGenerator::visitInt32ToStringWithBase(MInt32ToStringWithBase* ins) {
   MOZ_ASSERT(ins->input()->type() == MIRType::Int32);
   MOZ_ASSERT(ins->base()->type() == MIRType::Int32);

@@ -53,6 +53,7 @@ type_policies = {
     "Value": "BoxPolicy",
     "Int32": "UnboxedInt32Policy",
     "BigInt": "BigIntPolicy",
+    "IntPtr": "IntPtrPolicy",
     "Boolean": "BooleanPolicy",
     "Double": "DoublePolicy",
     "String": "StringPolicy",

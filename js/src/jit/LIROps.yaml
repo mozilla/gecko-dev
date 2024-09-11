@@ -1198,6 +1198,19 @@
 - name: BigIntBitNot
   gen_boilerplate: false
 
+- name: BigIntToIntPtr
+  result_type: WordSized
+  operands:
+    input: WordSized
+  mir_op: true
+
+- name: IntPtrToBigInt
+  result_type: WordSized
+  operands:
+    input: WordSized
+  num_temps: 1
+  mir_op: true
+
 - name: Int32ToStringWithBase
   result_type: WordSized
   operands:

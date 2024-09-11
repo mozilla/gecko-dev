@@ -180,6 +180,11 @@ class BigInt final : public js::gc::CellWithLengthAndFlags {
   // leave the value of the output parameter unspecified.
   static bool isUint64(const BigInt* x, uint64_t* result);
 
+  // Return true if the BigInt is without loss of precision representable as an
+  // intptr_t and store the intptr_t value in the output. Otherwise return false
+  // and leave the value of the output parameter unspecified.
+  static bool isIntPtr(const BigInt* x, intptr_t* result);
+
   // Return true if the BigInt is without loss of precision representable as a
   // JS Number (double) and store the double value in the output. Otherwise
   // return false and leave the value of the output parameter unspecified.

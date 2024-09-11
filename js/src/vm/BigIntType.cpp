@@ -2634,6 +2634,41 @@ bool BigInt::isUint64(const BigInt* x, uint64_t* result) {
   return true;
 }
 
+bool BigInt::isIntPtr(const BigInt* x, intptr_t* result) {
+  MOZ_MAKE_MEM_UNDEFINED(result, sizeof(*result));
+
+  static_assert(sizeof(intptr_t) == sizeof(BigInt::Digit));
+
+  if (x->digitLength() > 1) {
+    return false;
+  }
+
+  if (x->isZero()) {
+    *result = 0;
+    return true;
+  }
+
+  uintptr_t magnitude = x->digit(0);
+
+  if (x->isNegative()) {
+    constexpr uintptr_t IntPtrMinMagnitude = uintptr_t(1) << (DigitBits - 1);
+    if (magnitude <= IntPtrMinMagnitude) {
+      *result = magnitude == IntPtrMinMagnitude
+                    ? std::numeric_limits<intptr_t>::min()
+                    : -AssertedCast<intptr_t>(magnitude);
+      return true;
+    }
+  } else {
+    if (magnitude <=
+        static_cast<uintptr_t>(std::numeric_limits<intptr_t>::max())) {
+      *result = AssertedCast<intptr_t>(magnitude);
+      return true;
+    }
+  }
+
+  return false;
+}
+
 bool BigInt::isNumber(const BigInt* x, double* result) {
   MOZ_MAKE_MEM_UNDEFINED(result, sizeof(*result));
 

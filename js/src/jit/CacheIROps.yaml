@@ -2797,6 +2797,21 @@
     lhs: BigIntId
     rhs: BigIntId
 
+- name: BigIntToIntPtr
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    input: BigIntId
+    result: IntPtrId
+
+- name: IntPtrToBigIntResult
+  shared: true
+  transpile: true
+  cost_estimate: 5
+  args:
+    input: IntPtrId
+
 - name: Int32BitOrResult
   shared: true
   transpile: true

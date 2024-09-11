@@ -83,6 +83,7 @@ namespace jit {
   _(BigIntBitNot, JS::BigInt::bitNot)                                          \
   _(BigIntBitOr, JS::BigInt::bitOr)                                            \
   _(BigIntBitXor, JS::BigInt::bitXor)                                          \
+  _(BigIntCreateFromIntPtr, JS::BigInt::createFromIntPtr)                      \
   _(BigIntDec, JS::BigInt::dec)                                                \
   _(BigIntDiv, JS::BigInt::div)                                                \
   _(BigIntInc, JS::BigInt::inc)                                                \

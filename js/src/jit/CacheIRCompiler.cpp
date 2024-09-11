@@ -3759,6 +3759,37 @@ bool CacheIRCompiler::emitBigIntDecResult(BigIntOperandId inputId) {
   return emitBigIntUnaryOperationShared<Fn, BigInt::dec>(inputId);
 }
 
+bool CacheIRCompiler::emitBigIntToIntPtr(BigIntOperandId inputId,
+                                         IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register input = allocator.useRegister(masm, inputId);
+  Register output = allocator.defineRegister(masm, resultId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.loadBigInt(input, output, failure->label());
+  return true;
+}
+
+bool CacheIRCompiler::emitIntPtrToBigIntResult(IntPtrOperandId inputId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  AutoCallVM callvm(masm, this, allocator);
+  Register input = allocator.useRegister(masm, inputId);
+
+  callvm.prepare();
+
+  masm.Push(input);
+
+  using Fn = BigInt* (*)(JSContext*, intptr_t);
+  callvm.call<Fn, JS::BigInt::createFromIntPtr>();
+  return true;
+}
+
 bool CacheIRCompiler::emitTruncateDoubleToUInt32(NumberOperandId inputId,
                                                  Int32OperandId resultId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

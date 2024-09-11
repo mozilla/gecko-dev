@@ -12049,6 +12049,31 @@ void CodeGenerator::visitBigIntBitNot(LBigIntBitNot* ins) {
   masm.bind(ool->rejoin());
 }
 
+void CodeGenerator::visitBigIntToIntPtr(LBigIntToIntPtr* ins) {
+  Register input = ToRegister(ins->input());
+  Register output = ToRegister(ins->output());
+
+  Label bail;
+  masm.loadBigInt(input, output, &bail);
+  bailoutFrom(&bail, ins->snapshot());
+}
+
+void CodeGenerator::visitIntPtrToBigInt(LIntPtrToBigInt* ins) {
+  Register input = ToRegister(ins->input());
+  Register temp = ToRegister(ins->temp0());
+  Register output = ToRegister(ins->output());
+
+  using Fn = BigInt* (*)(JSContext*, intptr_t);
+  auto* ool = oolCallVM<Fn, JS::BigInt::createFromIntPtr>(
+      ins, ArgList(input), StoreRegisterTo(output));
+
+  masm.newGCBigInt(output, temp, initialBigIntHeap(), ool->entry());
+  masm.movePtr(input, temp);
+  masm.initializeBigInt(output, temp);
+
+  masm.bind(ool->rejoin());
+}
+
 void CodeGenerator::visitInt32ToStringWithBase(LInt32ToStringWithBase* lir) {
   Register input = ToRegister(lir->input());
   RegisterOrInt32 base = ToRegisterOrInt32(lir->base());

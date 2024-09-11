@@ -3337,6 +3337,26 @@ bool WarpCacheIRTranspiler::emitBigIntNotResult(BigIntOperandId inputId) {
   return emitBigIntUnaryArithResult<MBigIntBitNot>(inputId);
 }
 
+bool WarpCacheIRTranspiler::emitBigIntToIntPtr(BigIntOperandId inputId,
+                                               IntPtrOperandId resultId) {
+  MDefinition* input = getOperand(inputId);
+
+  auto* ins = MBigIntToIntPtr::New(alloc(), input);
+  add(ins);
+
+  return defineOperand(resultId, ins);
+}
+
+bool WarpCacheIRTranspiler::emitIntPtrToBigIntResult(IntPtrOperandId inputId) {
+  MDefinition* input = getOperand(inputId);
+
+  auto* ins = MIntPtrToBigInt::New(alloc(), input);
+  add(ins);
+
+  pushResult(ins);
+  return true;
+}
+
 bool WarpCacheIRTranspiler::emitCallStringConcatResult(StringOperandId lhsId,
                                                        StringOperandId rhsId) {
   MDefinition* lhs = getOperand(lhsId);

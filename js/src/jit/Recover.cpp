@@ -807,6 +807,40 @@ bool RBigIntBitNot::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
+bool MBigIntToIntPtr::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntToIntPtr));
+  return true;
+}
+
+RBigIntToIntPtr::RBigIntToIntPtr(CompactBufferReader& reader) {}
+
+bool RBigIntToIntPtr::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Value input = iter.read();
+  MOZ_ASSERT(input.isBigInt());
+
+  iter.storeInstructionResult(input);
+  return true;
+}
+
+bool MIntPtrToBigInt::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_IntPtrToBigInt));
+  return true;
+}
+
+RIntPtrToBigInt::RIntPtrToBigInt(CompactBufferReader& reader) {}
+
+bool RIntPtrToBigInt::recover(JSContext* cx, SnapshotIterator& iter) const {
+  BigInt* input = iter.readBigInt(cx);
+  if (!input) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(input));
+  return true;
+}
+
 bool MCompare::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_Compare));

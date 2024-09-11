@@ -86,6 +86,8 @@ namespace jit {
   _(BigIntDecrement)              \
   _(BigIntNegate)                 \
   _(BigIntBitNot)                 \
+  _(BigIntToIntPtr)               \
+  _(IntPtrToBigInt)               \
   _(Compare)                      \
   _(Concat)                       \
   _(StringLength)                 \
@@ -475,6 +477,22 @@ class RBigIntNegate final : public RInstruction {
 class RBigIntBitNot final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(BigIntBitNot, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntToIntPtr final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntToIntPtr, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RIntPtrToBigInt final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(IntPtrToBigInt, 1)
 
   [[nodiscard]] bool recover(JSContext* cx,
                              SnapshotIterator& iter) const override;

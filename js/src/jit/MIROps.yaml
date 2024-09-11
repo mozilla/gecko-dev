@@ -937,6 +937,28 @@
 - name: BigIntBitNot
   gen_boilerplate: false
 
+- name: BigIntToIntPtr
+  operands:
+    input: BigInt
+  result_type: IntPtr
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  folds_to: custom
+  can_recover: true
+  clone: true
+
+- name: IntPtrToBigInt
+  operands:
+    input: IntPtr
+  result_type: BigInt
+  movable: true
+  congruent_to: if_operands_equal
+  alias_set: none
+  folds_to: custom
+  can_recover: true
+  clone: true
+
 - name: Int32ToStringWithBase
   operands:
     input: Int32
