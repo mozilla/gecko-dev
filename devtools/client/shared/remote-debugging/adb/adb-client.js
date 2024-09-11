@@ -23,9 +23,19 @@ function getBuffer(packet) {
   return packet.buffer ? packet.buffer : packet;
 }
 
-// @param aPacket         The packet to get the length from.
-// @param aIgnoreResponse True if this packet has no OKAY/FAIL.
-// @return                A js object { length:...; data:... }
+/**
+ * Decode an adb packet into a JS object with length (number) and data (string)
+ * properties.
+ *
+ * @param packet
+ *     The packet to get the content from.
+ * @param
+ *     ignoreResponse True if this packet has no OKAY/FAIL.
+ * @return
+ *     A js object with the following properties:
+ *     - length (number): length of the decoded data
+ *     - data (string): the decoded data as a string. Can be multiline (\n)
+ */
 function unpackPacket(packet, ignoreResponse) {
   const buffer = getBuffer(packet);
   dumpn("Len buffer: " + buffer.byteLength);
@@ -33,11 +43,35 @@ function unpackPacket(packet, ignoreResponse) {
     dumpn("Packet empty");
     return { length: 0, data: "" };
   }
-  const lengthView = new Uint8Array(buffer, ignoreResponse ? 0 : 4, 4);
+  let index = 0;
+  let totalLength = 0;
+  const decodedText = [];
+
+  // Prepare a decoder.
   const decoder = new TextDecoder();
-  const length = parseInt(decoder.decode(lengthView), 16);
-  const text = new Uint8Array(buffer, ignoreResponse ? 4 : 8, length);
-  return { length, data: decoder.decode(text) };
+
+  // Loop over all lines in the packet
+  while (index < buffer.byteLength) {
+    // Set the index to 4 if we need to skip the response bytes.
+    index += ignoreResponse ? 0 : 4;
+
+    // Read the packet line length.
+    const lengthView = new Uint8Array(buffer, index, 4);
+    const length = parseInt(decoder.decode(lengthView), 16);
+
+    // Move the index after the last size byte.
+    index += 4;
+
+    // Read the packet line content and append it to the decodedText array.
+    const text = new Uint8Array(buffer, index, length);
+    decodedText.push(decoder.decode(text));
+
+    // Move the index after the last read byte for this packet line.
+    index += length;
+    // Note: totalLength is only used for logging purposes.
+    totalLength += length;
+  }
+  return { length: totalLength, data: decodedText.join("\n") };
 }
 
 // Checks if the response is expected (defaults to OKAY).
