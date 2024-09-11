@@ -2351,6 +2351,48 @@ networkPrioritization:
       setPref:
         branch: default
         pref: "network.fetchpriority.adjustments.images.auto"
+    lowerTrackersPriority:
+      description: Whether to lower priority of resources on the tracking protection list
+      type: boolean
+      setPref:
+        branch: default
+        pref: "privacy.trackingprotection.lower_network_priority"
+    enableHttpTailing:
+      description: Whether certain requests, mainly trackers, are put to the "tail", behind other requests
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.http.tailing.enabled"
+    httpTailingUrgency:
+      description: Priority urgency of tailed request
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.tailing.urgency"
+    httpTailingDelayQuantum:
+      description: When the page load has not yet reached DOMContentLoaded point, tail requestes are delayed by (non-tailed requests count + 1) * delay-quantum milliseconds.
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.tailing.delay-quantum"
+    httpTailingDelayQuantumAfterDCL:
+      description: After the page load reached DOMContentLoaded point, tail requestes are delayed by (non-tailed requests count + 1) * delay-quantum-after-domcontentloaded milliseconds.
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.tailing.delay-quantum-after-domcontentloaded"
+    httpTailingMaxDelay:
+      description:  Upper limit for the calculated delay, prevents long standing and comet-like requests
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.tailing.delay-max"
+    httpTailingTotalMaxDelay:
+      description: Total limit we delay tailed requests since page load start
+      type: int
+      setPref:
+        branch: default
+        pref: "network.http.tailing.total-max"
 
 networkingAuth:
   description: "Firefox Networking (Necko) Authentication"
