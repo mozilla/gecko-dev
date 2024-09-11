@@ -2241,4 +2241,21 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         lastSetAsDefaultPromptShownTimeInMillis = System.currentTimeMillis()
         coldStartsBetweenSetAsDefaultPrompts = 0
     }
+
+    /**
+     * A timestamp indicating the end of a deferral period, initiated when users deny submitted a crash,
+     * during which we avoid showing the unsubmitted crash dialog.
+     */
+    var crashReportDeferredUntil by longPreference(
+        appContext.getPreferenceKey(R.string.pref_key_crash_reporting_deferred_until),
+        default = 0,
+    )
+
+    /**
+     * A user preference indicating that crash reports should always be automatically sent.
+     */
+    var crashReportAlwaysSend by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_crash_reporting_always_report),
+        default = false,
+    )
 }

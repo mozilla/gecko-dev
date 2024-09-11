@@ -5,6 +5,7 @@
 package mozilla.components.lib.crash.store
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import mozilla.components.lib.crash.CrashReporter
 
@@ -46,7 +47,7 @@ class CrashMiddleware(
     private val cache: CrashReportCache,
     private val crashReporter: CrashReporter,
     private val currentTimeInMillis: () -> TimeInMillis = { System.currentTimeMillis() },
-    private val scope: CoroutineScope,
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
 ) {
 
     /**

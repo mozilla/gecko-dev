@@ -8,6 +8,7 @@ import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
+import mozilla.components.lib.crash.store.CrashState
 import mozilla.components.lib.state.State
 import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
@@ -65,6 +66,7 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @property shoppingState Holds state for shopping feature that's required to live the lifetime of a session.
  * @property snackbarState The [SnackbarState] to display.
  * @property showFindInPage Whether or not to show the find in page feature.
+ * @property crashState State related to the crash reporter.
  * @property wasLastTabClosedPrivate Whether the last remaining tab that was closed in private mode. This is used to
  * display an undo snackbar message relevant to the browsing mode. If null, no snackbar is shown.
  */
@@ -98,5 +100,6 @@ data class AppState(
     val shoppingState: ShoppingState = ShoppingState(),
     val snackbarState: SnackbarState = SnackbarState.None,
     val showFindInPage: Boolean = false,
+    val crashState: CrashState = CrashState.Idle,
     val wasLastTabClosedPrivate: Boolean? = null,
 ) : State

@@ -5,6 +5,7 @@
 package org.mozilla.fenix.components.appstate
 
 import androidx.annotation.VisibleForTesting
+import mozilla.components.lib.crash.store.crashReducer
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import mozilla.components.service.pocket.PocketStory.PocketSponsoredStory
 import mozilla.components.service.pocket.ext.recordNewImpression
@@ -288,6 +289,10 @@ internal object AppStoreReducer {
         is AppAction.ReaderViewAction -> ReaderViewStateReducer.reduce(state, action)
         is AppAction.ShortcutAction -> ShortcutStateReducer.reduce(state, action)
         is AppAction.ShoppingAction -> ShoppingStateReducer.reduce(state, action)
+        is AppAction.CrashActionWrapper -> state.copy(
+            crashState = crashReducer(state.crashState, action.inner),
+        )
+
         is AppAction.SnackbarAction -> SnackbarStateReducer.reduce(state, action)
     }
 }

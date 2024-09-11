@@ -10,6 +10,7 @@ import mozilla.components.concept.sync.TabData
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import mozilla.components.lib.crash.Crash.NativeCodeCrash
+import mozilla.components.lib.crash.store.CrashAction
 import mozilla.components.lib.state.Action
 import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.nimbus.messaging.MessageSurfaceId
@@ -373,6 +374,11 @@ sealed class AppAction : Action {
          */
         data class UpdateLastTabClosed(val private: Boolean?) : TabStripAction()
     }
+
+    /**
+     * An wrapper action for delegating [CrashAction]s to the appropriate Reducers and Middleware in the tree.
+     */
+    data class CrashActionWrapper(val inner: CrashAction) : AppAction()
 
     /**
      * [AppAction]s related to translations.
