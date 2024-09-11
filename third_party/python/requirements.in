@@ -11,7 +11,7 @@ blessed==1.19.1
 cbor2==4.0.1
 certifi==2022.12.7
 click==8.1.6
-colorama==0.4.5
+colorama==0.4.6
 compare-locales==9.0.1
 cookies==2.2.1
 cram==0.7
