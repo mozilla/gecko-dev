@@ -19,101 +19,105 @@ function ensureCleanupRegistered() {
 }
 
 /**
- * An hidden frame object. It takes care of creating a windowless browser and
+ * A hidden frame class. It takes care of creating a windowless browser and
  * passing the window containing a blank XUL <window> back.
  */
-export function HiddenFrame() {}
-
-HiddenFrame.prototype = {
-  _frame: null,
-  _browser: null,
-  _listener: null,
-  _webProgress: null,
-  _deferred: null,
+export class HiddenFrame {
+  #frame = null;
+  #browser = null;
+  #listener = null;
+  #webProgress = null;
+  #deferred = null;
 
   /**
    * Gets the |contentWindow| of the hidden frame. Creates the frame if needed.
-   * @returns Promise Returns a promise which is resolved when the hidden frame has finished
+   *
+   * @returns {Promise} Returns a promise which is resolved when the hidden frame has finished
    *          loading.
    */
   get() {
-    if (!this._deferred) {
-      this._deferred = Promise.withResolvers();
-      this._create();
+    if (!this.#deferred) {
+      this.#deferred = Promise.withResolvers();
+      this.#create();
     }
 
-    return this._deferred.promise;
-  },
+    return this.#deferred.promise;
+  }
 
   /**
    * Fetch a sync ref to the window inside the frame (needed for the add-on SDK).
+   *
+   * @returns {DOMWindow}
    */
   getWindow() {
     this.get();
-    return this._browser.document.ownerGlobal;
-  },
+    return this.#browser.document.ownerGlobal;
+  }
 
+  /**
+   * Destroys the browser, freeing resources.
+   */
   destroy() {
-    if (this._browser) {
-      if (this._listener) {
-        this._webProgress.removeProgressListener(this._listener);
-        this._listener = null;
-        this._webProgress = null;
+    if (this.#browser) {
+      if (this.#listener) {
+        this.#webProgress.removeProgressListener(this.#listener);
+        this.#listener = null;
+        this.#webProgress = null;
       }
-      this._frame = null;
-      this._deferred = null;
+      this.#frame = null;
+      this.#deferred = null;
 
       gAllHiddenFrames.delete(this);
-      this._browser.close();
-      this._browser = null;
+      this.#browser.close();
+      this.#browser = null;
     }
-  },
+  }
 
-  _create() {
+  #create() {
     ensureCleanupRegistered();
     let chromeFlags = Ci.nsIWebBrowserChrome.CHROME_REMOTE_WINDOW;
     if (Services.appinfo.fissionAutostart) {
       chromeFlags |= Ci.nsIWebBrowserChrome.CHROME_FISSION_WINDOW;
     }
-    this._browser = Services.appShell.createWindowlessBrowser(
+    this.#browser = Services.appShell.createWindowlessBrowser(
       true,
       chromeFlags
     );
-    this._browser.QueryInterface(Ci.nsIInterfaceRequestor);
+    this.#browser.QueryInterface(Ci.nsIInterfaceRequestor);
     gAllHiddenFrames.add(this);
-    this._webProgress = this._browser.getInterface(Ci.nsIWebProgress);
-    this._listener = {
+    this.#webProgress = this.#browser.getInterface(Ci.nsIWebProgress);
+    this.#listener = {
       QueryInterface: ChromeUtils.generateQI([
         "nsIWebProgressListener",
         "nsIWebProgressListener2",
         "nsISupportsWeakReference",
       ]),
     };
-    this._listener.onStateChange = (wbp, request, stateFlags) => {
+    this.#listener.onStateChange = (wbp, request, stateFlags) => {
       if (!request) {
         return;
       }
       if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
-        this._webProgress.removeProgressListener(this._listener);
-        this._listener = null;
-        this._webProgress = null;
+        this.#webProgress.removeProgressListener(this.#listener);
+        this.#listener = null;
+        this.#webProgress = null;
         // Get the window reference via the document.
-        this._frame = this._browser.document.ownerGlobal;
-        this._deferred.resolve(this._frame);
+        this.#frame = this.#browser.document.ownerGlobal;
+        this.#deferred.resolve(this.#frame);
       }
     };
-    this._webProgress.addProgressListener(
-      this._listener,
+    this.#webProgress.addProgressListener(
+      this.#listener,
       Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT
     );
-    let docShell = this._browser.docShell;
+    let docShell = this.#browser.docShell;
     let systemPrincipal = Services.scriptSecurityManager.getSystemPrincipal();
     docShell.createAboutBlankDocumentViewer(systemPrincipal, systemPrincipal);
-    let browsingContext = this._browser.browsingContext;
+    let browsingContext = this.#browser.browsingContext;
     browsingContext.useGlobalHistory = false;
     let loadURIOptions = {
       triggeringPrincipal: systemPrincipal,
     };
-    this._browser.loadURI(XUL_PAGE, loadURIOptions);
-  },
-};
+    this.#browser.loadURI(XUL_PAGE, loadURIOptions);
+  }
+}
