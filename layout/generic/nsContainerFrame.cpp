@@ -837,7 +837,9 @@ LogicalSize nsContainerFrame::ComputeAutoSize(
     AutoMaybeDisableFontInflation an(this);
 
     WritingMode tableWM = GetParent()->GetWritingMode();
-    const IntrinsicSizeInput input(aRenderingContext, Nothing());
+    const IntrinsicSizeInput input(
+        aRenderingContext, Some(aCBSize.ConvertTo(GetWritingMode(), aWM)),
+        Nothing());
     if (aWM.IsOrthogonalTo(tableWM)) {
       // For an orthogonal caption on a block-dir side of the table, shrink-wrap
       // to min-isize.

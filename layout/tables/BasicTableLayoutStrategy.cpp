@@ -107,7 +107,7 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
         cbBSize, contentEdgeToBoxSizingBSize);
 
     const IntrinsicSizeInput input(
-        aRenderingContext,
+        aRenderingContext, Nothing(),
         Some(LogicalSize(aWM, NS_UNCONSTRAINEDSIZE, cellBSize)));
     minCoord = aFrame->GetMinISize(input);
     prefCoord = aFrame->GetPrefISize(input);

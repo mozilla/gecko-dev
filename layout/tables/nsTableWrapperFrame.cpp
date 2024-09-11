@@ -250,7 +250,7 @@ nscoord nsTableWrapperFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
 
     // Tables can't shrink smaller than their intrinsic minimum inline size,
     // no matter what.
-    const IntrinsicSizeInput input(aInput.mContext, Nothing());
+    const IntrinsicSizeInput input(aInput.mContext, Nothing(), Nothing());
 
     // GetMinISize() returns a content-box inline size, but we need the
     // margin-box inline size as the contribution in the inline axis.

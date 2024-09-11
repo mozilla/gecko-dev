@@ -1403,7 +1403,7 @@ nsIFrame::SizeComputationResult nsTableFrame::ComputeSize(
   AutoMaybeDisableFontInflation an(this);
 
   // Tables never shrink below their min inline-size.
-  const IntrinsicSizeInput input(aRenderingContext, Nothing());
+  const IntrinsicSizeInput input(aRenderingContext, Some(aCBSize), Nothing());
   nscoord minISize = GetMinISize(input);
   if (minISize > result.mLogicalSize.ISize(aWM)) {
     result.mLogicalSize.ISize(aWM) = minISize;
@@ -1419,7 +1419,7 @@ nscoord nsTableFrame::TableShrinkISizeToFit(gfxContext* aRenderingContext,
   AutoMaybeDisableFontInflation an(this);
 
   nscoord result;
-  const IntrinsicSizeInput input(aRenderingContext, Nothing());
+  const IntrinsicSizeInput input(aRenderingContext, Nothing(), Nothing());
   nscoord minISize = GetMinISize(input);
   if (minISize > aISizeInCB) {
     result = minISize;

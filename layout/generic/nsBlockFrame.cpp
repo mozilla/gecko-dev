@@ -1039,7 +1039,8 @@ nsresult nsBlockFrame::GetPrefWidthTightBounds(gfxContext* aRenderingContext,
         // determine the intrinsic inline sizes of MathML token elements. These
         // elements shouldn't have percentage block sizes that require a
         // percentage basis for resolution.
-        const IntrinsicSizeInput kidInput(aRenderingContext, Nothing());
+        const IntrinsicSizeInput kidInput(aRenderingContext, Nothing(),
+                                          Nothing());
         for (int32_t i = 0, i_end = line->GetChildCount(); i != i_end;
              ++i, kid = kid->GetNextSibling()) {
           rv = kid->GetPrefWidthTightBounds(aRenderingContext, &childX,

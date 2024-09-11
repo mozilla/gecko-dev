@@ -4298,7 +4298,7 @@ static Maybe<nscoord> GetIntrinsicSize(nsIFrame::ExtremumLength aLength,
   } else {
     // Bug 1363918: We need to refactor this function to compute a percentage
     // basis when computing intrinsic sizes.
-    const IntrinsicSizeInput input(aRenderingContext, Nothing());
+    const IntrinsicSizeInput input(aRenderingContext, Nothing(), Nothing());
     auto type = aLength == nsIFrame::ExtremumLength::MaxContent
                     ? IntrinsicISizeType::PrefISize
                     : IntrinsicISizeType::MinISize;
@@ -4415,7 +4415,7 @@ static nscoord AddIntrinsicSizeOffset(
     } else {
       // Bug 1363918: We need to refactor this function to compute a percentage
       // basis when computing intrinsic sizes.
-      const IntrinsicSizeInput input(aRenderingContext, Nothing());
+      const IntrinsicSizeInput input(aRenderingContext, Nothing(), Nothing());
       minContent = aFrame->GetMinISize(input);
       maxContent = aFrame->GetPrefISize(input);
     }
@@ -4747,7 +4747,7 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
         percentageBasisBSizeForChildren = percentageBasisBSizeForFrame;
       }
       const IntrinsicSizeInput input(
-          aRenderingContext,
+          aRenderingContext, aPercentageBasis,
           Some(LogicalSize(childWM, NS_UNCONSTRAINEDSIZE,
                            percentageBasisBSizeForChildren)));
       result = aFrame->IntrinsicISize(input, aType);

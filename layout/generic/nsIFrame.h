@@ -423,6 +423,18 @@ struct FrameBidiData {
 struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   gfxContext* const mContext;
 
+  // The content-box size of a frame's containing block (in the frame's own
+  // writing mode), used as a percentage basis for percentage-based sizes on the
+  // frame itself that contribute to its intrinsic size. For example, in grid
+  // layout, a percentage value of min-height be can transferred through the
+  // aspect-ratio to determine auto repeat columns specified in
+  // grid-template-columns.
+  //
+  // Note: it is acceptable for mContainingBlockSize to be Nothing() as long as
+  // the frame doesn't have percentage-based value for properties that need to
+  // be resolved in order to compute its intrinsic size.
+  Maybe<LogicalSize> mContainingBlockSize;
+
   // The content-box size of a frame (in the frame's own writing mode), served
   // as a percentage basis when computing the children's intrinsic
   // contributions. If the basis is indefinite in a given axis, use
@@ -435,22 +447,28 @@ struct MOZ_STACK_CLASS IntrinsicSizeInput final {
   Maybe<LogicalSize> mPercentageBasisForChildren;
 
   IntrinsicSizeInput(gfxContext* aContext,
+                     const Maybe<LogicalSize>& aContainingBlockSize,
                      const Maybe<LogicalSize>& aPercentageBasisForChildren)
       : mContext(aContext),
+        mContainingBlockSize(aContainingBlockSize),
         mPercentageBasisForChildren(aPercentageBasisForChildren) {
     MOZ_ASSERT(mContext);
   }
 
-  // Construct a new IntrinsicSizeInput by copying from aSource.
+  // Construct a new IntrinsicSizeInput for children by copying from
+  // aParentInput.
+  //
+  // Note: since this constructor creates an IntrinsicSizeInput for the
+  // children, it does not copy mContainingBlockSize from aParentInput.
   //
   // This constructor converts mPercentageBasisForChildren's writing mode, if it
   // exists. The original mPercentageBasis in aSource is expected to be in the
   // writing mode aFromWM, and it will be converted to the writing mode aToWM.
-  IntrinsicSizeInput(const IntrinsicSizeInput& aSource,
+  IntrinsicSizeInput(const IntrinsicSizeInput& aParentInput,
                      mozilla::WritingMode aToWM, mozilla::WritingMode aFromWM)
       : IntrinsicSizeInput(
-            aSource.mContext,
-            aSource.mPercentageBasisForChildren.map([&](const auto& aPB) {
+            aParentInput.mContext, Nothing(),
+            aParentInput.mPercentageBasisForChildren.map([&](const auto& aPB) {
               return aPB.ConvertTo(aToWM, aFromWM);
             })) {}
 };

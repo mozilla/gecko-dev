@@ -214,7 +214,7 @@ void nsRubyBaseContainerFrame::AddInlineMinISize(
 void nsRubyBaseContainerFrame::AddInlinePrefISize(
     const IntrinsicSizeInput& aInput, InlinePrefISizeData* aData) {
   AutoRubyTextContainerArray textContainers(this);
-  const IntrinsicSizeInput input(aInput.mContext, Nothing());
+  const IntrinsicSizeInput input(aInput.mContext, Nothing(), Nothing());
 
   nscoord sum = 0;
   for (nsIFrame* frame = this; frame; frame = frame->GetNextInFlow()) {
