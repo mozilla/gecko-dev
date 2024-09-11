@@ -751,6 +751,12 @@
 - name: Int64ToBigInt
   gen_boilerplate: false
 
+- name: Int64ToIntPtr
+  gen_boilerplate: false
+
+- name: IntPtrToInt64
+  gen_boilerplate: false
+
 - name: ToString
   gen_boilerplate: false
 

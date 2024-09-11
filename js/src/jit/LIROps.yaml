@@ -2908,6 +2908,19 @@
   num_temps: 1
   mir_op: Int64ToBigInt
 
+# Return intptr from an unboxed int64. Bails if the input exceeds intptr limits.
+- name: Int64ToIntPtr
+  result_type: WordSized
+  operands:
+    input: Int64
+  mir_op: true
+
+# Return an int64 from an intptr.
+- name: IntPtrToInt64
+  result_type: Int64
+  operands:
+    input: WordSized
+
 # Generational write barrier used when writing an object to another object.
 - name: PostWriteBarrierO
   operands:

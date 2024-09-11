@@ -1319,6 +1319,14 @@ void MacroAssembler::branchTruncateDoubleToInt32(FloatRegister src,
   ma_b(dest, scratch, fail, Assembler::NotEqual);
 }
 
+void MacroAssembler::branchInt64NotInPtrRange(Register64 src, Label* label) {
+  // No-op on 64-bit platforms.
+}
+
+void MacroAssembler::branchUInt64NotInPtrRange(Register64 src, Label* label) {
+  branchTest64(Assembler::Signed, src, src, label);
+}
+
 template <typename T>
 void MacroAssembler::branchAdd32(Condition cond, T src, Register dest,
                                  Label* overflow) {

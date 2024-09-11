@@ -1255,6 +1255,14 @@ void MacroAssembler::branchTruncateFloat32ToInt32(FloatRegister src,
   ma_b(scratch, Imm32(0), fail, Assembler::Equal);
 }
 
+void MacroAssembler::branchInt64NotInPtrRange(Register64 src, Label* label) {
+  // No-op on 64-bit platforms.
+}
+
+void MacroAssembler::branchUInt64NotInPtrRange(Register64 src, Label* label) {
+  branchTest64(Assembler::Signed, src, src, label);
+}
+
 void MacroAssembler::byteSwap16SignExtend(Register src) {
   JitSpew(JitSpew_Codegen, "[ %s\n", __FUNCTION__);
   UseScratchRegisterScope temps(this);

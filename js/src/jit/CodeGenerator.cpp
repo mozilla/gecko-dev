@@ -5287,6 +5287,34 @@ void CodeGenerator::visitUint64ToBigInt(LUint64ToBigInt* lir) {
   emitCreateBigInt(lir, Scalar::BigUint64, input, output, temp);
 }
 
+void CodeGenerator::visitInt64ToIntPtr(LInt64ToIntPtr* lir) {
+  Register64 input = ToRegister64(lir->input());
+#ifdef JS_64BIT
+  MOZ_ASSERT(input.reg == ToRegister(lir->output()));
+#else
+  MOZ_ASSERT(input.low == ToRegister(lir->output()));
+#endif
+
+  Label bail;
+  if (lir->mir()->elementType() == Scalar::BigInt64) {
+    masm.branchInt64NotInPtrRange(input, &bail);
+  } else {
+    masm.branchUInt64NotInPtrRange(input, &bail);
+  }
+  bailoutFrom(&bail, lir->snapshot());
+}
+
+void CodeGenerator::visitIntPtrToInt64(LIntPtrToInt64* lir) {
+#ifdef JS_64BIT
+  MOZ_CRASH("Not used on 64-bit platforms");
+#else
+  Register input = ToRegister(lir->input());
+  Register64 output = ToOutRegister64(lir);
+
+  masm.move32To64SignExtend(input, output);
+#endif
+}
+
 void CodeGenerator::visitGuardValue(LGuardValue* lir) {
   ValueOperand input = ToValue(lir, LGuardValue::InputIndex);
   Value expected = lir->mir()->expected();

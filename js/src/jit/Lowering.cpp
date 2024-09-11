@@ -3579,6 +3579,36 @@ void LIRGenerator::visitInt64ToBigInt(MInt64ToBigInt* ins) {
   }
 }
 
+void LIRGenerator::visitInt64ToIntPtr(MInt64ToIntPtr* ins) {
+  MOZ_ASSERT(ins->input()->type() == MIRType::Int64);
+
+#ifdef JS_64BIT
+  if (ins->elementType() == Scalar::BigInt64) {
+    redefine(ins, ins->input());
+    return;
+  }
+#else
+  static_assert(INT64LOW_INDEX == 0,
+                "low 32-bits are stored in operand index zero");
+#endif
+
+  auto* lir =
+      new (alloc()) LInt64ToIntPtr(useInt64RegisterAtStart(ins->input()));
+  assignSnapshot(lir, ins->bailoutKind());
+  defineReuseInput(lir, ins, 0);
+}
+
+void LIRGenerator::visitIntPtrToInt64(MIntPtrToInt64* ins) {
+  MOZ_ASSERT(ins->input()->type() == MIRType::IntPtr);
+
+#ifdef JS_64BIT
+  redefine(ins, ins->input());
+#else
+  auto* lir = new (alloc()) LIntPtrToInt64(useRegister(ins->input()));
+  defineInt64(lir, ins);
+#endif
+}
+
 void LIRGenerator::visitWasmTruncateToInt32(MWasmTruncateToInt32* ins) {
   MDefinition* input = ins->input();
   switch (input->type()) {

@@ -764,6 +764,14 @@ void MacroAssembler::branchTruncateDoubleToInt32(FloatRegister src,
   ma_b(dest, scratch, fail, Assembler::NotEqual);
 }
 
+void MacroAssembler::branchInt64NotInPtrRange(Register64 src, Label* label) {
+  // No-op on 64-bit platforms.
+}
+
+void MacroAssembler::branchUInt64NotInPtrRange(Register64 src, Label* label) {
+  branchTest64(Assembler::Signed, src, src, label);
+}
+
 void MacroAssembler::fallibleUnboxPtr(const ValueOperand& src, Register dest,
                                       JSValueType type, Label* fail) {
   MOZ_ASSERT(type == JSVAL_TYPE_OBJECT || type == JSVAL_TYPE_STRING ||

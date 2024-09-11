@@ -3875,6 +3875,56 @@ class MInt64ToBigInt : public MUnaryInstruction, public NoTypePolicy::Data {
   ALLOW_CLONE(MInt64ToBigInt)
 };
 
+// Takes an Int64 and returns a IntPtr.
+class MInt64ToIntPtr : public MUnaryInstruction, public NoTypePolicy::Data {
+  Scalar::Type elementType_;
+
+  MInt64ToIntPtr(MDefinition* def, Scalar::Type elementType)
+      : MUnaryInstruction(classOpcode, def), elementType_(elementType) {
+    MOZ_ASSERT(def->type() == MIRType::Int64);
+    MOZ_ASSERT(Scalar::isBigIntType(elementType));
+    setResultType(MIRType::IntPtr);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(Int64ToIntPtr)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins) &&
+           ins->toInt64ToIntPtr()->elementType() == elementType();
+  }
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  Scalar::Type elementType() const { return elementType_; }
+
+  ALLOW_CLONE(MInt64ToIntPtr)
+};
+
+// Takes a IntPtr and returns an Int64.
+class MIntPtrToInt64 : public MUnaryInstruction, public NoTypePolicy::Data {
+  explicit MIntPtrToInt64(MDefinition* def)
+      : MUnaryInstruction(classOpcode, def) {
+    MOZ_ASSERT(def->type() == MIRType::IntPtr);
+    setResultType(MIRType::Int64);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(IntPtrToInt64)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool congruentTo(const MDefinition* ins) const override {
+    return congruentIfOperandsEqual(ins);
+  }
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  ALLOW_CLONE(MIntPtrToInt64)
+};
+
 // Converts any type to a string
 class MToString : public MUnaryInstruction, public ToStringPolicy::Data {
  public:

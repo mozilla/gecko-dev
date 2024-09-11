@@ -949,6 +949,14 @@ void MacroAssembler::branchTruncateDoubleToInt32(FloatRegister src,
   MOZ_CRASH();
 }
 
+void MacroAssembler::branchInt64NotInPtrRange(Register64 src, Label* label) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::branchUInt64NotInPtrRange(Register64 src, Label* label) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::mulDoublePtr(ImmPtr imm, Register temp,
                                   FloatRegister dest) {
   MOZ_CRASH();

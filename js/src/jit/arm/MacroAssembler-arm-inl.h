@@ -1705,6 +1705,21 @@ void MacroAssembler::branchTruncateDoubleToInt32(FloatRegister src,
   ma_b(fail, Assembler::Equal);
 }
 
+void MacroAssembler::branchInt64NotInPtrRange(Register64 src, Label* label) {
+  // The high-word needs to be either all zero or all one, depending on the MSB
+  // of the low-word.
+  as_cmp(src.high, asr(src.low, 31));
+  ma_b(label, Assembler::NotEqual);
+}
+
+void MacroAssembler::branchUInt64NotInPtrRange(Register64 src, Label* label) {
+  ScratchRegisterScope scratch(*this);
+
+  // The low-word MSB and all bits in the high-word must be zero.
+  as_orr(scratch, src.high, asr(src.low, 31), SetCC);
+  ma_b(label, Assembler::NonZero);
+}
+
 template <typename T>
 void MacroAssembler::branchAdd32(Condition cond, T src, Register dest,
                                  Label* label) {

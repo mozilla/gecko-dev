@@ -1680,6 +1680,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void branchFloat32NotInUInt64Range(Address src, Register temp,
                                             Label* fail);
 
+  // Branch if the (un)signed int64 is outside the range of a signed intptr.
+  inline void branchInt64NotInPtrRange(Register64 src, Label* label) PER_ARCH;
+  inline void branchUInt64NotInPtrRange(Register64 src, Label* label) PER_ARCH;
+
   template <typename T>
   inline void branchAdd32(Condition cond, T src, Register dest,
                           Label* label) PER_SHARED_ARCH;
