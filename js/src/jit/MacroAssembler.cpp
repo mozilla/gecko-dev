@@ -2128,13 +2128,20 @@ void MacroAssembler::loadBigIntPtr(Register bigInt, Register dest,
 
   // BigInt digits are stored as unsigned numbers. Take the failure path when
   // the digit can't be stored in intptr_t.
-  branchTestPtr(Assembler::Signed, dest, dest, fail);
 
-  // Negate |dest| when the BigInt is negative.
-  Label nonNegative;
+  Label nonNegative, done;
   branchIfBigIntIsNonNegative(bigInt, &nonNegative);
-  negPtr(dest);
+  {
+    // Negate |dest| when the BigInt is negative.
+    negPtr(dest);
+
+    // Test after negating to handle INTPTR_MIN correctly.
+    branchTestPtr(Assembler::NotSigned, dest, dest, fail);
+    jump(&done);
+  }
   bind(&nonNegative);
+  branchTestPtr(Assembler::Signed, dest, dest, fail);
+  bind(&done);
 }
 
 void MacroAssembler::initializeBigInt64(Scalar::Type type, Register bigInt,
