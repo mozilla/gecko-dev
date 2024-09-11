@@ -251,13 +251,13 @@ def android_build_geckoview_example(command_context, args):
 @SubCommand("android", "compile-all", """Build all source files""")
 @CommandArgument("args", nargs=argparse.REMAINDER)
 def android_compile_all(command_context, args):
-    gradle(
+    ret = gradle(
         command_context,
         command_context.substs["GRADLE_ANDROID_COMPILE_ALL_TASKS"] + args,
         verbose=True,
     )
 
-    return 0
+    return ret
 
 
 def install_app_bundle(command_context, bundle):
