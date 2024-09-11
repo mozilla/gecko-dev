@@ -1052,6 +1052,7 @@ class CrashReporterTest {
             breadcrumbs = listOf(),
             createdAt = 0L,
             stacktrace = "<native crash>",
+            throwableData = null,
             minidumpPath = null,
             minidumpSuccess = null,
             processType = null,

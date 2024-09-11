@@ -10,6 +10,17 @@ import androidx.room.PrimaryKey
 import kotlinx.serialization.json.Json
 import mozilla.components.lib.crash.Crash
 import mozilla.components.support.base.ext.getStacktraceAsString
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.io.ObjectInputStream
+import java.io.ObjectOutputStream
+import mozilla.components.concept.base.crash.Breadcrumb as CrashBreadcrumb
+
+/**
+ * [Throwable] that gets created when the Crash Reporter isn't able to restore the serialized
+ * throwable in a CrashEntity.
+ */
+data class CrashReporterUnableToRestoreException(override var message: String) : Exception()
 
 /**
  * Database entity modeling a crash that has happened.
@@ -60,6 +71,12 @@ internal data class CrashEntity(
     @ColumnInfo(name = "stacktrace")
     var stacktrace: String,
 
+    /**
+     * The serialized [Throwable] tht caused the crash.
+     */
+    @ColumnInfo(name = "throwable")
+    val throwableData: ByteArray?,
+
     /* Native crash fields */
 
     /**
@@ -97,13 +114,14 @@ internal data class CrashEntity(
     var remoteType: String?,
 )
 
-internal fun CrashEntity.toCrash(): Crash {
-    val breadcrumbs = Result.runCatching {
+internal fun CrashEntity.deserializeBreadcrumbs(): ArrayList<CrashBreadcrumb> =
+    Result.runCatching {
         breadcrumbs
             ?.map { Json.decodeFromString<Breadcrumb>(it).toBreadcrumb() }
             ?.let { ArrayList(it) } ?: arrayListOf()
     }.getOrDefault(arrayListOf())
 
+internal fun CrashEntity.toCrash(): Crash {
     return when (this.crashType) {
         CrashType.NATIVE -> Crash.NativeCodeCrash(
             timestamp = this.createdAt,
@@ -111,19 +129,44 @@ internal fun CrashEntity.toCrash(): Crash {
             minidumpSuccess = this.minidumpSuccess ?: false,
             extrasPath = this.extrasPath,
             processType = this.processType,
-            breadcrumbs = breadcrumbs,
+            breadcrumbs = deserializeBreadcrumbs(),
             remoteType = this.remoteType,
             runtimeTags = this.runtimeTags,
             uuid = this.uuid,
         )
         CrashType.UNCAUGHT -> Crash.UncaughtExceptionCrash(
             timestamp = this.createdAt,
-            throwable = Throwable(message = this.stacktrace),
-            breadcrumbs = breadcrumbs,
+            throwable = deserializeThrowable(),
+            breadcrumbs = deserializeBreadcrumbs(),
             runtimeTags = runtimeTags,
             uuid = this.uuid,
         )
     }
+}
+
+internal fun CrashEntity.restoreArchiveError(message: String): Throwable {
+    val lines = stacktrace.trim().lines()
+    if (lines.isEmpty()) return CrashReporterUnableToRestoreException("Stack trace string is empty or invalid.")
+
+    val throwable = CrashReporterUnableToRestoreException(message)
+
+    // this Regex will take a line of a stack trace and pulls the class / method, file name and line number.
+    // for example, if we're given:
+    // at androidx.recyclerview.widget.LinearLayoutManager.fill(LinearLayoutManager.java:49)
+    // we will get ("androidx.recyclerview.widget.LinearLayoutManager.fill", "LinearLayoutManager.java", 49).
+    val regex = Regex("""\s*at (.+)\((.+):(\d+)\)""")
+
+    val stackTraceElements = lines.drop(1).mapNotNull { line ->
+        val matchResult = regex.find(line.trim())
+        matchResult?.let {
+            val (className, fileName, lineNumber) = it.destructured
+            StackTraceElement(className, "", fileName, lineNumber.toInt())
+        }
+    }.toTypedArray()
+
+    throwable.stackTrace = stackTraceElements
+
+    return throwable
 }
 
 internal fun Crash.toEntity(): CrashEntity {
@@ -133,6 +176,32 @@ internal fun Crash.toEntity(): CrashEntity {
     }
 }
 
+private fun Throwable.serialize(): ByteArray {
+    val byteArrayOutputStream = ByteArrayOutputStream()
+    ObjectOutputStream(byteArrayOutputStream).use { oos ->
+        oos.writeObject(this)
+    }
+    return byteArrayOutputStream.toByteArray()
+}
+
+private fun ByteArray.deserializeThrowable(): Throwable {
+    val byteArrayInputStream = ByteArrayInputStream(this)
+    val throwable = ObjectInputStream(byteArrayInputStream).use { ois ->
+        ois.readObject()
+    }
+    return throwable as Throwable
+}
+
+private fun CrashEntity.deserializeThrowable(): Throwable {
+    return throwableData?.let {
+        Result.runCatching { it.deserializeThrowable() }
+            .getOrElse { error ->
+                val message = error.message?.let { "Unable to restore: $it" } ?: "Caught error has missing message"
+                restoreArchiveError(message)
+            }
+    } ?: restoreArchiveError("Missing ThrowableData")
+}
+
 private fun Crash.NativeCodeCrash.toEntity(): CrashEntity =
     CrashEntity(
         crashType = CrashType.NATIVE,
@@ -140,6 +209,7 @@ private fun Crash.NativeCodeCrash.toEntity(): CrashEntity =
         runtimeTags = runtimeTags,
         breadcrumbs = breadcrumbs.map { Json.encodeToString(Breadcrumb.serializer(), it.toBreadcrumb()) },
         createdAt = timestamp,
+        throwableData = null,
         stacktrace = "<native crash>",
         minidumpPath = minidumpPath,
         minidumpSuccess = minidumpSuccess,
@@ -155,6 +225,7 @@ private fun Crash.UncaughtExceptionCrash.toEntity(): CrashEntity =
         runtimeTags = runtimeTags,
         breadcrumbs = breadcrumbs.map { Json.encodeToString(Breadcrumb.serializer(), it.toBreadcrumb()) },
         createdAt = timestamp,
+        throwableData = throwable.serialize(),
         stacktrace = throwable.getStacktraceAsString(),
         minidumpPath = null,
         minidumpSuccess = null,

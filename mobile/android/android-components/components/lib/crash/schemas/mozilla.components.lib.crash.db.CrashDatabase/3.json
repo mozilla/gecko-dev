@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "9ed6716b53b20d631241fd1d49847c7b",
+    "identityHash": "da23bb90808c10b266ae31105dc1cec9",
     "entities": [
       {
         "tableName": "crashes",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`crashType` TEXT NOT NULL DEFAULT 'UNCAUGHT', `uuid` TEXT NOT NULL, `runtime_tags` TEXT NOT NULL DEFAULT '{}', `breadcrumbs` TEXT DEFAULT null, `created_at` INTEGER NOT NULL, `stacktrace` TEXT NOT NULL, `minidumpPath` TEXT DEFAULT null, `processType` TEXT DEFAULT null, `minidumpSuccess` INTEGER DEFAULT null, `extrasPath` TEXT DEFAULT null, `remoteType` TEXT DEFAULT null, PRIMARY KEY(`uuid`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`crashType` TEXT NOT NULL DEFAULT 'UNCAUGHT', `uuid` TEXT NOT NULL, `runtime_tags` TEXT NOT NULL DEFAULT '{}', `breadcrumbs` TEXT DEFAULT null, `created_at` INTEGER NOT NULL, `stacktrace` TEXT NOT NULL, `throwable` BLOB, `minidumpPath` TEXT DEFAULT null, `processType` TEXT DEFAULT null, `minidumpSuccess` INTEGER DEFAULT null, `extrasPath` TEXT DEFAULT null, `remoteType` TEXT DEFAULT null, PRIMARY KEY(`uuid`))",
         "fields": [
           {
             "fieldPath": "crashType",
@@ -46,6 +46,12 @@
             "columnName": "stacktrace",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "throwableData",
+            "columnName": "throwable",
+            "affinity": "BLOB",
+            "notNull": false
           },
           {
             "fieldPath": "minidumpPath",
@@ -134,7 +140,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '9ed6716b53b20d631241fd1d49847c7b')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'da23bb90808c10b266ae31105dc1cec9')"
     ]
   }
 }
