@@ -14,6 +14,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::sync::mpsc::Receiver;
+use std::time::Instant;
 use webrender::api::*;
 use webrender::render_api::*;
 use webrender::api::units::*;
@@ -38,14 +39,14 @@ pub enum FontDescriptor {
 struct NotifierData {
     events_loop_proxy: Option<EventLoopProxy<()>>,
     frames_notified: u32,
-    timing_receiver: chase_lev::Stealer<time::SteadyTime>,
+    timing_receiver: chase_lev::Stealer<std::time::Instant>,
     verbose: bool,
 }
 
 impl NotifierData {
     fn new(
         events_loop_proxy: Option<EventLoopProxy<()>>,
-        timing_receiver: chase_lev::Stealer<time::SteadyTime>,
+        timing_receiver: chase_lev::Stealer<std::time::Instant>,
         verbose: bool,
     ) -> Self {
         NotifierData {
@@ -68,10 +69,10 @@ impl Notifier {
                 chase_lev::Steal::Data(last_timing) => {
                     data.frames_notified += 1;
                     if data.verbose && data.frames_notified == 600 {
-                        let elapsed = time::SteadyTime::now() - last_timing;
+                        let elapsed = Instant::now() - last_timing;
                         println!(
                             "frame latency (consider queue depth here): {:3.6} ms",
-                            elapsed.num_microseconds().unwrap() as f64 / 1000.
+                            elapsed.as_secs_f64() * 1000.
                         );
                         data.frames_notified = 0;
                     }
@@ -207,7 +208,7 @@ pub struct Wrench {
 
     pub rebuild_display_lists: bool,
 
-    pub frame_start_sender: chase_lev::Worker<time::SteadyTime>,
+    pub frame_start_sender: chase_lev::Worker<Instant>,
 
     pub callbacks: Arc<Mutex<blob::BlobCallbacks>>,
 }
@@ -538,7 +539,7 @@ impl Wrench {
     }
 
     pub fn begin_frame(&mut self) {
-        self.frame_start_sender.push(time::SteadyTime::now());
+        self.frame_start_sender.push(Instant::now());
     }
 
     pub fn send_lists(

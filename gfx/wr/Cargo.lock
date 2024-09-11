@@ -3369,7 +3369,6 @@ dependencies = [
  "serde",
  "serde_json",
  "swgl",
- "time",
  "tracy-rs",
  "webrender",
  "webrender_build",
