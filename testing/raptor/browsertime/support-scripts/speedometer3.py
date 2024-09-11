@@ -35,6 +35,10 @@ class Speedometer3Support(BasePythonSupport):
             for k, v in clean_flat_internal_metrics.items():
                 bt_result["measurements"].setdefault(k, []).extend(v)
 
+            for k, v in res.items():
+                if "wallclock" in k or "cpuTime" in k:
+                    bt_result["measurements"].setdefault(k, []).extend(v)
+
     def _build_subtest(self, measurement_name, replicates, test):
         unit = test.get("unit", "ms")
         if test.get("subtest_unit"):
