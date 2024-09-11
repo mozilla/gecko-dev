@@ -17,6 +17,7 @@
  * https://w3c.github.io/requestidlecallback/
  * https://drafts.css-houdini.org/css-paint-api-1/#dom-window-paintworklet
  * https://wicg.github.io/visual-viewport/#the-visualviewport-interface
+ * https://wicg.github.io/cookie-store/#Window
  */
 
 interface Principal;
@@ -810,4 +811,10 @@ partial interface Window {
 
 dictionary WindowPostMessageOptions : StructuredSerializeOptions {
   USVString targetOrigin = "/";
+};
+
+// https://wicg.github.io/cookie-store/#Window
+[SecureContext]
+partial interface Window {
+  [SameObject, Pref="dom.cookieStore.enabled"] readonly attribute CookieStore cookieStore;
 };

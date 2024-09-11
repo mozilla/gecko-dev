@@ -800,6 +800,7 @@ STATIC_ATOMS = [
     Atom("oncontextmenu", "oncontextmenu"),
     Atom("oncontextlost", "oncontextlost"),
     Atom("oncontextrestored", "oncontextrestored"),
+    Atom("oncookiechange", "oncookiechange"),
     Atom("oncopy", "oncopy"),
     Atom("oncut", "oncut"),
     Atom("oncurrententrychange", "oncurrententrychange"),
