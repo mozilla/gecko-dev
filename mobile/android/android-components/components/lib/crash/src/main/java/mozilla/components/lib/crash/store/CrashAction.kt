@@ -39,6 +39,11 @@ sealed class CrashAction {
     data class Defer(val now: TimeInMillis) : CrashAction()
 
     /**
+     * [CrashAction] show the user a prompt to send unsent crashes.
+     */
+    data object ShowPrompt : CrashAction()
+
+    /**
      * [CrashAction] to send when a user taps the cancel button.
      */
     data object CancelTapped : CrashAction()
@@ -46,5 +51,5 @@ sealed class CrashAction {
     /**
      * [CrashAction] to send when a user taps the send report button.
      */
-    data object ReportTapped : CrashAction()
+    data class ReportTapped(val automaticallySendChecked: Boolean) : CrashAction()
 }

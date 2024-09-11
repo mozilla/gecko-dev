@@ -19,6 +19,7 @@ fun crashReducer(
         CrashAction.Initialize,
         CrashAction.CheckDeferred,
         CrashAction.CheckForCrashes,
+        is CrashAction.FinishCheckingForCrashes,
         -> state
         is CrashAction.RestoreDeferred -> if (action.now > action.until) {
             CrashState.Ready
@@ -26,13 +27,9 @@ fun crashReducer(
             CrashState.Deferred(until = action.until)
         }
         is CrashAction.Defer -> CrashState.Deferred(action.now + FIVE_DAYS_IN_MILLIS)
-        is CrashAction.FinishCheckingForCrashes -> if (action.hasUnsentCrashes) {
-            CrashState.Reporting
-        } else {
-            CrashState.Done
-        }
+        CrashAction.ShowPrompt -> CrashState.Reporting
         CrashAction.CancelTapped,
-        CrashAction.ReportTapped,
+        is CrashAction.ReportTapped,
         -> CrashState.Done
     }
 }

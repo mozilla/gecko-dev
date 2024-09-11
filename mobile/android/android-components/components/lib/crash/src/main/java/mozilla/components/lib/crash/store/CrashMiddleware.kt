@@ -22,6 +22,16 @@ interface CrashReportCache {
      * Stores a deferred timestamp.
      */
     suspend fun setDeferredUntil(timeInMillis: TimeInMillis?)
+
+    /**
+     * Check to see if the user always wants to send crash reports.
+     */
+    suspend fun getAlwaysSend(): Boolean
+
+    /**
+     * Stores the users response to always send crashes.
+     */
+    suspend fun setAlwaysSend(alwaysSend: Boolean)
 }
 
 /**
@@ -46,6 +56,7 @@ class CrashMiddleware(
      * @param next The next middleware in the chain.
      * @param action The current [CrashAction] to process in the middleware.
      */
+    @Suppress("CyclomaticComplexMethod")
     fun invoke(
         middlewareContext: Pair<() -> CrashState, (CrashAction) -> Unit>,
         next: (CrashAction) -> Unit,
@@ -56,8 +67,14 @@ class CrashMiddleware(
         next(action)
 
         when (action) {
-            is CrashAction.Initialize -> {
-                dispatch(CrashAction.CheckDeferred)
+            is CrashAction.Initialize -> scope.launch {
+                val nextAction = if (cache.getAlwaysSend()) {
+                    CrashAction.CheckForCrashes
+                } else {
+                    CrashAction.CheckDeferred
+                }
+
+                dispatch(nextAction)
             }
             is CrashAction.CheckDeferred -> scope.launch {
                 val nextAction = cache.getDeferredUntil()?.let {
@@ -77,6 +94,14 @@ class CrashMiddleware(
             is CrashAction.CheckForCrashes -> scope.launch {
                 dispatch(CrashAction.FinishCheckingForCrashes(crashReporter.hasUnsentCrashReports()))
             }
+            is CrashAction.FinishCheckingForCrashes -> scope.launch {
+                if (!action.hasUnsentCrashes) { return@launch }
+                if (cache.getAlwaysSend()) {
+                    sendUnsentCrashReports()
+                } else {
+                    dispatch(CrashAction.ShowPrompt)
+                }
+            }
             CrashAction.CancelTapped -> dispatch(CrashAction.Defer(now = currentTimeInMillis()))
             is CrashAction.Defer -> scope.launch {
                 val state = getState()
@@ -84,13 +109,19 @@ class CrashMiddleware(
                     cache.setDeferredUntil(state.until)
                 }
             }
-            CrashAction.ReportTapped -> scope.launch {
-                crashReporter.unsentCrashReports().forEach {
-                    crashReporter.submitReport(it)
+            is CrashAction.ReportTapped -> scope.launch {
+                if (action.automaticallySendChecked) {
+                    cache.setAlwaysSend(true)
                 }
+                sendUnsentCrashReports()
             }
+            CrashAction.ShowPrompt -> {} // noop
+        }
+    }
 
-            is CrashAction.FinishCheckingForCrashes -> {} // noop
+    private suspend fun sendUnsentCrashReports() {
+        crashReporter.unsentCrashReports().forEach {
+            crashReporter.submitReport(it)
         }
     }
 }

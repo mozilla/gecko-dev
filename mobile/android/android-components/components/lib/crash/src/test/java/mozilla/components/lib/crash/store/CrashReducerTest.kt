@@ -17,6 +17,8 @@ class CrashReducerTest {
             CrashAction.Initialize,
             CrashAction.CheckDeferred,
             CrashAction.CheckForCrashes,
+            CrashAction.FinishCheckingForCrashes(hasUnsentCrashes = true),
+            CrashAction.FinishCheckingForCrashes(hasUnsentCrashes = false),
         ).forEach {
             assertEquals(crashReducer(CrashState.Idle, it), CrashState.Idle)
         }
@@ -41,22 +43,16 @@ class CrashReducerTest {
     }
 
     @Test
-    fun `GIVEN a Ready state WHEN we process a FinishCheckingForCrashes action with hasUnsentCrashes THEN update state to Reporting`() {
-        val state = crashReducer(CrashState.Idle, CrashAction.FinishCheckingForCrashes(hasUnsentCrashes = true))
+    fun `GIVEN a Ready state WHEN we process a ShowPrompt action THEN update state to Reporting`() {
+        val state = crashReducer(CrashState.Idle, CrashAction.ShowPrompt)
         assertEquals(state, CrashState.Reporting)
-    }
-
-    @Test
-    fun `GIVEN a Ready state WHEN we process a FinishCheckingForCrashes action without hasUnsentCrashes THEN update state to Reporting`() {
-        val state = crashReducer(CrashState.Idle, CrashAction.FinishCheckingForCrashes(hasUnsentCrashes = false))
-        assertEquals(state, CrashState.Done)
     }
 
     @Test
     fun `GIVEN a Reporting state WHEN we process a CancelTapped or ReportTapped action THEN update state to Done`() {
         listOf(
             CrashAction.CancelTapped,
-            CrashAction.ReportTapped,
+            CrashAction.ReportTapped(automaticallySendChecked = true),
         ).forEach {
             assertEquals(crashReducer(CrashState.Reporting, it), CrashState.Done)
         }
