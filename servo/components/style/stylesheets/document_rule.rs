@@ -75,7 +75,6 @@ impl DeepCloneWithLock for DocumentRule {
 #[allow(missing_docs)]
 pub enum MediaDocumentKind {
     All,
-    Plugin,
     Image,
     Video,
 }
@@ -221,7 +220,6 @@ impl DocumentMatchingFunction {
             DocumentMatchingFunction::MediaDocument(kind) => match kind {
                 MediaDocumentKind::All => "all",
                 MediaDocumentKind::Image => "image",
-                MediaDocumentKind::Plugin => "plugin",
                 MediaDocumentKind::Video => "video",
             },
             DocumentMatchingFunction::PlainTextDocument(()) |

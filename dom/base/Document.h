@@ -3008,7 +3008,6 @@ class Document : public nsINode,
     NotMedia,
     Video,
     Image,
-    Plugin,
   };
 
   virtual enum MediaDocumentKind MediaDocumentKind() const {
