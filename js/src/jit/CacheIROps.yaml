@@ -2812,6 +2812,33 @@
   args:
     input: IntPtrId
 
+- name: BigIntPtrAdd
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
+- name: BigIntPtrSub
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
+- name: BigIntPtrMul
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
 - name: Int32BitOrResult
   shared: true
   transpile: true
@@ -2914,6 +2941,33 @@
   cost_estimate: 5
   args:
     input: BigIntId
+
+- name: BigIntPtrBitOr
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
+- name: BigIntPtrBitXor
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
+- name: BigIntPtrBitAnd
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
 
 - name: Int32NegationResult
   shared: true

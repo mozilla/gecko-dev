@@ -12074,6 +12074,88 @@ void CodeGenerator::visitIntPtrToBigInt(LIntPtrToBigInt* ins) {
   masm.bind(ool->rejoin());
 }
 
+void CodeGenerator::visitBigIntPtrAdd(LBigIntPtrAdd* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  const LAllocation* rhs = ins->rhs();
+  Register output = ToRegister(ins->output());
+
+  if (rhs->isConstant()) {
+    masm.movePtr(ImmWord(ToIntPtr(rhs)), output);
+  } else {
+    masm.movePtr(ToRegister(rhs), output);
+  }
+
+  Label bail;
+  masm.branchAddPtr(Assembler::Overflow, lhs, output, &bail);
+  bailoutFrom(&bail, ins->snapshot());
+}
+
+void CodeGenerator::visitBigIntPtrSub(LBigIntPtrSub* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  Register rhs = ToRegister(ins->rhs());
+  Register output = ToRegister(ins->output());
+
+  Label bail;
+  masm.movePtr(lhs, output);
+  masm.branchSubPtr(Assembler::Overflow, rhs, output, &bail);
+  bailoutFrom(&bail, ins->snapshot());
+}
+
+void CodeGenerator::visitBigIntPtrMul(LBigIntPtrMul* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  const LAllocation* rhs = ins->rhs();
+  Register output = ToRegister(ins->output());
+
+  if (rhs->isConstant()) {
+    masm.movePtr(ImmWord(ToIntPtr(rhs)), output);
+  } else {
+    masm.movePtr(ToRegister(rhs), output);
+  }
+
+  Label bail;
+  masm.branchMulPtr(Assembler::Overflow, lhs, output, &bail);
+  bailoutFrom(&bail, ins->snapshot());
+}
+
+void CodeGenerator::visitBigIntPtrBitAnd(LBigIntPtrBitAnd* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  const LAllocation* rhs = ins->rhs();
+  Register output = ToRegister(ins->output());
+
+  if (rhs->isConstant()) {
+    masm.movePtr(ImmWord(ToIntPtr(rhs)), output);
+  } else {
+    masm.movePtr(ToRegister(rhs), output);
+  }
+  masm.andPtr(lhs, output);
+}
+
+void CodeGenerator::visitBigIntPtrBitOr(LBigIntPtrBitOr* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  const LAllocation* rhs = ins->rhs();
+  Register output = ToRegister(ins->output());
+
+  if (rhs->isConstant()) {
+    masm.movePtr(ImmWord(ToIntPtr(rhs)), output);
+  } else {
+    masm.movePtr(ToRegister(rhs), output);
+  }
+  masm.orPtr(lhs, output);
+}
+
+void CodeGenerator::visitBigIntPtrBitXor(LBigIntPtrBitXor* ins) {
+  Register lhs = ToRegister(ins->lhs());
+  const LAllocation* rhs = ins->rhs();
+  Register output = ToRegister(ins->output());
+
+  if (rhs->isConstant()) {
+    masm.movePtr(ImmWord(ToIntPtr(rhs)), output);
+  } else {
+    masm.movePtr(ToRegister(rhs), output);
+  }
+  masm.xorPtr(lhs, output);
+}
+
 void CodeGenerator::visitInt32ToStringWithBase(LInt32ToStringWithBase* lir) {
   Register input = ToRegister(lir->input());
   RegisterOrInt32 base = ToRegisterOrInt32(lir->base());

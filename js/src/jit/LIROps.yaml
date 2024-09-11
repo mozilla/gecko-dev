@@ -1211,6 +1211,48 @@
   num_temps: 1
   mir_op: true
 
+- name: BigIntPtrAdd
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: true
+
+- name: BigIntPtrSub
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: true
+
+- name: BigIntPtrMul
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: true
+
+- name: BigIntPtrBitAnd
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: true
+
+- name: BigIntPtrBitOr
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: true
+
+- name: BigIntPtrBitXor
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  mir_op: true
+
 - name: Int32ToStringWithBase
   result_type: WordSized
   operands:

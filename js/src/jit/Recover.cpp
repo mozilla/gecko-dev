@@ -841,6 +841,174 @@ bool RIntPtrToBigInt::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
+bool MBigIntPtrAdd::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrAdd));
+  return true;
+}
+
+RBigIntPtrAdd::RBigIntPtrAdd(CompactBufferReader& reader) {}
+
+bool RBigIntPtrAdd::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::add(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
+bool MBigIntPtrSub::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrSub));
+  return true;
+}
+
+RBigIntPtrSub::RBigIntPtrSub(CompactBufferReader& reader) {}
+
+bool RBigIntPtrSub::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::sub(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
+bool MBigIntPtrMul::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrMul));
+  return true;
+}
+
+RBigIntPtrMul::RBigIntPtrMul(CompactBufferReader& reader) {}
+
+bool RBigIntPtrMul::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::mul(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
+bool MBigIntPtrBitAnd::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrBitAnd));
+  return true;
+}
+
+RBigIntPtrBitAnd::RBigIntPtrBitAnd(CompactBufferReader& reader) {}
+
+bool RBigIntPtrBitAnd::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::bitAnd(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
+bool MBigIntPtrBitOr::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrBitOr));
+  return true;
+}
+
+RBigIntPtrBitOr::RBigIntPtrBitOr(CompactBufferReader& reader) {}
+
+bool RBigIntPtrBitOr::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::bitOr(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
+bool MBigIntPtrBitXor::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrBitXor));
+  return true;
+}
+
+RBigIntPtrBitXor::RBigIntPtrBitXor(CompactBufferReader& reader) {}
+
+bool RBigIntPtrBitXor::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> lhs(cx, iter.readBigInt(cx));
+  if (!lhs) {
+    return false;
+  }
+
+  Rooted<BigInt*> rhs(cx, iter.readBigInt(cx));
+  if (!rhs) {
+    return false;
+  }
+
+  BigInt* result = BigInt::bitXor(cx, lhs, rhs);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
 bool MCompare::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_Compare));

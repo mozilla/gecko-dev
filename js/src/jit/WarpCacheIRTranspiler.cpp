@@ -238,6 +238,11 @@ class MOZ_RAII WarpCacheIRTranspiler : public WarpBuilderShared {
   template <typename T>
   [[nodiscard]] bool emitBigIntUnaryArithResult(BigIntOperandId inputId);
 
+  template <typename T>
+  [[nodiscard]] bool emitBigIntPtrBinaryArith(IntPtrOperandId lhsId,
+                                              IntPtrOperandId rhsId,
+                                              IntPtrOperandId resultId);
+
   [[nodiscard]] bool emitCompareResult(JSOp op, OperandId lhsId,
                                        OperandId rhsId,
                                        MCompare::CompareType compareType);
@@ -3355,6 +3360,55 @@ bool WarpCacheIRTranspiler::emitIntPtrToBigIntResult(IntPtrOperandId inputId) {
 
   pushResult(ins);
   return true;
+}
+
+template <typename T>
+bool WarpCacheIRTranspiler::emitBigIntPtrBinaryArith(IntPtrOperandId lhsId,
+                                                     IntPtrOperandId rhsId,
+                                                     IntPtrOperandId resultId) {
+  MDefinition* lhs = getOperand(lhsId);
+  MDefinition* rhs = getOperand(rhsId);
+
+  auto* ins = T::New(alloc(), lhs, rhs);
+  add(ins);
+
+  return defineOperand(resultId, ins);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrAdd(IntPtrOperandId lhsId,
+                                             IntPtrOperandId rhsId,
+                                             IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrAdd>(lhsId, rhsId, resultId);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrSub(IntPtrOperandId lhsId,
+                                             IntPtrOperandId rhsId,
+                                             IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrSub>(lhsId, rhsId, resultId);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrMul(IntPtrOperandId lhsId,
+                                             IntPtrOperandId rhsId,
+                                             IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrMul>(lhsId, rhsId, resultId);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrBitOr(IntPtrOperandId lhsId,
+                                               IntPtrOperandId rhsId,
+                                               IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrBitOr>(lhsId, rhsId, resultId);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrBitXor(IntPtrOperandId lhsId,
+                                                IntPtrOperandId rhsId,
+                                                IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrBitXor>(lhsId, rhsId, resultId);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrBitAnd(IntPtrOperandId lhsId,
+                                                IntPtrOperandId rhsId,
+                                                IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrBitAnd>(lhsId, rhsId, resultId);
 }
 
 bool WarpCacheIRTranspiler::emitCallStringConcatResult(StringOperandId lhsId,

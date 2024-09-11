@@ -6,6 +6,7 @@
 
 #include "jit/CacheIR.h"
 
+#include "mozilla/CheckedInt.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 
@@ -13773,6 +13774,10 @@ AttachDecision BinaryArithIRGenerator::tryAttachStub() {
   // String x Object
   TRY_ATTACH(tryAttachStringObjectConcat());
 
+  // Arithmetic operations or bitwise operations with intptr-sized BigInt
+  // operands.
+  TRY_ATTACH(tryAttachBigIntPtr());
+
   // Arithmetic operations or bitwise operations with BigInt operands
   TRY_ATTACH(tryAttachBigInt());
 
@@ -14095,6 +14100,133 @@ AttachDecision BinaryArithIRGenerator::tryAttachBigInt() {
       MOZ_CRASH("Unhandled op in tryAttachBigInt");
   }
 
+  writer.returnFromIC();
+  return AttachDecision::Attach;
+}
+
+AttachDecision BinaryArithIRGenerator::tryAttachBigIntPtr() {
+  // Check Guards
+  if (!lhs_.isBigInt() || !rhs_.isBigInt()) {
+    return AttachDecision::NoAction;
+  }
+
+  switch (op_) {
+    case JSOp::Add:
+    case JSOp::Sub:
+    case JSOp::Mul:
+    case JSOp::Div:
+    case JSOp::Mod:
+    case JSOp::Pow:
+      // Arithmetic operations.
+      break;
+
+    case JSOp::BitOr:
+    case JSOp::BitXor:
+    case JSOp::BitAnd:
+    case JSOp::Lsh:
+    case JSOp::Rsh:
+      // Bitwise operations.
+      break;
+
+    default:
+      return AttachDecision::NoAction;
+  }
+
+  intptr_t lhs;
+  intptr_t rhs;
+  if (!BigInt::isIntPtr(lhs_.toBigInt(), &lhs) ||
+      !BigInt::isIntPtr(rhs_.toBigInt(), &rhs)) {
+    return AttachDecision::NoAction;
+  }
+
+  using CheckedIntPtr = mozilla::CheckedInt<intptr_t>;
+
+  switch (op_) {
+    case JSOp::Add: {
+      auto result = CheckedIntPtr(lhs) + rhs;
+      if (result.isValid()) {
+        break;
+      }
+      return AttachDecision::NoAction;
+    }
+    case JSOp::Sub: {
+      auto result = CheckedIntPtr(lhs) - rhs;
+      if (result.isValid()) {
+        break;
+      }
+      return AttachDecision::NoAction;
+    }
+    case JSOp::Mul: {
+      auto result = CheckedIntPtr(lhs) * rhs;
+      if (result.isValid()) {
+        break;
+      }
+      return AttachDecision::NoAction;
+    }
+    case JSOp::Div:
+    case JSOp::Mod:
+    case JSOp::Pow:
+      return AttachDecision::NoAction;
+    case JSOp::BitOr:
+    case JSOp::BitXor:
+    case JSOp::BitAnd: {
+      // Bitwise operations always return an intptr-sized result.
+      break;
+    }
+    case JSOp::Lsh:
+    case JSOp::Rsh:
+      return AttachDecision::NoAction;
+
+    default:
+      MOZ_CRASH("Unexpected OP");
+  }
+
+  ValOperandId lhsId(writer.setInputOperandId(0));
+  ValOperandId rhsId(writer.setInputOperandId(1));
+
+  BigIntOperandId lhsBigIntId = writer.guardToBigInt(lhsId);
+  BigIntOperandId rhsBigIntId = writer.guardToBigInt(rhsId);
+
+  IntPtrOperandId lhsIntPtrId = writer.bigIntToIntPtr(lhsBigIntId);
+  IntPtrOperandId rhsIntPtrId = writer.bigIntToIntPtr(rhsBigIntId);
+
+  IntPtrOperandId resultId;
+  switch (op_) {
+    case JSOp::Add: {
+      resultId = writer.bigIntPtrAdd(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.Add");
+      break;
+    }
+    case JSOp::Sub: {
+      resultId = writer.bigIntPtrSub(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.Sub");
+      break;
+    }
+    case JSOp::Mul: {
+      resultId = writer.bigIntPtrMul(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.Mul");
+      break;
+    }
+    case JSOp::BitOr: {
+      resultId = writer.bigIntPtrBitOr(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.BitOr");
+      break;
+    }
+    case JSOp::BitXor: {
+      resultId = writer.bigIntPtrBitXor(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.BitXor");
+      break;
+    }
+    case JSOp::BitAnd: {
+      resultId = writer.bigIntPtrBitAnd(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.BitAnd");
+      break;
+    }
+    default:
+      MOZ_CRASH("Unexpected OP");
+  }
+
+  writer.intPtrToBigIntResult(resultId);
   writer.returnFromIC();
   return AttachDecision::Attach;
 }

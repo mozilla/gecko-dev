@@ -88,6 +88,12 @@ namespace jit {
   _(BigIntBitNot)                 \
   _(BigIntToIntPtr)               \
   _(IntPtrToBigInt)               \
+  _(BigIntPtrAdd)                 \
+  _(BigIntPtrSub)                 \
+  _(BigIntPtrMul)                 \
+  _(BigIntPtrBitAnd)              \
+  _(BigIntPtrBitOr)               \
+  _(BigIntPtrBitXor)              \
   _(Compare)                      \
   _(Concat)                       \
   _(StringLength)                 \
@@ -493,6 +499,54 @@ class RBigIntToIntPtr final : public RInstruction {
 class RIntPtrToBigInt final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(IntPtrToBigInt, 1)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrAdd final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrAdd, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrSub final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrSub, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrMul final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrMul, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrBitAnd final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrBitAnd, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrBitOr final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrBitOr, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrBitXor final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrBitXor, 2)
 
   [[nodiscard]] bool recover(JSContext* cx,
                              SnapshotIterator& iter) const override;

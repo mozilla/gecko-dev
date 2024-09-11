@@ -959,6 +959,24 @@
   can_recover: true
   clone: true
 
+- name: BigIntPtrAdd
+  gen_boilerplate: false
+
+- name: BigIntPtrSub
+  gen_boilerplate: false
+
+- name: BigIntPtrMul
+  gen_boilerplate: false
+
+- name: BigIntPtrBitAnd
+  gen_boilerplate: false
+
+- name: BigIntPtrBitOr
+  gen_boilerplate: false
+
+- name: BigIntPtrBitXor
+  gen_boilerplate: false
+
 - name: Int32ToStringWithBase
   operands:
     input: Int32
