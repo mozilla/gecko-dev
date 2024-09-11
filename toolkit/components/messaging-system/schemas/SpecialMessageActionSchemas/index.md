@@ -353,8 +353,10 @@ Bookmarks the tab that was selected when the message was displayed
 - args:
 ```ts
 {
-  // Whether the bookmark dialog should be visible.
+  // Whether the bookmark dialog should be visible or not.
   shouldHideDialog?: boolean;
+  // Whether the bookmark confirmation hint should be visible or not.
+  shouldHideConfirmationHint?: boolean;
 }
 ```
 
