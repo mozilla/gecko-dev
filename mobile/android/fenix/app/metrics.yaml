@@ -18,6 +18,10 @@ events:
           The method used to open Fenix. Possible values are: `app_icon`,
           `custom_tab` or `link`
         type: string
+      deal_id:
+        description: |
+          Deal id, such as 'vivo-cpa-2024', or null
+        type: string
     bugs:
       - https://github.com/mozilla-mobile/fenix/issues/968
       - https://github.com/mozilla-mobile/fenix/issues/10616
@@ -12102,4 +12106,19 @@ nimbus_system:
     notification_emails:
       - chumphreys@mozilla.com
       - project-nimbus@mozilla.com
+    expires: never
+
+partnerships:
+  vivo_file_check_error:
+    type: event
+    description: |
+      When there is an error checking if the vivo firefox file exists
+    data_sensitivity:
+      - technical
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912325
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D218866
+    notification_emails:
+      - android-probes@mozilla.com
     expires: never
