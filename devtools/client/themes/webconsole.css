@@ -21,44 +21,29 @@
   --console-warning-background: var(--theme-warning-background);
   --console-warning-border: var(--theme-warning-border);
   --console-warning-color: var(--theme-warning-color);
-}
 
-.theme-dark {
-  --console-input-background: var(--theme-tab-toolbar-background);
+  --console-input-background: light-dark(var(--theme-body-background), var(--theme-tab-toolbar-background));
   --console-message-background: var(--theme-body-background);
-  --console-message-border: var(--theme-splitter-color);
+  --console-message-border: light-dark(
+      color-mix(in srgb, var(--grey-10), var(--grey-20)),
+      var(--theme-splitter-color)
+    );
   --console-message-color: var(--theme-text-color-strong);
-  --console-error-background: hsl(345, 23%, 24%);
-  --console-error-border: hsl(345, 30%, 35%);
-  --console-error-color: var(--red-20);
+  --console-error-background: light-dark(hsl(344, 73%, 97%), hsl(345, 23%, 24%));
+  --console-error-border: light-dark(
+      rgb(from var(--red-60) r g b / 0.12),
+      hsl(345, 30%, 35%)
+    );
+  --console-error-color: light-dark(var(--red-70), var(--red-20));
   --console-navigation-color: var(--theme-highlight-blue);
-  --console-navigation-border: var(--blue-60);
+  --console-navigation-border: light-dark(var(--blue-30), var(--blue-60));
   --console-indent-border-color: var(--theme-highlight-blue);
-  --console-repeat-bubble-background: var(--blue-60);
+  --console-repeat-bubble-background: light-dark(var(--theme-highlight-blue), var(--blue-60));
 
   /* TODO in bug 1549195: colors used in shared components (e.g. Reps) should
      be renamed and/or moved to variables.css so they work everywhere */
-  --error-color: var(--red-20);
-  --console-output-color: white;
-}
-
-.theme-light {
-  --console-input-background: var(--theme-body-background);
-  --console-message-background: var(--theme-body-background);
-  --console-message-border: #f2f2f4; /* between Grey 10 and Grey 20 */
-  --console-message-color: var(--theme-text-color-strong);
-  --console-error-background: hsl(344, 73%, 97%);
-  --console-error-border: rgba(215, 0, 34, 0.12); /* Red 60 + opacity */
-  --console-error-color: var(--red-70);
-  --console-navigation-color: var(--theme-highlight-blue);
-  --console-navigation-border: var(--blue-30);
-  --console-indent-border-color: var(--theme-highlight-blue);
-  --console-repeat-bubble-background: var(--theme-highlight-blue);
-
-  /* TODO in bug 1549195: colors used in shared components (e.g. Reps) should
-     be renamed and/or moved to variables.css so they work everywhere */
-  --error-color: var(--red-70);
-  --console-output-color: var(--grey-90);
+  --error-color: light-dark(var(--red-70), var(--red-20));
+  --console-output-color: light-dark(var(--grey-90), white);
 }
 
 /* General output styles */
