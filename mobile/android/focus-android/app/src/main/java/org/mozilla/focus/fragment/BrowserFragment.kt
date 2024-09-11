@@ -964,8 +964,7 @@ class BrowserFragment :
             tab.content.url,
             store,
         )
-        @Suppress("DEPRECATION")
-        fragment.show(requireFragmentManager(), OpenWithFragment.FRAGMENT_TAG)
+        fragment.show(getParentFragmentManager(), OpenWithFragment.FRAGMENT_TAG)
 
         OpenWith.listDisplayed.record(OpenWith.ListDisplayedExtra(apps.size))
     }
