@@ -1264,6 +1264,14 @@
     shift: int32_t
   num_temps: 1
 
+- name: BigIntPtrPow
+  result_type: WordSized
+  operands:
+    lhs: WordSized
+    rhs: WordSized
+  num_temps: 2
+  mir_op: true
+
 - name: BigIntPtrBitAnd
   result_type: WordSized
   operands:

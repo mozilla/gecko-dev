@@ -974,6 +974,9 @@
 - name: BigIntPtrMod
   gen_boilerplate: false
 
+- name: BigIntPtrPow
+  gen_boilerplate: false
+
 - name: BigIntPtrBitAnd
   gen_boilerplate: false
 

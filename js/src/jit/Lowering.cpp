@@ -2555,6 +2555,16 @@ void LIRGenerator::visitBigIntPtrMod(MBigIntPtrMod* ins) {
   lowerBigIntPtrMod(ins);
 }
 
+void LIRGenerator::visitBigIntPtrPow(MBigIntPtrPow* ins) {
+  MOZ_ASSERT(ins->lhs()->type() == MIRType::IntPtr);
+  MOZ_ASSERT(ins->rhs()->type() == MIRType::IntPtr);
+
+  auto* lir = new (alloc()) LBigIntPtrPow(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
+}
+
 void LIRGenerator::visitBigIntPtrBitAnd(MBigIntPtrBitAnd* ins) {
   MOZ_ASSERT(ins->lhs()->type() == MIRType::IntPtr);
   MOZ_ASSERT(ins->rhs()->type() == MIRType::IntPtr);

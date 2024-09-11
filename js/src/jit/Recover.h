@@ -93,6 +93,7 @@ namespace jit {
   _(BigIntPtrMul)                 \
   _(BigIntPtrDiv)                 \
   _(BigIntPtrMod)                 \
+  _(BigIntPtrPow)                 \
   _(BigIntPtrBitAnd)              \
   _(BigIntPtrBitOr)               \
   _(BigIntPtrBitXor)              \
@@ -541,6 +542,14 @@ class RBigIntPtrDiv final : public RInstruction {
 class RBigIntPtrMod final : public RInstruction {
  public:
   RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrMod, 2)
+
+  [[nodiscard]] bool recover(JSContext* cx,
+                             SnapshotIterator& iter) const override;
+};
+
+class RBigIntPtrPow final : public RInstruction {
+ public:
+  RINSTRUCTION_HEADER_NUM_OP_(BigIntPtrPow, 2)
 
   [[nodiscard]] bool recover(JSContext* cx,
                              SnapshotIterator& iter) const override;

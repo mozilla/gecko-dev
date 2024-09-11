@@ -2255,6 +2255,49 @@ BigInt* BigInt::pow(JSContext* cx, HandleBigInt x, HandleBigInt y) {
   }
 }
 
+bool BigInt::powIntPtr(intptr_t x, intptr_t y, intptr_t* result) {
+  if (y < 0) {
+    return false;
+  }
+  uintptr_t n = uintptr_t(y);
+
+  // x^y where x == 1 returns 1 for any y.
+  if (x == 1) {
+    *result = 1;
+    return true;
+  }
+
+  // x^y where x == -1 returns 1 for even y, and -1 for odd y.
+  if (x == -1) {
+    *result = (y & 1) ? -1 : 1;
+    return true;
+  }
+
+  using CheckedIntPtr = mozilla::CheckedInt<intptr_t>;
+
+  CheckedIntPtr runningSquare = x;
+  CheckedIntPtr res = 1;
+  while (true) {
+    if ((n & 1) != 0) {
+      res *= runningSquare;
+      if (!res.isValid()) {
+        return false;
+      }
+    }
+
+    n >>= 1;
+    if (n == 0) {
+      *result = res.value();
+      return true;
+    }
+
+    runningSquare *= runningSquare;
+    if (!runningSquare.isValid()) {
+      return false;
+    }
+  }
+}
+
 BigInt* BigInt::lshByAbsolute(JSContext* cx, HandleBigInt x, HandleBigInt y) {
   if (x->isZero() || y->isZero()) {
     return x;

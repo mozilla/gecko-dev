@@ -3915,6 +3915,26 @@ bool CacheIRCompiler::emitBigIntPtrMod(IntPtrOperandId lhsId,
   return true;
 }
 
+bool CacheIRCompiler::emitBigIntPtrPow(IntPtrOperandId lhsId,
+                                       IntPtrOperandId rhsId,
+                                       IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register lhs = allocator.useRegister(masm, lhsId);
+  Register rhs = allocator.useRegister(masm, rhsId);
+  Register output = allocator.defineRegister(masm, resultId);
+  AutoScratchRegister scratch1(allocator, masm);
+  AutoScratchRegister scratch2(allocator, masm);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.powPtr(lhs, rhs, output, scratch1, scratch2, failure->label());
+  return true;
+}
+
 bool CacheIRCompiler::emitBigIntPtrBitOr(IntPtrOperandId lhsId,
                                          IntPtrOperandId rhsId,
                                          IntPtrOperandId resultId) {

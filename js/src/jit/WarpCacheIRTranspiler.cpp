@@ -3405,6 +3405,12 @@ bool WarpCacheIRTranspiler::emitBigIntPtrMod(IntPtrOperandId lhsId,
   return emitBigIntPtrBinaryArith<MBigIntPtrMod>(lhsId, rhsId, resultId);
 }
 
+bool WarpCacheIRTranspiler::emitBigIntPtrPow(IntPtrOperandId lhsId,
+                                             IntPtrOperandId rhsId,
+                                             IntPtrOperandId resultId) {
+  return emitBigIntPtrBinaryArith<MBigIntPtrPow>(lhsId, rhsId, resultId);
+}
+
 bool WarpCacheIRTranspiler::emitBigIntPtrBitOr(IntPtrOperandId lhsId,
                                                IntPtrOperandId rhsId,
                                                IntPtrOperandId resultId) {

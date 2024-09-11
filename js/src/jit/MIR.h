@@ -5603,6 +5603,7 @@ class MBigIntPtrBinaryArithInstruction : public MBinaryInstruction,
   }
 
   static bool isMaybeZero(MDefinition* ins);
+  static bool isMaybeNegative(MDefinition* ins);
 
  public:
   bool congruentTo(const MDefinition* ins) const override {
@@ -5711,6 +5712,32 @@ class MBigIntPtrMod : public MBigIntPtrBinaryArithInstruction {
   bool canRecoverOnBailout() const override { return true; }
 
   ALLOW_CLONE(MBigIntPtrMod)
+};
+
+class MBigIntPtrPow : public MBigIntPtrBinaryArithInstruction {
+  bool canBeNegativeExponent_;
+
+  MBigIntPtrPow(MDefinition* left, MDefinition* right)
+      : MBigIntPtrBinaryArithInstruction(classOpcode, left, right) {
+    canBeNegativeExponent_ = isMaybeNegative(right);
+
+    // Bails when the exponent is negative.
+    if (canBeNegativeExponent_) {
+      setGuard();
+    }
+  }
+
+ public:
+  INSTRUCTION_HEADER(BigIntPtrPow)
+  TRIVIAL_NEW_WRAPPERS
+
+  bool canBeNegativeExponent() const { return canBeNegativeExponent_; }
+
+  [[nodiscard]] bool writeRecoverData(
+      CompactBufferWriter& writer) const override;
+  bool canRecoverOnBailout() const override { return true; }
+
+  ALLOW_CLONE(MBigIntPtrPow)
 };
 
 class MBigIntPtrBinaryBitwiseInstruction : public MBinaryInstruction,

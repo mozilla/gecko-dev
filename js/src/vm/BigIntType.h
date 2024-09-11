@@ -162,6 +162,8 @@ class BigInt final : public js::gc::CellWithLengthAndFlags {
                      MutableHandle<BigInt*> quotient,
                      MutableHandle<BigInt*> remainder);
 
+  static bool powIntPtr(intptr_t x, intptr_t y, intptr_t* result);
+
   static int64_t toInt64(const BigInt* x);
   static uint64_t toUint64(const BigInt* x);
 

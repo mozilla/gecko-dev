@@ -14178,8 +14178,13 @@ AttachDecision BinaryArithIRGenerator::tryAttachBigIntPtr() {
       }
       return AttachDecision::NoAction;
     }
-    case JSOp::Pow:
+    case JSOp::Pow: {
+      intptr_t result;
+      if (BigInt::powIntPtr(lhs, rhs, &result)) {
+        break;
+      }
       return AttachDecision::NoAction;
+    }
     case JSOp::BitOr:
     case JSOp::BitXor:
     case JSOp::BitAnd: {
@@ -14228,6 +14233,11 @@ AttachDecision BinaryArithIRGenerator::tryAttachBigIntPtr() {
     case JSOp::Mod: {
       resultId = writer.bigIntPtrMod(lhsIntPtrId, rhsIntPtrId);
       trackAttached("BinaryArith.BigIntPtr.Mod");
+      break;
+    }
+    case JSOp::Pow: {
+      resultId = writer.bigIntPtrPow(lhsIntPtrId, rhsIntPtrId);
+      trackAttached("BinaryArith.BigIntPtr.Pow");
       break;
     }
     case JSOp::BitOr: {

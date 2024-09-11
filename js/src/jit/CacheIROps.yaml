@@ -2857,6 +2857,15 @@
     rhs: IntPtrId
     result: IntPtrId
 
+- name: BigIntPtrPow
+  shared: true
+  transpile: true
+  cost_estimate: 2
+  args:
+    lhs: IntPtrId
+    rhs: IntPtrId
+    result: IntPtrId
+
 - name: Int32BitOrResult
   shared: true
   transpile: true
