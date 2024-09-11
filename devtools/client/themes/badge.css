@@ -14,6 +14,10 @@
   --badge-scrollable-color: light-dark(#8000D7, #B98EFF);
   --badge-scrollable-background-color: light-dark(#FFFFFF, var(--badge-interactive-background-color));
   --badge-scrollable-active-background-color: #8000D7;
+
+  &[forced-colors-active] {
+    --badge-color: ButtonText;
+  }
 }
 
 /* Inspector badge */

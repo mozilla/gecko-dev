@@ -14,6 +14,13 @@
   --markup-overflow-causing-background-color: light-dark(rgba(128, 0, 215, 0.15), rgba(148, 0, 255, 0.38));
   --markup-new-attr-size: 2ch;
   --markup-new-attr-focused-margin-inline: 1ch 2px;
+  --markup-selected-focus-visible-non-highlighted-color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
+
+  &[forced-colors-active] {
+    /* In regular mode, this variable relies on --theme-body-color, which is already set
+       to CanvasText for HCM, BUT: we still need to force it here because of Bug 1917523 */
+    --markup-selected-focus-visible-non-highlighted-color: CanvasText;
+  }
 }
 
 * {
@@ -405,6 +412,13 @@ ul.children + .tag-line::before {
 .editor.text pre,
 .editor.comment pre {
   font: inherit;
+
+  /* In the Markup view, the background color is set on .theme-selected, which is not
+     an ancestor of those <pre>, so we get backplating which doesn't play well with the
+     selected color. So for those, force the SelectedItem background color */
+  :root[forced-colors-active] .tag-line[selected] & {
+    background-color: SelectedItem;
+  }
 }
 
 .theme-dark .editor.text pre {
@@ -480,6 +494,17 @@ ul.children + .tag-line::before {
   .pseudo {
     color: var(--theme-highlight-blue);
   }
+
+  /* In High Contrast Mode, we need to override all the colors so we can properly handle
+     the selected + focused-visible style */
+  :root[forced-colors-active] :is(
+    .tag,
+    .attr-name,
+    .attr-value,
+    .pseudo
+  ) {
+    color: CanvasText;
+  }
 }
 
 /* Make focusable elements stand out a bit more when they're focused */
@@ -526,11 +551,7 @@ ul.children + .tag-line::before {
 
     /* We also need to take care of items that don't have their color set in <@layer markup-base> */
     &:not(.attr-name, .attr-value, .tag, .pseudo) {
-      color: var(--theme-body-color);
-
-      @media (prefers-color-scheme: dark) {
-        color: var(--theme-text-color-strong);
-      }
+      color: var(--markup-selected-focus-visible-non-highlighted-color);
     }
 
     & * {

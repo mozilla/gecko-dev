@@ -269,4 +269,10 @@
   --theme-contrast-color: light-dark(black, white);
   /* This is used for search/filter results underline and need to have a 3:1 contrast against the background */
   --theme-contrast-border: light-dark(var(--yellow-70), var(--yellow-65));
+
+  &[forced-colors-active] {
+    --theme-selection-background: SelectedItem;
+    --theme-selection-color: SelectedItemText;
+    --theme-body-color: CanvasText;
+  }
 }
