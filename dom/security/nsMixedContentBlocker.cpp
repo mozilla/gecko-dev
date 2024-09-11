@@ -378,6 +378,7 @@ bool nsMixedContentBlocker::IsUpgradableContentType(nsContentPolicyType aType,
   switch (aType) {
     case nsIContentPolicy::TYPE_INTERNAL_IMAGE:
     case nsIContentPolicy::TYPE_INTERNAL_IMAGE_PRELOAD:
+    case nsIContentPolicy::TYPE_INTERNAL_IMAGE_FAVICON:
       return !aConsiderPrefs ||
              StaticPrefs::
                  security_mixed_content_upgrade_display_content_image();

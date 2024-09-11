@@ -6,7 +6,7 @@ const testPath = getRootDirectory(gTestPath).replace(
   "https://example.com"
 );
 
-let seenAutoUpgradeMessage = false;
+let remainingMessages = 2;
 
 const kTestURI =
   testPath + "file_mixed_content_auto_upgrade_display_console.html";
@@ -27,7 +27,7 @@ add_task(async function () {
 
   BrowserTestUtils.startLoadingURIString(gBrowser.selectedBrowser, kTestURI);
 
-  await BrowserTestUtils.waitForCondition(() => seenAutoUpgradeMessage);
+  await BrowserTestUtils.waitForCondition(() => remainingMessages == 0);
 
   Services.console.unregisterListener(on_auto_upgrade_message);
 });
@@ -47,8 +47,11 @@ function on_auto_upgrade_message(msgObj) {
     "msg includes info"
   );
   ok(
-    message.includes("file_mixed_content_auto_upgrade_display_console.jpg"),
+    message.includes("file_mixed_content_auto_upgrade_display_console.jpg") ||
+      message.includes(
+        "file_mixed_content_auto_upgrade_display_console_favicon.jpg"
+      ),
     "msg includes file"
   );
-  seenAutoUpgradeMessage = true;
+  remainingMessages--;
 }
