@@ -69,8 +69,6 @@ extern crate smallbitvec;
 extern crate smallvec;
 #[cfg(feature = "servo")]
 extern crate string_cache;
-#[cfg(feature = "servo")]
-extern crate time;
 #[cfg(feature = "url")]
 extern crate url;
 #[cfg(feature = "servo")]
@@ -946,10 +944,6 @@ impl MallocSizeOf for xml5ever::QualName {
     }
 }
 
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(time::Duration);
-#[cfg(feature = "servo")]
-malloc_size_of_is_0!(time::Tm);
 #[cfg(feature = "servo")]
 malloc_size_of_is_0!(std::time::Duration);
 #[cfg(feature = "servo")]

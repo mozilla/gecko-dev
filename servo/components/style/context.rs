@@ -37,6 +37,7 @@ use servo_arc::Arc;
 use servo_atoms::Atom;
 use std::fmt;
 use std::ops;
+use std::time::{Duration, Instant};
 use style_traits::CSSPixel;
 use style_traits::DevicePixel;
 #[cfg(feature = "servo")]
@@ -306,7 +307,7 @@ pub struct TraversalStatistics {
     /// The number of times the stylist was rebuilt.
     pub stylist_rebuilds: u32,
     /// Time spent in the traversal, in milliseconds.
-    pub traversal_time_ms: f64,
+    pub traversal_time: Duration,
     /// Whether this was a parallel traversal.
     pub is_parallel: bool,
     /// Whether this is a "large" traversal.
@@ -317,10 +318,6 @@ pub struct TraversalStatistics {
 /// See https://bugzilla.mozilla.org/show_bug.cgi?id=1331856#c2
 impl fmt::Display for TraversalStatistics {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        debug_assert!(
-            self.traversal_time_ms != 0.0,
-            "should have set traversal time"
-        );
         writeln!(f, "[PERF] perf block start")?;
         writeln!(
             f,
@@ -361,7 +358,7 @@ impl fmt::Display for TraversalStatistics {
         )?;
         writeln!(f, "[PERF],declarations,{}", self.declarations)?;
         writeln!(f, "[PERF],stylist_rebuilds,{}", self.stylist_rebuilds)?;
-        writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time_ms)?;
+        writeln!(f, "[PERF],traversal_time_ms,{}", self.traversal_time.as_secs_f64() * 1000.)?;
         writeln!(f, "[PERF] perf block end")
     }
 }
@@ -374,7 +371,7 @@ impl TraversalStatistics {
         aggregated: PerThreadTraversalStatistics,
         traversal: &D,
         parallel: bool,
-        start: f64,
+        start: Instant,
     ) -> TraversalStatistics
     where
         E: TElement,
@@ -393,7 +390,7 @@ impl TraversalStatistics {
             dependency_selectors: stylist.num_invalidations() as u32,
             declarations: stylist.num_declarations() as u32,
             stylist_rebuilds: stylist.num_rebuilds() as u32,
-            traversal_time_ms: (time::precise_time_s() - start) * 1000.0,
+            traversal_time: Instant::now() - start,
             is_parallel: parallel,
             is_large,
         }
