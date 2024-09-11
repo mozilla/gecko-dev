@@ -8,6 +8,7 @@ import android.content.Context
 import android.os.Bundle
 import android.util.AttributeSet
 import android.view.View
+import androidx.activity.OnBackPressedCallback
 import mozilla.components.browser.state.selector.findCustomTab
 import mozilla.components.concept.engine.EngineView
 import mozilla.components.support.locale.LocaleAwareAppCompatActivity
@@ -62,6 +63,15 @@ class CustomTabActivity : LocaleAwareAppCompatActivity() {
         startupTypeTelemetry = StartupTypeTelemetry(components.startupStateProvider, startupPathProvider).apply {
             attachOnMainActivityOnCreate(lifecycle)
         }
+
+        onBackPressedDispatcher.addCallback(
+            this,
+            object : OnBackPressedCallback(true) {
+                override fun handleOnBackPressed() {
+                    browserFragment.onBackPressed()
+                }
+            },
+        )
     }
 
     override fun onPause() {
@@ -69,15 +79,6 @@ class CustomTabActivity : LocaleAwareAppCompatActivity() {
 
         if (isFinishing) {
             components.customTabsUseCases.remove(customTabId)
-        }
-    }
-
-    @Suppress("MissingSuperCall", "OVERRIDE_DEPRECATION")
-    override fun onBackPressed() {
-        if (browserFragment.sessionFeature.onBackPressed()) {
-            return
-        } else {
-            onBackPressedDispatcher.onBackPressed()
         }
     }
 
