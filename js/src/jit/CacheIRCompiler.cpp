@@ -4094,6 +4094,69 @@ bool CacheIRCompiler::emitBigIntPtrRightShift(IntPtrOperandId lhsId,
   return true;
 }
 
+bool CacheIRCompiler::emitBigIntPtrNegation(IntPtrOperandId inputId,
+                                            IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register input = allocator.useRegister(masm, inputId);
+  Register output = allocator.defineRegister(masm, resultId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.movePtr(input, output);
+  masm.branchNegPtr(Assembler::Overflow, output, failure->label());
+  return true;
+}
+
+bool CacheIRCompiler::emitBigIntPtrInc(IntPtrOperandId inputId,
+                                       IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register input = allocator.useRegister(masm, inputId);
+  Register output = allocator.defineRegister(masm, resultId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.movePtr(input, output);
+  masm.branchAddPtr(Assembler::Overflow, Imm32(1), output, failure->label());
+  return true;
+}
+
+bool CacheIRCompiler::emitBigIntPtrDec(IntPtrOperandId inputId,
+                                       IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register input = allocator.useRegister(masm, inputId);
+  Register output = allocator.defineRegister(masm, resultId);
+
+  FailurePath* failure;
+  if (!addFailurePath(&failure)) {
+    return false;
+  }
+
+  masm.movePtr(input, output);
+  masm.branchSubPtr(Assembler::Overflow, Imm32(1), output, failure->label());
+  return true;
+}
+
+bool CacheIRCompiler::emitBigIntPtrNot(IntPtrOperandId inputId,
+                                       IntPtrOperandId resultId) {
+  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
+
+  Register input = allocator.useRegister(masm, inputId);
+  Register output = allocator.defineRegister(masm, resultId);
+
+  masm.movePtr(input, output);
+  masm.notPtr(output);
+  return true;
+}
+
 bool CacheIRCompiler::emitTruncateDoubleToUInt32(NumberOperandId inputId,
                                                  Int32OperandId resultId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);

@@ -1149,6 +1149,29 @@ bool RBigIntPtrRsh::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
+bool MBigIntPtrBitNot::writeRecoverData(CompactBufferWriter& writer) const {
+  MOZ_ASSERT(canRecoverOnBailout());
+  writer.writeUnsigned(uint32_t(RInstruction::Recover_BigIntPtrBitNot));
+  return true;
+}
+
+RBigIntPtrBitNot::RBigIntPtrBitNot(CompactBufferReader& reader) {}
+
+bool RBigIntPtrBitNot::recover(JSContext* cx, SnapshotIterator& iter) const {
+  Rooted<BigInt*> operand(cx, iter.readBigInt(cx));
+  if (!operand) {
+    return false;
+  }
+
+  BigInt* result = BigInt::bitNot(cx, operand);
+  if (!result) {
+    return false;
+  }
+
+  iter.storeInstructionResult(JS::BigIntValue(result));
+  return true;
+}
+
 bool MCompare::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_Compare));

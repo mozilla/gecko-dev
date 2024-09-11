@@ -3441,6 +3441,55 @@ bool WarpCacheIRTranspiler::emitBigIntPtrRightShift(IntPtrOperandId lhsId,
   return emitBigIntPtrBinaryArith<MBigIntPtrRsh>(lhsId, rhsId, resultId);
 }
 
+bool WarpCacheIRTranspiler::emitBigIntPtrInc(IntPtrOperandId inputId,
+                                             IntPtrOperandId resultId) {
+  MDefinition* input = getOperand(inputId);
+
+  auto* constOne = MConstant::NewIntPtr(alloc(), 1);
+  add(constOne);
+
+  auto* ins = MBigIntPtrAdd::New(alloc(), input, constOne);
+  add(ins);
+
+  return defineOperand(resultId, ins);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrDec(IntPtrOperandId inputId,
+                                             IntPtrOperandId resultId) {
+  MDefinition* input = getOperand(inputId);
+
+  auto* constOne = MConstant::NewIntPtr(alloc(), 1);
+  add(constOne);
+
+  auto* ins = MBigIntPtrSub::New(alloc(), input, constOne);
+  add(ins);
+
+  return defineOperand(resultId, ins);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrNegation(IntPtrOperandId inputId,
+                                                  IntPtrOperandId resultId) {
+  MDefinition* input = getOperand(inputId);
+
+  auto* constNegOne = MConstant::NewIntPtr(alloc(), -1);
+  add(constNegOne);
+
+  auto* ins = MBigIntPtrMul::New(alloc(), input, constNegOne);
+  add(ins);
+
+  return defineOperand(resultId, ins);
+}
+
+bool WarpCacheIRTranspiler::emitBigIntPtrNot(IntPtrOperandId inputId,
+                                             IntPtrOperandId resultId) {
+  MDefinition* input = getOperand(inputId);
+
+  auto* ins = MBigIntPtrBitNot::New(alloc(), input);
+  add(ins);
+
+  return defineOperand(resultId, ins);
+}
+
 bool WarpCacheIRTranspiler::emitCallStringConcatResult(StringOperandId lhsId,
                                                        StringOperandId rhsId) {
   MDefinition* lhs = getOperand(lhsId);

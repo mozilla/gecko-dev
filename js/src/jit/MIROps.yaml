@@ -992,6 +992,9 @@
 - name: BigIntPtrRsh
   gen_boilerplate: false
 
+- name: BigIntPtrBitNot
+  gen_boilerplate: false
+
 - name: Int32ToStringWithBase
   operands:
     input: Int32

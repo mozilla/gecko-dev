@@ -12467,6 +12467,14 @@ void CodeGenerator::visitBigIntPtrRsh(LBigIntPtrRsh* ins) {
   }
 }
 
+void CodeGenerator::visitBigIntPtrBitNot(LBigIntPtrBitNot* ins) {
+  Register input = ToRegister(ins->input());
+  Register output = ToRegister(ins->output());
+
+  masm.movePtr(input, output);
+  masm.notPtr(output);
+}
+
 void CodeGenerator::visitInt32ToStringWithBase(LInt32ToStringWithBase* lir) {
   Register input = ToRegister(lir->input());
   RegisterOrInt32 base = ToRegisterOrInt32(lir->base());

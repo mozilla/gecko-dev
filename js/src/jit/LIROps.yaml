@@ -1309,6 +1309,12 @@
   num_temps: 2
   mir_op: true
 
+- name: BigIntPtrBitNot
+  result_type: WordSized
+  operands:
+    input: WordSized
+  mir_op: true
+
 - name: Int32ToStringWithBase
   result_type: WordSized
   operands:

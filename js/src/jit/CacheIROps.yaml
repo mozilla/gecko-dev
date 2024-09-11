@@ -3014,6 +3014,14 @@
     rhs: IntPtrId
     result: IntPtrId
 
+- name: BigIntPtrNot
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    input: IntPtrId
+    result: IntPtrId
+
 - name: Int32NegationResult
   shared: true
   transpile: true
@@ -3034,6 +3042,14 @@
   cost_estimate: 5
   args:
     input: BigIntId
+
+- name: BigIntPtrNegation
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    input: IntPtrId
+    result: IntPtrId
 
 - name: Int32IncResult
   shared: true
@@ -3076,6 +3092,22 @@
   cost_estimate: 5
   args:
     input: BigIntId
+
+- name: BigIntPtrInc
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    input: IntPtrId
+    result: IntPtrId
+
+- name: BigIntPtrDec
+  shared: true
+  transpile: true
+  cost_estimate: 1
+  args:
+    input: IntPtrId
+    result: IntPtrId
 
 - name: LoadInt32TruthyResult
   shared: true
