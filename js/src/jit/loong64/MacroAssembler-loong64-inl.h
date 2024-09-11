@@ -1985,6 +1985,13 @@ void MacroAssembler::cmp32MovePtr(Condition cond, Register lhs, Imm32 rhs,
   moveIfNotZero(dest, src, scratch2);
 }
 
+void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Imm32 rhs,
+                                   Register src, Register dest) {
+  SecondScratchRegisterScope scratch2(asMasm());
+  cmpPtrSet(cond, lhs, rhs, scratch2);
+  moveIfNotZero(dest, src, scratch2);
+}
+
 void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
                                    Register src, Register dest) {
   SecondScratchRegisterScope scratch2(asMasm());

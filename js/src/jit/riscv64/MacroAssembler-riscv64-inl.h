@@ -1465,6 +1465,11 @@ void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
   moveIfNotZero(dest, src, scratch2);
 }
 
+void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Imm32 rhs,
+                                   Register src, Register dest) {
+  MOZ_CRASH("NYI");
+}
+
 void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs,
                                    const Address& rhs, Register src,
                                    Register dest) {

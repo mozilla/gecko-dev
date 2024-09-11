@@ -619,6 +619,11 @@ void MacroAssembler::fallibleUnboxPtr(const BaseIndex& src, Register dest,
   MOZ_CRASH();
 }
 
+void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Imm32 rhs,
+                                   Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
                                    Register src, Register dest) {
   MOZ_CRASH();

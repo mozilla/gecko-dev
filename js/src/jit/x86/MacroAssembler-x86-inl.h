@@ -1034,6 +1034,11 @@ void MacroAssembler::cmp32LoadPtr(Condition cond, const Address& lhs, Imm32 rhs,
   cmovCCl(cond, Operand(src), dest);
 }
 
+void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Imm32 rhs,
+                                   Register src, Register dest) {
+  cmp32MovePtr(cond, lhs, rhs, src, dest);
+}
+
 void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
                                    Register src, Register dest) {
   cmp32Move32(cond, lhs, rhs, src, dest);

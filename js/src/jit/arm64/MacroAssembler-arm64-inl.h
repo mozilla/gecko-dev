@@ -2139,6 +2139,13 @@ void MacroAssembler::cmp32Move32(Condition cond, Register lhs,
   MOZ_CRASH("NYI");
 }
 
+void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Imm32 rhs,
+                                   Register src, Register dest) {
+  cmpPtr(lhs, rhs);
+  Csel(ARMRegister(dest, 64), ARMRegister(src, 64), ARMRegister(dest, 64),
+       cond);
+}
+
 void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
                                    Register src, Register dest) {
   cmpPtr(lhs, rhs);

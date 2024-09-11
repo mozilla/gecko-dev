@@ -2187,6 +2187,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
                           Register src, Register dest)
       DEFINED_ON(arm, arm64, loong64, riscv64, wasm32, mips_shared, x86_shared);
 
+  inline void cmpPtrMovePtr(Condition cond, Register lhs, Imm32 rhs,
+                            Register src, Register dest) PER_ARCH;
+
   inline void cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
                             Register src, Register dest) PER_ARCH;
 
