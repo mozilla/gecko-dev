@@ -125,6 +125,10 @@ class BackgroundChildImpl : public PBackgroundChild {
   virtual bool DeallocPBroadcastChannelChild(
       PBroadcastChannelChild* aActor) override;
 
+  virtual PCookieStoreChild* AllocPCookieStoreChild() override;
+
+  virtual bool DeallocPCookieStoreChild(PCookieStoreChild* aActor) override;
+
   virtual PServiceWorkerManagerChild* AllocPServiceWorkerManagerChild()
       override;
 

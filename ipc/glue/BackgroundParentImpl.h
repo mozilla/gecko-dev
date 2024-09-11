@@ -192,6 +192,10 @@ class BackgroundParentImpl : public PBackgroundParent {
 
   bool DeallocPBroadcastChannelParent(PBroadcastChannelParent* aActor) override;
 
+  virtual PCookieStoreParent* AllocPCookieStoreParent() override;
+
+  virtual bool DeallocPCookieStoreParent(PCookieStoreParent* aActor) override;
+
   PServiceWorkerManagerParent* AllocPServiceWorkerManagerParent() override;
 
   bool DeallocPServiceWorkerManagerParent(

@@ -1266,6 +1266,18 @@ CookieService::GetCookiesFromHost(const nsACString& aHost,
                                   JS::Handle<JS::Value> aOriginAttributes,
                                   JSContext* aCx,
                                   nsTArray<RefPtr<nsICookie>>& aResult) {
+  OriginAttributes attrs;
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  return GetCookiesFromHostNative(aHost, &attrs, aResult);
+}
+
+NS_IMETHODIMP
+CookieService::GetCookiesFromHostNative(const nsACString& aHost,
+                                        OriginAttributes* aAttrs,
+                                        nsTArray<RefPtr<nsICookie>>& aResult) {
   // first, normalize the hostname, and fail if it contains illegal characters.
   nsAutoCString host(aHost);
   nsresult rv = NormalizeHost(host);
@@ -1275,19 +1287,14 @@ CookieService::GetCookiesFromHost(const nsACString& aHost,
   rv = CookieCommons::GetBaseDomainFromHost(mTLDService, host, baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
   if (!IsInitialized()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  CookieStorage* storage = PickStorage(attrs);
+  CookieStorage* storage = PickStorage(*aAttrs);
 
   nsTArray<RefPtr<Cookie>> cookies;
-  storage->GetCookiesFromHost(baseDomain, attrs, cookies);
+  storage->GetCookiesFromHost(baseDomain, *aAttrs, cookies);
 
   if (cookies.IsEmpty()) {
     return NS_OK;

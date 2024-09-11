@@ -20,6 +20,7 @@ include protocol PCache;
 include protocol PCacheStorage;
 include protocol PCacheStreamControl;
 include protocol PClientManager;
+include protocol PCookieStore;
 include protocol PEndpointForReport;
 include protocol PFileSystemManager;
 include protocol PFileSystemRequest;
@@ -99,6 +100,7 @@ sync protocol PBackground
   manages PCacheStorage;
   manages PCacheStreamControl;
   manages PClientManager;
+  manages PCookieStore;
   manages PEndpointForReport;
   manages PFileSystemRequest;
   manages PGamepadEventChannel;
@@ -196,6 +198,8 @@ parent:
 
   async PUDPSocket(PrincipalInfo? pInfo, nsCString filter);
   async PBroadcastChannel(PrincipalInfo pInfo, nsCString origin, nsString channel);
+
+  async PCookieStore();
 
   async PServiceWorkerManager();
 

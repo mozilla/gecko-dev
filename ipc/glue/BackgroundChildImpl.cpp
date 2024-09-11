@@ -19,6 +19,7 @@
 #include "mozilla/dom/PBackgroundLSRequestChild.h"
 #include "mozilla/dom/PBackgroundLSSimpleRequestChild.h"
 #include "mozilla/dom/PBackgroundSDBConnectionChild.h"
+#include "mozilla/dom/CookieStoreChild.h"
 #include "mozilla/dom/PFileSystemRequestChild.h"
 #include "mozilla/dom/EndpointForReportChild.h"
 #include "mozilla/dom/PVsync.h"
@@ -319,6 +320,26 @@ bool BackgroundChildImpl::DeallocPBroadcastChannelChild(
   MOZ_ASSERT(child);
   return true;
 }
+
+// -----------------------------------------------------------------------------
+// CookieStore API
+// -----------------------------------------------------------------------------
+
+dom::PCookieStoreChild* BackgroundChildImpl::AllocPCookieStoreChild() {
+  RefPtr<dom::CookieStoreChild> child = new dom::CookieStoreChild();
+  return child.forget().take();
+}
+
+bool BackgroundChildImpl::DeallocPCookieStoreChild(PCookieStoreChild* aActor) {
+  RefPtr<dom::CookieStoreChild> child =
+      dont_AddRef(static_cast<dom::CookieStoreChild*>(aActor));
+  MOZ_ASSERT(child);
+  return true;
+}
+
+// -----------------------------------------------------------------------------
+// Camera API
+// -----------------------------------------------------------------------------
 
 camera::PCamerasChild* BackgroundChildImpl::AllocPCamerasChild() {
 #ifdef MOZ_WEBRTC
