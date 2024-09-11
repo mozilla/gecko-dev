@@ -1362,7 +1362,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
              Register temp2, Label* onOver);
   void powPtr(Register base, Register power, Register dest, Register temp1,
               Register temp2, Label* onOver);
-  void powPtr(Register base, Register power, Register dest, Label* onOver);
 
   void sameValueDouble(FloatRegister left, FloatRegister right,
                        FloatRegister temp, Register dest);
@@ -5059,39 +5058,25 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void loadBigInt64(Register bigInt, Register64 dest);
 
   /**
-   * Load the first digit from |bigInt| into |dest|. Handles the case when the
-   * BigInt digits length is zero.
+   * Load the first digit from |bigInt| into |dest|.
    *
-   * Note: A BigInt digit is a pointer-sized value.
+   * Note: A BigInt digit is a pointer-sized value storing an unsigned number.
    */
-  void loadFirstBigIntDigitOrZero(Register bigInt, Register dest);
+  void loadBigIntDigit(Register bigInt, Register dest);
 
   /**
-   * Load the number stored in |bigInt| into |dest|. Handles the case when the
-   * BigInt digits length is zero. Jumps to |fail| when the number can't be
-   * saved into a single pointer-sized register.
+   * Load the first digit from |bigInt| into |dest|. Jumps to |fail| when there
+   * is more than one BigInt digit.
+   *
+   * Note: A BigInt digit is a pointer-sized value storing an unsigned number.
    */
-  void loadBigInt(Register bigInt, Register dest, Label* fail);
+  void loadBigIntDigit(Register bigInt, Register dest, Label* fail);
 
   /**
-   * Load the number stored in |bigInt| into |dest|. Doesn't handle the case
-   * when the BigInt digits length is zero. Jumps to |fail| when the number
-   * can't be saved into a single pointer-sized register.
+   * Load the number stored in |bigInt| into |dest|. Jumps to |fail| when the
+   * number can't be saved into a single pointer-sized register.
    */
-  void loadBigIntNonZero(Register bigInt, Register dest, Label* fail);
-
-  /**
-   * Load the absolute number stored in |bigInt| into |dest|. Handles the case
-   * when the BigInt digits length is zero. Jumps to |fail| when the number
-   * can't be saved into a single pointer-sized register.
-   */
-  void loadBigIntAbsolute(Register bigInt, Register dest, Label* fail);
-
-  /**
-   * In-place modifies the BigInt digit to a signed pointer-sized value. Jumps
-   * to |fail| when the digit exceeds the representable range.
-   */
-  void bigIntDigitToSignedPtr(Register bigInt, Register digit, Label* fail);
+  void loadBigIntPtr(Register bigInt, Register dest, Label* fail);
 
   /**
    * Initialize a BigInt from |val|. Clobbers |val| when |temp| is invalid and
@@ -5104,12 +5089,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
    * Initialize a BigInt from the signed, pointer-sized register |val|.
    * Clobbers |val|!
    */
-  void initializeBigInt(Register bigInt, Register val);
-
-  /**
-   * Initialize a BigInt from the pointer-sized register |val|.
-   */
-  void initializeBigIntAbsolute(Register bigInt, Register val);
+  void initializeBigIntPtr(Register bigInt, Register val);
 
   /**
    * Copy a BigInt. Jumps to |fail| on allocation failure or when the BigInt

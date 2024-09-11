@@ -5266,7 +5266,7 @@ void CodeGenerator::visitInt32ToBigInt(LInt32ToBigInt* lir) {
 
   masm.newGCBigInt(output, temp, initialBigIntHeap(), ool->entry());
   masm.move32SignExtendToPtr(input, temp);
-  masm.initializeBigInt(output, temp);
+  masm.initializeBigIntPtr(output, temp);
   masm.bind(ool->rejoin());
 }
 
@@ -11474,7 +11474,7 @@ void CodeGenerator::visitBigIntToIntPtr(LBigIntToIntPtr* ins) {
   Register output = ToRegister(ins->output());
 
   Label bail;
-  masm.loadBigInt(input, output, &bail);
+  masm.loadBigIntPtr(input, output, &bail);
   bailoutFrom(&bail, ins->snapshot());
 }
 
@@ -11489,7 +11489,7 @@ void CodeGenerator::visitIntPtrToBigInt(LIntPtrToBigInt* ins) {
 
   masm.newGCBigInt(output, temp, initialBigIntHeap(), ool->entry());
   masm.movePtr(input, temp);
-  masm.initializeBigInt(output, temp);
+  masm.initializeBigIntPtr(output, temp);
 
   masm.bind(ool->rejoin());
 }
@@ -21377,7 +21377,7 @@ void CodeGenerator::visitBigIntAsIntN32(LBigIntAsIntN32* ins) {
   masm.movePtr(input, output);
 
   // Load the absolute value of the first digit.
-  masm.loadFirstBigIntDigitOrZero(input, temp);
+  masm.loadBigIntDigit(input, temp);
 
   // If the absolute value exceeds the int32 range, create a new BigInt.
   masm.branchPtr(Assembler::Above, temp, Imm32(INT32_MAX), &create);
@@ -21448,7 +21448,7 @@ void CodeGenerator::visitBigIntAsUintN32(LBigIntAsUintN32* ins) {
   masm.movePtr(input, output);
 
   // Load the absolute value of the first digit.
-  masm.loadFirstBigIntDigitOrZero(input, temp);
+  masm.loadBigIntDigit(input, temp);
 
   // If the absolute value exceeds the uint32 range, create a new BigInt.
 #if JS_PUNBOX64

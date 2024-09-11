@@ -3771,7 +3771,7 @@ bool CacheIRCompiler::emitBigIntToIntPtr(BigIntOperandId inputId,
     return false;
   }
 
-  masm.loadBigInt(input, output, failure->label());
+  masm.loadBigIntPtr(input, output, failure->label());
   return true;
 }
 
@@ -10398,7 +10398,7 @@ bool CacheIRCompiler::emitInt32ToBigIntResult(Int32OperandId inputId) {
                      failure->label());
 
   masm.move32SignExtendToPtr(input, scratch2);
-  masm.initializeBigInt(scratch1, scratch2);
+  masm.initializeBigIntPtr(scratch1, scratch2);
 
   masm.tagValue(JSVAL_TYPE_BIGINT, scratch1, output.valueReg());
   return true;
