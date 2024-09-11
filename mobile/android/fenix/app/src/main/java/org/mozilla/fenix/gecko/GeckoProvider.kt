@@ -18,6 +18,7 @@ import mozilla.components.service.sync.logins.GeckoLoginStorageDelegate
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
+import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.geckoview.ContentBlocking
 import org.mozilla.geckoview.ContentBlocking.SafeBrowsingProvider
 import org.mozilla.geckoview.GeckoRuntime
@@ -137,6 +138,7 @@ object GeckoProvider {
             .extensionsProcessEnabled(true)
             .extensionsWebAPIEnabled(true)
             .translationsOfferPopup(context.settings().offerTranslation)
+            .disableShip(FxNimbus.features.ship.value().disabled)
             .build()
     }
 }

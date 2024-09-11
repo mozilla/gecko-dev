@@ -457,6 +457,16 @@ features:
         type: Boolean
         default: true
 
+  ship:
+    description: The feature that controls Session History in Parent (SHIP) in Gecko.
+    variables:
+      disabled:
+        description: >
+          Whether or not to disable SHIP. SHIP is enabled when set to false. SHIP is disabled when
+          set to true.
+        type: Boolean
+        default: true
+
   suggest-shipped-domains:
     description: Feature that suggests domains from the shipped domain list.
     variables:
