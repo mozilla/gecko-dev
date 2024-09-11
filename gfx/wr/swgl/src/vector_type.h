@@ -240,23 +240,23 @@ struct VectorType {
     return *this;
   }
 
-  VectorType<mask_type, N> operator==(VectorType x) const {
-    return VectorType<mask_type, N>::wrap(data == x.data);
+  VectorType<mask_index, N> operator==(VectorType x) const {
+    return VectorType<mask_index, N>::wrap(data == x.data);
   }
-  VectorType<mask_type, N> operator!=(VectorType x) const {
-    return VectorType<mask_type, N>::wrap(data != x.data);
+  VectorType<mask_index, N> operator!=(VectorType x) const {
+    return VectorType<mask_index, N>::wrap(data != x.data);
   }
-  VectorType<mask_type, N> operator<(VectorType x) const {
-    return VectorType<mask_type, N>::wrap(data < x.data);
+  VectorType<mask_index, N> operator<(VectorType x) const {
+    return VectorType<mask_index, N>::wrap(data < x.data);
   }
-  VectorType<mask_type, N> operator>(VectorType x) const {
-    return VectorType<mask_type, N>::wrap(data > x.data);
+  VectorType<mask_index, N> operator>(VectorType x) const {
+    return VectorType<mask_index, N>::wrap(data > x.data);
   }
-  VectorType<mask_type, N> operator<=(VectorType x) const {
-    return VectorType<mask_type, N>::wrap(data <= x.data);
+  VectorType<mask_index, N> operator<=(VectorType x) const {
+    return VectorType<mask_index, N>::wrap(data <= x.data);
   }
-  VectorType<mask_type, N> operator>=(VectorType x) const {
-    return VectorType<mask_type, N>::wrap(data >= x.data);
+  VectorType<mask_index, N> operator>=(VectorType x) const {
+    return VectorType<mask_index, N>::wrap(data >= x.data);
   }
 
   VectorType operator!() const { return wrap(!data); }
