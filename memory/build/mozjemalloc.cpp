@@ -1148,6 +1148,7 @@ struct arena_t {
   // on first use to avoid recursive malloc initialization (e.g. on OSX
   // arc4random allocates memory).
   mozilla::non_crypto::XorShift128PlusRNG* mPRNG;
+  bool mIsPRNGInitializing;
 
  public:
   // Current count of pages within unused runs that are potentially
@@ -3424,29 +3425,32 @@ void* arena_t::MallocSmall(size_t aSize, bool aZero) {
   MOZ_DIAGNOSTIC_ASSERT(aSize == bin->mSizeClass);
 
   {
-    // Before we lock, we determine if we need to randomize the allocation
-    // because if we do, we need to create the PRNG which might require
-    // allocating memory (arc4random on OSX for example) and we need to
-    // avoid the deadlock
-    if (MOZ_UNLIKELY(mRandomizeSmallAllocations && mPRNG == nullptr)) {
-      // This is frustrating. Because the code backing RandomUint64 (arc4random
-      // for example) may allocate memory, and because
-      // mRandomizeSmallAllocations is true and we haven't yet initilized mPRNG,
-      // we would re-enter this same case and cause a deadlock inside e.g.
-      // arc4random.  So we temporarily disable mRandomizeSmallAllocations to
-      // skip this case and then re-enable it
-      mRandomizeSmallAllocations = false;
-      mozilla::Maybe<uint64_t> prngState1 = mozilla::RandomUint64();
-      mozilla::Maybe<uint64_t> prngState2 = mozilla::RandomUint64();
-      void* backing =
-          base_alloc(sizeof(mozilla::non_crypto::XorShift128PlusRNG));
-      mPRNG = new (backing) mozilla::non_crypto::XorShift128PlusRNG(
-          prngState1.valueOr(0), prngState2.valueOr(0));
-      mRandomizeSmallAllocations = true;
+    MaybeMutexAutoLock lock(mLock);
+
+    if (MOZ_UNLIKELY(mRandomizeSmallAllocations && mPRNG == nullptr &&
+                     !mIsPRNGInitializing)) {
+      // Both another thread could race and the code backing RandomUint64
+      // (arc4random for example) may allocate memory while here, so we must
+      // ensure to start the mPRNG initialization only once and to not hold
+      // the lock while initializing.
+      mIsPRNGInitializing = true;
+      mozilla::non_crypto::XorShift128PlusRNG* prng;
+      {
+        // TODO: I think no MaybeMutexAutoUnlock or similar exists, should it?
+        mLock.Unlock();
+        mozilla::Maybe<uint64_t> prngState1 = mozilla::RandomUint64();
+        mozilla::Maybe<uint64_t> prngState2 = mozilla::RandomUint64();
+        void* backing =
+            base_alloc(sizeof(mozilla::non_crypto::XorShift128PlusRNG));
+        prng = new (backing) mozilla::non_crypto::XorShift128PlusRNG(
+            prngState1.valueOr(0), prngState2.valueOr(0));
+        mLock.Lock();
+      }
+      mPRNG = prng;
+      mIsPRNGInitializing = false;
     }
     MOZ_ASSERT(!mRandomizeSmallAllocations || mPRNG);
 
-    MaybeMutexAutoLock lock(mLock);
     run = bin->mCurrentRun;
     if (MOZ_UNLIKELY(!run || run->mNumFree == 0)) {
       run = bin->mCurrentRun = GetNonFullBinRun(bin);
@@ -4180,6 +4184,7 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
   MOZ_RELEASE_ASSERT(mLock.Init(doLock));
 
   mPRNG = nullptr;
+  mIsPRNGInitializing = false;
 
   mIsPrivate = aIsPrivate;
 
