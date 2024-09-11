@@ -1,0 +1,4 @@
+[DEFAULT]
+tags = "local"
+
+["test_initialize_vertical_tabs.py"]
