@@ -2074,6 +2074,7 @@ class NewAltTextManager {
   #eventBus;
   #firstTime = false;
   #guessedAltText;
+  #hasAI = false;
   #isEditing = null;
   #imagePreview;
   #imageData;
@@ -2145,16 +2146,16 @@ class NewAltTextManager {
     textarea.addEventListener("focus", () => {
       this.#wasAILoading = this.#isAILoading;
       this.#toggleLoading(false);
+      this.#toggleTitleAndDisclaimer();
     });
     textarea.addEventListener("blur", () => {
-      if (textarea.value) {
-        return;
+      if (!textarea.value) {
+        this.#toggleLoading(this.#wasAILoading);
       }
-      this.#toggleLoading(this.#wasAILoading);
+      this.#toggleTitleAndDisclaimer();
     });
     textarea.addEventListener("input", () => {
-      this.#toggleTitle();
-      this.#toggleDisclaimer();
+      this.#toggleTitleAndDisclaimer();
     });
     eventBus._on("enableguessalttext", ({
       value
@@ -2184,14 +2185,6 @@ class NewAltTextManager {
     }
     this.#dialog.classList.toggle("error", value);
   }
-  #toggleTitle() {
-    const isEditing = this.#isAILoading || !!this.#textarea.value;
-    if (this.#isEditing === isEditing) {
-      return;
-    }
-    this.#isEditing = isEditing;
-    this.#title.setAttribute("data-l10n-id", `pdfjs-editor-new-alt-text-dialog-${isEditing ? "edit" : "add"}-label`);
-  }
   async #toggleGuessAltText(value, isInitial = false) {
     if (!this.#uiManager) {
       return;
@@ -2209,8 +2202,7 @@ class NewAltTextManager {
     } else {
       this.#toggleLoading(false);
       this.#isAILoading = false;
-      this.#toggleTitle();
-      this.#toggleDisclaimer();
+      this.#toggleTitleAndDisclaimer();
     }
   }
   #toggleNotNow() {
@@ -2218,15 +2210,22 @@ class NewAltTextManager {
     this.#cancelButton.classList.toggle("hidden", this.#firstTime);
   }
   #toggleAI(value) {
-    this.#dialog.classList.toggle("noAi", !value);
-    this.#toggleTitle();
-  }
-  #toggleDisclaimer(value = null) {
-    if (!this.#uiManager) {
+    if (!this.#uiManager || this.#hasAI === value) {
       return;
     }
-    const hidden = value === null ? !this.#guessedAltText || this.#guessedAltText !== this.#textarea.value : !value;
-    this.#disclaimer.classList.toggle("hidden", hidden);
+    this.#hasAI = value;
+    this.#dialog.classList.toggle("noAi", !value);
+    this.#toggleTitleAndDisclaimer();
+  }
+  #toggleTitleAndDisclaimer() {
+    const visible = this.#isAILoading || this.#guessedAltText && this.#guessedAltText === this.#textarea.value;
+    this.#disclaimer.hidden = !visible;
+    const isEditing = this.#isAILoading || !!this.#textarea.value;
+    if (this.#isEditing === isEditing) {
+      return;
+    }
+    this.#isEditing = isEditing;
+    this.#title.setAttribute("data-l10n-id", isEditing ? "pdfjs-editor-new-alt-text-dialog-edit-label" : "pdfjs-editor-new-alt-text-dialog-add-label");
   }
   async #mlGuessAltText(isInitial) {
     if (this.#isAILoading) {
@@ -2241,13 +2240,10 @@ class NewAltTextManager {
     this.#guessedAltText = this.#currentEditor.guessedAltText;
     if (this.#previousAltText === null && this.#guessedAltText) {
       this.#addAltText(this.#guessedAltText);
-      this.#toggleDisclaimer();
-      this.#toggleTitle();
       return;
     }
     this.#toggleLoading(true);
-    this.#toggleTitle();
-    this.#toggleDisclaimer(true);
+    this.#toggleTitleAndDisclaimer();
     let hasError = false;
     try {
       const altText = await this.#currentEditor.mlGuessAltText(this.#imageData, false);
@@ -2263,10 +2259,9 @@ class NewAltTextManager {
       hasError = true;
     }
     this.#toggleLoading(false);
+    this.#toggleTitleAndDisclaimer();
     if (hasError && this.#uiManager) {
       this.#toggleError(true);
-      this.#toggleTitle();
-      this.#toggleDisclaimer();
     }
   }
   #addAltText(altText) {
@@ -2274,6 +2269,7 @@ class NewAltTextManager {
       return;
     }
     this.#textarea.value = altText;
+    this.#toggleTitleAndDisclaimer();
   }
   #setProgress() {
     this.#downloadModel.classList.toggle("hidden", false);
@@ -2322,6 +2318,7 @@ class NewAltTextManager {
       mlManager
     } = uiManager;
     let hasAI = !!mlManager;
+    this.#toggleTitleAndDisclaimer();
     if (mlManager && !mlManager.isReady("altText")) {
       hasAI = false;
       if (mlManager.hasProgress) {
@@ -9274,7 +9271,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.6.58";
+    const viewerVersion = "4.6.60";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -13450,8 +13447,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.6.58";
-const pdfjsBuild = "a41cd3838";
+const pdfjsVersion = "4.6.60";
+const pdfjsBuild = "10a846417";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
