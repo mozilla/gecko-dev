@@ -380,9 +380,10 @@ var gSearchPane = {
       let elementIds = ["locationBarGroupHeader", "locationBarSuggestionLabel"];
       for (let id of elementIds) {
         let element = document.getElementById(id);
-        element.dataset.l10nId = element.dataset.l10nIdOriginal;
-        delete element.dataset.l10nIdOriginal;
-        document.l10n.translateElements([element]);
+        if (element.dataset.l10nIdOriginal) {
+          document.l10n.setAttributes(element, element.dataset.l10nIdOriginal);
+          delete element.dataset.l10nIdOriginal;
+        }
       }
     }
   },

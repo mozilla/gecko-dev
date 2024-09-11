@@ -656,36 +656,39 @@ async function doLocaleTest({ shouldRunTask, osUnit, unitsByLocale }) {
 
   // Check locales.
   for (let [locale, temperatureUnit] of Object.entries(unitsByLocale)) {
-    await QuickSuggestTestUtils.withLocales([locale], async () => {
-      info("Checking locale: " + locale);
-      await check_results({
-        context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
-          providers: [
-            UrlbarProviderQuickSuggest.name,
-            UrlbarProviderWeather.name,
-          ],
-          isPrivate: false,
-        }),
-        matches: [QuickSuggestTestUtils.weatherResult({ temperatureUnit })],
-      });
+    await QuickSuggestTestUtils.withLocales({
+      locales: [locale],
+      callback: async () => {
+        info("Checking locale: " + locale);
+        await check_results({
+          context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+            providers: [
+              UrlbarProviderQuickSuggest.name,
+              UrlbarProviderWeather.name,
+            ],
+            isPrivate: false,
+          }),
+          matches: [QuickSuggestTestUtils.weatherResult({ temperatureUnit })],
+        });
 
-      info(
-        "Checking locale with intl.regional_prefs.use_os_locales: " + locale
-      );
-      Services.prefs.setBoolPref("intl.regional_prefs.use_os_locales", true);
-      await check_results({
-        context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
-          providers: [
-            UrlbarProviderQuickSuggest.name,
-            UrlbarProviderWeather.name,
+        info(
+          "Checking locale with intl.regional_prefs.use_os_locales: " + locale
+        );
+        Services.prefs.setBoolPref("intl.regional_prefs.use_os_locales", true);
+        await check_results({
+          context: createContext(MerinoTestUtils.WEATHER_KEYWORD, {
+            providers: [
+              UrlbarProviderQuickSuggest.name,
+              UrlbarProviderWeather.name,
+            ],
+            isPrivate: false,
+          }),
+          matches: [
+            QuickSuggestTestUtils.weatherResult({ temperatureUnit: osUnit }),
           ],
-          isPrivate: false,
-        }),
-        matches: [
-          QuickSuggestTestUtils.weatherResult({ temperatureUnit: osUnit }),
-        ],
-      });
-      Services.prefs.clearUserPref("intl.regional_prefs.use_os_locales");
+        });
+        Services.prefs.clearUserPref("intl.regional_prefs.use_os_locales");
+      },
     });
   }
 }

@@ -11,6 +11,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
+  Region: "resource://gre/modules/Region.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   RemoteSettingsConfig: "resource://gre/modules/RustRemoteSettings.sys.mjs",
   RemoteSettingsServer:
@@ -1166,17 +1167,23 @@ class _QuickSuggestTestUtils {
   }
 
   /**
-   * Sets the app's locales, calls your callback, and resets locales.
+   * Sets the app's home region and locales, calls your callback, and resets
+   * the region and locales.
    *
-   * @param {Array} locales
+   * @param {object} options
+   *   Options object.
+   * @param {Array} options.locales
    *   An array of locale strings. The entire array will be set as the available
    *   locales, and the first locale in the array will be set as the requested
    *   locale.
-   * @param {Function} callback
+   * @param {Function} options.callback
    *  The callback to be called with the {@link locales} set. This function can
    *  be async.
+   * @param {string} options.homeRegion
+   *   The home region to set, an all-caps country code, e.g., "US", "CA", "DE".
+   *   Leave undefined to skip setting a region.
    */
-  async withLocales(locales, callback) {
+  async withLocales({ locales, callback, homeRegion = undefined }) {
     let promiseChanges = async desiredLocales => {
       this.#log(
         "withLocales",
@@ -1188,6 +1195,7 @@ class _QuickSuggestTestUtils {
 
       if (desiredLocales[0] == Services.locale.requestedLocales[0]) {
         // Nothing happens when the locale doesn't actually change.
+        this.#log("withLocales", "Locale is already " + desiredLocales[0]);
         return;
       }
 
@@ -1225,6 +1233,11 @@ class _QuickSuggestTestUtils {
       this.#log("withLocales", "Done waiting for locale changes");
     };
 
+    let originalHome = lazy.Region.home;
+    if (homeRegion) {
+      lazy.Region._setHomeRegion(homeRegion, false);
+    }
+
     let available = Services.locale.availableLocales;
     let requested = Services.locale.requestedLocales;
 
@@ -1241,6 +1254,10 @@ class _QuickSuggestTestUtils {
     );
 
     await callback();
+
+    if (homeRegion) {
+      lazy.Region._setHomeRegion(originalHome, false);
+    }
 
     promise = promiseChanges(requested);
     Services.locale.availableLocales = available;

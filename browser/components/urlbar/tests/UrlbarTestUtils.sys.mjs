@@ -17,10 +17,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ExperimentAPI: "resource://nimbus/ExperimentAPI.sys.mjs",
   ExperimentFakes: "resource://testing-common/NimbusTestUtils.sys.mjs",
   ExperimentManager: "resource://nimbus/lib/ExperimentManager.sys.mjs",
-
   FormHistoryTestUtils:
     "resource://testing-common/FormHistoryTestUtils.sys.mjs",
-
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
   PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",

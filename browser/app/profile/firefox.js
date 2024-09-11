@@ -505,7 +505,7 @@ pref("browser.urlbar.quicksuggest.enabled", false);
 pref("browser.urlbar.quicksuggest.rustEnabled", true);
 
 // Whether to show the QuickSuggest onboarding dialog.
-pref("browser.urlbar.quicksuggest.shouldShowOnboardingDialog", true);
+pref("browser.urlbar.quicksuggest.shouldShowOnboardingDialog", false);
 
 // Show QuickSuggest onboarding dialog on the nth browser restarts.
 pref("browser.urlbar.quicksuggest.showOnboardingDialogAfterNRestarts", 0);

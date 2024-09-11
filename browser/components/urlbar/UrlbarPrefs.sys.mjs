@@ -308,7 +308,7 @@ const PREF_URLBAR_DEFAULTS = new Map([
   ["quicksuggest.seenRestarts", 0],
 
   // Whether to show the quick suggest onboarding dialog.
-  ["quicksuggest.shouldShowOnboardingDialog", true],
+  ["quicksuggest.shouldShowOnboardingDialog", false],
 
   // Whether the user has seen the onboarding dialog.
   ["quicksuggest.showedOnboardingDialog", false],
@@ -1108,6 +1108,10 @@ class Preferences {
     return {
       history: {
         "quicksuggest.enabled": false,
+        "quicksuggest.dataCollection.enabled": false,
+        "quicksuggest.shouldShowOnboardingDialog": false,
+        "suggest.quicksuggest.nonsponsored": false,
+        "suggest.quicksuggest.sponsored": false,
       },
       offline: {
         "quicksuggest.enabled": true,
