@@ -85,20 +85,49 @@ private class BreadcrumbList(val maxBreadCrumbs: Int) {
  *                            happened. This gives the app the opportunity to show an in-app confirmation UI before
  *                            sending a crash report. See component README for details.
  */
-class CrashReporter(
-    context: Context,
+class CrashReporter internal constructor(
     private val services: List<CrashReporterService> = emptyList(),
     private val telemetryServices: List<CrashTelemetryService> = emptyList(),
     private val shouldPrompt: Prompt = Prompt.NEVER,
-    var enabled: Boolean = true,
+    enabled: Boolean = true,
     internal val promptConfiguration: PromptConfiguration = PromptConfiguration(),
     private val nonFatalCrashIntent: PendingIntent? = null,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
     private val maxBreadCrumbs: Int = 30,
     private val notificationsDelegate: NotificationsDelegate,
     private val runtimeTagProviders: List<RuntimeTagProvider> = emptyList(),
+    databaseProvider: () -> CrashDatabase,
 ) : CrashReporting {
-    private val database: CrashDatabase by lazy { CrashDatabase.get(context) }
+
+    constructor(
+        context: Context,
+        services: List<CrashReporterService> = emptyList(),
+        telemetryServices: List<CrashTelemetryService> = emptyList(),
+        shouldPrompt: Prompt = Prompt.NEVER,
+        enabled: Boolean = true,
+        promptConfiguration: PromptConfiguration = PromptConfiguration(),
+        nonFatalCrashIntent: PendingIntent? = null,
+        scope: CoroutineScope = CoroutineScope(Dispatchers.IO),
+        maxBreadCrumbs: Int = 30,
+        notificationsDelegate: NotificationsDelegate,
+        runtimeTagProviders: List<RuntimeTagProvider> = emptyList(),
+    ) : this(
+        services = services,
+        telemetryServices = telemetryServices,
+        shouldPrompt = shouldPrompt,
+        enabled = enabled,
+        promptConfiguration = promptConfiguration,
+        nonFatalCrashIntent = nonFatalCrashIntent,
+        scope = scope,
+        maxBreadCrumbs,
+        notificationsDelegate,
+        runtimeTagProviders,
+        { CrashDatabase.get(context) },
+    )
+
+    var enabled: Boolean = enabled
+
+    private val database: CrashDatabase by lazy { databaseProvider() }
 
     internal val logger = Logger("mozac/CrashReporter")
 
@@ -129,6 +158,13 @@ class CrashReporter(
         Thread.setDefaultUncaughtExceptionHandler(handler)
 
         return this
+    }
+
+    /**
+     * Checks to see if there are any unsent crash reports
+     */
+    suspend fun hasUnsentCrashReports(): Boolean {
+        return database.crashDao().numberOfUnsentCrashes() > 0
     }
 
     /**

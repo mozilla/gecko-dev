@@ -11,6 +11,8 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import mozilla.components.concept.base.crash.Breadcrumb
+import mozilla.components.lib.crash.db.CrashDao
+import mozilla.components.lib.crash.db.CrashDatabase
 import mozilla.components.lib.crash.service.CrashReporterService
 import mozilla.components.lib.crash.service.CrashTelemetryService
 import mozilla.components.support.test.any
@@ -22,6 +24,7 @@ import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
@@ -33,6 +36,7 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.spy
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
+import org.mockito.Mockito.`when`
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
@@ -989,6 +993,42 @@ class CrashReporterTest {
                 time = it[i].date
             }
         }
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has unsent crashes WHEN calling hasUnsentCrashReports THEN return true`() = runTestOnMain {
+        val database: CrashDatabase = mock()
+        val crashDao: CrashDao = mock()
+
+        var crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            notificationsDelegate = mock(),
+            databaseProvider = { database },
+        )
+
+        `when`(database.crashDao()).thenReturn(crashDao)
+        `when`(crashDao.numberOfUnsentCrashes()).thenReturn(1)
+
+        assertTrue(crashReporter.hasUnsentCrashReports())
+    }
+
+    @Test
+    fun `GIVEN the crash reporter has no crashes WHEN calling hasUnsentCrashReports THEN return false`() = runTestOnMain {
+        val database: CrashDatabase = mock()
+        val crashDao: CrashDao = mock()
+
+        var crashReporter = CrashReporter(
+            services = listOf(mock()),
+            scope = scope,
+            notificationsDelegate = mock(),
+            databaseProvider = { database },
+        )
+
+        `when`(database.crashDao()).thenReturn(crashDao)
+        `when`(crashDao.numberOfUnsentCrashes()).thenReturn(0)
+
+        assertFalse(crashReporter.hasUnsentCrashReports())
     }
 
     @Test
