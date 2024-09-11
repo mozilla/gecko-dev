@@ -1136,6 +1136,10 @@ void MacroAssembler::flexibleRshift32Arithmetic(Register shift,
   MOZ_CRASH();
 }
 
+void MacroAssembler::flexibleLshiftPtr(Register shift, Register srcDest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::flexibleRshiftPtr(Register shift, Register srcDest) {
   MOZ_CRASH();
 }

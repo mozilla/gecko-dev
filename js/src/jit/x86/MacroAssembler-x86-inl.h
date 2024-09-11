@@ -427,6 +427,10 @@ void MacroAssembler::lshiftPtr(Register shift, Register srcDest) {
   shll_cl(srcDest);
 }
 
+void MacroAssembler::flexibleLshiftPtr(Register shift, Register srcDest) {
+  flexibleLshift32(shift, srcDest);
+}
+
 void MacroAssembler::lshift64(Imm32 imm, Register64 dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   if (imm.value < 32) {

@@ -646,6 +646,10 @@ void MacroAssembler::lshiftPtr(Imm32 imm, Register dest) {
   as_slli_d(dest, dest, imm.value);
 }
 
+void MacroAssembler::flexibleLshiftPtr(Register shift, Register srcDest) {
+  lshiftPtr(shift, srcDest);
+}
+
 void MacroAssembler::rshift32(Register src, Register dest) {
   as_srl_w(dest, dest, src);
 }

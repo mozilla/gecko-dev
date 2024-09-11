@@ -654,6 +654,10 @@ void MacroAssembler::lshiftPtr(Register src, Register dest) {
   ma_lsl(src, dest, dest);
 }
 
+void MacroAssembler::flexibleLshiftPtr(Register shift, Register srcDest) {
+  flexibleLshift32(shift, srcDest);
+}
+
 void MacroAssembler::lshift64(Imm32 imm, Register64 dest) {
   MOZ_ASSERT(0 <= imm.value && imm.value < 64);
   if (imm.value == 0) {
