@@ -856,6 +856,10 @@
     <string name="preferences_marketing_data">Marketing data</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Shares basic usage data with Adjust, our mobile marketing vendor</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Automatically submit crash reports</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Shares crash data automatically on startup with Mozilla after crashes occur</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studies</string>
     <!-- Summary for studies preferences -->

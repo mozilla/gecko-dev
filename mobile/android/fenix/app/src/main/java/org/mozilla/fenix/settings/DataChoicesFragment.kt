@@ -93,6 +93,11 @@ class DataChoicesFragment : PreferenceFragmentCompat() {
             onPreferenceChangeListener = SharedPreferenceUpdater()
             isVisible = false
         }
+
+        requirePreference<SwitchPreference>(R.string.pref_key_crash_reporting_always_report).apply {
+            isChecked = context.settings().crashReportAlwaysSend
+            onPreferenceChangeListener = SharedPreferenceUpdater()
+        }
     }
 
     private fun updateStudiesSection() {

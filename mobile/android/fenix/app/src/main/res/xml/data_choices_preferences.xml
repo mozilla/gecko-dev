@@ -11,6 +11,10 @@
         android:key="@string/pref_key_marketing_telemetry"
         android:summary="@string/preferences_marketing_data_description2"
         android:title="@string/preferences_marketing_data" />
+    <SwitchPreference
+        android:key="@string/pref_key_crash_reporting_always_report"
+        android:summary="@string/preferences_automatically_submit_crashes_description"
+        android:title="@string/preferences_automatically_submit_crashes_title" />
 
     <androidx.preference.Preference
         android:key="@string/pref_key_studies_section"
