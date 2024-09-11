@@ -477,6 +477,38 @@ void CodeGeneratorShared::encodeAllocation(LSnapshot* snapshot,
       }
       break;
     }
+    case MIRType::IntPtr: {
+      LAllocation* payload = snapshot->payloadOfSlot(*allocIndex);
+      if (payload->isConstant()) {
+        intptr_t constant = mir->toConstant()->toIntPtr();
+#if !defined(JS_64BIT)
+        uint32_t index;
+        masm.propagateOOM(
+            graph.addConstantToPool(Int32Value(constant), &index));
+
+        alloc = RValueAllocation::IntPtrConstant(index);
+#else
+        uint32_t lowIndex;
+        masm.propagateOOM(
+            graph.addConstantToPool(Int32Value(constant), &lowIndex));
+
+        uint32_t highIndex;
+        masm.propagateOOM(
+            graph.addConstantToPool(Int32Value(constant >> 32), &highIndex));
+
+        alloc = RValueAllocation::IntPtrConstant(lowIndex, highIndex);
+#endif
+        break;
+      }
+
+      MOZ_ASSERT(payload->isMemory() || payload->isGeneralReg());
+      if (payload->isGeneralReg()) {
+        alloc = RValueAllocation::IntPtr(ToRegister(payload));
+      } else {
+        alloc = RValueAllocation::IntPtr(ToStackIndex(payload));
+      }
+      break;
+    }
     case MIRType::MagicOptimizedOut:
     case MIRType::MagicUninitializedLexical:
     case MIRType::MagicIsConstructing: {

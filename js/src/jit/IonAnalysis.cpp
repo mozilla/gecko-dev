@@ -3599,6 +3599,7 @@ static bool IsResumableMIRType(MIRType type) {
     case MIRType::Value:
     case MIRType::Simd128:
     case MIRType::Int64:
+    case MIRType::IntPtr:
       return true;
 
     case MIRType::MagicHole:
@@ -3609,7 +3610,6 @@ static bool IsResumableMIRType(MIRType type) {
     case MIRType::WasmAnyRef:
     case MIRType::WasmArrayData:
     case MIRType::StackResults:
-    case MIRType::IntPtr:
       return false;
   }
   MOZ_CRASH("Unknown MIRType.");

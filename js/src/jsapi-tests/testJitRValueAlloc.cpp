@@ -337,3 +337,39 @@ BEGIN_TEST(testJitRValueAlloc_Int64Stack) {
 }
 END_TEST(testJitRValueAlloc_Int64Stack)
 #endif
+
+BEGIN_TEST(testJitRValueAlloc_IntPtrCst) {
+#if !defined(JS_64BIT)
+  for (auto i : Fibonacci{}) {
+    auto s = RValueAllocation::IntPtrConstant(i);
+    CHECK(s == Read(s));
+  }
+#else
+  for (auto i : Fibonacci{}) {
+    for (auto j : Fibonacci{}) {
+      auto s = RValueAllocation::IntPtrConstant(i, j);
+      CHECK(s == Read(s));
+    }
+  }
+#endif
+  return true;
+}
+END_TEST(testJitRValueAlloc_IntPtrCst)
+
+BEGIN_TEST(testJitRValueAlloc_IntPtrReg) {
+  for (uint32_t i = 0; i < Registers::Total; i++) {
+    auto s = RValueAllocation::IntPtr(Register::FromCode(i));
+    CHECK(s == Read(s));
+  }
+  return true;
+}
+END_TEST(testJitRValueAlloc_IntPtrReg)
+
+BEGIN_TEST(testJitRValueAlloc_IntPtrStack) {
+  for (auto i : Fibonacci{}) {
+    auto s = RValueAllocation::IntPtr(i);
+    CHECK(s == Read(s));
+  }
+  return true;
+}
+END_TEST(testJitRValueAlloc_IntPtrStack)

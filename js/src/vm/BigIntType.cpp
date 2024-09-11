@@ -1790,6 +1790,15 @@ BigInt* BigInt::createFromInt64(JSContext* cx, int64_t n) {
   return res;
 }
 
+BigInt* BigInt::createFromIntPtr(JSContext* cx, intptr_t n) {
+  static_assert(sizeof(intptr_t) == sizeof(BigInt::Digit));
+
+  if (n == 0) {
+    return BigInt::zero(cx);
+  }
+  return BigInt::createFromDigit(cx, BigInt::Digit(Abs(n)), n < 0);
+}
+
 // BigInt proposal section 5.1.2
 BigInt* js::NumberToBigInt(JSContext* cx, double d) {
   // Step 1 is an assertion checked by the caller.

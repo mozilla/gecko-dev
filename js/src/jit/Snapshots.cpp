@@ -113,6 +113,20 @@ using namespace js::jit;
 //           instruction results.  The second payload is the index in the
 //           constant pool.
 //
+//         INTPTR_CST [INDEX]:          (32-bit platform)
+//         INTPTR_CST [INDEX] [INDEX]:  (64-bit platform)
+//           Unpacked IntPtr value stored in intptr_t. Split into either one or
+//           two int32_t values, whose indices into the constant pool is stored
+//           in the payloads.
+//
+//         INTPTR_REG [GPR_REG]:
+//           Unpacked IntPtr value stored in intptr_t. Payload is stored in a
+//           register.
+//
+//         INTPTR_STACK [STACK_OFFSET]:
+//           Unpacked IntPtr value stored in intptr_t. Payload is stored at an
+//           offset on the stack.
+//
 //         TYPED_REG [PACKED_TAG, GPR_REG]:
 //           Value with statically known type, which payload is stored in a
 //           register.
@@ -213,6 +227,31 @@ const RValueAllocation::Layout& RValueAllocation::layoutFromMode(Mode mode) {
     case RI_WITH_DEFAULT_CST: {
       static const RValueAllocation::Layout layout = {
           PAYLOAD_INDEX, PAYLOAD_INDEX, "instruction with default"};
+      return layout;
+    }
+
+    case INTPTR_CST: {
+#if !defined(JS_64BIT)
+      static const RValueAllocation::Layout layout = {
+          PAYLOAD_INDEX, PAYLOAD_NONE, "unpacked intptr constant"};
+      static_assert(sizeof(int32_t) == sizeof(intptr_t));
+#else
+      static const RValueAllocation::Layout layout = {
+          PAYLOAD_INDEX, PAYLOAD_INDEX, "unpacked intptr constant"};
+      static_assert(2 * sizeof(int32_t) == sizeof(intptr_t));
+#endif
+      return layout;
+    }
+
+    case INTPTR_REG: {
+      static const RValueAllocation::Layout layout = {PAYLOAD_GPR, PAYLOAD_NONE,
+                                                      "unpacked intptr"};
+      return layout;
+    }
+
+    case INTPTR_STACK: {
+      static const RValueAllocation::Layout layout = {
+          PAYLOAD_STACK_OFFSET, PAYLOAD_NONE, "unpacked intptr"};
       return layout;
     }
 

@@ -131,6 +131,7 @@ class BigInt final : public js::gc::CellWithLengthAndFlags {
   static BigInt* createFromDouble(JSContext* cx, double d);
   static BigInt* createFromUint64(JSContext* cx, uint64_t n);
   static BigInt* createFromInt64(JSContext* cx, int64_t n);
+  static BigInt* createFromIntPtr(JSContext* cx, intptr_t n);
   static BigInt* createFromDigit(JSContext* cx, Digit d, bool isNegative);
   static BigInt* createFromNonZeroRawUint64(JSContext* cx, uint64_t n,
                                             bool isNegative);

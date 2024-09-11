@@ -1756,6 +1756,11 @@ bool SnapshotIterator::allocationReadable(const RValueAllocation& alloc,
       return rm == ReadMethod::AlwaysDefault ||
              hasInstructionResult(alloc.index());
 
+    case RValueAllocation::INTPTR_REG:
+      return hasRegister(alloc.reg());
+    case RValueAllocation::INTPTR_STACK:
+      return hasStack(alloc.stackOffset());
+
 #if defined(JS_NUNBOX32)
     case RValueAllocation::INT64_REG_REG:
       return hasRegister(alloc.reg()) && hasRegister(alloc.reg2());
@@ -1864,6 +1869,11 @@ Value SnapshotIterator::allocationValue(const RValueAllocation& alloc,
       MOZ_ASSERT(rm == ReadMethod::AlwaysDefault);
       return ionScript_->getConstant(alloc.index2());
 
+    case RValueAllocation::INTPTR_CST:
+    case RValueAllocation::INTPTR_REG:
+    case RValueAllocation::INTPTR_STACK:
+      MOZ_CRASH("Can't read IntPtr as Value");
+
     case RValueAllocation::INT64_CST:
 #if defined(JS_NUNBOX32)
     case RValueAllocation::INT64_REG_REG:
@@ -1963,6 +1973,35 @@ int64_t SnapshotIterator::readInt64() {
   MOZ_CRASH("invalid int64 allocation");
 }
 
+JS::BigInt* SnapshotIterator::readBigInt(JSContext* cx) {
+  RValueAllocation alloc = readAllocation();
+  MOZ_ASSERT(allocationReadable(alloc));
+  switch (alloc.mode()) {
+    case RValueAllocation::INTPTR_CST: {
+#if !defined(JS_64BIT)
+      int32_t cst = ionScript_->getConstant(alloc.index()).toInt32();
+      auto val = static_cast<intptr_t>(cst);
+#else
+      uint32_t lo = ionScript_->getConstant(alloc.index()).toInt32();
+      uint32_t hi = ionScript_->getConstant(alloc.index2()).toInt32();
+      auto val = static_cast<intptr_t>((static_cast<uint64_t>(hi) << 32) | lo);
+#endif
+      return JS::BigInt::createFromIntPtr(cx, val);
+    }
+    case RValueAllocation::INTPTR_REG: {
+      auto val = static_cast<intptr_t>(fromRegister(alloc.reg()));
+      return JS::BigInt::createFromIntPtr(cx, val);
+    }
+    case RValueAllocation::INTPTR_STACK: {
+      auto val = static_cast<intptr_t>(fromStack(alloc.stackOffset()));
+      return JS::BigInt::createFromIntPtr(cx, val);
+    }
+    default:
+      break;
+  }
+  return allocationValue(alloc).toBigInt();
+}
+
 void SnapshotIterator::writeAllocationValuePayload(
     const RValueAllocation& alloc, const Value& v) {
   MOZ_ASSERT(v.isGCThing());
@@ -1977,6 +2016,9 @@ void SnapshotIterator::writeAllocationValuePayload(
     case RValueAllocation::DOUBLE_REG:
     case RValueAllocation::ANY_FLOAT_REG:
     case RValueAllocation::ANY_FLOAT_STACK:
+    case RValueAllocation::INTPTR_CST:
+    case RValueAllocation::INTPTR_REG:
+    case RValueAllocation::INTPTR_STACK:
     case RValueAllocation::INT64_CST:
 #if defined(JS_NUNBOX32)
     case RValueAllocation::INT64_REG_REG:
