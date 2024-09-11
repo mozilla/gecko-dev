@@ -97,6 +97,21 @@
   display: flex;
   border: 1px solid transparent;
   border-block-end: 1px solid var(--theme-splitter-color);
+
+  /* When the filter input is focused, add the outline to the whole row, which contains
+     the input and the clear button */
+  &:has(.event-search-input:focus) {
+    outline: var(--theme-focus-outline);
+    outline-offset: -2px;
+    box-shadow: var(--theme-outline-box-shadow);
+  }
+
+  /* Remove the default focused outline on the input as the focus indicator is set
+     on the container */
+  & .event-search-input:focus {
+    outline: none;
+    box-shadow: none;
+  }
 }
 
 .event-search-form {
@@ -144,10 +159,6 @@
 .event-search-input::placeholder {
   color: var(--theme-text-color-alt);
   opacity: 1;
-}
-
-.event-search-container:focus-within {
-  border: 1px solid var(--theme-highlight-blue);
 }
 
 .devtools-searchinput-clear {

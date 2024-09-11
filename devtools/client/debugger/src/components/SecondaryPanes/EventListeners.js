@@ -30,7 +30,6 @@ const classnames = require("resource://devtools/client/shared/classnames.js");
 class EventListeners extends Component {
   state = {
     searchText: "",
-    focused: false,
   };
 
   static get propTypes() {
@@ -116,16 +115,8 @@ class EventListeners extends Component {
     }
   };
 
-  onFocus = () => {
-    this.setState({ focused: true });
-  };
-
-  onBlur = () => {
-    this.setState({ focused: false });
-  };
-
   renderSearchInput() {
-    const { focused, searchText } = this.state;
+    const { searchText } = this.state;
     const placeholder = L10N.getStr("eventListenersHeader1.placeholder");
     return form(
       {
@@ -133,15 +124,11 @@ class EventListeners extends Component {
         onSubmit: e => e.preventDefault(),
       },
       input({
-        className: classnames("event-search-input", {
-          focused,
-        }),
+        className: "event-search-input",
         placeholder,
         value: searchText,
         onChange: this.onInputChange,
         onKeyDown: this.onKeyDown,
-        onFocus: this.onFocus,
-        onBlur: this.onBlur,
       })
     );
   }

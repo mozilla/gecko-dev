@@ -13,9 +13,7 @@ exports[`EventListeners should render 1`] = `
     >
       <input
         className="event-search-input"
-        onBlur={[Function]}
         onChange={[Function]}
-        onFocus={[Function]}
         onKeyDown={[Function]}
         placeholder="Filter by event type"
         value=""
@@ -45,9 +43,7 @@ exports[`EventListeners should render categories appropriately 1`] = `
     >
       <input
         className="event-search-input"
-        onBlur={[Function]}
         onChange={[Function]}
-        onFocus={[Function]}
         onKeyDown={[Function]}
         placeholder="Filter by event type"
         value=""
@@ -142,9 +138,7 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
     >
       <input
         className="event-search-input"
-        onBlur={[Function]}
         onChange={[Function]}
-        onFocus={[Function]}
         onKeyDown={[Function]}
         placeholder="Filter by event type"
         value=""
@@ -281,9 +275,7 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
     >
       <input
         className="event-search-input"
-        onBlur={[Function]}
         onChange={[Function]}
-        onFocus={[Function]}
         onKeyDown={[Function]}
         placeholder="Filter by event type"
         value=""
