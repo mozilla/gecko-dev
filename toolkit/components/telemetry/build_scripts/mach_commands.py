@@ -13,7 +13,6 @@ LIST_INDENT = "      - "
 BUG_URL_TEMPLATE = "https://bugzil.la/{}"
 
 GLEAN_EVENT_TEMPLATE = """
-{category}:
   {name}:
     type: event
     description: >
@@ -74,6 +73,7 @@ def mach_gifft(command_context, telemetry_probe_name):
             # and object.
             category = e.category
             emails_alias = bugs_alias = data_alias = extra_alias = ""
+            print(f"{category}:")
             for m, o in itertools.product(e.methods, e.objects):
                 legacy_name = category + "." + m + "#" + o
                 name = m + "_" + o
@@ -151,7 +151,6 @@ def mach_gifft(command_context, telemetry_probe_name):
 
                 print(
                     GLEAN_EVENT_TEMPLATE.format(
-                        category=category,
                         name=name,
                         multiline_description=multiline_description,
                         bugs_alias=(
