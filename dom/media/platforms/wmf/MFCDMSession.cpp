@@ -240,7 +240,7 @@ void MFCDMSession::OnSessionKeysChange() {
       continue;
     }
     CopyableTArray<uint8_t> keyId;
-    ByteArrayFromGUID(reinterpret_cast<REFGUID>(keyStatus.pbKeyId), keyId);
+    ByteArrayFromGUID(*reinterpret_cast<const GUID*>(keyStatus.pbKeyId), keyId);
 
     nsAutoCString keyIdString(ToHexString(keyId));
     LOG("Append keyid-sz=%u, keyid=%s, status=%s", keyStatus.cbKeyId,
