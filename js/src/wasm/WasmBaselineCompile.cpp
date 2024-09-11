@@ -61,6 +61,86 @@
  * - "Larger" code generating functions make their own rules.
  */
 
+/*
+ * [SMDOC] WebAssembly baseline compiler -- Lazy Tier-Up mechanism
+ *
+ * For baseline functions, we compile in code to monitor the function's
+ * "hotness" and request tier-up once that hotness crosses a threshold.
+ *
+ * (1) Each function has an associated int32_t counter,
+ *     FuncDefInstanceData::hotnessCounter.  These are stored in an array in
+ *     the Instance.  Hence access to them is fast and thread-local.
+ *
+ * (2) On instantiation, the counters are set to some positive number
+ *     (Instance::init, Instance::computeInitialHotnessCounter), which is a
+ *     very crude estimate of the cost of Ion compilation of the function.
+ *
+ * (3) In baseline compilation, a function decrements its counter at every
+ *     entry (BaseCompiler::beginFunction) and at the start of every loop
+ *     iteration (BaseCompiler::emitLoop).  The decrement code is created by
+ *     BaseCompiler::addHotnessCheck.
+ *
+ * (4) The decrement is by some value in the range 1 .. 127, as computed from
+ *     the function or loop-body size, by BlockSizeToDownwardsStep.
+ *
+ * (5) For loops, the body size is known only at the end of the loop, but the
+ *     check is required at the start of the body.  Hence the value is patched
+ *     in at the end (BaseCompiler::emitEnd, case LabelKind::Loop).
+ *
+ * (6) BaseCompiler::addHotnessCheck creates the shortest possible
+ *     decrement/check code, to minimise both time and code-space overhead.  On
+ *     Intel it is only two instructions.  The counter has the value from (4)
+ *     subtracted from it.  If the result is negative, we jump to OOL code
+ *     (class OutOfLineRequestTierUp) which requests tier up; control then
+ *     continues immediately after the check.
+ *
+ * (7) The OOL tier-up request code calls the stub pointed to by
+ *     Instance::requestTierUpStub_.  This always points to the stub created by
+ *     GenerateRequestTierUpStub.  This saves all registers and calls onwards
+ *     to WasmHandleRequestTierUp in C++-land.
+ *
+ * (8) WasmHandleRequestTierUp figures out which function in which Instance is
+ *     requesting tier-up.  It sets the function's counter (1) to the largest
+ *     possible value, which is 2^31-1.  It then calls onwards to
+ *     Code::requestTierUp, which requests off-thread Ion compilation of the
+ *     function, then immediately returns.
+ *
+ * (9) It is important that (8) sets the counter to 2^31-1 (as close to
+ *     infinity as possible).  This is because it may be arbitrarily long
+ *     before the optimised code becomes available.  In the meantime the
+ *     baseline version of the function will continue to run.  We do not want
+ *     it to make frequent duplicate requests for tier-up.  Although a request
+ *     for tier-up is relatively cheap (a few hundred instructions), it is
+ *     still way more expensive than the fast-case for a hotness check (2 insns
+ *     on Intel), and performance of the baseline code will be badly affected
+ *     if it makes many duplicate requests.
+ *
+ * (10) Of course it is impossible to *guarantee* that a baseline function will
+ *      not make a duplicate request, because the Ion compilation of the
+ *      function could take arbitrarily long, or even fail completely (eg OOM).
+ *      Hence it is necessary for WasmCode::requestTierUp (8) to detect and
+ *      ignore duplicate requests.
+ *
+ * (11) Each Instance of a Module runs in its own thread and has its own array
+ *      of counters.  This makes the counter updating thread-local and cheap.
+ *      But it means that, if a Module has multiple threads (Instances), it
+ *      could be that a function never gets hot enough to request tier up,
+ *      because it is not hot enough in any single thread, even though the
+ *      total hotness summed across all threads is enough to request tier up.
+ *      Whether this inaccuracy is a problem in practice remains to be seen.
+ *
+ * (12) Code::requestTierUp (8) creates a PartialTier2CompileTask and queues it
+ *      for execution.  It does not do the compilation itself.
+ *
+ * (13) A PartialTier2CompileTask's runHelperThreadTask (running on a helper
+ *      thread) calls CompilePartialTier2.  This compiles the function with Ion
+ *      and racily updates the tiering table entry for the function, which
+ *      lives in Code::jumpTables_::tiering_.
+ *
+ * (14) Subsequent calls to the function's baseline entry points will then jump
+ *      to the Ion version of the function.  Hence lazy tier-up is achieved.
+ */
+
 #include "wasm/WasmBaselineCompile.h"
 
 #include "wasm/WasmAnyRef.h"
@@ -365,6 +445,18 @@ void BaseCompiler::unstashI64(RegPtr regForInstance, RegI64 r) {
 }
 #endif
 
+// Given the bytecode size of a block (a complete function body, or a loop
+// body), return the required downwards step for the associated hotness
+// counter.  Returned value will be in 1 .. 127 inclusive.
+static uint32_t BlockSizeToDownwardsStep(size_t blockBytecodeSize) {
+  MOZ_RELEASE_ASSERT(blockBytecodeSize <= size_t(MaxFunctionBytes));
+  const uint32_t BYTECODES_PER_STEP = 20;  // tunable parameter
+  size_t step = blockBytecodeSize / BYTECODES_PER_STEP;
+  step = std::max<uint32_t>(step, 1);
+  step = std::min<uint32_t>(step, 127);
+  return uint32_t(step);
+}
+
 //////////////////////////////////////////////////////////////////////////////
 //
 // Function entry and exit
@@ -551,7 +643,20 @@ bool BaseCompiler::beginFunction() {
   MOZ_ASSERT(stackMapGenerator_.framePushedAtEntryToBody.isNothing());
   stackMapGenerator_.framePushedAtEntryToBody.emplace(masm.framePushed());
 
-  return addHotnessCheck();
+  if (compilerEnv_.mode() == CompileMode::LazyTiering) {
+    size_t funcBytecodeSize = func_.end - func_.begin;
+    uint32_t step = BlockSizeToDownwardsStep(funcBytecodeSize);
+
+    // Create a patchable hotness check and patch it immediately (only because
+    // there's no way to directly create a non-patchable check directly).
+    Maybe<CodeOffset> ctrDecOffset = addHotnessCheck();
+    if (ctrDecOffset.isNothing()) {
+      return false;
+    }
+    patchHotnessCheck(ctrDecOffset.value(), step);
+  }
+
+  return true;
 }
 
 bool BaseCompiler::endFunction() {
@@ -946,11 +1051,11 @@ void BaseCompiler::restoreRegisterReturnValues(const ResultType& resultType) {
 
 class OutOfLineRequestTierUp : public OutOfLineCode {
   Register instance_;  // points at the instance at entry; must remain unchanged
-  RegI32 scratch_;     // dead at entry; can be used as scratch if needed
+  Maybe<RegI32> scratch_;    // only provided on arm32
   size_t lastOpcodeOffset_;  // a bytecode offset
 
  public:
-  OutOfLineRequestTierUp(Register instance, RegI32 scratch,
+  OutOfLineRequestTierUp(Register instance, Maybe<RegI32> scratch,
                          size_t lastOpcodeOffset)
       : instance_(instance),
         scratch_(scratch),
@@ -974,10 +1079,10 @@ class OutOfLineRequestTierUp : public OutOfLineCode {
       // On x86_32 this is easy.
       masm->xchgl(instance_, InstanceReg);
 #  elif JS_CODEGEN_ARM
-      // Use `scratch_` to do the swap, since it's now dead, but still reserved.
-      masm->mov(instance_, scratch_);  // note, destination is second arg
+      masm->mov(instance_,
+                scratch_.value());  // note, destination is second arg
       masm->mov(InstanceReg, instance_);
-      masm->mov(scratch_, InstanceReg);
+      masm->mov(scratch_.value(), InstanceReg);
 #  else
       MOZ_CRASH("BaseCompiler::OutOfLineRequestTierUp #1");
 #  endif
@@ -993,9 +1098,9 @@ class OutOfLineRequestTierUp : public OutOfLineCode {
 #  ifdef JS_CODEGEN_X86
       masm->xchgl(instance_, InstanceReg);
 #  elif JS_CODEGEN_ARM
-      masm->mov(instance_, scratch_);
+      masm->mov(instance_, scratch_.value());
       masm->mov(InstanceReg, instance_);
-      masm->mov(scratch_, InstanceReg);
+      masm->mov(scratch_.value(), InstanceReg);
 #  else
       MOZ_CRASH("BaseCompiler::OutOfLineRequestTierUp #2");
 #  endif
@@ -1006,23 +1111,28 @@ class OutOfLineRequestTierUp : public OutOfLineCode {
   }
 };
 
-bool BaseCompiler::addHotnessCheck() {
-  if (compilerEnv_.mode() != CompileMode::LazyTiering) {
-    return true;
-  }
-
+Maybe<CodeOffset> BaseCompiler::addHotnessCheck() {
   // Here's an example of what we'll create.  The path that almost always
   // happens, where the counter doesn't go negative, has just one branch.
   //
-  //   movl       0x160(%r14), %eax
-  //   subl       $1, %eax
+  //   subl       $to_be_filled_in_later, 0x170(%r14)
   //   js         oolCode // almost never taken
-  //   movl       %eax, 0x160(%r14)
   // rejoin:
   // ----------------
   // oolCode: // we get here when the counter is negative, viz, almost never
-  //   call       *0x158(%r14) // RequestTierUpStub
+  //   call       *0x160(%r14) // RequestTierUpStub
   //   jmp        rejoin
+  //
+  // Note that the counter is updated regardless of whether or not it has gone
+  // negative.  That means that, at entry to RequestTierUpStub, we know the
+  // counter must be negative, and not merely zero.
+  //
+  // Non-Intel targets will have to generate a load / subtract-and-set-flags /
+  // store / jcond sequence.
+  //
+  // To ensure the shortest possible encoding, `to_be_filled_in_later` must be
+  // a value in the range 1 .. 127 inclusive.  This is good enough for
+  // hotness-counting purposes.
 
   AutoCreatedBy acb(masm, "BC::addHotnessCheck");
 
@@ -1038,23 +1148,38 @@ bool BaseCompiler::addHotnessCheck() {
       instance, wasm::Instance::offsetInData(
                     codeMeta_.offsetOfFuncDefInstanceData(func_.index)));
 
-  RegI32 counter = needI32();
+#if JS_CODEGEN_ARM
+  Maybe<RegI32> scratch = Some(needI32());
+#else
+  Maybe<RegI32> scratch = Nothing();
+#endif
 
   OutOfLineCode* ool = addOutOfLineCode(new (alloc_) OutOfLineRequestTierUp(
-      instance, counter, iter_.lastOpcodeOffset()));
+      instance, scratch, iter_.lastOpcodeOffset()));
   if (!ool) {
-    return false;
+    return Nothing();
   }
 
-  masm.load32(addressOfCounter, counter);
-  masm.branchSub32(Assembler::Signed,  // almost never taken
-                   Imm32(1), counter, ool->entry());
-  masm.store32(counter, addressOfCounter);
+  // Because of the Intel arch instruction formats, `patchPoint` points to the
+  // byte immediately following the last byte of the instruction to patch.
+  CodeOffset patchPoint = masm.sub32FromMemAndBranchIfNegativeWithPatch(
+      addressOfCounter, ool->entry());
 
   masm.bind(ool->rejoin());
 
-  freeI32(counter);
-  return true;
+  if (scratch.isSome()) {
+    freeI32(scratch.value());
+  }
+
+  // `patchPoint` might be invalid if the assembler OOMd at some point.
+  return masm.oom() ? Nothing() : Some(patchPoint);
+}
+
+void BaseCompiler::patchHotnessCheck(CodeOffset offset, uint32_t step) {
+  // Zero makes the hotness check pointless.  Above 127 is not representable in
+  // the short-form Intel encoding.
+  MOZ_RELEASE_ASSERT(step > 0 && step <= 127);
+  masm.patchSub32FromMemAndBranchIfNegative(offset, Imm32(step));
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -3705,8 +3830,20 @@ bool BaseCompiler::emitLoop() {
     masm.bind(&controlItem(0).label);
     // The interrupt check barfs if there are live registers.
     sync();
-    if (!addInterruptCheck() || !addHotnessCheck()) {
+    if (!addInterruptCheck()) {
       return false;
+    }
+
+    if (compilerEnv_.mode() == CompileMode::LazyTiering) {
+      // Create an unpatched hotness check and stash enough information that we
+      // can patch it with a value related to the loop's size when we get to
+      // the corresponding `end` opcode.
+      Maybe<CodeOffset> ctrDecOffset = addHotnessCheck();
+      if (ctrDecOffset.isNothing()) {
+        return false;
+      }
+      controlItem().loopBytecodeStart = iter_.lastOpcodeOffset();
+      controlItem().offsetOfCtrDec = ctrDecOffset.value();
     }
   }
 
@@ -3940,11 +4077,28 @@ bool BaseCompiler::emitEnd() {
       }
       iter_.popEnd();
       break;
-    case LabelKind::Loop:
+    case LabelKind::Loop: {
+      if (compilerEnv_.mode() == CompileMode::LazyTiering) {
+        // These are set (or not set) together.
+        MOZ_ASSERT((controlItem().loopBytecodeStart != UINTPTR_MAX) ==
+                   (controlItem().offsetOfCtrDec.bound()));
+        if (controlItem().loopBytecodeStart != UINTPTR_MAX) {
+          // If the above condition is false, the loop was in dead code and so
+          // there is no loop-head hotness check that needs to be patched.  See
+          // ::emitLoop.
+          MOZ_ASSERT(controlItem().loopBytecodeStart <=
+                     iter_.lastOpcodeOffset());
+          size_t loopBytecodeSize =
+              iter_.lastOpcodeOffset() - controlItem().loopBytecodeStart;
+          uint32_t step = BlockSizeToDownwardsStep(loopBytecodeSize);
+          patchHotnessCheck(controlItem().offsetOfCtrDec, step);
+        }
+      }
       // The end of a loop isn't a branch target, so we can just leave its
       // results on the expression stack to be consumed by the outer block.
       iter_.popEnd();
       break;
+    }
     case LabelKind::Then:
       if (!endIfThen(type)) {
         return false;

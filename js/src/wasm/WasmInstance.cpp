@@ -2717,6 +2717,10 @@ void Instance::resetHotnessCounter(uint32_t funcIndex) {
   funcDefInstanceData(funcIndex)->hotnessCounter = INT32_MAX;
 }
 
+int32_t Instance::readHotnessCounter(uint32_t funcIndex) const {
+  return funcDefInstanceData(funcIndex)->hotnessCounter;
+}
+
 void Instance::submitCallRefHints(uint32_t funcIndex) {
   uint32_t callCountThreshold =
       JS::Prefs::wasm_experimental_inline_call_ref_threshold();

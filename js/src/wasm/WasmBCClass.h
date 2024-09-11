@@ -72,6 +72,8 @@ struct Control {
   bool deadThenBranch;         // deadCode_ was set on exit from "then"
   size_t tryNoteIndex;         // For tracking try branch code ranges.
   CatchInfoVector catchInfos;  // Used for try-catch handlers.
+  size_t loopBytecodeStart;    // For LT: bytecode offset of start of a loop.
+  CodeOffset offsetOfCtrDec;   // For LT: masm offset of loop's counter decr.
 
   Control()
       : stackHeight(StackHeight::Invalid()),
@@ -80,7 +82,9 @@ struct Control {
         bceSafeOnExit(~BCESet(0)),
         deadOnArrival(false),
         deadThenBranch(false),
-        tryNoteIndex(0) {}
+        tryNoteIndex(0),
+        loopBytecodeStart(UINTPTR_MAX),
+        offsetOfCtrDec(CodeOffset()) {}
 
   Control(Control&&) = default;
   Control(const Control&) = delete;
@@ -1042,10 +1046,15 @@ struct BaseCompiler final {
   //
   // Sundry low-level code generators.
 
-  // Decrement the per-instance function hotness counter, and possibly request
-  // optimized compilation for this function if it crosses the hotness
-  // threshold.
-  [[nodiscard]] bool addHotnessCheck();
+  // Decrement the per-instance function hotness counter by `step` and request
+  // optimized compilation for this function if the updated counter is negative
+  // when regarded as an int32_t.  The amount to decrement is to be filled in
+  // later by ::patchHotnessCheck.
+  [[nodiscard]] Maybe<CodeOffset> addHotnessCheck();
+
+  // Patch in the counter decrement for a hotness check, using the offset
+  // previously obtained from ::addHotnessCheck. We require 1 <= `step` <= 127.
+  void patchHotnessCheck(CodeOffset offset, uint32_t step);
 
   // Check the interrupt flag, trap if it is set.
   [[nodiscard]] bool addInterruptCheck();

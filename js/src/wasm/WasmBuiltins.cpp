@@ -690,6 +690,12 @@ static void WasmHandleRequestTierUp(Instance* instance) {
 
   uint32_t funcIndex = codeRange->funcIndex();
 
+  // See BaseCompiler::addHotnessCheck for rationale.  If this fails, and
+  // `counter` is a very large negative number (close to -2^31), it may be that
+  // a hotness check didn't have its step patched in.
+  int32_t counter = instance->readHotnessCounter(funcIndex);
+  MOZ_RELEASE_ASSERT(counter >= -127 && counter <= -1);
+
   // Function `funcIndex` is requesting tier-up.  This can go one of three ways:
   // - the request is a duplicate -- ignore
   // - tier-up compilation succeeds -- we hope

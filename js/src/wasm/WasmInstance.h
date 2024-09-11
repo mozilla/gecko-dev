@@ -388,6 +388,7 @@ class alignas(16) Instance {
 
   int32_t computeInitialHotnessCounter(uint32_t funcIndex);
   void resetHotnessCounter(uint32_t funcIndex);
+  int32_t readHotnessCounter(uint32_t funcIndex) const;
   void submitCallRefHints(uint32_t funcIndex);
 
   bool debugFilter(uint32_t funcIndex) const;
