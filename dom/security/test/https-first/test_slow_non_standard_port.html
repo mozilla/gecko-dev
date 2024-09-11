@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>Bug 1736562 : Test that slow nonstandard port sites don't get timeout</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+</head>
+<body>
+
+<script class="testbody" type="text/javascript">
+"use strict";
+/*
+ * Description of the test:
+ * Open a site with non standard port that answers after 1 sec.
+ *  Expected result: https-first is not timeouting the page and
+ *                   doesn't upgrade the request.
+ */
+
+SimpleTest.waitForExplicitFinish();
+
+const REQUEST_URL =
+  "http://mochi.test:8888/tests/dom/security/test/https-first/file_slow_non_standard_port.sjs";
+
+let testWin;
+window.addEventListener("message", receiveMessage);
+
+// Receive message and verify that it is from an http site.
+// When the message is 'downgraded' then it was send by an http site
+// and the test worked.
+async function receiveMessage(event) {
+  let data = event.data;
+  ok(data.result === "downgraded", "Downgraded successful to 'http' for non standard port localhost request");
+  is(data.scheme,"http:", "scheme is 'http' " );
+  testWin.close();
+  window.removeEventListener("message", receiveMessage);
+  SimpleTest.finish();
+}
+
+async function runTest() {
+  testWin = window.open(REQUEST_URL, "_blank");
+}
+
+SpecialPowers.pushPrefEnv({ set: [
+    ["dom.security.https_first", true],
+    // To speed up the test, tell HTTPS-First to potentially downgrade after 0.1s
+    ["dom.security.https_only_fire_http_request_background_timer_ms", 100]
+  ]}, runTest);
+
+</script>
+</body>
+</html>
