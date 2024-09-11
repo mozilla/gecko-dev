@@ -149,25 +149,25 @@ def mach_gifft(command_context, telemetry_probe_name):
                 legacy_enum += parse_events.convert_to_cpp_identifier(m, "_") + "_"
                 legacy_enum += parse_events.convert_to_cpp_identifier(o, "_")
 
+                def generate_alias(list, alias):
+                    if len(e.methods) == 1 and len(e.objects) == 1:
+                        return ""
+                    if list:
+                        return f"&{alias}"
+                    else:
+                        return f"*{alias}"
+
                 print(
                     GLEAN_EVENT_TEMPLATE.format(
                         name=name,
                         multiline_description=multiline_description,
-                        bugs_alias=(
-                            f"&{bugs_alias}" if bugs_list else f"*{bugs_alias}"
-                        ),
+                        bugs_alias=generate_alias(bugs_list, bugs_alias),
                         bugs_list=bugs_list,
-                        data_alias=(
-                            f"&{data_alias}" if bugs_list else f"*{data_alias}"
-                        ),
-                        emails_alias=(
-                            f"&{emails_alias}" if emails_list else f"*{emails_alias}"
-                        ),
+                        data_alias=generate_alias(bugs_list, data_alias),
+                        emails_alias=generate_alias(emails_list, emails_alias),
                         emails_list=emails_list,
                         expiry=expiry,
-                        extra_alias=(
-                            f"&{extra_alias}" if extra_keys else f"*{extra_alias}"
-                        ),
+                        extra_alias=generate_alias(extra_keys, extra_alias),
                         extra_keys=extra_keys,
                         legacy_enum=legacy_enum,
                     )
