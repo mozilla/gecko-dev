@@ -1315,6 +1315,11 @@ void ContentAnalysis::DoAnalyzeRequest(
     nsCOMPtr<nsIContentAnalysisRequest> aRequestToCache,
     const std::shared_ptr<content_analysis::sdk::Client>& aClient) {
   MOZ_ASSERT(!NS_IsMainThread());
+  auto threadsafeErrorHandler = MakeScopeExit([&]() {
+    // Make sure the cache request is destroyed on the main thread.
+    NS_DispatchToMainThread(NS_NewCancelableRunnableFunction(
+        "CARequestErrorCleanup", [aRTC = std::move(aRequestToCache)]() {}));
+  });
   RefPtr<ContentAnalysis> owner =
       ContentAnalysis::GetContentAnalysisFromService();
   if (!owner) {
@@ -1391,6 +1396,7 @@ void ContentAnalysis::DoAnalyzeRequest(
         }
         owner->IssueResponse(response);
       }));
+  threadsafeErrorHandler.release();
 }
 
 void ContentAnalysis::SendWarnResponse(
