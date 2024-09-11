@@ -135,6 +135,14 @@ allprojects {
         ]
     }
 
+    afterEvaluate {
+        if (it.hasProperty('android')) {
+            android {
+                buildToolsVersion gradle.mozconfig.substs.ANDROID_BUILD_TOOLS_VERSION
+            }
+        }
+    }
+
     repositories {
         gradle.mozconfig.substs.GRADLE_MAVEN_REPOSITORIES.each { repository ->
             maven {
