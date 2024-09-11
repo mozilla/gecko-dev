@@ -1548,13 +1548,6 @@ pref("browser.bookmarks.editDialog.maxRecentFolders", 7);
   pref("security.sandbox.content.level", 1);
 #endif
 
-#if defined(MOZ_CONTENT_TEMP_DIR)
-  // ID (a UUID when set by gecko) that is used to form the name of a
-  // sandbox-writable temporary directory to be used by content processes
-  // when a temporary writable file is required.
-  pref("security.sandbox.content.tempDirSuffix", "");
-#endif
-
 #ifdef XP_WIN
   pref("browser.taskbar.previews.enable", false);
   pref("browser.taskbar.previews.max", 20);

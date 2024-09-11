@@ -3,55 +3,84 @@
 /* import-globals-from browser_content_sandbox_utils.js */
 "use strict";
 
+const lazy = {};
+
+/* getLibcConstants is only present on *nix */
+ChromeUtils.defineLazyGetter(lazy, "LIBC", () =>
+  ChromeUtils.getLibcConstants()
+);
+
 // Test if the content process can create in $HOME, this should fail
 async function createFileInHome() {
   let browser = gBrowser.selectedBrowser;
   let homeFile = fileInHomeDir();
   let path = homeFile.path;
   let fileCreated = await SpecialPowers.spawn(browser, [path], createFile);
-  ok(!fileCreated.ok, "creating a file in home dir is not permitted");
+  ok(!fileCreated.ok, "creating a file in home dir failed");
+  is(
+    fileCreated.code,
+    Cr.NS_ERROR_FILE_ACCESS_DENIED,
+    "creating a file in home dir failed with access denied"
+  );
   if (fileCreated.ok) {
     // content process successfully created the file, now remove it
     homeFile.remove(false);
   }
 }
 
-// Test if the content process can create a temp file, this is disallowed on
-// macOS and Windows but allowed everywhere else. Also test that the content
-// process cannot create symlinks on macOS or delete files.
+// Test if the content process can create a temp file, this is forbidden on all
+// platforms. Also test that the content process cannot create symlinks on
+// macOS/Linux or delete files.
 async function createTempFile() {
   // On Windows we allow access to the temp dir for DEBUG builds, because of
   // logging that uses that dir.
-  let isOptWin = isWin() && !SpecialPowers.isDebugBuild;
+  let isDbgWin = isWin() && SpecialPowers.isDebugBuild;
 
   let browser = gBrowser.selectedBrowser;
   let path = fileInTempDir().path;
   let fileCreated = await SpecialPowers.spawn(browser, [path], createFile);
-  if (isMac() || isOptWin) {
-    ok(!fileCreated.ok, "creating a file in temp is not permitted");
+  if (isDbgWin) {
+    ok(fileCreated.ok, "creating a file in temp suceeded");
   } else {
-    ok(!!fileCreated.ok, "creating a file in temp is permitted");
-  }
-  // now delete the file
-  let fileDeleted = await SpecialPowers.spawn(browser, [path], deleteFile);
-  if (isMac() || isOptWin) {
-    // On macOS we do not allow file deletion - it is not needed by the content
-    // process itself, and macOS uses a different permission to control access
-    // so revoking it is easy.
-    ok(!fileDeleted.ok, "deleting a file in temp is not permitted");
-  } else {
-    ok(!!fileDeleted.ok, "deleting a file in temp is permitted");
+    ok(!fileCreated.ok, "creating a file in temp failed");
+    is(
+      fileCreated.code,
+      Cr.NS_ERROR_FILE_ACCESS_DENIED,
+      "creating a file in temp failed with access denied"
+    );
   }
 
-  // Test that symlink creation is not allowed on macOS.
-  if (isMac()) {
+  // now delete the file
+  let fileDeleted = await SpecialPowers.spawn(browser, [path], deleteFile);
+  if (isDbgWin) {
+    ok(fileDeleted.ok, "deleting a file in temp succeeded");
+  } else {
+    ok(!fileDeleted.ok, "deleting a file in temp failed");
+    const expectedError = isLinux()
+      ? Cr.NS_ERROR_FILE_ACCESS_DENIED
+      : Cr.NS_ERROR_FILE_NOT_FOUND;
+    is(
+      fileDeleted.code,
+      expectedError,
+      "deleting a file in temp failed with access denied"
+    );
+  }
+
+  // Test that symlink creation is not allowed on macOS/Linux.
+  if (isMac() || isLinux()) {
     let path = fileInTempDir().path;
     let symlinkCreated = await SpecialPowers.spawn(
       browser,
       [path],
       createSymlink
     );
-    ok(!symlinkCreated.ok, "created a symlink in temp is not permitted");
+    ok(!symlinkCreated.ok, "created a symlink in temp failed");
+    const expectedError = isLinux() ? lazy.LIBC.EACCES : lazy.LIBC.EPERM;
+    is(
+      symlinkCreated.code,
+      expectedError,
+      "created a symlink in temp failed with access denied"
+    );
   }
 }
 

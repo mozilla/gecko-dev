@@ -41,9 +41,6 @@
 
 namespace mozilla {
 
-// Default/fallback temporary directory
-static const nsLiteralCString tempDirPrefix("/tmp");
-
 // kernel level limit defined at
 // https://elixir.bootlin.com/linux/latest/source/include/linux/sched.h#L301
 // used at
@@ -71,17 +68,6 @@ SandboxBroker::SandboxBroker(UniquePtr<const Policy> aPolicy, int aChildPid,
     mFileDesc = -1;
     aClientFd = -1;
   }
-#if defined(MOZ_CONTENT_TEMP_DIR)
-  nsCOMPtr<nsIFile> tmpDir;
-  nsresult rv = NS_GetSpecialDirectory(NS_APP_CONTENT_PROCESS_TEMP_DIR,
-                                       getter_AddRefs(tmpDir));
-  if (NS_SUCCEEDED(rv)) {
-    rv = tmpDir->GetNativePath(mContentTempPath);
-    if (NS_FAILED(rv)) {
-      mContentTempPath.Truncate();
-    }
-  }
-#endif
 }
 
 UniquePtr<SandboxBroker> SandboxBroker::Create(
@@ -572,36 +558,6 @@ size_t SandboxBroker::ConvertRelativePath(char* aPath, size_t aBufSize,
   return aPathLen;
 }
 
-#if defined(MOZ_CONTENT_TEMP_DIR)
-size_t SandboxBroker::RemapTempDirs(char* aPath, size_t aBufSize,
-                                    size_t aPathLen) {
-  nsAutoCString path(aPath);
-
-  size_t prefixLen = 0;
-  if (!mTempPath.IsEmpty() && StringBeginsWith(path, mTempPath)) {
-    prefixLen = mTempPath.Length();
-  } else if (StringBeginsWith(path, tempDirPrefix)) {
-    prefixLen = tempDirPrefix.Length();
-  }
-
-  if (prefixLen) {
-    const nsDependentCSubstring cutPath =
-        Substring(path, prefixLen, path.Length() - prefixLen);
-
-    // Only now try to get the content process temp dir
-    if (!mContentTempPath.IsEmpty()) {
-      nsAutoCString tmpPath;
-      tmpPath.Assign(mContentTempPath);
-      tmpPath.Append(cutPath);
-      base::strlcpy(aPath, tmpPath.get(), aBufSize);
-      return strlen(aPath);
-    }
-  }
-
-  return aPathLen;
-}
-#endif
-
 nsCString SandboxBroker::ReverseSymlinks(const nsACString& aPath) {
   // Revert any symlinks we previously resolved.
   int32_t cutLength = aPath.Length();
@@ -678,38 +634,6 @@ void SandboxBroker::ThreadMain(void) {
   // therefore it is sufficient to fetch the value once
   // before the main thread loop starts
   bool permissive = SandboxInfo::Get().Test(SandboxInfo::kPermissive);
-
-#if defined(MOZ_CONTENT_TEMP_DIR)
-  // Find the current temporary directory
-  nsCOMPtr<nsIFile> tmpDir;
-  nsresult rv =
-      GetSpecialSystemDirectory(OS_TemporaryDirectory, getter_AddRefs(tmpDir));
-  if (NS_SUCCEEDED(rv)) {
-    rv = tmpDir->GetNativePath(mTempPath);
-    if (NS_SUCCEEDED(rv)) {
-      // Make sure there's no terminating /
-      if (mTempPath.Last() == '/') {
-        mTempPath.Truncate(mTempPath.Length() - 1);
-      }
-    }
-  }
-  // If we can't find it, we aren't bothered much: we will
-  // always try /tmp anyway in the substitution code
-  if (NS_FAILED(rv) || mTempPath.IsEmpty()) {
-    if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-      SANDBOX_LOG("Tempdir: /tmp");
-    }
-  } else {
-    if (SandboxInfo::Get().Test(SandboxInfo::kVerbose)) {
-      SANDBOX_LOG("Tempdir: %s", mTempPath.get());
-    }
-    // If it's /tmp, clear it here so we don't compare against
-    // it twice. Just let the fallback code do the work.
-    if (mTempPath.Equals(tempDirPrefix)) {
-      mTempPath.Truncate();
-    }
-  }
-#endif
 
   while (true) {
     struct iovec ios[2];
@@ -802,14 +726,6 @@ void SandboxBroker::ThreadMain(void) {
       pathLen = ConvertRelativePath(pathBuf, sizeof(pathBuf), pathLen);
       perms = mPolicy->Lookup(nsDependentCString(pathBuf, pathLen));
 
-      // We don't have permissions on the requested dir.
-#if defined(MOZ_CONTENT_TEMP_DIR)
-      if (!perms) {
-        // Was it a tempdir that we can remap?
-        pathLen = RemapTempDirs(pathBuf, sizeof(pathBuf), pathLen);
-        perms = mPolicy->Lookup(nsDependentCString(pathBuf, pathLen));
-      }
-#endif
       if (!perms) {
         // Did we arrive from a symlink in a path that is not writable?
         // Then try to figure out the original path and see if that is
