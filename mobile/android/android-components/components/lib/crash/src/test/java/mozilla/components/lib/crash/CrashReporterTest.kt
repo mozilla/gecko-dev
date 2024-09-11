@@ -84,6 +84,57 @@ class CrashReporterTest {
     }
 
     @Test
+    fun `GIVEN a CrashReporter initialized with useLegacyReporting=false and shouldPrompt=NEVER WHEN it receives a crash THEN sendCrashReport is no longer called`() {
+        val service: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
+
+        val reporter = spy(
+            CrashReporter(
+                context = testContext,
+                services = listOf(service),
+                telemetryServices = listOf(telemetryService),
+                shouldPrompt = CrashReporter.Prompt.ALWAYS,
+                scope = scope,
+                notificationsDelegate = mock(),
+                useLegacyReporting = false,
+            ).install(testContext),
+        )
+
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
+
+        reporter.onCrash(testContext, crash)
+
+        verify(reporter).sendCrashTelemetry(testContext, crash)
+        verify(reporter, never()).sendCrashReport(testContext, crash)
+        verify(reporter, never()).showPromptOrNotification(testContext, crash)
+    }
+
+    @Test
+    fun `GIVEN a CrashReporter initialized with useLegacyReporting=false and usePrompt=ALWAYS WHEN it receives a crash THEN showPromptOrNotification is no longer called`() {
+        val service: CrashReporterService = mock()
+        val telemetryService: CrashTelemetryService = mock()
+
+        val reporter = spy(
+            CrashReporter(
+                context = testContext,
+                services = listOf(service),
+                telemetryServices = listOf(telemetryService),
+                shouldPrompt = CrashReporter.Prompt.ALWAYS,
+                scope = scope,
+                notificationsDelegate = mock(),
+                useLegacyReporting = false,
+            ).install(testContext),
+        )
+
+        val crash: Crash.UncaughtExceptionCrash = createUncaughtExceptionCrash()
+
+        reporter.onCrash(testContext, crash)
+
+        verify(reporter).sendCrashTelemetry(testContext, crash)
+        verify(reporter, never()).showPromptOrNotification(testContext, crash)
+    }
+
+    @Test
     fun `CrashReporter will submit report immediately if setup with Prompt-NEVER`() {
         val service: CrashReporterService = mock()
         val telemetryService: CrashTelemetryService = mock()

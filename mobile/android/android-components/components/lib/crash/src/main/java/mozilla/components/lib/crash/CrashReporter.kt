@@ -85,6 +85,7 @@ private class BreadcrumbList(val maxBreadCrumbs: Int) {
  * @param nonFatalCrashIntent A [PendingIntent] that will be launched if a non fatal crash (main process not affected)
  *                            happened. This gives the app the opportunity to show an in-app confirmation UI before
  *                            sending a crash report. See component README for details.
+ * @param useLegacyReporting Enable/Disable handling crash reporting through a notification or system dialog.
  */
 class CrashReporter internal constructor(
     private val services: List<CrashReporterService> = emptyList(),
@@ -98,6 +99,7 @@ class CrashReporter internal constructor(
     private val notificationsDelegate: NotificationsDelegate,
     private val runtimeTagProviders: List<RuntimeTagProvider> = emptyList(),
     databaseProvider: () -> CrashDatabase,
+    private val useLegacyReporting: Boolean = true,
 ) : CrashReporting {
 
     constructor(
@@ -112,6 +114,7 @@ class CrashReporter internal constructor(
         maxBreadCrumbs: Int = 30,
         notificationsDelegate: NotificationsDelegate,
         runtimeTagProviders: List<RuntimeTagProvider> = emptyList(),
+        useLegacyReporting: Boolean = true,
     ) : this(
         services = services,
         telemetryServices = telemetryServices,
@@ -120,10 +123,11 @@ class CrashReporter internal constructor(
         promptConfiguration = promptConfiguration,
         nonFatalCrashIntent = nonFatalCrashIntent,
         scope = scope,
-        maxBreadCrumbs,
-        notificationsDelegate,
-        runtimeTagProviders,
-        { CrashDatabase.get(context) },
+        maxBreadCrumbs = maxBreadCrumbs,
+        notificationsDelegate = notificationsDelegate,
+        runtimeTagProviders = runtimeTagProviders,
+        databaseProvider = { CrashDatabase.get(context) },
+        useLegacyReporting = useLegacyReporting,
     )
 
     var enabled: Boolean = enabled
@@ -290,6 +294,12 @@ class CrashReporter internal constructor(
             return
         }
 
+        // If an application chooses to handle crash reporting themselves they will want to opt-out
+        // of showing a prompt or notification.
+        if (!useLegacyReporting) {
+            return
+        }
+
         if (services.isNotEmpty()) {
             if (CrashPrompt.shouldPromptForCrash(shouldPrompt, crashWithTags)) {
                 showPromptOrNotification(context, crashWithTags)
@@ -327,7 +337,7 @@ class CrashReporter internal constructor(
         }
     }
 
-    private fun showPromptOrNotification(context: Context, crash: Crash) {
+    internal fun showPromptOrNotification(context: Context, crash: Crash) {
         if (services.isEmpty()) {
             return
         }

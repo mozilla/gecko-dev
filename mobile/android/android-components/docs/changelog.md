@@ -13,6 +13,7 @@ permalink: /changelog/
   * Adds `CrashReporter.hasUnsentCrashReports()` method, allowing the caller to find out if there is unsent crashes. [Bug 1904974](https://bugzilla.mozilla.org/show_bug.cgi?id=1904974)
   * Adds `CrashReporter.unsentCrashReports()` method, allowing the caller to fetch all unsent crashes. [Bug 1904974](https://bugzilla.mozilla.org/show_bug.cgi?id=1904974)
   * Adds Store primitives (State, Action, Middleware) to be able to drive the crash reporter UI. [Bug 1905774](https://bugzilla.mozilla.org/show_bug.cgi?id=1905774)
+  * Adds new parameter `useLegacyReporting` when initializing a `CrashReporter`. [Bug 1905774](https://bugzilla.mozilla.org/show_bug.cgi?id=1905774)
 
 # 131.0
 * **All components**
