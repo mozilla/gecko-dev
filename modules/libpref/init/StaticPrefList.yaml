@@ -13174,37 +13174,6 @@
   value: true
   mirror: always
 
-# Priority urgency of tailed request. Default to 6, which is a very low priority
-- name: network.http.tailing.urgency
-  type: int32_t
-  value: 6
-  mirror: always
-
-# Tailing: When the page load has not yet reached DOMContentLoaded point, tail requestes are delayed
-# by (non-tailed requests count + 1) * delay-quantum milliseconds.
-- name: network.http.tailing.delay-quantum
-  type: int32_t
-  value: 600
-  mirror: always
-
-# Tailing: The same as above, but applied after the document load reached DOMContentLoaded event.
-- name: network.http.tailing.delay-quantum-after-domcontentloaded
-  type: int32_t
-  value: 100
-  mirror: always
-
-# Tailing: Upper limit for the calculated delay, prevents long standing and comet-like requests tail forever.  This is in milliseconds as well.
-- name: network.http.tailing.delay-max
-  type: int32_t
-  value: 6000
-  mirror: always
-
-# Tailing: Total limit we delay tailed requests since a page load beginning.
-- name: network.http.tailing.total-max
-  type: int32_t
-  value: 45000
-  mirror: always
-
 # When true, the default Accept request header will include the supported mime
 # types for images.
 - name: network.http.accept_include_images

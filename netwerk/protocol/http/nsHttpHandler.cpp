@@ -811,7 +811,7 @@ uint8_t nsHttpHandler::UrgencyFromCoSFlags(uint32_t cos,
     // background tasks can be deprioritzed to the lowest priority
     urgency = 6;
   } else if (cos & nsIClassOfService::Tail) {
-    urgency = mozilla::StaticPrefs::network_http_tailing_urgency();
+    urgency = 6;
   } else {
     // all others get a lower priority than the main html document
     urgency = 4;
@@ -1620,20 +1620,20 @@ void nsHttpHandler::PrefsChanged(const char* pref) {
                                    &mTailBlockingEnabled);
   }
   if (PREF_CHANGED(HTTP_PREF("tailing.delay-quantum"))) {
-    val = StaticPrefs::network_http_tailing_delay_quantum();
+    Unused << Preferences::GetInt(HTTP_PREF("tailing.delay-quantum"), &val);
     mTailDelayQuantum = (uint32_t)clamped(val, 0, 60000);
   }
   if (PREF_CHANGED(HTTP_PREF("tailing.delay-quantum-after-domcontentloaded"))) {
-    val = StaticPrefs::
-        network_http_tailing_delay_quantum_after_domcontentloaded();
+    Unused << Preferences::GetInt(
+        HTTP_PREF("tailing.delay-quantum-after-domcontentloaded"), &val);
     mTailDelayQuantumAfterDCL = (uint32_t)clamped(val, 0, 60000);
   }
   if (PREF_CHANGED(HTTP_PREF("tailing.delay-max"))) {
-    val = StaticPrefs::network_http_tailing_delay_max();
+    Unused << Preferences::GetInt(HTTP_PREF("tailing.delay-max"), &val);
     mTailDelayMax = (uint32_t)clamped(val, 0, 60000);
   }
   if (PREF_CHANGED(HTTP_PREF("tailing.total-max"))) {
-    val = StaticPrefs::network_http_tailing_total_max();
+    Unused << Preferences::GetInt(HTTP_PREF("tailing.total-max"), &val);
     mTailTotalMax = (uint32_t)clamped(val, 0, 60000);
   }
 

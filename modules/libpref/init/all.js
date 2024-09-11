@@ -1497,6 +1497,17 @@ pref("network.http.throttle.max-time-ms", 500);
 // like click-to-play, image fancy-box zoom, navigation.
 pref("network.http.on_click_priority", true);
 
+// When the page load has not yet reached DOMContentLoaded point, tail requestes are delayed
+// by (non-tailed requests count + 1) * delay-quantum milliseconds.
+pref("network.http.tailing.delay-quantum", 600);
+// The same as above, but applied after the document load reached DOMContentLoaded event.
+pref("network.http.tailing.delay-quantum-after-domcontentloaded", 100);
+// Upper limit for the calculated delay, prevents long standing and comet-like requests
+// tail forever.  This is in milliseconds as well.
+pref("network.http.tailing.delay-max", 6000);
+// Total limit we delay tailed requests since a page load beginning.
+pref("network.http.tailing.total-max", 45000);
+
 pref("network.proxy.http",                  "");
 pref("network.proxy.http_port",             0);
 pref("network.proxy.ssl",                   "");
