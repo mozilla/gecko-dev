@@ -1828,6 +1828,15 @@ void MacroAssembler::quotient32(Register rhs, Register srcDest,
   }
 }
 
+void MacroAssembler::quotient64(Register rhs, Register srcDest,
+                                bool isUnsigned) {
+  if (isUnsigned) {
+    ma_divu64(srcDest, srcDest, rhs);
+  } else {
+    ma_div64(srcDest, srcDest, rhs);
+  }
+}
+
 void MacroAssembler::remainder32(Register rhs, Register srcDest,
                                  bool isUnsigned) {
   if (isUnsigned) {
@@ -1836,6 +1845,16 @@ void MacroAssembler::remainder32(Register rhs, Register srcDest,
     ma_mod32(srcDest, srcDest, rhs);
   }
 }
+
+void MacroAssembler::remainder64(Register rhs, Register srcDest,
+                                 bool isUnsigned) {
+  if (isUnsigned) {
+    ma_modu64(srcDest, srcDest, rhs);
+  } else {
+    ma_mod64(srcDest, srcDest, rhs);
+  }
+}
+
 void MacroAssembler::rotateLeft64(Imm32 count, Register64 src, Register64 dest,
                                   Register temp) {
   Dror(dest.reg, src.reg, Operand(64 - (count.value % 64)));

@@ -737,6 +737,68 @@ void MacroAssemblerX64::convertDoubleToPtr(FloatRegister src, Register dest,
   j(Assembler::NotEqual, fail);
 }
 
+// This operation really consists of five phases, in order to enforce the
+// restriction that on x64, srcDest must be rax and rdx will be clobbered.
+//
+//     Input: { rhs, lhsOutput }
+//
+//  [PUSH] Preserve registers
+//  [MOVE] Generate moves to specific registers
+//
+//  [DIV] Input: { regForRhs, RAX }
+//  [DIV] extend RAX into RDX
+//  [DIV] x64 Division operator
+//  [DIV] Ouptut: { RAX, RDX }
+//
+//  [MOVE] Move specific registers to outputs
+//  [POP] Restore registers
+//
+//    Output: { lhsOutput, remainderOutput }
+void MacroAssemblerX64::flexibleDivMod64(Register rhs, Register lhsOutput,
+                                         bool isUnsigned, bool isDiv) {
+  if (lhsOutput == rhs) {
+    movq(ImmWord(isDiv ? 1 : 0), lhsOutput);
+    return;
+  }
+
+  // Choose a register that is neither rdx nor rax to hold the rhs;
+  // rbx is chosen arbitrarily, and will be preserved if necessary.
+  Register regForRhs = (rhs == rax || rhs == rdx) ? rbx : rhs;
+
+  // Add registers we will be clobbering as live, but also remove the set we
+  // do not restore.
+  LiveGeneralRegisterSet preserve;
+  preserve.add(rdx);
+  preserve.add(rax);
+  preserve.add(regForRhs);
+
+  preserve.takeUnchecked(lhsOutput);
+
+  asMasm().PushRegsInMask(preserve);
+
+  // Shuffle input into place.
+  asMasm().moveRegPair(lhsOutput, rhs, rax, regForRhs);
+  if (oom()) {
+    return;
+  }
+
+  // Sign extend rax into rdx to make (rdx:rax): idiv/udiv are 128-bit.
+  if (isUnsigned) {
+    movq(ImmWord(0), rdx);
+    udivq(regForRhs);
+  } else {
+    cqo();
+    idivq(regForRhs);
+  }
+
+  Register result = isDiv ? rax : rdx;
+  if (result != lhsOutput) {
+    movq(result, lhsOutput);
+  }
+
+  asMasm().PopRegsInMask(preserve);
+}
+
 //{{{ check_macroassembler_style
 // ===============================================================
 // ABI function calls.
@@ -879,6 +941,21 @@ void MacroAssembler::moveValue(const ValueOperand& src,
 void MacroAssembler::moveValue(const Value& src, const ValueOperand& dest) {
   movWithPatch(ImmWord(src.asRawBits()), dest.valueReg());
   writeDataRelocation(src);
+}
+
+// ===============================================================
+// Arithmetic functions
+
+void MacroAssembler::flexibleQuotientPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  flexibleDivMod64(rhs, srcDest, isUnsigned, /* isDiv= */ true);
+}
+
+void MacroAssembler::flexibleRemainderPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  flexibleDivMod64(rhs, srcDest, isUnsigned, /* isDiv= */ false);
 }
 
 // ===============================================================

@@ -543,12 +543,30 @@ void MacroAssembler::quotient32(Register rhs, Register srcDest,
   }
 }
 
+void MacroAssembler::quotient64(Register rhs, Register srcDest,
+                                bool isUnsigned) {
+  if (isUnsigned) {
+    as_div_du(srcDest, srcDest, rhs);
+  } else {
+    as_div_d(srcDest, srcDest, rhs);
+  }
+}
+
 void MacroAssembler::remainder32(Register rhs, Register srcDest,
                                  bool isUnsigned) {
   if (isUnsigned) {
     as_mod_wu(srcDest, srcDest, rhs);
   } else {
     as_mod_w(srcDest, srcDest, rhs);
+  }
+}
+
+void MacroAssembler::remainder64(Register rhs, Register srcDest,
+                                 bool isUnsigned) {
+  if (isUnsigned) {
+    as_mod_du(srcDest, srcDest, rhs);
+  } else {
+    as_mod_d(srcDest, srcDest, rhs);
   }
 }
 

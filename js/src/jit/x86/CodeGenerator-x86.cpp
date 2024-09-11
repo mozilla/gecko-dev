@@ -976,7 +976,7 @@ void CodeGeneratorX86::emitBigIntDiv(LBigIntDiv* ins, Register dividend,
   MOZ_ASSERT(dividend == eax);
   MOZ_ASSERT(output == edx);
 
-  // Sign extend the lhs into rdx to make rdx:rax.
+  // Sign extend the lhs into edx to make edx:eax.
   masm.cdq();
 
   masm.idiv(divisor);
@@ -994,7 +994,7 @@ void CodeGeneratorX86::emitBigIntMod(LBigIntMod* ins, Register dividend,
   MOZ_ASSERT(dividend == eax);
   MOZ_ASSERT(output == edx);
 
-  // Sign extend the lhs into rdx to make edx:eax.
+  // Sign extend the lhs into edx to make edx:eax.
   masm.cdq();
 
   masm.idiv(divisor);

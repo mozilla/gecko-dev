@@ -889,6 +889,21 @@ void MacroAssembler::moveValue(const Value& src, const ValueOperand& dest) {
 }
 
 // ===============================================================
+// Arithmetic functions
+
+void MacroAssembler::flexibleQuotientPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  flexibleQuotient32(rhs, srcDest, isUnsigned, volatileLiveRegs);
+}
+
+void MacroAssembler::flexibleRemainderPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  flexibleRemainder32(rhs, srcDest, isUnsigned, volatileLiveRegs);
+}
+
+// ===============================================================
 // Branch functions
 
 void MacroAssembler::loadStoreBuffer(Register ptr, Register buffer) {

@@ -1214,6 +1214,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void quotient32(Register rhs, Register srcDest, bool isUnsigned)
       DEFINED_ON(mips_shared, arm, arm64, loong64, riscv64, wasm32);
 
+  inline void quotient64(Register rhs, Register srcDest, bool isUnsigned)
+      DEFINED_ON(arm64, loong64, riscv64);
+
   // As above, but srcDest must be eax and tempEdx must be edx.
   inline void quotient32(Register rhs, Register srcDest, Register tempEdx,
                          bool isUnsigned) DEFINED_ON(x86_shared);
@@ -1224,6 +1227,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // On ARM, the chip must have hardware division instructions.
   inline void remainder32(Register rhs, Register srcDest, bool isUnsigned)
       DEFINED_ON(mips_shared, arm, arm64, loong64, riscv64, wasm32);
+
+  inline void remainder64(Register rhs, Register srcDest, bool isUnsigned)
+      DEFINED_ON(arm64, loong64, riscv64);
 
   // As above, but srcDest must be eax and tempEdx must be edx.
   inline void remainder32(Register rhs, Register srcDest, Register tempEdx,
@@ -1239,6 +1245,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void flexibleRemainder32(Register rhs, Register srcDest, bool isUnsigned,
                            const LiveRegisterSet& volatileLiveRegs)
       DEFINED_ON(mips_shared, arm, arm64, x86_shared, loong64, riscv64, wasm32);
+  void flexibleRemainderPtr(Register rhs, Register srcDest, bool isUnsigned,
+                            const LiveRegisterSet& volatileLiveRegs) PER_ARCH;
 
   // Perform an integer division, returning the integer part rounded toward
   // zero. rhs must not be zero, and the division must not overflow.
@@ -1250,6 +1258,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void flexibleQuotient32(Register rhs, Register srcDest, bool isUnsigned,
                           const LiveRegisterSet& volatileLiveRegs)
       DEFINED_ON(mips_shared, arm, arm64, x86_shared, loong64, riscv64);
+  void flexibleQuotientPtr(Register rhs, Register srcDest, bool isUnsigned,
+                           const LiveRegisterSet& volatileLiveRegs) PER_ARCH;
 
   // Perform an integer division, returning the integer part rounded toward
   // zero. rhs must not be zero, and the division must not overflow. The

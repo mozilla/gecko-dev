@@ -2933,10 +2933,22 @@ void MacroAssembler::flexibleQuotient32(Register rhs, Register srcDest,
   quotient32(rhs, srcDest, isUnsigned);
 }
 
+void MacroAssembler::flexibleQuotientPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  quotient64(rhs, srcDest, isUnsigned);
+}
+
 void MacroAssembler::flexibleRemainder32(Register rhs, Register srcDest,
                                          bool isUnsigned,
                                          const LiveRegisterSet&) {
   remainder32(rhs, srcDest, isUnsigned);
+}
+
+void MacroAssembler::flexibleRemainderPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  remainder64(rhs, srcDest, isUnsigned);
 }
 
 void MacroAssembler::flexibleDivMod32(Register rhs, Register srcDest,

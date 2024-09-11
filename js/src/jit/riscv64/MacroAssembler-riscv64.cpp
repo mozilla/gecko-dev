@@ -3111,10 +3111,22 @@ void MacroAssembler::flexibleQuotient32(Register rhs, Register srcDest,
   quotient32(rhs, srcDest, isUnsigned);
 }
 
+void MacroAssembler::flexibleQuotientPtr(Register rhs, Register srcDest,
+                                         bool isUnsigned,
+                                         const LiveRegisterSet&) {
+  quotient64(rhs, srcDest, isUnsigned);
+}
+
 void MacroAssembler::flexibleRemainder32(Register rhs, Register srcDest,
                                          bool isUnsigned,
                                          const LiveRegisterSet&) {
   remainder32(rhs, srcDest, isUnsigned);
+}
+
+void MacroAssembler::flexibleRemainderPtr(Register rhs, Register srcDest,
+                                          bool isUnsigned,
+                                          const LiveRegisterSet&) {
+  remainder64(rhs, srcDest, isUnsigned);
 }
 
 void MacroAssembler::floorDoubleToInt32(FloatRegister src, Register dest,

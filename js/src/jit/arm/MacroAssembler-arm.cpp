@@ -5943,11 +5943,23 @@ void MacroAssembler::flexibleQuotient32(
                           volatileLiveRegs);
 }
 
+void MacroAssembler::flexibleQuotientPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  flexibleQuotient32(rhs, srcDest, isUnsigned, volatileLiveRegs);
+}
+
 void MacroAssembler::flexibleRemainder32(
     Register rhs, Register srcDest, bool isUnsigned,
     const LiveRegisterSet& volatileLiveRegs) {
   EmitRemainderOrQuotient(true, *this, rhs, srcDest, isUnsigned,
                           volatileLiveRegs);
+}
+
+void MacroAssembler::flexibleRemainderPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  flexibleRemainder32(rhs, srcDest, isUnsigned, volatileLiveRegs);
 }
 
 void MacroAssembler::flexibleDivMod32(Register rhs, Register lhsOutput,

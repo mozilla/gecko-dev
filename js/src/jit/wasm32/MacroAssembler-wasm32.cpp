@@ -52,7 +52,19 @@ void MacroAssembler::flexibleDivMod32(Register rhs, Register srcDest,
   MOZ_CRASH();
 }
 
+void MacroAssembler::flexibleQuotientPtr(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::flexibleRemainder32(
+    Register rhs, Register srcDest, bool isUnsigned,
+    const LiveRegisterSet& volatileLiveRegs) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::flexibleRemainderPtr(
     Register rhs, Register srcDest, bool isUnsigned,
     const LiveRegisterSet& volatileLiveRegs) {
   MOZ_CRASH();

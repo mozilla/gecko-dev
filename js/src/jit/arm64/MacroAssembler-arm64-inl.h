@@ -552,6 +552,17 @@ void MacroAssembler::quotient32(Register rhs, Register srcDest,
   }
 }
 
+void MacroAssembler::quotient64(Register rhs, Register srcDest,
+                                bool isUnsigned) {
+  if (isUnsigned) {
+    Udiv(ARMRegister(srcDest, 64), ARMRegister(srcDest, 64),
+         ARMRegister(rhs, 64));
+  } else {
+    Sdiv(ARMRegister(srcDest, 64), ARMRegister(srcDest, 64),
+         ARMRegister(rhs, 64));
+  }
+}
+
 // This does not deal with x % 0 or INT_MIN % -1, the caller needs to filter
 // those cases when they may occur.
 
@@ -568,6 +579,24 @@ void MacroAssembler::remainder32(Register rhs, Register srcDest,
   // Compute the remainder: srcDest = srcDest - (scratch * rhs).
   Msub(/* result= */ ARMRegister(srcDest, 32), scratch, ARMRegister(rhs, 32),
        ARMRegister(srcDest, 32));
+}
+
+void MacroAssembler::remainder64(Register rhs, Register srcDest,
+                                 bool isUnsigned) {
+  const ARMRegister dividend64(srcDest, 64);
+  const ARMRegister divisor64(rhs, 64);
+
+  vixl::UseScratchRegisterScope temps(this);
+  ARMRegister scratch64 = temps.AcquireX();
+  if (isUnsigned) {
+    Udiv(scratch64, ARMRegister(srcDest, 64), ARMRegister(rhs, 64));
+  } else {
+    Sdiv(scratch64, ARMRegister(srcDest, 64), ARMRegister(rhs, 64));
+  }
+
+  // Compute the remainder: srcDest = srcDest - (scratch * rhs).
+  Msub(/* result= */ ARMRegister(srcDest, 64), scratch64, ARMRegister(rhs, 64),
+       ARMRegister(srcDest, 64));
 }
 
 void MacroAssembler::divFloat32(FloatRegister src, FloatRegister dest) {
