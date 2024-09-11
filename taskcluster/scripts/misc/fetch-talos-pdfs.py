@@ -58,8 +58,6 @@ def gather_talos_pdf(test_folder, pdf_info, output_dir):
         found in the test/test_manifest.json file from the pdf.js repo.
     :param Path output_dir: The directory to move/download the PDF to.
     """
-    if not pdf_info.get("talos", True):
-        return
     pdf_file = pdf_info["file"]
     output_pdf_path = pathlib.Path(output_dir, pathlib.Path(pdf_file).name)
 
