@@ -128,6 +128,7 @@ gecko_pings = [
     "toolkit/components/antitracking/bouncetrackingprotection/pings.yaml",
     "toolkit/components/glean/pings.yaml",
     "toolkit/components/reportbrokensite/pings.yaml",
+    "toolkit/components/resistfingerprinting/pings.yaml",
 ]
 
 # Pings that are sent by Firefox Desktop.
@@ -140,7 +141,6 @@ firefox_desktop_pings = [
     "browser/modules/pings.yaml",
     "services/fxaccounts/pings.yaml",
     "toolkit/components/crashes/pings.yaml",
-    "toolkit/components/resistfingerprinting/pings.yaml",
     "toolkit/components/telemetry/pings.yaml",
     "toolkit/modules/pings.yaml",
 ]
