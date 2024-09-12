@@ -193,6 +193,34 @@ class MenuDialogMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN at least one addon is installed WHEN init action is dispatched THEN initial extension state is updated`() =
+        runTestOnMain {
+            val addon = Addon(id = "ext1")
+            val addonTwo = Addon(
+                id = "ext2",
+                installedState = Addon.InstalledState(
+                    id = "id",
+                    version = "1.0",
+                    optionsPageUrl = "",
+                ),
+            )
+            val addonThree = Addon(id = "ext3")
+            whenever(addonManager.getAddons()).thenReturn(listOf(addon, addonTwo, addonThree))
+
+            val store = createStore()
+
+            assertEquals(0, store.state.extensionMenuState.recommendedAddons.size)
+
+            // Wait for InitAction and middleware
+            store.waitUntilIdle()
+
+            // Wait for UpdateExtensionState and middleware
+            store.waitUntilIdle()
+
+            assertTrue(store.state.extensionMenuState.recommendedAddons.isEmpty())
+        }
+
+    @Test
     fun `WHEN add bookmark action is dispatched for a selected tab THEN bookmark is added`() = runTestOnMain {
         val url = "https://www.mozilla.org"
         val title = "Mozilla"

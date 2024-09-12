@@ -536,7 +536,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         ) {
                             ExtensionsSubmenu(
                                 recommendedAddons = recommendedAddons,
-                                showExtensionsOnboarding = true,
+                                showExtensionsOnboarding = recommendedAddons.isNotEmpty(),
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)
                                 },

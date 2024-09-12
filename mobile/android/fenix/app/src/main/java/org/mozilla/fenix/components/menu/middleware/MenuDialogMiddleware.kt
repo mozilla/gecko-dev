@@ -170,6 +170,11 @@ class MenuDialogMiddleware(
     ) = scope.launch {
         try {
             val addons = addonManager.getAddons()
+
+            if (addons.any { it.isInstalled() }) {
+                return@launch
+            }
+
             val recommendedAddons = addons
                 .filter { !it.isInstalled() }
                 .shuffled()
