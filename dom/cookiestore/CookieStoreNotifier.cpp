@@ -192,42 +192,43 @@ CookieStoreNotifier::Observe(nsISupports* aSubject, const char* aTopic,
 
   bool deletedEvent = action == nsICookieNotification::COOKIE_DELETED;
 
-  mEventTarget->Dispatch(NS_NewRunnableFunction(
-      __func__, [self = RefPtr(this), item, deletedEvent] {
-        if (!self->mCookieStore) {
-          return;
-        }
+  mEventTarget->Dispatch(NS_NewRunnableFunction(__func__, [self = RefPtr(this),
+                                                           item, deletedEvent] {
+    if (!self->mCookieStore) {
+      return;
+    }
 
-        RefPtr<Event> event = deletedEvent
-                                  ? CookieChangeEvent::CreateForDeletedCookie(
-                                        self->mCookieStore, item)
-                                  : CookieChangeEvent::CreateForChangedCookie(
-                                        self->mCookieStore, item);
+    RefPtr<Event> event = deletedEvent
+                              ? CookieChangeEvent::CreateForDeletedCookie(
+                                    self->mCookieStore, item)
+                              : CookieChangeEvent::CreateForChangedCookie(
+                                    self->mCookieStore, item);
 
-        if (!event) {
-          return;
-        }
+    if (!event) {
+      return;
+    }
 
-        if (NS_IsMainThread()) {
-          nsCOMPtr<nsPIDOMWindowInner> window =
-              self->mCookieStore->GetOwnerWindow();
-          if (!window) {
-            return;
-          }
+    if (NS_IsMainThread()) {
+      nsCOMPtr<nsPIDOMWindowInner> window =
+          self->mCookieStore->GetOwnerWindow();
+      if (!window) {
+        return;
+      }
 
-          RefPtr<BrowsingContext> bc = window->GetBrowsingContext();
-          if (!bc) {
-            return;
-          }
+      RefPtr<BrowsingContext> bc = window->GetBrowsingContext();
+      if (!bc) {
+        return;
+      }
 
-          if (bc->IsInBFCache()) {
-            self->mDelayedDOMEvents.AppendElement(event);
-            return;
-          }
-        }
+      if (bc->IsInBFCache() || (window->GetExtantDoc() &&
+                                window->GetExtantDoc()->GetBFCacheEntry())) {
+        self->mDelayedDOMEvents.AppendElement(event);
+        return;
+      }
+    }
 
-        self->mCookieStore->DispatchEvent(*event);
-      }));
+    self->mCookieStore->DispatchEvent(*event);
+  }));
   return NS_OK;
 }
 
