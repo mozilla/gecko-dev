@@ -237,6 +237,8 @@
     <string name="browser_menu_add_to_homescreen">Startowej wobrazowce pśidaś</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Startowej wobrazowce pśidaś…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Rědy Xiaomi snaź wósebne pšawa trjebaju, aby startowej wobrazowce zwězanja pśidali. Pšosym pśeglědujśo swóje nastajenja.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Znowego synchronizěrowaś</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -574,13 +576,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Pśetergnuś</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Napšašowanje pósłaś</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Pšašaś se, lěc se ma sedło pśidaś</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Napšašowanje pósłaś</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Wó pódpěru za toś to sedło pšosyś?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">%1$s pšosyś, cookieje awtomatiski wótpokazaś</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Wó pódpěru za toś to sedło pšosyś?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Napšašowanje pósłane</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -588,17 +586,13 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Pšosba wó pódpěru pósłana</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Sedło se tuchylu njepódpěra</string>
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">Sedło se njepódpěra</string>
+    <string name="reduce_cookie_banner_unsupported_site">Sedło se tuchylu njepódpěra</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Blokěrowak cookiejowych chórgojow za %1$s zmóžniś?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Blokěrowak cookiejowych chórgojow za %1$s znjemóžniś?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s njamóžo cookiejowe napšašowanja na toś tom sedle awtomatiski wótpokazaś. Móžośo pšosbu wó pódpěru toś togo sedła w pśichoźe pósłaś.</string>
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Tuchylu njamóžomy cookiejow wuskokujuce wokna na toś tom sedle awtomatiski wótpokazaś.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s njamóžo cookiejowe napšašowanja na toś tom sedle awtomatiski wótpokazaś. Móžośo pšosbu wó pódpěru toś togo sedła w pśichoźe pósłaś.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Pśi znjemóžnjanju %1$s cookieje lašujo a toś to sedło znowego zacytajo. To móžo was wótzjawiś abo nakupowańske kórbiki wuprozniś.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -1247,8 +1241,12 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">ZARĚDNIK</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Składowaś do</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">MĚ</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Mě</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Zarědnik pśidaś</string>
     <!-- Bookmark select folder screen title -->

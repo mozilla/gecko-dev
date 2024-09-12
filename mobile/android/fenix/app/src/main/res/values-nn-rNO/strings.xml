@@ -1217,7 +1217,7 @@
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Bokmerke lagra!</string>
     <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
-    <string name="bookmark_saved_in_folder_snackbar">Lagra i “%s”</string>
+    <string name="bookmark_saved_in_folder_snackbar">Lagra i «%s»</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">REDIGER</string>
     <!-- Bookmark overflow menu edit button -->
