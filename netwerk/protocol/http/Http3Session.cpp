@@ -587,6 +587,7 @@ nsresult Http3Session::ProcessEvents() {
         if (!mAuthenticationStarted) {
           mAuthenticationStarted = true;
           LOG(("Http3Session::ProcessEvents - AuthenticationNeeded called"));
+          OnTransportStatus(nullptr, NS_NET_STATUS_TLS_HANDSHAKE_STARTING, 0);
           CallCertVerification(Nothing());
         }
         break;
@@ -623,10 +624,9 @@ nsresult Http3Session::ProcessEvents() {
           ZeroRttTelemetry(ZeroRttOutcome::USED_SUCCEEDED);
         }
 
-        OnTransportStatus(mSocketTransport, NS_NET_STATUS_CONNECTED_TO, 0);
+        OnTransportStatus(nullptr, NS_NET_STATUS_CONNECTED_TO, 0);
         // Also send the NS_NET_STATUS_TLS_HANDSHAKE_ENDED event.
-        OnTransportStatus(mSocketTransport, NS_NET_STATUS_TLS_HANDSHAKE_ENDED,
-                          0);
+        OnTransportStatus(nullptr, NS_NET_STATUS_TLS_HANDSHAKE_ENDED, 0);
 
         ReportHttp3Connection();
         // Maybe call ResumeSend:
@@ -1471,13 +1471,6 @@ void Http3Session::GetSecurityCallbacks(nsIInterfaceRequestor** aOut) {
 void Http3Session::OnTransportStatus(nsITransport* aTransport, nsresult aStatus,
                                      int64_t aProgress) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
-
-  if ((aStatus == NS_NET_STATUS_CONNECTED_TO) && !IsConnected()) {
-    // We should ignore the event. This is sent by the nsSocketTranpsort
-    // and it does not mean that HTTP3 session is connected.
-    // We will use this event to mark start of TLS handshake
-    aStatus = NS_NET_STATUS_TLS_HANDSHAKE_STARTING;
-  }
 
   switch (aStatus) {
       // These should appear only once, deliver to the first
