@@ -13,7 +13,11 @@ class nsIArray;
 class nsICookie;
 namespace mozilla {
 class OriginAttributes;
-}
+
+namespace dom {
+class ContentParent;
+}  // namespace dom
+}  // namespace mozilla
 
 class nsIEffectiveTLDService;
 
@@ -27,7 +31,7 @@ class CookieServiceParent : public PCookieServiceParent {
   friend class PCookieServiceParent;
 
  public:
-  CookieServiceParent();
+  explicit CookieServiceParent(dom::ContentParent* aContentParent);
   virtual ~CookieServiceParent() = default;
 
   void TrackCookieLoad(nsIChannel* aChannel);

@@ -6,9 +6,9 @@
 #include "CookieCommons.h"
 #include "CookieLogging.h"
 #include "CookieServiceParent.h"
+#include "mozilla/dom/ContentParent.h"
 #include "mozilla/net/CookieService.h"
 #include "mozilla/net/CookieServiceParent.h"
-#include "mozilla/net/NeckoParent.h"
 
 #include "mozilla/ipc/URIUtils.h"
 #include "mozilla/StoragePrincipalHelper.h"
@@ -25,7 +25,9 @@ using namespace mozilla::ipc;
 namespace mozilla {
 namespace net {
 
-CookieServiceParent::CookieServiceParent() {
+CookieServiceParent::CookieServiceParent(dom::ContentParent* aContentParent) {
+  MOZ_ASSERT(aContentParent);
+
   // Instantiate the cookieservice via the service manager, so it sticks around
   // until shutdown.
   nsCOMPtr<nsICookieService> cs = do_GetService(NS_COOKIESERVICE_CONTRACTID);
@@ -38,6 +40,14 @@ CookieServiceParent::CookieServiceParent() {
   MOZ_ALWAYS_TRUE(mTLDService);
 
   mProcessingCookie = false;
+
+  nsTArray<nsCOMPtr<nsIPrincipal>> list;
+  aContentParent->TakeCookieInProcessCache(list);
+
+  for (nsIPrincipal* principal : list) {
+    nsCOMPtr<nsIURI> uri = principal->GetURI();
+    UpdateCookieInContentList(uri, principal->OriginAttributesRef());
+  }
 }
 
 void CookieServiceParent::RemoveBatchDeletedCookies(nsIArray* aCookieList) {

@@ -629,6 +629,12 @@ class ContentParent final : public PContentParent,
   // to this content process forever.
   void TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal);
 
+  // Update a cache list of allowed domains to store cookies for the current
+  // process. This method is called when PCookieServiceParent actor is not
+  // available yet.
+  void AddPrincipalToCookieInProcessCache(nsIPrincipal* aPrincipal);
+  void TakeCookieInProcessCache(nsTArray<nsCOMPtr<nsIPrincipal>>& aList);
+
   nsresult TransmitPermissionsForPrincipal(nsIPrincipal* aPrincipal);
 
   // Whenever receiving a Principal we need to validate that Principal case
@@ -1566,6 +1572,8 @@ class ContentParent final : public PContentParent,
   nsTHashSet<nsCString> mActiveSecondaryPermissionKeys;
 
   nsTArray<nsCString> mBlobURLs;
+
+  nsTArray<nsCOMPtr<nsIPrincipal>> mCookieInContentListCache;
 
   // This is intended to be a memory and time efficient means of determining
   // whether an origin has ever existed in a process so that Blob URL broadcast

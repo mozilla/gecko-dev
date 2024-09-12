@@ -6,6 +6,7 @@
 
 #include "CookieStoreNotifier.h"
 #include "CookieStore.h"
+#include "CookieChangeEvent.h"
 #include "mozilla/net/CookieCommons.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -192,44 +193,54 @@ CookieStoreNotifier::Observe(nsISupports* aSubject, const char* aTopic,
 
   bool deletedEvent = action == nsICookieNotification::COOKIE_DELETED;
 
-  mEventTarget->Dispatch(NS_NewRunnableFunction(__func__, [self = RefPtr(this),
-                                                           item, deletedEvent] {
-    if (!self->mCookieStore) {
-      return;
-    }
+  if (mEventTarget->IsOnCurrentThread()) {
+    DispatchEvent(item, deletedEvent);
+  } else {
+    mEventTarget->Dispatch(NS_NewRunnableFunction(
+        __func__, [self = RefPtr(this), item, deletedEvent] {
+          self->DispatchEvent(item, deletedEvent);
+        }));
+  }
 
-    RefPtr<Event> event = deletedEvent
-                              ? CookieChangeEvent::CreateForDeletedCookie(
-                                    self->mCookieStore, item)
-                              : CookieChangeEvent::CreateForChangedCookie(
-                                    self->mCookieStore, item);
-
-    if (!event) {
-      return;
-    }
-
-    if (NS_IsMainThread()) {
-      nsCOMPtr<nsPIDOMWindowInner> window =
-          self->mCookieStore->GetOwnerWindow();
-      if (!window) {
-        return;
-      }
-
-      RefPtr<BrowsingContext> bc = window->GetBrowsingContext();
-      if (!bc) {
-        return;
-      }
-
-      if (bc->IsInBFCache() || (window->GetExtantDoc() &&
-                                window->GetExtantDoc()->GetBFCacheEntry())) {
-        self->mDelayedDOMEvents.AppendElement(event);
-        return;
-      }
-    }
-
-    self->mCookieStore->DispatchEvent(*event);
-  }));
   return NS_OK;
+}
+
+void CookieStoreNotifier::DispatchEvent(const CookieListItem& aItem,
+                                        bool aDeletedEvent) {
+  MOZ_ASSERT(mEventTarget->IsOnCurrentThread());
+
+  if (!mCookieStore) {
+    return;
+  }
+
+  RefPtr<Event> event =
+      aDeletedEvent
+          ? CookieChangeEvent::CreateForDeletedCookie(mCookieStore, aItem)
+          : CookieChangeEvent::CreateForChangedCookie(mCookieStore, aItem);
+
+  if (!event) {
+    return;
+  }
+
+  if (NS_IsMainThread()) {
+    nsCOMPtr<nsPIDOMWindowInner> window = mCookieStore->GetOwnerWindow();
+    if (!window) {
+      return;
+    }
+
+    RefPtr<BrowsingContext> bc = window->GetBrowsingContext();
+    if (!bc) {
+      return;
+    }
+
+    if (bc->IsInBFCache() ||
+        (window->GetExtantDoc() && window->GetExtantDoc()->GetBFCacheEntry())) {
+      mDelayedDOMEvents.AppendElement(event);
+      return;
+    }
+  }
+
+  mCookieStore->DispatchEvent(*event);
 }
 
 void CookieStoreNotifier::FireDelayedDOMEvents() {

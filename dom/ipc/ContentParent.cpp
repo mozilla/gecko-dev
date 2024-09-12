@@ -3830,6 +3830,8 @@ ContentParent::Observe(nsISupports* aSubject, const char* aTopic,
       return NS_OK;
     }
     auto* cs = static_cast<CookieServiceParent*>(csParent);
+    MOZ_ASSERT(mCookieInContentListCache.IsEmpty());
+
     if (action == nsICookieNotification::COOKIES_BATCH_DELETED) {
       nsCOMPtr<nsIArray> cookieList;
       DebugOnly<nsresult> rv =
@@ -6122,6 +6124,17 @@ nsresult ContentParent::TransmitPermissionsForPrincipal(
   }
 
   return NS_OK;
+}
+
+void ContentParent::AddPrincipalToCookieInProcessCache(
+    nsIPrincipal* aPrincipal) {
+  MOZ_ASSERT(aPrincipal);
+  mCookieInContentListCache.AppendElement(aPrincipal);
+}
+
+void ContentParent::TakeCookieInProcessCache(
+    nsTArray<nsCOMPtr<nsIPrincipal>>& aList) {
+  aList.SwapElements(mCookieInContentListCache);
 }
 
 void ContentParent::TransmitBlobURLsForPrincipal(nsIPrincipal* aPrincipal) {
