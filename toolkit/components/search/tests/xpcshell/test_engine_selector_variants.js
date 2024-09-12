@@ -94,9 +94,17 @@ async function assertActualEnginesEqualsExpected(
 ) {
   engineSelector._configuration = null;
   SearchTestUtils.setRemoteSettingsConfig(config);
-  let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
 
-  Assert.deepEqual(engines, expectedEngines, message);
+  if (expectedEngines.length) {
+    let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
+    Assert.deepEqual(engines, expectedEngines, message);
+  } else {
+    await Assert.rejects(
+      engineSelector.fetchEngineConfiguration(userEnv),
+      /Could not find any engines in the filtered configuration/,
+      message
+    );
+  }
 }
 
 add_task(async function test_no_variants_match() {

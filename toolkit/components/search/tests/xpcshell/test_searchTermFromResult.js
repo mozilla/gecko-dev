@@ -42,15 +42,6 @@ let CONFIG_V2 = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    globalDefault: "engine-purpose",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 let defaultEngine;

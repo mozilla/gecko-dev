@@ -156,7 +156,7 @@ add_task(async function test_selector_config_update() {
     },
     {
       recordType: "defaultEngines",
-      globalDefault: "lycos",
+      globalDefault: "askjeeves",
       specificDefaults: [],
     },
     {

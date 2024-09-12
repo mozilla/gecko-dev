@@ -90,10 +90,6 @@ let CONFIG = [
       },
     ],
   },
-  {
-    globalDefault: "engine_no_initial_icon",
-    specificDefaults: [],
-  },
 ];
 
 const TEST_CONFIG_OVERRIDE = [

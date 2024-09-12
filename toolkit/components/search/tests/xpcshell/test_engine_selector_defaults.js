@@ -199,19 +199,18 @@ async function assertActualEnginesEqualsExpected(
   engineSelector._configuration = null;
   SearchTestUtils.setRemoteSettingsConfig(config, []);
 
-  let { engines, privateDefault } =
+  let { appDefaultEngineId, appPrivateDefaultEngineId } =
     await engineSelector.fetchEngineConfiguration(userEnv);
-  let actualEngines = engines.map(engine => engine.identifier);
 
   info(`${message}`);
   Assert.equal(
-    actualEngines[0],
+    appDefaultEngineId,
     expectedDefault,
     `Should match the default engine ${expectedDefault}.`
   );
 
   Assert.equal(
-    privateDefault ? privateDefault.identifier : undefined,
+    appPrivateDefaultEngineId,
     expectedDefaultPrivate,
     `Should match default private engine ${expectedDefaultPrivate}.`
   );

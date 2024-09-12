@@ -65,14 +65,6 @@ const CONFIG_EVERYWHERE = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 const CONFIG_EXPERIMENT = [
@@ -88,14 +80,6 @@ const CONFIG_EXPERIMENT = [
         },
       },
     ],
-  },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
@@ -162,14 +146,6 @@ const CONFIG_LOCALES_AND_REGIONS = [
         },
       },
     ],
-  },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
@@ -238,14 +214,6 @@ const CONFIG_DISTRIBUTION = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 const CONFIG_CHANNEL_APPLICATION = [
@@ -274,14 +242,6 @@ const CONFIG_CHANNEL_APPLICATION = [
         },
       },
     ],
-  },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
   },
 ];
 
@@ -327,14 +287,6 @@ const CONFIG_OPTIONAL = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 const CONFIG_VERSIONS = [
@@ -378,14 +330,6 @@ const CONFIG_VERSIONS = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 const CONFIG_DEVICE_TYPE_LAYOUT = [
@@ -427,17 +371,19 @@ const CONFIG_DEVICE_TYPE_LAYOUT = [
       },
     ],
   },
-  {
-    recordType: "defaultEngines",
-    specificDefaults: [],
-  },
-  {
-    recordType: "engineOrders",
-    orders: [],
-  },
 ];
 
 const engineSelector = new SearchEngineSelector();
+
+add_setup(async () => {
+  // In this test we have not specified the combinations of default search engine
+  // according to the environment. This causes the selector to fall back to the first
+  // engine in the list and throw an error about it. For the purposes of this test,
+  // this is not an issue.
+  consoleAllowList.push(
+    "Could not find a matching default engine, using the first one in the list"
+  );
+});
 
 /**
  * This function asserts if the actual engine identifiers returned equals
@@ -461,9 +407,17 @@ async function assertActualEnginesEqualsExpected(
   engineSelector._configuration = null;
   SearchTestUtils.setRemoteSettingsConfig(config, []);
 
-  let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
-  let actualEngines = engines.map(engine => engine.identifier);
-  Assert.deepEqual(actualEngines, expectedEngines, message);
+  if (expectedEngines.length) {
+    let { engines } = await engineSelector.fetchEngineConfiguration(userEnv);
+    let actualEngines = engines.map(engine => engine.identifier);
+    Assert.deepEqual(actualEngines, expectedEngines, message);
+  } else {
+    await Assert.rejects(
+      engineSelector.fetchEngineConfiguration(userEnv),
+      /Could not find any engines in the filtered configuration/,
+      message
+    );
+  }
 }
 
 add_task(async function test_selector_match_experiment() {

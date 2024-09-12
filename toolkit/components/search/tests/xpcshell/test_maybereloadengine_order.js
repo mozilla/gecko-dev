@@ -12,7 +12,7 @@ add_setup(async function () {
     { identifier: "globalDefault" },
     { identifier: "trDefault" },
     {
-      globalDefault: "default",
+      globalDefault: "globalDefault",
       specificDefaults: [
         {
           default: "trDefault",
