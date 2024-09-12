@@ -372,7 +372,9 @@ bool MFMediaEngineWrapper::SetCDMProxy(CDMProxy* aProxy) {
   MOZ_ASSERT(IsInited());
   Unused << ManagerThread()->Dispatch(NS_NewRunnableFunction(
       "MFMediaEngineWrapper::SetCDMProxy",
-      [engine = mEngine, proxyId] { engine->SendSetCDMProxyId(proxyId); }));
+      [engine = mEngine, proxy = RefPtr{aProxy}, proxyId] {
+        engine->SendSetCDMProxyId(proxyId);
+      }));
   return true;
 #else
   return false;
