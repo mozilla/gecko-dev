@@ -12,8 +12,7 @@ var { FxAccountsWebChannel } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccountsWebChannel.sys.mjs"
 );
 
-// eslint-disable-next-line @microsoft/sdl/no-insecure-url
-const TEST_HTTP_PATH = "http://example.com";
+const TEST_HTTP_PATH = "https://example.com";
 const TEST_BASE_URL =
   TEST_HTTP_PATH +
   "/browser/browser/base/content/test/sync/browser_fxa_web_channel.html";
