@@ -41,6 +41,19 @@ ub18-python-psutil:
             apt-get install python3.8-dev python3.8-dbg &&
             export DEBPYTHON3_SUPPORTED="3.8"
 
+ub18-python-dbus:
+    description: "python-dbus for Ubuntu bionic"
+    treeherder:
+        symbol: Ub18(python-dbus)
+    run:
+        dsc:
+            url: https://launchpad.net/ubuntu/+archive/primary/+sourcefiles/dbus-python/1.2.6-1/dbus-python_1.2.6-1.dsc
+            sha256: a81fd35d3ca142910d1f7e3f8de57b99596d6e927173a57a44a2917c57eeb72f
+        name: dbus-python
+        pre-build-command: >-
+            apt-get install python3.6-dev python3.6-dbg python3.8-dev python3.8-dbg &&
+            export DEBPYTHON3_SUPPORTED="3.8,3.6"
+
 ub18-pygobject:
     description: "pygobject for Ubuntu bionic"
     treeherder:

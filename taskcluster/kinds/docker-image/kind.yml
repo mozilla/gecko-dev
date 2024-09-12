@@ -59,6 +59,7 @@ tasks:
             - ub18-libc6
             - ub18-pygobject
             - ub18-pyatspi
+            - ub18-python-dbus
             - ub18-32-libc6
     ubuntu1804-test:
         symbol: I(ub18-test)

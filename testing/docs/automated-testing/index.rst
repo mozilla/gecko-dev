@@ -256,6 +256,10 @@ you can drop additional files into this directory, and they will be
 uploaded to a web server when the test finishes. The URLs to retrieve
 the files will be output in the test log.
 
+Passing ``$MOZ_RECORD_TEST=1`` as an environment variable when running some
+tests (e.g. mochitests) on Linux platform will trigger a recording of the
+desktop with GNOME Screencast.
+
 .. _Need_to_set_preferences_for_test-suites:
 
 Need to set preferences for test-suites?

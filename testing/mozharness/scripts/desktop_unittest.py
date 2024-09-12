@@ -24,6 +24,8 @@ from datetime import datetime, timedelta
 here = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(1, os.path.dirname(here))
 
+import threading
+
 from mozfile import load_source
 from mozharness.base.errors import BaseErrorList
 from mozharness.base.log import INFO, WARNING
@@ -1193,6 +1195,32 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
         executed_too_many_tests = False
         xpcshell_selftests = 0
 
+        def do_gnome_video_recording(suite_name, upload_dir, ev):
+            import os
+
+            import dbus
+
+            target_file = os.path.join(
+                upload_dir,
+                "video_{}.webm".format(suite_name),
+            )
+            self.info("Recording suite {} to {}".format(suite_name, target_file))
+
+            session_bus = dbus.SessionBus()
+            session_bus.call_blocking(
+                "org.gnome.Shell.Screencast",
+                "/org/gnome/Shell/Screencast",
+                "org.gnome.Shell.Screencast",
+                "Screencast",
+                signature="sa{sv}",
+                args=[
+                    target_file,
+                    {"draw-cursor": True, "framerate": 35},
+                ],
+            )
+
+            ev.wait()
+
         if suites:
             self.info("#### Running %s suites" % suite_category)
             for suite in suites:
@@ -1341,6 +1369,20 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
                     final_env = copy.copy(env)
 
+                    finish_video = threading.Event()
+                    do_video_recording = os.getenv("MOZ_RECORD_TEST")
+                    if do_video_recording:
+                        thread = threading.Thread(
+                            target=do_gnome_video_recording,
+                            args=(
+                                suite,
+                                env["MOZ_UPLOAD_DIR"],
+                                finish_video,
+                            ),
+                        )
+                        self.info("Starting recording thread {}".format(suite))
+                        thread.start()
+
                     if self.per_test_coverage:
                         self.set_coverage_env(final_env)
 
@@ -1366,6 +1408,12 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     # 2) if num_errors is 0 then we look in the subclassed 'parser'
                     #    findings for harness/suite errors <- DesktopUnittestOutputParser
                     # 3) checking to see if the return code is in success_codes
+
+                    if do_video_recording:
+                        self.info("Stopping recording thread {}".format(suite))
+                        finish_video.set()
+                        thread.join()
+                        self.info("Stopped recording thread {}".format(suite))
 
                     success_codes = None
                     tbpl_status, log_level, summary = parser.evaluate_parser(
