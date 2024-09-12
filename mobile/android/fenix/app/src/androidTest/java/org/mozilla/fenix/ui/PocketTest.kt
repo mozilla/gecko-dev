@@ -83,12 +83,10 @@ class PocketTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252514
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun pocketDiscoverMoreButtonTest() {
         runWithCondition(isNetworkConnected()) {
             homeScreen {
-                scrollToPocketProvokingStories()
                 verifyDiscoverMoreStoriesButton()
             }.clickPocketDiscoverMoreButton {
                 verifyUrl("getpocket.com/explore")

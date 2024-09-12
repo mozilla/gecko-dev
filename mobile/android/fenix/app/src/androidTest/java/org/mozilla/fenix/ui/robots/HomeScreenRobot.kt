@@ -516,6 +516,9 @@ class HomeScreenRobot {
 //    }
 
     fun verifyDiscoverMoreStoriesButton() {
+        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the \"Powered By Pocket\" home screen section")
+        homeScreenList().scrollIntoView(mDevice.findObject(UiSelector().resourceId("pocket.header")))
+        Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the \"Powered By Pocket\" home screen section")
         Log.i(TAG, "verifyDiscoverMoreStoriesButton: Trying to scroll into view the Pocket \"Discover more\" button")
         pocketStoriesList().scrollIntoView(UiSelector().text("Discover more"))
         Log.i(TAG, "verifyDiscoverMoreStoriesButton: Scrolled into view the Pocket \"Discover more\" button")
