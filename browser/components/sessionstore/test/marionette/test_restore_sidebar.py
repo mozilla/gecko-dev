@@ -166,6 +166,7 @@ class TestSessionRestore(SessionStoreTestCase):
         self.marionette.execute_script(
             """
             Services.prefs.setBoolPref("sidebar.revamp", true);
+            Services.prefs.setBoolPref("sidebar.animation.enabled", false);
             Services.prefs.setStringPref("sidebar.visibility", "always-show");
             """
         )
@@ -182,7 +183,6 @@ class TestSessionRestore(SessionStoreTestCase):
                 """
                 const window = BrowserWindowTracker.getTopWindow();
                 window.SidebarController.toolbarButton.click();
-                window.SidebarController.sidebarMain.expanded = true;
                 return window.SidebarController.sidebarMain.expanded;
                 """
             ),
@@ -203,19 +203,7 @@ class TestSessionRestore(SessionStoreTestCase):
             self.marionette.execute_script(
                 """
                 const window = BrowserWindowTracker.getTopWindow();
-                function waitForExpandedState() {
-                    let expanded = false;
-                    for (let i = 0; i < 50; i++) {
-                        if (!window.SidebarController.sidebarMain.expanded) {
-                            continue;
-                        } else {
-                            expanded = true;
-                            break;
-                        }
-                    }
-                    return expanded;
-                }
-                return waitForExpandedState();
+                return window.SidebarController.sidebarMain.expanded;
                 """
             ),
             "Sidebar expanded state has been restored.",
