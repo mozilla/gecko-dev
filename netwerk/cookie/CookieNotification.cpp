@@ -62,6 +62,13 @@ CookieNotification::GetBrowsingContext(dom::BrowsingContext** aResult) {
   return NS_OK;
 }
 
+NS_IMETHODIMP
+CookieNotification::GetOperationID(nsID** aOperationID) {
+  NS_ENSURE_ARG_POINTER(aOperationID);
+  *aOperationID = mOperationID;
+  return NS_OK;
+}
+
 NS_IMPL_ISUPPORTS(CookieNotification, nsICookieNotification)
 
 }  // namespace mozilla::net

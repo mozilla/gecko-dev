@@ -10,6 +10,8 @@ include NeckoChannelParams;
 
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
 [RefCounted] using class nsIURI from "mozilla/ipc/URIUtils.h";
+using struct mozilla::void_t from "ipc/IPCMessageUtils.h";
+using struct nsID from "nsID.h";
 
 namespace mozilla {
 namespace net {
@@ -57,7 +59,8 @@ child:
   async TrackCookiesLoad(CookieStructTable[] cookiesListTable);
 
   async RemoveCookie(CookieStruct cookie,
-                     OriginAttributes attrs);
+                     OriginAttributes attrs,
+                     nsID? operationId);
 
   async RemoveBatchDeletedCookies(CookieStruct[] cookiesList,
                                   OriginAttributes[] attrsList);
@@ -65,8 +68,8 @@ child:
   async RemoveAll();
 
   async AddCookie(CookieStruct cookie,
-                  OriginAttributes attrs);
-
+                  OriginAttributes attrs,
+                  nsID? operationId);
 };
 
 }

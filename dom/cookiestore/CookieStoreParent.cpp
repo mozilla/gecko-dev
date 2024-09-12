@@ -110,7 +110,7 @@ void SetRequestHelper(const nsAString& aDomain,
       true,   //  secure
       false,  // mHttpOnly,
       aSession, aSession ? PR_Now() : aExpires, &attrs, aSameSite,
-      nsICookie::SCHEME_HTTPS, aPartitioned);
+      nsICookie::SCHEME_HTTPS, aPartitioned, nullptr);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -171,7 +171,7 @@ void DeleteRequestHelper(const nsAString& aDomain,
 
     if (isPartitioned != aPartitioned) continue;
 
-    rv = service->RemoveNative(domainUtf8, matchName, path, &attrs);
+    rv = service->RemoveNative(domainUtf8, matchName, path, &attrs, nullptr);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }

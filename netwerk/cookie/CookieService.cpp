@@ -704,7 +704,8 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
   }
 
   return AddNative(aHost, aPath, aName, aValue, aIsSecure, aIsHttpOnly,
-                   aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap, false);
+                   aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap, false,
+                   nullptr);
 }
 
 NS_IMETHODIMP_(nsresult)
@@ -713,7 +714,7 @@ CookieService::AddNative(const nsACString& aHost, const nsACString& aPath,
                          bool aIsSecure, bool aIsHttpOnly, bool aIsSession,
                          int64_t aExpiry, OriginAttributes* aOriginAttributes,
                          int32_t aSameSite, nsICookie::schemeType aSchemeMap,
-                         bool aIsPartitioned) {
+                         bool aIsPartitioned, const nsID* aOperationID) {
   if (NS_WARN_IF(!aOriginAttributes)) {
     return NS_ERROR_FAILURE;
   }
@@ -748,14 +749,15 @@ CookieService::AddNative(const nsACString& aHost, const nsACString& aPath,
   CookieStorage* storage = PickStorage(*aOriginAttributes);
   storage->AddCookie(nullptr, baseDomain, *aOriginAttributes, cookie,
                      currentTimeInUsec, nullptr, VoidCString(), true,
-                     !aOriginAttributes->mPartitionKey.IsEmpty(), nullptr);
+                     !aOriginAttributes->mPartitionKey.IsEmpty(), nullptr,
+                     aOperationID);
   return NS_OK;
 }
 
 nsresult CookieService::Remove(const nsACString& aHost,
                                const OriginAttributes& aAttrs,
-                               const nsACString& aName,
-                               const nsACString& aPath) {
+                               const nsACString& aName, const nsACString& aPath,
+                               const nsID* aOperationID) {
   // first, normalize the hostname, and fail if it contains illegal characters.
   nsAutoCString host(aHost);
   nsresult rv = NormalizeHost(host);
@@ -773,7 +775,7 @@ nsresult CookieService::Remove(const nsACString& aHost,
 
   CookieStorage* storage = PickStorage(aAttrs);
   storage->RemoveCookie(baseDomain, aAttrs, host, PromiseFlatCString(aName),
-                        PromiseFlatCString(aPath));
+                        PromiseFlatCString(aPath), aOperationID);
 
   return NS_OK;
 }
@@ -788,18 +790,19 @@ CookieService::Remove(const nsACString& aHost, const nsACString& aName,
     return NS_ERROR_INVALID_ARG;
   }
 
-  return RemoveNative(aHost, aName, aPath, &attrs);
+  return RemoveNative(aHost, aName, aPath, &attrs, nullptr);
 }
 
 NS_IMETHODIMP_(nsresult)
 CookieService::RemoveNative(const nsACString& aHost, const nsACString& aName,
                             const nsACString& aPath,
-                            OriginAttributes* aOriginAttributes) {
+                            OriginAttributes* aOriginAttributes,
+                            const nsID* aOperationID) {
   if (NS_WARN_IF(!aOriginAttributes)) {
     return NS_ERROR_FAILURE;
   }
 
-  nsresult rv = Remove(aHost, *aOriginAttributes, aName, aPath);
+  nsresult rv = Remove(aHost, *aOriginAttributes, aName, aPath, aOperationID);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -1436,7 +1439,7 @@ class RemoveAllSinceRunnable : public Runnable {
       auto* cookie = static_cast<Cookie*>(mList[mIndex].get());
       if (cookie->CreationTime() > mSinceWhen &&
           NS_FAILED(mSelf->Remove(cookie->Host(), cookie->OriginAttributesRef(),
-                                  cookie->Name(), cookie->Path()))) {
+                                  cookie->Name(), cookie->Path(), nullptr))) {
         continue;
       }
     }

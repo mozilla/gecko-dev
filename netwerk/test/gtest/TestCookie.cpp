@@ -748,7 +748,8 @@ TEST(TestCookie, TestCookieMain)
                                                  &attrs,     // originAttributes
                                                  nsICookie::SAMESITE_NONE,
                                                  nsICookie::SCHEME_HTTPS,
-                                                 false  // is partitioned
+                                                 false,   // is partitioned
+                                                 nullptr  // operation ID
                                                  )));
   EXPECT_TRUE(NS_SUCCEEDED(cookieMgr2->AddNative(
       "cookiemgr.test"_ns,             // domain
@@ -761,7 +762,8 @@ TEST(TestCookie, TestCookieMain)
       PR_Now() / PR_USEC_PER_SEC + 2,  // expiry time
       &attrs,                          // originAttributes
       nsICookie::SAMESITE_NONE, nsICookie::SCHEME_HTTPS,
-      false  // is partitioned
+      false,   // is partitioned
+      nullptr  // operation ID
       )));
   EXPECT_TRUE(NS_SUCCEEDED(cookieMgr2->AddNative("new.domain"_ns,  // domain
                                                  "/rabbit"_ns,     // path
@@ -774,7 +776,8 @@ TEST(TestCookie, TestCookieMain)
                                                  &attrs,     // originAttributes
                                                  nsICookie::SAMESITE_NONE,
                                                  nsICookie::SCHEME_HTTPS,
-                                                 false  // is partitioned
+                                                 false,   // is partitioned
+                                                 nullptr  // operation ID
                                                  )));
   // confirm using enumerator
   nsTArray<RefPtr<nsICookie>> cookies;
