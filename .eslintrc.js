@@ -14,21 +14,6 @@ const { rollouts } = require("./.eslintrc-rollouts.js");
 const fs = require("fs");
 const path = require("path");
 
-/**
- * Some configurations have overrides, which can't be specified within overrides,
- * so we need to remove them.
- *
- * @param {object} config
- *   The configuration to remove overrides from.
- * @returns {object}
- *   The new configuration.
- */
-function removeOverrides(config) {
-  config = { ...config };
-  delete config.overrides;
-  return config;
-}
-
 function readFile(filePath) {
   return fs
     .readFileSync(filePath, { encoding: "utf-8" })
@@ -153,7 +138,7 @@ module.exports = {
       extends: ["plugin:mozilla/general-test"],
     },
     {
-      ...removeOverrides(xpcshellTestConfig),
+      ...xpcshellTestConfig,
       files: testPaths.xpcshell.map(filePath => `${filePath}**`),
       excludedFiles: ["**/*.jsm", "**/*.mjs", "**/*.sjs"],
     },
@@ -192,12 +177,12 @@ module.exports = {
       },
     },
     {
-      ...removeOverrides(browserTestConfig),
+      ...browserTestConfig,
       files: testPaths.browser.map(filePath => `${filePath}**`),
       excludedFiles: ["**/*.jsm", "**/*.mjs", "**/*.sjs"],
     },
     {
-      ...removeOverrides(mochitestTestConfig),
+      ...mochitestTestConfig,
       files: testPaths.mochitest.map(filePath => `${filePath}**`),
       excludedFiles: [
         "**/*.jsm",
@@ -206,7 +191,7 @@ module.exports = {
       ],
     },
     {
-      ...removeOverrides(chromeTestConfig),
+      ...chromeTestConfig,
       files: testPaths.chrome.map(filePath => `${filePath}**`),
       excludedFiles: ["**/*.jsm", "**/*.mjs", "**/*.sjs"],
     },
