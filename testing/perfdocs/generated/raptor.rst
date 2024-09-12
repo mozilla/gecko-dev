@@ -901,7 +901,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
-   * **repository revision**: 5d9c88136d59c11daf78d539c73e4e3e88c091ab
+   * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
    * **suite name**: MotionMark
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
@@ -1231,7 +1231,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
-   * **repository revision**: 5d9c88136d59c11daf78d539c73e4e3e88c091ab
+   * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
    * **suite name**: MotionMark
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
@@ -3240,7 +3240,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
-   * **repository revision**: 5d9c88136d59c11daf78d539c73e4e3e88c091ab
+   * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
    * **suite name**: HTML suite
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
@@ -3570,7 +3570,7 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **page cycles**: 1
    * **page timeout**: 600000
    * **repository**: https://github.com/webkit/motionmark
-   * **repository revision**: 5d9c88136d59c11daf78d539c73e4e3e88c091ab
+   * **repository revision**: be2a5fea89b6ef411b053ebeb95a6302b3dc0ecb
    * **suite name**: HTML suite
    * **support class**: motionmark-1-3.py
    * **test script**: motionmark-1-3.js
