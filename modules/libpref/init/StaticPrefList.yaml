@@ -8536,8 +8536,6 @@
   type: bool
 #if defined(XP_WIN) || defined(MOZ_WIDGET_ANDROID)
   value: true
-#elif defined(MOZ_X11)
-  value: @IS_NIGHTLY_BUILD@
 #else
   value: false
 #endif
