@@ -230,6 +230,9 @@ def setup_pdfpaint_test(config, test_instance):
 
     pdf_files = set()
     for pdf_info in test_manifest:
+        if not pdf_info.get("talos", True):
+            # Skip pdfs that are not meant to be tested
+            continue
         if pdf_info.get("password", None) is not None:
             # PDFs that require passwords cause timeouts
             continue
