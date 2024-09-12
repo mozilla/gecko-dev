@@ -354,11 +354,19 @@ bool WarpCacheIRTranspiler::transpile(
   // Effectful instructions should have a resume point. We allow a limited
   // number of exceptions:
   // - MIonToWasmCall: Resumes after MInt64ToBigInt
+  // - MLoadUnboxedScalar: Resumes after MInt64ToBigInt
+  // - MAtomicTypedArrayElementBinop: Resumes after MInt64ToBigInt
+  // - MAtomicExchangeTypedArrayElement: Resumes after MInt64ToBigInt
+  // - MCompareExchangeTypedArrayElement: Resumes after MInt64ToBigInt
   // - MResizableTypedArrayLength: Resumes after MPostIntPtrConversion
   // - MResizableDataViewByteLength: Resumes after MPostIntPtrConversion
   // - MGrowableSharedArrayBufferByteLength: Resumes after MPostIntPtrConversion
   MOZ_ASSERT_IF(effectful_,
                 effectful_->resumePoint() || effectful_->isIonToWasmCall() ||
+                    effectful_->isLoadUnboxedScalar() ||
+                    effectful_->isAtomicTypedArrayElementBinop() ||
+                    effectful_->isAtomicExchangeTypedArrayElement() ||
+                    effectful_->isCompareExchangeTypedArrayElement() ||
                     effectful_->isResizableTypedArrayLength() ||
                     effectful_->isResizableDataViewByteLength() ||
                     effectful_->isGrowableSharedArrayBufferByteLength());
@@ -4711,11 +4719,15 @@ bool WarpCacheIRTranspiler::emitAtomicsCompareExchangeResult(
   MInstruction* result = cas;
   if (Scalar::isBigIntType(elementType)) {
     result = MInt64ToBigInt::New(alloc(), cas, elementType);
+
+    // Make non-movable so we can attach a resume point.
+    result->setNotMovable();
+
     add(result);
   }
 
   pushResult(result);
-  return resumeAfter(cas);
+  return resumeAfterUnchecked(result);
 }
 
 bool WarpCacheIRTranspiler::emitAtomicsExchangeResult(
@@ -4744,11 +4756,15 @@ bool WarpCacheIRTranspiler::emitAtomicsExchangeResult(
   MInstruction* result = exchange;
   if (Scalar::isBigIntType(elementType)) {
     result = MInt64ToBigInt::New(alloc(), exchange, elementType);
+
+    // Make non-movable so we can attach a resume point.
+    result->setNotMovable();
+
     add(result);
   }
 
   pushResult(result);
-  return resumeAfter(exchange);
+  return resumeAfterUnchecked(result);
 }
 
 bool WarpCacheIRTranspiler::emitAtomicsBinaryOp(
@@ -4785,11 +4801,15 @@ bool WarpCacheIRTranspiler::emitAtomicsBinaryOp(
   MInstruction* result = binop;
   if (Scalar::isBigIntType(elementType)) {
     result = MInt64ToBigInt::New(alloc(), binop, elementType);
+
+    // Make non-movable so we can attach a resume point.
+    result->setNotMovable();
+
     add(result);
   }
 
   pushResult(result);
-  return resumeAfter(binop);
+  return resumeAfterUnchecked(result);
 }
 
 bool WarpCacheIRTranspiler::emitAtomicsAddResult(
@@ -4852,11 +4872,15 @@ bool WarpCacheIRTranspiler::emitAtomicsLoadResult(
   MInstruction* result = load;
   if (Scalar::isBigIntType(elementType)) {
     result = MInt64ToBigInt::New(alloc(), load, elementType);
+
+    // Make non-movable so we can attach a resume point.
+    result->setNotMovable();
+
     add(result);
   }
 
   pushResult(result);
-  return resumeAfter(load);
+  return resumeAfterUnchecked(result);
 }
 
 bool WarpCacheIRTranspiler::emitAtomicsStoreResult(
