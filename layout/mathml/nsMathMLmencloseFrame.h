@@ -57,9 +57,6 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
   nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
                  ReflowOutput& aDesiredSize) override;
 
-  virtual nsresult MeasureForWidth(DrawTarget* aDrawTarget,
-                                   ReflowOutput& aDesiredSize) override;
-
   virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
                                     int32_t aModType) override;
 
@@ -85,9 +82,6 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
                                  nsPresContext* aPresContext,
                                  ClassID aID = kClassID);
   virtual ~nsMathMLmencloseFrame();
-
-  nsresult PlaceInternal(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
-                         ReflowOutput& aDesiredSize);
 
   // functions to parse the "notation" attribute.
   nsresult AddNotation(const nsAString& aNotation);
