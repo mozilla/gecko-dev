@@ -9,215 +9,139 @@
 #include <wtsapi32.h>
 
 #include "WinEventObserver.h"
+#include "WinWindowOcclusionTracker.h"
 
-#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Assertions.h"
 #include "mozilla/Logging.h"
-#include "mozilla/StaticPtr.h"
-#include "nsHashtablesFwd.h"
+#include "mozilla/Maybe.h"
+#include "nsWindowDbg.h"
 #include "nsdefs.h"
+#include "nsXULAppAPI.h"
+
+// borrowed from devblogs.microsoft.com/oldnewthing/20041025-00/?p=37483, by way
+// of the Chromium sandboxing code's "current_module.h"
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+#define CURRENT_MODULE() reinterpret_cast<HMODULE>(&__ImageBase)
+
+// N.B.: if and when we eliminate the existing `WindowType::Invisible` hidden
+// window, we must switch to use of `kClassNameHidden` for the class name. (See
+// commentary therebeside.)
+const wchar_t kClassNameHidden2[] = L"MozillaHiddenWindowClass2";
 
 namespace mozilla::widget {
 
-LazyLogModule gWinEventObserverLog("WinEventObserver");
-#define LOG(...) MOZ_LOG(gWinEventObserverLog, LogLevel::Info, (__VA_ARGS__))
+LazyLogModule gWinEventWindowLog("WinEventWindow");
+#define OBS_LOG(...) \
+  MOZ_LOG(gWinEventWindowLog, ::mozilla::LogLevel::Info, (__VA_ARGS__))
 
-// static
-StaticRefPtr<WinEventHub> WinEventHub::sInstance;
-
-// static
-bool WinEventHub::Ensure() {
-  if (sInstance) {
-    return true;
-  }
-
-  LOG("WinEventHub::Ensure()");
-
-  RefPtr<WinEventHub> instance = new WinEventHub();
-  if (!instance->Initialize()) {
-    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
-    return false;
-  }
-  sInstance = instance;
-  ClearOnShutdown(&sInstance);
-  return true;
+namespace {
+static HWND sHiddenWindow = nullptr;
 }
 
-WinEventHub::WinEventHub() {
-  MOZ_ASSERT(NS_IsMainThread());
-  LOG("WinEventHub::WinEventHub()");
-}
+/* static */
+void WinEventWindow::Ensure() {
+  if (sHiddenWindow) return;
 
-WinEventHub::~WinEventHub() {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mObservers.IsEmpty());
-  LOG("WinEventHub::~WinEventHub()");
+  MOZ_RELEASE_ASSERT(XRE_IsParentProcess());
+  MOZ_RELEASE_ASSERT(NS_IsMainThread());
 
-  if (mHWnd) {
-    ::DestroyWindow(mHWnd);
-    mHWnd = nullptr;
-  }
-}
-
-bool WinEventHub::Initialize() {
-  WNDCLASSW wc;
-  HMODULE hSelf = ::GetModuleHandle(nullptr);
-
-  if (!GetClassInfoW(hSelf, L"MozillaWinEventHubClass", &wc)) {
-    ZeroMemory(&wc, sizeof(WNDCLASSW));
-    wc.hInstance = hSelf;
-    wc.lpfnWndProc = WinEventProc;
-    wc.lpszClassName = L"MozillaWinEventHubClass";
-    RegisterClassW(&wc);
+  HMODULE const hSelf = CURRENT_MODULE();
+  WNDCLASSW const wc = {.lpfnWndProc = WinEventWindow::WndProc,
+                        .hInstance = hSelf,
+                        .lpszClassName = kClassNameHidden2};
+  ATOM const atom = ::RegisterClassW(&wc);
+  if (!atom) {
+    // This is known to be possible when the atom table no longer has free
+    // entries, which unfortunately happens more often than one might expect.
+    // See bug 1571516.
+    auto volatile const err [[maybe_unused]] = ::GetLastError();
+    MOZ_CRASH("could not register broadcast-receiver window-class");
   }
 
-  mHWnd = ::CreateWindowW(L"MozillaWinEventHubClass", L"WinEventHub", 0, 0, 0,
-                          0, 0, nullptr, nullptr, hSelf, nullptr);
-  if (!mHWnd) {
-    return false;
+  sHiddenWindow =
+      ::CreateWindowW((LPCWSTR)(uintptr_t)atom, L"WinEventWindow", 0, 0, 0, 0,
+                      0, nullptr, nullptr, hSelf, nullptr);
+
+  if (!sHiddenWindow) {
+    MOZ_CRASH("could not create broadcast-receiver window");
   }
+};
 
-  return true;
-}
+/* static */
+HWND WinEventWindow::GetHwndForTestingOnly() { return sHiddenWindow; }
 
-// static
-LRESULT CALLBACK WinEventHub::WinEventProc(HWND aHwnd, UINT aMsg,
-                                           WPARAM aWParam, LPARAM aLParam) {
-  if (sInstance) {
-    sInstance->ProcessWinEventProc(aHwnd, aMsg, aWParam, aLParam);
-  }
-  return ::DefWindowProc(aHwnd, aMsg, aWParam, aLParam);
-}
+// Callbacks for individual event types. These are private and internal
+// implementation details of WinEventWindow.
+namespace {
+namespace evtwin_details {
 
-void WinEventHub::ProcessWinEventProc(HWND aHwnd, UINT aMsg, WPARAM aWParam,
-                                      LPARAM aLParam) {
-  for (const auto& observer : mObservers) {
-    observer->OnWinEventProc(aHwnd, aMsg, aWParam, aLParam);
+static void OnSessionChange(WPARAM wParam, LPARAM lParam) {
+  if (wParam == WTS_SESSION_LOCK || wParam == WTS_SESSION_UNLOCK) {
+    Maybe<bool> isCurrentSession;
+    DWORD currentSessionId = 0;
+    if (!::ProcessIdToSessionId(::GetCurrentProcessId(), &currentSessionId)) {
+      isCurrentSession = Nothing();
+    } else {
+      OBS_LOG(
+          "WinEventWindow OnSessionChange() wParam %zu lParam "
+          "%" PRIdLPTR " currentSessionId %lu",
+          wParam, lParam, currentSessionId);
+
+      isCurrentSession = Some(static_cast<DWORD>(lParam) == currentSessionId);
+    }
+    if (auto* wwot = WinWindowOcclusionTracker::Get()) {
+      wwot->OnSessionChange(wParam, isCurrentSession);
+    }
   }
 }
 
-void WinEventHub::AddObserver(WinEventObserver* aObserver) {
-  LOG("WinEventHub::AddObserver() aObserver %p", aObserver);
+static void OnPowerBroadcast(WPARAM wParam, LPARAM lParam) {
+  if (wParam == PBT_POWERSETTINGCHANGE) {
+    POWERBROADCAST_SETTING* setting = (POWERBROADCAST_SETTING*)lParam;
 
-  mObservers.Insert(aObserver);
-}
-
-void WinEventHub::RemoveObserver(WinEventObserver* aObserver) {
-  LOG("WinEventHub::RemoveObserver() aObserver %p", aObserver);
-
-  mObservers.Remove(aObserver);
-}
-
-WinEventObserver::~WinEventObserver() {
-  MOZ_ASSERT(NS_IsMainThread());
-  MOZ_ASSERT(mDestroyed);
-}
-
-void WinEventObserver::Destroy() {
-  LOG("WinEventObserver::Destroy() this %p", this);
-
-  WinEventHub::Get()->RemoveObserver(this);
-  mDestroyed = true;
-}
-
-// static
-already_AddRefed<DisplayStatusObserver> DisplayStatusObserver::Create(
-    DisplayStatusListener* aListener) {
-  if (!WinEventHub::Ensure()) {
-    return nullptr;
-  }
-  RefPtr<DisplayStatusObserver> observer = new DisplayStatusObserver(aListener);
-  WinEventHub::Get()->AddObserver(observer);
-  return observer.forget();
-}
-
-DisplayStatusObserver::DisplayStatusObserver(DisplayStatusListener* aListener)
-    : mListener(aListener) {
-  MOZ_ASSERT(NS_IsMainThread());
-  LOG("DisplayStatusObserver::DisplayStatusObserver() this %p", this);
-
-  mDisplayStatusHandle = ::RegisterPowerSettingNotification(
-      WinEventHub::Get()->GetWnd(), &GUID_SESSION_DISPLAY_STATUS,
-      DEVICE_NOTIFY_WINDOW_HANDLE);
-}
-
-DisplayStatusObserver::~DisplayStatusObserver() {
-  MOZ_ASSERT(NS_IsMainThread());
-  LOG("DisplayStatusObserver::~DisplayStatusObserver() this %p", this);
-
-  if (mDisplayStatusHandle) {
-    ::UnregisterPowerSettingNotification(mDisplayStatusHandle);
-    mDisplayStatusHandle = nullptr;
-  }
-}
-
-void DisplayStatusObserver::OnWinEventProc(HWND aHwnd, UINT aMsg,
-                                           WPARAM aWParam, LPARAM aLParam) {
-  if (aMsg == WM_POWERBROADCAST && aWParam == PBT_POWERSETTINGCHANGE) {
-    POWERBROADCAST_SETTING* setting = (POWERBROADCAST_SETTING*)aLParam;
     if (setting &&
         ::IsEqualGUID(setting->PowerSetting, GUID_SESSION_DISPLAY_STATUS) &&
         setting->DataLength == sizeof(DWORD)) {
       bool displayOn = PowerMonitorOff !=
                        static_cast<MONITOR_DISPLAY_STATE>(setting->Data[0]);
 
-      LOG("DisplayStatusObserver::OnWinEventProc() displayOn %d this %p",
-          displayOn, this);
-      mListener->OnDisplayStateChanged(displayOn);
+      OBS_LOG("WinEventWindow OnPowerBroadcast() displayOn %d", displayOn);
+
+      if (auto* wwot = WinWindowOcclusionTracker::Get()) {
+        wwot->OnDisplayStateChanged(displayOn);
+      }
     }
   }
 }
+}  // namespace evtwin_details
+}  // namespace
 
 // static
-already_AddRefed<SessionChangeObserver> SessionChangeObserver::Create(
-    SessionChangeListener* aListener) {
-  if (!WinEventHub::Ensure()) {
-    return nullptr;
+LRESULT CALLBACK WinEventWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam,
+                                         LPARAM lParam) {
+  NativeEventLogger eventLogger("WinEventWindow", hwnd, msg, wParam, lParam);
+
+  switch (msg) {
+    case WM_WINDOWPOSCHANGING: {
+      // prevent rude external programs from making hidden window visible
+      LPWINDOWPOS info = (LPWINDOWPOS)lParam;
+      info->flags &= ~SWP_SHOWWINDOW;
+    } break;
+
+    case WM_WTSSESSION_CHANGE: {
+      evtwin_details::OnSessionChange(wParam, lParam);
+    } break;
+
+    case WM_POWERBROADCAST: {
+      evtwin_details::OnPowerBroadcast(wParam, lParam);
+    } break;
   }
-  RefPtr<SessionChangeObserver> observer = new SessionChangeObserver(aListener);
-  WinEventHub::Get()->AddObserver(observer);
-  return observer.forget();
+
+  LRESULT ret = ::DefWindowProcW(hwnd, msg, wParam, lParam);
+  eventLogger.SetResult(ret, false);
+  return ret;
 }
 
-SessionChangeObserver::SessionChangeObserver(SessionChangeListener* aListener)
-    : mListener(aListener) {
-  MOZ_ASSERT(NS_IsMainThread());
-  LOG("SessionChangeObserver::SessionChangeObserver() this %p", this);
-
-  auto hwnd = WinEventHub::Get()->GetWnd();
-  DebugOnly<BOOL> wtsRegistered =
-      ::WTSRegisterSessionNotification(hwnd, NOTIFY_FOR_THIS_SESSION);
-  NS_ASSERTION(wtsRegistered, "WTSRegisterSessionNotification failed!\n");
-}
-SessionChangeObserver::~SessionChangeObserver() {
-  MOZ_ASSERT(NS_IsMainThread());
-  LOG("SessionChangeObserver::~SessionChangeObserver() this %p", this);
-
-  auto hwnd = WinEventHub::Get()->GetWnd();
-  // Unregister notifications from terminal services
-  ::WTSUnRegisterSessionNotification(hwnd);
-}
-
-void SessionChangeObserver::OnWinEventProc(HWND aHwnd, UINT aMsg,
-                                           WPARAM aWParam, LPARAM aLParam) {
-  if (aMsg == WM_WTSSESSION_CHANGE &&
-      (aWParam == WTS_SESSION_LOCK || aWParam == WTS_SESSION_UNLOCK)) {
-    Maybe<bool> isCurrentSession;
-    DWORD currentSessionId = 0;
-    if (!::ProcessIdToSessionId(::GetCurrentProcessId(), &currentSessionId)) {
-      isCurrentSession = Nothing();
-    } else {
-      LOG("SessionChangeObserver::OnWinEventProc() aWParam %zu aLParam "
-          "%" PRIdLPTR
-          " "
-          "currentSessionId %lu this %p",
-          aWParam, aLParam, currentSessionId, this);
-
-      isCurrentSession = Some(static_cast<DWORD>(aLParam) == currentSessionId);
-    }
-    mListener->OnSessionChange(aWParam, isCurrentSession);
-  }
-}
-
-#undef LOG
+#undef OBS_LOG
 
 }  // namespace mozilla::widget
