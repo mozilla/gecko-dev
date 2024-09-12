@@ -136,6 +136,7 @@ const UPDATE_CHECK_PERIOD_MS = 12 * 60 * 60 * 1000; // 12 hours
 /**
  * A node in the QueryScorer's phrase tree.
  */
+// eslint-disable-next-line no-shadow
 class Node {
   constructor(word) {
     this.word = word;

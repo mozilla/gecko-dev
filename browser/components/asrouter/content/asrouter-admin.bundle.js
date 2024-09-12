@@ -736,7 +736,7 @@ class ASRouterAdminInner extends (react__WEBPACK_IMPORTED_MODULE_1___default().P
   }
   onChangeTargetingParameters(event) {
     const {
-      name
+      name: eventName
     } = event.target;
     const {
       value
@@ -746,10 +746,10 @@ class ASRouterAdminInner extends (react__WEBPACK_IMPORTED_MODULE_1___default().P
       JSON.parse(value);
       event.target.classList.remove("errorState");
     } catch (e) {
-      console.error(`Error parsing value of parameter ${name}`);
+      console.error(`Error parsing value of parameter ${eventName}`);
       event.target.classList.add("errorState");
       targetingParametersError = {
-        id: name
+        id: eventName
       };
     }
     this.setState(({
@@ -758,7 +758,7 @@ class ASRouterAdminInner extends (react__WEBPACK_IMPORTED_MODULE_1___default().P
       const updatedParameters = {
         ...stringTargetingParameters
       };
-      updatedParameters[name] = value;
+      updatedParameters[eventName] = value;
       return {
         copiedToClipboard: false,
         evaluationStatus: {},
@@ -1085,7 +1085,9 @@ class ASRouterAdminInner extends (react__WEBPACK_IMPORTED_MODULE_1___default().P
       className: "row"
     }, this.state.messages ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("h3", null, "Templates"), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("div", {
       className: "col"
-    }, this.state.messages.map(message => message.template).filter((value, index, self) => self.indexOf(value) === index).map(template => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("label", {
+    }, this.state.messages.map(message => message.template).filter(
+    // eslint-disable-next-line no-shadow
+    (value, index, self) => self.indexOf(value) === index).map(template => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("label", {
       key: template
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_1___default().createElement("input", {
       type: "checkbox",
@@ -1390,7 +1392,7 @@ class ASRouterAdminInner extends (react__WEBPACK_IMPORTED_MODULE_1___default().P
   }
   onChangeAttributionParameters(event) {
     const {
-      name,
+      eventName,
       value
     } = event.target;
     this.setState(({
@@ -1399,7 +1401,7 @@ class ASRouterAdminInner extends (react__WEBPACK_IMPORTED_MODULE_1___default().P
       const updatedParameters = {
         ...attributionParameters
       };
-      updatedParameters[name] = value;
+      updatedParameters[eventName] = value;
       return {
         attributionParameters: updatedParameters
       };

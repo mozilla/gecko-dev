@@ -245,11 +245,8 @@ class Engine {
     this.bergamot = bergamot;
     /** @type {Bergamot["TranslationModel"][]} */
     this.languageTranslationModels = languageTranslationModelFiles.map(
-      languageTranslationModelFiles =>
-        BergamotUtils.constructSingleTranslationModel(
-          bergamot,
-          languageTranslationModelFiles
-        )
+      modelFiles =>
+        BergamotUtils.constructSingleTranslationModel(bergamot, modelFiles)
     );
 
     /** @type {Bergamot["BlockingService"]} */

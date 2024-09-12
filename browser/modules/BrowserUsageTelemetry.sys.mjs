@@ -777,13 +777,13 @@ export let BrowserUsageTelemetry = {
       return "keyboard";
     }
 
-    const { URL } = node.ownerDocument;
-    if (URL == AppConstants.BROWSER_CHROME_URL) {
+    const { URL: url } = node.ownerDocument;
+    if (url == AppConstants.BROWSER_CHROME_URL) {
       return this._getBrowserWidgetContainer(node);
     }
     if (
-      URL.startsWith("about:preferences") ||
-      URL.startsWith("about:settings")
+      url.startsWith("about:preferences") ||
+      url.startsWith("about:settings")
     ) {
       // Find the element's category.
       let container = node.closest("[data-category]");
