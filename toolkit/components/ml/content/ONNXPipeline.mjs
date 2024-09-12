@@ -141,6 +141,12 @@ async function imageToText(request, model, tokenizer, processor, _config) {
   }
   lazy.console.debug("Inference done in ", Date.now() - start);
   result.output = toReturn[0][0].generated_text;
+
+  // Bug 1918220 - replace the result for models with that bug
+  if (result.output === "T") {
+    lazy.console.debug("Replacing `T` with `Text document.`");
+    result.output = "Text document.";
+  }
   return result;
 }
 
