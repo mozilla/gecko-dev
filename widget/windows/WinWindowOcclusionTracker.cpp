@@ -25,7 +25,6 @@
 #include "nsBaseWidget.h"
 #include "nsWindow.h"
 #include "transport/runnable_utils.h"
-#include "WinEventObserver.h"
 #include "WinUtils.h"
 
 namespace mozilla::widget {
@@ -342,6 +341,12 @@ void WinWindowOcclusionTracker::Ensure() {
     if (sTracker->mThread->StartWithOptions(options)) {
       // Success!
       sTracker->mHasAttemptedShutdown = false;
+
+      // Take this opportunity to ensure that mDisplayStatusObserver and
+      // mSessionChangeObserver exist. They might have failed to be
+      // created when sTracker was created.
+      sTracker->EnsureDisplayStatusObserver();
+      sTracker->EnsureSessionChangeObserver();
       return;
     }
     // Restart failed, so null out our sTracker and try again with a new
@@ -423,6 +428,14 @@ void WinWindowOcclusionTracker::ShutDown() {
 }
 
 void WinWindowOcclusionTracker::Destroy() {
+  if (mDisplayStatusObserver) {
+    mDisplayStatusObserver->Destroy();
+    mDisplayStatusObserver = nullptr;
+  }
+  if (mSessionChangeObserver) {
+    mSessionChangeObserver->Destroy();
+    mSessionChangeObserver = nullptr;
+  }
   if (mSerializedTaskDispatcher) {
     mSerializedTaskDispatcher->Destroy();
   }
@@ -437,6 +450,26 @@ MessageLoop* WinWindowOcclusionTracker::OcclusionCalculatorLoop() {
 bool WinWindowOcclusionTracker::IsInWinWindowOcclusionThread() {
   return sTracker &&
          sTracker->mThread->thread_id() == PlatformThread::CurrentId();
+}
+
+void WinWindowOcclusionTracker::EnsureDisplayStatusObserver() {
+  if (mDisplayStatusObserver) {
+    return;
+  }
+  if (StaticPrefs::
+          widget_windows_window_occlusion_tracking_display_state_enabled()) {
+    mDisplayStatusObserver = DisplayStatusObserver::Create(this);
+  }
+}
+
+void WinWindowOcclusionTracker::EnsureSessionChangeObserver() {
+  if (mSessionChangeObserver) {
+    return;
+  }
+  if (StaticPrefs::
+          widget_windows_window_occlusion_tracking_session_lock_enabled()) {
+    mSessionChangeObserver = SessionChangeObserver::Create(this);
+  }
 }
 
 void WinWindowOcclusionTracker::Enable(nsBaseWidget* aWindow, HWND aHwnd) {
@@ -500,7 +533,8 @@ WinWindowOcclusionTracker::WinWindowOcclusionTracker(
   MOZ_ASSERT(NS_IsMainThread());
   LOG(LogLevel::Info, "WinWindowOcclusionTracker::WinWindowOcclusionTracker()");
 
-  WinEventWindow::Ensure();
+  EnsureDisplayStatusObserver();
+  EnsureSessionChangeObserver();
 
   mSerializedTaskDispatcher = new SerializedTaskDispatcher();
 }
@@ -703,10 +737,11 @@ void WinWindowOcclusionTracker::UpdateOcclusionState(
   }
 }
 
-void WinWindowOcclusionTracker::OnSessionChange(WPARAM aStatusCode) {
+void WinWindowOcclusionTracker::OnSessionChange(WPARAM aStatusCode,
+                                                Maybe<bool> aIsCurrentSession) {
   MOZ_ASSERT(NS_IsMainThread());
-  if (!StaticPrefs::
-          widget_windows_window_occlusion_tracking_session_lock_enabled()) {
+
+  if (aIsCurrentSession.isNothing() || !*aIsCurrentSession) {
     return;
   }
 
@@ -728,11 +763,6 @@ void WinWindowOcclusionTracker::OnSessionChange(WPARAM aStatusCode) {
 
 void WinWindowOcclusionTracker::OnDisplayStateChanged(bool aDisplayOn) {
   MOZ_ASSERT(NS_IsMainThread());
-  if (!StaticPrefs::
-          widget_windows_window_occlusion_tracking_display_state_enabled()) {
-    return;
-  }
-
   LOG(LogLevel::Info,
       "WinWindowOcclusionTracker::OnDisplayStateChanged() aDisplayOn %d",
       aDisplayOn);
