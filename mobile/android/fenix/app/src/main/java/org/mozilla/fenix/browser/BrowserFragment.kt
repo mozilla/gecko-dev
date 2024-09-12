@@ -842,9 +842,10 @@ class BrowserFragment : BaseBrowserFragment(), UserInteractionHandler {
     }
 
     companion object {
-        /** Indicates weight of an action. The lesser the weight, the closer it is to the url.
-         * A default weight -1 indicates, the position is not cared for
-         * and action will be appended at the end.
+        /**
+         * Indicates weight of a page action. The lesser the weight, the closer it is to the URL.
+         *
+         * A weight of -1 indicates the position is not cared for and the action will be appended at the end.
          */
         const val READER_MODE_WEIGHT = 1
         const val TRANSLATIONS_WEIGHT = 2
