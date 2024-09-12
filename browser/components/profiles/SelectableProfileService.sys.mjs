@@ -52,11 +52,8 @@ class SelectableProfileServiceClass {
     }
   }
 
-  // Do not use. Only for testing.
-  set groupToolkitProfile(mockToolkitProfile) {
-    if (Cu.isInAutomation) {
-      this.#groupToolkitProfile = mockToolkitProfile;
-    }
+  get groupToolkitProfile() {
+    return this.#groupToolkitProfile;
   }
 
   get toolkitProfileRootDir() {
@@ -114,10 +111,15 @@ class SelectableProfileServiceClass {
 
     await this.initConnection();
 
-    // Get the SelectableProfile by the profile directory
-    this.#currentProfile = await this.getProfileByPath(
-      Services.dirsvc.get("ProfD", Ci.nsIFile)
-    );
+    // When we launch into the startup window, the `ProfD` is not defined so
+    // Services.dirsvc.get("ProfD", Ci.nsIFile) will throw. Leaving the
+    // `currentProfile` as null is fine for the startup window.
+    try {
+      // Get the SelectableProfile by the profile directory
+      this.#currentProfile = await this.getProfileByPath(
+        Services.dirsvc.get("ProfD", Ci.nsIFile)
+      );
+    } catch {}
 
     // The 'activate' event listeners use #currentProfile, so this line has
     // to come after #currentProfile has been set.
@@ -276,7 +278,7 @@ class SelectableProfileServiceClass {
    * and vacuum the group DB.
    */
   async deleteProfileGroup() {
-    if (this.getProfiles().length) {
+    if (this.getAllProfiles().length) {
       return;
     }
 
@@ -351,7 +353,14 @@ class SelectableProfileServiceClass {
    *
    * @param {boolean} shouldShow Whether or not we should show the profile selector
    */
-  setShowProfileChooser(shouldShow) {}
+  showProfileSelectorWindow(shouldShow) {
+    if (shouldShow === this.groupToolkitProfile.showProfileSelector) {
+      return;
+    }
+
+    this.groupToolkitProfile.showProfileSelector = shouldShow;
+    lazy.ProfileService.flush();
+  }
 
   /**
    * Update the path to the group DB. Set on the nsToolkitProfile instance
@@ -539,10 +548,10 @@ class SelectableProfileServiceClass {
   /**
    * Get the complete list of profiles in the group.
    *
-   * @returns {SelectableProfile[]}
+   * @returns {Array<SelectableProfile>}
    *   An array of profiles in the group.
    */
-  async getProfiles() {
+  async getAllProfiles() {
     return (
       await this.#connection.executeCached("SELECT * FROM Profiles;")
     ).map(row => {

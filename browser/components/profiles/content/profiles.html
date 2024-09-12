@@ -6,6 +6,8 @@
   xmlns="http://www.w3.org/1999/xhtml"
   role="document"
   class="system-font-size"
+  width="800"
+  height="800"
 >
   <head>
     <meta charset="utf-8" />
@@ -13,8 +15,24 @@
       http-equiv="Content-Security-Policy"
       content="default-src resource: chrome:; object-src 'none'; img-src chrome:;"
     />
+
+    <link rel="localization" href="branding/brand.ftl" />
+    <link rel="localization" href="preview/profiles.ftl" />
+
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/profiles/profile-selector.css"
+    />
+
+    <script
+      type="module"
+      src="chrome://browser/content/profiles/profile-selector.mjs"
+    ></script>
+
+    <title data-l10n-id="profile-window-titles"></title>
   </head>
   <body>
-    <h1>Hello world - New Profiles</h1>
+    <profile-selector></profile-selector>
   </body>
 </html>

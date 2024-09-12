@@ -730,10 +730,6 @@ var gInitialPages = [
   "chrome://browser/content/blanktab.html",
 ];
 
-if (Services.prefs.getBoolPref("browser.profiles.enabled")) {
-  gInitialPages.push("about:profilemanager");
-}
-
 function isInitialPage(url) {
   if (!(url instanceof Ci.nsIURI)) {
     try {
