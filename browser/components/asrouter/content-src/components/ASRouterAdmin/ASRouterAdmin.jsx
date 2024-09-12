@@ -238,7 +238,7 @@ export class ASRouterAdminInner extends React.PureComponent {
   }
 
   onChangeTargetingParameters(event) {
-    const { name: eventName } = event.target;
+    const { name } = event.target;
     const { value } = event.target;
 
     let targetingParametersError = null;
@@ -246,14 +246,14 @@ export class ASRouterAdminInner extends React.PureComponent {
       JSON.parse(value);
       event.target.classList.remove("errorState");
     } catch (e) {
-      console.error(`Error parsing value of parameter ${eventName}`);
+      console.error(`Error parsing value of parameter ${name}`);
       event.target.classList.add("errorState");
-      targetingParametersError = { id: eventName };
+      targetingParametersError = { id: name };
     }
 
     this.setState(({ stringTargetingParameters }) => {
       const updatedParameters = { ...stringTargetingParameters };
-      updatedParameters[eventName] = value;
+      updatedParameters[name] = value;
 
       return {
         copiedToClipboard: false,
@@ -692,7 +692,6 @@ export class ASRouterAdminInner extends React.PureComponent {
                   {this.state.messages
                     .map(message => message.template)
                     .filter(
-                      // eslint-disable-next-line no-shadow
                       (value, index, self) => self.indexOf(value) === index
                     )
                     .map(template => (
@@ -1225,11 +1224,11 @@ export class ASRouterAdminInner extends React.PureComponent {
   }
 
   onChangeAttributionParameters(event) {
-    const { eventName, value } = event.target;
+    const { name, value } = event.target;
 
     this.setState(({ attributionParameters }) => {
       const updatedParameters = { ...attributionParameters };
-      updatedParameters[eventName] = value;
+      updatedParameters[name] = value;
 
       return { attributionParameters: updatedParameters };
     });

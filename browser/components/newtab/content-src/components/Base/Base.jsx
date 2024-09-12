@@ -243,22 +243,22 @@ export class BaseContent extends React.PureComponent {
       return null;
     }
 
-    const { name: authorDetails, webpage } = selected.attribution;
-    if (activeWallpaper && wallpaperList && authorDetails.url) {
+    const { name, webpage } = selected.attribution;
+    if (activeWallpaper && wallpaperList && name.url) {
       return (
         <p
           className={`wallpaper-attribution`}
-          key={authorDetails.string}
+          key={name.string}
           data-l10n-id="newtab-wallpaper-attribution"
           data-l10n-args={JSON.stringify({
-            author_string: authorDetails.string,
-            author_url: authorDetails.url,
+            author_string: name.string,
+            author_url: name.url,
             webpage_string: webpage.string,
             webpage_url: webpage.url,
           })}
         >
-          <a data-l10n-name="name-link" href={authorDetails.url}>
-            {authorDetails.string}
+          <a data-l10n-name="name-link" href={name.url}>
+            {name.string}
           </a>
           <a data-l10n-name="webpage-link" href={webpage.url}>
             {webpage.string}

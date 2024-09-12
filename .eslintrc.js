@@ -14,9 +14,24 @@ const { rollouts } = require("./.eslintrc-rollouts.js");
 const fs = require("fs");
 const path = require("path");
 
-function readFile(filePath) {
+/**
+ * Some configurations have overrides, which can't be specified within overrides,
+ * so we need to remove them.
+ *
+ * @param {object} config
+ *   The configuration to remove overrides from.
+ * @returns {object}
+ *   The new configuration.
+ */
+function removeOverrides(config) {
+  config = { ...config };
+  delete config.overrides;
+  return config;
+}
+
+function readFile(path) {
   return fs
-    .readFileSync(filePath, { encoding: "utf-8" })
+    .readFileSync(path, { encoding: "utf-8" })
     .split("\n")
     .filter(p => p && !p.startsWith("#"));
 }
@@ -138,8 +153,8 @@ module.exports = {
       extends: ["plugin:mozilla/general-test"],
     },
     {
-      ...xpcshellTestConfig,
-      files: testPaths.xpcshell.map(filePath => `${filePath}**`),
+      ...removeOverrides(xpcshellTestConfig),
+      files: testPaths.xpcshell.map(path => `${path}**`),
       excludedFiles: ["**/*.jsm", "**/*.mjs", "**/*.sjs"],
     },
     {
@@ -147,7 +162,7 @@ module.exports = {
       // would require searching the other test files to know if they are used or not.
       // This would be expensive and slow, and it isn't worth it for head files.
       // We could get developers to declare as exported, but that doesn't seem worth it.
-      files: testPaths.xpcshell.map(filePath => `${filePath}head*.js`),
+      files: testPaths.xpcshell.map(path => `${path}head*.js`),
       rules: {
         "no-unused-vars": [
           "error",
@@ -164,7 +179,7 @@ module.exports = {
       // This is not done in the xpcshell-test configuration as we cannot pull
       // in overrides from there. We should at some stage, aim to enable this
       // for all files in xpcshell-tests.
-      files: testPaths.xpcshell.map(filePath => `${filePath}test*.js`),
+      files: testPaths.xpcshell.map(path => `${path}test*.js`),
       rules: {
         // No declaring variables that are never used
         "no-unused-vars": [
@@ -177,13 +192,13 @@ module.exports = {
       },
     },
     {
-      ...browserTestConfig,
-      files: testPaths.browser.map(filePath => `${filePath}**`),
+      ...removeOverrides(browserTestConfig),
+      files: testPaths.browser.map(path => `${path}**`),
       excludedFiles: ["**/*.jsm", "**/*.mjs", "**/*.sjs"],
     },
     {
-      ...mochitestTestConfig,
-      files: testPaths.mochitest.map(filePath => `${filePath}**`),
+      ...removeOverrides(mochitestTestConfig),
+      files: testPaths.mochitest.map(path => `${path}**`),
       excludedFiles: [
         "**/*.jsm",
         "**/*.mjs",
@@ -191,8 +206,8 @@ module.exports = {
       ],
     },
     {
-      ...chromeTestConfig,
-      files: testPaths.chrome.map(filePath => `${filePath}**`),
+      ...removeOverrides(chromeTestConfig),
+      files: testPaths.chrome.map(path => `${path}**`),
       excludedFiles: ["**/*.jsm", "**/*.mjs", "**/*.sjs"],
     },
     {
@@ -203,8 +218,8 @@ module.exports = {
         "mozilla/simpletest": true,
       },
       files: [
-        ...testPaths.mochitest.map(filePath => `${filePath}/**/*.js`),
-        ...testPaths.chrome.map(filePath => `${filePath}/**/*.js`),
+        ...testPaths.mochitest.map(path => `${path}/**/*.js`),
+        ...testPaths.chrome.map(path => `${path}/**/*.js`),
       ],
       excludedFiles: ["**/*.jsm", "**/*.mjs", "**/*.sjs"],
     },
@@ -213,7 +228,7 @@ module.exports = {
       // don't work well for HTML-based mochitests, so disable those.
       files: testPaths.xpcshell
         .concat(testPaths.browser)
-        .map(filePath => [`${filePath}/**/*.html`, `${filePath}/**/*.xhtml`])
+        .map(path => [`${path}/**/*.html`, `${path}/**/*.xhtml`])
         .flat(),
       rules: {
         // plain/chrome mochitests don't automatically include Assert, so
@@ -254,7 +269,7 @@ module.exports = {
     },
     {
       // Exempt files with these paths since they have to use http for full coverage
-      files: httpTestingPaths.map(filePath => `${filePath}**`),
+      files: httpTestingPaths.map(path => `${path}**`),
       rules: {
         "@microsoft/sdl/no-insecure-url": "off",
       },
@@ -282,6 +297,9 @@ module.exports = {
         "mozilla/reject-importGlobalProperties": ["error", "everything"],
         "mozilla/reject-mixing-eager-and-lazy": "error",
         "mozilla/reject-top-level-await": "error",
+        // TODO: Bug 1575506 turn `builtinGlobals` on here.
+        // We can enable builtinGlobals for jsms due to their scopes.
+        "no-redeclare": ["error", { builtinGlobals: false }],
         // Modules and workers are far easier to check for no-unused-vars on a
         // global scope, than our content files. Hence we turn that on here.
         "no-unused-vars": [

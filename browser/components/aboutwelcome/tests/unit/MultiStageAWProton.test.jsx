@@ -480,7 +480,6 @@ describe("MultiStageAboutWelcomeProton module", () => {
       let data = await getData();
 
       if (evalFalseScreenIds?.length) {
-        // eslint-disable-next-line no-shadow
         data.screens.forEach(async screen => {
           if (evalFalseScreenIds.includes(screen.id)) {
             screen.targeting = false;

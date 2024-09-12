@@ -251,7 +251,8 @@ AbstractWorker.prototype = {
         "id is",
         id
       );
-      this.postMessage({ fail: exn.toMsg(), id, durationMs });
+      let msg = exn.toMsg();
+      this.postMessage({ fail: msg, id, durationMs });
     } else {
       // If we encounter an exception for which we have no
       // serialization mechanism in place, we have no choice but to

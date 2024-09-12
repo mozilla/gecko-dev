@@ -149,7 +149,6 @@ export function OnboardingExperience({ dispatch, windowObj = globalThis }) {
   );
 }
 
-// eslint-disable-next-line no-shadow
 export function IntersectionObserver({
   children,
   windowObj = window,

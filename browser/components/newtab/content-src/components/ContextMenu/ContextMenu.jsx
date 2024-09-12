@@ -95,16 +95,16 @@ export class _ContextMenuItem extends React.PureComponent {
 
   // This selects the correct node based on the key pressed
   focusSibling(target, key) {
-    const { parentNode } = target;
+    const parent = target.parentNode;
     const closestSiblingSelector =
       key === "ArrowUp" ? "previousSibling" : "nextSibling";
-    if (!parentNode[closestSiblingSelector]) {
+    if (!parent[closestSiblingSelector]) {
       return;
     }
-    if (parentNode[closestSiblingSelector].firstElementChild) {
-      parentNode[closestSiblingSelector].firstElementChild.focus();
+    if (parent[closestSiblingSelector].firstElementChild) {
+      parent[closestSiblingSelector].firstElementChild.focus();
     } else {
-      parentNode[closestSiblingSelector][
+      parent[closestSiblingSelector][
         closestSiblingSelector
       ].firstElementChild.focus();
     }

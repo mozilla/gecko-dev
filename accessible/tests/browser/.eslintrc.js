@@ -17,6 +17,7 @@ module.exports = {
     "no-multi-str": "error",
     "no-proto": "error",
     "no-return-assign": "error",
+    "no-shadow": "error",
     "no-unused-vars": ["error", { vars: "all", argsIgnorePattern: "^_" }],
     "one-var": ["error", "never"],
     radix: "error",

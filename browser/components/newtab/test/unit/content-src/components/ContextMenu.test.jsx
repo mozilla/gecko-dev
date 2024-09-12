@@ -28,7 +28,6 @@ const FakeMenu = props => {
 };
 
 describe("<ContextMenuButton>", () => {
-  // eslint-disable-next-line no-shadow
   function mountWithProps(options) {
     const store = createStore(combineReducers(reducers), INITIAL_STATE);
     return mount(
@@ -90,7 +89,6 @@ describe("<ContextMenuButton>", () => {
     assert.equal(wrapper.find(ContextMenu).prop("keyboardAccess"), true);
   });
   it("should call focusFirst when keyboardAccess is true", () => {
-    // eslint-disable-next-line no-shadow
     const options = [{ label: "item1", first: true }];
     const wrapper = mountWithProps(options);
     const focusFirst = sandbox.spy(_ContextMenuItem.prototype, "focusFirst");
@@ -112,7 +110,6 @@ describe("<ContextMenu>", () => {
   }
 
   it("should render all the options provided", () => {
-    // eslint-disable-next-line no-shadow
     const options = [
       { label: "item1" },
       { type: "separator" },
@@ -124,7 +121,6 @@ describe("<ContextMenu>", () => {
     assert.lengthOf(wrapper.find(".context-menu-list").children(), 3);
   });
   it("should not add a link for a separator", () => {
-    // eslint-disable-next-line no-shadow
     const options = [{ label: "item1" }, { type: "separator" }];
     const wrapper = shallow(
       <ContextMenu {...DEFAULT_PROPS} options={options} />
@@ -132,7 +128,6 @@ describe("<ContextMenu>", () => {
     assert.lengthOf(wrapper.find(".separator"), 1);
   });
   it("should add a link for all types that are not separators", () => {
-    // eslint-disable-next-line no-shadow
     const options = [{ label: "item1" }, { type: "separator" }];
     const wrapper = shallow(
       <ContextMenu {...DEFAULT_PROPS} options={options} />
@@ -176,7 +171,6 @@ describe("<ContextMenu>", () => {
     assert.lengthOf(wrapper.find(".context-menu-item a.disabled"), 0);
   });
   it("should add disabled className to any disabled options", () => {
-    // eslint-disable-next-line no-shadow
     const options = [
       { label: "item1", icon: "icon1", disabled: true },
       { type: "separator" },
@@ -186,7 +180,6 @@ describe("<ContextMenu>", () => {
     assert.lengthOf(wrapper.find(".context-menu-item button.disabled"), 1);
   });
   it("should have the context-menu-item class", () => {
-    // eslint-disable-next-line no-shadow
     const options = [{ label: "item1", icon: "icon1" }];
     const props = Object.assign({}, DEFAULT_PROPS, { options });
     const wrapper = mountWithProps(props);

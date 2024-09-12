@@ -5,4 +5,8 @@ module.exports = {
     browser: true,
     webextensions: true,
   },
+
+  rules: {
+    "no-shadow": 0,
+  },
 };

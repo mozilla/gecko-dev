@@ -12,6 +12,17 @@ module.exports = {
     SpecialPowers: false,
   },
 
+  overrides: [
+    {
+      env: {
+        // Ideally we wouldn't be using the simpletest env here, but our uses of
+        // js files mean we pick up everything from the global scope, which could
+        // be any one of a number of html files. So we just allow the basics...
+        "mozilla/simpletest": true,
+      },
+      files: ["*.js"],
+    },
+  ],
   plugins: ["mozilla"],
 
   rules: {
@@ -24,5 +35,6 @@ module.exports = {
     // Turn off use-chromeutils-generateqi as these tests don't have ChromeUtils
     // available.
     "mozilla/use-chromeutils-generateqi": "off",
+    "no-shadow": "error",
   },
 };

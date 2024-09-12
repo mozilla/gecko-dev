@@ -22,5 +22,7 @@ module.exports = {
 
     // Disallow adding to native types
     "no-extend-native": "error",
+
+    "no-shadow": "error",
   },
 };

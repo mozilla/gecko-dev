@@ -135,7 +135,6 @@ describe("<TopSiteImpressionWrapper>", () => {
     );
   });
   it("should unobserve the intersection observer when the wrapper is removed", () => {
-    // eslint-disable-next-line no-shadow
     const IntersectionObserver =
       buildIntersectionObserver(ZeroIntersectEntries);
     const spy = sinon.spy(IntersectionObserver.prototype, "unobserve");

@@ -20,7 +20,6 @@ function Home(props) {
     utmContent,
   } = props;
 
-  // eslint-disable-next-line no-shadow
   const [{ articles, status }, setArticlesState] = useState({
     articles: [],
     // Can be success, loading, or error.

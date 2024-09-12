@@ -206,6 +206,8 @@ module.exports = {
     "no-process-exit": 0,
     // Disallow usage of __proto__ property.
     "no-proto": 2,
+    // Disallow declaring the same variable more than once (we use let anyway).
+    "no-redeclare": 2,
     // Disallow multiple spaces in a regular expression literal.
     "no-regex-spaces": 2,
     // Don't restrict usage of specified node modules (not a node environment).
@@ -219,6 +221,12 @@ module.exports = {
     "no-self-compare": 2,
     // Disallow use of comma operator.
     "no-sequences": 2,
+    // Warn about declaration of variables already declared in the outer scope.
+    // This isn't an error because it sometimes is useful to use the same name
+    // in a small helper function rather than having to come up with another
+    // random name.
+    // Still, making this a warning can help people avoid being confused.
+    "no-shadow": 2,
     // Disallow sparse arrays, eg. let arr = [,,2].
     // Array destructuring is fine though:
     // for (let [, breakpointPromise] of aPromises)

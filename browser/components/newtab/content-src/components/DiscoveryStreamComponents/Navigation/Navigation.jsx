@@ -30,14 +30,14 @@ export class Topic extends React.PureComponent {
   }
 
   render() {
-    const { url, name: topicName } = this.props;
+    const { url, name } = this.props;
     return (
       <SafeAnchor
         onLinkClick={this.onLinkClick}
         className={this.props.className}
         url={url}
       >
-        {topicName}
+        {name}
       </SafeAnchor>
     );
   }

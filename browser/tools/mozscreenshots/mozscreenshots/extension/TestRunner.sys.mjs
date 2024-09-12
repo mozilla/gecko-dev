@@ -490,7 +490,6 @@ export var TestRunner = {
   },
 
   async _cropImage(window, srcPath, bounds, rects, targetPath) {
-    // eslint-disable-next-line no-shadow
     const { document, Image } = window;
     const promise = new Promise((resolve, reject) => {
       const img = new Image();

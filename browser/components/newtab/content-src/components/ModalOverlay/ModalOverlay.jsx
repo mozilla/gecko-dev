@@ -5,7 +5,6 @@
 import React, { useEffect, useCallback, useRef } from "react";
 
 function ModalOverlayWrapper({
-  // eslint-disable-next-line no-shadow
   document = globalThis.document,
   unstyled,
   innerClassName,

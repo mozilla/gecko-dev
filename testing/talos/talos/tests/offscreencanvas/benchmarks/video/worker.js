@@ -6,7 +6,7 @@ importScripts("mp4box.all.min.js");
 importScripts("demuxer_mp4.js");
 importScripts("shared.js");
 
-self.onmessage = event => {
+self.onmessage = e => {
   const resolve = result => {
     self.postMessage(result);
   };
@@ -16,15 +16,15 @@ self.onmessage = event => {
 
   try {
     runTestInternal(
-      event.data.testName,
-      event.data.canvasType,
-      event.data.offscreenCanvas,
+      e.data.testName,
+      e.data.canvasType,
+      e.data.offscreenCanvas,
       /* isWorker */ true,
-      event.data.videoUri,
+      e.data.videoUri,
       resolve,
       reject
     );
-  } catch (ex) {
-    reject(ex);
+  } catch (e) {
+    reject(e);
   }
 };

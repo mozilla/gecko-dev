@@ -6,6 +6,7 @@ module.exports = {
     browser: true,
     "mozilla/browser-window": true,
     "mozilla/simpletest": true,
+    // "node": true
   },
 
   // All globals made available in the test environment.
@@ -55,6 +56,19 @@ module.exports = {
     waitForExplicitFinish: false,
     waitForFocus: false,
   },
+
+  overrides: [
+    {
+      // Some directories have multiple kinds of tests, and some rules
+      // don't work well for plain mochitests, so disable those.
+      files: ["*.html", "*.xhtml"],
+      // plain/chrome mochitests don't automatically include Assert, so
+      // autofixing `ok()` to Assert.something is bad.
+      rules: {
+        "mozilla/no-comparison-or-assignment-inside-ok": "off",
+      },
+    },
+  ],
 
   plugins: ["mozilla"],
 

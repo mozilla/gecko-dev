@@ -34,7 +34,6 @@ const { getCompactSymbolTable, queryAPI } = wasm_bindgen;
 // message properties.
 function createPlainErrorObject(e) {
   // Regular errors: just rewrap the object.
-  // eslint-disable-next-line no-shadow
   const { name, message, fileName, lineNumber } = e;
   return { name, message, fileName, lineNumber };
 }
@@ -66,7 +65,6 @@ class FileAndPathHelper {
       );
     }
 
-    // eslint-disable-next-line no-shadow
     const { name, path, debugPath, arch } = lib;
     const candidatePaths = [];
 
@@ -154,7 +152,6 @@ class FileAndPathHelper {
       );
     }
 
-    // eslint-disable-next-line no-shadow
     const { name, path, arch } = lib;
     const candidatePaths = [];
 

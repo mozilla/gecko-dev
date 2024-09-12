@@ -163,14 +163,14 @@ describe("DiscoveryStreamAdmin", () => {
       );
     });
     it("should fire setConfigValue with DISCOVERY_STREAM_CONFIG_SET_VALUE", () => {
-      const configName = "name";
-      const configValue = "value";
-      wrapper.instance().setConfigValue(configName, configValue);
+      const name = "name";
+      const value = "value";
+      wrapper.instance().setConfigValue(name, value);
       assert.calledWith(
         dispatch,
         ac.OnlyToMain({
           type: at.DISCOVERY_STREAM_CONFIG_SET_VALUE,
-          data: { name: configName, value: configValue },
+          data: { name, value },
         })
       );
     });

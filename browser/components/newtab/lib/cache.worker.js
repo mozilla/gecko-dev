@@ -85,13 +85,13 @@ let Agent = {
 
     this._templates = {};
 
-    for (let [templateName, path] of templateResources) {
+    for (let [name, path] of templateResources) {
       const xhr = new XMLHttpRequest();
       // Using a synchronous XHR in a worker is fine.
       xhr.open("GET", path, false);
       xhr.responseType = "text";
       xhr.send(null);
-      this._templates[templateName] = xhr.responseText;
+      this._templates[name] = xhr.responseText;
     }
 
     return this._templates;

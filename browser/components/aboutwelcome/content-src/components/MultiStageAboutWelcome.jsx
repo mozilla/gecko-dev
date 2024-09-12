@@ -63,7 +63,6 @@ export const MultiStageAboutWelcome = props => {
         .map(({ id }) => id?.split("_")[1]?.[0])
         .join("");
       // Send impression ping when respective screen first renders
-      // eslint-disable-next-line no-shadow
       filteredScreens.forEach((screen, order) => {
         if (index === order) {
           const messageId = `${props.message_id}_${order}_${screen.id}_${screenInitials}`;
@@ -220,60 +219,58 @@ export const MultiStageAboutWelcome = props => {
         className={`outer-wrapper onboardingContainer proton transition-${transition}`}
         style={props.backdrop ? { background: props.backdrop } : {}}
       >
-        {screens.map((currentScreen, order) => {
-          const isFirstScreen = currentScreen === screens[0];
-          const isLastScreen = currentScreen === screens[screens.length - 1];
+        {screens.map((screen, order) => {
+          const isFirstScreen = screen === screens[0];
+          const isLastScreen = screen === screens[screens.length - 1];
           const totalNumberOfScreens = screens.length;
           const isSingleScreen = totalNumberOfScreens === 1;
 
           const setActiveMultiSelect = valueOrFn =>
             setActiveMultiSelects(prevState => ({
               ...prevState,
-              [currentScreen.id]:
+              [screen.id]:
                 typeof valueOrFn === "function"
-                  ? valueOrFn(prevState[currentScreen.id])
+                  ? valueOrFn(prevState[screen.id])
                   : valueOrFn,
             }));
           const setScreenMultiSelects = valueOrFn =>
             setMultiSelects(prevState => ({
               ...prevState,
-              [currentScreen.id]:
+              [screen.id]:
                 typeof valueOrFn === "function"
-                  ? valueOrFn(prevState[currentScreen.id])
+                  ? valueOrFn(prevState[screen.id])
                   : valueOrFn,
             }));
 
           return index === order ? (
             <WelcomeScreen
-              key={currentScreen.id + order}
-              id={currentScreen.id}
+              key={screen.id + order}
+              id={screen.id}
               totalNumberOfScreens={totalNumberOfScreens}
               isFirstScreen={isFirstScreen}
               isLastScreen={isLastScreen}
               isSingleScreen={isSingleScreen}
               order={order}
               previousOrder={previousOrder}
-              content={currentScreen.content}
+              content={screen.content}
               navigate={handleTransition}
-              messageId={`${props.message_id}_${order}_${currentScreen.id}`}
+              messageId={`${props.message_id}_${order}_${screen.id}`}
               UTMTerm={props.utm_term}
               flowParams={flowParams}
               activeTheme={activeTheme}
               initialTheme={initialTheme}
               setActiveTheme={setActiveTheme}
               setInitialTheme={setInitialTheme}
-              screenMultiSelects={multiSelects[currentScreen.id]}
+              screenMultiSelects={multiSelects[screen.id]}
               setScreenMultiSelects={setScreenMultiSelects}
-              activeMultiSelect={activeMultiSelects[currentScreen.id]}
+              activeMultiSelect={activeMultiSelects[screen.id]}
               setActiveMultiSelect={setActiveMultiSelect}
-              autoAdvance={currentScreen.auto_advance}
+              autoAdvance={screen.auto_advance}
               negotiatedLanguage={negotiatedLanguage}
               langPackInstallPhase={langPackInstallPhase}
-              forceHideStepsIndicator={currentScreen.force_hide_steps_indicator}
+              forceHideStepsIndicator={screen.force_hide_steps_indicator}
               ariaRole={props.ariaRole}
-              aboveButtonStepsIndicator={
-                currentScreen.above_button_steps_indicator
-              }
+              aboveButtonStepsIndicator={screen.above_button_steps_indicator}
               installedAddons={installedAddons}
               setInstalledAddons={setInstalledAddons}
             />

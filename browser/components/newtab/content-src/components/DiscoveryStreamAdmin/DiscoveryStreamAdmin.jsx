@@ -137,11 +137,11 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
     };
   }
 
-  setConfigValue(configName, configValue) {
+  setConfigValue(name, value) {
     this.props.dispatch(
       ac.OnlyToMain({
         type: at.DISCOVERY_STREAM_CONFIG_SET_VALUE,
-        data: { name: configName, value: configValue },
+        data: { name, value },
       })
     );
   }

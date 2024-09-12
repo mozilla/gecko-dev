@@ -10,6 +10,8 @@
  * eagerly loaded at startup.
  */
 
+/* globals WebExtensionPolicy */
+
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};

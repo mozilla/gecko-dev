@@ -694,12 +694,12 @@ class DiscoveryStreamAdminUI extends (external_React_default()).PureComponent {
       weatherQuery: ""
     };
   }
-  setConfigValue(configName, configValue) {
+  setConfigValue(name, value) {
     this.props.dispatch(actionCreators.OnlyToMain({
       type: actionTypes.DISCOVERY_STREAM_CONFIG_SET_VALUE,
       data: {
-        name: configName,
-        value: configValue
+        name,
+        value
       }
     }));
   }
@@ -1401,17 +1401,15 @@ class _ContextMenuItem extends (external_React_default()).PureComponent {
 
   // This selects the correct node based on the key pressed
   focusSibling(target, key) {
-    const {
-      parentNode
-    } = target;
+    const parent = target.parentNode;
     const closestSiblingSelector = key === "ArrowUp" ? "previousSibling" : "nextSibling";
-    if (!parentNode[closestSiblingSelector]) {
+    if (!parent[closestSiblingSelector]) {
       return;
     }
-    if (parentNode[closestSiblingSelector].firstElementChild) {
-      parentNode[closestSiblingSelector].firstElementChild.focus();
+    if (parent[closestSiblingSelector].firstElementChild) {
+      parent[closestSiblingSelector].firstElementChild.focus();
     } else {
-      parentNode[closestSiblingSelector][closestSiblingSelector].firstElementChild.focus();
+      parent[closestSiblingSelector][closestSiblingSelector].firstElementChild.focus();
     }
   }
   onKeyDown(event) {
@@ -2595,7 +2593,6 @@ class FluentOrText extends (external_React_default()).PureComponent {
 
 
 
-// eslint-disable-next-line no-shadow
 
 
 
@@ -3766,8 +3763,6 @@ function OnboardingExperience({
     className: "ds-onboarding-graphic"
   })))));
 }
-
-// eslint-disable-next-line no-shadow
 function CardGrid_IntersectionObserver({
   children,
   windowObj = window,
@@ -4527,7 +4522,6 @@ class DSMessage extends (external_React_default()).PureComponent {
 
 
 function ModalOverlayWrapper({
-  // eslint-disable-next-line no-shadow
   document = globalThis.document,
   unstyled,
   innerClassName,
@@ -5609,12 +5603,12 @@ class Topic extends (external_React_default()).PureComponent {
   render() {
     const {
       url,
-      name: topicName
+      name
     } = this.props;
     return /*#__PURE__*/external_React_default().createElement("li", null, /*#__PURE__*/external_React_default().createElement("a", {
-      key: topicName,
+      key: name,
       href: url
-    }, topicName));
+    }, name));
   }
 }
 class Topics extends (external_React_default()).PureComponent {
@@ -5705,14 +5699,14 @@ class SearchShortcutsForm extends (external_React_default()).PureComponent {
       target
     } = event;
     const {
-      name: targetName,
+      name,
       checked
     } = target;
     this.setState(prevState => {
       const shortcuts = prevState.shortcuts.slice();
       let shortcut = shortcuts.find(({
         keyword
-      }) => keyword === targetName);
+      }) => keyword === name);
       shortcut.isSelected = checked;
       return {
         shortcuts
@@ -8664,13 +8658,13 @@ class Navigation_Topic extends (external_React_default()).PureComponent {
   render() {
     const {
       url,
-      name: topicName
+      name
     } = this.props;
     return /*#__PURE__*/external_React_default().createElement(SafeAnchor, {
       onLinkClick: this.onLinkClick,
       className: this.props.className,
       url: url
-    }, topicName);
+    }, name);
   }
 }
 class Navigation extends (external_React_default()).PureComponent {
@@ -9482,7 +9476,6 @@ const WallpapersSection = (0,external_ReactRedux_namespaceObject.connect)(state 
 
 
 
-// eslint-disable-next-line no-shadow
 
 class _WallpaperCategories extends (external_React_default()).PureComponent {
   constructor(props) {
@@ -9686,12 +9679,12 @@ class ContentSection extends (external_React_default()).PureComponent {
     this.topSitesDrawerRef = /*#__PURE__*/external_React_default().createRef();
     this.pocketDrawerRef = /*#__PURE__*/external_React_default().createRef();
   }
-  inputUserEvent(eventSource, eventValue) {
+  inputUserEvent(eventSource, status) {
     this.props.dispatch(actionCreators.UserEvent({
       event: "PREF_CHANGED",
       source: eventSource,
       value: {
-        status: eventValue,
+        status,
         menu_source: "CUSTOMIZE_MENU"
       }
     }));
@@ -9944,7 +9937,6 @@ class ContentSection extends (external_React_default()).PureComponent {
 
 
 
-// eslint-disable-next-line no-shadow
 
 class _CustomizeMenu extends (external_React_default()).PureComponent {
   constructor(props) {
@@ -10325,10 +10317,10 @@ function LocationSearch({
     onClick: handleCloseSearch
   }), /*#__PURE__*/external_React_default().createElement("datalist", {
     id: "merino-location-list"
-  }, (suggestedLocations || []).map(merinoLcation => /*#__PURE__*/external_React_default().createElement("option", {
-    value: merinoLcation.key,
-    key: merinoLcation.key
-  }, merinoLcation.localized_name, ",", " ", merinoLcation.administrative_area.localized_name)))));
+  }, (suggestedLocations || []).map(location => /*#__PURE__*/external_React_default().createElement("option", {
+    value: location.key,
+    key: location.key
+  }, location.localized_name, ",", " ", location.administrative_area.localized_name)))));
 }
 
 ;// CONCATENATED MODULE: ./content-src/components/Weather/Weather.jsx
@@ -11277,24 +11269,24 @@ class BaseContent extends (external_React_default()).PureComponent {
       return null;
     }
     const {
-      name: authorDetails,
+      name,
       webpage
     } = selected.attribution;
-    if (activeWallpaper && wallpaperList && authorDetails.url) {
+    if (activeWallpaper && wallpaperList && name.url) {
       return /*#__PURE__*/external_React_default().createElement("p", {
         className: `wallpaper-attribution`,
-        key: authorDetails.string,
+        key: name.string,
         "data-l10n-id": "newtab-wallpaper-attribution",
         "data-l10n-args": JSON.stringify({
-          author_string: authorDetails.string,
-          author_url: authorDetails.url,
+          author_string: name.string,
+          author_url: name.url,
           webpage_string: webpage.string,
           webpage_url: webpage.url
         })
       }, /*#__PURE__*/external_React_default().createElement("a", {
         "data-l10n-name": "name-link",
-        href: authorDetails.url
-      }, authorDetails.string), /*#__PURE__*/external_React_default().createElement("a", {
+        href: name.url
+      }, name.string), /*#__PURE__*/external_React_default().createElement("a", {
         "data-l10n-name": "webpage-link",
         href: webpage.url
       }, webpage.string));

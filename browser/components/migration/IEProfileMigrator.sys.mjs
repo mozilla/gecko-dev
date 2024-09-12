@@ -10,7 +10,6 @@ import { PlacesUtils } from "resource://gre/modules/PlacesUtils.sys.mjs";
 
 // Resources
 
-// eslint-disable-next-line no-shadow
 function History() {}
 
 History.prototype = {

@@ -5,7 +5,6 @@
 import React from "react";
 import { connect } from "react-redux";
 import { actionCreators as ac, actionTypes as at } from "common/Actions.mjs";
-// eslint-disable-next-line no-shadow
 import { CSSTransition } from "react-transition-group";
 
 export class _WallpaperCategories extends React.PureComponent {

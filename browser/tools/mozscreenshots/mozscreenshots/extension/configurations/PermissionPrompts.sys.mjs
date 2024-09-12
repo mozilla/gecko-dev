@@ -7,7 +7,7 @@
 
 import { BrowserTestUtils } from "resource://testing-common/BrowserTestUtils.sys.mjs";
 
-const TEST_URL =
+const URL =
   "https://test1.example.com/browser/browser/tools/mozscreenshots/mozscreenshots/extension/mozscreenshots/browser/resources/lib/permissionPrompts.html";
 let lastTab = null;
 
@@ -146,7 +146,7 @@ async function clickOn(selector, beforeContentFn) {
   // Save the tab so we can close it later.
   lastTab = await BrowserTestUtils.openNewForegroundTab(
     browserWindow.gBrowser,
-    TEST_URL
+    URL
   );
 
   let { SpecialPowers } = lastTab.ownerGlobal;

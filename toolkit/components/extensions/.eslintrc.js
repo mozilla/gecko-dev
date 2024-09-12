@@ -163,6 +163,9 @@ module.exports = {
     // single line of code to have only one easily predictable effect.
     "no-return-assign": "error",
 
+    // Don't warn about declaration of variables already declared in the outer scope.
+    "no-shadow": "off",
+
     // Allow use of synchronous methods (not a node environment).
     "no-sync": "off",
 

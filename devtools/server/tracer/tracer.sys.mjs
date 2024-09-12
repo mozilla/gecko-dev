@@ -46,7 +46,6 @@ const listeners = new Set();
 
 // Detecting worker is different if this file is loaded via Common JS loader (isWorker global)
 // or as a JSM (constructor name)
-// eslint-disable-next-line no-shadow
 const isWorker =
   globalThis.isWorker ||
   globalThis.constructor.name == "WorkerDebuggerGlobalScope";
@@ -71,8 +70,6 @@ const customLazy = {
     // this module no longer has WorkerDebuggerGlobalScope as global,
     // but has to use require() to pull Debugger.
     if (isWorker) {
-      // require is defined for workers.
-      // eslint-disable-next-line no-undef
       return require("Debugger");
     }
     const { addDebuggerToGlobal } = ChromeUtils.importESModule(

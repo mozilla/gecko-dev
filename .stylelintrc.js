@@ -9,9 +9,9 @@
 const fs = require("fs");
 const path = require("path");
 
-function readFile(filePath) {
+function readFile(path) {
   return fs
-    .readFileSync(filePath, { encoding: "utf-8" })
+    .readFileSync(path, { encoding: "utf-8" })
     .split("\n")
     .filter(p => p && !p.startsWith("#"));
 }
