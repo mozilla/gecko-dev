@@ -105,13 +105,18 @@ void CookieServiceParent::AddCookie(const Cookie& cookie,
 }
 
 bool CookieServiceParent::ContentProcessHasCookie(const Cookie& cookie) {
+  return ContentProcessHasCookie(cookie.Host(), cookie.OriginAttributesRef());
+}
+
+bool CookieServiceParent::ContentProcessHasCookie(
+    const nsACString& aHost, const OriginAttributes& aOriginAttributes) {
   nsCString baseDomain;
   if (NS_WARN_IF(NS_FAILED(CookieCommons::GetBaseDomainFromHost(
-          mTLDService, cookie.Host(), baseDomain)))) {
+          mTLDService, aHost, baseDomain)))) {
     return false;
   }
 
-  CookieKey cookieKey(baseDomain, cookie.OriginAttributesRef());
+  CookieKey cookieKey(baseDomain, aOriginAttributes);
   return mCookieKeysInContent.MaybeGet(cookieKey).isSome();
 }
 
@@ -302,6 +307,14 @@ IPCResult CookieServiceParent::RecvSetCookies(
     const nsCString& aBaseDomain, const OriginAttributes& aOriginAttributes,
     nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
     const nsTArray<CookieStruct>& aCookies) {
+  if (!ContentProcessHasCookie(aBaseDomain, aOriginAttributes)) {
+#ifdef NIGHTLY_BUILD
+    return IPC_FAIL(this, "Invalid set-cookie request from content process");
+#else
+    return IPC_OK();
+#endif
+  }
+
   return SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp,
                     aIsThirdParty, aCookies);
 }
