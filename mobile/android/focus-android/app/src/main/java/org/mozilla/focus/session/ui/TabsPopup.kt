@@ -81,6 +81,7 @@ class TabsPopup(
         val openedTabsIDs = components.store.state.tabs.map { it.id }
         val tabsToDelete = openedTabsIDs.filter { it != components.store.state.selectedTabId }
         components.tabsUseCases.removeTabs.invoke(tabsToDelete)
+        TabCount.sessionCloseOthersTapped.record(TabCount.SessionCloseOthersTappedExtra(tabsToDelete.size))
         dismiss()
     }
 }
