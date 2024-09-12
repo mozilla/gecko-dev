@@ -651,7 +651,19 @@ export class AsyncTabSwitcher {
     let numPending = 0;
     let numWarming = 0;
     for (let [tab, state] of this.tabState) {
-      if (!this.shouldDeactivateDocShell(tab.linkedBrowser)) {
+      // In certain cases, tabs that are backgrounded should stay in the
+      // STATE_LOADED state, as some mechanisms rely on background rendering.
+      // See shouldDeactivateDocShell for the specific cases being handled.
+      //
+      // This means that if a tab is in STATE_LOADED and we're not going to
+      // deactivate it, we shouldn't count it towards numPending. If, however,
+      // it's in some other state (say, STATE_LOADING), then we _do_ want to
+      // count it as numPending, since we're still waiting on it to be
+      // composited.
+      if (
+        state == this.STATE_LOADED &&
+        !this.shouldDeactivateDocShell(tab.linkedBrowser)
+      ) {
         continue;
       }
 
