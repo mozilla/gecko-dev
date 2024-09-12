@@ -43,6 +43,10 @@ MOZ_EXPORT void wl_proxy_wrapper_destroy(void* proxy_wrapper);
 #  define WL_MARSHAL_FLAG_DESTROY (1 << 0)
 #endif
 
+#ifndef WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION
+#  define WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION 4
+#endif
+
 /* We need implement some missing functions from wayland-client-protocol.h
  */
 #ifndef WL_DATA_DEVICE_MANAGER_DND_ACTION_ENUM
@@ -133,6 +137,10 @@ static inline void wl_surface_damage_buffer(struct wl_surface* wl_surface,
   wl_proxy_marshal((struct wl_proxy*)wl_surface, WL_SURFACE_DAMAGE_BUFFER, x, y,
                    width, height);
 }
+#endif
+
+#ifndef WL_POINTER_RELEASE_SINCE_VERSION
+#  define WL_POINTER_RELEASE_SINCE_VERSION 3
 #endif
 
 #ifndef WL_POINTER_AXIS_ENUM
