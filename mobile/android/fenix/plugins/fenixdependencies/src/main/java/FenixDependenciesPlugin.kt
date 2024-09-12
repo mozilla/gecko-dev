@@ -19,7 +19,6 @@ object FenixVersions {
     const val adjust = "4.38.2"
     const val installreferrer = "2.2"
 
-    const val junit = "5.10.2"
     const val mockk = "1.13.12"
 
     // keep in sync with the versions used in AS.
@@ -39,10 +38,6 @@ object FenixDependencies {
     const val mockk_android = "io.mockk:mockk-android:${FenixVersions.mockk}"
     const val falcon = "com.jraska:falcon:${FenixVersions.falcon}"
     const val fastlane = "tools.fastlane:screengrab:${FenixVersions.fastlane}"
-
-    const val junitApi = "org.junit.jupiter:junit-jupiter-api:${FenixVersions.junit}"
-    const val junitParams = "org.junit.jupiter:junit-jupiter-params:${FenixVersions.junit}"
-    const val junitEngine = "org.junit.jupiter:junit-jupiter-engine:${FenixVersions.junit}"
 }
 
 /**

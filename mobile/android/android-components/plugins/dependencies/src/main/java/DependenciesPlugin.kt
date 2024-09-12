@@ -118,6 +118,9 @@ object ComponentsDependencies {
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}"
     const val kotlin_json = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.serialization}"
 
+    const val junit_api = "org.junit.jupiter:junit-jupiter-api:${Versions.Testing.junit}"
+    const val junit_engine = "org.junit.jupiter:junit-jupiter-engine:${Versions.Testing.junit}"
+    const val junit_params = "org.junit.jupiter:junit-jupiter-params:${Versions.Testing.junit}"
     const val junit_vintage = "org.junit.vintage:junit-vintage-engine:${Versions.Testing.junit}"
 
     const val testing_robolectric = "org.robolectric:robolectric:${Versions.robolectric}"

@@ -342,9 +342,10 @@ dependencies {
 
     testImplementation "org.mozilla.telemetry:glean-native-forUnitTests:${project.ext.glean_version}"
 
-    testImplementation FocusDependencies.testing_junit_api
-    testRuntimeOnly FocusDependencies.testing_junit_engine
-    testImplementation FocusDependencies.testing_junit_params
+    testImplementation ComponentsDependencies.junit_api
+    testImplementation ComponentsDependencies.junit_params
+    testRuntimeOnly ComponentsDependencies.junit_engine
+
     testImplementation ComponentsDependencies.testing_robolectric
     testImplementation ComponentsDependencies.testing_mockito
     testImplementation ComponentsDependencies.testing_coroutines

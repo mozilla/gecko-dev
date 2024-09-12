@@ -21,7 +21,6 @@ object FocusVersions {
     object Testing {
         const val falcon = "2.2.0"
         const val fastlane = "2.1.1"
-        const val junit = "5.10.2"
     }
 }
 
@@ -31,8 +30,4 @@ object FocusDependencies {
 
     const val falcon = "com.jraska:falcon:${FocusVersions.Testing.falcon}"
     const val fastlane = "tools.fastlane:screengrab:${FocusVersions.Testing.fastlane}"
-
-    const val testing_junit_api = "org.junit.jupiter:junit-jupiter-api:${FocusVersions.Testing.junit}"
-    const val testing_junit_engine = "org.junit.jupiter:junit-jupiter-engine:${FocusVersions.Testing.junit}"
-    const val testing_junit_params = "org.junit.jupiter:junit-jupiter-params:${FocusVersions.Testing.junit}"
 }
