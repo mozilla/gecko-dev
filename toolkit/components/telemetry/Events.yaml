@@ -3370,31 +3370,6 @@ slow_script_warning:
       uri_type: The kind of script URL that hung.
       uptime: How long the notification was up (ms).
 
-webrtc.ui:
-  share_display:
-    objects:
-      - screen
-      - window
-      - browser_window
-    description: >
-      Recorded when a display is shared. The value for this event is a unique
-      ID that differentiates different sharing sessions. A new sharing session
-      is created when the user transitions from not sharing a display to
-      sharing at least one display.
-    extra_keys:
-      silence_notifs: True if the user opted in to silencing DOM notifications.
-    notification_emails:
-      - mconley@mozilla.com
-      - vchin@mozilla.com
-    products:
-      - "firefox"
-    record_in_processes:
-      - main
-    bug_numbers:
-      - 1639283
-    expiry_version: "88"
-    release_channel_collection: opt-out
-
 ysod:
   shown:
     bug_numbers:
