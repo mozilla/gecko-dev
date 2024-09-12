@@ -64,7 +64,7 @@
     }
 
     function assertButtonPropertiesMatch(el, propertyToCssVar) {
-      let elStyles = el.buttonEl ? getComputedStyle(el.buttonEl) : getComputedStyle(el);
+      let elStyles = el.backgroundEl ? getComputedStyle(el.backgroundEl) : getComputedStyle(el);
       for (let [property, cssVar] of Object.entries(propertyToCssVar)) {
         let propertyVal = elStyles[property];
         let cssVarVal = cssVar.startsWith("--") ? elStyles.getPropertyValue(cssVar) : cssVar;
@@ -303,6 +303,20 @@
       );
       is(seenEvents.length, 1, "No additional click events were triggered.");
     });
+
+    add_task(async function testToolbarPaddingEvent() {
+      let toolbarButton = document.querySelector(".eleven");
+      let seenEvents = [];
+      function trackEvent(event) {
+        seenEvents.push(event.type);
+      }
+      toolbarButton.addEventListener("click", trackEvent);
+      // Slightly offset the mouse click so that we click within
+      // the toolbar button padding
+      synthesizeMouse(toolbarButton, 4, 4, {});
+
+      is(seenEvents.length, 1, "Clicking on button's padding must send a click event");
+    });
   </script>
 </head>
 <body>
@@ -313,6 +327,11 @@
       flex-direction: column;
       justify-content: space-between;
       gap: 64px;
+    }
+    .eleven {
+      /* Used to verify click events on the toolbar button */
+      --button-outer-padding-inline: 48px;
+      --button-outer-padding-block: 48px;
     }
   </style>
   <div class="wrapper">
@@ -344,6 +363,12 @@
       label="Edit"
       type="ghost"
       iconsrc="chrome://global/skin/icons/edit.svg"
+      >   </moz-button>
+      <!-- Used to verify that click events work as expected in the padding around
+           toolbar buttons -->
+      <moz-button
+      class="eleven"
+      label="toolbar"
       >   </moz-button>
     </div>
     <button id="mouse-trap">Mouse goes here</button>

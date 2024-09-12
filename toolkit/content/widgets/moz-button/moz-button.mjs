@@ -27,6 +27,12 @@ import "chrome://global/content/elements/moz-label.mjs";
  * @property {string} hasVisibleLabel - Internal, tracks whether or not the button has a visible label.
  * @property {HTMLButtonElement} buttonEl - The internal button element in the shadow DOM.
  * @property {HTMLButtonElement} slotEl - The internal slot element in the shadow DOM.
+ * @cssproperty [--button-outer-padding-inline] - Used to set the outer inline padding of toolbar style buttons
+ * @csspropert [--button-outer-padding-block] - Used to set the outer block padding of toolbar style buttons.
+ * @cssproperty [--button-outer-padding-inline-start] - Used to set the outer inline-start padding of toolbar style buttons
+ * @cssproperty [--button-outer-padding-inline-end] - Used to set the outer inline-end padding of toolbar style buttons
+ * @cssproperty [--button-outer-padding-block-start] - Used to set the outer block-start padding of toolbar style buttons
+ * @cssproperty [--button-outer-padding-block-end] - Used to set the outer block-end padding of toolbar style buttons
  * @slot default - The button's content, overrides label property.
  * @fires click - The click event.
  */
@@ -59,6 +65,7 @@ export default class MozButton extends MozLitElement {
   static queries = {
     buttonEl: "button",
     slotEl: "slot",
+    backgroundEl: ".button-background",
   };
 
   constructor() {
@@ -109,25 +116,27 @@ export default class MozButton extends MozLitElement {
         href="chrome://global/content/elements/moz-button.css"
       />
       <button
-        type=${this.type}
-        size=${this.size}
         ?disabled=${this.disabled}
         title=${ifDefined(this.title || this.tooltipText)}
         aria-label=${ifDefined(this.ariaLabel)}
-        part="button"
-        class=${classMap({ labelled: this.label || this.hasVisibleLabel })}
         accesskey=${ifDefined(this.accessKey)}
       >
-        ${this.iconSrc
-          ? html`<img src=${this.iconSrc} role="presentation" />`
-          : ""}
-        <label
-          is="moz-label"
-          part="label"
-          shownaccesskey=${ifDefined(this.accessKey)}
+        <span
+          class=${classMap({
+            labelled: this.label || this.hasVisibleLabel,
+            "button-background": true,
+          })}
+          part="button"
+          type=${this.type}
+          size=${this.size}
         >
-          ${this.labelTemplate()}
-        </label>
+          ${this.iconSrc
+            ? html`<img src=${this.iconSrc} role="presentation" />`
+            : ""}
+          <label is="moz-label" shownaccesskey=${ifDefined(this.accessKey)}>
+            ${this.labelTemplate()}
+          </label>
+        </span>
       </button>
     `;
   }

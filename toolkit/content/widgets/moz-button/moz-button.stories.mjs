@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { html, ifDefined } from "../vendor/lit.all.mjs";
+import { html, ifDefined, classMap } from "../vendor/lit.all.mjs";
 import "./moz-button.mjs";
 
 export default {
@@ -52,7 +52,14 @@ const Template = ({
   disabled,
   accesskey,
   clickHandler,
+  showOuterPadding,
 }) => html`
+  <style>
+    .show-outer-padding {
+      --button-outer-padding-inline: var(--space-medium);
+      --button-outer-padding-block: var(--space-medium);
+    }
+  </style>
   <moz-button
     @click=${clickHandler}
     data-l10n-id=${l10nId}
@@ -62,6 +69,7 @@ const Template = ({
     ?disabled=${disabled}
     iconSrc=${ifDefined(iconSrc)}
     accesskey=${ifDefined(accesskey)}
+    class=${classMap({ "show-outer-padding": showOuterPadding })}
   ></moz-button>
 `;
 
@@ -72,6 +80,7 @@ Default.args = {
   l10nId: "moz-button-labelled",
   iconSrc: "",
   disabled: false,
+  showOuterPadding: false,
 };
 export const DefaultSmall = Template.bind({});
 DefaultSmall.args = {
@@ -121,4 +130,9 @@ WithAccesskey.args = {
   ...Default.args,
   accesskey: "t",
   clickHandler: () => alert("Activating the accesskey clicks the button"),
+};
+export const Toolbar = Template.bind({});
+Toolbar.args = {
+  ...Default.args,
+  showOuterPadding: true,
 };
