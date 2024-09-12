@@ -1988,6 +1988,46 @@ const rollouts = [
       "mozilla/no-browser-refs-in-toolkit": "warn",
     },
   },
+  {
+    // TODO: Bug TBD - Finish enabling no-shadow with builtinGlobals: true
+    // for system modules.
+    files: [
+      "docshell/base/URIFixup.sys.mjs",
+      "dom/base/ContentAreaDropListener.sys.mjs",
+      "dom/manifest/ImageObjectProcessor.sys.mjs",
+      "dom/media/PeerConnection.sys.mjs",
+      "dom/push/Push*.sys.mjs",
+      "dom/system/NetworkGeolocationProvider.sys.mjs",
+      "dom/xslt/xslt/txEXSLTRegExFunctions.sys.mjs",
+      "layout/tools/reftest/reftest.sys.mjs",
+      "mobile/shared/**/*.sys.mjs",
+      "netwerk/test/browser/cookie_filtering_helper.sys.mjs",
+      "netwerk/test/httpserver/httpd.sys.mjs",
+      "remote/cdp/**/*.sys.mjs",
+      "remote/marionette/**/*.sys.mjs",
+      "remote/server/WebSocketHandshake.sys.mjs",
+      "remote/shared/**/*.sys.mjs",
+      "remote/webdriver-bidi/**/*.sys.mjs",
+      "security/manager/ssl/RemoteSecuritySettings.sys.mjs",
+      "services/common/**/*.sys.mjs",
+      "services/crypto/**/*.sys.mjs",
+      "services/fxaccounts/**/*.sys.mjs",
+      "services/settings/**/*.sys.mjs",
+      "services/sync/**/*.sys.mjs",
+      "testing/mochitest/BrowserTestUtils/BrowserTestUtils.sys.mjs",
+      "testing/modules/**/*.sys.mjs",
+      "testing/specialpowers/content/SpecialPowersChild.sys.mjs",
+      "testing/talos/talos/**/*.sys.mjs",
+      "toolkit/actors/**/*.sys.mjs",
+      "toolkit/components/**/*.sys.mjs",
+      "toolkit/crashreporter/CrashSubmit.sys.mjs",
+      "toolkit/modules/**/*.sys.mjs",
+      "toolkit/mozapps/**/*.sys.mjs",
+    ],
+    rules: {
+      "no-shadow": ["warn", { allow: ["event"], builtinGlobals: true }],
+    },
+  },
 ];
 
 module.exports = { rollouts };
