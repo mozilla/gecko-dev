@@ -35,7 +35,6 @@ function promiseForChange(mediaQuery) {
 }
 
 add_task(async () => {
-  await SpecialPowers.pushPrefEnv({ set: [["layout.css.prefers-contrast.enabled", true]]});
   const initiallyMatches =
     window.matchMedia("(prefers-contrast: more)").matches;
   const changePromise = initiallyMatches ?

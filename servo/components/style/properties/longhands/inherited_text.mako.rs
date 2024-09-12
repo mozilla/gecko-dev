@@ -358,8 +358,6 @@ ${helpers.predefined_type(
     "ForcedColorAdjust",
     "computed::ForcedColorAdjust::Auto",
     engines="gecko",
-    gecko_pref="layout.css.forced-color-adjust.enabled",
-    has_effect_on_gecko_scrollbars=False,
     animation_type="discrete",
     spec="https://drafts.csswg.org/css-color-adjust-1/#forced-color-adjust-prop",
     affects="paint",

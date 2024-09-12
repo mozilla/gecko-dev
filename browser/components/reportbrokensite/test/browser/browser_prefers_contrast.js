@@ -9,15 +9,9 @@
 
 add_common_setup();
 
-const HIGH_CONTRAST_MODE_OFF = [
-  [PREFS.USE_ACCESSIBILITY_THEME, 0],
-  [PREFS.PREFERS_CONTRAST_ENABLED, true],
-];
+const HIGH_CONTRAST_MODE_OFF = [[PREFS.USE_ACCESSIBILITY_THEME, 0]];
 
-const HIGH_CONTRAST_MODE_ON = [
-  [PREFS.USE_ACCESSIBILITY_THEME, 1],
-  [PREFS.PREFERS_CONTRAST_ENABLED, true],
-];
+const HIGH_CONTRAST_MODE_ON = [[PREFS.USE_ACCESSIBILITY_THEME, 1]];
 
 add_task(async function testReportSentViewBGColor() {
   ensureReportBrokenSitePreffedOn();

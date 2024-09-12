@@ -835,11 +835,6 @@ pub static MEDIA_FEATURES: [QueryFeatureDescription; 60] = [
         atom!("prefers-contrast"),
         AllowsRanges::No,
         keyword_evaluator!(eval_prefers_contrast, PrefersContrast),
-        // Note: by default this is only enabled in browser chrome and
-        // ua. It can be enabled on the web via the
-        // layout.css.prefers-contrast.enabled preference. See
-        // disabed_by_pref in media_feature_expression.rs for how that
-        // is done.
         FeatureFlags::empty(),
     ),
     feature!(

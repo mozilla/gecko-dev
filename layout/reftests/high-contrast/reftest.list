@@ -1,5 +1,5 @@
 # This pref enables high-contrast mode in the testcases here:
-defaults test-pref(browser.display.document_color_use,2) test-pref(browser.display.permit_backplate,true) test-pref(layout.css.prefers-contrast.enabled,true) test-pref(layout.css.forced-colors.enabled,true) test-pref(browser.display.foreground_color,"#000000") test-pref(browser.display.background_color,"#FFFFFF") pref(ui.use_standins_for_native_colors,true) pref(widget.non-native-theme.always-high-contrast,true)
+defaults test-pref(browser.display.document_color_use,2) test-pref(browser.display.permit_backplate,true) test-pref(browser.display.foreground_color,"#000000") test-pref(browser.display.background_color,"#FFFFFF") pref(ui.use_standins_for_native_colors,true) pref(widget.non-native-theme.always-high-contrast,true)
 
 # There are several platform-specific fuzzy-if notations below due to
 # anti-aliasing, extra ink overflow, and slightly inacurate reftest
@@ -66,9 +66,6 @@ test-pref(privacy.resistFingerprinting,true) != prefers-contrast-001.html prefer
 # high should not match when RFP is enabled.
 test-pref(ui.windowForeground,"black") test-pref(ui.windowBackground,"white") test-pref(privacy.resistFingerprinting,true) test-pref(ui.useAccessibilityTheme,1) != prefers-contrast-002.html prefers-contrast-black-ref.html
 
-# Should only be enabled behind preference.
-test-pref(layout.css.prefers-contrast.enabled,false) != prefers-contrast-001.html prefers-contrast-black-ref.html
-
 # a prefers-contrast value of no-preference should evaluate to false
 # in the boolean context
 test-pref(browser.display.document_color_use,0) != prefers-contrast-001.html prefers-contrast-black-ref.html
@@ -105,7 +102,7 @@ pref(ui.use_standins_for_native_colors,false) pref(browser.display.use_system_co
 pref(ui.use_standins_for_native_colors,false) pref(browser.display.use_system_colors,false) pref(browser.display.background_color,"white") pref(browser.display.foreground_color,"black") == prefers-color-scheme.html prefers-color-scheme-light.html
 
 # Forced color adjust
-pref(layout.css.forced-color-adjust.enabled,true) == backplate-force-color-adjust.html backplate-force-color-adjust-ref.html
+== backplate-force-color-adjust.html backplate-force-color-adjust-ref.html
 == transparent-textarea.html transparent-textarea-ref.html
 
 == color-scheme.html color-scheme-ref.html

@@ -710,25 +710,15 @@ function run() {
     expression_should_not_be_known(query);
   }
 
-  {
-    let should_be_parseable_if_enabled = SpecialPowers.getBoolPref('layout.css.prefers-contrast.enabled')
-      ? expression_should_be_known
-      : expression_should_not_be_known;
-    should_be_parseable_if_enabled("prefers-contrast");
-    should_be_parseable_if_enabled("prefers-contrast: more");
-    should_be_parseable_if_enabled("prefers-contrast: less");
-    should_be_parseable_if_enabled("prefers-contrast: custom");
-    should_be_parseable_if_enabled("prefers-contrast: no-preference");
-  }
+  expression_should_be_known("prefers-contrast");
+  expression_should_be_known("prefers-contrast: more");
+  expression_should_be_known("prefers-contrast: less");
+  expression_should_be_known("prefers-contrast: custom");
+  expression_should_be_known("prefers-contrast: no-preference");
 
-  {
-    let should_be_parseable_if_enabled = SpecialPowers.getBoolPref('layout.css.forced-colors.enabled')
-      ? expression_should_be_known
-      : expression_should_not_be_known;
-    should_be_parseable_if_enabled("forced-colors");
-    should_be_parseable_if_enabled("forced-colors: none");
-    should_be_parseable_if_enabled("forced-colors: active");
-  }
+  expression_should_be_known("forced-colors");
+  expression_should_be_known("forced-colors: none");
+  expression_should_be_known("forced-colors: active");
 
   // OpenType SVG media features
   expression_should_not_be_known("(-moz-is-glyph)");

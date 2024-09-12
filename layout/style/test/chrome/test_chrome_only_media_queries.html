@@ -8,23 +8,6 @@ const SHEET = document.querySelector('style');
 
 SimpleTest.waitForExplicitFinish();
 
-async function testWithPref() {
-  await new Promise(r => {
-    SpecialPowers.pushPrefEnv(
-      {
-        set: [
-          ["layout.css.forced-colors.enabled", false],
-        ],
-      },
-      r
-    );
-  });
-  expectKnown("(forced-colors: none)");
-  expectKnown("(forced-colors: active)");
-  expectKnown("(forced-colors)");
-  SimpleTest.finish();
-}
-
 function expect(q, shouldBeKnown) {
   is(matchMedia(q).media, q, "Serialization should roundtrip");
   is(matchMedia(`${q} or (not ${q})`).matches, shouldBeKnown, `Query should${shouldBeKnown ? "" : " not"} be known`);
@@ -80,5 +63,5 @@ expectKnown("(forced-colors)");
 
 expectUnkown("(-moz-platform: )");
 
-testWithPref();
+SimpleTest.finish();
 </script>
