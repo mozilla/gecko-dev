@@ -277,7 +277,7 @@ describe("Multistage AboutWelcome module", () => {
     });
 
     describe("random colorways", () => {
-      let test;
+      let checkSelection;
       beforeEach(() => {
         COLORWAY_SCREEN_PROPS.handleAction = sandbox.stub();
         sandbox.stub(window, "matchMedia");
@@ -287,7 +287,7 @@ describe("Multistage AboutWelcome module", () => {
             fn();
           }
         });
-        test = () => {
+        checkSelection = () => {
           shallow(<Colorways {...COLORWAY_SCREEN_PROPS} />);
           return COLORWAY_SCREEN_PROPS.handleAction.firstCall.firstArg
             .currentTarget;
@@ -295,7 +295,7 @@ describe("Multistage AboutWelcome module", () => {
       });
 
       it("should select a random colorway", () => {
-        const { value } = test();
+        const { value } = checkSelection();
 
         assert.strictEqual(value, "abstract-soft");
         assert.calledThrice(React.useEffect);
@@ -306,7 +306,7 @@ describe("Multistage AboutWelcome module", () => {
         window.matchMedia.returns({ matches: false });
         COLORWAY_SCREEN_PROPS.content.tiles.darkVariation = 1;
 
-        const { value } = test();
+        const { value } = checkSelection();
 
         assert.strictEqual(value, "abstract-soft");
         assert.calledThrice(React.useEffect);
@@ -317,7 +317,7 @@ describe("Multistage AboutWelcome module", () => {
         window.matchMedia.returns({ matches: true });
         COLORWAY_SCREEN_PROPS.content.tiles.darkVariation = 1;
 
-        const { value } = test();
+        const { value } = checkSelection();
 
         assert.strictEqual(value, "abstract-bold");
         assert.calledThrice(React.useEffect);

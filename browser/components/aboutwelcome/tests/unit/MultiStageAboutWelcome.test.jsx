@@ -217,16 +217,16 @@ describe("MultiStageAboutWelcome module", () => {
 
   describe("WelcomeScreen component", () => {
     describe("easy setup screen", () => {
-      const screen = AboutWelcomeDefaults.getDefaults().screens.find(
+      const easySetupScreen = AboutWelcomeDefaults.getDefaults().screens.find(
         s => s.id === "AW_EASY_SETUP_NEEDS_DEFAULT_AND_PIN"
       );
       let EASY_SETUP_SCREEN_PROPS;
 
       beforeEach(() => {
         EASY_SETUP_SCREEN_PROPS = {
-          id: screen.id,
-          content: screen.content,
-          messageId: `${DEFAULT_PROPS.message_id}_${screen.id}`,
+          id: easySetupScreen.id,
+          content: easySetupScreen.content,
+          messageId: `${DEFAULT_PROPS.message_id}_${easySetupScreen.id}`,
           UTMTerm: DEFAULT_PROPS.utm_term,
           flowParams: null,
           totalNumberOfScreens: 1,
