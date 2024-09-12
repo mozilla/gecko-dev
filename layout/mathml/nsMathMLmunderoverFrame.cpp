@@ -39,8 +39,9 @@ nsMathMLmunderoverFrame::~nsMathMLmunderoverFrame() = default;
 nsresult nsMathMLmunderoverFrame::AttributeChanged(int32_t aNameSpaceID,
                                                    nsAtom* aAttribute,
                                                    int32_t aModType) {
-  if (nsGkAtoms::accent_ == aAttribute ||
-      nsGkAtoms::accentunder_ == aAttribute) {
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (nsGkAtoms::accent_ == aAttribute ||
+       nsGkAtoms::accentunder_ == aAttribute)) {
     // When we have automatic data to update within ourselves, we ask our
     // parent to re-layout its children
     return ReLayoutChildren(GetParent());
