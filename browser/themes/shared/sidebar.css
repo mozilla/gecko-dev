@@ -8,6 +8,11 @@
   --sidebar-background-color: -moz-sidebar;
   --sidebar-text-color: -moz-sidebartext;
   --sidebar-border-color: var(--lwt-sidebar-border-color, -moz-sidebarborder);
+  --sidebar-collapsed-width: 51px;
+  --sidebar-expanded-width: 192px;
+  --sidebar-screenshot-overlay-z-index: 3;
+  --sidebar-screenshot-opacity-animation-duration: 100ms;
+  --sidebar-screenshot-translate-animation-duration: 300ms;
 }
 
 #sidebar-main {
@@ -209,16 +214,104 @@ menuseparator + #sidebar-extensions-separator {
 
 /* Sidebar animation */
 
-#sidebar-main,
-sidebar-main,
-#sidebar-box,
-#sidebar-splitter,
-#tabbrowser-tabbox {
-  transform-origin: 0 0;
-  will-change: translate;
+.sidebar-animation-screenshot {
+  position: absolute;
+  z-index: var(--sidebar-screenshot-overlay-z-index);
+  inset-inline-start: 0;
+  inset-inline-end: unset;
+
+  &.collapsed {
+    transform: translateX(var(--sidebar-collapsed-width));
+
+    &.translate {
+      animation: var(--sidebar-screenshot-translate-animation-duration) ease-in-out 1 sidebar-translate-expand;
+    }
+  }
+
+  &.expanded {
+    transform: translateX(var(--sidebar-expanded-width));
+
+    &.translate {
+      animation: var(--sidebar-screenshot-translate-animation-duration) ease-in-out 1 sidebar-translate-collapse;
+    }
+  }
+
+  &.fadeOut {
+    animation: var(--sidebar-screenshot-opacity-animation-duration) ease-in-out 1 sidebar-opacity;
+  }
+
+  &.positionend {
+    inset-inline-start: unset;
+    inset-inline-end: 0;
+
+    &.collapsed {
+      transform: translateX(calc(var(--sidebar-collapsed-width) * -1));
+
+      &.translate {
+        animation: var(--sidebar-screenshot-translate-animation-duration) ease-in-out 1 sidebar-translate-expand-rtl;
+      }
+    }
+
+    &.expanded {
+      transform: translateX(calc(var(--sidebar-expanded-width) * -1));
+
+      &.translate {
+        animation: var(--sidebar-screenshot-translate-animation-duration) ease-in-out 1 sidebar-translate-collapse-rtl;
+      }
+    }
+
+    &.fadeOut {
+      animation: var(--sidebar-screenshot-opacity-animation-duration) ease-in-out 1 sidebar-opacity;
+    }
+  }
 }
 
-#sidebar-main {
-  /* Prevent overflow during sidebar animation when the sidebar is reordered */
-  overflow: clip;
+@keyframes sidebar-translate-expand {
+  0% {
+    transform: translateX(var(--sidebar-collapsed-width));
+  }
+
+  100% {
+    transform: translateX(var(--sidebar-expanded-width));
+  }
+}
+
+@keyframes sidebar-translate-collapse {
+  0% {
+    transform: translateX(var(--sidebar-expanded-width));
+  }
+
+  100% {
+    transform: translateX(var(--sidebar-collapsed-width));
+  }
+}
+
+@keyframes sidebar-translate-expand-rtl {
+  0% {
+    transform: translateX(calc(var(--sidebar-collapsed-width) * -1));
+  }
+
+  100% {
+    transform: translateX(calc(var(--sidebar-expanded-width) * -1));
+  }
+}
+
+@keyframes sidebar-translate-collapse-rtl {
+  0% {
+    transform: translateX(calc(var(--sidebar-expanded-width) * -1));
+  }
+
+  100% {
+    transform: translateX(calc(var(--sidebar-collapsed-width) * -1));
+  }
+}
+
+@keyframes sidebar-opacity {
+  0% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+  }
 }
