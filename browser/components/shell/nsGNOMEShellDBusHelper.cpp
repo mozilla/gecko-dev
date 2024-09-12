@@ -255,14 +255,14 @@ static void ActivateResultID(
     RefPtr<nsGNOMEShellHistorySearchResult> aSearchResult,
     const char* aResultID, uint32_t aTimeStamp) {
   char* commandLine = nullptr;
-  int tmp;
+  int len;
 
   if (strncmp(aResultID, KEYWORD_SEARCH_STRING, KEYWORD_SEARCH_STRING_LEN) ==
       0) {
     const char* urlList[3] = {"unused", "--search",
                               aSearchResult->GetSearchTerm().get()};
     commandLine =
-        ConstructCommandLine(std::size(urlList), urlList, nullptr, &tmp);
+        ConstructCommandLine(std::size(urlList), urlList, nullptr, &len);
   } else {
     int keyIndex = atoi(aResultID);
     nsCOMPtr<nsINavHistoryResultNode> child;
@@ -280,11 +280,12 @@ static void ActivateResultID(
 
     const char* urlList[2] = {"unused", uri.get()};
     commandLine =
-        ConstructCommandLine(std::size(urlList), urlList, nullptr, &tmp);
+        ConstructCommandLine(std::size(urlList), urlList, nullptr, &len);
   }
 
   if (commandLine) {
-    aSearchResult->HandleCommandLine(commandLine, aTimeStamp);
+    aSearchResult->HandleCommandLine(mozilla::Span(commandLine, len),
+                                     aTimeStamp);
     free(commandLine);
   }
 }
@@ -334,11 +335,12 @@ static void DBusLaunchWithAllResults(
     urlList[urlListElements++] = strdup(aSearchResult->GetSearchTerm().get());
   }
 
-  int tmp;
+  int len;
   char* commandLine =
-      ConstructCommandLine(urlListElements, urlList, nullptr, &tmp);
+      ConstructCommandLine(urlListElements, urlList, nullptr, &len);
   if (commandLine) {
-    aSearchResult->HandleCommandLine(commandLine, aTimeStamp);
+    aSearchResult->HandleCommandLine(mozilla::Span(commandLine, len),
+                                     aTimeStamp);
     free(commandLine);
   }
 

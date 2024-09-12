@@ -38,7 +38,7 @@ static const char* introspect_template =
 
 bool nsDBusRemoteServer::HandleOpenURL(const gchar* aInterfaceName,
                                        const gchar* aMethodName,
-                                       const gchar* aParam) {
+                                       Span<const gchar> aParam) {
   nsPrintfCString ourInterfaceName("org.mozilla.%s", mAppName.get());
 
   if ((strcmp("OpenURL", aMethodName) != 0) ||
@@ -91,7 +91,7 @@ static void HandleMethodCall(GDBusConnection* aConnection, const gchar* aSender,
   }
 
   int ret = static_cast<nsDBusRemoteServer*>(aUserData)->HandleOpenURL(
-      aInterfaceName, aMethodName, commandLine);
+      aInterfaceName, aMethodName, mozilla::Span(commandLine, len));
   if (!ret) {
     g_dbus_method_invocation_return_error(
         aInvocation, G_DBUS_ERROR, G_DBUS_ERROR_NOT_SUPPORTED,

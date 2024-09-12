@@ -11,6 +11,7 @@
 #include "nsRemoteServer.h"
 #include "nsUnixRemoteServer.h"
 #include "mozilla/DBusHelpers.h"
+#include "mozilla/Span.h"
 
 #include <gio/gio.h>
 #include "mozilla/RefPtr.h"
@@ -29,7 +30,7 @@ class nsDBusRemoteServer final : public nsRemoteServer,
   void OnNameLost(GDBusConnection* aConnection);
 
   bool HandleOpenURL(const gchar* aInterfaceName, const gchar* aMethodName,
-                     const gchar* aParam);
+                     mozilla::Span<const gchar> aParam);
 
  private:
   uint mDBusID = 0;

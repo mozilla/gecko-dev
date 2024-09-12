@@ -59,8 +59,8 @@ static bool FindExtensionParameterInCommand(const char* aParameterName,
   return true;
 }
 
-const char* nsUnixRemoteServer::HandleCommandLine(const char* aBuffer,
-                                                  uint32_t aTimestamp) {
+const char* nsUnixRemoteServer::HandleCommandLine(
+    mozilla::Span<const char> aBuffer, uint32_t aTimestamp) {
   nsCOMPtr<nsICommandLineRunner> cmdline(new nsCommandLine());
 
   // the commandline property is constructed as an array of int32_t
@@ -68,24 +68,41 @@ const char* nsUnixRemoteServer::HandleCommandLine(const char* aBuffer,
   //
   // [argc][offsetargv0][offsetargv1...]<workingdir>\0<argv[0]>\0argv[1]...\0
   // (offset is from the beginning of the buffer)
+  if (aBuffer.size() < sizeof(uint32_t)) {
+    return "500 command not parseable";
+  }
 
-  int32_t argc = TO_LITTLE_ENDIAN32(*reinterpret_cast<const int32_t*>(aBuffer));
-  const char* wd = aBuffer + ((argc + 1) * sizeof(int32_t));
+  uint32_t argc =
+      TO_LITTLE_ENDIAN32(*reinterpret_cast<const uint32_t*>(aBuffer.data()));
+  uint32_t offsetFilelist = ((argc + 1) * sizeof(uint32_t));
+  if (offsetFilelist >= aBuffer.size()) {
+    return "500 command not parseable";
+  }
+  const char* workingDir = aBuffer.data() + offsetFilelist;
 
   nsCOMPtr<nsIFile> lf;
-  nsresult rv =
-      NS_NewNativeLocalFile(nsDependentCString(wd), true, getter_AddRefs(lf));
-  if (NS_FAILED(rv)) return "509 internal error";
-
-  nsAutoCString desktopStartupID;
+  nsresult rv = NS_NewNativeLocalFile(nsDependentCString(workingDir), true,
+                                      getter_AddRefs(lf));
+  if (NS_FAILED(rv)) {
+    return "509 internal error";
+  }
 
   const char** argv = (const char**)malloc(sizeof(char*) * argc);
-  if (!argv) return "509 internal error";
+  if (!argv) {
+    return "509 internal error";
+  }
 
-  const int32_t* offset = reinterpret_cast<const int32_t*>(aBuffer) + 1;
+  const uint32_t* offset =
+      reinterpret_cast<const uint32_t*>(aBuffer.data()) + 1;
+  nsAutoCString desktopStartupID;
 
-  for (int i = 0; i < argc; ++i) {
-    argv[i] = aBuffer + TO_LITTLE_ENDIAN32(offset[i]);
+  for (unsigned int i = 0; i < argc; ++i) {
+    uint32_t argvOffset = TO_LITTLE_ENDIAN32(offset[i]);
+    if (argvOffset >= aBuffer.size()) {
+      return "500 command not parseable";
+    }
+
+    argv[i] = aBuffer.data() + argvOffset;
 
     if (i == 0) {
       nsDependentCString cmd(argv[0]);
@@ -105,9 +122,13 @@ const char* nsUnixRemoteServer::HandleCommandLine(const char* aBuffer,
 
   rv = cmdline->Run();
 
-  if (NS_ERROR_ABORT == rv) return "500 command not parseable";
+  if (NS_ERROR_ABORT == rv) {
+    return "500 command not parseable";
+  }
 
-  if (NS_FAILED(rv)) return "509 internal error";
+  if (NS_FAILED(rv)) {
+    return "509 internal error";
+  }
 
   return "200 executed command";
 }

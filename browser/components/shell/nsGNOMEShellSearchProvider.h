@@ -12,6 +12,7 @@
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/GRefPtr.h"
+#include "mozilla/Span.h"
 #include "nsINavHistoryService.h"
 #include "nsUnixRemoteServer.h"
 #include "nsString.h"
@@ -80,7 +81,8 @@ class nsGNOMEShellHistorySearchResult : public nsUnixRemoteServer {
   nsCOMPtr<nsINavHistoryContainerResultNode> GetSearchResultContainer() {
     return mHistResultContainer;
   }
-  void HandleCommandLine(const char* aBuffer, uint32_t aTimestamp) {
+  void HandleCommandLine(mozilla::Span<const char> aBuffer,
+                         uint32_t aTimestamp) {
     nsUnixRemoteServer::HandleCommandLine(aBuffer, aTimestamp);
   }
 
