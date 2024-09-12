@@ -1225,6 +1225,14 @@ void CanonicalBrowsingContext::SetActiveSessionHistoryEntry(
     mActiveEntry->SharedInfo()->mCacheKey = aUpdatedCacheKey;
   }
 
+  if (oldActiveEntry) {
+    // aInfo comes from the entry stored in the current document's docshell,
+    // whose interaction state does not get updated. So we instead propagate
+    // state from the previous canonical entry. See bug 1917369.
+    mActiveEntry->SetHasUserInteraction(
+        oldActiveEntry->GetHasUserInteraction());
+  }
+
   if (IsTop()) {
     Maybe<int32_t> previousEntryIndex, loadedEntryIndex;
     shistory->AddToRootSessionHistory(
@@ -1258,7 +1266,12 @@ void CanonicalBrowsingContext::ReplaceActiveSessionHistoryEntry(
     return;
   }
 
+  // aInfo comes from the entry stored in the current document's docshell, whose
+  // interaction state does not get updated. So we instead propagate state from
+  // the previous canonical entry. See bug 1917369.
+  const bool hasUserInteraction = mActiveEntry->GetHasUserInteraction();
   mActiveEntry->SetInfo(aInfo);
+  mActiveEntry->SetHasUserInteraction(hasUserInteraction);
   // Notify children of the update
   nsSHistory* shistory = static_cast<nsSHistory*>(GetSessionHistory());
   if (shistory) {

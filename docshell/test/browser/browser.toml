@@ -310,6 +310,9 @@ support-files = ["overlink_test.html"]
 ["browser_replace_state_during_navigation.js"]
 support-files = ["file_replace_state_during_navigation.html"]
 
+["browser_replace_state_during_navigation_from_first_page.js"]
+support-files = ["file_replace_state_during_navigation.html"]
+
 ["browser_search_notification.js"]
 
 ["browser_tab_replace_while_loading.js"]
