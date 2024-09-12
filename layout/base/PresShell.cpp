@@ -8412,18 +8412,12 @@ nsresult PresShell::EventHandler::HandleEventWithTarget(
     nsIContent** aTargetContent, nsIContent* aOverrideClickTarget) {
   MOZ_ASSERT(aEvent);
   MOZ_DIAGNOSTIC_ASSERT(aEvent->IsTrusted());
-
-#if DEBUG
-  MOZ_ASSERT(!aNewEventFrame ||
-                 aNewEventFrame->PresContext()->GetPresShell() == mPresShell,
+  MOZ_ASSERT(!aNewEventFrame || aNewEventFrame->PresShell() == mPresShell,
              "wrong shell");
-  if (aNewEventContent) {
-    Document* doc = aNewEventContent->GetComposedDoc();
-    NS_ASSERTION(doc, "event for content that isn't in a document");
-    // NOTE: We don't require that the document still have a PresShell.
-    // See bug 1375940.
-  }
-#endif
+  // NOTE: We don't require that the document still have a PresShell.
+  // See bug 1375940.
+  NS_ASSERTION(!aNewEventContent || aNewEventContent->IsInComposedDoc(),
+               "event for content that isn't in a document");
   NS_ENSURE_STATE(!aNewEventContent ||
                   aNewEventContent->GetComposedDoc() == GetDocument());
   if (aEvent->mClass == ePointerEventClass ||
