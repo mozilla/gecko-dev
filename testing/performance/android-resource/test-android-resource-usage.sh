@@ -175,7 +175,10 @@ function appToBackground() {
 }
 
 surfingSingleSite $URL_MOZILLA
-appToBackground
+
+if [ "$RUN_BACKGROUND" = True ]; then
+    appToBackground
+fi
 
 # at this point our system is ready, the buttons' coordinates are generated
 # test starts after this line

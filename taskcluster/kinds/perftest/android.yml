@@ -405,12 +405,12 @@ hw-a51-background-resource-fenix:
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
             cd $GECKO_PATH &&
             python3 python/mozperftest/mozperftest/runner.py
-            testing/performance/background-resource/main.sh
+            testing/performance/android-resource/main-background.sh
             --app fenix
             --android
             --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
             --output $MOZ_FETCHES_DIR/../artifacts
-            --hooks testing/performance/background-resource/hooks_background_resource.py
+            --hooks testing/performance/android-resource/hooks_android_resource.py
 
 hw-a51-background-resource-chrome:
     worker-type: t-bitbar-gw-perf-a51
@@ -430,11 +430,11 @@ hw-a51-background-resource-chrome:
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
             cd $GECKO_PATH &&
             python3 python/mozperftest/mozperftest/runner.py
-            testing/performance/background-resource/main.sh
+            testing/performance/android-resource/main-background.sh
             --app chrome-m
             --android
             --output $MOZ_FETCHES_DIR/../artifacts
-            --hooks testing/performance/background-resource/hooks_background_resource.py
+            --hooks testing/performance/android-resource/hooks_android_resource.py
 
 hw-a55-aarch64:
     worker-type: t-bitbar-gw-perf-a55
@@ -750,12 +750,12 @@ hw-a55-background-resource-fenix:
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
             cd $GECKO_PATH &&
             python3 python/mozperftest/mozperftest/runner.py
-            testing/performance/background-resource/main.sh
+            testing/performance/android-resource/main-background.sh
             --app fenix
             --android
             --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
             --output $MOZ_FETCHES_DIR/../artifacts
-            --hooks testing/performance/background-resource/hooks_background_resource.py
+            --hooks testing/performance/android-resource/hooks_android_resource.py
 
 hw-a55-background-resource-chrome:
     worker-type: t-bitbar-gw-perf-a55
@@ -775,8 +775,62 @@ hw-a55-background-resource-chrome:
             mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
             cd $GECKO_PATH &&
             python3 python/mozperftest/mozperftest/runner.py
-            testing/performance/background-resource/main.sh
+            testing/performance/android-resource/main-background.sh
             --app chrome-m
             --android
             --output $MOZ_FETCHES_DIR/../artifacts
-            --hooks testing/performance/background-resource/hooks_background_resource.py
+            --hooks testing/performance/android-resource/hooks_android_resource.py
+
+hw-a55-foreground-resource-fenix:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [mozilla-central]
+    description: Run background resource test with Fenix on a Samsung A51
+    treeherder:
+        symbol: perftest-fenix(foreground-rsrc)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        build:
+            - artifact: target.arm64-v8a.apk
+              extract: false
+        toolchain:
+            - android-xmlstarlet
+    require-build:
+        android-hw-a55-14-0-aarch64-shippable/opt: signing-apk-fenix-nightly-simulation
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            testing/performance/android-resource/main-foreground.sh
+            --app fenix
+            --android
+            --android-install-apk $MOZ_FETCHES_DIR/target.arm64-v8a.apk
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks testing/performance/android-resource/hooks_android_resource.py
+
+hw-a55-foreground-resource-chrome:
+    worker-type: t-bitbar-gw-perf-a55
+    run-on-projects: [mozilla-central]
+    description: Run background CPU test with Chrome on a Samsung A55
+    treeherder:
+        symbol: perftest-chrome(foreground-rsrc)
+        tier: 2
+    platform: android-hw-a55-14-0-aarch64-shippable/opt
+    attributes:
+        cron: false
+    fetches:
+        toolchain:
+            - android-xmlstarlet
+    run:
+        command: >-
+            mkdir -p $MOZ_FETCHES_DIR/../artifacts &&
+            cd $GECKO_PATH &&
+            python3 python/mozperftest/mozperftest/runner.py
+            testing/performance/android-resource/main-foreground.sh
+            --app chrome-m
+            --android
+            --output $MOZ_FETCHES_DIR/../artifacts
+            --hooks testing/performance/android-resource/hooks_android_resource.py

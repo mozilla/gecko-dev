@@ -202,6 +202,7 @@ def main():
     args = sys.argv[1:]
     binary = args[1]
     testing_dir = pathlib.Path(args[0])
+    run_background = True if args[2] == "True" else False
 
     cpu_info_files = sorted(testing_dir.glob("cpu_info*"))
     mem_info_files = sorted(testing_dir.glob("mem_info*"))
@@ -256,7 +257,7 @@ def main():
             ]
         )
 
-        if base_measures:
+        if base_measures and run_background:
             if measurement_time == "10%":
                 perf_metrics.extend(
                     make_differential_metrics(
