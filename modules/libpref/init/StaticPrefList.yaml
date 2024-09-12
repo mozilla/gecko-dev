@@ -15469,6 +15469,11 @@
   value: "specified"
   mirror: never
 
+- name: security.pki.use_modern_crypto_with_pkcs12
+  type: RelaxedAtomicBool
+  value: true
+  mirror: always
+
 - name: security.tls.version.min
   type: RelaxedAtomicUint32
   value: 3
