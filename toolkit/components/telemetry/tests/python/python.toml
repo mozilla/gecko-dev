@@ -9,6 +9,8 @@ subsuite = "telemetry-python"
 
 ["test_histogramtools_strict.py"]
 
+["test_no_expired_probes.py"]
+
 ["test_parse_events.py"]
 
 ["test_parse_scalars.py"]
