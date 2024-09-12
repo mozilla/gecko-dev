@@ -124,6 +124,7 @@ nsresult Classifier::GetPrivateStoreDirectory(
 
 Classifier::Classifier()
     : mIsTableRequestResultOutdated(true),
+      mAsyncUpdateInProgress(false),
       mUpdateInterrupted(true),
       mIsClosed(false) {
   // Make a lazy thread for any IO
@@ -697,6 +698,8 @@ void Classifier::FlushAndDisableAsyncUpdate() {
 
   mUpdateThread->Shutdown();
   mUpdateThread = nullptr;
+  mPendingUpdates.Clear();
+  mAsyncUpdateInProgress = false;
 }
 
 nsresult Classifier::AsyncApplyUpdates(const TableUpdateArray& aUpdates,
@@ -706,6 +709,22 @@ nsresult Classifier::AsyncApplyUpdates(const TableUpdateArray& aUpdates,
   if (!mUpdateThread) {
     LOG(("Async update has already been disabled."));
     return NS_ERROR_FAILURE;
+  }
+
+  if (mAsyncUpdateInProgress) {
+    mPendingUpdates.AppendElement(NS_NewRunnableFunction(
+        "safebrowsing::Classifier::AsyncApplyUpdates",
+        [self = RefPtr{this}, aUpdates = aUpdates.Clone(),
+         aCallback]() mutable {
+          nsresult rv = self->AsyncApplyUpdates(aUpdates, aCallback);
+
+          // Calling the callback if we got an failure here to notify update
+          // observers.
+          if (NS_FAILED(rv)) {
+            aCallback(rv);
+          }
+        }));
+    return NS_OK;
   }
 
   //         Caller thread      |       Update thread
@@ -718,6 +737,7 @@ nsresult Classifier::AsyncApplyUpdates(const TableUpdateArray& aUpdates,
   MOZ_ASSERT(mNewLookupCaches.IsEmpty(),
              "There should be no leftovers from a previous update.");
 
+  mAsyncUpdateInProgress = true;
   mUpdateInterrupted = false;
   nsresult rv =
       mRootStoreDirectory->Clone(getter_AddRefs(mRootStoreDirectoryForUpdate));
@@ -773,12 +793,30 @@ nsresult Classifier::AsyncApplyUpdates(const TableUpdateArray& aUpdates,
 
               LOG(("Step 3. Updates applied! Fire callback."));
               aCallback(rv);
+
+              classifier->AsyncUpdateFinished();
             });
 
         callerThread->Dispatch(fgRunnable, NS_DISPATCH_NORMAL);
       });
 
   return mUpdateThread->Dispatch(bgRunnable, NS_DISPATCH_NORMAL);
+}
+
+void Classifier::AsyncUpdateFinished() {
+  MOZ_ASSERT(!OnUpdateThread(),
+             "AsyncUpdateFinished() MUST NOT be called on update thread");
+  MOZ_ASSERT(!NS_IsMainThread(),
+             "AsyncUpdateFinished() must be called on the worker thread");
+
+  mAsyncUpdateInProgress = false;
+
+  // If there are pending updates, run the first one.
+  if (!mPendingUpdates.IsEmpty()) {
+    auto& runnable = mPendingUpdates.ElementAt(0);
+    runnable->Run();
+    mPendingUpdates.RemoveElementAt(0);
+  }
 }
 
 nsresult Classifier::ApplyUpdatesBackground(

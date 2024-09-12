@@ -205,6 +205,10 @@ class Classifier {
   nsresult ApplyUpdatesForeground(nsresult aBackgroundRv,
                                   const nsTArray<nsCString>& aFailedTableNames);
 
+  // Notify the worker thread that the async update is finished to kick off the
+  // pending updates.
+  void AsyncUpdateFinished();
+
   // Used by worker thread and update thread to abort current operation.
   bool ShouldAbort() const;
 
@@ -236,6 +240,12 @@ class Classifier {
 
   // The copy of mLookupCaches for update only.
   LookupCacheArray mNewLookupCaches;
+
+  // Whether an async update is in progress.
+  bool mAsyncUpdateInProgress;
+
+  // Pending updates to be executed after the current async update is finished.
+  nsTArray<nsCOMPtr<nsIRunnable>> mPendingUpdates;
 
   // True when Reset() is called.
   bool mUpdateInterrupted;
