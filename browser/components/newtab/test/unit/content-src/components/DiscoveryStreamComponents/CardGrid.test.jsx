@@ -1,5 +1,6 @@
 import {
   _CardGrid as CardGrid,
+  // eslint-disable-next-line no-shadow
   IntersectionObserver,
   RecentSavesContainer,
   OnboardingExperience,

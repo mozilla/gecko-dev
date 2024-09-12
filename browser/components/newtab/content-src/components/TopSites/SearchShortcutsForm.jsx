@@ -68,10 +68,10 @@ export class SearchShortcutsForm extends React.PureComponent {
 
   handleChange(event) {
     const { target } = event;
-    const { name, checked } = target;
+    const { name: targetName, checked } = target;
     this.setState(prevState => {
       const shortcuts = prevState.shortcuts.slice();
-      let shortcut = shortcuts.find(({ keyword }) => keyword === name);
+      let shortcut = shortcuts.find(({ keyword }) => keyword === targetName);
       shortcut.isSelected = checked;
       return { shortcuts };
     });

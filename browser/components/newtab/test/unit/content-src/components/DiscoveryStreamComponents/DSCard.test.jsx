@@ -125,6 +125,7 @@ describe("<DSCard>", () => {
   });
 
   it("should render Sponsored Context for a spoc element", () => {
+    // eslint-disable-next-line no-shadow
     const context = "Sponsored by Foo";
     wrapper = mount(
       <DSCard context_type="bookmark" context={context} {...DEFAULT_PROPS} />

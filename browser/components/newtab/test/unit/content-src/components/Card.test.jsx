@@ -94,6 +94,7 @@ describe("<Card>", () => {
     wrapper
       .find(".context-menu-button")
       .simulate("click", { preventDefault: () => {} });
+    // eslint-disable-next-line no-shadow
     const { dispatch, source, onUpdate, site, options, index } = wrapper
       .find(LinkMenu)
       .props();
@@ -112,16 +113,17 @@ describe("<Card>", () => {
     wrapper
       .find(".context-menu-button")
       .simulate("click", { preventDefault: () => {} });
+    // eslint-disable-next-line no-shadow
     const { options } = wrapper.find(LinkMenu).props();
     assert.equal(options, link.contextMenuOptions);
   });
   it("should have a context based on type", () => {
     wrapper = shallow(<Card {...DEFAULT_PROPS} />);
-    const context = wrapper.find(".card-context");
+    const cardContext = wrapper.find(".card-context");
     const { icon, fluentID } = cardContextTypes[DEFAULT_PROPS.link.type];
-    assert.isTrue(context.childAt(0).hasClass(`icon-${icon}`));
-    assert.isTrue(context.childAt(1).hasClass("card-context-label"));
-    assert.equal(context.childAt(1).prop("data-l10n-id"), fluentID);
+    assert.isTrue(cardContext.childAt(0).hasClass(`icon-${icon}`));
+    assert.isTrue(cardContext.childAt(1).hasClass("card-context-label"));
+    assert.equal(cardContext.childAt(1).prop("data-l10n-id"), fluentID);
   });
   it("should support setting custom context", () => {
     const linkWithCustomContext = {
@@ -135,16 +137,16 @@ describe("<Card>", () => {
         {...Object.assign({}, DEFAULT_PROPS, { link: linkWithCustomContext })}
       />
     );
-    const context = wrapper.find(".card-context");
+    const cardContext = wrapper.find(".card-context");
     const { icon } = cardContextTypes[DEFAULT_PROPS.link.type];
-    assert.isFalse(context.childAt(0).hasClass(`icon-${icon}`));
+    assert.isFalse(cardContext.childAt(0).hasClass(`icon-${icon}`));
     assert.equal(
-      context.childAt(0).props().style.backgroundImage,
+      cardContext.childAt(0).props().style.backgroundImage,
       "url('icon-url')"
     );
 
-    assert.isTrue(context.childAt(1).hasClass("card-context-label"));
-    assert.equal(context.childAt(1).text(), linkWithCustomContext.context);
+    assert.isTrue(cardContext.childAt(1).hasClass("card-context-label"));
+    assert.equal(cardContext.childAt(1).text(), linkWithCustomContext.context);
   });
   it("should parse args for fluent correctly", () => {
     const title = '"fluent"';

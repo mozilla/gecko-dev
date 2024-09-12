@@ -4,6 +4,7 @@
 
 import { cardContextTypes } from "../../Card/types.mjs";
 import { SponsoredContentHighlight } from "../FeatureHighlight/SponsoredContentHighlight";
+// eslint-disable-next-line no-shadow
 import { CSSTransition, TransitionGroup } from "react-transition-group";
 import { FluentOrText } from "../../FluentOrText/FluentOrText.jsx";
 import React from "react";

@@ -18,12 +18,12 @@ export class ContentSection extends React.PureComponent {
     this.pocketDrawerRef = React.createRef();
   }
 
-  inputUserEvent(eventSource, status) {
+  inputUserEvent(eventSource, eventValue) {
     this.props.dispatch(
       ac.UserEvent({
         event: "PREF_CHANGED",
         source: eventSource,
-        value: { status, menu_source: "CUSTOMIZE_MENU" },
+        value: { status: eventValue, menu_source: "CUSTOMIZE_MENU" },
       })
     );
   }

@@ -22,14 +22,14 @@ const DEFAULT_PROPS = {
 describe("CollapsibleSection", () => {
   let wrapper;
 
-  function setup(props = {}) {
+  function testSetup(props = {}) {
     const customProps = Object.assign({}, DEFAULT_PROPS, props);
     wrapper = mount(
       <CollapsibleSection {...customProps}>foo</CollapsibleSection>
     );
   }
 
-  beforeEach(() => setup());
+  beforeEach(() => testSetup());
 
   it("should render the component", () => {
     assert.ok(wrapper.exists());
@@ -46,7 +46,7 @@ describe("CollapsibleSection", () => {
     let dispatch;
     beforeEach(() => {
       dispatch = sinon.stub();
-      setup({ collapsed: undefined, dispatch });
+      testSetup({ collapsed: undefined, dispatch });
     });
     it("should render the section uncollapsed", () => {
       assert.isFalse(
