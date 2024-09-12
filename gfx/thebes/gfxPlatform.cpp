@@ -1348,12 +1348,8 @@ void gfxPlatform::ShutdownLayersIPC() {
   if (XRE_IsContentProcess()) {
     gfx::VRManagerChild::ShutDown();
     gfx::CanvasShutdownManager::Shutdown();
-    // cf bug 1215265.
-    if (StaticPrefs::layers_child_process_shutdown()) {
-      layers::CompositorManagerChild::Shutdown();
-      layers::ImageBridgeChild::ShutDown();
-    }
-
+    layers::CompositorManagerChild::Shutdown();
+    layers::ImageBridgeChild::ShutDown();
   } else if (XRE_IsParentProcess()) {
     VideoBridgeParent::Shutdown();
     RDDProcessManager::RDDProcessShutdown();

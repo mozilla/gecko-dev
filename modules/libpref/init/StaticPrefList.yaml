@@ -8476,11 +8476,6 @@
   mirror: once
   do_not_use_directly: true
 
-- name: layers.child-process-shutdown
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 - name: layers.d3d11.force-warp
   type: bool
   value: false
