@@ -602,6 +602,7 @@ export var TabCrashHandler = {
       return;
     }
 
+    // eslint-disable-next-line no-shadow
     let { includeURL, comments, URL } = message.data;
 
     let extraExtraKeyVals = {
