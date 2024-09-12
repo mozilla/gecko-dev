@@ -137,7 +137,7 @@ class WebControlsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/834205
-    @SdkSuppress(maxSdkVersion = 30)
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun verifyTelephoneLinkTest() {
         val externalLinksPage = TestAssetHelper.getExternalLinksAsset(mockWebServer)

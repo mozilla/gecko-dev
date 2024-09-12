@@ -19,7 +19,7 @@ object Constants {
         const val GOOGLE_DOCS = "com.google.android.apps.docs"
         const val YOUTUBE_APP = "com.google.android.youtube"
         const val GMAIL_APP = "com.google.android.gm"
-        const val PHONE_APP = "com.android.dialer"
+        const val PHONE_APP = "com.google.android.dialer"
         const val ANDROID_SETTINGS = "com.android.settings"
         const val PRINT_SPOOLER = "com.android.printspooler"
         const val PIXEL_LAUNCHER = "com.google.android.apps.nexuslauncher"
