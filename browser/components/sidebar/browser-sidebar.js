@@ -838,7 +838,7 @@ var SidebarController = {
     });
 
     const options = {
-      duration: 300,
+      duration: this._animationDurationMs,
     };
     let animations = [];
     let sidebarOnLeft = this._positionStart != RTL_UI;
@@ -908,7 +908,7 @@ var SidebarController = {
   async handleToolbarButtonClick() {
     switch (this.sidebarRevampVisibility) {
       case "always-show":
-        if (!window.gReduceMotion) {
+        if (this._animationEnabled && !window.gReduceMotion) {
           this._animateSidebarMain();
         } else {
           this.toggleExpanded();
@@ -1499,6 +1499,18 @@ XPCOMUtils.defineLazyPreferenceGetter(
       SidebarController.setPosition();
     }
   }
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  SidebarController,
+  "_animationEnabled",
+  "sidebar.animation.enabled",
+  true
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  SidebarController,
+  "_animationDurationMs",
+  "sidebar.animation.duration-ms",
+  200
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
