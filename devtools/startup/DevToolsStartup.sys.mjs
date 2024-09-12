@@ -515,7 +515,7 @@ DevToolsStartup.prototype = {
       };
     }
 
-    const console = cmdLine.handleFlag("jsconsole", false);
+    const jsConsole = cmdLine.handleFlag("jsconsole", false);
     const devtools = cmdLine.handleFlag("devtools", false);
 
     let devToolsServer;
@@ -539,7 +539,12 @@ DevToolsStartup.prototype = {
       debuggerFlag = cmdLine.handleFlag("jsdebugger", false);
     }
 
-    return { console, debugger: debuggerFlag, devtools, devToolsServer };
+    return {
+      console: jsConsole,
+      debugger: debuggerFlag,
+      devtools,
+      devToolsServer,
+    };
   },
 
   /**
