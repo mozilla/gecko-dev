@@ -3520,7 +3520,6 @@ BrowserGlue.prototype = {
 
     let windowcount = 0;
     let pagecount = 0;
-    let pinnedcount = 0;
     for (let win of lazy.BrowserWindowTracker.orderedWindows) {
       if (win.closed) {
         continue;
@@ -3528,7 +3527,6 @@ BrowserGlue.prototype = {
       windowcount++;
       let tabbrowser = win.gBrowser;
       if (tabbrowser) {
-        pinnedcount += tabbrowser._numPinnedTabs;
         pagecount += tabbrowser.visibleTabs.length - tabbrowser._numPinnedTabs;
       }
     }
@@ -3615,26 +3613,6 @@ BrowserGlue.prototype = {
       null,
       checkboxLabel.value,
       warnOnClose
-    );
-    Services.telemetry.setEventRecordingEnabled("close_tab_warning", true);
-    let warnCheckbox = warnOnClose.value ? "checked" : "unchecked";
-
-    let sessionWillBeRestored =
-      Services.prefs.getIntPref("browser.startup.page") == 3 ||
-      Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
-    Services.telemetry.recordEvent(
-      "close_tab_warning",
-      "shown",
-      "application",
-      null,
-      {
-        source: this._quitSource,
-        button: buttonPressed == 0 ? "close" : "cancel",
-        warn_checkbox: warnCheckbox,
-        closing_wins: "" + windowcount,
-        closing_tabs: "" + (pagecount + pinnedcount),
-        will_restore: sessionWillBeRestored ? "yes" : "no",
-      }
     );
 
     // If the user has unticked the box, and has confirmed closing, stop showing

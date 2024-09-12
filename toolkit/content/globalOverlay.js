@@ -26,7 +26,7 @@ function closeWindow(aClose, aPromptFunction, aSource) {
     if (
       windowCount != 1 &&
       typeof aPromptFunction == "function" &&
-      !aPromptFunction(aSource)
+      !aPromptFunction()
     ) {
       return false;
     }
@@ -35,10 +35,7 @@ function closeWindow(aClose, aPromptFunction, aSource) {
     if (aClose) {
       window.SessionStore?.maybeDontRestoreTabs(window);
     }
-  } else if (
-    typeof aPromptFunction == "function" &&
-    !aPromptFunction(aSource)
-  ) {
+  } else if (typeof aPromptFunction == "function" && !aPromptFunction()) {
     return false;
   }
 

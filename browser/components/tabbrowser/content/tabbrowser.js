@@ -3436,7 +3436,7 @@
       }
     },
 
-    warnAboutClosingTabs(tabsToClose, aCloseTabs, aSource) {
+    warnAboutClosingTabs(tabsToClose, aCloseTabs) {
       // We want to warn about closing duplicates even if there was only a
       // single duplicate, so we intentionally place this above the check for
       // tabsToClose <= 1.
@@ -3538,39 +3538,6 @@
         null,
         checkboxLabel,
         warnOnClose
-      );
-
-      Services.telemetry.setEventRecordingEnabled("close_tab_warning", true);
-      let closeTabEnumKey =
-        Object.entries(this.closingTabsEnum)
-          .find(([, v]) => v == aCloseTabs)?.[0]
-          ?.toLowerCase() || "some";
-
-      let warnCheckbox = warnOnClose.value ? "checked" : "unchecked";
-      if (!checkboxLabel) {
-        warnCheckbox = "not-present";
-      }
-      let sessionWillBeRestored =
-        Services.prefs.getIntPref("browser.startup.page") == 3 ||
-        Services.prefs.getBoolPref("browser.sessionstore.resume_session_once");
-      let closesWindow = aCloseTabs == this.closingTabsEnum.ALL;
-      Services.telemetry.recordEvent(
-        "close_tab_warning",
-        "shown",
-        closesWindow ? "window" : "tabs",
-        null,
-        {
-          source: aSource || `close-${closeTabEnumKey}-tabs`,
-          button: buttonPressed == 0 ? "close" : "cancel",
-          warn_checkbox: warnCheckbox,
-          closing_tabs: "" + tabsToClose,
-          closing_wins: "" + +closesWindow, // ("1" or "0", depending on the value)
-          // This value doesn't really apply to whether this warning
-          // gets shown, but having pings be consistent (and perhaps
-          // being able to see trends for users with/without sessionrestore)
-          // seems useful:
-          will_restore: sessionWillBeRestored ? "yes" : "no",
-        }
       );
 
       var reallyClose = buttonPressed == 0;
