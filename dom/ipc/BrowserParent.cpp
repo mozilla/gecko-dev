@@ -338,10 +338,6 @@ BrowserParent::BrowserParent(ContentParent* aManager, const TabId& aTabId,
 
   RequestingAccessKeyEventData::OnBrowserParentCreated();
 
-  // When the input event queue is disabled, we don't need to handle the case
-  // that some input events are dispatched before PBrowserConstructor.
-  mIsReadyToHandleInputEvents = !ContentParent::IsInputEventQueueSupported();
-
   // Make sure to compute our process priority if needed before the block of
   // code below. This makes sure the block below prioritizes our process if
   // needed.

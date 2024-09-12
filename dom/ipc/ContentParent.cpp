@@ -3073,16 +3073,13 @@ void ContentParent::OnCompositorDeviceReset() {
 
 void ContentParent::MaybeEnableRemoteInputEventQueue() {
   MOZ_ASSERT(!mIsRemoteInputEventQueueEnabled);
-  if (!IsInputEventQueueSupported()) {
-    return;
-  }
   mIsRemoteInputEventQueueEnabled = true;
   Unused << SendSetInputEventQueueEnabled();
   SetInputPriorityEventEnabled(true);
 }
 
 void ContentParent::SetInputPriorityEventEnabled(bool aEnabled) {
-  if (!IsInputEventQueueSupported() || !mIsRemoteInputEventQueueEnabled ||
+  if (!mIsRemoteInputEventQueueEnabled ||
       mIsInputPriorityEventEnabled == aEnabled) {
     return;
   }
@@ -3092,18 +3089,6 @@ void ContentParent::SetInputPriorityEventEnabled(bool aEnabled) {
   Unused << SendSuspendInputEventQueue();
   Unused << SendFlushInputEventQueue();
   Unused << SendResumeInputEventQueue();
-}
-
-/*static*/
-bool ContentParent::IsInputEventQueueSupported() {
-  static bool sSupported = false;
-  static bool sInitialized = false;
-  if (!sInitialized) {
-    MOZ_ASSERT(Preferences::IsServiceAvailable());
-    sSupported = Preferences::GetBool("input_event_queue.supported", false);
-    sInitialized = true;
-  }
-  return sSupported;
 }
 
 void ContentParent::OnVarChanged(const GfxVarUpdate& aVar) {

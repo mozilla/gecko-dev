@@ -661,8 +661,6 @@ class ContentParent final : public PContentParent,
   void SetInputPriorityEventEnabled(bool aEnabled);
   bool IsInputPriorityEventEnabled() { return mIsInputPriorityEventEnabled; }
 
-  static bool IsInputEventQueueSupported();
-
   mozilla::ipc::IPCResult RecvCreateBrowsingContext(
       uint64_t aGroupId, BrowsingContext::IPCInitializer&& aInit);
 

@@ -1942,9 +1942,6 @@ pref("dom.use_watchdog", true);
 // Stop all scripts in a compartment when the "stop script" dialog is used.
 pref("dom.global_stop_script", true);
 
-// Support the input event queue on the main thread of content process
-pref("input_event_queue.supported", true);
-
 // Enable multi by default.
 #if !defined(MOZ_ASAN) && !defined(MOZ_TSAN)
   pref("dom.ipc.processCount", 8);
