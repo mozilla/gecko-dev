@@ -304,6 +304,8 @@
     <string name="browser_menu_switch_to_mobile_site">Giao diện điện thoại</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Công cụ</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">Quay lại menu chính</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Chế độ đọc, dịch, in, chia sẻ, mở ứng dụng</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -638,8 +640,6 @@
     <string name="toast_override_account_sync_server_done">Đã sửa đổi máy chủ/tài khoản đồng bộ hóa Mozilla. Đang thoát khỏi ứng dụng để áp dụng các thay đổi…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Tài khoản</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Thanh công cụ</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Vị trí thanh địa chỉ</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -942,8 +942,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Kéo trang để làm mới</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Cuộn trang để ẩn thanh công cụ</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Vuốt thanh công cụ sang hai bên để chuyển đổi các thẻ</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Vuốt thanh công cụ lên để mở các thẻ</string>
 
@@ -2669,8 +2667,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Xóa tất cả ngôn ngữ</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Xóa</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Trong tiến trình</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Trong tiến trình</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2721,8 +2717,6 @@
     <string name="download_language_file_dialog_title">Tải xuống khi đang ở chế độ tiết kiệm dữ liệu (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Chúng tôi tải một phần ngôn ngữ xuống bộ nhớ đệm của bạn để giữ bản dịch ở chế độ riêng tư.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Chúng tôi tải một phần ngôn ngữ xuống để giữ bản dịch ở chế độ riêng tư.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Luôn tải xuống khi ở chế độ tiết kiệm dữ liệu</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2785,11 +2779,7 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Tiếp tục</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Hoàn thành khảo sát này</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Vui lòng hoàn thành khảo sát</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Thông báo bảo mật</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Thông báo về quyền riêng tư</string>
     <!-- The submit button label text -->
@@ -2811,14 +2801,18 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Tôi không sử dụng nó</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Tôi không sử dụng tìm kiếm trên Firefox</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Bạn hài lòng với trang chủ Firefox của mình đến mức nào?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Giúp việc in ấn trong Firefox tốt hơn. Chỉ mất một giây</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Bạn hài lòng như thế nào với việc in ấn trong Firefox?</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Bạn hài lòng với trang chủ Firefox của mình đến mức nào?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Bạn hài lòng với trải nghiệm tìm kiếm trên Firefox ở mức độ nào?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
@@ -2849,9 +2843,16 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Kéo từ trên xuống &amp; sử dụng cử chỉ quay lại để thoát</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Kéo từ trên xuống &amp; nhấn phím quay lại để thoát</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

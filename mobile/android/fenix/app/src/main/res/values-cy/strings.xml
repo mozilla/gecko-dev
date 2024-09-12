@@ -573,13 +573,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Diddymu</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Anfon cais</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Gofynnwch i gael ychwanegu gwefan</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Anfon cais</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Gwneud cais am gefnogaeth ar gyfer y wefan hon?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Gofynnwch i %1$s wrthod cwcis yn awtomatig</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Gwneud cais am gefnogaeth ar gyfer y wefan hon?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Cais wedi ei anfon</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -588,18 +584,14 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Cais am gefnogaeth wedi’i anfon</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Nid yw’r wefan yn cael ei chefnogi ar hyn o bryd</string>
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">Gwefan heb ei chefnogi</string>
+    <string name="reduce_cookie_banner_unsupported_site">Nid yw’r wefan yn cael ei chefnogi ar hyn o bryd</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Trowch y Rhwystrydd Baner Cwci ymlaen ar gyfer %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Diffoddwch y Rhwystrydd Baner Cwcis ar gyfer %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Nid yw %1$s yn gallu gwrthod ceisiadau cwcis ar y wefan hon yn awtomatig. Gallwch anfon cais i gefnogi’r wefan hon yn y dyfodol.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">Nid yw %1$s yn gallu gwrthod ceisiadau cwcis ar y wefan hon yn awtomatig. Gallwch anfon cais i gefnogi’r wefan hon yn y dyfodol.</string>
 
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Nid oes modd i ni wrthod llamlenni cwcis yn awtomatig ar y wefan hon ar hyn o bryd.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Diffoddwch a bydd %1$s yn clirio cwcis ac yn ail-lwytho’r wefan hon. Gall hyn eich allgofnodi neu wagio cartiau siopa.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -1246,8 +1238,12 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">FFOLDER</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Cadw yn</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">ENW</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Enw</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Ychwanegu ffolder</string>
     <!-- Bookmark select folder screen title -->
