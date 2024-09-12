@@ -7,3 +7,4 @@ toolkit.jar:
   content/global/megalist/megalist.html       (megalist/content/megalist.html)
   content/global/megalist/MegalistAlpha.mjs   (megalist/content/MegalistAlpha.mjs)
   content/global/megalist/PasswordCard.mjs    (megalist/content/PasswordCard.mjs)
+  content/global/megalist/Dialog.mjs         (megalist/content/Dialog.mjs)

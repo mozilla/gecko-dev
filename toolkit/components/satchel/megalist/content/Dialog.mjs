@@ -1,116 +1,141 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-const GENERIC_DIALOG_TEMPLATE = document.querySelector("#dialog-template");
+import { html, ifDefined } from "chrome://global/content/vendor/lit.all.mjs";
+import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
-const DIALOGS = {
-  "remove-login": {
-    template: "#remove-login-dialog-template",
-  },
-  "export-logins": {
-    template: "#export-logins-dialog-template",
-  },
-  "remove-logins": {
-    template: "#remove-logins-dialog-template",
-    callback: dialog => {
-      const primaryButton = dialog.querySelector("button.primary");
-      const checkbox = dialog.querySelector(".confirm-checkbox");
-      const toggleButton = () => (primaryButton.disabled = !checkbox.checked);
-      checkbox.addEventListener("change", toggleButton);
-      toggleButton();
-    },
-  },
-  "import-logins": {
-    template: "#import-logins-dialog-template",
-  },
-  "import-error": {
-    template: "#import-error-dialog-template",
-  },
+const actionButton = action => {
+  return html` <moz-button
+    @click=${action.onClick}
+    type=${ifDefined(action.type)}
+    data-l10n-id=${ifDefined(action.l10nId)}
+    data-l10n-args=${JSON.stringify(ifDefined(action.l10nArgs))}
+    ?disabled=${action.disabled}
+  ></moz-button>`;
 };
 
-/**
- * Setup dismiss and command handling logic for the dialog overlay.
- *
- * @param {Element} overlay - The overlay element containing the dialog
- * @param {Function} messageHandler - Function to send message back to view model.
- */
-const setupControls = (overlay, messageHandler) => {
-  const dialog = overlay.querySelector(".dialog-container");
-  const commandButtons = dialog.querySelectorAll("[data-command]");
-  for (const commandButton of commandButtons) {
-    const commandId = commandButton.dataset.command;
-    commandButton.addEventListener("click", () => messageHandler(commandId));
+const dialogShell = ({
+  closeDialog,
+  dialogContentTemplate,
+  titlel10nId,
+  titlel10nArgs,
+  messageL10nId,
+  messageL10nArgs,
+  primaryAction,
+  secondaryAction,
+}) => {
+  return html`
+    <link
+      rel="stylesheet"
+      href="chrome://global/content/megalist/megalist.css"
+    />
+    <div class="dialog-overlay">
+      <div class="dialog-container">
+        <moz-button
+          data-l10n-id="confirmation-dialog-dismiss-button"
+          iconSrc="chrome://global/skin/icons/close.svg"
+          size="small"
+          type="icon ghost"
+          class="dismiss-button"
+          @click=${closeDialog}
+        >
+        </moz-button>
+        <div class="dialog-wrapper">
+          <h3
+            class="dialog-title"
+            data-l10n-id=${titlel10nId}
+            data-l10n-args=${JSON.stringify(ifDefined(titlel10nArgs))}
+          ></h3>
+          <div class="dialog-content" slot="dialog-content">
+            <p
+              data-l10n-id=${messageL10nId}
+              data-l10n-args=${ifDefined(messageL10nArgs)}
+            ></p>
+            ${dialogContentTemplate ?? ""}
+          </div>
+          <moz-button-group>
+            ${actionButton(primaryAction)} ${actionButton(secondaryAction)}
+          </moz-button-group>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+export class ExportAllDialog extends MozLitElement {
+  render() {
+    return html`
+      ${dialogShell({
+        closeDialog: this.onClose,
+        titlel10nId: "about-logins-confirm-export-dialog-title2",
+        messageL10nId: "about-logins-confirm-export-dialog-message2",
+        primaryAction: {
+          type: "primary",
+          l10nId: "about-logins-confirm-export-dialog-confirm-button2",
+          onClick: this.onClick,
+        },
+        secondaryAction: {
+          l10nId: "confirmation-dialog-cancel-button",
+          onClick: this.onClose,
+        },
+      })}
+    `;
+  }
+}
+
+class RemoveAllDialog extends MozLitElement {
+  static properties = {
+    enabled: { type: Boolean, state: true },
+    loginsCount: { type: Number },
+  };
+
+  get l10nArgs() {
+    return {
+      count: this.loginsCount,
+    };
   }
 
-  dialog.querySelectorAll("[close-dialog]").forEach(element => {
-    element.addEventListener("click", cancelDialog, { once: true });
-  });
-
-  document.addEventListener("keyup", function handleKeyUp(ev) {
-    if (ev.key === "Escape") {
-      cancelDialog();
-      document.removeEventListener("keyup", handleKeyUp);
-    }
-  });
-
-  document.addEventListener("click", function handleClickOutside(ev) {
-    if (!dialog.contains(ev.target)) {
-      cancelDialog();
-      document.removeEventListener("click", handleClickOutside);
-    }
-  });
-  dialog.querySelector("[autofocus]")?.focus();
-};
-
-/**
- * Add data-l10n-args to elements with localizable attribute
- *
- * @param {Element} dialog - The dialog element.
- * @param {Array<object>} l10nArgs - List of localization arguments.
- */
-const populateL10nArgs = (dialog, l10nArgs) => {
-  const localizableElements = dialog.querySelectorAll("[localizable]");
-  for (const [index, localizableElement] of localizableElements.entries()) {
-    localizableElement.dataset.l10nArgs = JSON.stringify(l10nArgs[index]) ?? "";
+  contentTemplate() {
+    return html` <label>
+      <input
+        type="checkbox"
+        class="confirm-checkbox checkbox"
+        @change=${() => (this.enabled = !this.enabled)}
+        autofocus
+      />
+      <span
+        class="checkbox-text"
+        data-l10n-id="about-logins-confirm-remove-all-dialog-checkbox-label2"
+        data-l10n-args=${JSON.stringify(this.l10nArgs)}
+      ></span>
+    </label>`;
   }
-};
 
-/**
- * Remove the currently displayed dialog overlay from the DOM.
- */
-export const cancelDialog = () =>
-  document.querySelector(".dialog-overlay")?.remove();
+  render() {
+    return html`
+      ${dialogShell({
+        closeDialog: this.onClose,
+        dialogContentTemplate: this.contentTemplate(),
+        titlel10nId: "about-logins-confirm-remove-all-sync-dialog-title2",
+        titlel10nArgs: this.l10nArgs,
+        messageL10nId: "about-logins-confirm-remove-all-dialog-message2",
+        messageL10nArgs: this.l10nArgs,
+        primaryAction: {
+          type: "destructive",
+          l10nId: "about-logins-confirm-remove-all-dialog-confirm-button-label",
+          l10nArgs: this.l10nArgs,
+          disabled: !this.enabled,
+          onClick: this.onClick,
+        },
+        secondaryAction: {
+          l10nId: "confirmation-dialog-cancel-button",
+          onClick: this.onClose,
+        },
+      })}
+    `;
+  }
+}
 
-/**
- * Create a new dialog overlay and populate it using the specified template and data.
- *
- * @param {object} dialogData - Data required to populate the dialog, includes template and localization args.
- * @param {Function} messageHandler - Function to send message back to view model.
- */
-export const createDialog = (dialogData, messageHandler) => {
-  const templateData = DIALOGS[dialogData?.id];
-
-  const genericTemplateClone = document.importNode(
-    GENERIC_DIALOG_TEMPLATE.content,
-    true
-  );
-
-  const overlay = genericTemplateClone.querySelector(".dialog-overlay");
-  const dialog = genericTemplateClone.querySelector(".dialog-container");
-
-  const overrideTemplate = document.querySelector(templateData.template);
-  const overrideTemplateClone = document.importNode(
-    overrideTemplate.content,
-    true
-  );
-
-  genericTemplateClone
-    .querySelector(".dialog-wrapper")
-    .appendChild(overrideTemplateClone);
-
-  populateL10nArgs(genericTemplateClone, dialogData.l10nArgs);
-  setupControls(overlay, messageHandler);
-  document.body.appendChild(genericTemplateClone);
-  templateData?.callback?.(dialog, messageHandler);
-};
+customElements.define("remove-all-dialog", RemoveAllDialog);
+customElements.define("export-all-dialog", ExportAllDialog);

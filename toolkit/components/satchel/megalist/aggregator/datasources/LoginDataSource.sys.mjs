@@ -128,7 +128,7 @@ export class LoginDataSource extends DataSourceBase {
       this.#header.executeRemoveAll = () => this.#removeAllPasswords();
       this.#header.executeSettings = () => this.#openMenuLink(PREFRENCES_URL);
       this.#header.executeHelp = () => this.#openMenuLink(SUPPORT_URL);
-      this.#header.executeExport = async () => this.#exportAllPasswords();
+      this.#header.executeExport = async () => this.#confirmExportLogins();
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
         OSAuthDialogCaption: strings.passwordOSAuthDialogCaption,
@@ -411,19 +411,6 @@ export class LoginDataSource extends DataSourceBase {
   }
 
   #removeAllPasswords() {
-    let count = 0;
-    let currentRecord;
-    for (const line of this.lines) {
-      if (line.record != currentRecord) {
-        count += 1;
-        currentRecord = line.record;
-      }
-    }
-
-    this.setLayout({ id: "remove-logins", l10nArgs: [{ count }] });
-  }
-
-  confirmRemoveAll() {
     Services.logins.removeAllLogins();
     this.cancelDialog();
   }
@@ -438,11 +425,7 @@ export class LoginDataSource extends DataSourceBase {
     this.cancelDialog();
   }
 
-  #exportAllPasswords() {
-    this.setLayout({ id: "export-logins" });
-  }
-
-  async confirmExportLogins() {
+  async #confirmExportLogins() {
     const { BrowserWindowTracker } = ChromeUtils.importESModule(
       "resource:///modules/BrowserWindowTracker.sys.mjs"
     );
