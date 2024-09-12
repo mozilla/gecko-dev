@@ -198,7 +198,6 @@ cookie.banners:
       has_click_rule:
         description: There is a matching click rule for the reloading domain.
         type: boolean
-    telemetry_mirror: Cookie_banner_Reload_Browser
   cookie_injection_fail:
     type: counter
     description: >
