@@ -1,23 +1,18 @@
 <!DOCTYPE HTML>
 <html>
 <script>
-// Add a listener for responses to our remote requests.
-window.addEventListener("WebChannelMessageToContent", function(event) {
-  if (event.detail.id == "remote-troubleshooting") {
-    // Send what we got back to the test.
-    var backEvent = new window.CustomEvent("WebChannelMessageToChrome", {
-      detail: JSON.stringify({
-        id: "test-remote-troubleshooting-backchannel",
-        message: {
-          message: event.detail.message,
-        },
-      }),
-    });
-    window.dispatchEvent(backEvent);
-    // and stick it in our DOM just for good measure/diagnostics.
-    document.getElementById("troubleshooting").textContent =
-      JSON.stringify(event.detail.message, null, 2);
-  }
+
+// Set up a promise to wait for a response to our remote request.
+window.remoteTroubleShootingResult = new Promise(resolve => {
+  window.addEventListener("WebChannelMessageToContent", function (event) {
+    if (event.detail.id == "remote-troubleshooting") {
+      // Store the result our DOM just for good measure/diagnostics.
+      document.getElementById("troubleshooting").textContent =
+        JSON.stringify(event.detail.message, null, 2);
+
+      resolve(event.detail.message);
+    }
+  });
 });
 
 // Make a request for the troubleshooting data as we load.

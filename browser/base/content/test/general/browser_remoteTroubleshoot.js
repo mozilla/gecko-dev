@@ -14,34 +14,26 @@ const TEST_URL_TAIL =
 const TEST_URI_GOOD = Services.io.newURI("https://" + TEST_URL_TAIL);
 const TEST_URI_BAD = Services.io.newURI("http://" + TEST_URL_TAIL);
 
-// Creates a one-shot web-channel for the test data to be sent back from the test page.
-function promiseChannelResponse(channelID, originOrPermission) {
-  return new Promise(resolve => {
-    let channel = new WebChannel(channelID, originOrPermission);
-    channel.listen((id, data) => {
-      channel.stopListening();
-      resolve(data);
-    });
-  });
-}
-
-// Loads the specified URI in a new tab and waits for it to send us data on our
-// test web-channel and resolves with that data.
-function promiseNewChannelResponse(uri) {
-  let channelPromise = promiseChannelResponse(
-    "test-remote-troubleshooting-backchannel",
-    uri
-  );
+// Loads the specified URI in a new tab and waits for it to send us data via
+// the SpecialPowers.spawn() call and resolves with that data.
+async function promiseNewChannelResponse(uri) {
   let tab = gBrowser.addTab(uri.spec, {
     inBackground: false,
     triggeringPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
   });
-  return promiseTabLoaded(tab)
-    .then(() => channelPromise)
-    .then(data => {
-      gBrowser.removeTab(tab);
-      return data;
-    });
+  await promiseTabLoaded(tab);
+
+  let data = await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [],
+    async function () {
+      return Cu.waiveXrays(content).remoteTroubleShootingResult;
+    }
+  );
+
+  await gBrowser.removeTab(tab);
+
+  return data;
 }
 
 add_task(async function () {
@@ -49,7 +41,7 @@ add_task(async function () {
   let got = await promiseNewChannelResponse(TEST_URI_GOOD);
   // Should return an error.
   Assert.ok(
-    got.message.errno === 2,
+    got.errno === 2,
     "should have failed with errno 2, no such channel"
   );
 
@@ -67,12 +59,12 @@ add_task(async function () {
   got = await promiseNewChannelResponse(TEST_URI_GOOD);
 
   // Check some keys we expect to always get.
-  Assert.ok(got.message.addons, "should have addons");
-  Assert.ok(got.message.graphics, "should have graphics");
+  Assert.ok(got.addons, "should have addons");
+  Assert.ok(got.graphics, "should have graphics");
 
   // Check we have channel and build ID info:
   Assert.equal(
-    got.message.application.buildID,
+    got.application.buildID,
     Services.appinfo.appBuildID,
     "should have correct build ID"
   );
@@ -85,12 +77,12 @@ add_task(async function () {
   } catch (ex) {}
   if (!updateChannel) {
     Assert.ok(
-      !("updateChannel" in got.message.application),
+      !("updateChannel" in got.application),
       "should not have update channel where not available."
     );
   } else {
     Assert.equal(
-      got.message.application.updateChannel,
+      got.application.updateChannel,
       updateChannel,
       "should have correct update channel."
     );
@@ -98,19 +90,19 @@ add_task(async function () {
 
   // And check some keys we know we decline to return.
   Assert.ok(
-    !got.message.modifiedPreferences,
+    !got.modifiedPreferences,
     "should not have a modifiedPreferences key"
   );
   Assert.ok(
-    !got.message.printingPreferences,
+    !got.printingPreferences,
     "should not have a printingPreferences key"
   );
-  Assert.ok(!got.message.crashes, "should not have crash info");
+  Assert.ok(!got.crashes, "should not have crash info");
 
   // Now a http:// URI - should receive an error
   got = await promiseNewChannelResponse(TEST_URI_BAD);
   Assert.ok(
-    got.message.errno === 2,
+    got.errno === 2,
     "should have failed with errno 2, no such channel"
   );
 });
