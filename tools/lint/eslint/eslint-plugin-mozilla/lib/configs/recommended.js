@@ -63,14 +63,14 @@ module.exports = {
         "mozilla/reject-importGlobalProperties": ["error", "everything"],
         "mozilla/reject-mixing-eager-and-lazy": "error",
         "mozilla/reject-top-level-await": "error",
-        // TODO: Bug 1575506 turn `builtinGlobals` on here.
-        // We can enable builtinGlobals for mjs files due to their scopes.
-        "no-redeclare": ["error", { builtinGlobals: false }],
       },
     },
     {
       files: ["**/*.mjs", "**/*.jsx", "**/?(*.)worker.?(m)js"],
       rules: {
+        // We enable builtinGlobals for modules and workers due to their
+        // contained scopes.
+        "no-redeclare": ["error", { builtinGlobals: true }],
         "no-shadow": ["error", { allow: ["event"], builtinGlobals: true }],
         // Modules and workers are far easier to check for no-unused-vars on a
         // global scope, than our content files. Hence we turn that on here.

@@ -6,6 +6,7 @@
 "use strict";
 
 // Send a message to all controlled windows.
+/* eslint-disable-next-line no-redeclare */
 function postMessage(message) {
   return clients.matchAll().then(function (clientlist) {
     clientlist.forEach(function (client) {
