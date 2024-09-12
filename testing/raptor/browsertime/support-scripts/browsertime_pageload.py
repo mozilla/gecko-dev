@@ -51,6 +51,7 @@ def _get_raptor_val(mdict, mname, retval=False):
 
 class PageloadSupport(BasePythonSupport):
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.perfstats = False
         self.browsertime_visualmetrics = False
         self.accept_zero_vismet = False

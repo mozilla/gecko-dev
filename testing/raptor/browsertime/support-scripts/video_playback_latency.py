@@ -8,6 +8,7 @@ from base_python_support import BasePythonSupport
 
 class VideoPlaybackLatency(BasePythonSupport):
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._is_android = False
         self._is_chrome = False
 

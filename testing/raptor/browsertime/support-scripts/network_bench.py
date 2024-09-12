@@ -22,6 +22,7 @@ LOG = RaptorLogger(component="raptor-browsertime")
 
 class NetworkBench(BasePythonSupport):
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._is_chrome = False
         self.browsertime_node = None
         self.backend_server = None

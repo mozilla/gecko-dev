@@ -21,6 +21,7 @@ def extract_domain(link):
 
 class TP6BenchSupport(BasePythonSupport):
     def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self._load_times = []
         self._total_times = []
         self._geomean_load_times = []

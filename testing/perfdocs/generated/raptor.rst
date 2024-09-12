@@ -4463,8 +4463,9 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **apps**: firefox, chrome, safari, safari-tp, custom-car
    * **expected**: pass
    * **expose browser profiler**: true
+   * **gather cpuTime**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#16>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#17>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 600000
@@ -4847,8 +4848,9 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **apps**: fenix, geckoview, refbrow, chrome-m, cstm-car-m
    * **expected**: pass
    * **expose browser profiler**: true
+   * **gather cpuTime**: true
    * **gecko profile interval**: 1
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#16>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#17>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 420000
@@ -5243,9 +5245,10 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **cold**: true
    * **expected**: pass
    * **expose browser profiler**: true
+   * **gather cpuTime**: true
    * **gecko profile interval**: 1
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#18>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-desktop.toml#19>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 600000
@@ -5658,9 +5661,10 @@ Standard benchmarks are third-party tests (i.e. Speedometer) that we have integr
    * **cold**: true
    * **expected**: pass
    * **expose browser profiler**: true
+   * **gather cpuTime**: true
    * **gecko profile interval**: 1
    * **host from parent**: false
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#18>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/benchmarks/speedometer-mobile.toml#19>`__
    * **lower is better**: false
    * **page cycles**: 5
    * **page timeout**: 420000
