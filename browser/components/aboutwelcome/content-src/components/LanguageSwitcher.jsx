@@ -20,20 +20,22 @@ export function useLanguageSwitcher(
   const languageMismatchScreenIndex = screens.findIndex(
     ({ id }) => id === "AW_LANGUAGE_MISMATCH"
   );
-  const screen = screens[languageMismatchScreenIndex];
+  const mismatchScreen = screens[languageMismatchScreenIndex];
 
   // Ensure fluent messages have the negotiatedLanguage args set, as they are rendered
   // before the negotiatedLanguage is known. If the arg isn't present then Firefox will
   // crash in development mode.
   useEffect(() => {
-    if (screen?.content?.languageSwitcher) {
-      for (const text of Object.values(screen.content.languageSwitcher)) {
+    if (mismatchScreen?.content?.languageSwitcher) {
+      for (const text of Object.values(
+        mismatchScreen.content.languageSwitcher
+      )) {
         if (text?.args && text.args.negotiatedLanguage === undefined) {
           text.args.negotiatedLanguage = "";
         }
       }
     }
-  }, [screen]);
+  }, [mismatchScreen]);
 
   // If there is a mismatch, then Firefox can negotiate a better langpack to offer
   // the user.
@@ -97,11 +99,11 @@ export function useLanguageSwitcher(
       }
       setLangPackInstallPhase("installing");
       window
-        .AWEnsureLangPackInstalled(negotiatedLanguage, screen?.content)
+        .AWEnsureLangPackInstalled(negotiatedLanguage, mismatchScreen?.content)
         .then(
           content => {
             // Update screen content with strings that might have changed.
-            screen.content = content;
+            mismatchScreen.content = content;
             setLangPackInstallPhase("installed");
           },
           error => {
@@ -110,7 +112,7 @@ export function useLanguageSwitcher(
           }
         );
     },
-    [negotiatedLanguage, screen]
+    [negotiatedLanguage, mismatchScreen]
   );
 
   const [languageFilteredScreens, setLanguageFilteredScreens] =
@@ -120,7 +122,7 @@ export function useLanguageSwitcher(
       // Remove the language screen if it exists (already removed for no live
       // reload) and we either don't-need-to or can't switch.
       if (
-        screen &&
+        mismatchScreen &&
         (appAndSystemLocaleInfo?.matchType !== "language-mismatch" ||
           negotiatedLanguage?.langPack === null)
       ) {
@@ -140,7 +142,7 @@ export function useLanguageSwitcher(
       appAndSystemLocaleInfo?.matchType,
       languageMismatchScreenIndex,
       negotiatedLanguage,
-      screen,
+      mismatchScreen,
       screens,
       setScreenIndex,
     ]

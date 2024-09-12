@@ -219,6 +219,7 @@ const MultiStageAboutWelcome = props => {
         id
       }) => id?.split("_")[1]?.[0]).join("");
       // Send impression ping when respective screen first renders
+      // eslint-disable-next-line no-shadow
       filteredScreens.forEach((screen, order) => {
         if (index === order) {
           const messageId = `${props.message_id}_${order}_${screen.id}_${screenInitials}`;
@@ -362,47 +363,47 @@ const MultiStageAboutWelcome = props => {
     style: props.backdrop ? {
       background: props.backdrop
     } : {}
-  }, screens.map((screen, order) => {
-    const isFirstScreen = screen === screens[0];
-    const isLastScreen = screen === screens[screens.length - 1];
+  }, screens.map((currentScreen, order) => {
+    const isFirstScreen = currentScreen === screens[0];
+    const isLastScreen = currentScreen === screens[screens.length - 1];
     const totalNumberOfScreens = screens.length;
     const isSingleScreen = totalNumberOfScreens === 1;
     const setActiveMultiSelect = valueOrFn => setActiveMultiSelects(prevState => ({
       ...prevState,
-      [screen.id]: typeof valueOrFn === "function" ? valueOrFn(prevState[screen.id]) : valueOrFn
+      [currentScreen.id]: typeof valueOrFn === "function" ? valueOrFn(prevState[currentScreen.id]) : valueOrFn
     }));
     const setScreenMultiSelects = valueOrFn => setMultiSelects(prevState => ({
       ...prevState,
-      [screen.id]: typeof valueOrFn === "function" ? valueOrFn(prevState[screen.id]) : valueOrFn
+      [currentScreen.id]: typeof valueOrFn === "function" ? valueOrFn(prevState[currentScreen.id]) : valueOrFn
     }));
     return index === order ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(WelcomeScreen, {
-      key: screen.id + order,
-      id: screen.id,
+      key: currentScreen.id + order,
+      id: currentScreen.id,
       totalNumberOfScreens: totalNumberOfScreens,
       isFirstScreen: isFirstScreen,
       isLastScreen: isLastScreen,
       isSingleScreen: isSingleScreen,
       order: order,
       previousOrder: previousOrder,
-      content: screen.content,
+      content: currentScreen.content,
       navigate: handleTransition,
-      messageId: `${props.message_id}_${order}_${screen.id}`,
+      messageId: `${props.message_id}_${order}_${currentScreen.id}`,
       UTMTerm: props.utm_term,
       flowParams: flowParams,
       activeTheme: activeTheme,
       initialTheme: initialTheme,
       setActiveTheme: setActiveTheme,
       setInitialTheme: setInitialTheme,
-      screenMultiSelects: multiSelects[screen.id],
+      screenMultiSelects: multiSelects[currentScreen.id],
       setScreenMultiSelects: setScreenMultiSelects,
-      activeMultiSelect: activeMultiSelects[screen.id],
+      activeMultiSelect: activeMultiSelects[currentScreen.id],
       setActiveMultiSelect: setActiveMultiSelect,
-      autoAdvance: screen.auto_advance,
+      autoAdvance: currentScreen.auto_advance,
       negotiatedLanguage: negotiatedLanguage,
       langPackInstallPhase: langPackInstallPhase,
-      forceHideStepsIndicator: screen.force_hide_steps_indicator,
+      forceHideStepsIndicator: currentScreen.force_hide_steps_indicator,
       ariaRole: props.ariaRole,
-      aboveButtonStepsIndicator: screen.above_button_steps_indicator,
+      aboveButtonStepsIndicator: currentScreen.above_button_steps_indicator,
       installedAddons: installedAddons,
       setInstalledAddons: setInstalledAddons
     }) : null;
@@ -1558,20 +1559,20 @@ function useLanguageSwitcher(appAndSystemLocaleInfo, screens, screenIndex, setSc
   const languageMismatchScreenIndex = screens.findIndex(({
     id
   }) => id === "AW_LANGUAGE_MISMATCH");
-  const screen = screens[languageMismatchScreenIndex];
+  const mismatchScreen = screens[languageMismatchScreenIndex];
 
   // Ensure fluent messages have the negotiatedLanguage args set, as they are rendered
   // before the negotiatedLanguage is known. If the arg isn't present then Firefox will
   // crash in development mode.
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
-    if (screen?.content?.languageSwitcher) {
-      for (const text of Object.values(screen.content.languageSwitcher)) {
+    if (mismatchScreen?.content?.languageSwitcher) {
+      for (const text of Object.values(mismatchScreen.content.languageSwitcher)) {
         if (text?.args && text.args.negotiatedLanguage === undefined) {
           text.args.negotiatedLanguage = "";
         }
       }
     }
-  }, [screen]);
+  }, [mismatchScreen]);
 
   // If there is a mismatch, then Firefox can negotiate a better langpack to offer
   // the user.
@@ -1624,20 +1625,20 @@ function useLanguageSwitcher(appAndSystemLocaleInfo, screens, screenIndex, setSc
       return;
     }
     setLangPackInstallPhase("installing");
-    window.AWEnsureLangPackInstalled(negotiatedLanguage, screen?.content).then(content => {
+    window.AWEnsureLangPackInstalled(negotiatedLanguage, mismatchScreen?.content).then(content => {
       // Update screen content with strings that might have changed.
-      screen.content = content;
+      mismatchScreen.content = content;
       setLangPackInstallPhase("installed");
     }, error => {
       console.error(error);
       setLangPackInstallPhase("installation-error");
     });
-  }, [negotiatedLanguage, screen]);
+  }, [negotiatedLanguage, mismatchScreen]);
   const [languageFilteredScreens, setLanguageFilteredScreens] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(screens);
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(function filterScreen() {
     // Remove the language screen if it exists (already removed for no live
     // reload) and we either don't-need-to or can't switch.
-    if (screen && (appAndSystemLocaleInfo?.matchType !== "language-mismatch" || negotiatedLanguage?.langPack === null)) {
+    if (mismatchScreen && (appAndSystemLocaleInfo?.matchType !== "language-mismatch" || negotiatedLanguage?.langPack === null)) {
       if (screenIndex > languageMismatchScreenIndex) {
         setScreenIndex(screenIndex - 1);
       }
@@ -1648,7 +1649,7 @@ function useLanguageSwitcher(appAndSystemLocaleInfo, screens, screenIndex, setSc
   },
   // Removing screenIndex as a dependency as it's causing infinite re-renders (1873019)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  [appAndSystemLocaleInfo?.matchType, languageMismatchScreenIndex, negotiatedLanguage, screen, screens, setScreenIndex]);
+  [appAndSystemLocaleInfo?.matchType, languageMismatchScreenIndex, negotiatedLanguage, mismatchScreen, screens, setScreenIndex]);
   return {
     negotiatedLanguage,
     langPackInstallPhase,
@@ -2289,13 +2290,13 @@ const AddonsPicker = props => {
     className: "addons-picker-container"
   }, content.tiles.data.map(({
     id,
-    name,
+    name: addonName,
     type,
     description,
     icon,
     install_label,
     install_complete_label
-  }, index) => name ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+  }, index) => addonName ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     key: id,
     className: "addon-container"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
@@ -2308,7 +2309,7 @@ const AddonsPicker = props => {
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "addon-details"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {
-    text: name
+    text: addonName
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
     className: "addon-title"
   })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_2__.Localized, {

@@ -97,7 +97,7 @@ export const AddonsPicker = props => {
         (
           {
             id,
-            name,
+            name: addonName,
             type,
             description,
             icon,
@@ -106,7 +106,7 @@ export const AddonsPicker = props => {
           },
           index
         ) =>
-          name ? (
+          addonName ? (
             <div key={id} className="addon-container">
               <div className="rtamo-icon">
                 <img
@@ -119,7 +119,7 @@ export const AddonsPicker = props => {
                 />
               </div>
               <div className="addon-details">
-                <Localized text={name}>
+                <Localized text={addonName}>
                   <div className="addon-title" />
                 </Localized>
                 <Localized text={description}>
