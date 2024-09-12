@@ -704,7 +704,7 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
   }
 
   return AddNative(aHost, aPath, aName, aValue, aIsSecure, aIsHttpOnly,
-                   aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap);
+                   aIsSession, aExpiry, &attrs, aSameSite, aSchemeMap, false);
 }
 
 NS_IMETHODIMP_(nsresult)
@@ -712,7 +712,8 @@ CookieService::AddNative(const nsACString& aHost, const nsACString& aPath,
                          const nsACString& aName, const nsACString& aValue,
                          bool aIsSecure, bool aIsHttpOnly, bool aIsSession,
                          int64_t aExpiry, OriginAttributes* aOriginAttributes,
-                         int32_t aSameSite, nsICookie::schemeType aSchemeMap) {
+                         int32_t aSameSite, nsICookie::schemeType aSchemeMap,
+                         bool aIsPartitioned) {
   if (NS_WARN_IF(!aOriginAttributes)) {
     return NS_ERROR_FAILURE;
   }
@@ -738,8 +739,8 @@ CookieService::AddNative(const nsACString& aHost, const nsACString& aPath,
   CookieStruct cookieData(nsCString(aName), nsCString(aValue), nsCString(aHost),
                           nsCString(aPath), aExpiry, currentTimeInUsec,
                           Cookie::GenerateUniqueCreationTime(currentTimeInUsec),
-                          aIsHttpOnly, aIsSession, aIsSecure, false, aSameSite,
-                          aSameSite, aSchemeMap);
+                          aIsHttpOnly, aIsSession, aIsSecure, aIsPartitioned,
+                          aSameSite, aSameSite, aSchemeMap);
 
   RefPtr<Cookie> cookie = Cookie::Create(cookieData, key.mOriginAttributes);
   MOZ_ASSERT(cookie);
