@@ -48,6 +48,21 @@ let gResponses = new Map(
         aid: "ELcC6OziGKu2jjQsCf5xMYHTpyPKFtjl/4mKPeygbSuQMyIqF/gkY3bTTznoMmNv0OsPV5uql0/NdzNsoguccIS0BujM3DwBADvkGIKLLF2WX0u3G+B2tvRpZmbTmC1NQW0ivS/KX7dTrRjae3Z84fs0i0PySM68buCo5JY848wvzdlyTfCrcT0B3/Ov0tJjZdy9FupF9skLuFtx0/lgElSRsnoGow/H--uLo2Tq7E++RNxgsl--YqlLhv5n8iGFYQwBD61VBg==",
       },
     ],
+    NOCURADS00: [
+      {
+        name: "VIVO Electric 60 x 24 inch Stand Up Desk | Black Table Top, Black Frame, Height Adjustable Standing Workstation with Memory Preset Controller (DESK-KIT-1B6B)",
+        url: "https://example.com/Some-Product/dp/NOCURADS00",
+        image_url: "https://example.com/api/image.jpg",
+        price: "null",
+        currency: "null",
+        grade: "A",
+        adjusted_rating: 4.6,
+        analysis_url:
+          "https://www.fakespot.com/product/vivo-electric-60-x-24-inch-stand-up-desk-black-table-top-black-frame-height-adjustable-standing-workstation-with-memory-preset-controller-desk-kit-1b6b",
+        sponsored: false,
+        aid: "ELcC6OziGKu2jjQsCf5xMYHTpyPKFtjl/4mKPeygbSuQMyIqF/gkY3bTTznoMmNv0OsPV5uql0/NdzNsoguccIS0BujM3DwBADvkGIKLLF2WX0u3G+B2tvRpZmbTmC1NQW0ivS/KX7dTrRjae3Z84fs0i0PySM68buCo5JY848wvzdlyTfCrcT0B3/Ov0tJjZdy9FupF9skLuFtx0/lgElSRsnoGow/H--uLo2Tq7E++RNxgsl--YqlLhv5n8iGFYQwBD61VBg==",
+      },
+    ],
   })
 );
 

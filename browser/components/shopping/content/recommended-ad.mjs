@@ -12,6 +12,9 @@ import "chrome://browser/content/shopping/shopping-card.mjs";
 import "chrome://global/content/elements/moz-five-star.mjs";
 
 const AD_IMPRESSION_TIMEOUT = 1500;
+// We are only showing prices in USD for now. In the future we will need
+// to update this to include other currencies.
+const SUPPORTED_CURRENCY_SYMBOLS = new Map([["USD", "$"]]);
 
 class RecommendedAd extends MozLitElement {
   static properties = {
@@ -105,9 +108,20 @@ class RecommendedAd extends MozLitElement {
   }
 
   priceTemplate() {
-    // We are only showing prices in USD for now. In the future we will need
-    // to update this to include other currencies.
-    return html`<span id="price">$${this.product.price}</span>`;
+    const currencySymbol = SUPPORTED_CURRENCY_SYMBOLS.get(
+      this.product.currency
+    );
+
+    // TODO: not all non-USD currencies have the symbol displayed on the right.
+    // Adjust symbol position as we add more supported currencies.
+    let priceLabelText;
+    if (this.product.currency === "USD") {
+      priceLabelText = `${currencySymbol}${this.product.price}`;
+    } else {
+      priceLabelText = `${this.product.price}${currencySymbol}`;
+    }
+
+    return html`<span id="price">${priceLabelText}</span>`;
   }
 
   render() {
@@ -136,7 +150,12 @@ class RecommendedAd extends MozLitElement {
             <letter-grade letter="${this.product.grade}"></letter-grade>
           </div>
           <div id="footer">
-            ${this.priceTemplate()}
+            ${
+              this.product.price &&
+              SUPPORTED_CURRENCY_SYMBOLS.has(this.product.currency)
+                ? this.priceTemplate()
+                : null
+            }
             <moz-five-star rating=${
               this.product.adjusted_rating
             }></moz-five-star>

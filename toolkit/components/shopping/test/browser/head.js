@@ -10,6 +10,8 @@ const BAD_PRODUCT_TEST_URL = "https://example.com/Bad-Product/dp/0000000000";
 const NEEDS_ANALYSIS_TEST_URL = "https://example.com/Bad-Product/dp/OPQRSTU789";
 const PRODUCT_TEST_URL_NOT_SPONSORED =
   "https://example.com/Some-Product/dp/VWXYZAB012";
+const PRODUCT_WITH_REC_NO_CURRENCY_URL =
+  "https://example.com/Some-Product/dp/NOCURADS00";
 
 async function promiseSidebarUpdated(sidebar, expectedProduct) {
   let browser = sidebar.querySelector("browser");

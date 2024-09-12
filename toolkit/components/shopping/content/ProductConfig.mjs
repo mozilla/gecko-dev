@@ -57,7 +57,7 @@ const Environments = {
     ANALYSIS_STATUS_API: "https://trustwerty.com/api/v1/fx/analysis_status",
     ANALYZE_API:         "https://trustwerty.com/api/v1/fx/analyze",
     ATTRIBUTION_API:     "https://pe.fakespot.com/api/v1/fx/events",
-    RECOMMENDATIONS_API: "https://a.fakespot.com/v1/fx/sp_search",
+    RECOMMENDATIONS_API: "https://a.fakespot.com/v2/fx/sp_search",
     REPORTING_API:       "https://trustwerty.com/api/v1/fx/report",
   },
   stage: {
@@ -65,7 +65,7 @@ const Environments = {
     ANALYSIS_STATUS_API: "https://staging.trustwerty.com/api/v1/fx/analysis_status",
     ANALYZE_API:         "https://staging.trustwerty.com/api/v1/fx/analyze",
     ATTRIBUTION_API:     "https://staging-partner-ads.fakespot.io/api/v1/fx/events",
-    RECOMMENDATIONS_API: "https://staging-affiliates.fakespot.io/v1/fx/sp_search",
+    RECOMMENDATIONS_API: "https://staging-affiliates.fakespot.io/v2/fx/sp_search",
     REPORTING_API:       "https://staging.trustwerty.com/api/v1/fx/report",
   },
   test: {
