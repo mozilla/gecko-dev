@@ -1,3 +1,4 @@
+/* eslint-disable no-shadow */
 import { ContextMenu } from "content-src/components/ContextMenu/ContextMenu";
 import { _LinkMenu as LinkMenu } from "content-src/components/LinkMenu/LinkMenu";
 import React from "react";

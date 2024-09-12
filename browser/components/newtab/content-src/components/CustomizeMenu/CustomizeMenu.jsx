@@ -5,6 +5,7 @@
 import { ContentSection } from "content-src/components/CustomizeMenu/ContentSection/ContentSection";
 import { connect } from "react-redux";
 import React from "react";
+// eslint-disable-next-line no-shadow
 import { CSSTransition } from "react-transition-group";
 
 export class _CustomizeMenu extends React.PureComponent {

@@ -6,11 +6,11 @@ import React from "react";
 
 export class Topic extends React.PureComponent {
   render() {
-    const { url, name } = this.props;
+    const { url, name: topicName } = this.props;
     return (
       <li>
-        <a key={name} href={url}>
-          {name}
+        <a key={topicName} href={url}>
+          {topicName}
         </a>
       </li>
     );

@@ -13,6 +13,7 @@ describe("<DSContextFooter>", () => {
   let sandbox;
   const bookmarkBadge = "bookmark";
   const removeBookmarkBadge = "removedBookmark";
+  // eslint-disable-next-line no-shadow
   const context = "Sponsored by Babel";
   const sponsored_by_override = "Sponsored override";
   const engagement = "Popular";

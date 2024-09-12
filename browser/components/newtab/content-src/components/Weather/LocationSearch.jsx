@@ -108,10 +108,10 @@ function LocationSearch({ outerClassName }) {
         />
         <button className="close-icon" onClick={handleCloseSearch} />
         <datalist id="merino-location-list">
-          {(suggestedLocations || []).map(location => (
-            <option value={location.key} key={location.key}>
-              {location.localized_name},{" "}
-              {location.administrative_area.localized_name}
+          {(suggestedLocations || []).map(merinoLcation => (
+            <option value={merinoLcation.key} key={merinoLcation.key}>
+              {merinoLcation.localized_name},{" "}
+              {merinoLcation.administrative_area.localized_name}
             </option>
           ))}
         </datalist>

@@ -559,6 +559,7 @@ describe("<TopSiteLink>", () => {
     });
     it("should prevent dragging with sponsored_position from dragstart", () => {
       const preventDefault = sinon.stub();
+      // eslint-disable-next-line no-shadow
       const blur = sinon.stub();
       wrapper.setProps({ link: { sponsored_position: 1 } });
       wrapper.instance().onDragEvent({
@@ -572,6 +573,7 @@ describe("<TopSiteLink>", () => {
     });
     it("should prevent dragging with link.shim from dragstart", () => {
       const preventDefault = sinon.stub();
+      // eslint-disable-next-line no-shadow
       const blur = sinon.stub();
       wrapper.setProps({ link: { type: "SPOC" } });
       wrapper.instance().onDragEvent({
@@ -954,7 +956,7 @@ describe("<TopSiteForm>", () => {
   let wrapper;
   let sandbox;
 
-  function setup(props = {}) {
+  function testSetup(props = {}) {
     sandbox = sinon.createSandbox();
     const customProps = Object.assign(
       {},
@@ -965,7 +967,7 @@ describe("<TopSiteForm>", () => {
   }
 
   describe("validateForm", () => {
-    beforeEach(() => setup({ site: { url: "http://foo" } }));
+    beforeEach(() => testSetup({ site: { url: "http://foo" } }));
 
     it("should return true for a correct URL", () => {
       wrapper.setState({ url: "foo" });
@@ -1007,7 +1009,7 @@ describe("<TopSiteForm>", () => {
 
   describe("#previewButton", () => {
     beforeEach(() =>
-      setup({
+      testSetup({
         site: { customScreenshotURL: "http://foo.com" },
         previewResponse: null,
       })
@@ -1035,7 +1037,7 @@ describe("<TopSiteForm>", () => {
 
   describe("preview request", () => {
     beforeEach(() => {
-      setup({
+      testSetup({
         site: { customScreenshotURL: "http://foo.com", url: "http://foo.com" },
         previewResponse: null,
       });
@@ -1073,7 +1075,7 @@ describe("<TopSiteForm>", () => {
 
   describe("#TopSiteLink", () => {
     beforeEach(() => {
-      setup();
+      testSetup();
     });
 
     it("should display a TopSiteLink preview", () => {
@@ -1113,7 +1115,7 @@ describe("<TopSiteForm>", () => {
   });
 
   describe("#addMode", () => {
-    beforeEach(() => setup());
+    beforeEach(() => testSetup());
 
     it("should render the component", () => {
       assert.ok(wrapper.find(TopSiteForm).exists());
@@ -1204,7 +1206,7 @@ describe("<TopSiteForm>", () => {
 
   describe("edit existing Topsite", () => {
     beforeEach(() =>
-      setup({
+      testSetup({
         site: {
           url: "https://foo.bar",
           label: "baz",
@@ -1350,7 +1352,7 @@ describe("<TopSiteForm>", () => {
   });
 
   describe("#previewMode", () => {
-    beforeEach(() => setup({ previewResponse: null }));
+    beforeEach(() => testSetup({ previewResponse: null }));
 
     it("should transition from save to preview", () => {
       wrapper.setProps({
@@ -1402,7 +1404,7 @@ describe("<TopSiteForm>", () => {
 
   describe("#validateUrl", () => {
     it("should properly validate URLs", () => {
-      setup();
+      testSetup();
       assert.ok(wrapper.instance().validateUrl("mozilla.org"));
       assert.ok(wrapper.instance().validateUrl("https://mozilla.org"));
       assert.ok(wrapper.instance().validateUrl("http://mozilla.org"));
@@ -1422,7 +1424,7 @@ describe("<TopSiteForm>", () => {
 
   describe("#cleanUrl", () => {
     it("should properly prepend http:// to URLs when required", () => {
-      setup();
+      testSetup();
       assert.equal(
         "http://mozilla.org",
         wrapper.instance().cleanUrl("mozilla.org")
