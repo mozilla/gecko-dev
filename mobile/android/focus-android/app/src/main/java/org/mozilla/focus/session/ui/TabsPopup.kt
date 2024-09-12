@@ -35,6 +35,7 @@ class TabsPopup(
             isCurrentSession = { tab -> isCurrentSession(tab) },
             selectSession = { tab -> selectSession(tab) },
             closeSession = { tab -> closeSession(tab) },
+            closeOtherSessions = { closeOtherSessions() },
         )
 
         binding.sessions.apply {
@@ -73,6 +74,13 @@ class TabsPopup(
         components.tabsUseCases.removeTab.invoke(tab.id, selectParentIfExists = false)
         val openedTabs = components.store.state.tabs.size
         TabCount.sessionListItemTapped.record(TabCount.SessionListItemTappedExtra(openedTabs))
+        dismiss()
+    }
+
+    private fun closeOtherSessions() {
+        val openedTabsIDs = components.store.state.tabs.map { it.id }
+        val tabsToDelete = openedTabsIDs.filter { it != components.store.state.selectedTabId }
+        components.tabsUseCases.removeTabs.invoke(tabsToDelete)
         dismiss()
     }
 }
