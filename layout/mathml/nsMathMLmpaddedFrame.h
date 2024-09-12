@@ -34,6 +34,10 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
     return TransmitAutomaticDataForMrowLikeElement();
   }
 
+  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+                      const ReflowInput& aReflowInput,
+                      nsReflowStatus& aStatus) override;
+
   nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
                  ReflowOutput& aDesiredSize) override;
 
@@ -44,55 +48,50 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
  protected:
   explicit nsMathMLmpaddedFrame(ComputedStyle* aStyle,
                                 nsPresContext* aPresContext)
-      : nsMathMLContainerFrame(aStyle, aPresContext, kClassID) {}
+      : nsMathMLContainerFrame(aStyle, aPresContext, kClassID),
+        mWidthSign(0),
+        mHeightSign(0),
+        mDepthSign(0),
+        mLeadingSpaceSign(0),
+        mVerticalOffsetSign(0),
+        mWidthPseudoUnit(0),
+        mHeightPseudoUnit(0),
+        mDepthPseudoUnit(0),
+        mLeadingSpacePseudoUnit(0),
+        mVerticalOffsetPseudoUnit(0) {}
 
   virtual ~nsMathMLmpaddedFrame();
 
+  virtual nsresult MeasureForWidth(DrawTarget* aDrawTarget,
+                                   ReflowOutput& aDesiredSize) override;
+
  private:
-  struct Attribute {
-    enum class Sign : uint8_t {
-      Unspecified,
-      Minus,
-      Plus,
-    };
-    enum class PseudoUnit : uint8_t {
-      Unspecified,
-      ItSelf,
-      Width,
-      Height,
-      Depth,
-      NamedSpace,
-    };
-    nsCSSValue mValue;
-    Sign mSign = Sign::Unspecified;
-    PseudoUnit mPseudoUnit = PseudoUnit::Unspecified;
-    enum class ParsingState : uint8_t {
-      Valid,
-      Invalid,
-      Dirty,
-    };
-    ParsingState mState = ParsingState::Dirty;
-    void Reset() {
-      mValue.Reset();
-      mSign = Sign::Unspecified;
-      mPseudoUnit = PseudoUnit::Unspecified;
-      mState = ParsingState::Dirty;
-    }
-    bool IsValid() const { return mState == ParsingState::Valid; }
-  };
+  nsCSSValue mWidth;
+  nsCSSValue mHeight;
+  nsCSSValue mDepth;
+  nsCSSValue mLeadingSpace;
+  nsCSSValue mVerticalOffset;
 
-  Attribute mWidth;
-  Attribute mHeight;
-  Attribute mDepth;
-  Attribute mLeadingSpace;
-  Attribute mVerticalOffset;
+  int32_t mWidthSign;
+  int32_t mHeightSign;
+  int32_t mDepthSign;
+  int32_t mLeadingSpaceSign;
+  int32_t mVerticalOffsetSign;
 
-  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
-                            int32_t aModType) final;
-  void ParseAttribute(nsAtom* aAtom, Attribute& aAttribute);
-  bool ParseAttribute(nsString& aString, Attribute& aAttribute);
+  int32_t mWidthPseudoUnit;
+  int32_t mHeightPseudoUnit;
+  int32_t mDepthPseudoUnit;
+  int32_t mLeadingSpacePseudoUnit;
+  int32_t mVerticalOffsetPseudoUnit;
 
-  void UpdateValue(const Attribute& aAttribute, Attribute::PseudoUnit aSelfUnit,
+  // helpers to process the attributes
+  void ProcessAttributes();
+
+  bool ParseAttribute(nsString& aString, int32_t& aSign, nsCSSValue& aCSSValue,
+                      int32_t& aPseudoUnit);
+
+  void UpdateValue(int32_t aSign, int32_t aPseudoUnit,
+                   const nsCSSValue& aCSSValue,
                    const ReflowOutput& aDesiredSize, nscoord& aValueToUpdate,
                    float aFontSizeInflation) const;
 };

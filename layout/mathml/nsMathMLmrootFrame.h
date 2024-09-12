@@ -34,9 +34,16 @@ class nsMathMLmrootFrame final : public nsMathMLContainerFrame {
   NS_IMETHOD
   TransmitAutomaticData() override;
 
+  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
+                      const ReflowInput& aReflowInput,
+                      nsReflowStatus& aStatus) override;
+
   void GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
                           nsFontMetrics* aFontMetrics, nscoord* aIndexOffset,
                           nscoord* aSqrOffset);
+
+  nsresult MeasureForWidth(DrawTarget* aDrawTarget,
+                           ReflowOutput& aDesiredSize) final;
 
   virtual void BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                 const nsDisplayListSet& aLists) override;
@@ -55,8 +62,6 @@ class nsMathMLmrootFrame final : public nsMathMLContainerFrame {
 
  private:
   bool ShouldUseRowFallback();
-  nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
-                 ReflowOutput& aDesiredSize) final;
 };
 
 #endif /* nsMathMLmrootFrame_h___ */

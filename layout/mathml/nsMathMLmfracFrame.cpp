@@ -120,17 +120,18 @@ void nsMathMLmfracFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
 nsresult nsMathMLmfracFrame::AttributeChanged(int32_t aNameSpaceID,
                                               nsAtom* aAttribute,
                                               int32_t aModType) {
-  if (aNameSpaceID == kNameSpaceID_None &&
-      nsGkAtoms::linethickness_ == aAttribute) {
+  if (nsGkAtoms::linethickness_ == aAttribute) {
     InvalidateFrame();
-    // TODO(bug 1918308): This was copied from nsMathMLContainerFrame and seems
-    // necessary for some invalidation tests, but we can probably do less.
-    PresShell()->FrameNeedsReflow(
-        this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
-    return NS_OK;
   }
   return nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
                                                   aModType);
+}
+
+/* virtual */
+nsresult nsMathMLmfracFrame::MeasureForWidth(DrawTarget* aDrawTarget,
+                                             ReflowOutput& aDesiredSize) {
+  PlaceFlags flags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly);
+  return PlaceInternal(aDrawTarget, flags, aDesiredSize);
 }
 
 nscoord nsMathMLmfracFrame::FixInterFrameSpacing(ReflowOutput& aDesiredSize) {
@@ -145,6 +146,12 @@ nscoord nsMathMLmfracFrame::FixInterFrameSpacing(ReflowOutput& aDesiredSize) {
 nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget,
                                    const PlaceFlags& aFlags,
                                    ReflowOutput& aDesiredSize) {
+  return PlaceInternal(aDrawTarget, aFlags, aDesiredSize);
+}
+
+nsresult nsMathMLmfracFrame::PlaceInternal(DrawTarget* aDrawTarget,
+                                           const PlaceFlags& aFlags,
+                                           ReflowOutput& aDesiredSize) {
   ////////////////////////////////////
   // Get the children's desired sizes
   nsBoundingMetrics bmNum, bmDen;

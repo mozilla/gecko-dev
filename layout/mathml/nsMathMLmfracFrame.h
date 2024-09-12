@@ -63,6 +63,9 @@ class nsMathMLmfracFrame final : public nsMathMLContainerFrame {
 
   virtual eMathMLFrameType GetMathMLFrameType() override;
 
+  virtual nsresult MeasureForWidth(DrawTarget* aDrawTarget,
+                                   ReflowOutput& aDesiredSize) override;
+
   nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
                  ReflowOutput& aDesiredSize) override;
 
@@ -94,6 +97,9 @@ class nsMathMLmfracFrame final : public nsMathMLContainerFrame {
         mSlashChar(nullptr),
         mLineThickness(0) {}
   virtual ~nsMathMLmfracFrame();
+
+  nsresult PlaceInternal(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
+                         ReflowOutput& aDesiredSize);
 
   // Display a slash
   void DisplaySlash(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
