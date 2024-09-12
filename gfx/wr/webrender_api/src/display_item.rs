@@ -1243,6 +1243,12 @@ pub struct FilterOpGraphNode {
     pub subregion: LayoutRect,
 }
 
+/// Maximum number of SVGFE filters in one graph, this is constant size to avoid
+/// allocating anything, and the SVG spec allows us to drop all filters on an
+/// item if the graph is excessively complex - a graph this large will never be
+/// a good user experience, performance-wise.
+pub const SVGFE_GRAPH_MAX: usize = 256;
+
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PeekPoke)]
 pub enum FilterOp {

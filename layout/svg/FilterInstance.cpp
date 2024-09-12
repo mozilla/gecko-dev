@@ -1261,7 +1261,7 @@ WrFiltersStatus FilterInstance::BuildWebRenderSVGFiltersImpl(
 
   // We have to remap the input nodes to a possibly larger number of output
   // nodes due to expanding feMerge.
-  static constexpr size_t maxFilters = 256;
+  static constexpr size_t maxFilters = wr::SVGFE_GRAPH_MAX;
   int16_t bufferIdMapping[maxFilters];
   // Just drop the graph if there are too many filters to process.
   if (instance.mFilterDescription.mPrimitives.Length() > maxFilters) {

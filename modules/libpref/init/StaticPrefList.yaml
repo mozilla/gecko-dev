@@ -6659,7 +6659,7 @@
 
 - name: gfx.webrender.svg-filter-effects
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 - name: gfx.webrender.svg-filter-effects.also-convert-css-filters
@@ -6747,10 +6747,9 @@
   value: false
   mirror: always
 
-# Disabled for now due to https://bugzilla.mozilla.org/show_bug.cgi?id=1902136
 - name: gfx.webrender.svg-filter-effects.feoffset
   type: RelaxedAtomicBool
-  value: false
+  value: true
   mirror: always
 
 - name: gfx.webrender.svg-filter-effects.fespecularlighting
