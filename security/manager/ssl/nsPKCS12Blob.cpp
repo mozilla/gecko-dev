@@ -129,10 +129,12 @@ nsresult nsPKCS12Blob::ExportToFile(nsIFile* aFile,
     aError = nsIX509CertDB::ERROR_PKCS12_BACKUP_FAILED;
     return NS_OK;
   }
+  bool useModernCrypto =
+      StaticPrefs::security_pki_use_modern_crypto_with_pkcs12();
   // add password integrity
   SECItem unicodePw = {siBuffer, passwordBuffer.get(), passwordBufferLength};
-  SECStatus srv =
-      SEC_PKCS12AddPasswordIntegrity(ecx.get(), &unicodePw, SEC_OID_SHA1);
+  SECStatus srv = SEC_PKCS12AddPasswordIntegrity(
+      ecx.get(), &unicodePw, useModernCrypto ? SEC_OID_SHA256 : SEC_OID_SHA1);
   if (srv != SECSuccess) {
     aError = nsIX509CertDB::ERROR_PKCS12_BACKUP_FAILED;
     return NS_OK;
@@ -162,8 +164,6 @@ nsresult nsPKCS12Blob::ExportToFile(nsIFile* aFile,
     // certSafe and keySafe are owned by ecx.
     SEC_PKCS12SafeInfo* certSafe;
     SEC_PKCS12SafeInfo* keySafe = SEC_PKCS12CreateUnencryptedSafe(ecx.get());
-    bool useModernCrypto =
-        StaticPrefs::security_pki_use_modern_crypto_with_pkcs12();
     // We use SEC_OID_AES_128_CBC for the password and SEC_OID_AES_256_CBC
     // for the certificate because it's a default for openssl an pk12util
     // command.
