@@ -116,7 +116,9 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
   } else if (alignment == StyleAlignFlags::END) {
     nscoord size = aChildSize.Size(aAxis, wm);
     offset = aCBSize - (size + marginEnd);
-  } else if (alignment == StyleAlignFlags::CENTER) {
+  } else if (alignment == StyleAlignFlags::CENTER ||
+             alignment == StyleAlignFlags::ANCHOR_CENTER) {
+    // TODO(dshin, Bug 1909339): For now, treat `anchor-center` as `center`.
     nscoord size = aChildSize.Size(aAxis, wm);
     offset = (aCBSize - size + marginStart - marginEnd) / 2;
   } else {

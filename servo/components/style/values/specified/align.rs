@@ -55,6 +55,8 @@ bitflags! {
         const SPACE_AROUND = 15;
         /// 'space-evenly'
         const SPACE_EVENLY = 16;
+        /// `anchor-center`
+        const ANCHOR_CENTER = 17;
 
         // Additional flags stored in the upper bits:
         /// 'legacy' (mutually exclusive w. SAFE & UNSAFE)
@@ -124,6 +126,7 @@ impl ToCss for AlignFlags {
             AlignFlags::SPACE_BETWEEN => "space-between",
             AlignFlags::SPACE_AROUND => "space-around",
             AlignFlags::SPACE_EVENLY => "space-evenly",
+            AlignFlags::ANCHOR_CENTER => "anchor-center",
             _ => unreachable!(),
         })
     }
@@ -718,6 +721,7 @@ fn parse_self_position<'i, 't>(
         "self-end" => AlignFlags::SELF_END,
         "left" if axis == AxisDirection::Inline => AlignFlags::LEFT,
         "right" if axis == AxisDirection::Inline => AlignFlags::RIGHT,
+        "anchor-center" if static_prefs::pref!("layout.css.anchor-positioning.enabled") => AlignFlags::ANCHOR_CENTER,
     })
 }
 
@@ -730,6 +734,7 @@ fn list_self_position_keywords(f: KeywordsCollectFn, axis: AxisDirection) {
         "center",
         "self-start",
         "self-end",
+        "anchor-center",
     ]);
     if axis == AxisDirection::Inline {
         f(&["left", "right"]);

@@ -3992,7 +3992,9 @@ void SingleLineCrossAxisPositionTracker::EnterAlignPackingSpace(
     // No space to skip over -- we're done.
   } else if (alignSelf == StyleAlignFlags::FLEX_END) {
     mPosition += aLine.LineCrossSize() - aItem.OuterCrossSize();
-  } else if (alignSelf == StyleAlignFlags::CENTER) {
+  } else if (alignSelf == StyleAlignFlags::CENTER ||
+             alignSelf == StyleAlignFlags::ANCHOR_CENTER) {
+    // TODO(dshin, Bug 1909339): For now, treat `anchor-center` as `center`.
     // Note: If cross-size is odd, the "after" space will get the extra unit.
     mPosition += (aLine.LineCrossSize() - aItem.OuterCrossSize()) / 2;
   } else if (alignSelf == StyleAlignFlags::BASELINE ||
