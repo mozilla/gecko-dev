@@ -107,7 +107,7 @@ object Versions {
         const val androidx_test_orchestrator = "1.5.0"
         const val androidx_test_runner = "1.6.1"
         const val androidx_test_uiautomator = "2.3.0"
-        const val junit = "5.10.2"
+        const val junit = "5.11.0"
     }
 }
 
