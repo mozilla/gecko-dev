@@ -18,3 +18,4 @@ tasks-from:
     - toolchain-clang-tidy-external.yml
     - toolchains.yml
     - updatebot.yml
+    - onnxruntime-web-fetch.yml

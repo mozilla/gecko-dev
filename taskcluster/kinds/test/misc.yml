@@ -129,6 +129,11 @@ test-verify:
                     - linux64-minidump-stackwalk
                     - linux64-fix-stacks
                     - linux64-hostutils
+        fetch:
+            - ort-wasm-1.14.0
+            - ort-wasm-simd-1.14.0
+            - ort-wasm-simd-th-1.14.0
+            - ort-wasm-th-1.14.0
     worker-type:
         by-test-platform:
             .*wayland.*: t-linux-wayland-vm

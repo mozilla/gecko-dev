@@ -307,6 +307,12 @@ mochitest-browser-chrome:
             linux.*64-asan-qr/opt: xlarge-noscratch  # runs out of memory frequently
             default: default
     allow-software-gl-layers: false
+    fetches:
+        fetch:
+            - ort-wasm-1.14.0
+            - ort-wasm-simd-1.14.0
+            - ort-wasm-simd-th-1.14.0
+            - ort-wasm-th-1.14.0
 
 mochitest-browser-chrome-failures:
     description: "Mochitest browser-chrome failures run"

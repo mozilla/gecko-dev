@@ -6,13 +6,16 @@ support-files = [
 ]
 
 ["browser_ml_cache.js"]
-lineno = "7"
+
+["browser_ml_end_to_end.js"]
+skip-if = [
+  "coverage", # Skips if running under test-coverage
+  "verify && e10s", # Skips if running under test-verify-gpu
+]
 
 ["browser_ml_engine.js"]
 skip-if = ["os == 'linux'"]    # see bug 1911083
-lineno = "10"
 
 ["browser_ml_engine_process.js"]
 
 ["browser_ml_utils.js"]
-lineno = "13"

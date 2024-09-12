@@ -1,0 +1,35 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+---
+ort-wasm-1.14.0:
+    description: Onnx runtime wasm 1.14.0
+    fetch:
+        type: static-url
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm.wasm
+        sha256: bbdcb6b3c7d294577d806077630460be4e13ca35a345acb5e81188e9649fa74a
+        size: 9223228
+
+ort-wasm-simd-1.14.0:
+    description: Onnx runtime wasm SIMD 1.14.0
+    fetch:
+        type: static-url
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm-simd.wasm
+        sha256: 9bd07bababc65f53d061f457233eeae501be7ceb8a2adb9eef52d87fe776d865
+        size: 10014674
+
+ort-wasm-simd-th-1.14.0:
+    description: Onnx runtime wasm SIMD and threaded 1.14.0
+    fetch:
+        type: static-url
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm-simd-threaded.wasm
+        sha256: ac23f2f3cbd519a65a0796f7c79eb34ead4c1f6f31eb06e14ed8a9579d697ef6
+        size: 9960821
+
+ort-wasm-th-1.14.0:
+    description: Onnx runtime wasm threaded 1.14.0
+    fetch:
+        type: static-url
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm-threaded.wasm
+        sha256: 2ee2f715093aaacc0344bfb1610313eb49a3474e8afde5e4635f30ddfc7615c8
+        size: 9149637
