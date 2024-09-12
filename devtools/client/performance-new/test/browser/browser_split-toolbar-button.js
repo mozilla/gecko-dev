@@ -44,7 +44,7 @@ add_setup(async function () {
     "Add the profiler button to the toolbar and ensure capturing a profile loads a local url."
   );
   await setProfilerFrontendUrl(
-    "http://example.com",
+    "https://example.com",
     "/browser/devtools/client/performance-new/test/browser/fake-frontend.html"
   );
   await makeSureProfilerPopupIsEnabled();

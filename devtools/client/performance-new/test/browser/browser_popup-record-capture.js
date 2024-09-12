@@ -10,7 +10,7 @@ add_task(async function test() {
       "capture using the mouse and hitting buttons."
   );
   await setProfilerFrontendUrl(
-    "http://example.com",
+    "https://example.com",
     "/browser/devtools/client/performance-new/test/browser/fake-frontend.html"
   );
   await makeSureProfilerPopupIsEnabled();

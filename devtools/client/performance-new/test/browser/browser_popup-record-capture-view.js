@@ -4,7 +4,7 @@
 
 "use strict";
 
-const FRONTEND_BASE_HOST = "http://example.com";
+const FRONTEND_BASE_HOST = "https://example.com";
 const FRONTEND_BASE_PATH =
   "/browser/devtools/client/performance-new/test/browser/fake-frontend.html";
 const FRONTEND_BASE_URL = FRONTEND_BASE_HOST + FRONTEND_BASE_PATH;

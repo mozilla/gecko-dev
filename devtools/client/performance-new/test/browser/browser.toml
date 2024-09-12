@@ -1,5 +1,5 @@
 [DEFAULT]
-prefs = ["devtools.performance.recording.ui-base-url='http://example.com'"] # This sets up the WebChannel so that it can be used for our tests.
+prefs = ["devtools.performance.recording.ui-base-url='https://example.com'"] # This sets up the WebChannel so that it can be used for our tests.
 tags = "devtools devtools-performance"
 subsuite = "devtools"
 skip-if = [

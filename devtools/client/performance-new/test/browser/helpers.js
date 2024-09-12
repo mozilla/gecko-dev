@@ -306,9 +306,9 @@ async function openPopupAndEnsureCloses(window, callback) {
  * This function overwrites the default profiler.firefox.com URL for tests. This
  * ensures that the tests do not attempt to access external URLs.
  * The origin needs to be on the allowlist in validateProfilerWebChannelUrl,
- * otherwise the WebChannel won't work. ("http://example.com" is on that list.)
+ * otherwise the WebChannel won't work. ("https://example.com" is on that list.)
  *
- * @param {string} origin - For example: http://example.com
+ * @param {string} origin - For example: https://example.com
  * @param {string} pathname - For example: /my/testing/frontend.html
  * @returns {Promise}
  */
@@ -768,7 +768,7 @@ function withWebChannelTestDocument(callback) {
   return BrowserTestUtils.withNewTab(
     {
       gBrowser,
-      url: "http://example.com/browser/devtools/client/performance-new/test/browser/webchannel.html",
+      url: "https://example.com/browser/devtools/client/performance-new/test/browser/webchannel.html",
     },
     callback
   );
