@@ -12740,21 +12740,21 @@ bool SetGlobalOptionsPreJSInit(const OptionParser& op) {
   if (op.getBoolOption("enable-iterator-helpers")) {
     JS::Prefs::setAtStartup_experimental_iterator_helpers(true);
   }
+  if (op.getBoolOption("enable-new-set-methods")) {
+    JS::Prefs::setAtStartup_experimental_new_set_methods(true);
+  }
+  if (op.getBoolOption("enable-regexp-modifiers")) {
+    JS::Prefs::setAtStartup_experimental_regexp_modifiers(true);
+  }
 #ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-async-iterator-helpers")) {
     JS::Prefs::setAtStartup_experimental_async_iterator_helpers(true);
-  }
-  if (op.getBoolOption("enable-new-set-methods")) {
-    JS::Prefs::setAtStartup_experimental_new_set_methods(true);
   }
   if (op.getBoolOption("enable-symbols-as-weakmap-keys")) {
     JS::Prefs::setAtStartup_experimental_symbols_as_weakmap_keys(true);
   }
   if (op.getBoolOption("enable-uint8array-base64")) {
     JS::Prefs::setAtStartup_experimental_uint8array_base64(true);
-  }
-  if (op.getBoolOption("enable-regexp-modifiers")) {
-    JS::Prefs::setAtStartup_experimental_regexp_modifiers(true);
   }
   if (op.getBoolOption("enable-regexp-escape")) {
     JS::Prefs::setAtStartup_experimental_regexp_escape(true);
@@ -13573,11 +13573,9 @@ bool SetContextJITOptions(JSContext* cx, const OptionParser& op) {
     jit::JitOptions.js_regexp_duplicate_named_groups = true;
   }
 
-#ifdef NIGHTLY_BUILD
   if (op.getBoolOption("enable-regexp-modifiers")) {
     jit::JitOptions.js_regexp_modifiers = true;
   }
-#endif
 
   return true;
 }

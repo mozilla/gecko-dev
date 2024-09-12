@@ -987,11 +987,9 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
       StaticPrefs::
           javascript_options_experimental_regexp_duplicate_named_groups());
 
-#ifdef NIGHTLY_BUILD
   JS_SetGlobalJitCompilerOption(
       cx, JSJITCOMPILER_REGEXP_MODIFIERS,
       StaticPrefs::javascript_options_experimental_regexp_modifiers());
-#endif
 
   // Set options not shared with workers.
   contextOptions
