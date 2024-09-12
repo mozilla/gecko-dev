@@ -32,6 +32,10 @@ protocol PCookieStore
 parent:
   async GetRequest(nsString domain,
                    OriginAttributes attrs,
+                   OriginAttributes? partitionedAttrs,
+                   bool thirdPartyContext,
+                   bool partitionForeign,
+                   bool usingStorageAccess,
                    bool matchName,
                    nsString name,
                    nsCString path,
@@ -39,6 +43,9 @@ parent:
 
   async SetRequest(nsString domain,
                    OriginAttributes attrs,
+                   bool thirdPartyContext,
+                   bool partitionForeign,
+                   bool usingStorageAccess,
                    nsString name,
                    nsString value,
                    bool session,
@@ -50,6 +57,9 @@ parent:
 
   async DeleteRequest(nsString domain,
                       OriginAttributes attrs,
+                      bool thirdPartyContext,
+                      bool partitionForeign,
+                      bool usingStorageAccess,
                       nsString name,
                       nsString path,
                       bool partitioned,

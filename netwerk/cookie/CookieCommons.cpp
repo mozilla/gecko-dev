@@ -508,30 +508,41 @@ already_AddRefed<nsICookieJarSettings> CookieCommons::GetCookieJarSettings(
 }
 
 // static
-bool CookieCommons::ShouldIncludeCrossSiteCookieForDocument(
-    Cookie* aCookie, dom::Document* aDocument) {
+bool CookieCommons::ShouldIncludeCrossSiteCookie(Cookie* aCookie,
+                                                 bool aPartitionForeign,
+                                                 bool aInPrivateBrowsing,
+                                                 bool aUsingStorageAccess) {
   MOZ_ASSERT(aCookie);
-  MOZ_ASSERT(aDocument);
 
   int32_t sameSiteAttr = 0;
   aCookie->GetSameSite(&sameSiteAttr);
 
+  return ShouldIncludeCrossSiteCookie(
+      sameSiteAttr, aCookie->IsPartitioned() && aCookie->RawIsPartitioned(),
+      aPartitionForeign, aInPrivateBrowsing, aUsingStorageAccess);
+}
+
+// static
+bool CookieCommons::ShouldIncludeCrossSiteCookie(int32_t aSameSiteAttr,
+                                                 bool aCookiePartitioned,
+                                                 bool aPartitionForeign,
+                                                 bool aInPrivateBrowsing,
+                                                 bool aUsingStorageAccess) {
   // CHIPS - If a third-party has storage access it can access both it's
   // partitioned and unpartitioned cookie jars, else its cookies are blocked.
   //
   // Note that we will only include partitioned cookies that have "partitioned"
   // attribution if we enable opt-in partitioning.
-  if (aDocument->CookieJarSettings()->GetPartitionForeign() &&
+  if (aPartitionForeign &&
       (StaticPrefs::network_cookie_cookieBehavior_optInPartitioning() ||
-       (aDocument->IsInPrivateBrowsing() &&
+       (aInPrivateBrowsing &&
         StaticPrefs::
             network_cookie_cookieBehavior_optInPartitioning_pbmode())) &&
-      !(aCookie->IsPartitioned() && aCookie->RawIsPartitioned()) &&
-      !aDocument->UsingStorageAccess()) {
+      !aCookiePartitioned && !aUsingStorageAccess) {
     return false;
   }
 
-  return sameSiteAttr == nsICookie::SAMESITE_NONE;
+  return aSameSiteAttr == nsICookie::SAMESITE_NONE;
 }
 
 bool CookieCommons::IsSafeTopLevelNav(nsIChannel* aChannel) {

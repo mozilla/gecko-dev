@@ -9,11 +9,13 @@
 
 #include "mozilla/Maybe.h"
 #include "mozilla/ipc/BackgroundParent.h"
+#include "mozilla/net/Cookie.h"
 #include "mozilla/net/CookieCommons.h"
 #include "mozilla/net/CookieServiceParent.h"
 #include "mozilla/net/NeckoParent.h"
 #include "mozilla/Unused.h"
 #include "nsICookieManager.h"
+#include "nsICookieService.h"
 #include "nsProxyRelease.h"
 
 using namespace mozilla::ipc;
@@ -67,20 +69,26 @@ CookieStoreParent::~CookieStoreParent() {
 
 mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
     const nsString& aDomain, const OriginAttributes& aOriginAttributes,
-    const bool& aMatchName, const nsString& aName, const nsCString& aPath,
-    const bool& aOnlyFirstMatch, GetRequestResolver&& aResolver) {
+    const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
+    const bool& aThirdPartyContext, const bool& aPartitionForeign,
+    const bool& aUsingStorageAccess, const bool& aMatchName,
+    const nsString& aName, const nsCString& aPath, const bool& aOnlyFirstMatch,
+    GetRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
-  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
-              [self = RefPtr(this), aDomain, aOriginAttributes, aMatchName,
-               aName, aPath, aOnlyFirstMatch]() {
-                CopyableTArray<CookieData> results;
-                self->GetRequestOnMainThread(aDomain, aOriginAttributes,
-                                             aMatchName, aName, aPath,
-                                             aOnlyFirstMatch, results);
-                return GetRequestPromise::CreateAndResolve(std::move(results),
-                                                           __func__);
-              })
+  InvokeAsync(
+      GetMainThreadSerialEventTarget(), __func__,
+      [self = RefPtr(this), aDomain, aOriginAttributes,
+       aPartitionedOriginAttributes, aThirdPartyContext, aPartitionForeign,
+       aUsingStorageAccess, aMatchName, aName, aPath, aOnlyFirstMatch]() {
+        CopyableTArray<CookieData> results;
+        self->GetRequestOnMainThread(
+            aDomain, aOriginAttributes, aPartitionedOriginAttributes,
+            aThirdPartyContext, aPartitionForeign, aUsingStorageAccess,
+            aMatchName, aName, aPath, aOnlyFirstMatch, results);
+        return GetRequestPromise::CreateAndResolve(std::move(results),
+                                                   __func__);
+      })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [aResolver = std::move(aResolver)](
                  const GetRequestPromise::ResolveOrRejectValue& aResult) {
@@ -93,10 +101,11 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvGetRequest(
 
 mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
     const nsString& aDomain, const OriginAttributes& aOriginAttributes,
-    const nsString& aName, const nsString& aValue, const bool& aSession,
-    const int64_t& aExpires, const nsString& aPath, const int32_t& aSameSite,
-    const bool& aPartitioned, const nsID& aOperationID,
-    SetRequestResolver&& aResolver) {
+    const bool& aThirdPartyContext, const bool& aPartitionForeign,
+    const bool& aUsingStorageAccess, const nsString& aName,
+    const nsString& aValue, const bool& aSession, const int64_t& aExpires,
+    const nsString& aPath, const int32_t& aSameSite, const bool& aPartitioned,
+    const nsID& aOperationID, SetRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
   RefPtr<ThreadsafeContentParentHandle> parent =
@@ -104,11 +113,14 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
 
   InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
               [self = RefPtr(this), parent = RefPtr(parent), aDomain,
-               aOriginAttributes, aName, aValue, aSession, aExpires, aPath,
+               aOriginAttributes, aThirdPartyContext, aPartitionForeign,
+               aUsingStorageAccess, aName, aValue, aSession, aExpires, aPath,
                aSameSite, aPartitioned, aOperationID]() {
                 bool waitForNotification = self->SetRequestOnMainThread(
-                    parent, aDomain, aOriginAttributes, aName, aValue, aSession,
-                    aExpires, aPath, aSameSite, aPartitioned, aOperationID);
+                    parent, aDomain, aOriginAttributes, aThirdPartyContext,
+                    aPartitionForeign, aUsingStorageAccess, aName, aValue,
+                    aSession, aExpires, aPath, aSameSite, aPartitioned,
+                    aOperationID);
                 return SetDeleteRequestPromise::CreateAndResolve(
                     waitForNotification, __func__);
               })
@@ -124,22 +136,27 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvSetRequest(
 
 mozilla::ipc::IPCResult CookieStoreParent::RecvDeleteRequest(
     const nsString& aDomain, const OriginAttributes& aOriginAttributes,
-    const nsString& aName, const nsString& aPath, const bool& aPartitioned,
-    const nsID& aOperationID, DeleteRequestResolver&& aResolver) {
+    const bool& aThirdPartyContext, const bool& aPartitionForeign,
+    const bool& aUsingStorageAccess, const nsString& aName,
+    const nsString& aPath, const bool& aPartitioned, const nsID& aOperationID,
+    DeleteRequestResolver&& aResolver) {
   AssertIsOnBackgroundThread();
 
   RefPtr<ThreadsafeContentParentHandle> parent =
       BackgroundParent::GetContentParentHandle(Manager());
 
-  InvokeAsync(GetMainThreadSerialEventTarget(), __func__,
-              [self = RefPtr(this), parent = RefPtr(parent), aDomain,
-               aOriginAttributes, aName, aPath, aPartitioned, aOperationID]() {
-                bool waitForNotification = self->DeleteRequestOnMainThread(
-                    parent, aDomain, aOriginAttributes, aName, aPath,
-                    aPartitioned, aOperationID);
-                return SetDeleteRequestPromise::CreateAndResolve(
-                    waitForNotification, __func__);
-              })
+  InvokeAsync(
+      GetMainThreadSerialEventTarget(), __func__,
+      [self = RefPtr(this), parent = RefPtr(parent), aDomain, aOriginAttributes,
+       aThirdPartyContext, aPartitionForeign, aUsingStorageAccess, aName, aPath,
+       aPartitioned, aOperationID]() {
+        bool waitForNotification = self->DeleteRequestOnMainThread(
+            parent, aDomain, aOriginAttributes, aThirdPartyContext,
+            aPartitionForeign, aUsingStorageAccess, aName, aPath, aPartitioned,
+            aOperationID);
+        return SetDeleteRequestPromise::CreateAndResolve(waitForNotification,
+                                                         __func__);
+      })
       ->Then(GetCurrentSerialEventTarget(), __func__,
              [aResolver = std::move(aResolver)](
                  const SetDeleteRequestPromise::ResolveOrRejectValue& aResult) {
@@ -158,69 +175,63 @@ mozilla::ipc::IPCResult CookieStoreParent::RecvClose() {
 
 void CookieStoreParent::GetRequestOnMainThread(
     const nsAString& aDomain, const OriginAttributes& aOriginAttributes,
+    const Maybe<OriginAttributes>& aPartitionedOriginAttributes,
+    bool aThirdPartyContext, bool aPartitionForeign, bool aUsingStorageAccess,
     bool aMatchName, const nsAString& aName, const nsACString& aPath,
     bool aOnlyFirstMatch, nsTArray<CookieData>& aResults) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  nsCOMPtr<nsICookieManager> service =
-      do_GetService(NS_COOKIEMANAGER_CONTRACTID);
+  nsCOMPtr<nsICookieService> service =
+      do_GetService(NS_COOKIESERVICE_CONTRACTID);
   if (!service) {
-    return;
-  }
-
-  OriginAttributes attrs(aOriginAttributes);
-  nsTArray<RefPtr<nsICookie>> results;
-  nsresult rv = service->GetCookiesFromHostNative(
-      NS_ConvertUTF16toUTF8(aDomain), &attrs, results);
-  if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
 
   NS_ConvertUTF16toUTF8 matchName(aName);
 
+  nsTArray<OriginAttributes> attrsList;
+  attrsList.AppendElement(aOriginAttributes);
+
+  if (aPartitionedOriginAttributes) {
+    attrsList.AppendElement(aPartitionedOriginAttributes.value());
+  }
+
   nsTArray<CookieData> list;
-  for (nsICookie* cookie : results) {
-    bool isHttpOnly;
-    rv = cookie->GetIsHttpOnly(&isHttpOnly);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
+
+  for (const OriginAttributes& attrs : attrsList) {
+    nsTArray<RefPtr<Cookie>> cookies;
+    service->GetCookiesFromHost(NS_ConvertUTF16toUTF8(aDomain), attrs, cookies);
+
+    for (Cookie* cookie : cookies) {
+      if (cookie->IsHttpOnly()) {
+        continue;
+      }
+
+      if (aThirdPartyContext &&
+          !CookieCommons::ShouldIncludeCrossSiteCookie(
+              cookie, aPartitionForeign, attrs.IsPrivateBrowsing(),
+              aUsingStorageAccess)) {
+        continue;
+      }
+
+      if (aMatchName && !matchName.Equals(cookie->Name())) {
+        continue;
+      }
+
+      if (!net::CookieCommons::PathMatches(cookie->Path(), aPath)) {
+        continue;
+      }
+
+      CookieData* data = list.AppendElement();
+      data->name() = NS_ConvertUTF8toUTF16(cookie->Name());
+      data->value() = NS_ConvertUTF8toUTF16(cookie->Value());
+
+      if (aOnlyFirstMatch) {
+        break;
+      }
     }
 
-    if (isHttpOnly) {
-      continue;
-    }
-
-    nsAutoCString name;
-    rv = cookie->GetName(name);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-
-    if (aMatchName && !matchName.Equals(name)) {
-      continue;
-    }
-
-    nsAutoCString cookiePath;
-    rv = cookie->GetPath(cookiePath);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-
-    if (!net::CookieCommons::PathMatches(cookiePath, aPath)) {
-      continue;
-    }
-
-    nsAutoCString value;
-    rv = cookie->GetValue(value);
-    if (NS_WARN_IF(NS_FAILED(rv))) {
-      return;
-    }
-
-    CookieData* data = list.AppendElement();
-    data->name() = NS_ConvertUTF8toUTF16(name);
-    data->value() = NS_ConvertUTF8toUTF16(value);
-
-    if (aOnlyFirstMatch) {
+    if (!list.IsEmpty() && aOnlyFirstMatch) {
       break;
     }
   }
@@ -230,7 +241,8 @@ void CookieStoreParent::GetRequestOnMainThread(
 
 bool CookieStoreParent::SetRequestOnMainThread(
     ThreadsafeContentParentHandle* aParent, const nsAString& aDomain,
-    const OriginAttributes& aOriginAttributes, const nsAString& aName,
+    const OriginAttributes& aOriginAttributes, bool aThirdPartyContext,
+    bool aPartitionForeign, bool aUsingStorageAccess, const nsAString& aName,
     const nsAString& aValue, bool aSession, int64_t aExpires,
     const nsAString& aPath, int32_t aSameSite, bool aPartitioned,
     const nsID& aOperationID) {
@@ -239,6 +251,14 @@ bool CookieStoreParent::SetRequestOnMainThread(
   NS_ConvertUTF16toUTF8 domain(aDomain);
 
   if (!CheckContentProcessSecurity(aParent, domain, aOriginAttributes)) {
+    return false;
+  }
+
+  if (aThirdPartyContext &&
+      !CookieCommons::ShouldIncludeCrossSiteCookie(
+          aSameSite, aPartitioned && !aOriginAttributes.mPartitionKey.IsEmpty(),
+          aPartitionForeign, aOriginAttributes.IsPrivateBrowsing(),
+          aUsingStorageAccess)) {
     return false;
   }
 
@@ -278,7 +298,8 @@ bool CookieStoreParent::SetRequestOnMainThread(
 
 bool CookieStoreParent::DeleteRequestOnMainThread(
     ThreadsafeContentParentHandle* aParent, const nsAString& aDomain,
-    const OriginAttributes& aOriginAttributes, const nsAString& aName,
+    const OriginAttributes& aOriginAttributes, bool aThirdPartyContext,
+    bool aPartitionForeign, bool aUsingStorageAccess, const nsAString& aName,
     const nsAString& aPath, bool aPartitioned, const nsID& aOperationID) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -334,6 +355,22 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
     }
 
     if (isPartitioned != aPartitioned) continue;
+
+    if (aThirdPartyContext) {
+      int32_t sameSiteAttr = 0;
+      rv = cookie->GetSameSite(&sameSiteAttr);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        return false;
+      }
+
+      if (!CookieCommons::ShouldIncludeCrossSiteCookie(
+              sameSiteAttr,
+              isPartitioned && !aOriginAttributes.mPartitionKey.IsEmpty(),
+              aPartitionForeign, attrs.IsPrivateBrowsing(),
+              aUsingStorageAccess)) {
+        return false;
+      }
+    }
 
     bool notified = false;
     auto notificationCb = [&]() { notified = true; };
