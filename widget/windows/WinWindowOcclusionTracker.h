@@ -274,7 +274,7 @@ class WinWindowOcclusionTracker final {
  public:
   // This is called with session changed notifications. If the screen is locked
   // by the current session, it marks app windows as occluded.
-  void OnSessionChange(WPARAM aStatusCode, Maybe<bool> aIsCurrentSession);
+  void OnSessionChange(WPARAM aStatusCode);
 
   // This is called when the display is put to sleep. If the display is sleeping
   // it marks app windows as occluded.
