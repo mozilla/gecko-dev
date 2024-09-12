@@ -10,7 +10,6 @@ import android.hardware.camera2.CameraManager
 import android.media.AudioManager
 import android.os.Build
 import androidx.core.net.toUri
-import androidx.test.filters.SdkSuppress
 import androidx.test.rule.GrantPermissionRule
 import mozilla.components.support.ktx.util.PromptAbuserDetector
 import org.junit.Assume.assumeTrue
@@ -56,6 +55,7 @@ class SitePermissionsTest : TestSetup() {
         Manifest.permission.RECORD_AUDIO,
         Manifest.permission.CAMERA,
         Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_FINE_LOCATION,
     )
 
     @get: Rule
@@ -294,7 +294,6 @@ class SitePermissionsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/251385
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun allowLocationPermissionsTest() {
