@@ -93,7 +93,10 @@ export class SidebarHistory extends SidebarPage {
    * The template to use for cards-container.
    */
   get cardsTemplate() {
-    if (this.controller.searchResults) {
+    if (this.controller.isHistoryPending) {
+      // don't render cards until initial history visits entries are available
+      return "";
+    } else if (this.controller.searchResults) {
       return this.#searchResultsTemplate();
     } else if (!this.controller.isHistoryEmpty) {
       return this.#historyCardsTemplate();
@@ -228,11 +231,6 @@ export class SidebarHistory extends SidebarPage {
       ? "after_start" // Sidebar is on the left. Open menu to the right.
       : "after_end"; // Sidebar is on the right. Open menu to the left.
     this._menu.openPopup(e.target, menuPos, 0, 0, false, false, e);
-  }
-
-  shouldUpdate() {
-    // don't update/render until initial history visits entries are available
-    return !this.controller.isHistoryPending;
   }
 
   willUpdate() {
