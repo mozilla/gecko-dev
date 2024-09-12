@@ -826,7 +826,8 @@ BookmarkImporter.prototype = {
       bookmarkCount += bookmarks.filter(
         bookmark => bookmark.type == PlacesUtils.bookmarks.TYPE_BOOKMARK
       ).length;
-      insertFaviconsForTree(tree);
+
+      insertFaviconsForTree(tree).catch(console.warn);
     }
     return bookmarkCount;
   },
@@ -1079,35 +1080,34 @@ BookmarkExporter.prototype = {
  *
  * @param {Object} node The bookmark node for icons to be inserted.
  */
-function insertFaviconForNode(node) {
-  if (node.icon) {
-    try {
-      PlacesUtils.favicons.setFaviconForPage(
-        Services.io.newURI(node.url),
-        // Create a fake favicon URI to use (FIXME: bug 523932)
-        Services.io.newURI("fake-favicon-uri:" + node.url),
-        Services.io.newURI(node.icon)
-      );
-    } catch (ex) {
-      console.error("Failed to import favicon data:", ex);
-    }
-  }
-
-  if (!node.iconUri) {
+async function insertFaviconForNode(node) {
+  if (!node.icon && !node.iconUri) {
+    // No favicon information.
     return;
   }
 
   try {
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
-      Services.io.newURI(node.url),
-      Services.io.newURI(node.iconUri),
-      false,
-      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-      null,
-      Services.scriptSecurityManager.getSystemPrincipal()
-    );
+    // If icon is not specified, suppose iconUri may contain a data uri.
+    let faviconDataURI = Services.io.newURI(node.icon || node.iconUri);
+    if (!faviconDataURI.schemeIs("data")) {
+      return;
+    }
+
+    let result = await new Promise(resolve => {
+      PlacesUtils.favicons.setFaviconForPage(
+        Services.io.newURI(node.url),
+        // Use iconUri otherwise create a fake favicon URI to use (FIXME: bug 523932)
+        Services.io.newURI(node.iconUri ?? "fake-favicon-uri:" + node.url),
+        faviconDataURI,
+        null,
+        resolve
+      );
+    });
+    if (!Components.isSuccessCode(result)) {
+      throw new Error("Failed to call setFaviconForPage():", node.url);
+    }
   } catch (ex) {
-    console.error("Failed to import favicon URI:" + ex);
+    console.error("Failed to import favicon data:", ex);
   }
 }
 
@@ -1120,12 +1120,12 @@ function insertFaviconForNode(node) {
  *
  * @param {Object} nodeTree The bookmark node tree for icons to be inserted.
  */
-function insertFaviconsForTree(nodeTree) {
-  insertFaviconForNode(nodeTree);
+async function insertFaviconsForTree(nodeTree) {
+  await insertFaviconForNode(nodeTree);
 
   if (nodeTree.children) {
     for (let child of nodeTree.children) {
-      insertFaviconsForTree(child);
+      await insertFaviconsForTree(child);
     }
   }
 }
