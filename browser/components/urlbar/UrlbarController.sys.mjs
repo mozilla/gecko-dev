@@ -944,7 +944,7 @@ class TelemetryEvent {
     );
 
     if (!details.isSessionOngoing) {
-      this.#recordEndOfSessionTelemetry(queryContext);
+      this.#recordExposures(queryContext);
     }
 
     if (!skipLegacyTelemetry) {
@@ -1112,28 +1112,33 @@ class TelemetryEvent {
     Glean.urlbar[method].record(eventInfo);
   }
 
-  #recordEndOfSessionTelemetry(queryContext) {
+  #recordExposures(queryContext) {
     let exposures = this.#exposures;
     this.#exposures = [];
     this.#tentativeExposures = [];
-    this.#exposureResultTypesByQueryContext.delete(queryContext);
     if (!exposures.length) {
       return;
     }
 
-    let exposureResultTypes = new Set();
+    let terminalByType = new Map();
     let keywordExposureRecorded = false;
-    for (let { resultType, keyword, weakQueryContext } of exposures) {
-      exposureResultTypes.add(resultType);
+    for (let { weakResult, resultType, keyword } of exposures) {
+      let terminal = false;
+      let result = weakResult.get();
+      if (result) {
+        this.#exposureResults.delete(result);
+
+        let endResults = result.isHiddenExposure
+          ? queryContext.results
+          : this._controller.view?.visibleResults;
+        terminal = endResults?.includes(result);
+      }
+
+      terminalByType.set(resultType, terminal);
 
       // Record the `keyword_exposure` event if there's a keyword.
       if (keyword) {
-        let exposureContext = weakQueryContext.get();
-        let data = {
-          keyword,
-          result: resultType,
-          terminal: exposureContext == queryContext,
-        };
+        let data = { keyword, terminal, result: resultType };
         this._controller.logger.debug(
           `keyword_exposure event: ${JSON.stringify(data)}`
         );
@@ -1143,8 +1148,10 @@ class TelemetryEvent {
     }
 
     // Record the `exposure` event.
+    let tuples = [...terminalByType].sort((a, b) => a[0].localeCompare(b[0]));
     let exposure = {
-      results: [...exposureResultTypes].sort().join(","),
+      results: tuples.map(t => t[0]).join(","),
+      terminal: tuples.map(t => t[1]).join(","),
     };
     this._controller.logger.debug(
       `exposure event: ${JSON.stringify(exposure)}`
@@ -1173,10 +1180,7 @@ class TelemetryEvent {
    */
   addExposure(result, queryContext) {
     if (result.exposureTelemetry) {
-      this.#addExposureResultType(
-        lazy.UrlbarUtils.searchEngagementTelemetryType(result),
-        queryContext
-      );
+      this.#addExposureInternal(result, queryContext);
     }
   }
 
@@ -1193,7 +1197,7 @@ class TelemetryEvent {
   addTentativeExposure(result, queryContext) {
     if (result.exposureTelemetry) {
       this.#tentativeExposures.push({
-        resultType: lazy.UrlbarUtils.searchEngagementTelemetryType(result),
+        weakResult: Cu.getWeakReference(result),
         weakQueryContext: Cu.getWeakReference(queryContext),
       });
     }
@@ -1206,10 +1210,11 @@ class TelemetryEvent {
    */
   acceptTentativeExposures() {
     if (this.#tentativeExposures.length) {
-      for (let { resultType, weakQueryContext } of this.#tentativeExposures) {
+      for (let { weakResult, weakQueryContext } of this.#tentativeExposures) {
+        let result = weakResult.get();
         let queryContext = weakQueryContext.get();
-        if (queryContext) {
-          this.#addExposureResultType(resultType, queryContext);
+        if (result && queryContext) {
+          this.#addExposureInternal(result, queryContext);
         }
       }
       this.#tentativeExposures = [];
@@ -1226,25 +1231,15 @@ class TelemetryEvent {
     }
   }
 
-  #addExposureResultType(resultType, queryContext) {
-    // If we haven't yet added an exposure for this result type and context, add
-    // it now. The reason for this check is that the view can add exposures for
-    // the same results again and again due to the nature of its update process.
-    // Only one exposure per result should be recorded. This does mean we can't
-    // record separate exposures for different results of the same type in the
-    // same context, but since we only care about separate exposures per type in
-    // the context of keyword exposures and the results would necessarily have
-    // the same keyword in that case, that's fine.
-    let types = this.#exposureResultTypesByQueryContext.get(queryContext);
-    if (!types) {
-      types = new Set();
-      this.#exposureResultTypesByQueryContext.set(queryContext, types);
-    }
-    if (!types.has(resultType)) {
-      types.add(resultType);
+  #addExposureInternal(result, queryContext) {
+    // If we haven't added an exposure for this result, add it now. The view can
+    // add exposures for the same results again and again due to the nature of
+    // its update process, but we should record at most one exposure per result.
+    if (!this.#exposureResults.has(result)) {
+      this.#exposureResults.add(result);
       this.#exposures.push({
-        resultType,
-        weakQueryContext: Cu.getWeakReference(queryContext),
+        weakResult: Cu.getWeakReference(result),
+        resultType: lazy.UrlbarUtils.searchEngagementTelemetryType(result),
         keyword:
           lazy.UrlbarPrefs.get("recordKeywordExposures") &&
           !queryContext.isPrivate
@@ -1455,8 +1450,8 @@ class TelemetryEvent {
   // 2. If exposure telemetry should be recorded for the result, we push its
   //    telemetry type and some other data onto `#exposures`. If keyword
   //    exposures are enabled, we also include the search string in the data. We
-  //    use `#exposureResultTypesByQueryContext` to efficiently make sure we add
-  //    at most one exposure per result to `#exposures`.
+  //    use `#exposureResults` to efficiently make sure we add at most one
+  //    exposure per result to `#exposures`.
   // 3. At the end of a session, we record a single `exposure` event that
   //    includes all unique telemetry types in the `#exposures` data. We also
   //    record one `keyword_exposure` event per search string in the data, with
@@ -1481,5 +1476,5 @@ class TelemetryEvent {
   // [3] https://dictionary.telemetry.mozilla.org/apps/firefox_desktop/metrics/urlbar_keyword_exposure
   #exposures = [];
   #tentativeExposures = [];
-  #exposureResultTypesByQueryContext = new WeakMap();
+  #exposureResults = new WeakSet();
 }

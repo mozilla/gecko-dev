@@ -5,8 +5,10 @@
 
 "use strict";
 
-// Avoid timeouts in verify mode, especially on Mac
-requestLongerTimeout(6);
+// Avoid timeouts in verify mode, especially on "OS X 10.15 WebRender opt" in
+// verify mode on Treeherder. This test has taken up to 275231ms on try runs in
+// verify mode on that machine.
+requestLongerTimeout(15);
 
 add_setup(async function () {
   await initExposureTest();
@@ -18,10 +20,14 @@ add_task(async function engagement() {
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", true],
     ],
-    query: "amp",
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+    ],
     trigger: doClick,
-    expectedResultTypes: ["adm_sponsored"],
-    shouldBeShown: true,
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
@@ -31,10 +37,14 @@ add_task(async function abandonment() {
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", true],
     ],
-    query: "amp",
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+    ],
     trigger: doBlur,
-    expectedResultTypes: ["adm_sponsored"],
-    shouldBeShown: true,
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
@@ -44,9 +54,13 @@ add_task(async function oneExposureResult_shown_matched() {
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", true],
     ],
-    query: "amp",
-    expectedResultTypes: ["adm_sponsored"],
-    shouldBeShown: true,
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
@@ -56,8 +70,13 @@ add_task(async function oneExposureResult_shown_notMatched() {
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", true],
     ],
-    query: "wikipedia",
-    expectedResultTypes: [],
+    queries: [
+      {
+        query: "wikipedia",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [],
   });
 });
 
@@ -67,9 +86,13 @@ add_task(async function oneExposureResult_hidden_matched() {
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", false],
     ],
-    query: "amp",
-    expectedResultTypes: ["adm_sponsored"],
-    shouldBeShown: false,
+    queries: [
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
@@ -79,8 +102,13 @@ add_task(async function oneExposureResult_hidden_notMatched() {
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", false],
     ],
-    query: "wikipedia",
-    expectedResultTypes: [],
+    queries: [
+      {
+        query: "wikipedia",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [],
   });
 });
 
@@ -96,9 +124,13 @@ add_task(async function manyExposureResults_shown_oneMatched_1() {
       ],
       ["showExposureResults", true],
     ],
-    query: "amp",
-    expectedResultTypes: ["adm_sponsored"],
-    shouldBeShown: true,
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
@@ -114,9 +146,13 @@ add_task(async function manyExposureResults_shown_oneMatched_2() {
       ],
       ["showExposureResults", true],
     ],
-    query: "wikipedia",
-    expectedResultTypes: ["adm_nonsponsored"],
-    shouldBeShown: true,
+    queries: [
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_nonsponsored", terminal: "true" }],
   });
 });
 
@@ -132,11 +168,17 @@ add_task(async function manyExposureResults_shown_manyMatched() {
       ],
       ["showExposureResults", true],
     ],
-    query: "amp and wikipedia",
-    // Only one result should be recorded since exposures are shown and at most
-    // one Suggest result should be shown.
-    expectedResultTypes: ["adm_sponsored"],
-    shouldBeShown: true,
+    queries: [
+      {
+        query: "amp and wikipedia",
+        // Only the sponsored result should be visible and recorded since this
+        // task shows exposures, at most one Suggest result should be shown, and
+        // sponsored has the higher score.
+        expectedVisible: ["adm_sponsored"],
+        expectedNotVisible: ["adm_nonsponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
@@ -152,9 +194,13 @@ add_task(async function manyExposureResults_hidden_oneMatched_1() {
       ],
       ["showExposureResults", false],
     ],
-    query: "amp",
-    expectedResultTypes: ["adm_sponsored"],
-    shouldBeShown: false,
+    queries: [
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
@@ -170,9 +216,13 @@ add_task(async function manyExposureResults_hidden_oneMatched_2() {
       ],
       ["showExposureResults", false],
     ],
-    query: "wikipedia",
-    expectedResultTypes: ["adm_nonsponsored"],
-    shouldBeShown: false,
+    queries: [
+      {
+        query: "wikipedia",
+        expectedNotVisible: ["adm_nonsponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_nonsponsored", terminal: "true" }],
   });
 });
 
@@ -188,74 +238,471 @@ add_task(async function manyExposureResults_hidden_manyMatched() {
       ],
       ["showExposureResults", false],
     ],
-    query: "amp and wikipedia",
-    // Both results should be recorded since exposures are hidden and there's no
-    // limit on the number of hidden-exposure Suggest results.
-    expectedResultTypes: ["adm_nonsponsored", "adm_sponsored"],
-    shouldBeShown: false,
+    queries: [
+      {
+        query: "amp and wikipedia",
+        expectedNotVisible: ["adm_sponsored", "adm_nonsponsored"],
+      },
+    ],
+    // Both results should be recorded since this task hides exposures and
+    // there's no limit on the number of hidden-exposure Suggest results.
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "true,true" },
+    ],
   });
 });
 
-add_task(async function modifyQuery_terminal() {
+add_task(async function manyQueries_oneExposureResult_shown_terminal_1() {
   await doExposureTest({
     prefs: [
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", true],
     ],
-    // start with a Wikipedia query
-    query: "wikipedia",
-    trigger: async () => {
-      // delete the Wikipedia query
-      gURLBar.select();
-      EventUtils.synthesizeKey("KEY_Backspace");
-      // trigger the AMP suggestion
-      await openPopup("amp");
-      await doClick();
-    },
-    expectedResultTypes: ["adm_sponsored"],
-    // `shouldBeShown` is checked before `trigger` is called, and the AMP result
-    // won't be present then.
-    shouldBeShown: false,
+    queries: [
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+      },
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+        expectedNotVisible: ["adm_nonsponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
   });
 });
 
-add_task(async function modifyQuery_nonTerminal() {
+add_task(async function manyQueries_oneExposureResult_shown_terminal_2() {
   await doExposureTest({
     prefs: [
       ["exposureResults", suggestResultType("adm_sponsored")],
       ["showExposureResults", true],
     ],
-    // start with an AMP query
-    query: "amp",
-    trigger: async () => {
-      // delete the AMP query
-      gURLBar.select();
-      EventUtils.synthesizeKey("KEY_Backspace");
-      // trigger the Wikipedia suggestion
-      await openPopup("wikipedia");
-      await doClick();
-    },
-    expectedResultTypes: ["adm_sponsored"],
-    // `shouldBeShown` is checked before `trigger` is called, and the AMP result
-    // will be present then.
-    shouldBeShown: true,
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+        expectedNotVisible: ["adm_sponsored"],
+      },
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+        expectedNotVisible: ["adm_nonsponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
+  });
+});
+
+add_task(async function manyQueries_oneExposureResult_shown_nonTerminal() {
+  await doExposureTest({
+    prefs: [
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", true],
+    ],
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+        expectedNotVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "false" }],
+  });
+});
+
+add_task(async function manyQueries_oneExposureResult_hidden_terminal_1() {
+  await doExposureTest({
+    prefs: [
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+      },
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
+  });
+});
+
+add_task(async function manyQueries_oneExposureResult_hidden_terminal_2() {
+  await doExposureTest({
+    prefs: [
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+        expectedNotVisible: ["adm_sponsored"],
+      },
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
+  });
+});
+
+add_task(async function manyQueries_oneExposureResult_hidden_nonTerminal() {
+  await doExposureTest({
+    prefs: [
+      ["exposureResults", suggestResultType("adm_sponsored")],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+        expectedNotVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "false" }],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_shown_1() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", true],
+    ],
+    queries: [
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+      },
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+        expectedNotVisible: ["adm_nonsponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "false,true" },
+    ],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_shown_2() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", true],
+    ],
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+        expectedNotVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "true,false" },
+    ],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_shown_3() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", true],
+    ],
+    queries: [
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedVisible: ["adm_nonsponsored"],
+        expectedNotVisible: ["adm_sponsored"],
+      },
+      {
+        query: "amp",
+        expectedVisible: ["adm_sponsored"],
+        expectedNotVisible: ["adm_nonsponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "false,true" },
+    ],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_shown_4() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", true],
+    ],
+    queries: [
+      {
+        query: "doesn't match",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+      {
+        query: "amp and wikipedia",
+        // Only the sponsored result should be visible and recorded since this
+        // task shows exposures, at most one Suggest result should be shown, and
+        // sponsored has the higher score.
+        expectedVisible: ["adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "true" }],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_shown_5() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", true],
+    ],
+    queries: [
+      {
+        query: "amp and wikipedia",
+        // Only the sponsored result should be visible and recorded since this
+        // task shows exposures, at most one Suggest result should be shown, and
+        // sponsored has the higher score.
+        expectedVisible: ["adm_sponsored"],
+      },
+      {
+        query: "doesn't match",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [{ results: "adm_sponsored", terminal: "false" }],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_hidden_1() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "wikipedia",
+        expectedNotVisible: ["adm_nonsponsored"],
+      },
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "false,true" },
+    ],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_hidden_2() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "true,false" },
+    ],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_hidden_3() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_sponsored"],
+      },
+      {
+        query: "wikipedia",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+      {
+        query: "amp",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "false,true" },
+    ],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_hidden_4() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "doesn't match",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+      {
+        query: "amp and wikipedia",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "true,true" },
+    ],
+  });
+});
+
+add_task(async function manyQueries_manyExposureResults_hidden_5() {
+  await doExposureTest({
+    prefs: [
+      [
+        "exposureResults",
+        [
+          suggestResultType("adm_sponsored"),
+          suggestResultType("adm_nonsponsored"),
+        ].join(","),
+      ],
+      ["showExposureResults", false],
+    ],
+    queries: [
+      {
+        query: "amp and wikipedia",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+      {
+        query: "doesn't match",
+        expectedNotVisible: ["adm_nonsponsored", "adm_sponsored"],
+      },
+    ],
+    expectedEvents: [
+      { results: "adm_nonsponsored,adm_sponsored", terminal: "false,false" },
+    ],
   });
 });
 
 add_task(async function suggestExposure_matched() {
   await doExposureTest({
     prefs: [["quicksuggest.exposureSuggestionTypes", "aaa"]],
-    query: "aaa keyword",
-    expectedResultTypes: ["exposure"],
-    shouldBeShown: false,
+    queries: [
+      {
+        query: "aaa keyword",
+        expectedNotVisible: ["exposure"],
+      },
+    ],
+    expectedEvents: [{ results: "exposure", terminal: "true" }],
   });
 });
 
 add_task(async function suggestExposure_notMatched() {
   await doExposureTest({
     prefs: [["quicksuggest.exposureSuggestionTypes", "aaa"]],
-    query: "bbb keyword",
-    expectedResultTypes: [],
+    queries: [
+      {
+        query: "bbb keyword",
+        expectedNotVisible: ["exposure"],
+      },
+    ],
+    expectedEvents: [],
   });
 });
 
@@ -265,8 +712,12 @@ add_task(async function suggestExposure_showExposureResults() {
       ["quicksuggest.exposureSuggestionTypes", "aaa"],
       ["showExposureResults", true],
     ],
-    query: "aaa keyword",
-    expectedResultTypes: ["exposure"],
-    shouldBeShown: false,
+    queries: [
+      {
+        query: "aaa keyword",
+        expectedNotVisible: ["exposure"],
+      },
+    ],
+    expectedEvents: [{ results: "exposure", terminal: "true" }],
   });
 });

@@ -469,10 +469,22 @@ urlbar:
     extra_keys:
       results:
         description: >
-          Comma separated list of results that were visible to the user.
+          Comma separated list of results that were exposed to the user.
+        type: string
+      terminal:
+        description: >
+          Comma separated list of booleans that indicates whether the results
+          were present at the end of the urlbar session. This list is parallel
+          to the `results` list. i.e., the boolean at index i is true if the
+          result at index i was present at the end of the session. For example,
+          if `results` is "bookmark,history,search_suggest" and the bookmark was
+          not present at the end of the session, the history result was present,
+          and the search suggestion was not present, then `terminal` will be
+          "false,true,false".
         type: string
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1819766
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918299
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1819766#c9
     data_sensitivity:

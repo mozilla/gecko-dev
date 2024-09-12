@@ -280,6 +280,8 @@ add_task(async function manyResults() {
     searchStrings: ["foo", "bar", "baz", "bar"],
     expectedEvents: [
       { extra: { keyword: "foo", result: "history", terminal: false } },
+      { extra: { keyword: "foo", result: "history", terminal: false } },
+      { extra: { keyword: "foo", result: "history", terminal: false } },
       { extra: { keyword: "bar", result: "history", terminal: false } },
       { extra: { keyword: "bar", result: "bookmark", terminal: false } },
       { extra: { keyword: "baz", result: "bookmark", terminal: false } },
