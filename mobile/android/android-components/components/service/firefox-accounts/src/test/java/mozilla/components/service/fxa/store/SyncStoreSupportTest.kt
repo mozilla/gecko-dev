@@ -207,7 +207,9 @@ class SyncStoreSupportTest {
     }
 
     @Test
-    fun `GIVEN account observer WHEN onReady observed with profile THEN account states are updated`() = coroutineScope.runTest {
+    fun `GIVEN account observer WHEN onReady is triggered THEN do nothing`() = coroutineScope.runTest {
+        // `onReady` is too early for us (today) to try and get the auth status from the cached value.
+        // See: https://bugzilla.mozilla.org/show_bug.cgi?id=1909779
         val profile = generateProfile()
         val currentDeviceId = "id"
         val sessionToken = "token"
@@ -218,14 +220,7 @@ class SyncStoreSupportTest {
             whenever(getSessionToken()).thenReturn(sessionToken)
             whenever(getProfile()).thenReturn(profile)
         }
-        val account = Account(
-            uid = profile.uid,
-            email = profile.email,
-            avatar = profile.avatar,
-            displayName = profile.displayName,
-            currentDeviceId = currentDeviceId,
-            sessionToken = sessionToken,
-        )
+        val initialState = store.state.copy()
 
         assertNull(store.state.account)
         assertEquals(AccountState.NotAuthenticated, store.state.accountState)
@@ -236,8 +231,7 @@ class SyncStoreSupportTest {
         runCurrent()
 
         store.waitUntilIdle()
-        assertEquals(account, store.state.account)
-        assertEquals(AccountState.AuthenticationProblem, store.state.accountState)
+        assertEquals(initialState, store.state)
 
         `when`(authenticatedAccount.checkAuthorizationStatus(eq(SCOPE_PROFILE))).thenReturn(true)
 
@@ -245,8 +239,7 @@ class SyncStoreSupportTest {
         runCurrent()
 
         store.waitUntilIdle()
-        assertEquals(account, store.state.account)
-        assertEquals(AccountState.Authenticated, store.state.accountState)
+        assertEquals(initialState, store.state)
     }
 
     @Test
