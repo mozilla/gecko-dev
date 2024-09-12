@@ -180,6 +180,13 @@ if $NEED_WINDOW_MANAGER; then
         :
     fi
 
+    # Start a session bus early instead of leaving it to Xsession, so that we
+    # can use it for access to e.g. gnome-keyring or the screencast API
+    if test -z "$DBUS_SESSION_BUS_ADDRESS" ; then
+        # if not found, launch a new one
+        eval `dbus-launch --sh-syntax`
+    fi
+
     # DISPLAY has already been set above
     # XXX: it would be ideal to add a semaphore logic to make sure that the
     # window manager is ready
@@ -200,10 +207,6 @@ if $NEED_WINDOW_MANAGER; then
     # This starts the gnome-keyring-daemon with an unlocked login keyring. libsecret uses this to
     # store secrets. Firefox uses libsecret to store a key that protects sensitive information like
     # credit card numbers.
-    if test -z "$DBUS_SESSION_BUS_ADDRESS" ; then
-        # if not found, launch a new one
-        eval `dbus-launch --sh-syntax`
-    fi
     eval `echo '' | /usr/bin/gnome-keyring-daemon -r -d --unlock --components=secrets`
 
     # Run mutter as nested wayland compositor to provide Wayland environment
