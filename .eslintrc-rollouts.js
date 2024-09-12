@@ -2030,6 +2030,7 @@ const rollouts = [
     },
   },
   {
+    // TODO: Bug TBD - Finish enabling no-shadow for all files.
     files: [
       "browser/components/extensions/**",
       "docshell/test/**",

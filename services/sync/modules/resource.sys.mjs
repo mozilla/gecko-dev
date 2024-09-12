@@ -11,8 +11,6 @@ import { CommonUtils } from "resource://services-common/utils.sys.mjs";
 import { Utils } from "resource://services-sync/util.sys.mjs";
 import { setTimeout, clearTimeout } from "resource://gre/modules/Timer.sys.mjs";
 
-/* global AbortController */
-
 /*
  * Resource represents a remote network resource, identified by a URI.
  * Create an instance like so:
