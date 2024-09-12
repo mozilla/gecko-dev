@@ -58,23 +58,33 @@ nsWaylandDisplay* WaylandDisplayGet() {
 
 void nsWaylandDisplay::SetShm(wl_shm* aShm) { mShm = aShm; }
 
-struct PointerState {
-  wl_surface* surface;
-
+class EventSurface {
+ public:
   nsWindow* GetWindow() {
+    if (!surface) {
+      return nullptr;
+    }
     GdkWindow* window =
         static_cast<GdkWindow*>(wl_surface_get_user_data(surface));
     return window ? static_cast<nsWindow*>(
                         g_object_get_data(G_OBJECT(window), "nsWindow"))
                   : nullptr;
   }
-} sPointerState;
+  void Set(wl_surface* aSurface) { surface = aSurface; }
+  void Clear() { surface = nullptr; }
+
+ private:
+  wl_surface* surface = nullptr;
+};
+
+static EventSurface sTouchSurface;
 
 static void gesture_hold_begin(void* data,
                                struct zwp_pointer_gesture_hold_v1* hold,
                                uint32_t serial, uint32_t time,
                                struct wl_surface* surface, uint32_t fingers) {
-  RefPtr<nsWindow> window = sPointerState.GetWindow();
+  sTouchSurface.Set(surface);
+  RefPtr<nsWindow> window = sTouchSurface.GetWindow();
   if (!window) {
     return;
   }
@@ -85,7 +95,7 @@ static void gesture_hold_end(void* data,
                              struct zwp_pointer_gesture_hold_v1* hold,
                              uint32_t serial, uint32_t time,
                              int32_t cancelled) {
-  RefPtr<nsWindow> window = sPointerState.GetWindow();
+  RefPtr<nsWindow> window = sTouchSurface.GetWindow();
   if (!window) {
     return;
   }
@@ -99,14 +109,10 @@ static const struct zwp_pointer_gesture_hold_v1_listener gesture_hold_listener =
 
 static void pointer_handle_enter(void* data, struct wl_pointer* pointer,
                                  uint32_t serial, struct wl_surface* surface,
-                                 wl_fixed_t sx, wl_fixed_t sy) {
-  sPointerState.surface = surface;
-}
+                                 wl_fixed_t sx, wl_fixed_t sy) {}
 
 static void pointer_handle_leave(void* data, struct wl_pointer* pointer,
-                                 uint32_t serial, struct wl_surface* surface) {
-  sPointerState.surface = nullptr;
-}
+                                 uint32_t serial, struct wl_surface* surface) {}
 
 static void pointer_handle_motion(void* data, struct wl_pointer* pointer,
                                   uint32_t time, wl_fixed_t sx, wl_fixed_t sy) {
