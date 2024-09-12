@@ -53,4 +53,28 @@ export default [
     rules: ["span { vertical-align: top; }"],
     isActive: true,
   },
+  {
+    info: "vertical-align is active on an inline pseudo element in a block parent",
+    property: "vertical-align",
+    tagName: "div",
+    pseudoElement: "::before",
+    rules: [
+      "div {display: block;}",
+      "div::before { content: '-'; vertical-align: top; }",
+    ],
+    ruleIndex: 1,
+    isActive: true,
+  },
+  {
+    info: "vertical-align is inactive on a block pseudo element in an inline parent",
+    property: "vertical-align",
+    tagName: "span",
+    pseudoElement: "::before",
+    rules: [
+      "span {display: inline;}",
+      "span::before { content: '-'; display: block; vertical-align: top; }",
+    ],
+    ruleIndex: 1,
+    isActive: false,
+  },
 ];

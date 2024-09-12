@@ -12,6 +12,7 @@ SimpleTest.waitForExplicitFinish();
 (async function() {
   const { require } = ChromeUtils.importESModule("resource://devtools/shared/loader/Loader.sys.mjs");
   const { isPropertyUsed } = require("devtools/server/actors/utils/inactive-property-helper");
+  const { DocumentWalker } = require("devtools/server/actors/inspector/document-walker");
 
   const INACTIVE_CSS_PREF = "devtools.inspector.inactive.css.enabled";
   const CUSTOM_HIGHLIGHT_API = "dom.customHighlightAPI.enabled";
@@ -93,6 +94,7 @@ SimpleTest.waitForExplicitFinish();
     property,
     tagName,
     createTestElement,
+    pseudoElement,
     rules,
     ruleIndex,
     isActive,
@@ -117,9 +119,26 @@ SimpleTest.waitForExplicitFinish();
     } else {
       el = document.createElement(tagName);
       main.append(el);
+
+      // When checking a pseudo element, we need to retrieve it, walking the DOM from
+      // its "real" node.
+      if (pseudoElement) {
+        const walker = new DocumentWalker(
+          el,
+          el.ownerGlobal
+        );
+
+        const pseudoNodeName = `_moz_generated_content_${pseudoElement.replaceAll(":", "")}`;
+        for (let next = walker.firstChild(); next; next = walker.nextSibling()) {
+          if (next.nodeName === pseudoNodeName) {
+            el = next;
+            break;
+          }
+        }
+      }
     }
 
-    const { used, msgId } = isPropertyUsed(el, getComputedStyle(el), rule, property);
+    const { used, msgId } = isPropertyUsed(el, getComputedStyle(el, pseudoElement), rule, property);
     ok(used === isActive, summary);
     if (expectedMsgId) {
       is(msgId, expectedMsgId, `${summary} - returned expected msgId`);

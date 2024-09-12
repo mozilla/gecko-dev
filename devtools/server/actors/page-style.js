@@ -177,14 +177,23 @@ class PageStyleActor extends Actor {
 
   /**
    * Return or create a StyleRuleActor for the given item.
-   * @param item Either a CSSStyleRule or a DOM element.
-   * @param userAdded Optional boolean to distinguish rules added by the user.
+   *
+   * @param {CSSStyleRule|Element} item
+   * @param {String} pseudoElement An optional pseudo-element type in cases when the CSS
+   *        rule applies to a pseudo-element.
+   * @param {Boolean} userAdded: Optional boolean to distinguish rules added by the user.
+   * @return {StyleRuleActor} The newly created, or cached, StyleRuleActor for this item.
    */
-  _styleRef(item, userAdded = false) {
+  _styleRef(item, pseudoElement, userAdded = false) {
     if (this.refMap.has(item)) {
       return this.refMap.get(item);
     }
-    const actor = new StyleRuleActor(this, item, userAdded);
+    const actor = new StyleRuleActor({
+      pageStyle: this,
+      item,
+      userAdded,
+      pseudoElement,
+    });
     this.manage(actor);
     this.refMap.set(item, actor);
 
@@ -378,7 +387,10 @@ class PageStyleActor extends Actor {
 
       // If this font comes from a @font-face rule
       if (font.rule) {
-        const styleActor = new StyleRuleActor(this, font.rule);
+        const styleActor = new StyleRuleActor({
+          pageStyle: this,
+          item: font.rule,
+        });
         this.manage(styleActor);
         fontFace.rule = styleActor;
         fontFace.ruleText = font.rule.cssText;
@@ -646,7 +658,7 @@ class PageStyleActor extends Actor {
       return rules;
     }
 
-    const elementStyle = this._styleRef(bindingElement);
+    const elementStyle = this._styleRef(bindingElement, pseudo);
     const showElementStyles = !inherited && !pseudo;
     const showInheritedStyles =
       inherited && this._hasInheritedProps(bindingElement.style);
@@ -869,7 +881,7 @@ class PageStyleActor extends Actor {
         }
       }
 
-      const ruleActor = this._styleRef(domRule);
+      const ruleActor = this._styleRef(domRule, pseudo);
 
       rules.push(
         this._getRuleItem(ruleActor, node, {
@@ -1169,7 +1181,7 @@ class PageStyleActor extends Actor {
     await this.styleSheetsManager.setStyleSheetText(resourceId, authoredText);
 
     const cssRule = sheet.cssRules.item(index);
-    const ruleActor = this._styleRef(cssRule, true);
+    const ruleActor = this._styleRef(cssRule, null, true);
 
     TrackChangeEmitter.trackChange({
       ...ruleActor.metadata,

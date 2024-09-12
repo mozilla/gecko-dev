@@ -686,7 +686,10 @@ async function openEyedropper(view, swatch) {
  * @param {ruleView} view
  *        The rule-view instance.
  * @param {Number} ruleIndex
- *        The index we expect the rule to have in the rule-view.
+ *        The index we expect the rule to have in the rule-view. If an array, the first
+ *        item is the children index in the rule view, and the second item is the child
+ *        node index in the retrieved rule view element. This is helpful to select rules
+ *        inside the pseudo element section.
  * @param {boolean} addCompatibilityData
  *        Optional argument to add compatibility dat with the property data
  *
@@ -713,7 +716,11 @@ async function getPropertiesForRuleIndex(
   addCompatibilityData = false
 ) {
   const declaration = new Map();
-  const ruleEditor = getRuleViewRuleEditor(view, ruleIndex);
+  let nodeIndex;
+  if (Array.isArray(ruleIndex)) {
+    [ruleIndex, nodeIndex] = ruleIndex;
+  }
+  const ruleEditor = getRuleViewRuleEditor(view, ruleIndex, nodeIndex);
 
   for (const currProp of ruleEditor?.rule?.textProps || []) {
     const icon = currProp.editor.unusedState;
@@ -917,8 +924,11 @@ async function checkDeclarationIsInactive(view, ruleIndex, declaration) {
  *
  * @param {ruleView} view
  *        The rule-view instance.
- * @param {Number} ruleIndex
- *        The index we expect the rule to have in the rule-view.
+ * @param {Number|Array} ruleIndex
+ *        The index we expect the rule to have in the rule-view. If an array, the first
+ *        item is the children index in the rule view, and the second item is the child
+ *        node index in the retrieved rule view element. This is helpful to select rules
+ *        inside the pseudo element section.
  * @param {Object} declaration
  *        An object representing the declaration e.g. { color: "red" }.
  */
@@ -1074,6 +1084,8 @@ async function runCSSCompatibilityTests(view, inspector, tests) {
  *          [
  *            {
  *              selector: "#flex-item",
+ *              // or
+ *              selectNode: (inspector) => { // custom select logic }
  *              activeDeclarations: [
  *                {
  *                  declarations: {
@@ -1095,7 +1107,7 @@ async function runCSSCompatibilityTests(view, inspector, tests) {
  *                  declaration: {
  *                    "flex-direction": "row",
  *                  },
- *                  ruleIndex: 1,
+ *                  ruleIndex: [1, 0],
  *                },
  *              ],
  *            },
@@ -1106,6 +1118,8 @@ async function runInactiveCSSTests(view, inspector, tests) {
   for (const test of tests) {
     if (test.selector) {
       await selectNode(test.selector, inspector);
+    } else if (typeof test.selectNode === "function") {
+      await test.selectNode(inspector);
     }
 
     if (test.activeDeclarations) {

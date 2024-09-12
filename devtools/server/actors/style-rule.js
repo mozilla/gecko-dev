@@ -57,6 +57,12 @@ loader.lazyRequireGetter(
   "resource://devtools/server/actors/utils/stylesheets-manager.js",
   true
 );
+loader.lazyRequireGetter(
+  this,
+  "DocumentWalker",
+  "devtools/server/actors/inspector/document-walker",
+  true
+);
 
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
@@ -69,11 +75,21 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
  * with a special rule type (100).
  */
 class StyleRuleActor extends Actor {
-  constructor(pageStyle, item, userAdded = false) {
+  /**
+   *
+   * @param {Object} options
+   * @param {PageStyleActor} options.pageStyle
+   * @param {CSSStyleRule|Element} options.item
+   * @param {Boolean} options.userAdded: Optional boolean to distinguish rules added by the user.
+   * @param {String} options.pseudoElement An optional pseudo-element type in cases when
+   *        the CSS rule applies to a pseudo-element.
+   */
+  constructor({ pageStyle, item, userAdded = false, pseudoElement = null }) {
     super(pageStyle.conn, styleRuleSpec);
     this.pageStyle = pageStyle;
     this.rawStyle = item.style;
     this._userAdded = userAdded;
+    this._pseudoElement = pseudoElement;
     this._parentSheet = null;
     // Parsed CSS declarations from this.form().declarations used to check CSS property
     // names and values before tracking changes. Using cached values instead of accessing
@@ -269,6 +285,54 @@ class StyleRuleActor extends Actor {
     return data;
   }
 
+  /**
+   * StyleRuleActor is spawned once per CSS Rule, but will be refreshed based on the
+   * currently selected DOM Element, which is updated when PageStyleActor.getApplied
+   * is called.
+   */
+  get currentlySelectedElement() {
+    let { selectedElement } = this.pageStyle;
+    if (!this._pseudoElement) {
+      return selectedElement;
+    }
+
+    // Otherwise, we can be in one of two cases:
+    // - we are selecting a pseudo element, and that pseudo element is referenced
+    //   by `selectedElement`
+    // - we are selecting the pseudo element "parent", we need to walk down the tree
+    //   from `selectedElemnt` to find the pseudo element.
+    const pseudo = this._pseudoElement.replaceAll(":", "");
+    const nodeName = `_moz_generated_content_${pseudo}`;
+
+    if (selectedElement.nodeName !== nodeName) {
+      const walker = new DocumentWalker(
+        selectedElement,
+        selectedElement.ownerGlobal
+      );
+
+      for (let next = walker.firstChild(); next; next = walker.nextSibling()) {
+        if (next.nodeName === nodeName) {
+          selectedElement = next;
+          break;
+        }
+      }
+    }
+
+    return selectedElement;
+  }
+
+  get currentlySelectedElementComputedStyle() {
+    if (!this._pseudoElement) {
+      return this.pageStyle.cssLogic.computedStyle;
+    }
+
+    const { selectedElement } = this.pageStyle;
+    return selectedElement.ownerGlobal.getComputedStyle(
+      selectedElement,
+      this._pseudoElement
+    );
+  }
+
   getDocument(sheet) {
     if (!sheet.associatedDocument) {
       throw new Error(
@@ -378,8 +442,8 @@ class StyleRuleActor extends Actor {
         cssText,
         true
       );
-      const el = this.pageStyle.selectedElement;
-      const style = this.pageStyle.cssLogic.computedStyle;
+      const el = this.currentlySelectedElement;
+      const style = this.currentlySelectedElementComputedStyle;
 
       // Whether the stylesheet is a user-agent stylesheet. This affects the
       // validity of some properties and property values.
@@ -1282,8 +1346,8 @@ class StyleRuleActor extends Actor {
   maybeRefresh(forceRefresh) {
     let hasChanged = false;
 
-    const el = this.pageStyle.selectedElement;
-    const style = CssLogic.getComputedStyle(el);
+    const el = this.currentlySelectedElement;
+    const style = this.currentlySelectedElementComputedStyle;
 
     for (const decl of this._declarations) {
       // TODO: convert from Object to Boolean. See Bug 1574471
