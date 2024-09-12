@@ -70,6 +70,9 @@ export class FormAutofillChild {
       this.#sections = FormAutofillSection.classifySections(
         handler.fieldDetails
       );
+
+      // For telemetry
+      this.#sections.forEach(section => section.onDetected());
     }
   }
 
@@ -146,6 +149,8 @@ export class FormAutofillChild {
       } else {
         throw new Error("Unknown section type");
       }
+
+      section.onSubmitted(formFilledData);
     }
 
     if (creditCard.length) {
@@ -174,6 +179,10 @@ export class FormAutofillChild {
       this.activeSection.fieldDetails.map(f => f.elementId),
       payload
     );
+
+    // For telemetry
+    const formFilledData = this.activeHandler.collectFormFilledData();
+    this.activeSection.onFilled(formFilledData);
   }
 }
 
