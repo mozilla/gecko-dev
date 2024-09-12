@@ -632,7 +632,6 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
     ///
     /// In this case, we don't want to inherit the text alignment into the
     /// table.
-    #[cfg(feature = "gecko")]
     fn adjust_for_table_text_align(&mut self) {
         use crate::properties::longhands::text_align::computed_value::T as TextAlign;
         if self.style.get_box().clone_display() != Display::Table {
@@ -964,9 +963,9 @@ impl<'a, 'b: 'a> StyleAdjuster<'a, 'b> {
         {
             self.adjust_for_contain();
             self.adjust_for_contain_intrinsic_size();
-            self.adjust_for_table_text_align();
             self.adjust_for_justify_items();
         }
+        self.adjust_for_table_text_align();
         self.adjust_for_border_width();
         #[cfg(feature = "gecko")]
         self.adjust_for_column_rule_width();
