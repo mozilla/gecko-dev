@@ -476,16 +476,6 @@ toolbarpaletteitem:has(> toolbarbutton.fxms-bmb-button),
        tabs, which is what we explicitly want to avoid doing here. */
     margin-top: var(--bookmarks-toolbar-overlapping-browser-height);
   }
-
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "sidebar.revamp") {
-    .newTabBrowserPanel,
-    #sidebar-box {
-      /* z-index applied to account for box-shadow cutoff when bookmarks toolbar is present */
-      position: relative;
-      z-index: 1;
-    }
-  }
 }
 
 /* Bookmarks toolbar drop indicator */
