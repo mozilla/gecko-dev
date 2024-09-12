@@ -19,7 +19,6 @@ import androidx.test.espresso.matcher.ViewMatchers.withId
 import androidx.test.espresso.matcher.ViewMatchers.withText
 import org.hamcrest.CoreMatchers.allOf
 import org.mozilla.fenix.helpers.Constants.TAG
-import org.mozilla.fenix.helpers.TestHelper.scrollToElementByText
 import org.mozilla.fenix.helpers.click
 
 /**
@@ -41,7 +40,6 @@ class SettingsSubMenuSitePermissionsRobot {
 
     fun verifySitePermissionOption(option: String, summary: String = "") {
         Log.i(TAG, "verifySitePermissionOption: Trying to verify that the $option option with $summary summary is visible")
-        scrollToElementByText(option)
         onView(
             allOf(
                 withText(option),

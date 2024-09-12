@@ -48,7 +48,6 @@ class SettingsSitePermissionsTest : TestSetup() {
     ) { it.activity }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/246974
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun sitePermissionsItemsTest() {
         homeScreen {
