@@ -1598,7 +1598,7 @@ void MacroAssembler::branchMulPtr(Condition cond, Register src, Register dest,
 
 void MacroAssembler::branchNegPtr(Condition cond, Register reg, Label* label) {
   MOZ_ASSERT(cond == Overflow);
-  negPtr(reg);
+  negs64(reg);
   B(label, cond);
 }
 
