@@ -626,7 +626,9 @@ var gBrowserInit = {
 
     ShoppingSidebarManager.ensureInitialized();
 
-    SelectableProfileService?.init();
+    if (Services.prefs.getBoolPref("browser.profiles.enabled", false)) {
+      SelectableProfileService?.init();
+    }
 
     SessionStore.promiseAllWindowsRestored.then(() => {
       this._schedulePerWindowIdleTasks();
