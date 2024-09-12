@@ -199,39 +199,23 @@ async function insertBookmark(bookmark) {
   });
 
   if (bookmark.Favicon) {
-    try {
-      setFaviconForBookmark(bookmark);
-    } catch (e) {
-      lazy.log.warn(e);
-    }
+    setFaviconForBookmark(bookmark);
   }
 }
 
 function setFaviconForBookmark(bookmark) {
-  switch (bookmark.Favicon.protocol) {
-    case "data:": {
-      lazy.PlacesUtils.favicons.setFaviconForPage(
-        bookmark.URL.URI,
-        Services.io.newURI("fake-favicon-uri:" + bookmark.URL.href),
-        bookmark.Favicon.URI
-      );
-      return;
-    }
-    case "http:":
-    case "https:": {
-      lazy.PlacesUtils.favicons.setAndFetchFaviconForPage(
-        bookmark.URL.URI,
-        bookmark.Favicon.URI,
-        false /* forceReload */,
-        lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-        null,
-        Services.scriptSecurityManager.createNullPrincipal({})
-      );
-      return;
-    }
+  if (bookmark.Favicon.protocol != "data:") {
+    lazy.log.error(
+      `Pass a valid data: URI for favicon on bookmark "${bookmark.Title}", instead of "${bookmark.Favicon.URI.spec}"`
+    );
+    return;
   }
 
-  lazy.log.error(`Bad URL given for favicon on bookmark "${bookmark.Title}"`);
+  lazy.PlacesUtils.favicons.setFaviconForPage(
+    bookmark.URL.URI,
+    Services.io.newURI("fake-favicon-uri:" + bookmark.URL.href),
+    bookmark.Favicon.URI
+  );
 }
 
 // Cache of folder names to guids to be used by the getParentGuid

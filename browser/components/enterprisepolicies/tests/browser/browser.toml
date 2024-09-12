@@ -1,5 +1,6 @@
 [DEFAULT]
 support-files = [
+  "favicon.svg",
   "head.js",
   "opensearch.html",
   "opensearchEngine.xml",
@@ -41,6 +42,7 @@ skip-if = ["os == 'win' && msix"] # Updater is disabled in MSIX builds
 ["browser_policy_block_set_desktop_background.js"]
 
 ["browser_policy_bookmarks.js"]
+support-files = "favicon.svg"
 
 ["browser_policy_cookie_settings.js"]
 https_first_disabled = true

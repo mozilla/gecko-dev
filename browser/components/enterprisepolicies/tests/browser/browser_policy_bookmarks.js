@@ -29,7 +29,7 @@ const BASE_POLICY = {
       {
         Title: "Bookmark 2",
         URL: "https://bookmark2.example.com/",
-        Favicon: `${basePath}/404.sjs`,
+        Favicon: `${basePath}/favicon.svg`,
       },
       {
         Title: "Bookmark 3",
@@ -242,6 +242,20 @@ add_task(async function checkFavicon() {
   );
   PlacesUtils.favicons.expireAllFavicons();
   await faviconsExpiredNotification;
+});
+
+add_task(async function checkNetworkFavicon() {
+  let bookmarkURL = CURRENT_POLICY.policies.Bookmarks[1].URL;
+
+  let result = await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      Services.io.newURI(bookmarkURL),
+      (uri, _, data) => resolve({ uri, data })
+    );
+  });
+
+  is(result.uri, null, "Favicon should not be loaded");
+  is(result.data.length, 0, "Favicon data should be empty");
 });
 
 add_task(async function test_remove_Bookmark_2() {
