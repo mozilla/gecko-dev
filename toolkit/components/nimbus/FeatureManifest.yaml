@@ -249,6 +249,21 @@ urlbar:
       description: >-
         The index of Fakespot results within the Firefox Suggest section. A
         negative index is relative to the end of the section.
+    keywordExposureResults:
+      type: string
+      setPref:
+        pref: browser.urlbar.keywordExposureResults
+        branch: user
+      description: >-
+        Comma-separated list of result types that should trigger
+        keyword-exposure telemetry. Keyword exposures can be recorded along with
+        result exposures. To enable keyword exposures for a result type, you
+        must add it both to this variable and to `exposureResults`. The only
+        exception is the "rust_exposure" result type, which can be added to this
+        variable even if it's not in `exposureResults` since it's enabled by
+        setting the `quickSuggestExposureSuggestionTypes` variable. Keyword
+        exposures are recorded in the `urlbar-keyword-exposure` ping. See that
+        ping's description for more.
     mdnFeatureGate:
       type: boolean
       setPref:
@@ -285,7 +300,12 @@ urlbar:
         pref: browser.urlbar.exposureResults
         branch: user
       description: >-
-        Comma-separated list of result type combinations, that are used to determine if an exposure event should be fired.
+        Comma-separated list of result types that should trigger exposure
+        telemetry, which is recorded in the `exposure` event. By default
+        exposure results are visible like usual, but they can be hidden by
+        setting the `showExposureResults` variable to false. To also record
+        keyword exposures for a result type, include it in the
+        `keywordExposureResults` variable as well.
     showExposureResults:
       type: boolean
       setPref:
@@ -366,8 +386,8 @@ urlbar:
         telemetry with the "rust_exposure" result type. It's not necessary to
         include "rust_exposure" in `exposureResults`. Unless you are testing
         other results in the same experiment branch, it's also not necessary to
-        set `showExposureResults: false`. To also record keyword exposures for
-        the "rust_exposure" result type, set `recordKeywordExposures: true`.
+        set `showExposureResults: false`. To also record keyword exposures,
+        include "rust_exposure" in `keywordExposureResults`.
     quickSuggestHideSettingsUI:
       type: boolean
       fallbackPref: browser.urlbar.quicksuggest.hideSettingsUI
@@ -471,18 +491,6 @@ urlbar:
         branch: default
         pref: browser.urlbar.recentsearches.maxResults
       description: The maximum number of recent searches to show.
-    recordKeywordExposures:
-      type: boolean
-      setPref:
-        pref: browser.urlbar.recordKeywordExposures
-        branch: user
-      description: >-
-        Whether keyword exposures should be recorded. When enabled, keyword
-        exposures will be recorded for all results defined in the
-        `exposureResults` variable. They will also be recorded for the
-        "rust_exposure" result type if `quickSuggestExposureSuggestionTypes` is
-        defined. Keyword exposures are recorded in the `urlbar-keyword-exposure`
-        ping. See that ping's description for more.
     recordNavigationalSuggestionTelemetry:
       type: boolean
       description: Whether to record navigational suggestion telemetry. Defaults to false.

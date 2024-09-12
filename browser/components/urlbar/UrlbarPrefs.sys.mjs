@@ -157,6 +157,11 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Whether the results panel should be kept open during IME composition.
   ["keepPanelOpenDuringImeComposition", false],
 
+  // Comma-separated list of result types that should trigger keyword-exposure
+  // telemetry. Only applies to results with an `exposureTelemetry` value other
+  // than `NONE`.
+  ["keywordExposureResults", ""],
+
   // As a user privacy measure, don't fetch results from remote services for
   // searches that start by pasting a string longer than this. The pref name
   // indicates search suggestions, but this is used for all remote results.
@@ -330,10 +335,6 @@ const PREF_URLBAR_DEFAULTS = new Map([
 
   // The maximum number of recent searches we will show.
   ["recentsearches.maxResults", 5],
-
-  // Whether keyword exposures should be recorded for results with an
-  // `exposureTelemetry` value other than `NONE`.
-  ["recordKeywordExposures", false],
 
   // When true, URLs in the user's history that look like search result pages
   // are styled to look like search engine results instead of the usual history
@@ -1585,6 +1586,7 @@ class Preferences {
           : parseFloat(nimbusValue);
       }
       case "exposureResults":
+      case "keywordExposureResults":
       case "quicksuggest.exposureSuggestionTypes":
         return new Set(
           this._readPref(pref)

@@ -23,7 +23,7 @@ quick-suggest:
 urlbar-keyword-exposure:
   description: |
     This ping is submitted only when urlbar keyword exposures are enabled. See
-    the `recordKeywordExposures` urlbar Nimbus variable. When enabled, the ping
+    the `keywordExposureResults` urlbar Nimbus variable. When enabled, the ping
     is submitted at the end of urlbar sessions during which one or more exposure
     results are matched. (A "session" begins when the user focuses the urlbar
     and ends with an engagement or abandonment.) Exposure results include all

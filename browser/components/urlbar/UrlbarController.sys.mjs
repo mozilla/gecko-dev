@@ -1237,12 +1237,13 @@ class TelemetryEvent {
     // its update process, but we should record at most one exposure per result.
     if (!this.#exposureResults.has(result)) {
       this.#exposureResults.add(result);
+      let resultType = lazy.UrlbarUtils.searchEngagementTelemetryType(result);
       this.#exposures.push({
+        resultType,
         weakResult: Cu.getWeakReference(result),
-        resultType: lazy.UrlbarUtils.searchEngagementTelemetryType(result),
         keyword:
-          lazy.UrlbarPrefs.get("recordKeywordExposures") &&
-          !queryContext.isPrivate
+          !queryContext.isPrivate &&
+          lazy.UrlbarPrefs.get("keywordExposureResults").has(resultType)
             ? queryContext.trimmedLowerCaseSearchString
             : null,
       });
