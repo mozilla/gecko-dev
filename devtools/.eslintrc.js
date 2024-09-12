@@ -9,12 +9,18 @@ module.exports = {
   globals: {
     exports: true,
     isWorker: true,
-    loader: true,
-    module: true,
-    require: true,
     DebuggerNotificationObserver: true,
   },
   overrides: [
+    {
+      files: ["**/*.*"],
+      excludedFiles: ["**/*.sys.mjs", "**/*.worker.js"],
+      globals: {
+        loader: true,
+        module: true,
+        require: true,
+      },
+    },
     {
       files: ["client/framework/**"],
       rules: {

@@ -129,6 +129,7 @@ export function workerify(fn) {
       "used in production."
   );
   // Fetch modules here as we don't want to include it normally.
+  // eslint-disable-next-line no-shadow
   const { URL, Blob } = Services.wm.getMostRecentWindow("navigator:browser");
   const stringifiedFn = createWorkerString(fn);
   const blob = new Blob([stringifiedFn]);

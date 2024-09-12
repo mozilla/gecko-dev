@@ -419,6 +419,7 @@ export function getAllBrowsingContextsForContext(
 }
 
 if (typeof module == "object") {
+  // eslint-disable-next-line no-undef
   module.exports = {
     isBrowsingContextPartOfContext,
     isWindowGlobalPartOfContext,
