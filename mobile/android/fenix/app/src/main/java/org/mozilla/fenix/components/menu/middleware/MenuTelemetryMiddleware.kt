@@ -198,8 +198,13 @@ class MenuTelemetryMiddleware(
                 ),
             )
 
+            MenuAction.OpenInFirefox -> Events.browserMenuAction.record(
+                Events.BrowserMenuActionExtra(
+                    item = "open_in_fenix",
+                ),
+            )
+
             MenuAction.InitAction,
-            MenuAction.OpenInFirefox,
             is MenuAction.InstallAddon,
             is MenuAction.CustomMenuItemAction,
             is MenuAction.Navigate.AddonDetails,

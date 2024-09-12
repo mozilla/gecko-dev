@@ -390,6 +390,15 @@ class MenuTelemetryMiddlewareTest {
         assertTelemetryRecorded(Events.browserMenuAction, item = "desktop_view_off")
     }
 
+    fun `When opening a site in browser THEN record the open in Fenix telemetry`() {
+        val store = createStore()
+        assertNull(Events.browserMenuAction.testGetValue())
+
+        store.dispatch(MenuAction.OpenInFirefox).joinBlocking()
+
+        assertTelemetryRecorded(Events.browserMenuAction, item = "open_in_fenix")
+    }
+
     private fun assertTelemetryRecorded(
         event: EventMetricType<Events.BrowserMenuActionExtra>,
         item: String,
