@@ -15,6 +15,9 @@ class nsIGlobalObject;
 
 namespace mozilla::dom {
 
+class CookieData;
+class CookieStoreChild;
+class CookieStoreNotifier;
 class Promise;
 
 class CookieStore final : public DOMEventTargetHelper {
@@ -28,6 +31,8 @@ class CookieStore final : public DOMEventTargetHelper {
 
   JSObject* WrapObject(JSContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
+
+  void FireDelayedDOMEvents();
 
   already_AddRefed<Promise> Get(const nsAString& aName, ErrorResult& aRv);
 
@@ -54,6 +59,19 @@ class CookieStore final : public DOMEventTargetHelper {
  private:
   explicit CookieStore(nsIGlobalObject* aGlobal);
   ~CookieStore();
+
+  void Shutdown();
+
+  Document* MaybeGetDocument() const;
+
+  already_AddRefed<Promise> GetInternal(const CookieStoreGetOptions& aOptions,
+                                        bool aOnlyTheFirstMatch,
+                                        ErrorResult& aRv);
+
+  bool MaybeCreateActor();
+
+  RefPtr<CookieStoreChild> mActor;
+  RefPtr<CookieStoreNotifier> mNotifier;
 };
 
 }  // namespace mozilla::dom

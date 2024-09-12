@@ -8,16 +8,25 @@ with Files("**"):
 EXPORTS.mozilla.dom += [
     "CookieChangeEvent.h",
     "CookieStore.h",
+    "CookieStoreChild.h",
+    "CookieStoreParent.h",
 ]
 
 UNIFIED_SOURCES += [
     "CookieChangeEvent.cpp",
     "CookieStore.cpp",
+    "CookieStoreChild.cpp",
+    "CookieStoreNotifier.cpp",
+    "CookieStoreParent.cpp",
 ]
 
 LOCAL_INCLUDES += [
     "../base",
     "../events",
+]
+
+IPDL_SOURCES += [
+    "PCookieStore.ipdl",
 ]
 
 include("/ipc/chromium/chromium-config.mozbuild")

@@ -12090,7 +12090,7 @@
 
 # Whether to support CHIPS(Cookies Having Independent Partitioned State).
 - name: network.cookie.CHIPS.enabled
-  type: bool
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 
