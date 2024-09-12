@@ -8,8 +8,10 @@
   box-sizing: border-box;
   height: 100%;
   min-width: 50px;
-  padding: var(--space-small);
-  padding-inline-end: 0;
+  padding-block: var(--space-small);
+  padding-inline: 0;
+  background-color: var(--toolbar-bgcolor);
+  color: var(--toolbar-color);
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.verticalTabs") {
@@ -22,8 +24,20 @@
 .actions-list {
   display: flex;
   flex-direction: column;
-  padding-inline-end: var(--space-small);
+  justify-content: center;
   align-items: center;
+
+  > moz-button {
+    --button-outer-padding-inline: var(--space-medium);
+  }
+}
+
+.tools-and-extensions > moz-button:first-of-type {
+  --button-outer-padding-block-start: var(--space-small);
+}
+
+.bottom-actions > moz-button:last-of-type {
+  --button-outer-padding-block-end: var(--space-small);
 }
 
 @media (prefers-reduced-motion: no-preference) {

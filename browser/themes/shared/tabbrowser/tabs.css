@@ -12,7 +12,7 @@
     --tab-min-height: 41px;
   }
   --collapsed-tab-width: 40px;
-  --inline-tab-padding: 8px;
+  --inline-tab-padding: var(--space-medium);
   --tab-border-radius: 4px;
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
@@ -807,7 +807,6 @@ tab-group {
   min-height: var(--tab-min-height);
   border-radius: var(--border-radius-medium);
   padding: 0 var(--inline-tab-padding);
-  margin-inline-end: var(--space-medium);
 
   #tabbrowser-tabs:not([orient="vertical"]) > & {
     display: none;
@@ -837,11 +836,15 @@ sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertica
 sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
   min-width: calc(100% - var(--space-medium));
   flex: none;
+  max-width: none;
+  padding: 0;
 }
 
 #vertical-tabs {
   overflow: hidden;
   display: none;
+  padding-inline: var(--space-medium);
+  padding-block-start: var(--space-medium);
 
   &[visible] {
     display: flex;
@@ -858,7 +861,6 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   max-height: 244px;
   column-gap: 4px;
   padding-bottom: var(--space-small);
-  margin-inline-end: var(--space-medium);
 
   sidebar-main:not([expanded]) &:not(:empty) {
     border-bottom: var(--tabstrip-inner-border);
