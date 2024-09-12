@@ -809,11 +809,11 @@ impl<'b> Cascade<'b> {
         #[cfg(feature = "gecko")]
         apply!(FontSizeAdjust);
 
-        apply!(ColorScheme);
         #[cfg(feature = "gecko")]
         apply!(ForcedColorAdjust);
-
-        // Compute the line height.
+        // color-scheme needs to be after forced-color-adjust, since it's one of the "skipped in
+        // forced-colors-mode" properties.
+        apply!(ColorScheme);
         apply!(LineHeight);
     }
 
