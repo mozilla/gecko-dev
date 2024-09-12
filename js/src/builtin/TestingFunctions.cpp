@@ -8101,6 +8101,15 @@ static bool EnqueueMark(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   gc::GCRuntime* gc = &cx->runtime()->gc;
 
+  if (gc->isIncrementalGCInProgress() &&
+      gc->hasZealMode(gc::ZealMode::IncrementalMarkingValidator)) {
+    JS_ReportErrorASCII(
+        cx,
+        "Can't add to test mark queue during incremental GC if marking "
+        "validation is enabled as this can cause failures");
+    return false;
+  }
+
   if (args.get(0).isString()) {
     RootedString val(cx, args[0].toString());
     if (!val->ensureLinear(cx)) {
