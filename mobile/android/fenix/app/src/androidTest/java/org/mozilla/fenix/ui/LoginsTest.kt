@@ -790,8 +790,9 @@ class LoginsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2068215
-    @SdkSuppress(maxSdkVersion = 30)
+    // The snackbar is not displayed for devices running on Android <= 12
     @Test
+    @SdkSuppress(maxSdkVersion = 32)
     fun verifyCopyLoginCredentialsToClipboardTest() {
         val firstLoginPage = TestAssetHelper.getSaveLoginAsset(mockWebServer)
 
