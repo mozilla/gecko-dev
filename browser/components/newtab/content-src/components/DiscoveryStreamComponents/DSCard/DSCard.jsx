@@ -199,6 +199,14 @@ export class _DSCard extends React.PureComponent {
         height: 101,
       },
     ];
+
+    this.listCardImageSizes = [
+      {
+        mediaMatcher: "default",
+        width: 75,
+        height: 75,
+      },
+    ];
   }
 
   doesLinkTopicMatchSelectedTopic() {
@@ -522,12 +530,16 @@ export class _DSCard extends React.PureComponent {
   }
 
   render() {
+    const { isRecentSave, DiscoveryStream, saveToPocketCard, isListCard } =
+      this.props;
     if (this.props.placeholder || !this.state.isSeen) {
       // placeholder-seen is used to ensure the loading animation is only used if the card is visible.
       const placeholderClassName = this.state.isSeen ? `placeholder-seen` : ``;
       return (
         <div
-          className={`ds-card placeholder ${placeholderClassName}`}
+          className={`ds-card placeholder ${placeholderClassName} ${
+            isListCard ? "list-card-placeholder" : ""
+          }`}
           ref={this.setPlaceholderRef}
         >
           <div className="placeholder-image placeholder-fill" />
@@ -538,7 +550,6 @@ export class _DSCard extends React.PureComponent {
       );
     }
 
-    const { isRecentSave, DiscoveryStream, saveToPocketCard } = this.props;
     let source = this.props.source || this.props.publisher;
     if (!source) {
       try {
@@ -602,10 +613,12 @@ export class _DSCard extends React.PureComponent {
 
     return (
       <article
-        className={`ds-card ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
+        className={`ds-card ${
+          isListCard ? "list-feed-card" : ""
+        }${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`}
         ref={this.setContextMenuButtonHostRef}
       >
-        {this.props.showTopics && this.props.topic && (
+        {this.props.showTopics && this.props.topic && !isListCard && (
           <span
             className="ds-card-topic"
             data-l10n-id={`newtab-topic-label-${this.props.topic}`}
@@ -616,7 +629,7 @@ export class _DSCard extends React.PureComponent {
             extraClassNames="img"
             source={this.props.image_src}
             rawSource={this.props.raw_image_src}
-            sizes={this.dsImageSizes}
+            sizes={isListCard ? this.listCardImageSizes : this.dsImageSizes}
             url={this.props.url}
             title={this.props.title}
             isRecentSave={isRecentSave}
@@ -672,11 +685,14 @@ export class _DSCard extends React.PureComponent {
           onThumbsUpClick={this.onThumbsUpClick}
           onThumbsDownClick={this.onThumbsDownClick}
           state={this.state}
+          isListCard={isListCard}
         />
 
         <div className="card-stp-button-hover-background">
           <div className="card-stp-button-position-wrapper">
-            {saveToPocketCard && <>{!this.props.flightId && stpButton()}</>}
+            {saveToPocketCard && !isListCard && (
+              <>{!this.props.flightId && stpButton()}</>
+            )}
 
             <DSLinkMenu
               id={this.props.id}

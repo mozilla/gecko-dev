@@ -2935,6 +2935,11 @@ class _DSCard extends (external_React_default()).PureComponent {
       width: 202,
       height: 101
     }];
+    this.listCardImageSizes = [{
+      mediaMatcher: "default",
+      width: 75,
+      height: 75
+    }];
   }
   doesLinkTopicMatchSelectedTopic() {
     // Edge case for clicking on a card when topic selections have not be set
@@ -3207,11 +3212,17 @@ class _DSCard extends (external_React_default()).PureComponent {
     }
   }
   render() {
+    const {
+      isRecentSave,
+      DiscoveryStream,
+      saveToPocketCard,
+      isListCard
+    } = this.props;
     if (this.props.placeholder || !this.state.isSeen) {
       // placeholder-seen is used to ensure the loading animation is only used if the card is visible.
       const placeholderClassName = this.state.isSeen ? `placeholder-seen` : ``;
       return /*#__PURE__*/external_React_default().createElement("div", {
-        className: `ds-card placeholder ${placeholderClassName}`,
+        className: `ds-card placeholder ${placeholderClassName} ${isListCard ? "list-card-placeholder" : ""}`,
         ref: this.setPlaceholderRef
       }, /*#__PURE__*/external_React_default().createElement("div", {
         className: "placeholder-image placeholder-fill"
@@ -3223,11 +3234,6 @@ class _DSCard extends (external_React_default()).PureComponent {
         className: "placeholder-description placeholder-fill"
       }));
     }
-    const {
-      isRecentSave,
-      DiscoveryStream,
-      saveToPocketCard
-    } = this.props;
     let source = this.props.source || this.props.publisher;
     if (!source) {
       try {
@@ -3275,9 +3281,9 @@ class _DSCard extends (external_React_default()).PureComponent {
       })));
     };
     return /*#__PURE__*/external_React_default().createElement("article", {
-      className: `ds-card ${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
+      className: `ds-card ${isListCard ? "list-feed-card" : ""}${compactImagesClassName} ${imageGradientClassName} ${titleLinesName} ${descLinesClassName} ${ctaButtonClassName} ${ctaButtonVariantClassName}`,
       ref: this.setContextMenuButtonHostRef
-    }, this.props.showTopics && this.props.topic && /*#__PURE__*/external_React_default().createElement("span", {
+    }, this.props.showTopics && this.props.topic && !isListCard && /*#__PURE__*/external_React_default().createElement("span", {
       className: "ds-card-topic",
       "data-l10n-id": `newtab-topic-label-${this.props.topic}`
     }), /*#__PURE__*/external_React_default().createElement("div", {
@@ -3286,7 +3292,7 @@ class _DSCard extends (external_React_default()).PureComponent {
       extraClassNames: "img",
       source: this.props.image_src,
       rawSource: this.props.raw_image_src,
-      sizes: this.dsImageSizes,
+      sizes: isListCard ? this.listCardImageSizes : this.dsImageSizes,
       url: this.props.url,
       title: this.props.title,
       isRecentSave: isRecentSave
@@ -3333,12 +3339,13 @@ class _DSCard extends (external_React_default()).PureComponent {
       mayHaveThumbsUpDown: this.props.mayHaveThumbsUpDown,
       onThumbsUpClick: this.onThumbsUpClick,
       onThumbsDownClick: this.onThumbsDownClick,
-      state: this.state
+      state: this.state,
+      isListCard: isListCard
     }), /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-hover-background"
     }, /*#__PURE__*/external_React_default().createElement("div", {
       className: "card-stp-button-position-wrapper"
-    }, saveToPocketCard && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !this.props.flightId && stpButton()), /*#__PURE__*/external_React_default().createElement(DSLinkMenu, {
+    }, saveToPocketCard && !isListCard && /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, !this.props.flightId && stpButton()), /*#__PURE__*/external_React_default().createElement(DSLinkMenu, {
       id: this.props.id,
       index: this.props.pos,
       dispatch: this.props.dispatch,
@@ -3639,6 +3646,7 @@ const TopicsWidget = (0,external_ReactRedux_namespaceObject.connect)(state => ({
 
 
 
+// import { ListFeed } from "../ListFeed/ListFeed.jsx";
 
 
 
@@ -3650,6 +3658,7 @@ const PREF_TOPICS_ENABLED = "discoverystream.topicLabels.enabled";
 const PREF_TOPICS_SELECTED = "discoverystream.topicSelection.selectedTopics";
 const PREF_TOPICS_AVAILABLE = "discoverystream.topicSelection.topics";
 const PREF_SPOCS_STARTUPCACHE_ENABLED = "discoverystream.spocs.startupCache.enabled";
+const PREF_LIST_FEED_ENABLED = "discoverystream.contextualContent.enabled";
 const CardGrid_INTERSECTION_RATIO = 0.5;
 const CardGrid_VISIBLE = "visible";
 const CardGrid_VISIBILITY_CHANGE_EVENT = "visibilitychange";
@@ -3928,6 +3937,7 @@ class _CardGrid extends (external_React_default()).PureComponent {
     const selectedTopics = prefs[PREF_TOPICS_SELECTED];
     const availableTopics = prefs[PREF_TOPICS_AVAILABLE];
     const spocsStartupCacheEnabled = prefs[PREF_SPOCS_STARTUPCACHE_ENABLED];
+    const listFeedEnabled = prefs[PREF_LIST_FEED_ENABLED];
     const recs = this.props.data.recommendations.slice(0, items);
     const cards = [];
     let essentialReadsCards = [];
@@ -4005,6 +4015,21 @@ class _CardGrid extends (external_React_default()).PureComponent {
           cards.splice(position.index, 1, widgetComponent);
         }
       }
+    }
+    if (listFeedEnabled) {
+      // commenting out for landing in nightly - uncomment to use in development
+      // const listFeedRecs = this.props.data.recommendations
+      //   .filter(rec => !rec.flight_id)
+      //   .slice(0, 5);
+      // const listFeed = (
+      //   <ListFeed
+      //     recs={listFeedRecs}
+      //     firstVisibleTimestamp={this.props.firstVisibleTimestamp}
+      //     type={this.props.type}
+      //   />
+      // );
+      // // place the list feed as the 3 element in the card grid
+      // cards.splice(2, 1, listFeed);
     }
     let moreRecsHeader = "";
     // For now this is English only.

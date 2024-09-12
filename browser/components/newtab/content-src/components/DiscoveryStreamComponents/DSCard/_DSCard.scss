@@ -92,7 +92,7 @@ $ds-card-image-gradient-solid: rgba(0, 0, 0, 100%);
     height: 0;
     transition: opacity;
     transition-duration: 0s;
-    padding-top: 50%;
+    padding-block-start: 50%;
     pointer-events: none;
     background: $black-40;
     border-radius: 8px 8px 0 0;

@@ -4865,7 +4865,7 @@ main section {
   height: 0;
   transition: opacity;
   transition-duration: 0s;
-  padding-top: 50%;
+  padding-block-start: 50%;
   pointer-events: none;
   background: rgba(0, 0, 0, 0.4);
   border-radius: 8px 8px 0 0;
@@ -6070,4 +6070,104 @@ main section {
   background-size: cover;
   width: 26px;
   height: 26px;
+}
+
+.list-feed {
+  grid-column: 3;
+  grid-row: span 2;
+  height: 100%;
+}
+.list-feed .list-feed-inner-wrapper {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background-color: var(--newtab-background-color-secondary);
+  border-radius: var(--border-radius-medium);
+}
+.list-feed .list-feed-title {
+  padding-inline-start: var(--space-medium);
+  padding-block: var(--space-small);
+  font-size: var(--font-size-small);
+  color: var(--newtab-text-primary-color);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+.list-feed .list-feed-title .icon-trending {
+  margin-inline-end: var(--space-small);
+  -moz-context-properties: stroke;
+  stroke: currentColor;
+  transform: none;
+}
+.list-feed .list-feed-content {
+  list-style: none;
+  padding-inline-start: 0;
+  margin: 0;
+}
+
+.ds-card-grid .list-feed-content .ds-card.list-feed-card {
+  background-color: var(--newtab-background-color-secondary);
+  border-block-start: 1px solid var(--color-gray-50);
+  border-radius: 0;
+  box-shadow: none;
+  flex-direction: row-reverse;
+  height: 135px;
+  gap: var(--space-large);
+  padding-inline: var(--space-large);
+  padding-block: var(--space-large) var(--space-small);
+  position: relative;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .ds-card-link {
+  inset-block-start: 0;
+  inset-inline-start: 0;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .meta {
+  padding: 0;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .excerpt {
+  display: none;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .card-stp-button-hover-background {
+  border-radius: 0;
+  height: 100%;
+  padding-block-start: 0;
+  inset-inline-start: 0;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .card-stp-button-hover-background .card-stp-button-position-wrapper {
+  inset-block-end: var(--space-small);
+  inset-inline-end: var(--space-large);
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .img-wrapper {
+  flex-shrink: 0;
+  height: 75px;
+  width: 75px;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .img-wrapper img {
+  height: auto;
+  border-radius: var(--border-radius-medium);
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card:last-child {
+  border-end-start-radius: var(--border-radius-medium);
+  border-end-end-radius: var(--border-radius-medium);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card:last-child .card-stp-button-hover-background {
+  border-end-start-radius: var(--border-radius-medium);
+  border-end-end-radius: var(--border-radius-medium);
+  border-start-start-radius: 0;
+  border-start-end-radius: 0;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card:hover, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within {
+  background-color: var(--newtab-background-color);
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .card-stp-button-hover-background, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .card-stp-button-hover-background {
+  background: transparent;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .card-stp-button-position-wrapper, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .card-stp-button-position-wrapper {
+  align-items: flex-end;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .context-menu-button, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .context-menu-button {
+  background-color: transparent;
+  box-shadow: none;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .context-menu-button:hover, .ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .context-menu-button:focus, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .context-menu-button:hover, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .context-menu-button:focus {
+  background-color: var(--newtab-button-background);
 }
