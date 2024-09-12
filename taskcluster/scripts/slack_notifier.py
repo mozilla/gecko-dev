@@ -66,7 +66,7 @@ SLACK_SUCCESS_MESSAGE_TEMPLATE = Template(
         "type": "header",
         "text": {
                 "type": "plain_text",
-                "text": "New Release: :firefox: $SHIPPING_PRODUCT-v$RELEASE_VERSION :star:"
+                "text": "New Release: :android: $PRODUCT_ICON $SHIPPING_PRODUCT-v$RELEASE_VERSION :star:"
         }
     },
     {
@@ -76,7 +76,7 @@ SLACK_SUCCESS_MESSAGE_TEMPLATE = Template(
         "type": "section",
         "text": {
             "type": "mrkdwn",
-            "text": "*Testrail Release*: $TESTRAIL_PRODUCT_TYPE $RELEASE_TYPE $RELEASE_VERSION <https://testrail.stage.mozaws.net/index.php?/projects/overview/$TESTRAIL_PROJECT_ID|Milestone> has been created:testrail:"
+            "text": "*Testrail Release*: $TESTRAIL_PRODUCT_TYPE $RELEASE_TYPE $RELEASE_VERSION <https://mozilla.testrail.io/index.php?/projects/overview/$TESTRAIL_PROJECT_ID|Milestone> has been created:testrail:"
         }
     },
     {
@@ -192,3 +192,8 @@ def send_success_notification(success_values, channel_id, options):
     send_slack_notification(
         SLACK_SUCCESS_MESSAGE_TEMPLATE, success_values, channel_id, options
     )
+
+
+def get_product_icon(product):
+    product_map = {"fenix": ":firefox:", "focus": ":firefox_focus:"}
+    return product_map.get(product.lower(), ":firefox:")

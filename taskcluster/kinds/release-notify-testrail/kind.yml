@@ -41,8 +41,8 @@ task-defaults:
             '3':
                 - queue:route:notify.slack-channel.G016BC5FUHJ  # notify mobile-alerts-sandbox on failure
                 - notify:slack-channel:G016BC5FUHJ
-                - queue:route:notify.slack-channel.C02KDDS9QM9  # notify mobile-testeng on success
-                - notify:slack-channel:C02KDDS9QM9
+                - queue:route:notify.slack-channel.C07HUFVU2UD  # notify mobile-testeng-releases on success
+                - notify:slack-channel:C07HUFVU2UD
             default: []
 
 tasks:
@@ -62,7 +62,7 @@ tasks:
             env:
                 SHIPPING_PRODUCT: focus
                 TESTRAIL_PRODUCT_TYPE: Focus
-                TESTRAIL_PROJECT_ID: '48'  # Focus Browser
+                TESTRAIL_PROJECT_ID: '48'  # Focus for Android
                 TESTRAIL_TEST_SUITE_ID: '49386'  # Test Automation Release Milestone - Focus
 
     create-milestone-fenix:
