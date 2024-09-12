@@ -69,7 +69,7 @@ export class SelectableProfile {
   }
 
   /**
-   * Get the path to the profile as a string.
+   * Get the full path to the profile as a string.
    *
    * @returns {string} Path of profile
    */
@@ -146,4 +146,14 @@ export class SelectableProfile {
   }
 
   saveUpdatesToDB() {}
+
+  toObject() {
+    return {
+      id: this.id,
+      path: this.#path,
+      name: this.name,
+      avatar: this.avatar,
+      ...this.theme,
+    };
+  }
 }

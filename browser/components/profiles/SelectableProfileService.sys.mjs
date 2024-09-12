@@ -19,6 +19,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
 });
 
+ChromeUtils.defineLazyGetter(lazy, "profilesLocalization", () => {
+  return new Localization(["preview/profiles.ftl"], true);
+});
+
 XPCOMUtils.defineLazyServiceGetter(
   lazy,
   "ProfileService",
@@ -39,7 +43,6 @@ class SelectableProfileServiceClass {
   #currentProfile = null;
   #everyWindowCallbackId = "SelectableProfileService";
 
-  // Do not use. Only for testing.
   constructor() {
     if (Cu.isInAutomation) {
       this.#groupToolkitProfile = {
@@ -49,6 +52,13 @@ class SelectableProfileServiceClass {
     } else {
       this.#groupToolkitProfile =
         lazy.ProfileService.currentProfile ?? lazy.ProfileService.groupProfile;
+    }
+  }
+
+  // Do not use. Only for testing.
+  set groupToolkitProfile(mockToolkitProfile) {
+    if (Cu.isInAutomation) {
+      this.#groupToolkitProfile = mockToolkitProfile;
     }
   }
 
@@ -220,13 +230,8 @@ class SelectableProfileServiceClass {
   async handleEvent(event) {
     switch (event.type) {
       case "activate": {
-        if (
-          this.#groupToolkitProfile.rootDir.path === this.currentProfile.path
-        ) {
-          return;
-        }
-        this.#groupToolkitProfile.rootDir = await this.currentProfile.rootDir;
-        lazy.ProfileService.flush();
+        this.setDefaultProfileForGroup();
+        break;
       }
     }
   }
@@ -340,12 +345,16 @@ class SelectableProfileServiceClass {
   refreshPrefs() {}
 
   /**
-   * Update the current default profile by setting its path as the Path
-   * of the nsToolkitProfile for the group.
-   *
-   * @param {SelectableProfile} aSelectableProfile The new default SelectableProfile
+   * Update the default profile by setting the current selectable profile path
+   * as the path of the nsToolkitProfile for the group.
    */
-  setDefault(aSelectableProfile) {}
+  async setDefaultProfileForGroup() {
+    if (this.#groupToolkitProfile.rootDir.path === this.currentProfile.path) {
+      return;
+    }
+    this.#groupToolkitProfile.rootDir = await this.currentProfile.rootDir;
+    lazy.ProfileService.flush();
+  }
 
   /**
    * Update whether to show the selectable profile selector window at startup.
@@ -434,6 +443,24 @@ class SelectableProfileServiceClass {
     }
 
     return relativePath;
+  }
+
+  async createNewProfile() {
+    let nextProfileNumber =
+      1 + Math.max(0, ...(await this.getAllProfiles()).map(p => p.id));
+    let [defaultName] = lazy.profilesLocalization.formatMessagesSync([
+      { id: "default-profile-name", args: { number: nextProfileNumber } },
+    ]);
+    let newProfile = {
+      name: defaultName.value,
+      avatar: "default",
+      themeL10nId: "default",
+      themeFg: "var(--text-color)",
+      themeBg: "var(--background-color-box)",
+    };
+
+    let profile = await this.createProfile(newProfile);
+    this.launchInstance(profile, true);
   }
 
   /**
@@ -529,19 +556,13 @@ class SelectableProfileServiceClass {
    * @param {SelectableProfile} aSelectableProfile The SelectableProfile to be updated
    */
   async updateProfile(aSelectableProfile) {
-    let profile = {
-      id: aSelectableProfile.id,
-      path: aSelectableProfile.path,
-      name: aSelectableProfile.name,
-      avatar: aSelectableProfile.avatar,
-      ...aSelectableProfile.theme,
-    };
+    let profileObj = aSelectableProfile.toObject();
 
     await this.#connection.execute(
       `UPDATE Profiles
        SET path = :path, name = :name, avatar = :avatar, themeL10nId = :themeL10nId, themeFg = :themeFg, themeBg = :themeBg
        WHERE id = :id;`,
-      profile
+      profileObj
     );
   }
 

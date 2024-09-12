@@ -8,3 +8,5 @@ prefs = [
 ]
 
 ["browser_update_profile_on_window_switch.js"]
+
+["browser_test_profile_selector.js"]

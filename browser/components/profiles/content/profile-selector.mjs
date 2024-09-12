@@ -5,6 +5,9 @@
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 import { html } from "chrome://global/content/vendor/lit.all.mjs";
 
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/profiles/profile-card.mjs";
+
 const { SelectableProfileService } = ChromeUtils.importESModule(
   "resource:///modules/profiles/SelectableProfileService.sys.mjs"
 );
@@ -17,7 +20,11 @@ export class ProfileSelector extends MozLitElement {
     profiles: { type: Array },
   };
 
-  static queries = { checkbox: "moz-checkbox" };
+  static queries = {
+    checkbox: "moz-checkbox",
+    profileCards: { all: "profile-card" },
+    createProfileCard: "new-profile-card",
+  };
 
   constructor() {
     super();
@@ -26,16 +33,45 @@ export class ProfileSelector extends MozLitElement {
   }
 
   async init() {
-    await SelectableProfileService.init();
-    this.profiles = await SelectableProfileService.getAllProfiles();
+    if (this.initialized) {
+      return;
+    }
+
+    document.addEventListener("LaunchProfile", this);
+    document.addEventListener("CreateProfile", this);
+
+    this.selectableProfileService = SelectableProfileService;
+
+    await this.selectableProfileService.init();
+    this.profiles = await this.selectableProfileService.getAllProfiles();
 
     if (!this.profiles.length) {
-      SelectableProfileService.showProfileSelectorWindow(false);
+      this.selectableProfileService.showProfileSelectorWindow(false);
     }
+
+    this.initialized = true;
   }
 
   handleCheckboxToggle() {
-    SelectableProfileService.showProfileSelectorWindow(this.checkbox.checked);
+    this.selectableProfileService.showProfileSelectorWindow(
+      this.checkbox.checked
+    );
+  }
+
+  async handleEvent(event) {
+    switch (event.type) {
+      case "LaunchProfile": {
+        let profile = event.detail;
+        this.selectableProfileService.launchInstance(profile);
+        window.close();
+        break;
+      }
+      case "CreateProfile": {
+        await this.selectableProfileService.createNewProfile();
+        this.profiles = await this.selectableProfileService.getAllProfiles();
+        break;
+      }
+    }
   }
 
   render() {
@@ -55,7 +91,10 @@ export class ProfileSelector extends MozLitElement {
       <h1 data-l10n-id="profile-window-heading"></h1>
       <p class="profiles-body-text" data-l10n-id="profile-window-body"></p>
       <div class="profile-list">
-        ${this.profiles.map(p => html`<h3>${p.id} - ${p.name}</h3>`)}
+        ${this.profiles.map(
+          p => html`<profile-card .profile=${p}></profile-card>`
+        )}
+        <new-profile-card></new-profile-card>
       </div>
       <moz-checkbox
         @click=${this.handleCheckboxToggle}

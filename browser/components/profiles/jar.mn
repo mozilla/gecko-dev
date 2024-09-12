@@ -3,6 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
+    content/browser/profiles/profile-card.css     (content/profile-card.css)
+    content/browser/profiles/profile-card.mjs     (content/profile-card.mjs)
     content/browser/profiles/profile-selector.css (content/profile-selector.css)
     content/browser/profiles/profile-selector.mjs (content/profile-selector.mjs)
-    content/browser/profiles/profiles.html (content/profiles.html)
+    content/browser/profiles/profiles.html        (content/profiles.html)
+    content/browser/profiles/assets/              (content/assets/*)

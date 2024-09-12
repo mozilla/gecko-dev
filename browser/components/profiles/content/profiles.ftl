@@ -7,6 +7,10 @@ profile-window-heading = Choose a { -brand-short-name } profile
 profile-window-body = Keep your work and personal browsing, including things like passwords and bookmarks, totally separate. Or create profiles for everyone who uses this device.
 profile-window-checkbox-label =
   .label = Show this when { -brand-short-name } opens
+profile-window-create-profile = Create a profile
+# Variables
+#   $number (number) - The number of the profile
+default-profile-name = Profile { $number }
 
 
 appmenu-manage-profiles =

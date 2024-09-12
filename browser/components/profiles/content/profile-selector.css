@@ -11,7 +11,7 @@ profile-selector {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  padding: 10%;
+  padding: 8%;
 }
 
 .logo {
@@ -26,5 +26,11 @@ profile-selector {
 
 .profile-list {
   width: 100%;
+  max-height: 400px;
+  overflow: scroll;
+  padding: var(--space-small);
+  margin: var(--space-xxlarge) 0;
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xxlarge);
 }
