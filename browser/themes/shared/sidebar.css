@@ -215,7 +215,7 @@ sidebar-main,
 #sidebar-splitter,
 #tabbrowser-tabbox {
   transform-origin: 0 0;
-  will-change: translate, scale, transform;
+  will-change: translate;
 }
 
 #sidebar-main {
