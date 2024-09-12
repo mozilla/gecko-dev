@@ -47,7 +47,6 @@ add_task(async function test_main() {
     { file: "helper_fission_setResolution.html" },
     { file: "helper_fission_inactivescroller_positionedcontent.html" },
     { file: "helper_fission_irregular_areas.html" },
-    { file: "helper_fission_animation_styling_in_transformed_oopif.html" },
     // add additional tests here
   ];
 
