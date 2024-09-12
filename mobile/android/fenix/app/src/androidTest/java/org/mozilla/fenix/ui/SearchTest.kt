@@ -174,7 +174,6 @@ class SearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1059459
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifyQRScanningCameraAccessDialogTest() {

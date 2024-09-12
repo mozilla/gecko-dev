@@ -48,6 +48,7 @@ import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
 import org.mozilla.fenix.helpers.Constants.PackageName.PIXEL_LAUNCHER
 import org.mozilla.fenix.helpers.Constants.PackageName.YOUTUBE_APP
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
@@ -440,12 +441,12 @@ object AppAndSystemHelper {
 
     // Permission deny dialogs differ on various Android APIs
     fun denyPermission() {
-        Log.i(TAG, "denyPermission: Waiting $waitingTime ms for the \"Deny\" button to exist.")
-        mDevice.findObject(UiSelector().textContains("Deny")).waitForExists(waitingTime)
-        Log.i(TAG, "denyPermission: Waited for $waitingTime ms for the \"Deny\" button to exist.")
-        Log.i(TAG, "denyPermission: Trying to click the \"Deny\" button.")
-        mDevice.findObject(UiSelector().textContains("Deny")).click()
-        Log.i(TAG, "denyPermission: Clicked the \"Deny\" button.")
+        Log.i(TAG, "denyPermission: Waiting $waitingTime ms for the negative camera system permission button to exist.")
+        itemWithResId("com.android.permissioncontroller:id/permission_deny_button").waitForExists(waitingTime)
+        Log.i(TAG, "denyPermission: Waited for $waitingTime ms for the negative camera system permission button to exist.")
+        Log.i(TAG, "denyPermission: Trying to click the negative camera system permission button.")
+        itemWithResId("com.android.permissioncontroller:id/permission_deny_button").click()
+        Log.i(TAG, "denyPermission: Clicked the negative camera system permission button.")
     }
 
     fun isTestLab(): Boolean {
