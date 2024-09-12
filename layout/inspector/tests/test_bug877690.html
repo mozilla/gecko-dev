@@ -135,6 +135,16 @@ function do_test() {
   var expected = [ "initial", "unset", "auto", "inherit", "revert", "revert-layer" ];
   ok(testValues(values, expected), "property margin's values.");
 
+  var prop = "inset";
+  var values = InspectorUtils.getCSSValuesForProperty(prop);
+  var expected = [ "initial", "unset", "auto", "inherit", "revert", "revert-layer" ];
+
+  if(SpecialPowers.getBoolPref("layout.css.anchor-positioning.enabled")) {
+    expected.push("anchor");
+  }
+
+  ok(testValues(values, expected), "property inset's values.");
+
   // Test property with "normal"
   var prop = "font-style";
   var values = InspectorUtils.getCSSValuesForProperty(prop);

@@ -8,6 +8,7 @@
 use std::fmt::Write;
 
 use style_traits::CssWriter;
+use style_traits::SpecifiedValueInfo;
 use style_traits::ToCss;
 
 use crate::values::animated::ToAnimatedZero;
@@ -262,7 +263,6 @@ impl<N> ToAnimatedZero for AspectRatio<N> {
     Debug,
     MallocSizeOf,
     PartialEq,
-    SpecifiedValueInfo,
     ToCss,
     ToShmem,
     ToAnimatedValue,
@@ -284,6 +284,19 @@ pub enum GenericInset<P, LP> {
         #[distance(field_bound)]
         Box<GenericAnchorFunction<P, LP>>,
     ),
+}
+
+impl<P, LP> SpecifiedValueInfo for GenericInset<P, LP>
+where
+    LP: SpecifiedValueInfo,
+{
+    fn collect_completion_keywords(f: style_traits::KeywordsCollectFn) {
+        LP::collect_completion_keywords(f);
+        f(&["auto"]);
+        if static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            f(&["anchor"]);
+        }
+    }
 }
 
 impl<P, LP> GenericInset<P, LP> {
