@@ -253,7 +253,13 @@ class SettingsRobot {
         Log.i(TAG, "verifyDataCollectionButton: Verified that the \"Data collection\" button is visible")
     }
     fun verifyOpenLinksInAppsButton() {
-        scrollToElementByText("Open links in apps")
+        Log.i(TAG, "verifyOpenLinksInAppsButton: Trying to perform scroll to the \"Open links in apps\" button")
+        onView(withId(R.id.recycler_view)).perform(
+            RecyclerViewActions.scrollTo<RecyclerView.ViewHolder>(
+                hasDescendant(withText(R.string.preferences_open_links_in_apps)),
+            ),
+        )
+        Log.i(TAG, "verifyOpenLinksInAppsButton: Performed scroll to the \"Open links in apps\" button")
         Log.i(TAG, "verifyOpenLinksInAppsButton: Trying to verify that the \"Open links in apps\" button is visible")
         openLinksInAppsButton()
             .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
