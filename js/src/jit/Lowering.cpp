@@ -3604,15 +3604,16 @@ void LIRGenerator::visitInt64ToIntPtr(MInt64ToIntPtr* ins) {
     redefine(ins, ins->input());
     return;
   }
-#else
-  static_assert(INT64LOW_INDEX == 0,
-                "low 32-bits are stored in operand index zero");
 #endif
 
   auto* lir =
       new (alloc()) LInt64ToIntPtr(useInt64RegisterAtStart(ins->input()));
   assignSnapshot(lir, ins->bailoutKind());
+#ifdef JS_64BIT
   defineReuseInput(lir, ins, 0);
+#else
+  define(lir, ins);
+#endif
 }
 
 void LIRGenerator::visitIntPtrToInt64(MIntPtrToInt64* ins) {

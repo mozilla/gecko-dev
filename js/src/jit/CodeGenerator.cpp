@@ -5292,7 +5292,7 @@ void CodeGenerator::visitInt64ToIntPtr(LInt64ToIntPtr* lir) {
 #ifdef JS_64BIT
   MOZ_ASSERT(input.reg == ToRegister(lir->output()));
 #else
-  MOZ_ASSERT(input.low == ToRegister(lir->output()));
+  Register output = ToRegister(lir->output());
 #endif
 
   Label bail;
@@ -5302,6 +5302,10 @@ void CodeGenerator::visitInt64ToIntPtr(LInt64ToIntPtr* lir) {
     masm.branchUInt64NotInPtrRange(input, &bail);
   }
   bailoutFrom(&bail, lir->snapshot());
+
+#ifndef JS_64BIT
+  masm.move64To32(input, output);
+#endif
 }
 
 void CodeGenerator::visitIntPtrToInt64(LIntPtrToInt64* lir) {
