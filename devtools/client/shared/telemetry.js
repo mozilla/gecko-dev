@@ -767,7 +767,6 @@ function getChartsFromToolId(id) {
       countHist = `DEVTOOLS_${id}_OPENED_COUNT`;
       break;
     case "ACCESSIBILITY":
-    case "APPLICATION":
       timerHist = `DEVTOOLS_${id}_TIME_ACTIVE_SECONDS`;
       countScalar = `devtools.${lowerCaseId}.opened_count`;
       break;
