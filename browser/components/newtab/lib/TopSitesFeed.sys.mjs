@@ -90,6 +90,9 @@ const NIMBUS_VARIABLE_CONTILE_SOV_ENABLED = "topSitesContileSovEnabled";
 // The default will be `CONTILE_MAX_NUM_SPONSORED` if variable is unspecified.
 const NIMBUS_VARIABLE_CONTILE_MAX_NUM_SPONSORED = "topSitesContileMaxSponsored";
 
+const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
+const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
+
 // Search experiment stuff
 const FILTER_DEFAULT_SEARCH_PREF = "improvesearch.noDefaultSearchTile";
 const SEARCH_FILTERS = [
@@ -384,7 +387,13 @@ export class ContileIntegration {
    *   string value of the Contile resposne cache-control header
    */
   _extractCacheValidFor(cacheHeader) {
-    if (!cacheHeader) {
+    const unifiedAdsEnabled =
+      this._topSitesFeed.store.getState().Prefs.values[
+        PREF_UNIFIED_ADS_ENABLED
+      ];
+
+    // Note: Cache-control only applies to direct Contile API calls
+    if (!cacheHeader && !unifiedAdsEnabled) {
       lazy.log.warn("Contile response cache control header is empty");
       return 0;
     }
@@ -440,6 +449,35 @@ export class ContileIntegration {
     );
   }
 
+  /**
+   * Normalize new Unified Ads API response into
+   * previous Contile ads response
+   */
+  _normalizeTileData(data) {
+    const formattedTileData = [];
+    const responseTilesData = Object.values(data);
+
+    for (const tileData of responseTilesData) {
+      // eslint-disable-next-line prefer-destructuring
+      const tile = tileData[0];
+
+      const formattedData = {
+        id: tile.block_key,
+        name: tile.name,
+        url: tile.url,
+        click_url: tile.callbacks.click,
+        image_url: tile.image_url,
+        impression_url: tile.callbacks.impression,
+        image_size: 200,
+      };
+
+      formattedTileData.push(formattedData);
+    }
+
+    return { tiles: formattedTileData };
+  }
+
+  // eslint-disable-next-line max-statements
   async _fetchSites() {
     if (
       !lazy.NimbusFeatures.newtab.getVariable(
@@ -453,14 +491,60 @@ export class ContileIntegration {
       }
       return false;
     }
+
+    let response;
+
+    const unifiedAdsEnabled =
+      this._topSitesFeed.store.getState().Prefs.values[
+        PREF_UNIFIED_ADS_ENABLED
+      ];
+
+    const serviceName = unifiedAdsEnabled ? "MARS" : "Contile";
+
     try {
-      let url = Services.prefs.getStringPref(CONTILE_ENDPOINT_PREF);
-      const response = await this._topSitesFeed.fetch(url, {
-        credentials: "omit",
-      });
+      // Fetch tiles via MARS unified ads service
+      if (unifiedAdsEnabled) {
+        const headers = new Headers();
+        headers.append("content-type", "application/json");
+
+        // Note this string includes wrapping braces: {...}
+        const contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF);
+
+        const endpointBaseUrl =
+          this._topSitesFeed.store.getState().Prefs.values[
+            PREF_UNIFIED_ADS_ENDPOINT
+          ];
+
+        // Overwrite URL to Unified Ads endpoint
+        const fetchUrl = `${endpointBaseUrl}v1/ads`;
+
+        response = await this._topSitesFeed.fetch(fetchUrl, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            context_id: contextId,
+            placements: [
+              { placement: "newtab_tile_1", count: 1 },
+              { placement: "newtab_tile_2", count: 1 },
+              { placement: "newtab_tile_3", count: 1 },
+            ],
+            blocks: [],
+          }),
+        });
+      } else {
+        // (Default) Fetch tiles via Contile service
+        const fetchUrl = Services.prefs.getStringPref(CONTILE_ENDPOINT_PREF);
+
+        let options = {
+          credentials: "omit",
+        };
+
+        response = await this._topSitesFeed.fetch(fetchUrl, options);
+      }
+
       if (!response.ok) {
         lazy.log.warn(
-          `Contile endpoint returned unexpected status: ${response.status}`
+          `${serviceName} endpoint returned unexpected status: ${response.status}`
         );
         if (response.status === 304 || response.status >= 500) {
           return this._loadTilesFromCache();
@@ -488,7 +572,12 @@ export class ContileIntegration {
         }
         return false;
       }
-      const body = await response.json();
+      let body = await response.json();
+
+      if (unifiedAdsEnabled) {
+        // Converts response into normalized tiles[] array
+        body = this._normalizeTileData(body);
+      }
 
       if (body?.sov) {
         this._sov = JSON.parse(atob(body.sov));
@@ -517,7 +606,7 @@ export class ContileIntegration {
           tiles
         );
         if (tiles.length > maxNumFromContile) {
-          lazy.log.info("Remove unused links from Contile");
+          lazy.log.info(`Remove unused links from ${serviceName}`);
           tiles.length = maxNumFromContile;
           this._topSitesFeed._telemetryUtility.determineFilteredTilesAndSetToOversold(
             tiles
@@ -528,19 +617,22 @@ export class ContileIntegration {
           CONTILE_CACHE_PREF,
           JSON.stringify(this._sites)
         );
-        Services.prefs.setIntPref(
-          CONTILE_CACHE_VALID_FOR_PREF,
-          this._extractCacheValidFor(
-            response.headers.get("cache-control") ||
-              response.headers.get("Cache-Control")
-          )
-        );
+
+        if (!unifiedAdsEnabled) {
+          Services.prefs.setIntPref(
+            CONTILE_CACHE_VALID_FOR_PREF,
+            this._extractCacheValidFor(
+              response.headers.get("cache-control") ||
+                response.headers.get("Cache-Control")
+            )
+          );
+        }
 
         return true;
       }
     } catch (error) {
       lazy.log.warn(
-        `Failed to fetch data from Contile server: ${error.message}`
+        `Failed to fetch data from ${serviceName} server: ${error.message}`
       );
       return this._loadTilesFromCache();
     }
