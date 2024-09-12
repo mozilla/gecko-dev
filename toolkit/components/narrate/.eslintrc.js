@@ -18,7 +18,6 @@ module.exports = {
     "no-inline-comments": "error",
     "no-multi-str": "error",
     "no-return-assign": "error",
-    "no-shadow": "error",
     strict: ["error", "global"],
     yoda: "error",
   },

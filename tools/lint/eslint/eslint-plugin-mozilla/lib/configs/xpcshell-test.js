@@ -58,6 +58,5 @@ module.exports = {
 
     "mozilla/no-comparison-or-assignment-inside-ok": "error",
     "mozilla/no-useless-run-test": "error",
-    "no-shadow": "error",
   },
 };

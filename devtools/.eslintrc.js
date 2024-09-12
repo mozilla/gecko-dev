@@ -57,12 +57,6 @@ module.exports = {
     {
       files: ["client/framework/**"],
       rules: {
-        "no-shadow": "off",
-      },
-    },
-    {
-      files: ["client/framework/**"],
-      rules: {
         strict: "off",
       },
     },
@@ -233,12 +227,6 @@ module.exports = {
     // Disallow use of assignment in return statement. It is preferable for a
     // single line of code to have only one easily predictable effect.
     "no-return-assign": "error",
-    // Warn about declaration of variables already declared in the outer scope.
-    // This isn't an error because it sometimes is useful to use the same name
-    // in a small helper function rather than having to come up with another
-    // random name.
-    // Still, making this a warning can help people avoid being confused.
-    "no-shadow": "error",
     // Disallow global and local variables that aren't used. Allow unused
     // function arguments prefixed with `_`.
     "no-unused-vars": ["error", { argsIgnorePattern: "^_", vars: "all" }],

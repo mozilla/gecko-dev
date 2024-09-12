@@ -35,6 +35,5 @@ module.exports = {
     // Turn off use-chromeutils-generateqi as these tests don't have ChromeUtils
     // available.
     "mozilla/use-chromeutils-generateqi": "off",
-    "no-shadow": "error",
   },
 };

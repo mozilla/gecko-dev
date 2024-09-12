@@ -285,7 +285,7 @@ module.exports = {
     "no-sequences": "error",
 
     // No declaring variables from an outer scope
-    // "no-shadow": "error",
+    "no-shadow": "error",
 
     // Disallow throwing literals (eg. throw "error" instead of
     // throw new Error("error")).
