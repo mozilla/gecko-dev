@@ -768,7 +768,7 @@ lib1_Shutdown(const char *progName, int log)
     lib_Shutdown("lib1", 'I', lib1_context, lib1_initialized, progName, log);
     lib1_initialized = 0;
     /* don't clear lib1_Context, so we can test multiple attempts to close
-      * the same context produces correct errors*/
+     * the same context produces correct errors*/
 }
 
 void

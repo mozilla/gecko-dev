@@ -96,7 +96,7 @@ SECStatus sslRead_ReadVariable(sslReader *reader, unsigned int sizeLen,
 SECStatus sslRead_ReadNumber(sslReader *reader, unsigned int bytes,
                              PRUint64 *val);
 
-/* Remove message_seq, fragment_offset and fragment_length values 
+/* Remove message_seq, fragment_offset and fragment_length values
  * from the savedMessage buffer. Used for DTLS1.3 */
 SECStatus ssl3_MaybeUpdateHashWithSavedRecord(sslSocket *ss);
 

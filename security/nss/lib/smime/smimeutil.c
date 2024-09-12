@@ -529,7 +529,7 @@ smime_init_once(void *arg)
         }
         for (i = smime_legacy_map_count - 1; i >= 0; i--) {
             SECOidTag policytag = smime_legacy_map[i].policytag;
-            /* we only enable the default algorithm, we don't change 
+            /* we only enable the default algorithm, we don't change
              * it's policy, which the system has already set. NOTE:
              * what 'enable' means in the S/MIME sense is we advertise
              * that we can do the given algorithm in our smime capabilities. */

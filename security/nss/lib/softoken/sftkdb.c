@@ -2367,7 +2367,7 @@ sftkdb_updateIntegrity(PLArenaPool *arena, SFTKDBHandle *handle,
                                                &signature);
             if (crv != CKR_OK) {
                 /* we had a signature in the source db, but we couldn't store
-                * it in the target, remember the error so we can report it. */
+                 * it in the target, remember the error so we can report it. */
                 global_crv = crv;
             }
         }

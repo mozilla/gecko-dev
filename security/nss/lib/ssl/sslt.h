@@ -260,6 +260,7 @@ typedef enum {
     ssl_grp_ffdhe_4096 = 258,
     ssl_grp_ffdhe_6144 = 259,
     ssl_grp_ffdhe_8192 = 260,
+    ssl_grp_kem_mlkem768x25519 = 4588,
     ssl_grp_kem_xyber768d00 = 25497, /* draft-tls-westerbaan-xyber768d00-02 */
     ssl_grp_none = 65537,            /* special value */
     ssl_grp_ffdhe_custom = 65538     /* special value */

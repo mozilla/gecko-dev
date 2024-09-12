@@ -77,8 +77,8 @@ register size_t length;
         goto done;
 
 /*
-     * Macros: loop-t-times; and loop-t-times, t>0
-     */
+ * Macros: loop-t-times; and loop-t-times, t>0
+ */
 #define TLOOP(s) \
     if (t)       \
     TLOOP1(s)

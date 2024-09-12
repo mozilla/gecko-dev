@@ -177,9 +177,9 @@ ThreadEntry(void *data)
                         plContext);
 
         /*
-                 * As long as we use only CertStores with blocking I/O, we
-                 * know we must be done at this point.
-                 */
+         * As long as we use only CertStores with blocking I/O, we
+         * know we must be done at this point.
+         */
 
         if (!buildResult) {
             (void)fprintf(stderr, "libpkix BuildChain failed.\n");

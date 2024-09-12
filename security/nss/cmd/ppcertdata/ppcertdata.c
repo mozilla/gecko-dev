@@ -63,8 +63,9 @@ main(int argc, const char** argv)
             if ((left >= 3) && !strncmp(in, "END", 3))
                 break;
             while (left >= 4) {
-                if (in[0] == '\\' && isdigit(in[1]) &&
-                    isdigit(in[2]) && isdigit(in[3])) {
+                if (in[0] == '\\' && isdigit((unsigned char)in[1]) &&
+                    isdigit((unsigned char)in[2]) &&
+                    isdigit((unsigned char)in[3])) {
                     left -= 4;
                     binary_line[out++] = ((in[1] - '0') << 6) |
                                          ((in[2] - '0') << 3) |

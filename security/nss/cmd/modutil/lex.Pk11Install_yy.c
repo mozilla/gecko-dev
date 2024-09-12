@@ -198,15 +198,15 @@ struct yy_buffer_state {
 #define YY_BUFFER_NEW 0
 #define YY_BUFFER_NORMAL 1
 /* When an EOF's been seen but there's still some text to process
-   * then we mark the buffer as YY_EOF_PENDING, to indicate that we
-   * shouldn't try reading from the input source any more.  We might
-   * still have a bunch of tokens to match, though, because of
-   * possible backing-up.
-   *
-   * When we actually see the EOF, we change the status to "new"
-   * (via yyrestart()), so that the user can continue scanning by
-   * just pointing yyin at a new input file.
-   */
+ * then we mark the buffer as YY_EOF_PENDING, to indicate that we
+ * shouldn't try reading from the input source any more.  We might
+ * still have a bunch of tokens to match, though, because of
+ * possible backing-up.
+ *
+ * When we actually see the EOF, we change the status to "new"
+ * (via yyrestart()), so that the user can continue scanning by
+ * just pointing yyin at a new input file.
+ */
 #define YY_BUFFER_EOF_PENDING 2
 };
 
@@ -981,8 +981,9 @@ yy_get_previous_state()
 static yy_state_type
 yy_try_NUL_trans(yy_state_type yy_current_state)
 #else
-static yy_state_type yy_try_NUL_trans(yy_current_state)
-    yy_state_type yy_current_state;
+static yy_state_type
+yy_try_NUL_trans(yy_current_state)
+yy_state_type yy_current_state;
 #endif
 {
     register int yy_is_jam;
@@ -1179,7 +1180,8 @@ yy_load_buffer_state()
 YY_BUFFER_STATE
 yy_create_buffer(FILE *file, int size)
 #else
-YY_BUFFER_STATE yy_create_buffer(file, size)
+YY_BUFFER_STATE
+yy_create_buffer(file, size)
     FILE *file;
 int size;
 #endif
@@ -1293,7 +1295,8 @@ void yy_flush_buffer(b)
 YY_BUFFER_STATE
 yy_scan_buffer(char *base, yy_size_t size)
 #else
-YY_BUFFER_STATE yy_scan_buffer(base, size) char *base;
+YY_BUFFER_STATE
+yy_scan_buffer(base, size) char *base;
 yy_size_t size;
 #endif
 {
@@ -1330,7 +1333,8 @@ yy_size_t size;
 YY_BUFFER_STATE
 yy_scan_string(yyconst char *yy_str)
 #else
-YY_BUFFER_STATE yy_scan_string(yy_str)
+YY_BUFFER_STATE
+yy_scan_string(yy_str)
     yyconst char *yy_str;
 #endif
 {
@@ -1347,7 +1351,8 @@ YY_BUFFER_STATE yy_scan_string(yy_str)
 YY_BUFFER_STATE
 yy_scan_bytes(yyconst char *bytes, int len)
 #else
-YY_BUFFER_STATE yy_scan_bytes(bytes, len)
+YY_BUFFER_STATE
+yy_scan_bytes(bytes, len)
     yyconst char *bytes;
 int len;
 #endif
@@ -1483,8 +1488,9 @@ int n;
 static int
 yy_flex_strlen(yyconst char *s)
 #else
-static int yy_flex_strlen(s)
-    yyconst char *s;
+static int
+yy_flex_strlen(s)
+yyconst char *s;
 #endif
 {
     register int n;
@@ -1499,8 +1505,9 @@ static int yy_flex_strlen(s)
 static void *
 yy_flex_alloc(yy_size_t size)
 #else
-static void *yy_flex_alloc(size)
-    yy_size_t size;
+static void *
+yy_flex_alloc(size)
+yy_size_t size;
 #endif
 {
     return (void *)malloc(size);

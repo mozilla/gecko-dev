@@ -160,9 +160,9 @@ static void
 aes_gcm_kat(const char *respfn)
 {
     char buf[512]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <320 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <320 hex digits>\n".
+                    */
     FILE *aesresp; /* input stream from the RESPONSE file */
     int i, j;
     unsigned int test_group = 0;
@@ -269,10 +269,10 @@ aes_gcm_kat(const char *respfn)
         /* Key = ... */
         if (strncmp(buf, "Key", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             keysize = j;
@@ -286,10 +286,10 @@ aes_gcm_kat(const char *respfn)
         /* IV = ... */
         if (strncmp(buf, "IV", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &iv[j]);
             }
             ivsize = j;
@@ -303,10 +303,10 @@ aes_gcm_kat(const char *respfn)
         /* PT = ... */
         if (strncmp(buf, "PT", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &plaintext[j]);
             }
             plaintextlen = j;
@@ -357,10 +357,10 @@ aes_gcm_kat(const char *respfn)
         /* AAD = ... */
         if (strncmp(buf, "AAD", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &aad[j]);
             }
             aadlen = j;
@@ -374,10 +374,10 @@ aes_gcm_kat(const char *respfn)
         /* CT = ... */
         if (strncmp(buf, "CT", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j]);
             }
             ciphertextlen = j;
@@ -391,10 +391,10 @@ aes_gcm_kat(const char *respfn)
         /* Tag = ... */
         if (strncmp(buf, "Tag", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &tag[j]);
             }
             tagsize = j;

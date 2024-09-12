@@ -142,8 +142,8 @@ struct ocspSignatureStr {
  */
 struct ocspSingleRequestStr {
     PLArenaPool *arena; /* just a copy of the response arena,
-					 * needed here for extension handling
-					 * routines, on creation only */
+                         * needed here for extension handling
+                         * routines, on creation only */
     CERTOCSPCertID *reqCert;
     CERTCertExtension **singleRequestExtensions;
 };
@@ -282,8 +282,8 @@ struct ocspResponderIDStr {
  */
 struct CERTOCSPSingleResponseStr {
     PLArenaPool *arena; /* just a copy of the response arena,
-					 * needed here for extension handling
-					 * routines, on creation only */
+                         * needed here for extension handling
+                         * routines, on creation only */
     CERTOCSPCertID *certID;
     SECItem derCertStatus;
     ocspCertStatus *certStatus; /* local; not part of encoding */

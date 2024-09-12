@@ -50,7 +50,7 @@ SEC_StringToOID(PLArenaPool *pool, SECItem *to, const char *from, PRUint32 len)
     }
     do {
         PRUint32 decimal = 0;
-        while (len > 0 && isdigit(*from)) {
+        while (len > 0 && isdigit((unsigned char)*from)) {
             PRUint32 addend = (*from++ - '0');
             --len;
             if (decimal > max_decimal) /* overflow */

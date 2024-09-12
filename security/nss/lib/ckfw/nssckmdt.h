@@ -89,10 +89,10 @@ struct NSSCKMDInstanceStr {
         NSSCKFWInstance *fwInstance);
 
     /*
-   * This routine gets the number of slots.  This value must
-   * never change, once the instance is initialized.  This
-   * routine must be implemented.  It may return zero on error.
-   */
+     * This routine gets the number of slots.  This value must
+     * never change, once the instance is initialized.  This
+     * routine must be implemented.  It may return zero on error.
+     */
     CK_ULONG(PR_CALLBACK *GetNSlots)
     (
         NSSCKMDInstance *mdInstance,

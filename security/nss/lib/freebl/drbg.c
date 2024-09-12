@@ -57,7 +57,7 @@ typedef enum {
     prngReseedType = 1,         /* used in reseeding */
     prngAdditionalDataType = 2, /* used in mixing additional data */
     prngGenerateByteType = 3    /* used when mixing internal state while
-                 * generating bytes */
+                                 * generating bytes */
 } prngVTypes;
 
 /*
@@ -388,7 +388,7 @@ prng_Hashgen(RNGContext *rng, PRUint8 *returned_bytes,
         returned_bytes += len;
         no_of_returned_bytes -= len;
         /* The carry parameter is a bool (increment or not).
-     * This increments data if no_of_returned_bytes is not zero */
+         * This increments data if no_of_returned_bytes is not zero */
         carry = no_of_returned_bytes;
         PRNG_ADD_CARRY_ONLY(data, (sizeof data) - 1, carry);
         SHA256_DestroyContext(&ctx, PR_FALSE);
@@ -410,7 +410,7 @@ prng_generateNewBytes(RNGContext *rng,
                       unsigned int additional_input_len)
 {
     PRUint8 H[SHA256_LENGTH]; /* both H and w since they
-                   * aren't used concurrently */
+                               * aren't used concurrently */
     unsigned int carry;
 
     if (!rng->isValid) {
@@ -422,10 +422,10 @@ prng_generateNewBytes(RNGContext *rng,
     if (additional_input) {
         SHA256Context ctx;
 /* NIST SP 800-90 defines two temporaries in their calculations,
-     * w and H. These temporaries are the same lengths, and used
-     * at different times, so we use the following macro to collapse
-     * them to the same variable, but keeping their unique names for
-     * easy comparison to the spec */
+ * w and H. These temporaries are the same lengths, and used
+ * at different times, so we use the following macro to collapse
+ * them to the same variable, but keeping their unique names for
+ * easy comparison to the spec */
 #define w H
         rng->V_type = prngAdditionalDataType;
         SHA256_Begin(&ctx);
@@ -477,7 +477,7 @@ rng_init(void)
 
     if (globalrng == NULL) {
         /* bytes needs to have enough space to hold
-     * a SHA256 hash value. Blow up at compile time if this isn't true */
+         * a SHA256 hash value. Blow up at compile time if this isn't true */
         PR_STATIC_ASSERT(sizeof(bytes) >= SHA256_LENGTH);
         /* create a new global RNG context */
         globalrng = &theGlobalRng;
@@ -698,7 +698,7 @@ prng_GenerateGlobalRandomBytes(RNGContext *rng,
         rng->dataAvail -= len;
         rv = SECSuccess;
         /* if we are asking for a small number of bytes, cache the rest of
-     * the bytes */
+         * the bytes */
     } else if (len < sizeof rng->data) {
         rv = prng_generateNewBytes(rng, rng->data, sizeof rng->data,
                                    rng->additionalAvail ? rng->additionalDataCache : NULL,
@@ -752,8 +752,8 @@ RNG_RNGShutdown(void)
  * Test case interface. used by fips testing and power on self test
  */
 /* make sure the test context is separate from the global context, This
-  * allows us to test the internal random number generator without losing
-  * entropy we may have previously collected. */
+ * allows us to test the internal random number generator without losing
+ * entropy we may have previously collected. */
 RNGContext testContext;
 
 SECStatus
@@ -791,7 +791,7 @@ PRNGTEST_Instantiate(const PRUint8 *entropy, unsigned int entropy_len,
         return SECFailure;
     }
     /* concatenate the various inputs, internally NSS only instantiates with
-    * a single long string */
+     * a single long string */
     PORT_Memcpy(bytes, entropy, entropy_len);
     if (nonce) {
         PORT_Memcpy(&bytes[entropy_len], nonce, nonce_len);

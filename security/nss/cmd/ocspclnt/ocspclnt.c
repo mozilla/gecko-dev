@@ -1090,9 +1090,9 @@ main(int argc, char **argv)
     if (ccert + vcert) {
         if (responder_url != NULL || responder_name != NULL) {
             /*
-            * To do a full status check, both the URL and the cert name
-            * of the responder must be specified if either one is.
-            */
+             * To do a full status check, both the URL and the cert name
+             * of the responder must be specified if either one is.
+             */
             if (responder_url == NULL || responder_name == NULL) {
                 if (responder_url == NULL)
                     PR_fprintf(PR_STDERR,
@@ -1151,11 +1151,11 @@ main(int argc, char **argv)
         }
 
         /*
-        * It would be fine to do the enable for all of these commands,
-        * but this way we check that everything but an overall verify
-        * can be done without it.  That is, that the individual pieces
-        * work on their own.
-        */
+         * It would be fine to do the enable for all of these commands,
+         * but this way we check that everything but an overall verify
+         * can be done without it.  That is, that the individual pieces
+         * work on their own.
+         */
         if (vcert) {
             rv = CERT_EnableOCSPChecking(handle);
             if (rv != SECSuccess) {

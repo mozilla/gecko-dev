@@ -1733,7 +1733,7 @@ loser:
 /* The outermost ASN.1 encoder calls this function for output.
 ** This function calls back to the library caller's output routine,
 ** which typically writes to a PKCS12 file.
- */
+*/
 static void
 sec_P12A1OutputCB_Outer(void *arg, const char *buf, unsigned long len,
                         int depth, SEC_ASN1EncodingPart data_kind)
@@ -1747,7 +1747,7 @@ sec_P12A1OutputCB_Outer(void *arg, const char *buf, unsigned long len,
 /* The "middle" and "inner" ASN.1 encoders call this function to output.
 ** This function does HMACing, if appropriate, and then buffers the data.
 ** The buffered data is eventually passed down to the underlying PKCS7 encoder.
- */
+*/
 static void
 sec_P12A1OutputCB_HmacP7Update(void *arg, const char *buf,
                                unsigned long len,

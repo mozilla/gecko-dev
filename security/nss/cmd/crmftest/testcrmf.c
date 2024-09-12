@@ -600,9 +600,9 @@ Decode(void)
             printf("ERROR: Validity period notBefore date missing.\n");
         }
         /* XXX It's all parsed now.  We probably should DO SOMETHING with it.
-    ** But nope.  We just throw it all away.
-    ** Maybe this was intended to be no more than a decoder test.
-    */
+         ** But nope.  We just throw it all away.
+         ** Maybe this was intended to be no more than a decoder test.
+         */
         CRMF_DestroyGetValidity(&validity);
         CRMF_DestroyCertRequest(certReq);
         CRMF_DestroyCertReqMsg(certReqMsg);
@@ -865,7 +865,7 @@ DoCMMFStuff(void)
     char filePath[PATH_LEN];
 
     /* Do common setup for the following steps.
-    */
+     */
     PR_snprintf(filePath, PATH_LEN, "%s/%s", configdir, "CertRepContent.der");
 
     cert = CERT_FindCertByNickname(db, personalCert);

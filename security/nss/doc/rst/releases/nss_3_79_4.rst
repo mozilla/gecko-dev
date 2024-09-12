@@ -1,7 +1,7 @@
 .. _mozilla_projects_nss_nss_3_79_4_release_notes:
 
 NSS 3.79.4 release notes
-======================
+========================
 
 `Introduction <#introduction>`__
 --------------------------------

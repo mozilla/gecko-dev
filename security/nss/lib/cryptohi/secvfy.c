@@ -639,7 +639,7 @@ vfy_ImportPublicKey(VFYContext *cx)
     slot = PK11_GetBestSlotWithAttributes(cx->mech, CKF_VERIFY, 0, cx->wincx);
     if (slot == NULL) {
         return SECFailure; /* can't find a slot, fall back to
-                           * normal processing */
+                            * normal processing */
     }
     objID = PK11_ImportPublicKey(slot, cx->key, PR_FALSE);
     PK11_FreeSlot(slot);
@@ -779,8 +779,8 @@ vfy_CreateContext(const SECKEYPublicKey *key, const SECItem *sig,
     if (mech != CKM_INVALID_MECHANISM) {
         rv = vfy_ImportPublicKey(cx);
         /* if we can't import the key, then we probably can't
-        * support the requested combined mechanism, fallback
-        * to the non-combined method */
+         * support the requested combined mechanism, fallback
+         * to the non-combined method */
         if (rv != SECSuccess) {
             cx->mech = mech = CKM_INVALID_MECHANISM;
         }

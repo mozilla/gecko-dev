@@ -4,6 +4,7 @@
 
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 
 #include "blapi.h"
@@ -12,6 +13,7 @@
 #include "shared.h"
 #include "ssl.h"
 #include "sslexp.h"
+#include "sslimpl.h"
 #include "tls_common.h"
 #include "tls_mutators.h"
 #include "tls_server_certs.h"
@@ -155,6 +157,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   ScopedPRFileDesc fd(DummyIOLayerMethods::CreateFD(id, socket.get()));
   PRFileDesc* ssl_fd = ImportFD(model.get(), fd.get());
   assert(ssl_fd == fd.get());
+
+  // Print the server config for debugging.
+  if (ssl_trace >= 90) {
+    std::cerr << config << "\n";
+  }
 
   FixTime(ssl_fd);
   SetSocketOptions(ssl_fd, config);

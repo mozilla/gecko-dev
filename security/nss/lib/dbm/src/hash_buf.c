@@ -318,9 +318,9 @@ newbuf(HTAB *hashp, uint32 addr, BUFHEAD *prev_bp)
     bp->ovfl = NULL;
     if (prev_bp) {
 /*
-         * If prev_bp is set, this is an overflow page, hook it in to
-         * the buffer overflow links.
-         */
+ * If prev_bp is set, this is an overflow page, hook it in to
+ * the buffer overflow links.
+ */
 #ifdef DEBUG1
         (void)fprintf(stderr, "NEWBUF2: %d->ovfl was %d is now %d\n",
                       prev_bp->addr, (prev_bp->ovfl ? bp->ovfl->addr : 0),

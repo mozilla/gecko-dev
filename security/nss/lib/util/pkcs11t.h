@@ -89,7 +89,7 @@ typedef CK_VERSION CK_PTR CK_VERSION_PTR;
 
 typedef struct CK_INFO {
     /* manufacturerID and libraryDecription have been changed from
-   * CK_CHAR to CK_UTF8CHAR for v2.10 */
+     * CK_CHAR to CK_UTF8CHAR for v2.10 */
     CK_VERSION cryptokiVersion;     /* PKCS #11 interface ver */
     CK_UTF8CHAR manufacturerID[32]; /* blank padded */
     CK_FLAGS flags;                 /* must be zero */
@@ -1787,7 +1787,7 @@ typedef CK_RC2_PARAMS CK_PTR CK_RC2_PARAMS_PTR;
  * mechanism */
 typedef struct CK_RC2_CBC_PARAMS {
     /* ulEffectiveBits was changed from CK_USHORT to CK_ULONG for
-   * v2.0 */
+     * v2.0 */
     CK_ULONG ulEffectiveBits; /* effective bits (1-1024) */
 
     CK_BYTE iv[8]; /* IV for CBC mode */

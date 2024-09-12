@@ -330,8 +330,8 @@ nssTrustDomain_RemoveCertFromCacheLOCKED(
     ce = (cache_entry *)nssHash_Lookup(td->cache->issuerAndSN, cert);
     if (!ce || ce->entry.cert != cert) {
 /* If it's not in the cache, or a different cert is (this is really
-         * for safety reasons, though it shouldn't happen), do nothing
-         */
+ * for safety reasons, though it shouldn't happen), do nothing
+ */
 #ifdef DEBUG_CACHE
         PR_LOG(s_log, PR_LOG_DEBUG, ("but it wasn't in the cache"));
 #endif

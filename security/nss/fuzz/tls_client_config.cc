@@ -5,6 +5,7 @@
 #include "tls_client_config.h"
 
 #include <cstdint>
+#include <memory>
 
 #include "sslt.h"
 
@@ -149,4 +150,61 @@ SSLHashType ClientConfig::PskHashType() {
 
 const SSLVersionRange& ClientConfig::VersionRange() {
   return ssl_version_range_;
+}
+
+std::ostream& operator<<(std::ostream& out,
+                         std::unique_ptr<ClientConfig>& config) {
+  out << "============= ClientConfig ============="
+      << "\n";
+  out << "SSL_NO_CACHE:                           " << config->NoCache()
+      << "\n";
+  out << "SSL_ENABLE_EXTENDED_MASTER_SECRET:      "
+      << config->EnableExtendedMasterSecret() << "\n";
+  out << "SSL_REQUIRE_DH_NAMED_GROUPS:            "
+      << config->RequireDhNamedGroups() << "\n";
+  out << "SSL_ENABLE_FALSE_START:                 "
+      << config->EnableFalseStart() << "\n";
+  out << "SSL_ENABLE_DEFLATE:                     " << config->EnableDeflate()
+      << "\n";
+  out << "SSL_CBC_RANDOM_IV:                      "
+      << config->EnableCbcRandomIv() << "\n";
+  out << "SSL_REQUIRE_SAFE_NEGOTIATION:           "
+      << config->RequireSafeNegotiation() << "\n";
+  out << "SSL_ENABLE_GREASE:                      " << config->EnableGrease()
+      << "\n";
+  out << "SSL_ENABLE_CH_EXTENSION_PERMUTATION:    "
+      << config->EnableCHExtensionPermutation() << "\n";
+  out << "SSL_SetCertificateCompressionAlgorithm: "
+      << config->SetCertificateCompressionAlgorithm() << "\n";
+  out << "SSL_VersionRangeSet:                    " << config->SetVersionRange()
+      << "\n";
+  out << "  Min:                                  "
+      << config->VersionRange().min << "\n";
+  out << "  Max:                                  "
+      << config->VersionRange().max << "\n";
+  out << "SSL_AddExternalPsk:                     " << config->AddExternalPsk()
+      << "\n";
+  out << "  Type:                                 " << config->PskHashType()
+      << "\n";
+  out << "SSL_ENABLE_POST_HANDSHAKE_AUTH:         "
+      << config->EnablePostHandshakeAuth() << "\n";
+  out << "SSL_ENABLE_0RTT_DATA:                   " << config->EnableZeroRtt()
+      << "\n";
+  out << "SSL_ENABLE_ALPN:                        " << config->EnableAlpn()
+      << "\n";
+  out << "SSL_ENABLE_FALLBACK_SCSV:               "
+      << config->EnableFallbackScsv() << "\n";
+  out << "SSL_ENABLE_OCSP_STAPLING:               "
+      << config->EnableOcspStapling() << "\n";
+  out << "SSL_ENABLE_SESSION_TICKETS:             "
+      << config->EnableSessionTickets() << "\n";
+  out << "SSL_ENABLE_TLS13_COMPAT_MODE:           "
+      << config->EnableTls13CompatMode() << "\n";
+  out << "SSL_NO_LOCKS:                           " << config->NoLocks()
+      << "\n";
+  out << "SSL_SetClientEchConfigs:                "
+      << config->SetClientEchConfigs() << "\n";
+  out << "========================================";
+
+  return out;
 }

@@ -128,7 +128,7 @@ from_hex_str(unsigned char *buf, unsigned int len, const char *str)
 
     /* count the hex digits */
     nxdigit = 0;
-    for (nxdigit = 0; isxdigit(str[nxdigit]); nxdigit++) {
+    for (nxdigit = 0; isxdigit((unsigned char)str[nxdigit]); nxdigit++) {
         /* empty body */
     }
     if (nxdigit == 0) {
@@ -298,9 +298,9 @@ void
 tdea_kat_mmt(char *reqfn)
 {
     char buf[180]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <180 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <180 hex digits>\n".
+                    */
     FILE *req;     /* input stream from the REQUEST file */
     FILE *resp;    /* output stream to the RESPONSE file */
     int i, j;
@@ -336,7 +336,7 @@ tdea_kat_mmt(char *reqfn)
         /* NumKeys */
         if (strncmp(&buf[0], "NumKeys", 7) == 0) {
             i = 7;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             numKeys = buf[i];
@@ -360,10 +360,10 @@ tdea_kat_mmt(char *reqfn)
         if (numKeys == 0) {
             if (strncmp(buf, "KEYs", 4) == 0) {
                 i = 4;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
-                for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+                for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                     hex_to_byteval(&buf[i], &key[j]);
                     key[j + 8] = key[j];
                     key[j + 16] = key[j];
@@ -375,10 +375,10 @@ tdea_kat_mmt(char *reqfn)
             /* KEY1 = ... */
             if (strncmp(buf, "KEY1", 4) == 0) {
                 i = 4;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
-                for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+                for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                     hex_to_byteval(&buf[i], &key[j]);
                 }
                 fputs(buf, resp);
@@ -387,10 +387,10 @@ tdea_kat_mmt(char *reqfn)
             /* KEY2 = ... */
             if (strncmp(buf, "KEY2", 4) == 0) {
                 i = 4;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
-                for (j = 8; isxdigit(buf[i]); i += 2, j++) {
+                for (j = 8; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                     hex_to_byteval(&buf[i], &key[j]);
                 }
                 fputs(buf, resp);
@@ -399,10 +399,10 @@ tdea_kat_mmt(char *reqfn)
             /* KEY3 = ... */
             if (strncmp(buf, "KEY3", 4) == 0) {
                 i = 4;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
-                for (j = 16; isxdigit(buf[i]); i += 2, j++) {
+                for (j = 16; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                     hex_to_byteval(&buf[i], &key[j]);
                 }
                 fputs(buf, resp);
@@ -414,7 +414,7 @@ tdea_kat_mmt(char *reqfn)
         if (strncmp(buf, "IV", 2) == 0) {
             mode = NSS_DES_EDE3_CBC;
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof iv; i += 2, j++) {
@@ -431,10 +431,10 @@ tdea_kat_mmt(char *reqfn)
                 goto loser;
             }
             i = 9;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &plaintext[j]);
             }
             plaintextlen = j;
@@ -461,10 +461,10 @@ tdea_kat_mmt(char *reqfn)
             }
 
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j]);
             }
             ciphertextlen = j;
@@ -491,8 +491,8 @@ loser:
 }
 
 /*
-* Set the parity bit for the given byte
-*/
+ * Set the parity bit for the given byte
+ */
 BYTE
 odd_parity(BYTE in)
 {
@@ -779,7 +779,7 @@ tdea_mct(int mode, char *reqfn)
         /* NumKeys */
         if (strncmp(&buf[0], "NumKeys", 7) == 0) {
             i = 7;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             numKeys = atoi(&buf[i]);
@@ -788,10 +788,10 @@ tdea_mct(int mode, char *reqfn)
         /* KEY1 = ... */
         if (strncmp(buf, "KEY1", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             continue;
@@ -799,10 +799,10 @@ tdea_mct(int mode, char *reqfn)
         /* KEY2 = ... */
         if (strncmp(buf, "KEY2", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 8; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 8; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             continue;
@@ -810,10 +810,10 @@ tdea_mct(int mode, char *reqfn)
         /* KEY3 = ... */
         if (strncmp(buf, "KEY3", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 16; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 16; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             continue;
@@ -822,7 +822,7 @@ tdea_mct(int mode, char *reqfn)
         /* IV = ... */
         if (strncmp(buf, "IV", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof iv; i += 2, j++) {
@@ -840,7 +840,7 @@ tdea_mct(int mode, char *reqfn)
             }
             /* PT[0] = PT */
             i = 9;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof plaintext; i += 2, j++) {
@@ -863,10 +863,10 @@ tdea_mct(int mode, char *reqfn)
             }
             /* CT[0] = CT */
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j]);
             }
 
@@ -1009,9 +1009,9 @@ void
 aes_gcm(char *reqfn, int encrypt)
 {
     char buf[512]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <320 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <320 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1071,10 +1071,10 @@ aes_gcm(char *reqfn, int encrypt)
         /* KEY = ... */
         if (strncmp(buf, "Key", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             keysize = j;
@@ -1084,7 +1084,7 @@ aes_gcm(char *reqfn, int encrypt)
         /* IV = ... */
         if (strncmp(buf, "IV", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof iv; i += 2, j++) {
@@ -1101,10 +1101,10 @@ aes_gcm(char *reqfn, int encrypt)
             }
 
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &plaintext[j]);
             }
             plaintextlen = j;
@@ -1119,10 +1119,10 @@ aes_gcm(char *reqfn, int encrypt)
             }
 
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j]);
             }
             ciphertextlen = j;
@@ -1131,10 +1131,10 @@ aes_gcm(char *reqfn, int encrypt)
         }
         if (strncmp(buf, "AAD", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &aad[j]);
             }
             aadlen = j;
@@ -1183,10 +1183,10 @@ aes_gcm(char *reqfn, int encrypt)
             }
 
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j + ciphertextlen]);
             }
             ciphertextlen += j;
@@ -1230,9 +1230,9 @@ void
 aes_kat_mmt(char *reqfn)
 {
     char buf[512]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "CIPHERTEXT = <320 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "CIPHERTEXT = <320 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1282,10 +1282,10 @@ aes_kat_mmt(char *reqfn)
         /* KEY = ... */
         if (strncmp(buf, "KEY", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             keysize = j;
@@ -1296,7 +1296,7 @@ aes_kat_mmt(char *reqfn)
         if (strncmp(buf, "IV", 2) == 0) {
             mode = NSS_AES_CBC;
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof iv; i += 2, j++) {
@@ -1313,10 +1313,10 @@ aes_kat_mmt(char *reqfn)
             }
 
             i = 9;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &plaintext[j]);
             }
             plaintextlen = j;
@@ -1347,10 +1347,10 @@ aes_kat_mmt(char *reqfn)
             }
 
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j]);
             }
             ciphertextlen = j;
@@ -1397,9 +1397,9 @@ aes_mct_next_key(unsigned char *key, unsigned int keysize,
             break;
         case 24: /* 192-bit key */
             /*
-         * Key[i+1] = Key[i] xor (last 64-bits of
-         *            CT[j-1] || CT[j])
-         */
+             * Key[i+1] = Key[i] xor (last 64-bits of
+             *            CT[j-1] || CT[j])
+             */
             for (k = 0; k < 8; k++) {
                 key[k] ^= ciphertext_1[k + 8];
             }
@@ -1434,9 +1434,9 @@ void
 aes_ecb_mct(char *reqfn)
 {
     char buf[80];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "KEY = <64 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "KEY = <64 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1451,8 +1451,8 @@ aes_ecb_mct(char *reqfn)
     unsigned int outputlen;
     AESContext *cx = NULL;  /* the operation being tested */
     AESContext *cx2 = NULL; /* the inverse operation done in parallel
-                                 * to doublecheck our result.
-                                 */
+                             * to doublecheck our result.
+                             */
     SECStatus rv;
 
     aesreq = fopen(reqfn, "r");
@@ -1486,10 +1486,10 @@ aes_ecb_mct(char *reqfn)
         if (strncmp(buf, "KEY", 3) == 0) {
             /* Key[0] = Key */
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             keysize = j;
@@ -1503,7 +1503,7 @@ aes_ecb_mct(char *reqfn)
             }
             /* PT[0] = PT */
             i = 9;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof plaintext; i += 2, j++) {
@@ -1601,10 +1601,10 @@ aes_ecb_mct(char *reqfn)
             }
             /* CT[0] = CT */
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j]);
             }
 
@@ -1717,9 +1717,9 @@ void
 aes_cbc_mct(char *reqfn)
 {
     char buf[80];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "KEY = <64 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "KEY = <64 hex digits>\n".
+                    */
     FILE *aesreq;  /* input stream from the REQUEST file */
     FILE *aesresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -1735,8 +1735,8 @@ aes_cbc_mct(char *reqfn)
     unsigned int outputlen;
     AESContext *cx = NULL;  /* the operation being tested */
     AESContext *cx2 = NULL; /* the inverse operation done in parallel
-                                 * to doublecheck our result.
-                                 */
+                             * to doublecheck our result.
+                             */
     SECStatus rv;
 
     aesreq = fopen(reqfn, "r");
@@ -1771,10 +1771,10 @@ aes_cbc_mct(char *reqfn)
         if (strncmp(buf, "KEY", 3) == 0) {
             /* Key[0] = Key */
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &key[j]);
             }
             keysize = j;
@@ -1784,7 +1784,7 @@ aes_cbc_mct(char *reqfn)
         if (strncmp(buf, "IV", 2) == 0) {
             /* IV[0] = IV */
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof iv; i += 2, j++) {
@@ -1800,7 +1800,7 @@ aes_cbc_mct(char *reqfn)
             }
             /* PT[0] = PT */
             i = 9;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof plaintext; i += 2, j++) {
@@ -1912,10 +1912,10 @@ aes_cbc_mct(char *reqfn)
             }
             /* CT[0] = CT */
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &ciphertext[j]);
             }
 
@@ -2378,10 +2378,10 @@ void
 ecdsa_keypair_test(char *reqfn)
 {
     char buf[256];   /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                      * or to the output RESPONSE file.
+                      * needs to be large enough to hold the longest
+                      * line "Qx = <144 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2416,7 +2416,7 @@ ecdsa_keypair_test(char *reqfn)
 
             src = &buf[1];
             dst = &curve[4];
-            *dst++ = tolower(*src);
+            *dst++ = tolower((unsigned char)*src);
             src += 2; /* skip the hyphen */
             *dst++ = *src++;
             *dst++ = *src++;
@@ -2497,9 +2497,9 @@ void
 ecdsa_pkv_test(char *reqfn)
 {
     char buf[256];   /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                      * needs to be large enough to hold the longest
+                      * line "Qx = <144 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2527,7 +2527,7 @@ ecdsa_pkv_test(char *reqfn)
 
             src = &buf[1];
             dst = &curve[4];
-            *dst++ = tolower(*src);
+            *dst++ = tolower((unsigned char)*src);
             src += 2; /* skip the hyphen */
             *dst++ = *src++;
             *dst++ = *src++;
@@ -2564,7 +2564,7 @@ ecdsa_pkv_test(char *reqfn)
         if (strncmp(buf, "Qx", 2) == 0) {
             fputs(buf, ecdsaresp);
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             keyvalid = from_hex_str(&pubkey.data[1], len, &buf[i]);
@@ -2578,7 +2578,7 @@ ecdsa_pkv_test(char *reqfn)
                 continue;
             }
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             keyvalid = from_hex_str(&pubkey.data[1 + len], len, &buf[i]);
@@ -2617,10 +2617,10 @@ void
 ecdsa_siggen_test(char *reqfn)
 {
     char buf[1024];  /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * needs to be large enough to hold the longest
-                         * line "Msg = <256 hex digits>\n".
-                         */
+                      * or to the output RESPONSE file.
+                      * needs to be large enough to hold the longest
+                      * line "Msg = <256 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2652,7 +2652,7 @@ ecdsa_siggen_test(char *reqfn)
 
             src = &buf[1];
             dst = &curve[4];
-            *dst++ = tolower(*src);
+            *dst++ = tolower((unsigned char)*src);
             src += 2; /* skip the hyphen */
             *dst++ = *src++;
             *dst++ = *src++;
@@ -2687,10 +2687,10 @@ ecdsa_siggen_test(char *reqfn)
             ECPrivateKey *ecpriv;
 
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &msg[j]);
             }
             msglen = j;
@@ -2774,9 +2774,9 @@ void
 ecdsa_sigver_test(char *reqfn)
 {
     char buf[1024];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Msg = <256 hex digits>\n".
-                         */
+                      * needs to be large enough to hold the longest
+                      * line "Msg = <256 hex digits>\n".
+                      */
     FILE *ecdsareq;  /* input stream from the REQUEST file */
     FILE *ecdsaresp; /* output stream to the RESPONSE file */
     char curve[16];  /* "nistxddd" */
@@ -2813,7 +2813,7 @@ ecdsa_sigver_test(char *reqfn)
 
             src = &buf[1];
             dst = &curve[4];
-            *dst++ = tolower(*src);
+            *dst++ = tolower((unsigned char)*src);
             src += 2; /* skip the hyphen */
             *dst++ = *src++;
             *dst++ = *src++;
@@ -2868,10 +2868,10 @@ ecdsa_sigver_test(char *reqfn)
         /* Msg = ... */
         if (strncmp(buf, "Msg", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &msg[j]);
             }
             msglen = j;
@@ -2896,7 +2896,7 @@ ecdsa_sigver_test(char *reqfn)
         if (strncmp(buf, "Qx", 2) == 0) {
             fputs(buf, ecdsaresp);
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             keyvalid = from_hex_str(&ecpub.publicValue.data[1], flen,
@@ -2910,7 +2910,7 @@ ecdsa_sigver_test(char *reqfn)
                 continue;
             }
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             keyvalid = from_hex_str(&ecpub.publicValue.data[1 + flen], flen,
@@ -2932,7 +2932,7 @@ ecdsa_sigver_test(char *reqfn)
         if (buf[0] == 'R') {
             fputs(buf, ecdsaresp);
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             sigvalid = from_hex_str(sig, olen, &buf[i]);
@@ -2942,7 +2942,7 @@ ecdsa_sigver_test(char *reqfn)
         if (buf[0] == 'S') {
             fputs(buf, ecdsaresp);
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             if (sigvalid) {
@@ -2982,9 +2982,9 @@ void
 ecdh_functional(char *reqfn, PRBool response)
 {
     char buf[256];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "Qx = <144 hex digits>\n".
+                     */
     FILE *ecdhreq;  /* input stream from the REQUEST file */
     FILE *ecdhresp; /* output stream to the RESPONSE file */
     char curve[16]; /* "nistxddd" */
@@ -3042,7 +3042,7 @@ ecdh_functional(char *reqfn, PRBool response)
                 while (*src && *src == ' ')
                     src++;
                 dst = &curve[4];
-                *dst++ = tolower(*src);
+                *dst++ = tolower((unsigned char)*src);
                 src += 2; /* skip the hyphen */
                 *dst++ = *src++;
                 *dst++ = *src++;
@@ -3127,7 +3127,7 @@ ecdh_functional(char *reqfn, PRBool response)
         if (strncmp(buf, "QeCAVSx", 7) == 0) {
             fputs(buf, ecdhresp);
             i = 7;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(&pubkey.data[1], len, &buf[i]);
@@ -3137,7 +3137,7 @@ ecdh_functional(char *reqfn, PRBool response)
         if (strncmp(buf, "QeCAVSy", 7) == 0) {
             fputs(buf, ecdhresp);
             i = 7;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(&pubkey.data[1 + len], len, &buf[i]);
@@ -3234,9 +3234,9 @@ void
 ecdh_verify(char *reqfn, PRBool response)
 {
     char buf[256];  /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "Qx = <144 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "Qx = <144 hex digits>\n".
+                     */
     FILE *ecdhreq;  /* input stream from the REQUEST file */
     FILE *ecdhresp; /* output stream to the RESPONSE file */
     char curve[16]; /* "nistxddd" */
@@ -3295,7 +3295,7 @@ ecdh_verify(char *reqfn, PRBool response)
                 while (*src && *src == ' ')
                     src++;
                 dst = &curve[4];
-                *dst++ = tolower(*src);
+                *dst++ = tolower((unsigned char)*src);
                 src += 2; /* skip the hyphen */
                 *dst++ = *src++;
                 *dst++ = *src++;
@@ -3380,7 +3380,7 @@ ecdh_verify(char *reqfn, PRBool response)
         if (strncmp(buf, "QeCAVSx", 7) == 0) {
             fputs(buf, ecdhresp);
             i = 7;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(&pubkey.data[1], len, &buf[i]);
@@ -3390,7 +3390,7 @@ ecdh_verify(char *reqfn, PRBool response)
         if (strncmp(buf, "QeCAVSy", 7) == 0) {
             fputs(buf, ecdhresp);
             i = 7;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(&pubkey.data[1 + len], len, &buf[i]);
@@ -3399,7 +3399,7 @@ ecdh_verify(char *reqfn, PRBool response)
         if (strncmp(buf, "deIUT", 5) == 0) {
             fputs(buf, ecdhresp);
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(private_data, len, &buf[i]);
@@ -3419,7 +3419,7 @@ ecdh_verify(char *reqfn, PRBool response)
             (strncmp(buf, "HashZZ", 6) == 0)) {
             fputs(buf, ecdhresp);
             i = (buf[0] == 'C') ? 10 : 6;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(cavsHashBuf, fips_hashLen(hash), &buf[i]);
@@ -3506,9 +3506,9 @@ void
 dh_functional(char *reqfn, PRBool response)
 {
     char buf[1024]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "YephCAVS = <512 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "YephCAVS = <512 hex digits>\n".
+                     */
     FILE *dhreq;    /* input stream from the REQUEST file */
     FILE *dhresp;   /* output stream to the RESPONSE file */
     unsigned char hashBuf[HASH_LENGTH_MAX];
@@ -3576,11 +3576,11 @@ dh_functional(char *reqfn, PRBool response)
         }
         if (buf[0] == 'P') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.prime.len; i += 2, j++) {
-                if (!isxdigit(buf[i])) {
+                if (!isxdigit((unsigned char)buf[i])) {
                     pqg.prime.len = j;
                     break;
                 }
@@ -3594,11 +3594,11 @@ dh_functional(char *reqfn, PRBool response)
         /* Q = ... */
         if (buf[0] == 'Q') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.subPrime.len; i += 2, j++) {
-                if (!isxdigit(buf[i])) {
+                if (!isxdigit((unsigned char)buf[i])) {
                     pqg.subPrime.len = j;
                     break;
                 }
@@ -3612,11 +3612,11 @@ dh_functional(char *reqfn, PRBool response)
         /* G = ... */
         if (buf[0] == 'G') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.base.len; i += 2, j++) {
-                if (!isxdigit(buf[i])) {
+                if (!isxdigit((unsigned char)buf[i])) {
                     pqg.base.len = j;
                     break;
                 }
@@ -3637,7 +3637,7 @@ dh_functional(char *reqfn, PRBool response)
         if (strncmp(buf, "YephemCAVS", 10) == 0) {
             fputs(buf, dhresp);
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(pubkeydata, pqg.prime.len, &buf[i]);
@@ -3698,9 +3698,9 @@ void
 dh_verify(char *reqfn, PRBool response)
 {
     char buf[1024]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "YephCAVS = <512 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "YephCAVS = <512 hex digits>\n".
+                     */
     FILE *dhreq;    /* input stream from the REQUEST file */
     FILE *dhresp;   /* output stream to the RESPONSE file */
     unsigned char hashBuf[HASH_LENGTH_MAX];
@@ -3770,11 +3770,11 @@ dh_verify(char *reqfn, PRBool response)
         }
         if (buf[0] == 'P') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.prime.len; i += 2, j++) {
-                if (!isxdigit(buf[i])) {
+                if (!isxdigit((unsigned char)buf[i])) {
                     pqg.prime.len = j;
                     break;
                 }
@@ -3788,11 +3788,11 @@ dh_verify(char *reqfn, PRBool response)
         /* Q = ... */
         if (buf[0] == 'Q') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.subPrime.len; i += 2, j++) {
-                if (!isxdigit(buf[i])) {
+                if (!isxdigit((unsigned char)buf[i])) {
                     pqg.subPrime.len = j;
                     break;
                 }
@@ -3806,11 +3806,11 @@ dh_verify(char *reqfn, PRBool response)
         /* G = ... */
         if (buf[0] == 'G') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.base.len; i += 2, j++) {
-                if (!isxdigit(buf[i])) {
+                if (!isxdigit((unsigned char)buf[i])) {
                     pqg.base.len = j;
                     break;
                 }
@@ -3831,7 +3831,7 @@ dh_verify(char *reqfn, PRBool response)
         if (strncmp(buf, "YephemCAVS", 10) == 0) {
             fputs(buf, dhresp);
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(pubkeydata, pqg.prime.len, &buf[i]);
@@ -3843,7 +3843,7 @@ dh_verify(char *reqfn, PRBool response)
         if (strncmp(buf, "XephemIUT", 9) == 0) {
             fputs(buf, dhresp);
             i = 9;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(privkeydata, pqg.subPrime.len, &buf[i]);
@@ -3861,7 +3861,7 @@ dh_verify(char *reqfn, PRBool response)
             (strncmp(buf, "HashZZ", 6) == 0)) {
             fputs(buf, dhresp);
             i = buf[0] == 'C' ? 10 : 6;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             from_hex_str(cavsHashBuf, fips_hashLen(hash), &buf[i]);
@@ -3907,7 +3907,7 @@ loser:
 PRBool
 isblankline(char *b)
 {
-    while (isspace(*b))
+    while (isspace((unsigned char)*b))
         b++;
     if ((*b == '\n') || (*b == 0)) {
         return PR_TRUE;
@@ -3928,8 +3928,8 @@ void
 drbg(char *reqfn)
 {
     char buf[2000]; /* test case has some very long lines, returned bits
-     * as high as 800 bytes (6400 bits). That 1600 byte
-     * plus a tag */
+                     * as high as 800 bytes (6400 bits). That 1600 byte
+                     * plus a tag */
     char buf2[2000];
     FILE *rngreq;  /* input stream from the REQUEST file */
     FILE *rngresp; /* output stream to the RESPONSE file */
@@ -4066,7 +4066,7 @@ drbg(char *reqfn)
         if (strncmp(buf, "[PredictionResistance", 21) == 0) {
 #ifdef HANDLE_PREDICTION_RESISTANCE
             i = 21;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             if (strncmp(buf, "False", 5) == 0) {
@@ -4199,11 +4199,11 @@ drbg(char *reqfn)
             if (entropyInput) {
                 memset(entropyInput, 0, entropyInputLen);
                 i = 18;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
 
-                for (j = 0; isxdigit(buf[i]); i += 2, j++) { /*j<entropyInputLen*/
+                for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) { /*j<entropyInputLen*/
                     hex_to_byteval(&buf[i], &entropyInput[j]);
                 }
             }
@@ -4216,10 +4216,10 @@ drbg(char *reqfn)
             if (additionalInput) {
                 memset(additionalInput, 0, additionalInputLen);
                 i = 21;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
-                for (j = 0; isxdigit(buf[i]); i += 2, j++) { /*j<additionalInputLen*/
+                for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) { /*j<additionalInputLen*/
                     hex_to_byteval(&buf[i], &additionalInput[j]);
                 }
             }
@@ -4231,10 +4231,10 @@ drbg(char *reqfn)
         /* Entropy input = ... */
         if (strncmp(buf, "EntropyInput", 12) == 0) {
             i = 12;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) { /*j<entropyInputLen*/
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) { /*j<entropyInputLen*/
                 hex_to_byteval(&buf[i], &entropyInput[j]);
             }
             fputs(buf, rngresp);
@@ -4244,10 +4244,10 @@ drbg(char *reqfn)
         /* nouce = ... */
         if (strncmp(buf, "Nonce", 5) == 0) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) { /*j<nonceLen*/
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) { /*j<nonceLen*/
                 hex_to_byteval(&buf[i], &nonce[j]);
             }
             fputs(buf, rngresp);
@@ -4258,10 +4258,10 @@ drbg(char *reqfn)
         if (strncmp(buf, "PersonalizationString", 21) == 0) {
             if (personalizationString) {
                 i = 21;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
-                for (j = 0; isxdigit(buf[i]); i += 2, j++) { /*j<personalizationStringLen*/
+                for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) { /*j<personalizationStringLen*/
                     hex_to_byteval(&buf[i], &personalizationString[j]);
                 }
             }
@@ -4274,10 +4274,10 @@ drbg(char *reqfn)
         if (strncmp(buf, "AdditionalInput", 15) == 0) {
             if (additionalInput) {
                 i = 15;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
-                for (j = 0; isxdigit(buf[i]); i += 2, j++) { /*j<additionalInputLen*/
+                for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) { /*j<additionalInputLen*/
                     hex_to_byteval(&buf[i], &additionalInput[j]);
                 }
             }
@@ -4294,10 +4294,10 @@ drbg(char *reqfn)
         /* Returned bits = ... */
         if (strncmp(buf, "ReturnedBits", 12) == 0) {
             i = 12;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) { /*j<additionalInputLen*/
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) { /*j<additionalInputLen*/
                 hex_to_byteval(&buf[i], &predictedreturn_bytes[j]);
             }
 
@@ -4365,9 +4365,9 @@ void
 rng_vst(char *reqfn)
 {
     char buf[256]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "XSeed = <128 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "XSeed = <128 hex digits>\n".
+                    */
     FILE *rngreq;  /* input stream from the REQUEST file */
     FILE *rngresp; /* output stream to the RESPONSE file */
     unsigned int i, j;
@@ -4396,7 +4396,7 @@ rng_vst(char *reqfn)
         /* Q = ... */
         if (buf[0] == 'Q') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof Q; i += 2, j++) {
@@ -4418,7 +4418,7 @@ rng_vst(char *reqfn)
         /* b = ... */
         if (buf[0] == 'b') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             b = atoi(&buf[i]);
@@ -4431,7 +4431,7 @@ rng_vst(char *reqfn)
         /* XKey = ... */
         if (strncmp(buf, "XKey", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < b / 8; i += 2, j++) {
@@ -4443,7 +4443,7 @@ rng_vst(char *reqfn)
         /* XSeed = ... */
         if (strncmp(buf, "XSeed", 5) == 0) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < b / 8; i += 2, j++) {
@@ -4488,9 +4488,9 @@ void
 rng_mct(char *reqfn)
 {
     char buf[256]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "XSeed = <128 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "XSeed = <128 hex digits>\n".
+                    */
     FILE *rngreq;  /* input stream from the REQUEST file */
     FILE *rngresp; /* output stream to the RESPONSE file */
     unsigned int i, j;
@@ -4519,7 +4519,7 @@ rng_mct(char *reqfn)
         /* Q = ... */
         if (buf[0] == 'Q') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof Q; i += 2, j++) {
@@ -4541,7 +4541,7 @@ rng_mct(char *reqfn)
         /* b = ... */
         if (buf[0] == 'b') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             b = atoi(&buf[i]);
@@ -4554,7 +4554,7 @@ rng_mct(char *reqfn)
         /* XKey = ... */
         if (strncmp(buf, "XKey", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < b / 8; i += 2, j++) {
@@ -4567,7 +4567,7 @@ rng_mct(char *reqfn)
         if (strncmp(buf, "XSeed", 5) == 0) {
             unsigned int k;
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < b / 8; i += 2, j++) {
@@ -4718,7 +4718,7 @@ sha_test(char *reqfn)
         if (buf[0] == '[') {
             if (strncmp(&buf[1], "L ", 1) == 0) {
                 i = 2;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
                 MDlen = atoi(&buf[i]);
@@ -4729,7 +4729,7 @@ sha_test(char *reqfn)
         /* Len = Length of the Input Message Length  ... */
         if (strncmp(buf, "Len", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             if (msg) {
@@ -4753,7 +4753,7 @@ sha_test(char *reqfn)
         /* MSG = ... */
         if (strncmp(buf, "Msg", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < msgLen; i += 2, j++) {
@@ -4777,7 +4777,7 @@ sha_test(char *reqfn)
         /* Seed = ... */
         if (strncmp(buf, "Seed", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < sizeof seed; i += 2, j++) {
@@ -4895,11 +4895,11 @@ hmac_test(char *reqfn)
     while (fgets(buf, bufSize, req) != NULL) {
         if (strncmp(buf, "Mac", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             memset(expectedHMAC, 0, HASH_LENGTH_MAX);
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &expectedHMAC[j]);
             }
             if (memcmp(HMAC, expectedHMAC, TLen) != 0) {
@@ -4925,7 +4925,7 @@ hmac_test(char *reqfn)
         if (buf[0] == '[') {
             if (strncmp(&buf[1], "L ", 1) == 0) {
                 i = 2;
-                while (isspace(buf[i]) || buf[i] == '=') {
+                while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                     i++;
                 }
                 /* HMACLen will get reused for Tlen */
@@ -4953,7 +4953,7 @@ hmac_test(char *reqfn)
         /* KLen = Length of the Input Secret Key ... */
         if (strncmp(buf, "Klen", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             keyLen = atoi(&buf[i]); /* in bytes */
@@ -4963,7 +4963,7 @@ hmac_test(char *reqfn)
         /* key = the secret key for the key to MAC */
         if (strncmp(buf, "Key", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < keyLen; i += 2, j++) {
@@ -4974,7 +4974,7 @@ hmac_test(char *reqfn)
         /* TLen = Length of the calculated HMAC */
         if (strncmp(buf, "Tlen", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             TLen = atoi(&buf[i]); /* in bytes */
@@ -4984,7 +4984,7 @@ hmac_test(char *reqfn)
         /* MSG = to HMAC always 128 bytes for these tests */
         if (strncmp(buf, "Msg", 3) == 0) {
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < msgLen; i += 2, j++) {
@@ -5026,9 +5026,9 @@ void
 dsa_keypair_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold (384 public key (x2 for HEX) + 1'\n'
-                         */
+                    * or to the output RESPONSE file.
+                    * 800 to hold (384 public key (x2 for HEX) + 1'\n'
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int count;
@@ -5161,9 +5161,9 @@ void
 dsa_pqgver_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold (384 public key (x2 for HEX) + P = ...
-                         */
+                    * or to the output RESPONSE file.
+                    * 800 to hold (384 public key (x2 for HEX) + P = ...
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int N;
@@ -5264,7 +5264,7 @@ dsa_pqgver_test(char *reqfn)
         /* P = ... */
         if (buf[0] == 'P') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.prime.len; i += 2, j++) {
@@ -5278,7 +5278,7 @@ dsa_pqgver_test(char *reqfn)
         /* Q = ... */
         if (buf[0] == 'Q') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.subPrime.len; i += 2, j++) {
@@ -5296,7 +5296,7 @@ dsa_pqgver_test(char *reqfn)
                 SECITEM_ZfreeItem(&pqg.base, PR_FALSE);
             }
             SECITEM_AllocItem(NULL, &pqg.base, pghSize);
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pqg.base.len; i += 2, j++) {
@@ -5318,10 +5318,10 @@ dsa_pqgver_test(char *reqfn)
             i = 0;
         }
         if (i) {
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &vfy.seed.data[j]);
             }
             vfy.seed.len = j;
@@ -5346,10 +5346,10 @@ dsa_pqgver_test(char *reqfn)
         if ((strncmp(buf, "pseed", 5) == 0) ||
             (strncmp(buf, "qseed", 5) == 0)) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = vfy.seed.len; isxdigit(buf[i]); i += 2, j++) {
+            for (j = vfy.seed.len; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &vfy.seed.data[j]);
             }
             vfy.seed.len = j;
@@ -5359,7 +5359,7 @@ dsa_pqgver_test(char *reqfn)
         }
         if (strncmp(buf, "index", 4) == 0) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             hex_to_byteval(&buf[i], &vfy.h.data[0]);
@@ -5426,10 +5426,10 @@ dsa_pqgver_test(char *reqfn)
             SECStatus rv, result = SECFailure;
 
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &vfy.h.data[j]);
             }
             vfy.h.len = j;
@@ -5489,9 +5489,9 @@ void
 dsa_pqggen_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold seed = (384 public key (x2 for HEX)
-                         */
+                    * or to the output RESPONSE file.
+                    * 800 to hold seed = (384 public key (x2 for HEX)
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int count;     /* number of times to generate parameters */
@@ -5660,9 +5660,9 @@ void
 dsa_siggen_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * max for Msg = ....
-                         */
+                    * or to the output RESPONSE file.
+                    * max for Msg = ....
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int modulus;
@@ -5717,9 +5717,9 @@ dsa_siggen_test(char *reqfn)
             fputc('\n', dsaresp);
 
             /****************************************************************
-            * PQG_ParamGenSeedLen doesn't take a key size, it takes an index
-            * that points to a valid key size.
-            */
+             * PQG_ParamGenSeedLen doesn't take a key size, it takes an index
+             * that points to a valid key size.
+             */
             if (use_dsa1) {
                 keySizeIndex = PQG_PBITS_TO_INDEX(modulus);
                 if (keySizeIndex == -1 || modulus < 512 || modulus > 1024) {
@@ -5778,10 +5778,10 @@ dsa_siggen_test(char *reqfn)
             memset(sig, 0, sizeof sig);
 
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &msg[j]);
             }
             if (fips_hashBuf(hashType, hashBuf, msg, j) != SECSuccess) {
@@ -5847,9 +5847,9 @@ void
 dsa_sigver_test(char *reqfn)
 {
     char buf[800]; /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * max for Msg = ....
-                         */
+                    * or to the output RESPONSE file.
+                    * max for Msg = ....
+                    */
     FILE *dsareq;  /* input stream from the REQUEST file */
     FILE *dsaresp; /* output stream to the RESPONSE file */
     int L;
@@ -5923,7 +5923,7 @@ dsa_sigver_test(char *reqfn)
         /* P = ... */
         if (buf[0] == 'P') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             memset(pubkey.params.prime.data, 0, pubkey.params.prime.len);
@@ -5938,7 +5938,7 @@ dsa_sigver_test(char *reqfn)
         /* Q = ... */
         if (buf[0] == 'Q') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             memset(pubkey.params.subPrime.data, 0, pubkey.params.subPrime.len);
@@ -5953,7 +5953,7 @@ dsa_sigver_test(char *reqfn)
         /* G = ... */
         if (buf[0] == 'G') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             memset(pubkey.params.base.data, 0, pubkey.params.base.len);
@@ -5976,10 +5976,10 @@ dsa_sigver_test(char *reqfn)
             }
 
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]); i += 2, j++) {
                 hex_to_byteval(&buf[i], &msg[j]);
             }
             if (fips_hashBuf(hashType, hashBuf, msg, j) != SECSuccess) {
@@ -5995,7 +5995,7 @@ dsa_sigver_test(char *reqfn)
         /* Y = ... */
         if (buf[0] == 'Y') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             memset(pubkey.publicValue.data, 0, pubkey.params.subPrime.len);
@@ -6011,7 +6011,7 @@ dsa_sigver_test(char *reqfn)
         if (buf[0] == 'R') {
             memset(sig, 0, sizeof sig);
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pubkey.params.subPrime.len; i += 2, j++) {
@@ -6030,7 +6030,7 @@ dsa_sigver_test(char *reqfn)
             }
 
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = pubkey.params.subPrime.len;
@@ -6098,9 +6098,9 @@ void
 rsa_keypair_test(char *reqfn)
 {
     char buf[800];           /* holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 800 to hold (384 public key (x2 for HEX) + 1'\n'
-                         */
+                              * or to the output RESPONSE file.
+                              * 800 to hold (384 public key (x2 for HEX) + 1'\n'
+                              */
     unsigned char buf2[400]; /* can't need more then 1/2 buf length */
     FILE *rsareq;            /* input stream from the REQUEST file */
     FILE *rsaresp;           /* output stream to the RESPONSE file */
@@ -6193,9 +6193,9 @@ rsa_siggen_test(char *reqfn)
 {
     char buf[2 * RSA_MAX_TEST_MODULUS_BYTES + 1];
     /* buf holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * 2x for HEX output + 1 for \n
-                         */
+     * or to the output RESPONSE file.
+     * 2x for HEX output + 1 for \n
+     */
     FILE *rsareq;  /* input stream from the REQUEST file */
     FILE *rsaresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -6210,7 +6210,7 @@ rsa_siggen_test(char *reqfn)
     int peCount = 0;
 
     RSAPrivateKey *rsaBlapiPrivKey = NULL;  /* holds RSA private and
-                                              * public keys */
+                                             * public keys */
     RSAPublicKey *rsaBlapiPublicKey = NULL; /* hold RSA public key */
 
     rsareq = fopen(reqfn, "r");
@@ -6286,7 +6286,7 @@ rsa_siggen_test(char *reqfn)
         /* SHAAlg = ... */
         if (strncmp(buf, "SHAAlg", 6) == 0) {
             i = 6;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             /* set the SHA Algorithm */
@@ -6324,10 +6324,10 @@ rsa_siggen_test(char *reqfn)
             memset(rsa_computed_signature, 0, sizeof rsa_computed_signature);
 
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
-            for (j = 0; isxdigit(buf[i]) && j < sizeof(msg); i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]) && j < sizeof(msg); i += 2, j++) {
                 hex_to_byteval(&buf[i], &msg[j]);
             }
             shaLength = fips_hashLen(shaAlg);
@@ -6396,9 +6396,9 @@ rsa_sigver_test(char *reqfn)
 {
     char buf[2 * RSA_MAX_TEST_MODULUS_BYTES + 7];
     /* buf holds one line from the input REQUEST file
-                         * or to the output RESPONSE file.
-                         * s = 2x for HEX output + 1 for \n
-                         */
+     * or to the output RESPONSE file.
+     * s = 2x for HEX output + 1 for \n
+     */
     FILE *rsareq;  /* input stream from the REQUEST file */
     FILE *rsaresp; /* output stream to the RESPONSE file */
     int i, j;
@@ -6454,7 +6454,7 @@ rsa_sigver_test(char *reqfn)
         /* n = ... modulus */
         if (buf[0] == 'n') {
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             keyvalid = from_hex_str(&rsaBlapiPublicKey.modulus.data[0],
@@ -6472,7 +6472,7 @@ rsa_sigver_test(char *reqfn)
         /* SHAAlg = ... */
         if (strncmp(buf, "SHAAlg", 6) == 0) {
             i = 6;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             /* set the SHA Algorithm */
@@ -6497,11 +6497,11 @@ rsa_sigver_test(char *reqfn)
             }
 
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             /* skip leading zero's */
-            while (isxdigit(buf[i])) {
+            while (isxdigit((unsigned char)buf[i])) {
                 hex_to_byteval(&buf[i], &t);
                 if (t == 0) {
                     i += 2;
@@ -6510,7 +6510,7 @@ rsa_sigver_test(char *reqfn)
             }
 
             /* get the exponent */
-            for (j = 0; isxdigit(buf[i]) && j < sizeof data; i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]) && j < sizeof data; i += 2, j++) {
                 hex_to_byteval(&buf[i], &data[j]);
             }
 
@@ -6539,11 +6539,11 @@ rsa_sigver_test(char *reqfn)
             memset(msg, 0, sizeof msg);
 
             i = 3;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
 
-            for (j = 0; isxdigit(buf[i]) && j < sizeof msg; i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]) && j < sizeof msg; i += 2, j++) {
                 hex_to_byteval(&buf[i], &msg[j]);
             }
 
@@ -6574,11 +6574,11 @@ rsa_sigver_test(char *reqfn)
 
             memset(signature, 0, sizeof(signature));
             i = 1;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
 
-            for (j = 0; isxdigit(buf[i]) && j < sizeof signature; i += 2, j++) {
+            for (j = 0; isxdigit((unsigned char)buf[i]) && j < sizeof signature; i += 2, j++) {
                 hex_to_byteval(&buf[i], &signature[j]);
             }
 
@@ -6616,9 +6616,9 @@ void
 tls(char *reqfn)
 {
     char buf[256]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "XSeed = <128 hex digits>\n".
-                         */
+                    * needs to be large enough to hold the longest
+                    * line "XSeed = <128 hex digits>\n".
+                    */
     unsigned char *pms = NULL;
     int pms_len;
     unsigned char *master_secret = NULL;
@@ -6804,7 +6804,7 @@ tls(char *reqfn)
         /* pre_master_secret = ... */
         if (strncmp(buf, "pre_master_secret", 17) == 0) {
             i = 17;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < pms_len; i += 2, j++) {
@@ -6816,7 +6816,7 @@ tls(char *reqfn)
         /* serverHello_random = ... */
         if (strncmp(buf, "serverHello_random", 18) == 0) {
             i = 18;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < SSL3_RANDOM_LENGTH; i += 2, j++) {
@@ -6828,7 +6828,7 @@ tls(char *reqfn)
         /* clientHello_random = ... */
         if (strncmp(buf, "clientHello_random", 18) == 0) {
             i = 18;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < SSL3_RANDOM_LENGTH; i += 2, j++) {
@@ -6840,7 +6840,7 @@ tls(char *reqfn)
         /* server_random = ... */
         if (strncmp(buf, "server_random", 13) == 0) {
             i = 13;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < SSL3_RANDOM_LENGTH; i += 2, j++) {
@@ -6856,7 +6856,7 @@ tls(char *reqfn)
             CK_OBJECT_HANDLE master_handle;
             CK_OBJECT_HANDLE fake_handle;
             i = 13;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < SSL3_RANDOM_LENGTH; i += 2, j++) {
@@ -6941,9 +6941,9 @@ void
 ikev1(char *reqfn)
 {
     char buf[4096]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "g^xy = <2048 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "g^xy = <2048 hex digits>\n".
+                     */
     unsigned char *gxy = NULL;
     int gxy_len;
     unsigned char *Ni = NULL;
@@ -7127,7 +7127,7 @@ ikev1(char *reqfn)
         /* Ni = ... */
         if (strncmp(buf, "Ni", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < Ni_len; i += 2, j++) {
@@ -7139,7 +7139,7 @@ ikev1(char *reqfn)
         /* Nr = ... */
         if (strncmp(buf, "Nr", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < Nr_len; i += 2, j++) {
@@ -7151,7 +7151,7 @@ ikev1(char *reqfn)
         /* CKYi = ... */
         if (strncmp(buf, "CKY_I", 5) == 0) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < CKYi_len; i += 2, j++) {
@@ -7163,7 +7163,7 @@ ikev1(char *reqfn)
         /* CKYr = ... */
         if (strncmp(buf, "CKY_R", 5) == 0) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < CKYr_len; i += 2, j++) {
@@ -7181,7 +7181,7 @@ ikev1(char *reqfn)
             CK_OBJECT_HANDLE skeyid_a_handle;
             CK_OBJECT_HANDLE skeyid_e_handle;
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < gxy_len; i += 2, j++) {
@@ -7321,9 +7321,9 @@ void
 ikev1_psk(char *reqfn)
 {
     char buf[4096]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "g^xy = <2048 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "g^xy = <2048 hex digits>\n".
+                     */
     unsigned char *gxy = NULL;
     int gxy_len;
     unsigned char *Ni = NULL;
@@ -7529,7 +7529,7 @@ ikev1_psk(char *reqfn)
         /* Ni = ... */
         if (strncmp(buf, "Ni", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < Ni_len; i += 2, j++) {
@@ -7541,7 +7541,7 @@ ikev1_psk(char *reqfn)
         /* Nr = ... */
         if (strncmp(buf, "Nr", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < Nr_len; i += 2, j++) {
@@ -7553,7 +7553,7 @@ ikev1_psk(char *reqfn)
         /* CKYi = ... */
         if (strncmp(buf, "CKY_I", 5) == 0) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < CKYi_len; i += 2, j++) {
@@ -7565,7 +7565,7 @@ ikev1_psk(char *reqfn)
         /* CKYr = ... */
         if (strncmp(buf, "CKY_R", 5) == 0) {
             i = 5;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < CKYr_len; i += 2, j++) {
@@ -7577,7 +7577,7 @@ ikev1_psk(char *reqfn)
         /* g^xy = ... */
         if (strncmp(buf, "g^xy", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < gxy_len; i += 2, j++) {
@@ -7596,7 +7596,7 @@ ikev1_psk(char *reqfn)
             CK_OBJECT_HANDLE skeyid_a_handle;
             CK_OBJECT_HANDLE skeyid_e_handle;
             i = 14;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < psk_len; i += 2, j++) {
@@ -7745,9 +7745,9 @@ void
 ikev2(char *reqfn)
 {
     char buf[4096]; /* holds one line from the input REQUEST file.
-                         * needs to be large enough to hold the longest
-                         * line "g^xy = <2048 hex digits>\n".
-                         */
+                     * needs to be large enough to hold the longest
+                     * line "g^xy = <2048 hex digits>\n".
+                     */
     unsigned char *gir = NULL;
     unsigned char *gir_new = NULL;
     int gir_len;
@@ -7965,7 +7965,7 @@ ikev2(char *reqfn)
         /* Ni = ... */
         if (strncmp(buf, "Ni", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < Ni_len; i += 2, j++) {
@@ -7977,7 +7977,7 @@ ikev2(char *reqfn)
         /* Nr = ... */
         if (strncmp(buf, "Nr", 2) == 0) {
             i = 2;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < Nr_len; i += 2, j++) {
@@ -7989,7 +7989,7 @@ ikev2(char *reqfn)
         /* g^ir (new) = ... */
         if (strncmp(buf, "g^ir (new)", 10) == 0) {
             i = 10;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < gir_len; i += 2, j++) {
@@ -8001,7 +8001,7 @@ ikev2(char *reqfn)
         /* g^ir = ... */
         if (strncmp(buf, "g^ir", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < gir_len; i += 2, j++) {
@@ -8013,7 +8013,7 @@ ikev2(char *reqfn)
         /* SPIi = ... */
         if (strncmp(buf, "SPIi", 4) == 0) {
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < SPIi_len; i += 2, j++) {
@@ -8033,7 +8033,7 @@ ikev2(char *reqfn)
             CK_OBJECT_HANDLE dkm_handle;
             CK_OBJECT_HANDLE dkm_child_handle;
             i = 4;
-            while (isspace(buf[i]) || buf[i] == '=') {
+            while (isspace((unsigned char)buf[i]) || buf[i] == '=') {
                 i++;
             }
             for (j = 0; j < SPIr_len; i += 2, j++) {

@@ -187,9 +187,9 @@ build_chain(int argc, char *argv[])
                                               plContext));
 
     /*
-         * As long as we use only CertStores with blocking I/O, we can omit
-         * checking for completion with nbioContext.
-         */
+     * As long as we use only CertStores with blocking I/O, we can omit
+     * checking for completion with nbioContext.
+     */
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_BuildResult_GetCertChain(buildResult, &certs, plContext));
 

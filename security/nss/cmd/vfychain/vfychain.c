@@ -349,8 +349,8 @@ configureRevocationParams(CERTRevocationFlags *flags)
             revFlags = revTests->cert_rev_flags_per_method;
         }
         /* Set the number of the methods independently to the max number of
-        * methods. If method flags are not set it will be ignored due to
-        * default DO_NOT_USE flag. */
+         * methods. If method flags are not set it will be ignored due to
+         * default DO_NOT_USE flag. */
         revTests->number_of_defined_methods = cert_revocation_method_count;
         revTests->cert_rev_method_independent_flags |=
             revMethodsData[i].testFlags;

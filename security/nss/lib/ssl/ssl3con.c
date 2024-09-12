@@ -5665,7 +5665,8 @@ ssl3_SendClientHello(sslSocket *ss, sslClientHelloType type)
                 goto loser; /* code set */
             }
             if (!ss->firstHsDone) {
-                PORT_Assert(ss->ssl3.hs.dtls13ClientMessageBuffer.len == 0);
+                PORT_Assert(type == client_hello_retransmit ||
+                            ss->ssl3.hs.dtls13ClientMessageBuffer.len == 0);
                 sslBuffer_Clear(&ss->ssl3.hs.dtls13ClientMessageBuffer);
                 /* Here instead of computing the hash, we copy the data to a buffer.*/
                 rv = sslBuffer_Append(&ss->ssl3.hs.dtls13ClientMessageBuffer, chBuf.buf, chBuf.len);
@@ -7137,7 +7138,7 @@ ssl3_HandleServerHello(sslSocket *ss, PRUint8 *b, PRUint32 length)
         goto loser;
     }
 
-    /* RFC 9147. 5.2. 
+    /* RFC 9147. 5.2.
      * DTLS Handshake Message Format states the difference between the computation
      * of the transcript if the version is DTLS1.2 or DTLS1.3.
      *

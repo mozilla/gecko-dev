@@ -276,7 +276,7 @@ typedef struct inheritanceStr inheritance;
 
 /************************************************************************/
 
-/* SSL Session Cache has a smaller set of functions to initialize than 
+/* SSL Session Cache has a smaller set of functions to initialize than
  * ssl does. some ssl_functions can't be initialized before NSS has been
  * initialized, and the cache may be configured before NSS is initialized
  * so thus the special init function */
@@ -342,7 +342,7 @@ UnlockSet(cacheDesc *cache, PRUint32 set)
 /************************************************************************/
 
 /* Put a certificate in the cache.  Update the cert index in the sce.
-*/
+ */
 static PRUint32
 CacheCert(cacheDesc *cache, CERTCertificate *cert, sidCacheEntry *sce)
 {
@@ -399,7 +399,7 @@ Get32BitNameHash(const SECItem *name)
 }
 
 /* Put a name in the cache.  Update the cert index in the sce.
-*/
+ */
 static PRUint32
 CacheSrvName(cacheDesc *cache, SECItem *name, sidCacheEntry *sce)
 {

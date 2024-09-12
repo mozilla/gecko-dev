@@ -1057,8 +1057,8 @@ STAN_GetNSSCertificate(CERTCertificate *cc)
     nssItem_Create(arena,
                    &c->subject, cc->derSubject.len, cc->derSubject.data);
     /* CERTCertificate stores serial numbers decoded.  I need the DER
-    * here.  sigh.
-    */
+     * here.  sigh.
+     */
     SECItem derSerial;
     SECStatus secrv;
     secrv = CERT_SerialNumberFromDERCert(&cc->derCert, &derSerial);

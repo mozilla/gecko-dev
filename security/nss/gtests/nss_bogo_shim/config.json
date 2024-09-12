@@ -65,6 +65,8 @@
         "KyberKeyShareIncludedSecond":"Boring sends Xyber768 even if is not the client's first preference",
         "KyberKeyShareIncludedThird":"Boring sends Xyber768 even if is not the client's first preference",
 
+        "NoCommonSignatureAlgorithms-TLS12-Fallback":"Boring will consider RSA key exchange if a common signature algorithm cannot be found",
+
         "####################":"####################",
         "### TLS1/11 failures due to unsupported signature algorithms":"",
         "####################":"####################",

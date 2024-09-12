@@ -464,9 +464,9 @@ testToStringHelper(
     }
 
     /*
-         * If you are having trouble matching the string, uncomment the
-         * PL_strstr function to figure out what's going on.
-         */
+     * If you are having trouble matching the string, uncomment the
+     * PL_strstr function to figure out what's going on.
+     */
 
     /*
             if (PL_strstr(actual, expected) == NULL){

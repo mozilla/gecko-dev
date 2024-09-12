@@ -769,6 +769,7 @@
       'verified/karamel/include',
       'verified/karamel/krmllib/dist/minimal',
       'deprecated',
+      'verified/eurydice',
     ],
     'defines': [
       'SHLIB_SUFFIX=\"<(dll_suffix)\"',

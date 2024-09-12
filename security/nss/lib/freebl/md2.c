@@ -110,8 +110,8 @@ md2_compress(MD2Context *cx)
     unsigned char P;
     P = cx->checksum[MD2_CHECKSUM_SIZE - 1];
 /* Compute the running checksum, and set the tmp variables to be
-     * CV[i] XOR input[i]
-     */
+ * CV[i] XOR input[i]
+ */
 #define CKSUMFN(n)                                        \
     P = cx->checksum[n] ^ MD2S[cx->X[MD2_INPUT + n] ^ P]; \
     cx->checksum[n] = P;                                  \

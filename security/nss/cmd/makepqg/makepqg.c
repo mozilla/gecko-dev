@@ -263,9 +263,9 @@ main(int argc, char **argv)
             return 2;
         }
         /* this forces keysizes less than 1024 into the DSA1 generation
-	 * code. Whether 1024 uses DSA2 or not is triggered by qSizeInBits
-	 * being non-zero. All larger keysizes will use DSA2.
-	 */
+         * code. Whether 1024 uses DSA2 or not is triggered by qSizeInBits
+         * being non-zero. All larger keysizes will use DSA2.
+         */
         qSizeInBits = 0;
     }
     if (g != 0 && (g < 160 || g >= gMax || g % 8 != 0)) {

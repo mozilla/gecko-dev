@@ -419,8 +419,8 @@ struct ECFieldIDStr {
         SECItem poly;  /* irreducible binary polynomial for (GF2m) */
     } u;
     int k1; /* first coefficient of pentanomial or
-                         * the only coefficient of trinomial
-                         */
+             * the only coefficient of trinomial
+             */
     int k2; /* two remaining coefficients of pentanomial */
     int k3;
 };
@@ -428,8 +428,8 @@ typedef struct ECFieldIDStr ECFieldID;
 
 struct ECCurveStr {
     SECItem a; /* contains octet stream encoding of
-                         * field element (X9.62 section 4.3.3)
-             */
+                * field element (X9.62 section 4.3.3)
+                */
     SECItem b;
     SECItem seed;
 };
@@ -452,8 +452,8 @@ typedef struct ECParamsStr ECParams;
 struct ECPublicKeyStr {
     ECParams ecParams;
     SECItem publicValue; /* elliptic curve point encoded as
-                * octet stream.
-                */
+                          * octet stream.
+                          */
 };
 typedef struct ECPublicKeyStr ECPublicKey;
 

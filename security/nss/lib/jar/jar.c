@@ -387,7 +387,7 @@ JAR_find_next(JAR_Context *ctx, JAR_Item **it)
             return -1;
         }
         /* When looping over lists of lists, advance to the next signer.
-	   This is done when multiple signers are possible. */
+           This is done when multiple signers are possible. */
         if (ZZ_ListIterDone(list, ctx->next)) {
             if (ctx->nextsign && jar->signers) {
                 ctx->nextsign = ctx->nextsign->next;
@@ -437,7 +437,7 @@ JAR_find_next(JAR_Context *ctx, JAR_Item **it)
                     continue;
             }
             /* We have a valid match. If this is a jarTypeSign
-	       return the certificate instead.. */
+               return the certificate instead.. */
             if (ctx->finding == jarTypeSign) {
                 JAR_Item *itt;
 
@@ -680,7 +680,7 @@ JAR_get_error(int status)
                 errstring = jar_fn_GetString(status);
             } else {
                 /* this is not a normal situation, and would only be
-	       called in cases of improper initialization */
+               called in cases of improper initialization */
                 char *err = (char *)PORT_Alloc(40);
                 if (err)
                     PR_snprintf(err, 39, "Error %d\n", status); /* leak me! */

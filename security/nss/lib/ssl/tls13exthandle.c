@@ -12,6 +12,8 @@
 #include "pk11pub.h"
 #include "ssl3ext.h"
 #include "ssl3exthandle.h"
+#include "sslt.h"
+#include "tls13con.h"
 #include "tls13ech.h"
 #include "tls13exthandle.h"
 #include "tls13psk.h"
@@ -78,32 +80,77 @@ tls13_SizeOfKeyShareEntry(const sslEphemeralKeyPair *keyPair)
 
     if (keyPair->kemKeys) {
         PORT_Assert(!keyPair->kemCt);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
+        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 || keyPair->group->name == ssl_grp_kem_mlkem768x25519);
         pubKey = keyPair->kemKeys->pubKey;
         size += pubKey->u.kyber.publicValue.len;
     }
     if (keyPair->kemCt) {
         PORT_Assert(!keyPair->kemKeys);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
+        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00 || keyPair->group->name == ssl_grp_kem_mlkem768x25519);
         size += keyPair->kemCt->len;
     }
 
     return size;
 }
 
-SECStatus
-tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+static SECStatus
+tls13_WriteXyber768D00KeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+{
+    PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
+    PORT_Assert(keyPair->keys->pubKey->keyType == ecKey);
+
+    // Encode the X25519 share first, then the Kyber768 key or ciphertext.
+    SECStatus rv;
+    rv = sslBuffer_Append(buf, keyPair->keys->pubKey->u.ec.publicValue.data,
+                          keyPair->keys->pubKey->u.ec.publicValue.len);
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    if (keyPair->kemKeys) {
+        PORT_Assert(!keyPair->kemCt);
+        rv = sslBuffer_Append(buf, keyPair->kemKeys->pubKey->u.kyber.publicValue.data, keyPair->kemKeys->pubKey->u.kyber.publicValue.len);
+    } else if (keyPair->kemCt) {
+        rv = sslBuffer_Append(buf, keyPair->kemCt->data, keyPair->kemCt->len);
+    } else {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        rv = SECFailure;
+    }
+    return rv;
+}
+
+static SECStatus
+tls13_WriteMLKEM768X25519KeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+{
+    PORT_Assert(keyPair->group->name == ssl_grp_kem_mlkem768x25519);
+    PORT_Assert(keyPair->keys->pubKey->keyType == ecKey);
+
+    // Encode the ML-KEM-768 key or ciphertext first, then the X25519 share.
+    SECStatus rv;
+    if (keyPair->kemKeys) {
+        PORT_Assert(!keyPair->kemCt);
+        rv = sslBuffer_Append(buf, keyPair->kemKeys->pubKey->u.kyber.publicValue.data, keyPair->kemKeys->pubKey->u.kyber.publicValue.len);
+    } else if (keyPair->kemCt) {
+        rv = sslBuffer_Append(buf, keyPair->kemCt->data, keyPair->kemCt->len);
+    } else {
+        PORT_Assert(0);
+        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+        rv = SECFailure;
+    }
+    if (rv != SECSuccess) {
+        return rv;
+    }
+
+    rv = sslBuffer_Append(buf, keyPair->keys->pubKey->u.ec.publicValue.data,
+                          keyPair->keys->pubKey->u.ec.publicValue.len);
+    return rv;
+}
+
+static SECStatus
+tls13_WriteKeyExchangeInfo(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
 {
     SECStatus rv;
-    unsigned int size = tls13_SizeOfKeyShareEntry(keyPair);
-
-    rv = sslBuffer_AppendNumber(buf, keyPair->group->name, 2);
-    if (rv != SECSuccess)
-        return rv;
-    rv = sslBuffer_AppendNumber(buf, size - 4, 2);
-    if (rv != SECSuccess)
-        return rv;
-
     const SECKEYPublicKey *pubKey = keyPair->keys->pubKey;
     switch (pubKey->keyType) {
         case ecKey:
@@ -116,25 +163,40 @@ tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
         default:
             PORT_Assert(0);
             PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            rv = SECFailure;
             break;
     }
 
+    return rv;
+}
+
+SECStatus
+tls13_EncodeKeyShareEntry(sslBuffer *buf, sslEphemeralKeyPair *keyPair)
+{
+    SECStatus rv;
+    unsigned int size = tls13_SizeOfKeyShareEntry(keyPair);
+
+    rv = sslBuffer_AppendNumber(buf, keyPair->group->name, 2);
     if (rv != SECSuccess) {
         return rv;
     }
 
-    if (keyPair->kemKeys) {
-        PORT_Assert(!keyPair->kemCt);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
-        pubKey = keyPair->kemKeys->pubKey;
-        rv = sslBuffer_Append(buf, pubKey->u.kyber.publicValue.data, pubKey->u.kyber.publicValue.len);
-    }
-    if (keyPair->kemCt) {
-        PORT_Assert(!keyPair->kemKeys);
-        PORT_Assert(keyPair->group->name == ssl_grp_kem_xyber768d00);
-        rv = sslBuffer_Append(buf, keyPair->kemCt->data, keyPair->kemCt->len);
+    rv = sslBuffer_AppendNumber(buf, size - 4, 2);
+    if (rv != SECSuccess) {
+        return rv;
     }
 
+    switch (keyPair->group->name) {
+        case ssl_grp_kem_mlkem768x25519:
+            rv = tls13_WriteMLKEM768X25519KeyExchangeInfo(buf, keyPair);
+            break;
+        case ssl_grp_kem_xyber768d00:
+            rv = tls13_WriteXyber768D00KeyExchangeInfo(buf, keyPair);
+            break;
+        default:
+            rv = tls13_WriteKeyExchangeInfo(buf, keyPair);
+            break;
+    }
     return rv;
 }
 
@@ -475,7 +537,7 @@ tls13_ClientSendPreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData,
     }
 
     /* Save where this extension starts so that if we have to add padding, it
-    * can be inserted before this extension. */
+     * can be inserted before this extension. */
     PORT_Assert(buf->len >= 4);
     xtnData->lastXtnOffset = buf->len - 4;
     PORT_Assert(psk->type == ssl_psk_resume || psk->type == ssl_psk_external);
@@ -620,26 +682,26 @@ tls13_ServerHandlePreSharedKeyXtn(const sslSocket *ss, TLSExtensionData *xtnData
                 rv = ssl3_ProcessSessionTicketCommon(
                     CONST_CAST(sslSocket, ss), &label, appToken);
                 /* This only happens if we have an internal error, not
-                * a malformed ticket. Bogus tickets just don't resume
-                * and return SECSuccess. */
+                 * a malformed ticket. Bogus tickets just don't resume
+                 * and return SECSuccess. */
                 if (rv != SECSuccess) {
                     return SECFailure;
                 }
 
                 if (ss->sec.ci.sid) {
                     /* xtnData->ticketAge contains the baseline we use for
-                    * calculating the ticket age (i.e., our RTT estimate less the
-                    * value of ticket_age_add).
-                    *
-                    * Add that to the obfuscated ticket age to recover the client's
-                    * view of the ticket age plus the estimated RTT.
-                    *
-                    * See ssl3_EncodeSessionTicket() for details. */
+                     * calculating the ticket age (i.e., our RTT estimate less the
+                     * value of ticket_age_add).
+                     *
+                     * Add that to the obfuscated ticket age to recover the client's
+                     * view of the ticket age plus the estimated RTT.
+                     *
+                     * See ssl3_EncodeSessionTicket() for details. */
                     xtnData->ticketAge += obfuscatedAge;
 
                     /* We are not committed to resumption until after unwrapping the
-                    * RMS in tls13_HandleClientHelloPart2. The RPSK will be stored
-                    * in ss->xtnData.selectedPsk at that point, so continue. */
+                     * RMS in tls13_HandleClientHelloPart2. The RPSK will be stored
+                     * in ss->xtnData.selectedPsk at that point, so continue. */
                 }
             }
         }
@@ -1884,7 +1946,7 @@ ssl3_HandleCertificateCompressionXtn(const sslSocket *ss,
                                      TLSExtensionData *xtnData,
                                      SECItem *data)
 {
-    /* This extension is only supported with TLS 1.3 [RFC8446] and newer; 
+    /* This extension is only supported with TLS 1.3 [RFC8446] and newer;
      * if TLS 1.2 [RFC5246] or earlier is negotiated, the peers MUST ignore this extension.
      */
     if (ss->version < SSL_LIBRARY_VERSION_TLS_1_3) {

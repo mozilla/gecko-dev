@@ -308,7 +308,7 @@ PrintParameterUsage()
     fprintf(stderr, "%-20s Comma separated list of enabled groups for TLS key exchange.\n"
                     "%-20s The following values are valid:\n"
                     "%-20s P256, P384, P521, x25519, FF2048, FF3072, FF4096, FF6144, FF8192\n"
-                    "%-20s xyber768d00\n",
+                    "%-20s xyber768d00, mlkem768x25519\n",
             "-I", "", "", "");
     fprintf(stderr, "%-20s Comma separated list of signature schemes in preference order.\n"
                     "%-20s The following values are valid:\n"
@@ -1503,9 +1503,9 @@ run()
                 cipher |= ctmp;
                 cipherString++;
             } else {
-                if (!isalpha(ndx))
+                if (!isalpha((unsigned char)ndx))
                     Usage();
-                ndx = tolower(ndx) - 'a';
+                ndx = tolower((unsigned char)ndx) - 'a';
                 if (ndx < PR_ARRAY_SIZE(ssl3CipherSuites)) {
                     cipher = ssl3CipherSuites[ndx];
                 }

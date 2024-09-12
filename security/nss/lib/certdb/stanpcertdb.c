@@ -424,8 +424,8 @@ CERT_NewTempCertificate(CERTCertDBHandle *handle, SECItem *derCert,
     nssItem_Create(c->object.arena, &c->subject, cc->derSubject.len,
                    cc->derSubject.data);
     /* CERTCertificate stores serial numbers decoded.  I need the DER
-    * here.  sigh.
-    */
+     * here.  sigh.
+     */
     SECItem derSerial = { 0 };
     CERT_SerialNumberFromDERCert(&cc->derCert, &derSerial);
     if (!derSerial.data)

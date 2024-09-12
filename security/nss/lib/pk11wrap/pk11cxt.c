@@ -556,7 +556,7 @@ PK11_CreateContextByPrivKey(CK_MECHANISM_TYPE type, CK_ATTRIBUTE_TYPE operation,
 {
     SECItem nullparam = { 0, 0, 0 };
     /* Private keys are generally not movable. If the token the
-     * private key lives on can't do the operation, generally we are 
+     * private key lives on can't do the operation, generally we are
      * stuck anyway. So no need to try to manipulate the key into
      * another token */
 
@@ -620,8 +620,8 @@ PK11_CloneContext(PK11Context *old)
         return NULL;
 
     /* now clone the save state. First we need to find the save state
-      * of the old session. If the old context owns it's session,
-      * the state needs to be saved, otherwise the state is in saveData. */
+     * of the old session. If the old context owns it's session,
+     * the state needs to be saved, otherwise the state is in saveData. */
     if (old->ownSession) {
         PK11_EnterContextMonitor(old);
         data = pk11_saveContext(old, NULL, &len);
@@ -638,9 +638,9 @@ PK11_CloneContext(PK11Context *old)
     }
 
     /* now copy that state into our new context. Again we have different
-      * work if the new context owns it's own session. If it does, we
-      * restore the state gathered above. If it doesn't, we copy the
-      * saveData pointer... */
+     * work if the new context owns it's own session. If it does, we
+     * restore the state gathered above. If it doesn't, we copy the
+     * saveData pointer... */
     if (newcx->ownSession) {
         PK11_EnterContextMonitor(newcx);
         rv = pk11_restoreContext(newcx, data, len);
@@ -1141,7 +1141,7 @@ pk11_AEADSimulateOp(PK11Context *context, void *params, int paramslen,
             sim_params.data = (unsigned char *)&chacha_poly;
             sim_params.len = sizeof(chacha_poly);
             /* SALSA20_POLY1305 and CHACHA20_POLY1305 do not generate the iv
-         * internally, don't simulate it either */
+             * internally, don't simulate it either */
             break;
         case CKM_NSS_CHACHA20_POLY1305:
             if (paramslen != sizeof(CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS)) {
@@ -1355,7 +1355,7 @@ PK11_AEADOp(PK11Context *context, CK_GENERATOR_FUNCTION ivgen,
             params = &chacha_poly_message;
             paramslen = sizeof(CK_SALSA20_CHACHA20_POLY1305_MSG_PARAMS);
             /* SALSA20_POLY1305 and CHACHA20_POLY1305 do not generate the iv
-         * internally, Do it here. */
+             * internally, Do it here. */
             if (context->operation == (CKA_NSS_MESSAGE | CKA_ENCRYPT)) {
                 /* simulate generating the IV */
                 rv = pk11_GenerateIV(context, ivgen, fixedbits, iv, ivlen);

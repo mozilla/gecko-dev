@@ -1508,7 +1508,7 @@ stfk_CopyTokenPrivateKey(SFTKObject *destObject, SFTKTokenObject *src_to)
     }
     attribute = sftk_FindAttribute(&src_to->obj, CKA_KEY_TYPE);
     PORT_Assert(attribute); /* if it wasn't here, ww should have failed
-                 * copying the common attributes */
+                             * copying the common attributes */
     if (!attribute) {
         /* OK, so CKR_ATTRIBUTE_VALUE_INVALID is the immediate error, but
          * the fact is, the only reason we couldn't get the attribute would
@@ -1568,7 +1568,7 @@ stfk_CopyTokenPublicKey(SFTKObject *destObject, SFTKTokenObject *src_to)
     }
     attribute = sftk_FindAttribute(&src_to->obj, CKA_KEY_TYPE);
     PORT_Assert(attribute); /* if it wasn't here, ww should have failed
-                 * copying the common attributes */
+                             * copying the common attributes */
     if (!attribute) {
         /* OK, so CKR_ATTRIBUTE_VALUE_INVALID is the immediate error, but
          * the fact is, the only reason we couldn't get the attribute would
@@ -2414,7 +2414,7 @@ sftk_handleSpecial(SFTKSlot *slot, CK_MECHANISM *mech,
             return PR_FALSE;
         case SFTKFIPSECC:
             /* we've already handled the curve selection in the 'getlength'
-          * function */
+             * function */
             return PR_TRUE;
         case SFTKFIPSAEAD: {
             if (mech->ulParameterLen == 0) {

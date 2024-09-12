@@ -3353,11 +3353,11 @@ nss_InsertDeviceLog(
  * This routine tries to keep at least 2 significant figures on output.
  *    If the time is 0, then indicate that with a 'z' for units.
  *    If the time is greater than 10 minutes, output the time in minutes.
- *    If the time is less than 10 minutes but greater than 10 seconds output 
+ *    If the time is less than 10 minutes but greater than 10 seconds output
  * the time in second.
  *    If the time is less than 10 seconds but greater than 10 milliseconds
  * output * the time in millisecond.
- *    If the time is less than 10 milliseconds but greater than 0 ticks output 
+ *    If the time is less than 10 milliseconds but greater than 0 ticks output
  * the time in microsecond.
  *
  */

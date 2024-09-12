@@ -425,9 +425,9 @@ CERT_CreateEncodedOCSPSuccessResponse(
         dummy.data = &dummyChar;
 
         /* it's easier to produdce a keyHash out of nowhere,
-    	 * than to produce an encoded subject,
-    	 * so for our dummy response we always use byKey
-    	 */
+         * than to produce an encoded subject,
+         * so for our dummy response we always use byKey
+         */
 
         rid->responderIDType = ocspResponderID_byKey;
         if (!ocsp_DigestValue(tmpArena, SEC_OID_SHA1, &rid->responderIDValue.keyHash,
@@ -507,7 +507,7 @@ CERT_CreateEncodedOCSPSuccessResponse(
         br->responseSignature.signature.len = br->responseSignature.signature.len << 3;
 
         /* br->responseSignature.signature wasn't allocated from arena,
-	     * we must free it when done. */
+         * we must free it when done. */
     }
 
     if (SECOID_SetAlgorithmID(tmpArena, &br->responseSignature.signatureAlgorithm, algID, 0) !=

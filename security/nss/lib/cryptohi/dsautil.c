@@ -96,7 +96,7 @@ loser:
 
 /* src is a "raw" ECDSA or DSA signature, the first half contains r
  * and the second half contains s. dest is the DER encoded signature.
-*/
+ */
 static SECStatus
 common_EncodeDerSig(SECItem *dest, SECItem *src)
 {

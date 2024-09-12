@@ -29,9 +29,8 @@
 #define KRML_HOST_PRINTF printf
 #endif
 
-#if (                                                              \
-    (defined __STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) && \
-    (!(defined KRML_HOST_EPRINTF)))
+#if ((defined __STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) && \
+     (!(defined KRML_HOST_EPRINTF)))
 #define KRML_HOST_EPRINTF(...) fprintf(stderr, __VA_ARGS__)
 #elif !(defined KRML_HOST_EPRINTF) && defined(_MSC_VER)
 #define KRML_HOST_EPRINTF(...) fprintf(stderr, __VA_ARGS__)
@@ -69,6 +68,14 @@
 #endif
 #endif
 
+#ifndef KRML_ATTRIBUTE_TARGET
+#if defined(__GNUC__)
+#define KRML_ATTRIBUTE_TARGET(x) __attribute__((target(x)))
+#else
+#define KRML_ATTRIBUTE_TARGET(x)
+#endif
+#endif
+
 #ifndef KRML_NOINLINE
 #if defined(_MSC_VER)
 #define KRML_NOINLINE __declspec(noinline)
@@ -78,7 +85,22 @@
 #define KRML_NOINLINE
 #warning "The KRML_NOINLINE macro is not defined for this toolchain!"
 #warning "The compiler may defeat side-channel resistance with optimizations."
-#warning "Please locate target.h and try to fill it out with a suitable definition for this compiler."
+#warning \
+    "Please locate target.h and try to fill it out with a suitable definition for this compiler."
+#endif
+#endif
+
+#ifndef KRML_MUSTINLINE
+#if defined(_MSC_VER)
+#define KRML_MUSTINLINE inline __forceinline
+#elif defined(__GNUC__)
+#define KRML_MUSTINLINE inline __attribute__((always_inline))
+#else
+#define KRML_MUSTINLINE inline
+#warning \
+    "The KRML_MUSTINLINE macro defaults to plain inline for this toolchain!"
+#warning \
+    "Please locate target.h and try to fill it out with a suitable definition for this compiler."
 #endif
 #endif
 
@@ -105,9 +127,8 @@
 #ifdef __MINGW32__
 #include <_mingw.h>
 #endif
-#if (                    \
-    defined(_MSC_VER) || \
-    (defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR)))
+#if (defined(_MSC_VER) || \
+     (defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR)))
 #define KRML_ALIGNED_MALLOC(X, Y) _aligned_malloc(Y, X)
 #else
 #define KRML_ALIGNED_MALLOC(X, Y) aligned_alloc(X, Y)
@@ -122,9 +143,8 @@
 #ifdef __MINGW32__
 #include <_mingw.h>
 #endif
-#if (                    \
-    defined(_MSC_VER) || \
-    (defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR)))
+#if (defined(_MSC_VER) || \
+     (defined(__MINGW32__) && defined(__MINGW64_VERSION_MAJOR)))
 #define KRML_ALIGNED_FREE(X) _aligned_free(X)
 #else
 #define KRML_ALIGNED_FREE(X) free(X)
@@ -200,8 +220,7 @@ krml_time(void)
 /* Macros for prettier unrolling of loops */
 #define KRML_LOOP1(i, n, x) \
     {                       \
-        x                   \
-            i += n;         \
+        x i += n;           \
         (void)i;            \
     }
 

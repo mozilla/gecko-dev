@@ -5037,8 +5037,8 @@ NSSCKFWC_WrapKey(
     }
 
     /*
-   * first get the length...
-   */
+     * first get the length...
+     */
     wrappedKeyLength = nssCKFWMechanism_GetWrapKeyLength(
         fwMechanism,
         pMechanism,
@@ -5487,8 +5487,8 @@ NSSCKFWC_GenerateRandom(
     }
 
     /*
-   * A purify error here indicates caller error.
-   */
+     * A purify error here indicates caller error.
+     */
     (void)nsslibc_memset(pRandomData, 0, ulRandomLen);
 
     buffer.size = (PRUint32)ulRandomLen;

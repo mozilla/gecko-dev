@@ -42,7 +42,8 @@ static char sccsid[] = "@(#)strerror.c  8.1 (Berkeley) 6/4/93";
 #ifndef HAVE_STRERROR
 #ifndef _AFXDLL
 char *
-    strerror(num) int num;
+strerror(num)
+int num;
 {
     extern int sys_nerr;
     extern char *sys_errlist[];

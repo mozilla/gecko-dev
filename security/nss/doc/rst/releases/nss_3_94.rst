@@ -33,7 +33,7 @@ NSS 3.94 release notes
 
    - Bug 1853737 - Updated code and commit ID for HACL*.
    - Bug 1840510 - update ACVP fuzzed test vector: refuzzed with current NSS
-   - Bug 1827303 - Softoken C_ calls should use system FIPS setting to select NSC_ or FC_ variants.
+   - Bug 1827303 - Softoken C\_ calls should use system FIPS setting to select NSC\_ or FC\_ variants.
    - Bug 1774659 - NSS needs a database tool that can dump the low level representation of the database.
    - Bug 1852179 - declare string literals using char in pkixnames_tests.cpp.
    - Bug 1852179 - avoid implicit conversion for ByteString.

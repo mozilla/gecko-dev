@@ -431,6 +431,8 @@ PK11_GetKeyType(CK_MECHANISM_TYPE type, unsigned long len)
             return CKK_GENERIC_SECRET;
         case CKM_NSS_KYBER_KEY_PAIR_GEN:
             return CKK_NSS_KYBER;
+        case CKM_NSS_ML_KEM_KEY_PAIR_GEN:
+            return CKK_NSS_ML_KEM;
         default:
             return pk11_lookup(type)->keyType;
     }

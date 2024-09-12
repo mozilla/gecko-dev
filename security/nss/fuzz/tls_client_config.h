@@ -7,6 +7,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
+#include <ostream>
 
 #include "sslt.h"
 
@@ -51,5 +53,8 @@ class ClientConfig {
   uint32_t config_;
   SSLVersionRange ssl_version_range_;
 };
+
+std::ostream& operator<<(std::ostream& out,
+                         std::unique_ptr<ClientConfig>& config);
 
 #endif  // TLS_CLIENT_CONFIG_H_

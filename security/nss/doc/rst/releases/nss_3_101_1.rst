@@ -1,7 +1,7 @@
 .. _mozilla_projects_nss_nss_3_101_1_release_notes:
 
 NSS 3.101.1 release notes
-========================
+=========================
 
 `Introduction <#introduction>`__
 --------------------------------

@@ -519,15 +519,15 @@ void TlsAgent::DisableAllCiphers() {
 // Not actually all groups, just the ones that we are actually willing
 // to use.
 const std::vector<SSLNamedGroup> kAllDHEGroups = {
-    ssl_grp_ec_curve25519,   ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
-    ssl_grp_ec_secp521r1,    ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072,
-    ssl_grp_ffdhe_4096,      ssl_grp_ffdhe_6144,   ssl_grp_ffdhe_8192,
-    ssl_grp_kem_xyber768d00,
+    ssl_grp_ec_curve25519,   ssl_grp_ec_secp256r1,       ssl_grp_ec_secp384r1,
+    ssl_grp_ec_secp521r1,    ssl_grp_ffdhe_2048,         ssl_grp_ffdhe_3072,
+    ssl_grp_ffdhe_4096,      ssl_grp_ffdhe_6144,         ssl_grp_ffdhe_8192,
+    ssl_grp_kem_xyber768d00, ssl_grp_kem_mlkem768x25519,
 };
 
 const std::vector<SSLNamedGroup> kECDHEGroups = {
     ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,    ssl_grp_ec_secp384r1,
-    ssl_grp_ec_secp521r1,  ssl_grp_kem_xyber768d00,
+    ssl_grp_ec_secp521r1,  ssl_grp_kem_xyber768d00, ssl_grp_kem_mlkem768x25519,
 };
 
 const std::vector<SSLNamedGroup> kFFDHEGroups = {
@@ -536,12 +536,14 @@ const std::vector<SSLNamedGroup> kFFDHEGroups = {
 
 // Defined because the big DHE groups are ridiculously slow.
 const std::vector<SSLNamedGroup> kFasterDHEGroups = {
-    ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
-    ssl_grp_ffdhe_2048,    ssl_grp_ffdhe_3072,   ssl_grp_kem_xyber768d00,
+    ssl_grp_ec_curve25519,      ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
+    ssl_grp_ffdhe_2048,         ssl_grp_ffdhe_3072,   ssl_grp_kem_xyber768d00,
+    ssl_grp_kem_mlkem768x25519,
 };
 
 const std::vector<SSLNamedGroup> kEcdhHybridGroups = {
     ssl_grp_kem_xyber768d00,
+    ssl_grp_kem_mlkem768x25519,
 };
 
 void TlsAgent::EnableCiphersByKeyExchange(SSLKEAType kea) {
@@ -710,6 +712,7 @@ void TlsAgent::CheckKEA(SSLKEAType kea, SSLNamedGroup kea_group,
     switch (kea_group) {
       case ssl_grp_ec_curve25519:
       case ssl_grp_kem_xyber768d00:
+      case ssl_grp_kem_mlkem768x25519:
         kea_size = 255;
         break;
       case ssl_grp_ec_secp256r1:

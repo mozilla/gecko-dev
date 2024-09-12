@@ -12,9 +12,9 @@ ifeq (,$(KRML_HOME))
 endif
 
 CFLAGS 	+= -I. -I $(KRML_HOME)/include -I $(KRML_HOME)/krmllib/dist/minimal
-CFLAGS 	+= -Wall -Wextra -Werror -std=c11 -Wno-unused-variable \
-  -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-unused-function \
-  -Wno-unused-parameter -Wno-infinite-recursion \
+CFLAGS 	+= -Wall -Wextra -Werror -std=c11 \
+  -Wno-unknown-warning-option \
+  -Wno-infinite-recursion \
   -g -fwrapv -D_BSD_SOURCE -D_DEFAULT_SOURCE
 ifeq ($(OS),Windows_NT)
 CFLAGS 	+= -D__USE_MINGW_ANSI_STDIO

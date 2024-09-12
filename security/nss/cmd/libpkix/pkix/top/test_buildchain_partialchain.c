@@ -614,17 +614,17 @@ test_buildchain_partialchain(int argc, char *argv[])
         PKIX_PL_NssContext_Create(0, PKIX_FALSE, NULL, &plContext));
 
     /*
-         * arguments:
-         * [optional] -arenas
-         * [optional] usebind
-         *            servername or servername:port ( - for no server)
-         *            testname
-         *            EE or ENE
-         *            cert directory
-         *            target cert (end entity)
-         *            intermediate certs
-         *            trust anchor
-         */
+     * arguments:
+     * [optional] -arenas
+     * [optional] usebind
+     *            servername or servername:port ( - for no server)
+     *            testname
+     *            EE or ENE
+     *            cert directory
+     *            target cert (end entity)
+     *            intermediate certs
+     *            trust anchor
+     */
 
     /* optional argument "usebind" for Ldap CertStore */
     if (argv[j + 1]) {

@@ -1314,7 +1314,7 @@ sec_lower_string(char *s)
     }
 
     while (*s) {
-        *s = PORT_Tolower(*s);
+        *s = PORT_Tolower((unsigned char)*s);
         s++;
     }
 
@@ -1654,9 +1654,9 @@ cert_GetDNSPatternsFromGeneralNames(CERTGeneralName *firstName,
         switch (currentInput->type) {
             case certDNSName:
                 /* DNS name currentInput->name.other.data is not null
-                *terminated.
-                ** so must copy it.
-                */
+                 *terminated.
+                 ** so must copy it.
+                 */
                 cn = (char *)PORT_ArenaAlloc(nickNames->arena,
                                              currentInput->name.other.len + 1);
                 if (!cn)
@@ -2305,7 +2305,7 @@ CERT_FixupEmailAddr(const char *emailAddr)
 
     /* make it lower case */
     while (*str) {
-        *str = tolower(*str);
+        *str = tolower((unsigned char)*str);
         str++;
     }
 

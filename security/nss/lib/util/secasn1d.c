@@ -1466,7 +1466,7 @@ sec_asn1d_free_child(sec_asn1d_state *state, PRBool error)
              * unless we keep track of every pointer. So instead we have a
              * memory leak when decoding fails half-way, unless an arena is
              * used. See bug 95311 .
-            */
+             */
         }
         state->child = NULL;
         state->our_mark = NULL;

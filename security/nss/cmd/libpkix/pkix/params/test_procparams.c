@@ -266,9 +266,9 @@ testGetSetConstraints(PKIX_ProcessingParams *goodObject)
     subTest("PKIX_ProcessingParams_Get/SetTargetCertConstraints");
 
     /*
-        * After createConstraints is implemented
-        * setConstraints = createConstraints();
-        */
+     * After createConstraints is implemented
+     * setConstraints = createConstraints();
+     */
 
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_ProcessingParams_SetTargetCertConstraints(goodObject, setConstraints, plContext));
 
@@ -447,8 +447,8 @@ test_procparams(int argc, char *argv[])
     testGetSetResourceLimits(goodObject, equalObject);
 
     /*
-        * XXX testGetSetConstraints(goodObject);
-        */
+     * XXX testGetSetConstraints(goodObject);
+     */
 
     testGetSetInitialPolicies(goodObject, oidAnyPolicy);
     testGetSetInitialPolicies(equalObject, oidAnyPolicy);

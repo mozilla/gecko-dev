@@ -138,9 +138,9 @@ struct NSSCMSContentInfoStr {
     /* --------- local; not part of encoding --------- */
     PK11SymKey *bulkkey;                   /* bulk encryption key */
     int keysize;                           /* size of bulk encryption key
-                                           * (only used by creation code) */
+                                            * (only used by creation code) */
     SECOidTag contentEncAlgTag;            /* oid tag of encryption algorithm
-                                           * (only used by creation code) */
+                                            * (only used by creation code) */
     NSSCMSContentInfoPrivate *privateInfo; /* place for NSS private info */
     void *reserved;                        /* keep binary compatibility */
 };

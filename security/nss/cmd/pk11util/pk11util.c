@@ -1219,7 +1219,7 @@ parseArgs(int index, const char *bp)
         if ((cp->args[i] != (ArgVar | ArgNew)) &&
             (possible = varLookup(bp, vname, sizeof(vname), &error))) {
             /* ints are only compatible with other ints... all other types
-            * are interchangeable... */
+             * are interchangeable... */
             if (type != ArgVar) { /* ArgVar's match anyone */
                 if ((type == ArgULong) ^
                     ((possible->type & ArgMask) == ArgULong)) {

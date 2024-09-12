@@ -754,8 +754,8 @@ spitOutChallenge(char *chall64, char *certRepContentDER,
            "<script language=\"JavaScript\">\n"
            "<!--\n");
     /* The JavaScript function actually gets defined within
-   * this function call
-   */
+     * this function call
+     */
     formatChallenge(chall64, certRepContentDER, challInfo, numChalls);
     printf("// -->\n"
            "</script>\n"

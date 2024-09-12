@@ -50,12 +50,12 @@ policySetParse(char *policyString)
     p = policyString;
 
     /*
-         * There may or may not be quotes around the initial-policy-set
-         * string. If they are omitted, dbx will strip off the curly braces.
-         * If they are included, dbx will strip off the quotes, but if you
-         * are running directly from a script, without dbx, the quotes will
-         * not be stripped. We need to be able to handle both cases.
-         */
+     * There may or may not be quotes around the initial-policy-set
+     * string. If they are omitted, dbx will strip off the curly braces.
+     * If they are included, dbx will strip off the quotes, but if you
+     * are running directly from a script, without dbx, the quotes will
+     * not be stripped. We need to be able to handle both cases.
+     */
     if (*p == '"') {
         p++;
     }
@@ -87,9 +87,9 @@ policySetParse(char *policyString)
             plOID = NULL;
             if (c == '}') {
                 /*
-                                * Any exit but this one means
-                                * we were given a badly-formed string.
-                                */
+                 * Any exit but this one means
+                 * we were given a badly-formed string.
+                 */
                 validString = PKIX_TRUE;
             }
             p = ++oid;
@@ -166,8 +166,8 @@ testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii)
 
     subTest("Basic-Common-Fields <pass>");
     /*
-         * Tests the Expiration, NameChaining, and Signature Checkers
-         */
+     * Tests the Expiration, NameChaining, and Signature Checkers
+     */
 
     chain = createCertChain(dirName, goodInput, diffInput, plContext);
 
@@ -219,10 +219,10 @@ testNistTest1(char *dirName)
 
     subTest("testNistTest1: Creating the cert chain");
     /*
-         * Create a chain, but don't include the first certName.
-         * That's the anchor, and is supplied separately from
-         * the chain.
-         */
+     * Create a chain, but don't include the first certName.
+     * That's the anchor, and is supplied separately from
+     * the chain.
+     */
     certNames[0] = intermediateCert;
     certNames[1] = endEntityCert;
     chain = createCertChainPlus(dirName, certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
@@ -286,10 +286,10 @@ testNistTest2(char *dirName)
 
     subTest("testNistTest2: Creating the cert chain");
     /*
-         * Create a chain, but don't include the first certName.
-         * That's the anchor, and is supplied separately from
-         * the chain.
-         */
+     * Create a chain, but don't include the first certName.
+     * That's the anchor, and is supplied separately from
+     * the chain.
+     */
     certNames[0] = intermediateCert;
     certNames[1] = endEntityCert;
     chain = createCertChainPlus(dirName, certNames, certs, PKIX_TEST_NUM_CERTS, plContext);
@@ -391,21 +391,21 @@ test_policychecker(int argc, char *argv[])
         PKIX_PL_NssContext_Create(0, PKIX_FALSE, NULL, &plContext));
 
     /*
-         * Perform hard-coded tests if no command line args.
-         * If command line args are provided, they must be:
-         * arg[1]: test name
-         * arg[2]: "ENE" or "EE", for "expect no error" or "expect error"
-         * arg[3]: directory for certificates
-         * arg[4]: user-initial-policy-set, consisting of braces
-         *      containing zero or more OID sequences, separated by commas
-         * arg[5]: (optional) "E", indicating initialExplicitPolicy
-         * arg[firstCert]: the path and filename of the trust anchor certificate
-         * arg[firstCert+1..(n-1)]: successive certificates in the chain
-         * arg[n]: the end entity certificate
-         *
-         * Example: test_policychecker test1EE ENE
-         *      {2.5.29.32.0,2.5.29.32.3.6} Anchor CA EndEntity
-         */
+     * Perform hard-coded tests if no command line args.
+     * If command line args are provided, they must be:
+     * arg[1]: test name
+     * arg[2]: "ENE" or "EE", for "expect no error" or "expect error"
+     * arg[3]: directory for certificates
+     * arg[4]: user-initial-policy-set, consisting of braces
+     *      containing zero or more OID sequences, separated by commas
+     * arg[5]: (optional) "E", indicating initialExplicitPolicy
+     * arg[firstCert]: the path and filename of the trust anchor certificate
+     * arg[firstCert+1..(n-1)]: successive certificates in the chain
+     * arg[n]: the end entity certificate
+     *
+     * Example: test_policychecker test1EE ENE
+     *      {2.5.29.32.0,2.5.29.32.3.6} Anchor CA EndEntity
+     */
 
     dirName = argv[3 + j];
     dataCentralDir = argv[4 + j];
@@ -468,10 +468,10 @@ test_policychecker(int argc, char *argv[])
     }
 
     /*
-         * Create a chain, but don't include the first certName.
-         * That's the anchor, and is supplied separately from
-         * the chain.
-         */
+     * Create a chain, but don't include the first certName.
+     * That's the anchor, and is supplied separately from
+     * the chain.
+     */
     for (i = 0; i < chainLength; i++) {
 
         certNames[i] = argv[i + (firstCert + 1)];

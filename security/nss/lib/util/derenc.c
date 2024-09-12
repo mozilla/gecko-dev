@@ -219,9 +219,9 @@ contents_length(DERTemplate *dtemplate, void *src)
             }
         } else {
             /*
-    	     * XXX Lisa is not sure this code (for handling, for example,
-    	     * DER_INDEFINITE | DER_OCTET_STRING) is right.
-    	     */
+             * XXX Lisa is not sure this code (for handling, for example,
+             * DER_INDEFINITE | DER_OCTET_STRING) is right.
+             */
             for (; *indp != NULL; indp++) {
                 SECItem *item = (SECItem *)(*indp);
                 sub_len = item->len;
@@ -404,9 +404,9 @@ der_encode(unsigned char *buf, DERTemplate *dtemplate, void *src)
             int rem;
 
             /*
-    	     * The contents length includes our extra octet; subtract
-    	     * it off so we just have the real string length there.
-    	     */
+             * The contents length includes our extra octet; subtract
+             * it off so we just have the real string length there.
+             */
             contents_len--;
             item = (SECItem *)src;
             PORT_Assert(contents_len == ((item->len + 7) >> 3));

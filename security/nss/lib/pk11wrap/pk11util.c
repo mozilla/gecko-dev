@@ -1595,7 +1595,7 @@ SECMOD_OpenUserDB(const char *moduleSpec)
         return NULL;
     }
 
-    /* make sure we don't open the same database twice. We only understand 
+    /* make sure we don't open the same database twice. We only understand
      * the moduleSpec for internal databases well enough to do this, so only
      * do this in OpenUserDB */
     conflist = secmod_GetConfigList(mod->isFIPS, mod->libraryParams, &count);

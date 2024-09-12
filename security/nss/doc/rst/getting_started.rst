@@ -43,8 +43,8 @@ Getting Started
 
    .. _nss_sample_code:
 
-   `NSS Sample Code <#nss_sample_code>`__
-   --------------------------------------
+`NSS Sample Code <#nss_sample_code>`__
+--------------------------------------
 
    .. container::
 

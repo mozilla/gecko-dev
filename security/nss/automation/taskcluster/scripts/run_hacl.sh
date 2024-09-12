@@ -35,7 +35,10 @@ for f in "${files[@]}"; do
     file_name=$(basename "$f")
     hacl_file=($(find ~/hacl-star/dist/mozilla/internal/ -type f -name $file_name))
     if [ $file_name == "Hacl_Ed25519.h" \
-        -o $file_name == "Hacl_Ed25519_PrecompTable.h" ]
+        -o $file_name == "Hacl_Ed25519_PrecompTable.h" \
+        -o $file_name == "libcrux_sha3_internal.h" \
+        -o $file_name == "libcrux_core.h" \
+        -o $file_name == "libcrux_mlkem_portable.h" ]
     then
         continue;
     fi
@@ -50,6 +53,9 @@ for f in "${files[@]}"; do
         -o $file_name == "Hacl_P384.h" \
         -o $file_name == "Hacl_P521.c" \
         -o $file_name == "Hacl_P521.h" \
+        -o $file_name == "libcrux_mlkem_portable.c" \
+        -o $file_name == "libcrux_sha3_internal.h" \
+        -o $file_name == "libcrux_core.h" \
         -o $file_name == "target.h" ]
     then
         continue;

@@ -367,7 +367,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                                 break;
                             } else {
                                 /* The > is inside a comment, so it's not
-                                                         * really the end of the tag */
+                                 * really the end of the tag */
                                 hyphenCount = 0;
                             }
                         } else {
@@ -412,7 +412,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                     } else {
                         if (curchar == '=') {
                             /* If we don't have any attribute but we do have an
-                         * equal sign, that's an error */
+                             * equal sign, that's an error */
                             *errStr = PR_smprintf("line %d: Malformed tag starting at line %d.\n",
                                                   linenum, startline);
                             state = ERR_STATE;
@@ -493,7 +493,7 @@ ProcessTag(FileBuffer *fb, char **errStr)
                     break;
                 } else {
                     /* this must be some sort of value. Fall through
-                                 * to GET_VALUE_STATE */
+                     * to GET_VALUE_STATE */
                     startID = FB_GetPointer(fb) - 1;
                     state = GET_VALUE_STATE;
                 }
@@ -690,7 +690,7 @@ FB_GetChar(FileBuffer *fb)
 
     if (fb->curIndex > fb->maxIndex) {
         /* We're at the end of the buffer. Try to get some new data from the
-                 * file */
+         * file */
         fb->startOffset += fb->maxIndex + 1;
         PR_Seek(fb->fd, fb->startOffset, PR_SEEK_SET);
         amountRead = PR_Read(fb->fd, fb->buf, FILE_BUFFER_BUFSIZE);

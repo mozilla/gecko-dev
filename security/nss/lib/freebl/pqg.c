@@ -673,9 +673,9 @@ step_23:
             /* Step 31.1 prime = c */
             CHECK_MPI_OK(mp_copy(&c, prime));
             /*
-        ** Step 31.2 return Success, prime, prime_seed,
-        **    prime_gen_counter
-        */
+             ** Step 31.2 return Success, prime, prime_seed,
+             **    prime_gen_counter
+             */
             rv = SECSuccess;
             goto cleanup;
         }
@@ -764,8 +764,8 @@ makePrimefromSeedShaweTaylor(
         CHECK_MPI_OK(mp_add_d(&one, (mp_digit)1, &one));
 
         /* Step 14 (status, c0, prime_seed, prime_gen_counter) =
-    ** (ST_Random_Prime((ceil(length/2)+1, input_seed)
-    */
+         ** (ST_Random_Prime((ceil(length/2)+1, input_seed)
+         */
         rv = makePrimefromSeedShaweTaylor(hashtype, (length + 1) / 2 + 1,
                                           input_seed, &c0, prime_seed, prime_gen_counter);
         /* Step 15 if FAILURE is returned, return (FAILURE, 0, 0, 0). */
@@ -824,7 +824,7 @@ step_5:
     */
     if (prime_tab[prime_tab_size - 1] < 0xFFF1) {
         /* we aren't testing all the primes between 0 and 2^16, we really
-     * can't use this construction. Just fail. */
+         * can't use this construction. Just fail. */
         rv = SECFailure;
         goto cleanup;
     }
@@ -1034,12 +1034,12 @@ makePfromQandSeed(
     */
     for (j = 0; j < n; ++j) { /* Do the first n terms of V_j */
         /* Do step 11.1 for iteration j.
-    ** V_j = HASH[(seed + offset + j) mod 2**g]
-    */
+         ** V_j = HASH[(seed + offset + j) mod 2**g]
+         */
         CHECK_SEC_OK(addToSeedThenHash(hashtype, seed, offset + j, seedlen, V_j));
         /* Do step 11.2 for iteration j.
-    ** W += V_j * 2**(j*outlen)
-    */
+         ** W += V_j * 2**(j*outlen)
+         */
         OCTETS_TO_MPINT(V_j, &tmp, hashlen);           /* get bignum V_j     */
         CHECK_MPI_OK(mpl_lsh(&tmp, &tmp, j * outlen)); /* tmp=V_j << j*outlen */
         CHECK_MPI_OK(mp_add(&W, &tmp, &W));            /* W += tmp           */
@@ -1188,12 +1188,12 @@ makeGfromIndex(HASH_HashType hashtype,
     CHECK_MPI_OK(mp_div(&pm1, Q, &e, NULL)); /* e = (P-1)/Q      */
 /* Steps 4, 5, and 6 */
 /* count is a 16 bit value in the spec. We actually represent count
-     * as more than 16 bits so we can easily detect the 16 bit overflow */
+ * as more than 16 bits so we can easily detect the 16 bit overflow */
 #define MAX_COUNT 0x10000
     for (count = 1; count < MAX_COUNT; count++) {
         /* step 7
          * U = domain_param_seed || "ggen" || index || count
-             * step 8
+         * step 8
          * W = HASH(U)
          */
         hashobj->begin(hashcx);
@@ -1209,7 +1209,7 @@ makeGfromIndex(HASH_HashType hashtype,
         CHECK_MPI_OK(mp_exptmod(&W, &e, P, G));
         /* step 10. if (g < 2) then goto step 5 */
         /* NOTE: this weird construct is to keep the flow according to the spec.
-     * the continue puts us back to step 5 of the for loop */
+         * the continue puts us back to step 5 of the for loop */
         if (mp_cmp_d(G, 2) < 0) {
             continue;
         }
@@ -1219,7 +1219,7 @@ makeGfromIndex(HASH_HashType hashtype,
         rv = SECFailure; /* last part of step 6 */
     }
 /* step 11.
-     * return valid G */
+ * return valid G */
 cleanup:
     PORT_Memset(data, 0, sizeof(data));
     if (hashcx) {
@@ -1391,11 +1391,11 @@ step_5:
         firstseed = *seed;
         qgen_counter = 0;
         /* Step 2. Use N and firstseed to  generate random prime q
-     * using Apendix C.6 */
+         * using Apendix C.6 */
         CHECK_SEC_OK(makePrimefromSeedShaweTaylor(hashtype, N, &firstseed, &Q,
                                                   &qseed, &qgen_counter));
         /* Step 3. Use floor(L/2+1) and qseed to generate random prime p0
-     * using Appendix C.6 */
+         * using Appendix C.6 */
         pgen_counter = 0;
         CHECK_SEC_OK(makePrimefromSeedShaweTaylor(hashtype, (L + 1) / 2 + 1,
                                                   &qseed, &p0, &pseed, &pgen_counter));
@@ -1453,50 +1453,50 @@ step_5:
     maxCount = L >= 1024 ? (4 * L - 1) : 4095;
     for (counter = 0; counter <= maxCount; counter++) {
         /* ******************************************************************
-    ** Step 11.1  (Step 7 in 186-1)
-    ** "for j = 0 ... n let
-    **          V_j = HASH[(SEED + offset + j) mod 2**seedlen]."
-    **
-    ** Step 11.2 (Step 8 in 186-1)
-    ** "W = V_0 + V_1*2**outlen+...+ V_n-1 * 2**((n-1)*outlen) +
-    **                               ((Vn* mod 2**b)*2**(n*outlen))"
-    ** Step 11.3 (Step 8 in 186-1)
-    ** "X = W + 2**(L-1)
-    **  Note that 0 <= W < 2**(L-1) and hence 2**(L-1) <= X < 2**L."
-    **
-    ** Step 11.4 (Step 9 in 186-1).
-    ** "c = X mod 2q"
-    **
-    ** Step 11.5 (Step 9 in 186-1).
-    ** " p = X - (c - 1).
-    **  Note that p is congruent to 1 mod 2q."
-    */
+         ** Step 11.1  (Step 7 in 186-1)
+         ** "for j = 0 ... n let
+         **          V_j = HASH[(SEED + offset + j) mod 2**seedlen]."
+         **
+         ** Step 11.2 (Step 8 in 186-1)
+         ** "W = V_0 + V_1*2**outlen+...+ V_n-1 * 2**((n-1)*outlen) +
+         **                               ((Vn* mod 2**b)*2**(n*outlen))"
+         ** Step 11.3 (Step 8 in 186-1)
+         ** "X = W + 2**(L-1)
+         **  Note that 0 <= W < 2**(L-1) and hence 2**(L-1) <= X < 2**L."
+         **
+         ** Step 11.4 (Step 9 in 186-1).
+         ** "c = X mod 2q"
+         **
+         ** Step 11.5 (Step 9 in 186-1).
+         ** " p = X - (c - 1).
+         **  Note that p is congruent to 1 mod 2q."
+         */
         CHECK_SEC_OK(makePfromQandSeed(hashtype, L, N, offset, seedlen,
                                        seed, &Q, &P));
         /*************************************************************
-    ** Step 11.6. (Step 10 in 186-1)
-    ** "if p < 2**(L-1), then goto step 11.9. (step 13 in 186-1)"
-    */
+         ** Step 11.6. (Step 10 in 186-1)
+         ** "if p < 2**(L-1), then goto step 11.9. (step 13 in 186-1)"
+         */
         CHECK_MPI_OK(mpl_set_bit(&l, (mp_size)(L - 1), 1)); /* l = 2**(L-1) */
         if (mp_cmp(&P, &l) < 0)
             goto step_11_9;
         /************************************************************
-    ** Step 11.7 (step 11 in 186-1)
-    ** "Perform a robust primality test on p."
-    */
+         ** Step 11.7 (step 11 in 186-1)
+         ** "Perform a robust primality test on p."
+         */
         /*CHECK_SEC_OK( prm_RabinTest(&P, &passed) );*/
         err = mpp_pprime_secure(&P, prime_testcount_p(L, N));
         passed = (err == MP_YES) ? SECSuccess : SECFailure;
         /* ******************************************************************
-    ** Step 11.8. "If p is determined to be primed return VALID
-        ** values of p, q, seed and counter."
-    */
+         ** Step 11.8. "If p is determined to be primed return VALID
+         ** values of p, q, seed and counter."
+         */
         if (passed == SECSuccess)
             break;
     step_11_9:
         /* ******************************************************************
-    ** Step 11.9.  "offset = offset + n + 1."
-    */
+         ** Step 11.9.  "offset = offset + n + 1."
+         */
         offset += n + 1;
     }
     /* ******************************************************************
@@ -1514,8 +1514,8 @@ generate_G:
     */
     if (type == FIPS186_1_TYPE) {
         /* Generate g, This is called the "Unverifiable Generation of g
-     * in FIPA186-3 Appedix A.2.1. For compatibility we maintain
-     * this version of the code */
+         * in FIPA186-3 Appedix A.2.1. For compatibility we maintain
+         * this version of the code */
         SECITEM_AllocItem(NULL, &hit, L / 8); /* h is no longer than p */
         if (!hit.data)
             goto cleanup;

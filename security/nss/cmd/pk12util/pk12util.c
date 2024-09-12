@@ -1139,7 +1139,7 @@ main(int argc, char **argv)
 
         cipher = PKCS12U_MapCipherFromString(cipherString, keyLen);
         /* We only want encryption PBE's. make sure we don't have
-	 * any MAC pbes */
+         * any MAC pbes */
         if (cipher == SEC_OID_UNKNOWN) {
             PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
             SECU_PrintError(progName, "Algorithm: \"%s\"", cipherString);
@@ -1156,7 +1156,7 @@ main(int argc, char **argv)
         } else {
             certCipher = PKCS12U_MapCipherFromString(cipherString, certKeyLen);
             /* If the user requested a cipher and we didn't find it, then
-	     * don't just silently not encrypt. */
+             * don't just silently not encrypt. */
             if (certCipher == SEC_OID_UNKNOWN) {
                 PORT_SetError(SEC_ERROR_INVALID_ALGORITHM);
                 SECU_PrintError(progName, "Algorithm: \"%s\"", cipherString);

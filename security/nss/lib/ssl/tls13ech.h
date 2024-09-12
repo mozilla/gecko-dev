@@ -49,7 +49,7 @@ struct sslEchConfigContentsStr {
 };
 
 /* ECH Information needed by a server to process a second CH after a
- * HelloRetryRequest is sent. This data is stored in the cookie. 
+ * HelloRetryRequest is sent. This data is stored in the cookie.
  */
 struct sslEchCookieDataStr {
     PRBool previouslyOffered;

@@ -636,18 +636,18 @@ nsslowkey_UpdateKeyDBPass1(NSSLOWKEYDBHandle *handle)
     ret = keydb_Get(update, &checkKey, &checkData, 0);
     if (ret) {
         /*
-     * if we have a key, but no KEYDB_PW_CHECK_STRING, then this must
-     * be an old server database, and it does have a password associated
-     * with it. Put a fake entry in so we can identify this db when we do
-     * get the password for it.
-     */
+         * if we have a key, but no KEYDB_PW_CHECK_STRING, then this must
+         * be an old server database, and it does have a password associated
+         * with it. Put a fake entry in so we can identify this db when we do
+         * get the password for it.
+         */
         if (seckey_HasAServerKey(update)) {
             DBT fcheckKey;
             DBT fcheckData;
 
             /*
-         * include a fake string
-         */
+             * include a fake string
+             */
             fcheckKey.data = KEYDB_FAKE_PW_CHECK_STRING;
             fcheckKey.size = KEYDB_FAKE_PW_CHECK_LEN;
             fcheckData.data = "1";

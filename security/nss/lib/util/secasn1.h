@@ -62,7 +62,7 @@ extern void SEC_ASN1DecoderClearNotifyProc(SEC_ASN1DecoderContext *cx);
  * more than |max_size| while parsing an individual element; rather, it
  * merely guarantees that any individual allocation for returned data
  * should not exceed |max_size|.
-*/
+ */
 extern void SEC_ASN1DecoderSetMaximumElementSize(SEC_ASN1DecoderContext *cx,
                                                  unsigned long max_size);
 

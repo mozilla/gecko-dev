@@ -6,6 +6,7 @@
 #include "kem.h"
 #include "pkcs11i.h"
 #include "pkcs11n.h"
+#include "secerr.h"
 #include "secitem.h"
 #include "secport.h"
 #include "softoken.h"
@@ -16,6 +17,8 @@ sftk_kyber_PK11ParamToInternal(CK_NSS_KEM_PARAMETER_SET_TYPE pk11ParamSet)
     switch (pk11ParamSet) {
         case CKP_NSS_KYBER_768_ROUND3:
             return params_kyber768_round3;
+        case CKP_NSS_ML_KEM_768:
+            return params_ml_kem768;
         default:
             return params_kyber_invalid;
     }
@@ -27,6 +30,8 @@ sftk_kyber_AllocPubKeyItem(KyberParams params, SECItem *pubkey)
     switch (params) {
         case params_kyber768_round3:
         case params_kyber768_round3_test_mode:
+        case params_ml_kem768:
+        case params_ml_kem768_test_mode:
             return SECITEM_AllocItem(NULL, pubkey, KYBER768_PUBLIC_KEY_BYTES);
         default:
             return NULL;
@@ -39,6 +44,8 @@ sftk_kyber_AllocPrivKeyItem(KyberParams params, SECItem *privkey)
     switch (params) {
         case params_kyber768_round3:
         case params_kyber768_round3_test_mode:
+        case params_ml_kem768:
+        case params_ml_kem768_test_mode:
             return SECITEM_AllocItem(NULL, privkey, KYBER768_PRIVATE_KEY_BYTES);
         default:
             return NULL;
@@ -51,6 +58,8 @@ sftk_kyber_AllocCiphertextItem(KyberParams params, SECItem *ciphertext)
     switch (params) {
         case params_kyber768_round3:
         case params_kyber768_round3_test_mode:
+        case params_ml_kem768:
+        case params_ml_kem768_test_mode:
             return SECITEM_AllocItem(NULL, ciphertext, KYBER768_CIPHERTEXT_BYTES);
         default:
             return NULL;
@@ -65,6 +74,7 @@ sftk_kyber_ValidateParams(const CK_NSS_KEM_PARAMETER_SET_TYPE *params)
     }
     switch (*params) {
         case CKP_NSS_KYBER_768_ROUND3:
+        case CKP_NSS_ML_KEM_768:
             return PR_TRUE;
         default:
             return PR_FALSE;
@@ -79,6 +89,7 @@ sftk_kem_ValidateMechanism(CK_MECHANISM_PTR pMechanism)
     }
     switch (pMechanism->mechanism) {
         case CKM_NSS_KYBER:
+        case CKM_NSS_ML_KEM:
             return pMechanism->ulParameterLen == sizeof(CK_NSS_KEM_PARAMETER_SET_TYPE) && sftk_kyber_ValidateParams(pMechanism->pParameter);
         default:
             return PR_FALSE;
@@ -88,14 +99,18 @@ sftk_kem_ValidateMechanism(CK_MECHANISM_PTR pMechanism)
 static CK_ULONG
 sftk_kem_CiphertextLen(CK_MECHANISM_PTR pMechanism)
 {
-    /* Assumes pMechanism has been validated with sftk_kem_ValidateMechanism */
-    if (pMechanism->mechanism != CKM_NSS_KYBER) {
+#ifdef DEBUG
+    if (!sftk_kem_ValidateMechanism(pMechanism)) {
         PORT_Assert(0);
         return 0;
     }
+#endif
+
+    /* Assumes pMechanism has been validated with sftk_kem_ValidateMechanism */
     CK_NSS_KEM_PARAMETER_SET_TYPE *pParameterSet = pMechanism->pParameter;
     switch (*pParameterSet) {
         case CKP_NSS_KYBER_768_ROUND3:
+        case CKP_NSS_ML_KEM_768:
             return KYBER768_CIPHERTEXT_BYTES;
         default:
             /* unreachable if pMechanism has been validated */
@@ -186,13 +201,14 @@ NSC_Encapsulate(CK_SESSION_HANDLE hSession,
     SECItem secret = { siBuffer, secretBuf, sizeof secretBuf };
 
     switch (pMechanism->mechanism) {
-        case CKM_NSS_KYBER: {
+        case CKM_NSS_KYBER:
+        case CKM_NSS_ML_KEM:
             PORT_Assert(secret.len == KYBER_SHARED_SECRET_BYTES);
             CK_NSS_KEM_PARAMETER_SET_TYPE *pParameter = pMechanism->pParameter;
             KyberParams kyberParams = sftk_kyber_PK11ParamToInternal(*pParameter);
             SECStatus rv = Kyber_Encapsulate(kyberParams, /* seed */ NULL, &pubKey, &ciphertext, &secret);
             if (rv != SECSuccess) {
-                crv = CKR_FUNCTION_FAILED;
+                crv = (PORT_GetError() == SEC_ERROR_INVALID_ARGS) ? CKR_ARGUMENTS_BAD : CKR_FUNCTION_FAILED;
                 goto cleanup;
             }
 
@@ -210,7 +226,6 @@ NSC_Encapsulate(CK_SESSION_HANDLE hSession,
             *phKey = key->handle;
             *pulCiphertextLen = ciphertext.len;
             break;
-        }
         default:
             crv = CKR_MECHANISM_INVALID;
             goto cleanup;
@@ -316,13 +331,14 @@ NSC_Decapsulate(CK_SESSION_HANDLE hSession,
     SECItem secret = { siBuffer, secretBuf, sizeof secretBuf };
 
     switch (pMechanism->mechanism) {
-        case CKM_NSS_KYBER: {
+        case CKM_NSS_KYBER:
+        case CKM_NSS_ML_KEM:
             PORT_Assert(secret.len == KYBER_SHARED_SECRET_BYTES);
             CK_NSS_KEM_PARAMETER_SET_TYPE *pParameter = pMechanism->pParameter;
             KyberParams kyberParams = sftk_kyber_PK11ParamToInternal(*pParameter);
             SECStatus rv = Kyber_Decapsulate(kyberParams, &privKey, &ciphertext, &secret);
             if (rv != SECSuccess) {
-                crv = CKR_FUNCTION_FAILED;
+                crv = (PORT_GetError() == SEC_ERROR_INVALID_ARGS) ? CKR_ARGUMENTS_BAD : CKR_FUNCTION_FAILED;
                 goto cleanup;
             }
 
@@ -337,7 +353,6 @@ NSC_Decapsulate(CK_SESSION_HANDLE hSession,
             }
             *phKey = key->handle;
             break;
-        }
         default:
             crv = CKR_MECHANISM_INVALID;
             goto cleanup;

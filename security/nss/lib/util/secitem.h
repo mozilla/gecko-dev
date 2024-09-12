@@ -67,7 +67,7 @@ extern SECStatus SECITEM_ReallocItem(/* deprecated function */
 ** In any case, "item" is expected to be a valid SECItem pointer;
 ** SECFailure is returned if it is not, and the item will remain unchanged.
 ** If the allocation succeeds, the item is updated and SECSuccess is returned.
- */
+*/
 extern SECStatus SECITEM_ReallocItemV2(PLArenaPool *arena, SECItem *item,
                                        unsigned int newlen);
 

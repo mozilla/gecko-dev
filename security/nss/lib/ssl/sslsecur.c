@@ -143,7 +143,7 @@ ssl_SetTimeout(PRFileDesc *fd, PRIntervalTime timeout)
 }
 
 /* Acquires and releases HandshakeLock.
-*/
+ */
 SECStatus
 SSL_ResetHandshake(PRFileDesc *s, PRBool asServer)
 {
@@ -264,7 +264,7 @@ SSL_ReHandshake(PRFileDesc *fd, PRBool flushCache)
 
 /*
 ** Same as above, but with an I/O timeout.
- */
+*/
 SSL_IMPORT SECStatus
 SSL_ReHandshakeWithTimeout(PRFileDesc *fd,
                            PRBool flushCache,

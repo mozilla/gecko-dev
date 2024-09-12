@@ -91,7 +91,7 @@ ec_Curve25519_pt_validate(const SECItem *px)
 }
 
 /*
- * scalar validation is not necessary. 
+ * scalar validation is not necessary.
  */
 SECStatus
 ec_Curve25519_scalar_validate(const SECItem *scalar)

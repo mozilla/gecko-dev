@@ -157,27 +157,27 @@ struct PK11ContextStr {
                                            * session */
     PRBool ownSession;                    /* do we own the session? */
     void *pwArg;                          /* applicaton specific passwd arg */
-    void *savedData;                      /* save data when we are 
+    void *savedData;                      /* save data when we are
                                            * multiplexing on a single context */
     unsigned long savedLength;            /* length of the saved context */
     SECItem *param;                       /* mechanism parameters used to
                                            * build this context */
     PRBool init;                          /* this contexted been initialized? */
     CK_MECHANISM_TYPE type;               /* what is the PKCS #11 this context
-                                           * is representing (usually what 
-                                           * algorithm is being used 
+                                           * is representing (usually what
+                                           * algorithm is being used
                                            * (CKM_RSA_PKCS, CKM_DES, CKM_SHA,
                                            * etc. */
     PRBool fortezzaHack;                  /* Fortezza SSL has some special
                                            * non-standard semantics*/
     PRBool simulate_message;              /* We are initializing a message
-                                           * interface but the underlying 
+                                           * interface but the underlying
                                            * PKCS #11 module does not support
                                            * it. We simulate the interface with
                                            * the PCKS #11 v2 interface */
     CK_MECHANISM_TYPE simulate_mechanism; /* The mechanism we are simulating */
     PRUint64 ivCounter;                   /* iv counter for simulated message */
-    PRUint64 ivMaxCount;                  /* total number of IVs valid for 
+    PRUint64 ivMaxCount;                  /* total number of IVs valid for
                                            * this key */
     unsigned long ivLen;                  /* length of the iv in bytes */
     unsigned int ivFixedBits;             /* number of bits not generated

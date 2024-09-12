@@ -736,7 +736,7 @@ SSL_IMPORT SECStatus SSL_ForceHandshake(PRFileDesc *fd);
 
 /*
 ** Same as above, but with an I/O timeout.
- */
+*/
 SSL_IMPORT SECStatus SSL_ForceHandshakeWithTimeout(PRFileDesc *fd,
                                                    PRIntervalTime timeout);
 
@@ -985,7 +985,7 @@ SSL_IMPORT SECStatus SSL_SetPKCS11PinArg(PRFileDesc *fd, void *a);
 
 /*
 ** These are callbacks for dealing with SSL alerts.
- */
+*/
 
 typedef PRUint8 SSLAlertLevel;
 typedef PRUint8 SSLAlertDescription;
@@ -1226,7 +1226,7 @@ SSL_IMPORT SECStatus SSL_ReHandshake(PRFileDesc *fd, PRBool flushCache);
 
 /*
 ** Same as above, but with an I/O timeout.
- */
+*/
 SSL_IMPORT SECStatus SSL_ReHandshakeWithTimeout(PRFileDesc *fd,
                                                 PRBool flushCache,
                                                 PRIntervalTime timeout);
@@ -1566,7 +1566,7 @@ SSL_IMPORT SECStatus SSL_AuthCertificateComplete(PRFileDesc *fd,
  *  - a valid SECKEYPrivateKey located at *clientPrivateKey
  *  - a valid CERTCertificate located at *clientCertificate
  * The ownership of these latter structures will pass to NSS and the application
- * MUST not retain any references to them or invalidate them. 
+ * MUST not retain any references to them or invalidate them.
  *
  * If a certificate has not been selected, the application must call
  * SSL_ClientCertCallbackComplete with:

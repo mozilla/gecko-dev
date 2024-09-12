@@ -4919,13 +4919,13 @@ s_mp_tovalue(char ch, int r)
     if (r > 36)
         xch = ch;
     else
-        xch = toupper(ch);
+        xch = toupper((unsigned char)ch);
 
-    if (isdigit(xch))
+    if (isdigit((unsigned char)xch))
         val = xch - '0';
-    else if (isupper(xch))
+    else if (isupper((unsigned char)xch))
         val = xch - 'A' + 10;
-    else if (islower(xch))
+    else if (islower((unsigned char)xch))
         val = xch - 'a' + 36;
     else if (xch == '+')
         val = 62;
@@ -4965,7 +4965,7 @@ s_mp_todigit(mp_digit val, int r, int low)
     ch = s_dmap_1[val];
 
     if (r <= 36 && low)
-        ch = tolower(ch);
+        ch = tolower((unsigned char)ch);
 
     return ch;
 

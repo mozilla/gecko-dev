@@ -69,7 +69,7 @@ static const SEC_ASN1Template NSSPKCS5V2PBES2ParameterTemplate[] = {
 static const SEC_ASN1Template NSSPKCS5V2PBEParameterTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(NSSPKCS5PBEParameter) },
     /* this is really a choice, but since we don't understand any other
-       * choice, just inline it. */
+     * choice, just inline it. */
     { SEC_ASN1_OCTET_STRING, offsetof(NSSPKCS5PBEParameter, salt) },
     { SEC_ASN1_INTEGER, offsetof(NSSPKCS5PBEParameter, iteration) },
     { SEC_ASN1_INTEGER, offsetof(NSSPKCS5PBEParameter, keyLength) },

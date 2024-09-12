@@ -1073,9 +1073,9 @@ typedef struct SSLMaskingContextStr {
                           unsigned int _identityLen),                 \
                          (fd, identity, identityLen))
 
-/* The next function is used to provide support for TLS RFC 8879 
- * (Certificate Compression). 
- * 
+/* The next function is used to provide support for TLS RFC 8879
+ * (Certificate Compression).
+ *
  * The function SSL_SetCertificateCompressionAlgorithm() adds a certificate
  * compression mechanism to the socket fd. */
 

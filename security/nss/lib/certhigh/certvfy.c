@@ -1256,7 +1256,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
 
                 /* is the cert directly trusted or not trusted ? */
                 if (flags & CERTDB_TERMINAL_RECORD) { /* the trust record is
-                            * authoritative */
+                                                       * authoritative */
                     if (flags & CERTDB_TRUSTED) {     /* trust this cert */
                         *trusted = PR_TRUE;
                         return SECSuccess;
@@ -1347,7 +1347,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
                 /* do we distrust these certs explicitly */
                 flags = trust.sslFlags;
                 if (flags & CERTDB_TERMINAL_RECORD) { /* the trust record is
-                            * authoritative */
+                                                       * authoritative */
                     if ((flags & (CERTDB_TRUSTED | CERTDB_TRUSTED_CA)) == 0) {
                         *failedFlags = flags;
                         return SECFailure;
@@ -1355,7 +1355,7 @@ cert_CheckLeafTrust(CERTCertificate *cert, SECCertUsage certUsage,
                 }
                 flags = trust.emailFlags;
                 if (flags & CERTDB_TERMINAL_RECORD) { /* the trust record is
-                            * authoritative */
+                                                       * authoritative */
                     if ((flags & (CERTDB_TRUSTED | CERTDB_TRUSTED_CA)) == 0) {
                         *failedFlags = flags;
                         return SECFailure;

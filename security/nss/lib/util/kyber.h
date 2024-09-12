@@ -27,6 +27,18 @@ typedef enum {
      * the use of a seed in `Kyber_Encapsulate` for testing.
      */
     params_kyber768_round3_test_mode,
+
+    /*
+     * The ML-KEM parameters specified in FIPS 203.
+     * https://csrc.nist.gov/pubs/fips/203/final
+     */
+    params_ml_kem768,
+
+    /*
+     * Identical to params_ml_kem768 except that this parameter set allows
+     * the use of a seed in `Kyber_Encapsulate` for testing.
+     */
+    params_ml_kem768_test_mode,
 } KyberParams;
 
 #endif /* KYBER_UTIL_H */

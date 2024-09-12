@@ -120,9 +120,9 @@ testAddFIFO(
     PKIX_TEST_STD_VARS();
 
     /*
-         * ht is created as one bucket, two entries per bucket. Since we add
-         * three items to the ht, we expect the first one to be deleted.
-         */
+     * ht is created as one bucket, two entries per bucket. Since we add
+     * three items to the ht, we expect the first one to be deleted.
+     */
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_HashTable_Add(ht,
                                                     (PKIX_PL_Object *)*testString,
                                                     (PKIX_PL_Object *)*testString,

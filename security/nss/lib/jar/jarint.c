@@ -45,7 +45,7 @@ JAR_FOPEN_to_PR_Open(const char* name, const char* mode)
     }
 
     /* We can't do umask because it isn't XP.  Choose some default
-	   mode for created files */
+           mode for created files */
     prmode = 0755;
 
     return PR_Open(name, prflags, prmode);

@@ -466,8 +466,8 @@ secmod_LoadPKCS11Module(SECMODModule *mod, SECMODModule **oldModule)
         }
 
 /* load the library. If this succeeds, then we have to remember to
-         * unload the library if anything goes wrong from here on out...
-         */
+ * unload the library if anything goes wrong from here on out...
+ */
 #if defined(_WIN32)
         if (nssUTF8_Length(mod->dllName, NULL)) {
             wchar_t *dllNameWide = _NSSUTIL_UTF8ToWide(mod->dllName);

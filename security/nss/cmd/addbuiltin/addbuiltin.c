@@ -521,9 +521,9 @@ main(int argc, char **argv)
     } else {
 #if defined(WIN32)
         /* If we're going to read binary data from stdin, we must put stdin
-	** into O_BINARY mode or else incoming \r\n's will become \n's,
-	** and latin-1 characters will be altered.
-	*/
+        ** into O_BINARY mode or else incoming \r\n's will become \n's,
+        ** and latin-1 characters will be altered.
+        */
 
         int smrv = _setmode(_fileno(stdin), _O_BINARY);
         if (smrv == -1) {

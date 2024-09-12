@@ -382,12 +382,12 @@ dbm_big_return(
         len = 0;
     } else if (!FREESPACE(bp)) {
         /*
-             * This is a hack.  We can't distinguish between
-             * FULL_KEY_DATA that contains complete data or
-             * incomplete data, so we require that if the data
-             * is complete, there is at least 1 byte of free
-             * space left.
-             */
+         * This is a hack.  We can't distinguish between
+         * FULL_KEY_DATA that contains complete data or
+         * incomplete data, so we require that if the data
+         * is complete, there is at least 1 byte of free
+         * space left.
+         */
         off = bp[bp[0]];
         len = bp[1] - off;
         save_p = bufp;
@@ -404,7 +404,7 @@ dbm_big_return(
         val->size = bp[1] - off;
         if (set_current) {
             if (bp[0] == 2) { /* No more buckets in
-                             * chain */
+                               * chain */
                 hashp->cpage = NULL;
                 hashp->cbucket++;
                 hashp->cndx = 1;

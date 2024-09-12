@@ -588,14 +588,14 @@ struct CERTIssuerAndSNStr {
  */
 #define KU_NS_GOVT_APPROVED (0x8000) /*don't make part of KU_ALL!*/
 /*
-* x.509 v3 Basic Constraints Extension
-* If isCA is false, the pathLenConstraint is ignored.
-* Otherwise, the following pathLenConstraint values will apply:
-*	< 0 - there is no limit to the certificate path
-*	0   - CA can issues end-entity certificates only
-*	> 0 - the number of certificates in the certificate path is
-*	      limited to this number
-*/
+ * x.509 v3 Basic Constraints Extension
+ * If isCA is false, the pathLenConstraint is ignored.
+ * Otherwise, the following pathLenConstraint values will apply:
+ *	< 0 - there is no limit to the certificate path
+ *	0   - CA can issues end-entity certificates only
+ *	> 0 - the number of certificates in the certificate path is
+ *	      limited to this number
+ */
 #define CERT_UNLIMITED_PATH_CONSTRAINT -2
 
 struct CERTBasicConstraintsStr {
@@ -905,41 +905,41 @@ typedef struct {
 
 typedef enum {
     cert_pi_end = 0,              /* SPECIAL: signifies end of array of
-                              * CERTValParam* */
+                                   * CERTValParam* */
     cert_pi_nbioContext = 1,      /* specify a non-blocking IO context used to
-                              * resume a session. If this argument is
-                              * specified, no other arguments should be.
-                              * Specified in value.pointer.p. If the
-                              * operation completes the context will be
-                              * freed. */
+                                   * resume a session. If this argument is
+                                   * specified, no other arguments should be.
+                                   * Specified in value.pointer.p. If the
+                                   * operation completes the context will be
+                                   * freed. */
     cert_pi_nbioAbort = 2,        /* specify a non-blocking IO context for an
-                              * existing operation which the caller wants
-                              * to abort. If this argument is
-                              * specified, no other arguments should be.
-                              * Specified in value.pointer.p. If the
-                              * operation succeeds the context will be
-                              * freed. */
+                                   * existing operation which the caller wants
+                                   * to abort. If this argument is
+                                   * specified, no other arguments should be.
+                                   * Specified in value.pointer.p. If the
+                                   * operation succeeds the context will be
+                                   * freed. */
     cert_pi_certList = 3,         /* specify the chain to validate against. If
-                              * this value is given, then the path
-                              * construction step in the validation is
-                              * skipped. Specified in value.pointer.chain */
+                                   * this value is given, then the path
+                                   * construction step in the validation is
+                                   * skipped. Specified in value.pointer.chain */
     cert_pi_policyOID = 4,        /* validate certificate for policy OID.
-                              * Specified in value.array.oids. Cert must
-                              * be good for at least one OID in order
-                              * to validate. Default is that the user is not
-                              * concerned about certificate policy. */
+                                   * Specified in value.array.oids. Cert must
+                                   * be good for at least one OID in order
+                                   * to validate. Default is that the user is not
+                                   * concerned about certificate policy. */
     cert_pi_policyFlags = 5,      /* flags for each policy specified in policyOID.
-                              * Specified in value.scalar.ul. Policy flags
-                              * apply to all specified oids.
-                              * Use CERT_POLICY_FLAG_* macros below. If not
-                              * specified policy flags default to 0 */
+                                   * Specified in value.scalar.ul. Policy flags
+                                   * apply to all specified oids.
+                                   * Use CERT_POLICY_FLAG_* macros below. If not
+                                   * specified policy flags default to 0 */
     cert_pi_keyusage = 6,         /* specify what the keyusages the certificate
-                              * will be evaluated against, specified in
-                              * value.scalar.ui. The cert must validate for
-                              * at least one of the specified key usages.
-                              * Values match the KU_  bit flags defined
-                              * in this file. Default is derived from
-                              * the 'usages' function argument */
+                                   * will be evaluated against, specified in
+                                   * value.scalar.ui. The cert must validate for
+                                   * at least one of the specified key usages.
+                                   * Values match the KU_  bit flags defined
+                                   * in this file. Default is derived from
+                                   * the 'usages' function argument */
     cert_pi_extendedKeyusage = 7, /* specify what the required extended key
                                    * usage of the certificate. Specified as
                                    * an array of oidTags in value.array.oids.
@@ -970,23 +970,23 @@ typedef enum {
                                    * cert_pi_useOnlyTrustAnchors flag
                                    * Specified in value.pointer.chain */
     cert_pi_useAIACertFetch = 12, /* Enables cert fetching using AIA extension.
-                                  * In NSS 3.12.1 or later. Default is off.
-                                  * Value is in value.scalar.b */
+                                   * In NSS 3.12.1 or later. Default is off.
+                                   * Value is in value.scalar.b */
     cert_pi_chainVerifyCallback = 13,
     /* The callback container for doing extra
      * validation on the currently calculated chain.
      * Value is in value.pointer.chainVerifyCallback */
     cert_pi_useOnlyTrustAnchors = 14,
     /* If true, disables trusting any
-        * certificates other than the ones passed in via cert_pi_trustAnchors.
-        * If false, then the certificates specified via cert_pi_trustAnchors
-        * will be combined with the pre-existing trusted roots, but only
-        * for the certificate validation being performed.
-        * If no value has been supplied via cert_pi_trustAnchors, this has
-        * no effect.
-        * The default value is true, meaning if this is not supplied, only
-        * trust anchors supplied via cert_pi_trustAnchors are trusted.
-        * Specified in value.scalar.b */
+     * certificates other than the ones passed in via cert_pi_trustAnchors.
+     * If false, then the certificates specified via cert_pi_trustAnchors
+     * will be combined with the pre-existing trusted roots, but only
+     * for the certificate validation being performed.
+     * If no value has been supplied via cert_pi_trustAnchors, this has
+     * no effect.
+     * The default value is true, meaning if this is not supplied, only
+     * trust anchors supplied via cert_pi_trustAnchors are trusted.
+     * Specified in value.scalar.b */
     cert_pi_max /* SPECIAL: signifies maximum allowed value,
                  *  can increase in future releases */
 } CERTValParamInType;

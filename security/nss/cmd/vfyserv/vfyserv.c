@@ -536,9 +536,9 @@ main(int argc, char **argv)
                 cipher |= ctmp;
                 cipherString++;
             } else {
-                if (!isalpha(ndx))
+                if (!isalpha((unsigned char)ndx))
                     Usage(progName);
-                ndx = tolower(ndx) - 'a';
+                ndx = tolower((unsigned char)ndx) - 'a';
                 if (ndx < numSSL3CipherSuites) {
                     cipher = ssl3CipherSuites[ndx];
                 }

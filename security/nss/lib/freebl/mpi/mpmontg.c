@@ -858,7 +858,7 @@ mp_exptmod_safe_i(const mp_int *montBase,
     MP_DIGITS(&tmp) = 0;
 
     /* grab the first window value. This allows us to preload accumulator1
-   * and save a conversion, some squares and a multiple*/
+     * and save a conversion, some squares and a multiple*/
     MP_CHECKOK(mpl_get_bits(exponent,
                             bits_in_exponent - window_bits, window_bits));
     first_window = (mp_size)res;
@@ -946,8 +946,8 @@ mp_exptmod_safe_i(const mp_int *montBase,
         }
     }
 /* if the accum1 isn't set, Then there is something wrong with our logic
-   * above and is an internal programming error.
-   */
+ * above and is an internal programming error.
+ */
 #if MP_ARGCHK == 2
     assert(MP_USED(&accum1) != 0);
 #endif

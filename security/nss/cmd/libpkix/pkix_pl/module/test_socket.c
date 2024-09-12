@@ -491,9 +491,9 @@ test_socket(int argc, char *argv[])
         portNum = (PRUint16)LDAP_PORT;
     }
     /*
-         * The hostname may be a fully-qualified name. Just
-         * use the leftmost component in our lookup.
-         */
+     * The hostname may be a fully-qualified name. Just
+     * use the leftmost component in our lookup.
+     */
     sepPtr = strchr(serverName, '.');
     if (sepPtr) {
         *sepPtr++ = '\0';

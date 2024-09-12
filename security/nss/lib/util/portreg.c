@@ -275,7 +275,8 @@ _shexp_match(const char *str, const char *exp, PRBool case_insensitive,
                         if (exp[y] == '\\')
                             ++y;
                         if (case_insensitive) {
-                            matched |= (toupper(str[x]) == toupper(exp[y]));
+                            matched |= (toupper((unsigned char)str[x]) ==
+                                        toupper((unsigned char)exp[y]));
                         } else {
                             matched |= (str[x] == exp[y]);
                         }
@@ -299,7 +300,7 @@ _shexp_match(const char *str, const char *exp, PRBool case_insensitive,
             /* fall through */
             default:
                 if (case_insensitive) {
-                    if (toupper(str[x]) != toupper(exp[y]))
+                    if (toupper((unsigned char)str[x]) != toupper((unsigned char)exp[y]))
                         return NOMATCH;
                 } else {
                     if (str[x] != exp[y])

@@ -217,7 +217,7 @@ RSABlinding_Blind(HASH_HashType hashAlg, PRUint8* blindedMsg, size_t blindedMsgL
     CHECK_MPI_OK(mp_read_unsigned_octets(&m, encoded_msg, pkS->modulus.len));
 
     /* 4. c = mp_is_coprime(m, n).
-     ** 5. If c is false, raise an "invalid input" error and stop.    
+     ** 5. If c is false, raise an "invalid input" error and stop.
      ** 7. inv = inverse_mod(r, n)
      */
     err = mp_invmod(&r, &n, &invR);
@@ -388,7 +388,7 @@ cleanup:
  * Outputs:
  * - sig, a byte string of length kLen
  *
- * Blinded Signature Len should be the same as modulus len. 
+ * Blinded Signature Len should be the same as modulus len.
  */
 
 SECStatus

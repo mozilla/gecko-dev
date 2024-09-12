@@ -21,13 +21,13 @@ test_GetChildren(
 {
 
     /*
- * Caution: be careful where you insert this test. PKIX_PolicyNode_GetChildren
- * is required by the API to return an immutable List, and it does it by setting
- * the List immutable. We don't make a copy because the assumption is that
- * certificate and policy processing have been completed before the user gets at
- * the public API. So subsequent tests of functions that modify the policy tree,
- * such as Prune, will fail if called after the execution of this test.
- */
+     * Caution: be careful where you insert this test. PKIX_PolicyNode_GetChildren
+     * is required by the API to return an immutable List, and it does it by setting
+     * the List immutable. We don't make a copy because the assumption is that
+     * certificate and policy processing have been completed before the user gets at
+     * the public API. So subsequent tests of functions that modify the policy tree,
+     * such as Prune, will fail if called after the execution of this test.
+     */
 
     PKIX_Boolean isImmutable = PKIX_FALSE;
     PKIX_List *goodList = NULL;
@@ -301,24 +301,24 @@ test_policynode(int argc, char *argv[])
 {
 
     /*
-         * Create a tree with parent = anyPolicy,
-         * child1 with Nist1+Nist2, child2 with Nist1.
-         * Give each child another child, with policies Nist2
-         * and Nist1, respectively. Pruning with a depth of two
-         * should have no effect. Give one of the children
-         * another child. Then pruning with a depth of three
-         * should reduce the tree to a single strand, as child1
-         * and child3 are removed.
-         *
-         *              parent (anyPolicy)
-         *          /                   \
-         *      child1(Nist1+Nist2)     child2(Nist1)
-         *          |                       |
-         *      child3(Nist2)           child4(Nist1)
-         *                                  |
-         *                              child5(Nist1)
-         *
-         */
+     * Create a tree with parent = anyPolicy,
+     * child1 with Nist1+Nist2, child2 with Nist1.
+     * Give each child another child, with policies Nist2
+     * and Nist1, respectively. Pruning with a depth of two
+     * should have no effect. Give one of the children
+     * another child. Then pruning with a depth of three
+     * should reduce the tree to a single strand, as child1
+     * and child3 are removed.
+     *
+     *              parent (anyPolicy)
+     *          /                   \
+     *      child1(Nist1+Nist2)     child2(Nist1)
+     *          |                       |
+     *      child3(Nist2)           child4(Nist1)
+     *                                  |
+     *                              child5(Nist1)
+     *
+     */
     char *asciiAnyPolicy = "2.5.29.32.0";
     PKIX_PL_Cert *cert = NULL;
     PKIX_PL_CertPolicyInfo *nist1Policy = NULL;

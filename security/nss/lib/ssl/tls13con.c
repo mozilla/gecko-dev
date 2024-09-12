@@ -374,16 +374,27 @@ tls13_CreateKEMKeyPair(sslSocket *ss, const sslNamedGroupDef *groupDef,
                        sslKeyPair **outKeyPair)
 {
     PORT_Assert(groupDef);
-    if (groupDef->name != ssl_grp_kem_xyber768d00) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
-    }
 
     sslKeyPair *keyPair = NULL;
     SECKEYPrivateKey *privKey = NULL;
     SECKEYPublicKey *pubKey = NULL;
-    CK_MECHANISM_TYPE mechanism = CKM_NSS_KYBER_KEY_PAIR_GEN;
-    CK_NSS_KEM_PARAMETER_SET_TYPE paramSet = CKP_NSS_KYBER_768_ROUND3;
+    CK_MECHANISM_TYPE mechanism;
+    CK_NSS_KEM_PARAMETER_SET_TYPE paramSet;
+
+    switch (groupDef->name) {
+        case ssl_grp_kem_xyber768d00:
+            mechanism = CKM_NSS_KYBER_KEY_PAIR_GEN;
+            paramSet = CKP_NSS_KYBER_768_ROUND3;
+            break;
+        case ssl_grp_kem_mlkem768x25519:
+            mechanism = CKM_NSS_ML_KEM_KEY_PAIR_GEN;
+            paramSet = CKP_NSS_ML_KEM_768;
+            break;
+        default:
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
+    }
 
     PK11SlotInfo *slot = PK11_GetBestSlot(mechanism, ss->pkcs11PinArg);
     if (!slot) {
@@ -441,7 +452,7 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef,
     PORT_Assert(groupDef);
     switch (groupDef->keaType) {
         case ssl_kea_ecdh_hybrid:
-            if (groupDef->name != ssl_grp_kem_xyber768d00) {
+            if (groupDef->name != ssl_grp_kem_xyber768d00 && groupDef->name != ssl_grp_kem_mlkem768x25519) {
                 PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
                 return SECFailure;
             }
@@ -460,9 +471,11 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef,
             break;
         case ssl_kea_ecdh:
             if (groupDef->name == ssl_grp_ec_curve25519) {
-                const sslNamedGroupDef *xyber = ssl_LookupNamedGroup(ssl_grp_kem_xyber768d00);
-                sslEphemeralKeyPair *xyberPair = ssl_LookupEphemeralKeyPair(ss, xyber);
-                if (xyberPair) {
+                sslEphemeralKeyPair *hybridPair = ssl_LookupEphemeralKeyPair(ss, ssl_LookupNamedGroup(ssl_grp_kem_mlkem768x25519));
+                if (!hybridPair) {
+                    hybridPair = ssl_LookupEphemeralKeyPair(ss, ssl_LookupNamedGroup(ssl_grp_kem_xyber768d00));
+                }
+                if (hybridPair) {
                     // We could use ssl_CopyEphemeralKeyPair here, but we would need to free
                     // the KEM components. We should pull this out into a utility function when
                     // we refactor to support multiple hybrid mechanisms.
@@ -472,7 +485,7 @@ tls13_CreateKeyShare(sslSocket *ss, const sslNamedGroupDef *groupDef,
                     }
                     PR_INIT_CLIST(&keyPair->link);
                     keyPair->group = groupDef;
-                    keyPair->keys = ssl_GetKeyPairRef(xyberPair->keys);
+                    keyPair->keys = ssl_GetKeyPairRef(hybridPair->keys);
                 }
             }
             if (!keyPair) {
@@ -683,21 +696,45 @@ tls13_ImportKEMKeyShare(SECKEYPublicKey *peerKey, TLS13KeyShareEntry *entry)
 {
     SECItem pk = { siBuffer, NULL, 0 };
     SECStatus rv;
+    size_t expected_len;
 
-    if (entry->group->name != ssl_grp_kem_xyber768d00) {
-        PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
-        return SECFailure;
+    switch (entry->group->name) {
+        case ssl_grp_kem_xyber768d00:
+            expected_len = X25519_PUBLIC_KEY_BYTES + KYBER768_PUBLIC_KEY_BYTES;
+            break;
+        case ssl_grp_kem_mlkem768x25519:
+            expected_len = X25519_PUBLIC_KEY_BYTES + KYBER768_PUBLIC_KEY_BYTES;
+            break;
+        default:
+            PORT_SetError(SEC_ERROR_UNSUPPORTED_KEYALG);
+            return SECFailure;
     }
 
-    if (entry->key_exchange.len != X25519_PUBLIC_KEY_BYTES + KYBER768_PUBLIC_KEY_BYTES) {
+    if (entry->key_exchange.len != expected_len) {
         PORT_SetError(SSL_ERROR_RX_MALFORMED_HYBRID_KEY_SHARE);
         return SECFailure;
     }
-    pk.data = entry->key_exchange.data + X25519_PUBLIC_KEY_BYTES;
-    pk.len = entry->key_exchange.len - X25519_PUBLIC_KEY_BYTES;
 
-    peerKey->keyType = kyberKey;
-    peerKey->u.kyber.params = params_kyber768_round3;
+    switch (entry->group->name) {
+        case ssl_grp_kem_xyber768d00:
+            peerKey->keyType = kyberKey;
+            peerKey->u.kyber.params = params_kyber768_round3;
+            // key_exchange.data is `x25519 || kyber768`
+            pk.data = entry->key_exchange.data + X25519_PUBLIC_KEY_BYTES;
+            pk.len = KYBER768_PUBLIC_KEY_BYTES;
+            break;
+        case ssl_grp_kem_mlkem768x25519:
+            peerKey->keyType = kyberKey;
+            peerKey->u.kyber.params = params_ml_kem768;
+            // key_exchange.data is `mlkem768 || x25519`
+            pk.data = entry->key_exchange.data;
+            pk.len = KYBER768_PUBLIC_KEY_BYTES;
+            break;
+        default:
+            PORT_Assert(0);
+            PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+            return SECFailure;
+    }
 
     rv = SECITEM_CopyItem(peerKey->arena, &peerKey->u.kyber.publicValue, &pk);
     if (rv != SECSuccess) {
@@ -721,7 +758,15 @@ tls13_HandleKEMCiphertext(sslSocket *ss, TLS13KeyShareEntry *entry, sslKeyPair *
                 return SECFailure;
             }
             ct.data = entry->key_exchange.data + X25519_PUBLIC_KEY_BYTES;
-            ct.len = entry->key_exchange.len - X25519_PUBLIC_KEY_BYTES;
+            ct.len = KYBER768_CIPHERTEXT_BYTES;
+            break;
+        case ssl_grp_kem_mlkem768x25519:
+            if (entry->key_exchange.len != X25519_PUBLIC_KEY_BYTES + KYBER768_CIPHERTEXT_BYTES) {
+                ssl_MapLowLevelError(SSL_ERROR_RX_MALFORMED_HYBRID_KEY_SHARE);
+                return SECFailure;
+            }
+            ct.data = entry->key_exchange.data;
+            ct.len = KYBER768_CIPHERTEXT_BYTES;
             break;
         default:
             PORT_Assert(0);
@@ -800,6 +845,7 @@ tls13_HandleKeyShare(sslSocket *ss,
     SECKEYPublicKey *peerKey;
     CK_MECHANISM_TYPE mechanism;
     PK11SymKey *key;
+    unsigned char *ec_data;
     SECStatus rv;
     int keySize = 0;
 
@@ -814,12 +860,29 @@ tls13_HandleKeyShare(sslSocket *ss,
 
     switch (entry->group->keaType) {
         case ssl_kea_ecdh_hybrid:
-            if (entry->group->name != ssl_grp_kem_xyber768d00 || entry->key_exchange.len < X25519_PUBLIC_KEY_BYTES) {
+            switch (entry->group->name) {
+                case ssl_grp_kem_xyber768d00:
+                    // x25519 share is at the beginning
+                    ec_data = entry->key_exchange.len < X25519_PUBLIC_KEY_BYTES
+                                  ? NULL
+                                  : entry->key_exchange.data;
+                    break;
+                case ssl_grp_kem_mlkem768x25519:
+                    // x25519 share is at the end
+                    ec_data = entry->key_exchange.len < X25519_PUBLIC_KEY_BYTES
+                                  ? NULL
+                                  : entry->key_exchange.data + entry->key_exchange.len - X25519_PUBLIC_KEY_BYTES;
+                    break;
+                default:
+                    ec_data = NULL;
+                    break;
+            }
+            if (!ec_data) {
                 PORT_SetError(SSL_ERROR_RX_MALFORMED_HYBRID_KEY_SHARE);
                 goto loser;
             }
             rv = ssl_ImportECDHKeyShare(peerKey,
-                                        entry->key_exchange.data,
+                                        ec_data,
                                         X25519_PUBLIC_KEY_BYTES,
                                         ssl_LookupNamedGroup(ssl_grp_ec_curve25519));
             mechanism = CKM_ECDH1_DERIVE;
@@ -2690,10 +2753,19 @@ tls13_HandleClientKeyShare(sslSocket *ss, TLS13KeyShareEntry *peerShare)
         if (rv != SECSuccess) {
             goto loser; /* Error set by tls13_HandleKEMKey */
         }
-        // We may need to handle different "combiners" here in the future. For
-        // now this is specific to xyber768d00.
-        PORT_Assert(peerShare->group->name == ssl_grp_kem_xyber768d00);
-        ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(dheSecret, kemSecret, CKM_HKDF_DERIVE, CKA_DERIVE);
+        switch (peerShare->group->name) {
+            case ssl_grp_kem_xyber768d00:
+                ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(dheSecret, kemSecret, CKM_HKDF_DERIVE, CKA_DERIVE);
+                break;
+            case ssl_grp_kem_mlkem768x25519:
+                ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(kemSecret, dheSecret, CKM_HKDF_DERIVE, CKA_DERIVE);
+                break;
+            default:
+                PORT_Assert(0);
+                PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+                ss->ssl3.hs.dheSecret = NULL;
+                break;
+        }
         if (!ss->ssl3.hs.dheSecret) {
             goto loser; /* Error set by PK11_ConcatSymKeys */
         }
@@ -3540,10 +3612,19 @@ tls13_HandleServerKeyShare(sslSocket *ss)
         if (rv != SECSuccess) {
             goto loser; /* Error set by tls13_HandleKEMCiphertext */
         }
-        // We may need to handle different "combiners" here in the future. For
-        // now this is specific to xyber768d00.
-        PORT_Assert(entry->group->name == ssl_grp_kem_xyber768d00);
-        ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(dheSecret, kemSecret, CKM_HKDF_DERIVE, CKA_DERIVE);
+        switch (entry->group->name) {
+            case ssl_grp_kem_xyber768d00:
+                ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(dheSecret, kemSecret, CKM_HKDF_DERIVE, CKA_DERIVE);
+                break;
+            case ssl_grp_kem_mlkem768x25519:
+                ss->ssl3.hs.dheSecret = PK11_ConcatSymKeys(kemSecret, dheSecret, CKM_HKDF_DERIVE, CKA_DERIVE);
+                break;
+            default:
+                PORT_Assert(0);
+                PORT_SetError(SEC_ERROR_LIBRARY_FAILURE);
+                ss->ssl3.hs.dheSecret = NULL;
+                break;
+        }
         if (!ss->ssl3.hs.dheSecret) {
             goto loser; /* Error set by PK11_ConcatSymKeys */
         }

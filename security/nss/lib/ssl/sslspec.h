@@ -69,7 +69,7 @@ struct ssl3BulkCipherDefStr {
     SECOidTag oid;
     const char *short_name;
     /* The maximum number of records that can be sent/received with the same
-      * symmetric key before the connection will be terminated. */
+     * symmetric key before the connection will be terminated. */
     PRUint64 max_records;
 };
 

@@ -178,7 +178,7 @@ getFIPSMode(void)
     f = fopen("/proc/sys/crypto/fips_enabled", "r");
     if (!f) {
         /* if we don't have a proc flag, fall back to the
-     * environment variable */
+         * environment variable */
         return getFIPSEnv();
     }
 

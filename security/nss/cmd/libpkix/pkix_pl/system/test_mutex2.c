@@ -144,11 +144,11 @@ test_mutex2(int argc, char *argv[])
     PKIX_TEST_DECREF_BC(mutex);
 
     /*
-         * Note: we should also be freeing each thread's stack, but we
-         * don't have access to the prodThread->stack variable (since
-         * it is not exported). As a result, we have 120 bytes of memory
-         * leakage.
-         */
+     * Note: we should also be freeing each thread's stack, but we
+     * don't have access to the prodThread->stack variable (since
+     * it is not exported). As a result, we have 120 bytes of memory
+     * leakage.
+     */
 
     PR_Free(prodThread);
     PR_Free(prodThread2);

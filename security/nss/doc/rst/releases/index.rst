@@ -12,7 +12,7 @@ Releases
    nss_3_103.rst
    nss_3_102_1.rst
    nss_3_102.rst
-   nss_3_101_2.rst
+   nss_3_101.2.rst
    nss_3_101_1.rst
    nss_3_101.rst
    nss_3_100.rst
@@ -25,12 +25,12 @@ Releases
    nss_3_94.rst
    nss_3_93.rst
    nss_3_92.rst
-   nss_3_91_0.rst
+   nss_3_91.rst
    nss_3_90_4.rst
    nss_3_90_3.rst
    nss_3_90_2.rst
    nss_3_90_1.rst
-   nss_3_90_0.rst
+   nss_3_90.rst
    nss_3_89_1.rst
    nss_3_89.rst
    nss_3_88_1.rst

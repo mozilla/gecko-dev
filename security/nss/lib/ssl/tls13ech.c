@@ -458,7 +458,7 @@ SSLExp_EncodeEchConfigId(PRUint8 configId, const char *publicName, unsigned int 
      *       case 0xfe0d: ECHConfigContents contents;
      *     }
      * } ECHConfig;
-    */
+     */
     rv = sslBuffer_AppendNumber(&b, TLS13_ECH_VERSION, 2);
     if (rv != SECSuccess) {
         goto loser;
@@ -1658,7 +1658,7 @@ tls13_PadChInner(sslBuffer *chInner, uint8_t maxNameLen, uint8_t serverNameLen)
  * payloadLen = Size of zeroed placeholder field for payload.
  * payloadOffset = Out parameter, start of payload field
  * echXtn = Out parameter, constructed ECH Xtn with zeroed placeholder field.
-*/
+ */
 SECStatus
 tls13_BuildEchXtn(sslEchConfig *cfg, const SECItem *hpkeEnc, unsigned int payloadLen, PRUint16 *payloadOffset, sslBuffer *echXtn)
 {
@@ -1880,14 +1880,14 @@ tls13_ComputeEchHelloRetryTranscript(sslSocket *ss, const PRUint8 *sh, unsigned 
      */
     if (!ss->ssl3.hs.helloRetry || !ss->sec.isServer) {
         /*
-        * This function can be called in three situations:
-        *    - By the server, prior to sending the HRR, when ECH was accepted
-        *    - By the client, after receiving the HRR, but before it knows whether ECH was accepted
-        *    - By the server, after accepting ECH and receiving CH2 when it needs to reconstruct the HRR
-        * In the first two situations, we need to include the message hash of inner ClientHello1 but don't
-        * want to alter the buffer containing the current transcript.
-        * In the last, the buffer already contains the message hash of inner ClientHello1.
-        */
+         * This function can be called in three situations:
+         *    - By the server, prior to sending the HRR, when ECH was accepted
+         *    - By the client, after receiving the HRR, but before it knows whether ECH was accepted
+         *    - By the server, after accepting ECH and receiving CH2 when it needs to reconstruct the HRR
+         * In the first two situations, we need to include the message hash of inner ClientHello1 but don't
+         * want to alter the buffer containing the current transcript.
+         * In the last, the buffer already contains the message hash of inner ClientHello1.
+         */
         SSL3Hashes hashes;
         rv = tls13_ComputeHash(ss, &hashes, previousTranscript->buf, previousTranscript->len, tls13_GetHash(ss));
         if (rv != SECSuccess) {
@@ -2075,7 +2075,7 @@ loser:
     return SECFailure;
 }
 
-/* Ech Secret is HKDF-Extract(0, ClientHelloInner.random) where 
+/* Ech Secret is HKDF-Extract(0, ClientHelloInner.random) where
    "0" is a string of Hash.len bytes of value 0. */
 SECStatus
 tls13_DeriveEchSecret(const sslSocket *ss, PK11SymKey **output)
@@ -2759,7 +2759,7 @@ tls13_MaybeAcceptEch(sslSocket *ss, const SECItem *sidBytes, const PRUint8 *chOu
             return SECFailure;
         } else {
             /* Send retry_configs (if we have any) when we fail to decrypt or
-            * found no candidates. This does *not* count as negotiating ECH. */
+             * found no candidates. This does *not* count as negotiating ECH. */
             return ssl3_RegisterExtensionSender(ss, &ss->xtnData,
                                                 ssl_tls13_encrypted_client_hello_xtn,
                                                 tls13_ServerSendEchXtn);

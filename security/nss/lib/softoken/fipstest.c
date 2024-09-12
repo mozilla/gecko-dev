@@ -87,8 +87,8 @@ DllMain(
 #define FIPS_RSA_MODULUS_LENGTH 256          /* 2048-bits */
 
 /*
-* Test the softoken RSA_HashSign and RSH_HashCheckSign.
-*/
+ * Test the softoken RSA_HashSign and RSH_HashCheckSign.
+ */
 static SECStatus
 sftk_fips_RSA_PowerUpSigSelfTest(HASH_HashType shaAlg,
                                  NSSLOWKEYPublicKey *rsa_public_key,

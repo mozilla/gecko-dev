@@ -121,3 +121,50 @@ SSLHashType ServerConfig::PskHashType() {
 const SSLVersionRange& ServerConfig::VersionRange() {
   return ssl_version_range_;
 }
+
+std::ostream& operator<<(std::ostream& out,
+                         std::unique_ptr<ServerConfig>& config) {
+  out << "============= ServerConfig ============="
+      << "\n";
+  out << "SSL_NO_CACHE:                           " << config->NoCache()
+      << "\n";
+  out << "SSL_ENABLE_EXTENDED_MASTER_SECRET:      "
+      << config->EnableExtendedMasterSecret() << "\n";
+  out << "SSL_REQUEST_CERTIFICATE:                "
+      << config->RequestCertificate() << "\n";
+  out << "SSL_REQUIRE_CERTIFICATE:                "
+      << config->RequireCertificate() << "\n";
+  out << "SSL_ENABLE_DEFLATE:                     " << config->EnableDeflate()
+      << "\n";
+  out << "SSL_CBC_RANDOM_IV:                      "
+      << config->EnableCbcRandomIv() << "\n";
+  out << "SSL_REQUIRE_SAFE_NEGOTIATION:           "
+      << config->RequireSafeNegotiation() << "\n";
+  out << "SSL_ENABLE_GREASE:                      " << config->EnableGrease()
+      << "\n";
+  out << "SSL_SetCertificateCompressionAlgorithm: "
+      << config->SetCertificateCompressionAlgorithm() << "\n";
+  out << "SSL_VersionRangeSet:                    " << config->SetVersionRange()
+      << "\n";
+  out << "  Min:                                  "
+      << config->VersionRange().min << "\n";
+  out << "  Max:                                  "
+      << config->VersionRange().max << "\n";
+  out << "SSL_AddExternalPsk:                     " << config->AddExternalPsk()
+      << "\n";
+  out << "  Type:                                 " << config->PskHashType()
+      << "\n";
+  out << "SSL_ENABLE_0RTT_DATA:                   " << config->EnableZeroRtt()
+      << "\n";
+  out << "SSL_ENABLE_ALPN:                        " << config->EnableAlpn()
+      << "\n";
+  out << "SSL_ENABLE_FALLBACK_SCSV:               "
+      << config->EnableFallbackScsv() << "\n";
+  out << "SSL_ENABLE_SESSION_TICKETS:             "
+      << config->EnableSessionTickets() << "\n";
+  out << "SSL_NO_LOCKS:                           " << config->NoLocks()
+      << "\n";
+  out << "========================================";
+
+  return out;
+}

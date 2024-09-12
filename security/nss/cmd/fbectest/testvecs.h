@@ -754,7 +754,7 @@ static ECDH_KAT nonnist_testvecs[] = {
       "curve: 25519 vector: 1000 iterations" },
 #ifdef NSS_ENABLE_EXPENSIVE_TESTS
     /* This test is disabled by default because it takes a very long time
-       * to run. */
+     * to run. */
     { ECCurve25519, 1000000,
       "0900000000000000000000000000000000000000000000000000000000000000",
       NULL,

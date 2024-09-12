@@ -373,6 +373,7 @@ static const struct mechanismList mechanisms[] = {
     { CKM_DH_PKCS_DERIVE, { DH_MIN_P_BITS, DH_MAX_P_BITS, CKF_DERIVE }, PR_TRUE },
     /* -------------------- Elliptic Curve Operations --------------------- */
     { CKM_EC_KEY_PAIR_GEN, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_GENERATE_KEY_PAIR | CKF_EC_BPNU }, PR_TRUE },
+    { CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_GENERATE_KEY_PAIR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDH1_DERIVE, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_DERIVE | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
     { CKM_ECDSA_SHA1, { EC_MIN_KEY_BITS, EC_MAX_KEY_BITS, CKF_SN_VR | CKF_EC_BPNU }, PR_TRUE },
@@ -650,6 +651,8 @@ static const struct mechanismList mechanisms[] = {
     /* -------------------- Kyber Operations ----------------------- */
     { CKM_NSS_KYBER_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
     { CKM_NSS_KYBER, { 0, 0, 0 }, PR_TRUE },
+    { CKM_NSS_ML_KEM_KEY_PAIR_GEN, { 0, 0, CKF_GENERATE_KEY_PAIR }, PR_TRUE },
+    { CKM_NSS_ML_KEM, { 0, 0, 0 }, PR_TRUE },
 };
 static const CK_ULONG mechanismCount = sizeof(mechanisms) / sizeof(mechanisms[0]);
 
@@ -1105,6 +1108,7 @@ sftk_handlePublicKeyObject(SFTKSession *session, SFTKObject *object,
             wrap = CK_FALSE;
             break;
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             if (!sftk_hasAttribute(object, CKA_NSS_PARAMETER_SET)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
@@ -1318,6 +1322,7 @@ sftk_handlePrivateKeyObject(SFTKSession *session, SFTKObject *object, CK_KEY_TYP
             createObjectInfo = PR_FALSE;
             break;
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             if (!sftk_hasAttribute(object, CKA_KEY_TYPE)) {
                 return CKR_TEMPLATE_INCOMPLETE;
             }
@@ -2011,6 +2016,7 @@ sftk_GetPubKey(SFTKObject *object, CK_KEY_TYPE key_type,
             }
             break;
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             crv = CKR_OK;
             break;
         default:
@@ -2169,6 +2175,7 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
             break;
 
         case CKK_NSS_KYBER:
+        case CKK_NSS_ML_KEM:
             break;
 
         default:
@@ -5407,17 +5414,40 @@ NSC_FindObjectsInit(CK_SESSION_HANDLE hSession,
     isLoggedIn = (PRBool)((!slot->needLogin) || slot->isLoggedIn);
     PZ_Unlock(slot->slotLock);
 
-    crv = sftk_searchTokenList(slot, search, pTemplate, ulCount, isLoggedIn);
-    if (crv != CKR_OK) {
-        goto loser;
+    PRBool validTokenAttribute = PR_FALSE;
+    PRBool tokenAttributeValue = PR_FALSE;
+    for (CK_ULONG i = 0; i < ulCount; i++) {
+        CK_ATTRIBUTE_PTR attr = &pTemplate[i];
+        if (attr->type == CKA_TOKEN && attr->pValue && attr->ulValueLen == sizeof(CK_BBOOL)) {
+            if (*(CK_BBOOL *)attr->pValue == CK_TRUE) {
+                validTokenAttribute = PR_TRUE;
+                tokenAttributeValue = PR_TRUE;
+            } else if (*(CK_BBOOL *)attr->pValue == CK_FALSE) {
+                validTokenAttribute = PR_TRUE;
+                tokenAttributeValue = PR_FALSE;
+            }
+            break;
+        }
     }
 
-    /* build list of found objects in the session */
-    crv = sftk_searchObjectList(search, slot->sessObjHashTable,
-                                slot->sessObjHashSize, slot->objectLock,
-                                pTemplate, ulCount, isLoggedIn);
-    if (crv != CKR_OK) {
-        goto loser;
+    // Search over the token object list if the template's CKA_TOKEN attribute is set to
+    // CK_TRUE or if it is not set.
+    if (validTokenAttribute == PR_FALSE || tokenAttributeValue == PR_TRUE) {
+        crv = sftk_searchTokenList(slot, search, pTemplate, ulCount, isLoggedIn);
+        if (crv != CKR_OK) {
+            goto loser;
+        }
+    }
+
+    // Search over the session object list if the template's CKA_TOKEN attribute is set to
+    // CK_FALSE or if it is not set.
+    if (validTokenAttribute == PR_FALSE || tokenAttributeValue == PR_FALSE) {
+        crv = sftk_searchObjectList(search, slot->sessObjHashTable,
+                                    slot->sessObjHashSize, slot->objectLock,
+                                    pTemplate, ulCount, isLoggedIn);
+        if (crv != CKR_OK) {
+            goto loser;
+        }
     }
 
     if ((freeSearch = session->search) != NULL) {

@@ -88,17 +88,17 @@ test_basicconstraintschecker(int argc, char *argv[])
     chain = createCertChainPlus(dirName, certNames, certs, chainLength, plContext);
 
     /*
-         * Error occurs when creating Cert, this is critical and test
-         * should not continue. Since we expect error, we assume this
-         * error is the one that is expected, so undo the error count.
-         *
-         * This work needs future enhancement. We will introduce another
-         * flag ESE, in addition to the existing EE(expect validation
-         * error) and ENE(expect no validation error). ESE stands for
-         * "expect setup error". When running with ESE, if any of the setup
-         * calls such creating Cert Chain fails, the test can end and
-         * considered to be successful.
-         */
+     * Error occurs when creating Cert, this is critical and test
+     * should not continue. Since we expect error, we assume this
+     * error is the one that is expected, so undo the error count.
+     *
+     * This work needs future enhancement. We will introduce another
+     * flag ESE, in addition to the existing EE(expect validation
+     * error) and ENE(expect no validation error). ESE stands for
+     * "expect setup error". When running with ESE, if any of the setup
+     * calls such creating Cert Chain fails, the test can end and
+     * considered to be successful.
+     */
     if (testValid == PKIX_FALSE && chain == NULL) {
         testErrorUndo("Cert Error - Create failed");
         goto cleanup;

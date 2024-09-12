@@ -409,22 +409,22 @@ testGetSubjectAltNames(char *dataCentralDir)
     testAltNames(altNameRfc822Cert, altNameRfc822Cert_diff, expectedAscii);
 
     /*
-         *this should work once bugzilla bug #233586 is fixed.
-         *subTest("PKIX_PL_Cert_GetSubjectAltNames <X400Address>");
-         *expectedAscii = "X400Address: <DER-encoded value>";
-         *testAltNames(altNameX400Cert, altNameX400Cert_diff, expectedAscii);
-         */
+     *this should work once bugzilla bug #233586 is fixed.
+     *subTest("PKIX_PL_Cert_GetSubjectAltNames <X400Address>");
+     *expectedAscii = "X400Address: <DER-encoded value>";
+     *testAltNames(altNameX400Cert, altNameX400Cert_diff, expectedAscii);
+     */
 
     subTest("PKIX_PL_Cert_GetSubjectAltNames <DN>");
     expectedAscii = "CN=elley,OU=labs,O=sun,C=us";
     testAltNames(altNameDnCert, altNameDnCert_diff, expectedAscii);
 
     /*
-         * this should work once bugzilla bug #233586 is fixed.
-         * subTest("PKIX_PL_Cert_GetSubjectAltNames <EdiPartyName>");
-         * expectedAscii = "EDIPartyName: <DER-encoded value>";
-         * testAltNames(altNameEdiCert, altNameEdiCert_diff, expectedAscii);
-         */
+     * this should work once bugzilla bug #233586 is fixed.
+     * subTest("PKIX_PL_Cert_GetSubjectAltNames <EdiPartyName>");
+     * expectedAscii = "EDIPartyName: <DER-encoded value>";
+     * testAltNames(altNameEdiCert, altNameEdiCert_diff, expectedAscii);
+     */
 
     subTest("PKIX_PL_Cert_GetSubjectAltNames <URI>");
     expectedAscii = "http://www.sun.com";
@@ -913,14 +913,14 @@ testCheckValidity(
     PKIX_PL_Cert *newerCert)
 {
     /*
-         * olderCert has the following Validity:
-         *  notBefore = August 19, 1999: 20:19:56 GMT
-         *  notAfter  = August 18, 2000: 20:19:56 GMT
-         *
-         * newerCert has the following Validity:
-         *  notBefore = November 13, 2003: 16:46:03 GMT
-         *  notAfter  = February 13, 2009: 16:46:03 GMT
-         */
+     * olderCert has the following Validity:
+     *  notBefore = August 19, 1999: 20:19:56 GMT
+     *  notAfter  = August 18, 2000: 20:19:56 GMT
+     *
+     * newerCert has the following Validity:
+     *  notBefore = November 13, 2003: 16:46:03 GMT
+     *  notAfter  = February 13, 2009: 16:46:03 GMT
+     */
 
     /*  olderDateAscii = March    29, 2000: 13:48:47 GMT */
     char *olderAscii = "000329134847Z";
@@ -959,10 +959,10 @@ testCheckValidity(
     PKIX_TEST_EXPECT_ERROR(PKIX_PL_Cert_CheckValidity(olderCert, newerDate, plContext));
 
     /*
-         * check validity of both certificates using current time
-         * NOTE: these "now" tests will not work when the current
-         * time is after newerCert.notAfter (~ February 13, 2009)
-         */
+     * check validity of both certificates using current time
+     * NOTE: these "now" tests will not work when the current
+     * time is after newerCert.notAfter (~ February 13, 2009)
+     */
     subTest("PKIX_PL_Cert_CheckValidity <now:positive>");
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_CheckValidity(newerCert, NULL, plContext));
 
@@ -997,8 +997,8 @@ readCertBasicConstraints(
     createCerts(dataDir, goodCertName, diffCertName,
                 &goodCert, &equalCert, &diffCert);
     /*
-         * Warning: pointer will be NULL if BasicConstraints
-         * extension is not present in the certificate. */
+     * Warning: pointer will be NULL if BasicConstraints
+     * extension is not present in the certificate. */
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetBasicConstraints(goodCert, goodBasicConstraints, plContext));
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetBasicConstraints(equalCert, equalBasicConstraints, plContext));
     PKIX_TEST_EXPECT_NO_ERROR(PKIX_PL_Cert_GetBasicConstraints(diffCert, diffBasicConstraints, plContext));
@@ -1033,11 +1033,11 @@ testBasicConstraintsHelper(
                              &diffBasicConstraints);
 
     /*
-         * The standard test macro is applicable only
-         * if BasicConstraint extension is present
-         * in the certificate. Otherwise some
-         * pointers will be null.
-         */
+     * The standard test macro is applicable only
+     * if BasicConstraint extension is present
+     * in the certificate. Otherwise some
+     * pointers will be null.
+     */
     if ((goodBasicConstraints) &&
         (equalBasicConstraints) &&
         (diffBasicConstraints)) {
@@ -1100,13 +1100,13 @@ static void
 testBasicConstraints_GetCAFlag(char *dataCentralDir)
 {
     /*
-         * XXX  When we have a certificate with a non-null Basic
-         * Constraints field and a value of FALSE for CAFlag,
-         * this test should be modified to use that
-         * certificate for diffCertName, and to verify that
-         * GetCAFlag returns a FALSE value. But our certificates for
-         * non-CAs are created with no BasicConstraints extension.
-         */
+     * XXX  When we have a certificate with a non-null Basic
+     * Constraints field and a value of FALSE for CAFlag,
+     * this test should be modified to use that
+     * certificate for diffCertName, and to verify that
+     * GetCAFlag returns a FALSE value. But our certificates for
+     * non-CAs are created with no BasicConstraints extension.
+     */
     PKIX_PL_CertBasicConstraints *goodBasicConstraints = NULL;
     PKIX_PL_CertBasicConstraints *equalBasicConstraints = NULL;
     PKIX_PL_CertBasicConstraints *diffBasicConstraints = NULL;
@@ -1252,9 +1252,9 @@ testGetPolicyInformation(char *dataDir)
     subTest("PKIX_PL_Cert_GetPolicyInformation");
 
     /*
-         * Get the cert, then the list of policyInfos.
-         * Take the first policyInfo from the list.
-         */
+     * Get the cert, then the list of policyInfos.
+     * Take the first policyInfo from the list.
+     */
 
     /* Get the PolicyInfo objects */
     goodCert = createCert(dataDir, goodCertName, plContext);
@@ -1325,10 +1325,10 @@ testCertPolicy_GetPolicyId(char *dataDir)
     subTest("PKIX_PL_CertPolicyInfo_GetPolicyId");
 
     /*
-         * Get the cert, then the list of policyInfos.
-         * Take the first policyInfo from the list.
-         * Finally, get the policyInfo's ID.
-         */
+     * Get the cert, then the list of policyInfos.
+     * Take the first policyInfo from the list.
+     * Finally, get the policyInfo's ID.
+     */
 
     /* Get the PolicyInfo objects */
     goodCert = createCert(dataDir, goodCertName, plContext);
@@ -1395,10 +1395,10 @@ testCertPolicy_GetPolQualifiers(char *dataDir)
     subTest("PKIX_PL_CertPolicyInfo_GetPolQualifiers");
 
     /*
-         * Get the cert, then the list of policyInfos.
-         * Take the first policyInfo from the list.
-         * Get its list of PolicyQualifiers.
-         */
+     * Get the cert, then the list of policyInfos.
+     * Take the first policyInfo from the list.
+     * Get its list of PolicyQualifiers.
+     */
 
     /* Get the PolicyInfo objects */
     goodCert = createCert(dataDir, goodCertName, plContext);
@@ -1483,12 +1483,12 @@ testPolicyQualifier_GetQualifier(char *dataDir)
     subTest("PKIX_PL_PolicyQualifier_GetQualifier");
 
     /*
-         * Get the cert, then the list of policyInfos.
-         * Take the first policyInfo from the list.
-         * Get its list of PolicyQualifiers.
-         * Take the first policyQualifier from the list.
-         * Finally, get the policyQualifier's ByteArray.
-         */
+     * Get the cert, then the list of policyInfos.
+     * Take the first policyInfo from the list.
+     * Get its list of PolicyQualifiers.
+     * Take the first policyQualifier from the list.
+     * Finally, get the policyQualifier's ByteArray.
+     */
 
     /* Get the PolicyInfo objects */
     goodCert = createCert(dataDir, goodCertName, plContext);
@@ -1584,12 +1584,12 @@ testPolicyQualifier_GetPolicyQualifierId(char *dataDir)
     subTest("PKIX_PL_PolicyQualifier_GetPolicyQualifierId");
 
     /*
-         * Get the cert, then the list of policyInfos.
-         * Take the first policyInfo from the list.
-         * Get its list of PolicyQualifiers.
-         * Take the first policyQualifier from the list.
-         * Finally, get the policyQualifier's ID.
-         */
+     * Get the cert, then the list of policyInfos.
+     * Take the first policyInfo from the list.
+     * Get its list of PolicyQualifiers.
+     * Take the first policyQualifier from the list.
+     * Finally, get the policyQualifier's ID.
+     */
 
     /* Get the PolicyQualifier objects */
     goodCert = createCert(dataDir, goodCertName, plContext);
@@ -1883,19 +1883,19 @@ testNameConstraints(char *dataDir)
     subTest("PKIX_PL_Cert_CheckNameConstraints <OU in excluded>");
 
     /*
-         * Subject: CN=Invalid DN nameConstraints EE Certificate Test3,
-         * OU=permittedSubtree1,O=Test Certificates,C=US
-         */
+     * Subject: CN=Invalid DN nameConstraints EE Certificate Test3,
+     * OU=permittedSubtree1,O=Test Certificates,C=US
+     */
     PKIX_TEST_EXPECT_ERROR(PKIX_PL_Cert_CheckNameConstraints(lastCert, secondMergedNC, NULL));
 
     subTest("PKIX_PL_Cert_CheckNameConstraints <excluded>");
 
     /*
-         * Subject: CN=Invalid DN nameConstraints EE Certificate Test3,
-         * OU=permittedSubtree1,O=Test Certificates,C=US
-         * SubjectAltNames: CN=Invalid DN nameConstraints EE Certificate
-         * Test3,OU=excludedSubtree1,O=Test Certificates,C=US
-         */
+     * Subject: CN=Invalid DN nameConstraints EE Certificate Test3,
+     * OU=permittedSubtree1,O=Test Certificates,C=US
+     * SubjectAltNames: CN=Invalid DN nameConstraints EE Certificate
+     * Test3,OU=excludedSubtree1,O=Test Certificates,C=US
+     */
     PKIX_TEST_EXPECT_ERROR(PKIX_PL_Cert_CheckNameConstraints(lastCert, firstMergedNC, NULL));
 
     subTest("PKIX_PL_Cert_CheckNameConstraints <excluded>");

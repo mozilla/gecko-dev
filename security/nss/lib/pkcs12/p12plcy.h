@@ -16,7 +16,7 @@ SEC_BEGIN_PROTOS
  *                   and is ignored if pbeAlg is pkcs5v2 or pkcs12pbe */
 extern PRBool SEC_PKCS12CipherAllowed(SECOidTag pbeAlg, SECOidTag hmacAlg);
 
-/* for the algid specified, can we decrypt it ? 
+/* for the algid specified, can we decrypt it ?
  * both encryption and hash used in the hmac must be enabled.
  * legacy/decrypt is sufficient */
 extern PRBool SEC_PKCS12DecryptionAllowed(SECAlgorithmID *algid);

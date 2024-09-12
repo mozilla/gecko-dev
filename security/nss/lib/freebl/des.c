@@ -345,7 +345,7 @@ static const HALF PC2[8][64] = {
  * then
  *     c0 = right >> 4;
  *     d0 = ((left & 0x00ffffff) << 4) | (right & 0xf);
-*/
+ */
 
 #define FLIP_RIGHT_DIAGONAL(word, temp)        \
     temp = (word ^ (word >> 18)) & 0x00003333; \

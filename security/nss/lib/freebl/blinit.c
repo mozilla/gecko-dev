@@ -132,7 +132,7 @@ CheckX86CPUSupport()
                              (ebx7 & AVX2_EBX_BITS) == AVX2_EBX_BITS &&
                              (ecx & AVX2_ECX_BITS) == AVX2_ECX_BITS &&
                              disable_avx2 == NULL);
-    /* CPUID.(EAX=07H, ECX=0H):EBX.ADX[bit 19]=1 indicates 
+    /* CPUID.(EAX=07H, ECX=0H):EBX.ADX[bit 19]=1 indicates
     the processor supports ADCX and ADOX instructions.*/
     adx_support_ = (PRBool)((ebx7 & EBX_ADX) != 0 && disable_adx == NULL);
     ssse3_support_ = (PRBool)((ecx & ECX_SSSE3) != 0 &&

@@ -332,8 +332,8 @@ mp_err mp_cswap(mp_digit condition, mp_int *a, mp_int *b, mp_size numdigits);
 
 /* Functions which return an mp_err value will NULL-check their arguments via
  * ARGCHK(condition, return), where the caller is responsible for checking the
- * mp_err return code. For functions that return an integer type, the caller 
- * has no way to tell if the value is an error code or a legitimate value. 
+ * mp_err return code. For functions that return an integer type, the caller
+ * has no way to tell if the value is an error code or a legitimate value.
  * Therefore, ARGMPCHK(condition) will trigger an assertion failure on debug
  * builds, but no-op in optimized builds. */
 #if MP_ARGCHK == 1

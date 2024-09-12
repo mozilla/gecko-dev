@@ -142,9 +142,9 @@ static const sslExtensionBuilder clientHelloSendersTLS[] = {
     { ssl_tls13_key_share_xtn, &tls13_ClientSendKeyShareXtn },
     { ssl_tls13_early_data_xtn, &tls13_ClientSendEarlyDataXtn },
     /* Some servers (e.g. WebSphere Application Server 7.0 and Tomcat) will
-       * time out or terminate the connection if the last extension in the
-       * client hello is empty. They are not intolerant of TLS 1.2, so list
-       * signature_algorithms at the end. See bug 1243641. */
+     * time out or terminate the connection if the last extension in the
+     * client hello is empty. They are not intolerant of TLS 1.2, so list
+     * signature_algorithms at the end. See bug 1243641. */
     { ssl_tls13_supported_versions_xtn, &tls13_ClientSendSupportedVersionsXtn },
     { ssl_signature_algorithms_xtn, &ssl3_SendSigAlgsXtn },
     { ssl_tls13_cookie_xtn, &tls13_ClientSendHrrCookieXtn },
@@ -542,9 +542,9 @@ ssl3_HandleParsedExtensions(sslSocket *ss, SSLHandshakeType message)
                 return SECFailure;
             }
             /* If we offered ECH, we also check whether the extension is compatible with
-            * the Client Hello Inner. We don't yet know whether the server accepted ECH,
-            * so we only store this for now. If we later accept, we check this boolean
-            * and reject with an unsupported_extension alert if it is set. */
+             * the Client Hello Inner. We don't yet know whether the server accepted ECH,
+             * so we only store this for now. If we later accept, we check this boolean
+             * and reject with an unsupported_extension alert if it is set. */
             if (ss->ssl3.hs.echHpkeCtx && !ssl3_ExtensionAdvertisedClientHelloInner(ss, extension->type)) {
                 SSL_TRC(10, ("Server sent xtn type=%d which is invalid for the CHI", extension->type));
                 ss->ssl3.hs.echInvalidExtension = PR_TRUE;

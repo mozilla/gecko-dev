@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* This key is the 1024-bit test key used for speed testing of RSA private 
+/* This key is the 1024-bit test key used for speed testing of RSA private
 ** key ops.
 */
 #include "seccomon.h"

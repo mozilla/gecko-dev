@@ -131,7 +131,7 @@ _gettemp(char *path, register int *doopen, int extraFlags)
             if (*trv == 'z')
                 *trv++ = 'a';
             else {
-                if (isdigit(*trv))
+                if (isdigit((unsigned char)*trv))
                     *trv = 'a';
                 else
                     ++*trv;

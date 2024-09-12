@@ -216,7 +216,7 @@ userSaysDeleteCert(CERTCertificate **certs, int nCerts,
     nb = PR_Read(PR_STDIN, response, sizeof(response));
     PR_fprintf(PR_STDOUT, "\n\n");
     if (errtype == dbOlderCert) {
-        if (!isdigit(response[0])) {
+        if (!isdigit((unsigned char)response[0])) {
             info->promptUser[errtype] = PR_FALSE;
             info->removeType[errtype] = PR_TRUE;
             return PR_TRUE;
@@ -608,10 +608,10 @@ DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, char *newdbname,
 #endif
 
 /*  Fix up the pointers between (nickname|S/MIME) --> (subject).
-     *  Create S/MIME entries for S/MIME certs.
-     *  Have the S/MIME entry point to the last-expiring cert using
-     *  an email address.
-     */
+ *  Create S/MIME entries for S/MIME certs.
+ *  Have the S/MIME entry point to the last-expiring cert using
+ *  an email address.
+ */
 #if 0
     CERT_RedoHandlesForSubjects(info.handle, singleEntry, &info);
 #endif
@@ -627,8 +627,8 @@ DBCK_ReconstructDBFromCerts(NSSLOWCERTCertDBHandle *oldhandle, char *newdbname,
 
 /*  Copy over the content version record.  */
 /*  XXX Can probably get useful info from old content version?
-     *      Was this db created before/after this tool?  etc.
-     */
+ *      Was this db created before/after this tool?  etc.
+ */
 #if 0
     oldContentVersion = ReadDBContentVersionEntry(oldhandle);
     CERT_SetDBContentVersion(oldContentVersion->contentVersion, info.handle);

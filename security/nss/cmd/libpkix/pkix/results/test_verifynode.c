@@ -24,8 +24,8 @@ test_verifynode(int argc, char *argv[])
 {
 
     /*
-         * Create a tree with parent = cert1, child=cert2, grandchild=cert3
-         */
+     * Create a tree with parent = cert1, child=cert2, grandchild=cert3
+     */
     PKIX_PL_Cert *cert1 = NULL;
     PKIX_PL_Cert *cert2 = NULL;
     PKIX_PL_Cert *cert3 = NULL;

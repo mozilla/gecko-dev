@@ -56,6 +56,7 @@
 #define CKK_NSS_CHACHA20 (CKK_NSS + 4)
 
 #define CKK_NSS_KYBER (CKK_NSS + 5)
+#define CKK_NSS_ML_KEM (CKK_NSS + 6)
 
 /*
  * NSS-defined certificate types
@@ -266,6 +267,16 @@
 #define CKM_NSS_KYBER_KEY_PAIR_GEN (CKM_NSS + 45)
 #define CKM_NSS_KYBER (CKM_NSS + 46)
 
+/* TLS ECDHE key pair generation. This is used to indicate that a key pair is
+ * for use in a single TLS handshake, so NIST SP 800-56A pairwise consistency
+ * checks can be skipped. It is otherwise identical to CKM_EC_KEY_PAIR_GEN.
+ */
+#define CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN (CKM_NSS + 47)
+
+/* ML-KEM */
+#define CKM_NSS_ML_KEM_KEY_PAIR_GEN (CKM_NSS + 48)
+#define CKM_NSS_ML_KEM (CKM_NSS + 49)
+
 /*
  * HISTORICAL:
  * Do not attempt to use these. They are only used by NSS's internal
@@ -288,6 +299,7 @@
 /* Parameter set identifiers */
 #define CKP_NSS (CKM_VENDOR_DEFINED | NSSCK_VENDOR_NSS)
 #define CKP_NSS_KYBER_768_ROUND3 (CKP_NSS + 1)
+#define CKP_NSS_ML_KEM_768 (CKP_NSS + 2)
 
 /* FIPS Indicator defines */
 #define CKS_NSS_UNINITIALIZED 0xffffffffUL

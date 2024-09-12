@@ -5,6 +5,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cstdint>
+#include <iostream>
 #include <memory>
 
 #include "blapi.h"
@@ -223,6 +224,11 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t len) {
   ScopedPRFileDesc fd(DummyIOLayerMethods::CreateFD(id, socket.get()));
   PRFileDesc* ssl_fd = ImportFD(nullptr, fd.get());
   assert(ssl_fd == fd.get());
+
+  // Print the client config for debugging.
+  if (ssl_trace >= 90) {
+    std::cerr << config << "\n";
+  }
 
   // Probably not too important for clients.
   SSL_SetURL(ssl_fd, "server");

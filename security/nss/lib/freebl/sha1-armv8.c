@@ -50,8 +50,8 @@ SHA1_Update_Native(SHA1Context *ctx, const unsigned char *dataIn, unsigned int l
     ctx->size += len;
 
     /*
-   *  Read the data into W and process blocks as they get full
-   */
+     *  Read the data into W and process blocks as they get full
+     */
     if (lenB > 0) {
         togo = 64U - lenB;
         if (len < togo) {
@@ -112,15 +112,15 @@ shaCompress(SHA_HW_t *X, const PRUint32 *inbuf)
     PRUint32 tmpE;
 
     /*
-         * Using the following ARM instructions to accelerate SHA1
-         *
-         * sha1c for round 0 - 20
-         * sha1p for round 20 - 40
-         * sha1m for round 40 - 60
-         * sha1p for round 60 - 80
-         * sha1su0 and shasu1 for message schedule
-         * sha1h for rotate left 30
-         */
+     * Using the following ARM instructions to accelerate SHA1
+     *
+     * sha1c for round 0 - 20
+     * sha1p for round 20 - 40
+     * sha1m for round 40 - 60
+     * sha1p for round 60 - 80
+     * sha1su0 and shasu1 for message schedule
+     * sha1h for rotate left 30
+     */
 
     /* Round 0-3 */
     tmpE = vsha1h_u32(vgetq_lane_u32(abcd, 0));

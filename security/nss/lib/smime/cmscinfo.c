@@ -178,8 +178,8 @@ NSS_CMSContentInfo_SetContent(NSSCMSMessage *cmsg, NSSCMSContentInfo *cinfo,
         cinfo->rawContent = ptr;
     } else {
         /* as we always have some inner data,
-     * we need to set it to something, just to fool the encoder enough to work on it
-     * and get us into nss_cms_encoder_notify at that point */
+         * we need to set it to something, just to fool the encoder enough to work on it
+         * and get us into nss_cms_encoder_notify at that point */
         cinfo->rawContent = SECITEM_AllocItem(cmsg->poolp, NULL, 1);
         if (cinfo->rawContent == NULL) {
             PORT_SetError(SEC_ERROR_NO_MEMORY);

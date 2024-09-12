@@ -997,9 +997,9 @@ nssCKFWMechanism_UnwrapKey(
 
     if (!fwMechanism->mdMechanism->UnwrapKey) {
         /* we could simulate UnwrapKey using Decrypt and Create object, but
-     * 1) it's not clear that would work well, and 2) the low level token
-     * may want to restrict unwrap key for a reason, so just fail it it
-     * can't be done */
+         * 1) it's not clear that would work well, and 2) the low level token
+         * may want to restrict unwrap key for a reason, so just fail it it
+         * can't be done */
         *pError = CKR_FUNCTION_FAILED;
         return (NSSCKFWObject *)NULL;
     }

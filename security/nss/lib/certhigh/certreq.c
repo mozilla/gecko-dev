@@ -172,14 +172,14 @@ CERT_CreateCertificateRequest(CERTName *subject,
     /* Copy over attribute information */
     if (!attributes || !attributes[0]) {
         /*
-	 ** Invent empty attribute information. According to the
-	 ** pkcs#10 spec, attributes has this ASN.1 type:
-	 **
-	 ** attributes [0] IMPLICIT Attributes
-	 **
-	 ** Which means, we should create a NULL terminated list
-	 ** with the first entry being NULL;
-	 */
+         ** Invent empty attribute information. According to the
+         ** pkcs#10 spec, attributes has this ASN.1 type:
+         **
+         ** attributes [0] IMPLICIT Attributes
+         **
+         ** Which means, we should create a NULL terminated list
+         ** with the first entry being NULL;
+         */
         certreq->attributes[0] = NULL;
         return certreq;
     }
@@ -206,12 +206,12 @@ CERT_CreateCertificateRequest(CERTName *subject,
     /* copy attributes */
     for (i = 0; attributes[i]; i++) {
         /*
-	** Attributes are a SetOf Attribute which implies
-	** lexigraphical ordering.  It is assumes that the
-	** attributes are passed in sorted.  If we need to
-	** add functionality to sort them, there is an
-	** example in the PKCS 7 code.
-	*/
+        ** Attributes are a SetOf Attribute which implies
+        ** lexigraphical ordering.  It is assumes that the
+        ** attributes are passed in sorted.  If we need to
+        ** add functionality to sort them, there is an
+        ** example in the PKCS 7 code.
+        */
         attribute->attrValue[i] = SECITEM_ArenaDupItem(arena, attributes[i]);
         if (!attribute->attrValue[i])
             goto loser;
@@ -245,7 +245,7 @@ setCRExt(void *o, CERTCertExtension **exts)
 ** Set up to start gathering cert extensions for a cert request.
 ** The list is created as CertExtensions and converted to an
 ** attribute list by CERT_FinishCRAttributes().
- */
+*/
 extern void *cert_StartExtensions(void *owner, PLArenaPool *ownerArena,
                                   void (*setExts)(void *object, CERTCertExtension **exts));
 void *
@@ -260,7 +260,7 @@ CERT_StartCertificateRequestAttributes(CERTCertificateRequest *req)
 ** ...EncodeItem() below).
 ** We turn this into an attribute list by encapsulating it
 ** in a PKCS 10 Attribute structure
- */
+*/
 SECStatus
 CERT_FinishCertificateRequestAttributes(CERTCertificateRequest *req)
 {

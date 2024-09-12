@@ -475,8 +475,8 @@ dbs_mkBlobDirName(const char *dbname)
 #define DBM_DEFAULT 0
 static const HASHINFO dbs_hashInfo = {
     DBS_BLOCK_SIZE, /* bucket size, must be greater than = to
-				     * or maximum entry size (+ header)
-				     * we allow before blobing */
+                     * or maximum entry size (+ header)
+                     * we allow before blobing */
     DBM_DEFAULT,    /* Fill Factor */
     DBM_DEFAULT,    /* number of elements */
     DBS_CACHE_SIZE, /* cache size */

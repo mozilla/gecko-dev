@@ -27,8 +27,8 @@ testPass(char *dirName, char *goodInput, char *diffInput, char *dateAscii)
 
     subTest("Basic-Common-Fields <pass>");
     /*
-         * Tests the Expiration, NameChaining, and Signature Checkers
-         */
+     * Tests the Expiration, NameChaining, and Signature Checkers
+     */
 
     chain = createCertChain(dirName, goodInput, diffInput, plContext);
 
@@ -219,11 +219,11 @@ test_basicchecker(int argc, char *argv[])
     testDateFail(dirName, goodInput, diffInput);
 
     /*
-         * XXX
-         * since the signature check is done last, we need to create
-         * certs whose name chaining passes, but their signatures fail;
-         * we currently don't have any such certs.
-         */
+     * XXX
+     * since the signature check is done last, we need to create
+     * certs whose name chaining passes, but their signatures fail;
+     * we currently don't have any such certs.
+     */
     /* testSignatureFail(goodInput, diffInput, dateAscii); */
 
 cleanup:

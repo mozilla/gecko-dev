@@ -100,10 +100,10 @@ SECStatus intel_aes_encrypt_ctr_256(CTRContext *cx, unsigned char *output,
                                     unsigned int inputLen,
                                     unsigned int blocksize);
 
-#define intel_aes_ctr_worker(nr)                         \
-    ((nr) == 10 ? intel_aes_encrypt_ctr_128              \
-                : (nr) == 12 ? intel_aes_encrypt_ctr_192 \
-                             : intel_aes_encrypt_ctr_256)
+#define intel_aes_ctr_worker(nr)              \
+    ((nr) == 10   ? intel_aes_encrypt_ctr_128 \
+     : (nr) == 12 ? intel_aes_encrypt_ctr_192 \
+                  : intel_aes_encrypt_ctr_256)
 
 #define native_aes_init(encrypt, keysize)                           \
     do {                                                            \

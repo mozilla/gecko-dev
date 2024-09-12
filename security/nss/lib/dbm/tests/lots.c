@@ -112,8 +112,8 @@ MakeLargeKey(int32 num)
         free(string_rv);
 
     /* generate a really large text key derived from
-	 * an int32
-	 */
+     * an int32
+     */
     low_bits = (num % 10000) + 1;
 
     /* get the repeat char from the low 26 */
@@ -193,9 +193,9 @@ VerifyData(DBT *data, int32 num, key_type_enum key_type)
     int32 *int32_array;
 
     /* The first int32 is count
-	 * The other n entries should
-	 * all equal num
-	 */
+     * The other n entries should
+     * all equal num
+     */
     if (data->size < sizeof(int32)) {
         ReportError("Data size corrupted");
         return -1;

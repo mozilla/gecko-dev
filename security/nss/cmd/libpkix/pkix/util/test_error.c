@@ -256,9 +256,9 @@ testPrimitiveError(void)
     PKIX_TEST_DECREF_BC(targetString);
 
     /*
-         *  We need to DECREF twice, b/c the PKIX_ALLOC_ERROR object
-         *  which holds a cached copy of the stringRep can never be DECREF'd
-         */
+     *  We need to DECREF twice, b/c the PKIX_ALLOC_ERROR object
+     *  which holds a cached copy of the stringRep can never be DECREF'd
+     */
     PKIX_TEST_DECREF_BC(targetStringCopy);
 
 cleanup:

@@ -56,8 +56,8 @@ padBlock(SECItem *data, int blockSize, SECItem *result)
     result->len = 0;
 
     /* This algorithm always adds to the block (to indicate the number
-   * of pad bytes).  So allocate a block large enough.
-   */
+     * of pad bytes).  So allocate a block large enough.
+     */
     padLength = blockSize - (data->len % blockSize);
     result->len = data->len + padLength;
     result->data = (unsigned char *)PORT_Alloc(result->len);

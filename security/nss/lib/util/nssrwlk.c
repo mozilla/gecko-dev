@@ -177,7 +177,7 @@ NSSRWLock_LockRead(NSSRWLock *rwlock)
 }
 
 /* Unlock a Read lock held on this RW lock.
-*/
+ */
 void
 NSSRWLock_UnlockRead(NSSRWLock *rwlock)
 {
@@ -257,7 +257,7 @@ NSSRWLock_LockWrite(NSSRWLock *rwlock)
 }
 
 /* Unlock a Read lock held on this RW lock.
-*/
+ */
 void
 NSSRWLock_UnlockWrite(NSSRWLock *rwlock)
 {
@@ -300,11 +300,11 @@ NSSRWLock_HaveWriteLock(NSSRWLock *rwlock)
     PRThread *me = PR_GetCurrentThread();
 
 /* This lock call isn't really necessary.
-    ** If this thread is the owner, that fact cannot change during this call,
-    ** because this thread is in this call.
-    ** If this thread is NOT the owner, the owner could change, but it
-    ** could not become this thread.
-    */
+ ** If this thread is the owner, that fact cannot change during this call,
+ ** because this thread is in this call.
+ ** If this thread is NOT the owner, the owner could change, but it
+ ** could not become this thread.
+ */
 #if UNNECESSARY
     PZ_Lock(rwlock->rw_lock);
 #endif

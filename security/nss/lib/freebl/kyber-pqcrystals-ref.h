@@ -12,7 +12,7 @@
  *  - include directives have been removed,
  *  - "#ifdef KYBER90S" blocks have been evaluated with "KYBER90S" undefined,
  *  - functions outside of kem.c have been made static.
-*/
+ */
 
 /** begin: ref/LICENSE **
 Public Domain (https://creativecommons.org/share-your-work/public-domain/cc0/);

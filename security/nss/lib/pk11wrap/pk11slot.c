@@ -943,9 +943,12 @@ PK11_GetSlotList(CK_MECHANISM_TYPE type)
         case CKM_ECDSA:
         case CKM_ECDSA_SHA1:
         case CKM_EC_KEY_PAIR_GEN: /* aka CKM_ECDSA_KEY_PAIR_GEN */
+        case CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN:
         case CKM_ECDH1_DERIVE:
         case CKM_NSS_KYBER_KEY_PAIR_GEN: /* Bug 1893029 */
         case CKM_NSS_KYBER:
+        case CKM_NSS_ML_KEM_KEY_PAIR_GEN: /* Bug 1893029 */
+        case CKM_NSS_ML_KEM:
             return &pk11_ecSlotList;
         case CKM_SSL3_PRE_MASTER_KEY_GEN:
         case CKM_SSL3_MASTER_KEY_DERIVE:

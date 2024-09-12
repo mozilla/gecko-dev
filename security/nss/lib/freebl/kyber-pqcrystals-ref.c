@@ -12,7 +12,7 @@
  *  - include directives have been removed,
  *  - "#ifdef KYBER90S" blocks have been evaluated with "KYBER90S" undefined,
  *  - functions outside of kem.c have been made static.
-*/
+ */
 
 /** begin: ref/LICENSE **
 Public Domain (https://creativecommons.org/share-your-work/public-domain/cc0/);
@@ -59,16 +59,16 @@ randombytes(uint8_t *out, size_t outlen)
 }
 
 /*************************************************
-* Name:        verify
-*
-* Description: Compare two arrays for equality in constant time.
-*
-* Arguments:   const uint8_t *a: pointer to first byte array
-*              const uint8_t *b: pointer to second byte array
-*              size_t len:       length of the byte arrays
-*
-* Returns 0 if the byte arrays are equal, 1 otherwise
-**************************************************/
+ * Name:        verify
+ *
+ * Description: Compare two arrays for equality in constant time.
+ *
+ * Arguments:   const uint8_t *a: pointer to first byte array
+ *              const uint8_t *b: pointer to second byte array
+ *              size_t len:       length of the byte arrays
+ *
+ * Returns 0 if the byte arrays are equal, 1 otherwise
+ **************************************************/
 static int
 verify(const uint8_t *a, const uint8_t *b, size_t len)
 {
@@ -76,18 +76,18 @@ verify(const uint8_t *a, const uint8_t *b, size_t len)
 }
 
 /*************************************************
-* Name:        cmov
-*
-* Description: Copy len bytes from x to r if b is 1;
-*              don't modify x if b is 0. Requires b to be in {0,1};
-*              assumes two's complement representation of negative integers.
-*              Runs in constant time.
-*
-* Arguments:   uint8_t *r:       pointer to output byte array
-*              const uint8_t *x: pointer to input byte array
-*              size_t len:       Amount of bytes to be copied
-*              uint8_t b:        Condition bit; has to be in {0,1}
-**************************************************/
+ * Name:        cmov
+ *
+ * Description: Copy len bytes from x to r if b is 1;
+ *              don't modify x if b is 0. Requires b to be in {0,1};
+ *              assumes two's complement representation of negative integers.
+ *              Runs in constant time.
+ *
+ * Arguments:   uint8_t *r:       pointer to output byte array
+ *              const uint8_t *x: pointer to input byte array
+ *              size_t len:       Amount of bytes to be copied
+ *              uint8_t b:        Condition bit; has to be in {0,1}
+ **************************************************/
 static void
 cmov(uint8_t *r, const uint8_t *x, size_t len, uint8_t b)
 {
@@ -383,16 +383,16 @@ int crypto_kem_dec(uint8_t *ss, const uint8_t *ct, const uint8_t *sk);
 
 /** begin: ref/reduce.c **/
 /*************************************************
-* Name:        montgomery_reduce
-*
-* Description: Montgomery reduction; given a 32-bit integer a, computes
-*              16-bit integer congruent to a * R^-1 mod q, where R=2^16
-*
-* Arguments:   - int32_t a: input integer to be reduced;
-*                           has to be in {-q2^15,...,q2^15-1}
-*
-* Returns:     integer in {-q+1,...,q-1} congruent to a * R^-1 modulo q.
-**************************************************/
+ * Name:        montgomery_reduce
+ *
+ * Description: Montgomery reduction; given a 32-bit integer a, computes
+ *              16-bit integer congruent to a * R^-1 mod q, where R=2^16
+ *
+ * Arguments:   - int32_t a: input integer to be reduced;
+ *                           has to be in {-q2^15,...,q2^15-1}
+ *
+ * Returns:     integer in {-q+1,...,q-1} congruent to a * R^-1 modulo q.
+ **************************************************/
 static int16_t
 montgomery_reduce(int32_t a)
 {
@@ -404,15 +404,15 @@ montgomery_reduce(int32_t a)
 }
 
 /*************************************************
-* Name:        barrett_reduce
-*
-* Description: Barrett reduction; given a 16-bit integer a, computes
-*              centered representative congruent to a mod q in {-(q-1)/2,...,(q-1)/2}
-*
-* Arguments:   - int16_t a: input integer to be reduced
-*
-* Returns:     integer in {-(q-1)/2,...,(q-1)/2} congruent to a modulo q.
-**************************************************/
+ * Name:        barrett_reduce
+ *
+ * Description: Barrett reduction; given a 16-bit integer a, computes
+ *              centered representative congruent to a mod q in {-(q-1)/2,...,(q-1)/2}
+ *
+ * Arguments:   - int16_t a: input integer to be reduced
+ *
+ * Returns:     integer in {-(q-1)/2,...,(q-1)/2} congruent to a modulo q.
+ **************************************************/
 static int16_t
 barrett_reduce(int16_t a)
 {
@@ -427,15 +427,15 @@ barrett_reduce(int16_t a)
 
 /** begin: ref/cbd.c **/
 /*************************************************
-* Name:        load32_littleendian
-*
-* Description: load 4 bytes into a 32-bit integer
-*              in little-endian order
-*
-* Arguments:   - const uint8_t *x: pointer to input byte array
-*
-* Returns 32-bit unsigned integer loaded from x
-**************************************************/
+ * Name:        load32_littleendian
+ *
+ * Description: load 4 bytes into a 32-bit integer
+ *              in little-endian order
+ *
+ * Arguments:   - const uint8_t *x: pointer to input byte array
+ *
+ * Returns 32-bit unsigned integer loaded from x
+ **************************************************/
 static uint32_t
 load32_littleendian(const uint8_t x[4])
 {
@@ -448,16 +448,16 @@ load32_littleendian(const uint8_t x[4])
 }
 
 /*************************************************
-* Name:        load24_littleendian
-*
-* Description: load 3 bytes into a 32-bit integer
-*              in little-endian order.
-*              This function is only needed for Kyber-512
-*
-* Arguments:   - const uint8_t *x: pointer to input byte array
-*
-* Returns 32-bit unsigned integer loaded from x (most significant byte is zero)
-**************************************************/
+ * Name:        load24_littleendian
+ *
+ * Description: load 3 bytes into a 32-bit integer
+ *              in little-endian order.
+ *              This function is only needed for Kyber-512
+ *
+ * Arguments:   - const uint8_t *x: pointer to input byte array
+ *
+ * Returns 32-bit unsigned integer loaded from x (most significant byte is zero)
+ **************************************************/
 #if KYBER_ETA1 == 3
 static uint32_t
 load24_littleendian(const uint8_t x[3])
@@ -471,15 +471,15 @@ load24_littleendian(const uint8_t x[3])
 #endif
 
 /*************************************************
-* Name:        cbd2
-*
-* Description: Given an array of uniformly random bytes, compute
-*              polynomial with coefficients distributed according to
-*              a centered binomial distribution with parameter eta=2
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *buf: pointer to input byte array
-**************************************************/
+ * Name:        cbd2
+ *
+ * Description: Given an array of uniformly random bytes, compute
+ *              polynomial with coefficients distributed according to
+ *              a centered binomial distribution with parameter eta=2
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const uint8_t *buf: pointer to input byte array
+ **************************************************/
 static void
 cbd2(poly *r, const uint8_t buf[2 * KYBER_N / 4])
 {
@@ -501,16 +501,16 @@ cbd2(poly *r, const uint8_t buf[2 * KYBER_N / 4])
 }
 
 /*************************************************
-* Name:        cbd3
-*
-* Description: Given an array of uniformly random bytes, compute
-*              polynomial with coefficients distributed according to
-*              a centered binomial distribution with parameter eta=3.
-*              This function is only needed for Kyber-512
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *buf: pointer to input byte array
-**************************************************/
+ * Name:        cbd3
+ *
+ * Description: Given an array of uniformly random bytes, compute
+ *              polynomial with coefficients distributed according to
+ *              a centered binomial distribution with parameter eta=3.
+ *              This function is only needed for Kyber-512
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const uint8_t *buf: pointer to input byte array
+ **************************************************/
 #if KYBER_ETA1 == 3
 static void
 cbd3(poly *r, const uint8_t buf[3 * KYBER_N / 4])
@@ -611,15 +611,15 @@ const int16_t zetas[128] = {
 };
 
 /*************************************************
-* Name:        fqmul
-*
-* Description: Multiplication followed by Montgomery reduction
-*
-* Arguments:   - int16_t a: first factor
-*              - int16_t b: second factor
-*
-* Returns 16-bit integer congruent to a*b*R^{-1} mod q
-**************************************************/
+ * Name:        fqmul
+ *
+ * Description: Multiplication followed by Montgomery reduction
+ *
+ * Arguments:   - int16_t a: first factor
+ *              - int16_t b: second factor
+ *
+ * Returns 16-bit integer congruent to a*b*R^{-1} mod q
+ **************************************************/
 static int16_t
 fqmul(int16_t a, int16_t b)
 {
@@ -627,13 +627,13 @@ fqmul(int16_t a, int16_t b)
 }
 
 /*************************************************
-* Name:        ntt
-*
-* Description: Inplace number-theoretic transform (NTT) in Rq.
-*              input is in standard order, output is in bitreversed order
-*
-* Arguments:   - int16_t r[256]: pointer to input/output vector of elements of Zq
-**************************************************/
+ * Name:        ntt
+ *
+ * Description: Inplace number-theoretic transform (NTT) in Rq.
+ *              input is in standard order, output is in bitreversed order
+ *
+ * Arguments:   - int16_t r[256]: pointer to input/output vector of elements of Zq
+ **************************************************/
 static void
 ntt(int16_t r[256])
 {
@@ -654,14 +654,14 @@ ntt(int16_t r[256])
 }
 
 /*************************************************
-* Name:        invntt_tomont
-*
-* Description: Inplace inverse number-theoretic transform in Rq and
-*              multiplication by Montgomery factor 2^16.
-*              Input is in bitreversed order, output is in standard order
-*
-* Arguments:   - int16_t r[256]: pointer to input/output vector of elements of Zq
-**************************************************/
+ * Name:        invntt_tomont
+ *
+ * Description: Inplace inverse number-theoretic transform in Rq and
+ *              multiplication by Montgomery factor 2^16.
+ *              Input is in bitreversed order, output is in standard order
+ *
+ * Arguments:   - int16_t r[256]: pointer to input/output vector of elements of Zq
+ **************************************************/
 static void
 invntt(int16_t r[256])
 {
@@ -687,16 +687,16 @@ invntt(int16_t r[256])
 }
 
 /*************************************************
-* Name:        basemul
-*
-* Description: Multiplication of polynomials in Zq[X]/(X^2-zeta)
-*              used for multiplication of elements in Rq in NTT domain
-*
-* Arguments:   - int16_t r[2]: pointer to the output polynomial
-*              - const int16_t a[2]: pointer to the first factor
-*              - const int16_t b[2]: pointer to the second factor
-*              - int16_t zeta: integer defining the reduction polynomial
-**************************************************/
+ * Name:        basemul
+ *
+ * Description: Multiplication of polynomials in Zq[X]/(X^2-zeta)
+ *              used for multiplication of elements in Rq in NTT domain
+ *
+ * Arguments:   - int16_t r[2]: pointer to the output polynomial
+ *              - const int16_t a[2]: pointer to the first factor
+ *              - const int16_t b[2]: pointer to the second factor
+ *              - int16_t zeta: integer defining the reduction polynomial
+ **************************************************/
 static void
 basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 {
@@ -710,14 +710,14 @@ basemul(int16_t r[2], const int16_t a[2], const int16_t b[2], int16_t zeta)
 
 /** begin: ref/poly.c **/
 /*************************************************
-* Name:        poly_compress
-*
-* Description: Compression and subsequent serialization of a polynomial
-*
-* Arguments:   - uint8_t *r: pointer to output byte array
-*                            (of length KYBER_POLYCOMPRESSEDBYTES)
-*              - const poly *a: pointer to input polynomial
-**************************************************/
+ * Name:        poly_compress
+ *
+ * Description: Compression and subsequent serialization of a polynomial
+ *
+ * Arguments:   - uint8_t *r: pointer to output byte array
+ *                            (of length KYBER_POLYCOMPRESSEDBYTES)
+ *              - const poly *a: pointer to input polynomial
+ **************************************************/
 static void
 poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
 {
@@ -773,15 +773,15 @@ poly_compress(uint8_t r[KYBER_POLYCOMPRESSEDBYTES], const poly *a)
 }
 
 /*************************************************
-* Name:        poly_decompress
-*
-* Description: De-serialization and subsequent decompression of a polynomial;
-*              approximate inverse of poly_compress
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *a: pointer to input byte array
-*                                  (of length KYBER_POLYCOMPRESSEDBYTES bytes)
-**************************************************/
+ * Name:        poly_decompress
+ *
+ * Description: De-serialization and subsequent decompression of a polynomial;
+ *              approximate inverse of poly_compress
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const uint8_t *a: pointer to input byte array
+ *                                  (of length KYBER_POLYCOMPRESSEDBYTES bytes)
+ **************************************************/
 static void
 poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
 {
@@ -816,14 +816,14 @@ poly_decompress(poly *r, const uint8_t a[KYBER_POLYCOMPRESSEDBYTES])
 }
 
 /*************************************************
-* Name:        poly_tobytes
-*
-* Description: Serialization of a polynomial
-*
-* Arguments:   - uint8_t *r: pointer to output byte array
-*                            (needs space for KYBER_POLYBYTES bytes)
-*              - const poly *a: pointer to input polynomial
-**************************************************/
+ * Name:        poly_tobytes
+ *
+ * Description: Serialization of a polynomial
+ *
+ * Arguments:   - uint8_t *r: pointer to output byte array
+ *                            (needs space for KYBER_POLYBYTES bytes)
+ *              - const poly *a: pointer to input polynomial
+ **************************************************/
 static void
 poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a)
 {
@@ -843,15 +843,15 @@ poly_tobytes(uint8_t r[KYBER_POLYBYTES], const poly *a)
 }
 
 /*************************************************
-* Name:        poly_frombytes
-*
-* Description: De-serialization of a polynomial;
-*              inverse of poly_tobytes
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *a: pointer to input byte array
-*                                  (of KYBER_POLYBYTES bytes)
-**************************************************/
+ * Name:        poly_frombytes
+ *
+ * Description: De-serialization of a polynomial;
+ *              inverse of poly_tobytes
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const uint8_t *a: pointer to input byte array
+ *                                  (of KYBER_POLYBYTES bytes)
+ **************************************************/
 static void
 poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES])
 {
@@ -863,13 +863,13 @@ poly_frombytes(poly *r, const uint8_t a[KYBER_POLYBYTES])
 }
 
 /*************************************************
-* Name:        poly_frommsg
-*
-* Description: Convert 32-byte message to polynomial
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *msg: pointer to input message
-**************************************************/
+ * Name:        poly_frommsg
+ *
+ * Description: Convert 32-byte message to polynomial
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const uint8_t *msg: pointer to input message
+ **************************************************/
 static void
 poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES])
 {
@@ -889,13 +889,13 @@ poly_frommsg(poly *r, const uint8_t msg[KYBER_INDCPA_MSGBYTES])
 }
 
 /*************************************************
-* Name:        poly_tomsg
-*
-* Description: Convert polynomial to 32-byte message
-*
-* Arguments:   - uint8_t *msg: pointer to output message
-*              - const poly *a: pointer to input polynomial
-**************************************************/
+ * Name:        poly_tomsg
+ *
+ * Description: Convert polynomial to 32-byte message
+ *
+ * Arguments:   - uint8_t *msg: pointer to output message
+ *              - const poly *a: pointer to input polynomial
+ **************************************************/
 static void
 poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
 {
@@ -919,17 +919,17 @@ poly_tomsg(uint8_t msg[KYBER_INDCPA_MSGBYTES], const poly *a)
 }
 
 /*************************************************
-* Name:        poly_getnoise_eta1
-*
-* Description: Sample a polynomial deterministically from a seed and a nonce,
-*              with output polynomial close to centered binomial distribution
-*              with parameter KYBER_ETA1
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *seed: pointer to input seed
-*                                     (of length KYBER_SYMBYTES bytes)
-*              - uint8_t nonce: one-byte input nonce
-**************************************************/
+ * Name:        poly_getnoise_eta1
+ *
+ * Description: Sample a polynomial deterministically from a seed and a nonce,
+ *              with output polynomial close to centered binomial distribution
+ *              with parameter KYBER_ETA1
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const uint8_t *seed: pointer to input seed
+ *                                     (of length KYBER_SYMBYTES bytes)
+ *              - uint8_t nonce: one-byte input nonce
+ **************************************************/
 static void
 poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
@@ -939,17 +939,17 @@ poly_getnoise_eta1(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 }
 
 /*************************************************
-* Name:        poly_getnoise_eta2
-*
-* Description: Sample a polynomial deterministically from a seed and a nonce,
-*              with output polynomial close to centered binomial distribution
-*              with parameter KYBER_ETA2
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const uint8_t *seed: pointer to input seed
-*                                     (of length KYBER_SYMBYTES bytes)
-*              - uint8_t nonce: one-byte input nonce
-**************************************************/
+ * Name:        poly_getnoise_eta2
+ *
+ * Description: Sample a polynomial deterministically from a seed and a nonce,
+ *              with output polynomial close to centered binomial distribution
+ *              with parameter KYBER_ETA2
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const uint8_t *seed: pointer to input seed
+ *                                     (of length KYBER_SYMBYTES bytes)
+ *              - uint8_t nonce: one-byte input nonce
+ **************************************************/
 static void
 poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 {
@@ -959,14 +959,14 @@ poly_getnoise_eta2(poly *r, const uint8_t seed[KYBER_SYMBYTES], uint8_t nonce)
 }
 
 /*************************************************
-* Name:        poly_ntt
-*
-* Description: Computes negacyclic number-theoretic transform (NTT) of
-*              a polynomial in place;
-*              inputs assumed to be in normal order, output in bitreversed order
-*
-* Arguments:   - uint16_t *r: pointer to in/output polynomial
-**************************************************/
+ * Name:        poly_ntt
+ *
+ * Description: Computes negacyclic number-theoretic transform (NTT) of
+ *              a polynomial in place;
+ *              inputs assumed to be in normal order, output in bitreversed order
+ *
+ * Arguments:   - uint16_t *r: pointer to in/output polynomial
+ **************************************************/
 static void
 poly_ntt(poly *r)
 {
@@ -975,14 +975,14 @@ poly_ntt(poly *r)
 }
 
 /*************************************************
-* Name:        poly_invntt_tomont
-*
-* Description: Computes inverse of negacyclic number-theoretic transform (NTT)
-*              of a polynomial in place;
-*              inputs assumed to be in bitreversed order, output in normal order
-*
-* Arguments:   - uint16_t *a: pointer to in/output polynomial
-**************************************************/
+ * Name:        poly_invntt_tomont
+ *
+ * Description: Computes inverse of negacyclic number-theoretic transform (NTT)
+ *              of a polynomial in place;
+ *              inputs assumed to be in bitreversed order, output in normal order
+ *
+ * Arguments:   - uint16_t *a: pointer to in/output polynomial
+ **************************************************/
 static void
 poly_invntt_tomont(poly *r)
 {
@@ -990,14 +990,14 @@ poly_invntt_tomont(poly *r)
 }
 
 /*************************************************
-* Name:        poly_basemul_montgomery
-*
-* Description: Multiplication of two polynomials in NTT domain
-*
-* Arguments:   - poly *r: pointer to output polynomial
-*              - const poly *a: pointer to first input polynomial
-*              - const poly *b: pointer to second input polynomial
-**************************************************/
+ * Name:        poly_basemul_montgomery
+ *
+ * Description: Multiplication of two polynomials in NTT domain
+ *
+ * Arguments:   - poly *r: pointer to output polynomial
+ *              - const poly *a: pointer to first input polynomial
+ *              - const poly *b: pointer to second input polynomial
+ **************************************************/
 static void
 poly_basemul_montgomery(poly *r, const poly *a, const poly *b)
 {
@@ -1009,13 +1009,13 @@ poly_basemul_montgomery(poly *r, const poly *a, const poly *b)
 }
 
 /*************************************************
-* Name:        poly_tomont
-*
-* Description: Inplace conversion of all coefficients of a polynomial
-*              from normal domain to Montgomery domain
-*
-* Arguments:   - poly *r: pointer to input/output polynomial
-**************************************************/
+ * Name:        poly_tomont
+ *
+ * Description: Inplace conversion of all coefficients of a polynomial
+ *              from normal domain to Montgomery domain
+ *
+ * Arguments:   - poly *r: pointer to input/output polynomial
+ **************************************************/
 static void
 poly_tomont(poly *r)
 {
@@ -1026,13 +1026,13 @@ poly_tomont(poly *r)
 }
 
 /*************************************************
-* Name:        poly_reduce
-*
-* Description: Applies Barrett reduction to all coefficients of a polynomial
-*              for details of the Barrett reduction see comments in reduce.c
-*
-* Arguments:   - poly *r: pointer to input/output polynomial
-**************************************************/
+ * Name:        poly_reduce
+ *
+ * Description: Applies Barrett reduction to all coefficients of a polynomial
+ *              for details of the Barrett reduction see comments in reduce.c
+ *
+ * Arguments:   - poly *r: pointer to input/output polynomial
+ **************************************************/
 static void
 poly_reduce(poly *r)
 {
@@ -1042,14 +1042,14 @@ poly_reduce(poly *r)
 }
 
 /*************************************************
-* Name:        poly_add
-*
-* Description: Add two polynomials; no modular reduction is performed
-*
-* Arguments: - poly *r: pointer to output polynomial
-*            - const poly *a: pointer to first input polynomial
-*            - const poly *b: pointer to second input polynomial
-**************************************************/
+ * Name:        poly_add
+ *
+ * Description: Add two polynomials; no modular reduction is performed
+ *
+ * Arguments: - poly *r: pointer to output polynomial
+ *            - const poly *a: pointer to first input polynomial
+ *            - const poly *b: pointer to second input polynomial
+ **************************************************/
 static void
 poly_add(poly *r, const poly *a, const poly *b)
 {
@@ -1059,14 +1059,14 @@ poly_add(poly *r, const poly *a, const poly *b)
 }
 
 /*************************************************
-* Name:        poly_sub
-*
-* Description: Subtract two polynomials; no modular reduction is performed
-*
-* Arguments: - poly *r:       pointer to output polynomial
-*            - const poly *a: pointer to first input polynomial
-*            - const poly *b: pointer to second input polynomial
-**************************************************/
+ * Name:        poly_sub
+ *
+ * Description: Subtract two polynomials; no modular reduction is performed
+ *
+ * Arguments: - poly *r:       pointer to output polynomial
+ *            - const poly *a: pointer to first input polynomial
+ *            - const poly *b: pointer to second input polynomial
+ **************************************************/
 static void
 poly_sub(poly *r, const poly *a, const poly *b)
 {
@@ -1078,14 +1078,14 @@ poly_sub(poly *r, const poly *a, const poly *b)
 
 /** begin: ref/polyvec.c **/
 /*************************************************
-* Name:        polyvec_compress
-*
-* Description: Compress and serialize vector of polynomials
-*
-* Arguments:   - uint8_t *r: pointer to output byte array
-*                            (needs space for KYBER_POLYVECCOMPRESSEDBYTES)
-*              - const polyvec *a: pointer to input vector of polynomials
-**************************************************/
+ * Name:        polyvec_compress
+ *
+ * Description: Compress and serialize vector of polynomials
+ *
+ * Arguments:   - uint8_t *r: pointer to output byte array
+ *                            (needs space for KYBER_POLYVECCOMPRESSEDBYTES)
+ *              - const polyvec *a: pointer to input vector of polynomials
+ **************************************************/
 static void
 polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a)
 {
@@ -1152,15 +1152,15 @@ polyvec_compress(uint8_t r[KYBER_POLYVECCOMPRESSEDBYTES], const polyvec *a)
 }
 
 /*************************************************
-* Name:        polyvec_decompress
-*
-* Description: De-serialize and decompress vector of polynomials;
-*              approximate inverse of polyvec_compress
-*
-* Arguments:   - polyvec *r:       pointer to output vector of polynomials
-*              - const uint8_t *a: pointer to input byte array
-*                                  (of length KYBER_POLYVECCOMPRESSEDBYTES)
-**************************************************/
+ * Name:        polyvec_decompress
+ *
+ * Description: De-serialize and decompress vector of polynomials;
+ *              approximate inverse of polyvec_compress
+ *
+ * Arguments:   - polyvec *r:       pointer to output vector of polynomials
+ *              - const uint8_t *a: pointer to input byte array
+ *                                  (of length KYBER_POLYVECCOMPRESSEDBYTES)
+ **************************************************/
 static void
 polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES])
 {
@@ -1204,14 +1204,14 @@ polyvec_decompress(polyvec *r, const uint8_t a[KYBER_POLYVECCOMPRESSEDBYTES])
 }
 
 /*************************************************
-* Name:        polyvec_tobytes
-*
-* Description: Serialize vector of polynomials
-*
-* Arguments:   - uint8_t *r: pointer to output byte array
-*                            (needs space for KYBER_POLYVECBYTES)
-*              - const polyvec *a: pointer to input vector of polynomials
-**************************************************/
+ * Name:        polyvec_tobytes
+ *
+ * Description: Serialize vector of polynomials
+ *
+ * Arguments:   - uint8_t *r: pointer to output byte array
+ *                            (needs space for KYBER_POLYVECBYTES)
+ *              - const polyvec *a: pointer to input vector of polynomials
+ **************************************************/
 static void
 polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a)
 {
@@ -1221,15 +1221,15 @@ polyvec_tobytes(uint8_t r[KYBER_POLYVECBYTES], const polyvec *a)
 }
 
 /*************************************************
-* Name:        polyvec_frombytes
-*
-* Description: De-serialize vector of polynomials;
-*              inverse of polyvec_tobytes
-*
-* Arguments:   - uint8_t *r:       pointer to output byte array
-*              - const polyvec *a: pointer to input vector of polynomials
-*                                  (of length KYBER_POLYVECBYTES)
-**************************************************/
+ * Name:        polyvec_frombytes
+ *
+ * Description: De-serialize vector of polynomials;
+ *              inverse of polyvec_tobytes
+ *
+ * Arguments:   - uint8_t *r:       pointer to output byte array
+ *              - const polyvec *a: pointer to input vector of polynomials
+ *                                  (of length KYBER_POLYVECBYTES)
+ **************************************************/
 static void
 polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES])
 {
@@ -1239,12 +1239,12 @@ polyvec_frombytes(polyvec *r, const uint8_t a[KYBER_POLYVECBYTES])
 }
 
 /*************************************************
-* Name:        polyvec_ntt
-*
-* Description: Apply forward NTT to all elements of a vector of polynomials
-*
-* Arguments:   - polyvec *r: pointer to in/output vector of polynomials
-**************************************************/
+ * Name:        polyvec_ntt
+ *
+ * Description: Apply forward NTT to all elements of a vector of polynomials
+ *
+ * Arguments:   - polyvec *r: pointer to in/output vector of polynomials
+ **************************************************/
 static void
 polyvec_ntt(polyvec *r)
 {
@@ -1254,13 +1254,13 @@ polyvec_ntt(polyvec *r)
 }
 
 /*************************************************
-* Name:        polyvec_invntt_tomont
-*
-* Description: Apply inverse NTT to all elements of a vector of polynomials
-*              and multiply by Montgomery factor 2^16
-*
-* Arguments:   - polyvec *r: pointer to in/output vector of polynomials
-**************************************************/
+ * Name:        polyvec_invntt_tomont
+ *
+ * Description: Apply inverse NTT to all elements of a vector of polynomials
+ *              and multiply by Montgomery factor 2^16
+ *
+ * Arguments:   - polyvec *r: pointer to in/output vector of polynomials
+ **************************************************/
 static void
 polyvec_invntt_tomont(polyvec *r)
 {
@@ -1270,15 +1270,15 @@ polyvec_invntt_tomont(polyvec *r)
 }
 
 /*************************************************
-* Name:        polyvec_basemul_acc_montgomery
-*
-* Description: Multiply elements of a and b in NTT domain, accumulate into r,
-*              and multiply by 2^-16.
-*
-* Arguments: - poly *r: pointer to output polynomial
-*            - const polyvec *a: pointer to first input vector of polynomials
-*            - const polyvec *b: pointer to second input vector of polynomials
-**************************************************/
+ * Name:        polyvec_basemul_acc_montgomery
+ *
+ * Description: Multiply elements of a and b in NTT domain, accumulate into r,
+ *              and multiply by 2^-16.
+ *
+ * Arguments: - poly *r: pointer to output polynomial
+ *            - const polyvec *a: pointer to first input vector of polynomials
+ *            - const polyvec *b: pointer to second input vector of polynomials
+ **************************************************/
 static void
 polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b)
 {
@@ -1295,14 +1295,14 @@ polyvec_basemul_acc_montgomery(poly *r, const polyvec *a, const polyvec *b)
 }
 
 /*************************************************
-* Name:        polyvec_reduce
-*
-* Description: Applies Barrett reduction to each coefficient
-*              of each element of a vector of polynomials;
-*              for details of the Barrett reduction see comments in reduce.c
-*
-* Arguments:   - polyvec *r: pointer to input/output polynomial
-**************************************************/
+ * Name:        polyvec_reduce
+ *
+ * Description: Applies Barrett reduction to each coefficient
+ *              of each element of a vector of polynomials;
+ *              for details of the Barrett reduction see comments in reduce.c
+ *
+ * Arguments:   - polyvec *r: pointer to input/output polynomial
+ **************************************************/
 static void
 polyvec_reduce(polyvec *r)
 {
@@ -1312,14 +1312,14 @@ polyvec_reduce(polyvec *r)
 }
 
 /*************************************************
-* Name:        polyvec_add
-*
-* Description: Add vectors of polynomials
-*
-* Arguments: - polyvec *r: pointer to output vector of polynomials
-*            - const polyvec *a: pointer to first input vector of polynomials
-*            - const polyvec *b: pointer to second input vector of polynomials
-**************************************************/
+ * Name:        polyvec_add
+ *
+ * Description: Add vectors of polynomials
+ *
+ * Arguments: - polyvec *r: pointer to output vector of polynomials
+ *            - const polyvec *a: pointer to first input vector of polynomials
+ *            - const polyvec *b: pointer to second input vector of polynomials
+ **************************************************/
 static void
 polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
 {
@@ -1331,16 +1331,16 @@ polyvec_add(polyvec *r, const polyvec *a, const polyvec *b)
 
 /** begin: ref/indcpa.c **/
 /*************************************************
-* Name:        pack_pk
-*
-* Description: Serialize the public key as concatenation of the
-*              serialized vector of polynomials pk
-*              and the public seed used to generate the matrix A.
-*
-* Arguments:   uint8_t *r: pointer to the output serialized public key
-*              polyvec *pk: pointer to the input public-key polyvec
-*              const uint8_t *seed: pointer to the input public seed
-**************************************************/
+ * Name:        pack_pk
+ *
+ * Description: Serialize the public key as concatenation of the
+ *              serialized vector of polynomials pk
+ *              and the public seed used to generate the matrix A.
+ *
+ * Arguments:   uint8_t *r: pointer to the output serialized public key
+ *              polyvec *pk: pointer to the input public-key polyvec
+ *              const uint8_t *seed: pointer to the input public seed
+ **************************************************/
 static void
 pack_pk(uint8_t r[KYBER_INDCPA_PUBLICKEYBYTES],
         polyvec *pk,
@@ -1353,15 +1353,15 @@ pack_pk(uint8_t r[KYBER_INDCPA_PUBLICKEYBYTES],
 }
 
 /*************************************************
-* Name:        unpack_pk
-*
-* Description: De-serialize public key from a byte array;
-*              approximate inverse of pack_pk
-*
-* Arguments:   - polyvec *pk: pointer to output public-key polynomial vector
-*              - uint8_t *seed: pointer to output seed to generate matrix A
-*              - const uint8_t *packedpk: pointer to input serialized public key
-**************************************************/
+ * Name:        unpack_pk
+ *
+ * Description: De-serialize public key from a byte array;
+ *              approximate inverse of pack_pk
+ *
+ * Arguments:   - polyvec *pk: pointer to output public-key polynomial vector
+ *              - uint8_t *seed: pointer to output seed to generate matrix A
+ *              - const uint8_t *packedpk: pointer to input serialized public key
+ **************************************************/
 static void
 unpack_pk(polyvec *pk,
           uint8_t seed[KYBER_SYMBYTES],
@@ -1374,13 +1374,13 @@ unpack_pk(polyvec *pk,
 }
 
 /*************************************************
-* Name:        pack_sk
-*
-* Description: Serialize the secret key
-*
-* Arguments:   - uint8_t *r: pointer to output serialized secret key
-*              - polyvec *sk: pointer to input vector of polynomials (secret key)
-**************************************************/
+ * Name:        pack_sk
+ *
+ * Description: Serialize the secret key
+ *
+ * Arguments:   - uint8_t *r: pointer to output serialized secret key
+ *              - polyvec *sk: pointer to input vector of polynomials (secret key)
+ **************************************************/
 static void
 pack_sk(uint8_t r[KYBER_INDCPA_SECRETKEYBYTES], polyvec *sk)
 {
@@ -1388,13 +1388,13 @@ pack_sk(uint8_t r[KYBER_INDCPA_SECRETKEYBYTES], polyvec *sk)
 }
 
 /*************************************************
-* Name:        unpack_sk
-*
-* Description: De-serialize the secret key; inverse of pack_sk
-*
-* Arguments:   - polyvec *sk: pointer to output vector of polynomials (secret key)
-*              - const uint8_t *packedsk: pointer to input serialized secret key
-**************************************************/
+ * Name:        unpack_sk
+ *
+ * Description: De-serialize the secret key; inverse of pack_sk
+ *
+ * Arguments:   - polyvec *sk: pointer to output vector of polynomials (secret key)
+ *              - const uint8_t *packedsk: pointer to input serialized secret key
+ **************************************************/
 static void
 unpack_sk(polyvec *sk, const uint8_t packedsk[KYBER_INDCPA_SECRETKEYBYTES])
 {
@@ -1402,16 +1402,16 @@ unpack_sk(polyvec *sk, const uint8_t packedsk[KYBER_INDCPA_SECRETKEYBYTES])
 }
 
 /*************************************************
-* Name:        pack_ciphertext
-*
-* Description: Serialize the ciphertext as concatenation of the
-*              compressed and serialized vector of polynomials b
-*              and the compressed and serialized polynomial v
-*
-* Arguments:   uint8_t *r: pointer to the output serialized ciphertext
-*              poly *pk: pointer to the input vector of polynomials b
-*              poly *v: pointer to the input polynomial v
-**************************************************/
+ * Name:        pack_ciphertext
+ *
+ * Description: Serialize the ciphertext as concatenation of the
+ *              compressed and serialized vector of polynomials b
+ *              and the compressed and serialized polynomial v
+ *
+ * Arguments:   uint8_t *r: pointer to the output serialized ciphertext
+ *              poly *pk: pointer to the input vector of polynomials b
+ *              poly *v: pointer to the input polynomial v
+ **************************************************/
 static void
 pack_ciphertext(uint8_t r[KYBER_INDCPA_BYTES], polyvec *b, poly *v)
 {
@@ -1420,15 +1420,15 @@ pack_ciphertext(uint8_t r[KYBER_INDCPA_BYTES], polyvec *b, poly *v)
 }
 
 /*************************************************
-* Name:        unpack_ciphertext
-*
-* Description: De-serialize and decompress ciphertext from a byte array;
-*              approximate inverse of pack_ciphertext
-*
-* Arguments:   - polyvec *b: pointer to the output vector of polynomials b
-*              - poly *v: pointer to the output polynomial v
-*              - const uint8_t *c: pointer to the input serialized ciphertext
-**************************************************/
+ * Name:        unpack_ciphertext
+ *
+ * Description: De-serialize and decompress ciphertext from a byte array;
+ *              approximate inverse of pack_ciphertext
+ *
+ * Arguments:   - polyvec *b: pointer to the output vector of polynomials b
+ *              - poly *v: pointer to the output polynomial v
+ *              - const uint8_t *c: pointer to the input serialized ciphertext
+ **************************************************/
 static void
 unpack_ciphertext(polyvec *b, poly *v, const uint8_t c[KYBER_INDCPA_BYTES])
 {
@@ -1437,18 +1437,18 @@ unpack_ciphertext(polyvec *b, poly *v, const uint8_t c[KYBER_INDCPA_BYTES])
 }
 
 /*************************************************
-* Name:        rej_uniform
-*
-* Description: Run rejection sampling on uniform random bytes to generate
-*              uniform random integers mod q
-*
-* Arguments:   - int16_t *r: pointer to output buffer
-*              - unsigned int len: requested number of 16-bit integers (uniform mod q)
-*              - const uint8_t *buf: pointer to input buffer (assumed to be uniformly random bytes)
-*              - unsigned int buflen: length of input buffer in bytes
-*
-* Returns number of sampled 16-bit integers (at most len)
-**************************************************/
+ * Name:        rej_uniform
+ *
+ * Description: Run rejection sampling on uniform random bytes to generate
+ *              uniform random integers mod q
+ *
+ * Arguments:   - int16_t *r: pointer to output buffer
+ *              - unsigned int len: requested number of 16-bit integers (uniform mod q)
+ *              - const uint8_t *buf: pointer to input buffer (assumed to be uniformly random bytes)
+ *              - unsigned int buflen: length of input buffer in bytes
+ *
+ * Returns number of sampled 16-bit integers (at most len)
+ **************************************************/
 static unsigned int
 rej_uniform(int16_t *r,
             unsigned int len,
@@ -1477,17 +1477,17 @@ rej_uniform(int16_t *r,
 #define gen_at(A, B) gen_matrix(A, B, 1)
 
 /*************************************************
-* Name:        gen_matrix
-*
-* Description: Deterministically generate matrix A (or the transpose of A)
-*              from a seed. Entries of the matrix are polynomials that look
-*              uniformly random. Performs rejection sampling on output of
-*              a XOF
-*
-* Arguments:   - polyvec *a: pointer to ouptput matrix A
-*              - const uint8_t *seed: pointer to input seed
-*              - int transposed: boolean deciding whether A or A^T is generated
-**************************************************/
+ * Name:        gen_matrix
+ *
+ * Description: Deterministically generate matrix A (or the transpose of A)
+ *              from a seed. Entries of the matrix are polynomials that look
+ *              uniformly random. Performs rejection sampling on output of
+ *              a XOF
+ *
+ * Arguments:   - polyvec *a: pointer to ouptput matrix A
+ *              - const uint8_t *seed: pointer to input seed
+ *              - int transposed: boolean deciding whether A or A^T is generated
+ **************************************************/
 #define GEN_MATRIX_NBLOCKS ((12 * KYBER_N / 8 * (1 << 12) / KYBER_Q + XOF_BLOCKBYTES) / XOF_BLOCKBYTES)
 // Not static for benchmarking
 static void
@@ -1522,18 +1522,18 @@ gen_matrix(polyvec *a, const uint8_t seed[KYBER_SYMBYTES], int transposed)
 }
 
 /*************************************************
-* Name:        indcpa_keypair_derand
-*
-* Description: Generates public and private key for the CPA-secure
-*              public-key encryption scheme underlying Kyber
-*
-* Arguments:   - uint8_t *pk: pointer to output public key
-*                             (of length KYBER_INDCPA_PUBLICKEYBYTES bytes)
-*              - uint8_t *sk: pointer to output private key
-*                             (of length KYBER_INDCPA_SECRETKEYBYTES bytes)
-*              - const uint8_t *coins: pointer to input randomness
-*                             (of length KYBER_SYMBYTES bytes)
-**************************************************/
+ * Name:        indcpa_keypair_derand
+ *
+ * Description: Generates public and private key for the CPA-secure
+ *              public-key encryption scheme underlying Kyber
+ *
+ * Arguments:   - uint8_t *pk: pointer to output public key
+ *                             (of length KYBER_INDCPA_PUBLICKEYBYTES bytes)
+ *              - uint8_t *sk: pointer to output private key
+ *                             (of length KYBER_INDCPA_SECRETKEYBYTES bytes)
+ *              - const uint8_t *coins: pointer to input randomness
+ *                             (of length KYBER_SYMBYTES bytes)
+ **************************************************/
 static void
 indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
                       uint8_t sk[KYBER_INDCPA_SECRETKEYBYTES],
@@ -1572,21 +1572,21 @@ indcpa_keypair_derand(uint8_t pk[KYBER_INDCPA_PUBLICKEYBYTES],
 }
 
 /*************************************************
-* Name:        indcpa_enc
-*
-* Description: Encryption function of the CPA-secure
-*              public-key encryption scheme underlying Kyber.
-*
-* Arguments:   - uint8_t *c: pointer to output ciphertext
-*                            (of length KYBER_INDCPA_BYTES bytes)
-*              - const uint8_t *m: pointer to input message
-*                                  (of length KYBER_INDCPA_MSGBYTES bytes)
-*              - const uint8_t *pk: pointer to input public key
-*                                   (of length KYBER_INDCPA_PUBLICKEYBYTES)
-*              - const uint8_t *coins: pointer to input random coins used as seed
-*                                      (of length KYBER_SYMBYTES) to deterministically
-*                                      generate all randomness
-**************************************************/
+ * Name:        indcpa_enc
+ *
+ * Description: Encryption function of the CPA-secure
+ *              public-key encryption scheme underlying Kyber.
+ *
+ * Arguments:   - uint8_t *c: pointer to output ciphertext
+ *                            (of length KYBER_INDCPA_BYTES bytes)
+ *              - const uint8_t *m: pointer to input message
+ *                                  (of length KYBER_INDCPA_MSGBYTES bytes)
+ *              - const uint8_t *pk: pointer to input public key
+ *                                   (of length KYBER_INDCPA_PUBLICKEYBYTES)
+ *              - const uint8_t *coins: pointer to input random coins used as seed
+ *                                      (of length KYBER_SYMBYTES) to deterministically
+ *                                      generate all randomness
+ **************************************************/
 static void
 indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
            const uint8_t m[KYBER_INDCPA_MSGBYTES],
@@ -1630,18 +1630,18 @@ indcpa_enc(uint8_t c[KYBER_INDCPA_BYTES],
 }
 
 /*************************************************
-* Name:        indcpa_dec
-*
-* Description: Decryption function of the CPA-secure
-*              public-key encryption scheme underlying Kyber.
-*
-* Arguments:   - uint8_t *m: pointer to output decrypted message
-*                            (of length KYBER_INDCPA_MSGBYTES)
-*              - const uint8_t *c: pointer to input ciphertext
-*                                  (of length KYBER_INDCPA_BYTES)
-*              - const uint8_t *sk: pointer to input secret key
-*                                   (of length KYBER_INDCPA_SECRETKEYBYTES)
-**************************************************/
+ * Name:        indcpa_dec
+ *
+ * Description: Decryption function of the CPA-secure
+ *              public-key encryption scheme underlying Kyber.
+ *
+ * Arguments:   - uint8_t *m: pointer to output decrypted message
+ *                            (of length KYBER_INDCPA_MSGBYTES)
+ *              - const uint8_t *c: pointer to input ciphertext
+ *                                  (of length KYBER_INDCPA_BYTES)
+ *              - const uint8_t *sk: pointer to input secret key
+ *                                   (of length KYBER_INDCPA_SECRETKEYBYTES)
+ **************************************************/
 static void
 indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
            const uint8_t c[KYBER_INDCPA_BYTES],
@@ -1674,14 +1674,14 @@ indcpa_dec(uint8_t m[KYBER_INDCPA_MSGBYTES],
 #define ROL(a, offset) ((a << offset) ^ (a >> (64 - offset)))
 
 /*************************************************
-* Name:        load64
-*
-* Description: Load 8 bytes into uint64_t in little-endian order
-*
-* Arguments:   - const uint8_t *x: pointer to input byte array
-*
-* Returns the loaded 64-bit unsigned integer
-**************************************************/
+ * Name:        load64
+ *
+ * Description: Load 8 bytes into uint64_t in little-endian order
+ *
+ * Arguments:   - const uint8_t *x: pointer to input byte array
+ *
+ * Returns the loaded 64-bit unsigned integer
+ **************************************************/
 static uint64_t
 load64(const uint8_t x[8])
 {
@@ -1695,13 +1695,13 @@ load64(const uint8_t x[8])
 }
 
 /*************************************************
-* Name:        store64
-*
-* Description: Store a 64-bit integer to array of 8 bytes in little-endian order
-*
-* Arguments:   - uint8_t *x: pointer to the output byte array (allocated)
-*              - uint64_t u: input 64-bit unsigned integer
-**************************************************/
+ * Name:        store64
+ *
+ * Description: Store a 64-bit integer to array of 8 bytes in little-endian order
+ *
+ * Arguments:   - uint8_t *x: pointer to the output byte array (allocated)
+ *              - uint64_t u: input 64-bit unsigned integer
+ **************************************************/
 static void
 store64(uint8_t x[8], uint64_t u)
 {
@@ -1740,12 +1740,12 @@ static const uint64_t KeccakF_RoundConstants[NROUNDS] = {
 };
 
 /*************************************************
-* Name:        KeccakF1600_StatePermute
-*
-* Description: The Keccak F1600 Permutation
-*
-* Arguments:   - uint64_t *state: pointer to input/output Keccak state
-**************************************************/
+ * Name:        KeccakF1600_StatePermute
+ *
+ * Description: The Keccak F1600 Permutation
+ *
+ * Arguments:   - uint64_t *state: pointer to input/output Keccak state
+ **************************************************/
 static void
 KeccakF1600_StatePermute(uint64_t state[25])
 {
@@ -1764,7 +1764,7 @@ KeccakF1600_StatePermute(uint64_t state[25])
     uint64_t Ema, Eme, Emi, Emo, Emu;
     uint64_t Esa, Ese, Esi, Eso, Esu;
 
-    //copyFromState(A, state)
+    // copyFromState(A, state)
     Aba = state[0];
     Abe = state[1];
     Abi = state[2];
@@ -1799,7 +1799,7 @@ KeccakF1600_StatePermute(uint64_t state[25])
         BCo = Abo ^ Ago ^ Ako ^ Amo ^ Aso;
         BCu = Abu ^ Agu ^ Aku ^ Amu ^ Asu;
 
-        //thetaRhoPiChiIotaPrepareTheta(round, A, E)
+        // thetaRhoPiChiIotaPrepareTheta(round, A, E)
         Da = BCu ^ ROL(BCe, 1);
         De = BCa ^ ROL(BCi, 1);
         Di = BCe ^ ROL(BCo, 1);
@@ -1894,7 +1894,7 @@ KeccakF1600_StatePermute(uint64_t state[25])
         BCo = Ebo ^ Ego ^ Eko ^ Emo ^ Eso;
         BCu = Ebu ^ Egu ^ Eku ^ Emu ^ Esu;
 
-        //thetaRhoPiChiIotaPrepareTheta(round+1, E, A)
+        // thetaRhoPiChiIotaPrepareTheta(round+1, E, A)
         Da = BCu ^ ROL(BCe, 1);
         De = BCa ^ ROL(BCi, 1);
         Di = BCe ^ ROL(BCo, 1);
@@ -1983,7 +1983,7 @@ KeccakF1600_StatePermute(uint64_t state[25])
         Asu = BCu ^ ((~BCa) & BCe);
     }
 
-    //copyToState(state, A)
+    // copyToState(state, A)
     state[0] = Aba;
     state[1] = Abe;
     state[2] = Abi;
@@ -2012,12 +2012,12 @@ KeccakF1600_StatePermute(uint64_t state[25])
 }
 
 /*************************************************
-* Name:        keccak_init
-*
-* Description: Initializes the Keccak state.
-*
-* Arguments:   - uint64_t *s: pointer to Keccak state
-**************************************************/
+ * Name:        keccak_init
+ *
+ * Description: Initializes the Keccak state.
+ *
+ * Arguments:   - uint64_t *s: pointer to Keccak state
+ **************************************************/
 static void
 keccak_init(uint64_t s[25])
 {
@@ -2027,18 +2027,18 @@ keccak_init(uint64_t s[25])
 }
 
 /*************************************************
-* Name:        keccak_absorb
-*
-* Description: Absorb step of Keccak; incremental.
-*
-* Arguments:   - uint64_t *s: pointer to Keccak state
-*              - unsigned int pos: position in current block to be absorbed
-*              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
-*              - const uint8_t *in: pointer to input to be absorbed into s
-*              - size_t inlen: length of input in bytes
-*
-* Returns new position pos in current block
-**************************************************/
+ * Name:        keccak_absorb
+ *
+ * Description: Absorb step of Keccak; incremental.
+ *
+ * Arguments:   - uint64_t *s: pointer to Keccak state
+ *              - unsigned int pos: position in current block to be absorbed
+ *              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
+ *              - const uint8_t *in: pointer to input to be absorbed into s
+ *              - size_t inlen: length of input in bytes
+ *
+ * Returns new position pos in current block
+ **************************************************/
 static unsigned int
 keccak_absorb(uint64_t s[25],
               unsigned int pos,
@@ -2063,15 +2063,15 @@ keccak_absorb(uint64_t s[25],
 }
 
 /*************************************************
-* Name:        keccak_finalize
-*
-* Description: Finalize absorb step.
-*
-* Arguments:   - uint64_t *s: pointer to Keccak state
-*              - unsigned int pos: position in current block to be absorbed
-*              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
-*              - uint8_t p: domain separation byte
-**************************************************/
+ * Name:        keccak_finalize
+ *
+ * Description: Finalize absorb step.
+ *
+ * Arguments:   - uint64_t *s: pointer to Keccak state
+ *              - unsigned int pos: position in current block to be absorbed
+ *              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
+ *              - uint8_t p: domain separation byte
+ **************************************************/
 static void
 keccak_finalize(uint64_t s[25], unsigned int pos, unsigned int r, uint8_t p)
 {
@@ -2080,20 +2080,20 @@ keccak_finalize(uint64_t s[25], unsigned int pos, unsigned int r, uint8_t p)
 }
 
 /*************************************************
-* Name:        keccak_squeeze
-*
-* Description: Squeeze step of Keccak. Squeezes arbitratrily many bytes.
-*              Modifies the state. Can be called multiple times to keep
-*              squeezing, i.e., is incremental.
-*
-* Arguments:   - uint8_t *out: pointer to output
-*              - size_t outlen: number of bytes to be squeezed (written to out)
-*              - uint64_t *s: pointer to input/output Keccak state
-*              - unsigned int pos: number of bytes in current block already squeezed
-*              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
-*
-* Returns new position pos in current block
-**************************************************/
+ * Name:        keccak_squeeze
+ *
+ * Description: Squeeze step of Keccak. Squeezes arbitratrily many bytes.
+ *              Modifies the state. Can be called multiple times to keep
+ *              squeezing, i.e., is incremental.
+ *
+ * Arguments:   - uint8_t *out: pointer to output
+ *              - size_t outlen: number of bytes to be squeezed (written to out)
+ *              - uint64_t *s: pointer to input/output Keccak state
+ *              - unsigned int pos: number of bytes in current block already squeezed
+ *              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
+ *
+ * Returns new position pos in current block
+ **************************************************/
 static unsigned int
 keccak_squeeze(uint8_t *out,
                size_t outlen,
@@ -2118,17 +2118,17 @@ keccak_squeeze(uint8_t *out,
 }
 
 /*************************************************
-* Name:        keccak_absorb_once
-*
-* Description: Absorb step of Keccak;
-*              non-incremental, starts by zeroeing the state.
-*
-* Arguments:   - uint64_t *s: pointer to (uninitialized) output Keccak state
-*              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
-*              - const uint8_t *in: pointer to input to be absorbed into s
-*              - size_t inlen: length of input in bytes
-*              - uint8_t p: domain-separation byte for different Keccak-derived functions
-**************************************************/
+ * Name:        keccak_absorb_once
+ *
+ * Description: Absorb step of Keccak;
+ *              non-incremental, starts by zeroeing the state.
+ *
+ * Arguments:   - uint64_t *s: pointer to (uninitialized) output Keccak state
+ *              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
+ *              - const uint8_t *in: pointer to input to be absorbed into s
+ *              - size_t inlen: length of input in bytes
+ *              - uint8_t p: domain-separation byte for different Keccak-derived functions
+ **************************************************/
 static void
 keccak_absorb_once(uint64_t s[25],
                    unsigned int r,
@@ -2157,18 +2157,18 @@ keccak_absorb_once(uint64_t s[25],
 }
 
 /*************************************************
-* Name:        keccak_squeezeblocks
-*
-* Description: Squeeze step of Keccak. Squeezes full blocks of r bytes each.
-*              Modifies the state. Can be called multiple times to keep
-*              squeezing, i.e., is incremental. Assumes zero bytes of current
-*              block have already been squeezed.
-*
-* Arguments:   - uint8_t *out: pointer to output blocks
-*              - size_t nblocks: number of blocks to be squeezed (written to out)
-*              - uint64_t *s: pointer to input/output Keccak state
-*              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
-**************************************************/
+ * Name:        keccak_squeezeblocks
+ *
+ * Description: Squeeze step of Keccak. Squeezes full blocks of r bytes each.
+ *              Modifies the state. Can be called multiple times to keep
+ *              squeezing, i.e., is incremental. Assumes zero bytes of current
+ *              block have already been squeezed.
+ *
+ * Arguments:   - uint8_t *out: pointer to output blocks
+ *              - size_t nblocks: number of blocks to be squeezed (written to out)
+ *              - uint64_t *s: pointer to input/output Keccak state
+ *              - unsigned int r: rate in bytes (e.g., 168 for SHAKE128)
+ **************************************************/
 static void
 keccak_squeezeblocks(uint8_t *out,
                      size_t nblocks,
@@ -2187,12 +2187,12 @@ keccak_squeezeblocks(uint8_t *out,
 }
 
 /*************************************************
-* Name:        shake128_init
-*
-* Description: Initilizes Keccak state for use as SHAKE128 XOF
-*
-* Arguments:   - keccak_state *state: pointer to (uninitialized) Keccak state
-**************************************************/
+ * Name:        shake128_init
+ *
+ * Description: Initilizes Keccak state for use as SHAKE128 XOF
+ *
+ * Arguments:   - keccak_state *state: pointer to (uninitialized) Keccak state
+ **************************************************/
 void
 shake128_init(keccak_state *state)
 {
@@ -2201,14 +2201,14 @@ shake128_init(keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake128_absorb
-*
-* Description: Absorb step of the SHAKE128 XOF; incremental.
-*
-* Arguments:   - keccak_state *state: pointer to (initialized) output Keccak state
-*              - const uint8_t *in: pointer to input to be absorbed into s
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        shake128_absorb
+ *
+ * Description: Absorb step of the SHAKE128 XOF; incremental.
+ *
+ * Arguments:   - keccak_state *state: pointer to (initialized) output Keccak state
+ *              - const uint8_t *in: pointer to input to be absorbed into s
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen)
 {
@@ -2216,12 +2216,12 @@ shake128_absorb(keccak_state *state, const uint8_t *in, size_t inlen)
 }
 
 /*************************************************
-* Name:        shake128_finalize
-*
-* Description: Finalize absorb step of the SHAKE128 XOF.
-*
-* Arguments:   - keccak_state *state: pointer to Keccak state
-**************************************************/
+ * Name:        shake128_finalize
+ *
+ * Description: Finalize absorb step of the SHAKE128 XOF.
+ *
+ * Arguments:   - keccak_state *state: pointer to Keccak state
+ **************************************************/
 void
 shake128_finalize(keccak_state *state)
 {
@@ -2230,15 +2230,15 @@ shake128_finalize(keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake128_squeeze
-*
-* Description: Squeeze step of SHAKE128 XOF. Squeezes arbitraily many
-*              bytes. Can be called multiple times to keep squeezing.
-*
-* Arguments:   - uint8_t *out: pointer to output blocks
-*              - size_t outlen : number of bytes to be squeezed (written to output)
-*              - keccak_state *s: pointer to input/output Keccak state
-**************************************************/
+ * Name:        shake128_squeeze
+ *
+ * Description: Squeeze step of SHAKE128 XOF. Squeezes arbitraily many
+ *              bytes. Can be called multiple times to keep squeezing.
+ *
+ * Arguments:   - uint8_t *out: pointer to output blocks
+ *              - size_t outlen : number of bytes to be squeezed (written to output)
+ *              - keccak_state *s: pointer to input/output Keccak state
+ **************************************************/
 void
 shake128_squeeze(uint8_t *out, size_t outlen, keccak_state *state)
 {
@@ -2246,14 +2246,14 @@ shake128_squeeze(uint8_t *out, size_t outlen, keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake128_absorb_once
-*
-* Description: Initialize, absorb into and finalize SHAKE128 XOF; non-incremental.
-*
-* Arguments:   - keccak_state *state: pointer to (uninitialized) output Keccak state
-*              - const uint8_t *in: pointer to input to be absorbed into s
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        shake128_absorb_once
+ *
+ * Description: Initialize, absorb into and finalize SHAKE128 XOF; non-incremental.
+ *
+ * Arguments:   - keccak_state *state: pointer to (uninitialized) output Keccak state
+ *              - const uint8_t *in: pointer to input to be absorbed into s
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 shake128_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen)
 {
@@ -2262,17 +2262,17 @@ shake128_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen)
 }
 
 /*************************************************
-* Name:        shake128_squeezeblocks
-*
-* Description: Squeeze step of SHAKE128 XOF. Squeezes full blocks of
-*              SHAKE128_RATE bytes each. Can be called multiple times
-*              to keep squeezing. Assumes new block has not yet been
-*              started (state->pos = SHAKE128_RATE).
-*
-* Arguments:   - uint8_t *out: pointer to output blocks
-*              - size_t nblocks: number of blocks to be squeezed (written to output)
-*              - keccak_state *s: pointer to input/output Keccak state
-**************************************************/
+ * Name:        shake128_squeezeblocks
+ *
+ * Description: Squeeze step of SHAKE128 XOF. Squeezes full blocks of
+ *              SHAKE128_RATE bytes each. Can be called multiple times
+ *              to keep squeezing. Assumes new block has not yet been
+ *              started (state->pos = SHAKE128_RATE).
+ *
+ * Arguments:   - uint8_t *out: pointer to output blocks
+ *              - size_t nblocks: number of blocks to be squeezed (written to output)
+ *              - keccak_state *s: pointer to input/output Keccak state
+ **************************************************/
 void
 shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state)
 {
@@ -2280,12 +2280,12 @@ shake128_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake256_init
-*
-* Description: Initilizes Keccak state for use as SHAKE256 XOF
-*
-* Arguments:   - keccak_state *state: pointer to (uninitialized) Keccak state
-**************************************************/
+ * Name:        shake256_init
+ *
+ * Description: Initilizes Keccak state for use as SHAKE256 XOF
+ *
+ * Arguments:   - keccak_state *state: pointer to (uninitialized) Keccak state
+ **************************************************/
 void
 shake256_init(keccak_state *state)
 {
@@ -2294,14 +2294,14 @@ shake256_init(keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake256_absorb
-*
-* Description: Absorb step of the SHAKE256 XOF; incremental.
-*
-* Arguments:   - keccak_state *state: pointer to (initialized) output Keccak state
-*              - const uint8_t *in: pointer to input to be absorbed into s
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        shake256_absorb
+ *
+ * Description: Absorb step of the SHAKE256 XOF; incremental.
+ *
+ * Arguments:   - keccak_state *state: pointer to (initialized) output Keccak state
+ *              - const uint8_t *in: pointer to input to be absorbed into s
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 shake256_absorb(keccak_state *state, const uint8_t *in, size_t inlen)
 {
@@ -2309,12 +2309,12 @@ shake256_absorb(keccak_state *state, const uint8_t *in, size_t inlen)
 }
 
 /*************************************************
-* Name:        shake256_finalize
-*
-* Description: Finalize absorb step of the SHAKE256 XOF.
-*
-* Arguments:   - keccak_state *state: pointer to Keccak state
-**************************************************/
+ * Name:        shake256_finalize
+ *
+ * Description: Finalize absorb step of the SHAKE256 XOF.
+ *
+ * Arguments:   - keccak_state *state: pointer to Keccak state
+ **************************************************/
 void
 shake256_finalize(keccak_state *state)
 {
@@ -2323,15 +2323,15 @@ shake256_finalize(keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake256_squeeze
-*
-* Description: Squeeze step of SHAKE256 XOF. Squeezes arbitraily many
-*              bytes. Can be called multiple times to keep squeezing.
-*
-* Arguments:   - uint8_t *out: pointer to output blocks
-*              - size_t outlen : number of bytes to be squeezed (written to output)
-*              - keccak_state *s: pointer to input/output Keccak state
-**************************************************/
+ * Name:        shake256_squeeze
+ *
+ * Description: Squeeze step of SHAKE256 XOF. Squeezes arbitraily many
+ *              bytes. Can be called multiple times to keep squeezing.
+ *
+ * Arguments:   - uint8_t *out: pointer to output blocks
+ *              - size_t outlen : number of bytes to be squeezed (written to output)
+ *              - keccak_state *s: pointer to input/output Keccak state
+ **************************************************/
 void
 shake256_squeeze(uint8_t *out, size_t outlen, keccak_state *state)
 {
@@ -2339,14 +2339,14 @@ shake256_squeeze(uint8_t *out, size_t outlen, keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake256_absorb_once
-*
-* Description: Initialize, absorb into and finalize SHAKE256 XOF; non-incremental.
-*
-* Arguments:   - keccak_state *state: pointer to (uninitialized) output Keccak state
-*              - const uint8_t *in: pointer to input to be absorbed into s
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        shake256_absorb_once
+ *
+ * Description: Initialize, absorb into and finalize SHAKE256 XOF; non-incremental.
+ *
+ * Arguments:   - keccak_state *state: pointer to (uninitialized) output Keccak state
+ *              - const uint8_t *in: pointer to input to be absorbed into s
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 shake256_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen)
 {
@@ -2355,17 +2355,17 @@ shake256_absorb_once(keccak_state *state, const uint8_t *in, size_t inlen)
 }
 
 /*************************************************
-* Name:        shake256_squeezeblocks
-*
-* Description: Squeeze step of SHAKE256 XOF. Squeezes full blocks of
-*              SHAKE256_RATE bytes each. Can be called multiple times
-*              to keep squeezing. Assumes next block has not yet been
-*              started (state->pos = SHAKE256_RATE).
-*
-* Arguments:   - uint8_t *out: pointer to output blocks
-*              - size_t nblocks: number of blocks to be squeezed (written to output)
-*              - keccak_state *s: pointer to input/output Keccak state
-**************************************************/
+ * Name:        shake256_squeezeblocks
+ *
+ * Description: Squeeze step of SHAKE256 XOF. Squeezes full blocks of
+ *              SHAKE256_RATE bytes each. Can be called multiple times
+ *              to keep squeezing. Assumes next block has not yet been
+ *              started (state->pos = SHAKE256_RATE).
+ *
+ * Arguments:   - uint8_t *out: pointer to output blocks
+ *              - size_t nblocks: number of blocks to be squeezed (written to output)
+ *              - keccak_state *s: pointer to input/output Keccak state
+ **************************************************/
 void
 shake256_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state)
 {
@@ -2373,15 +2373,15 @@ shake256_squeezeblocks(uint8_t *out, size_t nblocks, keccak_state *state)
 }
 
 /*************************************************
-* Name:        shake128
-*
-* Description: SHAKE128 XOF with non-incremental API
-*
-* Arguments:   - uint8_t *out: pointer to output
-*              - size_t outlen: requested output length in bytes
-*              - const uint8_t *in: pointer to input
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        shake128
+ *
+ * Description: SHAKE128 XOF with non-incremental API
+ *
+ * Arguments:   - uint8_t *out: pointer to output
+ *              - size_t outlen: requested output length in bytes
+ *              - const uint8_t *in: pointer to input
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 shake128(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
 {
@@ -2397,15 +2397,15 @@ shake128(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
 }
 
 /*************************************************
-* Name:        shake256
-*
-* Description: SHAKE256 XOF with non-incremental API
-*
-* Arguments:   - uint8_t *out: pointer to output
-*              - size_t outlen: requested output length in bytes
-*              - const uint8_t *in: pointer to input
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        shake256
+ *
+ * Description: SHAKE256 XOF with non-incremental API
+ *
+ * Arguments:   - uint8_t *out: pointer to output
+ *              - size_t outlen: requested output length in bytes
+ *              - const uint8_t *in: pointer to input
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
 {
@@ -2421,14 +2421,14 @@ shake256(uint8_t *out, size_t outlen, const uint8_t *in, size_t inlen)
 }
 
 /*************************************************
-* Name:        sha3_256
-*
-* Description: SHA3-256 with non-incremental API
-*
-* Arguments:   - uint8_t *h: pointer to output (32 bytes)
-*              - const uint8_t *in: pointer to input
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        sha3_256
+ *
+ * Description: SHA3-256 with non-incremental API
+ *
+ * Arguments:   - uint8_t *h: pointer to output (32 bytes)
+ *              - const uint8_t *in: pointer to input
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen)
 {
@@ -2442,14 +2442,14 @@ sha3_256(uint8_t h[32], const uint8_t *in, size_t inlen)
 }
 
 /*************************************************
-* Name:        sha3_512
-*
-* Description: SHA3-512 with non-incremental API
-*
-* Arguments:   - uint8_t *h: pointer to output (64 bytes)
-*              - const uint8_t *in: pointer to input
-*              - size_t inlen: length of input in bytes
-**************************************************/
+ * Name:        sha3_512
+ *
+ * Description: SHA3-512 with non-incremental API
+ *
+ * Arguments:   - uint8_t *h: pointer to output (64 bytes)
+ *              - const uint8_t *in: pointer to input
+ *              - size_t inlen: length of input in bytes
+ **************************************************/
 void
 sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen)
 {
@@ -2465,15 +2465,15 @@ sha3_512(uint8_t h[64], const uint8_t *in, size_t inlen)
 
 /** begin: ref/symmetric-shake.c **/
 /*************************************************
-* Name:        kyber_shake128_absorb
-*
-* Description: Absorb step of the SHAKE128 specialized for the Kyber context.
-*
-* Arguments:   - keccak_state *state: pointer to (uninitialized) output Keccak state
-*              - const uint8_t *seed: pointer to KYBER_SYMBYTES input to be absorbed into state
-*              - uint8_t i: additional byte of input
-*              - uint8_t j: additional byte of input
-**************************************************/
+ * Name:        kyber_shake128_absorb
+ *
+ * Description: Absorb step of the SHAKE128 specialized for the Kyber context.
+ *
+ * Arguments:   - keccak_state *state: pointer to (uninitialized) output Keccak state
+ *              - const uint8_t *seed: pointer to KYBER_SYMBYTES input to be absorbed into state
+ *              - uint8_t i: additional byte of input
+ *              - uint8_t j: additional byte of input
+ **************************************************/
 static void
 kyber_shake128_absorb(keccak_state *state,
                       const uint8_t seed[KYBER_SYMBYTES],
@@ -2490,16 +2490,16 @@ kyber_shake128_absorb(keccak_state *state,
 }
 
 /*************************************************
-* Name:        kyber_shake256_prf
-*
-* Description: Usage of SHAKE256 as a PRF, concatenates secret and public input
-*              and then generates outlen bytes of SHAKE256 output
-*
-* Arguments:   - uint8_t *out: pointer to output
-*              - size_t outlen: number of requested output bytes
-*              - const uint8_t *key: pointer to the key (of length KYBER_SYMBYTES)
-*              - uint8_t nonce: single-byte nonce (public PRF input)
-**************************************************/
+ * Name:        kyber_shake256_prf
+ *
+ * Description: Usage of SHAKE256 as a PRF, concatenates secret and public input
+ *              and then generates outlen bytes of SHAKE256 output
+ *
+ * Arguments:   - uint8_t *out: pointer to output
+ *              - size_t outlen: number of requested output bytes
+ *              - const uint8_t *key: pointer to the key (of length KYBER_SYMBYTES)
+ *              - uint8_t nonce: single-byte nonce (public PRF input)
+ **************************************************/
 static void
 kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES], uint8_t nonce)
 {
@@ -2514,20 +2514,20 @@ kyber_shake256_prf(uint8_t *out, size_t outlen, const uint8_t key[KYBER_SYMBYTES
 
 /** begin: ref/kem.c **/
 /*************************************************
-* Name:        crypto_kem_keypair_derand
-*
-* Description: Generates public and private key
-*              for CCA-secure Kyber key encapsulation mechanism
-*
-* Arguments:   - uint8_t *pk: pointer to output public key
-*                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
-*              - uint8_t *sk: pointer to output private key
-*                (an already allocated array of KYBER_SECRETKEYBYTES bytes)
-*              - uint8_t *coins: pointer to input randomness
-*                (an already allocated array filled with 2*KYBER_SYMBYTES random bytes)
-**
-* Returns 0 (success)
-**************************************************/
+ * Name:        crypto_kem_keypair_derand
+ *
+ * Description: Generates public and private key
+ *              for CCA-secure Kyber key encapsulation mechanism
+ *
+ * Arguments:   - uint8_t *pk: pointer to output public key
+ *                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
+ *              - uint8_t *sk: pointer to output private key
+ *                (an already allocated array of KYBER_SECRETKEYBYTES bytes)
+ *              - uint8_t *coins: pointer to input randomness
+ *                (an already allocated array filled with 2*KYBER_SYMBYTES random bytes)
+ **
+ * Returns 0 (success)
+ **************************************************/
 int
 crypto_kem_keypair_derand(uint8_t *pk,
                           uint8_t *sk,
@@ -2545,18 +2545,18 @@ crypto_kem_keypair_derand(uint8_t *pk,
 }
 
 /*************************************************
-* Name:        crypto_kem_keypair
-*
-* Description: Generates public and private key
-*              for CCA-secure Kyber key encapsulation mechanism
-*
-* Arguments:   - uint8_t *pk: pointer to output public key
-*                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
-*              - uint8_t *sk: pointer to output private key
-*                (an already allocated array of KYBER_SECRETKEYBYTES bytes)
-*
-* Returns 0 (success)
-**************************************************/
+ * Name:        crypto_kem_keypair
+ *
+ * Description: Generates public and private key
+ *              for CCA-secure Kyber key encapsulation mechanism
+ *
+ * Arguments:   - uint8_t *pk: pointer to output public key
+ *                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
+ *              - uint8_t *sk: pointer to output private key
+ *                (an already allocated array of KYBER_SECRETKEYBYTES bytes)
+ *
+ * Returns 0 (success)
+ **************************************************/
 int
 crypto_kem_keypair(uint8_t *pk,
                    uint8_t *sk)
@@ -2569,22 +2569,22 @@ crypto_kem_keypair(uint8_t *pk,
 }
 
 /*************************************************
-* Name:        crypto_kem_enc_derand
-*
-* Description: Generates cipher text and shared
-*              secret for given public key
-*
-* Arguments:   - uint8_t *ct: pointer to output cipher text
-*                (an already allocated array of KYBER_CIPHERTEXTBYTES bytes)
-*              - uint8_t *ss: pointer to output shared secret
-*                (an already allocated array of KYBER_SSBYTES bytes)
-*              - const uint8_t *pk: pointer to input public key
-*                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
-*              - const uint8_t *coins: pointer to input randomness
-*                (an already allocated array filled with KYBER_SYMBYTES random bytes)
-**
-* Returns 0 (success)
-**************************************************/
+ * Name:        crypto_kem_enc_derand
+ *
+ * Description: Generates cipher text and shared
+ *              secret for given public key
+ *
+ * Arguments:   - uint8_t *ct: pointer to output cipher text
+ *                (an already allocated array of KYBER_CIPHERTEXTBYTES bytes)
+ *              - uint8_t *ss: pointer to output shared secret
+ *                (an already allocated array of KYBER_SSBYTES bytes)
+ *              - const uint8_t *pk: pointer to input public key
+ *                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
+ *              - const uint8_t *coins: pointer to input randomness
+ *                (an already allocated array filled with KYBER_SYMBYTES random bytes)
+ **
+ * Returns 0 (success)
+ **************************************************/
 int
 crypto_kem_enc_derand(uint8_t *ct,
                       uint8_t *ss,
@@ -2613,20 +2613,20 @@ crypto_kem_enc_derand(uint8_t *ct,
 }
 
 /*************************************************
-* Name:        crypto_kem_enc
-*
-* Description: Generates cipher text and shared
-*              secret for given public key
-*
-* Arguments:   - uint8_t *ct: pointer to output cipher text
-*                (an already allocated array of KYBER_CIPHERTEXTBYTES bytes)
-*              - uint8_t *ss: pointer to output shared secret
-*                (an already allocated array of KYBER_SSBYTES bytes)
-*              - const uint8_t *pk: pointer to input public key
-*                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
-*
-* Returns 0 (success)
-**************************************************/
+ * Name:        crypto_kem_enc
+ *
+ * Description: Generates cipher text and shared
+ *              secret for given public key
+ *
+ * Arguments:   - uint8_t *ct: pointer to output cipher text
+ *                (an already allocated array of KYBER_CIPHERTEXTBYTES bytes)
+ *              - uint8_t *ss: pointer to output shared secret
+ *                (an already allocated array of KYBER_SSBYTES bytes)
+ *              - const uint8_t *pk: pointer to input public key
+ *                (an already allocated array of KYBER_PUBLICKEYBYTES bytes)
+ *
+ * Returns 0 (success)
+ **************************************************/
 int
 crypto_kem_enc(uint8_t *ct,
                uint8_t *ss,
@@ -2639,22 +2639,22 @@ crypto_kem_enc(uint8_t *ct,
 }
 
 /*************************************************
-* Name:        crypto_kem_dec
-*
-* Description: Generates shared secret for given
-*              cipher text and private key
-*
-* Arguments:   - uint8_t *ss: pointer to output shared secret
-*                (an already allocated array of KYBER_SSBYTES bytes)
-*              - const uint8_t *ct: pointer to input cipher text
-*                (an already allocated array of KYBER_CIPHERTEXTBYTES bytes)
-*              - const uint8_t *sk: pointer to input private key
-*                (an already allocated array of KYBER_SECRETKEYBYTES bytes)
-*
-* Returns 0.
-*
-* On failure, ss will contain a pseudo-random value.
-**************************************************/
+ * Name:        crypto_kem_dec
+ *
+ * Description: Generates shared secret for given
+ *              cipher text and private key
+ *
+ * Arguments:   - uint8_t *ss: pointer to output shared secret
+ *                (an already allocated array of KYBER_SSBYTES bytes)
+ *              - const uint8_t *ct: pointer to input cipher text
+ *                (an already allocated array of KYBER_CIPHERTEXTBYTES bytes)
+ *              - const uint8_t *sk: pointer to input private key
+ *                (an already allocated array of KYBER_SECRETKEYBYTES bytes)
+ *
+ * Returns 0.
+ *
+ * On failure, ss will contain a pseudo-random value.
+ **************************************************/
 int
 crypto_kem_dec(uint8_t *ss,
                const uint8_t *ct,

@@ -766,10 +766,10 @@ sec_pkcs7_decoder_notify(void *arg, PRBool before, void *dest, int depth)
              */
             if (after && dest == &(envd->encContentInfo.encContent)) {
                 /*
-             * Close out the decryption context.  We ignore any error
-             * because we are stopping anyway; the error status left
-             * behind in p7dcx will be seen by outer functions.
-             */
+                 * Close out the decryption context.  We ignore any error
+                 * because we are stopping anyway; the error status left
+                 * behind in p7dcx will be seen by outer functions.
+                 */
                 (void)sec_pkcs7_decoder_finish_decrypt(p7dcx, cinfo->poolp,
                                                        &(envd->encContentInfo));
 

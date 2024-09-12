@@ -403,7 +403,7 @@ ParseRFC1485AVA(PLArenaPool* arena, const char** pbp, const char* endptr)
     }
 
     /* is this a dotted decimal OID attribute type ? */
-    if (!PL_strncasecmp("oid.", tagBuf, 4) || isdigit(tagBuf[0])) {
+    if (!PL_strncasecmp("oid.", tagBuf, 4) || isdigit((unsigned char)tagBuf[0])) {
         rv = SEC_StringToOID(arena, &derOid, tagBuf, strlen(tagBuf));
         isDottedOid = (PRBool)(rv == SECSuccess);
     } else {
@@ -942,9 +942,9 @@ AppendAVA(stringBuf* bufp, CERTAVA* ava, CertStrictnessLevel strict)
 #define vt n2k.valueType
 
     /* READABLE mode recognizes more names from the name2kinds table
-   * than do STRICT or INVERTIBLE modes.  This assignment chooses the
-   * point in the table where the attribute type name scanning stops.
-   */
+     * than do STRICT or INVERTIBLE modes.  This assignment chooses the
+     * point in the table where the attribute type name scanning stops.
+     */
     endKind = (strict == CERT_N2A_READABLE) ? SEC_OID_UNKNOWN
                                             : SEC_OID_AVA_POSTAL_ADDRESS;
     tag = CERT_GetAVATag(ava);
@@ -1046,8 +1046,8 @@ AppendAVA(stringBuf* bufp, CERTAVA* ava, CertStrictnessLevel strict)
     memcpy(encodedAVA, tagName, nameLen);
     if (truncateName) {
         /* If tag name is too long, we know it is an OID form that was
-     * allocated from the heap, so we can modify it in place
-     */
+         * allocated from the heap, so we can modify it in place
+         */
         encodedAVA[nameLen - 1] = '.';
         encodedAVA[nameLen - 2] = '.';
         encodedAVA[nameLen - 3] = '.';
@@ -1133,16 +1133,16 @@ CERT_NameToAsciiInvertible(CERTName* name, CertStrictnessLevel strict)
     lastRdn--;
 
     /*
-   * Loop over name contents in _reverse_ RDN order appending to string
-   */
+     * Loop over name contents in _reverse_ RDN order appending to string
+     */
     for (rdn = lastRdn; rdn >= rdns; rdn--) {
         CERTAVA** avas = (*rdn)->avas;
         CERTAVA* ava;
         PRBool newRDN = PR_TRUE;
 
         /*
-     * XXX Do we need to traverse the AVAs in reverse order, too?
-     */
+         * XXX Do we need to traverse the AVAs in reverse order, too?
+         */
         while (avas && (ava = *avas++) != NULL) {
             SECStatus rv;
             /* Put in comma or plus separator */
@@ -1357,7 +1357,7 @@ CERT_GetCertificateEmailAddress(CERTCertificate* cert)
     }
     if (rawEmailAddr) {
         for (i = 0; i <= (int)PORT_Strlen(rawEmailAddr); i++) {
-            rawEmailAddr[i] = tolower(rawEmailAddr[i]);
+            rawEmailAddr[i] = tolower((unsigned char)rawEmailAddr[i]);
         }
     }
 
@@ -1383,7 +1383,7 @@ appendStringToBuf(char* dest, char* src, PRUint32* pRemaining)
     if (dest && src && src[0] && *pRemaining > (len = PL_strlen(src))) {
         PRUint32 i;
         for (i = 0; i < len; ++i)
-            dest[i] = tolower(src[i]);
+            dest[i] = tolower((unsigned char)src[i]);
         dest[len] = 0;
         dest += len + 1;
         *pRemaining -= len + 1;

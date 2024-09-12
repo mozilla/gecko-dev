@@ -862,8 +862,8 @@ TEST_F(TlsConnectStreamTls13, CertificateCompression_TooManyAlgorithms) {
   }
 
   SSLCertificateCompressionAlgorithm t_last = {
-      (SSLCertificateCompressionAlgorithmID)(
-          MAX_SUPPORTED_CERTIFICATE_COMPRESSION_ALGS + 1),
+      (SSLCertificateCompressionAlgorithmID)(MAX_SUPPORTED_CERTIFICATE_COMPRESSION_ALGS +
+                                             1),
       "test function", SimpleXorCertCompEncode, SimpleXorCertCompDecode};
 
   EXPECT_EQ(SECFailure, SSLExp_SetCertificateCompressionAlgorithm(

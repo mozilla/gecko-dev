@@ -507,7 +507,7 @@ NSS_CMSSignedData_VerifySignerInfo(NSSCMSSignedData *sigd, int i, CERTCertDBHand
 
 /*
  * NSS_CMSSignedData_VerifyCertsOnly - verify the certs in a certs-only message
-*/
+ */
 extern SECStatus
 NSS_CMSSignedData_VerifyCertsOnly(NSSCMSSignedData *sigd,
                                   CERTCertDBHandle *certdb,

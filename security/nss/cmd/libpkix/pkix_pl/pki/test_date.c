@@ -55,10 +55,10 @@ testDate(char *goodInput, char *diffInput)
     PKIX_PL_Date *diffDate = NULL;
 
     /*
-         * The ASCII rep of the date will vary by platform and locale
-         * This particular string was generated on a SPARC running Solaris 9
-         * in an English locale
-         */
+     * The ASCII rep of the date will vary by platform and locale
+     * This particular string was generated on a SPARC running Solaris 9
+     * in an English locale
+     */
     /* char *expectedAscii = "Mon Mar 29 08:48:47 2004"; */
     char *expectedAscii = "Mon Mar 29, 2004";
 

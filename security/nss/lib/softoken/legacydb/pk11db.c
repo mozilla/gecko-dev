@@ -286,7 +286,7 @@ lgdb_DecodeData(char *defParams, DBT *data, PRBool *retInternal)
     unsigned short len;
     unsigned short namesOffset = 0;   /* start of the names block */
     unsigned long namesRunningOffset; /* offset to name we are
-                     * currently processing */
+                                       * currently processing */
     unsigned short slotOffset;
     PRBool isOldVersion = PR_FALSE;
     PRBool internal;

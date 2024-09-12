@@ -292,12 +292,12 @@ sec_asn1e_init_state_based_on_template(sec_asn1e_state *state)
     }
 
 /*
-     * Sanity check that there are no unwanted bits marked in under_kind.
-     * These bits were either removed above (after we recorded them) or
-     * they simply should not be found (signalling a bad/broken template).
-     * XXX is this the right set of bits to test here? (i.e. need to add
-     * or remove any?)
-     */
+ * Sanity check that there are no unwanted bits marked in under_kind.
+ * These bits were either removed above (after we recorded them) or
+ * they simply should not be found (signalling a bad/broken template).
+ * XXX is this the right set of bits to test here? (i.e. need to add
+ * or remove any?)
+ */
 #define UNEXPECTED_FLAGS                                                      \
     (SEC_ASN1_EXPLICIT | SEC_ASN1_OPTIONAL | SEC_ASN1_SKIP | SEC_ASN1_INNER | \
      SEC_ASN1_DYNAMIC | SEC_ASN1_MAY_STREAM | SEC_ASN1_INLINE | SEC_ASN1_POINTER)

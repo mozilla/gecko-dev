@@ -175,10 +175,10 @@ nss_builtins_FindObjectsInit(
     struct builtinsFOStr *fo = (struct builtinsFOStr *)NULL;
 
 /*
-   * 99% of the time we get 0 or 1 matches. So we start with a small
-   * stack-allocated array to hold the matches and switch to a heap-allocated
-   * array later if the number of matches exceeds STACK_BUF_LENGTH.
-   */
+ * 99% of the time we get 0 or 1 matches. So we start with a small
+ * stack-allocated array to hold the matches and switch to a heap-allocated
+ * array later if the number of matches exceeds STACK_BUF_LENGTH.
+ */
 #define STACK_BUF_LENGTH 1
     builtinsInternalObject *stackTemp[STACK_BUF_LENGTH];
     builtinsInternalObject **temp = stackTemp;
@@ -216,7 +216,7 @@ nss_builtins_FindObjectsInit(
         if (CK_TRUE == builtins_match(pTemplate, ulAttributeCount, o)) {
             if (fo->n == STACK_BUF_LENGTH) {
                 /* Switch from the small stack array to a heap-allocated array large
-         * enough to handle matches in all remaining cases. */
+                 * enough to handle matches in all remaining cases. */
                 temp = nss_ZNEWARRAY((NSSArena *)NULL, builtinsInternalObject *,
                                      fo->n + nss_builtins_nObjects - i);
                 if ((builtinsInternalObject **)NULL == temp) {

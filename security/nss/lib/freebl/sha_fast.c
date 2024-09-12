@@ -59,8 +59,8 @@ SHA1_Begin(SHA1Context *ctx)
 {
     ctx->size = 0;
     /*
-   *  Initialize H with constants from FIPS180-1.
-   */
+     *  Initialize H with constants from FIPS180-1.
+     */
     ctx->H[0] = 0x67452301L;
     ctx->H[1] = 0xefcdab89L;
     ctx->H[2] = 0x98badcfeL;
@@ -142,8 +142,8 @@ SHA1_Update_Generic(SHA1Context *ctx, const unsigned char *dataIn, unsigned int 
     ctx->size += len;
 
     /*
-   *  Read the data into W and process blocks as they get full
-   */
+     *  Read the data into W and process blocks as they get full
+     */
     if (lenB > 0) {
         togo = 64U - lenB;
         if (len < togo)
@@ -196,8 +196,8 @@ SHA1_End(SHA1Context *ctx, unsigned char *hashout,
     PORT_Assert(maxDigestLen >= SHA1_LENGTH);
 
     /*
-   *  Pad with a binary 1 (e.g. 0x80), then zeroes, then length in bits
-   */
+     *  Pad with a binary 1 (e.g. 0x80), then zeroes, then length in bits
+     */
     size = ctx->size;
 
     lenB = (PRUint32)size & 63;

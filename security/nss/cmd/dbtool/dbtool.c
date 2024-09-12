@@ -256,7 +256,7 @@ static const SEC_ASN1Template pkcs12V2PBEParameterTemplate[] = {
 static const SEC_ASN1Template pkcs5V2PBEParameterTemplate[] = {
     { SEC_ASN1_SEQUENCE, 0, NULL, sizeof(PBEParameter) },
     /* this is really a choice, but since we don't understand any other
-       * choice, just inline it. */
+     * choice, just inline it. */
     { SEC_ASN1_OCTET_STRING, offsetof(PBEParameter, salt) },
     { SEC_ASN1_INTEGER, offsetof(PBEParameter, iteration) },
     { SEC_ASN1_INTEGER, offsetof(PBEParameter, keyLength) },

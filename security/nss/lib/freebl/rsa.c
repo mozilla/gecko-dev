@@ -873,14 +873,14 @@ RSA_PopulatePrivateKey(RSAPrivateKey *key)
 
     /* Assure p > q */
     /* NOTE: PKCS #1 does not require p > q, and NSS doesn't use any
-      * implementation optimization that requires p > q. We can remove
-      * this code in the future.
-      */
+     * implementation optimization that requires p > q. We can remove
+     * this code in the future.
+     */
     if (mp_cmp(&p, &q) < 0)
         mp_exch(&p, &q);
 
     /* we now have our 2 primes and at least one exponent, we can fill
-      * in the key */
+     * in the key */
     rv = rsa_build_from_primes(&p, &q,
                                &e, needPublicExponent,
                                &d, needPrivateExponent,
@@ -1027,9 +1027,9 @@ rsa_PrivateKeyOpCRTNoCheck(RSAPrivateKey *key, mp_int *m, mp_int *c)
 {
     mp_int p, q, d_p, d_q, qInv;
     /*
-            The length of the randomness comes from the papers: 
+            The length of the randomness comes from the papers:
             https://link.springer.com/chapter/10.1007/978-3-642-29912-4_7
-            https://link.springer.com/chapter/10.1007/978-3-642-21554-4_5. 
+            https://link.springer.com/chapter/10.1007/978-3-642-21554-4_5.
         */
     mp_int blinding_dp, blinding_dq, r1, r2;
     unsigned char random_block[EXP_BLINDING_RANDOMNESS_LEN_BYTES];
@@ -1081,7 +1081,7 @@ rsa_PrivateKeyOpCRTNoCheck(RSAPrivateKey *key, mp_int *m, mp_int *c)
     memcpy(MP_DIGITS(&r1), random_block, sizeof(random_block));
     // blinding_dp = random * (p - 1)
     CHECK_MPI_OK(mp_mul(&blinding_dp, &r1, &blinding_dp));
-    //d_p = d_p + random * (p - 1)
+    // d_p = d_p + random * (p - 1)
     CHECK_MPI_OK(mp_add(&d_p, &blinding_dp, &d_p));
 
     // blinding_dq = 1
@@ -1094,7 +1094,7 @@ rsa_PrivateKeyOpCRTNoCheck(RSAPrivateKey *key, mp_int *m, mp_int *c)
     MP_USED(&r2) = EXP_BLINDING_RANDOMNESS_LEN;
     // blinding_dq = random * (q - 1)
     CHECK_MPI_OK(mp_mul(&blinding_dq, &r2, &blinding_dq));
-    //d_q = d_q + random * (q-1)
+    // d_q = d_q + random * (q-1)
     CHECK_MPI_OK(mp_add(&d_q, &blinding_dq, &d_q));
 
     /* 1. m1 = c**d_p mod p */

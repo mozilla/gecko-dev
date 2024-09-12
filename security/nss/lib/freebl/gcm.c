@@ -111,7 +111,7 @@ gcmHash_InitContext(gcmHashContext *ghash, const unsigned char *H, PRBool sw)
         rv = gcm_HashInit_hw(ghash);
     } else {
 /* We fall back to the software implementation if we can't use / don't
-         * want to use pclmul. */
+ * want to use pclmul. */
 #ifdef HAVE_INT128_SUPPORT
         ghash->ghash_mul = gcm_HashMult_sftw;
 #else

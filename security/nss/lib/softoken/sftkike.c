@@ -923,11 +923,11 @@ sftk_ike_prf_plus_raw(CK_SESSION_HANDLE hSession,
     }
 
     /*
-      * this loop generates on block of the prf, basically
-      *   Tn = prf(key, Tn-1 | S | n)
-      *   Tn is thisKey, Tn-2 is lastKey, S is seedKey || seedData,
-      *   key is inKey. currentByte = n-1 on entry.
-      */
+     * this loop generates on block of the prf, basically
+     *   Tn = prf(key, Tn-1 | S | n)
+     *   Tn is thisKey, Tn-2 is lastKey, S is seedKey || seedData,
+     *   key is inKey. currentByte = n-1 on entry.
+     */
     thisKey = outKeyData;
     for (getKeySize = 0; getKeySize < keySize; getKeySize += macSize) {
         /* if currentByte is 255, we'll overflow when we increment it below.

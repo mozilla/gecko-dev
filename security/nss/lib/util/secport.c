@@ -303,23 +303,23 @@ PORT_ArenaAlloc(PLArenaPool *arena, size_t size)
     } else
         /* Is it one of ours?  Assume so and check the magic */
         if (ARENAPOOL_MAGIC == pool->magic) {
-        PZ_Lock(pool->lock);
+            PZ_Lock(pool->lock);
 #ifdef THREADMARK
-        /* Most likely one of ours.  Is there a thread id? */
-        if (pool->marking_thread &&
-            pool->marking_thread != PR_GetCurrentThread()) {
-            /* Another thread holds a mark in this arena */
+            /* Most likely one of ours.  Is there a thread id? */
+            if (pool->marking_thread &&
+                pool->marking_thread != PR_GetCurrentThread()) {
+                /* Another thread holds a mark in this arena */
+                PZ_Unlock(pool->lock);
+                PORT_SetError(SEC_ERROR_NO_MEMORY);
+                PORT_Assert(0);
+                return NULL;
+            } /* tid != null */
+#endif        /* THREADMARK */
+            PL_ARENA_ALLOCATE(p, arena, size);
             PZ_Unlock(pool->lock);
-            PORT_SetError(SEC_ERROR_NO_MEMORY);
-            PORT_Assert(0);
-            return NULL;
-        } /* tid != null */
-#endif    /* THREADMARK */
-        PL_ARENA_ALLOCATE(p, arena, size);
-        PZ_Unlock(pool->lock);
-    } else {
-        PL_ARENA_ALLOCATE(p, arena, size);
-    }
+        } else {
+            PL_ARENA_ALLOCATE(p, arena, size);
+        }
 
     if (!p) {
         PORT_SetError(SEC_ERROR_NO_MEMORY);

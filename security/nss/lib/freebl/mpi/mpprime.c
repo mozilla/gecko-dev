@@ -437,8 +437,8 @@ mpp_make_prime_ext_random(mp_int *start, mp_size nBits, mp_size strong, mpp_rand
     MP_CHECKOK(mp_init(&trial));
     MP_CHECKOK(mp_init(&q));
     /* values originally taken from table 4.4,
-   * HandBook of Applied Cryptography, augmented by FIPS-186
-   * requirements, Table C.2 and C.3 */
+     * HandBook of Applied Cryptography, augmented by FIPS-186
+     * requirements, Table C.2 and C.3 */
     if (nBits >= 2000) {
         num_tests = 3;
     } else if (nBits >= 1536) {

@@ -249,11 +249,16 @@ PK11_ImportPublicKey(PK11SlotInfo *slot, SECKEYPublicKey *pubKey,
                 }
                 break;
             case kyberKey:
-                keyType = CKK_NSS_KYBER;
                 switch (pubKey->u.kyber.params) {
                     case params_kyber768_round3:
                     case params_kyber768_round3_test_mode:
+                        keyType = CKK_NSS_KYBER;
                         kemParams = CKP_NSS_KYBER_768_ROUND3;
+                        break;
+                    case params_ml_kem768:
+                    case params_ml_kem768_test_mode:
+                        keyType = CKK_NSS_ML_KEM;
+                        kemParams = CKP_NSS_ML_KEM_768;
                         break;
                     default:
                         kemParams = CKP_INVALID_ID;
@@ -680,6 +685,7 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
                 keyType = edKey;
                 break;
             case CKK_NSS_KYBER:
+            case CKK_NSS_ML_KEM:
                 keyType = kyberKey;
                 break;
             default:
@@ -855,7 +861,12 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
             if (crv != CKR_OK)
                 break;
 
-            if ((keyClass != CKO_PUBLIC_KEY) || (pk11KeyType != CKK_NSS_KYBER)) {
+            if (keyClass != CKO_PUBLIC_KEY) {
+                crv = CKR_OBJECT_HANDLE_INVALID;
+                break;
+            }
+
+            if (pk11KeyType != CKK_NSS_KYBER && pk11KeyType != CKK_NSS_ML_KEM) {
                 crv = CKR_OBJECT_HANDLE_INVALID;
                 break;
             }
@@ -868,6 +879,9 @@ PK11_ExtractPublicKey(PK11SlotInfo *slot, KeyType keyType, CK_OBJECT_HANDLE id)
             switch (*pPK11Params) {
                 case CKP_NSS_KYBER_768_ROUND3:
                     pubKey->u.kyber.params = params_kyber768_round3;
+                    break;
+                case CKP_NSS_ML_KEM_768:
+                    pubKey->u.kyber.params = params_ml_kem768;
                     break;
                 default:
                     pubKey->u.kyber.params = params_kyber_invalid;
@@ -935,6 +949,7 @@ PK11_MakePrivKey(PK11SlotInfo *slot, KeyType keyType,
                 keyType = edKey;
                 break;
             case CKK_NSS_KYBER:
+            case CKK_NSS_ML_KEM:
                 keyType = kyberKey;
                 break;
             default:
@@ -1511,6 +1526,7 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
             test_mech.mechanism = CKM_DH_PKCS_DERIVE;
             break;
         case CKM_EC_KEY_PAIR_GEN:
+        case CKM_NSS_ECDHE_NO_PAIRWISE_CHECK_KEY_PAIR_GEN:
             ecParams = (SECKEYECParams *)param;
             attrs = ecPubTemplate;
             PK11_SETATTRS(attrs, CKA_EC_PARAMS, ecParams->data,
@@ -1551,6 +1567,17 @@ PK11_GenerateKeyPairWithOpFlags(PK11SlotInfo *slot, CK_MECHANISM_TYPE type,
             pubTemplate = kyberPubTemplate;
             keyType = kyberKey;
             test_mech.mechanism = CKM_NSS_KYBER;
+            break;
+        case CKM_NSS_ML_KEM_KEY_PAIR_GEN:
+            kemParams = (CK_NSS_KEM_PARAMETER_SET_TYPE *)param;
+            attrs = kyberPubTemplate;
+            PK11_SETATTRS(attrs, CKA_NSS_PARAMETER_SET,
+                          kemParams,
+                          sizeof(CK_NSS_KEM_PARAMETER_SET_TYPE));
+            attrs++;
+            pubTemplate = kyberPubTemplate;
+            keyType = kyberKey;
+            test_mech.mechanism = CKM_NSS_ML_KEM;
             break;
         case CKM_EC_MONTGOMERY_KEY_PAIR_GEN:
             ecParams = (SECKEYECParams *)param;
