@@ -12,6 +12,13 @@
     var prefs = [
     ];
 
+    var animation_prefs = [
+      ...prefs,
+      // To avoid throttling requestAnimationFrame callbacks in invisible
+      // iframes
+      ["layout.throttled_frame_rate", 60],
+    ];
+
     var subtests = [
       {
         "file": "helper_fission_tap_on_zoomed.html",
@@ -19,6 +26,8 @@
       },
       { "file": "helper_fission_touch.html", "prefs": prefs },
       { "file": "helper_fission_transforms.html", "prefs": prefs },
+      { "file": "helper_fission_animation_styling_in_oopif.html",
+        "prefs": animation_prefs },
     ];
 
     if (getPlatform() != "android") {
