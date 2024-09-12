@@ -12,7 +12,6 @@ module.exports = {
     "no-extend-native": "error",
     "no-multi-str": "error",
     "no-return-assign": "error",
-    "no-shadow": "error",
     "no-unused-vars": ["error", { argsIgnorePattern: "^_", vars: "all" }],
     strict: ["error", "global"],
     yoda: "error",
