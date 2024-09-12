@@ -29,12 +29,24 @@ import {
   actionCreators as ac,
 } from "resource://activity-stream/common/Actions.mjs";
 
+// `contextId` is a unique identifier used by Contextual Services
+const CONTEXT_ID_PREF = "browser.contextual-services.contextId";
+ChromeUtils.defineLazyGetter(lazy, "contextId", () => {
+  let _contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF, null);
+  if (!_contextId) {
+    _contextId = String(Services.uuid.generateUUID());
+    Services.prefs.setStringPref(CONTEXT_ID_PREF, _contextId);
+  }
+  return _contextId;
+});
+
 const CACHE_KEY = "discovery_stream";
 const STARTUP_CACHE_EXPIRE_TIME = 7 * 24 * 60 * 60 * 1000; // 1 week
 const COMPONENT_FEEDS_UPDATE_TIME = 30 * 60 * 1000; // 30 minutes
 const SPOCS_FEEDS_UPDATE_TIME = 30 * 60 * 1000; // 30 minutes
 const DEFAULT_RECS_EXPIRE_TIME = 60 * 60 * 1000; // 1 hour
 const MAX_LIFETIME_CAP = 500; // Guard against misconfiguration on the server
+const SPOCS_CAP_DURATION = 24 * 60 * 60; // 1 day in seconds.
 const FETCH_TIMEOUT = 45 * 1000;
 const TOPIC_LOADING_TIMEOUT = 1 * 1000;
 const TOPIC_SELECTION_DISPLAY_COUNT =
@@ -62,8 +74,10 @@ const PREF_SPOCS_ENDPOINT_QUERY = "discoverystream.spocs-endpoint-query";
 const PREF_REGION_BASIC_LAYOUT = "discoverystream.region-basic-layout";
 const PREF_USER_TOPSTORIES = "feeds.section.topstories";
 const PREF_SYSTEM_TOPSTORIES = "feeds.system.topstories";
-const PREF_USER_TOPSITES = "feeds.topsites";
 const PREF_SYSTEM_TOPSITES = "feeds.system.topsites";
+const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
+const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
+const PREF_USER_TOPSITES = "feeds.topsites";
 const PREF_SPOCS_CLEAR_ENDPOINT = "discoverystream.endpointSpocsClear";
 const PREF_SHOW_SPONSORED = "showSponsored";
 const PREF_SYSTEM_SHOW_SPONSORED = "system.showSponsored";
@@ -956,7 +970,39 @@ export class DiscoveryStreamFeed {
   // For ths reason, we want to ensure if we don't find an items array,
   // we use the previous array placement, and then stub out title and context to empty strings.
   // We need to do this *after* both fresh fetches and cached data to reduce repetition.
+
+  // Bug 1916488 introduced a new data stricture from the unified ads API.
+  // We want to maintain both implementations until we're done rollout out,
+  // so for now we are going to normlaize the new data to match the old data props,
+  // so we can change as little as possible. Once we commit to one, we can remove all this.
   normalizeSpocsItems(spocs) {
+    const unifiedAdsEnabled =
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+    if (unifiedAdsEnabled) {
+      return {
+        items: spocs.map(spoc => ({
+          id: spoc.caps.cap_key,
+          flight_id: spoc.block_key,
+          shim: spoc.callbacks,
+          caps: {
+            flight: {
+              count: spoc.caps.day,
+              period: SPOCS_CAP_DURATION,
+            },
+          },
+          domain: spoc.domain,
+          excerpt: spoc.excerpt,
+          raw_image_src: spoc.image_url,
+          priority: spoc.ranking.priority,
+          personalization_models: spoc.ranking.personalization_models,
+          item_score: spoc.ranking.item_score,
+          sponsor: spoc.sponsor,
+          title: spoc.title,
+          url: spoc.url,
+        })),
+      };
+    }
+
     const items = spocs.items || spocs;
     const title = spocs.title || "";
     const context = spocs.context || "";
@@ -992,6 +1038,8 @@ export class DiscoveryStreamFeed {
 
   async loadSpocs(sendUpdate, isStartup) {
     const cachedData = (await this.cache.get()) || {};
+    const unifiedAdsEnabled =
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENABLED];
     let spocsState = cachedData.spocs;
     let placements = this.getPlacements();
 
@@ -1007,7 +1055,8 @@ export class DiscoveryStreamFeed {
       if (
         lazy.NimbusFeatures.pocketNewtab.getVariable(
           NIMBUS_VARIABLE_CONTILE_SOV_ENABLED
-        )
+        ) &&
+        !unifiedAdsEnabled
       ) {
         let { positions, ready } = this.store.getState().TopSites.sov;
         if (ready) {
@@ -1027,31 +1076,43 @@ export class DiscoveryStreamFeed {
       }
 
       // We can filter out the topsite placement from the fetch.
-      if (!useTopsitesPlacement) {
+      if (!useTopsitesPlacement && !unifiedAdsEnabled) {
         placements = placements.filter(
           placement => placement.name !== "sponsored-topsites"
         );
       }
 
       if (placements?.length) {
-        const endpoint =
+        const apiKeyPref = this.config.api_key_pref;
+        const apiKey = Services.prefs.getCharPref(apiKeyPref, "");
+        let endpoint =
           this.store.getState().DiscoveryStream.spocs.spocs_endpoint;
+        let body = {
+          pocket_id: this._impressionId,
+          version: 2,
+          consumer_key: apiKey,
+          ...(placements.length ? { placements } : {}),
+        };
+
+        if (unifiedAdsEnabled) {
+          const endpointBaseUrl =
+            this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
+          endpoint = `${endpointBaseUrl}v1/ads`;
+
+          body = {
+            context_id: lazy.contextId,
+            placements: [{ placement: "newtab_spocs", count: 6 }],
+            blocks: [],
+          };
+        }
 
         const headers = new Headers();
         headers.append("content-type", "application/json");
 
-        const apiKeyPref = this.config.api_key_pref;
-        const apiKey = Services.prefs.getCharPref(apiKeyPref, "");
-
         const spocsResponse = await this.fetchFromEndpoint(endpoint, {
           method: "POST",
           headers,
-          body: JSON.stringify({
-            pocket_id: this._impressionId,
-            version: 2,
-            consumer_key: apiKey,
-            ...(placements.length ? { placements } : {}),
-          }),
+          body: JSON.stringify(body),
         });
 
         if (spocsResponse) {
@@ -1934,6 +1995,7 @@ export class DiscoveryStreamFeed {
       case PREF_LAYOUT_EXPERIMENT_A:
       case PREF_LAYOUT_EXPERIMENT_B:
       case PREF_SPOC_POSITIONS:
+      case PREF_UNIFIED_ADS_ENABLED:
         // This is a config reset directly related to Discovery Stream pref.
         this.configReset();
         break;
@@ -2439,7 +2501,7 @@ getHardcodedLayout = ({
             title: "",
           },
           placement: {
-            name: "spocs",
+            name: "newtab_spocs",
             ad_types: spocPlacementData.ad_types,
             zone_ids: spocPlacementData.zone_ids,
           },
