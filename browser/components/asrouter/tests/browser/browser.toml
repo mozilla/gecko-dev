@@ -21,6 +21,7 @@ https_first_disabled = true
 skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1643036
 
 ["browser_asrouter_infobar.js"]
+skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1892548
 
 ["browser_asrouter_keyboard_cfr.js"]
 https_first_disabled = true
