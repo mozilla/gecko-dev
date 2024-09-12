@@ -252,6 +252,6 @@ internal class ToolbarEditListener(
     }
 
     override fun onCancelEditing(): Boolean {
-        return true
+        return !inputStarted
     }
 }

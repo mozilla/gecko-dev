@@ -302,4 +302,29 @@ class AwesomeBarFeatureTest {
         assertFalse(startInvoked)
         assertTrue(completeInvoked)
     }
+
+    @Test
+    fun `Feature edit listener returns when editing has started or stopped`() {
+        val toolbar: Toolbar = mock()
+        val awesomeBar: AwesomeBar = mock()
+        doReturn(View(testContext)).`when`(awesomeBar).asView()
+
+        var listener: Toolbar.OnEditListener? = null
+
+        `when`(toolbar.setOnEditListener(any())).thenAnswer { invocation ->
+            listener = invocation.getArgument<Toolbar.OnEditListener>(0)
+            Unit
+        }
+
+        AwesomeBarFeature(
+            awesomeBar,
+            toolbar,
+        )
+
+        assertTrue("Nothing to cancel when editing has started.", listener!!.onCancelEditing())
+
+        listener!!.onStartEditing()
+
+        assertFalse("Cancelling because edit has started.", listener!!.onCancelEditing())
+    }
 }
