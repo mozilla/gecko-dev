@@ -393,8 +393,13 @@ export const SpecialMessageActions = {
    *
    * @param {Window} window Reference to a window object
    * @param {boolean} shouldHideDialog True if bookmark dialog should be hidden
+   * @param {boolean} shouldHideConfirmationHint True if bookmark confirmation hint should be hidden
    */
-  async bookmarkCurrentTab(window, shouldHideDialog) {
+  async bookmarkCurrentTab(
+    window,
+    shouldHideDialog = false,
+    shouldHideConfirmationHint = false
+  ) {
     if (!window.top.gBrowser) {
       return;
     }
@@ -441,7 +446,10 @@ export const SpecialMessageActions = {
         );
       }
       window.gURLBar.handleRevert();
-      window.StarUI.showConfirmation();
+
+      if (!shouldHideConfirmationHint) {
+        window.StarUI.showConfirmation();
+      }
     } else {
       // Bookmarks current tab with bookmark dialog shown
       window.top.PlacesCommandHook.bookmarkTabs([
@@ -664,7 +672,7 @@ export const SpecialMessageActions = {
         this.bookmarkCurrentTab(
           window,
           action.data?.shouldHideDialog,
-          action.data?.bookmarksToolbarVisibility
+          action.data?.shouldHideConfirmationHint
         );
         break;
       case "SET_BOOKMARKS_TOOLBAR_VISIBILITY":

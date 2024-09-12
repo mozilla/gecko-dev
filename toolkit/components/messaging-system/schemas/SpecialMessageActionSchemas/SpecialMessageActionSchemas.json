@@ -615,6 +615,10 @@
                 "shouldHideDialog": {
                   "type": "boolean",
                   "description": "Whether or not the bookmarks dialog should be visible"
+                },
+                "shouldHideConfirmationHint": {
+                  "type": "boolean",
+                  "description": "Whether or not the bookmarks confirmation hint should be visible"
                 }
               }
             },

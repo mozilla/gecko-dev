@@ -13,6 +13,8 @@ support-files = [
 
 ["browser_sma_bookmark_current_tab.js"]
 
+["browser_sma_bookmark_current_tab_confirmation_hint.js"]
+
 ["browser_sma_cfrmessageprovider.js"]
 
 ["browser_sma_configure_homepage.js"]
