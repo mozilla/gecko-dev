@@ -169,9 +169,9 @@
   background: transparent;
   color: inherit;
   border-radius: 4px;
-  --button-background-color-hover: var(--panel-item-hover-bgcolor);
+  --button-hover-bgcolor: var(--panel-item-hover-bgcolor);
   --button-hover-color: inherit;
-  --button-background-color-active: var(--panel-item-active-bgcolor);
+  --button-active-bgcolor: var(--panel-item-active-bgcolor);
   --button-active-color: inherit;
 }
 
@@ -193,20 +193,20 @@
     background-color: ButtonFace;
     color: ButtonText;
     border-color: currentColor;
-    --button-background-color-hover: SelectedItem;
+    --button-hover-bgcolor: SelectedItem;
     --button-hover-color: SelectedItemText;
-    --button-background-color-active: ButtonFace;
+    --button-active-bgcolor: ButtonFace;
     --button-active-color: ButtonText;
   }
 }
 
 .downloadButton:hover:not(:active) {
-  background-color: var(--button-background-color-hover);
+  background-color: var(--button-hover-bgcolor);
   color: var(--button-hover-color);
-  border-color: var(--button-background-color-hover);
+  border-color: var(--button-hover-bgcolor);
 }
 .downloadButton:hover:active {
-  background-color: var(--button-background-color-active);
+  background-color: var(--button-active-bgcolor);
   color: var(--button-active-color);
 }
 

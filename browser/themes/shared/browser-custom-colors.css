@@ -8,15 +8,15 @@
     --button-primary-hover-bgcolor: light-dark(rgb(2, 80, 187), rgb(128, 235, 255));
     --button-primary-active-bgcolor: light-dark(rgb(5, 62, 148), rgb(170, 242, 255));
     --button-primary-color: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
-    --button-background-color: light-dark(
+    --button-bgcolor: light-dark(
       rgba(207, 207, 216, .33),
       rgba(0, 0, 0, .33)
     );
-    --button-background-color-hover: light-dark(
+    --button-hover-bgcolor: light-dark(
       rgba(207, 207, 216, .66),
       rgba(207, 207, 216, .20)
     );
-    --button-background-color-active: light-dark(
+    --button-active-bgcolor: light-dark(
       rgb(207, 207, 216),
       rgba(207, 207, 216, .40)
     );
