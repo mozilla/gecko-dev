@@ -703,8 +703,8 @@
         <item name="windowActionBar">false</item>
         <item name="android:windowFullscreen">false</item>
         <item name="android:windowContentOverlay">@null</item>
-        <item name="android:navigationBarColor">@android:color/transparent</item>
-        <item name="android:windowTranslucentNavigation">true</item>
+        <item name="android:navigationBarColor">?attr/layer1</item>
+        <item name="android:windowTranslucentNavigation">false</item>
         <item name="android:statusBarColor">?attr/layer1</item>
     </style>
 
