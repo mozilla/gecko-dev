@@ -814,172 +814,106 @@ var SidebarController = {
     return this.show(commandID, triggerNode);
   },
 
-  async _drawImagesToCanvas() {
-    let selectedBrowser = gBrowser.selectedBrowser;
-    let {
-      sidebarBackgroundColor,
-      sidebarBrowserWidth,
-      contentBrowserWidth,
-      contentBrowserHeight,
-    } = await window.promiseDocumentFlushed(() => {
-      let results = {};
-      results.sidebarBackgroundColor = window.getComputedStyle(
-        this.browser.parentElement
-      ).backgroundColor;
-      results.sidebarBrowserWidth = this.browser.clientWidth;
-      results.contentBrowserWidth = selectedBrowser.clientWidth;
-      results.contentBrowserHeight = selectedBrowser.clientHeight;
-      return results;
-    });
-
-    let width;
-    if (this.sidebarMain.open) {
-      width = contentBrowserWidth + sidebarBrowserWidth;
-    } else {
-      width = contentBrowserWidth;
+  // Given a scale (like, let's say, 4) computes an approximation (using
+  // the linear() function) of the easing function needed to always inverse
+  // that scale during an animation.
+  _approximateInverseEasing(scale) {
+    const kNumPoints = 20;
+    let inverse = 1 / scale;
+    let to = 1;
+    let points = [];
+    for (let i = 0; i < kNumPoints; ++i) {
+      let progress = i / kNumPoints;
+      let origAnimationValue = scale + (to - scale) * progress;
+      let wantedValue = 1 / origAnimationValue;
+      let inverseAnimationProgress = (wantedValue - inverse) / (to - inverse);
+      points.push(inverseAnimationProgress);
     }
-    let height = contentBrowserHeight;
-
-    let canvas = new OffscreenCanvas(width, height);
-    let context = canvas.getContext("2d");
-
-    let selectedBrowserSnapshot =
-      await selectedBrowser.browsingContext.currentWindowGlobal.drawSnapshot(
-        null,
-        1,
-        sidebarBackgroundColor
-      );
-    if (this.sidebarMain.open) {
-      let sidebarSnapshot =
-        await this.browser.browsingContext.currentWindowGlobal.drawSnapshot(
-          null,
-          1,
-          sidebarBackgroundColor
-        );
-      if (!this._positionStart) {
-        context.drawImage(selectedBrowserSnapshot, 0, 0);
-        context.drawImage(sidebarSnapshot, contentBrowserWidth, 0);
-      } else {
-        context.drawImage(sidebarSnapshot, 0, 0);
-        context.drawImage(selectedBrowserSnapshot, sidebarBrowserWidth, 0);
-      }
-    } else {
-      context.drawImage(selectedBrowserSnapshot, 0, 0);
-    }
-    return canvas;
+    points.push(1);
+    return `linear(${points.join(", ")})`;
   },
 
   async _animateSidebarMain() {
-    // Temporarily pause resizeobserver on sidebarMain
-    this._mainResizeObserver.unobserve(this.sidebarMain);
-    let canvas = await this._drawImagesToCanvas();
+    let tabbox = document.getElementById("tabbrowser-tabbox");
+    let animatingElements = [
+      this.sidebarContainer,
+      this._box,
+      this._splitter,
+      tabbox,
+    ];
+    let getRects = () => {
+      return animatingElements.map(e => e.getBoundingClientRect());
+    };
+    let fromRects = await window.promiseDocumentFlushed(getRects);
 
-    let initialSidebarMainWidth = await window.promiseDocumentFlushed(
-      () => this.sidebarMain.clientWidth
-    );
+    this.toggleExpanded();
 
-    await new Promise(resolve => {
+    // We need to wait for rAF for lit to re-render, and us to get the final
+    // width. This is a bit unfortunate but alas...
+    let toRects = await new Promise(resolve => {
       requestAnimationFrame(() => {
-        setTimeout(() => {
-          document.documentElement.style.setProperty(
-            `--sidebar-${
-              this.sidebarMain.expanded ? "expanded" : "collapsed"
-            }-width`,
-            `${initialSidebarMainWidth}px`
-          );
-          resolve();
-        }, 0);
+        resolve(getRects());
       });
     });
 
-    let blob = await canvas.convertToBlob();
-    // Remove any existing screenshot overlays if needed
-    let existingScreenshotOverlay = document.querySelector(
-      ".sidebar-animation-screenshot"
-    );
-    if (existingScreenshotOverlay) {
-      existingScreenshotOverlay.remove();
-    }
-    let screenshotOverlay = document.createElement("div");
-    let img = document.createElement("img");
-    screenshotOverlay.classList.add("sidebar-animation-screenshot");
-    let url = URL.createObjectURL(blob);
-    img.src = url;
-    screenshotOverlay.appendChild(img);
-
-    img.onload = () => {
-      URL.revokeObjectURL(img.src);
+    const options = {
+      duration: 300,
     };
-    let parentHbox = this.sidebarMain.closest("#browser");
-    let parentNode = this.sidebarMain.parentNode;
-    if (!this.sidebarMain.expanded) {
-      screenshotOverlay.classList.add("collapsed");
-      if (screenshotOverlay.classList.contains("expanded")) {
-        screenshotOverlay.classList.remove("expanded");
-      }
-    } else {
-      screenshotOverlay.classList.add("expanded");
-      if (screenshotOverlay.classList.contains("collapsed")) {
-        screenshotOverlay.classList.remove("collapsed");
-      }
-    }
-    if (!this._positionStart) {
-      screenshotOverlay.classList.add("positionend");
-    }
-    parentHbox.insertBefore(screenshotOverlay, parentNode);
-    screenshotOverlay.classList.add("translate");
-
-    if (!this.sidebarMain.expanded) {
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          this.toggleExpanded();
-        });
-      });
-    } else {
-      this.expandAfterTranslate = true;
-    }
-
-    screenshotOverlay.addEventListener(
-      "animationend",
-      this._onScreenshotOverlayAnimationEnd.bind(this)
-    );
-  },
-
-  async _onScreenshotOverlayAnimationEnd(e) {
-    if (
-      this.expandAfterTranslate &&
-      e.animationName.includes("translate-collapse")
-    ) {
-      this.toggleExpanded();
-      this.expandAfterAnimation = false;
-    }
-    if (e.animationName.includes("translate")) {
-      let screenshotOverlay = document.querySelector(
-        ".sidebar-animation-screenshot"
+    let computeTransforms = (from, to) => {
+      // We are at the "to" position, and want to end at the "from" position.
+      let delta = from.left - to.left;
+      let scale = to.width ? from.width / to.width : 1;
+      return [delta, scale];
+    };
+    let animations = [];
+    for (let i = 0; i < animatingElements.length; ++i) {
+      let el = animatingElements[i];
+      let from = fromRects[i];
+      let to = toRects[i];
+      let [translate, scale] = computeTransforms(from, to);
+      animations.push(
+        el.animate(
+          [
+            { translate: `${translate}px 0 0`, scale: `${scale} 1 1` },
+            { translate: "0", scale: "1" },
+          ],
+          options
+        )
       );
-      screenshotOverlay.classList.remove("translate");
-      if (this.sidebarMain.expanded) {
-        screenshotOverlay.classList.add("expanded");
-        if (screenshotOverlay.classList.contains("collapsed")) {
-          screenshotOverlay.classList.remove("collapsed");
-        }
-      } else {
-        screenshotOverlay.classList.add("collapsed");
-        if (screenshotOverlay.classList.contains("expanded")) {
-          screenshotOverlay.classList.remove("expanded");
-        }
+      if (el != this.sidebarContainer) {
+        continue;
       }
-      screenshotOverlay.classList.add("fadeOut");
-    }
-    if (e.animationName.includes("opacity")) {
-      let screenshotOverlay = document.querySelector(
-        ".sidebar-animation-screenshot"
+      // NOTE(emilio): This is a bit hacky. We want to inverse the
+      // transformation of our parent. In order to do that, we need to apply
+      // first the scaling, then the translate. Furthermore, due to how
+      // interpolation works, we want to make sure that we always compute the
+      // right scaling, and that wouldn't work if we just used a linear
+      // easing for that (for the delta it works just fine tho).
+      // So we use `transform` to animate the delta (which applies after the
+      // `scale` property, so just what we want), and we use a `scale`
+      // animation with a linear easing to ease precisely inverse to our
+      // parent element.
+      let inverseElement = this.sidebarMain;
+      animations.push(
+        inverseElement.animate(
+          [{ scale: `${1 / scale} 1 1` }, { scale: "1" }],
+          {
+            easing: this._approximateInverseEasing(scale),
+            ...options,
+          }
+        )
       );
-      screenshotOverlay.classList.remove("fadeOut");
-      let screenshot = document.querySelector(".sidebar-animation-screenshot");
-      screenshot.remove();
-      this._mainResizeObserver.observe(this.sidebarMain);
+      animations.push(
+        inverseElement.animate(
+          [
+            { transform: `translateX(${-translate}px)` },
+            { transform: `translateX(0)` },
+          ],
+          options
+        )
+      );
     }
+    await Promise.all(animations.map(a => a.finished));
   },
 
   async handleToolbarButtonClick() {
