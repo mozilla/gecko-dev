@@ -16,7 +16,7 @@ dependencies {
 
   testImplementation ComponentsDependencies.tools_lint
   testImplementation ComponentsDependencies.tools_linttests
-  testImplementation ComponentsDependencies.testing_junit
+  testImplementation ComponentsDependencies.junit_vintage
   testImplementation ComponentsDependencies.testing_mockito
 }
 

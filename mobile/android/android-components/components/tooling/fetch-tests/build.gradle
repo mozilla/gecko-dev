@@ -25,14 +25,19 @@ android {
         lintConfig file("lint.xml")
     }
 
-    namespace 'mozilla.components.tooling.fetch.tests'
+    packagingOptions {
+        resources {
+            excludes += ['META-INF/LICENSE.md', 'META-INF/LICENSE-notice.md']
+        }
+    }
 
+    namespace 'mozilla.components.tooling.fetch.tests'
 }
 
 dependencies {
     implementation project(':concept-fetch')
 
     implementation ComponentsDependencies.testing_mockwebserver
-    implementation ComponentsDependencies.testing_junit
+    implementation ComponentsDependencies.junit_vintage
     implementation ComponentsDependencies.kotlin_coroutines
 }

@@ -25,7 +25,7 @@ android {
 }
 
 dependencies {
-    testImplementation ComponentsDependencies.testing_junit
+    testImplementation ComponentsDependencies.junit_vintage
     testImplementation ComponentsDependencies.testing_mockito
 }
 

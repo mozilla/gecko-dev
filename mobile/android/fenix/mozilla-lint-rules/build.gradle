@@ -20,7 +20,7 @@ dependencies {
     compileOnly ComponentsDependencies.tools_lintapi
     compileOnly ComponentsDependencies.tools_lintchecks
 
-    testImplementation ComponentsDependencies.testing_junit
+    testImplementation ComponentsDependencies.junit_vintage
     testImplementation ComponentsDependencies.tools_lint
     testImplementation ComponentsDependencies.tools_linttests
 }

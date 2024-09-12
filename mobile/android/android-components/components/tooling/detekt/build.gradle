@@ -8,7 +8,7 @@ apply plugin: 'kotlin'
 dependencies {
     implementation ComponentsDependencies.tools_detekt_api
 
-    testImplementation ComponentsDependencies.testing_junit
+    testImplementation ComponentsDependencies.junit_vintage
     testImplementation ComponentsDependencies.tools_detekt_api
     testImplementation ComponentsDependencies.tools_detekt_test
 }

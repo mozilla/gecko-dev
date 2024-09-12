@@ -227,7 +227,7 @@ dependencies {
         implementation project(":exoplayer2")
     }
 
-    testImplementation ComponentsDependencies.testing_junit
+    testImplementation ComponentsDependencies.junit_vintage
     testImplementation ComponentsDependencies.testing_robolectric
 
     androidTestImplementation ComponentsDependencies.testing_coroutines

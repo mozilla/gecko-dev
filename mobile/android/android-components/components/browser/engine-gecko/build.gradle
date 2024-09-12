@@ -44,7 +44,7 @@ android {
 
     packagingOptions {
         resources {
-            excludes += ['META-INF/proguard/androidx-annotations.pro']
+            excludes += ['META-INF/LICENSE.md', 'META-INF/LICENSE-notice.md']
         }
     }
 

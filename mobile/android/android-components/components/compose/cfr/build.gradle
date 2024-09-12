@@ -55,7 +55,7 @@ dependencies {
     testImplementation ComponentsDependencies.testing_coroutines
     testImplementation ComponentsDependencies.androidx_test_core
     testImplementation ComponentsDependencies.androidx_test_junit
-    testImplementation ComponentsDependencies.testing_junit
+    testImplementation ComponentsDependencies.junit_vintage
     testImplementation ComponentsDependencies.testing_robolectric
 }
 

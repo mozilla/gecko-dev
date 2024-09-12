@@ -33,7 +33,7 @@ dependencies {
     implementation ComponentsDependencies.androidx_annotation
 
     testImplementation project(':support-test')
-    testImplementation ComponentsDependencies.testing_junit
+    testImplementation ComponentsDependencies.junit_vintage
 }
 
 apply from: '../../../android-lint.gradle'

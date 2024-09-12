@@ -21,7 +21,6 @@ object Versions {
 
     const val mozilla_glean = "61.0.0"
 
-    const val junit = "4.13.2"
     const val robolectric = "4.13"
     const val mockito = "5.13.0"
     const val maven_ant_tasks = "2.1.3"
@@ -108,6 +107,7 @@ object Versions {
         const val androidx_test_orchestrator = "1.5.0"
         const val androidx_test_runner = "1.6.1"
         const val androidx_test_uiautomator = "2.3.0"
+        const val junit = "5.10.2"
     }
 }
 
@@ -118,7 +118,8 @@ object ComponentsDependencies {
     const val kotlin_reflect = "org.jetbrains.kotlin:kotlin-reflect:${Versions.kotlin}"
     const val kotlin_json = "org.jetbrains.kotlinx:kotlinx-serialization-json:${Versions.serialization}"
 
-    const val testing_junit = "junit:junit:${Versions.junit}"
+    const val junit_vintage = "org.junit.vintage:junit-vintage-engine:${Versions.Testing.junit}"
+
     const val testing_robolectric = "org.robolectric:robolectric:${Versions.robolectric}"
     const val testing_mockito = "org.mockito:mockito-core:${Versions.mockito}"
     const val testing_mockwebserver = "com.squareup.okhttp3:mockwebserver:${Versions.okhttp}"

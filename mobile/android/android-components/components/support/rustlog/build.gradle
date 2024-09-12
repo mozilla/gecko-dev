@@ -40,7 +40,7 @@ dependencies {
 
     testImplementation ComponentsDependencies.mozilla_appservices_full_megazord_forUnitTests
 
-    testImplementation ComponentsDependencies.testing_junit
+    testImplementation ComponentsDependencies.junit_vintage
     testImplementation ComponentsDependencies.androidx_test_junit
     testImplementation ComponentsDependencies.testing_robolectric
 }
