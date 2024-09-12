@@ -24,16 +24,14 @@
     }
   }
 
-  --chrome-content-separator-color: ThreeDShadow;
+  --content-area-shadow: 0 2px 6px 0 light-dark(rgba(0,0,0,.2), rgba(0,0,0,.8));
+  --chrome-content-separator-color: var(--lwt-sidebar-border-color, light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3)));
   /* stylelint-disable-next-line media-query-no-invalid */
   @media not (-moz-bool-pref: "sidebar.revamp") {
+    --chrome-content-separator-color: ThreeDShadow;
     &[lwttheme] {
       --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
     }
-  }
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media (-moz-bool-pref: "sidebar.revamp") {
-    --chrome-content-separator-color: var(--lwt-sidebar-border-color, light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3)));
   }
 }
 
@@ -42,7 +40,7 @@
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
-    /* This reserves space for the tabbox outline */
+    /* This reserves space for the content area outline */
     border-bottom-color: var(--toolbar-bgcolor);
   }
 }
@@ -65,7 +63,7 @@
 @media (-moz-bool-pref: "sidebar.revamp") {
   .browserSidebarContainer {
     outline: 0.01px solid var(--chrome-content-separator-color);
-    box-shadow: 0 2px 6px 0 light-dark(rgb(0, 0, 0, 0.2), rgb(0, 0, 0, 0.8));
+    box-shadow: var(--content-area-shadow);
   }
 }
 
