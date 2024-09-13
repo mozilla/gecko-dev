@@ -21,9 +21,6 @@ permalink: /changelog/
 * **All components**
   * ⚠️Increased `compileSdkVersion` to 35 (Android 15)
 
-* **browser-store**
-  * Adds `desktopMode` property to the `BrowserStore` to know whether or not browsing is in desktop mode. [Bug 1790516](https://bugzilla.mozilla.org/show_bug.cgi?id=1790516)
-
 * **browser-state**
   * 🆕 New `isPdf` property for `ContentState` to inform whether the current page is a pdf or not. [Bug 1817810](https://bugzilla.mozilla.org/show_bug.cgi?id=1817810)
 

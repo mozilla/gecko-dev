@@ -1917,8 +1917,3 @@ sealed class AppLifecycleAction : BrowserAction() {
      */
     object PauseAction : AppLifecycleAction()
 }
-
-/**
- * Toggles the global default for desktop browsing mode.
- */
-data object ToggleDesktopMode : BrowserAction()

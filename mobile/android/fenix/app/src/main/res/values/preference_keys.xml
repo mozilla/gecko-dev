@@ -359,7 +359,7 @@
 
     <string name="pref_key_return_to_browser" translatable="false">pref_key_return_to_browser</string>
 
-    <string name="pref_key_open_next_tab_desktop_mode_is_tablet" translatable="false">pref_key_open_next_tab_desktop_mode_is_tablet</string>
+    <string name="pref_key_open_next_tab_desktop_mode" translatable="false">pref_key_open_next_tab_desktop_mode</string>
 
     <!-- Pocket -->
     <string name="pref_key_pocket_homescreen_recommendations" translatable="false">pref_key_pocket_homescreen_recommendations</string>

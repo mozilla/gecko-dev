@@ -36,7 +36,6 @@ import java.util.Locale
  * @property locale The current locale of the app. Will be null when following the system default.
  * @property awesomeBarState Holds state for interactions with the [AwesomeBar].
  * @property translationEngine Holds translation state that applies to the browser.
- * @property desktopMode Whether or not browsing is in desktop mode by default for any newly opened tabs.
  */
 data class BrowserState(
     val tabs: List<TabSessionState> = emptyList(),
@@ -57,5 +56,4 @@ data class BrowserState(
     val extensionsProcessDisabled: Boolean = false,
     val awesomeBarState: AwesomeBarState = AwesomeBarState(),
     val translationEngine: TranslationsBrowserState = TranslationsBrowserState(),
-    val desktopMode: Boolean = false,
 ) : State
