@@ -37,7 +37,6 @@ class TextSelectionTest : TestSetup() {
     val retryTestRule = RetryTestRule(3)
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2326832
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifySelectAllTextOptionTest() {
@@ -63,7 +62,6 @@ class TextSelectionTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2326828
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyCopyTextOptionTest() {
         val genericURL = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -160,7 +158,6 @@ class TextSelectionTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/243839
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifyCopyPDFTextOptionTest() {
@@ -301,7 +298,6 @@ class TextSelectionTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/414316
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun urlBarQuickActionsTest() {
         val firstWebsite = TestAssetHelper.getGenericAsset(mockWebServer, 1)

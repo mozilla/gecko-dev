@@ -14,6 +14,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Rule
 import org.mozilla.fenix.ext.components
+import org.mozilla.fenix.helpers.AppAndSystemHelper.allowOrPreventSystemUIFromReadingTheClipboard
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.Translations
@@ -42,6 +43,11 @@ open class TestSetup {
     @Before
     open fun setUp() {
         Log.i(TAG, "TestSetup: Starting the @Before setup")
+
+        if (Build.VERSION.SDK_INT == Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            allowOrPreventSystemUIFromReadingTheClipboard(allowToReadClipboard = false)
+        }
+
         Log.i(TAG, "TestSetup: Trying to disable the translations prompt")
         // Prevents translations from opening a popup
         FxNimbus.features.translations.withInitializer { _, _ ->

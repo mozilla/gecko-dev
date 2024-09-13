@@ -7,7 +7,6 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
-import androidx.test.filters.SdkSuppress
 import androidx.test.rule.ActivityTestRule
 import org.junit.Rule
 import org.junit.Test
@@ -88,7 +87,6 @@ class CustomTabsTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2334762
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun copyCustomTabToolbarUrlTest() {
         val customTabPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)

@@ -623,6 +623,20 @@ object AppAndSystemHelper {
         }
     }
 
+    // Prevent or allow the System UI from reading the clipboard content
+    // By preventing, the quick share or nearby share dialog will not be displayed
+    fun allowOrPreventSystemUIFromReadingTheClipboard(allowToReadClipboard: Boolean) {
+        if (allowToReadClipboard) {
+            Log.i(TAG, "allowOrPreventSystemUIFromReadingTheClipboard: Trying to allow the System UI from reading the clipboard content")
+            mDevice.executeShellCommand("appops set com.android.systemui READ_CLIPBOARD allow")
+            Log.i(TAG, "TestSetup: Successfully allowed the System UI from reading the clipboard content")
+        } else {
+            Log.i(TAG, "allowOrPreventSystemUIFromReadingTheClipboard: Trying to prevent the System UI from reading the clipboard content")
+            mDevice.executeShellCommand("appops set com.android.systemui READ_CLIPBOARD deny")
+            Log.i(TAG, "TestSetup: Successfully prevented the System UI from reading the clipboard content")
+        }
+    }
+
     fun isNetworkConnected(): Boolean {
         val connectivityManager =
             appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

@@ -568,7 +568,6 @@ class SettingsSearchTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/412927
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyShowClipboardSuggestionsToggleTest() {
         val link = "https://www.mozilla.org/en-US/"
