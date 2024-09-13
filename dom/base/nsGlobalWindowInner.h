@@ -408,8 +408,6 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   static bool CachesEnabled(JSContext* aCx, JSObject*);
 
-  static bool IsSizeToContentEnabled(JSContext*, JSObject*);
-
   // WebIDL permission Func for whether Glean APIs are permitted.
   static bool IsGleanNeeded(JSContext*, JSObject*);
 
@@ -846,10 +844,8 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   already_AddRefed<nsICSSDeclaration> GetDefaultComputedStyle(
       mozilla::dom::Element& aElt, const nsAString& aPseudoElt,
       mozilla::ErrorResult& aError);
-  void SizeToContent(mozilla::dom::CallerType aCallerType,
-                     mozilla::ErrorResult& aError);
-  void SizeToContentConstrained(const mozilla::dom::SizeToContentConstraints&,
-                                mozilla::ErrorResult&);
+  void SizeToContent(const mozilla::dom::SizeToContentConstraints&,
+                     mozilla::ErrorResult&);
   mozilla::dom::Crypto* GetCrypto(mozilla::ErrorResult& aError);
   nsIControllers* GetControllers(mozilla::ErrorResult& aError);
   nsresult GetControllers(nsIControllers** aControllers) override;

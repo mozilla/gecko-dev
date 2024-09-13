@@ -2,7 +2,6 @@
 head = "head.js"
 prefs = [
   "browser.migrate.internal-testing.enabled=true",
-  "dom.window.sizeToContent.enabled=true",
 ]
 support-files = ["../head-common.js"]
 tags = "os_integration"

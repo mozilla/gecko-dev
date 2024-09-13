@@ -606,8 +606,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   double GetScrollYOuter();
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void SizeToContentOuter(mozilla::dom::CallerType,
-                          const mozilla::dom::SizeToContentConstraints&,
+  void SizeToContentOuter(const mozilla::dom::SizeToContentConstraints&,
                           mozilla::ErrorResult&);
   nsIControllers* GetControllersOuter(mozilla::ErrorResult& aError);
   nsresult GetControllers(nsIControllers** aControllers) override;

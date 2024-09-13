@@ -405,18 +405,12 @@ partial interface Window {
    */
   undefined                 scrollByPages(long numPages, optional ScrollOptions options = {});
 
-  // Gecko specific API that allows a web page to resize the browser window.
-  // Dropping support in bug 1600400.
-  [Throws, NeedsCallerType,
-   Deprecated="SizeToContent",
-   Func="nsGlobalWindowInner::IsSizeToContentEnabled"]
-  undefined sizeToContent();
 
   /**
-   * Chrome-only method for sizing to content with a maximum-size constraint on
-   * either (or both) directions.
+   * Chrome-only method for sizing to content with an optional
+   * maximum-size constraint on either (or both) directions.
    */
-  [Throws, ChromeOnly] undefined sizeToContentConstrained(optional SizeToContentConstraints constraints = {});
+  [Throws, ChromeOnly] undefined sizeToContent(optional SizeToContentConstraints constraints = {});
 
   [ChromeOnly, Replaceable, Throws] readonly attribute XULControllers controllers;
 

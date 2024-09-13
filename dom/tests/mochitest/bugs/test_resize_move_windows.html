@@ -140,8 +140,6 @@ function checkChangeIsDisabled(aWindow) {
   aWindow.resizeBy(newWidth - aWindow.innerWidth,
                    newHeight - aWindow.innerHeight);
 
-  aWindow.sizeToContent();
-
   /**
    * Position checks.
    */
@@ -250,7 +248,7 @@ function checkChangeIsEnabled(aWindow, aNext)
     return hitEventLoop(sizeChangeCondition, sizeChangeTest, hits);
   })
   .then(function() {
-    aWindow.sizeToContent();
+    aWindow.resizeTo(500, 500);
     return hitEventLoop(sizeChangeCondition, sizeChangeTest, hits);
   })
   .then(function() {

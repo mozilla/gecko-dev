@@ -3317,12 +3317,6 @@ bool nsGlobalWindowInner::CachesEnabled(JSContext* aCx, JSObject* aObj) {
 }
 
 /* static */
-bool nsGlobalWindowInner::IsSizeToContentEnabled(JSContext* aCx, JSObject*) {
-  return StaticPrefs::dom_window_sizeToContent_enabled() ||
-         nsContentUtils::IsSystemCaller(aCx);
-}
-
-/* static */
 bool nsGlobalWindowInner::IsGleanNeeded(JSContext* aCx, JSObject* aObj) {
   // Glean is needed in ChromeOnly contexts and also in privileged about pages.
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
@@ -3784,16 +3778,10 @@ void nsGlobalWindowInner::ResizeBy(int32_t aWidthDif, int32_t aHeightDif,
       ResizeByOuter, (aWidthDif, aHeightDif, aCallerType, aError), aError, );
 }
 
-void nsGlobalWindowInner::SizeToContent(CallerType aCallerType,
-                                        ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(SizeToContentOuter, (aCallerType, {}, aError),
-                            aError, );
-}
-
-void nsGlobalWindowInner::SizeToContentConstrained(
+void nsGlobalWindowInner::SizeToContent(
     const SizeToContentConstraints& aConstraints, ErrorResult& aError) {
-  FORWARD_TO_OUTER_OR_THROW(
-      SizeToContentOuter, (CallerType::System, aConstraints, aError), aError, );
+  FORWARD_TO_OUTER_OR_THROW(SizeToContentOuter, (aConstraints, aError),
+                            aError, );
 }
 
 already_AddRefed<nsPIWindowRoot> nsGlobalWindowInner::GetTopWindowRoot() {
