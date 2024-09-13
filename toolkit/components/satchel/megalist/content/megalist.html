@@ -10,6 +10,16 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
+    <!--
+      Bug 1918541: Explicitly importing panel-list because relying on lazy loading
+      panel-list/panel-item from a lit template seems to cause late upgrades.
+      Specifically, doing something like the following:
+        <panel-list>
+          <panel-item .disabled=${true}>I'm disabled</panel-item>
+        </panel-list>
+      doesn't seem to trigger the disabled setter on panel-item.
+    -->
+    <script src="chrome://global/content/elements/panel-list.js"></script>
     <script
       type="module"
       src="chrome://global/content/megalist/MegalistAlpha.mjs"

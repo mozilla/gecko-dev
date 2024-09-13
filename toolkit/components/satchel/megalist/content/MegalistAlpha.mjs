@@ -245,6 +245,7 @@ export class MegalistAlpha extends MozLitElement {
           action="remove-all-logins"
           data-l10n-id="about-logins-menu-menuitem-remove-all-logins2"
           @click=${() => this.#openDialog(DIALOGS.REMOVE_ALL)}
+          .disabled=${!this.header.value.total}
         ></panel-item>
         <hr />
         <panel-item
