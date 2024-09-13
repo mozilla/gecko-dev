@@ -199,5 +199,3 @@ cfg_if! {
 }
 
 pub const MINSIGSTKSZ: ::size_t = 2048; // 512 * 4
-
-pub const KINFO_FILE_SIZE: ::c_int = 1392;

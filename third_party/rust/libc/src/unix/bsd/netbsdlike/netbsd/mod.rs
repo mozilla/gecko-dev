@@ -2884,22 +2884,6 @@ extern "C" {
     pub fn getrandom(buf: *mut ::c_void, buflen: ::size_t, flags: ::c_uint) -> ::ssize_t;
 
     pub fn reboot(mode: ::c_int, bootstr: *mut ::c_char) -> ::c_int;
-
-    #[link_name = "___lwp_park60"]
-    pub fn _lwp_park(
-        clock: ::clockid_t,
-        flags: ::c_int,
-        ts: *const ::timespec,
-        unpark: ::lwpid_t,
-        hint: *const ::c_void,
-        unparkhint: *mut ::c_void,
-    ) -> ::c_int;
-    pub fn _lwp_unpark(lwp: ::lwpid_t, hint: *const ::c_void) -> ::c_int;
-    pub fn _lwp_unpark_all(
-        targets: *const ::lwpid_t,
-        ntargets: ::size_t,
-        hint: *const ::c_void,
-    ) -> ::c_int;
 }
 
 #[link(name = "rt")]

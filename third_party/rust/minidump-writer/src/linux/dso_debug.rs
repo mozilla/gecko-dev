@@ -1,8 +1,9 @@
 use crate::{
-    linux::{auxv::AuxvDumpInfo, errors::SectionDsoDebugError, ptrace_dumper::PtraceDumper},
+    linux::{auxv_reader::AuxvType, errors::SectionDsoDebugError, ptrace_dumper::PtraceDumper},
     mem_writer::{write_string_to_location, Buffer, MemoryArrayWriter, MemoryWriter},
     minidump_format::*,
 };
+use std::collections::HashMap;
 
 type Result<T> = std::result::Result<T, SectionDsoDebugError>;
 
@@ -76,16 +77,33 @@ pub struct RDebug {
 pub fn write_dso_debug_stream(
     buffer: &mut Buffer,
     blamed_thread: i32,
-    auxv: &AuxvDumpInfo,
+    auxv: &HashMap<AuxvType, AuxvType>,
 ) -> Result<MDRawDirectory> {
-    let phnum_max =
-        auxv.get_program_header_count()
-            .ok_or(SectionDsoDebugError::CouldNotFind("AT_PHNUM in auxv"))? as usize;
-    let phdr = auxv
-        .get_program_header_address()
+    let at_phnum;
+    let at_phdr;
+    #[cfg(any(target_arch = "arm", all(target_os = "android", target_arch = "x86")))]
+    {
+        at_phdr = 3;
+        at_phnum = 5;
+    }
+    #[cfg(not(any(target_arch = "arm", all(target_os = "android", target_arch = "x86"))))]
+    {
+        at_phdr = libc::AT_PHDR;
+        at_phnum = libc::AT_PHNUM;
+    }
+    let phnum_max = *auxv
+        .get(&at_phnum)
+        .ok_or(SectionDsoDebugError::CouldNotFind("AT_PHNUM in auxv"))?
+        as usize;
+    let phdr = *auxv
+        .get(&at_phdr)
         .ok_or(SectionDsoDebugError::CouldNotFind("AT_PHDR in auxv"))? as usize;
 
-    let ph = PtraceDumper::copy_from_process(blamed_thread, phdr, SIZEOF_PHDR * phnum_max)?;
+    let ph = PtraceDumper::copy_from_process(
+        blamed_thread,
+        phdr as *mut libc::c_void,
+        SIZEOF_PHDR * phnum_max,
+    )?;
     let program_headers;
     #[cfg(target_pointer_width = "64")]
     {
@@ -133,7 +151,7 @@ pub fn write_dso_debug_stream(
     loop {
         let dyn_data = PtraceDumper::copy_from_process(
             blamed_thread,
-            dyn_addr as usize + dynamic_length,
+            (dyn_addr as usize + dynamic_length) as *mut libc::c_void,
             dyn_size,
         )?;
         dynamic_length += dyn_size;
@@ -159,8 +177,11 @@ pub fn write_dso_debug_stream(
     // See <link.h> for a more detailed discussion of the how the dynamic
     // loader communicates with debuggers.
 
-    let debug_entry_data =
-        PtraceDumper::copy_from_process(blamed_thread, r_debug, std::mem::size_of::<RDebug>())?;
+    let debug_entry_data = PtraceDumper::copy_from_process(
+        blamed_thread,
+        r_debug as *mut libc::c_void,
+        std::mem::size_of::<RDebug>(),
+    )?;
 
     // goblin::elf::Dyn doesn't have padding bytes
     let (head, body, _tail) = unsafe { debug_entry_data.align_to::<RDebug>() };
@@ -173,7 +194,7 @@ pub fn write_dso_debug_stream(
     while curr_map != 0 {
         let link_map_data = PtraceDumper::copy_from_process(
             blamed_thread,
-            curr_map,
+            curr_map as *mut libc::c_void,
             std::mem::size_of::<LinkMap>(),
         )?;
 
@@ -197,8 +218,11 @@ pub fn write_dso_debug_stream(
         for (idx, map) in dso_vec.iter().enumerate() {
             let mut filename = String::new();
             if map.l_name > 0 {
-                let filename_data =
-                    PtraceDumper::copy_from_process(blamed_thread, map.l_name, 256)?;
+                let filename_data = PtraceDumper::copy_from_process(
+                    blamed_thread,
+                    map.l_name as *mut libc::c_void,
+                    256,
+                )?;
 
                 // C - string is NULL-terminated
                 if let Some(name) = filename_data.splitn(2, |x| *x == b'\0').next() {
@@ -233,8 +257,11 @@ pub fn write_dso_debug_stream(
     };
 
     dirent.location.data_size += dynamic_length as u32;
-    let dso_debug_data =
-        PtraceDumper::copy_from_process(blamed_thread, dyn_addr as usize, dynamic_length)?;
+    let dso_debug_data = PtraceDumper::copy_from_process(
+        blamed_thread,
+        dyn_addr as *mut libc::c_void,
+        dynamic_length,
+    )?;
     MemoryArrayWriter::write_bytes(buffer, &dso_debug_data);
 
     Ok(dirent)

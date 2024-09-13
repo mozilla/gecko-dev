@@ -358,13 +358,6 @@ user-id = 51017
 user-login = "JohnTitor"
 user-name = "Yuki Okushi"
 
-[[publisher.libc]]
-version = "0.2.154"
-when = "2024-04-29"
-user-id = 51017
-user-login = "JohnTitor"
-user-name = "Yuki Okushi"
-
 [[publisher.libz-rs-sys]]
 version = "0.2.1"
 when = "2024-07-08"
@@ -403,13 +396,6 @@ user-name = "Sean McArthur"
 [[publisher.minidump-common]]
 version = "0.21.1"
 when = "2024-03-01"
-user-id = 72814
-user-login = "gabrielesvelto"
-user-name = "Gabriele Svelto"
-
-[[publisher.minidump-common]]
-version = "0.22.1"
-when = "2024-09-05"
 user-id = 72814
 user-login = "gabrielesvelto"
 user-name = "Gabriele Svelto"

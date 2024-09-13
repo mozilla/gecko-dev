@@ -30,7 +30,7 @@ libc_bitflags!(
         #[cfg(target_os = "freebsd")]
         MNT_GJOURNAL;
         /// MAC support for objects.
-        #[cfg(target_os = "freebsd")]
+        #[cfg(any(apple_targets, target_os = "freebsd"))]
         MNT_MULTILABEL;
         /// Disable read clustering.
         #[cfg(freebsdlike)]
@@ -58,7 +58,7 @@ libc_bitflags!(
         /// Create a snapshot of the file system.
         ///
         /// See [mksnap_ffs(8)](https://www.freebsd.org/cgi/man.cgi?query=mksnap_ffs)
-        #[cfg(target_os = "freebsd")]
+        #[cfg(any(apple_targets, target_os = "freebsd"))]
         MNT_SNAPSHOT;
         /// Using soft updates.
         #[cfg(any(freebsdlike, netbsdlike))]
@@ -71,6 +71,7 @@ libc_bitflags!(
         MNT_SYNCHRONOUS;
         /// Union with underlying fs.
         #[cfg(any(
+                apple_targets,
                 target_os = "freebsd",
                 target_os = "netbsd"
         ))]

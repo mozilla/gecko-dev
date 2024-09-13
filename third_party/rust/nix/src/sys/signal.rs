@@ -597,7 +597,7 @@ impl SigSet {
         target_os = "haiku",
         target_os = "hurd",
         target_os = "aix",
-        target_os = "fuchsia"
+        target_os = "fushsia"
     ))]
     #[doc(alias("sigsuspend"))]
     pub fn suspend(&self) -> Result<()> {
@@ -753,16 +753,9 @@ pub enum SigHandler {
 }
 
 /// Action to take on receipt of a signal. Corresponds to `sigaction`.
-#[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct SigAction {
     sigaction: libc::sigaction
-}
-
-impl From<SigAction> for libc::sigaction {
-    fn from(value: SigAction) -> libc::sigaction {
-        value.sigaction
-    }
 }
 
 impl SigAction {

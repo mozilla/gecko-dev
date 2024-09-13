@@ -28,7 +28,7 @@ fn read_empty_signalfd() {
     };
 
     let mask = SigSet::empty();
-    let fd = SignalFd::with_flags(&mask, SfdFlags::SFD_NONBLOCK).unwrap();
+    let mut fd = SignalFd::with_flags(&mask, SfdFlags::SFD_NONBLOCK).unwrap();
 
     let res = fd.read_signal();
     assert!(res.unwrap().is_none());
@@ -47,7 +47,7 @@ fn test_signalfd() {
     mask.add(signal::SIGUSR1);
     mask.thread_block().unwrap();
 
-    let fd = SignalFd::new(&mask).unwrap();
+    let mut fd = SignalFd::new(&mask).unwrap();
 
     // Send a SIGUSR1 signal to the current process. Note that this uses `raise` instead of `kill`
     // because `kill` with `getpid` isn't correct during multi-threaded execution like during a
@@ -72,7 +72,7 @@ fn test_signalfd_setmask() {
     // Block the SIGUSR1 signal from automatic processing for this thread
     let mut mask = SigSet::empty();
 
-    let fd = SignalFd::new(&mask).unwrap();
+    let mut fd = SignalFd::new(&mask).unwrap();
 
     mask.add(signal::SIGUSR1);
     mask.thread_block().unwrap();

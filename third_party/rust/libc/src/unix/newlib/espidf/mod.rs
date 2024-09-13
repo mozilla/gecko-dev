@@ -89,16 +89,6 @@ pub const MSG_EOR: ::c_int = 0x08;
 
 pub const PTHREAD_STACK_MIN: ::size_t = 768;
 
-pub const SIGABRT: ::size_t = 1;
-pub const SIGFPE: ::size_t = 1;
-pub const SIGILL: ::size_t = 1;
-pub const SIGINT: ::size_t = 1;
-pub const SIGSEGV: ::size_t = 1;
-pub const SIGTERM: ::size_t = 1;
-pub const SIGHUP: ::size_t = 1;
-pub const SIGQUIT: ::size_t = 1;
-pub const NSIG: ::size_t = 2;
-
 extern "C" {
     pub fn pthread_create(
         native: *mut ::pthread_t,

@@ -1334,9 +1334,9 @@ pub const GRPQUOTA: ::c_int = 1;
 
 pub const SIGIOT: ::c_int = 6;
 
-pub const S_ISUID: ::mode_t = 0o4000;
-pub const S_ISGID: ::mode_t = 0o2000;
-pub const S_ISVTX: ::mode_t = 0o1000;
+pub const S_ISUID: ::c_int = 0x800;
+pub const S_ISGID: ::c_int = 0x400;
+pub const S_ISVTX: ::c_int = 0x200;
 
 pub const IF_NAMESIZE: ::size_t = 16;
 pub const IFNAMSIZ: ::size_t = IF_NAMESIZE;
@@ -2981,7 +2981,6 @@ pub const SO_MARK: ::c_int = 36;
 pub const SO_RXQ_OVFL: ::c_int = 40;
 pub const SO_PEEK_OFF: ::c_int = 42;
 pub const SO_BUSY_POLL: ::c_int = 46;
-pub const SO_BINDTOIFINDEX: ::c_int = 62;
 
 pub const __SIZEOF_PTHREAD_RWLOCK_T: usize = 56;
 pub const __SIZEOF_PTHREAD_MUTEX_T: usize = 40;

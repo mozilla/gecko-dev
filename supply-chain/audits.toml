@@ -989,12 +989,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "1.0.73 -> 1.0.78"
 
-[[audits.cfg_aliases]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.1.1 -> 0.2.1"
-notes = "Very minor changes."
-
 [[audits.chardetng]]
 who = "Henri Sivonen <hsivonen@hsivonen.fi>"
 criteria = "safe-to-deploy"
@@ -2279,12 +2273,6 @@ criteria = "safe-to-deploy"
 delta = "0.8.0 -> 0.8.1"
 notes = "Updating goblin to 0.8.1 that includes my fix for Elf SectionHeader parsing"
 
-[[audits.goblin]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.8.1 -> 0.8.2"
-notes = "Removes the TE feature/functionality, otherwise no meaningful changes."
-
 [[audits.gpu-alloc]]
 who = "Teodor Tanasoaia <ttanasoaia@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -2765,11 +2753,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.2.147 -> 0.2.148"
 
-[[audits.libc]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.2.154 -> 0.2.158"
-
 [[audits.libloading]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -3054,19 +3037,6 @@ criteria = "safe-to-deploy"
 delta = "0.8.3 -> 0.8.9"
 notes = "Mainly dependency updates and a few small features (in support of mozilla bugs)."
 
-[[audits.minidump-writer]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.8.9 -> 0.10.0"
-notes = "Crate written and reviewed by mozilla employees."
-
-[[audits.minidump-writer]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.10.0 -> 0.10.0@git:771cabfc420abd46d348a22ee49b9b26d0d28e8a"
-importable = false
-notes = "Crate written and reviewed by mozilla employees."
-
 [[audits.miniz_oxide]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -3205,11 +3175,6 @@ notes = """
 Many new features and bugfixes. Obviously there's a lot of unsafe code calling
 libc, but the usage looks correct.
 """
-
-[[audits.nix]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.28.0 -> 0.29.0"
 
 [[audits.nom]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"

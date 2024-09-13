@@ -177,41 +177,41 @@ pub struct div_t {
 }
 
 // fcntl
-pub const O_CREAT: u32 = 0o100;
+pub const O_CREAT: u32 = 0100;
 
-pub const O_EXCL: u32 = 0o200;
+pub const O_EXCL: u32 = 0200;
 
-pub const O_NOCTTY: u32 = 0o400;
+pub const O_NOCTTY: u32 = 0400;
 
-pub const O_TRUNC: u32 = 0o1000;
+pub const O_TRUNC: u32 = 01000;
 
-pub const O_APPEND: u32 = 0o2000;
+pub const O_APPEND: u32 = 02000;
 
-pub const O_NONBLOCK: u32 = 0o4000;
+pub const O_NONBLOCK: u32 = 04000;
 
-pub const O_DSYNC: u32 = 0o10000;
+pub const O_DSYNC: u32 = 010000;
 
-pub const O_SYNC: u32 = 0o4010000;
+pub const O_SYNC: u32 = 04010000;
 
-pub const O_RSYNC: u32 = 0o4010000;
+pub const O_RSYNC: u32 = 04010000;
 
-pub const O_DIRECTORY: u32 = 0o200000;
+pub const O_DIRECTORY: u32 = 0200000;
 
-pub const O_NOFOLLOW: u32 = 0o400000;
+pub const O_NOFOLLOW: u32 = 0400000;
 
-pub const O_CLOEXEC: u32 = 0o2000000;
+pub const O_CLOEXEC: u32 = 02000000;
 
-pub const O_ASYNC: u32 = 0o20000;
+pub const O_ASYNC: u32 = 020000;
 
-pub const O_DIRECT: u32 = 0o40000;
+pub const O_DIRECT: u32 = 040000;
 
-pub const O_LARGEFILE: u32 = 0o100000;
+pub const O_LARGEFILE: u32 = 0100000;
 
-pub const O_NOATIME: u32 = 0o1000000;
+pub const O_NOATIME: u32 = 01000000;
 
-pub const O_PATH: u32 = 0o10000000;
+pub const O_PATH: u32 = 010000000;
 
-pub const O_TMPFILE: u32 = 0o20200000;
+pub const O_TMPFILE: u32 = 020200000;
 
 pub const O_NDELAY: u32 = O_NONBLOCK;
 

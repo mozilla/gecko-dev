@@ -1,15 +1,18 @@
 #[cfg(target_os = "android")]
 use crate::linux::android::late_process_mappings;
-use crate::linux::{
-    auxv::AuxvDumpInfo,
-    errors::{DumperError, InitError, ThreadInfoError},
-    maps_reader::MappingInfo,
-    module_reader,
-    thread_info::ThreadInfo,
-    Pid,
-};
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 use crate::thread_info;
+use crate::{
+    linux::{
+        auxv_reader::{AuxvType, ProcfsAuxvIter},
+        errors::{DumperError, InitError, ThreadInfoError},
+        maps_reader::MappingInfo,
+        thread_info::{Pid, ThreadInfo},
+        LINUX_GATE_LIBRARY_NAME,
+    },
+    minidump_format::GUID,
+};
+use goblin::elf;
 use nix::{
     errno::Errno,
     sys::{ptrace, signal, wait},
@@ -19,6 +22,9 @@ use procfs_core::{
     FromRead, ProcError,
 };
 use std::{
+    collections::HashMap,
+    ffi::c_void,
+    io::BufReader,
     path,
     result::Result,
     time::{Duration, Instant},
@@ -35,7 +41,7 @@ pub struct PtraceDumper {
     pub pid: Pid,
     threads_suspended: bool,
     pub threads: Vec<Thread>,
-    pub auxv: AuxvDumpInfo,
+    pub auxv: HashMap<AuxvType, AuxvType>,
     pub mappings: Vec<MappingInfo>,
     pub page_size: usize,
 }
@@ -87,17 +93,14 @@ fn ptrace_detach(child: Pid) -> Result<(), DumperError> {
 }
 
 impl PtraceDumper {
-    /// Constructs a dumper for extracting information from the specified process id
-    pub fn new(pid: Pid, stop_timeout: Duration, auxv: AuxvDumpInfo) -> Result<Self, InitError> {
-        if pid == std::process::id() as _ {
-            return Err(InitError::CannotPtraceSameProcess);
-        }
-
-        let mut dumper = Self {
+    /// Constructs a dumper for extracting information of a given process
+    /// with a process ID of |pid|.
+    pub fn new(pid: Pid, stop_timeout: Duration) -> Result<Self, InitError> {
+        let mut dumper = PtraceDumper {
             pid,
             threads_suspended: false,
             threads: Vec::new(),
-            auxv,
+            auxv: HashMap::new(),
             mappings: Vec::new(),
             page_size: 0,
         };
@@ -111,11 +114,7 @@ impl PtraceDumper {
         if let Err(e) = self.stop_process(stop_timeout) {
             log::warn!("failed to stop process {}: {e}", self.pid);
         }
-
-        if let Err(e) = self.auxv.try_filling_missing_info(self.pid) {
-            log::warn!("failed trying to fill in missing auxv info: {e}");
-        }
-
+        self.read_auxv()?;
         self.enumerate_threads()?;
         self.enumerate_mappings()?;
         self.page_size = nix::unistd::sysconf(nix::unistd::SysconfVar::PAGE_SIZE)?
@@ -134,6 +133,27 @@ impl PtraceDumper {
         Ok(())
     }
 
+    /// Copies content of |length| bytes from a given process |child|,
+    /// starting from |src|, into |dest|. This method uses ptrace to extract
+    /// the content from the target process. Always returns true.
+    pub fn copy_from_process(
+        child: Pid,
+        src: *mut c_void,
+        num_of_bytes: usize,
+    ) -> Result<Vec<u8>, DumperError> {
+        use DumperError::CopyFromProcessError as CFPE;
+        let pid = nix::unistd::Pid::from_raw(child);
+        let mut res = Vec::new();
+        let mut idx = 0usize;
+        while idx < num_of_bytes {
+            let word = ptrace::read(pid, (src as usize + idx) as *mut c_void)
+                .map_err(|e| CFPE(child, src as usize, idx, num_of_bytes, e))?;
+            res.append(&mut word.to_ne_bytes().to_vec());
+            idx += std::mem::size_of::<libc::c_long>();
+        }
+        Ok(res)
+    }
+
     /// Suspends a thread by attaching to it.
     pub fn suspend_thread(child: Pid) -> Result<(), DumperError> {
         use DumperError::PtraceAttachError as AttachErr;
@@ -143,28 +163,8 @@ impl PtraceDumper {
         ptrace::attach(pid).map_err(|e| AttachErr(child, e))?;
         loop {
             match wait::waitpid(pid, Some(wait::WaitPidFlag::__WALL)) {
-                Ok(status) => {
-                    let wait::WaitStatus::Stopped(_, status) = status else {
-                        return Err(DumperError::WaitPidError(
-                            child,
-                            nix::errno::Errno::UnknownErrno,
-                        ));
-                    };
-
-                    // Any signal will stop the thread, make sure it is SIGSTOP. Otherwise, this
-                    // signal will be delivered after PTRACE_DETACH, and the thread will enter
-                    // the "T (stopped)" state.
-                    if status == nix::sys::signal::SIGSTOP {
-                        break;
-                    }
-
-                    // Signals other than SIGSTOP that are received need to be reinjected,
-                    // or they will otherwise get lost.
-                    if let Err(err) = ptrace::cont(pid, status) {
-                        return Err(DumperError::WaitPidError(child, err));
-                    }
-                }
-                Err(Errno::EINTR) => continue,
+                Ok(_) => break,
+                Err(_e @ Errno::EINTR) => continue,
                 Err(e) => {
                     ptrace_detach(child)?;
                     return Err(DumperError::WaitPidError(child, e));
@@ -300,6 +300,25 @@ impl PtraceDumper {
         Ok(())
     }
 
+    fn read_auxv(&mut self) -> Result<(), InitError> {
+        let filename = format!("/proc/{}/auxv", self.pid);
+        let auxv_path = path::PathBuf::from(&filename);
+        let auxv_file =
+            std::fs::File::open(auxv_path).map_err(|e| InitError::IOError(filename, e))?;
+        let input = BufReader::new(auxv_file);
+        let reader = ProcfsAuxvIter::new(input);
+        self.auxv = reader
+            .filter_map(Result::ok)
+            .map(|x| (x.key, x.value))
+            .collect();
+
+        if self.auxv.is_empty() {
+            Err(InitError::NoAuxvEntryFound(self.pid))
+        } else {
+            Ok(())
+        }
+    }
+
     fn enumerate_mappings(&mut self) -> Result<(), InitError> {
         // linux_gate_loc is the beginning of the kernel's mapping of
         // linux-gate.so in the process.  It doesn't actually show up in the
@@ -308,11 +327,21 @@ impl PtraceDumper {
         // case its entry when creating the list of mappings.
         // See http://www.trilithium.com/johan/2005/08/linux-gate/ for more
         // information.
-        let linux_gate_loc = self.auxv.get_linux_gate_address().unwrap_or_default();
+        let linux_gate_loc = *self.auxv.get(&AT_SYSINFO_EHDR).unwrap_or(&0);
         // Although the initial executable is usually the first mapping, it's not
         // guaranteed (see http://crosbug.com/25355); therefore, try to use the
         // actual entry point to find the mapping.
-        let entry_point_loc = self.auxv.get_entry_address().unwrap_or_default();
+        let at_entry;
+        #[cfg(any(target_arch = "arm", all(target_os = "android", target_arch = "x86")))]
+        {
+            at_entry = 9;
+        }
+        #[cfg(not(any(target_arch = "arm", all(target_os = "android", target_arch = "x86"))))]
+        {
+            at_entry = libc::AT_ENTRY;
+        }
+
+        let entry_point_loc = *self.auxv.get(&at_entry).unwrap_or(&0);
         let filename = format!("/proc/{}/maps", self.pid);
         let errmap = |e| InitError::IOError(filename.clone(), e);
         let maps_path = path::PathBuf::from(&filename);
@@ -533,21 +562,111 @@ impl PtraceDumper {
         })
     }
 
-    pub fn from_process_memory_for_index<T: module_reader::ReadFromModule>(
-        &mut self,
-        idx: usize,
-    ) -> Result<T, DumperError> {
-        assert!(idx < self.mappings.len());
-
-        Self::from_process_memory_for_mapping(&self.mappings[idx], self.pid)
+    fn parse_build_id<'data>(
+        elf_obj: &elf::Elf<'data>,
+        mem_slice: &'data [u8],
+    ) -> Option<&'data [u8]> {
+        if let Some(mut notes) = elf_obj.iter_note_headers(mem_slice) {
+            while let Some(Ok(note)) = notes.next() {
+                if (note.name == "GNU") && (note.n_type == elf::note::NT_GNU_BUILD_ID) {
+                    return Some(note.desc);
+                }
+            }
+        }
+        if let Some(mut notes) = elf_obj.iter_note_sections(mem_slice, Some(".note.gnu.build-id")) {
+            while let Some(Ok(note)) = notes.next() {
+                if (note.name == "GNU") && (note.n_type == elf::note::NT_GNU_BUILD_ID) {
+                    return Some(note.desc);
+                }
+            }
+        }
+        None
     }
 
-    pub fn from_process_memory_for_mapping<T: module_reader::ReadFromModule>(
-        mapping: &MappingInfo,
+    pub fn elf_file_identifier_from_mapped_file(mem_slice: &[u8]) -> Result<Vec<u8>, DumperError> {
+        let elf_obj = elf::Elf::parse(mem_slice)?;
+
+        if let Some(build_id) = Self::parse_build_id(&elf_obj, mem_slice) {
+            // Look for a build id note first.
+            Ok(build_id.to_vec())
+        } else {
+            // Fall back on hashing the first page of the text section.
+
+            // Attempt to locate the .text section of an ELF binary and generate
+            // a simple hash by XORing the first page worth of bytes into |result|.
+            for section in elf_obj.section_headers {
+                if section.sh_type != elf::section_header::SHT_PROGBITS {
+                    continue;
+                }
+                if section.sh_flags & u64::from(elf::section_header::SHF_ALLOC) != 0
+                    && section.sh_flags & u64::from(elf::section_header::SHF_EXECINSTR) != 0
+                {
+                    let text_section =
+                        &mem_slice[section.sh_offset as usize..][..section.sh_size as usize];
+                    // Only provide mem::size_of(MDGUID) bytes to keep identifiers produced by this
+                    // function backwards-compatible.
+                    let max_len = std::cmp::min(text_section.len(), 4096);
+                    let mut result = vec![0u8; std::mem::size_of::<GUID>()];
+                    let mut offset = 0;
+                    while offset < max_len {
+                        for idx in 0..std::mem::size_of::<GUID>() {
+                            if offset + idx >= text_section.len() {
+                                break;
+                            }
+                            result[idx] ^= text_section[offset + idx];
+                        }
+                        offset += std::mem::size_of::<GUID>();
+                    }
+                    return Ok(result);
+                }
+            }
+            Err(DumperError::NoBuildIDFound)
+        }
+    }
+
+    pub fn elf_identifier_for_mapping_index(&mut self, idx: usize) -> Result<Vec<u8>, DumperError> {
+        assert!(idx < self.mappings.len());
+
+        Self::elf_identifier_for_mapping(&mut self.mappings[idx], self.pid)
+    }
+
+    pub fn elf_identifier_for_mapping(
+        mapping: &mut MappingInfo,
         pid: Pid,
-    ) -> Result<T, DumperError> {
-        Ok(T::read_from_module(
-            module_reader::ProcessReader::new(pid, mapping.start_address).into(),
-        )?)
+    ) -> Result<Vec<u8>, DumperError> {
+        if !MappingInfo::is_mapped_file_safe_to_open(&mapping.name) {
+            return Err(DumperError::NotSafeToOpenMapping(
+                mapping.name.clone().unwrap_or_default(),
+            ));
+        }
+
+        // Special-case linux-gate because it's not a real file.
+        if mapping.name.as_deref() == Some(LINUX_GATE_LIBRARY_NAME.as_ref()) {
+            if pid == std::process::id().try_into()? {
+                let mem_slice = unsafe {
+                    std::slice::from_raw_parts(mapping.start_address as *const u8, mapping.size)
+                };
+                return Self::elf_file_identifier_from_mapped_file(mem_slice);
+            } else {
+                let mem_slice = Self::copy_from_process(
+                    pid,
+                    mapping.start_address as *mut libc::c_void,
+                    mapping.size,
+                )?;
+                return Self::elf_file_identifier_from_mapped_file(&mem_slice);
+            }
+        }
+
+        let (filename, old_name) = mapping.fixup_deleted_file(pid)?;
+
+        let mem_slice = MappingInfo::get_mmap(&Some(filename), mapping.offset)?;
+        let build_id = Self::elf_file_identifier_from_mapped_file(&mem_slice)?;
+
+        // This means we switched from "/my/binary" to "/proc/1234/exe", change the mapping to
+        // remove the " (deleted)" portion.
+        if let Some(old_name) = old_name {
+            mapping.name = Some(old_name.into());
+        }
+        Ok(build_id)
     }
 }

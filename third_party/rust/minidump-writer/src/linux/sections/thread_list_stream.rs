@@ -117,7 +117,7 @@ pub fn write(
 
                 let memory_copy = PtraceDumper::copy_from_process(
                     thread.thread_id as i32,
-                    ip_memory_d.start_of_memory_range as _,
+                    ip_memory_d.start_of_memory_range as *mut libc::c_void,
                     ip_memory_d.memory.data_size as usize,
                 )?;
 
@@ -196,7 +196,7 @@ fn fill_thread_stack(
 
         let mut stack_bytes = PtraceDumper::copy_from_process(
             thread.thread_id.try_into()?,
-            valid_stack_ptr,
+            valid_stack_ptr as *mut libc::c_void,
             stack_len,
         )?;
         let stack_pointer_offset = stack_ptr.saturating_sub(valid_stack_ptr);

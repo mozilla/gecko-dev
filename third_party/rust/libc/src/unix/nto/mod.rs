@@ -2672,7 +2672,6 @@ pub const VRIGHT: usize = 29;
 pub const VUP: usize = 30;
 pub const XCASE: tcflag_t = 0x00000004;
 
-pub const PTHREAD_BARRIER_SERIAL_THREAD: ::c_int = -1;
 pub const PTHREAD_CREATE_JOINABLE: ::c_int = 0x00;
 pub const PTHREAD_CREATE_DETACHED: ::c_int = 0x01;
 
@@ -2865,9 +2864,9 @@ safe_f! {
 
 // Network related functions are provided by libsocket and regex
 // functions are provided by libregex.
-// In QNX <=7.0, libregex functions were included in libc itself.
 #[link(name = "socket")]
-#[cfg_attr(not(target_env = "nto70"), link(name = "regex"))]
+#[link(name = "regex")]
+
 extern "C" {
     pub fn sem_destroy(sem: *mut sem_t) -> ::c_int;
     pub fn sem_init(sem: *mut sem_t, pshared: ::c_int, value: ::c_uint) -> ::c_int;
@@ -3340,10 +3339,7 @@ extern "C" {
     pub fn dl_iterate_phdr(
         callback: ::Option<
             unsafe extern "C" fn(
-                // The original .h file declares this as *const, but for consistency with other platforms,
-                // changing this to *mut to make it easier to use.
-                // Maybe in v0.3 all platforms should use this as a *const.
-                info: *mut dl_phdr_info,
+                info: *const dl_phdr_info,
                 size: ::size_t,
                 data: *mut ::c_void,
             ) -> ::c_int,

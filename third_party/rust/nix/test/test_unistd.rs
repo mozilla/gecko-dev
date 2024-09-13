@@ -313,15 +313,12 @@ fn test_initgroups() {
     // groups that the user belongs to are also set.
     let user = CString::new("root").unwrap();
     let group = Gid::from_raw(123);
-    let mut group_list = getgrouplist(&user, group).unwrap();
+    let group_list = getgrouplist(&user, group).unwrap();
     assert!(group_list.contains(&group));
 
     initgroups(&user, group).unwrap();
 
-    let mut new_groups = getgroups().unwrap();
-
-    new_groups.sort_by_key(|gid| gid.as_raw());
-    group_list.sort_by_key(|gid| gid.as_raw());
+    let new_groups = getgroups().unwrap();
     assert_eq!(new_groups, group_list);
 
     // Revert back to the old groups

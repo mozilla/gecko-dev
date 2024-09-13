@@ -12,17 +12,6 @@ use std::os::unix::process::ExitStatusExt;
 mod common;
 use common::*;
 
-/// These tests generally aren't consistent in resource-deprived environments like CI runners and
-/// android emulators.
-macro_rules! disabled_on_ci_and_android {
-    () => {
-        if std::env::var("CI").is_ok() || cfg!(target_os = "android") {
-            println!("disabled on CI and android, but otherwise works locally");
-            return;
-        }
-    };
-}
-
 #[test]
 fn test_setup() {
     spawn_child("setup", &[]);
@@ -31,58 +20,6 @@ fn test_setup() {
 #[test]
 fn test_thread_list_from_child() {
     // Child spawns and looks in the parent (== this process) for its own thread-ID
-
-    let (tx, rx) = std::sync::mpsc::sync_channel(1);
-
-    // // We also spawn another thread that we send a SIGHUP to to ensure that the
-    // // ptracedumper correctly handles it
-    let _thread = std::thread::Builder::new()
-        .name("sighup-thread".into())
-        .spawn(move || {
-            tx.send(unsafe { libc::pthread_self() as usize }).unwrap();
-            loop {
-                std::thread::sleep(std::time::Duration::from_secs(1));
-            }
-        })
-        .unwrap();
-
-    let thread_id = rx.recv().unwrap();
-
-    // Unfortunately we need to set a signal handler to ignore the SIGHUP we send
-    // to the thread, as otherwise the default test harness fails
-    unsafe {
-        let mut act: libc::sigaction = std::mem::zeroed();
-        if libc::sigemptyset(&mut act.sa_mask) != 0 {
-            eprintln!(
-                "unable to clear action mask: {:?}",
-                std::io::Error::last_os_error()
-            );
-            return;
-        }
-
-        unsafe extern "C" fn on_sig(
-            _sig: libc::c_int,
-            _info: *mut libc::siginfo_t,
-            _uc: *mut libc::c_void,
-        ) {
-        }
-
-        act.sa_flags = libc::SA_SIGINFO;
-        act.sa_sigaction = on_sig as usize;
-
-        // Register the action with the signal handler
-        if libc::sigaction(libc::SIGHUP, &act, std::ptr::null_mut()) != 0 {
-            eprintln!(
-                "unable to register signal handler: {:?}",
-                std::io::Error::last_os_error()
-            );
-        }
-    }
-
-    unsafe {
-        libc::pthread_kill(thread_id as _, libc::SIGHUP);
-    }
-
     spawn_child("thread_list", &[]);
 }
 
@@ -91,12 +28,8 @@ fn test_thread_list_from_parent() {
     let num_of_threads = 5;
     let mut child = start_child_and_wait_for_threads(num_of_threads);
     let pid = child.id() as i32;
-    let mut dumper = PtraceDumper::new(
-        pid,
-        minidump_writer::minidump_writer::STOP_TIMEOUT,
-        Default::default(),
-    )
-    .expect("Couldn't init dumper");
+    let mut dumper = PtraceDumper::new(pid, minidump_writer::minidump_writer::STOP_TIMEOUT)
+        .expect("Couldn't init dumper");
     assert_eq!(dumper.threads.len(), num_of_threads);
     dumper.suspend_threads().expect("Could not suspend threads");
 
@@ -171,7 +104,11 @@ fn test_mappings_include_linux_gate() {
 
 #[test]
 fn test_linux_gate_mapping_id() {
-    disabled_on_ci_and_android!();
+    if std::env::var("CI").is_ok() {
+        println!("disabled on CI, but works locally");
+        return;
+    }
+
     spawn_child("linux_gate_mapping_id", &[]);
 }
 
@@ -181,12 +118,8 @@ fn test_merged_mappings() {
     let page_size = std::num::NonZeroUsize::new(page_size.unwrap() as usize).unwrap();
     let map_size = std::num::NonZeroUsize::new(3 * page_size.get()).unwrap();
 
-    let path: String = if let Ok(p) = std::env::var("TEST_HELPER") {
-        p
-    } else {
-        std::env!("CARGO_BIN_EXE_test").into()
-    };
-    let file = std::fs::File::open(&path).unwrap();
+    let path: &'static str = std::env!("CARGO_BIN_EXE_test");
+    let file = std::fs::File::open(path).unwrap();
 
     // mmap two segments out of the helper binary, one
     // enclosed in the other, but with different protections.
@@ -220,14 +153,13 @@ fn test_merged_mappings() {
 
     spawn_child(
         "merged_mappings",
-        &[&path, &format!("{mapped}"), &format!("{map_size}")],
+        &[path, &format!("{mapped}"), &format!("{map_size}")],
     );
 }
 
 #[test]
 // Ensure that the linux-gate VDSO is included in the mapping list.
 fn test_file_id() {
-    disabled_on_ci_and_android!();
     spawn_child("file_id", &[]);
 }
 
@@ -244,7 +176,10 @@ fn test_find_mapping() {
 
 #[test]
 fn test_copy_from_process_self() {
-    disabled_on_ci_and_android!();
+    if std::env::var("CI").is_ok() {
+        println!("disabled on CI, but works locally");
+        return;
+    }
 
     let stack_var: libc::c_long = 0x11223344;
     let heap_var: Box<libc::c_long> = Box::new(0x55667788);
@@ -272,12 +207,8 @@ fn test_sanitize_stack_copy() {
     let heap_addr = usize::from_str_radix(output.next().unwrap().trim_start_matches("0x"), 16)
         .expect("unable to parse mmap_addr");
 
-    let mut dumper = PtraceDumper::new(
-        pid,
-        minidump_writer::minidump_writer::STOP_TIMEOUT,
-        Default::default(),
-    )
-    .expect("Couldn't init dumper");
+    let mut dumper = PtraceDumper::new(pid, minidump_writer::minidump_writer::STOP_TIMEOUT)
+        .expect("Couldn't init dumper");
     assert_eq!(dumper.threads.len(), num_of_threads);
     dumper.suspend_threads().expect("Could not suspend threads");
     let thread_info = dumper

@@ -4,15 +4,26 @@
 // Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 // The above copyright notice and this permission notice shall be in…substantial portions of the Software.
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+use crate::errors::AuxvReaderError;
+use byteorder::{NativeEndian, ReadBytesExt};
+use std::fs::File;
+use std::io::{BufReader, Read};
 
-use {
-    super::{AuxvError, AuxvPair, AuxvType},
-    byteorder::{NativeEndian, ReadBytesExt},
-    std::{
-        fs::File,
-        io::{BufReader, Read},
-    },
-};
+pub type Result<T> = std::result::Result<T, AuxvReaderError>;
+
+/// The type used in auxv keys and values.
+#[cfg(target_pointer_width = "32")]
+pub type AuxvType = u32;
+/// The type used in auxv keys and values.
+#[cfg(target_pointer_width = "64")]
+pub type AuxvType = u64;
+
+/// An auxv key-value pair.
+#[derive(Debug, PartialEq, Eq)]
+pub struct AuxvPair {
+    pub key: AuxvType,
+    pub value: AuxvType,
+}
 
 /// An iterator across auxv pairs from procfs.
 pub struct ProcfsAuxvIter {
@@ -37,7 +48,7 @@ impl ProcfsAuxvIter {
 }
 
 impl Iterator for ProcfsAuxvIter {
-    type Item = Result<AuxvPair, AuxvError>;
+    type Item = Result<AuxvPair>;
     fn next(&mut self) -> Option<Self::Item> {
         if !self.keep_going {
             return None;
@@ -54,7 +65,7 @@ impl Iterator for ProcfsAuxvIter {
                 Ok(n) => {
                     if n == 0 {
                         // should not hit EOF before AT_NULL
-                        return Some(Err(AuxvError::InvalidFormat));
+                        return Some(Err(AuxvReaderError::InvalidFormat));
                     }
 
                     read_bytes += n;

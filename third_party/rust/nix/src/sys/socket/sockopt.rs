@@ -5,7 +5,7 @@ use crate::sys::time::TimeVal;
 use crate::Result;
 use cfg_if::cfg_if;
 use libc::{self, c_int, c_void, socklen_t};
-use std::ffi::{CStr, CString, OsStr, OsString};
+use std::ffi::{OsStr, OsString};
 use std::mem::{self, MaybeUninit};
 use std::os::unix::ffi::OsStrExt;
 use std::os::unix::io::{AsFd, AsRawFd};
@@ -268,16 +268,6 @@ sockopt_impl!(
     Both,
     libc::SOL_SOCKET,
     libc::SO_REUSEPORT,
-    bool
-);
-#[cfg(target_os = "freebsd")]
-sockopt_impl!(
-    /// Enables incoming connections to be distributed among N sockets (up to 256)
-    /// via a Load-Balancing hash based algorithm.
-    ReusePortLb,
-    Both,
-    libc::SOL_SOCKET,
-    libc::SO_REUSEPORT_LB,
     bool
 );
 #[cfg(feature = "net")]
@@ -1036,7 +1026,7 @@ sockopt_impl!(
     libc::IP_TTL,
     libc::c_int
 );
-#[cfg(any(apple_targets, linux_android, target_os = "freebsd"))]
+#[cfg(any(linux_android, target_os = "freebsd"))]
 sockopt_impl!(
     /// Set the unicast hop limit for the socket.
     Ipv6Ttl,
@@ -1074,17 +1064,6 @@ sockopt_impl!(
     libc::IPPROTO_IPV6,
     libc::IPV6_DONTFRAG,
     bool
-);
-#[cfg(apple_targets)]
-#[cfg(feature = "net")]
-sockopt_impl!(
-    /// Get the utun interface name.
-    UtunIfname,
-    GetOnly,
-    libc::SYSPROTO_CONTROL,
-    libc::UTUN_OPT_IFNAME,
-    CString,
-    GetCString<[u8; libc::IFNAMSIZ]>
 );
 
 #[allow(missing_docs)]
@@ -1589,32 +1568,3 @@ impl<'a> Set<'a, OsString> for SetOsString<'a> {
     }
 }
 
-/// Getter for a `CString` value.
-struct GetCString<T: AsMut<[u8]>> {
-    len: socklen_t,
-    val: MaybeUninit<T>,
-}
-
-impl<T: AsMut<[u8]>> Get<CString> for GetCString<T> {
-    fn uninit() -> Self {
-        GetCString {
-            len: mem::size_of::<T>() as socklen_t,
-            val: MaybeUninit::uninit(),
-        }
-    }
-
-    fn ffi_ptr(&mut self) -> *mut c_void {
-        self.val.as_mut_ptr().cast()
-    }
-
-    fn ffi_len(&mut self) -> *mut socklen_t {
-        &mut self.len
-    }
-
-    unsafe fn assume_init(self) -> CString {
-        let mut v = unsafe { self.val.assume_init() };
-        CStr::from_bytes_until_nul(v.as_mut())
-            .expect("string should be null-terminated")
-            .to_owned()
-    }
-}

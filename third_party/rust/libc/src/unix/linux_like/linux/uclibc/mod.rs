@@ -107,64 +107,6 @@ impl siginfo_t {
     }
 }
 
-// Internal, for casts to access union fields
-#[repr(C)]
-struct sifields_sigchld {
-    si_pid: ::pid_t,
-    si_uid: ::uid_t,
-    si_status: ::c_int,
-    si_utime: ::c_long,
-    si_stime: ::c_long,
-}
-impl ::Copy for sifields_sigchld {}
-impl ::Clone for sifields_sigchld {
-    fn clone(&self) -> sifields_sigchld {
-        *self
-    }
-}
-
-// Internal, for casts to access union fields
-#[repr(C)]
-union sifields {
-    _align_pointer: *mut ::c_void,
-    sigchld: sifields_sigchld,
-}
-
-// Internal, for casts to access union fields. Note that some variants
-// of sifields start with a pointer, which makes the alignment of
-// sifields vary on 32-bit and 64-bit architectures.
-#[repr(C)]
-struct siginfo_f {
-    _siginfo_base: [::c_int; 3],
-    sifields: sifields,
-}
-
-impl siginfo_t {
-    unsafe fn sifields(&self) -> &sifields {
-        &(*(self as *const siginfo_t as *const siginfo_f)).sifields
-    }
-
-    pub unsafe fn si_pid(&self) -> ::pid_t {
-        self.sifields().sigchld.si_pid
-    }
-
-    pub unsafe fn si_uid(&self) -> ::uid_t {
-        self.sifields().sigchld.si_uid
-    }
-
-    pub unsafe fn si_status(&self) -> ::c_int {
-        self.sifields().sigchld.si_status
-    }
-
-    pub unsafe fn si_utime(&self) -> ::c_long {
-        self.sifields().sigchld.si_utime
-    }
-
-    pub unsafe fn si_stime(&self) -> ::c_long {
-        self.sifields().sigchld.si_stime
-    }
-}
-
 pub const MCL_CURRENT: ::c_int = 0x0001;
 pub const MCL_FUTURE: ::c_int = 0x0002;
 pub const MCL_ONFAULT: ::c_int = 0x0004;
@@ -303,7 +245,7 @@ pub const BUFSIZ: ::c_int = 4096;
 pub const EDEADLOCK: ::c_int = EDEADLK;
 pub const EXTA: ::c_uint = B19200;
 pub const EXTB: ::c_uint = B38400;
-pub const EXTPROC: ::tcflag_t = 0o200000;
+pub const EXTPROC: ::tcflag_t = 0200000;
 pub const FOPEN_MAX: ::c_int = 16;
 pub const F_GETOWN: ::c_int = 9;
 pub const F_OFD_GETLK: ::c_int = 36;
@@ -330,7 +272,7 @@ pub const MAP_HUGE_1GB: ::c_int = 30 << MAP_HUGE_SHIFT;
 pub const MAP_HUGE_2GB: ::c_int = 31 << MAP_HUGE_SHIFT;
 pub const MAP_HUGE_16GB: ::c_int = 34 << MAP_HUGE_SHIFT;
 pub const MINSIGSTKSZ: ::c_int = 2048;
-pub const MSG_COPY: ::c_int = 0o40000;
+pub const MSG_COPY: ::c_int = 040000;
 pub const NI_MAXHOST: ::socklen_t = 1025;
 pub const O_TMPFILE: ::c_int = 0o20000000 | O_DIRECTORY;
 pub const PACKET_MR_UNICAST: ::c_int = 3;
@@ -343,7 +285,7 @@ pub const PTRACE_PEEKSIGINFO: ::c_int = 0x4209;
 pub const PTRACE_SETSIGMASK: ::c_uint = 0x420b;
 pub const RTLD_NOLOAD: ::c_int = 0x00004;
 pub const RUSAGE_THREAD: ::c_int = 1;
-pub const SHM_EXEC: ::c_int = 0o100000;
+pub const SHM_EXEC: ::c_int = 0100000;
 pub const SIGPOLL: ::c_int = SIGIO;
 pub const SOCK_DCCP: ::c_int = 6;
 pub const SOCK_PACKET: ::c_int = 10;
@@ -432,7 +374,6 @@ extern "C" {
     pub fn setrlimit(resource: ::__rlimit_resource_t, rlim: *const ::rlimit) -> ::c_int;
     pub fn getpriority(which: ::__priority_which_t, who: ::id_t) -> ::c_int;
     pub fn setpriority(which: ::__priority_which_t, who: ::id_t, prio: ::c_int) -> ::c_int;
-    pub fn getauxval(type_: ::c_ulong) -> ::c_ulong;
 }
 
 cfg_if! {

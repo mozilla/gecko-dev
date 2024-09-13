@@ -55,7 +55,7 @@ pub fn test_timestamping() {
             .unwrap();
 
     let mut ts = None;
-    for c in recv.cmsgs().unwrap() {
+    for c in recv.cmsgs() {
         if let ControlMessageOwned::ScmTimestampsns(timestamps) = c {
             ts = Some(timestamps.system);
         }
@@ -117,7 +117,7 @@ pub fn test_timestamping_realtime() {
             .unwrap();
 
     let mut ts = None;
-    for c in recv.cmsgs().unwrap() {
+    for c in recv.cmsgs() {
         if let ControlMessageOwned::ScmRealtime(timeval) = c {
             ts = Some(timeval);
         }
@@ -179,7 +179,7 @@ pub fn test_timestamping_monotonic() {
             .unwrap();
 
     let mut ts = None;
-    for c in recv.cmsgs().unwrap() {
+    for c in recv.cmsgs() {
         if let ControlMessageOwned::ScmMonotonic(timeval) = c {
             ts = Some(timeval);
         }
@@ -889,7 +889,7 @@ pub fn test_scm_rights() {
         )
         .unwrap();
 
-        for cmsg in msg.cmsgs().unwrap() {
+        for cmsg in msg.cmsgs() {
             if let ControlMessageOwned::ScmRights(fd) = cmsg {
                 assert_eq!(received_r, None);
                 assert_eq!(fd.len(), 1);
@@ -1330,7 +1330,7 @@ fn test_scm_rights_single_cmsg_multiple_fds() {
             .flags
             .intersects(MsgFlags::MSG_TRUNC | MsgFlags::MSG_CTRUNC));
 
-        let mut cmsgs = msg.cmsgs().unwrap();
+        let mut cmsgs = msg.cmsgs();
         match cmsgs.next() {
             Some(ControlMessageOwned::ScmRights(fds)) => {
                 assert_eq!(
@@ -1399,7 +1399,7 @@ pub fn test_sendmsg_empty_cmsgs() {
         )
         .unwrap();
 
-        if msg.cmsgs().unwrap().next().is_some() {
+        if msg.cmsgs().next().is_some() {
             panic!("unexpected cmsg");
         }
         assert!(!msg
@@ -1466,7 +1466,7 @@ fn test_scm_credentials() {
         .unwrap();
         let mut received_cred = None;
 
-        for cmsg in msg.cmsgs().unwrap() {
+        for cmsg in msg.cmsgs() {
             let cred = match cmsg {
                 #[cfg(linux_android)]
                 ControlMessageOwned::ScmCredentials(cred) => cred,
@@ -1497,7 +1497,7 @@ fn test_scm_credentials() {
 #[test]
 fn test_scm_credentials_and_rights() {
     let space = cmsg_space!(libc::ucred, RawFd);
-    test_impl_scm_credentials_and_rights(space).unwrap();
+    test_impl_scm_credentials_and_rights(space);
 }
 
 /// Ensure that passing a an oversized control message buffer to recvmsg
@@ -1509,23 +1509,11 @@ fn test_scm_credentials_and_rights() {
 #[test]
 fn test_too_large_cmsgspace() {
     let space = vec![0u8; 1024];
-    test_impl_scm_credentials_and_rights(space).unwrap();
+    test_impl_scm_credentials_and_rights(space);
 }
 
 #[cfg(linux_android)]
-#[test]
-fn test_too_small_cmsgspace() {
-    let space = vec![0u8; 4];
-    assert_eq!(
-        test_impl_scm_credentials_and_rights(space),
-        Err(nix::errno::Errno::ENOBUFS)
-    );
-}
-
-#[cfg(linux_android)]
-fn test_impl_scm_credentials_and_rights(
-    mut space: Vec<u8>,
-) -> Result<(), nix::errno::Errno> {
+fn test_impl_scm_credentials_and_rights(mut space: Vec<u8>) {
     use libc::ucred;
     use nix::sys::socket::sockopt::PassCred;
     use nix::sys::socket::{
@@ -1585,9 +1573,9 @@ fn test_impl_scm_credentials_and_rights(
         .unwrap();
         let mut received_cred = None;
 
-        assert_eq!(msg.cmsgs()?.count(), 2, "expected 2 cmsgs");
+        assert_eq!(msg.cmsgs().count(), 2, "expected 2 cmsgs");
 
-        for cmsg in msg.cmsgs()? {
+        for cmsg in msg.cmsgs() {
             match cmsg {
                 ControlMessageOwned::ScmRights(fds) => {
                     assert_eq!(received_r, None, "already received fd");
@@ -1618,8 +1606,6 @@ fn test_impl_scm_credentials_and_rights(
     read(received_r.as_raw_fd(), &mut buf).unwrap();
     assert_eq!(&buf[..], b"world");
     close(received_r).unwrap();
-
-    Ok(())
 }
 
 // Test creating and using named unix domain sockets
@@ -1851,7 +1837,7 @@ pub fn test_recv_ipv4pktinfo() {
             .flags
             .intersects(MsgFlags::MSG_TRUNC | MsgFlags::MSG_CTRUNC));
 
-        let mut cmsgs = msg.cmsgs().unwrap();
+        let mut cmsgs = msg.cmsgs();
         if let Some(ControlMessageOwned::Ipv4PacketInfo(pktinfo)) = cmsgs.next()
         {
             let i = if_nametoindex(lo_name.as_bytes()).expect("if_nametoindex");
@@ -1943,11 +1929,11 @@ pub fn test_recvif() {
         assert!(!msg
             .flags
             .intersects(MsgFlags::MSG_TRUNC | MsgFlags::MSG_CTRUNC));
-        assert_eq!(msg.cmsgs().unwrap().count(), 2, "expected 2 cmsgs");
+        assert_eq!(msg.cmsgs().count(), 2, "expected 2 cmsgs");
 
         let mut rx_recvif = false;
         let mut rx_recvdstaddr = false;
-        for cmsg in msg.cmsgs().unwrap() {
+        for cmsg in msg.cmsgs() {
             match cmsg {
                 ControlMessageOwned::Ipv4RecvIf(dl) => {
                     rx_recvif = true;
@@ -2041,10 +2027,10 @@ pub fn test_recvif_ipv4() {
         assert!(!msg
             .flags
             .intersects(MsgFlags::MSG_TRUNC | MsgFlags::MSG_CTRUNC));
-        assert_eq!(msg.cmsgs().unwrap().count(), 1, "expected 1 cmsgs");
+        assert_eq!(msg.cmsgs().count(), 1, "expected 1 cmsgs");
 
         let mut rx_recvorigdstaddr = false;
-        for cmsg in msg.cmsgs().unwrap() {
+        for cmsg in msg.cmsgs() {
             match cmsg {
                 ControlMessageOwned::Ipv4OrigDstAddr(addr) => {
                     rx_recvorigdstaddr = true;
@@ -2127,10 +2113,10 @@ pub fn test_recvif_ipv6() {
         assert!(!msg
             .flags
             .intersects(MsgFlags::MSG_TRUNC | MsgFlags::MSG_CTRUNC));
-        assert_eq!(msg.cmsgs().unwrap().count(), 1, "expected 1 cmsgs");
+        assert_eq!(msg.cmsgs().count(), 1, "expected 1 cmsgs");
 
         let mut rx_recvorigdstaddr = false;
-        for cmsg in msg.cmsgs().unwrap() {
+        for cmsg in msg.cmsgs() {
             match cmsg {
                 ControlMessageOwned::Ipv6OrigDstAddr(addr) => {
                     rx_recvorigdstaddr = true;
@@ -2228,7 +2214,7 @@ pub fn test_recv_ipv6pktinfo() {
             .flags
             .intersects(MsgFlags::MSG_TRUNC | MsgFlags::MSG_CTRUNC));
 
-        let mut cmsgs = msg.cmsgs().unwrap();
+        let mut cmsgs = msg.cmsgs();
         if let Some(ControlMessageOwned::Ipv6PacketInfo(pktinfo)) = cmsgs.next()
         {
             let i = if_nametoindex(lo_name.as_bytes()).expect("if_nametoindex");
@@ -2371,7 +2357,7 @@ fn test_recvmsg_timestampns() {
         flags,
     )
     .unwrap();
-    let rtime = match r.cmsgs().unwrap().next() {
+    let rtime = match r.cmsgs().next() {
         Some(ControlMessageOwned::ScmTimestampns(rtime)) => rtime,
         Some(_) => panic!("Unexpected control message"),
         None => panic!("No control message"),
@@ -2421,7 +2407,7 @@ fn test_recvmmsg_timestampns() {
     // Receive the message
     let mut buffer = vec![0u8; message.len()];
     let cmsgspace = nix::cmsg_space!(TimeSpec);
-    let mut iov = [[IoSliceMut::new(&mut buffer)]];
+    let mut iov = vec![[IoSliceMut::new(&mut buffer)]];
     let mut data = MultiHeaders::preallocate(1, Some(cmsgspace));
     let r: Vec<RecvMsg<()>> = recvmmsg(
         in_socket.as_raw_fd(),
@@ -2432,7 +2418,7 @@ fn test_recvmmsg_timestampns() {
     )
     .unwrap()
     .collect();
-    let rtime = match r[0].cmsgs().unwrap().next() {
+    let rtime = match r[0].cmsgs().next() {
         Some(ControlMessageOwned::ScmTimestampns(rtime)) => rtime,
         Some(_) => panic!("Unexpected control message"),
         None => panic!("No control message"),
@@ -2522,7 +2508,7 @@ fn test_recvmsg_rxq_ovfl() {
                 MsgFlags::MSG_DONTWAIT,
             ) {
                 Ok(r) => {
-                    drop_counter = match r.cmsgs().unwrap().next() {
+                    drop_counter = match r.cmsgs().next() {
                         Some(ControlMessageOwned::RxqOvfl(drop_counter)) => {
                             drop_counter
                         }
@@ -2701,7 +2687,7 @@ mod linux_errqueue {
         assert_eq!(msg.address, Some(sock_addr));
 
         // Check for expected control message.
-        let ext_err = match msg.cmsgs().unwrap().next() {
+        let ext_err = match msg.cmsgs().next() {
             Some(cmsg) => testf(&cmsg),
             None => panic!("No control message"),
         };
@@ -2892,7 +2878,7 @@ fn test_recvmm2() -> nix::Result<()> {
         #[cfg(not(any(qemu, target_arch = "aarch64")))]
         let mut saw_time = false;
         let mut recvd = 0;
-        for cmsg in rmsg.cmsgs().unwrap() {
+        for cmsg in rmsg.cmsgs() {
             if let ControlMessageOwned::ScmTimestampsns(timestamps) = cmsg {
                 let ts = timestamps.system;
 

@@ -11,7 +11,7 @@
 
 [package]
 name = "libc"
-version = "0.2.158"
+version = "0.2.153"
 authors = ["The Rust Project Developers"]
 build = "build.rs"
 exclude = [
@@ -20,10 +20,6 @@ exclude = [
     "/.cirrus.yml",
     "/triagebot.toml",
 ]
-autobins = false
-autoexamples = false
-autotests = false
-autobenches = false
 description = """
 Raw FFI bindings to platform libraries like libc.
 """
@@ -80,6 +76,7 @@ targets = [
     "armv7-wrs-vxworks-eabihf",
     "armv7r-none-eabi",
     "armv7r-none-eabihf",
+    "hexagon-unknown-linux-musl",
     "i586-pc-windows-msvc",
     "i586-unknown-linux-gnu",
     "i586-unknown-linux-musl",
@@ -160,14 +157,6 @@ targets = [
     "x86_64-unknown-redox",
     "x86_64-wrs-vxworks",
 ]
-
-[lib]
-name = "libc"
-path = "src/lib.rs"
-
-[[test]]
-name = "const_fn"
-path = "tests/const_fn.rs"
 
 [dependencies.rustc-std-workspace-core]
 version = "1.0.0"

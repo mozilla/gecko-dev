@@ -288,7 +288,6 @@ pub const AT_BASE_PLATFORM: ::c_ulong = 24;
 pub const AT_RANDOM: ::c_ulong = 25;
 pub const AT_HWCAP2: ::c_ulong = 26;
 pub const AT_EXECFN: ::c_ulong = 31;
-pub const AT_MINSIGSTKSZ: ::c_ulong = 51;
 
 pub const PTHREAD_MUTEX_INITIALIZER: pthread_mutex_t = pthread_mutex_t {
     value: 0,

@@ -9,6 +9,6 @@ license = "MPL-2.0"
 
 [dependencies]
 crash-context = "0.6.1"
-minidump-writer = "0.10"
+minidump-writer = "0.8.9"
 libc = "0.2.74"
 anyhow = "1.0"

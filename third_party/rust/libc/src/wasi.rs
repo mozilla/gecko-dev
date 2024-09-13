@@ -1,5 +1,4 @@
 use super::{Send, Sync};
-use core::iter::Iterator;
 
 pub use ffi::c_void;
 
@@ -175,11 +174,6 @@ s! {
         pub st_mtim: timespec,
         pub st_ctim: timespec,
         __reserved: [c_longlong; 3],
-    }
-
-    pub struct fd_set {
-        __nfds: usize,
-        __fds: [c_int; FD_SETSIZE as usize],
     }
 }
 
@@ -372,14 +366,10 @@ pub const _SC_PAGE_SIZE: ::c_int = _SC_PAGESIZE;
 pub const _SC_IOV_MAX: c_int = 60;
 pub const _SC_SYMLOOP_MAX: c_int = 173;
 
-#[allow(unused_unsafe)] // `addr_of!(EXTERN_STATIC)` is now safe; remove `unsafe` when MSRV >= 1.82
 pub static CLOCK_MONOTONIC: clockid_t = unsafe { clockid_t(ptr_addr_of!(_CLOCK_MONOTONIC)) };
-#[allow(unused_unsafe)]
 pub static CLOCK_PROCESS_CPUTIME_ID: clockid_t =
     unsafe { clockid_t(ptr_addr_of!(_CLOCK_PROCESS_CPUTIME_ID)) };
-#[allow(unused_unsafe)]
 pub static CLOCK_REALTIME: clockid_t = unsafe { clockid_t(ptr_addr_of!(_CLOCK_REALTIME)) };
-#[allow(unused_unsafe)]
 pub static CLOCK_THREAD_CPUTIME_ID: clockid_t =
     unsafe { clockid_t(ptr_addr_of!(_CLOCK_THREAD_CPUTIME_ID)) };
 
@@ -447,28 +437,6 @@ pub const YESEXPR: ::nl_item = 0x50000;
 pub const NOEXPR: ::nl_item = 0x50001;
 pub const YESSTR: ::nl_item = 0x50002;
 pub const NOSTR: ::nl_item = 0x50003;
-
-f! {
-    pub fn FD_ISSET(fd: ::c_int, set: *const fd_set) -> bool {
-        let set = &*set;
-        let n = set.__nfds;
-        return set.__fds[..n].iter().any(|p| *p == fd)
-    }
-
-    pub fn FD_SET(fd: ::c_int, set: *mut fd_set) -> () {
-        let set = &mut *set;
-        let n = set.__nfds;
-        if !set.__fds[..n].iter().any(|p| *p == fd) {
-            set.__nfds = n + 1;
-            set.__fds[n] = fd;
-        }
-    }
-
-    pub fn FD_ZERO(set: *mut fd_set) -> () {
-        (*set).__nfds = 0;
-        return
-    }
-}
 
 #[cfg_attr(
     feature = "rustc-dep-of-std",
@@ -764,14 +732,6 @@ extern "C" {
 
     pub fn nl_langinfo(item: ::nl_item) -> *mut ::c_char;
     pub fn nl_langinfo_l(item: ::nl_item, loc: ::locale_t) -> *mut ::c_char;
-
-    pub fn select(
-        nfds: c_int,
-        readfds: *mut fd_set,
-        writefds: *mut fd_set,
-        errorfds: *mut fd_set,
-        timeout: *const timeval,
-    ) -> c_int;
 
     pub fn __wasilibc_register_preopened_fd(fd: c_int, path: *const c_char) -> c_int;
     pub fn __wasilibc_fd_renumber(fd: c_int, newfd: c_int) -> c_int;

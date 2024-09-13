@@ -148,11 +148,8 @@ bindgen_0_63 = { package = "bindgen", path = "build/rust/bindgen-0.63" }
 # Locally patch bindgen for https://github.com/rust-lang/rust-bindgen/pull/2824
 bindgen = { path = "third_party/rust/bindgen" }
 
-# Patch nix 0.26 to 0.29
+# Patch nix 0.26 to 0.28
 nix = { path = "build/rust/nix" }
-
-# Patch cfg_aliases 0.1 to 0.2
-cfg_aliases = { path = "build/rust/cfg_aliases" }
 
 # Patch indexmap 2.0 to 1.0
 indexmap = { path = "build/rust/indexmap" }
@@ -211,9 +208,6 @@ midir = { git = "https://github.com/mozilla/midir.git", rev = "85156e360a37d8517
 # Allow webrender to have a versioned dependency on the older crate on crates.io
 # in order to build standalone.
 malloc_size_of_derive = { path = "xpcom/rust/malloc_size_of_derive" }
-
-# Temporary git rev while awaiting an official 0.10.1 release
-minidump-writer = { git = "https://github.com/rust-minidump/minidump-writer", rev = "771cabfc420abd46d348a22ee49b9b26d0d28e8a" }
 
 # application-services overrides to make updating them all simpler.
 interrupt-support = { git = "https://github.com/mozilla/application-services", rev = "5af28e120fd636135d50894cf16a74e21dc63045" }

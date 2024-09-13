@@ -97,6 +97,7 @@ Here are some things you could do with this crate (or help to implement so they 
 * mach32 - 32-bit mach-o `repr(C)` struct defs
 * pe32 - 32-bit PE `repr(C)` struct defs
 * pe64 - 64-bit PE `repr(C)` struct defs
++ te - Terse Executable (TE) `repr(C)` struct defs
 * archive - a Unix Archive parser
 * endian_fd - parses according to the endianness in the binary
 * std - to allow `no_std` environments

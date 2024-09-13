@@ -96,22 +96,9 @@ libc_bitflags! {
         /// final data.
         FAN_CLASS_PRE_CONTENT;
 
-        /// Remove the limit on the number of events in the event queue.
-        ///
-        /// Prior to Linux kernel 5.13, this limit was hardcoded to 16384. After
-        /// 5.13, one can change it via file `/proc/sys/fs/fanotify/max_queued_events`.
-        ///
-        /// See `fanotify(7)` for details about this limit. Use of this flag
-        /// requires the `CAP_SYS_ADMIN` capability.
+        /// Remove the limit of 16384 events for the event queue.
         FAN_UNLIMITED_QUEUE;
-        /// Remove the limit on the number of fanotify marks per user.
-        ///
-        /// Prior to Linux kernel 5.13, this limit was hardcoded to 8192 (per
-        /// group, not per user). After 5.13, one can change it via file
-        /// `/proc/sys/fs/fanotify/max_user_marks`.
-        ///
-        /// See `fanotify(7)` for details about this limit. Use of this flag
-        /// requires the `CAP_SYS_ADMIN` capability.
+        /// Remove the limit of 8192 marks.
         FAN_UNLIMITED_MARKS;
 
         /// Make `FanotifyEvent::pid` return pidfd. Since Linux 5.15.
@@ -249,9 +236,6 @@ impl FanotifyEvent {
 
 impl Drop for FanotifyEvent {
     fn drop(&mut self) {
-        if self.0.fd == libc::FAN_NOFD {
-            return;
-        }
         let e = close(self.0.fd);
         if !std::thread::panicking() && e == Err(Errno::EBADF) {
             panic!("Closing an invalid file descriptor!");
@@ -329,7 +313,18 @@ impl Fanotify {
         dirfd: Option<RawFd>,
         path: Option<&P>,
     ) -> Result<()> {
-        let res = crate::with_opt_nix_path(path, |p| unsafe {
+        fn with_opt_nix_path<P, T, F>(p: Option<&P>, f: F) -> Result<T>
+        where
+            P: ?Sized + NixPath,
+            F: FnOnce(*const libc::c_char) -> T,
+        {
+            match p {
+                Some(path) => path.with_nix_path(|p_str| f(p_str.as_ptr())),
+                None => Ok(f(std::ptr::null())),
+            }
+        }
+
+        let res = with_opt_nix_path(path, |p| unsafe {
             libc::fanotify_mark(
                 self.fd.as_raw_fd(),
                 flags.bits(),

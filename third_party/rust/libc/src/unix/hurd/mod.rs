@@ -2760,10 +2760,6 @@ pub const MREMAP_FIXED: ::c_int = 2;
 pub const MCL_CURRENT: ::c_int = 0x0001;
 pub const MCL_FUTURE: ::c_int = 0x0002;
 
-// sys/xattr.h
-pub const XATTR_CREATE: ::c_int = 0x1;
-pub const XATTR_REPLACE: ::c_int = 0x2;
-
 // spawn.h
 pub const POSIX_SPAWN_USEVFORK: ::c_int = 64;
 pub const POSIX_SPAWN_SETSID: ::c_int = 128;

@@ -1,4 +1,4 @@
-use crate::{errors::ThreadInfoError, Pid};
+use crate::errors::ThreadInfoError;
 use nix::{errno::Errno, sys::ptrace, unistd};
 use std::{
     io::{self, BufRead},
@@ -6,6 +6,8 @@ use std::{
 };
 
 type Result<T> = std::result::Result<T, ThreadInfoError>;
+
+pub type Pid = i32;
 
 cfg_if::cfg_if! {
     if #[cfg(any(target_arch = "x86", target_arch = "x86_64"))] {

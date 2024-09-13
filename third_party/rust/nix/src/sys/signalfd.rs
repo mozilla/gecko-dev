@@ -105,11 +105,11 @@ impl SignalFd {
         Ok(SignalFd(fd))
     }
 
-    pub fn set_mask(&self, mask: &SigSet) -> Result<()> {
+    pub fn set_mask(&mut self, mask: &SigSet) -> Result<()> {
         self.update(mask, SfdFlags::empty())
     }
 
-    pub fn read_signal(&self) -> Result<Option<siginfo>> {
+    pub fn read_signal(&mut self) -> Result<Option<siginfo>> {
         let mut buffer = mem::MaybeUninit::<siginfo>::uninit();
 
         let size = mem::size_of_val(&buffer);

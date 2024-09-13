@@ -1,5 +1,5 @@
-use super::{CommonThreadInfo, NT_Elf};
-use crate::{errors::ThreadInfoError, minidump_cpu::RawContextCPU, minidump_format::format, Pid};
+use super::{CommonThreadInfo, NT_Elf, Pid};
+use crate::{errors::ThreadInfoError, minidump_cpu::RawContextCPU, minidump_format::format};
 use core::mem::size_of_val;
 #[cfg(all(not(target_os = "android"), target_arch = "x86"))]
 use libc::user_fpxregs_struct;

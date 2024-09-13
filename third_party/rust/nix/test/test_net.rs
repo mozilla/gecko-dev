@@ -13,14 +13,3 @@ const LOOPBACK: &[u8] = b"loop";
 fn test_if_nametoindex() {
     if_nametoindex(LOOPBACK).expect("assertion failed");
 }
-
-#[test]
-fn test_if_indextoname() {
-    let loopback_index = if_nametoindex(LOOPBACK).expect("assertion failed");
-    assert_eq!(
-        if_indextoname(loopback_index)
-            .expect("assertion failed")
-            .as_bytes(),
-        LOOPBACK
-    );
-}

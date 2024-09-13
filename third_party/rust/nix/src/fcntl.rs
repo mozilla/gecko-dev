@@ -114,7 +114,7 @@ libc_bitflags!(
         /// If the specified path isn't a directory, fail.
         O_DIRECTORY;
         /// Implicitly follow each `write()` with an `fdatasync()`.
-        #[cfg(any(linux_android, apple_targets, target_os = "freebsd", netbsdlike))]
+        #[cfg(any(linux_android, apple_targets, netbsdlike))]
         O_DSYNC;
         /// Error out if a file was not created.
         O_EXCL;
@@ -151,7 +151,7 @@ libc_bitflags!(
         /// Obtain a file descriptor for low-level access.
         ///
         /// The file itself is not opened and other file operations will fail.
-        #[cfg(any(linux_android, target_os = "redox", target_os = "freebsd", target_os = "fuchsia"))]
+        #[cfg(any(linux_android, target_os = "redox"))]
         O_PATH;
         /// Only allow reading.
         ///
@@ -164,18 +164,8 @@ libc_bitflags!(
         /// Similar to `O_DSYNC` but applies to `read`s instead.
         #[cfg(any(target_os = "linux", netbsdlike))]
         O_RSYNC;
-        /// Open directory for search only. Skip search permission checks on
-        /// later `openat()` calls using the obtained file descriptor.
-        #[cfg(any(
-            apple_targets,
-            solarish,
-            target_os = "netbsd",
-            target_os = "freebsd",
-            target_os = "fuchsia",
-            target_os = "emscripten",
-            target_os = "aix",
-            target_os = "wasi"
-        ))]
+        /// Skip search permission checks.
+        #[cfg(target_os = "netbsd")]
         O_SEARCH;
         /// Open with a shared file lock.
         #[cfg(any(bsd, target_os = "redox"))]
@@ -250,119 +240,6 @@ pub fn openat<P: ?Sized + NixPath>(
         libc::openat(at_rawfd(dirfd), cstr.as_ptr(), oflag.bits(), mode.bits() as c_uint)
     })?;
     Errno::result(fd)
-}
-
-cfg_if::cfg_if! {
-    if #[cfg(target_os = "linux")] {
-        libc_bitflags! {
-            /// Path resolution flags.
-            ///
-            /// See [path resolution(7)](https://man7.org/linux/man-pages/man7/path_resolution.7.html)
-            /// for details of the resolution process.
-            pub struct ResolveFlag: libc::c_ulonglong {
-                /// Do not permit the path resolution to succeed if any component of
-                /// the resolution is not a descendant of the directory indicated by
-                /// dirfd.  This causes absolute symbolic links (and absolute values of
-                /// pathname) to be rejected.
-                RESOLVE_BENEATH;
-
-                /// Treat the directory referred to by dirfd as the root directory
-                /// while resolving pathname.
-                RESOLVE_IN_ROOT;
-
-                /// Disallow all magic-link resolution during path resolution. Magic
-                /// links are symbolic link-like objects that are most notably found
-                /// in proc(5);  examples include `/proc/[pid]/exe` and `/proc/[pid]/fd/*`.
-                ///
-                /// See symlink(7) for more details.
-                RESOLVE_NO_MAGICLINKS;
-
-                /// Disallow resolution of symbolic links during path resolution. This
-                /// option implies RESOLVE_NO_MAGICLINKS.
-                RESOLVE_NO_SYMLINKS;
-
-                /// Disallow traversal of mount points during path resolution (including
-                /// all bind mounts).
-                RESOLVE_NO_XDEV;
-            }
-        }
-
-        /// Specifies how [openat2] should open a pathname.
-        ///
-        /// See <https://man7.org/linux/man-pages/man2/open_how.2type.html>
-        #[repr(transparent)]
-        #[derive(Clone, Copy, Debug)]
-        pub struct OpenHow(libc::open_how);
-
-        impl OpenHow {
-            /// Create a new zero-filled `open_how`.
-            pub fn new() -> Self {
-                // safety: according to the man page, open_how MUST be zero-initialized
-                // on init so that unknown fields are also zeroed.
-                Self(unsafe {
-                    std::mem::MaybeUninit::zeroed().assume_init()
-                })
-            }
-
-            /// Set the open flags used to open a file, completely overwriting any
-            /// existing flags.
-            pub fn flags(mut self, flags: OFlag) -> Self {
-                let flags = flags.bits() as libc::c_ulonglong;
-                self.0.flags = flags;
-                self
-            }
-
-            /// Set the file mode new files will be created with, overwriting any
-            /// existing flags.
-            pub fn mode(mut self, mode: Mode) -> Self {
-                let mode = mode.bits() as libc::c_ulonglong;
-                self.0.mode = mode;
-                self
-            }
-
-            /// Set resolve flags, completely overwriting any existing flags.
-            ///
-            /// See [ResolveFlag] for more detail.
-            pub fn resolve(mut self, resolve: ResolveFlag) -> Self {
-                let resolve = resolve.bits();
-                self.0.resolve = resolve;
-                self
-            }
-        }
-
-        // safety: default isn't derivable because libc::open_how must be zeroed
-        impl Default for OpenHow {
-            fn default() -> Self {
-                Self::new()
-            }
-        }
-
-        /// Open or create a file for reading, writing or executing.
-        ///
-        /// `openat2` is an extension of the [`openat`] function that allows the caller
-        /// to control how path resolution happens.
-        ///
-        /// # See also
-        ///
-        /// [openat2](https://man7.org/linux/man-pages/man2/openat2.2.html)
-        pub fn openat2<P: ?Sized + NixPath>(
-            dirfd: RawFd,
-            path: &P,
-            mut how: OpenHow,
-        ) -> Result<RawFd> {
-            let fd = path.with_nix_path(|cstr| unsafe {
-                libc::syscall(
-                    libc::SYS_openat2,
-                    dirfd,
-                    cstr.as_ptr(),
-                    &mut how as *mut OpenHow,
-                    std::mem::size_of::<libc::open_how>(),
-                )
-            })?;
-
-            Errno::result(fd as RawFd)
-        }
-    }
 }
 
 /// Change the name of a file.
@@ -955,30 +832,6 @@ impl<T: Flockable> Flock<T> {
         std::mem::forget(self);
         Ok(inner)
     }
-
-    /// Relock the file.  This can upgrade or downgrade the lock type.
-    ///
-    /// # Example
-    /// ```
-    /// # use std::fs::File;
-    /// # use nix::fcntl::{Flock, FlockArg};
-    /// # use tempfile::tempfile;
-    /// let f: std::fs::File = tempfile().unwrap();
-    /// let locked_file = Flock::lock(f, FlockArg::LockExclusive).unwrap();
-    /// // Do stuff, then downgrade the lock
-    /// locked_file.relock(FlockArg::LockShared).unwrap();
-    /// ```
-    pub fn relock(&self, arg: FlockArg) -> Result<()> {
-         let flags = match arg {
-            FlockArg::LockShared => libc::LOCK_SH,
-            FlockArg::LockExclusive => libc::LOCK_EX,
-            FlockArg::LockSharedNonblock => libc::LOCK_SH | libc::LOCK_NB,
-            FlockArg::LockExclusiveNonblock => libc::LOCK_EX | libc::LOCK_NB,
-            #[allow(deprecated)]
-            FlockArg::Unlock | FlockArg::UnlockNonblock => return Err(Errno::EINVAL),
-        };
-        Errno::result(unsafe { libc::flock(self.as_raw_fd(), flags) }).map(drop)
-    }
 }
 
 // Safety: `File` is not [std::clone::Clone].
@@ -1087,10 +940,10 @@ pub fn copy_file_range<Fd1: AsFd, Fd2: AsFd>(
 /// # See Also
 /// *[`splice`](https://man7.org/linux/man-pages/man2/splice.2.html)
 #[cfg(linux_android)]
-pub fn splice<Fd1: AsFd, Fd2: AsFd>(
-    fd_in: Fd1,
+pub fn splice(
+    fd_in: RawFd,
     off_in: Option<&mut libc::loff_t>,
-    fd_out: Fd2,
+    fd_out: RawFd,
     off_out: Option<&mut libc::loff_t>,
     len: usize,
     flags: SpliceFFlags,
@@ -1103,7 +956,7 @@ pub fn splice<Fd1: AsFd, Fd2: AsFd>(
         .unwrap_or(ptr::null_mut());
 
     let ret = unsafe {
-        libc::splice(fd_in.as_fd().as_raw_fd(), off_in, fd_out.as_fd().as_raw_fd(), off_out, len, flags.bits())
+        libc::splice(fd_in, off_in, fd_out, off_out, len, flags.bits())
     };
     Errno::result(ret).map(|r| r as usize)
 }
@@ -1113,13 +966,13 @@ pub fn splice<Fd1: AsFd, Fd2: AsFd>(
 /// # See Also
 /// *[`tee`](https://man7.org/linux/man-pages/man2/tee.2.html)
 #[cfg(linux_android)]
-pub fn tee<Fd1: AsFd, Fd2: AsFd>(
-    fd_in: Fd1,
-    fd_out: Fd2,
+pub fn tee(
+    fd_in: RawFd,
+    fd_out: RawFd,
     len: usize,
     flags: SpliceFFlags,
 ) -> Result<usize> {
-    let ret = unsafe { libc::tee(fd_in.as_fd().as_raw_fd(), fd_out.as_fd().as_raw_fd(), len, flags.bits()) };
+    let ret = unsafe { libc::tee(fd_in, fd_out, len, flags.bits()) };
     Errno::result(ret).map(|r| r as usize)
 }
 
@@ -1128,14 +981,14 @@ pub fn tee<Fd1: AsFd, Fd2: AsFd>(
 /// # See Also
 /// *[`vmsplice`](https://man7.org/linux/man-pages/man2/vmsplice.2.html)
 #[cfg(linux_android)]
-pub fn vmsplice<F: AsFd>(
-    fd: F,
+pub fn vmsplice(
+    fd: RawFd,
     iov: &[std::io::IoSlice<'_>],
     flags: SpliceFFlags,
 ) -> Result<usize> {
     let ret = unsafe {
         libc::vmsplice(
-            fd.as_fd().as_raw_fd(),
+            fd,
             iov.as_ptr().cast(),
             iov.len(),
             flags.bits(),

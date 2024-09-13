@@ -1377,7 +1377,7 @@ pub fn chroot<P: ?Sized + NixPath>(path: &P) -> Result<()> {
 /// Commit filesystem caches to disk
 ///
 /// See also [sync(2)](https://pubs.opengroup.org/onlinepubs/9699919799/functions/sync.html)
-#[cfg(any(bsd, linux_android, solarish, target_os = "haiku", target_os = "aix", target_os = "hurd"))]
+#[cfg(any(freebsdlike, linux_android, netbsdlike))]
 pub fn sync() {
     unsafe { libc::sync() };
 }
@@ -1386,7 +1386,7 @@ pub fn sync() {
 /// descriptor `fd` to disk
 ///
 /// See also [syncfs(2)](https://man7.org/linux/man-pages/man2/sync.2.html)
-#[cfg(any(linux_android, target_os = "hurd"))]
+#[cfg(linux_android)]
 pub fn syncfs(fd: RawFd) -> Result<()> {
     let res = unsafe { libc::syncfs(fd) };
 
@@ -1411,27 +1411,13 @@ pub fn fsync(fd: RawFd) -> Result<()> {
     linux_android,
     solarish,
     netbsdlike,
-    apple_targets,
     target_os = "freebsd",
     target_os = "emscripten",
     target_os = "fuchsia",
-    target_os = "aix",
-    target_os = "hurd",
 ))]
 #[inline]
 pub fn fdatasync(fd: RawFd) -> Result<()> {
-    cfg_if! {
-        // apple libc supports fdatasync too, albeit not being present in its headers
-        // [fdatasync](https://github.com/apple/darwin-xnu/blob/2ff845c2e033bd0ff64b5b6aa6063a1f8f65aa32/bsd/vfs/vfs_syscalls.c#L7728)
-        if #[cfg(apple_targets)] {
-            extern "C" {
-                fn fdatasync(fd: libc::c_int) -> libc::c_int;
-            }
-        } else {
-            use libc::fdatasync as fdatasync;
-        }
-    }
-    let res = unsafe { fdatasync(fd) };
+    let res = unsafe { libc::fdatasync(fd) };
 
     Errno::result(res).map(drop)
 }
@@ -2045,19 +2031,6 @@ pub enum PathconfVar {
     /// queue; therefore, the maximum number of bytes a conforming application
     /// may require to be typed as input before reading them.
     MAX_INPUT = libc::_PC_MAX_INPUT,
-    #[cfg(any(
-        apple_targets,
-        solarish,
-        freebsdlike,
-        target_os = "netbsd",
-    ))]
-    /// If a file system supports the reporting of holes (see lseek(2)),
-    /// pathconf() and fpathconf() return a positive number that represents the
-    /// minimum hole size returned in bytes.  The offsets of holes returned will
-    /// be aligned to this same value.  A special value of 1 is returned if the
-    /// file system does not specify the minimum hole size but still reports
-    /// holes.
-    MIN_HOLE_SIZE = libc::_PC_MIN_HOLE_SIZE,
     /// Maximum number of bytes in a filename (not including the terminating
     /// null of a filename string).
     NAME_MAX = libc::_PC_NAME_MAX,
