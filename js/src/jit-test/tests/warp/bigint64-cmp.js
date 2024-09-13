@@ -117,6 +117,88 @@ function testI64() {
     assertEq(v <= 0x1_0000_0000n, lt_i32 || eq_i32);
     assertEq(v > 0x1_0000_0000n, !lt_i32 && !eq_i32);
     assertEq(v >= 0x1_0000_0000n, !lt_i32 || eq_i32);
+  }
+}
+testI64();
+
+function testI64_R() {
+  for (var i = 0; i < 200; ++i) {
+    var v = i64[i % i64.length];
+
+    // Cast to Int128 to ensure non-optimized BigInt comparison is used.
+    var eq_zero = v == BigInt.asIntN(128, 0n);
+    var lt_zero = v < BigInt.asIntN(128, 0n);
+
+    var eq_one = v == BigInt.asIntN(128, 1n);
+    var lt_one = v < BigInt.asIntN(128, 1n);
+
+    var eq_neg_one = v == BigInt.asIntN(128, -1n);
+    var lt_neg_one = v < BigInt.asIntN(128, -1n);
+
+    var eq_i31 = v == BigInt.asIntN(128, 0x8000_0000n);
+    var lt_i31 = v < BigInt.asIntN(128, 0x8000_0000n);
+
+    var eq_i32 = v == BigInt.asIntN(128, 0x1_0000_0000n);
+    var lt_i32 = v < BigInt.asIntN(128, 0x1_0000_0000n);
+
+    // BigInt constant. (Reserved operands)
+    assertEq(0n == v, eq_zero);
+    assertEq(0n != v, !eq_zero);
+    assertEq(0n > v, lt_zero && !eq_zero);
+    assertEq(0n >= v, lt_zero || eq_zero);
+    assertEq(0n < v, !lt_zero && !eq_zero);
+    assertEq(0n <= v, !lt_zero || eq_zero);
+
+    assertEq(1n == v, eq_one);
+    assertEq(1n != v, !eq_one);
+    assertEq(1n > v, lt_one && !eq_one);
+    assertEq(1n >= v, lt_one || eq_one);
+    assertEq(1n < v, !lt_one && !eq_one);
+    assertEq(1n <= v, !lt_one || eq_one);
+
+    assertEq(-1n == v, eq_neg_one);
+    assertEq(-1n != v, !eq_neg_one);
+    assertEq(-1n > v, lt_neg_one && !eq_neg_one);
+    assertEq(-1n >= v, lt_neg_one || eq_neg_one);
+    assertEq(-1n < v, !lt_neg_one && !eq_neg_one);
+    assertEq(-1n <= v, !lt_neg_one || eq_neg_one);
+
+    assertEq(0x8000_0000n == v, eq_i31);
+    assertEq(0x8000_0000n != v, !eq_i31);
+    assertEq(0x8000_0000n > v, lt_i31 && !eq_i31);
+    assertEq(0x8000_0000n >= v, lt_i31 || eq_i31);
+    assertEq(0x8000_0000n < v, !lt_i31 && !eq_i31);
+    assertEq(0x8000_0000n <= v, !lt_i31 || eq_i31);
+
+    assertEq(0x1_0000_0000n == v, eq_i32);
+    assertEq(0x1_0000_0000n != v, !eq_i32);
+    assertEq(0x1_0000_0000n > v, lt_i32 && !eq_i32);
+    assertEq(0x1_0000_0000n >= v, lt_i32 || eq_i32);
+    assertEq(0x1_0000_0000n < v, !lt_i32 && !eq_i32);
+    assertEq(0x1_0000_0000n <= v, !lt_i32 || eq_i32);
+  }
+}
+testI64_R();
+
+function testI64_I32Constant() {
+  for (var i = 0; i < 200; ++i) {
+    var v = i64[i % i64.length];
+
+    // Cast to Int128 to ensure non-optimized BigInt comparison is used.
+    var eq_zero = v == BigInt.asIntN(128, 0n);
+    var lt_zero = v < BigInt.asIntN(128, 0n);
+
+    var eq_one = v == BigInt.asIntN(128, 1n);
+    var lt_one = v < BigInt.asIntN(128, 1n);
+
+    var eq_neg_one = v == BigInt.asIntN(128, -1n);
+    var lt_neg_one = v < BigInt.asIntN(128, -1n);
+
+    var eq_i31 = v == BigInt.asIntN(128, 0x8000_0000n);
+    var lt_i31 = v < BigInt.asIntN(128, 0x8000_0000n);
+
+    var eq_i32 = v == BigInt.asIntN(128, 0x1_0000_0000n);
+    var lt_i32 = v < BigInt.asIntN(128, 0x1_0000_0000n);
 
     // Int32 constant
     assertEq(v == 0, eq_zero);
@@ -139,6 +221,58 @@ function testI64() {
     assertEq(v <= -1, lt_neg_one || eq_neg_one);
     assertEq(v > -1, !lt_neg_one && !eq_neg_one);
     assertEq(v >= -1, !lt_neg_one || eq_neg_one);
+  }
+}
+testI64_I32Constant();
+
+function testI64_I32Constant_R() {
+  for (var i = 0; i < 200; ++i) {
+    var v = i64[i % i64.length];
+
+    // Cast to Int128 to ensure non-optimized BigInt comparison is used.
+    var eq_zero = v == BigInt.asIntN(128, 0n);
+    var lt_zero = v < BigInt.asIntN(128, 0n);
+
+    var eq_one = v == BigInt.asIntN(128, 1n);
+    var lt_one = v < BigInt.asIntN(128, 1n);
+
+    var eq_neg_one = v == BigInt.asIntN(128, -1n);
+    var lt_neg_one = v < BigInt.asIntN(128, -1n);
+
+    var eq_i31 = v == BigInt.asIntN(128, 0x8000_0000n);
+    var lt_i31 = v < BigInt.asIntN(128, 0x8000_0000n);
+
+    var eq_i32 = v == BigInt.asIntN(128, 0x1_0000_0000n);
+    var lt_i32 = v < BigInt.asIntN(128, 0x1_0000_0000n);
+
+    // Int32 constant. (Reversed operands)
+    assertEq(0 == v, eq_zero);
+    assertEq(0 != v, !eq_zero);
+    assertEq(0 > v, lt_zero && !eq_zero);
+    assertEq(0 >= v, lt_zero || eq_zero);
+    assertEq(0 < v, !lt_zero && !eq_zero);
+    assertEq(0 <= v, !lt_zero || eq_zero);
+
+    assertEq(1 == v, eq_one);
+    assertEq(1 != v, !eq_one);
+    assertEq(1 > v, lt_one && !eq_one);
+    assertEq(1 >= v, lt_one || eq_one);
+    assertEq(1 < v, !lt_one && !eq_one);
+    assertEq(1 <= v, !lt_one || eq_one);
+
+    assertEq(-1 == v, eq_neg_one);
+    assertEq(-1 != v, !eq_neg_one);
+    assertEq(-1 > v, lt_neg_one && !eq_neg_one);
+    assertEq(-1 >= v, lt_neg_one || eq_neg_one);
+    assertEq(-1 < v, !lt_neg_one && !eq_neg_one);
+    assertEq(-1 <= v, !lt_neg_one || eq_neg_one);
+  }
+}
+testI64_I32Constant_R();
+
+function testI64_TooLargeConstant() {
+  for (var i = 0; i < 200; ++i) {
+    var v = i64[i % i64.length];
 
     // BigInt constant too large for I64.
     assertEq(v == 0x8000_0000_0000_0000n, false);
@@ -163,7 +297,36 @@ function testI64() {
     assertEq(v >= 0x1_0000_0000_0000_0000n, false);
   }
 }
-testI64();
+testI64_TooLargeConstant();
+
+function testI64_TooLargeConstant_R() {
+  for (var i = 0; i < 200; ++i) {
+    var v = i64[i % i64.length];
+
+    // BigInt constant too large for I64. (Reserved operands)
+    assertEq(0x8000_0000_0000_0000n == v, false);
+    assertEq(0x8000_0000_0000_0000n != v, true);
+    assertEq(0x8000_0000_0000_0000n > v, true);
+    assertEq(0x8000_0000_0000_0000n >= v, true);
+    assertEq(0x8000_0000_0000_0000n < v, false);
+    assertEq(0x8000_0000_0000_0000n <= v, false);
+
+    assertEq(-0x8000_0000_0000_0001n == v, false);
+    assertEq(-0x8000_0000_0000_0001n != v, true);
+    assertEq(-0x8000_0000_0000_0001n > v, false);
+    assertEq(-0x8000_0000_0000_0001n >= v, false);
+    assertEq(-0x8000_0000_0000_0001n < v, true);
+    assertEq(-0x8000_0000_0000_0001n <= v, true);
+
+    assertEq(0x1_0000_0000_0000_0000n == v, false);
+    assertEq(0x1_0000_0000_0000_0000n != v, true);
+    assertEq(0x1_0000_0000_0000_0000n > v, true);
+    assertEq(0x1_0000_0000_0000_0000n >= v, true);
+    assertEq(0x1_0000_0000_0000_0000n < v, false);
+    assertEq(0x1_0000_0000_0000_0000n <= v, false);
+  }
+}
+testI64_TooLargeConstant_R();
 
 function testU64() {
   for (var i = 0; i < 200; ++i) {
@@ -210,6 +373,75 @@ function testU64() {
     assertEq(v <= 0x1_0000_0000n, lt_i32 || eq_i32);
     assertEq(v > 0x1_0000_0000n, !lt_i32 && !eq_i32);
     assertEq(v >= 0x1_0000_0000n, !lt_i32 || eq_i32);
+  }
+}
+testU64();
+
+function testU64_R() {
+  for (var i = 0; i < 200; ++i) {
+    var v = u64[i % u64.length];
+
+    // Cast to Uint128 to ensure non-optimized BigInt comparison is used.
+    var eq_zero = v == BigInt.asUintN(128, 0n);
+    var lt_zero = v < BigInt.asUintN(128, 0n);
+
+    var eq_one = v == BigInt.asUintN(128, 1n);
+    var lt_one = v < BigInt.asUintN(128, 1n);
+
+    var eq_i31 = v == BigInt.asUintN(128, 0x8000_0000n);
+    var lt_i31 = v < BigInt.asUintN(128, 0x8000_0000n);
+
+    var eq_i32 = v == BigInt.asUintN(128, 0x1_0000_0000n);
+    var lt_i32 = v < BigInt.asUintN(128, 0x1_0000_0000n);
+
+    // BigInt constant. (Reversed operands)
+    assertEq(0n == v, eq_zero);
+    assertEq(0n != v, !eq_zero);
+    assertEq(0n > v, lt_zero && !eq_zero);
+    assertEq(0n >= v, lt_zero || eq_zero);
+    assertEq(0n < v, !lt_zero && !eq_zero);
+    assertEq(0n <= v, !lt_zero || eq_zero);
+
+    assertEq(1n == v, eq_one);
+    assertEq(1n != v, !eq_one);
+    assertEq(1n > v, lt_one && !eq_one);
+    assertEq(1n >= v, lt_one || eq_one);
+    assertEq(1n < v, !lt_one && !eq_one);
+    assertEq(1n <= v, !lt_one || eq_one);
+
+    assertEq(0x8000_0000n == v, eq_i31);
+    assertEq(0x8000_0000n != v, !eq_i31);
+    assertEq(0x8000_0000n > v, lt_i31 && !eq_i31);
+    assertEq(0x8000_0000n >= v, lt_i31 || eq_i31);
+    assertEq(0x8000_0000n < v, !lt_i31 && !eq_i31);
+    assertEq(0x8000_0000n <= v, !lt_i31 || eq_i31);
+
+    assertEq(0x1_0000_0000n == v, eq_i32);
+    assertEq(0x1_0000_0000n != v, !eq_i32);
+    assertEq(0x1_0000_0000n > v, lt_i32 && !eq_i32);
+    assertEq(0x1_0000_0000n >= v, lt_i32 || eq_i32);
+    assertEq(0x1_0000_0000n < v, !lt_i32 && !eq_i32);
+    assertEq(0x1_0000_0000n <= v, !lt_i32 || eq_i32);
+  }
+}
+testU64_R();
+
+function testU64_I32Constant() {
+  for (var i = 0; i < 200; ++i) {
+    var v = u64[i % u64.length];
+
+    // Cast to Uint128 to ensure non-optimized BigInt comparison is used.
+    var eq_zero = v == BigInt.asUintN(128, 0n);
+    var lt_zero = v < BigInt.asUintN(128, 0n);
+
+    var eq_one = v == BigInt.asUintN(128, 1n);
+    var lt_one = v < BigInt.asUintN(128, 1n);
+
+    var eq_i31 = v == BigInt.asUintN(128, 0x8000_0000n);
+    var lt_i31 = v < BigInt.asUintN(128, 0x8000_0000n);
+
+    var eq_i32 = v == BigInt.asUintN(128, 0x1_0000_0000n);
+    var lt_i32 = v < BigInt.asUintN(128, 0x1_0000_0000n);
 
     // Int32 constant
     assertEq(v == 0, eq_zero);
@@ -225,6 +457,48 @@ function testU64() {
     assertEq(v <= 1, lt_one || eq_one);
     assertEq(v > 1, !lt_one && !eq_one);
     assertEq(v >= 1, !lt_one || eq_one);
+  }
+}
+testU64_I32Constant();
+
+function testU64_I32Constant_R() {
+  for (var i = 0; i < 200; ++i) {
+    var v = u64[i % u64.length];
+
+    // Cast to Uint128 to ensure non-optimized BigInt comparison is used.
+    var eq_zero = v == BigInt.asUintN(128, 0n);
+    var lt_zero = v < BigInt.asUintN(128, 0n);
+
+    var eq_one = v == BigInt.asUintN(128, 1n);
+    var lt_one = v < BigInt.asUintN(128, 1n);
+
+    var eq_i31 = v == BigInt.asUintN(128, 0x8000_0000n);
+    var lt_i31 = v < BigInt.asUintN(128, 0x8000_0000n);
+
+    var eq_i32 = v == BigInt.asUintN(128, 0x1_0000_0000n);
+    var lt_i32 = v < BigInt.asUintN(128, 0x1_0000_0000n);
+
+    // Int32 constant. (Reversed operands)
+    assertEq(0 == v, eq_zero);
+    assertEq(0 != v, !eq_zero);
+    assertEq(0 > v, lt_zero && !eq_zero);
+    assertEq(0 >= v, lt_zero || eq_zero);
+    assertEq(0 < v, !lt_zero && !eq_zero);
+    assertEq(0 <= v, !lt_zero || eq_zero);
+
+    assertEq(1 == v, eq_one);
+    assertEq(1 != v, !eq_one);
+    assertEq(1 > v, lt_one && !eq_one);
+    assertEq(1 >= v, lt_one || eq_one);
+    assertEq(1 < v, !lt_one && !eq_one);
+    assertEq(1 <= v, !lt_one || eq_one);
+  }
+}
+testU64_I32Constant_R();
+
+function testU64_NegativeOrTooLargeConstant() {
+  for (var i = 0; i < 200; ++i) {
+    var v = u64[i % u64.length];
 
     // BigInt constant too large for U64.
     assertEq(v == 0x1_0000_0000_0000_0000n, false);
@@ -251,7 +525,38 @@ function testU64() {
     assertEq(v >= -1, true);
   }
 }
-testU64();
+testU64_NegativeOrTooLargeConstant();
+
+function testU64_NegativeOrTooLargeConstant_R() {
+  for (var i = 0; i < 200; ++i) {
+    var v = u64[i % u64.length];
+
+    // BigInt constant too large for U64. (Reversed operands)
+    assertEq(0x1_0000_0000_0000_0000n == v, false);
+    assertEq(0x1_0000_0000_0000_0000n != v, true);
+    assertEq(0x1_0000_0000_0000_0000n > v, true);
+    assertEq(0x1_0000_0000_0000_0000n >= v, true);
+    assertEq(0x1_0000_0000_0000_0000n < v, false);
+    assertEq(0x1_0000_0000_0000_0000n <= v, false);
+
+    // Negative BigInt constant. (Reversed operands)
+    assertEq(-1n == v, false);
+    assertEq(-1n != v, true);
+    assertEq(-1n > v, false);
+    assertEq(-1n >= v, false);
+    assertEq(-1n < v, true);
+    assertEq(-1n <= v, true);
+
+    // Negative Int32 constant. (Reversed operands)
+    assertEq(-1 == v, false);
+    assertEq(-1 != v, true);
+    assertEq(-1 > v, false);
+    assertEq(-1 >= v, false);
+    assertEq(-1 < v, true);
+    assertEq(-1 <= v, true);
+  }
+}
+testU64_NegativeOrTooLargeConstant_R();
 
 // Compare Int64 against Int64.
 function testII64() {
