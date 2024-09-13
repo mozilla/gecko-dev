@@ -1943,6 +1943,14 @@ bool WarpBuilder::build_BindName(BytecodeLocation loc) {
   return buildIC(loc, CacheKind::BindName, {env});
 }
 
+bool WarpBuilder::build_BindUnqualifiedName(BytecodeLocation loc) {
+  MOZ_ASSERT(usesEnvironmentChain());
+
+  MDefinition* env = current->environmentChain();
+  env = unboxObjectInfallible(env, IsMovable::Yes);
+  return buildIC(loc, CacheKind::BindName, {env});
+}
+
 bool WarpBuilder::build_BindGName(BytecodeLocation loc) {
   MOZ_ASSERT(!script_->hasNonSyntacticScope());
 

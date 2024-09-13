@@ -1979,6 +1979,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
         return write("GLOBAL");
 
       case JSOp::BindName:
+      case JSOp::BindUnqualifiedName:
       case JSOp::BindVar:
         return write("ENV");
 

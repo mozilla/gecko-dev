@@ -328,6 +328,7 @@ class MOZ_STATIC_CLASS OpToFallbackKindTable {
     setKind(JSOp::GetGName, BaselineICFallbackKind::GetName);
 
     setKind(JSOp::BindName, BaselineICFallbackKind::BindName);
+    setKind(JSOp::BindUnqualifiedName, BaselineICFallbackKind::BindName);
     setKind(JSOp::BindGName, BaselineICFallbackKind::BindName);
 
     setKind(JSOp::GetIntrinsic, BaselineICFallbackKind::GetIntrinsic);
@@ -1189,17 +1190,23 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
   MaybeNotifyWarp(frame->outerScript(), stub);
 
   jsbytecode* pc = StubOffsetToPc(stub, frame->script());
-  mozilla::DebugOnly<JSOp> op = JSOp(*pc);
+  JSOp op = JSOp(*pc);
   FallbackICSpew(cx, stub, "BindName(%s)", CodeName(JSOp(*pc)));
 
-  MOZ_ASSERT(op == JSOp::BindName || op == JSOp::BindGName);
+  MOZ_ASSERT(op == JSOp::BindName || op == JSOp::BindUnqualifiedName ||
+             op == JSOp::BindGName);
 
   Rooted<PropertyName*> name(cx, frame->script()->getName(pc));
 
   TryAttachStub<BindNameIRGenerator>("BindName", cx, frame, stub, envChain,
                                      name);
 
-  JSObject* env = LookupNameUnqualified(cx, name, envChain);
+  JSObject* env;
+  if (op == JSOp::BindName) {
+    env = LookupNameWithGlobalDefault(cx, name, envChain);
+  } else {
+    env = LookupNameUnqualified(cx, name, envChain);
+  }
   if (!env) {
     return false;
   }

@@ -2711,10 +2711,10 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(Unpick)
 
     CASE(BindGName)
-    CASE(BindName) {
+    CASE(BindUnqualifiedName) {
       JSOp op = JSOp(*REGS.pc);
       ReservedRooted<JSObject*> envChain(&rootObject0);
-      if (op == JSOp::BindName) {
+      if (op == JSOp::BindUnqualifiedName) {
         envChain.set(REGS.fp()->environmentChain());
       } else {
         MOZ_ASSERT(!script->hasNonSyntacticScope());
@@ -2730,8 +2730,21 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
       PUSH_OBJECT(*env);
 
-      static_assert(JSOpLength_BindName == JSOpLength_BindGName,
+      static_assert(JSOpLength_BindUnqualifiedName == JSOpLength_BindGName,
                     "We're sharing the END_CASE so the lengths better match");
+    }
+    END_CASE(BindUnqualifiedName)
+
+    CASE(BindName) {
+      auto envChain = REGS.fp()->environmentChain();
+      ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
+
+      JSObject* env = LookupNameWithGlobalDefault(cx, name, envChain);
+      if (!env) {
+        goto error;
+      }
+
+      PUSH_OBJECT(*env);
     }
     END_CASE(BindName)
 

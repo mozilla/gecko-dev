@@ -2862,7 +2862,7 @@
     /*
      * Look up a name on the global lexical environment's chain and push the
      * environment which contains a binding for that name. If no such binding
-     * exists, push the global lexical environment.
+     * exists, push the top-most variables object, which is the global object.
      *
      *   Category: Variables and scopes
      *   Type: Looking up bindings
@@ -2871,9 +2871,20 @@
      */ \
     MACRO(BindGName, bind_g_name, NULL, 5, 0, 1, JOF_ATOM|JOF_GNAME|JOF_IC) \
     /*
+     * Look up an unqualified name on the environment chain and push the
+     * environment which contains a binding for that name. If no such binding
+     * exists, push the first variables object along the environment chain.
+     *
+     *   Category: Variables and scopes
+     *   Type: Looking up bindings
+     *   Operands: uint32_t nameIndex
+     *   Stack: => env
+     */ \
+    MACRO(BindUnqualifiedName, bind_unqualified_name, NULL, 5, 0, 1, JOF_ATOM|JOF_IC|JOF_USES_ENV) \
+    /*
      * Look up a name on the environment chain and push the environment which
      * contains a binding for that name. If no such binding exists, push the
-     * global lexical environment.
+     * global object.
      *
      *   Category: Variables and scopes
      *   Type: Looking up bindings
@@ -3035,15 +3046,18 @@
      * not bound in `env`, throw a ReferenceError.
      *
      * `env` must be an environment currently on the environment chain, pushed
-     * by `JSOp::BindName` or `JSOp::BindVar`.
+     * by `JSOp::BindName`, `JSOp::BindUnqualifiedName`, or `JSOp::BindVar`.
      *
-     * Note: `JSOp::BindName` and `JSOp::GetBoundName` are the two halves of the
-     * `JSOp::GetName` operation: finding and reading a variable. This
-     * decomposed version is needed to implement the compound assignment and
-     * increment/decrement operators, which get and then set a variable. The
-     * spec says the variable lookup is done only once. If we did the lookup
+     * Note: `JSOp::Bind(Unqualified)Name` and `JSOp::GetBoundName` are the two
+     * halves of the `JSOp::GetName` operation: finding and reading a variable.
+     * This decomposed version is needed to implement:
+     * 1. The call operator, which gets a variable and its this-environment.
+     * 2. The compound assignment and increment/decrement operators, which get
+     *    and then set a variable.
+     * The spec says the variable lookup is done only once. If we did the lookup
      * twice, there would be observable bugs, thanks to dynamic scoping. We
-     * could set the wrong variable or call proxy traps incorrectly.
+     * could get the wrong this-environment resp. variable or call proxy traps
+     * incorrectly.
      *
      * Implements: [GetValue][1] steps 4 and 6.
      *
@@ -3106,19 +3120,19 @@
      * This can call setters and/or proxy traps.
      *
      * `env` must be an environment currently on the environment chain,
-     * pushed by `JSOp::BindName` or `JSOp::BindVar`.
+     * pushed by `JSOp::BindUnqualifiedName` or `JSOp::BindVar`.
      *
      * This is the fallback `Set` instruction that handles all unoptimized
      * cases. Optimized instructions follow.
      *
      * Implements: [PutValue][1] steps 5 and 7 for unoptimized bindings.
      *
-     * Note: `JSOp::BindName` and `JSOp::SetName` are the two halves of simple
-     * assignment: finding and setting a variable. They are two separate
-     * instructions because, per spec, the "finding" part happens before
-     * evaluating the right-hand side of the assignment, and the "setting" part
-     * after. Optimized cases don't need a `Bind` instruction because the
-     * "finding" is done statically.
+     * Note: `JSOp::BindUnqualifiedName` and `JSOp::SetName` are the two halves
+     * of simple assignment: finding and setting a variable. They are two
+     * separate instructions because, per spec, the "finding" part happens
+     * before evaluating the right-hand side of the assignment, and the
+     * "setting" part after. Optimized cases don't need a `Bind` instruction
+     * because the "finding" is done statically.
      *
      * [1]: https://tc39.es/ecma262/#sec-putvalue
      *
@@ -3370,10 +3384,11 @@
      *
      * Operations that may need to consult a WithEnvironment can't be correctly
      * implemented using optimized instructions like `JSOp::GetLocal`. A script
-     * must use the deoptimized `JSOp::GetName`, `BindName`, `SetName`, and
-     * `DelName` instead. Since those instructions don't work correctly with
-     * optimized locals and arguments, all bindings in scopes enclosing a
-     * `with` statement are marked as "aliased" and deoptimized too.
+     * must use the deoptimized `JSOp::GetName`, `BindUnqualifiedName`,
+     * `BindName`,`SetName`, and `DelName` instead. Since those instructions
+     * don't work correctly with optimized locals and arguments, all bindings in
+     * scopes enclosing a `with` statement are marked as "aliased" and
+     * deoptimized too.
      *
      * See `JSOp::PushLexicalEnv` for the fine print.
      *
@@ -3693,14 +3708,13 @@
 
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
 #  define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
-    IF_RECORD_TUPLE(/* empty */, MACRO(239))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(240))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(241))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(242))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(243))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(244))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(245))     \
-    MACRO(246)                                   \
+    IF_RECORD_TUPLE(/* empty */, MACRO(246))     \
     MACRO(247)                                   \
     MACRO(248)                                   \
     MACRO(249)                                   \
@@ -3712,14 +3726,13 @@
     MACRO(255)
 #else
 #  define FOR_EACH_TRAILING_UNUSED_OPCODE(MACRO) \
-    IF_RECORD_TUPLE(/* empty */, MACRO(236))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(237))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(238))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(239))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(240))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(241))     \
     IF_RECORD_TUPLE(/* empty */, MACRO(242))     \
-    MACRO(243)                                   \
+    IF_RECORD_TUPLE(/* empty */, MACRO(243))     \
     MACRO(244)                                   \
     MACRO(245)                                   \
     MACRO(246)                                   \

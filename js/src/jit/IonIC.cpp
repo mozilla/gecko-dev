@@ -394,10 +394,17 @@ JSObject* IonBindNameIC::update(JSContext* cx, HandleScript outerScript,
                                 IonBindNameIC* ic, HandleObject envChain) {
   IonScript* ionScript = outerScript->ionScript();
   jsbytecode* pc = ic->pc();
+  JSOp op = JSOp(*pc);
+  MOZ_ASSERT(op == JSOp::BindName || op == JSOp::BindUnqualifiedName ||
+             op == JSOp::BindGName);
+
   Rooted<PropertyName*> name(cx, ic->script()->getName(pc));
 
   TryAttachIonStub<BindNameIRGenerator>(cx, ic, ionScript, envChain, name);
 
+  if (op == JSOp::BindName) {
+    return LookupNameWithGlobalDefault(cx, name, envChain);
+  }
   return LookupNameUnqualified(cx, name, envChain);
 }
 

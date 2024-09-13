@@ -5550,6 +5550,12 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
       IC_PUSH_RESULT();
       END_OP(BindName);
     }
+    CASE(BindUnqualifiedName) {
+      IC_SET_OBJ_ARG(0, frame->environmentChain());
+      INVOKE_IC(BindName);
+      IC_PUSH_RESULT();
+      END_OP(BindUnqualifiedName);
+    }
     CASE(GetGName) {
       IC_SET_OBJ_ARG(
           0, &frameMgr.cxForLocalUseOnly()->global()->lexicalEnvironment());

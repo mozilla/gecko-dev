@@ -199,7 +199,7 @@ bool NameOpEmitter::prepareForRhs() {
       if (!bce_->makeAtomIndex(name_, ParserAtom::Atomize::Yes, &atomIndex_)) {
         return false;
       }
-      if (!bce_->emitAtomOp(JSOp::BindName, atomIndex_)) {
+      if (!bce_->emitAtomOp(JSOp::BindUnqualifiedName, atomIndex_)) {
         //          [stack] ENV
         return false;
       }
@@ -228,7 +228,7 @@ bool NameOpEmitter::prepareForRhs() {
       } else {
         JSOp op;
         if (bce_->sc->hasNonSyntacticScope()) {
-          op = JSOp::BindName;
+          op = JSOp::BindUnqualifiedName;
         } else {
           op = JSOp::BindGName;
         }

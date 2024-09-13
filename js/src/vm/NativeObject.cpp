@@ -2395,9 +2395,10 @@ bool js::GetNameBoundInEnvironment(JSContext* cx, HandleObject envArg,
   // hook on a WithEnvironmentObject.
   //
   // In the case of attempting to get the value of a binding already looked up
-  // via JSOp::BindName, calling HasProperty on the WithEnvironmentObject is
-  // equivalent to calling HasBinding a second time. This results in the
-  // incorrect behavior of performing the @@unscopables check again.
+  // via JSOp::BindName or JSOp::BindUnqualifiedName, calling HasProperty on the
+  // WithEnvironmentObject is equivalent to calling HasBinding a second time.
+  // This results in the incorrect behavior of performing the @@unscopables
+  // check again.
   RootedObject env(cx, MaybeUnwrapWithEnvironment(envArg));
   RootedValue receiver(cx, ObjectValue(*env));
   if (env->getOpsGetProperty()) {

@@ -4277,9 +4277,9 @@ bool BytecodeEmitter::emitAssignmentRhs(
 
 // The RHS value to assign is already on the stack, i.e., the next enumeration
 // value in a for-in or for-of loop. Offset is the location in the stack of the
-// already-emitted rhs. If we emitted a JSOp::BindName or JSOp::BindGName, then
-// the scope is on the top of the stack and we need to dig one deeper to get
-// the right RHS value.
+// already-emitted rhs. If we emitted a JSOp::BindUnqualifiedName or
+// JSOp::BindGName, then the scope is on the top of the stack and we need to dig
+// one deeper to get the right RHS value.
 bool BytecodeEmitter::emitAssignmentRhs(uint8_t offset) {
   if (offset != 1) {
     return emitPickN(offset - 1);
@@ -11847,7 +11847,7 @@ bool BytecodeEmitter::emitLexicalInitialization(TaggedParserAtomIndex name) {
 
   // The caller has pushed the RHS to the top of the stack. Assert that the
   // binding can be initialized without a binding object on the stack, and that
-  // no JSOp::BindName or JSOp::BindGName ops were emitted.
+  // no JSOp::BindUnqualifiedName or JSOp::BindGName ops were emitted.
   MOZ_ASSERT(noe.loc().isLexical() || noe.loc().isSynthetic() ||
              noe.loc().isPrivateMethod());
   MOZ_ASSERT(!noe.emittedBindOp());
