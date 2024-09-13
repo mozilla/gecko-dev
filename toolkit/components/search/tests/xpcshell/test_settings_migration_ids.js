@@ -90,7 +90,7 @@ async function assertInstalledEngineMatches(expectedData) {
 }
 
 add_task(async function test_migration_from_pre_ids() {
-  await loadSettingsFile("data/search-legacy-no-ids.json");
+  await loadSettingsFile("settings/v6-ids-upgrade.json");
 
   const settingsFileWritten = promiseAfterSettings();
 

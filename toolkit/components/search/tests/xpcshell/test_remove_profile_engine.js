@@ -21,7 +21,9 @@ add_task(async function run_test() {
   file.append("test-search-engine.xml");
   Assert.ok(file.exists());
 
-  let data = await readJSONFile(do_get_file("data/search-legacy.json"));
+  let data = await readJSONFile(
+    do_get_file("settings/v1-metadata-migration.json")
+  );
 
   // Put the filePath inside the settings file, to simulate what a pre-58 version
   // of Firefox would have done.

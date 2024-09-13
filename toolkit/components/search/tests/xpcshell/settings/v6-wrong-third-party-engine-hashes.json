@@ -1,10 +1,12 @@
 {
-  "version": 1,
+  "version": 6,
   "buildID": "20121106",
   "locale": "en-US",
   "metaData": {
-    "current": "engine2",
-    "private": "engine2"
+    "current": "Test search engine",
+    "private": "Test search engine",
+    "hash": "wrong-hash-o/HzjHlVpb97AFGH3pY1GZ6CoTQkQslUKRd38/qasto=",
+    "privateHash": "wrong-hash-o/HzjHlVpb97AFGH3pY1GZ6CoTQkQslUKRd38/qasto="
   },
   "engines": [
     {

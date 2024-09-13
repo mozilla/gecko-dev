@@ -82,7 +82,7 @@ async function loadSettingsFile(settingsFile) {
  */
 add_setup(async function () {
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
-  await loadSettingsFile("data/search-migration-renames.json");
+  await loadSettingsFile("settings/v6-migration-renames.json");
 });
 
 add_task(async function test_migration_after_renames() {

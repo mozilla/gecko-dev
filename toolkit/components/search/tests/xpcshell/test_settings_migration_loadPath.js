@@ -52,7 +52,7 @@ add_setup(async function () {
  */
 add_task(async function test_load_and_check_settings() {
   let settingsTemplate = await readJSONFile(
-    do_get_file("data/search-legacy-old-loadPaths.json")
+    do_get_file("settings/v7-loadPath-migration.json")
   );
 
   Assert.less(

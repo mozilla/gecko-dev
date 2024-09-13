@@ -46,7 +46,7 @@ add_task(async function test_ignoreListOnLoadSettings() {
   );
 
   let settingsTemplate = await readJSONFile(
-    do_get_file("data/search_ignorelist.json")
+    do_get_file("settings/ignorelist.json")
   );
 
   await promiseSaveSettingsData(settingsTemplate);
