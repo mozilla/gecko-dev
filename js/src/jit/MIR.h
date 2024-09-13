@@ -2819,6 +2819,7 @@ class MCompare : public MBinaryInstruction, public ComparePolicy::Data {
   [[nodiscard]] MDefinition* tryFoldStringSubstring(TempAllocator& alloc);
   [[nodiscard]] MDefinition* tryFoldStringIndexOf(TempAllocator& alloc);
   [[nodiscard]] MDefinition* tryFoldBigInt64(TempAllocator& alloc);
+  [[nodiscard]] MDefinition* tryFoldBigIntPtr(TempAllocator& alloc);
   [[nodiscard]] MDefinition* tryFoldBigInt(TempAllocator& alloc);
 
  public:

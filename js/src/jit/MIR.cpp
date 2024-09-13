@@ -5310,6 +5310,91 @@ MDefinition* MCompare::tryFoldBigInt64(TempAllocator& alloc) {
   return this;
 }
 
+MDefinition* MCompare::tryFoldBigIntPtr(TempAllocator& alloc) {
+  if (compareType() == Compare_BigInt) {
+    auto* left = lhs();
+    MOZ_ASSERT(left->type() == MIRType::BigInt);
+
+    auto* right = rhs();
+    MOZ_ASSERT(right->type() == MIRType::BigInt);
+
+    // At least one operand must be MIntPtrToBigInt.
+    if (!left->isIntPtrToBigInt() && !right->isIntPtrToBigInt()) {
+      return this;
+    }
+
+    // Unwrap MIntPtrToBigInt on both sides and perform an IntPtr comparison.
+    if (left->isIntPtrToBigInt() && right->isIntPtrToBigInt()) {
+      auto* lhsIntPtr = left->toIntPtrToBigInt();
+      auto* rhsIntPtr = right->toIntPtrToBigInt();
+
+      return MCompare::New(alloc, lhsIntPtr->input(), rhsIntPtr->input(), jsop_,
+                           MCompare::Compare_IntPtr);
+    }
+
+    // The other operand must be a constant.
+    if (!left->isConstant() && !right->isConstant()) {
+      return this;
+    }
+
+    auto* intPtrToBigInt = left->isIntPtrToBigInt() ? left->toIntPtrToBigInt()
+                                                    : right->toIntPtrToBigInt();
+
+    auto* constant =
+        left->isConstant() ? left->toConstant() : right->toConstant();
+    auto* bigInt = constant->toBigInt();
+
+    // Extract the BigInt value if representable as intptr_t.
+    intptr_t value;
+    if (!BigInt::isIntPtr(bigInt, &value)) {
+      // The comparison is a constant if the BigInt has too many digits.
+      int32_t repr = bigInt->isNegative() ? -1 : 1;
+
+      bool result;
+      if (left == intPtrToBigInt) {
+        result = FoldComparison(jsop_, 0, repr);
+      } else {
+        result = FoldComparison(jsop_, repr, 0);
+      }
+      return MConstant::New(alloc, BooleanValue(result));
+    }
+
+    auto* cst = MConstant::NewIntPtr(alloc, value);
+    block()->insertBefore(this, cst);
+
+    if (left == intPtrToBigInt) {
+      left = intPtrToBigInt->input();
+      right = cst;
+    } else {
+      left = cst;
+      right = intPtrToBigInt->input();
+    }
+    return MCompare::New(alloc, left, right, jsop_, MCompare::Compare_IntPtr);
+  }
+
+  if (compareType() == Compare_BigInt_Int32) {
+    auto* left = lhs();
+    MOZ_ASSERT(left->type() == MIRType::BigInt);
+
+    auto* right = rhs();
+    MOZ_ASSERT(right->type() == MIRType::Int32);
+
+    // Optimize MIntPtrToBigInt against a constant int32.
+    if (!left->isIntPtrToBigInt() || !right->isConstant()) {
+      return this;
+    }
+
+    auto* cst =
+        MConstant::NewIntPtr(alloc, intptr_t(right->toConstant()->toInt32()));
+    block()->insertBefore(this, cst);
+
+    return MCompare::New(alloc, left->toIntPtrToBigInt()->input(), cst, jsop_,
+                         MCompare::Compare_IntPtr);
+  }
+
+  return this;
+}
+
 MDefinition* MCompare::tryFoldBigInt(TempAllocator& alloc) {
   if (compareType() != Compare_BigInt) {
     return this;
@@ -5385,6 +5470,10 @@ MDefinition* MCompare::foldsTo(TempAllocator& alloc) {
   }
 
   if (MDefinition* folded = tryFoldBigInt64(alloc); folded != this) {
+    return folded;
+  }
+
+  if (MDefinition* folded = tryFoldBigIntPtr(alloc); folded != this) {
     return folded;
   }
 
