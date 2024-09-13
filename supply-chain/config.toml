@@ -109,6 +109,10 @@ notes = "This is a first-party crate which is also published to crates.io. We ce
 audit-as-crates-io = true
 notes = "This is a pinned version of the upstream code, presumably to get a fix that hadn't been released yet. We should consider switching to the latest official release."
 
+[policy."minidump-writer:0.10.0@git:771cabfc420abd46d348a22ee49b9b26d0d28e8a"]
+audit-as-crates-io = true
+notes = "Temporary git rev while awaiting an official release."
+
 [policy.mozbuild]
 audit-as-crates-io = false
 notes = "The crates.io version of this is just a placeholder to allow public crates to depend on mozbuild."

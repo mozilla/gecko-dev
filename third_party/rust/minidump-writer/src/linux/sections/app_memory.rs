@@ -8,7 +8,7 @@ pub fn write(
     for app_memory in &config.app_memory {
         let data_copy = PtraceDumper::copy_from_process(
             config.blamed_thread,
-            app_memory.ptr as *mut libc::c_void,
+            app_memory.ptr,
             app_memory.length,
         )?;
 

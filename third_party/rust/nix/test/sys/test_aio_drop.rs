@@ -16,7 +16,7 @@
 fn test_drop() {
     use nix::sys::aio::*;
     use nix::sys::signal::*;
-    use std::os::unix::io::AsRawFd;
+    use std::os::unix::io::AsFd;
     use tempfile::tempfile;
 
     const WBUF: &[u8] = b"CDEF";
@@ -24,7 +24,7 @@ fn test_drop() {
     let f = tempfile().unwrap();
     f.set_len(6).unwrap();
     let mut aiocb = Box::pin(AioWrite::new(
-        f.as_raw_fd(),
+        f.as_fd(),
         2, //offset
         WBUF,
         0, //priority

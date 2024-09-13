@@ -4,12 +4,15 @@ use nix::errno::*;
 use nix::fcntl::{open, readlink, OFlag};
 #[cfg(not(target_os = "redox"))]
 use nix::fcntl::{openat, readlinkat, renameat};
+
+#[cfg(target_os = "linux")]
+use nix::fcntl::{openat2, OpenHow, ResolveFlag};
+
 #[cfg(all(
     target_os = "linux",
     target_env = "gnu",
     any(
         target_arch = "x86_64",
-        target_arch = "x32",
         target_arch = "powerpc",
         target_arch = "s390x"
     )
@@ -58,6 +61,64 @@ fn test_openat() {
 }
 
 #[test]
+#[cfg(target_os = "linux")]
+// QEMU does not handle openat well enough to satisfy this test
+// https://gitlab.com/qemu-project/qemu/-/issues/829
+#[cfg_attr(qemu, ignore)]
+fn test_openat2() {
+    const CONTENTS: &[u8] = b"abcd";
+    let mut tmp = NamedTempFile::new().unwrap();
+    tmp.write_all(CONTENTS).unwrap();
+
+    let dirfd =
+        open(tmp.path().parent().unwrap(), OFlag::empty(), Mode::empty())
+            .unwrap();
+
+    let fd = openat2(
+        dirfd,
+        tmp.path().file_name().unwrap(),
+        OpenHow::new()
+            .flags(OFlag::O_RDONLY)
+            .mode(Mode::empty())
+            .resolve(ResolveFlag::RESOLVE_BENEATH),
+    )
+    .unwrap();
+
+    let mut buf = [0u8; 1024];
+    assert_eq!(4, read(fd, &mut buf).unwrap());
+    assert_eq!(CONTENTS, &buf[0..4]);
+
+    close(fd).unwrap();
+    close(dirfd).unwrap();
+}
+
+#[test]
+#[cfg(target_os = "linux")]
+// QEMU does not handle openat well enough to satisfy this test
+// https://gitlab.com/qemu-project/qemu/-/issues/829
+#[cfg_attr(qemu, ignore)]
+fn test_openat2_forbidden() {
+    let mut tmp = NamedTempFile::new().unwrap();
+    tmp.write_all(b"let me out").unwrap();
+
+    let dirfd =
+        open(tmp.path().parent().unwrap(), OFlag::empty(), Mode::empty())
+            .unwrap();
+
+    let escape_attempt =
+        tmp.path().parent().unwrap().join("../../../hello.txt");
+
+    let res = openat2(
+        dirfd,
+        &escape_attempt,
+        OpenHow::new()
+            .flags(OFlag::O_RDONLY)
+            .resolve(ResolveFlag::RESOLVE_BENEATH),
+    );
+    assert_eq!(Err(Errno::EXDEV), res);
+}
+
+#[test]
 #[cfg(not(target_os = "redox"))]
 fn test_renameat() {
     let old_dir = tempfile::tempdir().unwrap();
@@ -84,7 +145,6 @@ fn test_renameat() {
     target_env = "gnu",
     any(
         target_arch = "x86_64",
-        target_arch = "x32",
         target_arch = "powerpc",
         target_arch = "s390x"
     )
@@ -128,7 +188,6 @@ fn test_renameat2_behaves_like_renameat_with_no_flags() {
     target_env = "gnu",
     any(
         target_arch = "x86_64",
-        target_arch = "x32",
         target_arch = "powerpc",
         target_arch = "s390x"
     )
@@ -176,7 +235,6 @@ fn test_renameat2_exchange() {
     target_env = "gnu",
     any(
         target_arch = "x86_64",
-        target_arch = "x32",
         target_arch = "powerpc",
         target_arch = "s390x"
     )
@@ -295,15 +353,9 @@ mod linux_android {
 
         let (rd, wr) = pipe().unwrap();
         let mut offset: loff_t = 5;
-        let res = splice(
-            tmp.as_raw_fd(),
-            Some(&mut offset),
-            wr.as_raw_fd(),
-            None,
-            2,
-            SpliceFFlags::empty(),
-        )
-        .unwrap();
+        let res =
+            splice(tmp, Some(&mut offset), wr, None, 2, SpliceFFlags::empty())
+                .unwrap();
 
         assert_eq!(2, res);
 
@@ -319,9 +371,8 @@ mod linux_android {
         let (rd2, wr2) = pipe().unwrap();
 
         write(wr1, b"abc").unwrap();
-        let res =
-            tee(rd1.as_raw_fd(), wr2.as_raw_fd(), 2, SpliceFFlags::empty())
-                .unwrap();
+        let res = tee(rd1.try_clone().unwrap(), wr2, 2, SpliceFFlags::empty())
+            .unwrap();
 
         assert_eq!(2, res);
 
@@ -344,8 +395,7 @@ mod linux_android {
         let buf2 = b"defghi";
         let iovecs = [IoSlice::new(&buf1[0..3]), IoSlice::new(&buf2[0..3])];
 
-        let res = vmsplice(wr.as_raw_fd(), &iovecs[..], SpliceFFlags::empty())
-            .unwrap();
+        let res = vmsplice(wr, &iovecs[..], SpliceFFlags::empty()).unwrap();
 
         assert_eq!(6, res);
 
@@ -636,7 +686,7 @@ mod test_flock {
 
     /// Verify that `Flock::lock()` correctly obtains a lock, and subsequently unlocks upon drop.
     #[test]
-    fn verify_lock_and_drop() {
+    fn lock_and_drop() {
         // Get 2 `File` handles to same underlying file.
         let file1 = NamedTempFile::new().unwrap();
         let file2 = file1.reopen().unwrap();
@@ -660,9 +710,32 @@ mod test_flock {
         }
     }
 
+    /// An exclusive lock can be downgraded
+    #[test]
+    fn downgrade() {
+        let file1 = NamedTempFile::new().unwrap();
+        let file2 = file1.reopen().unwrap();
+        let file1 = file1.into_file();
+
+        // Lock first handle
+        let lock1 = Flock::lock(file1, FlockArg::LockExclusive).unwrap();
+
+        // Attempt to lock second handle
+        let file2 = Flock::lock(file2, FlockArg::LockSharedNonblock)
+            .unwrap_err()
+            .0;
+
+        // Downgrade the lock
+        lock1.relock(FlockArg::LockShared).unwrap();
+
+        // Attempt to lock second handle again (but successfully)
+        Flock::lock(file2, FlockArg::LockSharedNonblock)
+            .expect("Expected locking to be successful.");
+    }
+
     /// Verify that `Flock::unlock()` correctly obtains unlocks.
     #[test]
-    fn verify_unlock() {
+    fn unlock() {
         // Get 2 `File` handles to same underlying file.
         let file1 = NamedTempFile::new().unwrap();
         let file2 = file1.reopen().unwrap();
@@ -678,5 +751,30 @@ mod test_flock {
         if Flock::lock(file2, FlockArg::LockExclusiveNonblock).is_err() {
             panic!("Expected locking to be successful.");
         }
+    }
+
+    /// A shared lock can be upgraded
+    #[test]
+    fn upgrade() {
+        let file1 = NamedTempFile::new().unwrap();
+        let file2 = file1.reopen().unwrap();
+        let file3 = file1.reopen().unwrap();
+        let file1 = file1.into_file();
+
+        // Lock first handle
+        let lock1 = Flock::lock(file1, FlockArg::LockShared).unwrap();
+
+        // Attempt to lock second handle
+        {
+            Flock::lock(file2, FlockArg::LockSharedNonblock)
+                .expect("Locking should've succeeded");
+        }
+
+        // Upgrade the lock
+        lock1.relock(FlockArg::LockExclusive).unwrap();
+
+        // Acquiring an additional shared lock should fail
+        Flock::lock(file3, FlockArg::LockSharedNonblock)
+            .expect_err("Should not have been able to lock the file");
     }
 }

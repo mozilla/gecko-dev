@@ -1775,6 +1775,21 @@ extern "C" {
     pub fn uname(buf: *mut ::utsname) -> ::c_int;
 
     pub fn strchrnul(s: *const ::c_char, c: ::c_int) -> *mut ::c_char;
+
+    pub fn strftime(
+        s: *mut ::c_char,
+        max: ::size_t,
+        format: *const ::c_char,
+        tm: *const ::tm,
+    ) -> ::size_t;
+    pub fn strftime_l(
+        s: *mut ::c_char,
+        max: ::size_t,
+        format: *const ::c_char,
+        tm: *const ::tm,
+        locale: ::locale_t,
+    ) -> ::size_t;
+    pub fn strptime(s: *const ::c_char, format: *const ::c_char, tm: *mut ::tm) -> *mut ::c_char;
 }
 
 // LFS64 extensions

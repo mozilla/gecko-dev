@@ -53,6 +53,8 @@ fn test_mount_tmpfs_without_flags_allows_rwx() {
         .unwrap_or_else(|e| panic!("read failed: {e}"));
     assert_eq!(buf, SCRIPT_CONTENTS);
 
+    // while forking and unmounting prevent other child processes
+    let _m = FORK_MTX.lock();
     // Verify execute.
     assert_eq!(
         EXPECTED_STATUS,
@@ -129,6 +131,8 @@ fn test_mount_noexec_disallows_exec() {
         &test_path
     );
 
+    // while forking and unmounting prevent other child processes
+    let _m = FORK_MTX.lock();
     // EACCES: Permission denied
     assert_eq!(
         EACCES,
@@ -168,6 +172,8 @@ fn test_mount_bind() {
             .and_then(|mut f| f.write(SCRIPT_CONTENTS))
             .unwrap_or_else(|e| panic!("write failed: {e}"));
 
+        // wait for child processes to prevent EBUSY
+        let _m = FORK_MTX.lock();
         umount(mount_point.path())
             .unwrap_or_else(|e| panic!("umount failed: {e}"));
     }

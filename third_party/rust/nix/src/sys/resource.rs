@@ -293,7 +293,9 @@ impl Usage {
         TimeVal::from(self.0.ru_stime)
     }
 
-    /// The resident set size at its peak, in kilobytes.
+    /// The resident set size at its peak,
+    #[cfg_attr(apple_targets, doc = " in bytes.")]
+    #[cfg_attr(not(apple_targets), doc = " in kilobytes.")]
     pub fn max_rss(&self) -> c_long {
         self.0.ru_maxrss
     }

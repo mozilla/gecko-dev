@@ -1,4 +1,4 @@
-pub type c_char = i8;
+pub type c_char = u8;
 pub type caddr_t = *mut ::c_char;
 pub type clockid_t = ::c_longlong;
 pub type blkcnt_t = ::c_long;
@@ -1210,6 +1210,7 @@ pub const TCP_KEEPCNT: ::c_int = 0x13;
 pub const TCP_NODELAYACK: ::c_int = 0x14;
 
 // pthread.h
+pub const PTHREAD_BARRIER_SERIAL_THREAD: ::c_int = -1;
 pub const PTHREAD_CREATE_JOINABLE: ::c_int = 0;
 pub const PTHREAD_CREATE_DETACHED: ::c_int = 1;
 pub const PTHREAD_PROCESS_SHARED: ::c_int = 0;

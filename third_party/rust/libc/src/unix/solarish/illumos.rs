@@ -81,6 +81,21 @@ extern "C" {
     ) -> ::c_int;
     pub fn pset_getloadavg(pset: ::psetid_t, load: *mut ::c_double, num: ::c_int) -> ::c_int;
 
+    pub fn pthread_attr_get_np(thread: ::pthread_t, attr: *mut ::pthread_attr_t) -> ::c_int;
+    pub fn pthread_attr_getstackaddr(
+        attr: *const ::pthread_attr_t,
+        stackaddr: *mut *mut ::c_void,
+    ) -> ::c_int;
+    pub fn pthread_attr_setstack(
+        attr: *mut ::pthread_attr_t,
+        stackaddr: *mut ::c_void,
+        stacksize: ::size_t,
+    ) -> ::c_int;
+    pub fn pthread_attr_setstackaddr(
+        attr: *mut ::pthread_attr_t,
+        stackaddr: *mut ::c_void,
+    ) -> ::c_int;
+
     pub fn preadv(fd: ::c_int, iov: *const ::iovec, iovcnt: ::c_int, offset: ::off_t) -> ::ssize_t;
     pub fn pwritev(fd: ::c_int, iov: *const ::iovec, iovcnt: ::c_int, offset: ::off_t)
         -> ::ssize_t;

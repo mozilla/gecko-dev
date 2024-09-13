@@ -3,7 +3,9 @@ extern crate cfg_if;
 #[cfg_attr(not(any(target_os = "redox", target_os = "haiku")), macro_use)]
 extern crate nix;
 
+#[macro_use]
 mod common;
+mod mount;
 mod sys;
 #[cfg(not(target_os = "redox"))]
 mod test_dir;
@@ -11,20 +13,11 @@ mod test_errno;
 mod test_fcntl;
 #[cfg(linux_android)]
 mod test_kmod;
-#[cfg(target_os = "linux")]
-mod test_mount;
-#[cfg(any(
-    freebsdlike,
-    target_os = "fushsia",
-    target_os = "linux",
-    target_os = "netbsd"
-))]
+#[cfg(any(freebsdlike, target_os = "linux", target_os = "netbsd"))]
 mod test_mq;
 #[cfg(not(target_os = "redox"))]
 mod test_net;
 mod test_nix_path;
-#[cfg(target_os = "freebsd")]
-mod test_nmount;
 mod test_poll;
 #[cfg(not(any(
     target_os = "redox",
@@ -59,9 +52,10 @@ fn read_exact<Fd: AsFd>(f: Fd, buf: &mut [u8]) {
     }
 }
 
-/// Any test that creates child processes must grab this mutex, regardless
-/// of what it does with those children.
-pub static FORK_MTX: std::sync::Mutex<()> = std::sync::Mutex::new(());
+/// Any test that creates child processes or can be affected by child processes must grab this mutex, regardless
+/// of what it does with those children. It must hold the mutex until the
+/// child processes are waited upon.
+pub static FORK_MTX: Mutex<()> = Mutex::new(());
 /// Any test that changes the process's current working directory must grab
 /// the RwLock exclusively.  Any process that cares about the current
 /// working directory must grab it shared.

@@ -113,21 +113,10 @@ pub fn mount<
     flags: MsFlags,
     data: Option<&P4>,
 ) -> Result<()> {
-    fn with_opt_nix_path<P, T, F>(p: Option<&P>, f: F) -> Result<T>
-    where
-        P: ?Sized + NixPath,
-        F: FnOnce(*const libc::c_char) -> T,
-    {
-        match p {
-            Some(path) => path.with_nix_path(|p_str| f(p_str.as_ptr())),
-            None => Ok(f(std::ptr::null())),
-        }
-    }
-
-    let res = with_opt_nix_path(source, |s| {
+    let res = crate::with_opt_nix_path(source, |s| {
         target.with_nix_path(|t| {
-            with_opt_nix_path(fstype, |ty| {
-                with_opt_nix_path(data, |d| unsafe {
+            crate::with_opt_nix_path(fstype, |ty| {
+                crate::with_opt_nix_path(data, |d| unsafe {
                     libc::mount(
                         s,
                         t.as_ptr(),

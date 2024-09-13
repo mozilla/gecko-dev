@@ -95,6 +95,11 @@ git = "https://github.com/mozilla/neqo"
 tag = "v0.9.0"
 replace-with = "vendored-sources"
 
+[source."git+https://github.com/rust-minidump/minidump-writer?rev=771cabfc420abd46d348a22ee49b9b26d0d28e8a"]
+git = "https://github.com/rust-minidump/minidump-writer"
+rev = "771cabfc420abd46d348a22ee49b9b26d0d28e8a"
+replace-with = "vendored-sources"
+
 [source."git+https://github.com/servo/unicode-bidi?rev=ca612daf1c08c53abe07327cb3e6ef6e0a760f0c"]
 git = "https://github.com/servo/unicode-bidi"
 rev = "ca612daf1c08c53abe07327cb3e6ef6e0a760f0c"

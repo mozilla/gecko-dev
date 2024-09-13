@@ -12,101 +12,111 @@
 [package]
 edition = "2021"
 name = "minidump-writer"
-version = "0.8.9"
+version = "0.10.0"
 authors = ["Martin Sirringhaus"]
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Rust rewrite of Breakpad's minidump_writer"
 homepage = "https://github.com/rust-minidump/minidump-writer"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/rust-minidump/minidump-writer"
 
-[dependencies.bitflags]
-version = "2.4"
+[lib]
+name = "minidump_writer"
+path = "src/lib.rs"
 
-[dependencies.byteorder]
-version = "1.4"
+[[bin]]
+name = "test"
+path = "src/bin/test.rs"
 
-[dependencies.cfg-if]
-version = "1.0"
+[[example]]
+name = "synthetic"
+path = "examples/synthetic.rs"
 
-[dependencies.crash-context]
-version = "0.6"
+[[test]]
+name = "linux_minidump_writer"
+path = "tests/linux_minidump_writer.rs"
 
-[dependencies.log]
-version = "0.4"
+[[test]]
+name = "mac_minidump_writer"
+path = "tests/mac_minidump_writer.rs"
 
-[dependencies.memoffset]
-version = "0.9"
+[[test]]
+name = "ptrace_dumper"
+path = "tests/ptrace_dumper.rs"
 
-[dependencies.minidump-common]
-version = "0.21"
+[[test]]
+name = "task_dumper"
+path = "tests/task_dumper.rs"
 
-[dependencies.scroll]
-version = "0.12"
+[[test]]
+name = "windows_minidump_writer"
+path = "tests/windows_minidump_writer.rs"
 
-[dependencies.tempfile]
-version = "3.8"
+[dependencies]
+bitflags = "2.4"
+byteorder = "1.4"
+cfg-if = "1.0"
+crash-context = "0.6"
+log = "0.4"
+memoffset = "0.9"
+minidump-common = "0.22"
+scroll = "0.12"
+tempfile = "3.8"
+thiserror = "1.0"
 
-[dependencies.thiserror]
-version = "1.0"
-
-[dev-dependencies.current_platform]
-version = "0.2"
+[dev-dependencies]
+current_platform = "0.2"
+memmap2 = "0.9"
+minidump = "0.22"
 
 [dev-dependencies.futures]
 version = "0.3"
 features = ["executor"]
 
-[dev-dependencies.memmap2]
-version = "0.9"
-
-[dev-dependencies.minidump]
-version = "0.21"
-
-[target."cfg(any(target_os = \"linux\", target_os = \"android\"))".dependencies.nix]
-version = "0.28"
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies.nix]
+version = "0.29"
 features = [
     "mman",
     "process",
     "ptrace",
     "signal",
+    "uio",
     "user",
 ]
 default-features = false
 
-[target."cfg(any(target_os = \"linux\", target_os = \"android\"))".dependencies.procfs-core]
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies.procfs-core]
 version = "0.16"
 default-features = false
 
-[target."cfg(target_os = \"macos\")".dependencies.mach2]
-version = "0.4"
+[target.'cfg(target_os = "macos")'.dependencies]
+mach2 = "0.4"
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.dump_syms]
+[target.'cfg(target_os = "macos")'.dev-dependencies]
+similar-asserts = "1.5"
+uuid = "1.4"
+
+[target.'cfg(target_os = "macos")'.dev-dependencies.dump_syms]
 version = "2.2"
 default-features = false
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.minidump-processor]
-version = "0.21"
+[target.'cfg(target_os = "macos")'.dev-dependencies.minidump-processor]
+version = "0.22"
 default-features = false
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.minidump-unwind]
-version = "0.21"
+[target.'cfg(target_os = "macos")'.dev-dependencies.minidump-unwind]
+version = "0.22"
 features = ["debuginfo"]
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.similar-asserts]
-version = "1.5"
+[target.'cfg(target_os = "windows")'.dependencies]
+bitflags = "2.4"
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.uuid]
-version = "1.4"
-
-[target."cfg(target_os = \"windows\")".dependencies.bitflags]
-version = "2.4"
-
-[target."cfg(unix)".dependencies.goblin]
-version = "0.8"
-
-[target."cfg(unix)".dependencies.libc]
-version = "0.2"
-
-[target."cfg(unix)".dependencies.memmap2]
-version = "0.9"
+[target."cfg(unix)".dependencies]
+goblin = "0.8.2"
+libc = "0.2"
+memmap2 = "0.9"

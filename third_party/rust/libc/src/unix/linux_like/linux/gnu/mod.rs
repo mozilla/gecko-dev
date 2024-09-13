@@ -835,6 +835,9 @@ pub const TMP_MAX: ::c_uint = 238328;
 pub const FOPEN_MAX: ::c_uint = 16;
 pub const FILENAME_MAX: ::c_uint = 4096;
 pub const POSIX_MADV_DONTNEED: ::c_int = 4;
+pub const _CS_GNU_LIBC_VERSION: ::c_int = 2;
+pub const _CS_GNU_LIBPTHREAD_VERSION: ::c_int = 3;
+pub const _CS_PATH: ::c_int = 0;
 pub const _SC_EQUIV_CLASS_MAX: ::c_int = 41;
 pub const _SC_CHARCLASS_NAME_MAX: ::c_int = 45;
 pub const _SC_PII: ::c_int = 53;
@@ -1478,21 +1481,7 @@ extern "C" {
     pub fn asctime_r(tm: *const ::tm, buf: *mut ::c_char) -> *mut ::c_char;
     pub fn ctime_r(timep: *const time_t, buf: *mut ::c_char) -> *mut ::c_char;
 
-    pub fn strftime(
-        s: *mut ::c_char,
-        max: ::size_t,
-        format: *const ::c_char,
-        tm: *const ::tm,
-    ) -> ::size_t;
-    pub fn strftime_l(
-        s: *mut ::c_char,
-        max: ::size_t,
-        format: *const ::c_char,
-        tm: *const ::tm,
-        locale: ::locale_t,
-    ) -> ::size_t;
-    pub fn strptime(s: *const ::c_char, format: *const ::c_char, tm: *mut ::tm) -> *mut ::c_char;
-
+    pub fn confstr(name: ::c_int, buf: *mut ::c_char, len: ::size_t) -> ::size_t;
     pub fn dirname(path: *mut ::c_char) -> *mut ::c_char;
     /// POSIX version of `basename(3)`, defined in `libgen.h`.
     #[link_name = "__xpg_basename"]

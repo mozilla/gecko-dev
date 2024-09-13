@@ -587,7 +587,7 @@ dependencies = [
 name = "buildid_reader"
 version = "0.1.0"
 dependencies = [
- "goblin 0.8.1",
+ "goblin 0.8.2",
  "libc",
  "log",
  "nserror",
@@ -736,8 +736,15 @@ checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 [[package]]
 name = "cfg_aliases"
 version = "0.1.1"
+dependencies = [
+ "cfg_aliases 0.2.1",
+]
+
+[[package]]
+name = "cfg_aliases"
+version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fd16c4719339c4530435d38e511904438d07cce7950afa3718a84ac36c10e89e"
+checksum = "613afe47fcd5fac7ccf1db93babcb082c5994d996f20b8b159f2ad1658eb5724"
 
 [[package]]
 name = "chardetng"
@@ -2490,14 +2497,14 @@ dependencies = [
 name = "goblin"
 version = "0.7.999"
 dependencies = [
- "goblin 0.8.1",
+ "goblin 0.8.2",
 ]
 
 [[package]]
 name = "goblin"
-version = "0.8.1"
+version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8ce2dfb858618fd40cafc83efadd02705adf6ffba765098736bd950c3c945fe0"
+checksum = "1b363a30c165f666402fe6a3024d3bec7ebc898f96a4a23bd1c99f8dbf3f4f47"
 dependencies = [
  "log",
  "plain",
@@ -3350,9 +3357,9 @@ checksum = "884e2677b40cc8c339eaefcb701c32ef1fd2493d71118dc0ca4b6a736c93bd67"
 
 [[package]]
 name = "libc"
-version = "0.2.153"
+version = "0.2.158"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9c198f91728a82281a64e1f4f9eeb25d82cb32a5de251c6bd1b5154d63a8e7bd"
+checksum = "d8adc4bb1803a324070e64a98ae98f38934d91957a99cfb3a43dcbc01bc56439"
 
 [[package]]
 name = "libdbus-sys"
@@ -3711,9 +3718,9 @@ dependencies = [
 
 [[package]]
 name = "minidump-common"
-version = "0.21.1"
+version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1bb6eaf88cc770fa58e6ae721cf2e40c2ca6a4c942ae8c7aa324d680bd3c6717"
+checksum = "0cd8a9fb054833d2f402e82e256aeef544e595e45fe8fca2de6d03ed605f6647"
 dependencies = [
  "bitflags 2.6.0",
  "debugid",
@@ -3726,22 +3733,21 @@ dependencies = [
 
 [[package]]
 name = "minidump-writer"
-version = "0.8.9"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2abcd9c8a1e6e1e9d56ce3627851f39a17ea83e17c96bc510f29d7e43d78a7d"
+version = "0.10.0"
+source = "git+https://github.com/rust-minidump/minidump-writer?rev=771cabfc420abd46d348a22ee49b9b26d0d28e8a#771cabfc420abd46d348a22ee49b9b26d0d28e8a"
 dependencies = [
  "bitflags 2.6.0",
  "byteorder",
  "cfg-if",
  "crash-context",
- "goblin 0.8.1",
+ "goblin 0.8.2",
  "libc",
  "log",
  "mach2",
  "memmap2",
  "memoffset 0.9.0",
  "minidump-common",
- "nix 0.28.0",
+ "nix 0.29.0",
  "procfs-core",
  "scroll",
  "tempfile",
@@ -4030,7 +4036,7 @@ dependencies = [
  "arrayvec",
  "bit-set",
  "bitflags 2.6.0",
- "cfg_aliases",
+ "cfg_aliases 0.1.1",
  "codespan-reporting",
  "hexf-parse",
  "indexmap 2.2.6",
@@ -4187,18 +4193,18 @@ checksum = "e4a24736216ec316047a1fc4252e27dabb04218aa4a3f37c6e7ddbf1f9782b54"
 name = "nix"
 version = "0.26.99"
 dependencies = [
- "nix 0.28.0",
+ "nix 0.29.0",
 ]
 
 [[package]]
 name = "nix"
-version = "0.28.0"
+version = "0.29.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ab2156c4fce2f8df6c499cc1c763e4394b7482525bf2a9701c9d79d215f519e4"
+checksum = "71e2746dc3a24dd78b3cfcb7be93368c6de9963d30f43a6a73998a9cf4b17b46"
 dependencies = [
  "bitflags 2.6.0",
  "cfg-if",
- "cfg_aliases",
+ "cfg_aliases 0.2.1",
  "libc",
 ]
 
@@ -6320,7 +6326,7 @@ dependencies = [
  "cargo_metadata",
  "fs-err",
  "glob",
- "goblin 0.8.1",
+ "goblin 0.8.2",
  "heck",
  "once_cell",
  "paste",
@@ -6800,7 +6806,7 @@ dependencies = [
  "arrayvec",
  "bit-vec",
  "bitflags 2.6.0",
- "cfg_aliases",
+ "cfg_aliases 0.1.1",
  "document-features",
  "indexmap 2.2.6",
  "log",
@@ -6828,7 +6834,7 @@ dependencies = [
  "bit-set",
  "bitflags 2.6.0",
  "block",
- "cfg_aliases",
+ "cfg_aliases 0.1.1",
  "core-graphics-types",
  "gpu-alloc",
  "gpu-allocator",

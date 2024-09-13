@@ -671,6 +671,12 @@ pub const PTRACE_PEEKSIGINFO: ::c_int = 0x4209;
 pub const PTRACE_GETSIGMASK: ::c_uint = 0x420a;
 pub const PTRACE_SETSIGMASK: ::c_uint = 0x420b;
 
+pub const RWF_HIPRI: ::c_int = 0x00000001;
+pub const RWF_DSYNC: ::c_int = 0x00000002;
+pub const RWF_SYNC: ::c_int = 0x00000004;
+pub const RWF_NOWAIT: ::c_int = 0x00000008;
+pub const RWF_APPEND: ::c_int = 0x00000010;
+
 pub const AF_IB: ::c_int = 27;
 pub const AF_MPLS: ::c_int = 28;
 pub const AF_NFC: ::c_int = 39;
@@ -862,6 +868,20 @@ extern "C" {
         dirfd: ::c_int,
         path: *const ::c_char,
     ) -> ::c_int;
+    pub fn preadv2(
+        fd: ::c_int,
+        iov: *const ::iovec,
+        iovcnt: ::c_int,
+        offset: ::off_t,
+        flags: ::c_int,
+    ) -> ::ssize_t;
+    pub fn pwritev2(
+        fd: ::c_int,
+        iov: *const ::iovec,
+        iovcnt: ::c_int,
+        offset: ::off_t,
+        flags: ::c_int,
+    ) -> ::ssize_t;
     pub fn getauxval(type_: ::c_ulong) -> ::c_ulong;
 
     // Added in `musl` 1.1.20
@@ -883,21 +903,6 @@ extern "C" {
 
     pub fn asctime_r(tm: *const ::tm, buf: *mut ::c_char) -> *mut ::c_char;
 
-    pub fn strftime(
-        s: *mut ::c_char,
-        max: ::size_t,
-        format: *const ::c_char,
-        tm: *const ::tm,
-    ) -> ::size_t;
-    pub fn strftime_l(
-        s: *mut ::c_char,
-        max: ::size_t,
-        format: *const ::c_char,
-        tm: *const ::tm,
-        locale: ::locale_t,
-    ) -> ::size_t;
-    pub fn strptime(s: *const ::c_char, format: *const ::c_char, tm: *mut ::tm) -> *mut ::c_char;
-
     pub fn dirname(path: *mut ::c_char) -> *mut ::c_char;
     pub fn basename(path: *mut ::c_char) -> *mut ::c_char;
 }
@@ -912,7 +917,8 @@ cfg_if! {
                  target_arch = "mips64",
                  target_arch = "powerpc64",
                  target_arch = "s390x",
-                 target_arch = "riscv64"))] {
+                 target_arch = "riscv64",
+                 target_arch = "loongarch64"))] {
         mod b64;
         pub use self::b64::*;
     } else if #[cfg(any(target_arch = "x86",

@@ -200,7 +200,7 @@ cfg_if! {
     // where S stands for size (int, long, struct...)
     // where T stands for type ('f','v','X'...)
     // where N stands for NR (NumbeR)
-    if #[cfg(target_arch = "mips")] {
+    if #[cfg(any(target_arch = "mips", target_arch = "mips32r6"))] {
         pub const FS_IOC_GETFLAGS: ::Ioctl = 0x40046601;
         pub const FS_IOC_SETFLAGS: ::Ioctl = 0x80046602;
         pub const FS_IOC_GETVERSION: ::Ioctl = 0x40047601;
@@ -209,7 +209,7 @@ cfg_if! {
         pub const FS_IOC32_SETFLAGS: ::Ioctl = 0x80046602;
         pub const FS_IOC32_GETVERSION: ::Ioctl = 0x40047601;
         pub const FS_IOC32_SETVERSION: ::Ioctl = 0x80047602;
-    } else if #[cfg(target_arch = "mips64")] {
+    } else if #[cfg(any(target_arch = "mips64", target_arch = "mips64r6"))] {
         pub const FS_IOC_GETFLAGS: ::Ioctl = 0x40086601;
         pub const FS_IOC_SETFLAGS: ::Ioctl = 0x80086602;
         pub const FS_IOC_GETVERSION: ::Ioctl = 0x40087601;

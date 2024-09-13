@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
+## [0.10.0] - 2024-08-20
+### Changed
+- [PR#118](https://github.com/rust-minidump/minidump-writer/pull/118) resolved [#72](https://github.com/rust-minidump/minidump-writer/issues/72) by adding support for reading process memory via `process_vm_readv` and `/proc/{pid}/mem`, in addition to the original `PTRACE_PEEKDATA`. This gives significant performance benefits as memory can now be read in blocks of arbitrary size instead of word-by-word with ptrace.
+- [PR#128](https://github.com/rust-minidump/minidump-writer/pull/128) and [PR#133](https://github.com/rust-minidump/minidump-writer/pull/133) updated the lockfile.
+
+### Fixed
+- [PR#127](https://github.com/rust-minidump/minidump-writer/pull/127) resolved [#27](https://github.com/rust-minidump/minidump-writer/issues/27) by allowing programs to pass the needed auxv information, still falling back to reading `/proc/{pid}/auxv` to fill missing information, and being more permissive by still writing a dump if some or all of the auxv information could not be retrieved successfully rather than completely failing to write the minidump.
+- [PR#131](https://github.com/rust-minidump/minidump-writer/pull/131) resolved [#124](https://github.com/rust-minidump/minidump-writer/issues/124) by reinjecting non-`SIGSTOP` signals after `ptrace::attach` so that the thread would be in the correct state after `ptrace::detach`.
+
+## [0.9.0] - 2024-07-20
+### Fixed
+- [PR#117](https://github.com/rust-minidump/minidump-writer/pull/117) resolved [#79](https://github.com/rust-minidump/minidump-writer/issues/79) by enabling reading of a module's build id and soname directly from the mapped process rather than relying on file reading, though that is still used as a fallback.
+
+### Changed
+- [PR#126](https://github.com/rust-minidump/minidump-writer/pull/126) updated `minidump-common` -> 0.22.
+
 ## [0.8.9] - 2024-04-01
 ### Fixed
 - [PR#110](https://github.com/rust-minidump/minidump-writer/pull/110) changed it so that `SIGCONT` is sent regardless if the process was not able to be `SIGSTOP`ed quickly enough.
@@ -135,7 +151,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Initial release, including basic support for `x86_64-unknown-linux-gnu/musl` and `x86_64-pc-windows-msvc`
 
 <!-- next-url -->
-[Unreleased]: https://github.com/rust-minidump/minidump-writer/compare/0.8.9...HEAD
+[Unreleased]: https://github.com/rust-minidump/minidump-writer/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/rust-minidump/minidump-writer/compare/0.9.0...0.10.0
+[0.9.0]: https://github.com/rust-minidump/minidump-writer/compare/0.8.9...0.9.0
 [0.8.9]: https://github.com/rust-minidump/minidump-writer/compare/0.8.8...0.8.9
 [0.8.8]: https://github.com/rust-minidump/minidump-writer/compare/0.8.7...0.8.8
 [0.8.7]: https://github.com/rust-minidump/minidump-writer/compare/0.8.6...0.8.7
