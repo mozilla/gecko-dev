@@ -31,7 +31,10 @@ export class FormAutofillChild {
 
     this.callbacks = callbacks;
 
-    this.fieldDetailsManager = new FormStateManager();
+    this.fieldDetailsManager = new FormStateManager(fieldDetail =>
+      // Collect field_modified telemetry
+      this.activeSection?.onFilledModified(fieldDetail.elementId)
+    );
 
     try {
       document.addEventListener("focusin", this.onFocusIn);
