@@ -1,5 +1,5 @@
-libpng 1.6.43 - February 23, 2024
-=================================
+libpng 1.6.44 - September 12, 2024
+==================================
 
 This is a public release of libpng, intended for use in production code.
 
@@ -9,13 +9,13 @@ Files available for download
 
 Source files with LF line endings (for Unix/Linux):
 
- * libpng-1.6.43.tar.xz (LZMA-compressed, recommended)
- * libpng-1.6.43.tar.gz (deflate-compressed)
+ * libpng-1.6.44.tar.xz (LZMA-compressed, recommended)
+ * libpng-1.6.44.tar.gz (deflate-compressed)
 
 Source files with CRLF line endings (for Windows):
 
- * lpng1643.7z (LZMA-compressed, recommended)
- * lpng1643.zip (deflate-compressed)
+ * lpng1644.7z (LZMA-compressed, recommended)
+ * lpng1644.zip (deflate-compressed)
 
 Other information:
 
@@ -25,36 +25,29 @@ Other information:
  * TRADEMARK.md
 
 
-Changes from version 1.6.42 to version 1.6.43
+Changes from version 1.6.43 to version 1.6.44
 ---------------------------------------------
 
- * Fixed the row width check in png_check_IHDR().
-   This corrected a bug that was specific to the 16-bit platforms,
-   and removed a spurious compiler warning from the 64-bit builds.
-   (Reported by Jacek Caban; fixed by John Bowler)
- * Added eXIf chunk support to the push-mode reader in pngpread.c.
-   (Contributed by Chris Blume)
- * Added contrib/pngexif for the benefit of the users who would like
-   to inspect the content of eXIf chunks.
- * Added contrib/conftest/basic.dfa, a basic build-time configuration.
+ * Hardened calculations in chroma handling to prevent overflows, and
+   relaxed a constraint in cHRM validation to accomodate the standard
+   ACES AP1 set of color primaries.
    (Contributed by John Bowler)
- * Fixed a preprocessor condition in pngread.c that broke build-time
-   configurations like contrib/conftest/pngcp.dfa.
-   (Contributed by John Bowler)
- * Added CMake build support for LoongArch LSX.
-   (Contributed by GuXiWei)
- * Fixed a CMake build error that occurred under a peculiar state of the
-   dependency tree. This was a regression introduced in libpng-1.6.41.
-   (Contributed by Dan Rosser)
- * Marked the installed libpng headers as system headers in CMake.
-   (Contributed by Benjamin Buch)
- * Updated the build support for RISCOS.
-   (Contributed by Cameron Cawley)
- * Updated the makefiles to allow cross-platform builds to initialize
-   conventional make variables like AR and ARFLAGS.
- * Added various improvements to the CI scripts in areas like version
-   consistency verification and text linting.
- * Added version consistency verification to pngtest.c also.
+ * Removed the ASM implementation of ARM Neon optimizations and updated
+   the build accordingly. Only the remaining C implementation shall be
+   used from now on, thus ensuring the support of the PAC/BTI security
+   features on ARM64.
+   (Contributed by Ross Burton and John Bowler)
+ * Fixed the pickup of the PNG_HARDWARE_OPTIMIZATIONS option in the
+   CMake build on FreeBSD/amd64. This is an important performance fix
+   on this platform.
+ * Applied various fixes and improvements to the CMake build.
+   (Contributed by Eric Riff, Benjamin Buch and Erik Scholz)
+ * Added fuzzing targets for the simplified read API.
+   (Contributed by Mikhail Khachayants)
+ * Fixed a build error involving pngtest.c under a custom config.
+   This was a regression introduced in a code cleanup in libpng-1.6.43.
+   (Contributed by Ben Wagner)
+ * Fixed and improved the config files for AppVeyor CI and Travis CI.
 
 
 Send comments/corrections/commendations to png-mng-implement at lists.sf.net.

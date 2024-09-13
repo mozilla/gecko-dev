@@ -9,7 +9,7 @@ libpng-manual.txt - A description on how to use and modify libpng
 
  Based on:
 
- libpng version 1.6.36, December 2018, through 1.6.43 - February 2024
+ libpng version 1.6.36, December 2018, through 1.6.44 - September 2024
  Updated and distributed by Cosmin Truta
  Copyright (c) 2018-2024 Cosmin Truta
 

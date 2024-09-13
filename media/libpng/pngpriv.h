@@ -140,47 +140,6 @@
     * callbacks to do this.
     */
 #  define PNG_FILTER_OPTIMIZATIONS png_init_filter_functions_neon
-
-   /* By default the 'intrinsics' code in arm/filter_neon_intrinsics.c is used
-    * if possible - if __ARM_NEON__ is set and the compiler version is not known
-    * to be broken.  This is controlled by PNG_ARM_NEON_IMPLEMENTATION which can
-    * be:
-    *
-    *    1  The intrinsics code (the default with __ARM_NEON__)
-    *    2  The hand coded assembler (the default without __ARM_NEON__)
-    *
-    * It is possible to set PNG_ARM_NEON_IMPLEMENTATION in CPPFLAGS, however
-    * this is *NOT* supported and may cease to work even after a minor revision
-    * to libpng.  It *is* valid to do this for testing purposes, e.g. speed
-    * testing or a new compiler, but the results should be communicated to the
-    * libpng implementation list for incorporation in the next minor release.
-    */
-#  ifndef PNG_ARM_NEON_IMPLEMENTATION
-#     if defined(__ARM_NEON__) || defined(__ARM_NEON)
-#        if defined(__clang__)
-            /* At present it is unknown by the libpng developers which versions
-             * of clang support the intrinsics, however some or perhaps all
-             * versions do not work with the assembler so this may be
-             * irrelevant, so just use the default (do nothing here.)
-             */
-#        elif defined(__GNUC__)
-            /* GCC 4.5.4 NEON support is known to be broken.  4.6.3 is known to
-             * work, so if this *is* GCC, or G++, look for a version >4.5
-             */
-#           if __GNUC__ < 4 || (__GNUC__ == 4 && __GNUC_MINOR__ < 6)
-#              define PNG_ARM_NEON_IMPLEMENTATION 2
-#           endif /* no GNUC support */
-#        endif /* __GNUC__ */
-#     else /* !defined __ARM_NEON__ */
-         /* The 'intrinsics' code simply won't compile without this -mfpu=neon:
-          */
-#        if !defined(__aarch64__) && !defined(_M_ARM64)
-            /* The assembler code currently does not work on ARM64 */
-#          define PNG_ARM_NEON_IMPLEMENTATION 2
-#        endif /* __aarch64__ */
-#     endif /* __ARM_NEON__ */
-#  endif /* !PNG_ARM_NEON_IMPLEMENTATION */
-
 #  ifndef PNG_ARM_NEON_IMPLEMENTATION
       /* Use the intrinsics code by default. */
 #     define PNG_ARM_NEON_IMPLEMENTATION 1
@@ -662,10 +621,6 @@
 #define PNG_HAVE_CHUNK_AFTER_IDAT 0x2000U /* Have another chunk after IDAT */
 #define PNG_WROTE_eXIf            0x4000U
 #define PNG_IS_READ_STRUCT        0x8000U /* Else is a write struct */
-#ifdef PNG_APNG_SUPPORTED
-#define PNG_HAVE_acTL            0x10000U
-#define PNG_HAVE_fcTL            0x20000U
-#endif
 
 /* Flags for the transformations the PNG library does on the image data */
 #define PNG_BGR                 0x0001U
@@ -901,16 +856,6 @@
 #define png_tIME PNG_U32(116,  73,  77,  69)
 #define png_tRNS PNG_U32(116,  82,  78,  83)
 #define png_zTXt PNG_U32(122,  84,  88, 116)
-
-#ifdef PNG_APNG_SUPPORTED
-#define png_acTL PNG_U32( 97,  99,  84,  76)
-#define png_fcTL PNG_U32(102,  99,  84,  76)
-#define png_fdAT PNG_U32(102, 100,  65,  84)
-
-/* For png_struct.apng_flags: */
-#define PNG_FIRST_FRAME_HIDDEN       0x0001U
-#define PNG_APNG_APP                 0x0002U
-#endif
 
 /* The following will work on (signed char*) strings, whereas the get_uint_32
  * macro will fail on top-bit-set values because of the sign extension.
@@ -1696,49 +1641,6 @@ PNG_INTERNAL_FUNCTION(void,png_push_read_iTXt,(png_structrp png_ptr,
 #  endif
 
 #endif /* PROGRESSIVE_READ */
-
-#ifdef PNG_APNG_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_ensure_fcTL_is_valid,(png_structp png_ptr,
-   png_uint_32 width, png_uint_32 height,
-   png_uint_32 x_offset, png_uint_32 y_offset,
-   png_uint_16 delay_num, png_uint_16 delay_den,
-   png_byte dispose_op, png_byte blend_op),PNG_EMPTY);
-
-#ifdef PNG_READ_APNG_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_handle_acTL,(png_structp png_ptr,
-   png_infop info_ptr, png_uint_32 length),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_handle_fcTL,(png_structp png_ptr,
-   png_infop info_ptr, png_uint_32 length),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_handle_fdAT,(png_structp png_ptr,
-   png_infop info_ptr, png_uint_32 length),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_have_info,(png_structp png_ptr,
-   png_infop info_ptr),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_ensure_sequence_number,(png_structp png_ptr,
-   png_uint_32 length),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_read_reset,(png_structp png_ptr),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_read_reinit,(png_structp png_ptr,
-   png_infop info_ptr),PNG_EMPTY);
-#ifdef PNG_PROGRESSIVE_READ_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_progressive_read_reset,(png_structp png_ptr),
-   PNG_EMPTY);
-#endif /* PROGRESSIVE_READ */
-#endif /* READ_APNG */
-
-#ifdef PNG_WRITE_APNG_SUPPORTED
-PNG_INTERNAL_FUNCTION(void,png_write_acTL,(png_structp png_ptr,
-   png_uint_32 num_frames, png_uint_32 num_plays),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_write_fcTL,(png_structp png_ptr,
-   png_uint_32 width, png_uint_32 height,
-   png_uint_32 x_offset, png_uint_32 y_offset,
-   png_uint_16 delay_num, png_uint_16 delay_den,
-   png_byte dispose_op, png_byte blend_op),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_write_fdAT,(png_structp png_ptr,
-   png_const_bytep data, png_size_t length),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_write_reset,(png_structp png_ptr),PNG_EMPTY);
-PNG_INTERNAL_FUNCTION(void,png_write_reinit,(png_structp png_ptr,
-   png_infop info_ptr, png_uint_32 width, png_uint_32 height),PNG_EMPTY);
-#endif /* WRITE_APNG */
-#endif /* APNG */
 
 /* Added at libpng version 1.6.0 */
 #ifdef PNG_GAMMA_SUPPORTED

@@ -41,7 +41,7 @@
      /* ARM Neon is expected to be available on the target CPU architecture. */
 #    error "PNG_ARM_NEON_CHECK_SUPPORTED must not be defined on this CPU arch"
 #  elif defined(__linux__)
-#    define PNG_ARM_NEON_FILE "linux.c"
+#    define PNG_ARM_NEON_FILE "contrib/arm-neon/linux.c"
 #  else
 #    error "No support for run-time ARM Neon checking; use compile-time options"
 #  endif
