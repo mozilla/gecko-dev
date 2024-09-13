@@ -800,11 +800,6 @@ class nsFlexContainerFrame::FlexItem final {
 
   void SetHadMeasuringReflow() { mHadMeasuringReflow = true; }
 
-  void SetIsStretched() {
-    MOZ_ASSERT(mIsFrozen, "main size should be resolved before this");
-    mIsStretched = true;
-  }
-
   void SetIsFlexBaseSizeContentBSize() { mIsFlexBaseSizeContentBSize = true; }
 
   void SetIsMainMinSizeContentBSize() { mIsMainMinSizeContentBSize = true; }
