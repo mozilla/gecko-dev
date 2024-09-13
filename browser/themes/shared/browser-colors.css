@@ -10,7 +10,7 @@
 
   --sidebar-background-color: -moz-sidebar;
   --sidebar-text-color: -moz-sidebartext;
-  --sidebar-border-color: var(--lwt-sidebar-border-color, -moz-sidebarborder);
+  --sidebar-border-color: -moz-sidebarborder;
 
   --button-color: currentColor;
   --button-primary-bgcolor: AccentColor;
@@ -41,12 +41,12 @@
   }
 
   --content-area-shadow: 0 2px 6px 0 light-dark(rgba(0,0,0,.2), rgba(0,0,0,.8));
-  --chrome-content-separator-color: var(--lwt-sidebar-border-color, light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3)));
+  --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
+
   /* stylelint-disable-next-line media-query-no-invalid */
   @media not (-moz-bool-pref: "sidebar.revamp") {
-    --chrome-content-separator-color: ThreeDShadow;
-    &[lwttheme] {
-      --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
+    &:not([lwtheme]) {
+      --chrome-content-separator-color: ThreeDShadow;
     }
   }
 
@@ -154,7 +154,9 @@
       --urlbar-icon-fill-opacity: 1;
     }
 
-    --chrome-content-separator-color: light-dark(rgb(204, 204, 204), hsl(240, 5%, 5%));
+    @media not (-moz-bool-pref: "sidebar.revamp") {
+      --chrome-content-separator-color: light-dark(rgb(204, 204, 204), hsl(240, 5%, 5%));
+    }
 
     --link-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
     --attention-dot-color: light-dark(#2ac3a2, #54ffbd);

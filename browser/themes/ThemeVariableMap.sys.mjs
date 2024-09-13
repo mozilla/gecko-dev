@@ -138,7 +138,7 @@ export const ThemeVariableMap = [
     },
   ],
   [
-    "--lwt-sidebar-border-color",
+    "--sidebar-border-color",
     {
       lwtProperty: "sidebar_border",
     },
