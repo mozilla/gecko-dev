@@ -54,6 +54,11 @@ def mach_gifft(command_context, telemetry_probe_name):
         command_context.topsrcdir, "toolkit", "components", "telemetry"
     )
 
+    import re
+
+    def to_snake_case(camel):
+        return re.sub("([A-Z]+)", r"_\1", camel).lower().replace("__", "_").strip("_")
+
     import itertools
     import sys
 
@@ -73,7 +78,7 @@ def mach_gifft(command_context, telemetry_probe_name):
             # and object.
             category = e.category
             emails_alias = bugs_alias = data_alias = extra_alias = ""
-            print(f"{category}:")
+            print(f"{to_snake_case(category)}:")
             for m, o in itertools.product(e.methods, e.objects):
                 legacy_name = category + "." + m + "#" + o
                 name = m + "_" + o
@@ -160,7 +165,7 @@ def mach_gifft(command_context, telemetry_probe_name):
 
                 print(
                     GLEAN_EVENT_TEMPLATE.format(
-                        name=name,
+                        name=to_snake_case(name),
                         multiline_description=multiline_description,
                         bugs_alias=generate_alias(bugs_list, bugs_alias),
                         bugs_list=bugs_list,
