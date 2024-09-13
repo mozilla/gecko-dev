@@ -1234,11 +1234,6 @@ void CodeGenerator::visitWasmUint32ToFloat32(LWasmUint32ToFloat32* lir) {
                               ToFloatRegister(lir->output()));
 }
 
-void CodeGenerator::visitNotI(LNotI* ins) {
-  masm.cmp32Set(Assembler::Equal, ToRegister(ins->input()), Imm32(0),
-                ToRegister(ins->output()));
-}
-
 void CodeGenerator::visitNotD(LNotD* ins) {
   // Since this operation is not, we want to set a bit if
   // the double is falsey, which means 0.0, -0.0 or NaN.

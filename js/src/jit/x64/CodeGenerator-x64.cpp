@@ -855,11 +855,6 @@ void CodeGenerator::visitInt64ToFloatingPoint(LInt64ToFloatingPoint* lir) {
   }
 }
 
-void CodeGenerator::visitNotI64(LNotI64* lir) {
-  masm.cmpq(Imm32(0), ToRegister(lir->input()));
-  masm.emitSet(Assembler::Equal, ToRegister(lir->output()));
-}
-
 void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
   const LAllocation* input = ins->getOperand(0);
   MOZ_ASSERT(!input->isConstant());

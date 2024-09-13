@@ -139,11 +139,6 @@ void CodeGenerator::visitCompareF(LCompareF* comp) {
                ToRegister(comp->output()), nanCond);
 }
 
-void CodeGenerator::visitNotI(LNotI* ins) {
-  masm.cmp32(ToRegister(ins->input()), Imm32(0));
-  masm.emitSet(Assembler::Equal, ToRegister(ins->output()));
-}
-
 void CodeGenerator::visitNotD(LNotD* ins) {
   FloatRegister opd = ToFloatRegister(ins->input());
 

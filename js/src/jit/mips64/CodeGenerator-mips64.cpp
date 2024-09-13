@@ -364,13 +364,6 @@ void CodeGenerator::visitWasmWrapU32Index(LWasmWrapU32Index* lir) {
   masm.move64To32(Register64(input), output);
 }
 
-void CodeGenerator::visitNotI64(LNotI64* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  Register output = ToRegister(lir->output());
-
-  masm.ma_cmp_set(output, input.reg, zero, Assembler::Equal);
-}
-
 void CodeGenerator::visitBitNotI64(LBitNotI64* ins) {
   const LAllocation* input = ins->getOperand(0);
   MOZ_ASSERT(!input->isConstant());

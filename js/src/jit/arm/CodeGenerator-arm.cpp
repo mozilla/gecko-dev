@@ -1321,21 +1321,6 @@ void CodeGenerator::visitWasmUint32ToFloat32(LWasmUint32ToFloat32* lir) {
                               ToFloatRegister(lir->output()));
 }
 
-void CodeGenerator::visitNotI(LNotI* ins) {
-  // It is hard to optimize !x, so just do it the basic way for now.
-  masm.as_cmp(ToRegister(ins->input()), Imm8(0));
-  masm.emitSet(Assembler::Equal, ToRegister(ins->output()));
-}
-
-void CodeGenerator::visitNotI64(LNotI64* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  Register output = ToRegister(lir->output());
-
-  masm.ma_orr(input.low, input.high, output);
-  masm.as_cmp(output, Imm8(0));
-  masm.emitSet(Assembler::Equal, output);
-}
-
 void CodeGenerator::visitNotD(LNotD* ins) {
   // Since this operation is not, we want to set a bit if the double is
   // falsey, which means 0.0, -0.0 or NaN. When comparing with 0, an input of

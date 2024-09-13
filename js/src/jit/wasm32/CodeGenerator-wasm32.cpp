@@ -28,8 +28,6 @@ void CodeGenerator::visitCompareDAndBranch(LCompareDAndBranch* comp) {
 void CodeGenerator::visitCompareFAndBranch(LCompareFAndBranch* comp) {
   MOZ_CRASH();
 }
-void CodeGenerator::visitNotI(LNotI* ins) { MOZ_CRASH(); }
-void CodeGenerator::visitNotI64(LNotI64* lir) { MOZ_CRASH(); }
 void CodeGenerator::visitNotD(LNotD* ins) { MOZ_CRASH(); }
 void CodeGenerator::visitNotF(LNotF* ins) { MOZ_CRASH(); }
 void CodeGenerator::visitBitNotI(LBitNotI* ins) { MOZ_CRASH(); }

@@ -282,14 +282,6 @@ void CodeGenerator::visitSignExtendInt64(LSignExtendInt64* lir) {
   masm.ma_sra(output.high, output.low, Imm32(31));
 }
 
-void CodeGenerator::visitNotI64(LNotI64* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  Register output = ToRegister(lir->output());
-
-  masm.as_or(output, input.low, input.high);
-  masm.cmp32Set(Assembler::Equal, output, Imm32(0), output);
-}
-
 void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
   FloatRegister input = ToFloatRegister(lir->input());
   FloatRegister arg = input;

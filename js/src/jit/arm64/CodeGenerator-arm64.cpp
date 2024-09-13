@@ -1314,14 +1314,6 @@ void CodeGenerator::visitWasmUint32ToFloat32(LWasmUint32ToFloat32* lir) {
                               ToFloatRegister(lir->output()));
 }
 
-void CodeGenerator::visitNotI(LNotI* ins) {
-  ARMRegister input = toWRegister(ins->input());
-  ARMRegister output = toWRegister(ins->output());
-
-  masm.Cmp(input, ZeroRegister32);
-  masm.Cset(output, Assembler::Zero);
-}
-
 //        NZCV
 // NAN -> 0011
 // ==  -> 0110
@@ -1996,13 +1988,6 @@ void CodeGenerator::visitMulI64(LMulI64* lir) {
   } else {
     masm.mul64(ToRegister64(lhs), ToRegister64(rhs), output);
   }
-}
-
-void CodeGenerator::visitNotI64(LNotI64* lir) {
-  const Register64 input = ToRegister64(lir->getInt64Operand(0));
-  const Register64 output = ToOutRegister64(lir);
-  masm.Cmp(ARMRegister(input.reg, 64), ZeroRegister64);
-  masm.Cset(ARMRegister(output.reg, 64), Assembler::Zero);
 }
 
 void CodeGenerator::visitSubI64(LSubI64* lir) {

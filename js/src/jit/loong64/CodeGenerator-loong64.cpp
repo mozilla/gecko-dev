@@ -612,13 +612,6 @@ void CodeGenerator::visitWasmWrapU32Index(LWasmWrapU32Index* lir) {
   masm.move64To32(Register64(input), output);
 }
 
-void CodeGenerator::visitNotI64(LNotI64* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  Register output = ToRegister(lir->output());
-
-  masm.ma_cmp_set(output, input.reg, zero, Assembler::Equal);
-}
-
 void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
   FloatRegister input = ToFloatRegister(lir->input());
   Register64 output = ToOutRegister64(lir);
@@ -1749,11 +1742,6 @@ void CodeGenerator::visitWasmUint32ToDouble(LWasmUint32ToDouble* lir) {
 void CodeGenerator::visitWasmUint32ToFloat32(LWasmUint32ToFloat32* lir) {
   masm.convertUInt32ToFloat32(ToRegister(lir->input()),
                               ToFloatRegister(lir->output()));
-}
-
-void CodeGenerator::visitNotI(LNotI* ins) {
-  masm.cmp32Set(Assembler::Equal, ToRegister(ins->input()), Imm32(0),
-                ToRegister(ins->output()));
 }
 
 void CodeGenerator::visitNotD(LNotD* ins) {

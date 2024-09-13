@@ -14720,11 +14720,25 @@ void CodeGenerator::visitSetInitializedLength(LSetInitializedLength* lir) {
   SetLengthFromIndex(masm, lir->index(), initLength);
 }
 
+void CodeGenerator::visitNotI(LNotI* lir) {
+  Register input = ToRegister(lir->input());
+  Register output = ToRegister(lir->output());
+
+  masm.cmp32Set(Assembler::Equal, input, Imm32(0), output);
+}
+
 void CodeGenerator::visitNotIPtr(LNotIPtr* lir) {
   Register input = ToRegister(lir->input());
   Register output = ToRegister(lir->output());
 
   masm.cmpPtrSet(Assembler::Equal, input, ImmWord(0), output);
+}
+
+void CodeGenerator::visitNotI64(LNotI64* lir) {
+  Register64 input = ToRegister64(lir->inputI64());
+  Register output = ToRegister(lir->output());
+
+  masm.cmp64Set(Assembler::Equal, input, Imm64(0), output);
 }
 
 void CodeGenerator::visitNotBI(LNotBI* lir) {

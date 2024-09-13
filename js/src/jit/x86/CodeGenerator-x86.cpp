@@ -1138,23 +1138,6 @@ void CodeGenerator::visitWasmWrapU32Index(LWasmWrapU32Index* lir) {
   MOZ_ASSERT(ToRegister(lir->input()) == ToRegister(lir->output()));
 }
 
-void CodeGenerator::visitNotI64(LNotI64* lir) {
-  Register64 input = ToRegister64(lir->getInt64Operand(0));
-  Register output = ToRegister(lir->output());
-
-  if (input.high == output) {
-    masm.orl(input.low, output);
-  } else if (input.low == output) {
-    masm.orl(input.high, output);
-  } else {
-    masm.movl(input.high, output);
-    masm.orl(input.low, output);
-  }
-
-  masm.cmpl(Imm32(0), output);
-  masm.emitSet(Assembler::Equal, output);
-}
-
 void CodeGenerator::visitWasmTruncateToInt64(LWasmTruncateToInt64* lir) {
   FloatRegister input = ToFloatRegister(lir->input());
   Register64 output = ToOutRegister64(lir);

@@ -732,7 +732,18 @@ void MacroAssembler::cmp64Set(Condition cond, Register64 lhs, Register64 rhs,
 
 void MacroAssembler::cmp64Set(Condition cond, Register64 lhs, Imm64 rhs,
                               Register dest) {
-  if (lhs.high == dest || lhs.low == dest) {
+  if (rhs.value == 0 &&
+      (cond == Assembler::Equal || cond == Assembler::NotEqual)) {
+    if (lhs.high == dest) {
+      or32(lhs.low, dest);
+    } else if (lhs.low == dest) {
+      or32(lhs.high, dest);
+    } else {
+      move32(lhs.high, dest);
+      or32(lhs.low, dest);
+    }
+    cmp32Set(cond, dest, Imm32(0), dest);
+  } else if (lhs.high == dest || lhs.low == dest) {
     cmp64SetAliased(cond, lhs, rhs, dest);
   } else {
     cmp64SetNonAliased(cond, lhs, rhs, dest);
