@@ -3427,6 +3427,40 @@ void MacroAssembler::loadResizableTypedArrayByteOffsetMaybeOutOfBoundsIntPtr(
   bind(&done);
 }
 
+void MacroAssembler::computeImplicitThis(Register env, ValueOperand output,
+                                         Label* slowPath) {
+  // Inline implementation of ComputeImplicitThis.
+
+  Register scratch = output.scratchReg();
+  MOZ_ASSERT(scratch != env);
+
+  loadObjClassUnsafe(env, scratch);
+
+  // Go to the slow path for possible debug environment proxies.
+  branchTestClassIsProxy(true, scratch, slowPath);
+
+  // WithEnvironmentObjects have an actual implicit |this|.
+  Label nonWithEnv, done;
+  branchPtr(Assembler::NotEqual, scratch,
+            ImmPtr(&WithEnvironmentObject::class_), &nonWithEnv);
+  {
+    if (JitOptions.spectreObjectMitigations) {
+      spectreZeroRegister(Assembler::NotEqual, scratch, env);
+    }
+
+    loadValue(Address(env, WithEnvironmentObject::offsetOfThisSlot()), output);
+
+    jump(&done);
+  }
+  bind(&nonWithEnv);
+
+  // The implicit |this| is |undefined| for all environment types except
+  // WithEnvironmentObject.
+  moveValue(JS::UndefinedValue(), output);
+
+  bind(&done);
+}
+
 void MacroAssembler::loadDOMExpandoValueGuardGeneration(
     Register obj, ValueOperand output,
     JS::ExpandoAndGeneration* expandoAndGeneration, uint64_t generation,

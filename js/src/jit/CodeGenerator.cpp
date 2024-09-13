@@ -9209,10 +9209,15 @@ void CodeGenerator::visitOutOfLineBoxNonStrictThis(
 }
 
 void CodeGenerator::visitImplicitThis(LImplicitThis* lir) {
-  pushArg(ToRegister(lir->env()));
+  Register env = ToRegister(lir->env());
+  ValueOperand output = ToOutValue(lir);
 
   using Fn = void (*)(JSContext*, HandleObject, MutableHandleValue);
-  callVM<Fn, ImplicitThisOperation>(lir);
+  auto* ool = oolCallVM<Fn, ImplicitThisOperation>(lir, ArgList(env),
+                                                   StoreValueTo(output));
+
+  masm.computeImplicitThis(env, output, ool->entry());
+  masm.bind(ool->rejoin());
 }
 
 void CodeGenerator::visitArrayLength(LArrayLength* lir) {

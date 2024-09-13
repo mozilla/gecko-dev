@@ -5832,6 +5832,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void loadResizableTypedArrayByteOffsetMaybeOutOfBoundsIntPtr(
       Register obj, Register output, Register scratch);
 
+  void computeImplicitThis(Register env, ValueOperand output, Label* slowPath);
+
  private:
   void isCallableOrConstructor(bool isCallable, Register obj, Register output,
                                Label* isProxy);

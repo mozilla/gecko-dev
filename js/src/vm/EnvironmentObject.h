@@ -1020,9 +1020,14 @@ class WithEnvironmentObject : public EnvironmentObject {
   // For syntactic with environment objects, the with scope.
   WithScope& scope() const;
 
-  static inline size_t objectSlot() { return OBJECT_SLOT; }
+  static constexpr size_t objectSlot() { return OBJECT_SLOT; }
 
-  static inline size_t thisSlot() { return THIS_SLOT; }
+  static constexpr size_t thisSlot() { return THIS_SLOT; }
+
+  // For JITs.
+  static constexpr size_t offsetOfThisSlot() {
+    return getFixedSlotOffset(THIS_SLOT);
+  }
 };
 
 // Internal environment object used by JSOp::BindUnqualifiedName upon

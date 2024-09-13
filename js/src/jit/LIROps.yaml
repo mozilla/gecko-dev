@@ -549,7 +549,6 @@
   result_type: BoxedValue
   operands:
     env: WordSized
-  call_instruction: true
   mir_op: true
 
 # Writes a typed argument for a function call to the frame's argument vector.

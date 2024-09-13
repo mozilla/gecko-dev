@@ -1279,7 +1279,6 @@
   operands:
     env: Object
   result_type: Value
-  possibly_calls: true
 
 - name: Phi
   gen_boilerplate: false

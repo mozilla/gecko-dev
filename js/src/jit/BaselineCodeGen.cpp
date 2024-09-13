@@ -4504,18 +4504,26 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_ImplicitThis() {
   frame.popRegsAndSync(1);
 
-  Register env = R0.scratchReg();
+  Register env = R1.scratchReg();
   masm.unboxObject(R0, env);
 
-  prepareVMCall();
+  Label slowPath, skipCall;
+  masm.computeImplicitThis(env, R0, &slowPath);
+  masm.jump(&skipCall);
 
-  pushArg(env);
+  masm.bind(&slowPath);
+  {
+    prepareVMCall();
 
-  using Fn = void (*)(JSContext*, HandleObject, MutableHandleValue);
-  if (!callVM<Fn, ImplicitThisOperation>()) {
-    return false;
+    pushArg(env);
+
+    using Fn = void (*)(JSContext*, HandleObject, MutableHandleValue);
+    if (!callVM<Fn, ImplicitThisOperation>()) {
+      return false;
+    }
   }
 
+  masm.bind(&skipCall);
   frame.push(R0);
   return true;
 }
