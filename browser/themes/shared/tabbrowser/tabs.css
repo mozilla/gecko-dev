@@ -843,10 +843,10 @@ tab-group {
   /* Fit slightly more than 5 tabs + padding before overflowing */
   max-height: 244px;
   column-gap: 4px;
-  padding-bottom: var(--space-small);
 
   #tabbrowser-tabs:not([expanded]) > &:not(:empty) {
     border-bottom: var(--tabstrip-inner-border);
+    padding-bottom: var(--space-small);
   }
 
   #tabbrowser-tabs[orient="horizontal"] > & {
