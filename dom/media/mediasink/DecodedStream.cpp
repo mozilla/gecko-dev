@@ -847,7 +847,7 @@ void DecodedStreamData::WriteVideoToSegment(
     double aPlaybackRate) {
   RefPtr<layers::Image> image = aImage;
   aOutput->AppendFrame(image.forget(), aIntrinsicSize, aPrincipalHandle, false,
-                       aTimeStamp, media::TimeUnit::Invalid(), aStart);
+                       aTimeStamp);
   // Extend this so we get accurate durations for all frames.
   // Because this track is pushed, we need durations so the graph can track
   // when playout of the track has finished.

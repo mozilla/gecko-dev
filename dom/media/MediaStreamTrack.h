@@ -40,7 +40,6 @@ namespace dom {
 
 class AudioStreamTrack;
 class VideoStreamTrack;
-class RTCStatsTimestampMaker;
 enum class CallerType : uint32_t;
 
 /**
@@ -140,14 +139,6 @@ class MediaStreamTrackSource : public nsISupports {
    * lifetime.
    */
   virtual const PeerIdentity* GetPeerIdentity() const { return nullptr; }
-
-  /**
-   * This is used in WebRTC. The timestampMaker can convert between different
-   * timestamp types used during the session.
-   */
-  virtual const RTCStatsTimestampMaker* GetTimestampMaker() const {
-    return nullptr;
-  }
 
   /**
    * MediaStreamTrack::GetLabel (see spec) calls through to here.
@@ -466,13 +457,6 @@ class MediaStreamTrack : public DOMEventTargetHelper, public SupportsWeakPtr {
    */
   const PeerIdentity* GetPeerIdentity() const {
     return GetSource().GetPeerIdentity();
-  }
-
-  /**
-   * Get this track's RTCStatsTimestampMaker.
-   */
-  const RTCStatsTimestampMaker* GetTimestampMaker() const {
-    return GetSource().GetTimestampMaker();
   }
 
   ProcessedMediaTrack* GetTrack() const;

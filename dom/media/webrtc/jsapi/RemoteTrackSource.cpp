@@ -70,12 +70,4 @@ void RemoteTrackSource::ForceEnded() { OverrideEnded(); }
 
 SourceMediaTrack* RemoteTrackSource::Stream() const { return mStream; }
 
-const dom::RTCStatsTimestampMaker* RemoteTrackSource::GetTimestampMaker()
-    const {
-  if (!mReceiver) {
-    return nullptr;
-  }
-  return mReceiver->GetTimestampMaker();
-}
-
 }  // namespace mozilla

@@ -1076,13 +1076,6 @@ void RTCRtpReceiver::RequestKeyFrame() {
   });
 }
 
-const RTCStatsTimestampMaker* RTCRtpReceiver::GetTimestampMaker() const {
-  if (!mPc) {
-    return nullptr;
-  }
-  return &mPc->GetTimestampMaker();
-}
-
 }  // namespace mozilla::dom
 
 #undef LOGTAG

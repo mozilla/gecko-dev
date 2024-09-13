@@ -543,11 +543,11 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
 #ifdef DEBUG
   static uint32_t frame_num = 0;
   LOG_FRAME(
-      "frame %d (%dx%d)->(%dx%d); rotation %d, rtpTimeStamp %u, ntpTimeMs "
-      "%" PRIu64 ", renderTimeMs %" PRIu64 " processingDuration %" PRIi64 "us",
+      "frame %d (%dx%d)->(%dx%d); rotation %d, timeStamp %u, ntpTimeMs %" PRIu64
+      ", renderTimeMs %" PRIu64,
       frame_num++, aProps.width(), aProps.height(), dst_width, dst_height,
-      aProps.rotation(), aProps.rtpTimeStamp(), aProps.ntpTimeMs(),
-      aProps.renderTimeMs(), aProps.processingDuration().ToMicroseconds());
+      aProps.rotation(), aProps.timeStamp(), aProps.ntpTimeMs(),
+      aProps.renderTimeMs());
 #endif
 
   if (mImageSize.width != dst_width || mImageSize.height != dst_height) {
@@ -572,9 +572,7 @@ int MediaEngineRemoteVideoSource::DeliverFrame(
     MOZ_ASSERT(mState == kStarted);
     VideoSegment segment;
     mImageSize = image->GetSize();
-    segment.AppendWebrtcLocalFrame(
-        image.forget(), mImageSize, mPrincipal, /* aForceBlack */ false,
-        TimeStamp::Now(), aProps.processingDuration(), aProps.captureTime());
+    segment.AppendFrame(image.forget(), mImageSize, mPrincipal);
     mTrack->AppendData(&segment);
   }
 

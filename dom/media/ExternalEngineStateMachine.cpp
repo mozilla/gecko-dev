@@ -977,12 +977,10 @@ void ExternalEngineStateMachine::OnRequestVideo() {
             // Send image to PIP window.
             if (mSecondaryVideoContainer.Ref()) {
               mSecondaryVideoContainer.Ref()->SetCurrentFrame(
-                  mVideoDisplay, aVideo->mImage, TimeStamp::Now(),
-                  media::TimeUnit::Invalid(), aVideo->mTime);
+                  mVideoDisplay, aVideo->mImage, TimeStamp::Now());
             } else {
               mVideoFrameContainer->SetCurrentFrame(
-                  mVideoDisplay, aVideo->mImage, TimeStamp::Now(),
-                  media::TimeUnit::Invalid(), aVideo->mTime);
+                  mVideoDisplay, aVideo->mImage, TimeStamp::Now());
             }
           },
           [this, self](const MediaResult& aError) {

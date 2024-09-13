@@ -1421,7 +1421,8 @@ class MediaPipelineReceiveVideo::PipelineListener
     mForceDropFrames = false;
   }
 
-  void RenderVideoFrame(const webrtc::VideoFrame& aVideoFrame) {
+  void RenderVideoFrame(const webrtc::VideoFrameBuffer& aBuffer,
+                        uint32_t aTimeStamp, int64_t aRenderTime) {
     PrincipalHandle principal;
     {
       MutexAutoLock lock(mMutex);
@@ -1431,16 +1432,16 @@ class MediaPipelineReceiveVideo::PipelineListener
       principal = mPrincipalHandle;
     }
     RefPtr<Image> image;
-    const webrtc::VideoFrameBuffer& buffer = *aVideoFrame.video_frame_buffer();
-    if (buffer.type() == webrtc::VideoFrameBuffer::Type::kNative) {
+    if (aBuffer.type() == webrtc::VideoFrameBuffer::Type::kNative) {
       // We assume that only native handles are used with the
       // WebrtcMediaDataCodec decoder.
-      const ImageBuffer* imageBuffer = static_cast<const ImageBuffer*>(&buffer);
+      const ImageBuffer* imageBuffer =
+          static_cast<const ImageBuffer*>(&aBuffer);
       image = imageBuffer->GetNativeImage();
     } else {
-      MOZ_ASSERT(buffer.type() == webrtc::VideoFrameBuffer::Type::kI420);
+      MOZ_ASSERT(aBuffer.type() == webrtc::VideoFrameBuffer::Type::kI420);
       rtc::scoped_refptr<const webrtc::I420BufferInterface> i420(
-          buffer.GetI420());
+          aBuffer.GetI420());
 
       MOZ_ASSERT(i420->DataY());
       // Create a video frame using |buffer|.
@@ -1474,25 +1475,9 @@ class MediaPipelineReceiveVideo::PipelineListener
       image = std::move(yuvImage);
     }
 
-    Maybe<webrtc::Timestamp> receiveTime;
-    for (const auto& packet : aVideoFrame.packet_infos()) {
-      if (!receiveTime || *receiveTime < packet.receive_time()) {
-        receiveTime = Some(packet.receive_time());
-      }
-    }
-
     VideoSegment segment;
     auto size = image->GetSize();
-    auto processingDuration =
-        aVideoFrame.processing_time()
-            ? media::TimeUnit::FromMicroseconds(
-                  aVideoFrame.processing_time()->Elapsed().us())
-            : media::TimeUnit::Invalid();
-    segment.AppendWebrtcRemoteFrame(
-        image.forget(), size, principal,
-        /* aForceBlack */ false, TimeStamp::Now(), processingDuration,
-        aVideoFrame.rtp_timestamp(), aVideoFrame.ntp_time_ms(),
-        receiveTime ? receiveTime->us() : 0);
+    segment.AppendFrame(image.forget(), size, principal);
     mSource->AppendData(&segment);
   }
 
@@ -1516,8 +1501,9 @@ class MediaPipelineReceiveVideo::PipelineRenderer
 
   // Implement VideoRenderer
   void FrameSizeChange(unsigned int aWidth, unsigned int aHeight) override {}
-  void RenderVideoFrame(const webrtc::VideoFrame& aVideoFrame) override {
-    mPipeline->mListener->RenderVideoFrame(aVideoFrame);
+  void RenderVideoFrame(const webrtc::VideoFrameBuffer& aBuffer,
+                        uint32_t aTimeStamp, int64_t aRenderTime) override {
+    mPipeline->mListener->RenderVideoFrame(aBuffer, aTimeStamp, aRenderTime);
   }
 
  private:

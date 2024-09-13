@@ -100,11 +100,8 @@ class VideoOutput : public DirectMediaTrackListener {
         // We ignore null images.
         continue;
       }
-      ImageContainer::NonOwningImage nonOwningImage(
-          image, chunk.mTimeStamp, frameId, mProducerID,
-          chunk.mProcessingDuration, chunk.mMediaTime, chunk.mWebrtcCaptureTime,
-          chunk.mWebrtcReceiveTime, chunk.mRtpTimestamp);
-      images.AppendElement(std::move(nonOwningImage));
+      images.AppendElement(ImageContainer::NonOwningImage(
+          image, chunk.mTimeStamp, frameId, mProducerID));
 
       lastPrincipalHandle = chunk.GetPrincipalHandle();
 
@@ -284,7 +281,10 @@ class FirstFrameVideoOutput : public VideoOutput {
 
         // Pick the first frame and run it through the rendering code.
         VideoSegment segment;
-        segment.AppendFrame(*c);
+        segment.AppendFrame(do_AddRef(c->mFrame.GetImage()),
+                            c->mFrame.GetIntrinsicSize(),
+                            c->mFrame.GetPrincipalHandle(),
+                            c->mFrame.GetForceBlack(), c->mTimeStamp);
         VideoOutput::NotifyRealtimeTrackData(aGraph, aTrackOffset, segment);
         return;
       }

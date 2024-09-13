@@ -31,7 +31,6 @@
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/UniquePtr.h"
 #include "nsTHashMap.h"
-#include "TimeUnits.h"
 
 #ifdef XP_WIN
 struct ID3D10Texture2D;
@@ -329,11 +328,8 @@ class ImageContainer final : public SupportsThreadSafeWeakPtr<ImageContainer> {
 
   ~ImageContainer();
 
-  using FrameID = ContainerFrameID;
-  using ProducerID = ContainerProducerID;
-  using CaptureTime = ContainerCaptureTime;
-  using ReceiveTime = ContainerReceiveTime;
-  using RtpTimestamp = ContainerRtpTimestamp;
+  typedef ContainerFrameID FrameID;
+  typedef ContainerProducerID ProducerID;
 
   RefPtr<PlanarYCbCrImage> CreatePlanarYCbCrImage();
 
@@ -341,32 +337,17 @@ class ImageContainer final : public SupportsThreadSafeWeakPtr<ImageContainer> {
   RefPtr<SharedRGBImage> CreateSharedRGBImage();
 
   struct NonOwningImage {
-    explicit NonOwningImage(
-        Image* aImage = nullptr, TimeStamp aTimeStamp = TimeStamp(),
-        FrameID aFrameID = 0, ProducerID aProducerID = 0,
-        media::TimeUnit aProcessingDuration = media::TimeUnit::Invalid(),
-        media::TimeUnit aMediaTime = media::TimeUnit::Invalid(),
-        const CaptureTime& aWebrtcCaptureTime = AsVariant(Nothing()),
-        const ReceiveTime& aWebrtcReceiveTime = Nothing(),
-        const RtpTimestamp& aRtpTimestamp = Nothing())
+    explicit NonOwningImage(Image* aImage = nullptr,
+                            TimeStamp aTimeStamp = TimeStamp(),
+                            FrameID aFrameID = 0, ProducerID aProducerID = 0)
         : mImage(aImage),
           mTimeStamp(aTimeStamp),
           mFrameID(aFrameID),
-          mProducerID(aProducerID),
-          mProcessingDuration(aProcessingDuration),
-          mMediaTime(aMediaTime),
-          mWebrtcCaptureTime(aWebrtcCaptureTime),
-          mWebrtcReceiveTime(aWebrtcReceiveTime),
-          mRtpTimestamp(aRtpTimestamp) {}
+          mProducerID(aProducerID) {}
     Image* mImage;
     TimeStamp mTimeStamp;
     FrameID mFrameID;
     ProducerID mProducerID;
-    media::TimeUnit mProcessingDuration = media::TimeUnit::Invalid();
-    media::TimeUnit mMediaTime = media::TimeUnit::Invalid();
-    CaptureTime mWebrtcCaptureTime = AsVariant(Nothing());
-    ReceiveTime mWebrtcReceiveTime;
-    RtpTimestamp mRtpTimestamp;
   };
   /**
    * Set aImages as the list of timestamped to display. The Images must have
@@ -459,16 +440,12 @@ class ImageContainer final : public SupportsThreadSafeWeakPtr<ImageContainer> {
   bool HasCurrentImage();
 
   struct OwningImage {
+    OwningImage() : mFrameID(0), mProducerID(0), mComposited(false) {}
     RefPtr<Image> mImage;
     TimeStamp mTimeStamp;
-    media::TimeUnit mProcessingDuration = media::TimeUnit::Invalid();
-    media::TimeUnit mMediaTime = media::TimeUnit::Invalid();
-    CaptureTime mWebrtcCaptureTime = AsVariant(Nothing());
-    ReceiveTime mWebrtcReceiveTime;
-    RtpTimestamp mRtpTimestamp;
-    FrameID mFrameID = 0;
-    ProducerID mProducerID = 0;
-    bool mComposited = false;
+    FrameID mFrameID;
+    ProducerID mProducerID;
+    bool mComposited;
   };
   /**
    * Copy the current Image list to aImages.
@@ -702,8 +679,7 @@ class AutoLockImage {
     return mImages.IsEmpty() ? nullptr : mImages[0].mImage.get();
   }
 
-  const ImageContainer::OwningImage* GetOwningImage(
-      TimeStamp aTimeStamp) const {
+  Image* GetImage(TimeStamp aTimeStamp) const {
     if (mImages.IsEmpty()) {
       return nullptr;
     }
@@ -716,14 +692,7 @@ class AutoLockImage {
       ++chosenIndex;
     }
 
-    return &mImages[chosenIndex];
-  }
-
-  Image* GetImage(TimeStamp aTimeStamp) const {
-    if (const auto* owningImage = GetOwningImage(aTimeStamp)) {
-      return owningImage->mImage.get();
-    }
-    return nullptr;
+    return mImages[chosenIndex].mImage.get();
   }
 
  private:

@@ -9,7 +9,6 @@
 #include "mozilla/AppShutdown.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/dom/HTMLVideoElementBinding.h"
-#include "mozilla/dom/RTCStatsReport.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 #include "nsSize.h"
@@ -713,25 +712,29 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
     return;
   }
 
+  gfx::IntSize frameSize;
+  ImageContainer::FrameID frameID = layers::kContainerFrameID_Invalid;
+  bool composited = false;
+
   // We are guaranteed that the images are in timestamp order. It is possible we
   // are already behind if the compositor notifications have not been processed
   // yet, so as per the standard, this is a best effort attempt at synchronizing
   // with the state of the GPU process.
-  const ImageContainer::OwningImage* selected = nullptr;
-  bool composited = false;
   for (const auto& image : images) {
     if (image.mTimeStamp <= aNowTime) {
       // Image should already have been composited. Because we might not be in
       // the display list, we cannot rely upon its mComposited status, and
       // should just assume it has indeed been composited.
-      selected = &image;
+      frameSize = image.mImage->GetSize();
+      frameID = image.mFrameID;
       composited = true;
     } else if (!aNextTickTime || image.mTimeStamp <= aNextTickTime.ref()) {
       // Image should be the next to be composited. mComposited will be false
       // if the compositor hasn't rendered the frame yet or notified us of the
       // render yet, but it is in progress. If it is true, then we know the
       // next vsync will display the frame.
-      selected = &image;
+      frameSize = image.mImage->GetSize();
+      frameID = image.mFrameID;
       composited = false;
     } else {
       // Image is for a future composition.
@@ -741,15 +744,14 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
 
   // If all of the available images are for future compositions, we must have
   // fired too early. Wait for the next invalidation.
-  if (!selected || selected->mFrameID == layers::kContainerFrameID_Invalid ||
-      selected->mFrameID == mLastPresentedFrameID) {
+  if (frameID == layers::kContainerFrameID_Invalid ||
+      frameID == mLastPresentedFrameID) {
     return;
   }
 
   // If we have got a dummy frame, then we must have suspended decoding and have
   // no actual frame to present. This should only happen if we raced on
   // requesting a callback, and the media state machine advancing.
-  gfx::IntSize frameSize = selected->mImage->GetSize();
   if (NS_WARN_IF(frameSize.IsEmpty())) {
     return;
   }
@@ -765,76 +767,20 @@ void HTMLVideoElement::TakeVideoFrameRequestCallbacks(
 
   aMd.mWidth = frameSize.width;
   aMd.mHeight = frameSize.height;
-
-  // If we were not provided a valid media time, then we need to estimate based
-  // on the CurrentTime from the element.
-  aMd.mMediaTime = selected->mMediaTime.IsValid()
-                       ? selected->mMediaTime.ToSeconds()
-                       : CurrentTime();
-
-  // If we have a processing duration, we need to round it.
-  //
-  // https://wicg.github.io/video-rvfc/#security-and-privacy
-  //
-  // 5. Security and Privacy Considerations.
-  // ... processingDuration exposes some under-the-hood performance information
-  // about the video pipeline ... We therefore propose a resolution of 100μs,
-  // which is still useful for automated quality analysis, but doesn’t offer any
-  // new sources of high resolution information.
-  if (selected->mProcessingDuration.IsValid()) {
-    aMd.mProcessingDuration.Construct(
-        selected->mProcessingDuration.ToBase(10000).ToSeconds());
-  }
-
-  // If given, this is the RTP timestamp from the last packet for the frame.
-  if (selected->mRtpTimestamp) {
-    aMd.mRtpTimestamp.Construct(*selected->mRtpTimestamp);
-  }
-
-  // For remote sources, the capture and receive time are represented as WebRTC
-  // timestamps relative to an origin that is specific to the WebRTC session.
-  bool hasCaptureTimeNtp = selected->mWebrtcCaptureTime.is<int64_t>();
-  bool hasReceiveTimeReal = selected->mWebrtcReceiveTime.isSome();
-  if (hasCaptureTimeNtp || hasReceiveTimeReal) {
-    if (const auto* timestampMaker =
-            mSelectedVideoStreamTrack->GetTimestampMaker()) {
-      if (hasCaptureTimeNtp) {
-        aMd.mCaptureTime.Construct(
-            RTCStatsTimestamp::FromNtp(
-                *timestampMaker,
-                webrtc::Timestamp::Micros(
-                    selected->mWebrtcCaptureTime.as<int64_t>()))
-                .ToDom());
-      }
-      if (hasReceiveTimeReal) {
-        aMd.mReceiveTime.Construct(
-            RTCStatsTimestamp::FromRealtime(
-                *timestampMaker,
-                webrtc::Timestamp::Micros(*selected->mWebrtcReceiveTime))
-                .ToDom());
-      }
-    }
-  }
-
-  // Otherwise, the capture time may be a high resolution timestamp from the
-  // camera pipeline indicating when the sample was captured.
-  if (selected->mWebrtcCaptureTime.is<TimeStamp>()) {
-    if (nsPIDOMWindowInner* win = OwnerDoc()->GetInnerWindow()) {
-      if (Performance* perf = win->GetPerformance()) {
-        aMd.mCaptureTime.Construct(perf->TimeStampToDOMHighResForRendering(
-            selected->mWebrtcCaptureTime.as<TimeStamp>()));
-      }
-    }
-  }
+  aMd.mMediaTime = CurrentTime();
 
   // Presented frames is a bit of a misnomer from a rendering perspective,
   // because we still need to advance regardless of composition. Video elements
   // that are outside of the DOM, or are not visible, still advance the video in
   // the background, and presumably the caller still needs some way to know how
   // many frames we have advanced.
-  aMd.mPresentedFrames = selected->mFrameID;
+  aMd.mPresentedFrames = frameID;
 
-  mLastPresentedFrameID = selected->mFrameID;
+  // TODO(Bug 1908246): We should set processingDuration.
+  // TODO(Bug 1908245): We should set captureTime, receiveTime and rtpTimestamp
+  // for WebRTC.
+
+  mLastPresentedFrameID = frameID;
   mVideoFrameRequestManager.Take(aCallbacks);
 
   NS_DispatchToMainThread(NewRunnableMethod(

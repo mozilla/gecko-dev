@@ -4,8 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
  * The origin of this IDL file is
- * https://html.spec.whatwg.org/multipage/media.html#the-video-element
- * https://wicg.github.io/video-rvfc/
+ * http://www.whatwg.org/specs/web-apps/current-work/#the-video-element
  *
  * © Copyright 2004-2011 Apple Computer, Inc., Mozilla Foundation, and
  * Opera Software ASA. You are granted a license to use, reproduce
@@ -22,10 +21,13 @@ dictionary VideoFrameCallbackMetadata {
 
   required unsigned long presentedFrames;
 
-  double processingDuration;
-  DOMHighResTimeStamp captureTime;
-  DOMHighResTimeStamp receiveTime;
-  unsigned long rtpTimestamp;
+  //TODO(Bug 1908246)
+  //double processingDuration;
+
+  //TODO(Bug 1908245)
+  //DOMHighResTimeStamp captureTime;
+  //DOMHighResTimeStamp receiveTime;
+  //unsigned long rtpTimestamp;
 };
 
 callback VideoFrameRequestCallback =

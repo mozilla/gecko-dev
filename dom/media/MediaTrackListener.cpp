@@ -25,7 +25,9 @@ void DirectMediaTrackListener::MirrorAndDisableSegment(
     VideoSegment& aFrom, VideoSegment& aTo, DisabledTrackMode aMode) {
   if (aMode == DisabledTrackMode::SILENCE_BLACK) {
     for (VideoSegment::ChunkIterator it(aFrom); !it.IsEnded(); it.Next()) {
-      aTo.AppendFrame(*it, Some(true));
+      aTo.AppendFrame(do_AddRef(it->mFrame.GetImage()),
+                      it->mFrame.GetIntrinsicSize(), it->GetPrincipalHandle(),
+                      true);
       aTo.ExtendLastFrameBy(it->GetDuration());
     }
   } else if (aMode == DisabledTrackMode::SILENCE_FREEZE) {
