@@ -94,6 +94,15 @@ struct VectorMask<float> {
   typedef int type;
 };
 
+#  ifdef __has_builtin
+#    if __has_builtin(__builtin_convertvector)
+#      define HAS_BUILTIN_CONVERTVECTOR
+#    endif
+#    if __has_builtin(__builtin_shufflevector)
+#      define HAS_BUILTIN_SHUFFLEVECTOR
+#    endif
+#  endif
+
 template <typename T, int N>
 struct VectorType {
   enum { SIZE = N };
@@ -136,6 +145,13 @@ struct VectorType {
   T& operator[](size_t i) { return elements[i]; }
   T operator[](size_t i) const { return elements[i]; }
 
+#  ifdef HAS_BUILTIN_CONVERTVECTOR
+  template <typename U, int M>
+  operator VectorType<U, M>() const {
+    return VectorType<U, M>::wrap(
+        __builtin_convertvector(data, typename VectorType<U, M>::data_type));
+  }
+#  else
   template <typename U>
   operator VectorType<U, 2>() const {
     return VectorType<U, 2>::wrap(
@@ -173,6 +189,7 @@ struct VectorType {
         U(elements[15]),
     });
   }
+#  endif
 
   VectorType operator-() const { return wrap(-data); }
   VectorType operator~() const { return wrap(~data); }
@@ -268,42 +285,6 @@ struct VectorType {
     return *this;
   }
 
-  VectorType<T, 4> shuffle(VectorType b, mask_index x, mask_index y,
-                           mask_index z, mask_index w) const {
-    return VectorType<T, 4>::wrap(__builtin_shuffle(
-        data, b.data, (typename VectorType<T, 4>::mask_type){x, y, z, w}));
-  }
-  VectorType<T, 8> shuffle(VectorType b, mask_index x, mask_index y,
-                           mask_index z, mask_index w, mask_index s,
-                           mask_index t, mask_index u, mask_index v) const {
-    return VectorType<T, 8>::wrap(__builtin_shuffle(
-        data, b.data,
-        (typename VectorType<T, 8>::mask_type){x, y, z, w, s, t, u, v}));
-  }
-  VectorType<T, 16> shuffle(VectorType b, mask_index x, mask_index y,
-                            mask_index z, mask_index w, mask_index s,
-                            mask_index t, mask_index u, mask_index v,
-                            mask_index i, mask_index j, mask_index k,
-                            mask_index l, mask_index m, mask_index n,
-                            mask_index o, mask_index p) const {
-    return VectorType<T, 16>::wrap(
-        __builtin_shuffle(data, b.data,
-                          (typename VectorType<T, 16>::mask_type){
-                              x, y, z, w, s, t, u, v, i, j, k, l, m, n, o, p}));
-  }
-
-  VectorType<T, 4> swizzle(mask_index x, mask_index y, mask_index z,
-                           mask_index w) const {
-    return VectorType<T, 4>::wrap(__builtin_shuffle(
-        data, (typename VectorType<T, 4>::mask_type){x, y, z, w}));
-  }
-  VectorType<T, 8> swizzle(mask_index x, mask_index y, mask_index z,
-                           mask_index w, mask_index s, mask_index t,
-                           mask_index u, mask_index v) const {
-    return VectorType<T, 8>::wrap(__builtin_shuffle(
-        data, (typename VectorType<T, 8>::mask_type){x, y, z, w, s, t, u, v}));
-  }
-
   SI VectorType wrap(half_type low, half_type high) {
     VectorType v;
     v.low_half = low;
@@ -315,53 +296,86 @@ struct VectorType {
     return VectorType<T, N * 2>::wrap(data, high.data);
   }
 
-#  define xxxx swizzle(0, 0, 0, 0)
-#  define yyyy swizzle(1, 1, 1, 1)
-#  define zzzz swizzle(2, 2, 2, 2)
-#  define wwww swizzle(3, 3, 3, 3)
-#  define xxyy swizzle(0, 0, 1, 1)
-#  define xxzz swizzle(0, 0, 2, 2)
-#  define yyww swizzle(1, 1, 3, 3)
-#  define zzww swizzle(2, 2, 3, 3)
-#  define xyxy swizzle(0, 1, 0, 1)
-#  define xzxz swizzle(0, 2, 0, 2)
-#  define ywyw swizzle(1, 3, 1, 3)
-#  define zwzw swizzle(2, 3, 2, 3)
-#  define zwxy swizzle(2, 3, 0, 1)
-#  define zyxw swizzle(2, 1, 0, 3)
-#  define xxyz swizzle(0, 0, 1, 2)
-#  define xyyz swizzle(0, 1, 1, 2)
-#  define xyzz swizzle(0, 1, 2, 2)
-#  define xzyw swizzle(0, 2, 1, 3)
-#  define yzwx swizzle(1, 2, 3, 0)
-#  define wxyz swizzle(3, 0, 1, 2)
-#  define wzyx swizzle(3, 2, 1, 0)
-#  define xxxxyyyy XXXXYYYY()
-  VectorType<T, 8> XXXXYYYY() const {
-    return swizzle(0, 0, 0, 0).combine(swizzle(1, 1, 1, 1));
+#  ifdef HAS_BUILTIN_SHUFFLEVECTOR
+  template <mask_index... INDEXES, int M = sizeof...(INDEXES)>
+  VectorType<T, M> shuffle(VectorType b) const {
+    return VectorType<T, M>::wrap(
+        __builtin_shufflevector(data, b.data, INDEXES...));
   }
-#  define zzzzwwww ZZZZWWWW()
-  VectorType<T, 8> ZZZZWWWW() const {
-    return swizzle(2, 2, 2, 2).combine(swizzle(3, 3, 3, 3));
+
+  template <mask_index... INDEXES, int M = sizeof...(INDEXES)>
+  VectorType<T, M> swizzle() const {
+    return VectorType<T, M>::wrap(
+        __builtin_shufflevector(data, data, INDEXES...));
   }
-#  define xyzwxyzw XYZWXYZW()
-  VectorType<T, 8> XYZWXYZW() const { return combine(*this); }
-#  define xyxyxyxy XYXYXYXY()
-  VectorType<T, 8> XYXYXYXY() const {
-    return swizzle(0, 1, 0, 1).combine(swizzle(0, 1, 0, 1));
+#  else
+  template <mask_index... INDEXES, int M = sizeof...(INDEXES)>
+  VectorType<T, M> shuffle(VectorType<T, M> b) const {
+    return VectorType<T, M>::wrap(__builtin_shuffle(
+        data, b.data, (typename VectorType<T, M>::mask_type){INDEXES...}));
   }
-#  define zwzwzwzw ZWZWZWZW()
-  VectorType<T, 8> ZWZWZWZW() const {
-    return swizzle(2, 3, 2, 3).combine(swizzle(2, 3, 2, 3));
+
+  template <mask_index A, mask_index B, mask_index C, mask_index D,
+            mask_index E, mask_index F, mask_index G, mask_index H>
+  VectorType<T, 8> shuffle(VectorType<T, 4> b) const {
+    return shuffle<A, B, C, D>(b).combine(shuffle<E, F, G, H>(b));
   }
-#  define xxyyzzww XXYYZZWW()
-  VectorType<T, 8> XXYYZZWW() const {
-    return swizzle(0, 0, 1, 1).combine(swizzle(2, 2, 3, 3));
+
+  template <mask_index A, mask_index B, mask_index C, mask_index D,
+            mask_index E, mask_index F, mask_index G, mask_index H,
+            mask_index I, mask_index J, mask_index K, mask_index L,
+            mask_index W, mask_index X, mask_index Y, mask_index Z>
+  VectorType<T, 16> shuffle(VectorType<T, 4> b) const {
+    return shuffle<A, B, C, D, E, F, G, H>(b).combine(
+        shuffle<I, J, K, L, W, X, Y, Z>(b));
   }
-#  define xxxxyyyyzzzzwwww XXXXYYYYZZZZWWWW()
-  VectorType<T, 16> XXXXYYYYZZZZWWWW() {
-    return XXXXYYYY().combine(ZZZZWWWW());
+
+  template <mask_index A, mask_index B, mask_index C, mask_index D,
+            mask_index E, mask_index F, mask_index G, mask_index H,
+            mask_index I, mask_index J, mask_index K, mask_index L,
+            mask_index W, mask_index X, mask_index Y, mask_index Z>
+  VectorType<T, 16> shuffle(VectorType<T, 8> b) const {
+    return shuffle<A, B, C, D, E, F, G, H>(b).combine(
+        shuffle<I, J, K, L, W, X, Y, Z>(b));
   }
+
+  template <mask_index... INDEXES, int M = sizeof...(INDEXES)>
+  VectorType<T, M> swizzle() const {
+    return shuffle<INDEXES...>(*this);
+  }
+#  endif
+
+#  define SWIZZLE(...) template swizzle<__VA_ARGS__>()
+
+#  define xxxx SWIZZLE(0, 0, 0, 0)
+#  define yyyy SWIZZLE(1, 1, 1, 1)
+#  define zzzz SWIZZLE(2, 2, 2, 2)
+#  define wwww SWIZZLE(3, 3, 3, 3)
+#  define xxyy SWIZZLE(0, 0, 1, 1)
+#  define xxzz SWIZZLE(0, 0, 2, 2)
+#  define yyww SWIZZLE(1, 1, 3, 3)
+#  define zzww SWIZZLE(2, 2, 3, 3)
+#  define xyxy SWIZZLE(0, 1, 0, 1)
+#  define xzxz SWIZZLE(0, 2, 0, 2)
+#  define ywyw SWIZZLE(1, 3, 1, 3)
+#  define zwzw SWIZZLE(2, 3, 2, 3)
+#  define zwxy SWIZZLE(2, 3, 0, 1)
+#  define zyxw SWIZZLE(2, 1, 0, 3)
+#  define xxyz SWIZZLE(0, 0, 1, 2)
+#  define xyyz SWIZZLE(0, 1, 1, 2)
+#  define xyzz SWIZZLE(0, 1, 2, 2)
+#  define xzyw SWIZZLE(0, 2, 1, 3)
+#  define yzwx SWIZZLE(1, 2, 3, 0)
+#  define wxyz SWIZZLE(3, 0, 1, 2)
+#  define wzyx SWIZZLE(3, 2, 1, 0)
+#  define xxxxyyyy SWIZZLE(0, 0, 0, 0, 1, 1, 1, 1)
+#  define zzzzwwww SWIZZLE(2, 2, 2, 2, 3, 3, 3, 3)
+#  define xyzwxyzw SWIZZLE(0, 1, 2, 3, 0, 1, 2, 3)
+#  define xyxyxyxy SWIZZLE(0, 1, 0, 1, 0, 1, 0, 1)
+#  define zwzwzwzw SWIZZLE(2, 3, 2, 3, 2, 3, 2, 3)
+#  define xxyyzzww SWIZZLE(0, 0, 1, 1, 2, 2, 3, 3)
+#  define xxxxyyyyzzzzwwww \
+    SWIZZLE(0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3)
 };
 
 template <typename T>
@@ -388,7 +402,7 @@ struct VectorType<T, 2> {
 };
 
 #  define CONVERT(vector, type) ((type)(vector))
-#  define SHUFFLE(a, b, ...) a.shuffle(b, __VA_ARGS__)
+#  define SHUFFLE(a, b, ...) ((a).template shuffle<__VA_ARGS__>(b))
 
 template <typename T, int N>
 SI VectorType<T, N * 2> combine(VectorType<T, N> a, VectorType<T, N> b) {
@@ -478,7 +492,6 @@ SI VectorType<T, 8> zip2High(VectorType<T, 8> a, VectorType<T, 8> b) {
   return SHUFFLE(a, b, 4, 5, 12, 13, 6, 7, 14, 15);
 }
 
-#ifdef __clang__
 template <typename T>
 SI VectorType<T, 8> zip(VectorType<T, 4> a, VectorType<T, 4> b) {
   return SHUFFLE(a, b, 0, 4, 1, 5, 2, 6, 3, 7);
@@ -488,12 +501,6 @@ template <typename T>
 SI VectorType<T, 16> zip(VectorType<T, 8> a, VectorType<T, 8> b) {
   return SHUFFLE(a, b, 0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15);
 }
-#else
-template <typename T, int N>
-SI VectorType<T, N * 2> zip(VectorType<T, N> a, VectorType<T, N> b) {
-  return combine(zipLow(a, b), zipHigh(a, b));
-}
-#endif
 
 template <typename T>
 struct Unaligned {
