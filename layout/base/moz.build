@@ -77,6 +77,7 @@ EXPORTS.mozilla += [
     "DisplayPortUtils.h",
     "GeckoMVMContext.h",
     "GeometryUtils.h",
+    "LayoutStructs.h",
     "MediaEmulationData.h",
     "MotionPathUtils.h",
     "MVMContext.h",
