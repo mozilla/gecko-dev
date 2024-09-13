@@ -420,29 +420,31 @@
 
   &:not([crashed]) {
     &[soundplaying] {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-playing-small.svg");
     }
 
     &[muted] {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-muted-small.svg");
     }
 
     &[activemedia-blocked] {
-      background-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-small.svg");
+      list-style-image: url("chrome://browser/skin/tabbrowser/tab-audio-blocked-small.svg");
     }
 
     &:is([soundplaying], [muted], [activemedia-blocked]) {
-      background-color: var(--tab-icon-overlay-stroke, light-dark(white, black));
-      background-position: center;
-      background-repeat: no-repeat;
-      border: 0.5px solid var(--border-color-interactive);
       border-radius: 10px;
-      -moz-context-properties: fill;
-      fill: var(--tab-icon-overlay-fill, light-dark(black, white));
+      -moz-context-properties: fill, fill-opacity, stroke;
+      fill: currentColor;
+      stroke: transparent;
 
-      &:hover {
-        border-color: var(--tab-icon-overlay-fill, light-dark(black, white));
+      &:is([pinned], [sharing]):hover {
+        background-color: var(--tab-icon-overlay-stroke, light-dark(white, black));
       }
+    }
+
+    &:is([pinned], [sharing]) {
+      stroke: var(--tab-icon-overlay-stroke, light-dark(white, black));
+      color: var(--tab-icon-overlay-fill, light-dark(black, white));
     }
   }
 
@@ -450,11 +452,6 @@
     top: -5.5px;
     inset-inline-end: -6px;
     z-index: 1; /* Overlay tab title */
-
-    &:is([soundplaying], [muted], [activemedia-blocked]) {
-      top: -8px;
-      inset-inline-end: -6px;
-    }
   }
 
   &[indicator-replaces-favicon] {
@@ -892,10 +889,6 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   flex-direction: column;
   align-content: flex-start;
   grid-gap: var(--space-small);
-
-  &[expanded] {
-    --tab-icon-end-margin: 7.5px;
-  }
 
   .tab-close-button {
     display: none;

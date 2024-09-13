@@ -1479,16 +1479,6 @@ var SidebarController = {
     let verticalToolbar = document.getElementById(
       CustomizableUI.AREA_VERTICAL_TABSTRIP
     );
-    let indicatorTabs = gBrowser.visibleTabs.filter(tab => {
-      return (
-        tab.hasAttribute("soundplaying") ||
-        tab.hasAttribute("muted") ||
-        tab.hasAttribute("activemedia-blocked")
-      );
-    });
-    for (const indicatorTab of indicatorTabs) {
-      tabStrip.updateTabIndicatorAttr(indicatorTab);
-    }
     verticalToolbar.toggleAttribute("visible", toVerticalTabs);
   },
 };
