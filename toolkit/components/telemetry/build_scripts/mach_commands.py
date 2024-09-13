@@ -17,11 +17,11 @@ GLEAN_EVENT_TEMPLATE = """
     type: event
     description: >
 {multiline_description}
-    bugs: {bugs_alias}{bugs_list}
-    data_reviews: {data_alias}{bugs_list}
-    notification_emails: {emails_alias}{emails_list}
+    bugs:{bugs_alias}{bugs_list}
+    data_reviews:{data_alias}{bugs_list}
+    notification_emails:{emails_alias}{emails_list}
     expires: {expiry}
-    extra_keys: {extra_alias}{extra_keys}
+    extra_keys:{extra_alias}{extra_keys}
     telemetry_mirror: {legacy_enum}
 """.strip(
     "\n"
@@ -154,9 +154,9 @@ def mach_gifft(command_context, telemetry_probe_name):
                     if len(e.methods) == 1 and len(e.objects) == 1:
                         return ""
                     if list:
-                        return f"&{alias}"
+                        return f" &{alias}"
                     else:
-                        return f"*{alias}"
+                        return f" *{alias}"
 
                 print(
                     GLEAN_EVENT_TEMPLATE.format(
