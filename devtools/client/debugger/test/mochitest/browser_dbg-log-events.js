@@ -16,7 +16,9 @@ add_task(async function () {
   );
 
   await clickElement(dbg, "logEventsCheckbox");
-  await dbg.actions.addEventListenerBreakpoints(["event.mouse.click"]);
+  await dbg.actions.addEventListenerBreakpoints("breakpoint", [
+    "event.mouse.click",
+  ]);
   clickElementInTab("#click-target");
 
   await hasConsoleMessage(dbg, "click");

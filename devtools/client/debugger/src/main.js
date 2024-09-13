@@ -20,6 +20,7 @@ import { initialBreakpointsState } from "./reducers/breakpoints";
 import { initialSourcesState } from "./reducers/sources";
 import { initialUIState } from "./reducers/ui";
 import { initialSourceBlackBoxState } from "./reducers/source-blackbox";
+import { initialEventListenerState } from "./reducers/event-listeners";
 
 const {
   sanitizeBreakpoints,
@@ -74,6 +75,11 @@ async function loadInitialState() {
   const xhrBreakpoints = await asyncStore.xhrBreakpoints;
   const blackboxedRanges = await asyncStore.blackboxedRanges;
   const eventListenerBreakpoints = await asyncStore.eventListenerBreakpoints;
+  if (eventListenerBreakpoints && !eventListenerBreakpoints.byPanel) {
+    // Firefox 132 changed the layout of the event listener data to support both breakpoints and tracer
+    eventListenerBreakpoints.byPanel = initialEventListenerState().byPanel;
+  }
+
   const breakpoints = initialBreakpointsState(xhrBreakpoints);
   const sourceBlackBox = initialSourceBlackBoxState({ blackboxedRanges });
   const sources = initialSourcesState();

@@ -21,22 +21,20 @@
 
   display: grid;
   grid-template-areas: "toolbar           toolbar"
-                       "timeline-toolbar  timeline-toolbar"
-                       "timeline          tree";
+                       "timeline          tabs";
   grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto 1fr;
+  grid-template-rows: auto 1fr;
 
   & > .tracer-toolbar {
     grid-area: toolbar;
   }
-  & > .tracer-timeline-toolbar {
-    grid-area: timeline-toolbar;
-  }
   & > .tracer-timeline {
     grid-area: timeline;
   }
-  & > :is(.tracer-message, .tree) {
-    grid-area: tree;
+  & > :is(.tabs) {
+    grid-area: tabs;
+    overflow-y: auto;
+    border-inline-start: 1px solid var(--theme-splitter-color);
   }
 }
 
@@ -86,10 +84,18 @@
   user-select: none;
 }
 
+.tracer-tab .tab-panel > * {
+  height: 100%;
+}
+
+.tracer-tab .event-listeners .event-search-input {
+  /* :focus-visible is cutoff on the right */
+  outline-offset: -2px;
+}
+
 .tracer-tab .tree {
   overflow-x: auto;
   overflow-y: auto;
-  border-inline-start: 1px solid var(--theme-splitter-color);
   padding-inline-start: 4px !important;
 }
 

@@ -33,7 +33,7 @@ add_task(async function () {
     return dbg.selectors.getIsThreadCurrentlyTracing(topLevelThreadActorID);
   });
 
-  const tracerMessage = findElementWithSelector(
+  let tracerMessage = findElementWithSelector(
     dbg,
     "#tracer-tab-panel .tracer-message"
   );
@@ -239,6 +239,64 @@ add_task(async function () {
   // Click on the mutation trace to open its source
   mutationTrace.click();
   await waitForSelectedSource(dbg, "foo.js");
+
+  info("Open the DOM event list");
+  const eventListToggleButton = await waitForElementWithSelector(
+    dbg,
+    "#tracer-tab-panel #tracer-events-tab"
+  );
+  eventListToggleButton.click();
+
+  let domEventCategories = findAllElementsWithSelector(
+    dbg,
+    "#tracer-tab-panel .event-listener-category"
+  );
+  is(domEventCategories.length, 2);
+  is(domEventCategories[0].textContent, "Keyboard");
+  is(domEventCategories[1].textContent, "Mouse");
+
+  // Before toggling some DOM events, assert that the two events are displayed in the timeline
+  is(findAllElementsWithSelector(dbg, ".tracer-slider-event").length, 2);
+  info("Toggle off the Mouse and then the Keyboard events");
+  domEventCategories[0].click();
+  await waitFor(
+    () => findAllElementsWithSelector(dbg, ".tracer-slider-event").length == 1
+  );
+  domEventCategories[1].click();
+  // Now that all events are disabled, there is no more trace displayed in the timeline
+  await waitFor(
+    () => !findAllElementsWithSelector(dbg, ".tracer-slider-event").length
+  );
+  tracerMessage = findElementWithSelector(
+    dbg,
+    "#tracer-tab-panel .tracer-message"
+  );
+  is(tracerMessage.textContent, "All traces have been filtered out");
+
+  info("Trigger a setTimeout to have a new event category");
+  await SpecialPowers.spawn(gBrowser.selectedBrowser, [], async function () {
+    content.eval(`
+      window.setTimeout(function () {
+        console.log("timeout fired");
+      });
+      `);
+  });
+  domEventCategories = await waitFor(() => {
+    const categories = findAllElementsWithSelector(
+      dbg,
+      "#tracer-tab-panel .event-listener-category"
+    );
+    if (categories.length == 3) {
+      return categories;
+    }
+    return false;
+  });
+  is(domEventCategories[2].textContent, "Timer");
+  is(
+    findAllElementsWithSelector(dbg, ".tracer-slider-event").length,
+    1,
+    "The setTimeout callback is displayed in the timeline"
+  );
 
   // Test Disabling tracing
   info("Disable the tracing");

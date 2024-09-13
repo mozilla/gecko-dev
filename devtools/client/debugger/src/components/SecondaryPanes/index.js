@@ -41,7 +41,7 @@ import Threads from "./Threads";
 import Accordion from "../shared/Accordion";
 import CommandBar from "./CommandBar";
 import XHRBreakpoints from "./XHRBreakpoints";
-import EventListeners from "./EventListeners";
+import EventListeners from "../shared/EventListeners";
 import DOMMutationBreakpoints from "./DOMMutationBreakpoints";
 import WhyPaused from "./WhyPaused";
 
@@ -358,7 +358,9 @@ class SecondaryPanes extends Component {
       id: "event-listeners-pane",
       className: "event-listeners-pane",
       buttons: this.getEventButtons(),
-      component: React.createElement(EventListeners, null),
+      component: React.createElement(EventListeners, {
+        panelKey: "breakpoint",
+      }),
       opened: prefs.eventListenersVisible || pauseReason === "eventBreakpoint",
       onToggle: opened => {
         prefs.eventListenersVisible = opened;

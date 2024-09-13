@@ -4,7 +4,7 @@
 
 import React from "devtools/client/shared/vendor/react";
 import { shallow } from "enzyme";
-import EventListeners from "../EventListeners";
+import EventListeners from "../../shared/EventListeners";
 
 function getCategories() {
   return [

@@ -6,7 +6,12 @@ const {
   TRACER_FIELDS_INDEXES,
 } = require("resource://devtools/server/actors/tracer.js");
 
-function initialState() {
+const lazy = {};
+ChromeUtils.defineESModuleGetters(lazy, {
+  BinarySearch: "resource://gre/modules/BinarySearch.sys.mjs",
+});
+
+function initialState(previousState = {}) {
   return {
     // These fields are mutable as they are large arrays and UI will rerender based on their size
 
@@ -25,8 +30,35 @@ function initialState() {
     // List of indexes within mutableTraces of top level trace, without any parent.
     mutableTopTraces: [],
 
+    // Similar to mutableTopTraces except that filter out unwanted DOM Events.
+    mutableFilteredTopTraces: [],
+
     // List of all trace resources indexes within mutableTraces which are about dom mutations
     mutableMutationTraces: [],
+
+    // List of all event names which triggered some JavaScript code in the current tracer record.
+    mutableEventNames: new Set(),
+
+    // List of all possible DOM Events (similar to DOM Event panel)
+    // This is initialized once on debugger startup.
+    // This is a Map of category objects consumed by EventListeners React component,
+    // keyed by DOM Event name (string) communicated by the Tracer.
+    // DOM Event name can look like this:
+    // - global.click (click fired on window object)
+    // - node.mousemove (mousemove fired on a DOM Element)
+    // - xhr.error (error on an XMLHttpRequest object)
+    // - worker.error (error from a worker)
+    // - setTimeout (setTimeout function being called)
+    // - setTimeoutCallback (setTimeout callback being fired)
+    domEventInfoByTracerName:
+      previousState.domEventInfoByTracerName || new Map(),
+
+    // List of DOM Events "categories" currently available in the current traces
+    // Categories are objects consumed by the EventListener React component.
+    domEventCategories: [],
+
+    // List of DOM Events which should be show and be in `mutableFilteredTopTraces`
+    activeDomEvents: [],
 
     // Index of the currently selected trace within `mutableTraces`.
     selectedTraceIndex: null,
@@ -45,13 +77,13 @@ function update(state = initialState(), action) {
   switch (action.type) {
     case "TRACING_TOGGLED": {
       if (action.enabled) {
-        return initialState();
+        return initialState(state);
       }
       return state;
     }
 
     case "TRACING_CLEAR": {
-      return initialState();
+      return initialState(state);
     }
 
     case "ADD_TRACES": {
@@ -165,6 +197,70 @@ function update(state = initialState(), action) {
         remotePlatformVersion: action.remotePlatformVersion,
       };
     }
+
+    case "RECEIVE_EVENT_LISTENER_TYPES": {
+      const domEventInfoByTracerName = new Map();
+      for (const category of action.categories) {
+        for (const event of category.events) {
+          const value = { id: event.id, category, name: event.name };
+          if (event.type == "event") {
+            for (const targetType of event.targetTypes) {
+              domEventInfoByTracerName.set(
+                `${targetType}.${event.eventType}`,
+                value
+              );
+            }
+          } else {
+            domEventInfoByTracerName.set(event.notificationType, value);
+          }
+        }
+      }
+      return { ...state, domEventInfoByTracerName };
+    }
+
+    case "UPDATE_EVENT_LISTENERS": {
+      // This action is also used for the DOM Event breakpoints panel
+      if (action.panelKey != "tracer") {
+        return state;
+      }
+
+      const { mutableTraces, mutableTopTraces } = state;
+
+      // If all the DOM events are shown, return the unfiltered list as-is.
+      if (action.active.length == state.mutableEventNames.size) {
+        return {
+          ...state,
+          mutableFilteredTopTraces: mutableTopTraces,
+          activeDomEvents: action.active,
+        };
+      }
+
+      // Update `mutableFilteredTopTraces` by re-filtering all top traces from `mutableTopTraces`
+      // and considering the new list of DOM event names
+      const mutableFilteredTopTraces = [];
+      for (const traceIndex of mutableTopTraces) {
+        const trace = mutableTraces[traceIndex];
+        const type = trace[TRACER_FIELDS_INDEXES.TYPE];
+        if (type == "event") {
+          const eventName = trace[TRACER_FIELDS_INDEXES.EVENT_NAME];
+
+          // Map JS Tracer event name into an Event Breakpoint's ID, as `action.active` is an array of such IDs.
+          // (from "node.click" to "event.mouse.click")
+          const id =
+            state.domEventInfoByTracerName.get(eventName)?.id ||
+            `event.unclassified.${eventName}`;
+
+          if (action.active.includes(id)) {
+            mutableFilteredTopTraces.push(traceIndex);
+          }
+        }
+      }
+      return {
+        ...state,
+        mutableFilteredTopTraces,
+        activeDomEvents: action.active,
+      };
+    }
   }
   return state;
 }
@@ -175,6 +271,7 @@ function addTraces(state, traces) {
     mutableMutationTraces,
     mutableFrames,
     mutableTopTraces,
+    mutableFilteredTopTraces,
     mutableChildren,
     mutableParents,
   } = state;
@@ -200,6 +297,7 @@ function addTraces(state, traces) {
 
     // If no parent was found, flag it as top level trace
     mutableTopTraces.push(traceIndex);
+    mutableFilteredTopTraces.push(traceIndex);
     mutableParents.push(null);
   }
   for (const traceResource of traces) {
@@ -254,10 +352,86 @@ function addTraces(state, traces) {
         mutableChildren.push([]);
         mutableParents.push(null);
         mutableTopTraces.push(traceIndex);
+
+        const eventName = traceResource[TRACER_FIELDS_INDEXES.EVENT_NAME];
+        registerDOMEvent(state, eventName);
+
+        // Map JS Tracer event name into an Event Breakpoint's ID, as `action.active` is an array of such IDs.
+        // (from "node.click" to "event.mouse.click")
+        const id =
+          state.domEventInfoByTracerName.get(eventName)?.id ||
+          `event.unclassified.${eventName}`;
+
+        // Only register in the filtered list, if this event type isn't filtered out.
+        // (do this after `registerDOMEvent`, as that will populate `activeDomEvents` array.
+        if (state.activeDomEvents.includes(id)) {
+          mutableFilteredTopTraces.push(traceIndex);
+        }
         break;
       }
     }
   }
+}
+
+// EventListener's category for all events that are not breakable, and not returned by the thread actor, and not in `domEventInfoByTracerName`.
+const UNCLASSIFIED_CATEGORY = { id: "unclassified", name: "Unclassified" };
+
+/**
+ * Register this possibly new event type in data set used to display EventListener React component.
+ *
+ * @param {Object} state
+ * @param {String} eventName
+ */
+function registerDOMEvent(state, eventName) {
+  if (state.mutableEventNames.has(eventName)) {
+    return;
+  }
+  state.mutableEventNames.add(eventName);
+
+  // `domEventInfoByTracerName` is defined by the server and only register the events
+  // for which we can set breakpoints for.
+  // Fallback to a "unclassified" category for all these missing event types.
+  const { category, id, name } = state.domEventInfoByTracerName.get(
+    eventName
+  ) || {
+    category: UNCLASSIFIED_CATEGORY,
+    id: `event.unclassified.${eventName}`,
+    name: eventName,
+  };
+
+  // By default, when we get a new event type, it is made visible
+  if (!state.activeDomEvents.includes(id)) {
+    state.activeDomEvents.push(id);
+  }
+
+  let newCategory = state.domEventCategories.find(
+    cat => cat.name == category.name
+  );
+  if (!newCategory) {
+    // Create a new category with an empty event list
+    newCategory = { id: category.id, name: category.name, events: [] };
+    state.domEventCategories = [...state.domEventCategories];
+    addSortedCategoryOrEvent(state.domEventCategories, newCategory);
+  }
+  if (!newCategory.events.some(e => e.name == eventName)) {
+    // Register this new event in the category's event list
+    addSortedCategoryOrEvent(newCategory.events, { id, name });
+    // Clone the root object to force a re-render of EventListeners React component
+    // Cloning newCategory(.events) wouldn't be enough as that's not returned by a mapStateToProps.
+    state.domEventCategories = [...state.domEventCategories];
+  }
+}
+
+function addSortedCategoryOrEvent(array, newElement) {
+  const index = lazy.BinarySearch.insertionIndexOf(
+    function (a, b) {
+      // Both category and event are using `name` as display label
+      return a.name.localeCompare(b.name);
+    },
+    array,
+    newElement
+  );
+  array.splice(index, 0, newElement);
 }
 
 function locationMatchTrace(location, trace) {

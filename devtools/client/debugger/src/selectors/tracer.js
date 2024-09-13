@@ -5,8 +5,8 @@
 export function getSelectedTraceIndex(state) {
   return state.tracerFrames?.selectedTraceIndex;
 }
-export function getTopTraces(state) {
-  return state.tracerFrames?.mutableTopTraces || [];
+export function getFilteredTopTraces(state) {
+  return state.tracerFrames?.mutableFilteredTopTraces || [];
 }
 export function getAllTraces(state) {
   return state.tracerFrames?.mutableTraces || [];
@@ -31,4 +31,10 @@ export function getRuntimeVersions(state) {
     localPlatformVersion: state.tracerFrames?.localPlatformVersion,
     remotePlatformVersion: state.tracerFrames?.remotePlatformVersion,
   };
+}
+export function getTracerEventNames(state) {
+  return state.tracerFrames?.mutableEventNames;
+}
+export function getTraceDomEvent(state) {
+  return state.tracerFrames?.domEvents || new Set();
 }

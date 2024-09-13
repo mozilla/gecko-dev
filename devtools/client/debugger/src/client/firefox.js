@@ -170,7 +170,9 @@ async function onTargetAvailable({ targetFront }) {
 
   // Initialize the event breakpoints on the thread up front so that
   // they are active once attached.
-  actions.addEventListenerBreakpoints([]).catch(e => console.error(e));
+  actions
+    .addEventListenerBreakpoints("breakpoint", [])
+    .catch(e => console.error(e));
 
   await actions.addTarget(targetFront);
 }

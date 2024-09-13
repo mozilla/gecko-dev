@@ -34,6 +34,7 @@ class EventListeners extends Component {
 
   static get propTypes() {
     return {
+      panelKey: PropTypes.string.isRequired,
       activeEventListeners: PropTypes.array.isRequired,
       addEventListenerExpanded: PropTypes.func.isRequired,
       addEventListeners: PropTypes.func.isRequired,
@@ -79,9 +80,9 @@ class EventListeners extends Component {
     } = this.props;
 
     if (expandedCategories.includes(category)) {
-      removeEventListenerExpanded(category);
+      removeEventListenerExpanded(this.props.panelKey, category);
     } else {
-      addEventListenerExpanded(category);
+      addEventListenerExpanded(this.props.panelKey, category);
     }
   }
 
@@ -90,18 +91,18 @@ class EventListeners extends Component {
     const eventsIds = category.events.map(event => event.id);
 
     if (isChecked) {
-      addEventListeners(eventsIds);
+      addEventListeners(this.props.panelKey, eventsIds);
     } else {
-      removeEventListeners(eventsIds);
+      removeEventListeners(this.props.panelKey, eventsIds);
     }
   }
 
   onEventTypeClick(eventId, isChecked) {
     const { addEventListeners, removeEventListeners } = this.props;
     if (isChecked) {
-      addEventListeners([eventId]);
+      addEventListeners(this.props.panelKey, [eventId]);
     } else {
-      removeEventListeners([eventId]);
+      removeEventListeners(this.props.panelKey, [eventId]);
     }
   }
 
@@ -312,10 +313,10 @@ class EventListeners extends Component {
   }
 }
 
-const mapStateToProps = state => ({
-  activeEventListeners: getActiveEventListeners(state),
-  categories: getEventListenerBreakpointTypes(state),
-  expandedCategories: getEventListenerExpanded(state),
+const mapStateToProps = (state, props) => ({
+  categories: getEventListenerBreakpointTypes(state, props.panelKey),
+  activeEventListeners: getActiveEventListeners(state, props.panelKey),
+  expandedCategories: getEventListenerExpanded(state, props.panelKey),
 });
 
 export default connect(mapStateToProps, {

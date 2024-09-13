@@ -8,38 +8,49 @@ import {
   shouldLogEventBreakpoints,
 } from "../selectors/index";
 
-async function updateBreakpoints(dispatch, client, newEvents) {
-  await client.setEventListenerBreakpoints(newEvents);
-  dispatch({ type: "UPDATE_EVENT_LISTENERS", active: newEvents });
+async function updateBreakpoints(dispatch, client, panelKey, newEvents) {
+  // Only breakpoints need to be communicated to the backend.
+  // The Tracer is a 100% frontend data set.
+  if (panelKey == "breakpoint") {
+    await client.setEventListenerBreakpoints(newEvents);
+  }
+  dispatch({ type: "UPDATE_EVENT_LISTENERS", panelKey, active: newEvents });
 }
 
-async function updateExpanded(dispatch, newExpanded) {
+async function updateExpanded(dispatch, panelKey, newExpanded) {
   dispatch({
     type: "UPDATE_EVENT_LISTENER_EXPANDED",
+    panelKey,
     expanded: newExpanded,
   });
 }
 
-export function addEventListenerBreakpoints(eventsToAdd) {
+export function addEventListenerBreakpoints(panelKey, eventsToAdd) {
   return async ({ dispatch, client, getState }) => {
-    const activeListenerBreakpoints = await getActiveEventListeners(getState());
+    const activeListenerBreakpoints = getActiveEventListeners(
+      getState(),
+      panelKey
+    );
 
     const newEvents = [
       ...new Set([...eventsToAdd, ...activeListenerBreakpoints]),
     ];
-    await updateBreakpoints(dispatch, client, newEvents);
+    await updateBreakpoints(dispatch, client, panelKey, newEvents);
   };
 }
 
-export function removeEventListenerBreakpoints(eventsToRemove) {
+export function removeEventListenerBreakpoints(panelKey, eventsToRemove) {
   return async ({ dispatch, client, getState }) => {
-    const activeListenerBreakpoints = await getActiveEventListeners(getState());
+    const activeListenerBreakpoints = getActiveEventListeners(
+      getState(),
+      panelKey
+    );
 
     const newEvents = activeListenerBreakpoints.filter(
       event => !eventsToRemove.includes(event)
     );
 
-    await updateBreakpoints(dispatch, client, newEvents);
+    await updateBreakpoints(dispatch, client, panelKey, newEvents);
   };
 }
 
@@ -51,21 +62,21 @@ export function toggleEventLogging() {
   };
 }
 
-export function addEventListenerExpanded(category) {
+export function addEventListenerExpanded(panelKey, category) {
   return async ({ dispatch, getState }) => {
-    const expanded = await getEventListenerExpanded(getState());
+    const expanded = await getEventListenerExpanded(getState(), panelKey);
     const newExpanded = [...new Set([...expanded, category])];
-    await updateExpanded(dispatch, newExpanded);
+    await updateExpanded(dispatch, panelKey, newExpanded);
   };
 }
 
-export function removeEventListenerExpanded(category) {
+export function removeEventListenerExpanded(panelKey, category) {
   return async ({ dispatch, getState }) => {
-    const expanded = await getEventListenerExpanded(getState());
+    const expanded = await getEventListenerExpanded(getState(), panelKey);
 
     const newExpanded = expanded.filter(expand => expand != category);
 
-    updateExpanded(dispatch, newExpanded);
+    updateExpanded(dispatch, panelKey, newExpanded);
   };
 }
 

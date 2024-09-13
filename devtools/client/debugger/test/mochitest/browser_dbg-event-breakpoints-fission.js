@@ -15,7 +15,7 @@ add_task(async function () {
   await selectSource(dbg, "event-breakpoints.js");
   await waitForSelectedSource(dbg, "event-breakpoints.js");
 
-  await dbg.actions.addEventListenerBreakpoints([
+  await dbg.actions.addEventListenerBreakpoints("breakpoint", [
     "event.mouse.click",
     "event.xhr.load",
     "timer.timeout.set",
