@@ -6,7 +6,9 @@
 
 use std::num::NonZeroU32;
 
-use rusqlite::{config::DbConfig, Transaction};
+use rusqlite::{
+    config::DbConfig, functions::FunctionFlags, types::ToSqlOutput, ToSql, Transaction,
+};
 
 use crate::skv::connection::ConnectionOpener;
 
@@ -38,6 +40,18 @@ impl ConnectionOpener for Schema {
         conn.set_db_config(DbConfig::SQLITE_DBCONFIG_DQS_DML, false)?;
         conn.set_db_config(DbConfig::SQLITE_DBCONFIG_DQS_DDL, false)?;
         conn.set_db_config(DbConfig::SQLITE_DBCONFIG_TRUSTED_SCHEMA, true)?;
+
+        conn.create_scalar_function(
+            // `throw(message)` throws an error with the given message.
+            "throw",
+            1,
+            FunctionFlags::SQLITE_UTF8
+                | FunctionFlags::SQLITE_DETERMINISTIC
+                | FunctionFlags::SQLITE_DIRECTONLY,
+            |context| -> rusqlite::Result<Never> {
+                Err(UserFunctionError::Throw(context.get(0)?).into())
+            },
+        )?;
 
         Ok(())
     }
@@ -74,6 +88,33 @@ impl ConnectionOpener for Schema {
 
     fn upgrade(_: &mut Transaction<'_>, to_version: NonZeroU32) -> Result<(), Self::Error> {
         Err(SchemaError::UnsupportedSchemaVersion(to_version.get()))
+    }
+}
+
+/// The `Ok` type for the `throw(message)` SQL function, which
+/// always returns an `Err`.
+///
+/// This type can be removed once the ["never" type][1] (`!`) is
+/// stabilized.
+///
+/// [1]: https://github.com/rust-lang/rust/issues/35121
+enum Never {}
+
+impl ToSql for Never {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
+        unreachable!()
+    }
+}
+
+#[derive(thiserror::Error, Debug)]
+enum UserFunctionError {
+    #[error("throw: {0}")]
+    Throw(String),
+}
+
+impl Into<rusqlite::Error> for UserFunctionError {
+    fn into(self) -> rusqlite::Error {
+        rusqlite::Error::UserFunctionError(self.into())
     }
 }
 

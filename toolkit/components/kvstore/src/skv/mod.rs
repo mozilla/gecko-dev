@@ -12,18 +12,19 @@ use std::ptr;
 use nserror::nsresult;
 use xpcom::nsIID;
 
-use crate::skv::interface::KeyValueService;
-
 mod abort;
 mod connection;
 mod coordinator;
 mod database;
+mod importer;
 mod interface;
 mod key;
 mod schema;
 mod sql;
 mod store;
 mod value;
+
+use interface::KeyValueService;
 
 #[no_mangle]
 pub unsafe extern "C" fn nsSQLiteKeyValueServiceConstructor(

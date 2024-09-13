@@ -56,6 +56,10 @@ export class KeyValueService {
  * SQLite for persistence.
  */
 export class SQLiteKeyValueService {
+  static Importer = {
+    RKV_SAFE_MODE: "rkv-safe-mode",
+  };
+
   static #service = Cc["@mozilla.org/sqlite-key-value-service;1"].getService(
     Ci.nsIKeyValueService
   );
@@ -64,6 +68,63 @@ export class SQLiteKeyValueService {
     return new KeyValueDatabase(
       await promisify(this.#service.getOrCreate, dir, name)
     );
+  }
+
+  static createImporter(type, dir) {
+    return new KeyValueImporter(this.#service.createImporter(type, dir));
+  }
+}
+
+export class KeyValueImporter {
+  static ConflictPolicy = {
+    ERROR: Ci.nsIKeyValueImporter.ERROR_ON_CONFLICT,
+    IGNORE: Ci.nsIKeyValueImporter.IGNORE_ON_CONFLICT,
+    REPLACE: Ci.nsIKeyValueImporter.REPLACE_ON_CONFLICT,
+  };
+
+  static CleanupPolicy = {
+    KEEP: Ci.nsIKeyValueImporter.KEEP_AFTER_IMPORT,
+    DELETE: Ci.nsIKeyValueImporter.DELETE_AFTER_IMPORT,
+  };
+
+  #importer;
+
+  constructor(importer) {
+    this.#importer = importer;
+  }
+
+  get type() {
+    return this.#importer.type;
+  }
+
+  get path() {
+    return this.#importer.path;
+  }
+
+  get conflictPolicy() {
+    return this.#importer.conflictPolicy;
+  }
+
+  setConflictPolicy(policy) {
+    this.#importer.conflictPolicy = policy;
+    return this;
+  }
+
+  get cleanupPolicy() {
+    return this.#importer.cleanupPolicy;
+  }
+
+  setCleanupPolicy(policy) {
+    this.#importer.cleanupPolicy = policy;
+    return this;
+  }
+
+  import(name) {
+    return promisify(this.#importer.import, name);
+  }
+
+  importAll() {
+    return promisify(this.#importer.importAll);
   }
 }
 

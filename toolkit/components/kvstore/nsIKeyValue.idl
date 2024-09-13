@@ -5,6 +5,7 @@
 #include "nsISupports.idl"
 #include "nsIVariant.idl"
 
+interface nsIKeyValueImporter;
 interface nsIKeyValueDatabaseCallback;
 interface nsIKeyValueEnumeratorCallback;
 interface nsIKeyValuePairCallback;
@@ -58,6 +59,66 @@ interface nsIKeyValueService : nsISupports {
         in AString path,
         in AUTF8String name,
         [optional] in nsIKeyValueService_RecoveryStrategy recoveryStrategy);
+
+    /**
+     * Create an importer for databases of the given type
+     * at the specified path.
+     */
+    nsIKeyValueImporter createImporter(
+        in AUTF8String type,
+        in AString path);
+};
+
+/** Copies key-value pairs from another database. */
+[scriptable, builtinclass, rust_sync, uuid(470d71c0-d601-4867-8c09-810af7ffa67e)]
+interface nsIKeyValueImporter : nsISupports {
+    /**
+     * The action to take when a key already exists and has a different value.
+     */
+    cenum ConflictPolicy : 8 {
+        /**
+         * Fail the import with an error, and roll back any key-value pairs
+         * that have been imported so far.
+         */
+        ERROR_ON_CONFLICT,
+
+        /** Keep the existing value for the key, and continue the import. */
+        IGNORE_ON_CONFLICT,
+
+        /**
+         * Overwrite the existing value for the key with the value from
+         * the other database, and continue the import.
+         */
+        REPLACE_ON_CONFLICT,
+    };
+
+    /** The action to take after a successful import. */
+    cenum CleanupPolicy : 8 {
+        /** Keep all key-value pairs in the other database. */
+        KEEP_AFTER_IMPORT,
+
+        /** Delete all key-value pairs from the other database. */
+        DELETE_AFTER_IMPORT,
+    };
+
+    readonly attribute AUTF8String type;
+    readonly attribute AString path;
+    attribute nsIKeyValueImporter_ConflictPolicy conflictPolicy;
+    attribute nsIKeyValueImporter_CleanupPolicy cleanupPolicy;
+
+    /**
+     * Atomically import all key-value pairs from the database
+     * with the given name.
+     */
+    void import(
+        in nsIKeyValueVoidCallback callback,
+        in AUTF8String name);
+
+    /**
+     * Atomically import all key-value pairs from all databases
+     * at this importer's path.
+     */
+    void importAll(in nsIKeyValueVoidCallback callback);
 };
 
 /**

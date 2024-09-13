@@ -10,16 +10,21 @@
 use std::{io, ops::Bound, sync::Arc};
 
 use atomic_refcell::AtomicRefCell;
+use crossbeam_utils::atomic::AtomicCell;
 use nserror::{nsresult, NS_OK};
 use nsstring::{nsACString, nsAString, nsCString, nsString};
+use rkv::{
+    backend::{SafeMode as RkvSafeMode, SafeModeEnvironment as RkvSafeModeEnvironment},
+    Rkv,
+};
 use storage_variant::{HashPropertyBag, VariantType};
 use thin_vec::ThinVec;
 use xpcom::{
     getter_addrefs,
     interfaces::{
         nsIAsyncShutdownClient, nsIAsyncShutdownService, nsIKeyValueDatabaseCallback,
-        nsIKeyValueEnumeratorCallback, nsIKeyValuePair, nsIKeyValueVariantCallback,
-        nsIKeyValueVoidCallback, nsIPropertyBag, nsIVariant,
+        nsIKeyValueEnumeratorCallback, nsIKeyValueImporter, nsIKeyValuePair,
+        nsIKeyValueVariantCallback, nsIKeyValueVoidCallback, nsIPropertyBag, nsIVariant,
     },
     xpcom, xpcom_method, RefPtr,
 };
@@ -28,6 +33,7 @@ use crate::skv::{
     abort::AbortError,
     coordinator::{Coordinator, CoordinatorClient, CoordinatorError},
     database::{Database, DatabaseError, GetOptions},
+    importer::{CleanupPolicy, ConflictPolicy, ImporterError, RkvImporter},
     key::{Key, KeyError},
     store::{Store, StoreError, StorePath},
     value::{Value, ValueError},
@@ -110,6 +116,30 @@ impl KeyValueService {
         _strategy: u8,
     ) -> Result<(), nsresult> {
         Err(nserror::NS_ERROR_NOT_IMPLEMENTED)
+    }
+
+    xpcom_method!(
+        create_importer => CreateImporter(
+            type_: *const nsACString,
+            dir: *const nsAString
+        ) -> *const nsIKeyValueImporter
+    );
+    fn create_importer(
+        &self,
+        type_: &nsACString,
+        dir: &nsAString,
+    ) -> Result<RefPtr<nsIKeyValueImporter>, nsresult> {
+        match &*type_.to_utf8() {
+            RkvSafeModeKeyValueImporter::TYPE => {
+                let client = self
+                    .client
+                    .child_with_name("skv:RkvSafeModeKeyValueImporter")
+                    .map_err(|_| nserror::NS_ERROR_FAILURE)?;
+                let importer = RkvSafeModeKeyValueImporter::new(client, nsString::from(dir));
+                Ok(RefPtr::new(importer.coerce()))
+            }
+            _ => Err(nserror::NS_ERROR_INVALID_ARG),
+        }
     }
 }
 
@@ -678,6 +708,195 @@ impl KeyValueServiceShutdownBlocker {
     }
 }
 
+#[xpcom(implement(nsIKeyValueImporter), atomic)]
+pub struct RkvSafeModeKeyValueImporter {
+    client: CoordinatorClient<'static>,
+    dir: nsString,
+    conflict_policy: AtomicCell<ConflictPolicy>,
+    cleanup_policy: AtomicCell<CleanupPolicy>,
+}
+
+impl RkvSafeModeKeyValueImporter {
+    const TYPE: &'static str = "rkv-safe-mode";
+
+    pub fn new(client: CoordinatorClient<'static>, dir: nsString) -> RefPtr<Self> {
+        RkvSafeModeKeyValueImporter::allocate(InitRkvSafeModeKeyValueImporter {
+            client,
+            dir,
+            conflict_policy: ConflictPolicy::Error.into(),
+            cleanup_policy: CleanupPolicy::Keep.into(),
+        })
+    }
+
+    xpcom_method!(get_type => GetType() -> nsACString);
+    fn get_type(&self) -> Result<nsCString, Infallible> {
+        Ok(Self::TYPE.into())
+    }
+
+    xpcom_method!(get_path => GetPath() -> nsAString);
+    fn get_path(&self) -> Result<nsString, Infallible> {
+        Ok(self.dir.clone())
+    }
+
+    xpcom_method!(get_conflict_policy => GetConflictPolicy() -> u8);
+    fn get_conflict_policy(&self) -> Result<u8, Infallible> {
+        Ok(self.conflict_policy.load() as u8)
+    }
+
+    xpcom_method!(set_conflict_policy => SetConflictPolicy(policy: u8));
+    fn set_conflict_policy(&self, policy: u8) -> Result<(), nsresult> {
+        self.conflict_policy
+            .store(ConflictPolicy::try_from(policy).map_err(|_| nserror::NS_ERROR_INVALID_ARG)?);
+        Ok(())
+    }
+
+    xpcom_method!(get_cleanup_policy => GetCleanupPolicy() -> u8);
+    fn get_cleanup_policy(&self) -> Result<u8, Infallible> {
+        Ok(self.cleanup_policy.load() as u8)
+    }
+
+    xpcom_method!(set_cleanup_policy => SetCleanupPolicy(policy: u8));
+    fn set_cleanup_policy(&self, policy: u8) -> Result<(), nsresult> {
+        self.cleanup_policy
+            .store(CleanupPolicy::try_from(policy).map_err(|_| nserror::NS_ERROR_INVALID_ARG)?);
+        Ok(())
+    }
+
+    xpcom_method!(
+        import => Import(
+            callback: *const nsIKeyValueVoidCallback,
+            name: *const nsACString
+        )
+    );
+    fn import(
+        &self,
+        callback: &nsIKeyValueVoidCallback,
+        name: &nsACString,
+    ) -> Result<(), Infallible> {
+        let client = self.client.clone();
+        let dir = self.dir.clone();
+        let name = name.to_utf8().into_owned();
+        let conflict_policy = self.conflict_policy.load();
+        let cleanup_policy = self.cleanup_policy.load();
+        let request = moz_task::spawn_blocking(
+            "skv:RkvSafeModeKeyValueImporter:Import:Request",
+            async move {
+                let dir = crate::fs::canonicalize(&*dir).map_err(InterfaceError::StorageDir)?;
+                let store = client.store_for_path(StorePath::for_storage_dir(dir.clone()))?;
+                let mut manager = rkv::Manager::<RkvSafeModeEnvironment>::singleton()
+                    .write()
+                    .unwrap();
+
+                let builder = Rkv::environment_builder::<RkvSafeMode>();
+                let rkv = manager.get_or_create_from_builder(
+                    dir.as_path(),
+                    builder,
+                    Rkv::from_builder::<RkvSafeMode>,
+                )?;
+                let env = rkv.read().unwrap();
+
+                let mut importer = RkvImporter::for_database(&*env, &store, &name)?;
+                importer
+                    .conflict_policy(conflict_policy)
+                    .cleanup_policy(cleanup_policy);
+                importer.import()?;
+                importer.cleanup();
+
+                Ok(())
+            },
+        );
+
+        let signal = self.client.signal();
+        let callback = RefPtr::new(callback);
+        moz_task::spawn_local(
+            "skv:RkvSafeModeKeyValueImporter:Import:Response",
+            async move {
+                match signal.aborting(request).await {
+                    Ok(()) => unsafe { callback.Resolve() },
+                    Err(InterfaceError::Abort(_)) => unsafe {
+                        callback.Reject(&*nsCString::from("import: aborted"))
+                    },
+                    Err(err) => unsafe { callback.Reject(&*nsCString::from(err.to_string())) },
+                }
+            },
+        )
+        .detach();
+
+        Ok(())
+    }
+
+    xpcom_method!(
+        import_all => ImportAll(
+            callback: *const nsIKeyValueVoidCallback
+        )
+    );
+    fn import_all(&self, callback: &nsIKeyValueVoidCallback) -> Result<(), Infallible> {
+        let client = self.client.clone();
+        let dir = self.dir.clone();
+        let conflict_policy = self.conflict_policy.load();
+        let cleanup_policy = self.cleanup_policy.load();
+        let request = moz_task::spawn_blocking(
+            "skv:RkvSafeModeKeyValueImporter:ImportAll:Request",
+            async move {
+                let dir = crate::fs::canonicalize(&*dir).map_err(InterfaceError::StorageDir)?;
+                let store = client.store_for_path(StorePath::for_storage_dir(dir.clone()))?;
+                let mut manager = rkv::Manager::<RkvSafeModeEnvironment>::singleton()
+                    .write()
+                    .unwrap();
+
+                {
+                    // Scope for the Rkv environment.
+                    let builder = Rkv::environment_builder::<RkvSafeMode>();
+                    let rkv = manager.get_or_create_from_builder(
+                        dir.as_path(),
+                        builder,
+                        Rkv::from_builder::<RkvSafeMode>,
+                    )?;
+                    let env = rkv.read().unwrap();
+
+                    let mut importer = RkvImporter::for_all_databases(&*env, &store)?;
+                    importer
+                        .conflict_policy(conflict_policy)
+                        .cleanup_policy(cleanup_policy);
+                    importer.import()?;
+                    importer.cleanup();
+                }
+
+                // At this point, we've already imported all the databases,
+                // so if we can't close the environment and optionally
+                // delete all its (now-empty) files, that's OK.
+                let _ = manager.try_close(
+                    dir.as_path(),
+                    match cleanup_policy {
+                        CleanupPolicy::Keep => rkv::CloseOptions::default(),
+                        CleanupPolicy::Delete => rkv::CloseOptions::delete_files_on_disk(),
+                    },
+                );
+
+                Ok(())
+            },
+        );
+
+        let signal = self.client.signal();
+        let callback = RefPtr::new(callback);
+        moz_task::spawn_local(
+            "skv:RkvSafeModeKeyValueImporter:ImportAll:Response",
+            async move {
+                match signal.aborting(request).await {
+                    Ok(()) => unsafe { callback.Resolve() },
+                    Err(InterfaceError::Abort(_)) => unsafe {
+                        callback.Reject(&*nsCString::from("importAll: aborted"))
+                    },
+                    Err(err) => unsafe { callback.Reject(&*nsCString::from(err.to_string())) },
+                }
+            },
+        )
+        .detach();
+
+        Ok(())
+    }
+}
+
 /// The error type for interface methods that never return an error.
 ///
 /// This is equivalent to [`std::convert::Infallible`], but implements
@@ -707,6 +926,10 @@ pub enum InterfaceError {
     Key(#[from] KeyError),
     #[error("value: {0}")]
     Value(#[from] ValueError),
+    #[error("rkv store: {0}")]
+    RkvStore(#[from] rkv::StoreError),
+    #[error("importer: {0}")]
+    Importer(#[from] ImporterError),
     #[error("error code: {0}")]
     Nsresult(#[from] nsresult),
 }

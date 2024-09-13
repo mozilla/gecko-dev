@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use nsstring::{nsACString, nsCString};
 use rusqlite::{
     types::{FromSql, FromSqlResult, ToSqlOutput, ValueRef},
@@ -15,11 +17,18 @@ impl TryFrom<&nsACString> for Key {
     type Error = KeyError;
 
     fn try_from(key: &nsACString) -> Result<Self, Self::Error> {
-        let raw_key = key.to_utf8();
-        if raw_key.starts_with(char::is_whitespace) || raw_key.ends_with(char::is_whitespace) {
+        Self::try_from(key.to_utf8())
+    }
+}
+
+impl<'a> TryFrom<Cow<'a, str>> for Key {
+    type Error = KeyError;
+
+    fn try_from(key: Cow<'a, str>) -> Result<Self, Self::Error> {
+        if key.starts_with(char::is_whitespace) || key.ends_with(char::is_whitespace) {
             return Err(KeyError::Untrimmed);
         }
-        Ok(Self(raw_key.into_owned()))
+        Ok(Self(key.into_owned()))
     }
 }
 

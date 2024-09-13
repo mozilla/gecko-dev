@@ -46,8 +46,8 @@ use thin_vec::ThinVec;
 use xpcom::{
     getter_addrefs,
     interfaces::{
-        nsIKeyValueDatabaseCallback, nsIKeyValueEnumeratorCallback, nsIKeyValuePair,
-        nsIKeyValueService, nsIKeyValueVariantCallback, nsIKeyValueVoidCallback,
+        nsIKeyValueDatabaseCallback, nsIKeyValueEnumeratorCallback, nsIKeyValueImporter,
+        nsIKeyValuePair, nsIKeyValueService, nsIKeyValueVariantCallback, nsIKeyValueVoidCallback,
         nsISerialEventTarget, nsIVariant,
     },
     nsIID, xpcom, xpcom_method, RefPtr,
@@ -155,6 +155,21 @@ impl KeyValueService {
 
         TaskRunnable::new("KVService::GetOrCreateWithOptions", task)?
             .dispatch_background_task_with_options(DispatchOptions::default().may_block(true))
+    }
+
+    xpcom_method!(
+        create_importer => CreateImporter(
+            type_: *const nsACString,
+            path: *const nsAString
+        ) -> *const nsIKeyValueImporter
+    );
+
+    fn create_importer(
+        &self,
+        _type: &nsACString,
+        _path: &nsAString,
+    ) -> Result<RefPtr<nsIKeyValueImporter>, nsresult> {
+        Err(nserror::NS_ERROR_NOT_IMPLEMENTED)
     }
 }
 

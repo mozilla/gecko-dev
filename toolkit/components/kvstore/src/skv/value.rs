@@ -58,6 +58,12 @@ impl Value {
     }
 }
 
+impl From<serde_json::Value> for Value {
+    fn from(value: serde_json::Value) -> Self {
+        Self(value)
+    }
+}
+
 impl ToSql for Value {
     fn to_sql(&self) -> rusqlite::Result<ToSqlOutput<'_>> {
         Ok(ToSqlOutput::from(serde_json::to_string(&self.0).map_err(
