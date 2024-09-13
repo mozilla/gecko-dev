@@ -38,7 +38,7 @@ skip-if = ["asan"] # Bug 1591064
 ["browser_dbg-blackbox-original.js"]
 
 ["browser_dbg-blackbox.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-breaking-from-console.js"]
 skip-if = ["debug"] # Window leaks: bug 1575332
@@ -52,12 +52,12 @@ skip-if = ["debug"] # Window leaks: bug 1575332
 ["browser_dbg-breakpoints-actions.js"]
 
 ["browser_dbg-breakpoints-columns.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-breakpoints-cond-functional.js"]
 
 ["browser_dbg-breakpoints-cond-shortcut.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-breakpoints-cond-source-maps.js"]
 
@@ -65,7 +65,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-breakpoints-debugger-statement.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-breakpoints-duplicate-functions.js"]
 
@@ -120,7 +120,7 @@ skip-if = ["verify && !debug && os == 'linux'"]
 ["browser_dbg-console-map-bindings.js"]
 
 ["browser_dbg-console.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-content-script-sources.js"]
 skip-if = ["os == 'win' && ccov"] # Bug 1424154
@@ -157,7 +157,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 ["browser_dbg-editor-mode.js"]
 
 ["browser_dbg-editor-scroll.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_dbg-editor-select.js"]
 fail-if = ["a11y_checks"] # Bug 1870062 clicked element may not be focusable and/or labeled

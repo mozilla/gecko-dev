@@ -201,7 +201,7 @@ skip-if = ["os == 'win'"] # Bug 1393121
 skip-if = ["os == 'win'"] # Bug 1393121
 
 ["browser_dbg-search-file.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
+fail-if = ["!cm6 && a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 skip-if = ["os == 'win'"] # Bug 1393121
 
 ["browser_dbg-settings-disable-javascript.js"]
