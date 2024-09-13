@@ -169,7 +169,9 @@ class SettingsSubMenuAutofillRobot {
             phoneTextInput(),
             emailTextInput(),
         )
-        scrollToElementByText(getStringResource(R.string.addresses_save_button))
+        if (!saveButton().exists()) {
+            scrollToElementByText(getStringResource(R.string.addresses_save_button))
+        }
         assertUIObjectExists(
             saveButton(),
             cancelButton(),
@@ -207,6 +209,9 @@ class SettingsSubMenuAutofillRobot {
     }
 
     fun verifyEditAddressView() {
+        Log.i(TAG, "fillAndSaveAddress: Trying to click device back button to dismiss keyboard using device back button")
+        mDevice.pressBack()
+        Log.i(TAG, "fillAndSaveAddress: Clicked device back button to dismiss keyboard using device back button")
         assertUIObjectExists(
             editAddressToolbarTitle(),
             navigateBackButton(),
@@ -217,14 +222,18 @@ class SettingsSubMenuAutofillRobot {
             cityTextInput(),
             subRegionDropDown(),
         )
-        scrollToElementByText(getStringResource(R.string.addresses_country))
+        if (!countryDropDown().exists()) {
+            scrollToElementByText(getStringResource(R.string.addresses_country))
+        }
         assertUIObjectExists(
             zipCodeTextInput(),
             countryDropDown(),
             phoneTextInput(),
             emailTextInput(),
         )
-        scrollToElementByText(getStringResource(R.string.addresses_save_button))
+        if (!saveButton().exists()) {
+            scrollToElementByText(getStringResource(R.string.addresses_save_button))
+        }
         assertUIObjectExists(
             saveButton(),
             cancelButton(),
@@ -345,7 +354,9 @@ class SettingsSubMenuAutofillRobot {
         Log.i(TAG, "fillAndSaveAddress: Trying to click $country dropdown option")
         clickCountryOption(country)
         Log.i(TAG, "fillAndSaveAddress: Clicked $country dropdown option")
-        scrollToElementByText(getStringResource(R.string.addresses_save_button))
+        if (!saveButton().exists()) {
+            scrollToElementByText(getStringResource(R.string.addresses_save_button))
+        }
         Log.i(TAG, "fillAndSaveAddress: Trying to set \"Phone\" to $phoneNumber")
         phoneTextInput().setText(phoneNumber)
         Log.i(TAG, "fillAndSaveAddress: \"Phone\" was set to $phoneNumber")
