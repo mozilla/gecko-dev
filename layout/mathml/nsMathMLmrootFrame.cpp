@@ -129,64 +129,26 @@ void nsMathMLmrootFrame::GetRadicalXOffsets(nscoord aIndexWidth,
   if (aSqrOffset) *aSqrOffset = dxSqr;
 }
 
-void nsMathMLmrootFrame::Reflow(nsPresContext* aPresContext,
-                                ReflowOutput& aDesiredSize,
-                                const ReflowInput& aReflowInput,
-                                nsReflowStatus& aStatus) {
+nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
+                                   const PlaceFlags& aFlags,
+                                   ReflowOutput& aDesiredSize) {
   if (ShouldUseRowFallback()) {
-    ReportChildCountError();
-    nsMathMLContainerFrame::Reflow(aPresContext, aDesiredSize, aReflowInput,
-                                   aStatus);
-    return;
+    // report an error, encourage people to get their markups in order
+    if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
+      ReportChildCountError();
+    }
+    return PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
   }
-
-  MarkInReflow();
-  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
-
-  nsReflowStatus childStatus;
-  aDesiredSize.ClearSize();
-  aDesiredSize.SetBlockStartAscent(0);
 
   nsBoundingMetrics bmSqr, bmBase, bmIndex;
-  nsMargin baseMargin, indexMargin;
-  DrawTarget* drawTarget = aReflowInput.mRenderingContext->GetDrawTarget();
-
-  //////////////////
-  // Reflow Children
-
-  int32_t count = 0;
-  nsIFrame* baseFrame = nullptr;
-  nsIFrame* indexFrame = nullptr;
-  ReflowOutput baseSize(aReflowInput);
-  ReflowOutput indexSize(aReflowInput);
-  nsIFrame* childFrame = mFrames.FirstChild();
-  while (childFrame) {
-    // ask our children to compute their bounding metrics
-    ReflowOutput childDesiredSize(aReflowInput);
-    WritingMode wm = childFrame->GetWritingMode();
-    LogicalSize availSize = aReflowInput.ComputedSize(wm);
-    availSize.BSize(wm) = NS_UNCONSTRAINEDSIZE;
-    ReflowInput childReflowInput(aPresContext, aReflowInput, childFrame,
-                                 availSize);
-    ReflowChild(childFrame, aPresContext, childDesiredSize, childReflowInput,
-                childStatus);
-    // NS_ASSERTION(childStatus.IsComplete(), "bad status");
-    if (0 == count) {
-      // base
-      baseFrame = childFrame;
-      baseSize = childDesiredSize;
-      bmBase = childDesiredSize.mBoundingMetrics;
-      baseMargin = baseFrame->GetUsedMargin();
-    } else if (1 == count) {
-      // index
-      indexFrame = childFrame;
-      indexSize = childDesiredSize;
-      bmIndex = childDesiredSize.mBoundingMetrics;
-      indexMargin = indexFrame->GetUsedMargin();
-    }
-    count++;
-    childFrame = childFrame->GetNextSibling();
-  }
+  nsIFrame* baseFrame = mFrames.FirstChild();
+  nsIFrame* indexFrame = baseFrame->GetNextSibling();
+  nsMargin baseMargin = GetMarginForPlace(aFlags, baseFrame),
+           indexMargin = GetMarginForPlace(aFlags, indexFrame);
+  ReflowOutput baseSize(aDesiredSize.GetWritingMode());
+  ReflowOutput indexSize(aDesiredSize.GetWritingMode());
+  GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
+  GetReflowAndBoundingMetricsFor(indexFrame, indexSize, bmIndex);
 
   ////////////
   // Prepare the radical symbol and the overline bar
@@ -203,7 +165,7 @@ void nsMathMLmrootFrame::Reflow(nsPresContext* aPresContext,
   // p.131)
   char16_t one = '1';
   nsBoundingMetrics bmOne =
-      nsLayoutUtils::AppUnitBoundsOfString(&one, 1, *fm, drawTarget);
+      nsLayoutUtils::AppUnitBoundsOfString(&one, 1, *fm, aDrawTarget);
   if (bmOne.ascent > bmBase.ascent + baseMargin.top) {
     psi += bmOne.ascent - bmBase.ascent - baseMargin.top;
   }
@@ -228,13 +190,22 @@ void nsMathMLmrootFrame::Reflow(nsPresContext* aPresContext,
 
   // height(radical) should be >= height(base) + psi + ruleThickness
   nsBoundingMetrics radicalSize;
-  mSqrChar.Stretch(this, drawTarget, fontSizeInflation,
-                   NS_STRETCH_DIRECTION_VERTICAL, contSize, radicalSize,
-                   NS_STRETCH_LARGER,
-                   StyleVisibility()->mDirection == StyleDirection::Rtl);
-  // radicalSize have changed at this point, and should match with
-  // the bounding metrics of the char
-  mSqrChar.GetBoundingMetrics(bmSqr);
+  if (aFlags.contains(PlaceFlag::IntrinsicSize)) {
+    nscoord radical_width =
+        mSqrChar.GetMaxWidth(this, aDrawTarget, fontSizeInflation);
+    bmSqr.leftBearing = 0;
+    bmSqr.rightBearing = radical_width;
+    bmSqr.width = radical_width;
+    bmSqr.ascent = bmSqr.descent = 0;
+  } else {
+    mSqrChar.Stretch(this, aDrawTarget, fontSizeInflation,
+                     NS_STRETCH_DIRECTION_VERTICAL, contSize, radicalSize,
+                     NS_STRETCH_LARGER,
+                     StyleVisibility()->mDirection == StyleDirection::Rtl);
+    // radicalSize have changed at this point, and should match with
+    // the bounding metrics of the char
+    mSqrChar.GetBoundingMetrics(bmSqr);
+  }
 
   // Update the desired size for the container (like msqrt, index is not yet
   // included) the baseline will be that of the base.
@@ -305,92 +276,46 @@ void nsMathMLmrootFrame::Reflow(nsPresContext* aPresContext,
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
   // Add padding+border around the final layout.
-  auto borderPadding = GetUsedBorderAndPadding();
+  auto borderPadding = GetBorderPaddingForPlace(aFlags);
   InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
                                   mBoundingMetrics);
 
-  GatherAndStoreOverflow(&aDesiredSize);
+  if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
+    nsPresContext* presContext = PresContext();
+    // place the index
+    const bool isRTL = StyleVisibility()->mDirection == StyleDirection::Rtl;
+    nscoord borderPaddingInlineStart =
+        isRTL ? borderPadding.right : borderPadding.left;
+    nscoord dx = borderPaddingInlineStart + dxIndex +
+                 indexMargin.Side(isRTL ? eSideRight : eSideLeft);
+    nscoord dy =
+        aDesiredSize.BlockStartAscent() -
+        (indexRaisedAscent + indexSize.BlockStartAscent() - bmIndex.ascent);
+    FinishReflowChild(indexFrame, presContext, indexSize, nullptr,
+                      MirrorIfRTL(aDesiredSize.Width(), indexSize.Width(), dx),
+                      dy + indexMargin.top, ReflowChildFlags::Default);
 
-  // place the index
-  const bool isRTL = StyleVisibility()->mDirection == StyleDirection::Rtl;
-  nscoord borderPaddingInlineStart =
-      isRTL ? borderPadding.right : borderPadding.left;
-  nscoord dx = borderPaddingInlineStart + dxIndex +
-               indexMargin.Side(isRTL ? eSideRight : eSideLeft);
-  nscoord dy =
-      aDesiredSize.BlockStartAscent() -
-      (indexRaisedAscent + indexSize.BlockStartAscent() - bmIndex.ascent);
-  FinishReflowChild(indexFrame, aPresContext, indexSize, nullptr,
-                    MirrorIfRTL(aDesiredSize.Width(), indexSize.Width(), dx),
-                    dy + indexMargin.top, ReflowChildFlags::Default);
+    // place the radical symbol and the radical bar
+    dx = borderPaddingInlineStart + dxSqr;
+    dy = borderPadding.top + indexClearance +
+         leading;  // leave a leading at the top
+    mSqrChar.SetRect(nsRect(MirrorIfRTL(aDesiredSize.Width(), bmSqr.width, dx),
+                            dy, bmSqr.width, bmSqr.ascent + bmSqr.descent));
+    dx += bmSqr.width;
+    mBarRect.SetRect(MirrorIfRTL(aDesiredSize.Width(),
+                                 bmBase.width + baseMargin.LeftRight(), dx),
+                     dy, bmBase.width + baseMargin.LeftRight(), ruleThickness);
 
-  // place the radical symbol and the radical bar
-  dx = borderPaddingInlineStart + dxSqr;
-  dy = borderPadding.top + indexClearance +
-       leading;  // leave a leading at the top
-  mSqrChar.SetRect(nsRect(MirrorIfRTL(aDesiredSize.Width(), bmSqr.width, dx),
-                          dy, bmSqr.width, bmSqr.ascent + bmSqr.descent));
-  dx += bmSqr.width;
-  mBarRect.SetRect(MirrorIfRTL(aDesiredSize.Width(),
-                               bmBase.width + baseMargin.LeftRight(), dx),
-                   dy, bmBase.width + baseMargin.LeftRight(), ruleThickness);
-
-  // place the base
-  dx += isRTL ? baseMargin.right : baseMargin.left;
-  dy = aDesiredSize.BlockStartAscent() - baseSize.BlockStartAscent();
-  FinishReflowChild(baseFrame, aPresContext, baseSize, nullptr,
-                    MirrorIfRTL(aDesiredSize.Width(), baseSize.Width(), dx), dy,
-                    ReflowChildFlags::Default);
+    // place the base
+    dx += isRTL ? baseMargin.right : baseMargin.left;
+    dy = aDesiredSize.BlockStartAscent() - baseSize.BlockStartAscent();
+    FinishReflowChild(baseFrame, presContext, baseSize, nullptr,
+                      MirrorIfRTL(aDesiredSize.Width(), baseSize.Width(), dx),
+                      dy, ReflowChildFlags::Default);
+  }
 
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
-}
-
-/* virtual */
-nsresult nsMathMLmrootFrame::MeasureForWidth(DrawTarget* aDrawTarget,
-                                             ReflowOutput& aDesiredSize) {
-  const PlaceFlags flags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly);
-  if (ShouldUseRowFallback()) {
-    return PlaceAsMrow(aDrawTarget, flags, aDesiredSize);
-  }
-
-  // ShouldUseRowFallback() returned false so there are exactly two children.
-  nsIFrame* baseFrame = mFrames.FirstChild();
-  MOZ_ASSERT(baseFrame);
-  nsIFrame* indexFrame = baseFrame->GetNextSibling();
-  MOZ_ASSERT(indexFrame);
-  MOZ_ASSERT(!indexFrame->GetNextSibling());
-
-  nsBoundingMetrics bmBase, bmIndex;
-  ReflowOutput baseSize(aDesiredSize.GetWritingMode());
-  ReflowOutput indexSize(aDesiredSize.GetWritingMode());
-  float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
-  GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
-  GetReflowAndBoundingMetricsFor(indexFrame, indexSize, bmIndex);
-  nscoord baseMargin = baseFrame->IntrinsicISizeOffsets().margin,
-          indexMargin = indexFrame->IntrinsicISizeOffsets().margin;
-  nscoord sqrWidth = mSqrChar.GetMaxWidth(this, aDrawTarget, fontSizeInflation);
-
-  nscoord dxIndex, dxSqr;
-  RefPtr<nsFontMetrics> fm =
-      nsLayoutUtils::GetFontMetricsForFrame(this, fontSizeInflation);
-  GetRadicalXOffsets(bmIndex.width + indexMargin, sqrWidth, fm, &dxIndex,
-                     &dxSqr);
-
-  mBoundingMetrics.width = dxSqr + sqrWidth + bmBase.width + baseMargin;
-  mBoundingMetrics.leftBearing =
-      std::min(dxIndex + bmIndex.leftBearing + indexMargin, dxSqr);
-  mBoundingMetrics.rightBearing =
-      dxSqr + sqrWidth +
-      std::max(bmBase.width + baseMargin, bmBase.rightBearing + baseMargin);
-
-  aDesiredSize.Width() = mBoundingMetrics.width;
-  aDesiredSize.mBoundingMetrics = mBoundingMetrics;
-
-  // Add border+padding.
-  nsMargin borderPadding = GetBorderPaddingForPlace(flags);
-  InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
-                                  mBoundingMetrics);
 
   return NS_OK;
 }
