@@ -100,6 +100,7 @@ tags = "remotesettings searchmain"
 ["test_identifiers.js"]
 
 ["test_ignorelist.js"]
+support-files = ["data/search_ignorelist.json"]
 
 ["test_ignorelist_update.js"]
 
@@ -207,9 +208,6 @@ support-files = [
 ["test_settings_duplicate.js"]
 
 ["test_settings_good.js"]
-
-["test_settings_ignorelist.js"]
-support-files = ["data/search_ignorelist.json"]
 
 ["test_settings_migrate_id_format.js"]
 
