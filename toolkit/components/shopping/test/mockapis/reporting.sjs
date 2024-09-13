@@ -29,6 +29,7 @@ let gResponses = new Map(
     HIJKLMN456: { message: "already reported" },
     OPQRSTU789: { message: "not deleted" },
     VWXYZAB012: { message: "report created" },
+    NOCURADS00: { message: "report created" },
   })
 );
 

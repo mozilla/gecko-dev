@@ -23,6 +23,7 @@ let gResponses = new Map(
     HTTPERR503: { status: 503, error: "Service Unavailable" },
     HTTPERR429: { status: 429, error: "Too Many Requests" },
     VWXYZAB012: { needs_analysis: false, grade: "B", adjusted_rating: 4.1 },
+    NOCURADS00: { needs_analysis: false, grade: "B", adjusted_rating: 4.1 },
   })
 );
 
