@@ -122,6 +122,7 @@ tasks:
             android-x86_64-shippable: build-android-x86_64-shippable/opt
             android-arm-shippable: build-android-arm-shippable/opt
             android-aarch64-shippable: build-android-aarch64-shippable/opt
+        worker-type: b-linux-xlarge-gcp
         worker:
             env:
                 PERFHERDER_EXTRA_OPTIONS: android-geckoview-fat-aar-nightly
@@ -159,6 +160,7 @@ tasks:
             android-x86_64-shippable-lite: build-android-x86_64-shippable-lite/opt
             android-arm-shippable-lite: build-android-arm-shippable-lite/opt
             android-aarch64-shippable-lite: build-android-aarch64-shippable-lite/opt
+        worker-type: b-linux-xlarge-gcp
         worker:
             env:
                 PERFHERDER_EXTRA_OPTIONS: android-geckoview-fat-aar-nightly-lite
