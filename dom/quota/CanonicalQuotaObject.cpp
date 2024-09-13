@@ -11,6 +11,7 @@
 #include "mozilla/dom/StorageActivityService.h"
 #include "mozilla/dom/quota/AssertionsImpl.h"
 #include "mozilla/dom/quota/DirectoryLock.h"
+#include "mozilla/dom/quota/NotifyUtils.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "OriginInfo.h"
@@ -224,7 +225,7 @@ bool CanonicalQuotaObject::LockedMaybeUpdateSize(int64_t aSize,
 
       MutexAutoUnlock autoUnlock(quotaManager->mQuotaMutex);
 
-      quotaManager->NotifyStoragePressure(usage);
+      NotifyStoragePressure(*quotaManager, usage);
 
       return false;
     }

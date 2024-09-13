@@ -26,6 +26,7 @@
 #include "mozilla/dom/quota/DirectoryLockCategory.h"
 #include "mozilla/dom/quota/ForwardDecls.h"
 #include "mozilla/dom/quota/InitializationTypes.h"
+#include "mozilla/dom/quota/NotifyUtils.h"
 #include "mozilla/dom/quota/OriginOperationCallbacks.h"
 #include "mozilla/dom/quota/PersistenceType.h"
 #include "nsCOMPtr.h"
@@ -470,7 +471,7 @@ class QuotaManager final : public BackgroundThreadObject {
       client->StartIdleMaintenance();
     }
 
-    NotifyMaintenanceStarted();
+    NotifyMaintenanceStarted(*this);
   }
 
   void StopIdleMaintenance() {
@@ -483,6 +484,10 @@ class QuotaManager final : public BackgroundThreadObject {
 
   void AssertCurrentThreadOwnsQuotaMutex() {
     mQuotaMutex.AssertCurrentThreadOwns();
+  }
+
+  void AssertNotCurrentThreadOwnsQuotaMutex() {
+    mQuotaMutex.AssertNotCurrentThreadOwns();
   }
 
   nsIThread* IOThread() { return mIOThread->get(); }
@@ -524,10 +529,6 @@ class QuotaManager final : public BackgroundThreadObject {
 
   Maybe<FullOriginMetadata> GetFullOriginMetadata(
       const OriginMetadata& aOriginMetadata);
-
-  void NotifyStoragePressure(uint64_t aUsage);
-
-  void NotifyMaintenanceStarted();
 
   // Record a quota client shutdown step, if shutting down.
   // Assumes that the QuotaManager singleton is alive.

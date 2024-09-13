@@ -68,7 +68,6 @@
 #include "mozilla/Result.h"
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/ScopeExit.h"
-#include "mozilla/Services.h"
 #include "mozilla/SpinEventLoopUntil.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPtr.h"
@@ -141,7 +140,6 @@
 #include "nsIRunnable.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsISupports.h"
-#include "nsISupportsPrimitives.h"
 #include "nsIThread.h"
 #include "nsITimer.h"
 #include "nsIURI.h"
@@ -775,20 +773,6 @@ class CollectOriginsHelper final : public Runnable {
 /*******************************************************************************
  * Other class declarations
  ******************************************************************************/
-
-class StoragePressureRunnable final : public Runnable {
-  const uint64_t mUsage;
-
- public:
-  explicit StoragePressureRunnable(uint64_t aUsage)
-      : Runnable("dom::quota::QuotaObject::StoragePressureRunnable"),
-        mUsage(aUsage) {}
-
- private:
-  ~StoragePressureRunnable() = default;
-
-  NS_DECL_NSIRUNNABLE
-};
 
 class RecordTimeDeltaHelper final : public Runnable {
   const Telemetry::HistogramID mHistogram;
@@ -6075,29 +6059,6 @@ Maybe<FullOriginMetadata> QuotaManager::GetFullOriginMetadata(
   return Nothing();
 }
 
-void QuotaManager::NotifyStoragePressure(uint64_t aUsage) {
-  mQuotaMutex.AssertNotCurrentThreadOwns();
-
-  RefPtr<StoragePressureRunnable> storagePressureRunnable =
-      new StoragePressureRunnable(aUsage);
-
-  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(storagePressureRunnable));
-}
-
-void QuotaManager::NotifyMaintenanceStarted() {
-  AssertIsOnOwningThread();
-
-  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(NS_NewRunnableFunction(
-      "dom::quota::QuotaManager::NotifyMaintenanceStarted", []() {
-        nsCOMPtr<nsIObserverService> observerService =
-            mozilla::services::GetObserverService();
-        QM_TRY(MOZ_TO_RESULT(observerService), QM_VOID);
-
-        observerService->NotifyObservers(
-            nullptr, "QuotaManager::MaintenanceStarted", u"");
-      })));
-}
-
 // static
 void QuotaManager::GetStorageId(PersistenceType aPersistenceType,
                                 const nsACString& aOrigin,
@@ -6749,7 +6710,7 @@ void QuotaManager::CleanupTemporaryStorage() {
 
   if (mTemporaryStorageUsage > mTemporaryStorageLimit) {
     // If disk space is still low after origin clear, notify storage pressure.
-    NotifyStoragePressure(mTemporaryStorageUsage);
+    NotifyStoragePressure(*this, mTemporaryStorageUsage);
   }
 }
 
@@ -7072,28 +7033,6 @@ CollectOriginsHelper::Run() {
   mSizeToBeFreed = sizeToBeFreed;
   mWaiting = false;
   mCondVar.Notify();
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-StoragePressureRunnable::Run() {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
-  if (NS_WARN_IF(!obsSvc)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  nsCOMPtr<nsISupportsPRUint64> wrapper =
-      do_CreateInstance(NS_SUPPORTS_PRUINT64_CONTRACTID);
-  if (NS_WARN_IF(!wrapper)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  wrapper->SetData(mUsage);
-
-  obsSvc->NotifyObservers(wrapper, "QuotaManager::StoragePressure", u"");
 
   return NS_OK;
 }
