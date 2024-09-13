@@ -359,10 +359,7 @@ add_task(async function test_highlight_selection() {
     { gBrowser, url: "about:blank" },
     async function (browser) {
       await SpecialPowers.pushPrefEnv({
-        set: [
-          ["pdfjs.annotationEditorMode", 0],
-          ["pdfjs.enableHighlightEditor", true],
-        ],
+        set: [["pdfjs.annotationEditorMode", 0]],
       });
 
       await waitAndCheckEmptyContextMenu(browser);

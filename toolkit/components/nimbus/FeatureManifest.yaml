@@ -1525,12 +1525,6 @@ pdfjs:
   exposureDescription: >-
     Exposure is sent each time a pdf is displayed.
   variables:
-    addHighlight:
-      description: Set to true to highlight some text or something else in an existing pdf.
-      type: boolean
-      setPref:
-        branch: default
-        pref: pdfjs.enableHighlightEditor
     enableAltText:
       description: Set to true to enable alt text generation.
       type: boolean
