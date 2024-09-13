@@ -25,6 +25,14 @@ async function updateExpanded(dispatch, panelKey, newExpanded) {
   });
 }
 
+export function highlightEventListeners(panelKey, eventIds) {
+  return {
+    type: "HIGHLIGHT_EVENT_LISTENERS",
+    panelKey,
+    eventIds,
+  };
+}
+
 export function addEventListenerBreakpoints(panelKey, eventsToAdd) {
   return async ({ dispatch, client, getState }) => {
     const activeListenerBreakpoints = getActiveEventListeners(

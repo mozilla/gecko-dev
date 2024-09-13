@@ -60,6 +60,9 @@ function initialState(previousState = {}) {
     // List of DOM Events which should be show and be in `mutableFilteredTopTraces`
     activeDomEvents: [],
 
+    // List of DOM Events names to be highlighted in the left timeline
+    highlightedDomEvents: [],
+
     // Index of the currently selected trace within `mutableTraces`.
     selectedTraceIndex: null,
 
@@ -259,6 +262,28 @@ function update(state = initialState(), action) {
         ...state,
         mutableFilteredTopTraces,
         activeDomEvents: action.active,
+      };
+    }
+
+    case "HIGHLIGHT_EVENT_LISTENERS": {
+      // This action is also used for the DOM Event breakpoints panel
+      if (action.panelKey != "tracer") {
+        return state;
+      }
+
+      // Map ids (event.mouse.click) to event names (node.click)
+      const eventNames = [];
+      for (const [
+        eventName,
+        { id },
+      ] of state.domEventInfoByTracerName.entries()) {
+        if (action.eventIds.includes(id)) {
+          eventNames.push(eventName);
+        }
+      }
+      return {
+        ...state,
+        highlightedDomEvents: eventNames,
       };
     }
   }

@@ -62,6 +62,8 @@ exports[`EventListeners should render categories appropriately 1`] = `
       >
         <div
           className="event-listener-header"
+          onMouseOut={[Function]}
+          onMouseOver={[Function]}
         >
           <button
             className="event-listener-expand"
@@ -95,6 +97,8 @@ exports[`EventListeners should render categories appropriately 1`] = `
       >
         <div
           className="event-listener-header"
+          onMouseOut={[Function]}
+          onMouseOver={[Function]}
         >
           <button
             className="event-listener-expand"
@@ -159,6 +163,8 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
       >
         <div
           className="event-listener-header"
+          onMouseOut={[Function]}
+          onMouseOver={[Function]}
         >
           <button
             className="event-listener-expand"
@@ -189,6 +195,8 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
           <li
             className="event-listener-event"
             key="category1.subcategory1"
+            onMouseOut={[Function]}
+            onMouseOver={[Function]}
           >
             <label
               className="event-listener-label"
@@ -210,6 +218,8 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
           <li
             className="event-listener-event"
             key="category1.subcategory2"
+            onMouseOut={[Function]}
+            onMouseOver={[Function]}
           >
             <label
               className="event-listener-label"
@@ -236,6 +246,8 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
       >
         <div
           className="event-listener-header"
+          onMouseOut={[Function]}
+          onMouseOver={[Function]}
         >
           <button
             className="event-listener-expand"
@@ -300,6 +312,8 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
       >
         <div
           className="event-listener-header"
+          onMouseOut={[Function]}
+          onMouseOver={[Function]}
         >
           <button
             className="event-listener-expand"
@@ -333,6 +347,8 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
       >
         <div
           className="event-listener-header"
+          onMouseOut={[Function]}
+          onMouseOver={[Function]}
         >
           <button
             className="event-listener-expand"
@@ -363,6 +379,8 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
           <li
             className="event-listener-event"
             key="category2.subcategory1"
+            onMouseOut={[Function]}
+            onMouseOver={[Function]}
           >
             <label
               className="event-listener-label"
@@ -384,6 +402,8 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
           <li
             className="event-listener-event"
             key="category2.subcategory2"
+            onMouseOut={[Function]}
+            onMouseOver={[Function]}
           >
             <label
               className="event-listener-label"

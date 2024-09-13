@@ -253,6 +253,15 @@ class EventListeners extends Component {
     return div(
       {
         className: "event-listener-header",
+        onMouseOver: () => {
+          this.props.highlightEventListeners(
+            this.props.panelKey,
+            category.events.map(e => e.id)
+          );
+        },
+        onMouseOut: () => {
+          this.props.highlightEventListeners(this.props.panelKey, []);
+        },
       },
       button(
         {
@@ -343,6 +352,12 @@ class EventListeners extends Component {
       {
         className: "event-listener-event",
         key: event.id,
+        onMouseOver: () => {
+          this.props.highlightEventListeners(this.props.panelKey, [event.id]);
+        },
+        onMouseOut: () => {
+          this.props.highlightEventListeners(this.props.panelKey, []);
+        },
       },
       label(
         {
@@ -420,4 +435,5 @@ export default connect(mapStateToProps, {
   removeEventListeners: actions.removeEventListenerBreakpoints,
   addEventListenerExpanded: actions.addEventListenerExpanded,
   removeEventListenerExpanded: actions.removeEventListenerExpanded,
+  highlightEventListeners: actions.highlightEventListeners,
 })(EventListeners);

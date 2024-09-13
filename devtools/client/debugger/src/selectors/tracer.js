@@ -38,3 +38,6 @@ export function getTracerEventNames(state) {
 export function getTraceDomEvent(state) {
   return state.tracerFrames?.domEvents || new Set();
 }
+export function getTraceHighlightedDomEvents(state) {
+  return state.tracerFrames?.highlightedDomEvents || [];
+}

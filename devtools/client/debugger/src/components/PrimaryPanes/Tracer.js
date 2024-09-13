@@ -25,6 +25,7 @@ import {
   getAllTraceCount,
   getIsCurrentlyTracing,
   getRuntimeVersions,
+  getTraceHighlightedDomEvents,
 } from "../../selectors/index";
 const VirtualizedTree = require("resource://devtools/client/shared/components/VirtualizedTree.js");
 const FrameView = createFactory(
@@ -605,8 +606,14 @@ export class Tracer extends Component {
       }
       const eventName = trace[TRACER_FIELDS_INDEXES.EVENT_NAME];
       const eventType = getEventClassNameFromTraceEventName(eventName);
+
+      // Is it being highlighted when hovering a category of events or one specific event in the DOM events panel
+      const highlighted = this.props.highlightedDomEvents.includes(eventName);
+
       return div({
-        className: `tracer-slider-event ${eventType}`,
+        className: `tracer-slider-event ${eventType}${
+          highlighted ? " highlighted" : ""
+        }`,
         "data-trace-index": traceIndex,
         style: {
           top: `${eventPositionInPercent}%`,
@@ -878,6 +885,7 @@ const mapStateToProps = state => {
     traceCount: getAllTraceCount(state),
     selectedTraceIndex: getSelectedTraceIndex(state),
     runtimeVersions: getRuntimeVersions(state),
+    highlightedDomEvents: getTraceHighlightedDomEvents(state),
   };
 };
 

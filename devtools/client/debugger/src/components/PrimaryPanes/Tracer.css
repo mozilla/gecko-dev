@@ -334,8 +334,9 @@
   &.key {
     background-color: var(--tracer-key-event-color);
   }
-  &:hover {
+  &:hover, &.highlighted {
     background-color: var(--blue-30);
+    z-index: 8;
   }
 }
 
