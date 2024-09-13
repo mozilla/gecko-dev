@@ -18,6 +18,7 @@ import androidx.test.uiautomator.By.text
 import androidx.test.uiautomator.UiSelector
 import androidx.test.uiautomator.Until
 import org.junit.Assert.assertTrue
+import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.checkedItemWithResId
@@ -121,14 +122,7 @@ class SettingsSubMenuPrivateBrowsingRobot {
         Log.i(TAG, "addPrivateShortcutToHomescreen: Trying to click the \"Add private browsing shortcut\" button")
         addPrivateBrowsingShortcutButton().click()
         Log.i(TAG, "addPrivateShortcutToHomescreen: Clicked the \"Add private browsing shortcut\" button")
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Log.i(TAG, "addPrivateShortcutToHomescreen: Waiting for $waitingTime ms until finding the \"Add automatically\" button")
-            mDevice.wait(Until.findObject(By.textContains("add automatically")), waitingTime)
-            Log.i(TAG, "addPrivateShortcutToHomescreen: Waited for $waitingTime ms until the \"Add automatically\" button was found")
-            Log.i(TAG, "addPrivateShortcutToHomescreen: Trying to click the \"Add automatically\" button")
-            addAutomaticallyButton().click()
-            Log.i(TAG, "addPrivateShortcutToHomescreen: Clicked the \"Add automatically\" button")
-        }
+        clickSystemHomeScreenShortcutAddButton()
     }
 
     class Transition {

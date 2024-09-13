@@ -5,11 +5,11 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
-import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertExternalAppOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.Constants.PackageName.GOOGLE_DOCS
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper
@@ -95,7 +95,6 @@ class PDFViewerTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2284297
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun addPDFToHomeScreenTest() {
         navigationToolbar {
@@ -108,7 +107,7 @@ class PDFViewerTest : TestSetup() {
         }.openAddToHomeScreen {
             verifyShortcutTextFieldTitle(pdfFileName)
             clickAddShortcutButton()
-            clickAddAutomaticallyButton()
+            clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut(pdfFileName) {
             verifyUrl(pdfFileURL)
         }

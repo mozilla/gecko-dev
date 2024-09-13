@@ -6,7 +6,6 @@ package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
-import androidx.test.filters.SdkSuppress
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import org.junit.Rule
 import org.junit.Test
@@ -14,6 +13,7 @@ import org.mozilla.fenix.customannotations.SmokeTest
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertNativeAppOpens
 import org.mozilla.fenix.helpers.AppAndSystemHelper.assertYoutubeAppOpens
+import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.AppAndSystemHelper.runWithCondition
 import org.mozilla.fenix.helpers.Constants.PackageName.PRINT_SPOOLER
 import org.mozilla.fenix.helpers.DataGenerationHelper.generateRandomString
@@ -251,7 +251,6 @@ class MainMenuTest : TestSetup() {
 
     // Verifies the Add to home screen option in a tab's 3 dot menu
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/410724
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun addPageShortcutToHomeScreenTest() {
@@ -274,7 +273,7 @@ class MainMenuTest : TestSetup() {
             verifyShortcutTextFieldTitle("Test_Page_1")
             addShortcutName(shortcutTitle)
             clickAddShortcutButton()
-            clickAddAutomaticallyButton()
+            clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut(shortcutTitle) {
             verifyUrl(website.url.toString())
             verifyTabCounter("1")

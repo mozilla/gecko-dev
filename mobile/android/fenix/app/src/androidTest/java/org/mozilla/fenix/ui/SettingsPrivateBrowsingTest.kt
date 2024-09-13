@@ -5,10 +5,10 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
-import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.helpers.AppAndSystemHelper
+import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.DataGenerationHelper
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.TestAssetHelper
@@ -76,7 +76,6 @@ class SettingsPrivateBrowsingTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/555776
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun launchPageShortcutInPrivateBrowsingTest() {
         val defaultWebPage = TestAssetHelper.getGenericAsset(mockWebServer, 1)
@@ -89,7 +88,7 @@ class SettingsPrivateBrowsingTest : TestSetup() {
         }.openAddToHomeScreen {
             addShortcutName(pageShortcutName)
             clickAddShortcutButton()
-            clickAddAutomaticallyButton()
+            clickSystemHomeScreenShortcutAddButton()
             verifyShortcutAdded(pageShortcutName)
         }
 
@@ -120,7 +119,6 @@ class SettingsPrivateBrowsingTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/414583
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun addPrivateBrowsingShortcutFromSettingsTest() {
         homeScreen {

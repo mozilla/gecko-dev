@@ -48,6 +48,7 @@ import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
 import org.mozilla.fenix.helpers.Constants.PackageName.PIXEL_LAUNCHER
 import org.mozilla.fenix.helpers.Constants.PackageName.YOUTUBE_APP
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResId
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithResIdContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
@@ -60,6 +61,7 @@ import org.mozilla.fenix.ui.robots.BrowserRobot
 import org.mozilla.gecko.util.ThreadUtils
 import java.io.File
 import java.util.Locale
+import java.util.regex.Pattern
 
 object AppAndSystemHelper {
 
@@ -447,6 +449,38 @@ object AppAndSystemHelper {
         Log.i(TAG, "denyPermission: Trying to click the negative camera system permission button.")
         itemWithResId("com.android.permissioncontroller:id/permission_deny_button").click()
         Log.i(TAG, "denyPermission: Clicked the negative camera system permission button.")
+    }
+
+    fun clickSystemHomeScreenShortcutAddButton() {
+        when (Build.VERSION.SDK_INT) {
+            in Build.VERSION_CODES.O..Build.VERSION_CODES.R -> clickAddAutomaticallyButton()
+            in Build.VERSION_CODES.S..Build.VERSION_CODES.UPSIDE_DOWN_CAKE -> clickAddToHomeScreenButton()
+        }
+    }
+
+    fun clickAddAutomaticallyButton() {
+        Log.i(TAG, "clickAddAutomaticallyButton: Waiting for $waitingTime ms until finding \"Add automatically\" system dialog button")
+        mDevice.wait(
+            Until.findObject(
+                By.text(
+                    Pattern.compile("Add Automatically", Pattern.CASE_INSENSITIVE),
+                ),
+            ),
+            waitingTime,
+        )
+        Log.i(TAG, "clickAddAutomaticallyButton: Waited for $waitingTime ms until \"Add automatically\" system dialog button was found")
+        Log.i(TAG, "clickAddAutomaticallyButton: Trying to click \"Add automatically\" system dialog button")
+        itemContainingText("add automatically").click()
+        Log.i(TAG, "clickAddAutomaticallyButton: Clicked \"Add automatically\" system dialog button")
+    }
+
+    fun clickAddToHomeScreenButton() {
+        Log.i(TAG, "clickAddToHomeScreenButton: Waiting for $waitingTime ms for the \"Add to home screen\" system dialog button to exist")
+        itemContainingText("Add to home screen").waitForExists(waitingTime)
+        Log.i(TAG, "clickAddToHomeScreenButton: Waited for $waitingTime ms for the \"Add to home screen\" system dialog button to exist")
+        Log.i(TAG, "clickAddToHomeScreenButton: Trying to click the \"Add to home screen\" system dialog button and wait for $waitingTimeShort ms for a new window")
+        itemContainingText("Add to home screen").clickAndWaitForNewWindow(waitingTimeShort)
+        Log.i(TAG, "clickAddToHomeScreenButton: Clicked the \"Add to home screen\" system dialog button and wait for $waitingTimeShort ms for a new window")
     }
 
     fun isTestLab(): Boolean {

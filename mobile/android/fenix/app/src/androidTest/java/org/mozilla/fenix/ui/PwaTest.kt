@@ -5,10 +5,10 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
-import androidx.test.filters.SdkSuppress
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
+import org.mozilla.fenix.helpers.AppAndSystemHelper.clickSystemHomeScreenShortcutAddButton
 import org.mozilla.fenix.helpers.HomeActivityIntentTestRule
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeLong
@@ -32,7 +32,6 @@ class PwaTest : TestSetup() {
     val activityTestRule = HomeActivityIntentTestRule.withDefaultSettingsOverrides()
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/845695
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun externalLinkPWATest() {
         val externalLinkURL = "https://mozilla-mobile.github.io/testapp/downloads"
@@ -42,7 +41,7 @@ class PwaTest : TestSetup() {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openThreeDotMenu {
         }.clickInstall {
-            clickAddAutomaticallyButton()
+            clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut(shortcutTitle) {
             clickPageObject(itemContainingText("External link"))
         }
@@ -53,7 +52,6 @@ class PwaTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/845694
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun appLikeExperiencePWATest() {
         navigationToolbar {
@@ -61,7 +59,7 @@ class PwaTest : TestSetup() {
             waitForPageToLoad(pageLoadWaitingTime = waitingTimeLong)
         }.openThreeDotMenu {
         }.clickInstall {
-            clickAddAutomaticallyButton()
+            clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut(shortcutTitle) {
         }
 
@@ -72,7 +70,6 @@ class PwaTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/834200
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun installPWAFromTheMainMenuTest() {
@@ -83,7 +80,7 @@ class PwaTest : TestSetup() {
             verifyPageContent("Login Form")
         }.openThreeDotMenu {
         }.clickInstall {
-            clickAddAutomaticallyButton()
+            clickSystemHomeScreenShortcutAddButton()
         }.openHomeScreenShortcut("TEST_APP") {
             mDevice.waitForIdle()
             verifyNavURLBarHidden()
