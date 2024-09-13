@@ -153,7 +153,7 @@ void WarpRest::dumpData(GenericPrinter& out) const {
   out.printf("    shape: 0x%p\n", shape());
 }
 
-void WarpBindGName::dumpData(GenericPrinter& out) const {
+void WarpBindUnqualifiedGName::dumpData(GenericPrinter& out) const {
   out.printf("    globalEnv: 0x%p\n", globalEnv());
 }
 
@@ -291,8 +291,8 @@ void WarpRest::traceData(JSTracer* trc) {
   TraceWarpGCPtr(trc, shape_, "warp-rest-shape");
 }
 
-void WarpBindGName::traceData(JSTracer* trc) {
-  TraceWarpGCPtr(trc, globalEnv_, "warp-bindgname-globalenv");
+void WarpBindUnqualifiedGName::traceData(JSTracer* trc) {
+  TraceWarpGCPtr(trc, globalEnv_, "warp-bindunqualifiedgname-globalenv");
 }
 
 void WarpVarEnvironment::traceData(JSTracer* trc) {

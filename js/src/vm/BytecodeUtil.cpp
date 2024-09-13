@@ -1975,7 +1975,7 @@ bool ExpressionDecompiler::decompilePC(jsbytecode* pc, uint8_t defIndex) {
         return write("arguments[") && decompilePCForStackOperand(pc, -1) &&
                write("]");
 
-      case JSOp::BindGName:
+      case JSOp::BindUnqualifiedGName:
         return write("GLOBAL");
 
       case JSOp::BindName:

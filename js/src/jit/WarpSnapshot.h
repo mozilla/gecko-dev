@@ -40,7 +40,7 @@ class WarpScriptSnapshot;
   _(WarpGetIntrinsic)            \
   _(WarpGetImport)               \
   _(WarpRest)                    \
-  _(WarpBindGName)               \
+  _(WarpBindUnqualifiedGName)    \
   _(WarpVarEnvironment)          \
   _(WarpLexicalEnvironment)      \
   _(WarpClassBodyEnvironment)    \
@@ -390,14 +390,14 @@ class WarpRest : public WarpOpSnapshot {
 #endif
 };
 
-// Global environment for BindGName
-class WarpBindGName : public WarpOpSnapshot {
+// Global environment for BindUnqualifiedGName
+class WarpBindUnqualifiedGName : public WarpOpSnapshot {
   WarpGCPtr<JSObject*> globalEnv_;
 
  public:
-  static constexpr Kind ThisKind = Kind::WarpBindGName;
+  static constexpr Kind ThisKind = Kind::WarpBindUnqualifiedGName;
 
-  WarpBindGName(uint32_t offset, JSObject* globalEnv)
+  WarpBindUnqualifiedGName(uint32_t offset, JSObject* globalEnv)
       : WarpOpSnapshot(ThisKind, offset), globalEnv_(globalEnv) {}
 
   JSObject* globalEnv() const { return globalEnv_; }

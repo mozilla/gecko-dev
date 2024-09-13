@@ -1602,9 +1602,9 @@ static bool BytecodeIsEffectful(JSScript* script, size_t offset) {
     case JSOp::GetName:
     case JSOp::GetIntrinsic:
     case JSOp::GetImport:
-    case JSOp::BindGName:
     case JSOp::BindName:
     case JSOp::BindUnqualifiedName:
+    case JSOp::BindUnqualifiedGName:
     case JSOp::BindVar:
     case JSOp::Dup:
     case JSOp::Dup2:

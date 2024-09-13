@@ -4389,9 +4389,8 @@ bool js::AnalyzeEntrainedVariables(JSContext* cx, HandleScript script) {
 }
 #endif
 
-JSObject* js::MaybeOptimizeBindGlobalName(JSContext* cx,
-                                          Handle<GlobalObject*> global,
-                                          Handle<PropertyName*> name) {
+JSObject* js::MaybeOptimizeBindUnqualifiedGlobalName(
+    JSContext* cx, Handle<GlobalObject*> global, Handle<PropertyName*> name) {
   // We can bind name to the global lexical scope if the binding already
   // exists, is initialized, and is writable (i.e., an initialized
   // 'let') at compile time.

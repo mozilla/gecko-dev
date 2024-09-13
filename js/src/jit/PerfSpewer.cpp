@@ -592,7 +592,7 @@ void BaselinePerfSpewer::recordInstruction(JSContext* cx, MacroAssembler& masm,
       case JSOp::SetGName:
       case JSOp::BindName:
       case JSOp::BindUnqualifiedName:
-      case JSOp::BindGName:
+      case JSOp::BindUnqualifiedGName:
       case JSOp::GetName:
       case JSOp::GetGName: {
         // Emit the name used for these ops

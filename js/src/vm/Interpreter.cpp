@@ -2710,7 +2710,7 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     }
     END_CASE(Unpick)
 
-    CASE(BindGName)
+    CASE(BindUnqualifiedGName)
     CASE(BindUnqualifiedName) {
       JSOp op = JSOp(*REGS.pc);
       ReservedRooted<JSObject*> envChain(&rootObject0);
@@ -2730,8 +2730,9 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
 
       PUSH_OBJECT(*env);
 
-      static_assert(JSOpLength_BindUnqualifiedName == JSOpLength_BindGName,
-                    "We're sharing the END_CASE so the lengths better match");
+      static_assert(
+          JSOpLength_BindUnqualifiedName == JSOpLength_BindUnqualifiedGName,
+          "We're sharing the END_CASE so the lengths better match");
     }
     END_CASE(BindUnqualifiedName)
 

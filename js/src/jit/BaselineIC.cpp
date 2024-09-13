@@ -329,7 +329,7 @@ class MOZ_STATIC_CLASS OpToFallbackKindTable {
 
     setKind(JSOp::BindName, BaselineICFallbackKind::BindName);
     setKind(JSOp::BindUnqualifiedName, BaselineICFallbackKind::BindName);
-    setKind(JSOp::BindGName, BaselineICFallbackKind::BindName);
+    setKind(JSOp::BindUnqualifiedGName, BaselineICFallbackKind::BindName);
 
     setKind(JSOp::GetIntrinsic, BaselineICFallbackKind::GetIntrinsic);
 
@@ -1194,7 +1194,7 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
   FallbackICSpew(cx, stub, "BindName(%s)", CodeName(JSOp(*pc)));
 
   MOZ_ASSERT(op == JSOp::BindName || op == JSOp::BindUnqualifiedName ||
-             op == JSOp::BindGName);
+             op == JSOp::BindUnqualifiedGName);
 
   Rooted<PropertyName*> name(cx, frame->script()->getName(pc));
 

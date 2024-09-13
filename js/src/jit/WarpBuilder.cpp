@@ -1951,10 +1951,10 @@ bool WarpBuilder::build_BindUnqualifiedName(BytecodeLocation loc) {
   return buildIC(loc, CacheKind::BindName, {env});
 }
 
-bool WarpBuilder::build_BindGName(BytecodeLocation loc) {
+bool WarpBuilder::build_BindUnqualifiedGName(BytecodeLocation loc) {
   MOZ_ASSERT(!script_->hasNonSyntacticScope());
 
-  if (const auto* snapshot = getOpSnapshot<WarpBindGName>(loc)) {
+  if (const auto* snapshot = getOpSnapshot<WarpBindUnqualifiedGName>(loc)) {
     JSObject* globalEnv = snapshot->globalEnv();
     pushConstant(ObjectValue(*globalEnv));
     return true;

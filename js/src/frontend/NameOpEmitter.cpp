@@ -261,14 +261,14 @@ bool NameOpEmitter::prepareForRhs() {
 
       if (loc_.isLexical() && isInitialize()) {
         // InitGLexical always gets the global lexical scope. It doesn't
-        // need a BindName/BindGName.
+        // need a BindUnqualifiedName/BindUnqualifiedGName.
         MOZ_ASSERT(bce_->innermostScope().is<GlobalScope>());
       } else {
         JSOp op;
         if (bce_->sc->hasNonSyntacticScope()) {
           op = JSOp::BindUnqualifiedName;
         } else {
-          op = JSOp::BindGName;
+          op = JSOp::BindUnqualifiedGName;
         }
         if (!bce_->emitAtomOp(op, atomIndex_)) {
           //        [stack] ENV

@@ -396,7 +396,7 @@ JSObject* IonBindNameIC::update(JSContext* cx, HandleScript outerScript,
   jsbytecode* pc = ic->pc();
   JSOp op = JSOp(*pc);
   MOZ_ASSERT(op == JSOp::BindName || op == JSOp::BindUnqualifiedName ||
-             op == JSOp::BindGName);
+             op == JSOp::BindUnqualifiedGName);
 
   Rooted<PropertyName*> name(cx, ic->script()->getName(pc));
 

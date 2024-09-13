@@ -2863,7 +2863,7 @@
      *   Operands: uint32_t nameIndex
      *   Stack: => global
      */ \
-    MACRO(BindGName, bind_g_name, NULL, 5, 0, 1, JOF_ATOM|JOF_GNAME|JOF_IC) \
+    MACRO(BindUnqualifiedGName, bind_unqualified_g_name, NULL, 5, 0, 1, JOF_ATOM|JOF_GNAME|JOF_IC) \
     /*
      * Look up an unqualified name on the environment chain and push the
      * environment which contains a binding for that name. If no such binding
@@ -3153,7 +3153,7 @@
     MACRO(StrictSetName, strict_set_name, NULL, 5, 2, 1, JOF_ATOM|JOF_PROPSET|JOF_CHECKSTRICT|JOF_IC|JOF_USES_ENV) \
     /*
      * Like `JSOp::SetName`, but for assigning to globals. `env` must be an
-     * environment pushed by `JSOp::BindGName`.
+     * environment pushed by `JSOp::BindUnqualifiedGName`.
      *
      *   Category: Variables and scopes
      *   Type: Setting binding values
@@ -3163,7 +3163,7 @@
     MACRO(SetGName, set_g_name, NULL, 5, 2, 1, JOF_ATOM|JOF_PROPSET|JOF_GNAME|JOF_CHECKSLOPPY|JOF_IC) \
     /*
      * Like `JSOp::StrictSetGName`, but for assigning to globals. `env` must be
-     * an environment pushed by `JSOp::BindGName`.
+     * an environment pushed by `JSOp::BindUnqualifiedGName`.
      *
      *   Category: Variables and scopes
      *   Type: Setting binding values

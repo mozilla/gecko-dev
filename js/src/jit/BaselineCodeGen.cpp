@@ -3245,13 +3245,14 @@ bool BaselineCodeGen<Handler>::emit_GetGName() {
 }
 
 template <>
-bool BaselineCompilerCodeGen::tryOptimizeBindGlobalName() {
+bool BaselineCompilerCodeGen::tryOptimizeBindUnqualifiedGlobalName() {
   JSScript* script = handler.script();
   MOZ_ASSERT(!script->hasNonSyntacticScope());
 
   Rooted<GlobalObject*> global(cx, &script->global());
   Rooted<PropertyName*> name(cx, script->getName(handler.pc()));
-  if (JSObject* binding = MaybeOptimizeBindGlobalName(cx, global, name)) {
+  if (JSObject* binding =
+          MaybeOptimizeBindUnqualifiedGlobalName(cx, global, name)) {
     frame.push(ObjectValue(*binding));
     return true;
   }
@@ -3259,14 +3260,14 @@ bool BaselineCompilerCodeGen::tryOptimizeBindGlobalName() {
 }
 
 template <>
-bool BaselineInterpreterCodeGen::tryOptimizeBindGlobalName() {
-  // Interpreter doesn't optimize simple BindGNames.
+bool BaselineInterpreterCodeGen::tryOptimizeBindUnqualifiedGlobalName() {
+  // Interpreter doesn't optimize simple BindUnqualifiedGNames.
   return false;
 }
 
 template <typename Handler>
-bool BaselineCodeGen<Handler>::emit_BindGName() {
-  if (tryOptimizeBindGlobalName()) {
+bool BaselineCodeGen<Handler>::emit_BindUnqualifiedGName() {
+  if (tryOptimizeBindUnqualifiedGlobalName()) {
     return true;
   }
 
