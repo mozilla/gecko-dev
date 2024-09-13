@@ -80,6 +80,8 @@ support-files = [
   "waveformatextensible.wav",
   "waveformatextensiblebadmask.wav",
   "sixteen-frames.mp3", # only 16 frames of valid audio
+  "8ch-f32le.wav",
+  "8ch-s16.wav",
   "../../webrtc/tests/mochitests/mediaStreamPlayback.js",
   "../../webrtc/tests/mochitests/head.js",
 ]

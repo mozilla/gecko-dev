@@ -115,7 +115,7 @@
   // we do fixed-point resampling as opposed to floating-point resampling on
   // those platforms.
   // If fuzzMagnitude, is present, is the maximum magnitude difference, per
-  // sample, to consider two samples are identical. It is multiplied by the 
+  // sample, to consider two samples are identical. It is multiplied by the
   // maximum value a sample, in our case INT16_MAX. This allows checking files
   // that should be identical except one has e.g. a higher quantization noise.
   var files = [
@@ -245,6 +245,18 @@
       sampleRate: 8000,
       frames: 80,
       duration: 0.01
+    },
+    {
+      // A wav file that has 8 channels, in f32le
+      url: "8ch-f32le.wav",
+      expectedUrl: "8ch-s16.wav", // similar enough
+      valid: true,
+      numberOfChannels: 8,
+      frames: 4800,
+      sampleRate: 48000,
+      duration: 0.1,
+      // Only compare decoded audio: the headers are different between the two files
+      compareDecoded: true
     }
   ];
 
@@ -283,7 +295,7 @@
     return true;
   }
 
-  function checkAudioBuffer(buffer, test) {
+  async function checkAudioBuffer(buffer, test) {
     if (buffer.numberOfChannels != test.numberOfChannels) {
       is(buffer.numberOfChannels, test.numberOfChannels, "Correct number of channels");
       return;
@@ -296,8 +308,12 @@
     is(buffer.length, test.frames, "Correct length");
 
     var wave = createWaveFileData(buffer);
-    if (test.expectedWaveData) {
+    if (test.expectedWaveData && !test.compareDecoded) {
       ok(fuzzyMemcmp(wave, test.expectedWaveData, getFuzzTolerance(test)), "Received expected decoded data for " + test.url);
+    } else if (test.compareDecoded) {
+      var off = new OfflineAudioContext(1, 1, buffer.sampleRate);
+      var decodedReference = await off.decodeAudioData(test.expectedWaveData.buffer);
+      compareBuffers(buffer, decodedReference);
     }
   }
 
@@ -368,11 +384,11 @@
     var expectCallback = false;
     var cx = new OfflineAudioContext(test.numberOfChannels || 1,
       test.frames || 1, test.sampleRate);
-    cx.decodeAudioData(response, function onSuccess(asyncResult) {
+    cx.decodeAudioData(response, async function onSuccess(asyncResult) {
       ok(expectCallback, "Success callback should fire asynchronously");
       ok(test.valid, "Did expect success for test " + test.url);
 
-      checkAudioBuffer(asyncResult, test);
+      await checkAudioBuffer(asyncResult, test);
 
       test.expectedBuffer = asyncResult;
       test.nativeContext = cx;
