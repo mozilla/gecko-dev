@@ -34,10 +34,6 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
     return TransmitAutomaticDataForMrowLikeElement();
   }
 
-  virtual void Reflow(nsPresContext* aPresContext, ReflowOutput& aDesiredSize,
-                      const ReflowInput& aReflowInput,
-                      nsReflowStatus& aStatus) override;
-
   nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
                  ReflowOutput& aDesiredSize) override;
 
@@ -51,9 +47,6 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
       : nsMathMLContainerFrame(aStyle, aPresContext, kClassID) {}
 
   virtual ~nsMathMLmpaddedFrame();
-
-  virtual nsresult MeasureForWidth(DrawTarget* aDrawTarget,
-                                   ReflowOutput& aDesiredSize) override;
 
  private:
   struct Attribute {
@@ -73,13 +66,19 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
     nsCSSValue mValue;
     Sign mSign = Sign::Unspecified;
     PseudoUnit mPseudoUnit = PseudoUnit::Unspecified;
-    bool mIsValid = false;
+    enum class ParsingState : uint8_t {
+      Valid,
+      Invalid,
+      Dirty,
+    };
+    ParsingState mState = ParsingState::Dirty;
     void Reset() {
       mValue.Reset();
       mSign = Sign::Unspecified;
       mPseudoUnit = PseudoUnit::Unspecified;
-      mIsValid = false;
+      mState = ParsingState::Dirty;
     }
+    bool IsValid() const { return mState == ParsingState::Valid; }
   };
 
   Attribute mWidth;
@@ -88,9 +87,8 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
   Attribute mLeadingSpace;
   Attribute mVerticalOffset;
 
-  // helpers to process the attributes
-  void ProcessAttributes();
-
+  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+                            int32_t aModType) final;
   void ParseAttribute(nsAtom* aAtom, Attribute& aAttribute);
   bool ParseAttribute(nsString& aString, Attribute& aAttribute);
 

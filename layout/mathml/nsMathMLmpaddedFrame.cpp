@@ -39,18 +39,49 @@ nsMathMLmpaddedFrame::InheritAutomaticData(nsIFrame* aParent) {
   return NS_OK;
 }
 
-void nsMathMLmpaddedFrame::ProcessAttributes() {
-  ParseAttribute(nsGkAtoms::width, mWidth);
-  ParseAttribute(nsGkAtoms::height, mHeight);
-  ParseAttribute(nsGkAtoms::depth_, mDepth);
-  ParseAttribute(nsGkAtoms::lspace_, mLeadingSpace);
-  ParseAttribute(nsGkAtoms::voffset_, mVerticalOffset);
+nsresult nsMathMLmpaddedFrame::AttributeChanged(int32_t aNameSpaceID,
+                                                nsAtom* aAttribute,
+                                                int32_t aModType) {
+  if (aNameSpaceID == kNameSpaceID_None) {
+    bool hasDirtyAttributes = false;
+    if (aAttribute == nsGkAtoms::width) {
+      mWidth.mState = Attribute::ParsingState::Dirty;
+      hasDirtyAttributes = true;
+    } else if (aAttribute == nsGkAtoms::height) {
+      mHeight.mState = Attribute::ParsingState::Dirty;
+      hasDirtyAttributes = true;
+    } else if (aAttribute == nsGkAtoms::depth_) {
+      mDepth.mState = Attribute::ParsingState::Dirty;
+      hasDirtyAttributes = true;
+    } else if (aAttribute == nsGkAtoms::lspace_) {
+      mLeadingSpace.mState = Attribute::ParsingState::Dirty;
+      hasDirtyAttributes = true;
+    } else if (aAttribute == nsGkAtoms::voffset_) {
+      mVerticalOffset.mState = Attribute::ParsingState::Dirty;
+      hasDirtyAttributes = true;
+    }
+    if (hasDirtyAttributes) {
+      InvalidateFrame();
+      // TODO(bug 1918308): This was copied from nsMathMLContainerFrame and
+      // seems necessary for some invalidation tests, but we can probably do
+      // less.
+      PresShell()->FrameNeedsReflow(
+          this, IntrinsicDirty::FrameAncestorsAndDescendants,
+          NS_FRAME_IS_DIRTY);
+    }
+    return NS_OK;
+  }
+  return nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
+                                                  aModType);
 }
 
 void nsMathMLmpaddedFrame::ParseAttribute(nsAtom* aAtom,
                                           Attribute& aAttribute) {
+  if (aAttribute.mState != Attribute::ParsingState::Dirty) {
+    return;
+  }
   nsAutoString value;
-  aAttribute.mIsValid = false;
+  aAttribute.mState = Attribute::ParsingState::Invalid;
   mContent->AsElement()->GetAttr(aAtom, value);
   if (!value.IsEmpty()) {
     if (!ParseAttribute(value, aAttribute)) {
@@ -63,6 +94,7 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
                                           Attribute& aAttribute) {
   // See https://www.w3.org/TR/MathML3/chapter3.html#presm.mpaddedatt
   aAttribute.Reset();
+  aAttribute.mState = Attribute::ParsingState::Invalid;
 
   aString.CompressWhitespace();  // aString is not a const in this code
 
@@ -129,7 +161,7 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
       // case ["+"|"-"] unsigned-number "%"
       aAttribute.mValue.SetPercentValue(floatValue / 100.0f);
       aAttribute.mPseudoUnit = Attribute::PseudoUnit::ItSelf;
-      aAttribute.mIsValid = true;
+      aAttribute.mState = Attribute::ParsingState::Valid;
       return true;
     } else {
       // case ["+"|"-"] unsigned-number
@@ -137,7 +169,7 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
       if (!floatValue) {
         aAttribute.mValue.SetFloatValue(floatValue, eCSSUnit_Number);
         aAttribute.mPseudoUnit = Attribute::PseudoUnit::ItSelf;
-        aAttribute.mIsValid = true;
+        aAttribute.mState = Attribute::ParsingState::Valid;
         return true;
       }
     }
@@ -157,7 +189,7 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
       floatValue *= aAttribute.mValue.GetFloatValue();
       aAttribute.mValue.SetFloatValue(floatValue, eCSSUnit_EM);
       aAttribute.mPseudoUnit = Attribute::PseudoUnit::NamedSpace;
-      aAttribute.mIsValid = true;
+      aAttribute.mState = Attribute::ParsingState::Valid;
       return true;
     }
 
@@ -168,7 +200,7 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
     if (dom::MathMLElement::ParseNumericValue(
             number, aAttribute.mValue,
             dom::MathMLElement::PARSE_SUPPRESS_WARNINGS, nullptr)) {
-      aAttribute.mIsValid = true;
+      aAttribute.mState = Attribute::ParsingState::Valid;
       return true;
     }
   }
@@ -181,7 +213,7 @@ bool nsMathMLmpaddedFrame::ParseAttribute(nsString& aString,
     else
       aAttribute.mValue.SetFloatValue(floatValue, eCSSUnit_Number);
 
-    aAttribute.mIsValid = true;
+    aAttribute.mState = Attribute::ParsingState::Valid;
     return true;
   }
 
@@ -199,7 +231,7 @@ void nsMathMLmpaddedFrame::UpdateValue(const Attribute& aAttribute,
                                        nscoord& aValueToUpdate,
                                        float aFontSizeInflation) const {
   nsCSSUnit unit = aAttribute.mValue.GetUnit();
-  if (aAttribute.mIsValid && eCSSUnit_Null != unit) {
+  if (aAttribute.IsValid() && eCSSUnit_Null != unit) {
     nscoord scaler = 0, amount = 0;
 
     if (eCSSUnit_Percent == unit || eCSSUnit_Number == unit) {
@@ -252,21 +284,6 @@ void nsMathMLmpaddedFrame::UpdateValue(const Attribute& aAttribute,
   }
 }
 
-void nsMathMLmpaddedFrame::Reflow(nsPresContext* aPresContext,
-                                  ReflowOutput& aDesiredSize,
-                                  const ReflowInput& aReflowInput,
-                                  nsReflowStatus& aStatus) {
-  MOZ_ASSERT(aStatus.IsEmpty(), "Caller should pass a fresh reflow status!");
-
-  ProcessAttributes();
-
-  ///////////////
-  // Let the base class format our content like an inferred mrow
-  nsMathMLContainerFrame::Reflow(aPresContext, aDesiredSize, aReflowInput,
-                                 aStatus);
-  // NS_ASSERTION(aStatus.IsComplete(), "bad status");
-}
-
 /* virtual */
 nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget,
                                      const PlaceFlags& aFlags,
@@ -314,27 +331,32 @@ nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget,
   float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
 
   // update width
+  ParseAttribute(nsGkAtoms::width, mWidth);
   UpdateValue(mWidth, Attribute::PseudoUnit::Width, aDesiredSize, width,
               fontSizeInflation);
   width = std::max(0, width);
 
   // update "height" (this is the ascent in the terminology of the REC)
+  ParseAttribute(nsGkAtoms::height, mHeight);
   UpdateValue(mHeight, Attribute::PseudoUnit::Height, aDesiredSize, height,
               fontSizeInflation);
   height = std::max(0, height);
 
   // update "depth" (this is the descent in the terminology of the REC)
+  ParseAttribute(nsGkAtoms::depth_, mDepth);
   UpdateValue(mDepth, Attribute::PseudoUnit::Depth, aDesiredSize, depth,
               fontSizeInflation);
   depth = std::max(0, depth);
 
   // update lspace
+  ParseAttribute(nsGkAtoms::lspace_, mLeadingSpace);
   if (mLeadingSpace.mPseudoUnit != Attribute::PseudoUnit::ItSelf) {
     UpdateValue(mLeadingSpace, Attribute::PseudoUnit::Unspecified, aDesiredSize,
                 lspace, fontSizeInflation);
   }
 
   // update voffset
+  ParseAttribute(nsGkAtoms::voffset_, mVerticalOffset);
   if (mVerticalOffset.mPseudoUnit != Attribute::PseudoUnit::ItSelf) {
     UpdateValue(mVerticalOffset, Attribute::PseudoUnit::Unspecified,
                 aDesiredSize, voffset, fontSizeInflation);
@@ -347,13 +369,13 @@ nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget,
   // desired visual effects.
 
   const bool isRTL = StyleVisibility()->mDirection == StyleDirection::Rtl;
-  if (isRTL ? mWidth.mIsValid : mLeadingSpace.mIsValid) {
+  if (isRTL ? mWidth.IsValid() : mLeadingSpace.IsValid()) {
     // there was padding on the left. dismiss the left italic correction now
     // (so that our parent won't correct us)
     mBoundingMetrics.leftBearing = 0;
   }
 
-  if (isRTL ? mLeadingSpace.mIsValid : mWidth.mIsValid) {
+  if (isRTL ? mLeadingSpace.IsValid() : mWidth.IsValid()) {
     // there was padding on the right. dismiss the right italic correction now
     // (so that our parent won't correct us)
     mBoundingMetrics.width = width;
@@ -384,12 +406,4 @@ nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget,
   }
 
   return NS_OK;
-}
-
-/* virtual */
-nsresult nsMathMLmpaddedFrame::MeasureForWidth(DrawTarget* aDrawTarget,
-                                               ReflowOutput& aDesiredSize) {
-  ProcessAttributes();
-  PlaceFlags flags(PlaceFlag::IntrinsicSize, PlaceFlag::MeasureOnly);
-  return Place(aDrawTarget, flags, aDesiredSize);
 }
