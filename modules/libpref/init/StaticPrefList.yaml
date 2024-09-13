@@ -13667,9 +13667,8 @@
 # Use NSPR for HTTP3 UDP IO
 - name: network.http.http3.use_nspr_for_io
   type: RelaxedAtomicBool
-# Always use NSPR on Android x86. On Android x86 sendmsg and recvmmsg, both used
-# by quinn-udp, are disallowed by seccomp. Future fix and further details
-# tracked in https://github.com/quinn-rs/quinn/issues/1947.
+# Always use NSPR on Android x86 until
+# https://bugzilla.mozilla.org/show_bug.cgi?id=1916412 is fixed.
 #if defined(ANDROID) && !defined(HAVE_64BIT_BUILD)
   value: true
 #else
@@ -13681,7 +13680,12 @@
 # true.
 - name: network.http.http3.ecn
   type: RelaxedAtomicBool
+# See network.http.http3.use_nspr_for_io above.
+#if defined(ANDROID) && !defined(HAVE_64BIT_BUILD)
   value: false
+#else
+  value: @IS_NIGHTLY_BUILD@
+#endif
   mirror: always
   rust: true
 
