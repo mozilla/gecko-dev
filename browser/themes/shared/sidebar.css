@@ -2,14 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-@namespace html url("http://www.w3.org/1999/xhtml");
-
-:root {
-  --sidebar-background-color: -moz-sidebar;
-  --sidebar-text-color: -moz-sidebartext;
-  --sidebar-border-color: var(--lwt-sidebar-border-color, -moz-sidebarborder);
-}
-
 #sidebar-main {
   background-color: var(--toolbar-bgcolor);
   color: var(--toolbar-color);

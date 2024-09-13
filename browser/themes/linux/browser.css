@@ -6,11 +6,7 @@
 @import url("chrome://browser/skin/contextmenu.css");
 
 /**
- * We intentionally do not include browser-custom-colors.css, instead choosing to
- * fall back to system colors and transparencies in order to accommodate the
- * wider variety of GTK system themes.
- *
- * We still want to do some of the tweaks that browser-custom-colors does, like
+ * We still want to do some of the tweaks that browser-colors does, like
  * disabling the toolbar field border and backgrounds.
  */
 @media not (prefers-contrast) {

@@ -3,8 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 @import url("chrome://browser/skin/browser-shared.css");
-/* stylelint-disable-next-line media-query-no-invalid */
-@import url("chrome://browser/skin/browser-custom-colors.css") not (-moz-bool-pref: "browser.theme.macos.native-theme");
 
 :root {
   --arrowpanel-field-background: light-dark(rgba(249, 249, 250, .3), rgba(12, 12, 13, .3));

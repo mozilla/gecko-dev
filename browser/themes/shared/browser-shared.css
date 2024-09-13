@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@import url("chrome://browser/skin/browser-colors.css");
 @import url("chrome://browser/skin/addons/extension-controlled.css");
 @import url("chrome://browser/skin/addons/unified-extensions.css");
 @import url("chrome://browser/skin/downloads/indicator.css");
@@ -26,8 +27,6 @@
 @import url("chrome://browser/skin/customizableui/customizeMode.css");
 @import url("chrome://browser/skin/UITour.css");
 @import url("chrome://browser/skin/formautofill-notification.css");
-
-@namespace html url("http://www.w3.org/1999/xhtml");
 
 :root,
 body {
@@ -58,40 +57,11 @@ body {
   --browser-stack-z-index-dialog-stack: 2;
   --browser-stack-z-index-rdm-toolbar: 3;
 
-  --toolbox-non-lwt-bgcolor: -moz-headerbar;
-  --toolbox-non-lwt-textcolor: -moz-headerbartext;
-  --toolbox-non-lwt-bgcolor-inactive: -moz-headerbarinactive;
-  --toolbox-non-lwt-textcolor-inactive: -moz-headerbarinactivetext;
-
   --toolbarbutton-border-radius: 4px;
-
-  --tabs-navbar-separator-color: ThreeDShadow;
-  --tabs-navbar-separator-style: solid;
-
-  --short-notification-background: #0250BB;
-  --short-notification-gradient: #9059FF;
-
-  --button-color: currentColor;
-  --button-primary-bgcolor: AccentColor;
-  --button-primary-hover-bgcolor: color-mix(in srgb, black 10%, AccentColor);
-  --button-primary-active-bgcolor: color-mix(in srgb, black 20%, AccentColor);
-  --button-primary-color: AccentColorText;
-
-  --buttons-destructive-bgcolor: #e22850;
-  --buttons-destructive-hover-bgcolor: #c50042;
-  --buttons-destructive-active-bgcolor: #810220;
-  --buttons-destructive-color: #fbfbfe;
-
   --identity-box-margin-inline: 4px;
-  --urlbar-box-bgcolor: var(--button-background-color-hover);
-  --urlbar-box-focus-bgcolor: var(--button-background-color);
-  --urlbar-box-hover-bgcolor: var(--button-background-color-hover);
-  --urlbar-box-active-bgcolor: var(--button-background-color-active);
-  --urlbar-box-text-color: inherit;
-  --urlbar-box-hover-text-color: var(--urlbar-box-text-color);
   --urlbar-min-height: max(32px, 1.4em);
-  --urlbar-icon-fill-opacity: 0.9;
   --urlbar-icon-padding: calc((var(--urlbar-min-height) - 2px /* border */ - 2px /* padding */ - 16px /* icon */) / 2);
+
   /* This should be used for icons and chiclets inside the input field. It makes
      the gap around them more uniform when they are close to the field edges */
   --urlbar-icon-border-radius: calc(var(--toolbarbutton-border-radius) - 1px);
@@ -108,6 +78,7 @@ body {
   --lwt-background-tiling: no-repeat;
 
   --ext-theme-background-transition: background-color 0.1s cubic-bezier(.17,.67,.83,.67);
+
   --inactive-window-transition: 0.2s ease;
   --inactive-titlebar-opacity: .6;
   /**
@@ -121,28 +92,12 @@ body {
   @media (-moz-platform: windows) {
     --inactive-titlebar-opacity: .75;
   }
-
-  &:where([tabsintitlebar]) {
-    --toolbox-non-lwt-bgcolor: ActiveCaption;
-    --toolbox-non-lwt-textcolor: CaptionText;
-    --toolbox-non-lwt-bgcolor-inactive: InactiveCaption;
-    --toolbox-non-lwt-textcolor-inactive: InactiveCaptionText;
+  @media (prefers-reduced-motion) {
+    --inactive-window-transition: 0s;
   }
 
   &[lwtheme] {
     color: var(--lwt-text-color);
-
-    --link-color: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
-    --tabs-navbar-separator-color: light-dark(rgba(0,0,0,.1), rgba(0,0,0,.3));
-    --attention-dot-color: light-dark(#2ac3a2, #54ffbd);
-
-    @media not (prefers-contrast) {
-      --focus-outline-color: light-dark(#0061E0, #00DDFF);
-    }
-  }
-
-  @media (prefers-contrast) {
-    --urlbar-icon-fill-opacity: 1;
   }
 
   &[uidensity=compact] {
@@ -151,18 +106,6 @@ body {
 
   &[uidensity=touch] {
     --urlbar-min-height: max(34px, 1.4em);
-  }
-
-  @media (prefers-color-scheme: dark) {
-    /* Increase the contrast of urlbar boxes in dark mode.
-       In practice these are bumped-up --button(-hover)-bgcolor rules */
-    --urlbar-box-bgcolor: color-mix(in srgb, currentColor 16%, transparent);
-    --urlbar-box-focus-bgcolor: color-mix(in srgb, currentColor 16%, transparent);
-    --urlbar-box-hover-bgcolor: color-mix(in srgb, currentColor 22%, transparent);
-  }
-
-  @media (prefers-reduced-motion) {
-    --inactive-window-transition: 0s;
   }
 }
 
@@ -1165,8 +1108,7 @@ popupnotificationcontent {
   will-change: transform;
 
   @media not (prefers-contrast) {
-  /* TODO: Should this be in browser-custom-colors to respect system theming on
-   * Linux? */
+    /* TODO: Should this be in browser-colors to respect system theming on Linux? */
     --swipe-nav-icon-primary-color: light-dark(#0060DF, #00DDFF);
     --swipe-nav-icon-accent-color: light-dark(#FFFFFF, #000000);
   }

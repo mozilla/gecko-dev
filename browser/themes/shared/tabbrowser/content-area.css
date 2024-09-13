@@ -23,16 +23,6 @@
       --tabpanel-background-color: linear-gradient(45deg, #722291 0%, #45278D 50%, #393473 100%) !important;
     }
   }
-
-  --content-area-shadow: 0 2px 6px 0 light-dark(rgba(0,0,0,.2), rgba(0,0,0,.8));
-  --chrome-content-separator-color: var(--lwt-sidebar-border-color, light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3)));
-  /* stylelint-disable-next-line media-query-no-invalid */
-  @media not (-moz-bool-pref: "sidebar.revamp") {
-    --chrome-content-separator-color: ThreeDShadow;
-    &[lwttheme] {
-      --chrome-content-separator-color: light-dark(rgba(0,0,0,.3), rgba(255,255,255,.3));
-    }
-  }
 }
 
 #navigator-toolbox {

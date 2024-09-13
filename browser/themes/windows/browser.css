@@ -4,7 +4,6 @@
 
 @import url("chrome://browser/skin/browser-shared.css");
 @import url("chrome://browser/skin/contextmenu.css");
-@import url("chrome://browser/skin/browser-custom-colors.css");
 
 #menubar-items {
   flex-direction: column; /* for flex hack */
@@ -30,11 +29,6 @@
   :root[tabsintitlebar] {
     /* stylelint-disable-next-line media-query-no-invalid */
     @media (-moz-bool-pref: "browser.theme.windows.accent-color-in-tabs.enabled") {
-      --toolbox-non-lwt-bgcolor: ActiveCaption;
-      --toolbox-non-lwt-textcolor: CaptionText;
-      --toolbox-non-lwt-bgcolor-inactive: InactiveCaption;
-      --toolbox-non-lwt-textcolor-inactive: InactiveCaptionText;
-
       &:not([lwtheme]) #TabsToolbar {
         /* These colors match the Linux/HCM default button colors. We need to
          * override these on the tabs toolbar because the accent color is

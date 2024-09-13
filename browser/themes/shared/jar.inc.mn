@@ -16,6 +16,7 @@
   skin/classic/browser/addon-notification.css                  (../shared/addon-notification.css)
   skin/classic/browser/autocomplete.css                        (../shared/autocomplete.css)
   skin/classic/browser/blockedSite.css                         (../shared/blockedSite.css)
+  skin/classic/browser/browser-colors.css                      (../shared/browser-colors.css)
   skin/classic/browser/browser-shared.css                      (../shared/browser-shared.css)
   skin/classic/browser/formautofill-notification.css           (../shared/formautofill-notification.css)
   skin/classic/browser/identity-credential-notification.css    (../shared/identity-credential-notification.css)

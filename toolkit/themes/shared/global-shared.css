@@ -52,7 +52,7 @@
 
   /* Override some toolbar colors when not under prefers-contrast. Note that
    * for the browser window these might be overridden by
-   * browser-custom-colors.css.
+   * browser-colors.css.
    *
    * For the light theme we use .05 alpha, to increase the contrast of the
    * text. For the dark theme, we use a darker background, which works because
