@@ -75,6 +75,10 @@ sidebar-context-menu-bookmark-tab =
   .label = Bookmark Tab…
 sidebar-context-menu-copy-link =
   .label = Copy Link
+# Variables:
+#   $deviceName (String) - The name of the device the user is closing a tab for
+sidebar-context-menu-close-remote-tab =
+  .label = Close tab on { $deviceName }
 
 ## Labels for sidebar history context menu items
 
@@ -107,7 +111,7 @@ sidebar-menu-syncedtabs-header =
 
 # Context for hovering over the close tab button that will
 # send a push to the device to close said tab
-# Variables
-# $deviceName - the name of the device the user is closing a tab for
+# Variables:
+#   $deviceName (String) - the name of the device the user is closing a tab for
 synced-tabs-context-close-tab-title =
     .title = Close tab on { $deviceName }

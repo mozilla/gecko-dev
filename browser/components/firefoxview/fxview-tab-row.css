@@ -37,6 +37,11 @@
   :host([compact]) & {
     grid-template-columns: min-content auto;
   }
+
+  &[disabled="true"] {
+    pointer-events: none;
+    color: var(--panel-disabled-color);
+  }
 }
 
 .fxview-tab-row-main,

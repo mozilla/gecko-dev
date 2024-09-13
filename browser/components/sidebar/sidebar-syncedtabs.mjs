@@ -52,7 +52,18 @@ class SyncedTabsInSidebar extends SidebarPage {
     this.triggerNode = this.findTriggerNode(e, "sidebar-tab-row");
     if (!this.triggerNode) {
       e.preventDefault();
+      return;
     }
+    const contextMenu = this._contextMenu;
+    const closeTabMenuItem = contextMenu.querySelector(
+      "#sidebar-context-menu-close-remote-tab"
+    );
+    closeTabMenuItem.setAttribute(
+      "data-l10n-args",
+      this.triggerNode.secondaryL10nArgs
+    );
+    // Enable the feature only if the device supports it
+    closeTabMenuItem.disabled = !this.triggerNode.canClose;
   }
 
   handleCommandEvent(e) {
@@ -61,6 +72,13 @@ class SyncedTabsInSidebar extends SidebarPage {
         this.topWindow.PlacesCommandHook.bookmarkLink(
           this.triggerNode.url,
           this.triggerNode.title
+        );
+        break;
+      case "sidebar-context-menu-close-remote-tab":
+        this.requestOrRemoveTabToClose(
+          this.triggerNode.url,
+          this.triggerNode.fxaDeviceId,
+          this.triggerNode.secondaryActionClass
         );
         break;
       default:
@@ -75,11 +93,15 @@ class SyncedTabsInSidebar extends SidebarPage {
 
   onSecondaryAction(e) {
     const { url, fxaDeviceId, secondaryActionClass } = e.originalTarget;
+    this.requestOrRemoveTabToClose(url, fxaDeviceId, secondaryActionClass);
+  }
 
+  requestOrRemoveTabToClose(url, fxaDeviceId, secondaryActionClass) {
     if (secondaryActionClass === "dismiss-button") {
       // Set new pending close tab
       this.controller.requestCloseRemoteTab(fxaDeviceId, url);
     } else if (secondaryActionClass === "undo-button") {
+      // User wants to undo
       this.controller.removePendingTabToClose(fxaDeviceId, url);
     }
     this.requestUpdate();
@@ -224,14 +246,22 @@ class SyncedTabsInSidebar extends SidebarPage {
   getTabItems(items, deviceName, canClose) {
     return items
       .map(item => {
+        // We always show the option to close remotely on right-click but
+        // disable it if the device doesn't support actually closing it
+        let secondaryL10nId = "synced-tabs-context-close-tab-title";
+        let secondaryL10nArgs = JSON.stringify({ deviceName });
         if (!canClose) {
-          return item;
+          return {
+            ...item,
+            canClose,
+            secondaryL10nId,
+            secondaryL10nArgs,
+          };
         }
 
         // Default show the close/dismiss button
         let secondaryActionClass = "dismiss-button";
-        let secondaryL10nId = "synced-tabs-context-close-tab-title";
-        let secondaryL10nArgs = JSON.stringify({ deviceName });
+        item.closeRequested = false;
 
         // If this item has been requested to be closed, show
         // the undo instead
@@ -239,10 +269,12 @@ class SyncedTabsInSidebar extends SidebarPage {
           secondaryActionClass = "undo-button";
           secondaryL10nId = "text-action-undo";
           secondaryL10nArgs = null;
+          item.closeRequested = true;
         }
 
         return {
           ...item,
+          canClose,
           secondaryActionClass,
           secondaryL10nId,
           secondaryL10nArgs,
