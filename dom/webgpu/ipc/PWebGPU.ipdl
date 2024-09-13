@@ -50,7 +50,7 @@ parent:
 
   async DeviceCreateBuffer(RawId deviceId, RawId bufferId, GPUBufferDescriptor desc, UnsafeSharedMemoryHandle shm);
 
-  async InstanceRequestAdapter(GPURequestAdapterOptions options, RawId[] ids) returns (ByteBuf byteBuf);
+  async InstanceRequestAdapter(GPURequestAdapterOptions options, RawId aAdapterId) returns (ByteBuf byteBuf);
   async AdapterRequestDevice(
       RawId adapterId,
       ByteBuf descriptorBuf,
