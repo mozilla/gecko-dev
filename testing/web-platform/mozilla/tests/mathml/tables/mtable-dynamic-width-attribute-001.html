@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Test dynamic change of the width attribute</title>
+  <link rel="match" href="mtable-dynamic-width-attribute-001-ref.html"/>
+  <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.mtable"/>
+  <script>
+    document.documentElement.addEventListener("TestRendered", () => {
+      // Attach attribute width="200px" to mtable.
+      mtable.setAttribute("width", "200px");
+      document.documentElement.removeAttribute("class");
+    });
+  </script>
+  <math>
+    <mtable id="mtable">
+      <mtr>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+      </mtr>
+      <mtr>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+      </mtr>
+    </mtable>
+  </math>
+</html>

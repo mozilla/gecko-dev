@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Test dynamic change of the align attribute</title>
+  <link rel="match" href="mtable-dynamic-align-attribute-003-ref.html"/>
+  <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.mtable"/>
+  <script>
+    document.documentElement.addEventListener("TestRendered", () => {
+      // Modify value of align attribute.
+      mtable.setAttribute("align", "center 1");
+      document.documentElement.removeAttribute("class");
+    });
+  </script>
+  <math>
+    <mspace id="baseline" height="1px" width="100px" style="background: black"/>
+    <mtable id="mtable" align="center">
+      <mtr>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+      </mtr>
+      <mtr>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+      </mtr>
+    </mtable>
+  </math>
+</html>

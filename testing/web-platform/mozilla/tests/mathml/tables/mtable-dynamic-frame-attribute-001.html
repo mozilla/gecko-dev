@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  <title>Test dynamic change of the frame attribute</title>
+  <link rel="match" href="mtable-dynamic-frame-attribute-001-ref.html"/>
+  <link rel="help" href="https://www.w3.org/TR/MathML3/chapter3.html#presm.mtable"/>
+  <script>
+    document.documentElement.addEventListener("TestRendered", () => {
+      // Attach attribute frame="solid" to mtable.
+      // Note that the default value is "none" so this change also affects
+      // whether mtable@framespacing applies.
+      mtable.setAttribute("frame", "solid");
+      document.documentElement.removeAttribute("class");
+    });
+  </script>
+  <math>
+    <mtable id="mtable">
+      <mtr>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+      </mtr>
+      <mtr>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+        <mtd>
+          <mspace width="10px" height="10px" style="background: blue"/>
+        </mtd>
+      </mtr>
+    </mtable>
+  </math>
+</html>
