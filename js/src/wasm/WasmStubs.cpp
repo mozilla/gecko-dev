@@ -944,15 +944,18 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
 
   MOZ_ASSERT(masm.framePushed() == 0);
 
+  // Avoid overlapping aligned stack arguments area with ExitFooterFrame.
+  const unsigned AlignedExitFooterFrameSize =
+      AlignBytes(ExitFooterFrame::Size(), WasmStackAlignment);
   unsigned normalBytesNeeded =
-      ExitFooterFrame::Size() + StackArgBytesForWasmABI(funcType);
+      AlignedExitFooterFrameSize + StackArgBytesForWasmABI(funcType);
 
   MIRTypeVector coerceArgTypes;
   MOZ_ALWAYS_TRUE(coerceArgTypes.append(MIRType::Int32));
   MOZ_ALWAYS_TRUE(coerceArgTypes.append(MIRType::Pointer));
   MOZ_ALWAYS_TRUE(coerceArgTypes.append(MIRType::Pointer));
   unsigned oolBytesNeeded =
-      ExitFooterFrame::Size() + StackArgBytesForWasmABI(coerceArgTypes);
+      AlignedExitFooterFrameSize + StackArgBytesForWasmABI(coerceArgTypes);
 
   unsigned bytesNeeded = std::max(normalBytesNeeded, oolBytesNeeded);
 
