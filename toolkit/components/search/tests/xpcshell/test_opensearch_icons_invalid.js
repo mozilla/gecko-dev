@@ -39,7 +39,7 @@ add_task(async function test_installedhttpplace() {
       `${gHttpURL}/data/engineMaker.sjs?` +
       JSON.stringify({
         baseURL: `${gHttpURL}/`,
-        image: "head_search.js",
+        imageURL: `${gHttpURL}/head_search.js`,
         name: "invalidicon",
         method: "GET",
       }),

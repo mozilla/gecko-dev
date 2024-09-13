@@ -48,8 +48,8 @@ function createOpenSearchEngine(response, engineData) {
     type = "type='application/json' rel='suggestions'";
   }
   let image = "";
-  if (engineData.image) {
-    image = `<Image width="16" height="16">${engineData.baseURL}${engineData.image}</Image>`;
+  if (engineData.imageURL) {
+    image = `<Image width="16" height="16">${engineData.imageURL}</Image>`;
   }
   let updateFile = "";
   if (engineData.updateFile) {

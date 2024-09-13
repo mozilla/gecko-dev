@@ -41,7 +41,7 @@ add_task(async function test_icon_types() {
     );
     const engineData = {
       baseURL: `${gHttpURL}/data/`,
-      image: test.image,
+      imageURL: `${gHttpURL}/icons/${test.image}`,
       name: test.name,
       method: "GET",
     };

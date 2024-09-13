@@ -14,6 +14,9 @@ support-files = [
   "data/engineImages.xml",
   "data/iconsRedirect.sjs",
   "data/searchSuggestions.sjs",
+  "icons/bigIcon.ico",
+  "icons/remoteIcon.ico",
+  "icons/svgIcon.svg",
   "settings/v1-metadata-migration.json",
 ]
 
@@ -117,11 +120,6 @@ support-files = [
 ]
 
 ["test_opensearch_icon.js"]
-support-files = [
-  "data/bigIcon.ico",
-  "data/remoteIcon.ico",
-  "data/svgIcon.svg",
-]
 
 ["test_opensearch_icons_invalid.js"]
 support-files = [

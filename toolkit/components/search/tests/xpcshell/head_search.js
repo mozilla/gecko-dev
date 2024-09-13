@@ -286,7 +286,7 @@ function checkCountryResultTelemetry(aExpectedValue) {
  *   The contents of the file in an Uint8Array.
  */
 async function getFileDataBuffer(filename) {
-  return IOUtils.read(PathUtils.join(do_get_cwd().path, "data", filename));
+  return IOUtils.read(PathUtils.join(do_get_cwd().path, "icons", filename));
 }
 
 /**
