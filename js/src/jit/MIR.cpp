@@ -3625,6 +3625,7 @@ MIRType MCompare::inputType() {
     case Compare_UInt32:
     case Compare_Int32:
       return MIRType::Int32;
+    case Compare_IntPtr:
     case Compare_UIntPtr:
       return MIRType::IntPtr;
     case Compare_Double:
@@ -4428,10 +4429,10 @@ bool MCompare::tryFoldEqualOperands(bool* result) {
       compareType_ == Compare_Undefined || compareType_ == Compare_Null ||
       compareType_ == Compare_Int32 || compareType_ == Compare_UInt32 ||
       compareType_ == Compare_UInt64 || compareType_ == Compare_Double ||
-      compareType_ == Compare_Float32 || compareType_ == Compare_UIntPtr ||
-      compareType_ == Compare_String || compareType_ == Compare_Object ||
-      compareType_ == Compare_Symbol || compareType_ == Compare_BigInt ||
-      compareType_ == Compare_BigInt_Int32 ||
+      compareType_ == Compare_Float32 || compareType_ == Compare_IntPtr ||
+      compareType_ == Compare_UIntPtr || compareType_ == Compare_String ||
+      compareType_ == Compare_Object || compareType_ == Compare_Symbol ||
+      compareType_ == Compare_BigInt || compareType_ == Compare_BigInt_Int32 ||
       compareType_ == Compare_BigInt_Double ||
       compareType_ == Compare_BigInt_String);
 
@@ -4842,6 +4843,10 @@ bool MCompare::evaluateConstantOperands(TempAllocator& alloc, bool* result) {
     case Compare_UInt64: {
       *result = FoldComparison(jsop_, uint64_t(lhs->toInt64()),
                                uint64_t(rhs->toInt64()));
+      return true;
+    }
+    case Compare_IntPtr: {
+      *result = FoldComparison(jsop_, lhs->toIntPtr(), rhs->toIntPtr());
       return true;
     }
     case Compare_UIntPtr: {

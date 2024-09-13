@@ -1552,10 +1552,12 @@ void CodeGenerator::visitCompare(LCompare* comp) {
 
   if (compareType == MCompare::Compare_Object ||
       compareType == MCompare::Compare_Symbol ||
+      compareType == MCompare::Compare_IntPtr ||
       compareType == MCompare::Compare_UIntPtr ||
       compareType == MCompare::Compare_WasmAnyRef) {
     if (right->isConstant()) {
-      MOZ_ASSERT(compareType == MCompare::Compare_UIntPtr);
+      MOZ_ASSERT(compareType == MCompare::Compare_IntPtr ||
+                 compareType == MCompare::Compare_UIntPtr);
       masm.cmpPtrSet(cond, left, ImmWord(ToInt32(right)), output);
     } else if (right->isRegister()) {
       masm.cmpPtrSet(cond, left, ToRegister(right), output);
@@ -1597,10 +1599,12 @@ void CodeGenerator::visitCompareAndBranch(LCompareAndBranch* comp) {
 
   if (compareType == MCompare::Compare_Object ||
       compareType == MCompare::Compare_Symbol ||
+      compareType == MCompare::Compare_IntPtr ||
       compareType == MCompare::Compare_UIntPtr ||
       compareType == MCompare::Compare_WasmAnyRef) {
     if (right->isConstant()) {
-      MOZ_ASSERT(compareType == MCompare::Compare_UIntPtr);
+      MOZ_ASSERT(compareType == MCompare::Compare_IntPtr ||
+                 compareType == MCompare::Compare_UIntPtr);
       masm.branchPtr(cond, left, ImmWord(ToInt32(right)), label);
     } else if (right->isRegister()) {
       masm.branchPtr(cond, left, ToRegister(right), label);

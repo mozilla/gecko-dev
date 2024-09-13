@@ -202,8 +202,9 @@ bool RangeAnalysis::addBetaNodes() {
       continue;
     }
 
-    // isNumericComparison should return false for UIntPtr.
-    MOZ_ASSERT(compare->compareType() != MCompare::Compare_UIntPtr);
+    // isNumericComparison should return false for (U)IntPtr.
+    MOZ_ASSERT(compare->compareType() != MCompare::Compare_IntPtr &&
+               compare->compareType() != MCompare::Compare_UIntPtr);
 
     MDefinition* left = compare->getOperand(0);
     MDefinition* right = compare->getOperand(1);

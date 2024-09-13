@@ -244,6 +244,7 @@ bool ComparePolicy::adjustInputs(TempAllocator& alloc,
     case MCompare::Compare_Int32:
       return convertOperand(0, MIRType::Int32) &&
              convertOperand(1, MIRType::Int32);
+    case MCompare::Compare_IntPtr:
     case MCompare::Compare_UIntPtr:
       MOZ_ASSERT(compare->lhs()->type() == MIRType::IntPtr);
       MOZ_ASSERT(compare->rhs()->type() == MIRType::IntPtr);
