@@ -3541,20 +3541,20 @@ pqcrypto:
   owner: jschanck@mozilla.com
   hasExposure: false
   variables:
-    tlsEnableXyber:
+    tlsEnableMlkem:
       type: boolean
       setPref:
         branch: default
         pref: security.tls.enable_kyber
       description: >-
-        Whether to enable Xyber768 for TLS.
-    h3EnableXyber:
+        Whether to enable mlkem768x25519 for TLS.
+    h3EnableMlkem:
       type: boolean
       setPref:
         branch: default
         pref: network.http.http3.enable_kyber
       description: >-
-        Whether to enable Xyber768 for H3/QUIC.
+        Whether to enable mlkem768x25519 for H3/QUIC.
     sendP256:
       type: boolean
       setPref:

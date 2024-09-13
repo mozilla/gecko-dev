@@ -84,7 +84,7 @@ tls:
   xyber_intolerance_reason:
     type: labeled_counter
     description: >
-      The error that was returned from a failed TLS 1.3 handshake in which the client sent a Xyber key share (see tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
+      The error that was returned from a failed TLS 1.3 handshake in which the client sent a mlkem768x25519 key share (see tlsIntoleranceTelemetryBucket() in nsNSSIOLayer.cpp).
     data_sensitivity:
       - technical
     bugs:

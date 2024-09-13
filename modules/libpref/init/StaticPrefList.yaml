@@ -13780,7 +13780,7 @@
   mirror: always
   rust: true
 
-# Whether to send a Xyber768 key share in HTTP/3 TLS handshakes.
+# Whether to send an mlkem768x25519 key share in HTTP/3 TLS handshakes.
 # Has no effect unless security.tls.enable_kyber is true.
 - name: network.http.http3.enable_kyber
   type: RelaxedAtomicBool

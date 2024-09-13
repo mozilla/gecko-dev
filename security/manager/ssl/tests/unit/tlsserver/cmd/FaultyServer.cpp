@@ -21,7 +21,7 @@ enum FaultType {
   None = 0,
   ZeroRtt,
   UnknownSNI,
-  Xyber,
+  Mlkem768x25519,
 };
 
 struct FaultyServerHost {
@@ -38,9 +38,10 @@ const char* kHostZeroRttAlertVersion =
 const char* kHostZeroRttAlertUnexpected = "0rtt-alert-unexpected.example.com";
 const char* kHostZeroRttAlertDowngrade = "0rtt-alert-downgrade.example.com";
 
-const char* kHostXyberNetInterrupt = "xyber-net-interrupt.example.com";
-const char* kHostXyberAlertAfterServerHello =
-    "xyber-alert-after-server-hello.example.com";
+const char* kHostMlkem768x25519NetInterrupt =
+    "mlkem768x25519-net-interrupt.example.com";
+const char* kHostMlkem768x25519AlertAfterServerHello =
+    "mlkem768x25519-alert-after-server-hello.example.com";
 
 const char* kCertWildcard = "default-ee";
 
@@ -55,8 +56,8 @@ const FaultyServerHost sFaultyServerHosts[]{
     {kHostZeroRttAlertVersion, kCertWildcard, ZeroRtt},
     {kHostZeroRttAlertUnexpected, kCertWildcard, ZeroRtt},
     {kHostZeroRttAlertDowngrade, kCertWildcard, ZeroRtt},
-    {kHostXyberNetInterrupt, kCertWildcard, Xyber},
-    {kHostXyberAlertAfterServerHello, kCertWildcard, Xyber},
+    {kHostMlkem768x25519NetInterrupt, kCertWildcard, Mlkem768x25519},
+    {kHostMlkem768x25519AlertAfterServerHello, kCertWildcard, Mlkem768x25519},
     {nullptr, nullptr},
 };
 
@@ -168,21 +169,22 @@ SECStatus FailingWriteCallback(PRFileDesc* fd, PRUint16 epoch,
   return SECFailure;
 }
 
-void SecretCallbackFailXyber(PRFileDesc* fd, PRUint16 epoch,
-                             SSLSecretDirection dir, PK11SymKey* secret,
-                             void* arg) {
-  fprintf(stderr, "Xyber handler epoch=%d dir=%d\n", epoch, (uint32_t)dir);
+void SecretCallbackFailMlkem768x25519(PRFileDesc* fd, PRUint16 epoch,
+                                      SSLSecretDirection dir,
+                                      PK11SymKey* secret, void* arg) {
+  fprintf(stderr, "Mlkem768x25519 handler epoch=%d dir=%d\n", epoch,
+          (uint32_t)dir);
   FaultyServerHost* host = static_cast<FaultyServerHost*>(arg);
 
   if (epoch == 2 && dir == ssl_secret_write) {
     sslSocket* ss = ssl_FindSocket(fd);
     if (!ss) {
-      fprintf(stderr, "Xyber handler, no ss!\n");
+      fprintf(stderr, "Mlkem768x25519 handler, no ss!\n");
       return;
     }
 
     if (!ss->sec.keaGroup) {
-      fprintf(stderr, "Xyber handler, no ss->sec.keaGroup!\n");
+      fprintf(stderr, "Mlkem768x25519 handler, no ss->sec.keaGroup!\n");
       return;
     }
 
@@ -190,17 +192,18 @@ void SecretCallbackFailXyber(PRFileDesc* fd, PRUint16 epoch,
     SprintfLiteral(path, "/callback/%u", ss->sec.keaGroup->name);
     DoCallback(path);
 
-    if (ss->sec.keaGroup->name != ssl_grp_kem_xyber768d00) {
+    if (ss->sec.keaGroup->name != ssl_grp_kem_mlkem768x25519) {
       return;
     }
 
-    fprintf(stderr, "Xyber handler, configuring alert\n");
-    if (strcmp(host->mHostName, kHostXyberNetInterrupt) == 0) {
+    fprintf(stderr, "Mlkem768x25519 handler, configuring alert\n");
+    if (strcmp(host->mHostName, kHostMlkem768x25519NetInterrupt) == 0) {
       // Install a record write callback that causes the next write to fail.
       // The client will see this as a PR_END_OF_FILE / NS_ERROR_NET_INTERRUPT
       // error.
       ss->recordWriteCallback = FailingWriteCallback;
-    } else if (!strcmp(host->mHostName, kHostXyberAlertAfterServerHello)) {
+    } else if (!strcmp(host->mHostName,
+                       kHostMlkem768x25519AlertAfterServerHello)) {
       SSL3_SendAlert(ss, alert_fatal, close_notify);
     }
   }
@@ -219,17 +222,17 @@ int32_t DoSNISocketConfig(PRFileDesc* aFd, const SECItem* aSrvNameArr,
     fprintf(stderr, "found pre-defined host '%s'\n", host->mHostName);
   }
 
-  const SSLNamedGroup xyberTestNamedGroups[] = {ssl_grp_kem_xyber768d00,
+  const SSLNamedGroup mlkemTestNamedGroups[] = {ssl_grp_kem_mlkem768x25519,
                                                 ssl_grp_ec_curve25519};
 
   switch (host->mFaultType) {
     case ZeroRtt:
       SSL_SecretCallback(aFd, &SecretCallbackFailZeroRtt, (void*)host);
       break;
-    case Xyber:
-      SSL_SecretCallback(aFd, &SecretCallbackFailXyber, (void*)host);
-      SSL_NamedGroupConfig(aFd, xyberTestNamedGroups,
-                           mozilla::ArrayLength(xyberTestNamedGroups));
+    case Mlkem768x25519:
+      SSL_SecretCallback(aFd, &SecretCallbackFailMlkem768x25519, (void*)host);
+      SSL_NamedGroupConfig(aFd, mlkemTestNamedGroups,
+                           mozilla::ArrayLength(mlkemTestNamedGroups));
       break;
     case None:
       break;

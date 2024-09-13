@@ -440,14 +440,15 @@ bool retryDueToTLSIntolerance(PRErrorCode err, NSSSocketControl* socketInfo) {
   }
 
   if (!socketInfo->IsPreliminaryHandshakeDone() &&
-      !socketInfo->HasTls13HandshakeSecrets() && socketInfo->SentXyberShare()) {
+      !socketInfo->HasTls13HandshakeSecrets() && socketInfo->SentMlkemShare()) {
     nsAutoCString errorName;
     const char* prErrorName = PR_ErrorToName(err);
     if (prErrorName) {
       errorName.AppendASCII(prErrorName);
     }
     mozilla::glean::tls::xyber_intolerance_reason.Get(errorName).Add(1);
-    // Don't record version intolerance if we sent Xyber, just force a retry.
+    // Don't record version intolerance if we sent mlkem768x25519, just force a
+    // retry.
     return true;
   }
 
@@ -1569,29 +1570,29 @@ static nsresult nsSSLIOLayerSetOptions(PRFileDesc* fd, bool forSTARTTLS,
       !(infoObject->GetProviderFlags() &
         (nsISocketProvider::BE_CONSERVATIVE | nsISocketProvider::IS_RETRY))) {
     const SSLNamedGroup namedGroups[] = {
-        ssl_grp_kem_xyber768d00, ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,
-        ssl_grp_ec_secp384r1,    ssl_grp_ec_secp521r1,  ssl_grp_ffdhe_2048,
+        ssl_grp_kem_mlkem768x25519, ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1,
+        ssl_grp_ec_secp384r1,       ssl_grp_ec_secp521r1,  ssl_grp_ffdhe_2048,
         ssl_grp_ffdhe_3072};
     if (SECSuccess != SSL_NamedGroupConfig(fd, namedGroups,
                                            mozilla::ArrayLength(namedGroups))) {
       return NS_ERROR_FAILURE;
     }
     additional_shares += 1;
-    infoObject->WillSendXyberShare();
+    infoObject->WillSendMlkemShare();
   } else {
     const SSLNamedGroup namedGroups[] = {
         ssl_grp_ec_curve25519, ssl_grp_ec_secp256r1, ssl_grp_ec_secp384r1,
         ssl_grp_ec_secp521r1,  ssl_grp_ffdhe_2048,   ssl_grp_ffdhe_3072};
-    // Skip the |ssl_grp_kem_xyber768d00| entry.
+    // Skip the |ssl_grp_kem_mlkem768x25519| entry.
     if (SECSuccess != SSL_NamedGroupConfig(fd, namedGroups,
                                            mozilla::ArrayLength(namedGroups))) {
       return NS_ERROR_FAILURE;
     }
   }
 
-  // If additional_shares == 2, send Xyber768D00, X25519, and P-256.
-  // If additional_shares == 1, send {Xyber768D00, X25519} or {X25519, P-256}.
-  // If additional_shares == 0, send X25519.
+  // If additional_shares == 2, send mlkem768x25519, x25519, and p256.
+  // If additional_shares == 1, send {mlkem768x25519, x25519} or {x25519, p256}.
+  // If additional_shares == 0, send x25519.
   if (SECSuccess != SSL_SendAdditionalKeyShares(fd, additional_shares)) {
     return NS_ERROR_FAILURE;
   }

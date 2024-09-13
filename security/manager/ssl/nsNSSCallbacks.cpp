@@ -656,6 +656,9 @@ nsCString getKeaGroupName(uint32_t aKeaGroup) {
     case ssl_grp_kem_xyber768d00:
       groupName = "xyber768d00"_ns;
       break;
+    case ssl_grp_kem_mlkem768x25519:
+      groupName = "mlkem768x25519"_ns;
+      break;
     case ssl_grp_ffdhe_2048:
       groupName = "FF 2048"_ns;
       break;
@@ -1038,7 +1041,6 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
                            channelInfo.keaKeyBits);
         break;
       case ssl_kea_ecdh_hybrid:
-        // Bug 1874963: Add probes for Xyber768d00
         break;
       default:
         MOZ_CRASH("impossible KEA");
@@ -1139,7 +1141,8 @@ void SecretCallback(PRFileDesc* fd, PRUint16 epoch, SSLSecretDirection dir,
   if (epoch == 2 && dir == ssl_secret_read) {
     // |secret| is the server_handshake_traffic_secret. Set a flag to indicate
     // that the Server Hello has been processed successfully. We use this when
-    // deciding whether to retry a connection in which a Xyber share was sent.
+    // deciding whether to retry a connection in which an mlkem768x25519 share
+    // was sent.
     infoObject->SetHasTls13HandshakeSecrets();
   }
 }

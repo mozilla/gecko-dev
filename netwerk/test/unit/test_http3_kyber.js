@@ -62,7 +62,11 @@ function makeChan(uri) {
 
 add_task(async function test_kyber_success() {
   let listener = new Http3Listener();
-  listener.expectedKeaGroup = "xyber768d00";
+  // Bug 1918532: change this from x25519 to mlkem768x25519.
+  // neqo_glue currently tries to negotiate xyber768d00, which is
+  // disabled by NSS policy. As such we expect to receive x25519
+  // here.
+  listener.expectedKeaGroup = "x25519";
   let chan = makeChan("https://foo.example.com");
   await chanPromise(chan, listener);
 });

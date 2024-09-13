@@ -156,14 +156,14 @@ class NSSSocketControl final : public CommonSocketControl {
     return mEchExtensionStatus;
   }
 
-  void WillSendXyberShare() {
+  void WillSendMlkemShare() {
     COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
-    mSentXyberShare = true;
+    mSentMlkemShare = true;
   }
 
-  bool SentXyberShare() {
+  bool SentMlkemShare() {
     COMMON_SOCKET_CONTROL_ASSERT_ON_OWNING_THREAD();
-    return mSentXyberShare;
+    return mSentMlkemShare;
   }
 
   void SetHasTls13HandshakeSecrets() {
@@ -342,7 +342,7 @@ class NSSSocketControl final : public CommonSocketControl {
   bool mIsFullHandshake;
   bool mNotedTimeUntilReady;
   EchExtensionStatus mEchExtensionStatus;  // Currently only used for telemetry.
-  bool mSentXyberShare;
+  bool mSentMlkemShare;
   bool mHasTls13HandshakeSecrets;
 
   // True when SSL layer has indicated an "SSL short write", i.e. need
