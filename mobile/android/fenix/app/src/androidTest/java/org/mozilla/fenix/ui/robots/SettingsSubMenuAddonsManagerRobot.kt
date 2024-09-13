@@ -9,6 +9,7 @@ package org.mozilla.fenix.ui.robots
 import android.util.Log
 import android.widget.RelativeLayout
 import androidx.test.espresso.Espresso.onView
+import androidx.test.espresso.NoMatchingViewException
 import androidx.test.espresso.action.ViewActions.click
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.RootMatchers.isDialog
@@ -78,21 +79,35 @@ class SettingsSubMenuAddonsManagerRobot {
     }
 
     fun clickInstallAddon(addonName: String) {
-        Log.i(TAG, "clickInstallAddon: Waiting for $waitingTime ms for add-ons list to exist")
-        addonsList().waitForExists(waitingTime)
-        Log.i(TAG, "clickInstallAddon: Waited for $waitingTime ms for add-ons list to exist")
-        Log.i(TAG, "clickInstallAddon: Trying to scroll into view the install $addonName button")
-        addonsList().scrollIntoView(
-            mDevice.findObject(
-                UiSelector()
-                    .resourceId("$packageName:id/details_container")
-                    .childSelector(UiSelector().text(addonName)),
-            ),
-        )
-        Log.i(TAG, "clickInstallAddon: Scrolled into view the install $addonName button")
-        Log.i(TAG, "clickInstallAddon: Trying to click the install $addonName button")
-        installButtonForAddon(addonName).click()
-        Log.i(TAG, "clickInstallAddon: Clicked the install $addonName button")
+        for (i in 1..RETRY_COUNT) {
+            Log.i(TAG, "verifyAddonAvailableInMainMenu: Started try #$i")
+            try {
+                Log.i(TAG, "clickInstallAddon: Waiting for $waitingTime ms for add-ons list to exist")
+                addonsList().waitForExists(waitingTime)
+                Log.i(TAG, "clickInstallAddon: Waited for $waitingTime ms for add-ons list to exist")
+                Log.i(TAG, "clickInstallAddon: Trying to scroll into view the install $addonName button")
+                addonsList().scrollIntoView(
+                    mDevice.findObject(
+                        UiSelector()
+                            .resourceId("$packageName:id/details_container")
+                            .childSelector(UiSelector().text(addonName)),
+                    ),
+                )
+                Log.i(TAG, "clickInstallAddon: Scrolled into view the install $addonName button")
+                Log.i(TAG, "clickInstallAddon: Trying to click the install $addonName button")
+                installButtonForAddon(addonName).click()
+                Log.i(TAG, "clickInstallAddon: Clicked the install $addonName button")
+
+                break
+            } catch (e: NoMatchingViewException) {
+                Log.i(TAG, "clickInstallAddon: NoMatchingViewException caught, executing fallback methods")
+                addonsMenu {
+                }.goBack {
+                }.openThreeDotMenu {
+                }.openAddonsManagerMenu {
+                }
+            }
+        }
     }
 
     fun verifyAddonInstallCompleted(addonName: String, activityTestRule: HomeActivityIntentTestRule) {
