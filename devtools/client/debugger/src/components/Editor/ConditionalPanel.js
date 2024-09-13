@@ -239,10 +239,10 @@ export class ConditionalPanel extends PureComponent {
     const { editor } = this.props;
     if (features.codemirrorNext) {
       editor.removeLineContentMarker(markerTypes.CONDITIONAL_BP_MARKER);
+      this.removeBreakpointPanelEditor();
     } else {
       this.clearConditionalPanel();
     }
-    this.removeBreakpointPanelEditor();
   }
 
   renderToWidget(props) {
