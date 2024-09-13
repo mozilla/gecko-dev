@@ -179,7 +179,7 @@ Consider the following example:
 .. code-block:: fluent
 
   items-selected =
-      { NUMBER($num) ->
+      { $num ->
           [0] Select items.
           [one] One item selected.
          *[other] { $num } items selected.
@@ -197,7 +197,7 @@ the example would be to have a separate message for the :js:`0` case:
   items-select = Select items
   # The default variant works for all values of the selector.
   items-selected =
-      { NUMBER($num) ->
+      { $num ->
           [one] One item selected.
          *[other] { $num } items selected.
       }
@@ -220,7 +220,7 @@ the example below:
 .. code-block:: fluent
 
   items-selected =
-      { NUMBER($num) ->
+      { $num ->
           [one] One item.
          *[other] { $num } items
       } selected.

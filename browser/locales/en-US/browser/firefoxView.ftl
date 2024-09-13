@@ -215,7 +215,7 @@ firefoxview-search-results-header = Search results for “{ $query }”
 
 # Variables:
 #   $count (Number) - The number of visits matching the search query.
-firefoxview-search-results-count = { NUMBER($count) ->
+firefoxview-search-results-count = { $count ->
   [one] { $count } site
  *[other] { $count } sites
 }

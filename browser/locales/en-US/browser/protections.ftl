@@ -5,7 +5,7 @@
 # Variables:
 #   $count (Number) - Number of tracking events blocked.
 graph-week-summary =
-  { NUMBER($count) ->
+  { $count ->
      [one] { -brand-short-name } blocked { $count } tracker over the past week
     *[other] { -brand-short-name } blocked { $count } trackers over the past week
   }
@@ -15,7 +15,7 @@ graph-week-summary =
 #   $earliestDate (Number) - Unix timestamp in ms, representing a date. The
 # earliest date recorded in the database.
 graph-total-tracker-summary =
-  { NUMBER($count) ->
+  { $count ->
      [one] <b>{ $count }</b> tracker blocked since { DATETIME($earliestDate, day: "numeric", month: "long", year: "numeric") }
     *[other] <b>{ $count }</b> trackers blocked since { DATETIME($earliestDate, day: "numeric", month: "long", year: "numeric") }
   }
@@ -83,7 +83,7 @@ protection-report-passwords-manage-passwords-button = Manage passwords
 # Variables:
 # $count (Number) - Number of passwords exposed in data breaches.
 lockwise-scanned-text-breached-logins =
-  { NUMBER($count) ->
+  { $count ->
       [one] 1 password may have been exposed in a data breach.
      *[other] { $count } passwords may have been exposed in a data breach.
   }
@@ -93,7 +93,7 @@ lockwise-scanned-text-breached-logins =
 # Variables:
 # $count (Number) - Number of passwords stored in Lockwise.
 lockwise-scanned-text-no-breached-logins =
-  { NUMBER($count) ->
+  { $count ->
      [one] 1 password stored securely.
     *[other] Your passwords are being stored securely.
   }
@@ -118,7 +118,7 @@ monitor-passwords-tooltip =
 # of email addresses being monitored. Don’t add $count to
 # your localization, because it would result in the number showing twice.
 info-monitored-emails =
-  { NUMBER($count) ->
+  { $count ->
      [one] Email address being monitored
     *[other] Email addresses being monitored
   }
@@ -127,7 +127,7 @@ info-monitored-emails =
 # of known data breaches. Don’t add $count to
 # your localization, because it would result in the number showing twice.
 info-known-breaches-found =
-  { NUMBER($count) ->
+  { $count ->
      [one] Known data breach has exposed your information
     *[other] Known data breaches have exposed your information
   }
@@ -136,7 +136,7 @@ info-known-breaches-found =
 # of known data breaches that are marked as resolved by the user. Don’t add $count
 # to your localization, because it would result in the number showing twice.
 info-known-breaches-resolved =
-  { NUMBER($count) ->
+  { $count ->
      [one] Known data breach marked as resolved
     *[other] Known data breaches marked as resolved
   }
@@ -145,7 +145,7 @@ info-known-breaches-resolved =
 # of exposed passwords. Don’t add $count to
 # your localization, because it would result in the number showing twice.
 info-exposed-passwords-found =
-  { NUMBER($count) ->
+  { $count ->
      [one] Password exposed across all breaches
     *[other] Passwords exposed across all breaches
   }
@@ -154,7 +154,7 @@ info-exposed-passwords-found =
 # of exposed passwords that are marked as resolved by the user. Don’t add $count
 # to your localization, because it would result in the number showing twice.
 info-exposed-passwords-resolved =
-  { NUMBER($count) ->
+  { $count ->
      [one] Password exposed in unresolved breaches
     *[other] Passwords exposed in unresolved breaches
   }
@@ -174,7 +174,7 @@ monitor-breaches-resolved-description = If your email appears in any new breache
 # $numBreachesResolved (Number) - Number of breaches marked as resolved by the user on Monitor.
 # $numBreaches (Number) - Number of breaches in which a user's data was involved, detected by Monitor.
 monitor-partial-breaches-title =
-  { NUMBER($numBreaches) ->
+  { $numBreaches ->
    *[other] { $numBreachesResolved } out of { $numBreaches } breaches marked as resolved
   }
 
@@ -199,35 +199,35 @@ monitor-resolve-breaches-link = Resolve breaches
 bar-tooltip-social =
   .title = Social Media Trackers
   .aria-label =
-    { NUMBER($count) ->
+    { $count ->
        [one] { $count } social media tracker ({ $percentage }%)
       *[other] { $count } social media trackers ({ $percentage }%)
     }
 bar-tooltip-cookie =
   .title = Cross-Site Tracking Cookies
   .aria-label =
-    { NUMBER($count) ->
+    { $count ->
        [one] { $count } cross-site tracking cookie ({ $percentage }%)
       *[other] { $count } cross-site tracking cookies ({ $percentage }%)
     }
 bar-tooltip-tracker =
   .title = Tracking Content
   .aria-label =
-    { NUMBER($count) ->
+    { $count ->
        [one] { $count } tracking content ({ $percentage }%)
       *[other] { $count } tracking content ({ $percentage }%)
     }
 bar-tooltip-fingerprinter =
   .title = Fingerprinters
   .aria-label =
-    { NUMBER($count) ->
+    { $count ->
        [one] { $count } fingerprinter ({ $percentage }%)
       *[other] { $count } fingerprinters ({ $percentage }%)
     }
 bar-tooltip-cryptominer =
   .title = Cryptominers
   .aria-label =
-    { NUMBER($count) ->
+    { $count ->
        [one] { $count } cryptominer ({ $percentage }%)
       *[other] { $count } cryptominers ({ $percentage }%)
     }

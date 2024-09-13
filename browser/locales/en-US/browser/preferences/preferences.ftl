@@ -225,13 +225,13 @@ containers-disable-alert-title = Close All Container Tabs?
 ##   $tabCount (number) - Number of tabs
 
 containers-disable-alert-desc =
-    { NUMBER($tabCount) ->
+    { $tabCount ->
         [one] If you disable Container Tabs now, { $tabCount } container tab will be closed. Are you sure you want to disable Container Tabs?
        *[other] If you disable Container Tabs now, { $tabCount } container tabs will be closed. Are you sure you want to disable Container Tabs?
     }
 
 containers-disable-alert-ok-button =
-    { NUMBER($tabCount) ->
+    { $tabCount ->
         [one] Close { $tabCount } Container Tab
        *[other] Close { $tabCount } Container Tabs
     }
@@ -245,7 +245,7 @@ containers-remove-alert-title = Remove This Container?
 # Variables:
 #   $count (number) - Number of tabs that will be closed.
 containers-remove-alert-msg =
-    { NUMBER($count) ->
+    { $count ->
         [one] If you remove this Container now, { $count } container tab will be closed. Are you sure you want to remove this Container?
        *[other] If you remove this Container now, { $count } container tabs will be closed. Are you sure you want to remove this Container?
     }
@@ -680,12 +680,12 @@ home-homepage-custom-url =
     .placeholder = Paste a URL…
 
 # This string has a special case for '1' and [other] (default). If necessary for
-# your language, you can add { $tabCount } to your translations and use the
+# your language, you can add {$tabCount} to your translations and use the
 # standard CLDR forms, or only use the form for [other] if both strings should
 # be identical.
 use-current-pages =
     .label =
-        { NUMBER($tabCount) ->
+        { $tabCount ->
             [1] Use Current Page
            *[other] Use Current Pages
         }
@@ -741,7 +741,7 @@ home-prefs-weather-learn-more-link = Learn more
 #   $num (number) - Number of rows displayed
 home-prefs-sections-rows-option =
     .label =
-        { NUMBER($num) ->
+        { $num ->
             [one] { $num } row
            *[other] { $num } rows
         }

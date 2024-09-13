@@ -84,7 +84,7 @@ inactive-css-cue-pseudo-element-not-supported = <strong>{ $property }</strong> i
 # Variables:
 #   $lineCount (integer) - The number of lines the element has.
 inactive-css-text-wrap-balance-lines-exceeded =
-    { NUMBER($lineCount) ->
+    { $lineCount ->
          [one] <strong>{ $property }</strong> has no effect on this element because it has more than { $lineCount } line.
         *[other] <strong>{ $property }</strong> has no effect on this element because it has more than { $lineCount } lines.
      }

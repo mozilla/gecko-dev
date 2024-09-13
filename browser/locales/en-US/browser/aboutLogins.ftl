@@ -42,7 +42,7 @@ login-list =
 # Variables
 #   $count (number) - Number of logins
 login-list-count2 =
-  { NUMBER($count) ->
+  { $count ->
       [one] { $count } password
      *[other] { $count } passwords
   }
@@ -50,7 +50,7 @@ login-list-count2 =
 #   $count (number) - Number of filtered logins
 #   $total (number) - Total number of logins
 login-list-filtered-count2 =
-  { NUMBER($total) ->
+  { $total ->
       [one] { $count } of { $total } password
      *[other] { $count } of { $total } passwords
   }
@@ -195,41 +195,41 @@ about-logins-confirm-remove-dialog-confirm-button = Remove
 ##   $count (number) - Number of items
 
 about-logins-confirm-remove-all-dialog-confirm-button-label =
-  { NUMBER($count) ->
+  { $count ->
      [1] Remove
     *[other] Remove All
   }
 
 # Checkbox for modal to confirm the removal of saved passwords
 about-logins-confirm-remove-all-dialog-checkbox-label2 =
-  { NUMBER($count) ->
+  { $count ->
      [1] Yes, remove password
     *[other] Yes, remove passwords
   }
 
 # Title for modal to confirm the removal of all saved passwords when user is NOT synced
 about-logins-confirm-remove-all-dialog-title2 =
-  { NUMBER($count) ->
+  { $count ->
      [one] Remove { $count } password?
     *[other] Remove all { $count } passwords?
   }
 # Message for modal to confirm the removal of saved passwords when user is NOT synced
 about-logins-confirm-remove-all-dialog-message2 =
-  { NUMBER($count) ->
+  { $count ->
      [1] This will remove the password saved to { -brand-short-name } and any breach alerts. You cannot undo this action.
     *[other] This will remove the passwords saved to { -brand-short-name } and any breach alerts. You cannot undo this action.
   }
 
 # Title for modal to confirm the removal of all saved passwords when user IS SYNCED
 about-logins-confirm-remove-all-sync-dialog-title2 =
-  { NUMBER($count) ->
+  { $count ->
      [one] Remove { $count } password from all devices?
     *[other] Remove all { $count } passwords from all devices?
   }
 
 # Message for modal to confirm the removal of saved passwords when user IS synced.
 about-logins-confirm-remove-all-sync-dialog-message3 =
-  { NUMBER($count) ->
+  { $count ->
     [1] This will remove the password saved to { -brand-short-name } on all your synced devices. This will also remove any breach alerts that appear here. You cannot undo this action.
     *[other] This will remove all passwords saved to { -brand-short-name } on all your synced devices. This will also remove any breach alerts that appear here. You cannot undo this action.
   }
@@ -319,21 +319,21 @@ about-logins-import-file-picker-tsv-filter-title =
 
 about-logins-import-dialog-title = Import Complete
 about-logins-import-dialog-items-added2 =
-  { NUMBER($count) ->
+  { $count ->
      *[other] <span>New passwords added:</span> <span data-l10n-name="count">{ $count }</span>
   }
 
 about-logins-import-dialog-items-modified2 =
-  { NUMBER($count) ->
+  { $count ->
      *[other] <span>Existing entries updated:</span> <span data-l10n-name="count">{ $count }</span>
   }
 
 about-logins-import-dialog-items-no-change2 =
-  { NUMBER($count) ->
+  { $count ->
      *[other] <span>Duplicate entries found:</span> <span data-l10n-name="count">{ $count }</span> <span data-l10n-name="meta">(not imported)</span>
   }
 about-logins-import-dialog-items-error =
-  { NUMBER($count) ->
+  { $count ->
       *[other] <span>Errors:</span> <span data-l10n-name="count">{ $count }</span> <span data-l10n-name="meta">(not imported)</span>
   }
 about-logins-import-dialog-done = Done
@@ -376,19 +376,19 @@ about-logins-import-report-row-description-error-missing-field = Error: Missing 
 ##  $count (number) - The number of affected elements
 
 about-logins-import-report-added2 =
-  { NUMBER($count) ->
+  { $count ->
       *[other] <div data-l10n-name="count">{ $count }</div> <div data-l10n-name="details">New passwords added</div>
   }
 about-logins-import-report-modified2 =
-  { NUMBER($count) ->
+  { $count ->
       *[other] <div data-l10n-name="count">{ $count }</div> <div data-l10n-name="details">Existing entries updated</div>
   }
 about-logins-import-report-no-change2 =
-  { NUMBER($count) ->
+  { $count ->
       *[other] <div data-l10n-name="count">{ $count }</div> <div data-l10n-name="details">Duplicate entries</div> <div data-l10n-name="not-imported">(not imported)</div>
   }
 about-logins-import-report-error =
-  { NUMBER($count) ->
+  { $count ->
       *[other] <div data-l10n-name="count">{ $count }</div> <div data-l10n-name="details">Errors</div> <div data-l10n-name="not-imported">(not imported)</div>
   }
 

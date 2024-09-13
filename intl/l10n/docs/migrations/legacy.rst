@@ -508,7 +508,7 @@ In Fluent:
 .. code-block:: fluent
 
   containers-disable-alert-ok-button =
-      { NUMBER($tabCount) ->
+      { $tabCount ->
           [one] Close { $tabCount } Container Tab
          *[other] Close { $tabCount } Container Tabs
       }
@@ -558,7 +558,7 @@ structure. Consider the following complex Fluent string:
 
   use-current-pages =
       .label =
-          { NUMBER($tabCount) ->
+          { $tabCount ->
               [1] Use Current Page
              *[other] Use Current Pages
           }
@@ -633,7 +633,7 @@ are copied without interpolation.
   """
   use-current-pages =
       .label =
-          { NUMBER($tabCount) ->
+          { $tabCount ->
               [1] { COPY(main_dtd, "useCurrentPage.label") }
              *[other] { COPY(main_dtd, "useMultiple.label") }
           }

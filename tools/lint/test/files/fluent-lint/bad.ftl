@@ -32,7 +32,7 @@ good-variable-identifier = { $engineName } is your default search engine in Priv
 short-id = I am too short
 
 identifiers-in-selectors-should-be-ignored =
-  .label = { NUMBER($tabCount) ->
+  .label = { $tabCount ->
       [1] Send Tab to Device
       [UPPERCASE] Send Tab to Device
      *[other] Send { $tabCount } Tabs to Device

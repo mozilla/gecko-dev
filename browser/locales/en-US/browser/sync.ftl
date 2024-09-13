@@ -25,7 +25,7 @@ fxa-menu-connect-another-device =
 #   $tabCount (Number): The number of tabs sent to the device.
 fxa-menu-send-tab-to-device =
     .label =
-        { NUMBER($tabCount) ->
+        { $tabCount ->
             [1] Send tab to device
            *[other] Send { $tabCount } tabs to device
         }

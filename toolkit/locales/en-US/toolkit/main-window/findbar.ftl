@@ -59,7 +59,7 @@ findbar-entire-word-status =
 #   $total (Number): Total count of matches
 findbar-found-matches =
     .value =
-        { NUMBER($total) ->
+        { $total ->
             [one] { $current } of { $total } match
            *[other] { $current } of { $total } matches
         }
@@ -68,7 +68,7 @@ findbar-found-matches =
 #   $limit (Number): Total count of matches allowed before counting stops
 findbar-found-matches-count-limit =
     .value =
-        { NUMBER($limit) ->
+        { $limit ->
             [one] More than { $limit } match
            *[other] More than { $limit } matches
         }

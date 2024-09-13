@@ -54,14 +54,14 @@ cfr-doorhanger-feature-notification = Recommendation
 #   $total (Number) - The rating of the add-on from 1 to 5
 cfr-doorhanger-extension-rating =
   .tooltiptext =
-    { NUMBER($total) ->
+    { $total ->
         [one] { $total } star
        *[other] { $total } stars
     }
 # Variables:
 #   $total (Number) - The total number of users using the add-on
 cfr-doorhanger-extension-total-users =
-  { NUMBER($total) ->
+  { $total ->
       [one] { $total } user
      *[other] { $total } users
   }
@@ -93,7 +93,7 @@ cfr-whatsnew-release-notes-link-text = Read the release notes
 #   $blockedCount (Number) - The total count of blocked trackers. This number will always be greater than 1.
 #   $date (Datetime) - The date we began recording the count of blocked trackers
 cfr-doorhanger-milestone-heading2 =
-  { NUMBER($blockedCount) ->
+  { $blockedCount ->
     *[other] { -brand-short-name } blocked over <b>{ $blockedCount }</b> trackers since { DATETIME($date, month: "long", year: "numeric") }!
   }
 cfr-doorhanger-milestone-ok-button = See All

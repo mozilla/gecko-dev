@@ -7,25 +7,25 @@
 
 # Short form for seconds
 download-utils-short-seconds =
-    { NUMBER($timeValue) ->
+    { $timeValue ->
         [one] s
        *[other] s
     }
 # Short form for minutes
 download-utils-short-minutes =
-    { NUMBER($timeValue) ->
+    { $timeValue ->
         [one] m
        *[other] m
     }
 # Short form for hours
 download-utils-short-hours =
-    { NUMBER($timeValue) ->
+    { $timeValue ->
         [one] h
        *[other] h
     }
 # Short form for days
 download-utils-short-days =
-    { NUMBER($timeValue) ->
+    { $timeValue ->
         [one] d
        *[other] d
     }

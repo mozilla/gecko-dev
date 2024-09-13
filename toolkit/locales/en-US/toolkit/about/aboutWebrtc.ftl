@@ -234,7 +234,7 @@ about-webrtc-save-page-complete-msg = Page saved to: { $path }
 # Variables:
 #  $frames (Number) - The number of frames encoded or decoded.
 about-webrtc-frames =
-  { NUMBER($frames) ->
+  { $frames ->
       [one] { $frames } frame
      *[other] { $frames } frames
   }
@@ -243,7 +243,7 @@ about-webrtc-frames =
 # Variables:
 #  $channels (Number) - The number of channels encoded or decoded.
 about-webrtc-channels =
-  { NUMBER($channels) ->
+  { $channels ->
       [one] { $channels } channel
      *[other] { $channels } channels
   }
@@ -252,7 +252,7 @@ about-webrtc-channels =
 # Variables:
 #  $packets (Number) - The number of packets received.
 about-webrtc-received-label =
-  { NUMBER($packets) ->
+  { $packets ->
       [one] Received { $packets } packet
      *[other] Received { $packets } packets
   }
@@ -261,7 +261,7 @@ about-webrtc-received-label =
 # Variables:
 #  $packets (Number) - The number of packets lost.
 about-webrtc-lost-label =
-  { NUMBER($packets) ->
+  { $packets ->
       [one] Lost { $packets } packet
      *[other] Lost { $packets } packets
   }
@@ -270,7 +270,7 @@ about-webrtc-lost-label =
 # Variables:
 #  $packets (Number) - The number of packets sent.
 about-webrtc-sent-label =
-  { NUMBER($packets) ->
+  { $packets ->
       [one] Sent { $packets } packet
      *[other] Sent { $packets } packets
   }

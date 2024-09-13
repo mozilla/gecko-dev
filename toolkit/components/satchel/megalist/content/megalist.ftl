@@ -90,7 +90,7 @@ passwords-export-file-picker-csv-filter-title =
 # Variables
 #   $count (number) - Number of passwords
 passwords-count =
-  { NUMBER($count) ->
+  { $count ->
       [one] { $count } password
      *[other] { $count } passwords
   }
@@ -99,7 +99,7 @@ passwords-count =
 #   $count (number) - Number of filtered passwords
 #   $total (number) - Total number of passwords
 passwords-filtered-count =
-  { NUMBER($total) ->
+  { $total ->
       [one] { $count } of { $total } password
      *[other] { $count } of { $total } passwords
   }
@@ -107,7 +107,7 @@ passwords-filtered-count =
 # Confirm the removal of all saved passwords
 #   $total (number) - Total number of passwords
 passwords-remove-all-title =
-  { NUMBER($total) ->
+  { $total ->
      [one] Remove { $total } password?
     *[other] Remove all { $total } passwords?
   }
@@ -115,7 +115,7 @@ passwords-remove-all-title =
 # Checkbox label to confirm the removal of saved passwords
 #   $total (number) - Total number of passwords
 passwords-remove-all-confirm =
-  { NUMBER($total) ->
+  { $total ->
      [1] Yes, remove password
     *[other] Yes, remove passwords
   }
@@ -126,7 +126,7 @@ passwords-remove-all-confirm-button = Confirm
 # Message to confirm the removal of saved passwords
 #   $total (number) - Total number of passwords
 passwords-remove-all-message =
-  { NUMBER($total) ->
+  { $total ->
      [1] This will remove your saved password and any breach alerts. You cannot undo this action.
     *[other] This will remove your saved passwords and any breach alerts. You cannot undo this action.
   }
@@ -168,7 +168,7 @@ payments-count =
 #   $count (number) - Number of filtered payment methods
 #   $total (number) - Total number of payment methods
 payments-filtered-count =
-  { NUMBER($total) ->
+  { $total ->
       [one] { $count } of { $total } payment method
      *[other] { $count } of { $total } payment methods
   }
@@ -190,7 +190,7 @@ addresses-collapse-section-tooltip = Hide Addresses
 # Variables
 #   $count (number) - Number of addresses
 addresses-count =
-  { NUMBER($count) ->
+  { $count ->
       [one] { $count } address
      *[other] { $count } addresses
   }
@@ -199,7 +199,7 @@ addresses-count =
 #   $count (number) - Number of filtered addresses
 #   $total (number) - Total number of addresses
 addresses-filtered-count =
-  { NUMBER($total) ->
+  { $total ->
       [one] { $count } of { $total } address
      *[other] { $count } of { $total } addresses
   }

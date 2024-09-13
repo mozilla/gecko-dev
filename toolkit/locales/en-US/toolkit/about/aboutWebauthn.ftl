@@ -38,7 +38,7 @@ about-webauthn-results-general-error = Error!
 # Variables:
 #  $retriesLeft (Number): number of tries left
 about-webauthn-results-pin-invalid-error =
-    { NUMBER($retriesLeft) ->
+    { $retriesLeft ->
         [0] Error: Incorrect PIN. Try again.
         [one] Error: Incorrect PIN. Try again. You have one attempt left.
        *[other] Error: Incorrect PIN. Try again. You have { $retriesLeft } attempts left.
@@ -148,7 +148,7 @@ about-webauthn-auth-info-null = Not supported
 # Variables:
 #  $repeatCount (Number): number of tries left
 about-webauthn-samples-still-needed =
-    { NUMBER($repeatCount) ->
+    { $repeatCount ->
         [one] { $repeatCount } sample still needed.
        *[other] { $repeatCount } samples still needed.
     }

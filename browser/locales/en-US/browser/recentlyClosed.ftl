@@ -22,7 +22,7 @@ recently-closed-panel-reopen-all-windows = Reopen all windows
 #   $tabCount (Number): Number of other tabs
 #   $winTitle (String): Window title
 recently-closed-undo-close-window-label =
-    { NUMBER($tabCount) ->
+    { $tabCount ->
         [0] { $winTitle }
         [one] { $winTitle } (and { $tabCount } other tab)
        *[other] { $winTitle } (and { $tabCount } other tabs)

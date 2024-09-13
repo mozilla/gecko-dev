@@ -9,7 +9,7 @@ printui-save-to-pdf-title = Save As
 # Variables
 # $sheetCount (integer) - Number of paper sheets
 printui-sheets-count =
-    { NUMBER($sheetCount) ->
+    { $sheetCount ->
         [one] { $sheetCount } sheet of paper
        *[other] { $sheetCount } sheets of paper
     }

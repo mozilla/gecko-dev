@@ -21,7 +21,7 @@ confirmation-hint-screenshot-copied = Screenshot copied!
 # Variables:
 #   $tabCount (Number): The number of duplicate tabs closed, at least 1.
 confirmation-hint-duplicate-tabs-closed =
-  { NUMBER($tabCount) ->
+  { $tabCount ->
       [one] Closed { $tabCount } tab
       *[other] Closed { $tabCount } tabs
   }

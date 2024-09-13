@@ -84,21 +84,21 @@ tab-context-share-url =
 
 tab-context-reopen-closed-tabs =
     .label =
-        { NUMBER($tabCount) ->
+        { $tabCount ->
             [1] Reopen Closed Tab
            *[other] Reopen Closed Tabs
         }
     .accesskey = o
 tab-context-close-n-tabs =
     .label =
-        { NUMBER($tabCount) ->
+        { $tabCount ->
             [1] Close Tab
            *[other] Close { $tabCount } Tabs
         }
     .accesskey = C
 tab-context-move-tabs =
     .label =
-        { NUMBER($tabCount) ->
+        { $tabCount ->
             [1] Move Tab
            *[other] Move Tabs
         }
@@ -106,7 +106,7 @@ tab-context-move-tabs =
 
 tab-context-send-tabs-to-device =
     .label =
-        { NUMBER($tabCount) ->
+        { $tabCount ->
             [1] Send Tab to Device
            *[other] Send { $tabCount } Tabs to Device
         }
