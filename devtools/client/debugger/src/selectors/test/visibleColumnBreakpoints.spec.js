@@ -5,6 +5,8 @@
 import { actions, createStore, makeSource } from "../../utils/test-head";
 import { createLocation } from "../../utils/location";
 
+import { features } from "../../utils/prefs";
+
 import {
   getColumnBreakpoints,
   getFirstBreakpointPosition,
@@ -95,23 +97,43 @@ describe("visible column breakpoints", () => {
     expect(columnBps).toMatchSnapshot();
   });
 
-  it("doesnt show breakpoints to the right", () => {
-    const viewport = {
-      start: { line: 1, column: 0 },
-      end: { line: 10, column: 10 },
-    };
-    const pausePoints = { 1: [pp(1, 1), pp(1, 15)], 20: [pp(20, 1)] };
-    const breakpoints = [bp(1, 1), bp(1, 15)];
+  if (!features.codemirrorNext) {
+    it("doesnt show breakpoints to the right in CM5", () => {
+      const viewport = {
+        start: { line: 1, column: 0 },
+        end: { line: 10, column: 10 },
+      };
+      const pausePoints = { 1: [pp(1, 1), pp(1, 15)], 20: [pp(20, 1)] };
+      const breakpoints = [bp(1, 1), bp(1, 15)];
 
-    const columnBps = getColumnBreakpoints(
-      pausePoints,
-      breakpoints,
-      viewport,
-      source,
-      source.content
-    );
-    expect(columnBps).toMatchSnapshot();
-  });
+      const columnBps = getColumnBreakpoints(
+        pausePoints,
+        breakpoints,
+        viewport,
+        source,
+        source.content
+      );
+      expect(columnBps).toMatchSnapshot();
+    });
+  } else {
+    it("show all breakpoints including those to the right in CM6", () => {
+      const viewport = {
+        start: { line: 1, column: 0 },
+        end: { line: 10, column: 10 },
+      };
+      const pausePoints = { 1: [pp(1, 1), pp(1, 15)], 20: [pp(20, 1)] };
+      const breakpoints = [bp(1, 1), bp(1, 15)];
+
+      const columnBps = getColumnBreakpoints(
+        pausePoints,
+        breakpoints,
+        viewport,
+        source,
+        source.content
+      );
+      expect(columnBps).toMatchSnapshot();
+    });
+  }
 });
 
 describe("getFirstBreakpointPosition", () => {

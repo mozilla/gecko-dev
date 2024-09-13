@@ -1,6 +1,6 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`visible column breakpoints doesnt show breakpoints to the right 1`] = `
+exports[`visible column breakpoints doesnt show breakpoints to the right in CM5 1`] = `
 Array [
   Object {
     "breakpoint": Object {
