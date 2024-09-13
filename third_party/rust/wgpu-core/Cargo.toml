@@ -57,7 +57,7 @@ version = "0.8"
 version = "2.6"
 
 [dependencies.bytemuck]
-version = "1.17"
+version = "1.18"
 features = ["derive"]
 optional = true
 

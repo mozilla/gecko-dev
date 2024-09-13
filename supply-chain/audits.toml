@@ -3127,12 +3127,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.naga]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:bbdbafdf8a947b563b46f632a778632b906d9eb4"
+delta = "22.0.0 -> 22.0.0@git:c2e0ad293fc635c8695e8b2358610a5918f77695"
 importable = false
 
 [[audits.net2]]
@@ -5116,12 +5116,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-core]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:bbdbafdf8a947b563b46f632a778632b906d9eb4"
+delta = "22.0.0 -> 22.0.0@git:c2e0ad293fc635c8695e8b2358610a5918f77695"
 importable = false
 
 [[audits.wgpu-hal]]
@@ -5189,12 +5189,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-hal]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:bbdbafdf8a947b563b46f632a778632b906d9eb4"
+delta = "22.0.0 -> 22.0.0@git:c2e0ad293fc635c8695e8b2358610a5918f77695"
 importable = false
 
 [[audits.wgpu-types]]
@@ -5262,12 +5262,12 @@ delta = "0.20.0 -> 22.0.0"
 
 [[audits.wgpu-types]]
 who = [
-    "Jim Blandy <jimb@red-bean.com>",
     "Teodor Tanasoaia <ttanasoaia@mozilla.com>",
     "Erich Gubler <erichdongubler@gmail.com>",
+    "Jim Blandy <jimb@red-bean.com>",
 ]
 criteria = "safe-to-deploy"
-delta = "22.0.0 -> 22.0.0@git:bbdbafdf8a947b563b46f632a778632b906d9eb4"
+delta = "22.0.0 -> 22.0.0@git:c2e0ad293fc635c8695e8b2358610a5918f77695"
 importable = false
 
 [[audits.whatsys]]

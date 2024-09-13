@@ -136,6 +136,7 @@ dx12 = [
     "gpu-allocator/d3d12",
     "naga/hlsl-out-if-target-windows",
     "windows/Win32_Graphics_Direct3D_Fxc",
+    "windows/Win32_Graphics_Direct3D_Dxc",
     "windows/Win32_Graphics_Direct3D",
     "windows/Win32_Graphics_Direct3D12",
     "windows/Win32_Graphics_DirectComposition",
@@ -147,7 +148,6 @@ dx12 = [
     "windows/Win32_System_Threading",
     "windows/Win32_UI_WindowsAndMessaging",
 ]
-dxc_shader_compiler = ["dep:hassle-rs"]
 fragile-send-sync-non-atomic-wasm = ["wgt/fragile-send-sync-non-atomic-wasm"]
 gles = [
     "naga/glsl-out",
@@ -209,29 +209,31 @@ version = "0.29.0"
 [target.'cfg(any(target_os="macos", target_os="ios"))'.dependencies.objc]
 version = "0.2.5"
 
-[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.glutin]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "ios")))'.dev-dependencies.glutin]
 version = "0.31"
 features = [
     "egl",
+    "wgl",
     "wayland",
     "x11",
 ]
 default-features = false
 
-[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.glutin-winit]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "ios")))'.dev-dependencies.glutin-winit]
 version = "0.4"
 features = [
     "egl",
+    "wgl",
     "wayland",
     "x11",
 ]
 default-features = false
 
-[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.rwh_05]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "ios")))'.dev-dependencies.rwh_05]
 version = "0.5"
 package = "raw-window-handle"
 
-[target.'cfg(not(any(target_arch = "wasm32", windows, target_os = "ios")))'.dev-dependencies.winit]
+[target.'cfg(not(any(target_arch = "wasm32", target_os = "ios")))'.dev-dependencies.winit]
 version = "0.29"
 features = [
     "android-native-activity",
@@ -302,10 +304,6 @@ optional = true
 version = "0.27"
 optional = true
 default-features = false
-
-[target."cfg(windows)".dependencies.hassle-rs]
-version = "0.11.0"
-optional = true
 
 [target."cfg(windows)".dependencies.range-alloc]
 version = "0.1"

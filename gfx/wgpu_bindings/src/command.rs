@@ -774,7 +774,7 @@ pub fn replay_render_pass_impl(
                 bind_group_id,
             } => {
                 let offsets = dynamic_offsets(num_dynamic_offsets);
-                global.render_pass_set_bind_group(dst_pass, index, bind_group_id, offsets)
+                global.render_pass_set_bind_group(dst_pass, index, Some(bind_group_id), offsets)
             }
             RenderCommand::SetPipeline(pipeline_id) => {
                 global.render_pass_set_pipeline(dst_pass, pipeline_id)
@@ -966,7 +966,7 @@ fn replay_compute_pass_impl(
                 bind_group_id,
             } => {
                 let offsets = dynamic_offsets(num_dynamic_offsets);
-                global.compute_pass_set_bind_group(dst_pass, index, bind_group_id, offsets)?;
+                global.compute_pass_set_bind_group(dst_pass, index, Some(bind_group_id), offsets)?;
             }
             ComputeCommand::SetPipeline(pipeline_id) => {
                 global.compute_pass_set_pipeline(dst_pass, pipeline_id)?;

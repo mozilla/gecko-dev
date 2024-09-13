@@ -239,7 +239,7 @@ pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
                 driver,
                 driver_info,
                 backend,
-            } = global.adapter_get_info(id).unwrap();
+            } = global.adapter_get_info(id);
 
             let is_hardware = match device_type {
                 wgt::DeviceType::IntegratedGpu | wgt::DeviceType::DiscreteGpu => true,
@@ -262,8 +262,8 @@ pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
 
             let info = AdapterInformation {
                 id,
-                limits: restrict_limits(global.adapter_limits(id).unwrap()),
-                features: global.adapter_features(id).unwrap(),
+                limits: restrict_limits(global.adapter_limits(id)),
+                features: global.adapter_features(id),
                 name,
                 vendor,
                 device,
@@ -310,14 +310,14 @@ pub unsafe extern "C" fn wgpu_server_adapter_request_device(
     // TODO: in https://github.com/gfx-rs/wgpu/pull/3626/files#diff-033343814319f5a6bd781494692ea626f06f6c3acc0753a12c867b53a646c34eR97
     // which introduced the queue id parameter, the queue id is also the device id. I don't know how applicable this is to
     // other situations (this one in particular).
-    let (_, _, error) = global.adapter_request_device(
+    let res = global.adapter_request_device(
         self_id,
         &desc,
         trace_path,
         Some(new_device_id),
         Some(new_queue_id),
     );
-    if let Some(err) = error {
+    if let Err(err) = res {
         error_buf.init(err);
     }
 }
@@ -479,22 +479,23 @@ pub extern "C" fn wgpu_server_device_create_buffer(
     let label = utf8_label.as_ref().map(|s| Cow::from(&s[..]));
     let usage = wgt::BufferUsages::from_bits_retain(usage);
 
-    // Don't trust the graphics driver with buffer sizes larger than our conservative max texture size.
-    if shm_allocation_failed || size > MAX_BUFFER_SIZE {
-        error_buf.init(ErrMsg {
-            message: "Out of memory",
-            r#type: ErrorBufferType::OutOfMemory,
-        });
-        global.create_buffer_error(buffer_id.backend(), Some(buffer_id));
-        return;
-    }
-
     let desc = wgc::resource::BufferDescriptor {
         label,
         size,
         usage,
         mapped_at_creation,
     };
+
+    // Don't trust the graphics driver with buffer sizes larger than our conservative max texture size.
+    if shm_allocation_failed || size > MAX_BUFFER_SIZE {
+        error_buf.init(ErrMsg {
+            message: "Out of memory",
+            r#type: ErrorBufferType::OutOfMemory,
+        });
+        global.create_buffer_error(buffer_id.backend(), Some(buffer_id), &desc);
+        return;
+    }
+
     let (_, error) = global.device_create_buffer(self_id, &desc, Some(buffer_id));
     if let Some(err) = error {
         error_buf.init(err);
@@ -569,7 +570,7 @@ pub extern "C" fn wgpu_server_buffer_unmap(
             // WebGPU spec. previously, but this doesn't seem formally specified now. :confused:
             //
             // TODO: upstream this; see <https://bugzilla.mozilla.org/show_bug.cgi?id=1842297>.
-            BufferAccessError::InvalidBufferId(_) => (),
+            BufferAccessError::InvalidResource(_) => (),
             other => error_buf.init(other),
         }
     }
@@ -675,7 +676,7 @@ impl Global {
                     || desc.size.height > max
                     || desc.size.depth_or_array_layers > max
                 {
-                    self.create_texture_error(id.backend(), Some(id));
+                    self.create_texture_error(id.backend(), Some(id), &desc);
                     error_buf.init(ErrMsg {
                         message: "Out of memory",
                         r#type: ErrorBufferType::OutOfMemory,
@@ -710,7 +711,7 @@ impl Global {
                             )
                         };
                         if ret != true {
-                            self.create_texture_error(id.backend(), Some(id));
+                            self.create_texture_error(id.backend(), Some(id), &desc);
                             error_buf.init(ErrMsg {
                                 message: "Failed to create external texture",
                                 r#type: ErrorBufferType::Internal,
@@ -728,7 +729,7 @@ impl Global {
                         let handle =
                             unsafe { wgpu_server_get_external_texture_handle(self.owner, id) };
                         if handle.is_null() {
-                            self.create_texture_error(id.backend(), Some(id));
+                            self.create_texture_error(id.backend(), Some(id), &desc);
                             error_buf.init(ErrMsg {
                                 message: "Failed to get external texture handle",
                                 r#type: ErrorBufferType::Internal,
@@ -740,7 +741,7 @@ impl Global {
                             dx12_device.OpenSharedHandle(Foundation::HANDLE(handle), &mut resource)
                         };
                         if res.is_err() || resource.is_none() {
-                            self.create_texture_error(id.backend(), Some(id));
+                            self.create_texture_error(id.backend(), Some(id), &desc);
                             error_buf.init(ErrMsg {
                                 message: "Failed to open shared handle",
                                 r#type: ErrorBufferType::Internal,
@@ -855,8 +856,12 @@ impl Global {
                     error_buf.init(err);
                 }
             }
-            DeviceAction::CreateRenderBundleError(buffer_id, _label) => {
-                self.create_render_bundle_error(buffer_id.backend(), Some(buffer_id));
+            DeviceAction::CreateRenderBundleError(buffer_id, label) => {
+                self.create_render_bundle_error(
+                    buffer_id.backend(),
+                    Some(buffer_id),
+                    &wgt::RenderBundleDescriptor { label },
+                );
             }
             DeviceAction::CreateCommandEncoder(id, desc) => {
                 let (_, error) = self.device_create_command_encoder(self_id, &desc, Some(id));
@@ -1211,12 +1216,10 @@ pub unsafe extern "C" fn wgpu_server_on_submitted_work_done(
     self_id: id::QueueId,
     callback: wgc::device::queue::SubmittedWorkDoneClosureC,
 ) {
-    global
-        .queue_on_submitted_work_done(
-            self_id,
-            wgc::device::queue::SubmittedWorkDoneClosure::from_c(callback),
-        )
-        .unwrap();
+    global.queue_on_submitted_work_done(
+        self_id,
+        wgc::device::queue::SubmittedWorkDoneClosure::from_c(callback),
+    );
 }
 
 /// # Safety

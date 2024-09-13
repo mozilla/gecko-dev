@@ -57,7 +57,7 @@ version = "1"
 features = ["derive"]
 
 [dev-dependencies.serde_json]
-version = "1.0.125"
+version = "1.0.128"
 
 [features]
 counters = []
