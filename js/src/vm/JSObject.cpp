@@ -1594,11 +1594,10 @@ bool js::LookupName(JSContext* cx, Handle<PropertyName*> name,
 }
 
 bool js::LookupNameNoGC(JSContext* cx, PropertyName* name, JSObject* envChain,
-                        JSObject** objp, NativeObject** pobjp,
-                        PropertyResult* propp) {
+                        NativeObject** pobjp, PropertyResult* propp) {
   AutoAssertNoPendingException nogc(cx);
 
-  MOZ_ASSERT(!*objp && !*pobjp && propp->isNotFound());
+  MOZ_ASSERT(!*pobjp && propp->isNotFound());
 
   for (JSObject* env = envChain; env; env = env->enclosingEnvironment()) {
     if (env->getOpsLookupProperty()) {
@@ -1609,7 +1608,6 @@ bool js::LookupNameNoGC(JSContext* cx, PropertyName* name, JSObject* envChain,
       return false;
     }
     if (propp->isFound()) {
-      *objp = env;
       return true;
     }
   }

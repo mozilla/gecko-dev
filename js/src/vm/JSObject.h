@@ -862,8 +862,8 @@ extern bool LookupName(JSContext* cx, Handle<PropertyName*> name,
                        MutableHandleObject pobjp, PropertyResult* propp);
 
 extern bool LookupNameNoGC(JSContext* cx, PropertyName* name,
-                           JSObject* envChain, JSObject** objp,
-                           NativeObject** pobjp, PropertyResult* propp);
+                           JSObject* envChain, NativeObject** pobjp,
+                           PropertyResult* propp);
 
 /*
  * Like LookupName except returns the global object if 'name' is not found in

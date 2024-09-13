@@ -146,9 +146,8 @@ inline bool GetEnvironmentName(JSContext* cx, HandleObject envChain,
                                MutableHandleValue vp) {
   {
     PropertyResult prop;
-    JSObject* obj = nullptr;
     NativeObject* pobj = nullptr;
-    if (LookupNameNoGC(cx, name, envChain, &obj, &pobj, &prop)) {
+    if (LookupNameNoGC(cx, name, envChain, &pobj, &prop)) {
       if (FetchNameNoGC(pobj, prop, vp.address())) {
         return true;
       }
