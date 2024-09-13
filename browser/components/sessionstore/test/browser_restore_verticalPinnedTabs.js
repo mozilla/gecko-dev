@@ -6,44 +6,54 @@ add_setup(() =>
     ],
   })
 );
-registerCleanupFunction(() => SpecialPowers.popPrefEnv());
+const BACKUP_STATE = SessionStore.getBrowserState();
+const REMOTE_URL = "https://www.example.com/";
+const ABOUT_ROBOTS_URL = "about:robots";
+const ABOUT_HOME = "about:home";
+const ABOUT_MOZILLA = "about:mozilla";
 
-let newState = {
-  windows: [
+let tabs = [
+  {
+    entries: [{ url: REMOTE_URL, triggeringPrincipal_base64 }],
+    pinned: true,
+    userContextId: 0,
+    hidden: false,
+  },
+  {
+    entries: [{ url: ABOUT_MOZILLA, triggeringPrincipal_base64 }],
+    pinned: true,
+    userContextId: 0,
+    hidden: false,
+  },
+  {
+    entries: [{ url: ABOUT_ROBOTS_URL, triggeringPrincipal_base64 }],
+    pinned: true,
+    userContextId: 0,
+    hidden: false,
+  },
+  {
+    entries: [{ url: ABOUT_HOME, triggeringPrincipal_base64 }],
+    userContextId: 0,
+    hidden: false,
+  },
+];
+
+add_task(async function test_pinned_tabs_restored_position() {
+  let allTabsRestored = promiseSessionStoreLoads(3);
+  await setWindowState(
+    window,
     {
-      tabs: [
+      windows: [
         {
-          entries: [{ url: "https://example.com", triggeringPrincipal_base64 }],
-          pinned: "true",
-          hidden: "false",
-        },
-        {
-          entries: [{ url: "about:mozilla", triggeringPrincipal_base64 }],
-          pinned: "true",
-          hidden: "false",
-        },
-        {
-          entries: [{ url: "about:home", triggeringPrincipal_base64 }],
-          hidden: "false",
-        },
-        {
-          entries: [
-            { url: "https://www.example.net/", triggeringPrincipal_base64 },
-          ],
-          hidden: "false",
-          pinned: "true",
+          selected: 3, // SessionStore uses 1-based indexing.
+          tabs,
         },
       ],
     },
-  ],
-};
+    true
+  );
+  await allTabsRestored;
 
-add_task(async function test_pinned_tabs_restored_position() {
-  let win = await BrowserTestUtils.openNewBrowserWindow();
-
-  await setWindowState(win, newState, true);
-
-  const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
 
@@ -65,8 +75,33 @@ add_task(async function test_pinned_tabs_restored_position() {
   );
   is(
     verticalPinnedTabsContainer.children.length,
-    win.gBrowser._numPinnedTabs,
+    gBrowser._numPinnedTabs,
     "Three tabs are in the vertical pinned tabs container"
   );
-  await BrowserTestUtils.closeWindow(win);
+
+  let [tab1, tab2, tab3, tab4] = gBrowser.tabs;
+  ok(tab1.pinned, "First tab is pinned");
+  ok(tab2.pinned, "Second tab is pinned");
+  ok(tab3.pinned, "Third tab is pinned");
+  ok(!tab4.pinned, "Fourth tab is not pinned");
+  ok(tab3.selected, "Third tab is selected");
+
+  is(
+    tab1.linkedBrowser.currentURI.spec,
+    REMOTE_URL,
+    "First tab has matching URL"
+  );
+  is(
+    tab2.linkedBrowser.currentURI.spec,
+    ABOUT_MOZILLA,
+    "Second tab has matching URL"
+  );
+  is(
+    tab3.linkedBrowser.currentURI.spec,
+    ABOUT_ROBOTS_URL,
+    "Third tab has matching URL"
+  );
+
+  // cleanup
+  await promiseBrowserState(BACKUP_STATE);
 });
