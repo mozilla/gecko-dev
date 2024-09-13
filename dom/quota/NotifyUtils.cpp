@@ -12,7 +12,6 @@
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "nsCOMPtr.h"
-#include "nsDebug.h"
 #include "nsError.h"
 #include "nsIObserverService.h"
 #include "nsSupportsPrimitives.h"
@@ -22,61 +21,49 @@ namespace mozilla::dom::quota {
 
 namespace {
 
-class StoragePressureRunnable final : public Runnable {
-  const uint64_t mUsage;
+void NotifyObserversOnMainThread(
+    const char* aTopic,
+    std::function<already_AddRefed<nsISupports>()>&& aSubjectGetter = nullptr) {
+  auto mainThreadFunction = [topic = aTopic,
+                             subjectGetter = std::move(aSubjectGetter)]() {
+    nsCOMPtr<nsIObserverService> observerService =
+        mozilla::services::GetObserverService();
+    QM_TRY(MOZ_TO_RESULT(observerService), QM_VOID);
 
- public:
-  explicit StoragePressureRunnable(uint64_t aUsage)
-      : Runnable("dom::quota::QuotaObject::StoragePressureRunnable"),
-        mUsage(aUsage) {}
+    nsCOMPtr<nsISupports> subject;
+    if (subjectGetter) {
+      subject = subjectGetter();
+    }
 
- private:
-  ~StoragePressureRunnable() = default;
+    observerService->NotifyObservers(subject, topic, u"");
+  };
 
-  NS_DECL_NSIRUNNABLE
-};
+  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(
+      NS_NewRunnableFunction("dom::quota::NotifyObserversOnMainThread",
+                             std::move(mainThreadFunction))));
+}
 
 }  // namespace
 
 void NotifyStoragePressure(QuotaManager& aQuotaManager, uint64_t aUsage) {
   aQuotaManager.AssertNotCurrentThreadOwnsQuotaMutex();
 
-  RefPtr<StoragePressureRunnable> storagePressureRunnable =
-      new StoragePressureRunnable(aUsage);
+  auto subjectGetter = [usage = aUsage]() {
+    auto wrapper = MakeRefPtr<nsSupportsPRUint64>();
 
-  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(storagePressureRunnable));
+    MOZ_ALWAYS_SUCCEEDS(wrapper->SetData(usage));
+
+    return wrapper.forget();
+  };
+
+  NotifyObserversOnMainThread("QuotaManager::StoragePressure",
+                              std::move(subjectGetter));
 }
 
 void NotifyMaintenanceStarted(QuotaManager& aQuotaManager) {
   aQuotaManager.AssertIsOnOwningThread();
 
-  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(NS_NewRunnableFunction(
-      "dom::quota::QuotaManager::NotifyMaintenanceStarted", []() {
-        nsCOMPtr<nsIObserverService> observerService =
-            mozilla::services::GetObserverService();
-        QM_TRY(MOZ_TO_RESULT(observerService), QM_VOID);
-
-        observerService->NotifyObservers(
-            nullptr, "QuotaManager::MaintenanceStarted", u"");
-      })));
-}
-
-NS_IMETHODIMP
-StoragePressureRunnable::Run() {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  nsCOMPtr<nsIObserverService> obsSvc = mozilla::services::GetObserverService();
-  if (NS_WARN_IF(!obsSvc)) {
-    return NS_ERROR_FAILURE;
-  }
-
-  auto wrapper = MakeRefPtr<nsSupportsPRUint64>();
-
-  MOZ_ALWAYS_SUCCEEDS(wrapper->SetData(mUsage));
-
-  obsSvc->NotifyObservers(wrapper, "QuotaManager::StoragePressure", u"");
-
-  return NS_OK;
+  NotifyObserversOnMainThread("QuotaManager::MaintenanceStarted");
 }
 
 }  // namespace mozilla::dom::quota
