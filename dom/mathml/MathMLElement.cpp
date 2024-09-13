@@ -90,8 +90,7 @@ bool MathMLElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
   MOZ_ASSERT(IsMathMLElement());
 
   if (aNamespaceID == kNameSpaceID_None) {
-    if (aAttribute == nsGkAtoms::color || aAttribute == nsGkAtoms::mathcolor_ ||
-        aAttribute == nsGkAtoms::background ||
+    if (aAttribute == nsGkAtoms::mathcolor_ ||
         aAttribute == nsGkAtoms::mathbackground_) {
       return aResult.ParseColor(aValue);
     }
