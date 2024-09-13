@@ -122,11 +122,11 @@ nsresult nsMathMLmfracFrame::AttributeChanged(int32_t aNameSpaceID,
                                               int32_t aModType) {
   if (aNameSpaceID == kNameSpaceID_None &&
       nsGkAtoms::linethickness_ == aAttribute) {
+    // The thickness changes, so a repaint of the bar is needed.
     InvalidateFrame();
-    // TODO(bug 1918308): This was copied from nsMathMLContainerFrame and seems
-    // necessary for some invalidation tests, but we can probably do less.
-    PresShell()->FrameNeedsReflow(
-        this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
+    // The thickness affects vertical offsets.
+    PresShell()->FrameNeedsReflow(this, IntrinsicDirty::None,
+                                  NS_FRAME_IS_DIRTY);
     return NS_OK;
   }
   return nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,

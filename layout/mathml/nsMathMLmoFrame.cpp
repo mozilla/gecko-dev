@@ -1060,8 +1060,14 @@ nsresult nsMathMLmoFrame::AttributeChanged(int32_t aNameSpaceID,
                                            int32_t aModType) {
   // check if this is an attribute that can affect the embellished hierarchy
   // in a significant way and re-layout the entire hierarchy.
-  if (nsGkAtoms::accent_ == aAttribute ||
-      nsGkAtoms::movablelimits_ == aAttribute) {
+  // This is not needed for the fence and separator
+  // attributes, since they have no visual effect.
+  if (aAttribute == nsGkAtoms::accent_ || aAttribute == nsGkAtoms::form ||
+      aAttribute == nsGkAtoms::largeop_ || aAttribute == nsGkAtoms::maxsize_ ||
+      aAttribute == nsGkAtoms::minsize_ ||
+      aAttribute == nsGkAtoms::movablelimits_ ||
+      aAttribute == nsGkAtoms::rspace_ || aAttribute == nsGkAtoms::stretchy_ ||
+      aAttribute == nsGkAtoms::symmetric_ || aAttribute == nsGkAtoms::lspace_) {
     // set the target as the parent of our outermost embellished container
     // (we ensure that we are the core, not just a sibling of the core)
     nsIFrame* target = this;

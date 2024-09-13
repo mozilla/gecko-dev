@@ -104,9 +104,10 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   // following paradigm:
   //
   // 1. If the MathML frame class doesn't have any cached automatic data that
-  //    depends on the attribute: we just reflow (e.g., this happens with
-  //    <msub>, <msup>, <mmultiscripts>, etc). This is the default behavior
-  //    implemented by this base class.
+  //    depends on the attribute:
+  //    1a. If the attribute is taken into account for the layout of the class
+  //    then, we reflow (e.g., this happens with mfrac@linethickness).
+  //    2b. Otherwise, we don't force any reflow.
   //
   // 2. If the MathML frame class has cached automatic data that depends on
   //    the attribute:
@@ -118,8 +119,8 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
   //        Therefore, there is an overhead here in that our siblings are
   //        re-laid too (e.g., this happens with <munder>, <mover>,
   //        <munderover>).
-  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
-                            int32_t aModType) override;
+  // nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
+  //                           int32_t aModType) override;
 
   // helper function to apply mirroring to a horizontal coordinate, if needed.
   nscoord MirrorIfRTL(nscoord aParentWidth, nscoord aChildWidth,

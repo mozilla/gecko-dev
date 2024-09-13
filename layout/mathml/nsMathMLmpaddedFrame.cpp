@@ -44,9 +44,11 @@ nsresult nsMathMLmpaddedFrame::AttributeChanged(int32_t aNameSpaceID,
                                                 int32_t aModType) {
   if (aNameSpaceID == kNameSpaceID_None) {
     bool hasDirtyAttributes = false;
+    IntrinsicDirty intrinsicDirty = IntrinsicDirty::None;
     if (aAttribute == nsGkAtoms::width) {
       mWidth.mState = Attribute::ParsingState::Dirty;
       hasDirtyAttributes = true;
+      intrinsicDirty = IntrinsicDirty::FrameAndAncestors;
     } else if (aAttribute == nsGkAtoms::height) {
       mHeight.mState = Attribute::ParsingState::Dirty;
       hasDirtyAttributes = true;
@@ -56,18 +58,13 @@ nsresult nsMathMLmpaddedFrame::AttributeChanged(int32_t aNameSpaceID,
     } else if (aAttribute == nsGkAtoms::lspace_) {
       mLeadingSpace.mState = Attribute::ParsingState::Dirty;
       hasDirtyAttributes = true;
+      intrinsicDirty = IntrinsicDirty::FrameAndAncestors;
     } else if (aAttribute == nsGkAtoms::voffset_) {
       mVerticalOffset.mState = Attribute::ParsingState::Dirty;
       hasDirtyAttributes = true;
     }
     if (hasDirtyAttributes) {
-      InvalidateFrame();
-      // TODO(bug 1918308): This was copied from nsMathMLContainerFrame and
-      // seems necessary for some invalidation tests, but we can probably do
-      // less.
-      PresShell()->FrameNeedsReflow(
-          this, IntrinsicDirty::FrameAncestorsAndDescendants,
-          NS_FRAME_IS_DIRTY);
+      PresShell()->FrameNeedsReflow(this, intrinsicDirty, NS_FRAME_IS_DIRTY);
     }
     return NS_OK;
   }

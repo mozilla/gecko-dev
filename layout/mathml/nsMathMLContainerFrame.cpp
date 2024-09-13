@@ -684,19 +684,6 @@ void nsMathMLContainerFrame::RemoveFrame(DestroyContext& aContext,
   ChildListChanged(dom::MutationEvent_Binding::REMOVAL);
 }
 
-nsresult nsMathMLContainerFrame::AttributeChanged(int32_t aNameSpaceID,
-                                                  nsAtom* aAttribute,
-                                                  int32_t aModType) {
-  // Since they are numerous MathML attributes that affect layout, and
-  // we can't check all of them here, play safe by requesting a reflow.
-  // TODO(bug 1918308): This should only do work for attributes that cause
-  // changes!
-  PresShell()->FrameNeedsReflow(
-      this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
-
-  return NS_OK;
-}
-
 void nsMathMLContainerFrame::GatherAndStoreOverflow(ReflowOutput* aMetrics) {
   mBlockStartAscent = aMetrics->BlockStartAscent();
 

@@ -671,20 +671,6 @@ nsresult nsMathMLmtableWrapperFrame::AttributeChanged(int32_t aNameSpaceID,
     return NS_OK;
   }
 
-  // displaystyle - may seem innocuous, but it is actually very harsh --
-  // like changing an unit. Blow away and recompute all our automatic
-  // presentational data, and issue a style-changed reflow request
-  if (aNameSpaceID == kNameSpaceID_None &&
-      aAttribute == nsGkAtoms::displaystyle_) {
-    nsMathMLContainerFrame::RebuildAutomaticDataForChildren(GetParent());
-    // Need to reflow the parent, not us, because this can actually
-    // affect siblings.
-    PresShell()->FrameNeedsReflow(GetParent(),
-                                  IntrinsicDirty::FrameAncestorsAndDescendants,
-                                  NS_FRAME_IS_DIRTY);
-    return NS_OK;
-  }
-
   // ...and the other attributes affect rows or columns in one way or another
 
   if (aNameSpaceID == kNameSpaceID_None &&

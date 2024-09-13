@@ -671,10 +671,8 @@ nsresult nsMathMLmencloseFrame::AttributeChanged(int32_t aNameSpaceID,
                                                  int32_t aModType) {
   if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::notation_) {
     InitNotations();
-    // TODO(bug 1918308): This was copied from nsMathMLContainerFrame and seems
-    // necessary for some invalidation tests, but we can probably do less.
-    PresShell()->FrameNeedsReflow(
-        this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
+    PresShell()->FrameNeedsReflow(this, IntrinsicDirty::FrameAndAncestors,
+                                  NS_FRAME_IS_DIRTY);
     return NS_OK;
   }
 
