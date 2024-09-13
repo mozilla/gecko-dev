@@ -220,6 +220,8 @@
     <string name="browser_menu_manage_extensions">拡張機能を管理</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">拡張機能を探す</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">一時的に無効化</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">アカウント情報</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -307,6 +309,8 @@
     <string name="browser_menu_switch_to_mobile_site">モバイル版サイトに切り替える</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">ツール</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <string name="browser_menu_back_button_content_description">メインメニューに戻る</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">リーダービュー、翻訳、印刷、共有、アプリを開く</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -435,12 +439,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Firefox のプライバシー通知</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox のプライバシー通知</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">私たちはあなたの安全を守りたいと願っています</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Firefox が選ばれる理由</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Firefox が選ばれる理由</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">多くの選択肢を持つ安全なブラウジング</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -463,20 +467,20 @@
     <string name="juno_onboarding_sign_in_title_2">端末間の移動時に暗号化した状態を維持します</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">ログインして同期すると、Firefox がユーザーのパスワードやブックマークなどを暗号化して、より安全に使用できます。</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">ログインして同期すると、Firefox がユーザーのパスワードやブックマークなどを暗号化して、より安全に使用できます。</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">Firefox は同期時にパスワードやブックマークなどを暗号化します。</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox は同期時にパスワードやブックマークなどを暗号化します。</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">ログイン</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">後で</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">通知をオンにして Firefox で安全性を高めましょう</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">通知をオンにして Firefox で安全性を高めましょう</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">端末間で安全にタブを送信するなど、Firefox の他のプライバシー機能を見つけましょう。</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">端末間で安全にタブを送信するなど、Firefox の他のプライバシー機能を見つけましょう。</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">通知をオンにする</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -484,14 +488,14 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Firefox 検索ウィジェットを試す</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Firefox 検索ウィジェットを試す</string>
 
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Firefox をホーム画面に置いておくと、クロスサイトトラッカーをブロックするプライバシー優先のブラウザーに簡単にアクセスできます。</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Firefox をホーム画面に置いておくと、クロスサイトトラッカーをブロックするプライバシー優先のブラウザーに簡単にアクセスできます。</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Firefox ウィジェットを追加</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Firefox ウィジェットを追加</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">後で</string>
 
@@ -533,9 +537,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">アドレスバーの設定</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">アドレスバー - Firefox Suggest</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">アドレスバー - Firefox Suggest</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Firefox Suggest について</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Firefox Suggest について</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Google Play で評価する</string>
     <!-- Preference linking to about page for Fenix
@@ -631,8 +635,6 @@
     <string name="toast_override_account_sync_server_done">Mozilla アカウント/Sync サーバーが変更されました。変更を適用するためにアプリケーションを終了しています…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">アカウント</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">ツールバー</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">アドレスバーの配置</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -800,7 +802,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">新しい拡張機能が利用可能になりました</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">あなただけの Firefox にカスタマイズできる 100 以上の新しい拡張機能を確認してください。</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">あなただけの Firefox にカスタマイズできる 100 以上の新しい拡張機能を確認してください。</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">拡張機能を探す</string>
@@ -866,7 +868,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">受信したタブ</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">他の Firefox 端末から受信したタブの通知。</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">他の Firefox 端末から受信したタブの通知。</string>
 
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">受信したタブ</string>
@@ -939,8 +941,6 @@
     <string name="preference_gestures_website_pull_to_refresh">プルダウンで更新</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">スクロール時にツールバーを隠す</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">ツールバーの横スワイプでタブ切り替え</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">ツールバーの上スワイプでタブ表示</string>
 
@@ -1209,6 +1209,8 @@
     <string name="bookmark_add_folder">フォルダー追加</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">ブックマークを保存しました!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">“%s” に保存しました</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">編集</string>
 
@@ -1243,8 +1245,12 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">フォルダー</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">保存先</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">名前</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">名前</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">フォルダー追加</string>
     <!-- Bookmark select folder screen title -->
@@ -1457,7 +1463,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">別の端末を接続</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">タブを送信するには、少なくとも 1 台の他の端末で Firefox にログインしてください。</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">タブを送信するには、少なくとも 1 台の他の端末で Firefox にログインしてください。</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">OK</string>
 
@@ -1497,10 +1503,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox は動作が軽く個人使用に最適です</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox は動作が軽く個人使用に最適です</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Firefox を既定のブラウザーに設定しましょう</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Firefox を既定のブラウザーに設定しましょう</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">プライベートブラウジングを試す</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1521,7 +1527,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Firefox の改善のために簡単なアンケートへの回答をお願いします。</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Firefox の改善のために簡単なアンケートへの回答をお願いします。</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">アンケートに答える</string>
     <!-- Preference for not taking the short survey. -->
@@ -1670,7 +1676,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">QR コードのスキャン</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[コンピューターの Firefox で <b>https://firefox.com/pair</b> を開いてください]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[コンピューターの Firefox で <b>https://firefox.com/pair</b> を開いてください]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">スキャンの準備ができました</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1678,7 +1684,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">代わりにメールアドレスを使う</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[アカウントをお持ちでない方は、<u>アカウントを作成</u>して Firefox を端末間で同期しましょう。]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[アカウントをお持ちでない方は、<u>アカウントを作成</u>して Firefox を端末間で同期しましょう。]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s はあなたのアカウントとの同期を中止しますが、この端末上の閲覧履歴は削除されません。</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2215,7 +2221,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">タブの同期を有効にしてください。</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">他の端末の Firefox で開いているタブはありません。</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">他の端末の Firefox で開いているタブはありません。</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">他の端末のタブの一覧を表示できます。</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2283,7 +2289,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">1 か月後に自動的に閉じますか？</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox は 1 か月以上表示していないタブを閉じることができます。</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox は 1 か月以上表示していないタブを閉じることができます。</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">自動的に閉じる</string>
 
@@ -2292,7 +2298,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Firefox Suggest</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google 検索</string>
@@ -2303,7 +2309,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">既定のブラウザーを変更しませんか</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">ウェブサイトやメール、メッセージのリンクを自動的に Firefox で開きます。</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">ウェブサイトやメール、メッセージのリンクを自動的に Firefox で開きます。</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">削除</string>
@@ -2327,7 +2333,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">%s による提供です。</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Firefox ファミリーの一員です。 %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Firefox ファミリーの一員です。 %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">詳細情報</string>
 
@@ -2692,8 +2698,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">すべての言語を削除</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">削除</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">ダウンロード中</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">削除中</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2744,8 +2748,6 @@
     <string name="download_language_file_dialog_title">データ節約モード中にダウンロード (%1$s) しますか？</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">翻訳のプライバシー保つため、言語の一部をキャッシュにダウンロードします。</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">翻訳のプライバシーを保つため、言語の一部をダウンロードします。</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">常にデータ節約モードでダウンロードする</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2803,16 +2805,12 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Firefox の改善にご協力ください。時間はかかりません。</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Firefox の改善にご協力ください。時間はかかりません。</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">続ける</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">このアンケートにご回答ください</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">アンケートにご回答ください</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">プライバシー通知</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">プライバシー通知</string>
     <!-- The submit button label text -->
@@ -2835,16 +2833,16 @@
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">使わない</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Firefox ホームページにどの程度満足していますか？</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Firefox ホームページにどの程度満足していますか？</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Firefox の印刷機能の改善にご協力ください。時間はかかりません。</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Firefox での印刷にどの程度満足していますか？</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Firefox ホームページにどの程度満足していますか？</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox の印刷機能の改善にご協力ください。時間はかかりません。</string>
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox での印刷にどの程度満足していますか？</string>
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Firefox ホームページにどの程度満足していますか？</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Firefox ロゴ</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox ロゴ</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">アンケート機能アイコン</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
@@ -2872,9 +2870,9 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">全画面表示を終了するには、上からドラッグし、戻るジェスチャーをしてください</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">全画面表示を終了するには、上からドラッグし、戻るジェスチャーをしてください</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">全画面表示を終了するには、上からドラッグし、[戻る] を押してください</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">全画面表示を終了するには、上からドラッグし、[戻る] を押してください</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

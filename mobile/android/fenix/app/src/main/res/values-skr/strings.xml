@@ -926,6 +926,9 @@
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">ٹیباں کھولݨ کیتے ٹول بار کوں سوائپ کرو</string>
 
+    <!-- Preference for switching tabs by swiping horizontally on the addressbar -->
+    <string name="preference_gestures_swipe_toolbar_switch_tabs_2">ٹیباں تبدیل کرݨ کیتے پتہ بار تے پاسے ول انگل پھیرو</string>
+
     <!-- Library -->
     <!-- Option in Library to open Downloads page -->
     <string name="library_downloads">ڈاؤن لوڈاں</string>

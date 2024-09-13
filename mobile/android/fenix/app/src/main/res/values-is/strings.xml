@@ -236,6 +236,8 @@
     <string name="browser_menu_add_to_homescreen">Bæta við á ræsisíðu</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Bæta við á upphafsskjá…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi-tæki gætu þurft auka heimildir til að bæta flýtileiðum við heimaskjáinn. Athugaðu stillingarnar þínar.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Endursamstilla</string>
     <!-- Browser menu button that opens the find in page menu -->
