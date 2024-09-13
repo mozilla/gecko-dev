@@ -617,8 +617,8 @@ bool GetAndClearExceptionAndStack(JSContext* cx, MutableHandleValue res,
 bool DeleteNameOperation(JSContext* cx, Handle<PropertyName*> name,
                          HandleObject envChain, MutableHandleValue res);
 
-bool ImplicitThisOperation(JSContext* cx, HandleObject envChain,
-                           Handle<PropertyName*> name, MutableHandleValue res);
+void ImplicitThisOperation(JSContext* cx, HandleObject env,
+                           MutableHandleValue res);
 
 bool InitPropGetterSetterOperation(JSContext* cx, jsbytecode* pc,
                                    HandleObject obj, Handle<PropertyName*> name,

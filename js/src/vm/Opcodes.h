@@ -1905,28 +1905,22 @@
     MACRO(StrictSpreadEval, strict_spread_eval, NULL, 1, 3, 1, JOF_BYTE|JOF_INVOKE|JOF_SPREAD|JOF_CHECKSTRICT|JOF_IC) \
     /*
      * Push the implicit `this` value for an unqualified function call, like
-     * `foo()`. `nameIndex` gives the name of the function we're calling.
+     * `foo()`.
      *
      * The result is always `undefined` except when the name refers to a `with`
      * binding.  For example, in `with (date) { getFullYear(); }`, the
      * implicit `this` passed to `getFullYear` is `date`, not `undefined`.
      *
-     * This walks the run-time environment chain looking for the environment
-     * record that contains the function. If the function call definitely
-     * refers to a local binding, use `JSOp::Undefined`.
-     *
-     * Implements: [EvaluateCall][1] step 1.b. But not entirely correctly.
-     * See [bug 1166408][2].
+     * Implements: [EvaluateCall][1] step 1.b.
      *
      * [1]: https://tc39.es/ecma262/#sec-evaluatecall
-     * [2]: https://bugzilla.mozilla.org/show_bug.cgi?id=1166408
      *
      *   Category: Functions
      *   Type: Calls
-     *   Operands: uint32_t nameIndex
-     *   Stack: => this
+     *   Operands:
+     *   Stack: env => this
      */ \
-    MACRO(ImplicitThis, implicit_this, "", 5, 0, 1, JOF_ATOM|JOF_USES_ENV) \
+    MACRO(ImplicitThis, implicit_this, "", 1, 1, 1, JOF_BYTE) \
     /*
      * Push the call site object for a tagged template call.
      *

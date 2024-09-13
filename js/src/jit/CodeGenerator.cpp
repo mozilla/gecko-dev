@@ -9209,11 +9209,9 @@ void CodeGenerator::visitOutOfLineBoxNonStrictThis(
 }
 
 void CodeGenerator::visitImplicitThis(LImplicitThis* lir) {
-  pushArg(ImmGCPtr(lir->mir()->name()));
   pushArg(ToRegister(lir->env()));
 
-  using Fn = bool (*)(JSContext*, HandleObject, Handle<PropertyName*>,
-                      MutableHandleValue);
+  using Fn = void (*)(JSContext*, HandleObject, MutableHandleValue);
   callVM<Fn, ImplicitThisOperation>(lir);
 }
 

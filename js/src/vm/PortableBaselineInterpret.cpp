@@ -4973,12 +4973,10 @@ PBIResult PortableBaselineInterpret(JSContext* cx_, State& state, Stack& stack,
 
     CASE(ImplicitThis) {
       {
-        ReservedRooted<JSObject*> obj0(&state.obj0, frame->environmentChain());
-        ReservedRooted<PropertyName*> name0(&state.name0, script->getName(pc));
+        ReservedRooted<JSObject*> env(&state.obj0, &sp[0].asValue().toObject());
+        POP();
         PUSH_EXIT_FRAME();
-        if (!ImplicitThisOperation(cx, obj0, name0, &state.res)) {
-          goto error;
-        }
+        ImplicitThisOperation(cx, env, &state.res);
       }
       PUSH(StackVal(state.res));
       state.res.setUndefined();

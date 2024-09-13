@@ -4502,16 +4502,16 @@ bool BaselineCodeGen<Handler>::emit_OptimizeSpreadCall() {
 
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emit_ImplicitThis() {
-  frame.syncStack(0);
-  masm.loadPtr(frame.addressOfEnvironmentChain(), R0.scratchReg());
+  frame.popRegsAndSync(1);
+
+  Register env = R0.scratchReg();
+  masm.unboxObject(R0, env);
 
   prepareVMCall();
 
-  pushScriptNameArg(R1.scratchReg(), R2.scratchReg());
-  pushArg(R0.scratchReg());
+  pushArg(env);
 
-  using Fn = bool (*)(JSContext*, HandleObject, Handle<PropertyName*>,
-                      MutableHandleValue);
+  using Fn = void (*)(JSContext*, HandleObject, MutableHandleValue);
   if (!callVM<Fn, ImplicitThisOperation>()) {
     return false;
   }

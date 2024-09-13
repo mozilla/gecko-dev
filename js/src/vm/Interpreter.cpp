@@ -3617,15 +3617,8 @@ bool MOZ_NEVER_INLINE JS_HAZ_JSNATIVE_CALLER js::Interpret(JSContext* cx,
     END_CASE(ThrowMsg)
 
     CASE(ImplicitThis) {
-      ReservedRooted<PropertyName*> name(&rootName0, script->getName(REGS.pc));
-      HandleObject envChain = REGS.fp()->environmentChain();
-      JSObject* env = LookupNameWithGlobalDefault(cx, name, envChain);
-      if (!env) {
-        goto error;
-      }
-
-      Value v = ComputeImplicitThis(env);
-      PUSH_COPY(v);
+      Value thisv = ComputeImplicitThis(&REGS.sp[-1].toObject());
+      REGS.sp[-1] = thisv;
     }
     END_CASE(ImplicitThis)
 
@@ -5213,16 +5206,11 @@ bool js::DeleteNameOperation(JSContext* cx, Handle<PropertyName*> name,
   return true;
 }
 
-bool js::ImplicitThisOperation(JSContext* cx, HandleObject envChain,
-                               Handle<PropertyName*> name,
+void js::ImplicitThisOperation(JSContext* cx, HandleObject env,
                                MutableHandleValue res) {
-  JSObject* env = LookupNameWithGlobalDefault(cx, name, envChain);
-  if (!env) {
-    return false;
-  }
-
+  // Note: ImplicitThisOperation has an unused cx argument because the JIT
+  // callVM machinery requires this.
   res.set(ComputeImplicitThis(env));
-  return true;
 }
 
 unsigned js::GetInitDataPropAttrs(JSOp op) {

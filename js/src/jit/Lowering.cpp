@@ -519,7 +519,7 @@ void LIRGenerator::visitBoxNonStrictThis(MBoxNonStrictThis* ins) {
 }
 
 void LIRGenerator::visitImplicitThis(MImplicitThis* ins) {
-  MDefinition* env = ins->envChain();
+  MDefinition* env = ins->env();
   MOZ_ASSERT(env->type() == MIRType::Object);
 
   LImplicitThis* lir = new (alloc()) LImplicitThis(useRegisterAtStart(env));

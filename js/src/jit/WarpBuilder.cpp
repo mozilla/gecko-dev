@@ -2277,12 +2277,9 @@ bool WarpBuilder::build_PushVarEnv(BytecodeLocation loc) {
 }
 
 bool WarpBuilder::build_ImplicitThis(BytecodeLocation loc) {
-  MOZ_ASSERT(usesEnvironmentChain());
+  MDefinition* env = current->pop();
 
-  PropertyName* name = loc.getPropertyName(script_);
-  MDefinition* env = current->environmentChain();
-
-  auto* ins = MImplicitThis::New(alloc(), env, name);
+  auto* ins = MImplicitThis::New(alloc(), env);
   current->add(ins);
   current->push(ins);
   return resumeAfter(ins, loc);

@@ -1277,9 +1277,7 @@
 
 - name: ImplicitThis
   operands:
-    envChain: Object
-  arguments:
-    name: PropertyName*
+    env: Object
   result_type: Value
   possibly_calls: true
 
