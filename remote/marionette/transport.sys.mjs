@@ -8,7 +8,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   EventEmitter: "resource://gre/modules/EventEmitter.sys.mjs",
 
   BulkPacket: "chrome://remote/content/marionette/packets.sys.mjs",
-  executeSoon: "chrome://remote/content/shared/Sync.sys.mjs",
+  executeSoon: "chrome://remote/content/marionette/sync.sys.mjs",
   JSONPacket: "chrome://remote/content/marionette/packets.sys.mjs",
   Packet: "chrome://remote/content/marionette/packets.sys.mjs",
   StreamUtils: "chrome://remote/content/marionette/stream-utils.sys.mjs",
