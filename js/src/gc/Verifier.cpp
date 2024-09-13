@@ -958,6 +958,8 @@ void CheckHeapTracer::check(AutoTraceSession& session) {
 }
 
 void js::gc::CheckHeapAfterGC(JSRuntime* rt) {
+  MOZ_ASSERT(!rt->gc.isBackgroundDecommitting());
+
   AutoTraceSession session(rt);
   CheckHeapTracer::GCType gcType;
 

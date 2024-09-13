@@ -409,7 +409,9 @@ class GCRuntime {
   bool isForegroundSweeping() const { return state() == State::Sweep; }
   bool isBackgroundSweeping() const { return sweepTask.wasStarted(); }
   bool isBackgroundMarking() const { return markTask.wasStarted(); }
+  bool isBackgroundDecommitting() const { return decommitTask.wasStarted(); }
   void waitBackgroundSweepEnd();
+  void waitBackgroundDecommitEnd();
   void waitBackgroundAllocEnd() { allocTask.cancelAndWait(); }
   void waitBackgroundFreeEnd();
   void waitForBackgroundTasks();

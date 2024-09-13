@@ -441,6 +441,8 @@ void GCRuntime::waitBackgroundSweepEnd() {
   }
 }
 
+void GCRuntime::waitBackgroundDecommitEnd() { decommitTask.join(); }
+
 void GCRuntime::startBackgroundFree() {
   AutoLockHelperThreadState lock;
 
