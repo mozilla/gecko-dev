@@ -32,7 +32,7 @@ add_task(async function test_addingEngine_opensearch() {
   );
 
   await SearchTestUtils.installOpenSearchEngine({
-    url: gDataUrl + "engine.xml",
+    url: `${gHttpURL}/data/engine.xml`,
   });
 
   engine = await addEngineObserver.promise;

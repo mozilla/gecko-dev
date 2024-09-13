@@ -38,12 +38,14 @@ async function verifyTelemetry(probeNameFragment, engineCount, type) {
 }
 
 add_setup(async function () {
-  useHttpServer("opensearch");
+  useHttpServer();
 
   await Services.search.init();
 
   for (let file of openSearchEngineFiles) {
-    await SearchTestUtils.installOpenSearchEngine({ url: gDataUrl + file });
+    await SearchTestUtils.installOpenSearchEngine({
+      url: `${gHttpURL}/opensearch/${file}`,
+    });
   }
 });
 

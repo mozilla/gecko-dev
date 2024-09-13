@@ -385,7 +385,7 @@ async function checkNonBuiltinFallback(checkPrivate) {
   Services.search.restoreDefaultEngines();
 
   let addedEngine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engine2.xml`,
+    url: `${gHttpURL}/data/engine2.xml`,
   });
 
   await setDefault(checkPrivate, addedEngine);

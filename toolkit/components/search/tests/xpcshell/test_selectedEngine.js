@@ -20,7 +20,7 @@ add_setup(async function () {
 add_task(async function test_defaultEngine() {
   await Services.search.init();
   await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engine.xml`,
+    url: `${gHttpURL}/data/engine.xml`,
   });
 
   Assert.equal(Services.search.defaultEngine.name, kDefaultEngineName);

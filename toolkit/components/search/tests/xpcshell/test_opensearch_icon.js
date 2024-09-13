@@ -40,7 +40,7 @@ add_task(async function test_icon_types() {
       SearchUtils.TOPIC_ENGINE_MODIFIED
     );
     const engineData = {
-      baseURL: gDataUrl,
+      baseURL: `${gHttpURL}/data/`,
       image: test.image,
       name: test.name,
       method: "GET",
@@ -48,7 +48,7 @@ add_task(async function test_icon_types() {
     // The easiest way to test adding the icon is via a generated xml, otherwise
     // we have to somehow insert the address of the server into it.
     SearchTestUtils.installOpenSearchEngine({
-      url: `${gDataUrl}engineMaker.sjs?${JSON.stringify(engineData)}`,
+      url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(engineData)}`,
     });
     let engine = await promiseEngineAdded;
     // Ensure this is a nsISearchEngine.
@@ -65,7 +65,7 @@ add_task(async function test_icon_types() {
 
 add_task(async function test_multiple_icons_in_file() {
   let engine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engineImages.xml`,
+    url: `${gHttpURL}/data/engineImages.xml`,
   });
 
   Assert.ok((await engine.getIconURL()).includes("ico16"));
@@ -78,7 +78,7 @@ add_task(async function test_multiple_icons_in_file() {
 });
 
 add_task(async function test_icon_not_in_opensearch_file() {
-  let engineUrl = gDataUrl + "engine-fr.xml";
+  let engineUrl = `${gHttpURL}/data/engine-fr.xml`;
   let engine = await Services.search.addOpenSearchEngine(
     engineUrl,
     "data:image/x-icon;base64,ico16"

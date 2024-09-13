@@ -81,7 +81,7 @@ add_setup(async () => {
     true
   );
 
-  useHttpServer("opensearch");
+  useHttpServer();
 
   await Services.search.init();
 
@@ -271,7 +271,7 @@ add_task(async function test_defaultPrivateEngine() {
 
 add_task(async function test_telemetry_private_empty_submission_url() {
   await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}simple.xml`,
+    url: `${gHttpURL}/opensearch/simple.xml`,
     setAsDefaultPrivate: true,
     // We don't want it to reset to the default at the test end, as we
     // reset the search service in a later test in this file.

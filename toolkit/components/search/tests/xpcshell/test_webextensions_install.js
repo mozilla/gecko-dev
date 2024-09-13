@@ -3,8 +3,6 @@
 
 "use strict";
 
-let gBaseUrl;
-
 async function getEngineNames() {
   let engines = await Services.search.getEngines();
   return engines.map(engine => engine._name);
@@ -13,7 +11,6 @@ async function getEngineNames() {
 add_setup(async function () {
   let server = useHttpServer();
   server.registerContentType("sjs", "sjs");
-  gBaseUrl = `http://localhost:${server.identity.primaryPort}/`;
 
   SearchTestUtils.setRemoteSettingsConfig([
     {
@@ -102,7 +99,7 @@ add_task(async function test_load_favicon_invalid() {
   // User installs a new search engine
   let extension = await SearchTestUtils.installSearchExtension(
     {
-      favicon_url: `${gBaseUrl}/head_search.js`,
+      favicon_url: `${gHttpURL}/head_search.js`,
     },
     { skipUnload: true }
   );
@@ -132,7 +129,7 @@ add_task(async function test_load_favicon_invalid_redirect() {
   // User installs a new search engine
   let extension = await SearchTestUtils.installSearchExtension(
     {
-      favicon_url: `${gDataUrl}/iconsRedirect.sjs?type=invalid`,
+      favicon_url: `${gHttpURL}/data/iconsRedirect.sjs?type=invalid`,
     },
     { skipUnload: true }
   );
@@ -161,7 +158,7 @@ add_task(async function test_load_favicon_redirect() {
   // User installs a new search engine
   let extension = await SearchTestUtils.installSearchExtension(
     {
-      favicon_url: `${gDataUrl}/iconsRedirect.sjs`,
+      favicon_url: `${gHttpURL}/data/iconsRedirect.sjs`,
     },
     { skipUnload: true }
   );

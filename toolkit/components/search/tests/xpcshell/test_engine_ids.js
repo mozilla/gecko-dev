@@ -19,7 +19,7 @@ const CONFIG = [
 ];
 
 add_setup(async function () {
-  useHttpServer("opensearch");
+  useHttpServer();
   SearchTestUtils.setRemoteSettingsConfig(CONFIG);
   await Services.search.init();
 });
@@ -79,7 +79,7 @@ add_task(async function test_user_engine_id() {
 
 add_task(async function test_open_search_engine_id() {
   let openSearchEngine = await SearchTestUtils.installOpenSearchEngine({
-    url: gDataUrl + "simple.xml",
+    url: `${gHttpURL}/opensearch/simple.xml`,
   });
 
   Assert.ok(openSearchEngine, "Should have installed the Open Search Engine.");

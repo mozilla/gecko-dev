@@ -22,10 +22,10 @@ add_setup(async function () {
 
 add_task(async function test_nodb_pluschanges() {
   let engine1 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engine.xml`,
+    url: `${gHttpURL}/data/engine.xml`,
   });
   let engine2 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engine2.xml`,
+    url: `${gHttpURL}/data/engine2.xml`,
   });
   await promiseAfterSettings();
 

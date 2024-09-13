@@ -46,13 +46,13 @@ add_setup(async function () {
   server.registerContentType("sjs", "sjs");
 
   let getEngineData = {
-    baseURL: gDataUrl,
+    baseURL: `${gHttpURL}/data/`,
     name: "GET suggestion engine",
     method: "GET",
   };
 
   let postEngineData = {
-    baseURL: gDataUrl,
+    baseURL: `${gHttpURL}/data/`,
     name: "POST suggestion engine",
     method: "POST",
   };
@@ -64,23 +64,25 @@ add_setup(async function () {
   };
 
   let alternateJSONSuggestEngineData = {
-    baseURL: gDataUrl,
+    baseURL: `${gHttpURL}/data/`,
     name: "Alternative JSON suggestion type",
     method: "GET",
     alternativeJSONType: true,
   };
 
   getEngine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engineMaker.sjs?${JSON.stringify(getEngineData)}`,
+    url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(getEngineData)}`,
   });
   postEngine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engineMaker.sjs?${JSON.stringify(postEngineData)}`,
+    url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(postEngineData)}`,
   });
   unresolvableEngine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engineMaker.sjs?${JSON.stringify(unresolvableEngineData)}`,
+    url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(
+      unresolvableEngineData
+    )}`,
   });
   alternateJSONEngine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engineMaker.sjs?${JSON.stringify(
+    url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(
       alternateJSONSuggestEngineData
     )}`,
   });

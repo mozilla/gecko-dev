@@ -84,7 +84,7 @@ add_task(async function test_searchTermFromResult() {
 
   // For ISO-8859-1 encoding testing.
   let engineISOCharset = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gDataUrl}engine-fr.xml`,
+    url: `${gHttpURL}/data/engine-fr.xml`,
   });
 
   // For Windows-1252 encoding testing.

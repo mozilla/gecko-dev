@@ -54,7 +54,7 @@ const tests = [
 
 add_setup(async function () {
   Services.fog.initializeFOG();
-  useHttpServer("opensearch");
+  useHttpServer();
   await Services.search.init();
 });
 
@@ -66,7 +66,7 @@ for (const test of tests) {
       SearchUtils.TOPIC_ENGINE_MODIFIED
     );
     let engine = await SearchTestUtils.installOpenSearchEngine({
-      url: gDataUrl + test.file,
+      url: `${gHttpURL}/opensearch/${test.file}`,
     });
     await promiseEngineAdded;
     Assert.ok(engine, "Should have installed the engine.");

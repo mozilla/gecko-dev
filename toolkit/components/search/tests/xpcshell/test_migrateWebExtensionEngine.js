@@ -6,14 +6,14 @@
 const kExtensionID = "simple@tests.mozilla.org";
 
 add_setup(async function () {
-  useHttpServer("opensearch");
+  useHttpServer();
   SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
   await Services.search.init();
 });
 
 add_task(async function test_migrateLegacyEngine() {
   let engine = await SearchTestUtils.installOpenSearchEngine({
-    url: gDataUrl + "simple.xml",
+    url: `${gHttpURL}/opensearch/simple.xml`,
   });
 
   // Modify the loadpath so it looks like a legacy plugin loadpath
@@ -50,7 +50,7 @@ add_task(async function test_migrateLegacyEngine() {
 
 add_task(async function test_migrateLegacyEngineDifferentName() {
   let engine = await SearchTestUtils.installOpenSearchEngine({
-    url: gDataUrl + "simple.xml",
+    url: `${gHttpURL}/opensearch/simple.xml`,
   });
 
   // Modify the loadpath so it looks like an legacy plugin loadpath

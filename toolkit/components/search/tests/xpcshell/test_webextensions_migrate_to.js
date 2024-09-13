@@ -8,7 +8,6 @@
 "use strict";
 
 add_setup(async function () {
-  useHttpServer("opensearch");
   SearchTestUtils.setRemoteSettingsConfig([{ identifier: "unused" }]);
 
   let data = await readJSONFile(
