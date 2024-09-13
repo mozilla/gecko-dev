@@ -17,7 +17,10 @@ add_setup(async function () {
 
 add_task(async function test_invalid_path_fails() {
   await Assert.rejects(
-    Services.search.addOpenSearchEngine("http://invalid/data/engine.xml", null),
+    Services.search.addOpenSearchEngine(
+      "http://invalid/opensearch/generic1.xml",
+      null
+    ),
     error => {
       Assert.equal(
         error.result,

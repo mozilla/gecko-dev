@@ -19,10 +19,10 @@ add_setup(async function () {
 
 add_task(async function test_save_sorted_engines() {
   let engine1 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine.xml`,
+    url: `${gHttpURL}/opensearch/generic1.xml`,
   });
   let engine2 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine2.xml`,
+    url: `${gHttpURL}/opensearch/generic2.xml`,
   });
   await promiseAfterSettings();
 

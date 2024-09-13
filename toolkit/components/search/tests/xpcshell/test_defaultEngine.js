@@ -20,10 +20,10 @@ add_setup(async () => {
   await Services.search.init();
 
   engine1 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine.xml`,
+    url: `${gHttpURL}/opensearch/generic1.xml`,
   });
   engine2 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine2.xml`,
+    url: `${gHttpURL}/opensearch/generic2.xml`,
   });
 });
 

@@ -4,7 +4,7 @@
 "use strict";
 
 add_setup(async function () {
-  let server = useHttpServer();
+  let server = useHttpServer("");
   server.registerContentType("sjs", "sjs");
   await Services.search.init();
 });
@@ -65,7 +65,7 @@ add_task(async function test_icon_types() {
 
 add_task(async function test_multiple_icons_in_file() {
   let engine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engineImages.xml`,
+    url: `${gHttpURL}/opensearch/images.xml`,
   });
 
   Assert.ok((await engine.getIconURL()).includes("ico16"));
@@ -78,7 +78,7 @@ add_task(async function test_multiple_icons_in_file() {
 });
 
 add_task(async function test_icon_not_in_opensearch_file() {
-  let engineUrl = `${gHttpURL}/data/engine-fr.xml`;
+  let engineUrl = `${gHttpURL}/opensearch/fr-domain-iso8859-1.xml`;
   let engine = await Services.search.addOpenSearchEngine(
     engineUrl,
     "data:image/x-icon;base64,ico16"

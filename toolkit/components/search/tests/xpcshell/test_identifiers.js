@@ -70,7 +70,7 @@ add_task(async function test_appProvided_suffix() {
 
 add_task(async function test_opensearch() {
   await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine.xml`,
+    url: `${gHttpURL}/opensearch/generic1.xml`,
   });
 
   // An OpenSearch engine won't have a dedicated identifier because it's not

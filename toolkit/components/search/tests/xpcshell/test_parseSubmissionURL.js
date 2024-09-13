@@ -8,15 +8,15 @@
 "use strict";
 
 add_task(async function setup() {
-  useHttpServer();
+  useHttpServer("");
 });
 
 add_task(async function test_parseSubmissionURL() {
   let engine1 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine.xml`,
+    url: `${gHttpURL}/opensearch/generic1.xml`,
   });
   let engine2 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine-fr.xml`,
+    url: `${gHttpURL}/opensearch/fr-domain-iso8859-1.xml`,
   });
 
   await SearchTestUtils.installSearchExtension({
@@ -36,7 +36,7 @@ add_task(async function test_parseSubmissionURL() {
   // The following engine provides it's query keyword in
   // its template in the form of q={searchTerms}
   let engine5 = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engine2.xml`,
+    url: `${gHttpURL}/opensearch/generic2.xml`,
   });
 
   // The following engines cannot identify the search parameter.
