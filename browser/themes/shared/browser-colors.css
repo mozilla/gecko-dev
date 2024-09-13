@@ -154,6 +154,7 @@
       --urlbar-icon-fill-opacity: 1;
     }
 
+    /* stylelint-disable-next-line media-query-no-invalid */
     @media not (-moz-bool-pref: "sidebar.revamp") {
       --chrome-content-separator-color: light-dark(rgb(204, 204, 204), hsl(240, 5%, 5%));
     }
