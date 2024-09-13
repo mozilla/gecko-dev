@@ -340,3 +340,59 @@ function testUI64() {
   }
 }
 testUI64();
+
+// Compare Int64 against IntPtr.
+function testI64IPtr() {
+  var r64 = fillWithZeros(i64);
+  assertAllCombinationsTested(i64, r64, 500);
+
+  for (var i = 0; i < 500; ++i) {
+    var v = i64[i % i64.length];
+    var w = r64[i % r64.length];
+
+    // Apply an operation to execute BigInt as IntPtr codepaths.
+    w = BigInt.asIntN(32, w);
+    var x = w < 0 ? 1n : w > 0 ? -1n : 0n;
+    w += x;
+
+    // Cast to Int128 to ensure non-optimized BigInt comparison is used.
+    var eq = v == BigInt.asIntN(128, w);
+    var lt = v < BigInt.asIntN(128, w);
+
+    assertEq(v == w, eq);
+    assertEq(v != w, !eq);
+    assertEq(v < w, lt && !eq);
+    assertEq(v <= w, lt || eq);
+    assertEq(v > w, !lt && !eq);
+    assertEq(v >= w, !lt || eq);
+  }
+}
+testI64IPtr();
+
+// Compare IntPtr against Int64.
+function testIPtrI64() {
+  var r64 = fillWithZeros(i64);
+  assertAllCombinationsTested(i64, r64, 500);
+
+  for (var i = 0; i < 500; ++i) {
+    var v = i64[i % i64.length];
+    var w = r64[i % r64.length];
+
+    // Apply an operation to execute BigInt as IntPtr codepaths.
+    v = BigInt.asIntN(32, v);
+    var x = v < 0 ? 1n : v > 0 ? -1n : 0n;
+    v += x;
+
+    // Cast to Int128 to ensure non-optimized BigInt comparison is used.
+    var eq = v == BigInt.asIntN(128, w);
+    var lt = v < BigInt.asIntN(128, w);
+
+    assertEq(v == w, eq);
+    assertEq(v != w, !eq);
+    assertEq(v < w, lt && !eq);
+    assertEq(v <= w, lt || eq);
+    assertEq(v > w, !lt && !eq);
+    assertEq(v >= w, !lt || eq);
+  }
+}
+testIPtrI64();
