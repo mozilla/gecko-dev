@@ -507,9 +507,6 @@ export class ContileIntegration {
         const headers = new Headers();
         headers.append("content-type", "application/json");
 
-        // Note this string includes wrapping braces: {...}
-        const contextId = Services.prefs.getStringPref(CONTEXT_ID_PREF);
-
         const endpointBaseUrl =
           this._topSitesFeed.store.getState().Prefs.values[
             PREF_UNIFIED_ADS_ENDPOINT
@@ -522,7 +519,7 @@ export class ContileIntegration {
           method: "POST",
           headers,
           body: JSON.stringify({
-            context_id: contextId,
+            context_id: lazy.contextId,
             placements: [
               { placement: "newtab_tile_1", count: 1 },
               { placement: "newtab_tile_2", count: 1 },
