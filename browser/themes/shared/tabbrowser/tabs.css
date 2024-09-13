@@ -57,7 +57,7 @@
    * taking all the toolbar space. */
   flex: 1000 1000;
 
-  &:not([orient="vertical"])[positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
+  &[orient="horizontal"][positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
     /* Add padding to match the shadow's blur radius so the
        shadow doesn't get clipped when either the first or
        last tab is selected */
@@ -260,7 +260,7 @@
      - oriented horizontally, or
      - vertical but expanded
   */
-  #tabbrowser-tabs:is(:not([orient="vertical"]), [orient="vertical"][expanded]) &:not([pinned]) {
+  #tabbrowser-tabs:is([orient="horizontal"], [orient="vertical"][expanded]) &:not([pinned]) {
     margin-inline-end: var(--tab-icon-end-margin);
   }
 }
@@ -375,7 +375,7 @@
   /* Hide the generic favicon only in horizontal mode. In vertical mode, tabs may not
   have labels (collapsed state) or we want icons and labels to line up vertically
   (expanded state).  */
-  #tabbrowser-tabs:not([orient="vertical"]) &:not([src], [pinned], [crashed], [sharing], [pictureinpicture]),
+  #tabbrowser-tabs[orient="horizontal"] &:not([src], [pinned], [crashed], [sharing], [pictureinpicture]),
   &[busy] {
     display: none;
   }
@@ -523,7 +523,7 @@
   list-style-image: url(chrome://global/skin/icons/close-12.svg);
 
   &[pinned],
-  #tabbrowser-tabs[closebuttons="activetab"]:not([orient="vertical"]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-content > &:not([selected]) {
+  #tabbrowser-tabs[closebuttons="activetab"][orient="horizontal"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-content > &:not([selected]) {
     display: none;
   }
 }
@@ -532,7 +532,7 @@
  * width of the close button. We don't do this in forced-colors mode since
  * the button has a visible outline shown. */
 @media not (forced-colors) {
-  #tabbrowser-tabs:not([orient="vertical"]) {
+  #tabbrowser-tabs[orient="horizontal"] {
     .tabbrowser-tab:not([labelendaligned], :hover) > .tab-stack > .tab-content > .tab-close-button {
       padding-inline-start: 0;
       width: 18px;
@@ -652,7 +652,7 @@
   }
 }
 
-#tabbrowser-tabs[haspinnedtabs]:not([positionpinnedtabs]):not([orient="vertical"]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab:nth-child(1 of :not([pinned], [hidden])) {
+#tabbrowser-tabs[haspinnedtabs]:not([positionpinnedtabs])[orient="horizontal"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab:nth-child(1 of :not([pinned], [hidden])) {
   margin-inline-start: 12px;
 }
 
@@ -800,10 +800,6 @@ tab-group {
   }
 }
 
-#tabbrowser-tabs[orient="vertical"]:has(> #tabbrowser-arrowscrollbox[overflowing]) {
-  border-bottom: var(--tabstrip-inner-border);
-}
-
 #vertical-tabs-newtab-button {
   appearance: none;
   font: message-box; /* match .tabbrowser-tab on macOS */
@@ -811,7 +807,8 @@ tab-group {
   border-radius: var(--border-radius-medium);
   padding: 0 var(--inline-tab-padding);
 
-  #tabbrowser-tabs:not([orient="vertical"]) > & {
+  #tabbrowser-tabs[orient="horizontal"] > &,
+  #tabbrowser-tabs[orient="vertical"]:not([expanded]) > & > .toolbarbutton-text {
     display: none;
   }
 
@@ -823,24 +820,7 @@ tab-group {
   > .toolbarbutton-text {
     text-align: start;
     padding-inline-start: var(--tab-icon-end-margin);
-
-    sidebar-main:not([expanded]) & {
-      display: none;
-    }
   }
-}
-
-sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
-  min-width: inherit;
-  width: var(--collapsed-tab-width);
-  flex: none;
-}
-
-sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .tabbrowser-tab {
-  min-width: calc(100% - var(--space-medium));
-  flex: none;
-  max-width: none;
-  padding: 0;
 }
 
 #vertical-tabs {
@@ -865,11 +845,11 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   column-gap: 4px;
   padding-bottom: var(--space-small);
 
-  sidebar-main:not([expanded]) &:not(:empty) {
+  #tabbrowser-tabs:not([expanded]) > &:not(:empty) {
     border-bottom: var(--tabstrip-inner-border);
   }
 
-  #tabbrowser-tabs:not([orient="vertical"]) > & {
+  #tabbrowser-tabs[orient="horizontal"] > & {
     display: none;
   }
 
@@ -893,8 +873,8 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   align-content: flex-start;
   grid-gap: var(--space-small);
 
-  &[expanded] {
-    --tab-icon-end-margin: 7.5px;
+  &[overflow] {
+    border-bottom: var(--tabstrip-inner-border);
   }
 
   .tab-close-button {
@@ -910,14 +890,33 @@ sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] .t
   .tab-background {
     border-radius: var(--border-radius-medium);
   }
-}
 
-sidebar-main:not([expanded]) .tab-label-container {
-  display: none;
-}
+  &:not([expanded]) {
+    .tabbrowser-tab {
+      min-width: inherit;
+      width: var(--collapsed-tab-width);
+      flex: none;
+    }
 
-sidebar-main[expanded] > #vertical-tabs > #tabbrowser-tabs[orient="vertical"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab:is(:hover, [selected]) .tab-close-button {
-  display: flex;
+    .tab-label-container {
+      display: none;
+    }
+  }
+
+  &[expanded] {
+    --tab-icon-end-margin: 7.5px;
+
+    .tabbrowser-tab {
+      min-width: calc(100% - var(--space-medium));
+      flex: none;
+      max-width: none;
+      padding: 0;
+
+      &:is(:hover, [selected]):not([pinned]) .tab-close-button {
+        display: flex;
+      }
+    }
+  }
 }
 
 /* Tab drag and drop */
