@@ -11,7 +11,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
   AppInfo: "chrome://remote/content/shared/AppInfo.sys.mjs",
   assert: "chrome://remote/content/shared/webdriver/Assert.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
-  dom: "chrome://remote/content/shared/DOM.sys.mjs",
   error: "chrome://remote/content/shared/webdriver/Errors.sys.mjs",
   event: "chrome://remote/content/shared/webdriver/Event.sys.mjs",
   keyData: "chrome://remote/content/shared/webdriver/KeyData.sys.mjs",
@@ -29,11 +28,11 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
 // to an enum e.g. https://gist.github.com/xmlking/e86e4f15ec32b12c4689
 /**
  * Implements WebDriver Actions API: a low-level interface for providing
- * virtualised device input to the web browser.
+ * virtualized device input to the web browser.
  *
  * Typical usage is to construct an action chain and then dispatch it:
  * const state = new action.State();
- * const chain = new action.Chain.fromJSON(state, protocolData);
+ * const chain = await action.Chain.fromJSON(state, protocolData);
  * await chain.dispatch(state, window);
  *
  * @namespace
@@ -50,6 +49,26 @@ const MODIFIER_NAME_LOOKUP = {
   Control: "ctrl",
   Meta: "meta",
 };
+
+/**
+ * Object containing various callback functions to be used when deserializing
+ * action sequences and dispatching these.
+ *
+ * @typedef {object} ActionsOptions
+ * @property {Function} isElementOrigin
+ *     Function to check if it's a valid origin element.
+ * @property {Function} getElementOrigin
+ *     Function to retrieve the element reference for an element origin.
+ * @property {Function} assertInViewPort
+ *     Function to check if the coordinates [x, y] are in the visible viewport.
+ * @property {Function} dispatchEvent
+ *     Function to use for dispatching events.
+ * @property {Function} getClientRects
+ *     Function that retrieves the client rects for an element.
+ * @property {Function} getInViewCentrePoint
+ *     Function that calculates the in-view center point for the given
+ *     coordinates [x, y].
+ */
 
 /**
  * State associated with actions.
@@ -93,16 +112,16 @@ action.State = class {
    *
    * Note: It is an error to use the State object after calling release().
    *
-   * @param {WindowProxy} win
-   *     Window global to release the inputs for.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once all inputs are released.
    */
-  release(win) {
+  release(options) {
     this.inputsToCancel.reverse();
 
-    return this.inputsToCancel.dispatch(this, win);
+    return this.inputsToCancel.dispatch(this, options);
   }
 
   /**
@@ -286,6 +305,8 @@ class InputSource {
 
   /**
    * Unmarshals a JSON Object to an {@link InputSource}.
+   *
+   * @see https://w3c.github.io/webdriver/#dfn-get-or-create-an-input-source
    *
    * @param {State} actionState
    *     Actions state.
@@ -645,15 +666,15 @@ class Origin {
    *     State of the current input device
    * @param {Array<number>} coords
    *     Coordinates [x, y] of the target relative to the origin.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Array<number>}
    *     Viewport coordinates [x, y].
    */
-  getTargetCoordinates(inputSource, coords, win) {
+  async getTargetCoordinates(inputSource, coords, options) {
     const [x, y] = coords;
-    const origin = this.getOriginCoordinates(inputSource, win);
+    const origin = await this.getOriginCoordinates(inputSource, options);
 
     return [origin.x + x, origin.y + y];
   }
@@ -661,25 +682,34 @@ class Origin {
   /**
    * Unmarshals a JSON Object to an {@link Origin}.
    *
-   * @param {Element|string=} origin
+   * @param {string|Element=} origin
    *     Type of origin, one of "viewport", "pointer", {@link Element}
    *     or undefined.
+   * @param {ActionsOptions} options
+   *     Configuration for actions.
    *
-   * @returns {Origin}
-   *     A {@link Origin} object representing the origin.
+   * @returns {Promise<Origin>}
+   *     Promise that resolves to an {@link Origin} object
+   *     representing the origin.
    *
    * @throws {InvalidArgumentError}
    *     If <code>origin</code> isn't a valid origin.
    */
-  static fromJSON(origin) {
+  static async fromJSON(origin, options) {
+    const { context, getElementOrigin, isElementOrigin } = options;
+
     if (origin === undefined || origin === "viewport") {
       return new ViewportOrigin();
     }
+
     if (origin === "pointer") {
       return new PointerOrigin();
     }
-    if (lazy.dom.isElement(origin)) {
-      return new ElementOrigin(origin);
+
+    if (isElementOrigin(origin)) {
+      const element = await getElementOrigin(origin, context);
+
+      return new ElementOrigin(element);
     }
 
     throw new lazy.error.InvalidArgumentError(
@@ -717,17 +747,29 @@ class ElementOrigin extends Origin {
     this.element = element;
   }
 
-  getOriginCoordinates(inputSource, win) {
-    const clientRects = this.element.getClientRects();
+  /**
+   * Retrieve the coordinates of the origin's in-view center point.
+   *
+   * @param {InputSource} _inputSource
+   *     [unused] Current input device.
+   * @param {ActionsOptions} options
+   *
+   * @returns {Promise<Array<number>>}
+   *     Promise that resolves to the coordinates [x, y].
+   */
+  async getOriginCoordinates(_inputSource, options) {
+    const { context, getClientRects, getInViewCentrePoint } = options;
 
-    // The spec doesn't handle this case; https://github.com/w3c/webdriver/issues/1642
+    const clientRects = await getClientRects(this.element, context);
+
+    // The spec doesn't handle this case: https://github.com/w3c/webdriver/issues/1642
     if (!clientRects.length) {
       throw new lazy.error.MoveTargetOutOfBoundsError(
         lazy.pprint`Origin element ${this.element} is not displayed`
       );
     }
 
-    return lazy.dom.getInViewCentrePoint(clientRects[0], win);
+    return getInViewCentrePoint(clientRects[0], context);
   }
 }
 
@@ -783,14 +825,16 @@ class Action {
    *     Id of {@link InputSource}.
    * @param {object} actionItem
    *     Object representing a single action.
+   * @param {ActionsOptions} options
+   *     Configuration for actions.
    *
-   * @returns {Action}
-   *     An action that can be dispatched.
+   * @returns {Promise<Action>}
+   *     Promise that resolves to an action that can be dispatched.
    *
    * @throws {InvalidArgumentError}
    *     If the <code>actionItem</code> attribute is invalid.
    */
-  static fromJSON(type, id, actionItem) {
+  static fromJSON(type, id, actionItem, options) {
     lazy.assert.object(
       actionItem,
       lazy.pprint`Expected "action" to be an object, got ${actionItem}`
@@ -816,7 +860,7 @@ class Action {
       );
     }
 
-    return cls.fromJSON(id, actionItem);
+    return cls.fromJSON(id, actionItem, options);
   }
 }
 
@@ -875,6 +919,8 @@ class PauseAction extends NullAction {
 
   /**
    * Unmarshals a JSON Object to a {@link PauseAction}.
+   *
+   * @see https://w3c.github.io/webdriver/#dfn-process-a-null-action
    *
    * @param {string} id
    *     Id of {@link InputSource}.
@@ -937,6 +983,8 @@ class KeyAction extends Action {
   /**
    * Unmarshals a JSON Object to a {@link KeyAction}.
    *
+   * @see https://w3c.github.io/webdriver/#dfn-process-a-key-action
+   *
    * @param {string} id
    *     Id of {@link InputSource}.
    * @param {object} actionItem
@@ -995,32 +1043,35 @@ class KeyDownAction extends KeyAction {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
+    const { context, dispatchEvent } = options;
+
     lazy.logger.trace(
-      `Dispatch ${this.constructor.name} with ${this.id} ${this.value}`
+      ` Dispatch ${this.constructor.name} with ${this.id} ${this.value}`
     );
 
-    return new Promise(resolve => {
-      const keyEvent = this.getEventData(inputSource);
-      keyEvent.repeat = inputSource.isPressed(keyEvent.key);
-      inputSource.press(keyEvent.key);
+    const keyEvent = this.getEventData(inputSource);
+    keyEvent.repeat = inputSource.isPressed(keyEvent.key);
+    inputSource.press(keyEvent.key);
 
-      if (keyEvent.key in MODIFIER_NAME_LOOKUP) {
-        inputSource.setModState(keyEvent.key, true);
-      }
+    if (keyEvent.key in MODIFIER_NAME_LOOKUP) {
+      inputSource.setModState(keyEvent.key, true);
+    }
 
-      // Append a copy of |a| with keyUp subtype
-      state.inputsToCancel.push(new KeyUpAction(this.id, this));
-      keyEvent.update(state, inputSource);
-      lazy.event.sendKeyDown(keyEvent, win);
+    // Append a copy of |a| with keyUp subtype
+    state.inputsToCancel.push(new KeyUpAction(this.id, this));
+    keyEvent.update(state, inputSource);
 
-      resolve();
+    await dispatchEvent("synthesizeKeyDown", context, {
+      x: inputSource.x,
+      y: inputSource.y,
+      eventData: keyEvent,
     });
   }
 }
@@ -1046,34 +1097,36 @@ class KeyUpAction extends KeyAction {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
+    const { context, dispatchEvent } = options;
+
     lazy.logger.trace(
-      `Dispatch ${this.constructor.name} with ${this.id} ${this.value}`
+      ` Dispatch ${this.constructor.name} with ${this.id} ${this.value}`
     );
 
-    return new Promise(resolve => {
-      const keyEvent = this.getEventData(inputSource);
+    const keyEvent = this.getEventData(inputSource);
 
-      if (!inputSource.isPressed(keyEvent.key)) {
-        resolve();
-        return;
-      }
+    if (!inputSource.isPressed(keyEvent.key)) {
+      return;
+    }
 
-      if (keyEvent.key in MODIFIER_NAME_LOOKUP) {
-        inputSource.setModState(keyEvent.key, false);
-      }
+    if (keyEvent.key in MODIFIER_NAME_LOOKUP) {
+      inputSource.setModState(keyEvent.key, false);
+    }
 
-      inputSource.release(keyEvent.key);
-      keyEvent.update(state, inputSource);
+    inputSource.release(keyEvent.key);
+    keyEvent.update(state, inputSource);
 
-      lazy.event.sendKeyUp(keyEvent, win);
-      resolve();
+    await dispatchEvent("synthesizeKeyUp", context, {
+      x: inputSource.x,
+      y: inputSource.y,
+      eventData: keyEvent,
     });
   }
 }
@@ -1288,33 +1341,32 @@ class PointerDownAction extends PointerAction {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} ${inputSource.pointer.type} with id: ${this.id} button: ${this.button}`
     );
 
-    return new Promise(resolve => {
-      if (inputSource.isPressed(this.button)) {
-        resolve();
-        return;
-      }
+    if (inputSource.isPressed(this.button)) {
+      return;
+    }
 
-      inputSource.press(this.button);
-      // Append a copy of |a| with pointerUp subtype
-      state.inputsToCancel.push(new PointerUpAction(this.id, this));
-      inputSource.pointer.pointerDown(state, inputSource, this, win);
-      resolve();
-    });
+    inputSource.press(this.button);
+    // Append a copy of |a| with pointerUp subtype
+    state.inputsToCancel.push(new PointerUpAction(this.id, this));
+
+    await inputSource.pointer.pointerDown(state, inputSource, this, options);
   }
 
   /**
    * Unmarshals a JSON Object to a {@link PointerDownAction}.
+   *
+   * @see https://w3c.github.io/webdriver/#dfn-process-a-pointer-up-or-pointer-down-action
    *
    * @param {string} id
    *     Id of {@link InputSource}.
@@ -1392,32 +1444,30 @@ class PointerUpAction extends PointerAction {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} ${inputSource.pointer.type} with id: ${this.id} button: ${this.button}`
     );
 
-    return new Promise(resolve => {
-      if (!inputSource.isPressed(this.button)) {
-        resolve();
-        return;
-      }
+    if (!inputSource.isPressed(this.button)) {
+      return;
+    }
 
-      inputSource.release(this.button);
-      inputSource.pointer.pointerUp(state, inputSource, this, win);
+    inputSource.release(this.button);
 
-      resolve();
-    });
+    await inputSource.pointer.pointerUp(state, inputSource, this, options);
   }
 
   /**
    * Unmarshals a JSON Object to a {@link PointerUpAction}.
+   *
+   * @see https://w3c.github.io/webdriver/#dfn-process-a-pointer-up-or-pointer-down-action
    *
    * @param {string} id
    *     Id of {@link InputSource}.
@@ -1485,6 +1535,7 @@ class PointerMoveAction extends PointerAction {
 
     const { duration, origin, x, y } = options;
     this.duration = duration;
+
     this.origin = origin;
     this.x = x;
     this.y = y;
@@ -1499,30 +1550,33 @@ class PointerMoveAction extends PointerAction {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
+    const { assertInViewPort, context } = options;
+
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} ${inputSource.pointer.type} with id: ${this.id} x: ${this.x} y: ${this.y}`
     );
 
-    const target = this.origin.getTargetCoordinates(
+    const target = await this.origin.getTargetCoordinates(
       inputSource,
       [this.x, this.y],
-      win
+      options
     );
 
-    assertInViewPort(target, win);
+    await assertInViewPort(target, context);
 
     return moveOverTime(
       [[inputSource.x, inputSource.y]],
       [target],
       this.duration ?? tickDuration,
-      target => this.performPointerMoveStep(state, inputSource, target, win)
+      async target =>
+        await this.performPointerMoveStep(state, inputSource, target, options)
     );
   }
 
@@ -1535,10 +1589,12 @@ class PointerMoveAction extends PointerAction {
    *     Current input device.
    * @param {Array<Array<number>>} targets
    *     Array of [x, y] arrays specifying the viewport coordinates to move to.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
+   *
+   * @returns {Promise}
    */
-  performPointerMoveStep(state, inputSource, targets, win) {
+  async performPointerMoveStep(state, inputSource, targets, options) {
     if (targets.length !== 1) {
       throw new Error(
         "PointerMoveAction.performPointerMoveStep requires a single target"
@@ -1553,13 +1609,13 @@ class PointerMoveAction extends PointerAction {
       return;
     }
 
-    inputSource.pointer.pointerMove(
+    await inputSource.pointer.pointerMove(
       state,
       inputSource,
       this,
       target[0],
       target[1],
-      win
+      options
     );
 
     inputSource.x = target[0];
@@ -1569,18 +1625,22 @@ class PointerMoveAction extends PointerAction {
   /**
    * Unmarshals a JSON Object to a {@link PointerMoveAction}.
    *
+   * @see https://w3c.github.io/webdriver/#dfn-process-a-pointer-move-action
+   *
    * @param {string} id
    *     Id of {@link InputSource}.
    * @param {object} actionItem
    *     Object representing a single action.
+   * @param {ActionsOptions} options
+   *     Configuration for actions.
    *
-   * @returns {PointerMoveAction}
+   * @returns {Promise<PointerMoveAction>}
    *     A pointer move action that can be dispatched.
    *
    * @throws {InvalidArgumentError}
    *     If the <code>actionItem</code> attribute is invalid.
    */
-  static fromJSON(id, actionItem) {
+  static async fromJSON(id, actionItem, options) {
     const { duration, origin, x, y } = actionItem;
 
     if (duration !== undefined) {
@@ -1590,7 +1650,8 @@ class PointerMoveAction extends PointerAction {
       );
     }
 
-    const originObject = Origin.fromJSON(origin);
+    const originObject = await Origin.fromJSON(origin, options);
+
     lazy.assert.integer(
       x,
       lazy.pprint`Expected "x" to be an integer, got ${x}`
@@ -1599,8 +1660,8 @@ class PointerMoveAction extends PointerAction {
       y,
       lazy.pprint`Expected "y" to be an integer, got ${y}`
     );
-    const props = PointerAction.validateCommon(actionItem);
 
+    const props = PointerAction.validateCommon(actionItem);
     props.duration = duration;
     props.origin = originObject;
     props.x = x;
@@ -1661,14 +1722,17 @@ class WheelScrollAction extends WheelAction {
    *     Id of {@link InputSource}.
    * @param {object} actionItem
    *     Object representing a single action.
+   * @param {ActionsOptions} options
+   *     Configuration for actions.
    *
-   * @returns {WheelScrollAction}
-   *     A wheel scroll action that can be dispatched.
+   * @returns {Promise<WheelScrollAction>}
+   *     Promise that resolves to a wheel scroll action
+   *     that can be dispatched.
    *
    * @throws {InvalidArgumentError}
    *     If the <code>actionItem</code> attribute is invalid.
    */
-  static fromJSON(id, actionItem) {
+  static async fromJSON(id, actionItem, options) {
     const { duration, origin, x, y, deltaX, deltaY } = actionItem;
 
     if (duration !== undefined) {
@@ -1678,7 +1742,8 @@ class WheelScrollAction extends WheelAction {
       );
     }
 
-    const originObject = Origin.fromJSON(origin);
+    const originObject = await Origin.fromJSON(origin, options);
+
     if (originObject instanceof PointerOrigin) {
       throw new lazy.error.InvalidArgumentError(
         `"pointer" origin not supported for "wheel" input source.`
@@ -1721,23 +1786,26 @@ class WheelScrollAction extends WheelAction {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
+    const { assertInViewPort, context } = options;
+
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with id: ${this.id} deltaX: ${this.deltaX} deltaY: ${this.deltaY}`
     );
 
-    const scrollCoordinates = this.origin.getTargetCoordinates(
+    const scrollCoordinates = await this.origin.getTargetCoordinates(
       inputSource,
       [this.x, this.y],
-      win
+      options
     );
-    assertInViewPort(scrollCoordinates, win);
+
+    await assertInViewPort(scrollCoordinates, context);
 
     const startX = 0;
     const startY = 0;
@@ -1748,13 +1816,13 @@ class WheelScrollAction extends WheelAction {
       [[startX, startY]],
       [[this.deltaX, this.deltaY]],
       this.duration ?? tickDuration,
-      deltaTarget =>
-        this.performOneWheelScroll(
+      async deltaTarget =>
+        await this.performOneWheelScroll(
           state,
           scrollCoordinates,
           deltaPosition,
           deltaTarget,
-          win
+          options
         )
     );
   }
@@ -1770,16 +1838,20 @@ class WheelScrollAction extends WheelAction {
    *     [deltaX, deltaY] coordinates of the scroll before this event.
    * @param {Array<Array<number>>} deltaTargets
    *     Array of [deltaX, deltaY] coordinates to scroll to.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
+   *
+   * @returns {Promise}
    */
-  performOneWheelScroll(
+  async performOneWheelScroll(
     state,
     scrollCoordinates,
     deltaPosition,
     deltaTargets,
-    win
+    options
   ) {
+    const { context, dispatchEvent } = options;
+
     if (deltaTargets.length !== 1) {
       throw new Error("Can only scroll one wheel at a time");
     }
@@ -1797,12 +1869,11 @@ class WheelScrollAction extends WheelAction {
     });
     eventData.update(state);
 
-    lazy.event.synthesizeWheelAtPoint(
-      scrollCoordinates[0],
-      scrollCoordinates[1],
+    await dispatchEvent("synthesizeWheelAtPoint", context, {
+      x: scrollCoordinates[0],
+      y: scrollCoordinates[1],
       eventData,
-      win
-    );
+    });
 
     // Update the current scroll position for the caller
     deltaPosition[0] = deltaTarget[0];
@@ -1886,62 +1957,61 @@ class PointerDownTouchActionGroup extends TouchActionGroup {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
+    const { context, dispatchEvent } = options;
+
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${Array.from(
         this.actions.values()
       ).map(x => x[1].id)}`
     );
 
-    return new Promise(resolve => {
-      if (inputSource !== null) {
-        throw new Error(
-          "Expected null inputSource for PointerDownTouchActionGroup.dispatch"
-        );
-      }
-
-      // Only include pointers that are not already depressed
-      const actions = Array.from(this.actions.values()).filter(
-        ([actionInputSource, action]) =>
-          !actionInputSource.isPressed(action.button)
+    if (inputSource !== null) {
+      throw new Error(
+        "Expected null inputSource for PointerDownTouchActionGroup.dispatch"
       );
+    }
 
-      if (actions.length) {
-        const eventData = new MultiTouchEventData("touchstart");
+    // Only include pointers that are not already depressed
+    const actions = Array.from(this.actions.values()).filter(
+      ([actionInputSource, action]) =>
+        !actionInputSource.isPressed(action.button)
+    );
 
-        for (const [actionInputSource, action] of actions) {
-          // Skip if already pressed
-          eventData.addPointerEventData(actionInputSource, action);
-          actionInputSource.press(action.button);
-          // Append a copy of |action| with pointerUp subtype
-          state.inputsToCancel.push(new PointerUpAction(action.id, action));
-          eventData.update(state, actionInputSource);
-        }
+    if (actions.length) {
+      const eventData = new MultiTouchEventData("touchstart");
 
-        // Touch start events must include all depressed touch pointers
-        for (const [id, pointerInputSource] of state.inputSourcesByType(
-          "pointer"
-        )) {
-          if (
-            pointerInputSource.pointer.type === "touch" &&
-            !this.actions.has(id) &&
-            pointerInputSource.isPressed(0)
-          ) {
-            eventData.addPointerEventData(pointerInputSource, {});
-            eventData.update(state, pointerInputSource);
-          }
-        }
-        lazy.event.synthesizeMultiTouch(eventData, win);
+      for (const [actionInputSource, action] of actions) {
+        // Skip if already pressed
+        eventData.addPointerEventData(actionInputSource, action);
+        actionInputSource.press(action.button);
+        // Append a copy of |action| with pointerUp subtype
+        state.inputsToCancel.push(new PointerUpAction(action.id, action));
+        eventData.update(state, actionInputSource);
       }
 
-      resolve();
-    });
+      // Touch start events must include all depressed touch pointers
+      for (const [id, pointerInputSource] of state.inputSourcesByType(
+        "pointer"
+      )) {
+        if (
+          pointerInputSource.pointer.type === "touch" &&
+          !this.actions.has(id) &&
+          pointerInputSource.isPressed(0)
+        ) {
+          eventData.addPointerEventData(pointerInputSource, {});
+          eventData.update(state, pointerInputSource);
+        }
+      }
+
+      await dispatchEvent("synthesizeMultiTouch", context, { eventData });
+    }
   }
 }
 
@@ -1961,44 +2031,43 @@ class PointerUpTouchActionGroup extends TouchActionGroup {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
+    const { context, dispatchEvent } = options;
+
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${Array.from(
         this.actions.values()
       ).map(x => x[1].id)}`
     );
 
-    return new Promise(resolve => {
-      if (inputSource !== null) {
-        throw new Error(
-          "Expected null inputSource for PointerUpTouchActionGroup.dispatch"
-        );
-      }
-
-      // Only include pointers that are not already depressed
-      const actions = Array.from(this.actions.values()).filter(
-        ([actionInputSource, action]) =>
-          actionInputSource.isPressed(action.button)
+    if (inputSource !== null) {
+      throw new Error(
+        "Expected null inputSource for PointerUpTouchActionGroup.dispatch"
       );
+    }
 
-      if (actions.length) {
-        const eventData = new MultiTouchEventData("touchend");
-        for (const [actionInputSource, action] of actions) {
-          eventData.addPointerEventData(actionInputSource, action);
-          actionInputSource.release(action.button);
-          eventData.update(state, actionInputSource);
-        }
-        lazy.event.synthesizeMultiTouch(eventData, win);
+    // Only include pointers that are not already depressed
+    const actions = Array.from(this.actions.values()).filter(
+      ([actionInputSource, action]) =>
+        actionInputSource.isPressed(action.button)
+    );
+
+    if (actions.length) {
+      const eventData = new MultiTouchEventData("touchend");
+      for (const [actionInputSource, action] of actions) {
+        eventData.addPointerEventData(actionInputSource, action);
+        actionInputSource.release(action.button);
+        eventData.update(state, actionInputSource);
       }
 
-      resolve();
-    });
+      await dispatchEvent("synthesizeMultiTouch", context, { eventData });
+    }
   }
 }
 
@@ -2018,13 +2087,15 @@ class PointerMoveTouchActionGroup extends TouchActionGroup {
    *     Current input device.
    * @param {number} tickDuration
    *     [unused] Length of the current tick, in ms.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action is complete.
    */
-  dispatch(state, inputSource, tickDuration, win) {
+  async dispatch(state, inputSource, tickDuration, options) {
+    const { assertInViewPort, context } = options;
+
     lazy.logger.trace(
       `Dispatch ${this.constructor.name} with ${Array.from(this.actions).map(
         x => x[1].id
@@ -2040,13 +2111,14 @@ class PointerMoveTouchActionGroup extends TouchActionGroup {
     let targetCoords = [];
 
     for (const [actionInputSource, action] of this.actions.values()) {
-      const target = action.origin.getTargetCoordinates(
+      const target = await action.origin.getTargetCoordinates(
         actionInputSource,
         [action.x, action.y],
-        win
+        options
       );
 
-      assertInViewPort(target, win);
+      await assertInViewPort(target, context);
+
       startCoords.push([actionInputSource.x, actionInputSource.y]);
       targetCoords.push(target);
     }
@@ -2073,12 +2145,12 @@ class PointerMoveTouchActionGroup extends TouchActionGroup {
       startCoords,
       targetCoords,
       this.duration ?? tickDuration,
-      currentTargetCoords =>
-        this.performPointerMoveStep(
+      async currentTargetCoords =>
+        await this.performPointerMoveStep(
           state,
           staticTouchPointers,
           currentTargetCoords,
-          win
+          options
         )
     );
   }
@@ -2093,10 +2165,17 @@ class PointerMoveTouchActionGroup extends TouchActionGroup {
    *     involved in the touch move.
    * @param {Array<Array<number>>} targetCoords
    *     Array of [x, y] arrays specifying the viewport coordinates to move to.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    */
-  performPointerMoveStep(state, staticTouchPointers, targetCoords, win) {
+  async performPointerMoveStep(
+    state,
+    staticTouchPointers,
+    targetCoords,
+    options
+  ) {
+    const { context, dispatchEvent } = options;
+
     if (targetCoords.length !== this.actions.size) {
       throw new Error("Expected one target per pointer");
     }
@@ -2129,7 +2208,7 @@ class PointerMoveTouchActionGroup extends TouchActionGroup {
       eventData.update(state, inputSource);
     }
 
-    lazy.event.synthesizeMultiTouch(eventData, win);
+    await dispatchEvent("synthesizeMultiTouch", context, { eventData });
   }
 }
 
@@ -2188,7 +2267,7 @@ async function moveOverTime(startCoords, targetCoords, duration, callback) {
 
   if (duration === 0) {
     // transition to destination in one step
-    callback(targetCoords);
+    await callback(targetCoords);
     return;
   }
 
@@ -2218,11 +2297,15 @@ async function moveOverTime(startCoords, targetCoords, duration, callback) {
           Math.floor(durationRatio * distance[1] + startCoord[1]),
         ];
       });
-      callback(intermediateTargets);
-      // wait |fps60| ms before performing next transition
-      await new Promise(resolveTimer =>
-        timer.initWithCallback(resolveTimer, fps60, ONE_SHOT)
-      );
+
+      await Promise.all([
+        callback(intermediateTargets),
+
+        // wait |fps60| ms before performing next transition
+        new Promise(resolveTimer =>
+          timer.initWithCallback(resolveTimer, fps60, ONE_SHOT)
+        ),
+      ]);
 
       durationRatio = Math.floor(Date.now() - startTime) / duration;
     }
@@ -2230,9 +2313,9 @@ async function moveOverTime(startCoords, targetCoords, duration, callback) {
 
   await transitions;
 
-  // perform last transitionafter all incremental moves are resolved and
+  // perform last transition after all incremental moves are resolved and
   // durationRatio is close enough to 1
-  callback(targetCoords);
+  await callback(targetCoords);
 }
 
 const actionTypes = new Map();
@@ -2326,7 +2409,24 @@ class Pointer {
 class MousePointer extends Pointer {
   static type = "mouse";
 
-  pointerDown(state, inputSource, action, win) {
+  /**
+   * Emits a pointer down event.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {PointerDownAction} action
+   *     The pointer down action to perform.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
+   *
+   * @returns {Promise}
+   *     Promise that resolves when the event has been dispatched.
+   */
+  async pointerDown(state, inputSource, action, options) {
+    const { context, dispatchEvent } = options;
+
     const mouseEvent = new MouseEventData("mousedown", {
       button: action.button,
     });
@@ -2341,28 +2441,44 @@ class MousePointer extends Pointer {
       mouseEvent.clickCount = state.clickTracker.count + 1;
     }
 
-    lazy.event.synthesizeMouseAtPoint(
-      inputSource.x,
-      inputSource.y,
-      mouseEvent,
-      win
-    );
+    await dispatchEvent("synthesizeMouseAtPoint", context, {
+      x: inputSource.x,
+      y: inputSource.y,
+      eventData: mouseEvent,
+    });
 
     if (
       lazy.event.MouseButton.isSecondary(mouseEvent.button) ||
       (mouseEvent.ctrlKey && lazy.AppInfo.isMac)
     ) {
       const contextMenuEvent = { ...mouseEvent, type: "contextmenu" };
-      lazy.event.synthesizeMouseAtPoint(
-        inputSource.x,
-        inputSource.y,
-        contextMenuEvent,
-        win
-      );
+
+      await dispatchEvent("synthesizeMouseAtPoint", context, {
+        x: inputSource.x,
+        y: inputSource.y,
+        eventData: contextMenuEvent,
+      });
     }
   }
 
-  pointerUp(state, inputSource, action, win) {
+  /**
+   * Emits a pointer up event.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {PointerUpAction} action
+   *     The pointer up action to perform.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
+   *
+   * @returns {Promise}
+   *     Promise that resolves when the event has been dispatched.
+   */
+  async pointerUp(state, inputSource, action, options) {
+    const { context, dispatchEvent } = options;
+
     const mouseEvent = new MouseEventData("mouseup", {
       button: action.button,
     });
@@ -2371,19 +2487,43 @@ class MousePointer extends Pointer {
     state.clickTracker.setClick(action.button);
     mouseEvent.clickCount = state.clickTracker.count;
 
-    lazy.event.synthesizeMouseAtPoint(
-      inputSource.x,
-      inputSource.y,
-      mouseEvent,
-      win
-    );
+    await dispatchEvent("synthesizeMouseAtPoint", context, {
+      x: inputSource.x,
+      y: inputSource.y,
+      eventData: mouseEvent,
+    });
   }
 
-  pointerMove(state, inputSource, action, targetX, targetY, win) {
+  /**
+   * Emits a pointer down event.
+   *
+   * @param {State} state
+   *     The {@link State} of the action.
+   * @param {InputSource} inputSource
+   *     Current input device.
+   * @param {PointerMoveAction} action
+   *     The pointer down action to perform.
+   * @param {number} targetX
+   *     Target x position to move the pointer to.
+   * @param {number} targetY
+   *     Target y position to move the pointer to.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
+   *
+   * @returns {Promise}
+   *     Promise that resolves when the event has been dispatched.
+   */
+  async pointerMove(state, inputSource, action, targetX, targetY, options) {
+    const { context, dispatchEvent } = options;
+
     const mouseEvent = new MouseEventData("mousemove");
     mouseEvent.update(state, inputSource);
 
-    lazy.event.synthesizeMouseAtPoint(targetX, targetY, mouseEvent, win);
+    await dispatchEvent("synthesizeMouseAtPoint", context, {
+      x: targetX,
+      y: targetY,
+      eventData: mouseEvent,
+    });
 
     state.clickTracker.reset();
   }
@@ -2424,19 +2564,19 @@ action.Chain = class extends Array {
    *
    * @param {State} state
    *     The {@link State} of actions.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that is resolved once the action chain is complete.
    */
-  dispatch(state, win) {
+  dispatch(state, options) {
     let i = 1;
 
     const chainEvents = (async () => {
       for (const tickActions of this) {
         lazy.logger.trace(`Dispatching tick ${i++}/${this.length}`);
-        await tickActions.dispatch(state, win);
+        await tickActions.dispatch(state, options);
       }
     })();
 
@@ -2450,18 +2590,23 @@ action.Chain = class extends Array {
   /**
    * Unmarshals a JSON Object to a {@link Chain}.
    *
-   * @param {State} state
+   * @see https://w3c.github.io/webdriver/#dfn-extract-an-action-sequence
+   *
+   * @param {State} actionState
    *     The {@link State} of actions.
    * @param {Array<object>} actions
    *     Array of objects that each represent an action sequence.
+   * @param {ActionsOptions} options
+   *     Configuration for actions.
    *
-   * @returns {Chain}
-   *     Object that allows dispatching a chain of actions.
+   * @returns {Promise<Chain>}
+   *     Promise resolving to an object that allows dispatching
+   *     a chain of actions.
    *
    * @throws {InvalidArgumentError}
    *     If <code>actions</code> doesn't correspond to a valid action chain.
    */
-  static fromJSON(state, actions) {
+  static async fromJSON(actionState, actions, options) {
     lazy.assert.array(
       actions,
       lazy.pprint`Expected "actions" to be an array, got ${actions}`
@@ -2475,7 +2620,11 @@ action.Chain = class extends Array {
           lazy.pprint`got ${actionSequence}`
       );
 
-      const inputSourceActions = Sequence.fromJSON(state, actionSequence);
+      const inputSourceActions = await Sequence.fromJSON(
+        actionState,
+        actionSequence,
+        options
+      );
 
       for (let i = 0; i < inputSourceActions.length; i++) {
         // new tick
@@ -2525,17 +2674,17 @@ class TickActions extends Array {
    *
    * @param {State} state
    *     The {@link State} of actions.
-   * @param {WindowProxy} win
-   *     Current window global.
+   * @param {ActionsOptions} options
+   *     Configuration of actions dispatch.
    *
    * @returns {Promise}
    *     Promise that resolves when tick is complete.
    */
-  dispatch(state, win) {
+  dispatch(state, options) {
     const tickDuration = this.getDuration();
     const tickActions = this.groupTickActions(state);
     const pendingEvents = tickActions.map(([inputSource, action]) =>
-      action.dispatch(state, inputSource, tickDuration, win)
+      action.dispatch(state, inputSource, tickDuration, options)
     );
 
     return Promise.all(pendingEvents);
@@ -2599,20 +2748,25 @@ class Sequence extends Array {
   /**
    * Unmarshals a JSON Object to a {@link Sequence}.
    *
-   * @param {State} state
+   * @see https://w3c.github.io/webdriver/#dfn-process-an-input-source-action-sequence
+   *
+   * @param {State} actionState
    *     The {@link State} of actions.
    * @param {object} actionSequence
    *     Protocol representation of the actions for a specific input source.
+   * @param {ActionsOptions} options
+   *     Configuration for actions.
    *
-   * @returns {Array<Array<InputSource, Action | TouchActionGroup>>}
-   *     Object that allows dispatching a sequence of actions.
+   * @returns {Promise<Array<Array<InputSource, Action | TouchActionGroup>>>}
+   *     Promise that resolves to an object that allows dispatching a
+   *     sequence of actions.
    *
    * @throws {InvalidArgumentError}
    *     If the <code>actionSequence</code> doesn't correspond to a valid action sequence.
    */
-  static fromJSON(state, actionSequence) {
+  static async fromJSON(actionState, actionSequence, options) {
     // used here to validate 'type' in addition to InputSource type below
-    const { id, type, actions } = actionSequence;
+    const { actions, id, type } = actionSequence;
 
     // type and id get validated in InputSource.fromJSON
     lazy.assert.array(
@@ -2621,12 +2775,12 @@ class Sequence extends Array {
         lazy.pprint`got ${actionSequence.actions}`
     );
 
-    // This sets the input state in the global state map, if it's new
-    InputSource.fromJSON(state, actionSequence);
+    // This sets the input state in the global state map, if it's new.
+    InputSource.fromJSON(actionState, actionSequence);
 
     const sequence = new this();
     for (const actionItem of actions) {
-      sequence.push(Action.fromJSON(type, id, actionItem));
+      sequence.push(await Action.fromJSON(type, id, actionItem, options));
     }
 
     return sequence;
@@ -2908,7 +3062,7 @@ class MultiTouchEventData extends PointerEventData {
  * @throws {MoveTargetOutOfBoundsError}
  *     If target is outside the viewport.
  */
-function assertInViewPort(target, win) {
+export function assertInViewPort(target, win) {
   const [x, y] = target;
 
   lazy.assert.number(
