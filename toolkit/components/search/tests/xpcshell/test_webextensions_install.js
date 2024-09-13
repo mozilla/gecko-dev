@@ -129,7 +129,7 @@ add_task(async function test_load_favicon_invalid_redirect() {
   // User installs a new search engine
   let extension = await SearchTestUtils.installSearchExtension(
     {
-      favicon_url: `${gHttpURL}/data/iconsRedirect.sjs?type=invalid`,
+      favicon_url: `${gHttpURL}/sjs/iconsRedirect.sjs?type=invalid`,
     },
     { skipUnload: true }
   );
@@ -158,7 +158,7 @@ add_task(async function test_load_favicon_redirect() {
   // User installs a new search engine
   let extension = await SearchTestUtils.installSearchExtension(
     {
-      favicon_url: `${gHttpURL}/data/iconsRedirect.sjs`,
+      favicon_url: `${gHttpURL}/sjs/iconsRedirect.sjs`,
     },
     { skipUnload: true }
   );

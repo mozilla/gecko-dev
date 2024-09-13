@@ -33,7 +33,7 @@ add_task(async function test_installEngine_with_updates_disabled() {
   );
 
   await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(engineData)}`,
+    url: `${gHttpURL}/sjs/engineMaker.sjs?${JSON.stringify(engineData)}`,
   });
 
   Assert.ok(
@@ -62,7 +62,7 @@ add_task(async function test_installEngine_with_updates_enabled() {
   );
 
   let engine = await SearchTestUtils.installOpenSearchEngine({
-    url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(engineData)}`,
+    url: `${gHttpURL}/sjs/engineMaker.sjs?${JSON.stringify(engineData)}`,
   });
 
   Assert.ok(

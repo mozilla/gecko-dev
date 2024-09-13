@@ -7,9 +7,6 @@ skip-if = ["os == 'android'"]
 prefs = ["browser.search.removeEngineInfobar.enabled=true"]
 
 support-files = [
-  "data/engineMaker.sjs",
-  "data/iconsRedirect.sjs",
-  "data/searchSuggestions.sjs",
   "icons/bigIcon.ico",
   "icons/remoteIcon.ico",
   "icons/svgIcon.svg",
@@ -17,6 +14,9 @@ support-files = [
   "opensearch/generic1.xml",
   "opensearch/generic2.xml",
   "settings/v1-metadata-migration.json",
+  "sjs/engineMaker.sjs",
+  "sjs/iconsRedirect.sjs",
+  "sjs/searchSuggestions.sjs",
 ]
 
 ["test_SearchStaticData.js"]

@@ -48,7 +48,7 @@ add_task(async function test_icon_types() {
     // The easiest way to test adding the icon is via a generated xml, otherwise
     // we have to somehow insert the address of the server into it.
     SearchTestUtils.installOpenSearchEngine({
-      url: `${gHttpURL}/data/engineMaker.sjs?${JSON.stringify(engineData)}`,
+      url: `${gHttpURL}/sjs/engineMaker.sjs?${JSON.stringify(engineData)}`,
     });
     let engine = await promiseEngineAdded;
     // Ensure this is a nsISearchEngine.
