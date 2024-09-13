@@ -298,6 +298,34 @@ add_task(async function () {
     "The setTimeout callback is displayed in the timeline"
   );
 
+  info(
+    "Check each category checked status before enabling only keyboad instead of time"
+  );
+  const domEventCheckboxes = findAllElementsWithSelector(
+    dbg,
+    `#tracer-tab-panel .event-listener-label input`
+  );
+  is(domEventCheckboxes[0].checked, false);
+  is(domEventCheckboxes[1].checked, false);
+  is(domEventCheckboxes[2].checked, true);
+
+  info(
+    "CmdOrCtrl + click on the Keyboard categorie to force selecting only this category"
+  );
+  EventUtils.synthesizeMouseAtCenter(
+    domEventCategories[0],
+    { [Services.appinfo.OS === "Darwin" ? "metaKey" : "ctrlKey"]: true },
+    dbg.win
+  );
+
+  info("Wait for the event checkboxes to be updated");
+  await waitFor(() => {
+    return domEventCheckboxes[0].checked;
+  });
+  is(domEventCheckboxes[0].checked, true);
+  is(domEventCheckboxes[1].checked, false);
+  is(domEventCheckboxes[2].checked, false);
+
   // Test Disabling tracing
   info("Disable the tracing");
   await toggleJsTracer(dbg.toolbox);

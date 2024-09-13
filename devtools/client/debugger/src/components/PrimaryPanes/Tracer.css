@@ -88,10 +88,28 @@
   height: 100%;
 }
 
-.tracer-tab .event-listeners .event-search-input {
-  /* :focus-visible is cutoff on the right */
-  outline-offset: -2px;
+.tracer-tab .event-listeners-container {
+  display: flex;
+  flex-direction: column;
+
+  .event-listeners {
+    flex: 1;
+
+    .event-search-input {
+      /* :focus-visible is cutoff on the right */
+      outline-offset: -2px;
+    }
+  }
+
+  footer {
+    background: var(--theme-body-background);
+    border-top: 1px solid var(--theme-splitter-color);
+    min-height: var(--editor-footer-height);
+    align-content: center;
+    padding: 4px 6px;
+  }
 }
+
 
 .tracer-tab .tree {
   overflow-x: auto;

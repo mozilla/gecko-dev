@@ -73,6 +73,7 @@ exports[`EventListeners should render categories appropriately 1`] = `
           </button>
           <label
             className="event-listener-label"
+            onMouseDown={[Function]}
           >
             <input
               checked={false}
@@ -105,6 +106,7 @@ exports[`EventListeners should render categories appropriately 1`] = `
           </button>
           <label
             className="event-listener-label"
+            onMouseDown={[Function]}
           >
             <input
               checked={false}
@@ -168,6 +170,7 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
           </button>
           <label
             className="event-listener-label"
+            onMouseDown={[Function]}
           >
             <input
               checked={false}
@@ -189,6 +192,7 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
           >
             <label
               className="event-listener-label"
+              onMouseDown={[Function]}
             >
               <input
                 checked={false}
@@ -209,6 +213,7 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
           >
             <label
               className="event-listener-label"
+              onMouseDown={[Function]}
             >
               <input
                 checked={true}
@@ -242,6 +247,7 @@ exports[`EventListeners should render checked subcategories appropriately 1`] = 
           </button>
           <label
             className="event-listener-label"
+            onMouseDown={[Function]}
           >
             <input
               checked={false}
@@ -305,6 +311,7 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
           </button>
           <label
             className="event-listener-label"
+            onMouseDown={[Function]}
           >
             <input
               checked={false}
@@ -337,6 +344,7 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
           </button>
           <label
             className="event-listener-label"
+            onMouseDown={[Function]}
           >
             <input
               checked={false}
@@ -358,6 +366,7 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
           >
             <label
               className="event-listener-label"
+              onMouseDown={[Function]}
             >
               <input
                 checked={false}
@@ -378,6 +387,7 @@ exports[`EventListeners should render expanded categories appropriately 1`] = `
           >
             <label
               className="event-listener-label"
+              onMouseDown={[Function]}
             >
               <input
                 checked={false}

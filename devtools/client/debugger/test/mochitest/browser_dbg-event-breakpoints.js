@@ -236,6 +236,47 @@ add_task(async function () {
   await toggleEventBreakpoint(dbg, "Load", "event.load.unload");
 });
 
+// Cover CmdOrCtrl+click on event breakpoints
+add_task(async function () {
+  const dbg = await initDebugger(
+    "doc-event-breakpoints.html",
+    "event-breakpoints.js"
+  );
+
+  // Toggle two distinct categories
+  await toggleEventBreakpoint(dbg, "Load", "event.load.unload");
+  await toggleEventBreakpoint(dbg, "Mouse", "event.mouse.click");
+
+  info("CmdOrCtrl + click on the Timer category");
+  const loadGroupCheckbox = findElementWithSelector(dbg, `input[value="Load"]`);
+  const mouseGroupCheckbox = findElementWithSelector(
+    dbg,
+    `input[value="Mouse"]`
+  );
+  const timerGroupCheckbox = findElementWithSelector(
+    dbg,
+    `input[value="Timer"]`
+  );
+  is(loadGroupCheckbox.indeterminate, true);
+  is(mouseGroupCheckbox.indeterminate, true);
+  is(timerGroupCheckbox.checked, false);
+  timerGroupCheckbox.scrollIntoView();
+  EventUtils.synthesizeMouseAtCenter(
+    timerGroupCheckbox,
+    { [Services.appinfo.OS === "Darwin" ? "metaKey" : "ctrlKey"]: true },
+    dbg.win
+  );
+  info("Wait for the checkboxes to update");
+  await waitFor(
+    () =>
+      timerGroupCheckbox.checked === true &&
+      loadGroupCheckbox.indeterminate === false
+  );
+  is(loadGroupCheckbox.indeterminate, false);
+  is(mouseGroupCheckbox.indeterminate, false);
+  is(timerGroupCheckbox.checked, true);
+});
+
 function getEventListenersPanel(dbg) {
   return findElementWithSelector(dbg, ".event-listeners-pane .event-listeners");
 }

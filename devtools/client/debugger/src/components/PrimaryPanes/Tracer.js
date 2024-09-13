@@ -7,7 +7,11 @@ import React, {
   Component,
   createFactory,
 } from "devtools/client/shared/vendor/react";
-import { div, button } from "devtools/client/shared/vendor/react-dom-factories";
+import {
+  div,
+  button,
+  footer,
+} from "devtools/client/shared/vendor/react-dom-factories";
 import EventListeners from "../shared/EventListeners";
 import { connect } from "devtools/client/shared/vendor/react-redux";
 import {
@@ -763,9 +767,18 @@ export class Tracer extends Component {
             id: "tracer-events",
             title: "DOM Events",
           },
-          React.createElement(EventListeners, {
-            panelKey: "tracer",
-          })
+          div(
+            { className: "event-listeners-container" },
+            React.createElement(EventListeners, {
+              panelKey: "tracer",
+            }),
+            footer(
+              null,
+              `${
+                isMacOS ? "Cmd" : "Ctrl"
+              } + Click to select only one category or event`
+            )
+          )
         )
       )
     );
