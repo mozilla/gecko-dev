@@ -133,40 +133,6 @@ void DesktopDeviceInfoImpl<Type, Device>::Refresh() {
 
   mDeviceList.clear();
 
-#if defined(WEBRTC_USE_PIPEWIRE)
-  if (mOptions.allow_pipewire() &&
-      webrtc::DesktopCapturer::IsRunningUnderWayland()) {
-    // Wayland is special and we will not get any information about screens or
-    // windows without going through xdg-desktop-portal. We add a single screen
-    // placeholder here.
-    if constexpr (Type == CaptureDeviceType::Screen) {
-      // With PipeWire we can't select which system resource is shared so
-      // we don't create a window/screen list. Instead we place these constants
-      // as window name/id so frontend code can identify PipeWire backend
-      // and does not try to create screen/window preview.
-      constexpr ScreenId PIPEWIRE_ID = 0xaffffff;
-      constexpr const char* PIPEWIRE_NAME = "####_PIPEWIRE_PORTAL_####";
-
-      auto result = mDeviceList.try_emplace(PIPEWIRE_ID);
-      auto& [iter, inserted] = result;
-      if (!inserted) {
-        MOZ_CRASH("Device list was supposed to be empty");
-      }
-      auto& [key, device] = *iter;
-
-      device.setScreenId(PIPEWIRE_ID);
-      device.setUniqueId(nsPrintfCString("%" PRIdPTR, PIPEWIRE_ID));
-      device.setName(nsCString(PIPEWIRE_NAME));
-      return;
-    } else if constexpr (Type == CaptureDeviceType::Window) {
-      // Wayland is special and we will not get any information about windows
-      // without going through xdg-desktop-portal. We will already have
-      // a screen placeholder so there is no reason to build windows list.
-      return;
-    }
-  }
-#endif
-
   std::unique_ptr<DesktopCapturer> cap;
   if constexpr (Type == CaptureDeviceType::Screen ||
                 Type == CaptureDeviceType::Window) {
