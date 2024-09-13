@@ -7,6 +7,80 @@ Expectations
 All teams working on Firefox using either or both Mozilla-central and
 Bugzilla are expected to follow the following process.
 
+Components
+~~~~~~~~~~
+
+You should understand the list of components that your team is responsible for.
+Each component must have a Triage Owner. (File a bug to update a component's
+Triage Owner, or see this sheet in order to set up a triage rotation).
+
+Triage Owners
+~~~~~~~~~~~~~
+
+Triage Owners are responsible for ensuring that bugs are triaged within the
+expected timeframe, as well as acting as the primary point of contact for triage
+related questions. While it's their responsibility to ensure triage happens, it
+doesn't necessarily mean only they can or should perform triage.
+
+A good starting point is for anyone senior enough in the team to triage bugs as
+they are filed, leaving bugs that need discussion untriaged. Then schedule a
+weekly triage meeting to discuss and triage bugs where required.
+
+Triage
+~~~~~~
+
+Incoming bugs could be serious and we may need to react quickly. Users that have
+invested the time to inform us of a bug would like to feel that we are
+listening.
+
+-  All new bugs should be quickly assessed on a daily basis to ensure that
+   security bugs can be actioned quickly.
+-  All new bugs should be fully triaged, or under active investigation, within
+   one week of being created.
+
+Important bugs monitoring and fixing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Bug severities are there for a reason. Tracked bugs must be taken particularly
+seriously, too. Regressions are important to users, regressed functionality is
+an indication that the product is getting worse not better. They should,
+best-case, never hit release but be fixed in beta.
+
+-  All new S1 and sec-critical bugs should get the full attention of anyone that
+   can reasonably help
+-  All new S2 and sec-high bugs should be assigned (with caveats) and monitored
+   closely (weekly team meeting)
+-  Tracked bugs should be monitored closely (weekly team meeting)
+-  Regressions should be monitored closely (weekly team meeting)
+
+All of this can be found on the “Important” tab of https://bugdash.moz.tools/
+(after selecting your components).
+
+\*::General components
+~~~~~~~~~~~~~~~~~~~~~~
+
+We can't expect users to know the details of our component structure so we may
+need to help routing bugs to the right place.
+
+-  Some teams have \*::General components. New bugs in these components should
+   be triaged into more specific components, within a week (unless we're
+   actively gathering information to decide where it belongs). Also note that
+   sometimes meta bugs don't have a better component, and in these cases,
+   \*::General is an appropriate long term home.
+-  (Core::General has its own `Definitions for Triage Owner Rotations <https://docs.google.com/spreadsheets/d/1EK6iCtdD8KP4UflIHscuZo6W5er2vy_TX7vsmaaBVd4/edit>`__)
+
+Backlogs
+~~~~~~~~
+
+Backlogs are a feature of all software projects and we're never going to get to
+zero bugs. However, given our already sizable backlogs, we should at least
+ensure that our backlogs are not getting any worse. We have some tools to track
+this on https://bugdash.moz.tools/. It has an "Overview" tab that shows you the
+maintenance trends. Ideally over the past 12 weeks, the "Maint Effect" (i.e.
+`Maintenance Effectiveness <https://docs.google.com/document/d/1y2dUDZI5U3xvY0jMY1LfIDARc5b_QB9mS2DV7MWrfa0/edit>`__)
+should be over 100%, and the "Burn Down" (i.e. the time to zero bugs) should not
+be "∞".
+
 What is a Triaged Bug
 ---------------------
 
