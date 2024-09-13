@@ -44,11 +44,11 @@ class nsOSHelperAppService final : public nsExternalHelperAppService {
   //                     spec, a unix path or a windows path depending on the
   //                     platform
   // aFile --> an nsIFile representation of that platform application path.
-  virtual nsresult GetFileTokenForPath(const char16_t* platformAppPath,
-                                       nsIFile** aFile) override;
+  [[nodiscard]] nsresult GetFileTokenForPath(const char16_t* platformAppPath,
+                                             nsIFile** aFile) override;
 
-  nsresult OSProtocolHandlerExists(const char* aScheme,
-                                   bool* aHandlerExists) override;
+  [[nodiscard]] nsresult OSProtocolHandlerExists(const char* aScheme,
+                                                 bool* aHandlerExists) override;
 };
 
 #endif  // nsOSHelperAppService_h__
