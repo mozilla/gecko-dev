@@ -1275,6 +1275,13 @@ class Editor extends EventEmitter {
             // 1. exception-position-marker
             // 2. debug-position-marker
             const tokenAtPos = syntaxTree(transaction.state).resolve(pos, 1);
+            // While trying to update the markers, during content changes, the syntax tree is not
+            // guaranteed to be complete, so there is the possibility of getting wrong `from` and `to` values for the token.
+            // To make sure we are handling a valid token, let's check that the `from` value (which is the start position of the retrieved token)
+            // matches the position we want.
+            if (tokenAtPos.from !== pos) {
+              continue;
+            }
             const tokenString = line.text.slice(
               position.column,
               tokenAtPos.to - line.from
