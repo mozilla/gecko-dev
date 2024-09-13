@@ -113,7 +113,6 @@ class MediaNotificationTest : TestSetup() {
     }
 
     // TestRail: https://mozilla.testrail.io/index.php?/cases/view/903595
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun mediaSystemNotificationInPrivateModeTest() {
         val audioTestPage = TestAssetHelper.getAudioPageAsset(mockWebServer)

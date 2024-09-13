@@ -13,6 +13,7 @@ import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
+import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
@@ -263,12 +264,7 @@ private fun downloadSystemNotificationButton(action: String) =
             .textContains(action),
     )
 
-private fun mediaSystemNotificationButton(action: String) =
-    mDevice.findObject(
-        UiSelector()
-            .resourceId("com.android.systemui:id/action0")
-            .descriptionContains(action),
-    )
+private fun mediaSystemNotificationButton(action: String) = itemWithDescription(action)
 
 private fun notificationTray() = UiScrollable(
     UiSelector().resourceId("com.android.systemui:id/notification_stack_scroller"),
