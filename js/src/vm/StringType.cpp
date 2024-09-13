@@ -936,14 +936,20 @@ static bool UpdateNurseryBuffersOnTransfer(js::Nursery& nursery,
   // are in the nursery or not.
 
   if (from->hasStringBuffer()) {
-    if (!from->isTenured()) {
-      nursery.removeExtensibleStringBuffer(from);
-    }
+    // Note: addExtensibleStringBuffer is fallible so we have to call it before
+    // removeExtensibleStringBuffer.
+    // If both strings are in the nursery, avoid updating mallocedBufferBytes to
+    // not trigger an unnecessary minor GC in addMallocedBufferBytes.
+    bool updateMallocBytes = from->isTenured() || to->isTenured();
     if (!to->isTenured()) {
       auto* linear = static_cast<JSLinearString*>(to);
-      if (!nursery.addExtensibleStringBuffer(linear, from->stringBuffer())) {
+      if (!nursery.addExtensibleStringBuffer(linear, from->stringBuffer(),
+                                             updateMallocBytes)) {
         return false;
       }
+    }
+    if (!from->isTenured()) {
+      nursery.removeExtensibleStringBuffer(from, updateMallocBytes);
     }
     return true;
   }

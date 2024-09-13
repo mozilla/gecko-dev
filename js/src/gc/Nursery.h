@@ -258,8 +258,10 @@ class Nursery {
   [[nodiscard]] inline bool addStringBuffer(JSLinearString* s);
 
   [[nodiscard]] inline bool addExtensibleStringBuffer(
-      JSLinearString* s, mozilla::StringBuffer* buffer);
-  inline void removeExtensibleStringBuffer(JSLinearString* s);
+      JSLinearString* s, mozilla::StringBuffer* buffer,
+      bool updateMallocBytes = true);
+  inline void removeExtensibleStringBuffer(JSLinearString* s,
+                                           bool updateMallocBytes = true);
 
   size_t sizeOfMallocedBuffers(mozilla::MallocSizeOf mallocSizeOf) const;
 

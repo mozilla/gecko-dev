@@ -58,24 +58,29 @@ inline bool js::Nursery::addStringBuffer(JSLinearString* s) {
 }
 
 inline bool js::Nursery::addExtensibleStringBuffer(
-    JSLinearString* s, mozilla::StringBuffer* buffer) {
+    JSLinearString* s, mozilla::StringBuffer* buffer, bool updateMallocBytes) {
   MOZ_ASSERT(IsInsideNursery(s));
   MOZ_ASSERT(isEnabled());
   if (!extensibleStringBuffers_.putNew(s, buffer)) {
     return false;
   }
   MOZ_ASSERT(!buffer->HasMultipleReferences());
-  addMallocedBufferBytes(buffer->AllocationSize());
+  if (updateMallocBytes) {
+    addMallocedBufferBytes(buffer->AllocationSize());
+  }
   return true;
 }
 
-inline void js::Nursery::removeExtensibleStringBuffer(JSLinearString* s) {
+inline void js::Nursery::removeExtensibleStringBuffer(JSLinearString* s,
+                                                      bool updateMallocBytes) {
   MOZ_ASSERT(gc::IsInsideNursery(s));
   extensibleStringBuffers_.remove(s);
 
-  size_t nbytes = s->stringBuffer()->AllocationSize();
-  MOZ_ASSERT(toSpace.mallocedBufferBytes >= nbytes);
-  toSpace.mallocedBufferBytes -= nbytes;
+  if (updateMallocBytes) {
+    size_t nbytes = s->stringBuffer()->AllocationSize();
+    MOZ_ASSERT(toSpace.mallocedBufferBytes >= nbytes);
+    toSpace.mallocedBufferBytes -= nbytes;
+  }
 }
 
 inline bool js::Nursery::shouldTenure(gc::Cell* cell) {
