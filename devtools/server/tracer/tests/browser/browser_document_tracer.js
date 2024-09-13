@@ -64,7 +64,7 @@ add_task(async function testTracingDocument() {
 
     const firstFrame = frames[0];
     is(firstFrame.formatedDisplayName, "λ foo");
-    is(firstFrame.currentDOMEvent, "DOM | click");
+    is(firstFrame.currentDOMEvent, "click");
     is(firstFrame.depth, 0);
 
     const secondFrame = frames[1];

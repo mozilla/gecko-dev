@@ -500,7 +500,7 @@ class JavaScriptTracer {
             .makeDebuggeeValue(notification.event)
             .getProperty("type").return;
         }
-        this.currentDOMEvent = `DOM | ${type}`;
+        this.currentDOMEvent = type;
       } else {
         this.currentDOMEvent = notification.type;
       }
@@ -868,7 +868,9 @@ class JavaScriptTracer {
     // and are logging the topmost frame,
     // then log a preliminary dedicated line to mention that event type.
     if (this.currentDOMEvent && depth == 0) {
-      this.loggingMethod(this.prefix + padding + this.currentDOMEvent + "\n");
+      this.loggingMethod(
+        this.prefix + padding + "DOM | " + this.currentDOMEvent + "\n"
+      );
     }
 
     let message = `${padding}[${frame.implementation}]—> ${getTerminalHyperLink(

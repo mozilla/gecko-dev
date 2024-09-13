@@ -131,7 +131,7 @@ export class Tracer extends Component {
         tooltip.panel.innerHTML = "";
         const el = document.createElement("div");
         el.classList.add("tracer-dom-event", eventType);
-        el.textContent = eventName;
+        el.textContent = `DOM | ${eventName}`;
         tooltip.panel.append(
           el,
           document.createElement("hr"),
@@ -337,7 +337,7 @@ export class Tracer extends Component {
                   this.focusOnTrace(traceIndex);
                 },
               },
-              eventName
+              `DOM | ${eventName}`
             )
           );
         }
@@ -822,12 +822,9 @@ function collectAllSiblings(traceParents, traceChildren, traceIndex, results) {
  */
 function getEventClassNameFromTraceEventName(eventName) {
   let eventType = "other";
-  // `eventName` looks like this: `DOM | ${domEventName}`
-  // Use a space before each event name in order to be sure to match the beginning
-  // of the dom event name.
-  if (eventName.includes(" mouse") || eventName.includes(" click")) {
+  if (eventName.startsWith("mouse") || eventName.startsWith("click")) {
     eventType = "mouse";
-  } else if (eventName.includes(" key")) {
+  } else if (eventName.startsWith(" key")) {
     eventType = "key";
   }
   return eventType;
