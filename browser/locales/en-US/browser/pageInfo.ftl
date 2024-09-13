@@ -174,7 +174,7 @@ security-no-visits = No
 #   $tags (number) - The number of meta tags
 general-meta-tags =
     .value =
-        { $tags ->
+        { NUMBER($tags) ->
              [one] Meta (1 tag)
             *[other] Meta ({ $tags } tags)
         }
@@ -184,7 +184,7 @@ general-meta-tags =
 # Variables:
 #   $visits (number) - The number of previous visits
 security-visits-number =
-    { $visits ->
+    { NUMBER($visits) ->
          [0] No
          [one] Yes, once
         *[other] Yes, { $visits } times
@@ -195,7 +195,7 @@ security-visits-number =
 #   $kb (number) - The size of an image in Kilobytes
 #   $bytes (number) - The size of an image in Bytes
 properties-general-size =
-    .value = { $bytes ->
+    .value = { NUMBER($bytes) ->
          [one] { $kb } KB ({ $bytes } byte)
         *[other] { $kb } KB ({ $bytes } bytes)
     }
@@ -206,7 +206,7 @@ properties-general-size =
 #   $type (string) - The type of a animated image
 #   $frames (number) - The number of frames in an animated image
 media-animated-image-type =
-    .value = { $frames ->
+    .value = { NUMBER($frames) ->
          [one] { $type } Image (animated, { $frames } frame)
         *[other] { $type } Image (animated, { $frames } frames)
     }

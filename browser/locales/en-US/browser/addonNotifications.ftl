@@ -81,7 +81,7 @@ addon-removal-abuse-report-checkbox = Report this extension to { -vendor-short-n
 # Variables:
 #   $addonCount (Number): the number of add-ons being downloaded
 addon-downloading-and-verifying =
-    { $addonCount ->
+    { NUMBER($addonCount) ->
         [1] Downloading and verifying add-on…
        *[other] Downloading and verifying { $addonCount } add-ons…
     }
@@ -98,19 +98,19 @@ addon-install-accept-button =
 ##   $addonCount (Number): the number of add-ons being installed
 
 addon-confirm-install-message =
-    { $addonCount ->
+    { NUMBER($addonCount) ->
         [1] This site would like to install an add-on in { -brand-short-name }:
        *[other] This site would like to install { $addonCount } add-ons in { -brand-short-name }:
     }
 addon-confirm-install-unsigned-message =
-    { $addonCount ->
+    { NUMBER($addonCount) ->
         [1] Caution: This site would like to install an unverified add-on in { -brand-short-name }. Proceed at your own risk.
        *[other] Caution: This site would like to install { $addonCount } unverified add-ons in { -brand-short-name }. Proceed at your own risk.
     }
 # Variables:
 #   $addonCount (Number): the number of add-ons being installed (at least 2)
 addon-confirm-install-some-unsigned-message =
-    { $addonCount ->
+    { NUMBER($addonCount) ->
        *[other] Caution: This site would like to install { $addonCount } add-ons in { -brand-short-name }, some of which are unverified. Proceed at your own risk.
     }
 

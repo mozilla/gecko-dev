@@ -89,18 +89,18 @@ account-multiple-tabs-arriving-title = Tabs Received
 # Variables:
 #   $deviceName (String): the device name.
 account-multiple-tabs-arriving-from-single-device =
-    { $tabCount ->
+    { NUMBER($tabCount) ->
         [one] { $tabCount } tab has arrived from { $deviceName }
        *[other] { $tabCount } tabs have arrived from { $deviceName }
     }
 account-multiple-tabs-arriving-from-multiple-devices =
-    { $tabCount ->
+    { NUMBER($tabCount) ->
         [one] { $tabCount } tab has arrived from your connected devices
        *[other] { $tabCount } tabs have arrived from your connected devices
     }
 # This version is used when we don't know any device names.
 account-multiple-tabs-arriving-from-unknown-device =
-    { $tabCount ->
+    { NUMBER($tabCount) ->
         [one] { $tabCount } tab has arrived
        *[other] { $tabCount } tabs have arrived
     }
@@ -113,7 +113,7 @@ account-multiple-tabs-arriving-from-unknown-device =
 account-view-recently-closed-tabs = View recently closed tabs
 account-tabs-closed-remotely =
     {
-        $closedCount ->
+        NUMBER($closedCount) ->
             [one] { $closedCount } { -brand-short-name } tab closed
            *[other] { $closedCount } { -brand-short-name } tabs closed
     }

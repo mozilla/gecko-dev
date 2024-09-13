@@ -301,7 +301,7 @@ shortcuts-exists = Already in use by { $addon }
 # Variables:
 #   $numberToShow (number) - Number of other elements available to show
 shortcuts-card-expand-button =
-    { $numberToShow ->
+    { NUMBER($numberToShow) ->
         *[other] Show { $numberToShow } More
     }
 
@@ -414,7 +414,7 @@ addon-name-disabled = { $name } (disabled)
 # Variables:
 #   $numberOfReviews (number) - The number of reviews received
 addon-detail-reviews-link =
-    { $numberOfReviews ->
+    { NUMBER($numberOfReviews) ->
         [one] { $numberOfReviews } review
        *[other] { $numberOfReviews } reviews
     }

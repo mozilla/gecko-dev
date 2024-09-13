@@ -24,7 +24,7 @@ about-reader-color-contrast-theme = Contrast
 #   $rangePlural (String): The plural category of the range, using the same set as for numbers.
 #   $range (String): The range of minutes as a localised string. Examples: "3-7", "~1".
 about-reader-estimated-read-time =
-    { $rangePlural ->
+    { NUMBER($rangePlural) ->
         [one] { $range } minute
        *[other] { $range } minutes
     }

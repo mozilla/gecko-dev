@@ -34,7 +34,7 @@ compatibility-target-browsers-header = Target Browsers
 # Variables:
 #   $number (Number) - The number of nodes where the issue occurred
 compatibility-issue-occurrences =
-    { $number ->
+    { NUMBER($number) ->
         [one] { $number } occurrence
        *[other] { $number } occurrences
     }

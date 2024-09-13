@@ -43,7 +43,7 @@ styleeditor-stylesheet-all-filtered = No matching style sheet has been found.
 # Variables:
 #   $ruleCount (Integer) - The number of rules in the stylesheet.
 styleeditor-stylesheet-rule-count =
-    { $ruleCount ->
+    { NUMBER($ruleCount) ->
         [one] { $ruleCount } rule.
        *[other] { $ruleCount } rules.
     }

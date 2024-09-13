@@ -24,7 +24,7 @@ toolbar-context-menu-select-all-tabs =
 #   $tabCount (number) - Number of tabs
 toolbar-context-menu-reopen-closed-tabs =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [1] Reopen Closed Tab
            *[other] Reopen Closed Tabs
         }

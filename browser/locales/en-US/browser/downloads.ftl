@@ -201,9 +201,9 @@ downloads-details =
 ##   $num (number) - Number of blocked downloads.
 ##   $url (string) - The url of the suspicious site, stripped of http, https and www prefix.
 
-downloads-files-not-downloaded = { $num ->
+downloads-files-not-downloaded = { NUMBER($num) ->
     [one] File not downloaded.
-   *[other] {$num} files not downloaded.
+   *[other] { $num } files not downloaded.
 }
 downloads-blocked-from-url = Downloads blocked from { $url }.
 downloads-blocked-download-detailed-info = { $url } attempted to automatically download multiple files. The site could be broken or trying to store spam files on your device.
@@ -228,7 +228,7 @@ downloads-panel-empty =
 #   $count (number) - number of files being downloaded that are not shown in the
 #                     panel list.
 downloads-more-downloading =
-    { $count ->
+    { NUMBER($count) ->
         [one] { $count } more file downloading
        *[other] { $count } more files downloading
     }

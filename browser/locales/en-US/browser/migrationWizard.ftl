@@ -122,7 +122,7 @@ migration-passwords-from-file-tsv-filter-title =
 # Variables:
 #  $newEntries (Number): the number of new successfully imported passwords
 migration-wizard-progress-success-new-passwords =
-    { $newEntries ->
+    { NUMBER($newEntries) ->
         [one] { $newEntries } added
        *[other] { $newEntries } added
     }
@@ -133,7 +133,7 @@ migration-wizard-progress-success-new-passwords =
 # Variables:
 #  $updatedEntries (Number): the number of updated passwords
 migration-wizard-progress-success-updated-passwords =
-    { $updatedEntries ->
+    { NUMBER($updatedEntries) ->
         [one] { $updatedEntries } updated
        *[other] { $updatedEntries } updated
     }
@@ -162,7 +162,7 @@ migration-bookmarks-from-file-json-filter-title = JSON File
 # Variables:
 #  $newEntries (Number): the number of imported bookmarks.
 migration-wizard-progress-success-new-bookmarks =
-    { $newEntries ->
+    { NUMBER($newEntries) ->
         [one] { $newEntries } bookmark
        *[other] { $newEntries } bookmarks
     }
@@ -229,7 +229,7 @@ migration-safari-password-import-select-button = Select File
 # Variables:
 #  $quantity (Number): the number of successfully imported bookmarks
 migration-wizard-progress-success-bookmarks =
-    { $quantity ->
+    { NUMBER($quantity) ->
         [one] { $quantity } bookmark
        *[other] { $quantity } bookmarks
     }
@@ -242,7 +242,7 @@ migration-wizard-progress-success-bookmarks =
 # Variables:
 #  $quantity (Number): the number of successfully imported bookmarks
 migration-wizard-progress-success-favorites =
-    { $quantity ->
+    { NUMBER($quantity) ->
         [one] { $quantity } favorite
        *[other] { $quantity } favorites
     }
@@ -257,7 +257,7 @@ migration-wizard-progress-success-favorites =
 # Variables:
 #   $quantity (Number): the number of successfully imported extensions
 migration-wizard-progress-success-extensions =
-    { $quantity ->
+    { NUMBER($quantity) ->
         [one] { $quantity } extension
        *[other] { $quantity } extensions
     }
@@ -285,7 +285,7 @@ migration-wizard-progress-extensions-addons-link = Browse extensions for { -bran
 # Variables:
 #  $quantity (Number): the number of successfully imported passwords
 migration-wizard-progress-success-passwords =
-    { $quantity ->
+    { NUMBER($quantity) ->
         [one] { $quantity } password
        *[other] { $quantity } passwords
     }
@@ -296,7 +296,7 @@ migration-wizard-progress-success-passwords =
 # Variables:
 #  $maxAgeInDays (Number): the maximum number of days of history that might be imported.
 migration-wizard-progress-success-history =
-    { $maxAgeInDays ->
+    { NUMBER($maxAgeInDays) ->
         [one] From the last day
        *[other] From the last { $maxAgeInDays } days
     }
@@ -309,7 +309,7 @@ migration-wizard-progress-success-formdata = Form history
 # Variables:
 #  $quantity (Number): the number of successfully imported payment methods
 migration-wizard-progress-success-payment-methods =
-    { $quantity ->
+    { NUMBER($quantity) ->
         [one] { $quantity } payment method
        *[other] { $quantity } payment methods
     }

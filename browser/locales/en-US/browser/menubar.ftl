@@ -74,7 +74,7 @@ menu-file-open-file =
 #  $tabCount (Number): the number of tabs that are affected by the action.
 menu-file-close-tab =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [1] Close Tab
            *[other] Close { $tabCount } Tabs
         }

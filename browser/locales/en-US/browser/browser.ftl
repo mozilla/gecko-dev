@@ -343,7 +343,7 @@ bookmark-panel-cancel =
 #  $count (number): number of bookmarks that will be removed
 bookmark-panel-remove =
     .label =
-        { $count ->
+        { NUMBER($count) ->
             [1] Remove bookmark
            *[other] Remove { $count } bookmarks
         }
@@ -455,19 +455,19 @@ browser-tab-audio-pip = PICTURE-IN-PICTURE
 ##  $count (number): number of affected tabs
 
 browser-tab-mute =
-    { $count ->
+    { NUMBER($count) ->
         [1] MUTE TAB
        *[other] MUTE { $count } TABS
     }
 
 browser-tab-unmute =
-    { $count ->
+    { NUMBER($count) ->
         [1] UNMUTE TAB
        *[other] UNMUTE { $count } TABS
     }
 
 browser-tab-unblock =
-    { $count ->
+    { NUMBER($count) ->
         [1] PLAY TAB
        *[other] PLAY { $count } TABS
     }
@@ -1082,7 +1082,7 @@ popup-notification-addon-privatebrowsing-checkbox =
 # Variables:
 #   $popupCount (Number): the number of pop-ups blocked.
 popup-warning-message =
-    { $popupCount ->
+    { NUMBER($popupCount) ->
         [1] { -brand-short-name } prevented this site from opening a pop-up window.
        *[other] { -brand-short-name } prevented this site from opening { $popupCount } pop-up windows.
     }
@@ -1090,7 +1090,7 @@ popup-warning-message =
 # Variables:
 #   $popupCount (Number): the number of pop-ups blocked.
 popup-warning-exceeded-message =
-    { $popupCount ->
+    { NUMBER($popupCount) ->
        *[other] { -brand-short-name } prevented this site from opening more than { $popupCount } pop-up windows.
     }
 popup-warning-button =

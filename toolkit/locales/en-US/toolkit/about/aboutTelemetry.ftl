@@ -62,7 +62,7 @@ about-telemetry-upload-type =
 #   $prettyAverage (number) - Average of histogram samples
 #   $sum (number) - Sum of histogram samples
 about-telemetry-histogram-stats =
-    { $sampleCount ->
+    { NUMBER($sampleCount) ->
         [one] { $sampleCount } sample, average = { $prettyAverage }, sum = { $sum }
        *[other] { $sampleCount } samples, average = { $prettyAverage }, sum = { $sum }
     }

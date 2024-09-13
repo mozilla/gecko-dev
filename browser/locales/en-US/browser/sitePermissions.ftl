@@ -6,7 +6,7 @@
 # Variables:
 #   $count (String) - Number of blocked pop-ups
 site-permissions-open-blocked-popups =
-  { $count ->
+  { NUMBER($count) ->
      [one] Open { $count } blocked pop-up…
     *[other] Open { $count } blocked pop-ups…
   }

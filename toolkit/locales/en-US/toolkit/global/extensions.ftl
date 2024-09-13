@@ -59,7 +59,7 @@ webext-perms-host-description-wildcard = Access your data for sites in the { $do
 #   $domainCount (Number): Integer indicating the number of additional
 #     hosts for which this webextension is requesting permission.
 webext-perms-host-description-too-many-wildcards =
-    { $domainCount ->
+    { NUMBER($domainCount) ->
         [one] Access your data in { $domainCount } other domain
        *[other] Access your data in { $domainCount } other domains
     }
@@ -71,7 +71,7 @@ webext-perms-host-description-one-site = Access your data for { $domain }
 #   $domainCount (Number): Integer indicating the number of additional
 #     hosts for which this webextension is requesting permission.
 webext-perms-host-description-too-many-sites =
-    { $domainCount ->
+    { NUMBER($domainCount) ->
         [one] Access your data on { $domainCount } other site
        *[other] Access your data on { $domainCount } other sites
     }

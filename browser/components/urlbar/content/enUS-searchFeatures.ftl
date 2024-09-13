@@ -194,13 +194,13 @@ firefox-suggest-fakespot-badge = RELIABLE REVIEWS
 
 # Show the exact number of reviews.
 firefox-suggest-fakespot-rating-and-total-reviews =
-  { $totalReviews ->
+  { NUMBER($totalReviews) ->
      [one] { $rating } · ({ $totalReviews } review)
     *[other] { $rating } · ({ $totalReviews } reviews)
   }
 # Show an approximate number of reviews (e.g. 100,000+ reviews).
 firefox-suggest-fakespot-rating-and-total-reviews-overflow =
-  { $totalReviews ->
+  { NUMBER($totalReviews) ->
      [one] { $rating } · ({ $totalReviews }+ review)
     *[other] { $rating } · ({ $totalReviews }+ reviews)
   }

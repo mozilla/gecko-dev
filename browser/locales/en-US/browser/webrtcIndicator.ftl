@@ -72,7 +72,7 @@ webrtc-indicator-menuitem-sharing-camera-with =
     .label = Sharing Camera with “{ $streamTitle }”
 webrtc-indicator-menuitem-sharing-camera-with-n-tabs =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [one] Sharing Camera with { $tabCount } tab
            *[other] Sharing Camera with { $tabCount } tabs
         }
@@ -81,7 +81,7 @@ webrtc-indicator-menuitem-sharing-microphone-with =
     .label = Sharing Microphone with “{ $streamTitle }”
 webrtc-indicator-menuitem-sharing-microphone-with-n-tabs =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [one] Sharing Microphone with { $tabCount } tab
            *[other] Sharing Microphone with { $tabCount } tabs
         }
@@ -90,7 +90,7 @@ webrtc-indicator-menuitem-sharing-application-with =
     .label = Sharing an Application with “{ $streamTitle }”
 webrtc-indicator-menuitem-sharing-application-with-n-tabs =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [one] Sharing an Application with { $tabCount } tab
            *[other] Sharing Applications with { $tabCount } tabs
         }
@@ -99,7 +99,7 @@ webrtc-indicator-menuitem-sharing-screen-with =
     .label = Sharing Screen with “{ $streamTitle }”
 webrtc-indicator-menuitem-sharing-screen-with-n-tabs =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [one] Sharing Screen with { $tabCount } tab
            *[other] Sharing Screen with { $tabCount } tabs
         }
@@ -108,7 +108,7 @@ webrtc-indicator-menuitem-sharing-window-with =
     .label = Sharing a Window with “{ $streamTitle }”
 webrtc-indicator-menuitem-sharing-window-with-n-tabs =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [one] Sharing a Window with { $tabCount } tab
            *[other] Sharing Windows with { $tabCount } tabs
         }
@@ -119,7 +119,7 @@ webrtc-indicator-menuitem-sharing-browser-with =
 # session, which currently is only possible with Loop/Hello.
 webrtc-indicator-menuitem-sharing-browser-with-n-tabs =
     .label =
-        { $tabCount ->
+        { NUMBER($tabCount) ->
             [one] Sharing a Tab with { $tabCount } tab
            *[other] Sharing Tabs with { $tabCount } tabs
         }
@@ -185,7 +185,7 @@ webrtc-share-monitor = Screen { $monitorIndex }
 #   $windowCount (Number): the number of windows currently displayed by the application.
 #   $appName (String): the name of the application.
 webrtc-share-application =
-    { $windowCount ->
+    { NUMBER($windowCount) ->
         [one] { $appName } ({ $windowCount } window)
        *[other] { $appName } ({ $windowCount } windows)
     }

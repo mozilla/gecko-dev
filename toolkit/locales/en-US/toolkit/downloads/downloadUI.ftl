@@ -8,12 +8,12 @@ download-ui-confirm-title = Cancel All Downloads?
 ##   $downloadsCount (Number): The current downloads count.
 
 download-ui-confirm-quit-cancel-downloads =
-    { $downloadsCount ->
+    { NUMBER($downloadsCount) ->
         [1] If you exit now, 1 download will be canceled. Are you sure you want to exit?
        *[other] If you exit now, { $downloadsCount } downloads will be canceled. Are you sure you want to exit?
     }
 download-ui-confirm-quit-cancel-downloads-mac =
-    { $downloadsCount ->
+    { NUMBER($downloadsCount) ->
         [1] If you quit now, 1 download will be canceled. Are you sure you want to quit?
        *[other] If you quit now, { $downloadsCount } downloads will be canceled. Are you sure you want to quit?
     }
@@ -24,21 +24,21 @@ download-ui-dont-quit-button =
     }
 
 download-ui-confirm-offline-cancel-downloads =
-    { $downloadsCount ->
+    { NUMBER($downloadsCount) ->
         [1] If you go offline now, 1 download will be canceled. Are you sure you want to go offline?
        *[other] If you go offline now, { $downloadsCount } downloads will be canceled. Are you sure you want to go offline?
     }
 download-ui-dont-go-offline-button = Stay Online
 
 download-ui-confirm-leave-private-browsing-windows-cancel-downloads =
-    { $downloadsCount ->
+    { NUMBER($downloadsCount) ->
         [1] If you close all Private Browsing windows now, 1 download will be canceled. Are you sure you want to leave Private Browsing?
        *[other] If you close all Private Browsing windows now, { $downloadsCount } downloads will be canceled. Are you sure you want to leave Private Browsing?
     }
 download-ui-dont-leave-private-browsing-button = Stay in Private Browsing
 
 download-ui-cancel-downloads-ok =
-    { $downloadsCount ->
+    { NUMBER($downloadsCount) ->
         [1] Cancel 1 Download
        *[other] Cancel { $downloadsCount } Downloads
     }

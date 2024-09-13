@@ -5,7 +5,7 @@
 # Variables:
 #  $retriesLeft (Number): number of tries left
 webauthn-pin-invalid-long-prompt =
-    { $retriesLeft ->
+    { NUMBER($retriesLeft) ->
         [one] Incorrect PIN. You have { $retriesLeft } attempt left before you permanently lose access to the credentials on this device.
        *[other] Incorrect PIN. You have { $retriesLeft } attempts left before you permanently lose access to the credentials on this device.
     }
@@ -24,7 +24,7 @@ webauthn-specific-passkey-label = Passkey for { $domain }
 # Variables:
 #  $retriesLeft (Number): number of tries left
 webauthn-uv-invalid-long-prompt =
-    { $retriesLeft ->
+    { NUMBER($retriesLeft) ->
         [one] User verification failed. You have { $retriesLeft } attempt left. Try again.
        *[other] User verification failed. You have { $retriesLeft } attempts left. Try again.
     }

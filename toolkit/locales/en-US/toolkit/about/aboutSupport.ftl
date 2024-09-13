@@ -239,7 +239,7 @@ remote-debugging-url = URL
 # Variables
 # $days (Integer) - Number of days of crashes to log
 report-crash-for-days =
-    { $days ->
+    { NUMBER($days) ->
         [one] Crash Reports for the Last { $days } Day
        *[other] Crash Reports for the Last { $days } Days
     }
@@ -247,7 +247,7 @@ report-crash-for-days =
 # Variables
 # $minutes (integer) - Number of minutes since crash
 crashes-time-minutes =
-    { $minutes ->
+    { NUMBER($minutes) ->
         [one] { $minutes } minute ago
        *[other] { $minutes } minutes ago
     }
@@ -255,7 +255,7 @@ crashes-time-minutes =
 # Variables
 # $hours (integer) - Number of hours since crash
 crashes-time-hours =
-    { $hours ->
+    { NUMBER($hours) ->
         [one] { $hours } hour ago
        *[other] { $hours } hours ago
     }
@@ -263,7 +263,7 @@ crashes-time-hours =
 # Variables
 # $days (integer) - Number of days since crash
 crashes-time-days =
-    { $days ->
+    { NUMBER($days) ->
         [one] { $days } day ago
        *[other] { $days } days ago
     }
@@ -271,7 +271,7 @@ crashes-time-days =
 # Variables
 # $reports (integer) - Number of pending reports
 pending-reports =
-    { $reports ->
+    { NUMBER($reports) ->
         [one] All Crash Reports (including { $reports } pending crash in the given time range)
        *[other] All Crash Reports (including { $reports } pending crashes in the given time range)
     }

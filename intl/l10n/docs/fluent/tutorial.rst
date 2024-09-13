@@ -135,7 +135,7 @@ a more complex example like:
   # Variables:
   #   $tabCount (Number) - number of container tabs to be closed
   containers-disable-alert-ok-button =
-      { $tabCount ->
+      { NUMBER($tabCount) ->
           [one] Close { $tabCount } Container Tab
          *[other] Close { $tabCount } Container Tabs
       }
@@ -386,13 +386,15 @@ language requires that:
 .. code-block:: fluent
 
   unread-warning =
-      { $unreadCount ->
+      { NUMBER($unreadCount) ->
           [one] You have { $unreadCount } unread message
          *[other] You have { $unreadCount } unread messages
       }
 
 If the variant selection is performed based on a number, Fluent matches that
-number against literal numbers as well as its `plural category`__.
+number against literal numbers as well as its `plural category`__. It's
+best practice to use the `NUMBER()` function on the variable used to determine
+the plural form.
 
 If the given translation doesn't need pluralization for the string (for example
 Japanese often will not), the localizer can replace it with:
@@ -409,7 +411,7 @@ specifying variants for particular values:
 .. code-block:: fluent
 
   unread-warning =
-      { $unreadCount ->
+      { NUMBER($unreadCount) ->
           [0] You have no unread messages
           [1] You have one unread message
          *[other] You have { $unreadCount } unread messages
