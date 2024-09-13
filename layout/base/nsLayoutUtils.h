@@ -7,32 +7,32 @@
 #ifndef nsLayoutUtils_h__
 #define nsLayoutUtils_h__
 
+#include <limits>
+#include <algorithm>
+
+#include "gfxPoint.h"
 #include "LayoutConstants.h"
-#include "mozilla/MemoryReporting.h"
 #include "mozilla/ArrayUtils.h"
+#include "mozilla/gfx/2D.h"
+#include "mozilla/layers/LayersTypes.h"
+#include "mozilla/layers/ScrollableLayerGuid.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Maybe.h"
+#include "mozilla/MemoryReporting.h"
 #include "mozilla/RelativeTo.h"
+#include "mozilla/Span.h"
 #include "mozilla/StaticPrefs_nglayout.h"
 #include "mozilla/SurfaceFromElementResult.h"
 #include "mozilla/SVGImageContext.h"
 #include "mozilla/ToString.h"
 #include "mozilla/TypedEnumBits.h"
-#include "mozilla/Span.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/WritingModes.h"
-#include "mozilla/layers/ScrollableLayerGuid.h"
-#include "mozilla/gfx/2D.h"
-
-#include "gfxPoint.h"
 #include "nsBoundingMetrics.h"
 #include "nsCSSPropertyIDSet.h"
 #include "nsFrameList.h"
 #include "nsThreadUtils.h"
 #include "Units.h"
-#include "mozilla/layers/LayersTypes.h"
-#include <limits>
-#include <algorithm>
 // If you're thinking of adding a new include here, please try hard to not.
 // This header file gets included just about everywhere and adding headers here
 // can dramatically increase avoidable build activity. Try instead:
