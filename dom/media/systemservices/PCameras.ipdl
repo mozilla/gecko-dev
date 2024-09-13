@@ -7,7 +7,11 @@ include protocol PBackground;
 
 include PBackgroundSharedTypes;
 
+include "mozilla/dom/MediaIPCUtils.h";
+
 using mozilla::camera::CaptureEngine from "mozilla/media/CamerasTypes.h";
+using mozilla::TimeStamp from "mozilla/TimeStamp.h";
+using mozilla::media::TimeUnit from "TimeUnits.h";
 
 namespace mozilla {
 namespace camera {
@@ -28,13 +32,15 @@ struct VideoCaptureCapability
 // See VideoFrameUtils.h
 struct VideoFrameProperties
 {
+  TimeStamp captureTime;
   // Size of image data within the ShMem,
   // the ShMem is at least this large
   uint32_t bufferSize;
   // From webrtc::VideoFrame
-  uint32_t timeStamp;
+  uint32_t rtpTimeStamp;
   int64_t ntpTimeMs;
   int64_t renderTimeMs;
+  TimeUnit processingDuration;
   // See webrtc/**/rotation.h
   int rotation;
   int yAllocatedSize;

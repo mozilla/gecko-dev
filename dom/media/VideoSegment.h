@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include "gfxPoint.h"
 #include "ImageContainer.h"
+#include "TimeUnits.h"
 
 namespace mozilla {
 
@@ -93,6 +94,11 @@ struct VideoChunk {
   TrackTime mDuration;
   VideoFrame mFrame;
   TimeStamp mTimeStamp;
+  media::TimeUnit mProcessingDuration;
+  media::TimeUnit mMediaTime;
+  layers::ContainerCaptureTime mWebrtcCaptureTime = AsVariant(Nothing());
+  layers::ContainerReceiveTime mWebrtcReceiveTime;
+  layers::ContainerRtpTimestamp mRtpTimestamp;
 };
 
 class VideoSegment : public MediaSegmentBase<VideoSegment, VideoChunk> {
@@ -108,11 +114,29 @@ class VideoSegment : public MediaSegmentBase<VideoSegment, VideoChunk> {
 
   ~VideoSegment();
 
-  void AppendFrame(already_AddRefed<Image>&& aImage,
-                   const IntSize& aIntrinsicSize,
-                   const PrincipalHandle& aPrincipalHandle,
-                   bool aForceBlack = false,
-                   TimeStamp aTimeStamp = TimeStamp::Now());
+  void AppendFrame(const VideoChunk& aChunk,
+                   const Maybe<bool>& aForceBlack = Nothing(),
+                   const Maybe<TimeStamp>& aTimeStamp = Nothing());
+  void AppendFrame(
+      already_AddRefed<Image>&& aImage, const IntSize& aIntrinsicSize,
+      const PrincipalHandle& aPrincipalHandle, bool aForceBlack = false,
+      TimeStamp aTimeStamp = TimeStamp::Now(),
+      media::TimeUnit aProcessingDuration = media::TimeUnit::Invalid(),
+      media::TimeUnit aMediaTime = media::TimeUnit::Invalid());
+  void AppendWebrtcRemoteFrame(already_AddRefed<Image>&& aImage,
+                               const IntSize& aIntrinsicSize,
+                               const PrincipalHandle& aPrincipalHandle,
+                               bool aForceBlack, TimeStamp aTimeStamp,
+                               media::TimeUnit aProcessingDuration,
+                               uint32_t aRtpTimestamp,
+                               int64_t aWebrtcCaptureTimeNtp,
+                               int64_t aWebrtcReceiveTimeUs);
+  void AppendWebrtcLocalFrame(already_AddRefed<Image>&& aImage,
+                              const IntSize& aIntrinsicSize,
+                              const PrincipalHandle& aPrincipalHandle,
+                              bool aForceBlack, TimeStamp aTimeStamp,
+                              media::TimeUnit aProcessingDuration,
+                              TimeStamp aWebrtcCaptureTime);
   void ExtendLastFrameBy(TrackTime aDuration) {
     if (aDuration <= 0) {
       return;

@@ -349,9 +349,12 @@ void VideoSink::Redraw(const VideoInfo& aInfo) {
       video->mImage = mBlankImage;
     }
     video->MarkSentToCompositor();
-    mContainer->SetCurrentFrame(video->mDisplay, video->mImage, now);
+    mContainer->SetCurrentFrame(video->mDisplay, video->mImage, now,
+                                media::TimeUnit::Invalid(), video->mTime);
     if (mSecondaryContainer) {
-      mSecondaryContainer->SetCurrentFrame(video->mDisplay, video->mImage, now);
+      mSecondaryContainer->SetCurrentFrame(video->mDisplay, video->mImage, now,
+                                           media::TimeUnit::Invalid(),
+                                           video->mTime);
     }
     return;
   }
@@ -362,10 +365,14 @@ void VideoSink::Redraw(const VideoInfo& aInfo) {
 
   RefPtr<Image> blank =
       mContainer->GetImageContainer()->CreatePlanarYCbCrImage();
-  mContainer->SetCurrentFrame(aInfo.mDisplay, blank, now);
+  mContainer->SetCurrentFrame(aInfo.mDisplay, blank, now,
+                              media::TimeUnit::Invalid(),
+                              media::TimeUnit::Invalid());
 
   if (mSecondaryContainer) {
-    mSecondaryContainer->SetCurrentFrame(aInfo.mDisplay, blank, now);
+    mSecondaryContainer->SetCurrentFrame(aInfo.mDisplay, blank, now,
+                                         media::TimeUnit::Invalid(),
+                                         media::TimeUnit::Invalid());
   }
 }
 
@@ -476,6 +483,7 @@ void VideoSink::RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime,
     }
     img->mFrameID = frame->mFrameID;
     img->mProducerID = mProducerID;
+    img->mMediaTime = frame->mTime;
 
     VSINK_LOG_V("playing video frame %" PRId64
                 " (id=%x, vq-queued=%zu, clock=%" PRId64 ")",
@@ -672,11 +680,14 @@ void VideoSink::SetSecondaryVideoContainer(VideoFrameContainer* aSecondary) {
     // that in the secondary container as well.
     AutoLockImage lockImage(mainImageContainer);
     TimeStamp now = TimeStamp::Now();
-    if (RefPtr<Image> image = lockImage.GetImage(now)) {
+    if (const auto* owningImage = lockImage.GetOwningImage(now)) {
       AutoTArray<ImageContainer::NonOwningImage, 1> currentFrame;
       currentFrame.AppendElement(ImageContainer::NonOwningImage(
-          image, now, /* frameID */ 1,
-          /* producerId */ ImageContainer::AllocateProducerID()));
+          owningImage->mImage, now, /* frameID */ 1,
+          /* producerId */ ImageContainer::AllocateProducerID(),
+          owningImage->mProcessingDuration, owningImage->mMediaTime,
+          owningImage->mWebrtcCaptureTime, owningImage->mWebrtcReceiveTime,
+          owningImage->mRtpTimestamp));
       secondaryImageContainer->SetCurrentImages(currentFrame);
     }
   }

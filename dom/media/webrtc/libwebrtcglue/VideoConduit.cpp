@@ -1868,9 +1868,7 @@ void WebrtcVideoConduit::OnFrame(const webrtc::VideoFrame& video_frame) {
   }
 #endif
 
-  mRenderer->RenderVideoFrame(*video_frame.video_frame_buffer(),
-                              video_frame.timestamp(),
-                              video_frame.render_time_ms());
+  mRenderer->RenderVideoFrame(video_frame);
 }
 
 bool WebrtcVideoConduit::AddFrameHistory(

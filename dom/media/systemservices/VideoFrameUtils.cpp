@@ -24,13 +24,22 @@ uint32_t VideoFrameUtils::TotalRequiredBufferSize(
 void VideoFrameUtils::InitFrameBufferProperties(
     const webrtc::VideoFrame& aVideoFrame,
     camera::VideoFrameProperties& aDestProps) {
+  aDestProps.captureTime() = TimeStamp::Now();
+
   // The VideoFrameBuffer image data stored in the accompanying buffer
   // the buffer is at least this size of larger.
   aDestProps.bufferSize() = TotalRequiredBufferSize(aVideoFrame);
 
-  aDestProps.timeStamp() = aVideoFrame.timestamp();
+  aDestProps.rtpTimeStamp() = aVideoFrame.rtp_timestamp();
   aDestProps.ntpTimeMs() = aVideoFrame.ntp_time_ms();
   aDestProps.renderTimeMs() = aVideoFrame.render_time_ms();
+
+  if (aVideoFrame.processing_time()) {
+    aDestProps.processingDuration() = media::TimeUnit::FromMicroseconds(
+        aVideoFrame.processing_time()->Elapsed().us());
+  } else {
+    aDestProps.processingDuration() = media::TimeUnit::Invalid();
+  }
 
   aDestProps.rotation() = aVideoFrame.rotation();
 

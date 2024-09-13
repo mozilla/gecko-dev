@@ -95,17 +95,18 @@ static void NotifySetCurrent(Image* aImage) {
 }
 #endif
 
-void VideoFrameContainer::SetCurrentFrame(const gfx::IntSize& aIntrinsicSize,
-                                          Image* aImage,
-                                          const TimeStamp& aTargetTime) {
+void VideoFrameContainer::SetCurrentFrame(
+    const gfx::IntSize& aIntrinsicSize, Image* aImage,
+    const TimeStamp& aTargetTime, const media::TimeUnit& aProcessingDuration,
+    const media::TimeUnit& aMediaTime) {
 #ifdef MOZ_WIDGET_ANDROID
   NotifySetCurrent(aImage);
 #endif
   if (aImage) {
     MutexAutoLock lock(mMutex);
     AutoTArray<ImageContainer::NonOwningImage, 1> imageList;
-    imageList.AppendElement(
-        ImageContainer::NonOwningImage(aImage, aTargetTime, ++mFrameID));
+    imageList.AppendElement(ImageContainer::NonOwningImage(
+        aImage, aTargetTime, ++mFrameID, 0, aProcessingDuration, aMediaTime));
     SetCurrentFramesLocked(aIntrinsicSize, imageList);
   } else {
     ClearCurrentFrame(aIntrinsicSize);
@@ -203,16 +204,18 @@ void VideoFrameContainer::ClearFutureFrames(TimeStamp aNow) {
 
   if (!kungFuDeathGrip.IsEmpty()) {
     AutoTArray<ImageContainer::NonOwningImage, 1> currentFrame;
-    ImageContainer::OwningImage& img = kungFuDeathGrip[0];
+    const ImageContainer::OwningImage* img = &kungFuDeathGrip[0];
     // Find the current image in case there are several.
     for (const auto& image : kungFuDeathGrip) {
       if (image.mTimeStamp > aNow) {
         break;
       }
-      img = image;
+      img = &image;
     }
     currentFrame.AppendElement(ImageContainer::NonOwningImage(
-        img.mImage, img.mTimeStamp, img.mFrameID, img.mProducerID));
+        img->mImage, img->mTimeStamp, img->mFrameID, img->mProducerID,
+        img->mProcessingDuration, img->mMediaTime, img->mWebrtcCaptureTime,
+        img->mWebrtcReceiveTime, img->mRtpTimestamp));
     mImageContainer->SetCurrentImages(currentFrame);
   }
 }

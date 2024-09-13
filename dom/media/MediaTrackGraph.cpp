@@ -2932,10 +2932,7 @@ static void MoveToSegment(SourceMediaTrack* aTrack, MediaSegment* aIn,
       if (!last || last->mTimeStamp.IsNull()) {
         // This is the first frame, or the last frame pushed to `out` has been
         // all consumed. Just append and we deal with its duration later.
-        out->AppendFrame(do_AddRef(c->mFrame.GetImage()),
-                         c->mFrame.GetIntrinsicSize(),
-                         c->mFrame.GetPrincipalHandle(),
-                         c->mFrame.GetForceBlack(), c->mTimeStamp);
+        out->AppendFrame(*c);
         if (c->GetDuration() > 0) {
           out->ExtendLastFrameBy(c->GetDuration());
         }
@@ -2952,10 +2949,7 @@ static void MoveToSegment(SourceMediaTrack* aTrack, MediaSegment* aIn,
       }
 
       // Append the current frame (will have duration 0).
-      out->AppendFrame(do_AddRef(c->mFrame.GetImage()),
-                       c->mFrame.GetIntrinsicSize(),
-                       c->mFrame.GetPrincipalHandle(),
-                       c->mFrame.GetForceBlack(), c->mTimeStamp);
+      out->AppendFrame(*c);
       if (c->GetDuration() > 0) {
         out->ExtendLastFrameBy(c->GetDuration());
       }
@@ -3139,10 +3133,7 @@ void SourceMediaTrack::AddDirectListenerImpl(
       continue;
     }
     ++videoFrames;
-    bufferedData.AppendFrame(do_AddRef(iter->mFrame.GetImage()),
-                             iter->mFrame.GetIntrinsicSize(),
-                             iter->mFrame.GetPrincipalHandle(),
-                             iter->mFrame.GetForceBlack(), iter->mTimeStamp);
+    bufferedData.AppendFrame(*iter);
   }
 
   VideoSegment& video = static_cast<VideoSegment&>(*mUpdateTrack->mData);
@@ -3150,10 +3141,7 @@ void SourceMediaTrack::AddDirectListenerImpl(
        iter.Next()) {
     ++videoFrames;
     MOZ_ASSERT(!iter->mTimeStamp.IsNull());
-    bufferedData.AppendFrame(do_AddRef(iter->mFrame.GetImage()),
-                             iter->mFrame.GetIntrinsicSize(),
-                             iter->mFrame.GetPrincipalHandle(),
-                             iter->mFrame.GetForceBlack(), iter->mTimeStamp);
+    bufferedData.AppendFrame(*iter);
   }
 
   LOG(LogLevel::Info,
