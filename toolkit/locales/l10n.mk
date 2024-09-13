@@ -145,6 +145,7 @@ repackage-zip-%: unpack
 # check DIST_SUBDIR, and if that isn't present, just package the default
 # chrome directory and top-level localization for Fluent.
 PKG_ZIP_DIRS = chrome localization $(or $(DIST_SUBDIRS),$(DIST_SUBDIR))
+GIT ?= git
 
 merge-%: IS_LANGUAGE_REPACK=1
 merge-%: AB_CD=$*
@@ -162,7 +163,13 @@ endif
 ifdef NIGHTLY_BUILD
 	if  ! test -d $(L10NBASEDIR)/$(AB_CD) ; then \
 		$(NSINSTALL) -D $(L10NBASEDIR) ; \
-		$(GIT) clone https://github.com/mozilla-l10n/firefox-l10n.git $(L10NBASEDIR) ; \
+		$(GIT) clone https://github.com/mozilla-l10n/firefox-l10n.git $(L10NBASEDIR) --depth 1 ; \
+	fi
+	if  test -d $(L10NBASEDIR)/.git ; then \
+		$(GIT) -C $(L10NBASEDIR) pull --quiet ; \
+	else \
+		echo 'Error: folder is not a git repository $(L10NBASEDIR)' ; \
+		exit 1 ; \
 	fi
 endif
 	$(RM) -rf $(REAL_LOCALE_MERGEDIR)
@@ -197,7 +204,7 @@ package-langpack-%:
 	$(call py_action,zip $(PKG_LANGPACK_BASENAME).xpi,-C $(DIST)/xpi-stage/locale-$(AB_CD) -x **/*.manifest -x **/*.js -x **/*.ini $(LANGPACK_FILE) $(PKG_ZIP_DIRS) manifest.json)
 
 # This variable is to allow the wget-en-US target to know which ftp server to download from
-ifndef EN_US_BINARY_URL 
+ifndef EN_US_BINARY_URL
 EN_US_BINARY_URL = $(error You must set EN_US_BINARY_URL)
 endif
 
