@@ -1,0 +1,13 @@
+<!doctype html>
+<!-- The "PrivateAttribution" trial was deprecated in favour of "PrivateAttributionV2" and previous keys should no longer enable the feature. -->
+<!-- Created with: mktoken --origin 'https://example.com' --feature PrivateAttribution --expiry 'Wed, 01 Jan 3000 01:00:00 +0100' --sign test-keys/test-ecdsa.pkcs8 -->
+<meta http-equiv="origin-trial" content="A39jvTkkSoAueJadvVP6xeapNZVQLJgqbI6hwQc3kIYm0O96hc8WjpRwFVOnI+gN9zAQbQLEJEcibsRVAxQJ0bIAAABUeyJvcmlnaW4iOiJodHRwczovL2V4YW1wbGUuY29tIiwiZmVhdHVyZSI6IlByaXZhdGVBdHRyaWJ1dGlvbiIsImV4cGlyeSI6MzI1MDM2ODAwMDB9">
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="common.js"></script>
+<script>
+  assertTestTrialActive(false);
+  add_task(function() {
+    ok(!navigator.privateAttribution, "PrivateAttribution trial disabled.");
+    ok(!('PrivateAttribution' in window), "PrivateAttribution trial disabled.");
+  });
+</script>

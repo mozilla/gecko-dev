@@ -39,4 +39,6 @@ skip-if = [
 
 ["test_trial_hidden.html"]
 
+["test_trial_hidden_deprecated.html"]
+
 ["test_wrong_origin.html"]
