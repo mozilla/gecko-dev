@@ -75,12 +75,7 @@ class InspectorFront extends FrontClassWithSpec(inspectorSpec) {
     }
 
     const promises = [this._getWalker(), this._getPageStyle()];
-    if (
-      this.targetFront.commands.descriptorFront.isTabDescriptor &&
-      // @backward-compat { version 130 } Support for VIEWPORT_SIZE_ON_RESIZE highlighter,
-      // can be removed once release is 130.
-      this.targetFront.targetForm?.traits?.viewportSizeOnResizeHighlighter
-    ) {
+    if (this.targetFront.commands.descriptorFront.isTabDescriptor) {
       promises.push(this._enableViewportSizeOnResizeHighlighter());
     }
 
