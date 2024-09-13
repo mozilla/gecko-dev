@@ -238,6 +238,8 @@
     <string name="browser_menu_add_to_homescreen">Agg. a schermata principale</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Agg. a schermata principale…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">I dispositivi Xiaomi potrebbero richiedere permessi aggiuntivi per aggiungere scorciatoie alla schermata principale. Controllare le impostazioni.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Risincronizza</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -581,13 +583,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Annulla</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Invia richiesta</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Richiedi di aggiungere il sito</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Invia richiesta</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Richiedere il supporto per questo sito?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Chiedi a %1$s di rifiutare automaticamente i cookie</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Richiedere il supporto per questo sito?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Richiesta inviata</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -595,18 +593,14 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Richiesta di supporto inviata</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Sito attualmente non supportato</string>
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">Sito non supportato</string>
+    <string name="reduce_cookie_banner_unsupported_site">Sito attualmente non supportato</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Attivare il blocco banner per i cookie in %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Disattivare il blocco banner per i cookie in %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s non può rifiutare automaticamente le richieste di cookie su questo sito. Puoi inviare una richiesta per supportare questo sito in futuro.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s non può rifiutare automaticamente le richieste di cookie su questo sito. Puoi inviare una richiesta per supportare questo sito in futuro.</string>
 
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Al momento non è possibile rifiutare automaticamente i pop-up per i cookie su questo sito.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Dopo la disattivazione %1$s rimuove i cookie e ricarica la pagina. Questo potrebbe disconnetterti dal sito o svuotare eventuali carrelli in sospeso.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -1263,8 +1257,12 @@
     <string name="bookmark_url_label">INDIRIZZO</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">CARTELLA</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Salva in</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">NOME</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Nome</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Aggiungi cartella</string>
     <!-- Bookmark select folder screen title -->

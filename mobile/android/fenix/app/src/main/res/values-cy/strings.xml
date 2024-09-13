@@ -236,6 +236,8 @@
     <string name="browser_menu_add_to_homescreen">Ychwanegu i’r sgrin Cartref</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Ychwanegu i\'r sgrin Cartref…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Efallai y bydd angen caniatâd ychwanegol ar ddyfeisiau Xiaomi i ychwanegu llwybrau byr i\'r sgrin gartref. Gwiriwch eich gosodiadau.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Ailgydweddu</string>
     <!-- Browser menu button that opens the find in page menu -->

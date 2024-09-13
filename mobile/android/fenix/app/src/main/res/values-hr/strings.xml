@@ -103,7 +103,7 @@
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
-    <string name="erase_action_cfr_message">Dodirnite ovdje kako biste započeli novu privatnu sesiju. Obrišite svoju povijest, kolačiće — sve.</string>
+    <string name="erase_action_cfr_message">Dodirni ovdje za pokretanje nove privatne sesije. Izbriši svoju povijest, kolačiće – sve.</string>
 
 
     <!-- Toolbar "contextual feature recommendation" (CFR) -->
@@ -564,13 +564,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Odustani</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Pošalji zahtjev</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Zatraži dodavanje stranice</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Pošalji zahtjev</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Zatražite podršku za ovu stranicu?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Zatraži %1$s da automatski odbije kolačiće</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Zatražite podršku za ovu stranicu?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Zahtjev poslan</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -578,19 +574,15 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Zahtjev za podršku je poslan</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Stranica trenutno nije podržana</string>
+    <string name="reduce_cookie_banner_unsupported_site">Stranica trenutno nije podržana</string>
 
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">Web stranica nije podržana</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Uključiti blokiranje dijaloga kolačića za %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Isključiti blokiranje dijaloga kolačića za %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s ne može automatski odbiti zahtjeve za kolačićima na ovoj stranici. Možete poslati zahtjev da se podrži ova stranica u budućnosti.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s ne može automatski odbiti zahtjeve za kolačićima na ovoj stranici. Možete poslati zahtjev da se podrži ova stranica u budućnosti.</string>
 
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Trenutačno ne možemo automatski odbiti skočne prozore kolačića na ovoj web stranici.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Isključi i %1$s će izbrisati kolačiće i ponovo učitati ovu web stranicu. Ovo će te možda odjaviti ili isprazniti košaricu.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -2403,7 +2395,7 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Ne sada</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Saznaj možeš li vjerovati recenzijama ovog proizvoda – prije kupnje.</string>
+    <string name="review_quality_check_first_cfr_message">Saznaj je li možeš vjerovati recenzijama ovog proizvoda – prije kupnje.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Probaj provjeru recenzija</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->

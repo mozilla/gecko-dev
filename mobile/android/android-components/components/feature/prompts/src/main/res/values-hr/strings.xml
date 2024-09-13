@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Predloži snažnu lozinku</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Predloži snažnu lozinku</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Koristi jaku lozinku</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Koristi jaku lozinku: %1$s</string>
@@ -127,7 +125,8 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">Koristi jaku lozinku?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Zaštitite svoje račune pomoću snažne, nasumično generirane lozinke. Brzo pristupite svojim lozinkama tako da ih spremite na svoj račun.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Zaštitite svoje račune pomoću snažne, nasumično generirane lozinke. Brzo pristupite svojim lozinkama tako da ih spremite na svoj račun.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Koristi lozinku</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -165,7 +164,7 @@
     <!-- Option in the expanded select card prompt that links to cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards_2">Upravljanje karticama</string>
     <!-- Text for the title of a save credit card dialog. -->
-    <string name="mozac_feature_prompts_save_credit_card_prompt_title">Sigurno spremi ovu karticu?</string>
+    <string name="mozac_feature_prompts_save_credit_card_prompt_title">Sigurno spremiti ovu karticu?</string>
     <!-- Text for the title of an update credit card dialog. -->
     <string name="mozac_feature_prompts_update_credit_card_prompt_title">Ažuriraj datum isteka kartice?</string>
     <!-- Subtitle text displayed under the title of the save credit card dialog. -->
@@ -198,7 +197,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Koristite %1$s kao davatelja usluge prijave</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Prijava u %1$s s %2$s računom podliježe njihovoj <a href="%3$s">politici privatnosti</a> i <a href="%4$s">Uvjetima usluge</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Prijava u %1$s s %2$s računom podliježe njihovoj <a href="%3$s">politici privatnosti</a> i <a href="%4$s">Uvjetima usluge</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Nastavi</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

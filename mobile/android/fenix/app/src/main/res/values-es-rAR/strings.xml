@@ -238,6 +238,8 @@
     <string name="browser_menu_add_to_homescreen">Agregar a pantalla de inicio</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Agregar a la pantalla de inicio…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Los dispositivos Xiaomi pueden necesitar permisos adicionales para agregar accesos directos a la pantalla de inicio. Comprueba tu configuración.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Resincronizar</string>
     <!-- Browser menu button that opens the find in page menu -->
