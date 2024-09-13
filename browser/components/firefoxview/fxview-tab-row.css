@@ -125,3 +125,8 @@
 .fxview-tab-row-button.options-button::part(button) {
   background-image: url("chrome://global/skin/icons/more.svg");
 }
+
+.fxview-tab-row-button.undo-button::part(button) {
+  font-size: var(--font-size-small);
+  font-weight: 400;
+}

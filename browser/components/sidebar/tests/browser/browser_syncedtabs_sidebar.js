@@ -30,6 +30,10 @@ const tabClients = [
         icon: "https://sinonjs.org/assets/images/favicon.png",
         lastUsed: 1655391592, // Thu Jun 16 2022 14:59:52 GMT+0000
         client: 1,
+        fxaDeviceId: "1",
+        availableCommands: {
+          "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
+        },
       },
       {
         device: "My desktop",
@@ -40,6 +44,10 @@ const tabClients = [
         icon: "https://www.mozilla.org/media/img/favicons/mozilla/favicon.d25d81d39065.ico",
         lastUsed: 1655730486, // Mon Jun 20 2022 13:08:06 GMT+0000
         client: 1,
+        fxaDeviceId: "1",
+        availableCommands: {
+          "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
+        },
       },
     ],
   },
@@ -59,6 +67,10 @@ const tabClients = [
         icon: "page-icon:https://www.theguardian.com/",
         lastUsed: 1655291890, // Wed Jun 15 2022 11:18:10 GMT+0000
         client: 2,
+        fxaDeviceId: "2",
+        availableCommands: {
+          "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
+        },
       },
       {
         device: "My iphone",
@@ -69,6 +81,10 @@ const tabClients = [
         icon: "page-icon:https://www.thetimes.co.uk/",
         lastUsed: 1655727485, // Mon Jun 20 2022 12:18:05 GMT+0000
         client: 2,
+        fxaDeviceId: "2",
+        availableCommands: {
+          "https://identity.mozilla.com/cmd/close-uri/v1": "encryption_is_cool",
+        },
       },
     ],
   },
@@ -93,18 +109,54 @@ add_task(async function test_tabs() {
     const card = component.cards[i];
     Assert.equal(card.heading, client.name, "Device name is correct.");
     const rows = await TestUtils.waitForCondition(() => {
-      const { rowEls } = card.querySelector("fxview-tab-list");
+      const { rowEls } = card.querySelector("sidebar-tab-list");
       return rowEls.length === client.tabs.length && rowEls;
     }, "Device has the correct number of tabs.");
     for (const [j, row] of rows.entries()) {
       const tabData = client.tabs[j];
       Assert.equal(row.title, tabData.title, `Tab ${j + 1} has correct title.`);
       Assert.equal(row.url, tabData.url, `Tab ${j + 1} has correct URL.`);
+
+      // We need to wait for the document to flush to ensure it's completely opened
+      let content = SidebarController.browser.contentWindow;
+      await content.promiseDocumentFlushed(() => {});
+      await EventUtils.synthesizeMouseAtCenter(
+        row.mainEl,
+        { type: "mouseover" },
+        content
+      );
+
+      // We need to use renderRoot since Lit components querySelector
+      // won't return the right things
+      await BrowserTestUtils.waitForCondition(
+        () => row.renderRoot.querySelector(".dismiss-button") !== null,
+        `Dismiss button should appear for tab ${j + 1}`
+      );
+      // Check the presence of the dismiss button
+      const dismissButton = row.renderRoot.querySelector(".dismiss-button");
+      Assert.ok(dismissButton, `Dismiss button is present on tab ${j + 1}.`);
+      // Simulate clicking the dismiss button
+      EventUtils.synthesizeMouseAtCenter(dismissButton, {}, content);
+
+      await TestUtils.waitForCondition(() => {
+        const undoButton = row.renderRoot.querySelector(".undo-button");
+        return undoButton && undoButton.style.display !== "none";
+      }, `Undo button is shown after dismissing tab ${j + 1}.`);
+
+      // Simulate clicking the undo button
+      const undoButton = row.renderRoot.querySelector(".undo-button");
+      EventUtils.synthesizeMouseAtCenter(undoButton, {}, content);
+      await TestUtils.waitForCondition(() => {
+        return (
+          row.renderRoot.querySelector(".dismiss-button") &&
+          !row.renderRoot.querySelector(".undo-button")
+        );
+      }, `Dismiss button is restored after undoing tab ${j + 1}.`);
     }
   }
 
   info("Copy the first link.");
-  const tabList = component.cards[0].querySelector("fxview-tab-list");
+  const tabList = component.cards[0].querySelector("sidebar-tab-list");
   const menuItem = document.getElementById(
     "sidebar-synced-tabs-context-copy-link"
   );
