@@ -546,6 +546,7 @@ export class UrlbarView {
     // implicitly unselected.
     if (this.input.searchMode?.isPreview) {
       this.input.searchMode = null;
+      this.window.gBrowser.userTypedValue = null;
     }
 
     this.resultMenu.hidePopup();

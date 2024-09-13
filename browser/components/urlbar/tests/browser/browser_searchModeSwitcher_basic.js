@@ -592,3 +592,41 @@ add_task(async function open_engine_page_directly() {
     await BrowserTestUtils.closeWindow(newWin);
   }
 });
+
+add_task(async function test_urlbar_text_after_previewed_search_mode() {
+  info("Open urlbar with a query that shows DuckDuckGo search engine");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "duck",
+  });
+
+  // Sanity check.
+  const target = await UrlbarTestUtils.getDetailsOfResultAt(window, 1);
+  Assert.equal(target.result.payload.engine, "DuckDuckGo");
+  Assert.ok(target.result.payload.providesSearchMode);
+
+  info("Choose the search mode suggestion");
+  EventUtils.synthesizeKey("KEY_Tab", {});
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "DuckDuckGo",
+    entry: "tabtosearch_onboard",
+    source: 3,
+    isPreview: true,
+  });
+
+  info("Click on the content area");
+  EventUtils.synthesizeMouseAtCenter(gBrowser.selectedBrowser, {});
+  await UrlbarTestUtils.assertSearchMode(window, null);
+
+  info("Choose any search engine from the switcher");
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton[label=Bing]").click();
+  await popupHidden;
+
+  Assert.equal(gURLBar.value, "", "The value of urlbar should be empty");
+
+  // Clean up.
+  window.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(window, null);
+});
