@@ -2350,7 +2350,7 @@ abstract class BaseBrowserFragment :
             if (webAppToolbarShouldBeVisible) {
                 browserToolbarView.visible()
                 _bottomToolbarContainerView?.toolbarContainerView?.isVisible = true
-                reinitializeEngineView()
+                reinitializeEngineView(inFullScreen)
                 browserToolbarView.expand()
                 _bottomToolbarContainerView?.toolbarContainerView?.expand()
             }
@@ -2397,8 +2397,9 @@ abstract class BaseBrowserFragment :
         )
     }
 
-    private fun reinitializeEngineView() {
-        val isFullscreen = fullScreenFeature.get()?.isFullScreen == true
+    private fun reinitializeEngineView(
+        isFullscreen: Boolean = fullScreenFeature.get()?.isFullScreen == true,
+    ) {
         val topToolbarHeight = requireContext().settings().getTopToolbarHeight(
             includeTabStrip = customTabSessionId == null && requireContext().isTabStripEnabled(),
         )
