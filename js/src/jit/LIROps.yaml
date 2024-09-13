@@ -668,6 +668,9 @@
 - name: TestIAndBranch
   gen_boilerplate: false
 
+- name: TestIPtrAndBranch
+  gen_boilerplate: false
+
 - name: TestI64AndBranch
   gen_boilerplate: false
 
@@ -843,6 +846,12 @@
 
 # Not operation on an integer.
 - name: NotI
+  result_type: WordSized
+  operands:
+    input: WordSized
+
+# Not operation on an intptr.
+- name: NotIPtr
   result_type: WordSized
   operands:
     input: WordSized

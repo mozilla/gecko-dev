@@ -1241,6 +1241,9 @@ void LIRGenerator::visitTest(MTest* test) {
     case MIRType::Boolean:
       add(new (alloc()) LTestIAndBranch(useRegister(opd), ifTrue, ifFalse));
       break;
+    case MIRType::IntPtr:
+      add(new (alloc()) LTestIPtrAndBranch(useRegister(opd), ifTrue, ifFalse));
+      break;
     case MIRType::Int64:
       add(new (alloc())
               LTestI64AndBranch(useInt64Register(opd), ifTrue, ifFalse));
@@ -4459,6 +4462,9 @@ void LIRGenerator::visitNot(MNot* ins) {
     }
     case MIRType::Int32:
       define(new (alloc()) LNotI(useRegisterAtStart(op)), ins);
+      break;
+    case MIRType::IntPtr:
+      define(new (alloc()) LNotIPtr(useRegisterAtStart(op)), ins);
       break;
     case MIRType::Int64:
       define(new (alloc()) LNotI64(useInt64RegisterAtStart(op)), ins);

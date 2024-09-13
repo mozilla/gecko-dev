@@ -991,6 +991,23 @@ class LTestIAndBranch : public LControlInstructionHelper<2, 1, 0> {
   MBasicBlock* ifFalse() const { return getSuccessor(1); }
 };
 
+// Takes in intptr input and tests it for truthiness.
+class LTestIPtrAndBranch : public LControlInstructionHelper<2, 1, 0> {
+ public:
+  LIR_HEADER(TestIPtrAndBranch)
+
+  LTestIPtrAndBranch(const LAllocation& in, MBasicBlock* ifTrue,
+                     MBasicBlock* ifFalse)
+      : LControlInstructionHelper(classOpcode) {
+    setOperand(0, in);
+    setSuccessor(0, ifTrue);
+    setSuccessor(1, ifFalse);
+  }
+
+  MBasicBlock* ifTrue() const { return getSuccessor(0); }
+  MBasicBlock* ifFalse() const { return getSuccessor(1); }
+};
+
 // Takes in an int64 input and tests it for truthiness.
 class LTestI64AndBranch : public LControlInstructionHelper<2, INT64_PIECES, 0> {
  public:

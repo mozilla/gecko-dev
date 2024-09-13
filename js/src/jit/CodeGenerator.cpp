@@ -1485,6 +1485,21 @@ void CodeGenerator::visitTestIAndBranch(LTestIAndBranch* test) {
   }
 }
 
+void CodeGenerator::visitTestIPtrAndBranch(LTestIPtrAndBranch* test) {
+  Register input = ToRegister(test->input());
+  MBasicBlock* ifTrue = test->ifTrue();
+  MBasicBlock* ifFalse = test->ifFalse();
+
+  if (isNextBlock(ifFalse->lir())) {
+    masm.branchTestPtr(Assembler::NonZero, input, input,
+                       getJumpLabelForBranch(ifTrue));
+  } else {
+    masm.branchTestPtr(Assembler::Zero, input, input,
+                       getJumpLabelForBranch(ifFalse));
+    jumpToBlock(ifTrue);
+  }
+}
+
 void CodeGenerator::visitTestI64AndBranch(LTestI64AndBranch* test) {
   Register64 input = ToRegister64(test->input());
   MBasicBlock* ifTrue = test->ifTrue();
@@ -14703,6 +14718,13 @@ void CodeGenerator::visitSetInitializedLength(LSetInitializedLength* lir) {
   Address initLength(ToRegister(lir->elements()),
                      ObjectElements::offsetOfInitializedLength());
   SetLengthFromIndex(masm, lir->index(), initLength);
+}
+
+void CodeGenerator::visitNotIPtr(LNotIPtr* lir) {
+  Register input = ToRegister(lir->input());
+  Register output = ToRegister(lir->output());
+
+  masm.cmpPtrSet(Assembler::Equal, input, ImmWord(0), output);
 }
 
 void CodeGenerator::visitNotBI(LNotBI* lir) {
