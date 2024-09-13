@@ -3,6 +3,10 @@
  * http://creativecommons.org/publicdomain/zero/1.0/
  */
 
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
+
 /* exported testSteps */
 async function testSteps() {
   info("Sending fake 'idle-daily' notification to QuotaManager");
@@ -13,10 +17,5 @@ async function testSteps() {
 
   info("Waiting for maintenance to start");
 
-  await new Promise(function (resolve) {
-    Services.obs.addObserver(function observer(subject, topic) {
-      Services.obs.removeObserver(observer, topic);
-      resolve();
-    }, "QuotaManager::MaintenanceStarted");
-  });
+  await TestUtils.topicObserved("QuotaManager::MaintenanceStarted");
 }

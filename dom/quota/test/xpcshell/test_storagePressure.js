@@ -10,27 +10,18 @@
  * below the global usage.
  */
 
+const { TestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TestUtils.sys.mjs"
+);
+
 loadScript("dom/quota/test/common/file.js");
 
-function awaitStoragePressure() {
-  let promise_resolve;
-
-  let promise = new Promise(function (resolve) {
-    promise_resolve = resolve;
-  });
-
-  function observer(subject, topic) {
-    ok(true, "Got the storage pressure event");
-
-    Services.obs.removeObserver(observer, topic);
-
-    let usage = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
-    promise_resolve(usage);
-  }
-
-  Services.obs.addObserver(observer, "QuotaManager::StoragePressure");
-
-  return promise;
+async function awaitStoragePressure() {
+  const [subject] = await TestUtils.topicObserved(
+    "QuotaManager::StoragePressure"
+  );
+  const usage = subject.QueryInterface(Ci.nsISupportsPRUint64).data;
+  return usage;
 }
 
 async function testSteps() {
