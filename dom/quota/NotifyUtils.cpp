@@ -6,16 +6,16 @@
 
 #include "mozilla/dom/quota/NotifyUtils.h"
 
+#include "mozilla/RefPtr.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
-#include "nsComponentManagerUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsError.h"
 #include "nsIObserverService.h"
-#include "nsISupportsPrimitives.h"
+#include "nsSupportsPrimitives.h"
 #include "nsThreadUtils.h"
 
 namespace mozilla::dom::quota {
@@ -70,13 +70,9 @@ StoragePressureRunnable::Run() {
     return NS_ERROR_FAILURE;
   }
 
-  nsCOMPtr<nsISupportsPRUint64> wrapper =
-      do_CreateInstance(NS_SUPPORTS_PRUINT64_CONTRACTID);
-  if (NS_WARN_IF(!wrapper)) {
-    return NS_ERROR_FAILURE;
-  }
+  auto wrapper = MakeRefPtr<nsSupportsPRUint64>();
 
-  wrapper->SetData(mUsage);
+  MOZ_ALWAYS_SUCCEEDS(wrapper->SetData(mUsage));
 
   obsSvc->NotifyObservers(wrapper, "QuotaManager::StoragePressure", u"");
 
