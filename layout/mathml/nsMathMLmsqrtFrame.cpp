@@ -47,6 +47,9 @@ nsMathMLmsqrtFrame::InheritAutomaticData(nsIFrame* aParent) {
 nsresult nsMathMLmsqrtFrame::AttributeChanged(int32_t aNameSpaceID,
                                               nsAtom* aAttribute,
                                               int32_t aModType) {
+  // Skip nsMathMLmencloseFrame::AttributeChanged, since msqrt does not accept
+  // the notation attribute.
+  // TODO(bug 1918310): msqrt should share its logic with mroot instead.
   return nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
                                                   aModType);
 }

@@ -665,7 +665,7 @@ nsresult nsMathMLmtableWrapperFrame::AttributeChanged(int32_t aNameSpaceID,
   if (!rgFrame || !rgFrame->IsTableRowGroupFrame()) return NS_OK;
 
   // align - just need to issue a dirty (resize) reflow command
-  if (aAttribute == nsGkAtoms::align) {
+  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::align) {
     PresShell()->FrameNeedsReflow(this, IntrinsicDirty::None,
                                   NS_FRAME_IS_DIRTY);
     return NS_OK;
@@ -674,7 +674,8 @@ nsresult nsMathMLmtableWrapperFrame::AttributeChanged(int32_t aNameSpaceID,
   // displaystyle - may seem innocuous, but it is actually very harsh --
   // like changing an unit. Blow away and recompute all our automatic
   // presentational data, and issue a style-changed reflow request
-  if (aAttribute == nsGkAtoms::displaystyle_) {
+  if (aNameSpaceID == kNameSpaceID_None &&
+      aAttribute == nsGkAtoms::displaystyle_) {
     nsMathMLContainerFrame::RebuildAutomaticDataForChildren(GetParent());
     // Need to reflow the parent, not us, because this can actually
     // affect siblings.
@@ -686,32 +687,37 @@ nsresult nsMathMLmtableWrapperFrame::AttributeChanged(int32_t aNameSpaceID,
 
   // ...and the other attributes affect rows or columns in one way or another
 
-  if (aAttribute == nsGkAtoms::rowspacing_ ||
-      aAttribute == nsGkAtoms::columnspacing_ ||
-      aAttribute == nsGkAtoms::framespacing_) {
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (aAttribute == nsGkAtoms::rowspacing_ ||
+       aAttribute == nsGkAtoms::columnspacing_ ||
+       aAttribute == nsGkAtoms::framespacing_)) {
     nsMathMLmtableFrame* mathMLmtableFrame = do_QueryFrame(tableFrame);
     if (mathMLmtableFrame) {
       ParseSpacingAttribute(mathMLmtableFrame, aAttribute);
       mathMLmtableFrame->SetUseCSSSpacing();
     }
-  } else if (aAttribute == nsGkAtoms::rowalign_ ||
-             aAttribute == nsGkAtoms::rowlines_ ||
-             aAttribute == nsGkAtoms::columnalign_ ||
-             aAttribute == nsGkAtoms::columnlines_) {
+    PresShell()->FrameNeedsReflow(
+        this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
+    return NS_OK;
+  }
+
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (aAttribute == nsGkAtoms::rowalign_ ||
+       aAttribute == nsGkAtoms::rowlines_ ||
+       aAttribute == nsGkAtoms::columnalign_ ||
+       aAttribute == nsGkAtoms::columnlines_)) {
     // clear any cached property list for this table
     tableFrame->RemoveProperty(AttributeToProperty(aAttribute));
     // Reparse the new attribute on the table.
     ParseFrameAttribute(tableFrame, aAttribute, true);
-  } else {
-    // Ignore attributes that do not affect layout.
+    PresShell()->FrameNeedsReflow(
+        this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
     return NS_OK;
   }
 
-  // Explicitly request a reflow in our subtree to pick up any changes
-  PresShell()->FrameNeedsReflow(
-      this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
-
-  return NS_OK;
+  // Skip nsTableWrapperFrame::AttributeChanged, mtable does not share more
+  // attributes with table.
+  return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
 nsIFrame* nsMathMLmtableWrapperFrame::GetRowFrameAt(int32_t aRowIndex) {
@@ -1024,9 +1030,13 @@ nsresult nsMathMLmtrFrame::AttributeChanged(int32_t aNameSpaceID,
   // rowalign    : Here
   // columnalign : Here
 
-  if (aAttribute != nsGkAtoms::rowalign_ &&
-      aAttribute != nsGkAtoms::columnalign_) {
-    return NS_OK;
+  if (aNameSpaceID != kNameSpaceID_None ||
+      (aAttribute != nsGkAtoms::rowalign_ &&
+       aAttribute != nsGkAtoms::columnalign_)) {
+    // Skip nsTableCellFrame::AttributeChanged, mtr does not share any attribute
+    // with tr.
+    return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
+                                              aModType);
   }
 
   RemoveProperty(AttributeToProperty(aAttribute));
@@ -1075,8 +1085,9 @@ nsresult nsMathMLmtdFrame::AttributeChanged(int32_t aNameSpaceID,
   // rowspan     : here
   // columnspan  : here
 
-  if (aAttribute == nsGkAtoms::rowalign_ ||
-      aAttribute == nsGkAtoms::columnalign_) {
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (aAttribute == nsGkAtoms::rowalign_ ||
+       aAttribute == nsGkAtoms::columnalign_)) {
     RemoveProperty(AttributeToProperty(aAttribute));
 
     // Reparse the attribute.
@@ -1084,15 +1095,17 @@ nsresult nsMathMLmtdFrame::AttributeChanged(int32_t aNameSpaceID,
     return NS_OK;
   }
 
-  if (aAttribute == nsGkAtoms::rowspan ||
-      aAttribute == nsGkAtoms::columnspan_) {
-    // use the naming expected by the base class
-    if (aAttribute == nsGkAtoms::columnspan_) aAttribute = nsGkAtoms::colspan;
+  if (aNameSpaceID == kNameSpaceID_None &&
+      (aAttribute == nsGkAtoms::rowspan ||
+       aAttribute == nsGkAtoms::columnspan_)) {
+    // nsTableCellFrame takes care of renaming columnspan to colspan.
     return nsTableCellFrame::AttributeChanged(aNameSpaceID, aAttribute,
                                               aModType);
   }
 
-  return NS_OK;
+  // Skip nsTableCellFrame::AttributeChanged, mtd does not share more attributes
+  // with td.
+  return nsContainerFrame::AttributeChanged(aNameSpaceID, aAttribute, aModType);
 }
 
 StyleVerticalAlignKeyword nsMathMLmtdFrame::GetVerticalAlign() const {

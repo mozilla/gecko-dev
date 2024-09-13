@@ -687,9 +687,10 @@ void nsMathMLContainerFrame::RemoveFrame(DestroyContext& aContext,
 nsresult nsMathMLContainerFrame::AttributeChanged(int32_t aNameSpaceID,
                                                   nsAtom* aAttribute,
                                                   int32_t aModType) {
-  // XXX Since they are numerous MathML attributes that affect layout, and
+  // Since they are numerous MathML attributes that affect layout, and
   // we can't check all of them here, play safe by requesting a reflow.
-  // XXXldb This should only do work for attributes that cause changes!
+  // TODO(bug 1918308): This should only do work for attributes that cause
+  // changes!
   PresShell()->FrameNeedsReflow(
       this, IntrinsicDirty::FrameAncestorsAndDescendants, NS_FRAME_IS_DIRTY);
 
