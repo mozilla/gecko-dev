@@ -488,8 +488,14 @@ class JavaScriptTracer {
     // We don't need to maintain a stack of events as that's only consumed by onEnterFrame
     // which only cares about the very lastest event being currently trigerring some code.
     if (notification.phase == "pre") {
-      // We get notified about "real" DOM event, but also when some particular callbacks are called like setTimeout.
+      // We get notified about "real" DOM event when type is "domEvent",
+      // but also when some other DOM APIs are involved.
+      // notification's type will be "setTimeout" when the setTimeout method is called,
+      // or "setTimeoutCallback" when the callback passed to setTimeout is called.
+      // This also work against setInterval/clearTimeout/clearInterval and requestAnimationFrame.
       if (notification.type == "domEvent") {
+        // `targetType` can help distinguish same-name DOM events fired against XHR, window or workers.
+        const { targetType } = notification;
         let { type } = notification.event;
         if (!type) {
           // In the Worker thread, `notification.event` is an opaque wrapper.
@@ -500,7 +506,7 @@ class JavaScriptTracer {
             .makeDebuggeeValue(notification.event)
             .getProperty("type").return;
         }
-        this.currentDOMEvent = type;
+        this.currentDOMEvent = `${targetType}.${type}`;
       } else {
         this.currentDOMEvent = notification.type;
       }

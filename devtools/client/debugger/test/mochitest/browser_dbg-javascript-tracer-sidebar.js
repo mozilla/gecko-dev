@@ -176,7 +176,7 @@ add_task(async function () {
   const clickTrace = await waitFor(() =>
     tracerTree.querySelector(".tracer-dom-event")
   );
-  is(clickTrace.textContent, "DOM | click");
+  is(clickTrace.textContent, "DOM | node.click");
   is(
     tracerTree.querySelectorAll(".trace-line").length,
     6,
@@ -191,7 +191,7 @@ add_task(async function () {
     }
     return false;
   });
-  is(keyTrace.textContent, "DOM | keypress");
+  is(keyTrace.textContent, "DOM | global.keypress");
 
   is(
     tracerTree.querySelectorAll(".trace-line").length,

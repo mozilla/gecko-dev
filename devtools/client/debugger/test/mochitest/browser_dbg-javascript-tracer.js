@@ -61,7 +61,7 @@ add_task(async function () {
     gBrowser.selectedBrowser
   );
 
-  await hasConsoleMessage(dbg, "DOM | click");
+  await hasConsoleMessage(dbg, "DOM | node.click");
   await hasConsoleMessage(dbg, "λ simple");
 
   const iframeBrowsingContext = await SpecialPowers.spawn(
@@ -78,7 +78,7 @@ add_task(async function () {
   );
 
   await BrowserTestUtils.synthesizeKey("x", {}, iframeBrowsingContext);
-  await hasConsoleMessage(dbg, "DOM | keypress");
+  await hasConsoleMessage(dbg, "DOM | node.keypress");
   await hasConsoleMessage(dbg, "λ onkeypress");
 
   await SpecialPowers.spawn(
@@ -93,7 +93,7 @@ add_task(async function () {
     {},
     preExistingIframeBrowsingContext
   );
-  await hasConsoleMessage(dbg, "DOM | keydown");
+  await hasConsoleMessage(dbg, "DOM | node.keydown");
   await hasConsoleMessage(dbg, "λ onkeydown");
 
   // Test Blackboxing

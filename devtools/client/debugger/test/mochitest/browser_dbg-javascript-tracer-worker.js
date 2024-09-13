@@ -40,7 +40,7 @@ add_task(async function testTracingWorker() {
     content.worker.postMessage("foo");
   });
 
-  await hasConsoleMessage(dbg, "DOM | message");
+  await hasConsoleMessage(dbg, "DOM | global.message");
   await hasConsoleMessage(dbg, "λ onmessage");
 
   await dbg.toolbox.closeToolbox();
