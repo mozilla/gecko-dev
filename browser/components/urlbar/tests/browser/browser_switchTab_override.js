@@ -17,14 +17,6 @@ add_task(async function test_switchtab_override() {
 
   info("Opening and selecting second tab");
   let secondTab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  registerCleanupFunction(() => {
-    try {
-      gBrowser.removeTab(tab);
-      gBrowser.removeTab(secondTab);
-    } catch (ex) {
-      /* tabs may have already been closed in case of failure */
-    }
-  });
 
   info("Wait for autocomplete");
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -73,11 +65,6 @@ add_task(async function test_switchtab_override() {
     Assert.ok(BrowserTestUtils.isHidden(label));
   }
 
-  registerCleanupFunction(() => {
-    // Avoid confusing next tests by leaving a pending keydown.
-    EventUtils.synthesizeKey("KEY_Shift", { type: "keyup" });
-  });
-
   let attribute = "action-override";
   Assert.ok(
     gURLBar.view.panel.hasAttribute(attribute),
@@ -94,7 +81,57 @@ add_task(async function test_switchtab_override() {
     "We should not be overriding anymore"
   );
 
+  EventUtils.synthesizeKey("KEY_Shift", { type: "keyup" });
   await PlacesUtils.history.clear();
   gBrowser.removeTab(tab);
   gBrowser.removeTab(secondTab);
+});
+
+add_task(async function test_switchtab_override_scotch_bonnet() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+  });
+
+  info("Opening first tab");
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, TEST_URL);
+
+  info("Opening and selecting second tab");
+  let secondTab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+
+  info("Wait for autocomplete");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "dummy_page",
+  });
+
+  info("Select second autocomplete popup entry");
+  EventUtils.synthesizeKey("KEY_ArrowDown");
+  let result = await UrlbarTestUtils.getDetailsOfResultAt(
+    window,
+    UrlbarTestUtils.getSelectedRowIndex(window)
+  );
+  Assert.equal(result.type, UrlbarUtils.RESULT_TYPE.TAB_SWITCH);
+
+  info("Check the current status");
+  let actionButton = result.element.row.querySelector(
+    ".urlbarView-action-btn[data-action=tabswitch]"
+  );
+  let urlLabel = result.element.url;
+  Assert.ok(BrowserTestUtils.isVisible(actionButton));
+  Assert.ok(BrowserTestUtils.isHidden(urlLabel));
+
+  info("Enable action-override");
+  EventUtils.synthesizeKey("KEY_Shift", { type: "keydown" });
+  Assert.ok(BrowserTestUtils.isHidden(actionButton));
+  Assert.ok(BrowserTestUtils.isVisible(urlLabel));
+
+  info("Disable action-override");
+  EventUtils.synthesizeKey("KEY_Shift", { type: "keyup" });
+  Assert.ok(BrowserTestUtils.isVisible(actionButton));
+  Assert.ok(BrowserTestUtils.isHidden(urlLabel));
+
+  info("Cleanup");
+  gBrowser.removeTab(tab);
+  gBrowser.removeTab(secondTab);
+  await SpecialPowers.popPrefEnv();
 });
