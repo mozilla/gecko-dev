@@ -2726,7 +2726,10 @@ impl<'a> StyleBuilder<'a> {
     pub fn resolved_specified_zoom(&self) -> computed::Zoom {
         let zoom = self.specified_zoom();
         if zoom.is_document() {
-            self.inherited_effective_zoom().inverted()
+            // If our inherited effective zoom has derived to zero, there's not much we can do.
+            // This value is not exposed to content anyways (it's used for scrollbars and to avoid
+            // zoom affecting canvas).
+            self.inherited_effective_zoom().inverted().unwrap_or(computed::Zoom::ONE)
         } else {
             zoom
         }
