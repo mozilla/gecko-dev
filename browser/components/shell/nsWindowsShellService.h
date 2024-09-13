@@ -15,8 +15,7 @@
 #include <windows.h>
 #include <ole2.h>
 
-class nsWindowsShellService : public nsIShellService,
-                              public nsToolkitShellService,
+class nsWindowsShellService : public nsToolkitShellService,
                               public nsIWindowsShellService {
   virtual ~nsWindowsShellService();
 

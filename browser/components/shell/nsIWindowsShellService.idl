@@ -2,12 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "nsISupports.idl"
+#include "nsIShellService.idl"
 
 interface nsIFile;
 
 [scriptable, uuid(fb9b59db-5a91-4e67-92b6-35e7d6e6d3fd)]
-interface nsIWindowsShellService : nsISupports
+interface nsIWindowsShellService : nsIShellService
 {
   /*
    * Creates a new shortcut (.lnk) file. This shortcut will be recorded in
