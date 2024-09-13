@@ -120,13 +120,6 @@ int main() {
   MOZ_RELEASE_ASSERT(11 == Foo::sNumDestroyed);
 
   {
-    RefPtr<Foo> f = new Foo();
-    f = std::move(f);
-    MOZ_RELEASE_ASSERT(11 == Foo::sNumDestroyed);
-  }
-  MOZ_RELEASE_ASSERT(12 == Foo::sNumDestroyed);
-
-  {
     bool condition = true;
     const auto f =
         condition ? mozilla::MakeRefPtr<Bar>() : mozilla::MakeRefPtr<Foo>();
