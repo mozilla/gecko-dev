@@ -50,6 +50,9 @@ pub enum Error {
 
     #[error("Error opening database: {0}")]
     OpenDatabaseError(#[from] sql_support::open_database::Error),
+
+    #[error("Unexpected connection state")]
+    UnexpectedConnectionState,
 }
 
 // Define how our internal errors are handled and converted to external errors
@@ -85,6 +88,12 @@ impl GetErrorHandling for Error {
                 reason: e.to_string(),
             })
             .report_error("tabs-open-database-error"),
+            Self::UnexpectedConnectionState => {
+                ErrorHandling::convert(TabsApiError::UnexpectedTabsError {
+                    reason: "Unexpected connection state".to_string(),
+                })
+                .report_error("tabs-unexpected-connection-state")
+            }
         }
     }
 }

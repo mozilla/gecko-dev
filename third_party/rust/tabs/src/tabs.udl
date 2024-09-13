@@ -23,6 +23,8 @@ interface TabsApiError {
 interface TabsStore {
     constructor(string path);
 
+    void close_connection();
+
     sequence<ClientRemoteTabs> get_all();
 
     void set_local_tabs(sequence<RemoteTabRecord> remote_tabs);
