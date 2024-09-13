@@ -322,7 +322,10 @@ export class UrlbarController {
           if (this.view.isOpen) {
             this.view.close();
           } else {
-            this.input.handleRevert(true);
+            this.input.handleRevert({
+              dontShowSearchTerms: true,
+              escapeSearchMode: true,
+            });
           }
         }
         event.preventDefault();

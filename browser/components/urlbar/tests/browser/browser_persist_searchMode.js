@@ -69,3 +69,43 @@ add_task(async function test_persist_searchmode() {
   await onLoad;
   await UrlbarTestUtils.assertSearchMode(window, null);
 });
+
+add_task(async function test_escape_searchmode() {
+  const ENGINE_TEST_URL = "https://example.com/";
+  let onLoaded = BrowserTestUtils.browserLoaded(
+    gBrowser.selectedBrowser,
+    false,
+    ENGINE_TEST_URL
+  );
+  BrowserTestUtils.startLoadingURIString(
+    gBrowser.selectedBrowser,
+    ENGINE_TEST_URL
+  );
+  await onLoaded;
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "search",
+  });
+
+  info("Focus and select the contextual search result");
+  let onLoad = BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  EventUtils.synthesizeKey("KEY_Tab");
+  EventUtils.synthesizeKey("KEY_Enter");
+  await onLoad;
+
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "Contextual",
+    entry: "other",
+  });
+
+  await UrlbarTestUtils.promisePopupOpen(window, () => {
+    EventUtils.synthesizeKey("l", { accelKey: true });
+  });
+  await UrlbarTestUtils.promisePopupClose(window, () => {
+    EventUtils.synthesizeKey("KEY_Escape");
+  });
+  EventUtils.synthesizeKey("KEY_Escape");
+
+  await UrlbarTestUtils.assertSearchMode(window, null);
+});

@@ -867,10 +867,13 @@ export class UrlbarInput {
     // Don't add further handling here, the catch above is our last resort.
   }
 
-  handleRevert(dontShowSearchTerms = false) {
+  handleRevert({ dontShowSearchTerms = false, escapeSearchMode = false } = {}) {
     this.window.gBrowser.userTypedValue = null;
     // Nullify search mode before setURI so it won't try to restore it.
-    if (!lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+    if (
+      !lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") ||
+      escapeSearchMode
+    ) {
       this.searchMode = null;
     }
     this.setURI(null, true, false, dontShowSearchTerms);
@@ -884,7 +887,7 @@ export class UrlbarInput {
       anchorElement?.closest("#urlbar") &&
       this.window.gBrowser.selectedBrowser.searchTerms
     ) {
-      this.handleRevert(true);
+      this.handleRevert({ dontShowSearchTerms: true });
       Services.telemetry.scalarAdd(
         "urlbar.persistedsearchterms.revert_by_popup_count",
         1

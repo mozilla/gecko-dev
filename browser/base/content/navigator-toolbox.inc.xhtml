@@ -364,7 +364,7 @@
               </moz-input-box>
               <image class="urlbar-icon urlbar-revert-button"
                      role="button"
-                     onclick="gURLBar.handleRevert(true)"
+                     onclick="gURLBar.handleRevert({dontShowSearchTerms: true})"
                      data-l10n-id="urlbar-revert-button"/>
             </hbox>
             <image class="urlbar-icon urlbar-go-button"
@@ -374,7 +374,7 @@
                    data-l10n-id="urlbar-go-button"/>
             <image class="urlbar-icon urlbar-show-page-actions-button"
                    role="button"
-                   onclick="gURLBar.handleRevert(true)"
+                   onclick="gURLBar.handleRevert({dontShowSearchTerms: true})"
                    data-l10n-id="urlbar-show-page-actions-button"
                    align="center"/>
             <hbox id="page-action-buttons" context="pageActionContextMenu" align="center">
