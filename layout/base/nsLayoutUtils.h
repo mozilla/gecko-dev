@@ -16,6 +16,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
+#include "mozilla/LayoutStructs.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
@@ -1470,6 +1471,8 @@ class nsLayoutUtils {
    * @param aMarginBoxMinSizeClamp make the result fit within this margin-box
    * size by reducing the *content size* (flooring at zero).  This is used for:
    * https://drafts.csswg.org/css-grid/#min-size-auto
+   * @param aSizeOverrides optional override values for size properties, which
+   * this function will use internally instead of the actual property values.
    */
   enum {
     IGNORE_PADDING = 0x01,
@@ -1480,7 +1483,8 @@ class nsLayoutUtils {
       mozilla::PhysicalAxis aAxis, gfxContext* aRenderingContext,
       nsIFrame* aFrame, mozilla::IntrinsicISizeType aType,
       const mozilla::Maybe<LogicalSize>& aPercentageBasis = mozilla::Nothing(),
-      uint32_t aFlags = 0, nscoord aMarginBoxMinSizeClamp = NS_MAXSIZE);
+      uint32_t aFlags = 0, nscoord aMarginBoxMinSizeClamp = NS_MAXSIZE,
+      const mozilla::StyleSizeOverrides& aSizeOverrides = {});
   /**
    * Calls IntrinsicForAxis with aFrame's parent's inline physical axis.
    */
@@ -1488,7 +1492,8 @@ class nsLayoutUtils {
       gfxContext* aRenderingContext, nsIFrame* aFrame,
       mozilla::IntrinsicISizeType aType,
       const mozilla::Maybe<LogicalSize>& aPercentageBasis = mozilla::Nothing(),
-      uint32_t aFlags = 0);
+      uint32_t aFlags = 0,
+      const mozilla::StyleSizeOverrides& aSizeOverrides = {});
 
   /**
    * Get the definite size contribution of aFrame for the given physical axis.

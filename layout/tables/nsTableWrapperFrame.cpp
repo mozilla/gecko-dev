@@ -256,8 +256,8 @@ nscoord nsTableWrapperFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
     // margin-box inline size as the contribution in the inline axis.
     const IntrinsicSizeOffsetData offset =
         InnerTableFrame()->IntrinsicISizeOffsets();
-    const nscoord innerTableMinISize = InnerTableFrame()->GetMinISize(input) +
-                                       offset.BorderPadding() + offset.margin;
+    const nscoord innerTableMinISize =
+        InnerTableFrame()->GetMinISize(input) + offset.MarginBorderPadding();
     iSize = std::max(iSize, innerTableMinISize);
   }
 

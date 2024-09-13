@@ -4530,7 +4530,8 @@ static void AddStateBitToAncestors(nsIFrame* aFrame, nsFrameState aBit) {
 nscoord nsLayoutUtils::IntrinsicForAxis(
     PhysicalAxis aAxis, gfxContext* aRenderingContext, nsIFrame* aFrame,
     IntrinsicISizeType aType, const Maybe<LogicalSize>& aPercentageBasis,
-    uint32_t aFlags, nscoord aMarginBoxMinSizeClamp) {
+    uint32_t aFlags, nscoord aMarginBoxMinSizeClamp,
+    const StyleSizeOverrides& aSizeOverrides) {
   MOZ_ASSERT(aFrame, "null frame");
   MOZ_ASSERT(aFrame->GetParent(),
              "IntrinsicForAxis called on frame not in tree");
@@ -4549,22 +4550,27 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   // its parent, we'll need to look at its BSize instead of min/pref-ISize.
   const nsStylePosition* stylePos = aFrame->StylePosition();
   StyleBoxSizing boxSizing = stylePos->mBoxSizing;
+  PhysicalAxis ourInlineAxis =
+      aFrame->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
+  const bool isInlineAxis = aAxis == ourInlineAxis;
 
   StyleSize styleMinISize =
       horizontalAxis ? stylePos->mMinWidth : stylePos->mMinHeight;
-  StyleSize styleISize =
-      (aFlags & MIN_INTRINSIC_ISIZE)
-          ? styleMinISize
-          : (horizontalAxis ? stylePos->mWidth : stylePos->mHeight);
+  StyleSize styleISize = [&]() {
+    if (aFlags & MIN_INTRINSIC_ISIZE) {
+      return styleMinISize;
+    }
+    const Maybe<StyleSize>& styleISizeOverride =
+        isInlineAxis ? aSizeOverrides.mStyleISize : aSizeOverrides.mStyleBSize;
+    return styleISizeOverride
+               ? *styleISizeOverride
+               : (horizontalAxis ? stylePos->mWidth : stylePos->mHeight);
+  }();
   MOZ_ASSERT(!(aFlags & MIN_INTRINSIC_ISIZE) || styleISize.IsAuto() ||
                  nsIFrame::ToExtremumLength(styleISize),
              "should only use MIN_INTRINSIC_ISIZE for intrinsic values");
   StyleMaxSize styleMaxISize =
       horizontalAxis ? stylePos->mMaxWidth : stylePos->mMaxHeight;
-
-  PhysicalAxis ourInlineAxis =
-      aFrame->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
-  const bool isInlineAxis = aAxis == ourInlineAxis;
 
   auto ResetIfKeywords = [](StyleSize& aSize, StyleSize& aMinSize,
                             StyleMaxSize& aMaxSize) {
@@ -4616,7 +4622,12 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   // represents the ratio-determining axis of |aFrame|. It could be the inline
   // axis or the block axis of |aFrame|. (So we are calculating the size
   // along the ratio-dependent axis in this if-branch.)
-  StyleSize styleBSize = horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
+  const Maybe<StyleSize>& styleBSizeOverride =
+      isInlineAxis ? aSizeOverrides.mStyleBSize : aSizeOverrides.mStyleISize;
+  StyleSize styleBSize =
+      styleBSizeOverride
+          ? *styleBSizeOverride
+          : (horizontalAxis ? stylePos->mHeight : stylePos->mWidth);
   StyleSize styleMinBSize =
       horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
   StyleMaxSize styleMaxBSize =
@@ -4859,10 +4870,6 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
       (nsIFrame::IsIntrinsicKeyword(styleISize) ||
        nsIFrame::IsIntrinsicKeyword(styleMinISize) ||
        nsIFrame::IsIntrinsicKeyword(styleMaxISize))) {
-    // This 'B' in |styleBSize| means the block size of |aFrame|. We go into
-    // this branch only if |aAxis| is the inline axis of |aFrame|.
-    const StyleSize& styleBSize =
-        horizontalAxis ? stylePos->mHeight : stylePos->mWidth;
     if (Maybe<nscoord> bSize = GetBSize(styleBSize)) {
       // We cannot reuse |boxSizing| because it may be updated to content-box
       // in the above if-branch.
@@ -4898,13 +4905,14 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
 /* static */
 nscoord nsLayoutUtils::IntrinsicForContainer(
     gfxContext* aRenderingContext, nsIFrame* aFrame, IntrinsicISizeType aType,
-    const Maybe<LogicalSize>& aPercentageBasis, uint32_t aFlags) {
+    const Maybe<LogicalSize>& aPercentageBasis, uint32_t aFlags,
+    const StyleSizeOverrides& aSizeOverrides) {
   MOZ_ASSERT(aFrame && aFrame->GetParent());
   // We want the size aFrame will contribute to its parent's inline-size.
   PhysicalAxis axis =
       aFrame->GetParent()->GetWritingMode().PhysicalAxis(LogicalAxis::Inline);
   return IntrinsicForAxis(axis, aRenderingContext, aFrame, aType,
-                          aPercentageBasis, aFlags);
+                          aPercentageBasis, aFlags, NS_MAXSIZE, aSizeOverrides);
 }
 
 /* static */

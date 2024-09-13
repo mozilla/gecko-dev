@@ -2815,6 +2815,7 @@ class nsIFrame : public nsQueryFrame {
     nscoord border = 0;
     nscoord margin = 0;
     nscoord BorderPadding() const { return border + padding; };
+    nscoord MarginBorderPadding() const { return margin + border + padding; }
   };
 
   /**
