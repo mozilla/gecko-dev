@@ -217,7 +217,7 @@ tasks:
         shipping-product: fennec
         treeherder:
             platform: android-5-0-x86/pgo
-        worker-type: b-linux-gcp
+        worker-type: b-linux-xlarge-gcp
         worker:
             docker-image: {in-tree: android-build}
             env:
@@ -272,7 +272,7 @@ tasks:
         shipping-product: fennec
         treeherder:
             platform: android-5-0-x86_64/pgo
-        worker-type: b-linux-gcp
+        worker-type: b-linux-xlarge-gcp
         worker:
             docker-image: {in-tree: android-build}
             env:
@@ -327,7 +327,7 @@ tasks:
         shipping-product: fennec
         treeherder:
             platform: android-5-0-aarch64/pgo
-        worker-type: b-linux-gcp
+        worker-type: b-linux-xlarge-gcp
         worker:
             docker-image: {in-tree: android-build}
             env:
