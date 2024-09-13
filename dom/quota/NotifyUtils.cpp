@@ -8,6 +8,7 @@
 
 #include "mozilla/RefPtr.h"
 #include "mozilla/Services.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
@@ -62,6 +63,10 @@ void NotifyStoragePressure(QuotaManager& aQuotaManager, uint64_t aUsage) {
 
 void NotifyMaintenanceStarted(QuotaManager& aQuotaManager) {
   aQuotaManager.AssertIsOnOwningThread();
+
+  if (!StaticPrefs::dom_quotaManager_testing()) {
+    return;
+  }
 
   NotifyObserversOnMainThread("QuotaManager::MaintenanceStarted");
 }
