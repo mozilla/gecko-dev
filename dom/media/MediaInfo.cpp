@@ -85,9 +85,9 @@ nsCString AudioInfo::ToString() const {
   nsCString rv;
 
   rv.AppendPrintf(
-      "AudioInfo: %" PRIu32 "Hz, %" PRIu32 "ch (%s) %" PRIu32
-      "-bits profile: %" PRIu8 " extended profile: %" PRIu8 ", %s extradata",
-      mRate, mChannels,
+      "AudioInfo: %s, %" PRIu32 "Hz, %" PRIu32 "ch (%s) %" PRIu32
+      "-bits, profile: %" PRIu8 ", extended profile: %" PRIu8 ", %s extradata",
+      mMimeType.get(), mRate, mChannels,
       AudioConfig::ChannelLayout::ChannelMapToString(mChannelMap).get(),
       mBitDepth, mProfile, mExtendedProfile,
       mCodecSpecificConfig.is<NoCodecSpecificData>() ? "no" : "with");
