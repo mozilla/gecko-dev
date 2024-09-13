@@ -48,17 +48,7 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
  protected:
   explicit nsMathMLmpaddedFrame(ComputedStyle* aStyle,
                                 nsPresContext* aPresContext)
-      : nsMathMLContainerFrame(aStyle, aPresContext, kClassID),
-        mWidthSign(0),
-        mHeightSign(0),
-        mDepthSign(0),
-        mLeadingSpaceSign(0),
-        mVerticalOffsetSign(0),
-        mWidthPseudoUnit(0),
-        mHeightPseudoUnit(0),
-        mDepthPseudoUnit(0),
-        mLeadingSpacePseudoUnit(0),
-        mVerticalOffsetPseudoUnit(0) {}
+      : nsMathMLContainerFrame(aStyle, aPresContext, kClassID) {}
 
   virtual ~nsMathMLmpaddedFrame();
 
@@ -66,32 +56,45 @@ class nsMathMLmpaddedFrame final : public nsMathMLContainerFrame {
                                    ReflowOutput& aDesiredSize) override;
 
  private:
-  nsCSSValue mWidth;
-  nsCSSValue mHeight;
-  nsCSSValue mDepth;
-  nsCSSValue mLeadingSpace;
-  nsCSSValue mVerticalOffset;
+  struct Attribute {
+    enum class Sign : uint8_t {
+      Unspecified,
+      Minus,
+      Plus,
+    };
+    enum class PseudoUnit : uint8_t {
+      Unspecified,
+      ItSelf,
+      Width,
+      Height,
+      Depth,
+      NamedSpace,
+    };
+    nsCSSValue mValue;
+    Sign mSign = Sign::Unspecified;
+    PseudoUnit mPseudoUnit = PseudoUnit::Unspecified;
+    bool mIsValid = false;
+    void Reset() {
+      mValue.Reset();
+      mSign = Sign::Unspecified;
+      mPseudoUnit = PseudoUnit::Unspecified;
+      mIsValid = false;
+    }
+  };
 
-  int32_t mWidthSign;
-  int32_t mHeightSign;
-  int32_t mDepthSign;
-  int32_t mLeadingSpaceSign;
-  int32_t mVerticalOffsetSign;
-
-  int32_t mWidthPseudoUnit;
-  int32_t mHeightPseudoUnit;
-  int32_t mDepthPseudoUnit;
-  int32_t mLeadingSpacePseudoUnit;
-  int32_t mVerticalOffsetPseudoUnit;
+  Attribute mWidth;
+  Attribute mHeight;
+  Attribute mDepth;
+  Attribute mLeadingSpace;
+  Attribute mVerticalOffset;
 
   // helpers to process the attributes
   void ProcessAttributes();
 
-  bool ParseAttribute(nsString& aString, int32_t& aSign, nsCSSValue& aCSSValue,
-                      int32_t& aPseudoUnit);
+  void ParseAttribute(nsAtom* aAtom, Attribute& aAttribute);
+  bool ParseAttribute(nsString& aString, Attribute& aAttribute);
 
-  void UpdateValue(int32_t aSign, int32_t aPseudoUnit,
-                   const nsCSSValue& aCSSValue,
+  void UpdateValue(const Attribute& aAttribute, Attribute::PseudoUnit aSelfUnit,
                    const ReflowOutput& aDesiredSize, nscoord& aValueToUpdate,
                    float aFontSizeInflation) const;
 };
