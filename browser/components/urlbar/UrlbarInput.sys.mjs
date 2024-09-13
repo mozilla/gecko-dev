@@ -1692,8 +1692,14 @@ export class UrlbarInput {
    * @param {boolean} [options.focus]
    *   If true, the urlbar will be focused.  If false, the focus will remain
    *   unchanged.
+   * @param {boolean} [options.startQuery]
+   *   If true, start query to show urlbar result by fireing input event. If
+   *   false, not fire the event.
    */
-  search(value, { searchEngine, searchModeEntry, focus = true } = {}) {
+  search(
+    value,
+    { searchEngine, searchModeEntry, focus = true, startQuery = true } = {}
+  ) {
     if (focus) {
       this.focus();
     }
@@ -1736,20 +1742,48 @@ export class UrlbarInput {
     // Avoid selecting the text if this method is called twice in a row.
     this.selectionStart = -1;
 
-    // Note: proper IME Composition handling depends on the fact this generates
-    // an input event, rather than directly invoking the controller; everything
-    // goes through _on_input, that will properly skip the search until the
-    // composition is committed. _on_input also skips the search when it's the
-    // same as the previous search, but we want to allow consecutive searches
-    // with the same string. So clear _lastSearchString first.
+    if (startQuery) {
+      // Note: proper IME Composition handling depends on the fact this generates
+      // an input event, rather than directly invoking the controller; everything
+      // goes through _on_input, that will properly skip the search until the
+      // composition is committed. _on_input also skips the search when it's the
+      // same as the previous search, but we want to allow consecutive searches
+      // with the same string. So clear _lastSearchString first.
+      this._lastSearchString = "";
+      let event = new UIEvent("input", {
+        bubbles: true,
+        cancelable: false,
+        view: this.window,
+        detail: 0,
+      });
+      this.inputField.dispatchEvent(event);
+    }
+  }
+
+  openEngineHomePage(value, { searchEngine }) {
+    if (!searchEngine) {
+      console.warn("No searchEngine parameter");
+      return;
+    }
+
+    let trimmedValue = value.trim();
+    let url;
+    if (trimmedValue) {
+      url = searchEngine.getSubmission(
+        trimmedValue,
+        null,
+        "search-mode-switcher"
+      ).uri.spec;
+    } else {
+      url = searchEngine.wrappedJSObject.searchForm;
+    }
+
     this._lastSearchString = "";
-    let event = new UIEvent("input", {
-      bubbles: true,
-      cancelable: false,
-      view: this.window,
-      detail: 0,
-    });
-    this.inputField.dispatchEvent(event);
+    this._revertOnBlurValue = url;
+    this.inputField.value = url;
+    this.selectionStart = -1;
+
+    this.window.openTrustedLinkIn(url, "current");
   }
 
   /**
