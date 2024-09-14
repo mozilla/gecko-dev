@@ -97,7 +97,7 @@ bool nsXRemoteServer::HandleNewProperty(XID aWindowId, Display* aDisplay,
     int result;
     Atom actual_type;
     int actual_format;
-    unsigned long nitems, bytes_after;
+    unsigned long len, bytes_after;
     char* data = 0;
 
     result = XGetWindowProperty(aDisplay, aWindowId, aChangedAtom,
@@ -107,21 +107,25 @@ bool nsXRemoteServer::HandleNewProperty(XID aWindowId, Display* aDisplay,
                                 XA_STRING,      /* req_type */
                                 &actual_type,   /* actual_type return */
                                 &actual_format, /* actual_format_return */
-                                &nitems,        /* nitems_return */
+                                &len,           /* nitems_return */
                                 &bytes_after,   /* bytes_after_return */
                                 (unsigned char**)&data); /* prop_return
                                                             (we only care
                                                             about the first ) */
 
-    // Failed to get property off the window?
-    if (result != Success) return false;
+    // Failed to get property off the window or
+    // got a part only
+    if (result != Success || bytes_after != 0) {
+      return false;
+    }
 
     // Failed to get the data off the window or it was the wrong type?
-    if (!data || !TO_LITTLE_ENDIAN32(*reinterpret_cast<int32_t*>(data)))
+    if (!data || !TO_LITTLE_ENDIAN32(*reinterpret_cast<int32_t*>(data))) {
       return false;
+    }
 
     // cool, we got the property data.
-    const char* response = HandleCommandLine(data, aEventTime);
+    const char* response = HandleCommandLine(Span(data, len), aEventTime);
 
     // put the property onto the window as the response
     XChangeProperty(aDisplay, aWindowId, sMozResponseAtom, XA_STRING, 8,
