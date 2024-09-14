@@ -13,7 +13,14 @@ class LoginOriginField extends MozLitElement {
 
   get readonlyTemplate() {
     return html`
+      <label
+        for="origin"
+        class="field-label"
+        data-l10n-id="login-item-origin-label"
+      >
+      </label>
       <a
+        id="origin"
         class="origin-input"
         dir="auto"
         target="_blank"
@@ -29,12 +36,13 @@ class LoginOriginField extends MozLitElement {
   render() {
     return html`
       ${stylesTemplate()}
-      <label class="field-label" data-l10n-id="login-item-origin-label"></label>
       ${this.readonly
         ? this.readonlyTemplate
         : editableFieldTemplate({
             type: "url",
             value: this.value,
+            labelL10nId: "login-item-origin-label",
+            noteL10nId: "passwords-origin-tooltip",
           })}
     `;
   }

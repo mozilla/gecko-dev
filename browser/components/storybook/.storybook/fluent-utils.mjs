@@ -100,6 +100,13 @@ export async function insertFTLIfNeeded(fileName) {
       `browser/branding/nightly/locales/en-US/${rest}`
     );
     ftlContents = imported.default;
+  } else if (root == "preview") {
+    // eslint-disable-next-line no-unsanitized/method
+    let imported = await import(
+      /* webpackInclude: /\.ftl$/ */
+      `toolkit/components/satchel/megalist/content/${rest}`
+    );
+    ftlContents = imported.default;
   }
 
   if (loadedResources.has(fileName)) {

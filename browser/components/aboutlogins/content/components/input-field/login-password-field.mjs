@@ -34,13 +34,15 @@ class LoginPasswordField extends MozLitElement {
       : this._value;
   }
 
+  #revealIconSrc(concealed) {
+    return concealed
+      ? "chrome://browser/content/aboutlogins/icons/password-hide.svg"
+      : "chrome://browser/content/aboutlogins/icons/password.svg";
+  }
+
   render() {
     return html`
       ${stylesTemplate()}
-      <label
-        class="field-label"
-        data-l10n-id="login-item-password-label"
-      ></label>
       ${editableFieldTemplate({
         type: this.#type,
         value: this.#password,
@@ -48,7 +50,18 @@ class LoginPasswordField extends MozLitElement {
         disabled: this.readonly,
         onFocus: this.handleFocus,
         onBlur: this.handleBlur,
+        labelL10nId: "login-item-password-label",
+        noteL10nId: "passwords-password-tooltip",
       })}
+      <moz-button
+        data-l10n-id=${this.visible
+          ? "login-item-password-conceal-checkbox"
+          : "login-item-password-reveal-checkbox"}
+        class="reveal-password-button"
+        type="icon ghost"
+        iconSrc=${this.#revealIconSrc(this.visible)}
+        @click=${this.toggleVisibility}
+      ></moz-button>
     `;
   }
 
@@ -69,7 +82,6 @@ class LoginPasswordField extends MozLitElement {
     if (this.visible) {
       this.onPasswordVisible?.();
     }
-    this.input.focus();
   }
 }
 

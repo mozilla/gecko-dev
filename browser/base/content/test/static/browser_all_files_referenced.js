@@ -85,6 +85,9 @@ var gExceptionPaths = [
 
   // Strip on Share parameter lists
   "chrome://global/content/antitracking/",
+
+  // CSS file is referenced inside JS in login-form.mjs
+  "chrome://global/content/megalist/LoginFormComponent/",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running

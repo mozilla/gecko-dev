@@ -146,6 +146,16 @@ passwords-radiobutton-all = All ({ $total })
 #   $total (number) - Total number of alerts
 passwords-radiobutton-alerts = Alerts ({ $total })
 
+## Login Form
+
+passwords-create-label =
+  .label = Add password
+passwords-edit-label =
+  .label = Edit password
+passwords-origin-tooltip = Enter the exact address where you’ll sign in to this site.
+passwords-username-tooltip = Enter the username, email address, or account number you use to sign in.
+passwords-password-tooltip = Enter the password used to sign in to this account.
+
 ## Payments
 
 payments-command-create = Add Payment Method

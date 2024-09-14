@@ -1,0 +1,14 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+  * License, v. 2.0. If a copy of the MPL was not distributed with this
+  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+.delete-login-button-container {
+  display: flex;
+  justify-content: end;
+  height: 0;
+}
+
+/* Add spacing between fieldset legend text and fields */
+login-origin-field {
+  margin-block-start: var(--space-medium);
+}

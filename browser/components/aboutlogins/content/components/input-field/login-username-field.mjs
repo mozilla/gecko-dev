@@ -14,14 +14,12 @@ class LoginUsernameField extends MozLitElement {
   render() {
     return html`
       ${stylesTemplate()}
-      <label
-        class="field-label"
-        data-l10n-id="login-item-username-label"
-      ></label>
       ${editableFieldTemplate({
         type: "text",
         value: this.value,
         disabled: this.readonly,
+        labelL10nId: "login-item-username-label",
+        noteL10nId: "passwords-username-tooltip",
       })}
     `;
   }

@@ -27,6 +27,8 @@ module.exports = {
     `${projectRoot}/browser/components/backup/content/**/*.stories.mjs`,
     // Reader View components stories
     `${projectRoot}/toolkit/components/reader/**/*.stories.mjs`,
+    // megalist components stories
+    `${projectRoot}/toolkit/components/satchel/megalist/content/**/*.stories.mjs`,
     // Everything else
     "../stories/**/*.stories.@(js|jsx|mjs|ts|tsx|md)",
     // Design system files
