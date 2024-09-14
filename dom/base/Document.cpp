@@ -16808,59 +16808,65 @@ void Document::UpdateIntersections(TimeStamp aNowTime) {
   });
 }
 
+static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
+                                           const IntersectionInput& aInput,
+                                           bool aIsHidden) {
+  Element* el = aBc->GetEmbedderElement();
+  if (!el) {
+    return;
+  }
+  auto* rb = RemoteBrowser::GetFrom(el);
+  if (!rb) {
+    return;
+  }
+  rb->UpdateEffects([&] {
+    if (aIsHidden) {
+      // Fully hidden if in the background.
+      return EffectsInfo::FullyHidden();
+    }
+    const IntersectionOutput output = DOMIntersectionObserver::Intersect(
+        aInput, *el, DOMIntersectionObserver::BoxToUse::Content);
+    if (!output.Intersects()) {
+      // XXX do we want to pass the scale and such down even if out of the
+      // viewport?
+      return EffectsInfo::FullyHidden();
+    }
+    MOZ_ASSERT(el->GetPrimaryFrame(), "How do we intersect without a frame?");
+    nsSubDocumentFrame* subDocFrame = do_QueryFrame(el->GetPrimaryFrame());
+    if (MOZ_UNLIKELY(NS_WARN_IF(!subDocFrame))) {
+      // <frame> not inside a <frameset> might not create a subdoc frame,
+      // for example.
+      return EffectsInfo::FullyHidden();
+    }
+    Maybe<nsRect> visibleRect;
+    gfx::MatrixScales rasterScale;
+    visibleRect = subDocFrame->GetVisibleRect();
+    if (!visibleRect) {
+      // If we have no visible rect (e.g., because we are zero-sized) we
+      // still want to provide the intersection rect in order to get the
+      // right throttling behavior.
+      visibleRect.emplace(*output.mIntersectionRect -
+                          output.mTargetRect.TopLeft());
+    }
+    rasterScale = subDocFrame->GetRasterScale();
+    ParentLayerToScreenScale2D transformToAncestorScale =
+        ParentLayerToParentLayerScale(
+            subDocFrame->PresShell()->GetCumulativeResolution()) *
+        nsLayoutUtils::GetTransformToAncestorScaleCrossProcessForFrameMetrics(
+            subDocFrame);
+    return EffectsInfo::VisibleWithinRect(visibleRect, rasterScale,
+                                          transformToAncestorScale);
+  }());
+}
+
 void Document::UpdateRemoteFrameEffects() {
-  if (auto* wc = GetWindowContext(); wc && !wc->Children().IsEmpty()) {
-    auto margin = DOMIntersectionObserver::LazyLoadingRootMargin();
-    const IntersectionInput input = DOMIntersectionObserver::ComputeInput(
-        *this, /* aRoot = */ nullptr, &margin);
+  auto margin = DOMIntersectionObserver::LazyLoadingRootMargin();
+  const IntersectionInput input = DOMIntersectionObserver::ComputeInput(
+      *this, /* aRoot = */ nullptr, &margin);
+  const bool hidden = Hidden();
+  if (auto* wc = GetWindowContext()) {
     for (const RefPtr<BrowsingContext>& child : wc->Children()) {
-      Element* el = child->GetEmbedderElement();
-      if (!el) {
-        continue;
-      }
-      auto* rb = RemoteBrowser::GetFrom(el);
-      if (!rb) {
-        continue;
-      }
-      EffectsInfo info = [&] {
-        if (Hidden()) {
-          // If we're in the background, then the child frame should be hidden
-          // as well.
-          return EffectsInfo::FullyHidden();
-        }
-        const IntersectionOutput output = DOMIntersectionObserver::Intersect(
-            input, *el, DOMIntersectionObserver::BoxToUse::Content);
-        if (!output.Intersects()) {
-          // XXX do we want to pass the scale and such down even if out of the
-          // viewport?
-          return EffectsInfo::FullyHidden();
-        }
-        auto* frame = el->GetPrimaryFrame();
-        MOZ_ASSERT(frame, "How do we intersect with no frame?");
-        nsSubDocumentFrame* subDocFrame = do_QueryFrame(frame);
-        if (MOZ_UNLIKELY(NS_WARN_IF(!subDocFrame))) {
-          // <frame> not inside a <frameset> might not create a subdoc frame,
-          // for example.
-          return EffectsInfo::FullyHidden();
-        }
-        Maybe<nsRect> visibleRect = subDocFrame->GetVisibleRect();
-        if (!visibleRect) {
-          // If we have no visible rect (e.g., because we are zero-sized) we
-          // still want to provide the intersection rect in order to get the
-          // right throttling behavior.
-          visibleRect.emplace(*output.mIntersectionRect -
-                              output.mTargetRect.TopLeft());
-        }
-        const gfx::MatrixScales rasterScale = subDocFrame->GetRasterScale();
-        const ParentLayerToScreenScale2D transformToAncestorScale =
-            ParentLayerToParentLayerScale(
-                frame->PresShell()->GetCumulativeResolution()) *
-            nsLayoutUtils::
-                GetTransformToAncestorScaleCrossProcessForFrameMetrics(frame);
-        return EffectsInfo::VisibleWithinRect(visibleRect, rasterScale,
-                                              transformToAncestorScale);
-      }();
-      rb->UpdateEffects(std::move(info));
+      UpdateEffectsOnBrowsingContext(child, input, hidden);
     }
   }
   EnumerateSubDocuments([](Document& aDoc) {
