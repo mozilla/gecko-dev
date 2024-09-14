@@ -390,37 +390,6 @@ toolbarpaletteitem:has(> toolbarbutton.fxms-bmb-button),
   display: none;
 }
 
-/* Bookmarks toolbar only-on-new-tab mode */
-
-:root {
-  --bookmarks-toolbar-overlapping-browser-height: max(28px, 2em);
-}
-
-:root[BookmarksToolbarOverlapsBrowser] {
-  #PersonalToolbar {
-    height: var(--bookmarks-toolbar-overlapping-browser-height);
-  }
-
-  #navigator-toolbox {
-    /* Overlap the content area by the height of the bookmarks toolbar so that
-       temporarily showing the toolbar for new tabs doesn't resize the content
-       area for all tabs. */
-    margin-bottom: calc(-1 * var(--bookmarks-toolbar-overlapping-browser-height));
-    z-index: 1;
-  }
-
-  .newTabBrowserPanel,
-  #sidebar-main,
-  #sidebar-box,
-  .sidebar-animation-screenshot {
-    /* Make room for the bookmarks toolbar so that it won't visibly overlap the
-       new tab page and sidebar contents. We do not put this padding on #browser
-       as that would resize the content area for all tabs including background
-       tabs, which is what we explicitly want to avoid doing here. */
-    margin-top: var(--bookmarks-toolbar-overlapping-browser-height);
-  }
-}
-
 /* Bookmarks toolbar drop indicator */
 
 #PlacesToolbarDropIndicatorHolder {

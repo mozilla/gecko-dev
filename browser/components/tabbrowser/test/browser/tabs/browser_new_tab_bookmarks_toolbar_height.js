@@ -122,18 +122,22 @@ add_task(async function () {
     "content area height changes when hiding the toolbar without the animation"
   );
 
+  let blankTab = await BrowserTestUtils.openNewForegroundTab(
+    gBrowser,
+    "about:blank"
+  );
+  ok(
+    !tab.selected,
+    "height change watcher tab is in the background (not the selected tab)"
+  );
+
   info("Opening a new tab, making the previous tab non-selected");
   await expectBmToolbarVisibilityChange(
-    () => {
-      BrowserCommands.openTab();
-      ok(
-        !tab.selected,
-        "non-new tab is in the background (not the selected tab)"
-      );
-    },
+    () => BrowserCommands.openTab(),
     true,
     "bookmarks toolbar is visible for new tab after setting it to only show for new tabs"
   );
+
   await expectHeightChanges(
     tab,
     0,
@@ -142,4 +146,5 @@ add_task(async function () {
 
   gBrowser.removeCurrentTab();
   gBrowser.removeTab(tab);
+  gBrowser.removeTab(blankTab);
 });
