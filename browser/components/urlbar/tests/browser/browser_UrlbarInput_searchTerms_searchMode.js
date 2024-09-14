@@ -11,24 +11,10 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.showSearchTerms.featureGate", true]],
   });
-
-  await SearchTestUtils.installSearchExtension({
-    name: "MozSearch",
-    search_url: "https://www.example.com/",
-    search_url_get_params: "q={searchTerms}&pc=fake_code",
-  });
-
-  await SearchTestUtils.installSearchExtension(
-    {
-      name: "MochiSearch",
-      search_url: "https://mochi.test:8888/",
-      search_url_get_params: "q={searchTerms}&pc=fake_code",
-    },
-    { setAsDefault: true }
-  );
-
+  let cleanup = await installPersistTestEngines();
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
+    cleanup();
   });
 });
 
@@ -37,7 +23,7 @@ add_setup(async function () {
 add_task(async function non_default_search() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
-  let engine = Services.search.getEngineByName("MozSearch");
+  let engine = Services.search.getEngineByName("MochiSearch");
 
   let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(
     engine,
@@ -46,7 +32,8 @@ add_task(async function non_default_search() {
   let browserLoadedPromise = BrowserTestUtils.browserLoaded(
     tab.linkedBrowser,
     false,
-    expectedSearchUrl
+    expectedSearchUrl,
+    true
   );
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -55,6 +42,7 @@ add_task(async function non_default_search() {
   });
   await UrlbarTestUtils.enterSearchMode(window, {
     engineName: engine.name,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
   });
   gURLBar.focus();
   EventUtils.synthesizeKey("KEY_Enter");

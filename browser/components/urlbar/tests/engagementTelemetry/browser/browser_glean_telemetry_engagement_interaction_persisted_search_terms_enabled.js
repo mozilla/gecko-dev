@@ -19,6 +19,19 @@ add_setup(async function () {
       ["browser.urlbar.showSearchTerms.enabled", true],
     ],
   });
+
+  // Persisted Search requires app-provided engines.
+  let cleanup = await installPersistTestEngines("MochiSearch");
+  let engine = Services.search.getEngineByName("MochiSearch");
+  await Services.search.setDefault(
+    engine,
+    Ci.nsISearchService.CHANGE_REASON_UNKNOWN
+  );
+  await Services.search.moveEngine(engine, 0);
+  registerCleanupFunction(async function () {
+    await PlacesUtils.history.clear();
+    cleanup();
+  });
 });
 
 add_task(async function persisted_search_terms() {

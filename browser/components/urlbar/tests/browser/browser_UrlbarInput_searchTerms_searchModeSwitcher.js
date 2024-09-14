@@ -19,27 +19,11 @@ add_setup(async function () {
       ["browser.urlbar.showSearchTerms.featureGate", true],
     ],
   });
-  await SearchTestUtils.installSearchExtension(
-    {
-      name: "MozSearch",
-      search_url: "https://www.example.com/",
-      favicon_url: "https://www.example.com/favicon.ico",
-    },
-    { setAsDefault: true }
-  );
-  await Services.search.moveEngine(Services.search.defaultEngine, 0);
-
-  // A non default search engine is used to test selecting a search engine
-  // in the Unified Search Button.
-  await SearchTestUtils.installSearchExtension({
-    name: "NonDefault",
-    search_url: "https://www.mozilla.org/search",
-    favicon_url: "https://www.mozilla.org/favicon.ico",
-  });
-  nonDefaultEngine = Services.search.getEngineByName("NonDefault");
-
+  let cleanup = await installPersistTestEngines();
+  nonDefaultEngine = Services.search.getEngineByName("MochiSearch");
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
+    cleanup();
   });
 });
 
@@ -79,9 +63,9 @@ add_task(async function select_default_engine_and_search() {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   await UrlbarTestUtils.openSearchModeSwitcher(window);
 
-  info("Press on the MozSearch menu button and enter Search Mode.");
+  info("Press on the Example menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=MozSearch]").click();
+  popup.querySelector("toolbarbutton[label=Example]").click();
   await popupHidden;
 
   info("Search with the default engine.");
@@ -108,9 +92,9 @@ add_task(async function select_default_engine_and_modify_search_and_blur() {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   await UrlbarTestUtils.openSearchModeSwitcher(window);
 
-  info("Press on the MozSearch menu button and enter Search Mode.");
+  info("Press on the default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=MozSearch]").click();
+  popup.querySelector("toolbarbutton[label=Example]").click();
   await popupHidden;
 
   // Bug 1909301: When the search term doesn't change, blurring the address bar
@@ -138,9 +122,9 @@ add_task(async function select_non_default_engine_and_search() {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   await UrlbarTestUtils.openSearchModeSwitcher(window);
 
-  info("Press on the NonDefault menu button and enter Search Mode.");
+  info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=NonDefault]").click();
+  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
   await popupHidden;
 
   info("Search with the non default engine.");
@@ -148,7 +132,8 @@ add_task(async function select_non_default_engine_and_search() {
   let browserLoadedPromise = BrowserTestUtils.browserLoaded(
     tab.linkedBrowser,
     false,
-    url
+    url,
+    true
   );
   EventUtils.synthesizeKey("KEY_Enter");
   await browserLoadedPromise;
@@ -164,17 +149,18 @@ add_task(async function select_non_default_engine_and_modify_search_and_blur() {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   await UrlbarTestUtils.openSearchModeSwitcher(window);
 
-  info("Press on the NonDefault menu button and enter Search Mode.");
+  info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=NonDefault]").click();
+  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
   await popupHidden;
 
   EventUtils.synthesizeKey("s");
   gURLBar.blur();
 
   await UrlbarTestUtils.assertSearchMode(window, {
-    engineName: "NonDefault",
-    isGeneralPurposeEngine: false,
+    engineName: "MochiSearch",
+    isGeneralPurposeEngine: true,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     entry: "other",
   });
 
@@ -198,9 +184,9 @@ add_task(async function select_non_default_engine_and_blur() {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   await UrlbarTestUtils.openSearchModeSwitcher(window);
 
-  info("Press on the NonDefault menu button and enter Search Mode.");
+  info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=NonDefault]").click();
+  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
   await popupHidden;
 
   gURLBar.blur();
@@ -212,8 +198,9 @@ add_task(async function select_non_default_engine_and_blur() {
     "Urlbar value matches search string."
   );
   await UrlbarTestUtils.assertSearchMode(window, {
-    engineName: "NonDefault",
-    isGeneralPurposeEngine: false,
+    engineName: "MochiSearch",
+    isGeneralPurposeEngine: true,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     entry: "other",
   });
 
@@ -236,9 +223,9 @@ add_task(async function select_non_default_engine_and_blur_and_switch_tab() {
   let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
   await UrlbarTestUtils.openSearchModeSwitcher(window);
 
-  info("Press on the NonDefault menu button and enter Search Mode.");
+  info("Press on the non default menu button and enter Search Mode.");
   let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=NonDefault]").click();
+  popup.querySelector("toolbarbutton[label=MochiSearch]").click();
   await popupHidden;
 
   gURLBar.blur();
@@ -255,8 +242,9 @@ add_task(async function select_non_default_engine_and_blur_and_switch_tab() {
   );
   await BrowserTestUtils.switchTab(gBrowser, tab);
   await UrlbarTestUtils.assertSearchMode(window, {
-    engineName: "NonDefault",
-    isGeneralPurposeEngine: false,
+    engineName: "MochiSearch",
+    isGeneralPurposeEngine: true,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
     entry: "other",
   });
   Assert.ok(

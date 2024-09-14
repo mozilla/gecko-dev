@@ -49,9 +49,7 @@ const PROVIDERS = [
 const TESTS = [
   {
     title: "Tracked provider",
-    name: "example",
-    search_url: "https://example.com/",
-    search_url_get_params: "q={searchTerms}",
+    name: "Example",
     cases: [
       {
         title: "Non-existent URI",
@@ -149,9 +147,7 @@ const TESTS = [
   },
   {
     title: "Untracked provider",
-    name: "example1",
-    search_url: "https://example1.com/",
-    search_url_get_params: "q={searchTerms}&default=all",
+    name: "Example1",
     cases: [
       {
         title: "With search query param",
@@ -187,9 +183,7 @@ const TESTS = [
   },
   {
     title: "Tracked provider with mandatory key-value pair",
-    name: "example2",
-    search_url: "https://example2.com/",
-    search_url_get_params: "q={searchTerms}&page=web",
+    name: "Example2",
     cases: [
       {
         title: "With search query param value",
@@ -224,18 +218,68 @@ add_setup(async function () {
   await UrlbarSearchTermsPersistence.overrideSearchTermsPersistenceForTests(
     PROVIDERS
   );
+  const CONFIG_V2 = [
+    {
+      recordType: "engine",
+      identifier: "Example",
+      base: {
+        name: "Example",
+        urls: {
+          search: {
+            base: "https://example.com/",
+            searchTermParamName: "q",
+          },
+        },
+      },
+    },
+    {
+      recordType: "engine",
+      identifier: "Example1",
+      base: {
+        name: "Example1",
+        urls: {
+          search: {
+            base: "https://example1.com/",
+            searchTermParamName: "q",
+            params: [
+              {
+                name: "default",
+                value: "all",
+              },
+            ],
+          },
+        },
+      },
+    },
+    {
+      recordType: "engine",
+      identifier: "Example2",
+      base: {
+        name: "Example2",
+        urls: {
+          search: {
+            base: "https://example2.com/",
+            searchTermParamName: "q",
+          },
+        },
+      },
+    },
+    {
+      recordType: "defaultEngines",
+      globalDefault: "Example",
+      specificDefaults: [],
+    },
+  ];
+  SearchTestUtils.updateRemoteSettingsConfig(CONFIG_V2);
+  await Services.search.init();
 });
 
 add_task(async function test_parsing_extracted_urls() {
   for (let test of TESTS) {
-    let { name, search_url, search_url_get_params } = test;
-    await SearchTestUtils.installSearchExtension(
-      {
-        name,
-        search_url,
-        search_url_get_params,
-      },
-      { setAsDefault: true }
+    let engine = await Services.search.getEngineByName(test.name);
+    await Services.search.setDefault(
+      engine,
+      Ci.nsISearchService.CHANGE_REASON_UNKNOWN
     );
 
     for (let { title, currentURI, originalURI, expected } of test.cases) {

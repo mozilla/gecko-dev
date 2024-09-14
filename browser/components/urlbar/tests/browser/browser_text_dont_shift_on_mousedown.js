@@ -11,18 +11,11 @@
 var gDefaultEngine;
 
 add_setup(async function () {
-  await SearchTestUtils.installSearchExtension(
-    {
-      name: "MozSearch",
-      search_url: "https://www.example.com/",
-      search_url_get_params: "q={searchTerms}&pc=fake_code",
-    },
-    { setAsDefault: true }
-  );
-  gDefaultEngine = Services.search.getEngineByName("MozSearch");
-
+  let cleanup = await installPersistTestEngines();
+  gDefaultEngine = Services.search.getEngineByName("Example");
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
+    cleanup();
   });
 });
 

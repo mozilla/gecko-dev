@@ -25,19 +25,12 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.showSearchTerms.featureGate", true]],
   });
-  await SearchTestUtils.installSearchExtension(
-    {
-      name: "MozSearch",
-      search_url: "https://www.example.com/",
-      search_url_get_params: "q={searchTerms}&pc=fake_code",
-    },
-    { setAsDefault: true }
-  );
+  let cleanup = await installPersistTestEngines();
   Services.telemetry.clearScalars();
-
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
     Services.telemetry.clearScalars();
+    cleanup();
   });
 });
 

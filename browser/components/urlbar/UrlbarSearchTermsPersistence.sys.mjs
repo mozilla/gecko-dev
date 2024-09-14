@@ -150,6 +150,10 @@ class _UrlbarSearchTermsPersistence {
       return "";
     }
 
+    if (!Services.search.defaultEngine.isAppProvided) {
+      return "";
+    }
+
     let searchTerm = "";
 
     // If we have a provider, use the current URI because we have special
@@ -163,7 +167,6 @@ class _UrlbarSearchTermsPersistence {
         currentURI,
         true
       );
-
       // If we don't get a search term, it's because we're not on the default
       // search engine results page or no search term could be recovered.
       // If we do get a search term, we need to also inspect the parameters of

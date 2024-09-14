@@ -1,8 +1,11 @@
 ChromeUtils.defineESModuleGetters(this, {
+  AppProvidedSearchEngine:
+    "resource://gre/modules/AppProvidedSearchEngine.sys.mjs",
   HttpServer: "resource://testing-common/httpd.sys.mjs",
   PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   Preferences: "resource://gre/modules/Preferences.sys.mjs",
+  sinon: "resource://testing-common/Sinon.sys.mjs",
   TopSites: "resource:///modules/TopSites.sys.mjs",
   UrlbarProvider: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarProvidersManager: "resource:///modules/UrlbarProvidersManager.sys.mjs",
@@ -122,4 +125,55 @@ async function updateTopSites(condition, searchShortcuts = false) {
     }
     return condition(sites);
   }, "Waiting for top sites to be updated");
+}
+
+async function installPersistTestEngines(globalDefault = "Example") {
+  const CONFIG_V2 = [
+    {
+      recordType: "engine",
+      identifier: "Example",
+      base: {
+        name: "Example",
+        urls: {
+          search: {
+            base: "https://www.example.com/",
+            searchTermParamName: "q",
+          },
+        },
+      },
+    },
+    {
+      recordType: "engine",
+      identifier: "MochiSearch",
+      base: {
+        name: "MochiSearch",
+        urls: {
+          search: {
+            base: "http://mochi.test:8888/",
+            searchTermParamName: "q",
+          },
+        },
+      },
+    },
+    {
+      recordType: "defaultEngines",
+      globalDefault,
+      specificDefaults: [],
+    },
+  ];
+  let persistSandbox = sinon.createSandbox();
+  // Mostly to prevent warnings about missing icon urls for these engines.
+  persistSandbox
+    .stub(AppProvidedSearchEngine.prototype, "getIconURL")
+    .returns(
+      Promise.resolve(
+        "data:image/x-icon;base64,R0lGODlhAQABAAAAACwAAAAAAQABAAA="
+      )
+    );
+  info("Install Search Engines related to Persisted Search Tests");
+  info(globalDefault);
+  await SearchTestUtils.updateRemoteSettingsConfig(CONFIG_V2);
+  return () => {
+    persistSandbox.restore();
+  };
 }

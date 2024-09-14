@@ -26,16 +26,8 @@ add_setup(async () => {
     set: [["browser.urlbar.showSearchTerms.featureGate", true]],
   });
 
-  await SearchTestUtils.installSearchExtension(
-    {
-      name: "MozSearch",
-      search_url: "https://www.example.com/",
-      search_url_get_params: "q={searchTerms}&pc=fake_code",
-    },
-    { setAsDefault: true }
-  );
-
-  testEngine = Services.search.getEngineByName("MozSearch");
+  let cleanup = await installPersistTestEngines();
+  testEngine = Services.search.getEngineByName("Example");
 
   // Enable event recording for the events.
   Services.telemetry.setEventRecordingEnabled("navigation", true);
@@ -45,6 +37,7 @@ add_setup(async () => {
     Services.telemetry.clearScalars();
     Services.telemetry.clearEvents();
     Services.telemetry.setEventRecordingEnabled("navigation", false);
+    cleanup();
   });
 });
 
@@ -121,19 +114,13 @@ function assertScalarDoesNotExist(scalar) {
 function assertTelemetryEvents() {
   TelemetryTestUtils.assertEvents(
     [
-      [
-        "navigation",
-        "search",
-        "urlbar",
-        "enter",
-        { engine: "other-MozSearch" },
-      ],
+      ["navigation", "search", "urlbar", "enter", { engine: "Example" }],
       [
         "navigation",
         "search",
         "urlbar_persisted",
         "enter",
-        { engine: "other-MozSearch" },
+        { engine: "Example" },
       ],
     ],
     {
@@ -164,7 +151,7 @@ add_task(async function search_after_search() {
   // Check search counts.
   TelemetryTestUtils.assertKeyedHistogramSum(
     search_hist,
-    "other-MozSearch.urlbar-persisted",
+    "Example.urlbar-persisted",
     1
   );
 
@@ -193,7 +180,7 @@ add_task(async function switch_to_tab_and_search() {
   // Check search count.
   TelemetryTestUtils.assertKeyedHistogramSum(
     search_hist,
-    "other-MozSearch.urlbar-persisted",
+    "Example.urlbar-persisted",
     1
   );
 
@@ -222,7 +209,7 @@ add_task(async function handle_revert() {
   // Check search count.
   TelemetryTestUtils.assertKeyedHistogramSum(
     search_hist,
-    "other-MozSearch.urlbar-persisted",
+    "Example.urlbar-persisted",
     1
   );
 
@@ -259,7 +246,7 @@ add_task(async function back_and_forth() {
   // Check search count.
   TelemetryTestUtils.assertKeyedHistogramSum(
     search_hist,
-    "other-MozSearch.urlbar-persisted",
+    "Example.urlbar-persisted",
     1
   );
 
