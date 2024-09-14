@@ -13,6 +13,7 @@
 #  include <dlfcn.h>
 
 #  include "mozilla/gfx/Types.h"
+#  include "mozilla/Maybe.h"
 #  include "CFTypeRefPtr.h"
 
 namespace mozilla {
@@ -99,7 +100,7 @@ class MacIOSurface final
   size_t GetDevicePixelHeight(size_t plane = 0) const;
   size_t GetBytesPerRow(size_t plane = 0) const;
   size_t GetAllocSize() const;
-  void Lock(bool aReadOnly = true);
+  bool Lock(bool aReadOnly = true);
   void Unlock(bool aReadOnly = true);
   bool IsLocked() const { return mIsLocked; }
   void IncrementUseCount();
@@ -149,6 +150,11 @@ class MacIOSurface final
 
   static size_t GetMaxWidth();
   static size_t GetMaxHeight();
+  static mozilla::Maybe<OSType> ChoosePixelFormat(
+      mozilla::gfx::ChromaSubsampling aChromaSubsampling,
+      mozilla::gfx::ColorRange aColorRange,
+      mozilla::gfx::ColorDepth aColorDepth);
+
   CFTypeRefPtr<IOSurfaceRef> GetIOSurfaceRef() { return mIOSurfaceRef; }
 
   void SetColorSpace(mozilla::gfx::ColorSpace2) const;

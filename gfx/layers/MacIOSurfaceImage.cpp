@@ -91,7 +91,9 @@ bool MacIOSurfaceImage::SetData(ImageContainer* aContainer,
       ySize, cbcrSize, aData.mChromaSubsampling, aData.mYUVColorSpace,
       aData.mTransferFunction, aData.mColorRange, aData.mColorDepth);
 
-  surf->Lock(false);
+  if (NS_WARN_IF(!surf) || NS_WARN_IF(!surf->Lock(false))) {
+    return false;
+  }
 
   if (surf->GetFormat() == SurfaceFormat::YUY2) {
     // If the CbCrSize's height is half of the YSize's height, then we'll
@@ -264,49 +266,75 @@ already_AddRefed<MacIOSurface> MacIOSurfaceRecycleAllocator::Allocate(
     gfx::ChromaSubsampling aChromaSubsampling,
     gfx::YUVColorSpace aYUVColorSpace, gfx::TransferFunction aTransferFunction,
     gfx::ColorRange aColorRange, gfx::ColorDepth aColorDepth) {
-  nsTArray<CFTypeRefPtr<IOSurfaceRef>> surfaces = std::move(mSurfaces);
-  RefPtr<MacIOSurface> result;
-  for (auto& surf : surfaces) {
-    // If the surface size has changed, then discard any surfaces of the old
-    // size.
-    if (::IOSurfaceGetWidthOfPlane(surf.get(), 0) != (size_t)aYSize.width ||
-        ::IOSurfaceGetHeightOfPlane(surf.get(), 0) != (size_t)aYSize.height) {
+  // To avoid checking every property of every surface, we just cache the
+  // parameters used during the last allocation. If any of these have changed,
+  // dump the cached surfaces and update our cached parameters.
+  if (mYSize != aYSize || mCbCrSize != aCbCrSize ||
+      mChromaSubsampling != aChromaSubsampling ||
+      mYUVColorSpace != aYUVColorSpace ||
+      mTransferFunction != aTransferFunction || mColorRange != aColorRange ||
+      mColorDepth != aColorDepth) {
+    mSurfaces.Clear();
+    mYSize = aYSize;
+    mCbCrSize = aCbCrSize;
+    mChromaSubsampling = aChromaSubsampling;
+    mYUVColorSpace = aYUVColorSpace;
+    mTransferFunction = aTransferFunction;
+    mColorRange = aColorRange;
+    mColorDepth = aColorDepth;
+  }
+
+  // Scan for an unused surface, and reuse that if one is available.
+  for (auto& surf : mSurfaces) {
+    if (::IOSurfaceIsInUse(surf.get())) {
       continue;
     }
 
-    // Only construct a MacIOSurface object when we find one that isn't
-    // in-use, since the constructor adds a usage ref.
-    if (!result && !::IOSurfaceIsInUse(surf.get())) {
-      result = new MacIOSurface(surf, false, aYUVColorSpace);
+#ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    Maybe<OSType> pixelFormat = MacIOSurface::ChoosePixelFormat(
+        aChromaSubsampling, aColorRange, aColorDepth);
+    MOZ_DIAGNOSTIC_ASSERT(pixelFormat.isSome());
+    MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetPixelFormat(surf.get()) ==
+                          *pixelFormat);
+    MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetWidthOfPlane(surf.get(), 0) ==
+                          (size_t)aYSize.width);
+    MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetHeightOfPlane(surf.get(), 0) ==
+                          (size_t)aYSize.height);
+    if (*pixelFormat != kCVPixelFormatType_422YpCbCr8_yuvs &&
+        *pixelFormat != kCVPixelFormatType_422YpCbCr8FullRange) {
+      MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetWidthOfPlane(surf.get(), 1) ==
+                            (size_t)aCbCrSize.width);
+      MOZ_DIAGNOSTIC_ASSERT(::IOSurfaceGetHeightOfPlane(surf.get(), 1) ==
+                            (size_t)aCbCrSize.height);
     }
+#endif
 
-    mSurfaces.AppendElement(surf);
+    return MakeAndAddRef<MacIOSurface>(surf, false, aYUVColorSpace);
   }
 
-  if (!result) {
-    // Time to decide if we are creating a single planar or bi-planar surface.
-    // We limit ourselves to macOS's single planar and bi-planar formats for
-    // simplicity reasons, possibly gaining some small memory or performance
-    // benefit relative to the tri-planar formats. We try and use as few
-    // planes as possible.
-    // 4:2:0 formats are always bi-planar, because there is no 4:2:0 single
-    // planar format.
-    // 4:2:2 formats with 8 bit color are single planar, otherwise bi-planar.
+  // Time to decide if we are creating a single planar or bi-planar surface.
+  // We limit ourselves to macOS's single planar and bi-planar formats for
+  // simplicity reasons, possibly gaining some small memory or performance
+  // benefit relative to the tri-planar formats. We try and use as few
+  // planes as possible.
+  // 4:2:0 formats are always bi-planar, because there is no 4:2:0 single
+  // planar format.
+  // 4:2:2 formats with 8 bit color are single planar, otherwise bi-planar.
 
-    if (aChromaSubsampling == gfx::ChromaSubsampling::HALF_WIDTH &&
-        aColorDepth == gfx::ColorDepth::COLOR_8) {
-      result = MacIOSurface::CreateSinglePlanarSurface(
-          aYSize, aYUVColorSpace, aTransferFunction, aColorRange);
-    } else {
-      result = MacIOSurface::CreateBiPlanarSurface(
-          aYSize, aCbCrSize, aChromaSubsampling, aYUVColorSpace,
-          aTransferFunction, aColorRange, aColorDepth);
-    }
+  RefPtr<MacIOSurface> result;
+  if (aChromaSubsampling == gfx::ChromaSubsampling::HALF_WIDTH &&
+      aColorDepth == gfx::ColorDepth::COLOR_8) {
+    result = MacIOSurface::CreateSinglePlanarSurface(
+        aYSize, aYUVColorSpace, aTransferFunction, aColorRange);
+  } else {
+    result = MacIOSurface::CreateBiPlanarSurface(
+        aYSize, aCbCrSize, aChromaSubsampling, aYUVColorSpace,
+        aTransferFunction, aColorRange, aColorDepth);
+  }
 
-    if (mSurfaces.Length() <
-        StaticPrefs::layers_iosurfaceimage_recycle_limit()) {
-      mSurfaces.AppendElement(result->GetIOSurfaceRef());
-    }
+  if (result &&
+      mSurfaces.Length() < StaticPrefs::layers_iosurfaceimage_recycle_limit()) {
+    mSurfaces.AppendElement(result->GetIOSurfaceRef());
   }
 
   return result.forget();
