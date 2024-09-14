@@ -22,6 +22,8 @@
      then we will show another collapsed entry saying "Access your data on 2 other domains". This entry it's for the plural case, when the add-on is accessing more than one extra domain.
      %1$d will be replaced by an integer indicating the number of additional domains for which this web extension is requesting permission. -->
     <string name="mozac_feature_addons_permissions_extra_domains_description_plural" tools:ignore="PluralsCandidate">الوصول إلى بياناتك في نطاقات أخرى (%1$d)</string>
+    <!-- Content description for a permission item, for an installed add-on details page. %1$s will be replaced with the permission text name, %2$d will be replaced with the permission position in the list and %3$d will be replaced with the total number of permissions in the list.Taking as an example "Read and modify privacy settings" the whole text will read Read and modify privacy settings, 2 of 6. -->
+    <string name="mozac_feature_addons_permissions_content_description_item">%1$s، %2$d، من %3$d</string>
     <!-- Description for tabs add-on permission. -->
     <string name="mozac_feature_addons_permissions_tabs_description">الوصول إلى ألسنة المتصفح</string>
     <!-- Description for unlimited_storage permission. -->
@@ -72,6 +74,8 @@
     <string name="mozac_feature_addons_permissions_devtools_description">توسيع أدوات المطورين للوصول إلى بياناتك في الألسنة المفتوحة</string>
     <!-- The version on of add-on. -->
     <string name="mozac_feature_addons_version">النسخة</string>
+    <!-- The author of an add-on. -->
+    <string name="mozac_feature_addons_author">المؤلف</string>
     <!-- The last date that the add-on was updated. -->
     <string name="mozac_feature_addons_last_updated">آخر تحديث</string>
     <!-- The developer website (Homepage) of the add-on. -->
@@ -80,6 +84,8 @@
     <string name="mozac_feature_addons_learn_more">اطّلع على المزيد عن التصاريح</string>
     <!-- The rating of the add-on. -->
     <string name="mozac_feature_addons_rating">التقييم</string>
+    <!-- A link that points to the detail page of the extension. -->
+    <string name="mozac_feature_addons_more_info_link_2"> المزيد عن هذا الامتداد</string>
     <!-- The settings of the add-on. -->
     <string name="mozac_feature_addons_settings">الإعدادات</string>
     <!-- Indicates the add-on is enabled. -->
@@ -88,6 +94,8 @@
     <string name="mozac_feature_addons_settings_allow_in_private_browsing">اسمح بها في التصفّح الخاص</string>
     <!-- Indicates the add-on is allowed in private browsing mode. -->
     <string name="mozac_feature_addons_settings_run_in_private_browsing">تعمل في التصفّح الخاص</string>
+    <!-- This is displayed when the add-on is not allowed to run in private browsing. -->
+    <string name="mozac_feature_addons_not_allowed_in_private_browsing">ليس مسموحًا بأن تعمل في النوافذ الخاصة</string>
     <!-- Indicates the add-on is enabled. -->
     <string name="mozac_feature_addons_enabled">مفعّلة</string>
     <!-- This is displayed in a page where the user can see the installed and recommended(not installed yet) add-ons, this string indicates the installed section. -->
@@ -106,22 +114,40 @@
     <string name="mozac_feature_addons_permissions">التصاريح</string>
     <!-- This is a button to remove (i.e. uninstall) an add-on. -->
     <string name="mozac_feature_addons_remove">أزِل</string>
+    <!-- This is a button to report an add-on. -->
+    <string name="mozac_feature_addons_report">أبلِغ</string>
     <!-- This is the title of a dialog that asks the users if they to install or not an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_permissions_dialog_title">أتريد إضافة %1$s؟</string>
+    <!-- This is the title of a dialog that asks the users to grant optional permissions. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_optional_permissions_dialog_title">يطلب %1$s صلاحيات إضافية.</string>
     <!-- This is the subtitle of a dialog that asks the users if they want to install or not an add-on, the subtitle lists the permissions that this add-on requires, the permissions will dynamically be listed after the ":". -->
     <string name="mozac_feature_addons_permissions_dialog_subtitle">يحتاج الصلاحيات التالية:</string>
+    <!-- This is the subtitle of a dialog that asks the users to grant optional permissions, the subtitle lists the permissions that this add-on requests, the permissions will dynamically be listed after the ":". -->
+    <string name="mozac_feature_addons_optional_permissions_dialog_subtitle">تُريدُ:</string>
     <!-- This is a button to add (install) an add-on . -->
     <string name="mozac_feature_addons_permissions_dialog_add">أضِف</string>
+    <!-- This is a button to allow the optional permissions requested by an add-on . -->
+    <string name="mozac_feature_addons_permissions_dialog_allow">اسمح</string>
+    <!-- This is a button to deny the optional permissions requested by an add-on . -->
+    <string name="mozac_feature_addons_permissions_dialog_deny">ارفض</string>
     <!-- This is a button to cancel the add-on installation . -->
     <string name="mozac_feature_addons_permissions_dialog_cancel">ألغِ</string>
+    <!-- Accessibility content description to install add-on button. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_install_addon_content_description_2">قم بتثبيت %1$s</string>
     <!-- This is the label of a button to cancel an ongoing add-on installation. -->
     <string name="mozac_feature_addons_install_addon_dialog_cancel">ألغِ</string>
     <!-- Indicates how many users have rated an add-on. %1$s will be replaced with number of reviews -->
     <string name="mozac_feature_addons_user_rating_count_2">المراجعات: %1$s</string>
+    <!-- Accessibility content description for the amount of stars that add-on has, where %1$.02f will be the amount of stars. -->
+    <string name="mozac_feature_addons_rating_content_description_2">التقييم: %1$.02f من أصل 5</string>
     <!-- This is the title of page where all the add-ons are listed-->
     <string name="mozac_feature_addons_addons">الإضافات</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
     <string name="mozac_feature_addons_addons_manager">مدير الإضافات</string>
+    <!-- The title of the "crash" notification in the extensions manager -->
+    <string name="mozac_feature_extensions_manager_notification_title_text">تم ايقاف الإمتدادات مؤقتًا</string>
+    <!-- Button to re-enable the extensions in the "crash" notification -->
+    <string name="mozac_feature_extensions_manager_notification_restart_button"> إعادة تشغيل الإمتدادات</string>
     <!-- Button in the extensions manager that opens AMO in a tab -->
     <string name="mozac_feature_addons_find_more_extensions_button_text">ابحث عن امتدادات أكثر</string>
     <!-- The label of the allow button, this will be shown to the user when an add-on needs new permissions, with the button the user will indicate that they want to accept the new permissions and update the add-on-->
@@ -148,12 +174,18 @@
     <string name="mozac_feature_addons_supported_checker_notification_content_more_than_two">أضِفها إلى %1$s</string>
     <!-- This is the caption for not yet supported screen caption -->
     <string name="mozac_feature_addons_not_yet_supported_caption2">نعمل الآن على تقديم الدعم لمجموعة أولية منتقاة من الامتدادات المختارة.</string>
+    <!-- This is the caption for the extension installation progress overlay -->
+    <string name="mozac_extension_install_progress_caption">يجرى تنزيل الامتداد والتحقق منه…</string>
     <!-- Error shown when unable to find a translation for an add-on field. %1$s is the locale of the user and %2$s is the default language of the add-on -->
     <string name="mozac_feature_addons_failed_to_translate">لم تُوجد الترجمة لا للمحلية %1$s ولا للغة المبدئية %2$s</string>
     <!-- Text shown after successfully installed an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_installed">نجح تثبيت %1$s</string>
     <!-- Text shown after failed to install an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_failed_to_install">فشل تثبيت %1$s</string>
+    <!-- Text shown when attempting to install an add-on and an error occurred because the extension was incompatible. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_failed_to_install_incompatible_error">تعذر تنصيب الإضافة %1$s لأنها غير متوافقة مع %2$s‏ %3$s.</string>
+    <!-- Text shown when attempting to install a blocklisted add-on. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_blocklisted_1">تعذر تنصيب %1$s بسبب وجود احتمال كبير بأن تسبب مشاكل في الأمن أو الثبات.</string>
     <!-- Text shown after successfully enabled an add-on. %1$s is the add-on name. -->
     <string name="mozac_feature_addons_successfully_enabled">نجح تفعيل %1$s</string>
     <!-- Text shown after failed to enable an add-on. %1$s is the add-on name. -->
@@ -188,4 +220,16 @@
     <string name="mozac_feature_addons_updater_dialog_status">الحالة:</string>
     <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
     <string name="mozac_feature_addons_installed_dialog_title">أُضيفت %1$s إلى %2$s</string>
-    </resources>
+    <!-- Text shown in the dialog when add-on installation is completed. %1$s is the add-on name. %2$s is the app name. -->
+    <string name="mozac_feature_addons_installed_dialog_description_2">دخول %1$s من قائمة %2$s.</string>
+    <!-- Confirmation button text for the dialog when add-on installation is completed. -->
+    <string name="mozac_feature_addons_installed_dialog_okay_button_2">حسنا</string>
+    <!-- "Learn more" link displayed below an add-on status message. -->
+    <string name="mozac_feature_addons_status_learn_more">اطّلع على المزيد</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on has been blocklisted. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_blocklisted">عُطّل %1$s لمشاكل تتعلق بالأمن أو الثبات.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on hasn't been signed correctly. %1$s is the add-on name. -->
+    <string name="mozac_feature_addons_status_unsigned">تعذّر التحقق من أمان %1$s  ولذا عُطّل.</string>
+    <!-- Status message below an add-on in the add-ons manager when this add-on isn't compatible with the application version. %1$s is the add-on name, %2$s is the app name and %3$s is the app version. -->
+    <string name="mozac_feature_addons_status_incompatible">%1$s غير متوافق مع إصدارك من %2$s (النسخة %3$s).</string>
+</resources>

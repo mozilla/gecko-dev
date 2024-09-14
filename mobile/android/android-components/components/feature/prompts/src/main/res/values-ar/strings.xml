@@ -18,6 +18,8 @@
     <string name="mozac_feature_prompt_password_hint">كلمة السر</string>
     <!-- Negative confirmation that we should not save the new or updated login -->
     <string name="mozac_feature_prompt_dont_save" moz:removedIn="125" tools:ignore="UnusedResources">لا تحفظ</string>
+    <!-- Negative confirmation that we should not save the new or updated login -->
+    <string name="mozac_feature_prompt_dont_save_2">ليس الآن</string>
     <!-- Negative confirmation that we should never save a login for this site -->
     <string name="mozac_feature_prompt_never_save">لا تحفظ أبدًا</string>
     <!-- Negative confirmation that we should not save a credit card for this site -->
@@ -26,16 +28,26 @@
     <string name="mozac_feature_prompt_save_confirmation">احفظ</string>
     <!-- Negative confirmation that we should not save the updated login -->
     <string name="mozac_feature_prompt_dont_update" moz:removedIn="125" tools:ignore="UnusedResources">لا تُحدّث</string>
+    <!-- Negative confirmation that we should not save the updated login -->
+    <string name="mozac_feature_prompt_dont_update_2">ليس الآن</string>
     <!-- Positive confirmation that we should save the updated login -->
     <string name="mozac_feature_prompt_update_confirmation">حدّث</string>
     <!-- Error text displayed underneath the password field when it is in an error case -->
     <string name="mozac_feature_prompt_error_empty_password" moz:removedIn="125" tools:ignore="UnusedResources">لا يمكن أن يكون حقل كلمة السر فارغًا</string>
+    <!-- Error text displayed underneath the password field when it is in an error case -->
+    <string name="mozac_feature_prompt_error_empty_password_2">أدخل كلمة سرّ</string>
     <!-- Error text displayed underneath the login field when it is in an error case -->
     <string name="mozac_feature_prompt_error_unknown_cause" moz:removedIn="125" tools:ignore="UnusedResources">تعذّر حفظ جلسة الولوج</string>
+    <!-- Error text displayed underneath the password field when it is in an error case -->
+    <string name="mozac_feature_prompt_error_unknown_cause_2">لا يمكن حفظ كلمة السر</string>
     <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new login. -->
     <string name="mozac_feature_prompt_login_save_headline" moz:removedIn="125" tools:ignore="UnusedResources">أنحفظ هذا الولوج؟</string>
+    <!-- Prompt message displayed when app detects a user has entered a new username and password and user decides if app should save the new password. -->
+    <string name="mozac_feature_prompt_login_save_headline_2">حفظ كلمة السرّ؟</string>
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_update_headline" moz:removedIn="125" tools:ignore="UnusedResources">أنحدّث هذا الولوج؟</string>
+    <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
+    <string name="mozac_feature_prompt_login_update_headline_2">تحديث كلمة السرّ؟</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
     <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">أنُضيف اسم المستخدم إلى كلمة المرور المحفوظة؟</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
@@ -87,12 +99,42 @@
     <string name="mozac_feature_prompts_set_time">اضبط الوقت</string>
     <!-- Option in expanded select login prompt that links to login settings -->
     <string name="mozac_feature_prompts_manage_logins" moz:removedIn="125" tools:ignore="UnusedResources">أدِر جلسات الولوج</string>
+    <!-- Option in expanded select password prompt that links to password settings -->
+    <string name="mozac_feature_prompts_manage_logins_2">أدِر كلمات السر</string>
     <!-- Content description for expanding the saved logins options in the select login prompt -->
     <string name="mozac_feature_prompts_expand_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">وسّع جلسات الولوج المقترحة</string>
+    <!-- Content description for expanding the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_expand_logins_content_description_2">وسّع كلمات المرور المحفوظة</string>
     <!-- Content description for collapsing the saved logins options in the select login prompt -->
     <string name="mozac_feature_prompts_collapse_logins_content_description" moz:removedIn="125" tools:ignore="UnusedResources">اطوِ جلسات الولوج المقترحة</string>
+    <!-- Content description for collapsing the saved passwords options in the select password prompt -->
+    <string name="mozac_feature_prompts_collapse_logins_content_description_2">اطو كلمات المرور المحفوظة</string>
     <!-- Header for the select login prompt to allow users to fill a form with a saved login -->
     <string name="mozac_feature_prompts_saved_logins" moz:removedIn="125" tools:ignore="UnusedResources">جلسات الولوج المقترحة</string>
+
+    <!-- Header for the select password prompt to allow users to fill a form with a saved password -->
+    <string name="mozac_feature_prompts_saved_logins_2">كلمات السرّ المحفوظة</string>
+
+    <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_content_description">اقترِح كلمة سر قوية</string>
+    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_2">استخدم كلمة سر قوية</string>
+    <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_message">استخدم كلمة سر قوية: %1$s</string>
+
+    <!-- Title for using the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_title">استخدام كلمة سر قوية؟</string>
+
+    <!-- Pressing this will use the suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_use_password">استخدام كلمة السر</string>
+    <!-- Pressing this will dismiss the suggested strong password dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">ليس الآن</string>
+    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">حُفظت كلمة السر</string>
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">تم تحديت كلمة السر</string>
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">تم تحديث اسم المستخدم</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">أنُعيد إرسال البيانات إلى هذا الموقع؟</string>
@@ -105,10 +147,16 @@
     <!-- Credit Card Autofill -->
     <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
     <string name="mozac_feature_prompts_select_credit_card" moz:removedIn="125" tools:ignore="UnusedResources">اختر بطاقة ائتمان</string>
+    <!-- Header for the select card prompt to allow users to fill a form with a saved card. -->
+    <string name="mozac_feature_prompts_select_credit_card_2">استخدم بطاقة محفوظة</string>
     <!-- Content description for expanding the select credit card options in the select credit card prompt. -->
     <string name="mozac_feature_prompts_expand_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">وسّع بطاقات الائتمان المقترحة</string>
+    <!-- Content description for expanding the saved card options in the select card prompt. -->
+    <string name="mozac_feature_prompts_expand_credit_cards_content_description_2">وسّع البطاقات المحفوظة</string>
     <!-- Content description for collapsing the select credit card options in the select credit prompt. -->
     <string name="mozac_feature_prompts_collapse_credit_cards_content_description" moz:removedIn="125" tools:ignore="UnusedResources">اطوِ بطاقات الائتمان المقترحة</string>
+    <!-- Content description for collapsing the saved card options in the select prompt. -->
+    <string name="mozac_feature_prompts_collapse_credit_cards_content_description_2">اطو البطاقات المحفوظة</string>
     <!-- Option in the expanded select credit card prompt that links to credit cards settings. -->
     <string name="mozac_feature_prompts_manage_credit_cards" moz:removedIn="125" tools:ignore="UnusedResources">أدِر بطاقات الائتمان</string>
     <!-- Text for the title of a save credit card dialog. -->
