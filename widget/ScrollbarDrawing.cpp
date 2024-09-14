@@ -201,17 +201,6 @@ bool ScrollbarDrawing::DoPaintDefaultScrollbar(
     ScrollbarKind aScrollbarKind, nsIFrame* aFrame, const ComputedStyle& aStyle,
     const ElementState& aElementState, const DocumentState& aDocumentState,
     const Colors& aColors, const DPIRatio& aDpiRatio) {
-  // GTK and Windows draw the track here, cocoa and Android draw it in
-  // PaintScrollbarTrack... TODO: unify this somehow.
-  switch (mKind) {
-    case Kind::Cocoa:
-    case Kind::Android:
-      return true;
-    case Kind::Gtk:
-    case Kind::Win11:
-    case Kind::Win10:
-      break;
-  }
   const bool overlay = aFrame->PresContext()->UseOverlayScrollbars();
   if (overlay && !aElementState.HasAtLeastOneOfStates(ElementState::HOVER |
                                                       ElementState::ACTIVE)) {
