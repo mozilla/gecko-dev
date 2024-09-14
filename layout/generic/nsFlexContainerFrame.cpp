@@ -2078,11 +2078,6 @@ nscoord nsFlexContainerFrame::MeasureFlexItemContentBSize(
   StyleSizeOverrides sizeOverrides;
   if (aFlexItem.IsStretched()) {
     sizeOverrides.mStyleISize.emplace(aFlexItem.StyleCrossSize());
-    // Suppress any AspectRatio that we might have to prevent ComputeSize() from
-    // transferring our inline-size override through the aspect-ratio to set the
-    // block-size, because that would prevent us from measuring the content
-    // block-size.
-    sizeOverrides.mAspectRatio.emplace(AspectRatio());
     FLEX_LOGV("Cross size override: %d", aFlexItem.CrossSize());
   }
   sizeOverrides.mStyleBSize.emplace(StyleSize::Auto());
