@@ -59,9 +59,17 @@ WebGPUChild::~WebGPUChild() = default;
 
 RefPtr<AdapterPromise> WebGPUChild::InstanceRequestAdapter(
     const dom::GPURequestAdapterOptions& aOptions) {
-  RawId id = ffi::wgpu_client_make_adapter_id(mClient.get());
+  const int max_ids = 10;
+  RawId ids[max_ids] = {0};
+  unsigned long count =
+      ffi::wgpu_client_make_adapter_ids(mClient.get(), ids, max_ids);
 
-  return SendInstanceRequestAdapter(aOptions, id)
+  nsTArray<RawId> sharedIds(count);
+  for (unsigned long i = 0; i != count; ++i) {
+    sharedIds.AppendElement(ids[i]);
+  }
+
+  return SendInstanceRequestAdapter(aOptions, sharedIds)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
           [](ipc::ByteBuf&& aInfoBuf) {
@@ -82,7 +90,7 @@ RefPtr<AdapterPromise> WebGPUChild::InstanceRequestAdapter(
 Maybe<DeviceRequest> WebGPUChild::AdapterRequestDevice(
     RawId aSelfId, const ffi::WGPUFfiDeviceDescriptor& aDesc) {
   ffi::WGPUDeviceQueueId ids =
-      ffi::wgpu_client_make_device_queue_id(mClient.get());
+      ffi::wgpu_client_make_device_queue_id(mClient.get(), aSelfId);
 
   ByteBuf bb;
   ffi::wgpu_client_serialize_device_descriptor(&aDesc, ToFFI(&bb));
@@ -105,8 +113,8 @@ RawId WebGPUChild::RenderBundleEncoderFinish(
   desc.label = label.Get();
 
   ipc::ByteBuf bb;
-  RawId id = ffi::wgpu_client_create_render_bundle(mClient.get(), &aEncoder,
-                                                   &desc, ToFFI(&bb));
+  RawId id = ffi::wgpu_client_create_render_bundle(
+      mClient.get(), &aEncoder, aDeviceId, &desc, ToFFI(&bb));
 
   SendDeviceAction(aDeviceId, std::move(bb));
 
@@ -119,7 +127,7 @@ RawId WebGPUChild::RenderBundleEncoderFinishError(RawId aDeviceId,
 
   ipc::ByteBuf bb;
   RawId id = ffi::wgpu_client_create_render_bundle_error(
-      mClient.get(), label.Get(), ToFFI(&bb));
+      mClient.get(), aDeviceId, label.Get(), ToFFI(&bb));
 
   SendDeviceAction(aDeviceId, std::move(bb));
 
@@ -190,7 +198,8 @@ void WebGPUChild::DeviceCreateSwapChain(
   RawId queueId = aSelfId;  // TODO: multiple queues
   nsTArray<RawId> bufferIds(maxBufferCount);
   for (size_t i = 0; i < maxBufferCount; ++i) {
-    bufferIds.AppendElement(ffi::wgpu_client_make_buffer_id(mClient.get()));
+    bufferIds.AppendElement(
+        ffi::wgpu_client_make_buffer_id(mClient.get(), aSelfId));
   }
   SendDeviceCreateSwapChain(aSelfId, queueId, aRgbDesc, bufferIds, aOwnerId,
                             aUseExternalTextureInSwapChain);
@@ -211,7 +220,7 @@ void WebGPUChild::SwapChainPresent(RawId aTextureId,
                                    const RemoteTextureOwnerId& aOwnerId) {
   // Hack: the function expects `DeviceId`, but it only uses it for `backend()`
   // selection.
-  RawId encoderId = ffi::wgpu_client_make_encoder_id(mClient.get());
+  RawId encoderId = ffi::wgpu_client_make_encoder_id(mClient.get(), aTextureId);
   SendSwapChainPresent(aTextureId, encoderId, aRemoteTextureId, aOwnerId);
 }
 

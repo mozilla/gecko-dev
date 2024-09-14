@@ -101,8 +101,8 @@ already_AddRefed<TextureView> Texture::CreateView(
       aDesc.mArrayLayerCount.WasPassed() ? &layerCount : nullptr;
 
   ipc::ByteBuf bb;
-  RawId id = ffi::wgpu_client_create_texture_view(bridge->GetClient(), &desc,
-                                                  ToFFI(&bb));
+  RawId id = ffi::wgpu_client_create_texture_view(bridge->GetClient(), mId,
+                                                  &desc, ToFFI(&bb));
   if (bridge->CanSend()) {
     bridge->SendTextureAction(mId, mParent->mId, std::move(bb));
   }

@@ -59,7 +59,8 @@ already_AddRefed<Buffer> Buffer::Create(Device* aDevice, RawId aDeviceId,
                                         const dom::GPUBufferDescriptor& aDesc,
                                         ErrorResult& aRv) {
   RefPtr<WebGPUChild> actor = aDevice->GetBridge();
-  RawId bufferId = ffi::wgpu_client_make_buffer_id(actor->GetClient());
+  RawId bufferId =
+      ffi::wgpu_client_make_buffer_id(actor->GetClient(), aDeviceId);
 
   if (!aDevice->IsBridgeAlive()) {
     // Create and return an invalid Buffer.

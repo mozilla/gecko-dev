@@ -293,7 +293,8 @@ void WebGPUParent::ReportError(const Maybe<RawId> aDeviceId,
 }
 
 ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
-    const dom::GPURequestAdapterOptions& aOptions, RawId aAdapterId,
+    const dom::GPURequestAdapterOptions& aOptions,
+    const nsTArray<RawId>& aTargetIds,
     InstanceRequestAdapterResolver&& resolver) {
   ffi::WGPURequestAdapterOptions options = {};
   if (aOptions.mPowerPreference.WasPassed()) {
@@ -307,14 +308,15 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
   auto luid = GetCompositorDeviceLuid();
 
   ErrorBuffer error;
-  bool success = ffi::wgpu_server_instance_request_adapter(
-      mContext.get(), &options, aAdapterId, luid.ptrOr(nullptr), error.ToFFI());
+  int8_t index = ffi::wgpu_server_instance_request_adapter(
+      mContext.get(), &options, aTargetIds.Elements(), aTargetIds.Length(),
+      luid.ptrOr(nullptr), error.ToFFI());
 
   ByteBuf infoByteBuf;
   // Rust side expects an `Option`, so 0 maps to `None`.
   uint64_t adapterId = 0;
-  if (success) {
-    adapterId = aAdapterId;
+  if (index >= 0) {
+    adapterId = aTargetIds[index];
   }
   ffi::wgpu_server_adapter_pack_info(mContext.get(), adapterId,
                                      ToFFI(&infoByteBuf));
@@ -323,8 +325,10 @@ ipc::IPCResult WebGPUParent::RecvInstanceRequestAdapter(
 
   // free the unused IDs
   ipc::ByteBuf dropByteBuf;
-  if (!success) {
-    wgpu_server_adapter_free(aAdapterId, ToFFI(&dropByteBuf));
+  for (size_t i = 0; i < aTargetIds.Length(); ++i) {
+    if (static_cast<int8_t>(i) != index) {
+      wgpu_server_adapter_free(aTargetIds[i], ToFFI(&dropByteBuf));
+    }
   }
   if (dropByteBuf.mData && !SendDropAction(std::move(dropByteBuf))) {
     NS_ERROR("Unable to free free unused adapter IDs");

@@ -190,7 +190,7 @@ impl D3D12Lib {
         blob.ok_or(crate::DeviceError::Unexpected)
     }
 
-    fn debug_interface(&self) -> Result<Option<Direct3D12::ID3D12Debug>, crate::DeviceError> {
+    fn debug_interface(&self) -> Result<Direct3D12::ID3D12Debug, crate::DeviceError> {
         // Calls windows::Win32::Graphics::Direct3D12::D3D12GetDebugInterface on d3d12.dll
         type Fun = extern "system" fn(
             riid: *const windows_core::GUID,
@@ -200,18 +200,11 @@ impl D3D12Lib {
 
         let mut result__ = None;
 
-        let res = (func)(&Direct3D12::ID3D12Debug::IID, <*mut _>::cast(&mut result__)).ok();
+        (func)(&Direct3D12::ID3D12Debug::IID, <*mut _>::cast(&mut result__))
+            .ok()
+            .into_device_result("GetDebugInterface")?;
 
-        if let Err(ref err) = res {
-            match err.code() {
-                Dxgi::DXGI_ERROR_SDK_COMPONENT_MISSING => return Ok(None),
-                _ => {}
-            }
-        }
-
-        res.into_device_result("GetDebugInterface")?;
-
-        result__.ok_or(crate::DeviceError::Unexpected).map(Some)
+        result__.ok_or(crate::DeviceError::Unexpected)
     }
 }
 
@@ -226,7 +219,7 @@ impl DxgiLib {
     }
 
     /// Will error with crate::DeviceError::Unexpected if DXGI 1.3 is not available.
-    pub fn debug_interface1(&self) -> Result<Option<Dxgi::IDXGIInfoQueue>, crate::DeviceError> {
+    pub fn debug_interface1(&self) -> Result<Dxgi::IDXGIInfoQueue, crate::DeviceError> {
         // Calls windows::Win32::Graphics::Dxgi::DXGIGetDebugInterface1 on dxgi.dll
         type Fun = extern "system" fn(
             flags: u32,
@@ -237,18 +230,11 @@ impl DxgiLib {
 
         let mut result__ = None;
 
-        let res = (func)(0, &Dxgi::IDXGIInfoQueue::IID, <*mut _>::cast(&mut result__)).ok();
+        (func)(0, &Dxgi::IDXGIInfoQueue::IID, <*mut _>::cast(&mut result__))
+            .ok()
+            .into_device_result("debug_interface1")?;
 
-        if let Err(ref err) = res {
-            match err.code() {
-                Dxgi::DXGI_ERROR_SDK_COMPONENT_MISSING => return Ok(None),
-                _ => {}
-            }
-        }
-
-        res.into_device_result("debug_interface1")?;
-
-        result__.ok_or(crate::DeviceError::Unexpected).map(Some)
+        result__.ok_or(crate::DeviceError::Unexpected)
     }
 
     /// Will error with crate::DeviceError::Unexpected if DXGI 1.4 is not available.

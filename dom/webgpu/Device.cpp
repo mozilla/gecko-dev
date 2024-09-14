@@ -225,7 +225,7 @@ already_AddRefed<Texture> Device::CreateTexture(
 
   ipc::ByteBuf bb;
   RawId id = ffi::wgpu_client_create_texture(
-      mBridge->GetClient(), &desc, ownerId.ptrOr(nullptr), ToFFI(&bb));
+      mBridge->GetClient(), mId, &desc, ownerId.ptrOr(nullptr), ToFFI(&bb));
 
   if (mBridge->CanSend()) {
     mBridge->SendDeviceAction(mId, std::move(bb));
@@ -258,8 +258,8 @@ already_AddRefed<Sampler> Device::CreateSampler(
   }
 
   ipc::ByteBuf bb;
-  RawId id =
-      ffi::wgpu_client_create_sampler(mBridge->GetClient(), &desc, ToFFI(&bb));
+  RawId id = ffi::wgpu_client_create_sampler(mBridge->GetClient(), mId, &desc,
+                                             ToFFI(&bb));
 
   if (mBridge->CanSend()) {
     mBridge->SendDeviceAction(mId, std::move(bb));
@@ -277,7 +277,7 @@ already_AddRefed<CommandEncoder> Device::CreateCommandEncoder(
   desc.label = label.Get();
 
   ipc::ByteBuf bb;
-  RawId id = ffi::wgpu_client_create_command_encoder(mBridge->GetClient(),
+  RawId id = ffi::wgpu_client_create_command_encoder(mBridge->GetClient(), mId,
                                                      &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
     mBridge->SendDeviceAction(mId, std::move(bb));
@@ -405,7 +405,7 @@ already_AddRefed<BindGroupLayout> Device::CreateBindGroupLayout(
 
   ipc::ByteBuf bb;
   RawId id = ffi::wgpu_client_create_bind_group_layout(mBridge->GetClient(),
-                                                       &desc, ToFFI(&bb));
+                                                       mId, &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
     mBridge->SendDeviceAction(mId, std::move(bb));
   }
@@ -431,7 +431,7 @@ already_AddRefed<PipelineLayout> Device::CreatePipelineLayout(
   desc.bind_group_layouts_length = bindGroupLayouts.Length();
 
   ipc::ByteBuf bb;
-  RawId id = ffi::wgpu_client_create_pipeline_layout(mBridge->GetClient(),
+  RawId id = ffi::wgpu_client_create_pipeline_layout(mBridge->GetClient(), mId,
                                                      &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
     mBridge->SendDeviceAction(mId, std::move(bb));
@@ -479,8 +479,8 @@ already_AddRefed<BindGroup> Device::CreateBindGroup(
   desc.entries_length = entries.Length();
 
   ipc::ByteBuf bb;
-  RawId id = ffi::wgpu_client_create_bind_group(mBridge->GetClient(), &desc,
-                                                ToFFI(&bb));
+  RawId id = ffi::wgpu_client_create_bind_group(mBridge->GetClient(), mId,
+                                                &desc, ToFFI(&bb));
   if (mBridge->CanSend()) {
     mBridge->SendDeviceAction(mId, std::move(bb));
   }
@@ -619,7 +619,8 @@ already_AddRefed<ShaderModule> Device::CreateShaderModule(
     return nullptr;
   }
 
-  RawId moduleId = ffi::wgpu_client_make_shader_module_id(mBridge->GetClient());
+  RawId moduleId =
+      ffi::wgpu_client_make_shader_module_id(mBridge->GetClient(), mId);
 
   RefPtr<ShaderModule> shaderModule = new ShaderModule(this, moduleId, promise);
 
@@ -698,7 +699,7 @@ RawId CreateComputePipelineImpl(PipelineCreationContext* const aContext,
 
   RawId implicit_bgl_ids[WGPUMAX_BIND_GROUPS] = {};
   RawId id = ffi::wgpu_client_create_compute_pipeline(
-      aBridge->GetClient(), &desc, ToFFI(aByteBuf),
+      aBridge->GetClient(), aContext->mParentId, &desc, ToFFI(aByteBuf),
       &aContext->mImplicitPipelineLayoutId, implicit_bgl_ids);
 
   for (const auto& cur : implicit_bgl_ids) {
@@ -869,7 +870,7 @@ RawId CreateRenderPipelineImpl(PipelineCreationContext* const aContext,
 
   RawId implicit_bgl_ids[WGPUMAX_BIND_GROUPS] = {};
   RawId id = ffi::wgpu_client_create_render_pipeline(
-      aBridge->GetClient(), &desc, ToFFI(aByteBuf),
+      aBridge->GetClient(), aContext->mParentId, &desc, ToFFI(aByteBuf),
       &aContext->mImplicitPipelineLayoutId, implicit_bgl_ids);
 
   for (const auto& cur : implicit_bgl_ids) {
