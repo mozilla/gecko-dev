@@ -839,6 +839,7 @@ var SidebarController = {
 
     const options = {
       duration: this._animationDurationMs,
+      easing: "ease-in-out",
     };
     let animations = [];
     let sidebarOnLeft = this._positionStart != RTL_UI;
