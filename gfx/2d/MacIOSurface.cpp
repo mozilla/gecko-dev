@@ -127,7 +127,7 @@ size_t CreatePlaneDictionary(CFTypeRefPtr<CFMutableDictionaryRef>& aDict,
 }
 
 // Helper function to set common color IOSurface properties.
-void SetIOSurfaceCommonProperties(
+static void SetIOSurfaceCommonProperties(
     CFTypeRefPtr<IOSurfaceRef> surfaceRef,
     MacIOSurface::YUVColorSpace aColorSpace,
     MacIOSurface::TransferFunction aTransferFunction) {
@@ -394,11 +394,16 @@ void MacIOSurface::DecrementUseCount() {
   ::IOSurfaceDecrementUseCount(mIOSurfaceRef.get());
 }
 
-void MacIOSurface::Lock(bool aReadOnly) {
+bool MacIOSurface::Lock(bool aReadOnly) {
   MOZ_RELEASE_ASSERT(!mIsLocked, "double MacIOSurface lock");
-  ::IOSurfaceLock(mIOSurfaceRef.get(), aReadOnly ? kIOSurfaceLockReadOnly : 0,
-                  nullptr);
+  kern_return_t rv = ::IOSurfaceLock(
+      mIOSurfaceRef.get(), aReadOnly ? kIOSurfaceLockReadOnly : 0, nullptr);
+  if (NS_WARN_IF(rv != KERN_SUCCESS)) {
+    gfxCriticalNoteOnce << "MacIOSurface::Lock failed " << gfx::hexa(rv);
+    return false;
+  }
   mIsLocked = true;
+  return true;
 }
 
 void MacIOSurface::Unlock(bool aReadOnly) {
@@ -420,14 +425,22 @@ static void MacIOSurfaceBufferDeallocator(void* aClosure) {
 }
 
 already_AddRefed<SourceSurface> MacIOSurface::GetAsSurface() {
-  Lock();
+  if (NS_WARN_IF(!Lock())) {
+    return nullptr;
+  }
+
   size_t bytesPerRow = GetBytesPerRow();
   size_t ioWidth = GetDevicePixelWidth();
   size_t ioHeight = GetDevicePixelHeight();
 
   unsigned char* ioData = (unsigned char*)GetBaseAddress();
-  auto* dataCpy =
-      new unsigned char[bytesPerRow * ioHeight / sizeof(unsigned char)];
+  auto* dataCpy = new (
+      fallible) unsigned char[bytesPerRow * ioHeight / sizeof(unsigned char)];
+  if (NS_WARN_IF(!dataCpy)) {
+    Unlock();
+    return nullptr;
+  }
+
   for (size_t i = 0; i < ioHeight; i++) {
     memcpy(dataCpy + i * bytesPerRow, ioData + i * bytesPerRow, ioWidth * 4);
   }
@@ -500,6 +513,68 @@ ColorDepth MacIOSurface::GetColorDepth() const {
     default:
       return ColorDepth::COLOR_8;
   }
+}
+
+/* static */ Maybe<OSType> MacIOSurface::ChoosePixelFormat(
+    ChromaSubsampling aChromaSubsampling, ColorRange aColorRange,
+    ColorDepth aColorDepth) {
+  switch (aChromaSubsampling) {
+    case ChromaSubsampling::FULL:
+      if (aColorDepth == ColorDepth::COLOR_10) {
+        switch (aColorRange) {
+          case ColorRange::LIMITED:
+            return Some(kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange);
+          case ColorRange::FULL:
+            return Some(kCVPixelFormatType_422YpCbCr10BiPlanarFullRange);
+        }
+      }
+      break;
+    case ChromaSubsampling::HALF_WIDTH:
+      switch (aColorDepth) {
+        case ColorDepth::COLOR_8:
+          switch (aColorRange) {
+            case ColorRange::LIMITED:
+              return Some(kCVPixelFormatType_422YpCbCr8_yuvs);
+            case ColorRange::FULL:
+              return Some(kCVPixelFormatType_422YpCbCr8FullRange);
+          }
+          break;
+        case ColorDepth::COLOR_10:
+          switch (aColorRange) {
+            case ColorRange::LIMITED:
+              return Some(kCVPixelFormatType_422YpCbCr10BiPlanarVideoRange);
+            case ColorRange::FULL:
+              return Some(kCVPixelFormatType_422YpCbCr10BiPlanarFullRange);
+          }
+          break;
+        default:
+          break;
+      }
+      break;
+    case ChromaSubsampling::HALF_WIDTH_AND_HEIGHT:
+      switch (aColorDepth) {
+        case ColorDepth::COLOR_8:
+          switch (aColorRange) {
+            case ColorRange::LIMITED:
+              return Some(kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
+            case ColorRange::FULL:
+              return Some(kCVPixelFormatType_420YpCbCr8BiPlanarFullRange);
+          }
+          break;
+        case ColorDepth::COLOR_10:
+        case ColorDepth::COLOR_12:
+        case ColorDepth::COLOR_16:
+          switch (aColorRange) {
+            case ColorRange::LIMITED:
+              return Some(kCVPixelFormatType_420YpCbCr10BiPlanarVideoRange);
+            case ColorRange::FULL:
+              return Some(kCVPixelFormatType_420YpCbCr10BiPlanarFullRange);
+          }
+          break;
+      }
+      break;
+  }
+  return Nothing();
 }
 
 bool MacIOSurface::BindTexImage(mozilla::gl::GLContext* aGL, size_t aPlane,

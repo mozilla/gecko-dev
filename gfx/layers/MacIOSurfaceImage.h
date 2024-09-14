@@ -71,6 +71,15 @@ class MacIOSurfaceRecycleAllocator {
   ~MacIOSurfaceRecycleAllocator() = default;
 
   nsTArray<CFTypeRefPtr<IOSurfaceRef>> mSurfaces;
+
+  // Cached parameters used for allocations stored in mSurfaces.
+  gfx::IntSize mYSize;
+  gfx::IntSize mCbCrSize;
+  gfx::ChromaSubsampling mChromaSubsampling = gfx::ChromaSubsampling::FULL;
+  gfx::YUVColorSpace mYUVColorSpace = gfx::YUVColorSpace::BT709;
+  gfx::TransferFunction mTransferFunction = gfx::TransferFunction::BT709;
+  gfx::ColorRange mColorRange = gfx::ColorRange::FULL;
+  gfx::ColorDepth mColorDepth = gfx::ColorDepth::COLOR_8;
 };
 
 }  // namespace layers
