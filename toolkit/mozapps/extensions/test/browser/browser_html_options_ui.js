@@ -121,8 +121,15 @@ add_task(async function testInlineOptions() {
     "The preferences option is hidden now"
   );
 
-  let waitForHeightChange = expectedHeight =>
-    TestUtils.waitForCondition(() => browser.clientHeight === expectedHeight);
+  async function waitForHeightChange(expectedHeight) {
+    await TestUtils.waitForCondition(
+      () => browser.clientHeight === expectedHeight
+    );
+    // Wait for the resize event to be sent to the remote browser.
+    await new Promise(r =>
+      window.requestAnimationFrame(() => window.requestAnimationFrame(r))
+    );
+  }
 
   await waitForHeightChange(HEIGHT_SHORT);
 

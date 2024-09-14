@@ -196,6 +196,7 @@ nsFrameLoader::nsFrameLoader(Element* aOwner, BrowsingContext* aBrowsingContext,
       mNetworkCreated(aNetworkCreated),
       mLoadingOriginalSrc(false),
       mRemoteBrowserShown(false),
+      mRemoteBrowserSized(false),
       mIsRemoteFrame(aIsRemoteFrame),
       mWillChangeProcess(false),
       mObservingOwnerContent(false),
@@ -734,7 +735,8 @@ nsresult nsFrameLoader::ReallyStartLoadingInternal() {
 
     if (!mRemoteBrowserShown) {
       // This can fail if it's too early to show the frame, we will retry later.
-      Unused << ShowRemoteFrame(ScreenIntSize(0, 0));
+      Unused << ShowRemoteFrame(
+          /* aFrame = */ do_QueryFrame(GetPrimaryFrameOfOwningContent()));
     }
 
     return NS_OK;
@@ -944,21 +946,17 @@ static CSSIntSize GetMarginAttributes(const Element* aOwner) {
   return result;
 }
 
-bool nsFrameLoader::Show(nsSubDocumentFrame* frame) {
+bool nsFrameLoader::Show(nsSubDocumentFrame* aFrame) {
   if (mInShow) {
     return false;
   }
   mInShow = true;
 
   auto resetInShow = mozilla::MakeScopeExit([&] { mInShow = false; });
-
-  ScreenIntSize size = frame->GetSubdocumentSize();
   if (IsRemoteFrame()) {
-    // FIXME(bug 1588791): For fission iframes we need to pass down the
-    // scrollbar preferences.
-    return ShowRemoteFrame(size, frame);
+    return ShowRemoteFrame(aFrame);
   }
-
+  const ScreenIntSize size = aFrame->GetSubdocumentSize();
   nsresult rv = MaybeCreateDocShell();
   if (NS_FAILED(rv)) {
     return false;
@@ -973,7 +971,7 @@ bool nsFrameLoader::Show(nsSubDocumentFrame* frame) {
   const bool marginsChanged =
       ds->UpdateFrameMargins(GetMarginAttributes(mOwnerContent));
 
-  nsView* view = frame->EnsureInnerView();
+  nsView* view = aFrame->EnsureInnerView();
   if (!view) {
     return false;
   }
@@ -1086,8 +1084,7 @@ void nsFrameLoader::MarginsChanged() {
   }
 }
 
-bool nsFrameLoader::ShowRemoteFrame(const ScreenIntSize& size,
-                                    nsSubDocumentFrame* aFrame) {
+bool nsFrameLoader::ShowRemoteFrame(nsSubDocumentFrame* aFrame) {
   AUTO_PROFILER_LABEL("nsFrameLoader::ShowRemoteFrame", OTHER);
   NS_ASSERTION(IsRemoteFrame(),
                "ShowRemote only makes sense on remote frames.");
@@ -1096,6 +1093,9 @@ bool nsFrameLoader::ShowRemoteFrame(const ScreenIntSize& size,
     NS_ERROR("Couldn't create child process.");
     return false;
   }
+
+  const bool hasSize =
+      aFrame && !aFrame->HasAnyStateBits(NS_FRAME_FIRST_REFLOW);
 
   // FIXME/bug 589337: Show()/Hide() is pretty expensive for
   // cross-process layers; need to figure out what behavior we really
@@ -1124,11 +1124,13 @@ bool nsFrameLoader::ShowRemoteFrame(const ScreenIntSize& size,
     baseWindow->GetMainWidget(getter_AddRefs(mainWidget));
     nsSizeMode sizeMode =
         mainWidget ? mainWidget->SizeMode() : nsSizeMode_Normal;
+    const auto size = hasSize ? aFrame->GetSubdocumentSize() : ScreenIntSize();
     OwnerShowInfo info(size, GetScrollbarPreference(mOwnerContent), sizeMode);
     if (!mRemoteBrowser->Show(info)) {
       return false;
     }
     mRemoteBrowserShown = true;
+    mRemoteBrowserSized = hasSize;
 
     // This notification doesn't apply to fission, apparently.
     if (!GetBrowserBridgeChild()) {
@@ -1136,14 +1138,8 @@ bool nsFrameLoader::ShowRemoteFrame(const ScreenIntSize& size,
         os->NotifyObservers(ToSupports(this), "remote-browser-shown", nullptr);
       }
     }
-  } else {
-    nsIntRect dimensions;
-    NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), false);
-
-    // Don't show remote iframe if we are waiting for the completion of reflow.
-    if (!aFrame || !aFrame->HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
-      mRemoteBrowser->UpdateDimensions(dimensions, size);
-    }
+  } else if (hasSize) {
+    NS_ENSURE_SUCCESS(UpdatePositionAndSize(aFrame), false);
   }
 
   return true;
@@ -2404,23 +2400,40 @@ nsresult nsFrameLoader::GetWindowDimensions(nsIntRect& aRect) {
   return NS_OK;
 }
 
-nsresult nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame* aIFrame) {
+nsresult nsFrameLoader::UpdatePositionAndSize(nsSubDocumentFrame* aFrame) {
+  const auto size = aFrame->GetSubdocumentSize();
+  mLazySize = size;
+
   if (IsRemoteFrame()) {
     if (mRemoteBrowser) {
-      ScreenIntSize size = aIFrame->GetSubdocumentSize();
       // If we were not able to show remote frame before, we should probably
       // retry now to send correct showInfo.
       if (!mRemoteBrowserShown) {
-        ShowRemoteFrame(size, aIFrame);
+        ShowRemoteFrame(aFrame);
       }
       nsIntRect dimensions;
       NS_ENSURE_SUCCESS(GetWindowDimensions(dimensions), NS_ERROR_FAILURE);
-      mLazySize = size;
       mRemoteBrowser->UpdateDimensions(dimensions, size);
+      mRemoteBrowserSized = true;
     }
     return NS_OK;
   }
-  UpdateBaseWindowPositionAndSize(aIFrame);
+  nsCOMPtr<nsIBaseWindow> baseWindow = GetDocShell(IgnoreErrors());
+  if (!baseWindow) {
+    return NS_OK;
+  }
+  int32_t x = 0;
+  int32_t y = 0;
+
+  AutoWeakFrame weakFrame(aFrame);
+  baseWindow->GetPosition(&x, &y);
+
+  if (!weakFrame.IsAlive()) {
+    // GetPosition() killed us
+    return NS_OK;
+  }
+  baseWindow->SetPositionAndSize(x, y, size.width, size.height,
+                                 nsIBaseWindow::eDelayResize);
   return NS_OK;
 }
 
@@ -2452,51 +2465,19 @@ void nsFrameLoader::UpdateRemoteStyle(
   }
 }
 
-void nsFrameLoader::UpdateBaseWindowPositionAndSize(
-    nsSubDocumentFrame* aIFrame) {
-  nsCOMPtr<nsIBaseWindow> baseWindow = GetDocShell(IgnoreErrors());
-
-  // resize the sub document
-  if (baseWindow) {
-    int32_t x = 0;
-    int32_t y = 0;
-
-    AutoWeakFrame weakFrame(aIFrame);
-
-    baseWindow->GetPosition(&x, &y);
-
-    if (!weakFrame.IsAlive()) {
-      // GetPosition() killed us
-      return;
-    }
-
-    ScreenIntSize size = aIFrame->GetSubdocumentSize();
-    mLazySize = size;
-
-    baseWindow->SetPositionAndSize(x, y, size.width, size.height,
-                                   nsIBaseWindow::eDelayResize);
-  }
-}
-
 uint32_t nsFrameLoader::LazyWidth() const {
   uint32_t lazyWidth = mLazySize.width;
-
-  nsIFrame* frame = GetPrimaryFrameOfOwningContent();
-  if (frame) {
+  if (nsIFrame* frame = GetPrimaryFrameOfOwningContent()) {
     lazyWidth = frame->PresContext()->DevPixelsToIntCSSPixels(lazyWidth);
   }
-
   return lazyWidth;
 }
 
 uint32_t nsFrameLoader::LazyHeight() const {
   uint32_t lazyHeight = mLazySize.height;
-
-  nsIFrame* frame = GetPrimaryFrameOfOwningContent();
-  if (frame) {
+  if (nsIFrame* frame = GetPrimaryFrameOfOwningContent()) {
     lazyHeight = frame->PresContext()->DevPixelsToIntCSSPixels(lazyHeight);
   }
-
   return lazyHeight;
 }
 
@@ -2789,18 +2770,6 @@ nsIFrame* nsFrameLoader::GetPrimaryFrameOfOwningContent() const {
 
 Document* nsFrameLoader::GetOwnerDoc() const {
   return mOwnerContent ? mOwnerContent->OwnerDoc() : nullptr;
-}
-
-bool nsFrameLoader::IsRemoteFrame() {
-  if (mIsRemoteFrame) {
-    MOZ_ASSERT(!GetDocShell(), "Found a remote frame with a DocShell");
-    return true;
-  }
-  return false;
-}
-
-RemoteBrowser* nsFrameLoader::GetRemoteBrowser() const {
-  return mRemoteBrowser;
 }
 
 BrowserParent* nsFrameLoader::GetBrowserParent() const {
