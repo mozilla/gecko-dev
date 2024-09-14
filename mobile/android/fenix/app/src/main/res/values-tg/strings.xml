@@ -239,6 +239,8 @@
     <string name="browser_menu_add_to_homescreen">Илова кардан ба экрани асосӣ</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Илова кардан ба экрани асосӣ…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Дастгоҳҳои «Xiaomi» метавонанд барои илова кардани миёнабурҳо ба экрани асосӣ иҷозатҳои иловагиро талаб кунанд. Лутфан, танзимоти худро санҷед.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Аз нав ҳамоҳанг кардан</string>
     <!-- Browser menu button that opens the find in page menu -->
