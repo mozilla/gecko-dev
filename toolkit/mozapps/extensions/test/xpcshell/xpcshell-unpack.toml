@@ -7,7 +7,6 @@ tags = "addons"
 
 ["test_filepointer.js"]
 skip-if = [
-  "!allow_legacy_extensions",
   "require_signing",
 ]
 

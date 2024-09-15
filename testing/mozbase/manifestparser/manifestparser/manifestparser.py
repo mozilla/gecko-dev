@@ -888,7 +888,13 @@ class TestManifest(ManifestParser):
         self.last_used_filters = []
 
     def active_tests(
-        self, exists=True, disabled=True, filters=None, noDefaultFilters=False, **values
+        self,
+        exists=True,
+        disabled=True,
+        filters=None,
+        noDefaultFilters=False,
+        strictExpressions=False,
+        **values,
     ):
         """
         Run all applied filters on the set of tests.
@@ -925,7 +931,7 @@ class TestManifest(ManifestParser):
 
         self.last_used_filters = fltrs[:]
         for fn in fltrs:
-            tests = fn(tests, values)
+            tests = fn(tests, values, strict=strictExpressions)
         return list(tests)
 
     def test_paths(self):
