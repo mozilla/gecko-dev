@@ -696,19 +696,17 @@ void nsSubDocumentFrame::Reflow(nsPresContext* aPresContext,
 }
 
 bool nsSubDocumentFrame::ReflowFinished() {
-  RefPtr<nsFrameLoader> frameloader = FrameLoader();
-  if (frameloader) {
-    AutoWeakFrame weakFrame(this);
-
-    frameloader->UpdatePositionAndSize(this);
-
-    if (weakFrame.IsAlive()) {
-      // Make sure that we can post a reflow callback in the future.
-      mPostedReflowCallback = false;
-    }
-  } else {
-    mPostedReflowCallback = false;
+  mPostedReflowCallback = false;
+  nsFrameLoader* fl = FrameLoader();
+  if (!fl) {
+    return false;
   }
+  if (fl->IsRemoteFrame() && fl->HasRemoteBrowserBeenSized()) {
+    // For remote frames we don't need to update the size and position instantly
+    // (but we should try to do so if we haven't shown it yet).
+    return false;
+  }
+  RefPtr { fl } -> UpdatePositionAndSize(this);
   return false;
 }
 

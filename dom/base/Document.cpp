@@ -16819,6 +16819,7 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
   if (!rb) {
     return;
   }
+  nsSubDocumentFrame* subDocFrame = do_QueryFrame(el->GetPrimaryFrame());
   rb->UpdateEffects([&] {
     if (aIsHidden || (aBc->IsTop() && !aBc->IsActive())) {
       // Fully hidden if in the background.
@@ -16832,7 +16833,6 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
       return EffectsInfo::FullyHidden();
     }
     MOZ_ASSERT(el->GetPrimaryFrame(), "How do we intersect without a frame?");
-    nsSubDocumentFrame* subDocFrame = do_QueryFrame(el->GetPrimaryFrame());
     if (MOZ_UNLIKELY(NS_WARN_IF(!subDocFrame))) {
       // <frame> not inside a <frameset> might not create a subdoc frame,
       // for example.
@@ -16857,6 +16857,13 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
     return EffectsInfo::VisibleWithinRect(visibleRect, rasterScale,
                                           transformToAncestorScale);
   }());
+  if (subDocFrame) {
+    if (nsFrameLoader* fl = subDocFrame->FrameLoader()) {
+      // TODO(emilio): Consider not doing this for inactive tops? It'd make
+      // janking the browser harder.
+      fl->UpdatePositionAndSize(subDocFrame);
+    }
+  }
 }
 
 void Document::UpdateRemoteFrameEffects() {
