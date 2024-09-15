@@ -16820,7 +16820,7 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
     return;
   }
   rb->UpdateEffects([&] {
-    if (aIsHidden) {
+    if (aIsHidden || (aBc->IsTop() && !aBc->IsActive())) {
       // Fully hidden if in the background.
       return EffectsInfo::FullyHidden();
     }
@@ -16867,6 +16867,16 @@ void Document::UpdateRemoteFrameEffects() {
   if (auto* wc = GetWindowContext()) {
     for (const RefPtr<BrowsingContext>& child : wc->Children()) {
       UpdateEffectsOnBrowsingContext(child, input, hidden);
+    }
+  }
+  if (XRE_IsParentProcess()) {
+    if (auto* bc = GetBrowsingContext(); bc && bc->IsTop()) {
+      bc->Canonical()->CallOnAllTopDescendants(
+          [&](CanonicalBrowsingContext* aDescendant) {
+            UpdateEffectsOnBrowsingContext(aDescendant, input, hidden);
+            return CallState::Continue;
+          },
+          /* aIncludeNestedBrowsers = */ false);
     }
   }
   EnumerateSubDocuments([](Document& aDoc) {
