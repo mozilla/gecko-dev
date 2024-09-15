@@ -193,6 +193,8 @@ class ElementInternals final : public nsIFormControl,
 
   nsresult SetAttr(nsAtom* aName, const nsAString& aValue);
 
+  bool GetAttrElements(nsAtom* aAttr, nsTArray<Element*>& aElements);
+
   const AttrArray& GetAttrs() const { return mAttrs; }
 
   DocGroup* GetDocGroup();

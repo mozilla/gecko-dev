@@ -7,6 +7,7 @@
 #include "LocalAccessible-inl.h"
 #include "AccIterator.h"
 #include "AccAttributes.h"
+#include "ARIAMap.h"
 #include "CachedTableAccessible.h"
 #include "DocAccessible-inl.h"
 #include "EventTree.h"
@@ -803,11 +804,10 @@ void DocAccessible::AttributeWillChange(dom::Element* aElement,
 
   // Update dependent IDs cache. Take care of elements that are accessible
   // because dependent IDs cache doesn't contain IDs from non accessible
-  // elements.
-  if (aModType != dom::MutationEvent_Binding::ADDITION) {
-    RemoveDependentIDsFor(accessible, aAttribute);
-    RemoveDependentElementsFor(accessible, aAttribute);
-  }
+  // elements. We do this for attribute additions as well because there might
+  // be an ElementInternals default value.
+  RemoveDependentIDsFor(accessible, aAttribute);
+  RemoveDependentElementsFor(accessible, aAttribute);
 
   if (aAttribute == nsGkAtoms::id) {
     if (accessible->IsActiveDescendantId()) {
@@ -1240,7 +1240,7 @@ void DocAccessible::BindToDocument(LocalAccessible* aAccessible,
 
     nsIContent* content = aAccessible->GetContent();
     if (content->IsElement() &&
-        content->AsElement()->HasAttr(nsGkAtoms::aria_owns)) {
+        nsAccUtils::HasARIAAttr(content->AsElement(), nsGkAtoms::aria_owns)) {
       mNotificationController->ScheduleRelocation(aAccessible);
     }
   }
@@ -1891,6 +1891,28 @@ void DocAccessible::AddDependentElementsFor(LocalAccessible* aRelProvider,
       break;
     }
   }
+
+  aria::AttrWithCharacteristicsIterator multipleElementsRelationIter(
+      ATTR_REFLECT_ELEMENTS);
+  while (multipleElementsRelationIter.Next()) {
+    nsStaticAtom* attr = multipleElementsRelationIter.AttrName();
+    if (aRelAttr && aRelAttr != attr) {
+      continue;
+    }
+    nsTArray<dom::Element*> elements;
+    nsAccUtils::GetARIAElementsAttr(providerEl, attr, elements);
+    for (dom::Element* targetEl : elements) {
+      AttrRelProviders& providers =
+          mDependentElementsMap.LookupOrInsert(targetEl);
+      AttrRelProvider* provider = new AttrRelProvider(attr, providerEl);
+      providers.AppendElement(provider);
+    }
+    // If the relation attribute was given, we've already handled it. We don't
+    // have anything else to check.
+    if (aRelAttr) {
+      break;
+    }
+  }
 }
 
 void DocAccessible::RemoveDependentElementsFor(LocalAccessible* aRelProvider,
@@ -1915,6 +1937,34 @@ void DocAccessible::RemoveDependentElementsFor(LocalAccessible* aRelProvider,
         }
       }
     }
+    // If the relation attribute was given, we've already handled it. We don't
+    // have anything else to check.
+    if (aRelAttr) {
+      break;
+    }
+  }
+
+  aria::AttrWithCharacteristicsIterator multipleElementsRelationIter(
+      ATTR_REFLECT_ELEMENTS);
+  while (multipleElementsRelationIter.Next()) {
+    nsStaticAtom* attr = multipleElementsRelationIter.AttrName();
+    if (aRelAttr && aRelAttr != attr) {
+      continue;
+    }
+    nsTArray<dom::Element*> elements;
+    nsAccUtils::GetARIAElementsAttr(providerEl, attr, elements);
+    for (dom::Element* targetEl : elements) {
+      if (auto providers = mDependentElementsMap.Lookup(targetEl)) {
+        providers.Data().RemoveElementsBy([attr,
+                                           providerEl](const auto& provider) {
+          return provider->mRelAttr == attr && provider->mContent == providerEl;
+        });
+        if (providers.Data().IsEmpty()) {
+          providers.Remove();
+        }
+      }
+    }
+
     // If the relation attribute was given, we've already handled it. We don't
     // have anything else to check.
     if (aRelAttr) {

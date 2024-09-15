@@ -288,6 +288,8 @@ class nsAccUtils {
                           nsAString& aResult);
   static const nsAttrValue* GetARIAAttr(dom::Element* aElement,
                                         const nsAtom* aName);
+  static bool GetARIAElementsAttr(dom::Element* aElement, nsAtom* aName,
+                                  nsTArray<dom::Element*>& aElements);
   static bool ARIAAttrValueIs(dom::Element* aElement, const nsAtom* aName,
                               const nsAString& aValue,
                               nsCaseTreatment aCaseSensitive);

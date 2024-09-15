@@ -1321,6 +1321,16 @@ class Element : public FragmentOrElement {
    */
   Element* GetExplicitlySetAttrElement(nsAtom* aAttr) const;
 
+  /**
+   * Gets the attribute elements for the given attribute. Unlike
+   * GetAttrAssociatedElements, this returns an uncached array of explicitly set
+   * elements without checking if they are a descendant of any of this element's
+   * shadow-including ancestors. It also does not attempt to retrieve elements
+   * using the ids set in the content attribute.
+   */
+  void GetExplicitlySetAttrElements(nsAtom* aAttr,
+                                    nsTArray<Element*>& aElements) const;
+
   PseudoStyleType GetPseudoElementType() const {
     nsresult rv = NS_OK;
     auto raw = GetProperty(nsGkAtoms::pseudoProperty, &rv);

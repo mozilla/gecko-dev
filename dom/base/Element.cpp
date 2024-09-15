@@ -1991,6 +1991,22 @@ Element* Element::GetExplicitlySetAttrElement(nsAtom* aAttr) const {
   return nullptr;
 }
 
+void Element::GetExplicitlySetAttrElements(
+    nsAtom* aAttr, nsTArray<Element*>& aElements) const {
+  if (const nsExtendedDOMSlots* slots = GetExistingExtendedDOMSlots()) {
+    if (auto attrElementsMaybeEntry = slots->mAttrElementsMap.Lookup(aAttr)) {
+      auto& [attrElements, cachedAttrElements] = attrElementsMaybeEntry.Data();
+      if (attrElements) {
+        for (const nsWeakPtr& weakEl : *attrElements) {
+          if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakEl)) {
+            aElements.AppendElement(attrEl);
+          }
+        }
+      }
+    }
+  }
+}
+
 void Element::GetElementsWithGrid(nsTArray<RefPtr<Element>>& aElements) {
   nsINode* cur = this;
   while (cur) {

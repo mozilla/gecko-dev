@@ -655,4 +655,22 @@ void ElementInternals::GetAttrElements(
   cachedAttrElements = std::move(elements);
 }
 
+bool ElementInternals::GetAttrElements(nsAtom* aAttr,
+                                       nsTArray<Element*>& aElements) {
+  aElements.Clear();
+  auto attrElementsMaybeEntry = mAttrElementsMap.Lookup(aAttr);
+  if (!attrElementsMaybeEntry) {
+    return false;
+  }
+
+  auto& [attrElements, cachedAttrElements] = attrElementsMaybeEntry.Data();
+  for (const nsWeakPtr& weakEl : attrElements) {
+    if (nsCOMPtr<Element> attrEl = do_QueryReferent(weakEl)) {
+      aElements.AppendElement(attrEl);
+    }
+  }
+
+  return true;
+}
+
 }  // namespace mozilla::dom

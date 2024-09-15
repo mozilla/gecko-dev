@@ -2448,7 +2448,8 @@ Relation LocalAccessible::RelationByType(RelationType aType) const {
 
     case RelationType::DETAILS: {
       if (mContent->IsElement() &&
-          mContent->AsElement()->HasAttr(nsGkAtoms::aria_details)) {
+          nsAccUtils::HasARIAAttr(mContent->AsElement(),
+                                  nsGkAtoms::aria_details)) {
         return Relation(
             new IDRefsIterator(mDoc, mContent, nsGkAtoms::aria_details));
       }

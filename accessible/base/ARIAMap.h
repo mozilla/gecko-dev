@@ -124,6 +124,11 @@ const uint8_t ATTR_GLOBAL = 0x1 << 3;
  */
 const uint8_t ATTR_VALINT = 0x1 << 4;
 
+/**
+ * Indicates that the attribute can have reflected elements.
+ */
+const uint8_t ATTR_REFLECT_ELEMENTS = 0x1 << 5;
+
 ////////////////////////////////////////////////////////////////////////////////
 // State map entry
 
@@ -344,6 +349,26 @@ class AttrIterator {
   uint32_t mAttrCount;
   RefPtr<nsAtom> mAttrAtom;
   uint8_t mAttrCharacteristics;
+};
+
+class AttrWithCharacteristicsIterator {
+ public:
+  explicit AttrWithCharacteristicsIterator(uint8_t aCharacteristics)
+      : mIdx(-1), mCharacteristics(aCharacteristics) {}
+
+  bool Next();
+
+  nsStaticAtom* AttrName() const;
+
+ private:
+  AttrWithCharacteristicsIterator() = delete;
+  AttrWithCharacteristicsIterator(const AttrWithCharacteristicsIterator&) =
+      delete;
+  AttrWithCharacteristicsIterator& operator=(
+      const AttrWithCharacteristicsIterator&) = delete;
+
+  int32_t mIdx;
+  uint8_t mCharacteristics;
 };
 
 }  // namespace aria
