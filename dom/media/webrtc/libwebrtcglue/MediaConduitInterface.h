@@ -79,19 +79,14 @@ class VideoRenderer {
 
   /**
    * Callback Function reporting decoded frame for processing.
-   * @param buffer: reference to decoded video frame
-   * @param buffer_size: size of the decoded frame
-   * @param time_stamp: Decoder timestamp, typically 90KHz as per RTP
-   * @render_time: Wall-clock time at the decoder for synchronization
-   *                purposes in milliseconds
+   * @param video_frame: reference to decoded video frame
    * NOTE: If decoded video frame is passed through buffer , it is the
    * responsibility of the concrete implementations of this class to own copy
    * of the frame if needed for time longer than scope of this callback.
    * Such implementations should be quick in processing the frames and return
    * immediately.
    */
-  virtual void RenderVideoFrame(const webrtc::VideoFrameBuffer& buffer,
-                                uint32_t time_stamp, int64_t render_time) = 0;
+  virtual void RenderVideoFrame(const webrtc::VideoFrame& video_frame) = 0;
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoRenderer)
 };

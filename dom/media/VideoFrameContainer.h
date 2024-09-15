@@ -41,7 +41,9 @@ class VideoFrameContainer {
                       already_AddRefed<ImageContainer> aContainer);
 
   void SetCurrentFrame(const gfx::IntSize& aIntrinsicSize, Image* aImage,
-                       const TimeStamp& aTargetTime);
+                       const TimeStamp& aTargetTime,
+                       const media::TimeUnit& aProcessingDuration,
+                       const media::TimeUnit& aMediaTime);
   // Returns the last principalHandle we notified mElement about.
   PrincipalHandle GetLastPrincipalHandle();
   PrincipalHandle GetLastPrincipalHandleLocked() MOZ_REQUIRES(mMutex);

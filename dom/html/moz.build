@@ -237,6 +237,8 @@ LOCAL_INCLUDES += [
     "/layout/xul",
     "/netwerk/base",
     "/parser/htmlparser",
+    "/third_party/libwebrtc",
+    "/third_party/libwebrtc/third_party/abseil-cpp",
 ]
 
 FINAL_LIBRARY = "xul"

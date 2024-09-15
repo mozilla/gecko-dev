@@ -40,6 +40,7 @@ struct RTCRtpContributingSource;
 struct RTCRtpSynchronizationSource;
 class RTCRtpTransceiver;
 class RTCRtpScriptTransform;
+class RTCStatsTimestampMaker;
 
 class RTCRtpReceiver : public nsISupports,
                        public nsWrapperCache,
@@ -162,6 +163,8 @@ class RTCRtpReceiver : public nsISupports,
   Canonical<RefPtr<FrameTransformerProxy>>& CanonicalFrameTransformerProxy() {
     return mFrameTransformerProxy;
   }
+
+  const RTCStatsTimestampMaker* GetTimestampMaker() const;
 
  private:
   virtual ~RTCRtpReceiver();
