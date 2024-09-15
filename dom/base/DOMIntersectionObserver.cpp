@@ -499,11 +499,11 @@ static Maybe<OopIframeMetrics> GetOopIframeMetrics(
     return Some(OopIframeMetrics{});
   }
 
-  if (MOZ_UNLIKELY(browserChild->IsTopLevel())) {
-    // FIXME(bug 1772083): This can be hit, but it's unclear how... When can we
-    // have a top-level BrowserChild for a document that isn't a top-level
-    // content document?
-    MOZ_ASSERT_UNREACHABLE("Top level BrowserChild w/ non-top level Document?");
+  if (MOZ_UNLIKELY(NS_WARN_IF(browserChild->IsTopLevel()))) {
+    // FIXME(bug 1772083): This can be hit with popups, e.g. in
+    // html/browsers/the-window-object/open-close/no_window_open_when_term_nesting_level_nonzero.window.html
+    // temporarily while opening a new popup (on the about:blank doc).
+    // MOZ_ASSERT_UNREACHABLE("Top level BrowserChild but non-top level doc?");
     return Nothing();
   }
 
