@@ -63,7 +63,7 @@ support-files = ["head_abuse_report.js"]
 
 ["browser_colorwaybuiltins_migration.js"]
 skip-if = [
-  "appname != 'firefox'",
+  "app-name != 'firefox'",
 ]
 
 ["browser_dragdrop.js"]
