@@ -184,7 +184,7 @@ pub unsafe extern "C" fn wgpu_server_instance_request_adapter(
     // If wgpu uses a different adapter than WebRender, textures created by
     // webgpu::ExternalTexture do not work with wgpu.
     #[cfg(target_os = "windows")]
-    if adapter_luid.is_some() {
+    if adapter_luid.is_some() && !desc.force_fallback_adapter {
         if let Some(instance) = global.global.instance_as_hal::<wgc::api::Dx12>() {
             for adapter in instance.enumerate_adapters(None) {
                 let raw_adapter = adapter.adapter.raw_adapter();
