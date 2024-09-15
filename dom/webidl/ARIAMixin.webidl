@@ -47,17 +47,37 @@ interface mixin ARIAMixin {
   [CEReactions, SetterThrows]
   attribute DOMString? ariaColSpan;
 
+  // TODO: Use FrozenArray once available. (Bug 1236777)
+  [Pref="accessibility.ARIAElementReflection.enabled", Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? ariaControlsElements;
+
   [CEReactions, SetterThrows]
   attribute DOMString? ariaCurrent;
+
+  // TODO: Use FrozenArray once available. (Bug 1236777)
+  [Pref="accessibility.ARIAElementReflection.enabled", Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? ariaDescribedByElements;
 
   [CEReactions, SetterThrows]
   attribute DOMString? ariaDescription;
 
+  // TODO: Use FrozenArray once available. (Bug 1236777)
+  [Pref="accessibility.ARIAElementReflection.enabled", Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? ariaDetailsElements;
+
   [CEReactions, SetterThrows]
   attribute DOMString? ariaDisabled;
 
+  // TODO: Use FrozenArray once available. (Bug 1236777)
+  [Pref="accessibility.ARIAElementReflection.enabled", Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? ariaErrorMessageElements;
+
   [CEReactions, SetterThrows]
   attribute DOMString? ariaExpanded;
+
+  // TODO: Use FrozenArray once available. (Bug 1236777)
+  [Pref="accessibility.ARIAElementReflection.enabled", Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? ariaFlowToElements;
 
   [CEReactions, SetterThrows]
   attribute DOMString? ariaHasPopup;
@@ -73,6 +93,10 @@ interface mixin ARIAMixin {
 
   [CEReactions, SetterThrows]
   attribute DOMString? ariaLabel;
+
+  // TODO: Use FrozenArray once available. (Bug 1236777)
+  [Pref="accessibility.ARIAElementReflection.enabled", Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? ariaLabelledByElements;
 
   [CEReactions, SetterThrows]
   attribute DOMString? ariaLevel;
@@ -91,6 +115,10 @@ interface mixin ARIAMixin {
 
   [CEReactions, SetterThrows]
   attribute DOMString? ariaOrientation;
+
+  // TODO: Use FrozenArray once available. (Bug 1236777)
+  [Pref="accessibility.ARIAElementReflection.enabled", Frozen, ReflectedHTMLAttributeReturningFrozenArray]
+  attribute sequence<Element>? ariaOwnsElements;
 
   [CEReactions, SetterThrows]
   attribute DOMString? ariaPlaceholder;

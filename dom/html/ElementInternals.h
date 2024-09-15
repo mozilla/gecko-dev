@@ -34,6 +34,17 @@
     SetAttrElement(nsGkAtoms::attr, aElement);                             \
   }
 
+#define ARIA_REFLECT_ATTR_ELEMENTS(method, attr)                     \
+  void Get##method(bool* aUseCachedValue,                            \
+                   Nullable<nsTArray<RefPtr<Element>>>& aElements) { \
+    GetAttrElements(nsGkAtoms::attr, aUseCachedValue, aElements);    \
+  }                                                                  \
+                                                                     \
+  void Set##method(                                                  \
+      const Nullable<Sequence<OwningNonNull<Element>>>& aElements) { \
+    SetAttrElements(nsGkAtoms::attr, aElements);                     \
+  }
+
 class nsINodeList;
 class nsGenericHTMLElement;
 
@@ -137,21 +148,28 @@ class ElementInternals final : public nsIFormControl,
   ARIA_REFLECT_ATTR(AriaColIndex, aria_colindex)
   ARIA_REFLECT_ATTR(AriaColIndexText, aria_colindextext)
   ARIA_REFLECT_ATTR(AriaColSpan, aria_colspan)
+  ARIA_REFLECT_ATTR_ELEMENTS(AriaControlsElements, aria_controls)
   ARIA_REFLECT_ATTR(AriaCurrent, aria_current)
+  ARIA_REFLECT_ATTR_ELEMENTS(AriaDescribedByElements, aria_describedby)
   ARIA_REFLECT_ATTR(AriaDescription, aria_description)
+  ARIA_REFLECT_ATTR_ELEMENTS(AriaDetailsElements, aria_details)
   ARIA_REFLECT_ATTR(AriaDisabled, aria_disabled)
+  ARIA_REFLECT_ATTR_ELEMENTS(AriaErrorMessageElements, aria_errormessage)
   ARIA_REFLECT_ATTR(AriaExpanded, aria_expanded)
+  ARIA_REFLECT_ATTR_ELEMENTS(AriaFlowToElements, aria_flowto)
   ARIA_REFLECT_ATTR(AriaHasPopup, aria_haspopup)
   ARIA_REFLECT_ATTR(AriaHidden, aria_hidden)
   ARIA_REFLECT_ATTR(AriaInvalid, aria_invalid)
   ARIA_REFLECT_ATTR(AriaKeyShortcuts, aria_keyshortcuts)
   ARIA_REFLECT_ATTR(AriaLabel, aria_label)
+  ARIA_REFLECT_ATTR_ELEMENTS(AriaLabelledByElements, aria_labelledby)
   ARIA_REFLECT_ATTR(AriaLevel, aria_level)
   ARIA_REFLECT_ATTR(AriaLive, aria_live)
   ARIA_REFLECT_ATTR(AriaModal, aria_modal)
   ARIA_REFLECT_ATTR(AriaMultiLine, aria_multiline)
   ARIA_REFLECT_ATTR(AriaMultiSelectable, aria_multiselectable)
   ARIA_REFLECT_ATTR(AriaOrientation, aria_orientation)
+  ARIA_REFLECT_ATTR_ELEMENTS(AriaOwnsElements, aria_owns)
   ARIA_REFLECT_ATTR(AriaPlaceholder, aria_placeholder)
   ARIA_REFLECT_ATTR(AriaPosInSet, aria_posinset)
   ARIA_REFLECT_ATTR(AriaPressed, aria_pressed)
@@ -193,6 +211,17 @@ class ElementInternals final : public nsIFormControl,
    * https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#explicitly-set-attr-element
    */
   void SetAttrElement(nsAtom* aAttr, Element* aElement);
+
+  void SetAttrElements(
+      nsAtom* aAttr,
+      const Nullable<Sequence<OwningNonNull<Element>>>& aElements);
+
+  void GetAttrElements(nsAtom* aAttr, bool* aUseCachedValue,
+                       Nullable<nsTArray<RefPtr<Element>>>& aElements);
+
+  nsresult SetAttrInternal(nsAtom* aName, const nsAString& aValue);
+
+  nsresult UnsetAttrInternal(nsAtom* aName);
 
   // It's a target element which is a custom element.
   RefPtr<HTMLElement> mTarget;
@@ -238,7 +267,11 @@ class ElementInternals final : public nsIFormControl,
    * Explicitly set attr-elements, see
    * https://html.spec.whatwg.org/multipage/common-dom-interfaces.html#explicitly-set-attr-element
    */
-  nsTHashMap<RefPtr<nsAtom>, nsWeakPtr> mAttrElements;
+  nsTHashMap<RefPtr<nsAtom>, nsWeakPtr> mAttrElementMap;
+
+  nsTHashMap<RefPtr<nsAtom>,
+             std::pair<nsTArray<nsWeakPtr>, nsTArray<RefPtr<Element>>>>
+      mAttrElementsMap;
 };
 
 }  // namespace mozilla::dom
