@@ -153,7 +153,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
   GetBrowserChildMessageManager() const {
     return mChildMessageManager;
   }
-  nsresult UpdatePositionAndSize(nsSubDocumentFrame* aFrame);
+  nsresult UpdatePositionAndSize(nsSubDocumentFrame* aIFrame);
   void PropagateIsUnderHiddenEmbedderElement(
       bool aIsUnderHiddenEmbedderElement);
 
@@ -329,16 +329,9 @@ class nsFrameLoader final : public nsStubMutationObserver,
    * This is true for either a top-level remote browser in the parent process,
    * or a remote subframe in the child process.
    */
-  bool IsRemoteFrame() const {
-    MOZ_ASSERT_IF(mIsRemoteFrame, !GetDocShell());
-    return mIsRemoteFrame;
-  }
+  bool IsRemoteFrame();
 
-  mozilla::dom::RemoteBrowser* GetRemoteBrowser() const {
-    return mRemoteBrowser;
-  }
-
-  bool HasRemoteBrowserBeenSized() const { return mRemoteBrowserSized; }
+  mozilla::dom::RemoteBrowser* GetRemoteBrowser() const;
 
   /**
    * Returns the IPDL actor used if this is a top-level remote browser, or null
@@ -452,6 +445,10 @@ class nsFrameLoader final : public nsStubMutationObserver,
 
   void AssertSafeToInit();
 
+  // Updates the subdocument position and size. This gets called only
+  // when we have our own in-process DocShell.
+  void UpdateBaseWindowPositionAndSize(nsSubDocumentFrame* aIFrame);
+
   /**
    * Checks whether a load of the given URI should be allowed, and returns an
    * error result if it should not.
@@ -472,7 +469,8 @@ class nsFrameLoader final : public nsStubMutationObserver,
   bool TryRemoteBrowserInternal();
 
   // Tell the remote browser that it's now "virtually visible"
-  bool ShowRemoteFrame(nsSubDocumentFrame* aFrame);
+  bool ShowRemoteFrame(const mozilla::ScreenIntSize& size,
+                       nsSubDocumentFrame* aFrame = nullptr);
 
   void AddTreeItemToTreeOwner(nsIDocShellTreeItem* aItem,
                               nsIDocShellTreeOwner* aOwner);
@@ -550,7 +548,6 @@ class nsFrameLoader final : public nsStubMutationObserver,
   bool mLoadingOriginalSrc : 1;
 
   bool mRemoteBrowserShown : 1;
-  bool mRemoteBrowserSized : 1;
   bool mIsRemoteFrame : 1;
   // If true, the FrameLoader will be re-created with the same BrowsingContext,
   // but for a different process, after it is destroyed.

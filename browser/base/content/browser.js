@@ -4603,14 +4603,17 @@ function setToolbarVisibility(
       );
     }
 
+    const overlapAttr = "BookmarksToolbarOverlapsBrowser";
     switch (isVisible) {
       case true:
       case "always":
         isVisible = true;
+        document.documentElement.toggleAttribute(overlapAttr, false);
         break;
       case false:
       case "never":
         isVisible = false;
+        document.documentElement.toggleAttribute(overlapAttr, false);
         break;
       case "newtab":
       default: {
@@ -4628,6 +4631,7 @@ function setToolbarVisibility(
           }
         }
         isVisible = BookmarkingUI.isOnNewTabPage(currentURI);
+        document.documentElement.toggleAttribute(overlapAttr, isVisible);
         break;
       }
     }
