@@ -88,7 +88,8 @@ void HTMLLabelAccessible::ActionNameAt(uint8_t aIndex, nsAString& aName) {
 Relation HTMLOutputAccessible::RelationByType(RelationType aType) const {
   Relation rel = AccessibleWrap::RelationByType(aType);
   if (aType == RelationType::CONTROLLED_BY) {
-    rel.AppendIter(new IDRefsIterator(mDoc, mContent, nsGkAtoms::_for));
+    rel.AppendIter(
+        new AssociatedElementsIterator(mDoc, mContent, nsGkAtoms::_for));
   }
 
   return rel;

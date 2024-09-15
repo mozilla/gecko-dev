@@ -243,11 +243,12 @@ LocalAccessible* XULDescriptionIterator::Next() {
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// IDRefsIterator
+// AssociatedElementsIterator
 ////////////////////////////////////////////////////////////////////////////////
 
-IDRefsIterator::IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
-                               nsAtom* aIDRefsAttr)
+AssociatedElementsIterator::AssociatedElementsIterator(DocAccessible* aDoc,
+                                                       nsIContent* aContent,
+                                                       nsAtom* aIDRefsAttr)
     : mContent(aContent), mDoc(aDoc), mCurrIdx(0), mElemIdx(0) {
   if (mContent->IsElement()) {
     mContent->AsElement()->GetAttr(aIDRefsAttr, mIDs);
@@ -259,7 +260,7 @@ IDRefsIterator::IDRefsIterator(DocAccessible* aDoc, nsIContent* aContent,
   }
 }
 
-const nsDependentSubstring IDRefsIterator::NextID() {
+const nsDependentSubstring AssociatedElementsIterator::NextID() {
   for (; mCurrIdx < mIDs.Length(); mCurrIdx++) {
     if (!NS_IsAsciiWhitespace(mIDs[mCurrIdx])) break;
   }
@@ -274,7 +275,7 @@ const nsDependentSubstring IDRefsIterator::NextID() {
   return Substring(mIDs, idStartIdx, mCurrIdx++ - idStartIdx);
 }
 
-nsIContent* IDRefsIterator::NextElem() {
+nsIContent* AssociatedElementsIterator::NextElem() {
   while (true) {
     const nsDependentSubstring id = NextID();
     if (id.IsEmpty()) break;
@@ -293,8 +294,8 @@ nsIContent* IDRefsIterator::NextElem() {
   return nullptr;
 }
 
-dom::Element* IDRefsIterator::GetElem(nsIContent* aContent,
-                                      const nsAString& aID) {
+dom::Element* AssociatedElementsIterator::GetElem(nsIContent* aContent,
+                                                  const nsAString& aID) {
   // Get elements in DOM tree by ID attribute if this is an explicit content.
   // In case of bound element check its anonymous subtree.
   if (!aContent->IsInNativeAnonymousSubtree()) {
@@ -310,11 +311,12 @@ dom::Element* IDRefsIterator::GetElem(nsIContent* aContent,
   return nullptr;
 }
 
-dom::Element* IDRefsIterator::GetElem(const nsDependentSubstring& aID) {
+dom::Element* AssociatedElementsIterator::GetElem(
+    const nsDependentSubstring& aID) {
   return GetElem(mContent, aID);
 }
 
-LocalAccessible* IDRefsIterator::Next() {
+LocalAccessible* AssociatedElementsIterator::Next() {
   nsIContent* nextEl = nullptr;
   while ((nextEl = NextElem())) {
     LocalAccessible* acc = mDoc->GetAccessible(nextEl);
