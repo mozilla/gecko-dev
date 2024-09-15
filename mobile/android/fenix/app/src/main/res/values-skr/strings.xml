@@ -1787,6 +1787,8 @@
     <string name="etp_redirect_trackers_description">معلوم ٹریکنگ ویب سائٹاں تے ریڈائریکٹ نال مقرر تھیاں کوکیاں کوں صاف کریندے۔</string>
     <!-- Preference for fingerprinting protection for the custom protection settings -->
     <string name="etp_suspected_fingerprinters_title">مشتبہ فنگر پرنٹرز</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">مشکوک فنگر پرنٹرز روکݨ کیتے فنگر پرنٹنگ تحفظ کوں فعال کریندا ہے۔</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_known_fingerprinters_title">معلوم فنگر پرنٹرز</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,

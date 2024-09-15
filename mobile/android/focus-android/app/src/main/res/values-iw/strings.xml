@@ -124,19 +124,19 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">חיפוש ב־Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">חיפוש ב־Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">חיפוש ב־Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">חיפוש ב־Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">חיפוש ב־Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">חיפוש ב־Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">חיפוש ב־Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">חיפוש ב־Focus Nightly</string>
 
     <!-- Header for the Privacy and Security settings menu -->
     <string name="preference_privacy_and_security_header">פרטיות ואבטחה</string>
@@ -597,9 +597,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">מחיקת היסטורית גלישה</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">סגירת לשוניות אחרות</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">הורדת Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">הורדת Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -611,18 +614,18 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s זמין לשימוש תחת <a href="%2$s">תנאי הרשיון הציבורי של Mozilla</a> ורשיונות קוד פתוח אחרים.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s זמין לשימוש תחת <a href="%2$s">תנאי הרשיון הציבורי של Mozilla</a> ורשיונות קוד פתוח אחרים.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[קוד מקור נוסף עבור %1$s זמין תחת מגוון <a href="%2$s">רישיונות</a> קוד פתוח נוספים.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[קוד מקור נוסף עבור %1$s זמין תחת מגוון <a href="%2$s">רישיונות</a> קוד פתוח נוספים.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[ב־%1$s נעשה גם שימוש ברשימות חסימה מאת Disconnect בע״מ כעבודות נפרדות ועצמאיות תחת <a href="%2$s">גרסה 3 של הרשיון הציבורי הכללי של GNU</a>, והוא זמין <a href="%3$s">כאן</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ב־%1$s נעשה גם שימוש ברשימות חסימה מאת Disconnect בע״מ כעבודות נפרדות ועצמאיות תחת <a href="%2$s">גרסה 3 של הרשיון הציבורי הכללי של GNU</a>, והוא זמין <a href="%3$s">כאן</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">שם משתמש</string>
@@ -804,7 +807,7 @@
     <string name="preference_studies">מחקרים</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">‏Firefox עשוי להתקין ולהריץ מחקרים מדי פעם בפעם.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">‏Firefox עשוי להתקין ולהריץ מחקרים מדי פעם בפעם.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">מידע נוסף</string>
@@ -1008,7 +1011,7 @@
 
      <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[‏%1$s מנסה להשתמש בחיבור HTTPS במידת האפשר להגברת האבטחה.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[‏%1$s מנסה להשתמש בחיבור HTTPS במידת האפשר להגברת האבטחה.
      <a href="%2$s">מידע נוסף</a> <br/><br/>
      ניתן לשנות הגדרה זו בהגדרות > פרטיות ואבטחה > אבטחה.]]></string>
 

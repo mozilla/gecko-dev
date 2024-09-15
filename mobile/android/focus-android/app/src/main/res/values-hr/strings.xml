@@ -86,6 +86,10 @@
     <string name="notification_erase_title_android_14">Izbrisati povijest pregledavanja?</string>
     <string name="notification_erase_text_android_14" moz:RemovedIn="124" tools:ignore="UnusedResources">Dodirni ili izbriši ovu obavijest za sigurno brisanje tvoje povijesti pregledavanja.</string>
 
+    <!-- Text shown in the notification description that pops up to remind the user that a browsing session is active
+    for Android 14+. -->
+    <string name="notification_erase_text_android_14_1">Dodirni ili povuci ovu obavijest za sigurno brisanje tvoje povijesti pregledavanja.</string>
+
     <string name="notification_erase_text">Obriši povijest pretraživanja</string>
 
     <!-- Notification action to open Focus and resume the current browsing session. -->
@@ -307,6 +311,12 @@
 
     <!-- Preference Title: Biometrics can be used to unlock Focus if the previous session's data was not erased by the user. -->
     <string name="preference_security_biometric">Koristi otisak prsta za otključavanje aplikacije</string>
+
+    <!-- Preference Summary: Biometrics (iris scan, fingerprint, or facial scan) can be used to unlock Focus if the app had a URL
+        open when the app was last run to ensure that only the phone's owner can view a previous session.
+        %s will be replaced by the app name (e.g. Firefox Focus)
+        Shortcuts is a feature that allows the user to pin his favorite websites to Focus home screen so he can quickly access them-->
+    <string name="preference_security_biometric_summary2">Otključaj pomoću otiska prsta ako si dodao/la prečace ili kada je web stranica već otvorena u pregledniku %s.</string>
 
     <!-- Preference Title: Secure Mode is a setting that prevents the app's content to show up in the "recent apps" screen
          and prevents the user from taking screenshots or casting the app to other displays. -->
@@ -699,6 +709,9 @@
     <!--  Title preference inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
     <string name="cookie_banner_reject_all_option_title">Smanjivanje pojavljivanja dijaloga kolačića</string>
 
+    <!--  Preference summary inside Cookie banner reduction screen. Here you can set the cookie banner option to disabled or reject_all. -->
+    <string name="cookie_banner_reject_all_option_summary">Vidi manje dijaloga pomoću automatskog odbijanja zahtjeva kolačića, kada je to moguće.</string>
+
     <!-- Preference for removing cookie/consent banners from sites automatically, this is shown as part of the protections panel with the tracking protection toggle. -->--&gt;
     <string name="cookie_banner_exception_item_title">Smanjivanje pojavljivanja dijaloga kolačića</string>
 
@@ -726,11 +739,23 @@
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site. -->
     <string name="cookie_banner_exception_panel_title_state_off_for_site">Isključiti smanjivanje broja dijaloga kolačića za %1$s?</string>
 
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+    <string name="cookie_banner_exception_panel_description_state_on_for_site">%1$s će izbrisati kolačiće stranice i ponovo je učtati. Brisanje svih kolačića će te možda odjaviti ili isprazniti košaricu.</string>
+
+    <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The placeholder will be updated with the app name. -->
+    <string name="cookie_banner_exception_panel_description_state_off_for_site2">%1$s može pokušati automatski odbiti zahtjeve kolačića.</string>
+
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
     <string name="cookie_banner_exception_panel_site_is_not_supported_cancel_button">Odustani</string>
 
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner panel in the toolbar. -->
     <string name="cookie_banner_exception_panel_site_is_not_supported_request_support_button">Zatraži podršku</string>
+
+    <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
+    <string name="cookie_banner_report_a_site_snackbar_label">Zahtjev za podržavanje web stranice je poslan.</string>
+
+    <!-- Label for cookie banner item from tracking protection, after the user reports with success a website where cookie banner reducer did not work -->
+    <string name="cookie_banner_the_site_was_reported">Zahtjev za podržavanje web stranice je poslan.</string>
 
     <!-- CFR for Cookie Banner (Banner Info Message). This string is used as text for a link in cfr_cookie_banner and takes the user to the app settings. -->
     <string name="cfr_cookie_banner_link">postavke</string>
