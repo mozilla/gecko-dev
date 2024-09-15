@@ -574,8 +574,23 @@ class MOZ_STACK_CLASS AutoPointerEventTargetUpdater final {
     mFromTouch = aEvent->AsPointerEvent()->mFromTouchEvent;
     // Touch event target may have no frame, e.g., removed from the DOM
     MOZ_ASSERT_IF(!mFromTouch, aFrame);
-    mOriginalPointerEventTarget = aShell->mPointerEventTarget =
-        aFrame ? aFrame->GetContent() : aTargetContent;
+    // The frame may be a text frame, but the event target should be an element
+    // node.  Therefore, refer aTargetContent first, then, if we have only a
+    // frame, we should use inclusive ancestor of the content.
+    mOriginalPointerEventTarget =
+        aShell->mPointerEventTarget = [&]() -> nsIContent* {
+      nsIContent* const target =
+          aTargetContent ? aTargetContent
+                         : (aFrame ? aFrame->GetContent() : nullptr);
+      if (MOZ_UNLIKELY(!target)) {
+        return nullptr;
+      }
+      if (target->IsElement() ||
+          !IsForbiddenDispatchingToNonElementContent(aEvent->mMessage)) {
+        return target;
+      }
+      return target->GetInclusiveFlattenedTreeAncestorElement();
+    }();
   }
 
   ~AutoPointerEventTargetUpdater() {
@@ -8948,6 +8963,11 @@ nsresult PresShell::EventHandler::DispatchEventToDOM(
     if (mPresShell->mCurrentEventTarget.mFrame) {
       rv = mPresShell->mCurrentEventTarget.mFrame->GetContentForEvent(
           aEvent, getter_AddRefs(targetContent));
+      if (targetContent && !targetContent->IsElement() &&
+          IsForbiddenDispatchingToNonElementContent(aEvent->mMessage)) {
+        targetContent =
+            targetContent->GetInclusiveFlattenedTreeAncestorElement();
+      }
     }
     if (NS_SUCCEEDED(rv) && targetContent) {
       eventTarget = targetContent;
