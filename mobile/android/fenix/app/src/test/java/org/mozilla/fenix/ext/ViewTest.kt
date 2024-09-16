@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.ext
 
-import android.graphics.Insets
 import android.graphics.Rect
 import android.os.Build
 import android.util.DisplayMetrics
@@ -25,7 +24,6 @@ import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.test.robolectric.testContext
 import mozilla.components.support.utils.ext.bottom
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -200,42 +198,5 @@ class ViewTest {
         every { view.rootWindowInsets } returns null
 
         assertEquals(keyboardHeight, view.getKeyboardHeight())
-    }
-
-    @Config(sdk = [Build.VERSION_CODES.R, Build.VERSION_CODES.TIRAMISU])
-    @Test
-    fun `GIVEN Android 11 and up WHEN system gesture insets are requested THEN query and return the correct values`() {
-        val rootInsets: WindowInsets = mockk(relaxed = true)
-        val gestureInsets = Insets.of(10, 20, 30, 40)
-        every { rootInsets.getInsets(WindowInsetsCompat.Type.systemGestures()) } returns gestureInsets
-        every { view.rootWindowInsets } returns rootInsets
-
-        val result = view.systemGesturesInsets
-
-        assertEquals(gestureInsets, result)
-    }
-
-    @Suppress("DEPRECATION")
-    @Config(sdk = [Build.VERSION_CODES.Q])
-    @Test
-    fun `GIVEN Android 10 WHEN system gesture insets are requested THEN query and return the correct values`() {
-        val rootInsets: WindowInsets = mockk(relaxed = true)
-        val gestureInsets = Insets.of(11, 22, 33, 44)
-        every { rootInsets.systemGestureInsets } returns gestureInsets
-        every { view.rootWindowInsets } returns rootInsets
-
-        val result = view.systemGesturesInsets
-
-        assertEquals(gestureInsets, result)
-    }
-
-    @Config(sdk = [Build.VERSION_CODES.LOLLIPOP, Build.VERSION_CODES.P])
-    @Test
-    fun `GIVEN Android 9 and lower WHEN system gesture insets are requested THEN return null`() {
-        val result = view.systemGesturesInsets
-
-        assertNull(result)
-        // There's also an implicit assertion that there is no interaction with rootViewInsets
-        // which would otherwise throw an exception leading to a test failure.
     }
 }
