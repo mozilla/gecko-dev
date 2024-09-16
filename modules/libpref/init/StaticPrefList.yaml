@@ -15587,7 +15587,7 @@
 
 - name: security.tls.enable_kyber
   type: RelaxedAtomicBool
-  value: false
+  value: @IS_NOT_ANDROID@
   mirror: always
   rust: true
 
