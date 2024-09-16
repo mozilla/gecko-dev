@@ -12,6 +12,620 @@ export const NimbusRolloutMessageProvider = {
   getMessages() {
     return [
       {
+        // Nimbus slug: 1-click-set-to-default-existing-profiles-rollout:treatment-b
+        // Version range: 128+
+        // Recipe: https://experimenter.services.mozilla.com/nimbus/1-click-set-to-default-existing-profiles-rollout/summary#treatment-b
+        id: "FOX_DOODLE_SET_DEFAULT",
+        groups: ["eco"],
+        content: {
+          id: "FOX_DOODLE_SET_DEFAULT",
+          screens: [
+            {
+              id: "FOX_DOODLE_SET_DEFAULT_SCREEN",
+              content: {
+                logo: {
+                  height: "125px",
+                  imageURL:
+                    "chrome://activity-stream/content/data/content/assets/fox-doodle-waving.gif",
+                  reducedMotionImageURL:
+                    "chrome://activity-stream/content/data/content/assets/fox-doodle-waving-static.png",
+                },
+                title: {
+                  fontSize: "22px",
+                  string_id: "fox-doodle-pin-headline",
+                  fontWeight: 590,
+                  paddingBlock: "4px 0",
+                  letterSpacing: 0,
+                  paddingInline: "24px",
+                },
+                subtitle: {
+                  fontSize: "15px",
+                  string_id: "fox-doodle-pin-body",
+                  lineHeight: "1.4",
+                  marginBlock: "8px 16px",
+                  letterSpacing: 0,
+                  paddingInline: "24px",
+                },
+                dismiss_button: {
+                  action: {
+                    navigate: true,
+                  },
+                },
+                primary_button: {
+                  label: {
+                    string_id: "fox-doodle-pin-primary",
+                    marginBlock: "4px 0",
+                    paddingBlock: "0",
+                    paddingInline: "16px",
+                  },
+                  action: {
+                    type: "SET_DEFAULT_BROWSER",
+                    navigate: true,
+                  },
+                },
+                secondary_button: {
+                  label: {
+                    string_id: "fox-doodle-pin-secondary",
+                    marginBlock: "0 -20px",
+                  },
+                  action: {
+                    navigate: true,
+                  },
+                },
+              },
+            },
+          ],
+          backdrop: "transparent",
+          template: "multistage",
+          transitions: true,
+        },
+        trigger: {
+          id: "defaultBrowserCheck",
+        },
+        template: "spotlight",
+        frequency: {
+          lifetime: 2,
+        },
+        targeting:
+          "source == 'startup' && !isMajorUpgrade && !activeNotifications && !isDefaultBrowser && !willShowDefaultPrompt && 'browser.shell.checkDefaultBrowser'|preferenceValue && (currentDate|date - profileAgeCreated|date) / 86400000 >= 28 && previousSessionEnd && userPrefs.cfrFeatures == true",
+      },
+      {
+        // Nimbus slug: us-review-checker-rollout-v2:treatment-a (message 1 of 4)
+        // Recipe: https://experimenter.services.mozilla.com/nimbus/us-review-checker-rollout-v2/summary#treatment-a
+        id: "FAKESPOT_CALLOUT_NO_OP_DUMMY",
+        trigger: {
+          id: "shoppingProductPageWithSidebarClosed",
+        },
+        priority: 2,
+        targeting: "true",
+      },
+      {
+        // Nimbus slug: us-review-checker-rollout-v2:treatment-a (message 2 of 4)
+        // Recipe: https://experimenter.services.mozilla.com/nimbus/us-review-checker-rollout-v2/summary#treatment-a
+        id: "FAKESPOT_CALLOUT_CLOSED_NOT_OPTED_IN_AUTO_OPEN",
+        content: {
+          id: "FAKESPOT_CALLOUT_CLOSED_NOT_OPTED_IN_AUTO_OPEN",
+          screens: [
+            {
+              id: "FAKESPOT_CALLOUT_CLOSED_NOT_OPTED_IN_AUTO_OPEN",
+              anchors: [
+                {
+                  selector: "#shopping-sidebar-button",
+                  panel_position: {
+                    anchor_attachment: "bottomcenter",
+                    callout_attachment: "topright",
+                  },
+                  no_open_on_anchor: true,
+                },
+              ],
+              content: {
+                logo: {
+                  height: "214px",
+                  imageURL:
+                    "chrome://browser/content/shopping/assets/priceTagButtonCallout.svg",
+                },
+                title: {
+                  string_id:
+                    "shopping-callout-closed-not-opted-in-revised-title",
+                },
+                width: "401px",
+                position: "callout",
+                subtitle: {
+                  string_id:
+                    "shopping-callout-closed-not-opted-in-revised-subtitle",
+                  letterSpacing: "0",
+                },
+                dismiss_button: {
+                  size: "small",
+                  action: {
+                    dismiss: true,
+                  },
+                  marginBlock: "28px 0",
+                  marginInline: "0 28px",
+                },
+                primary_button: {
+                  label: {
+                    string_id:
+                      "shopping-callout-closed-not-opted-in-revised-button",
+                    marginBlock: "0 -8px",
+                  },
+                  style: "secondary",
+                  action: {
+                    dismiss: true,
+                  },
+                },
+                page_event_listeners: [
+                  {
+                    action: {
+                      dismiss: true,
+                    },
+                    params: {
+                      type: "click",
+                      selectors: "#shopping-sidebar-button",
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+          backdrop: "transparent",
+          template: "multistage",
+          transitions: false,
+          disableHistoryUpdates: true,
+        },
+        trigger: {
+          id: "shoppingProductPageWithSidebarClosed",
+        },
+        priority: 3,
+        template: "feature_callout",
+        frequency: {
+          lifetime: 1,
+        },
+        targeting:
+          "isSidebarClosing && 'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue == true && 'browser.shopping.experience2023.optedIn' | preferenceValue == 0 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false",
+        skip_in_tests:
+          "not tested in automation and might pop up unexpectedly during review checker tests",
+      },
+      {
+        // Nimbus slug: us-review-checker-rollout-v2:treatment-a (message 3 of 4)
+        // Recipe: https://experimenter.services.mozilla.com/nimbus/us-review-checker-rollout-v2/summary#treatment-a
+        id: "FAKESPOT_CALLOUT_PDP_NOT_OPTED_IN_REMINDER",
+        content: {
+          id: "FAKESPOT_CALLOUT_PDP_NOT_OPTED_IN_REMINDER",
+          screens: [
+            {
+              id: "FAKESPOT_CALLOUT_PDP_NOT_OPTED_IN_REMINDER",
+              anchors: [
+                {
+                  selector: "#shopping-sidebar-button",
+                  panel_position: {
+                    anchor_attachment: "bottomcenter",
+                    callout_attachment: "topright",
+                  },
+                  no_open_on_anchor: true,
+                },
+              ],
+              content: {
+                logo: {
+                  alt: {
+                    string_id: "shopping-callout-not-opted-in-reminder-img-alt",
+                  },
+                  height: "214px",
+                  imageURL:
+                    "chrome://browser/content/shopping/assets/reviewsVisualCallout.svg",
+                },
+                tiles: {
+                  data: [
+                    {
+                      id: "checkbox-dont-show-again",
+                      icon: {
+                        style: {
+                          width: "16px",
+                          height: "16px",
+                          marginInline: "0 8px",
+                        },
+                      },
+                      type: "checkbox",
+                      label: {
+                        string_id:
+                          "shopping-callout-not-opted-in-reminder-ignore-checkbox",
+                      },
+                      style: {
+                        alignItems: "center",
+                      },
+                      action: {
+                        data: {
+                          pref: {
+                            name: "messaging-system-action.shopping-callouts-1-block",
+                            value: true,
+                          },
+                        },
+                        type: "SET_PREF",
+                      },
+                      defaultValue: false,
+                    },
+                  ],
+                  type: "multiselect",
+                  style: {
+                    alignItems: "flex-start",
+                    flexDirection: "column",
+                  },
+                },
+                title: {
+                  fontSize: "20px",
+                  string_id: "shopping-callout-not-opted-in-reminder-title",
+                  letterSpacing: "0",
+                },
+                width: "401px",
+                position: "callout",
+                subtitle: {
+                  string_id: "shopping-callout-not-opted-in-reminder-subtitle",
+                  letterSpacing: "0",
+                },
+                dismiss_button: {
+                  size: "small",
+                  action: {
+                    data: {
+                      actions: [],
+                    },
+                    type: "MULTI_ACTION",
+                    dismiss: true,
+                    collectSelect: true,
+                  },
+                  marginBlock: "28px 0",
+                  marginInline: "0 28px",
+                },
+                primary_button: {
+                  label: {
+                    string_id:
+                      "shopping-callout-not-opted-in-reminder-close-button",
+                    marginBlock: "0 -8px",
+                  },
+                  style: "secondary",
+                  action: {
+                    data: {
+                      actions: [],
+                    },
+                    type: "MULTI_ACTION",
+                    dismiss: true,
+                    collectSelect: true,
+                  },
+                },
+                secondary_button: {
+                  label: {
+                    string_id:
+                      "shopping-callout-not-opted-in-reminder-open-button",
+                    marginBlock: "0 -8px",
+                  },
+                  style: "primary",
+                  action: {
+                    data: {
+                      actions: [
+                        {
+                          data: {
+                            pref: {
+                              name: "browser.shopping.experience2023.active",
+                              value: true,
+                            },
+                          },
+                          type: "SET_PREF",
+                        },
+                      ],
+                    },
+                    type: "MULTI_ACTION",
+                    dismiss: true,
+                    collectSelect: true,
+                  },
+                },
+                page_event_listeners: [
+                  {
+                    action: {
+                      dismiss: true,
+                    },
+                    params: {
+                      type: "click",
+                      selectors: "#shopping-sidebar-button",
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+          backdrop: "transparent",
+          template: "multistage",
+          transitions: false,
+          disableHistoryUpdates: true,
+        },
+        trigger: {
+          id: "shoppingProductPageWithSidebarClosed",
+        },
+        priority: 4,
+        template: "feature_callout",
+        frequency: {
+          custom: [
+            {
+              cap: 1,
+              period: 432000000,
+            },
+          ],
+          lifetime: 3,
+        },
+        targeting:
+          "!isSidebarClosing && 'browser.shopping.experience2023.autoOpen.enabled' | preferenceValue == true && 'browser.shopping.experience2023.optedIn' | preferenceValue == 0 && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false && !'messaging-system-action.shopping-callouts-1-block' | preferenceValue && (currentDate | date - messageImpressions.FAKESPOT_CALLOUT_CLOSED_NOT_OPTED_IN_AUTO_OPEN[messageImpressions.FAKESPOT_CALLOUT_CLOSED_NOT_OPTED_IN_AUTO_OPEN | length - 1] | date) / 3600000 > 24",
+        skip_in_tests:
+          "not tested in automation and might pop up unexpectedly during review checker tests",
+      },
+      {
+        // Nimbus slug: us-review-checker-rollout-v2:treatment-a (message 4 of 4)
+        // Recipe: https://experimenter.services.mozilla.com/nimbus/us-review-checker-rollout-v2/summary#treatment-a
+        id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
+        content: {
+          id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
+          screens: [
+            {
+              id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY_1",
+              anchors: [
+                {
+                  selector: "#shopping-sidebar-button",
+                  arrow_width: "22.62742",
+                  panel_position: {
+                    anchor_attachment: "bottomcenter",
+                    callout_attachment: "topright",
+                  },
+                  no_open_on_anchor: true,
+                },
+              ],
+              content: {
+                tiles: {
+                  data: [
+                    {
+                      id: "fakespot-opted-out-survey-hard-to-understand",
+                      icon: {
+                        style: {
+                          marginInline: "2px 8px",
+                        },
+                      },
+                      type: "checkbox",
+                      group: "checkboxes",
+                      label: {
+                        raw: "It’s hard to understand",
+                      },
+                      randomize: true,
+                      defaultValue: false,
+                    },
+                    {
+                      id: "fakespot-opted-out-survey-too-slow",
+                      icon: {
+                        style: {
+                          marginInline: "2px 8px",
+                        },
+                      },
+                      type: "checkbox",
+                      group: "checkboxes",
+                      label: {
+                        raw: "It’s too slow",
+                      },
+                      randomize: true,
+                      defaultValue: false,
+                    },
+                    {
+                      id: "fakespot-opted-out-survey-not-accurate",
+                      icon: {
+                        style: {
+                          marginInline: "2px 8px",
+                        },
+                      },
+                      type: "checkbox",
+                      group: "checkboxes",
+                      label: {
+                        raw: "It’s not accurate",
+                      },
+                      randomize: true,
+                      defaultValue: false,
+                    },
+                    {
+                      id: "fakespot-opted-out-survey-not-helpful",
+                      icon: {
+                        style: {
+                          marginInline: "2px 8px",
+                        },
+                      },
+                      type: "checkbox",
+                      group: "checkboxes",
+                      label: {
+                        raw: "It’s not helpful to me",
+                      },
+                      randomize: true,
+                      defaultValue: false,
+                    },
+                    {
+                      id: "fakespot-opted-out-survey-check-reviews-myself",
+                      icon: {
+                        style: {
+                          marginInline: "2px 8px",
+                        },
+                      },
+                      type: "checkbox",
+                      group: "checkboxes",
+                      label: {
+                        raw: "I’d rather check reviews myself",
+                      },
+                      randomize: true,
+                      defaultValue: false,
+                    },
+                    {
+                      id: "fakespot-opted-out-survey-other",
+                      icon: {
+                        style: {
+                          marginInline: "2px 8px",
+                        },
+                      },
+                      type: "checkbox",
+                      group: "checkboxes",
+                      label: {
+                        raw: "Other",
+                      },
+                      defaultValue: false,
+                    },
+                  ],
+                  type: "multiselect",
+                  label:
+                    "Please let us know why you turned off Review Checker. Select multiple if needed.",
+                  style: {
+                    alignItems: "flex-start",
+                    flexDirection: "column",
+                  },
+                },
+                title: "Help improve Firefox",
+                width: "332px",
+                layout: "survey",
+                padding: "20",
+                position: "callout",
+                title_logo: {
+                  imageURL: "chrome://branding/content/about-logo.png",
+                },
+                dismiss_button: {
+                  size: "small",
+                  label: {
+                    aria_label: "Close",
+                  },
+                  action: {
+                    data: {
+                      actions: [
+                        {
+                          data: {
+                            id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
+                          },
+                          type: "BLOCK_MESSAGE",
+                        },
+                        {
+                          data: {
+                            pref: {
+                              name: "messaging-system-action.fakespot-opted-out-survey.progress",
+                            },
+                          },
+                          type: "SET_PREF",
+                        },
+                      ],
+                    },
+                    type: "MULTI_ACTION",
+                    dismiss: true,
+                    collectSelect: true,
+                  },
+                },
+                secondary_button: {
+                  label: "Submit",
+                  style: "primary",
+                  action: {
+                    data: {
+                      actions: [
+                        {
+                          data: {
+                            pref: {
+                              name: "messaging-system-action.fakespot-opted-out-survey.progress",
+                              value:
+                                '{"screen":"FAKESPOT_CALLOUT_OPTED_OUT_SURVEY_2","complete":false}',
+                            },
+                          },
+                          type: "SET_PREF",
+                        },
+                      ],
+                    },
+                    type: "MULTI_ACTION",
+                    collectSelect: true,
+                  },
+                  disabled: "hasActiveMultiSelect",
+                },
+              },
+              force_hide_steps_indicator: true,
+            },
+            {
+              id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY_2",
+              anchors: [
+                {
+                  selector: "#shopping-sidebar-button",
+                  arrow_width: "22.62742",
+                  panel_position: {
+                    anchor_attachment: "bottomcenter",
+                    callout_attachment: "topright",
+                  },
+                  no_open_on_anchor: true,
+                },
+              ],
+              content: {
+                title: "Thanks for your feedback!",
+                layout: "inline",
+                position: "callout",
+                title_logo: {
+                  imageURL:
+                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/706c7a85-cf23-442e-8a92-7ebc7f537375.svg",
+                },
+                dismiss_button: {
+                  size: "small",
+                  label: {
+                    aria_label: "Close",
+                  },
+                  action: {
+                    data: {
+                      pref: {
+                        name: "messaging-system-action.fakespot-opted-out-survey.progress",
+                      },
+                    },
+                    type: "SET_PREF",
+                    dismiss: true,
+                  },
+                },
+                page_event_listeners: [
+                  {
+                    action: {
+                      dismiss: true,
+                    },
+                    params: {
+                      type: "timeout",
+                      options: {
+                        once: true,
+                        interval: 20000,
+                      },
+                    },
+                  },
+                  {
+                    action: {
+                      data: {
+                        id: "FAKESPOT_CALLOUT_OPTED_OUT_SURVEY",
+                      },
+                      type: "BLOCK_MESSAGE",
+                    },
+                    params: {
+                      type: "tourend",
+                      options: {
+                        once: true,
+                      },
+                    },
+                  },
+                ],
+              },
+              force_hide_steps_indicator: true,
+            },
+          ],
+          backdrop: "transparent",
+          template: "multistage",
+          transitions: false,
+          tour_pref_name:
+            "messaging-system-action.fakespot-opted-out-survey.progress",
+          disableHistoryUpdates: true,
+          tour_pref_default_value:
+            '{"screen":"FAKESPOT_CALLOUT_OPTED_OUT_SURVEY_1","complete":false}',
+        },
+        trigger: {
+          id: "preferenceObserver",
+          params: ["browser.shopping.experience2023.optedIn"],
+        },
+        priority: 2,
+        template: "feature_callout",
+        targeting:
+          "'browser.shopping.experience2023.optedIn' | preferenceValue == 2 && !'browser.shopping.experience2023.active' | preferenceValue && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features' | preferenceValue != false",
+      },
+      {
         // Nimbus slug: recommend-add-ons-staff-pick-relaunch-treatment-a-rollout:treatment-a
         // Version range: 123+
         // Recipe: https://experimenter.services.mozilla.com/nimbus/recommend-add-ons-staff-pick-relaunch-treatment-a-rollout/summary#treatment-a
@@ -88,427 +702,6 @@ export const NimbusRolloutMessageProvider = {
         },
         targeting:
           "!screenImpressions.AW_AMO_INTRODUCE && !willShowDefaultPrompt && !activeNotifications && source == 'newtab' && !isFirstStartup",
-      },
-      {
-        // Nimbus slug: device-migration-q4-spotlights-remaining-population-esr:treatment (message 1 of 3)
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/device-migration-q4-spotlights-remaining-population-esr/summary#treatment
-        id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-        groups: ["eco"],
-        content: {
-          id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-          modal: "tab",
-          screens: [
-            {
-              id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT_BACKUP",
-              content: {
-                logo: {
-                  height: "152px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/c92a41e4-82cf-4ad5-8480-04a138bfb3cd.png",
-                },
-                title: {
-                  fontSize: "24px",
-                  string_id: "device-migration-fxa-spotlight-heavy-user-header",
-                  letterSpacing: 0,
-                },
-                subtitle: {
-                  fontSize: "15px",
-                  string_id: "device-migration-fxa-spotlight-heavy-user-body",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 20px",
-                  letterSpacing: 0,
-                  paddingInline: "20px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    string_id:
-                      "device-migration-fxa-spotlight-heavy-user-primary-button",
-                    paddingBlock: "4px",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    data: {
-                      args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/switching-devices?utm_source=spotlight-default&utm_medium=firefox-desktop&utm_campaign=migration&utm_content=dont-forget-to-backup&entrypoint=device-migration-spotlight-experiment-v2",
-                      where: "tabshifted",
-                    },
-                    type: "OPEN_URL",
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && !usesFirefoxSync && !hasActiveEnterprisePolicies && userMonthlyActivity[userMonthlyActivity|length - 2][1]|date >= currentDate|date - (28 * 24 * 60 * 60 * 1000) && (((currentDate|date - profileAgeCreated|date) / 86400000 >= 168) || totalBookmarksCount >= 35)",
-      },
-      {
-        // Nimbus slug: device-migration-q4-spotlights-remaining-population-esr:treatment (message 2 of 3)
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/device-migration-q4-spotlights-remaining-population-esr/summary#treatment
-        id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-        groups: ["eco"],
-        content: {
-          id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-          modal: "tab",
-          screens: [
-            {
-              id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT_PEACE",
-              content: {
-                logo: {
-                  height: "133px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/4a56d3ed-98c8-4a33-b853-b2cf7646efd8.png",
-                  marginBlock: "22px -10px",
-                },
-                title: {
-                  fontSize: "24px",
-                  string_id:
-                    "device-migration-fxa-spotlight-older-device-header",
-                  letterSpacing: 0,
-                },
-                subtitle: {
-                  fontSize: "15px",
-                  string_id: "device-migration-fxa-spotlight-older-device-body",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 20px",
-                  letterSpacing: 0,
-                  paddingInline: "40px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    string_id:
-                      "device-migration-fxa-spotlight-older-device-primary-button",
-                    marginBlock: "0 22px",
-                    paddingBlock: "4px",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    data: {
-                      args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/switching-devices?utm_source=spotlight-default&utm_medium=firefox-desktop&utm_campaign=migration&utm_content=peace-of-mind&entrypoint=device-migration-spotlight-experiment-v2",
-                      where: "tabshifted",
-                    },
-                    type: "OPEN_URL",
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && !usesFirefoxSync && !hasActiveEnterprisePolicies && userMonthlyActivity[userMonthlyActivity|length - 2][1]|date >= currentDate|date - (28 * 24 * 60 * 60 * 1000) && !(((currentDate|date - profileAgeCreated|date) / 86400000 >= 168) || totalBookmarksCount >= 35) && os.isWindows && os.windowsVersion >= 6.1 && os.windowsBuildNumber < 22000",
-      },
-      {
-        // Nimbus slug: device-migration-q4-spotlights-remaining-population-esr:treatment (message 3 of 3)
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/device-migration-q4-spotlights-remaining-population-esr/summary#treatment
-        id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-        groups: ["eco"],
-        content: {
-          id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-          modal: "tab",
-          screens: [
-            {
-              id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT_NEW_DEVICE",
-              content: {
-                logo: {
-                  height: "149px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/a43cd9cc-e8b2-477c-92f2-345557370de1.svg",
-                },
-                title: {
-                  fontSize: "24px",
-                  string_id:
-                    "device-migration-fxa-spotlight-getting-new-device-header-2",
-                  letterSpacing: 0,
-                },
-                subtitle: {
-                  fontSize: "15px",
-                  string_id:
-                    "device-migration-fxa-spotlight-getting-new-device-body-2",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 20px",
-                  letterSpacing: 0,
-                  paddingInline: "40px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    string_id:
-                      "device-migration-fxa-spotlight-getting-new-device-primary-button",
-                    paddingBlock: "4px",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    data: {
-                      args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/switching-devices?utm_source=spotlight-default&utm_medium=firefox-desktop&utm_campaign=migration&utm_content=new-device-in-your-future&entrypoint=device-migration-spotlight-experiment-v2",
-                      where: "tabshifted",
-                    },
-                    type: "OPEN_URL",
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && !usesFirefoxSync && !hasActiveEnterprisePolicies && userMonthlyActivity[userMonthlyActivity|length - 2][1]|date >= currentDate|date - (28 * 24 * 60 * 60 * 1000) && !(((currentDate|date - profileAgeCreated|date) / 86400000 >= 168) || totalBookmarksCount >= 35) && !(os.isWindows && os.windowsVersion >= 6.1 && os.windowsBuildNumber < 22000)",
-      },
-      {
-        // Nimbus slug: device-migration-q4-spotlights-remaining-population:treatment (message 1 of 3)
-        // Version range: 122+
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/device-migration-q4-spotlights-remaining-population/summary#treatment
-        id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-        groups: ["eco"],
-        content: {
-          id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-          modal: "tab",
-          screens: [
-            {
-              id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT_BACKUP",
-              content: {
-                logo: {
-                  height: "152px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/c92a41e4-82cf-4ad5-8480-04a138bfb3cd.png",
-                },
-                title: {
-                  fontSize: "24px",
-                  string_id: "device-migration-fxa-spotlight-heavy-user-header",
-                  letterSpacing: 0,
-                },
-                subtitle: {
-                  fontSize: "15px",
-                  string_id: "device-migration-fxa-spotlight-heavy-user-body",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 20px",
-                  letterSpacing: 0,
-                  paddingInline: "20px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    string_id:
-                      "device-migration-fxa-spotlight-heavy-user-primary-button",
-                    paddingBlock: "4px",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    data: {
-                      args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/switching-devices?utm_source=spotlight-default&utm_medium=firefox-desktop&utm_campaign=migration&utm_content=dont-forget-to-backup&entrypoint=device-migration-spotlight-experiment-v2",
-                      where: "tabshifted",
-                    },
-                    type: "OPEN_URL",
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && !usesFirefoxSync && !hasActiveEnterprisePolicies && userMonthlyActivity[userMonthlyActivity|length - 2][1]|date >= currentDate|date - (28 * 24 * 60 * 60 * 1000) && (((currentDate|date - profileAgeCreated|date) / 86400000 >= 168) || totalBookmarksCount >= 35)",
-      },
-      {
-        // Nimbus slug: device-migration-q4-spotlights-remaining-population:treatment (message 2 of 3)
-        // Version range: 122+
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/device-migration-q4-spotlights-remaining-population/summary#treatment
-        id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-        groups: ["eco"],
-        content: {
-          id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-          modal: "tab",
-          screens: [
-            {
-              id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT_PEACE",
-              content: {
-                logo: {
-                  height: "133px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/4a56d3ed-98c8-4a33-b853-b2cf7646efd8.png",
-                  marginBlock: "22px -10px",
-                },
-                title: {
-                  fontSize: "24px",
-                  string_id:
-                    "device-migration-fxa-spotlight-older-device-header",
-                  letterSpacing: 0,
-                },
-                subtitle: {
-                  fontSize: "15px",
-                  string_id: "device-migration-fxa-spotlight-older-device-body",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 20px",
-                  letterSpacing: 0,
-                  paddingInline: "40px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    string_id:
-                      "device-migration-fxa-spotlight-older-device-primary-button",
-                    marginBlock: "0 22px",
-                    paddingBlock: "4px",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    data: {
-                      args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/switching-devices?utm_source=spotlight-default&utm_medium=firefox-desktop&utm_campaign=migration&utm_content=peace-of-mind&entrypoint=device-migration-spotlight-experiment-v2",
-                      where: "tabshifted",
-                    },
-                    type: "OPEN_URL",
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && !usesFirefoxSync && !hasActiveEnterprisePolicies && userMonthlyActivity[userMonthlyActivity|length - 2][1]|date >= currentDate|date - (28 * 24 * 60 * 60 * 1000) && !(((currentDate|date - profileAgeCreated|date) / 86400000 >= 168) || totalBookmarksCount >= 35) && os.isWindows && os.windowsVersion >= 6.1 && os.windowsBuildNumber < 22000",
-      },
-      {
-        // Nimbus slug: device-migration-q4-spotlights-remaining-population:treatment (message 3 of 3)
-        // Version range: 122+
-        // Recipe: https://experimenter.services.mozilla.com/nimbus/device-migration-q4-spotlights-remaining-population/summary#treatment
-        id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-        groups: ["eco"],
-        content: {
-          id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT",
-          modal: "tab",
-          screens: [
-            {
-              id: "Q4_DEVICE_MIGRATION_BACKUP_SPOTLIGHT_NEW_DEVICE",
-              content: {
-                logo: {
-                  height: "149px",
-                  imageURL:
-                    "https://firefox-settings-attachments.cdn.mozilla.net/main-workspace/ms-images/a43cd9cc-e8b2-477c-92f2-345557370de1.svg",
-                },
-                title: {
-                  fontSize: "24px",
-                  string_id:
-                    "device-migration-fxa-spotlight-getting-new-device-header-2",
-                  letterSpacing: 0,
-                },
-                subtitle: {
-                  fontSize: "15px",
-                  string_id:
-                    "device-migration-fxa-spotlight-getting-new-device-body-2",
-                  lineHeight: "1.4",
-                  marginBlock: "8px 20px",
-                  letterSpacing: 0,
-                  paddingInline: "40px",
-                },
-                dismiss_button: {
-                  action: {
-                    navigate: true,
-                  },
-                },
-                primary_button: {
-                  label: {
-                    string_id:
-                      "device-migration-fxa-spotlight-getting-new-device-primary-button",
-                    paddingBlock: "4px",
-                    paddingInline: "16px",
-                  },
-                  action: {
-                    data: {
-                      args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/switching-devices?utm_source=spotlight-default&utm_medium=firefox-desktop&utm_campaign=migration&utm_content=new-device-in-your-future&entrypoint=device-migration-spotlight-experiment-v2",
-                      where: "tabshifted",
-                    },
-                    type: "OPEN_URL",
-                    navigate: true,
-                  },
-                },
-              },
-            },
-          ],
-          backdrop: "transparent",
-          template: "multistage",
-          transitions: true,
-        },
-        trigger: {
-          id: "defaultBrowserCheck",
-        },
-        template: "spotlight",
-        frequency: {
-          lifetime: 1,
-        },
-        targeting:
-          "source == 'startup' && !willShowDefaultPrompt && 'browser.newtabpage.activity-stream.asrouter.userprefs.cfr.features'|preferenceValue && !usesFirefoxSync && !hasActiveEnterprisePolicies && userMonthlyActivity[userMonthlyActivity|length - 2][1]|date >= currentDate|date - (28 * 24 * 60 * 60 * 1000) && !(((currentDate|date - profileAgeCreated|date) / 86400000 >= 168) || totalBookmarksCount >= 35) && !(os.isWindows && os.windowsVersion >= 6.1 && os.windowsBuildNumber < 22000)",
       },
     ];
   },
