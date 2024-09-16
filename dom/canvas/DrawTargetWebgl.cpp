@@ -4329,22 +4329,22 @@ bool SharedContextWebgl::DrawGlyphsAccel(ScaledFont* aFont,
   DeviceColor color = aOptions.mCompositionOp == CompositionOp::OP_CLEAR
                           ? DeviceColor(1, 1, 1, 1)
                           : static_cast<const ColorPattern&>(aPattern).mColor;
-#if defined(XP_MACOSX) || defined(XP_WIN)
-  // macOS and Windows use gamma-aware blending.
-  bool usePreblend = aUseSubpixelAA;
-#else
-  // FreeType backends currently don't use any preblending.
-  bool usePreblend = false;
-#endif
-
-#ifdef XP_MACOSX
+#if defined(XP_MACOSX)
+  // macOS uses gamma-aware blending with font smooth from subpixel AA.
   // If font smoothing is requested, even if there is no subpixel AA, gamma-
   // aware blending might be used and differing amounts of dilation might be
   // applied.
-  if (aFont->GetType() == FontType::MAC &&
-      static_cast<ScaledFontMac*>(aFont)->UseFontSmoothing()) {
-    usePreblend = true;
-  }
+  bool usePreblend = aUseSubpixelAA ||
+                     (aFont->GetType() == FontType::MAC &&
+                      static_cast<ScaledFontMac*>(aFont)->UseFontSmoothing());
+#elif defined(XP_WIN)
+  // Windows uses gamma-aware blending via ClearType with grayscale and subpixel
+  // AA.
+  bool usePreblend =
+      aUseSubpixelAA || aOptions.mAntialiasMode != AntialiasMode::NONE;
+#else
+  // FreeType backends currently don't use any preblending.
+  bool usePreblend = false;
 #endif
 
   // If the font has bitmaps, use the color directly. Otherwise, the texture
