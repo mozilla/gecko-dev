@@ -11,6 +11,7 @@
 
 // Global includes
 #include <utility>
+#include "mozilla/ErrorNames.h"
 #include "mozilla/MacroForEach.h"
 #include "nsError.h"
 #include "nsISDBCallbacks.h"
@@ -102,6 +103,18 @@ SDBRequest::GetResultCode(nsresult* aResultCode) {
   }
 
   *aResultCode = mResultCode;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SDBRequest::GetResultName(nsACString& aResultName) {
+  AssertIsOnOwningThread();
+
+  if (!mHaveResultOrErrorCode) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  mozilla::GetErrorName(mResultCode, aResultName);
   return NS_OK;
 }
 
