@@ -198,8 +198,8 @@ void QuotaUsageChecker::CheckQuotaHeadroom() {
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }
-    rv = csd->DeleteDataFromSite(baseDomain, false,
-                                 nsIClearDataService::CLEAR_DOM_QUOTA, this);
+    rv = csd->DeleteDataFromSiteAndOriginAttributesPatternString(
+        baseDomain, u""_ns, false, nsIClearDataService::CLEAR_DOM_QUOTA, this);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }

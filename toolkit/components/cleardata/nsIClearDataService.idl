@@ -67,6 +67,8 @@ interface nsIClearDataService : nsISupports
    * preferred over deleteDataFromPrincipal, since origins may share information
    * with their site (e.g. cookies) that are not deleted by principal.
    * @param aSchemelessSite the site to be cleared excluding scheme.
+   * @param aOriginAttributesPatternString optional pattern to filter OriginAttributes
+   *        by. If not passed all entries matching aSchemelessSite are cleared.
    * @param aIsUserRequest true if this request comes from a user interaction.
    *        This information is important because if true, it's probably better
    *        to remove more than less, for privacy reason. If false (e.g.
@@ -77,9 +79,21 @@ interface nsIClearDataService : nsISupports
    *                  completed.
    */
   void deleteDataFromSite(in AUTF8String aSchemelessSite,
+                                in jsval aOriginAttributesPattern,
                                 in boolean aIsUserRequest,
                                 in uint32_t aFlags,
                                 in nsIClearDataCallback aCallback);
+
+  /**
+   * Variant of deleteDataFromSite that accepts a JSON string for the OriginAttributesPattern.
+   * This is helpful for native callers because they don't have to construct a jsval.
+   * From JS prefer calling deleteDataFromSite directly.
+   */
+  void deleteDataFromSiteAndOriginAttributesPatternString(in AUTF8String aSchemelessSite,
+                              in AString aOriginAttributesPatternString,
+                              in boolean aIsUserRequest,
+                              in uint32_t aFlags,
+                              in nsIClearDataCallback aCallback);
 
   /**
    * Delete data owned by a principal.

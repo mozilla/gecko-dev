@@ -45,30 +45,48 @@ XPCOMUtils.defineLazyPreferenceGetter(
   Ci.nsIBounceTrackingProtection.MODE_DISABLED
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "permissionManagerIsolateByPrivateBrowsing",
+  "permissions.isolateBy.privateBrowsing",
+  false
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "permissionManagerIsolateByUserContext",
+  "permissions.isolateBy.userContext",
+  false
+);
+
 /**
- * Test if host, OriginAttributes or principal belong to a baseDomain. Also
- * considers partitioned storage by inspecting OriginAttributes partitionKey.
+ * Test if (host, OriginAttributes) or principal belong to a (schemeless) site.
+ * Also considers partitioned storage by inspecting OriginAttributes
+ * partitionKey.
  * @param options
- * @param {string} [options.host] - Optional host to compare to base domain.
+ * @param {string} [options.host] - Optional host to compare to site.
  * @param {object} [options.originAttributes] - Optional origin attributes to
- * inspect for aBaseDomain. If omitted, partitionKey will not be matched.
- * @param {nsIPrincipal} [options.principal] - Optional principal to compare to
- * base domain.
- * @param {string} aBaseDomain - Domain to check for. Must be a valid, non-empty
- * baseDomain string.
- * @returns {boolean} Whether the host, originAttributes or principal matches
- * the base domain.
+ * inspect for aSchemelessSite. If omitted, partitionKey and
+ * aOriginAttributesPattern will not be matched.
+ * @param {nsIPrincipal} [options.principal] - Optional principal to match with
+ * aSchemelessSite and aOriginAttributesPattern.
+ * @param {string} aSchemelessSite - Domain to check for. Must be a valid,
+ * non-empty baseDomain string.
+ * @param {Object} [aOriginAttributesPattern] - Additional OriginAttributes
+ * filtering using an OriginAttributesPattern. Defaults to {} which matches all.
+ * @returns {boolean} Whether the (host, originAttributes) or principal matches
+ * the site.
  */
-function hasBaseDomain(
+function hasSite(
   { host = null, originAttributes = null, principal = null },
-  aBaseDomain
+  aSchemelessSite,
+  aOriginAttributesPattern = {}
 ) {
-  if (!aBaseDomain) {
-    throw new Error("Missing baseDomain.");
+  if (!aSchemelessSite) {
+    throw new Error("Missing aSchemelessSite.");
   }
   if (!host && !originAttributes && !principal) {
     throw new Error(
-      "Missing host, originAttributes or principal to match with baseDomain."
+      "Missing host, originAttributes or principal to match with aSchemelessSite."
     );
   }
   if (principal && (host || originAttributes)) {
@@ -77,22 +95,50 @@ function hasBaseDomain(
     );
   }
 
-  if (host && Services.eTLD.hasRootDomain(host, aBaseDomain)) {
+  // If passed a host check if it belongs ot the given site.
+  // originAttributes is optional. Only check for match if it's passed.
+  if (
+    host &&
+    Services.eTLD.hasRootDomain(host, aSchemelessSite) &&
+    (!originAttributes ||
+      ChromeUtils.originAttributesMatchPattern(
+        originAttributes,
+        aOriginAttributesPattern
+      ))
+  ) {
     return true;
   }
 
-  if (principal?.baseDomain == aBaseDomain) {
+  // If passed a principal check if it belongs to the given site. Also
+  // check if the principal's OriginAttributes match our pattern.
+  if (
+    principal?.baseDomain == aSchemelessSite &&
+    ChromeUtils.originAttributesMatchPattern(
+      principal.originAttributes,
+      aOriginAttributesPattern
+    )
+  ) {
     return true;
   }
 
-  originAttributes = originAttributes || principal?.originAttributes;
-  if (!originAttributes) {
+  // Additionally check for partitioned state under the top level
+  // aSchemelessSite. We need to inspect the OriginAttributes partitionKey for
+  // that.
+  let oa = originAttributes ?? principal?.originAttributes;
+  if (oa == null) {
+    // No OriginAttributes passed in to compare with.
     return false;
   }
 
-  return ChromeUtils.originAttributesMatchPattern(originAttributes, {
-    partitionKeyPattern: { baseDomain: aBaseDomain },
-  });
+  // For matching partitioned state under aSchemelessSite we use a
+  // PartitionKeyPattern. Merge it with the aOriginAttributesPattern from the
+  // caller.
+  let patternWithPartitionKey = {
+    ...aOriginAttributesPattern,
+    partitionKeyPattern: { baseDomain: aSchemelessSite },
+  };
+
+  return ChromeUtils.originAttributesMatchPattern(oa, patternWithPartitionKey);
 }
 
 // Here is a list of methods cleaners may implement. These methods must return a
@@ -150,10 +196,14 @@ const CookieCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
     Services.cookies.cookies
       .filter(({ rawHost, originAttributes }) =>
-        hasBaseDomain({ host: rawHost, originAttributes }, aSchemelessSite)
+        hasSite(
+          { host: rawHost, originAttributes },
+          aSchemelessSite,
+          aOriginAttributesPattern
+        )
       )
       .forEach(cookie => {
         Services.cookies.removeCookiesFromExactHost(
@@ -210,12 +260,29 @@ const CookieBannerExceptionCleaner = {
     }
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    let { privateBrowsingId } = aOriginAttributesPattern;
+
     try {
-      Services.cookieBanners.removeDomainPref(
-        Services.io.newURI("https://" + aSchemelessSite),
-        false
-      );
+      let uri = Services.io.newURI("https://" + aSchemelessSite);
+
+      // privateBrowsingId unset clears both normal and private browsing.
+      // Otherwise only clear either normal or private browsing depending on the
+      // value.
+      if (
+        privateBrowsingId == null ||
+        privateBrowsingId ===
+          Services.scriptSecurityManager.DEFAULT_PRIVATE_BROWSING_ID
+      ) {
+        Services.cookieBanners.removeDomainPref(uri, false);
+      }
+      if (
+        privateBrowsingId == null ||
+        privateBrowsingId !==
+          Services.scriptSecurityManager.DEFAULT_PRIVATE_BROWSING_ID
+      ) {
+        Services.cookieBanners.removeDomainPref(uri, true);
+      }
     } catch (e) {
       // Don't throw an error if the cookie banner handling is disabled.
       if (e.result != Cr.NS_ERROR_NOT_AVAILABLE) {
@@ -271,12 +338,33 @@ const CookieBannerExecutedRecordCleaner = {
     }
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    let { privateBrowsingId } = aOriginAttributesPattern;
+
     try {
-      Services.cookieBanners.removeExecutedRecordForSite(
-        aSchemelessSite,
-        false
-      );
+      // privateBrowsingId unset clears both normal and private browsing.
+      // Otherwise only clear either normal or private browsing depending on the
+      // value
+      if (
+        privateBrowsingId == null ||
+        privateBrowsingId ===
+          Services.scriptSecurityManager.DEFAULT_PRIVATE_BROWSING_ID
+      ) {
+        Services.cookieBanners.removeExecutedRecordForSite(
+          aSchemelessSite,
+          false
+        );
+      }
+      if (
+        privateBrowsingId == null ||
+        privateBrowsingId !==
+          Services.scriptSecurityManager.DEFAULT_PRIVATE_BROWSING_ID
+      ) {
+        Services.cookieBanners.removeExecutedRecordForSite(
+          aSchemelessSite,
+          true
+        );
+      }
     } catch (e) {
       // Don't throw an error if the cookie banner handling is disabled.
       if (e.result != Cr.NS_ERROR_NOT_AVAILABLE) {
@@ -312,7 +400,8 @@ const FingerprintingProtectionStateCleaner = {
     Services.rfp.cleanRandomKeyByPrincipal(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     Services.rfp.cleanRandomKeyByDomain(aSchemelessSite);
   },
 
@@ -343,14 +432,18 @@ const CertCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
     let overrideService = Cc["@mozilla.org/security/certoverride;1"].getService(
       Ci.nsICertOverrideService
     );
     overrideService
       .getOverrides()
-      .filter(({ asciiHost }) =>
-        hasBaseDomain({ host: asciiHost }, aSchemelessSite)
+      .filter(({ asciiHost, originAttributes }) =>
+        hasSite(
+          { host: asciiHost, originAttributes },
+          aSchemelessSite,
+          aOriginAttributesPattern
+        )
       )
       .forEach(({ asciiHost, port }) =>
         overrideService.clearValidityOverride(asciiHost, port, {})
@@ -384,7 +477,8 @@ const NetworkCacheCleaner = {
     Services.cache2.clearOrigin(httpsPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     Services.cache2.clearBaseDomain(aSchemelessSite);
   },
 
@@ -432,7 +526,8 @@ const CSSCacheCleaner = {
     ChromeUtils.clearStyleSheetCacheByPrincipal(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     ChromeUtils.clearStyleSheetCacheByBaseDomain(aSchemelessSite);
   },
 
@@ -463,7 +558,8 @@ const JSCacheCleaner = {
     ChromeUtils.clearScriptCacheByPrincipal(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     ChromeUtils.clearScriptCacheByBaseDomain(aSchemelessSite);
   },
 
@@ -501,7 +597,8 @@ const ImageCacheCleaner = {
     imageCache.removeEntriesFromPrincipalInAllProcesses(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     let imageCache = Cc["@mozilla.org/image/tools;1"]
       .getService(Ci.imgITools)
       .getImgCacheForDocument(null);
@@ -520,7 +617,7 @@ const ImageCacheCleaner = {
 };
 
 const DownloadsCleaner = {
-  async _deleteInternal({ hostOrBaseDomain, principal, originAttributes }) {
+  async _deleteInternal({ host, principal, originAttributes }) {
     originAttributes = originAttributes || principal?.originAttributes || {};
 
     let list = await lazy.Downloads.getList(lazy.Downloads.ALL);
@@ -540,8 +637,8 @@ const DownloadsCleaner = {
       }
 
       let entryURI = Services.io.newURI(source.url);
-      if (hostOrBaseDomain) {
-        return Services.eTLD.hasRootDomain(entryURI.host, hostOrBaseDomain);
+      if (host) {
+        return Services.eTLD.hasRootDomain(entryURI.host, host);
       }
       if (principal) {
         return principal.equalsURI(entryURI);
@@ -553,7 +650,7 @@ const DownloadsCleaner = {
   async deleteByHost(aHost, aOriginAttributes) {
     // Clearing by host also clears associated subdomains.
     return this._deleteInternal({
-      hostOrBaseDomain: aHost,
+      host: aHost,
       originAttributes: aOriginAttributes,
     });
   },
@@ -562,8 +659,26 @@ const DownloadsCleaner = {
     return this._deleteInternal({ principal: aPrincipal });
   },
 
-  async deleteBySite(aSchemelessSite) {
-    return this._deleteInternal({ hostOrBaseDomain: aSchemelessSite });
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    let list = await lazy.Downloads.getList(lazy.Downloads.ALL);
+    list.removeFinished(({ source }) => {
+      if (
+        "userContextId" in aOriginAttributesPattern &&
+        "userContextId" in source &&
+        aOriginAttributesPattern.userContextId != source.userContextId
+      ) {
+        return false;
+      }
+      if (
+        "privateBrowsingId" in aOriginAttributesPattern &&
+        !!aOriginAttributesPattern.privateBrowsingId != source.isPrivate
+      ) {
+        return false;
+      }
+
+      let entryURI = Services.io.newURI(source.url);
+      return Services.eTLD.getSchemelessSite(entryURI) == aSchemelessSite;
+    });
   },
 
   deleteByRange(aFrom, aTo) {
@@ -650,8 +765,12 @@ const MediaDevicesCleaner = {
     await this.deleteAll();
   },
 
-  // TODO: Same as above, but for base domain.
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  // TODO: Same as above, but for site.
+  async deleteBySite(
+    _aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
     if (!aIsUserRequest) {
       return;
     }
@@ -754,10 +873,11 @@ const QuotaCleaner = {
       });
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
     // localStorage: The legacy LocalStorage implementation that will
     // eventually be removed depends on this observer notification to clear by
     // host.  Some other subsystems like Reporting headers depend on this too.
+    // TODO: aOriginAttributesPattern
     Services.obs.notifyObservers(
       null,
       "extension:purge-localStorage",
@@ -765,13 +885,14 @@ const QuotaCleaner = {
     );
 
     // Clear sessionStorage
+    // TODO: aOriginAttributesPattern
     Services.obs.notifyObservers(
       null,
       "browser:purge-sessionStorage",
       aSchemelessSite
     );
 
-    // Clear third-party storage partitioned under aBaseDomain.
+    // Clear third-party storage partitioned under aSchemelessSite.
     // This notification is forwarded via the StorageObserver and consumed only
     // by the SessionStorageManager and (legacy) LocalStorageManager.
     // There is a similar (legacy) notification "clear-origin-attributes-data"
@@ -780,7 +901,10 @@ const QuotaCleaner = {
     Services.obs.notifyObservers(
       null,
       "dom-storage:clear-origin-attributes-data",
-      JSON.stringify({ partitionKeyPattern: { baseDomain: aSchemelessSite } })
+      JSON.stringify({
+        ...aOriginAttributesPattern,
+        partitionKeyPattern: { baseDomain: aSchemelessSite },
+      })
     );
 
     // ServiceWorkers must be removed before cleaning QuotaManager. We store
@@ -788,13 +912,14 @@ const QuotaCleaner = {
     // completed.
     let swCleanupError;
     try {
+      // TODO: aOriginAttributesPattern
       await lazy.ServiceWorkerCleanUp.removeFromBaseDomain(aSchemelessSite);
     } catch (error) {
       swCleanupError = error;
     }
 
     await this._qmsClearStoragesForPrincipalsMatching(principal =>
-      hasBaseDomain({ principal }, aSchemelessSite)
+      hasSite({ principal }, aSchemelessSite, aOriginAttributesPattern)
     );
 
     // Re-throw any service worker cleanup errors.
@@ -972,7 +1097,11 @@ const PredictorNetworkCleaner = {
   },
 
   // TODO: Same as above, but for base domain.
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  async deleteBySite(
+    _aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1018,7 +1147,8 @@ const PushNotificationsCleaner = {
     return this._deleteByRootDomain(aPrincipal.host);
   },
 
-  deleteBySite(aSchemelessSite) {
+  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     return this._deleteByRootDomain(aSchemelessSite);
   },
 
@@ -1093,9 +1223,19 @@ const StorageAccessCleaner = {
     });
   },
 
-  async deleteBySite(aSchemelessSite) {
-    this._deleteInternal(
-      ({ principal }) => principal.baseDomain == aSchemelessSite
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    // If we don't isolate by private browsing / user context we need to clear
+    // the pattern field. Otherwise permissions returned by the permission
+    // manager will never match. The permission manager strips these fields when
+    // their prefs are set to `false`.
+    if (!lazy.permissionManagerIsolateByPrivateBrowsing) {
+      delete aOriginAttributesPattern.privateBrowsingId;
+    }
+    if (!lazy.permissionManagerIsolateByUserContext) {
+      delete aOriginAttributesPattern.userContextId;
+    }
+    this._deleteInternal(({ principal }) =>
+      hasSite({ principal }, aSchemelessSite, aOriginAttributesPattern)
     );
   },
 
@@ -1124,7 +1264,7 @@ const HistoryCleaner = {
   },
 
   deleteBySite(aSchemelessSite) {
-    return this.deleteByHost(aSchemelessSite, {});
+    return this.deleteByHost(aSchemelessSite);
   },
 
   deleteByRange(aFrom, aTo) {
@@ -1160,7 +1300,8 @@ const SessionHistoryCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteBySite(aSchemelessSite) {
+  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern.
     return this.deleteByHost(aSchemelessSite, {});
   },
 
@@ -1187,7 +1328,11 @@ const AuthTokensCleaner = {
   },
 
   // TODO: Bug 1726742
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  async deleteBySite(
+    _aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1212,7 +1357,11 @@ const AuthCacheCleaner = {
   },
 
   // TODO: Bug 1726743
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  async deleteBySite(
+    _aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1303,7 +1452,8 @@ const ShutdownExceptionsCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteBySite(aSchemelessSite) {
+  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     return this._deleteInternal({ baseDomain: aSchemelessSite });
   },
 
@@ -1356,7 +1506,8 @@ const PermissionsCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteBySite(aSchemelessSite) {
+  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern.
     return this._deleteInternal({ baseDomain: aSchemelessSite });
   },
 
@@ -1403,7 +1554,8 @@ const PreferencesCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteBySite(aSchemelessSite) {
+  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     return this.deleteByHost(aSchemelessSite, {});
   },
 
@@ -1435,7 +1587,7 @@ const ClientAuthRememberCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
     let cars = Cc[
       "@mozilla.org/security/clientAuthRememberService;1"
     ].getService(Ci.nsIClientAuthRememberService);
@@ -1461,12 +1613,13 @@ const ClientAuthRememberCleaner = {
           }
         }
 
-        return hasBaseDomain(
+        return hasSite(
           {
             host: asciiHost,
             originAttributes,
           },
-          aSchemelessSite
+          aSchemelessSite,
+          aOriginAttributesPattern
         );
       })
       .forEach(({ entryKey }) => cars.forgetRememberedDecision(entryKey));
@@ -1497,7 +1650,8 @@ const HSTSCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern.
     let sss = Cc["@mozilla.org/ssservice;1"].getService(
       Ci.nsISiteSecurityService
     );
@@ -1529,7 +1683,8 @@ const EMECleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern.
     let mps = Cc["@mozilla.org/gecko-media-plugin-service;1"].getService(
       Ci.mozIGeckoMediaPluginChromeService
     );
@@ -1555,7 +1710,8 @@ const ReportsCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteBySite(aSchemelessSite) {
+  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern.
     return this.deleteByHost(aSchemelessSite, {});
   },
 
@@ -1579,7 +1735,11 @@ const ContentBlockingCleaner = {
     await this.deleteAll();
   },
 
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  async deleteBySite(
+    _aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1603,7 +1763,11 @@ const AboutHomeStartupCacheCleaner = {
     await this.deleteAll();
   },
 
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  async deleteBySite(
+    _aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1656,7 +1820,11 @@ const PreflightCacheCleaner = {
   },
 
   // TODO: Bug 1727141 (see deleteByPrincipal).
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  async deleteBySite(
+    _aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1693,7 +1861,12 @@ const IdentityCredentialStorageCleaner = {
     }
   },
 
-  async deleteBySite(aSchemelessSite, aIsUserRequest) {
+  async deleteBySite(
+    aSchemelessSite,
+    _aOriginAttributesPattern,
+    aIsUserRequest
+  ) {
+    // TODO: aOriginAttributesPattern.
     if (!aIsUserRequest) {
       return;
     }
@@ -1783,7 +1956,8 @@ const BounceTrackingProtectionStateCleaner = {
     );
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern
     if (
       lazy.bounceTrackingProtectionMode ==
       Ci.nsIBounceTrackingProtection.MODE_DISABLED
@@ -1865,7 +2039,8 @@ const StoragePermissionsCleaner = {
     }
   },
 
-  async deleteBySite(aSchemelessSite) {
+  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
+    // TODO: aOriginAttributesPattern.
     let permissions = this._getStoragePermissions();
     for (let perm of permissions) {
       if (perm.principal.baseDomain == aSchemelessSite) {
@@ -2128,7 +2303,13 @@ ClearDataService.prototype = Object.freeze({
     });
   },
 
-  deleteDataFromSite(aSchemelessSite, aIsUserRequest, aFlags, aCallback) {
+  deleteDataFromSite(
+    aSchemelessSite,
+    aOriginAttributesPattern,
+    aIsUserRequest,
+    aFlags,
+    aCallback
+  ) {
     if (!aSchemelessSite?.length || !aCallback) {
       return Cr.NS_ERROR_INVALID_ARG;
     }
@@ -2145,7 +2326,38 @@ ClearDataService.prototype = Object.freeze({
     }
 
     return this._deleteInternal(aFlags, aCallback, aCleaner =>
-      aCleaner.deleteBySite(aSchemelessSite, aIsUserRequest)
+      aCleaner.deleteBySite(
+        aSchemelessSite,
+        aOriginAttributesPattern,
+        aIsUserRequest
+      )
+    );
+  },
+
+  deleteDataFromSiteAndOriginAttributesPatternString(
+    aSchemelessSite,
+    aOriginAttributesPatternString,
+    aIsUserRequest,
+    aFlags,
+    aCallback
+  ) {
+    if (!aSchemelessSite || !aCallback) {
+      return Cr.NS_ERROR_INVALID_ARG;
+    }
+
+    // Parse the pattern string.
+    let originAttributesPattern = {};
+    if (aOriginAttributesPatternString?.length) {
+      originAttributesPattern = JSON.parse(aOriginAttributesPatternString);
+    }
+
+    // Call the other variant which expects a OriginAttributesPattern object.
+    return this.deleteDataFromSite(
+      aSchemelessSite,
+      originAttributesPattern,
+      aIsUserRequest,
+      aFlags,
+      aCallback
     );
   },
 
