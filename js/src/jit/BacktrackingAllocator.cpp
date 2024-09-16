@@ -2357,19 +2357,17 @@ static bool HasPrecedingRangeSharingVreg(LiveBundle* bundle, LiveRange* range) {
 static bool HasFollowingRangeSharingVreg(LiveBundle* bundle, LiveRange* range) {
   MOZ_ASSERT(range->bundle() == bundle);
 
-  bool foundRange = false;
-  for (LiveRange::BundleLinkIterator iter = bundle->rangesBegin(); iter;
-       iter++) {
-    LiveRange* prevRange = LiveRange::get(*iter);
-    if (foundRange && &prevRange->vreg() == &range->vreg()) {
+  LiveRange::BundleLinkIterator iter = bundle->rangesBegin(range);
+  MOZ_ASSERT(LiveRange::get(*iter) == range);
+  iter++;
+
+  for (; iter; iter++) {
+    LiveRange* nextRange = LiveRange::get(*iter);
+    if (&nextRange->vreg() == &range->vreg()) {
       return true;
-    }
-    if (prevRange == range) {
-      foundRange = true;
     }
   }
 
-  MOZ_ASSERT(foundRange);
   return false;
 }
 
