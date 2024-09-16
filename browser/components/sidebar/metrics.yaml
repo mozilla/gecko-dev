@@ -1,0 +1,386 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Sidebar'
+
+sidebar:
+  expand:
+    type: event
+    description: >
+      The sidebar was expanded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+  resize:
+    type: event
+    description: >
+      User resized the sidebar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      current:
+        type: quantity
+        description: Current width in pixels.
+      previous:
+        type: quantity
+        description: Previous width in pixels.
+      percentage:
+        type: quantity
+        description: Percentage of window width at time of resize (0-100).
+  display_settings:
+    type: string
+    lifetime: application
+    description: >
+      Setting for sidebar display (either "always" or "hide").
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - metrics
+  position_settings:
+    type: string
+    lifetime: application
+    description: >
+      Setting for sidebar position (either "left" or "right").
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - metrics
+  tabs_layout:
+    type: string
+    lifetime: application
+    description: >
+      Setting for tabs orientation (either "horizontal" or "vertical").
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - metrics
+  width:
+    type: quantity
+    unit: pixels
+    lifetime: application
+    description: >
+      Width of the sidebar, in pixels.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - metrics
+history:
+  sidebar_toggle:
+    type: event
+    description: >
+      The History sidebar panel was loaded or unloaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      opened:
+        type: boolean
+        description: Whether the panel was opened.
+synced_tabs:
+  sidebar_toggle:
+    type: event
+    description: >
+      The Synced Tabs sidebar panel was loaded or unloaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      opened:
+        type: boolean
+        description: Whether the panel was opened.
+      synced_tabs_loaded:
+        type: boolean
+        description: Whether synced tabs are showing.
+bookmarks:
+  sidebar_toggle:
+    type: event
+    description: >
+      The Bookmarks sidebar panel was loaded or unloaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      opened:
+        type: boolean
+        description: Whether the panel was opened.
+extension:
+  sidebar_toggle:
+    type: event
+    description: >
+      A sidebar extension panel was loaded or unloaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      opened:
+        type: boolean
+        description: Whether the panel was opened.
+      addon_id:
+        type: string
+        description: The extension's ID.
+      addon_name:
+        type: string
+        description: The localized name of the extension.
+sidebar.customize:
+  panel_toggle:
+    type: event
+    description: >
+      The Customize sidebar panel was loaded or unloaded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      opened:
+        type: boolean
+        description: Whether the panel was opened.
+  icon_click:
+    type: event
+    description: >
+      User clicked on the gear icon to customize the sidebar.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+  synced_tabs_enabled:
+    type: event
+    description: >
+      User clicked on the checkbox corresponding to synced tabs on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      checked:
+        type: boolean
+        description: Whether the box was checked.
+  history_enabled:
+    type: event
+    description: >
+      User clicked on the checkbox corresponding to history on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      checked:
+        type: boolean
+        description: Whether the box was checked.
+  extensions_clicked:
+    type: event
+    description: >
+      User clicked on the link to go to Browser Extensions on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+  sidebar_display:
+    type: event
+    description: >
+      User selected an option of when the sidebar is shown on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      preference:
+        type: string
+        description: Either "always" or "hide".
+  sidebar_position:
+    type: event
+    description: >
+      User selected an option of in which side the sidebar is displayed from the sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      position:
+        type: string
+        description: Either "left" or "right".
+  tabs_layout:
+    type: event
+    description: >
+      User selected between horizontal or vertical tabs on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      orientation:
+        type: string
+        description: Either "horizontal" or "vertical".
+  tabs_display:
+    type: event
+    description: >
+      User clicked on the checkbox corresponding to hiding horizontal tabs on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events
+    extra_keys:
+      checked:
+        type: boolean
+        description: Whether the box was checked.
+  firefox_settings_clicked:
+    type: event
+    description: >
+      User clicked on the link to Manage Firefox Settings on sidebar customization settings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1898250
+    data_reviews:
+      - https://phabricator.services.mozilla.com/D220720
+    data_sensitivity:
+      - interaction
+    expires: never
+    notification_emails:
+      - vsabino@mozilla.com
+    send_in_pings:
+      - events

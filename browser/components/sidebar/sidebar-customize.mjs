@@ -76,6 +76,18 @@ export class SidebarCustomize extends SidebarPage {
   async onToggleInput(e) {
     e.preventDefault();
     this.getWindow().SidebarController.toggleTool(e.target.id);
+    switch (e.target.id) {
+      case "viewTabsSidebar":
+        Glean.sidebarCustomize.syncedTabsEnabled.record({
+          checked: e.target.checked,
+        });
+        break;
+      case "viewHistorySidebar":
+        Glean.sidebarCustomize.historyEnabled.record({
+          checked: e.target.checked,
+        });
+        break;
+    }
   }
 
   getInputL10nId(view) {
@@ -86,6 +98,7 @@ export class SidebarCustomize extends SidebarPage {
     if (e.type == "click" || (e.type == "keydown" && e.code == "Enter")) {
       e.preventDefault();
       this.getWindow().openPreferences();
+      Glean.sidebarCustomize.firefoxSettingsClicked.record();
     }
   }
 
@@ -111,6 +124,7 @@ export class SidebarCustomize extends SidebarPage {
       extensionId,
       "unifiedExtensions"
     );
+    Glean.sidebarCustomize.extensionsClicked.record();
   }
 
   handleKeydown(e) {
@@ -139,8 +153,11 @@ export class SidebarCustomize extends SidebarPage {
   }
 
   reversePosition() {
-    const SidebarController = this.getWindow().SidebarController;
-    SidebarController.reversePosition.apply(SidebarController);
+    const { SidebarController } = this.getWindow();
+    SidebarController.reversePosition();
+    const position = SidebarController._positionStart ? "left" : "right";
+    Glean.sidebarCustomize.sidebarPosition.record({ position });
+    Glean.sidebar.positionSettings.set(position);
   }
 
   extensionTemplate(extension, index) {
@@ -287,10 +304,17 @@ export class SidebarCustomize extends SidebarPage {
   #handleVisibilityChange({ target: { value } }) {
     this.visibility = value;
     Services.prefs.setStringPref(VISIBILITY_SETTING_PREF, value);
+    const preference = value === "always-show" ? "always" : "hide";
+    Glean.sidebarCustomize.sidebarDisplay.record({ preference });
+    Glean.sidebar.displaySettings.set(preference);
   }
 
   #handleTabDirectionChange({ target: { value } }) {
-    Services.prefs.setBoolPref(TAB_DIRECTION_SETTING_PREF, value == "true");
+    const verticalTabsEnabled = value === "true";
+    Services.prefs.setBoolPref(TAB_DIRECTION_SETTING_PREF, verticalTabsEnabled);
+    const orientation = verticalTabsEnabled ? "vertical" : "horizontal";
+    Glean.sidebarCustomize.tabsLayout.record({ orientation });
+    Glean.sidebar.tabsLayout.set(orientation);
   }
 }
 

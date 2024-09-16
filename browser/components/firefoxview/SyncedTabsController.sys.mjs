@@ -86,6 +86,10 @@ export class SyncedTabsController {
     this.host.removeEventListener("click", this);
   }
 
+  get isSyncedTabsLoaded() {
+    return this.currentSetupStateIndex === 4;
+  }
+
   addSyncObservers() {
     Services.obs.addObserver(this.observe, SYNCED_TABS_CHANGED);
     Services.obs.addObserver(this.observe, TOPIC_SETUPSTATE_CHANGED);

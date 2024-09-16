@@ -220,6 +220,9 @@ export default class SidebarMain extends MozLitElement {
 
   showView(view) {
     window.SidebarController.toggle(view);
+    if (view === "viewCustomizeSidebar") {
+      Glean.sidebarCustomize.iconClick.record();
+    }
   }
 
   entrypointTemplate(action) {

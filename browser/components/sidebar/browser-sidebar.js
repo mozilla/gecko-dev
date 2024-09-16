@@ -92,6 +92,7 @@ var SidebarController = {
           contextMenuId: this.sidebarRevampEnabled
             ? "sidebar-history-context-menu"
             : undefined,
+          gleanEvent: Glean.history.sidebarToggle,
         }),
       ],
       [
@@ -122,6 +123,7 @@ var SidebarController = {
           revampL10nId: "sidebar-menu-bookmarks-label",
           iconUrl: "chrome://browser/skin/bookmark-hollow.svg",
           disabled: true,
+          gleanEvent: Glean.bookmarks.sidebarToggle,
         }),
       ],
     ]);
@@ -157,6 +159,7 @@ var SidebarController = {
         url: "chrome://browser/content/sidebar/sidebar-customize.html",
         revampL10nId: "sidebar-menu-customize-label",
         iconUrl: "chrome://browser/skin/preferences/category-general.svg",
+        gleanEvent: Glean.sidebarCustomize.panelToggle,
       });
     }
 
@@ -317,6 +320,29 @@ var SidebarController = {
         this._mainResizeObserver.observe(this.sidebarMain);
         this._mainResizeObserverAdded = true;
       }
+      if (!this._browserResizeObserver) {
+        let debounceTimeout = null;
+        this._browserResizeObserver = () => {
+          // Report resize events to Glean.
+          if (!this._browserResizeObserverEnabled) {
+            return;
+          }
+          clearTimeout(debounceTimeout);
+          debounceTimeout = setTimeout(() => {
+            const current = this.browser.getBoundingClientRect().width;
+            const previous = this._browserWidth;
+            const percentage = (current / window.innerWidth) * 100;
+            this._browserWidth = current;
+            Glean.sidebar.resize.record({
+              current,
+              previous,
+              percentage,
+            });
+            Glean.sidebar.width.set(current);
+          }, 1000);
+        };
+        this.browser.addEventListener("resize", this._browserResizeObserver);
+      }
 
       let newTabButton = document.getElementById("vertical-tabs-newtab-button");
       if (!this._verticalNewTabListenerAdded) {
@@ -395,6 +421,7 @@ var SidebarController = {
       // setup by reactive controllers will also be removed.
       this.sidebarMain.remove();
     }
+    this.browser.removeEventListener("resize", this._browserResizeObserver);
   },
 
   /**
@@ -732,6 +759,15 @@ var SidebarController = {
   },
 
   /**
+   * Start listening for panel resize events, which will be reported to Glean.
+   */
+  _enableBrowserResizeObserver() {
+    this._browserResizeObserverEnabled = true;
+    this._browserWidth = this.browser.getBoundingClientRect().width;
+    Glean.sidebar.width.set(this._browserWidth);
+  },
+
+  /**
    * Fire a "SidebarFocused" event on the sidebar's |window| to give the sidebar
    * a chance to adjust focus as needed. An additional event is needed, because
    * we don't want to focus the sidebar when it's opened on startup or in a new
@@ -956,8 +992,12 @@ var SidebarController = {
    * @param {boolean} force - Optional true/false to toggle to
    */
   toggleExpanded(force) {
-    this._sidebarMain.expanded =
+    const expanded =
       typeof force == "boolean" ? force : !this._sidebarMain.expanded;
+    this._sidebarMain.expanded = expanded;
+    if (expanded) {
+      Glean.sidebar.expand.record();
+    }
     // Marking the tab container element as expanded or not simplifies the CSS logic
     // and selectors considerably.
     gBrowser.tabContainer.toggleAttribute(
@@ -1244,8 +1284,7 @@ var SidebarController = {
    * @returns {Promise<boolean>}
    */
   async show(commandID, triggerNode) {
-    let panelType = commandID.substring(4, commandID.length - 7);
-    Services.telemetry.keyedScalarAdd("sidebar.opened", panelType, 1);
+    this._recordPanelToggle(commandID, true);
 
     // Extensions without private window access wont be in the
     // sidebars map.
@@ -1274,8 +1313,7 @@ var SidebarController = {
    * @returns {Promise<boolean>}
    */
   async showInitially(commandID) {
-    let panelType = commandID.substring(4, commandID.length - 7);
-    Services.telemetry.keyedScalarAdd("sidebar.opened", panelType, 1);
+    this._recordPanelToggle(commandID, true);
 
     // Extensions without private window access wont be in the
     // sidebars map.
@@ -1368,6 +1406,7 @@ var SidebarController = {
 
               // Now that the currentId is updated, fire a show event.
               this._fireShowEvent();
+              this._enableBrowserResizeObserver();
             }, 0);
           },
           { capture: true, once: true }
@@ -1377,6 +1416,7 @@ var SidebarController = {
 
         // Now that the currentId is updated, fire a show event.
         this._fireShowEvent();
+        this._enableBrowserResizeObserver();
       }
     });
   },
@@ -1393,6 +1433,8 @@ var SidebarController = {
     }
 
     this.hideSwitcherPanel();
+    this._browserResizeObserverEnabled = false;
+    this._recordPanelToggle(this.currentID, false);
     if (this.sidebarRevampEnabled) {
       this._box.dispatchEvent(new CustomEvent("sidebar-hide"));
 
@@ -1423,6 +1465,28 @@ var SidebarController = {
       updateToggleControlLabel(triggerNode);
     }
     this.updateToolbarButton();
+  },
+
+  /**
+   * Record to Glean when any of the sidebar panels is loaded or unloaded.
+   *
+   * @param {string} commandID
+   * @param {boolean} opened
+   */
+  _recordPanelToggle(commandID, opened) {
+    const sidebar = this.sidebars.get(commandID);
+    const isExtension = sidebar && Object.hasOwn(sidebar, "extensionId");
+    if (isExtension) {
+      const addonId = sidebar.extensionId;
+      const addonName = WebExtensionPolicy.getByID(addonId)?.name;
+      Glean.extension.sidebarToggle.record({
+        opened,
+        addon_id: AMTelemetry.getTrimmedString(addonId),
+        addon_name: addonName && AMTelemetry.getTrimmedString(addonName),
+      });
+    } else if (sidebar.gleanEvent) {
+      sidebar.gleanEvent.record({ opened });
+    }
   },
 
   /**
