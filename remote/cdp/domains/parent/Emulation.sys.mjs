@@ -85,6 +85,10 @@ export class Emulation extends Domain {
     browser.style.setProperty("min-height", targetHeight + "px");
     browser.style.setProperty("max-height", targetHeight + "px");
 
+    browser.ownerDocument.synchronouslyUpdateRemoteBrowserDimensions(
+      /* aIncludeInactive = */ true
+    );
+
     // Wait until the viewport has been resized
     await this.executeInChild("_awaitViewportDimensions", {
       width: targetWidth,
