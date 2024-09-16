@@ -332,15 +332,6 @@ bool AudioDecoderTraits::Validate(const AudioDecoderConfig& aConfig,
     return false;
   }
 
-  if (codec.value().EqualsLiteral("flac") ||
-      codec.value().EqualsLiteral("vorbis")) {
-    if (!aConfig.mDescription.WasPassed() ||
-        IsArrayBufferEmpty(aConfig.mDescription.Value())) {
-      LOGE("Description data is required for FLAC and Vorbis");
-      return false;
-    }
-  }
-
   return true;
 }
 

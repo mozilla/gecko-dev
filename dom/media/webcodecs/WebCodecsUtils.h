@@ -97,9 +97,6 @@ Result<Ok, nsresult> CloneBuffer(
 Result<RefPtr<MediaByteBuffer>, nsresult> GetExtraDataFromArrayBuffer(
     const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer);
 
-bool IsArrayBufferEmpty(
-    const OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aBuffer);
-
 bool CopyExtradataToDescription(
     JSContext* aCx, Span<const uint8_t>& aSrc,
     OwningMaybeSharedArrayBufferViewOrMaybeSharedArrayBuffer& aDest);
