@@ -100,15 +100,22 @@
 #endif
 #endif
 #ifdef MOZ_GTK
+; This is a standalone binary launched by Firefox on Linux to verify
+; the system's graphics capabilities and behavior.
+; It is separate because it may crash, and handling this within Firefox
+; itself would be more challenging.
 @BINPATH@/glxtest
 @BINPATH@/@DLL_PREFIX@mozgtk@DLL_SUFFIX@
 #ifdef MOZ_WAYLAND
 @BINPATH@/@DLL_PREFIX@mozwayland@DLL_SUFFIX@
 #endif
 #ifdef MOZ_ENABLE_V4L2
+; Similar to glxtest, this tests the hardware decoding for Video for Linux.
+; Currently, it doesn't ship for Firefox targeting typical Intel CPU (or compatible).
 @BINPATH@/v4l2test
 #endif
 #ifdef MOZ_ENABLE_VAAPI
+; Similar to glxtest, this tests the capabilities of the Video Acceleration API (VA-API).
 @BINPATH@/vaapitest
 #endif
 #endif
