@@ -613,6 +613,8 @@ const TargetingGetters = {
             type: addon.type,
             isSystem: addon.isSystem,
             isWebExtension: addon.isWebExtension,
+            hidden: addon.hidden,
+            isBuiltin: addon.isBuiltin,
           };
           if (fullData) {
             Object.assign(info[addon.id], {
