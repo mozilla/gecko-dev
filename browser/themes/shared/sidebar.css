@@ -73,6 +73,9 @@
 
 .sidebar-splitter {
   --splitter-width: 4px;
+  /* Ensure the splitter is painted on top of the sidebar box it overlaps.
+  Otherwise, the user may be unable to drag the splitter to resize the sidebar. */
+  z-index: 1;
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") or (not (-moz-platform: linux)) {
