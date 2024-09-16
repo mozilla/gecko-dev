@@ -22,6 +22,7 @@
  */
 export const MESSAGING_EXPERIMENTS_DEFAULT_FEATURES = [
   "cfr",
+  "fxms_bmb_button",
   "fxms-message-1",
   "fxms-message-2",
   "fxms-message-3",
@@ -38,5 +39,4 @@ export const MESSAGING_EXPERIMENTS_DEFAULT_FEATURES = [
   "pbNewtab",
   "spotlight",
   "featureCallout",
-  "bookmarksBarButton",
 ];
