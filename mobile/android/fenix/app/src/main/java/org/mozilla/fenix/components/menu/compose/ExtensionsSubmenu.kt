@@ -35,6 +35,7 @@ internal const val EXTENSIONS_MENU_ROUTE = "extensions_menu"
 internal fun ExtensionsSubmenu(
     recommendedAddons: List<Addon>,
     showExtensionsOnboarding: Boolean,
+    addonInstallationInProgress: Addon?,
     onBackButtonClick: () -> Unit,
     onExtensionsLearnMoreClick: () -> Unit,
     onManageExtensionsMenuClick: () -> Unit,
@@ -75,6 +76,7 @@ internal fun ExtensionsSubmenu(
 
         RecommendedAddons(
             recommendedAddons = recommendedAddons,
+            addonInstallationInProgress = addonInstallationInProgress,
             onAddonClick = onAddonClick,
             onInstallAddonClick = onInstallAddonClick,
             onDiscoverMoreExtensionsMenuClick = onDiscoverMoreExtensionsMenuClick,
@@ -85,6 +87,7 @@ internal fun ExtensionsSubmenu(
 @Composable
 private fun RecommendedAddons(
     recommendedAddons: List<Addon>,
+    addonInstallationInProgress: Addon?,
     onAddonClick: (Addon) -> Unit,
     onInstallAddonClick: (Addon) -> Unit,
     onDiscoverMoreExtensionsMenuClick: () -> Unit,
@@ -110,6 +113,7 @@ private fun RecommendedAddons(
             for (addon in recommendedAddons) {
                 AddonMenuItem(
                     addon = addon,
+                    addonInstallationInProgress = addonInstallationInProgress,
                     onClick = { onAddonClick(addon) },
                     onIconClick = { onInstallAddonClick(addon) },
                 )
@@ -150,6 +154,12 @@ private fun ExtensionsSubmenuPreview() {
                     ),
                 ),
                 showExtensionsOnboarding = true,
+                addonInstallationInProgress = Addon(
+                    id = "id",
+                    translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
+                    translatableDescription = mapOf(Addon.DEFAULT_LOCALE to "description"),
+                    translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
+                ),
                 onBackButtonClick = {},
                 onExtensionsLearnMoreClick = {},
                 onManageExtensionsMenuClick = {},
@@ -184,6 +194,7 @@ private fun ExtensionsSubmenuPrivatePreview() {
                     ),
                 ),
                 showExtensionsOnboarding = true,
+                addonInstallationInProgress = null,
                 onBackButtonClick = {},
                 onExtensionsLearnMoreClick = {},
                 onManageExtensionsMenuClick = {},

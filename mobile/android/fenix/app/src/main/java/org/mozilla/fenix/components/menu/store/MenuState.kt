@@ -42,9 +42,11 @@ data class BrowserMenuState(
  * Value type that represents the state of the extension submenu.
  *
  * @property recommendedAddons A list of recommended [Addon]s to suggest.
+ * @property addonInstallationInProgress The [Addon] that is currently being installed.
  */
 data class ExtensionMenuState(
     val recommendedAddons: List<Addon> = emptyList(),
+    val addonInstallationInProgress: Addon? = null,
 )
 
 /**

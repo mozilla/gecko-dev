@@ -256,6 +256,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         state.browserMenuState != null && state.browserMenuState.selectedTab.readerState.active
                     }
 
+                    val addonInstallationInProgress by store.observeAsState(initialValue = null) { state ->
+                        state.extensionMenuState.addonInstallationInProgress
+                    }
+
                     NavHost(
                         navController = navHostController,
                         startDestination = when (args.accesspoint) {
@@ -536,6 +540,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         ) {
                             ExtensionsSubmenu(
                                 recommendedAddons = recommendedAddons,
+                                addonInstallationInProgress = addonInstallationInProgress,
                                 showExtensionsOnboarding = recommendedAddons.isNotEmpty(),
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)

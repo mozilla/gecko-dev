@@ -148,6 +148,7 @@ fun TextListItem(
  * @param showDivider Whether or not to display a vertical divider line before the [IconButton]
  * at the end.
  * @param iconPainter [Painter] used to display an [IconButton] after the list item.
+ * @param iconButtonModifier [Modifier] to be applied to the icon button.
  * @param iconDescription Content description of the icon.
  * @param onIconClick Called when the user clicks on the icon.
  */
@@ -162,6 +163,7 @@ fun FaviconListItem(
     onLongClick: (() -> Unit)? = null,
     showDivider: Boolean = false,
     iconPainter: Painter? = null,
+    iconButtonModifier: Modifier = Modifier,
     iconDescription: String? = null,
     onIconClick: (() -> Unit)? = null,
 ) {
@@ -208,7 +210,10 @@ fun FaviconListItem(
 
             IconButton(
                 onClick = onIconClick,
-                modifier = Modifier.size(ICON_SIZE),
+                modifier = iconButtonModifier.then(
+                    Modifier
+                        .size(ICON_SIZE),
+                ),
             ) {
                 Icon(
                     painter = iconPainter,

@@ -18,6 +18,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mozilla.fenix.components.menu.store.BookmarkState
 import org.mozilla.fenix.components.menu.store.BrowserMenuState
+import org.mozilla.fenix.components.menu.store.ExtensionMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
@@ -263,4 +264,59 @@ class MenuStoreTest {
 
         assertFalse(store.state.isDesktopMode)
     }
+
+    @Test
+    fun `WHEN addon installation is in progress action is dispatched THEN extension state is updated`() =
+        runTest {
+            val addon = Addon(id = "ext1")
+            val store = MenuStore(initialState = MenuState())
+
+            store.dispatch(MenuAction.UpdateInstallAddonInProgress(addon)).join()
+
+            assertEquals(addon, store.state.extensionMenuState.addonInstallationInProgress)
+        }
+
+    @Test
+    fun `WHEN addon installation with success action is dispatched THEN extension state is updated`() =
+        runTest {
+            val addon = Addon(id = "ext1")
+            val addonTwo = Addon(id = "ext2")
+            val store = MenuStore(
+                initialState = MenuState(
+                    extensionMenuState = ExtensionMenuState(
+                        recommendedAddons = listOf(
+                            addon,
+                            addonTwo,
+                        ),
+                    ),
+                ),
+            )
+
+            store.dispatch(MenuAction.InstallAddonSuccess(addon)).join()
+
+            assertEquals(null, store.state.extensionMenuState.addonInstallationInProgress)
+            assertEquals(1, store.state.extensionMenuState.recommendedAddons.size)
+        }
+
+    @Test
+    fun `WHEN addon installation failed action is dispatched THEN extension state is updated`() =
+        runTest {
+            val addon = Addon(id = "ext1")
+            val addonTwo = Addon(id = "ext2")
+            val store = MenuStore(
+                initialState = MenuState(
+                    extensionMenuState = ExtensionMenuState(
+                        recommendedAddons = listOf(
+                            addon,
+                            addonTwo,
+                        ),
+                    ),
+                ),
+            )
+
+            store.dispatch(MenuAction.InstallAddonFailed(addon)).join()
+
+            assertEquals(null, store.state.extensionMenuState.addonInstallationInProgress)
+            assertEquals(2, store.state.extensionMenuState.recommendedAddons.size)
+        }
 }

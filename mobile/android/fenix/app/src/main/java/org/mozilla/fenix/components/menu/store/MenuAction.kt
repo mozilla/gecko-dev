@@ -109,6 +109,33 @@ sealed class MenuAction : Action {
     data class InstallAddon(val addon: Addon) : MenuAction()
 
     /**
+     * [MenuAction] dispatched when an addon installation is in progress.
+     *
+     * @property addon The [Addon] to install.
+     */
+    data class UpdateInstallAddonInProgress(
+        val addon: Addon,
+    ) : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when an addon installation was completed with success.
+     *
+     * @property addon The [Addon] that was installed.
+     */
+    data class InstallAddonSuccess(
+        val addon: Addon,
+    ) : MenuAction()
+
+    /**
+     * [MenuAction] dispatched when an addon installation failed.
+     *
+     * @property addon The [Addon] whose installation failed.
+     */
+    data class InstallAddonFailed(
+        val addon: Addon,
+    ) : MenuAction()
+
+    /**
      * [MenuAction] dispatched when a custom item is tapped in the custom tab menu.
      *
      * @property intent The [PendingIntent] from the custom menu item.

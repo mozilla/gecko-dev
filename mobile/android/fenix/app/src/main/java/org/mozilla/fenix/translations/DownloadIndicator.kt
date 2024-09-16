@@ -141,7 +141,7 @@ fun DownloadIndicator(
 }
 
 @Composable
-private fun rotationAnimation(): Float {
+internal fun rotationAnimation(): Float {
     val infiniteTransition = rememberInfiniteTransition()
     val angle by infiniteTransition.animateFloat(
         initialValue = 0f,
