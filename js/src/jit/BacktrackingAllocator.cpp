@@ -950,31 +950,21 @@ void LiveBundle::removeRange(LiveRange* range) {
 ///////////////////////////////////////////////////////////////////////////////
 
 bool VirtualRegister::addInitialRange(TempAllocator& alloc, CodePosition from,
-                                      CodePosition to, size_t* numRanges) {
+                                      CodePosition to) {
   MOZ_ASSERT(from < to);
+  MOZ_ASSERT_IF(hasRanges(), from < firstRange()->to());
 
   // Mark [from,to) as a live range for this register during the initial
   // liveness analysis, coalescing with any existing overlapping ranges.
 
-  // On some pathological graphs there might be a huge number of different
-  // live ranges. Allow non-overlapping live range to be merged if the
-  // number of ranges exceeds the cap below.
-  static const size_t CoalesceLimit = 100000;
-
-  LiveRange* prev = nullptr;
   LiveRange* merged = nullptr;
   for (LiveRange::RegisterLinkIterator iter(rangesBegin()); iter;) {
     LiveRange* existing = LiveRange::get(*iter);
 
-    if (from > existing->to() && *numRanges < CoalesceLimit) {
-      // The new range should go after this one.
-      prev = existing;
-      iter++;
-      continue;
-    }
+    MOZ_ASSERT(from < existing->to());
 
-    if (to.next() < existing->from()) {
-      // The new range should go before this one.
+    if (to < existing->from()) {
+      // All other ranges start after |to| so can't overlap.
       break;
     }
 
@@ -1011,18 +1001,14 @@ bool VirtualRegister::addInitialRange(TempAllocator& alloc, CodePosition from,
 
   if (!merged) {
     // The new range does not overlap any existing range for the vreg.
+    MOZ_ASSERT_IF(hasRanges(), to < firstRange()->from());
+
     LiveRange* range = LiveRange::FallibleNew(alloc, this, from, to);
     if (!range) {
       return false;
     }
 
-    if (prev) {
-      ranges_.insertAfter(&prev->registerLink, &range->registerLink);
-    } else {
-      ranges_.pushFront(&range->registerLink);
-    }
-
-    (*numRanges)++;
+    ranges_.pushFront(&range->registerLink);
   }
 
   return true;
@@ -1504,8 +1490,6 @@ static bool IsInputReused(LInstruction* ins, LUse* use) {
 bool BacktrackingAllocator::buildLivenessInfo() {
   JitSpew(JitSpew_RegAlloc, "Beginning liveness analysis");
 
-  size_t numRanges = 0;
-
   for (size_t i = graph.numBlocks(); i > 0; i--) {
     if (mir->shouldCancel("Build Liveness Info (main loop)")) {
       return false;
@@ -1545,8 +1529,9 @@ bool BacktrackingAllocator::buildLivenessInfo() {
     // the range to the point of definition.
     for (BitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
       if (!vregs[*liveRegId].addInitialRange(alloc(), entryOf(block),
-                                             exitOf(block).next(), &numRanges))
+                                             exitOf(block).next())) {
         return false;
+      }
     }
 
     // Shorten the front end of ranges for live variables to their point of
@@ -1610,8 +1595,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
                            /* usedAtStart = */ true);
         }
 
-        if (!vreg(def).addInitialRange(alloc(), from, from.next(),
-                                       &numRanges)) {
+        if (!vreg(def).addInitialRange(alloc(), from, from.next())) {
           return false;
         }
         vreg(def).setInitialDefinition(from);
@@ -1656,7 +1640,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         CodePosition to =
             ins->isCall() ? outputOf(*ins) : outputOf(*ins).next();
 
-        if (!vreg(temp).addInitialRange(alloc(), from, to, &numRanges)) {
+        if (!vreg(temp).addInitialRange(alloc(), from, to)) {
           return false;
         }
         vreg(temp).setInitialDefinition(from);
@@ -1708,8 +1692,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
             }
           }
 
-          if (!vreg(use).addInitialRange(alloc(), entryOf(block), to.next(),
-                                         &numRanges)) {
+          if (!vreg(use).addInitialRange(alloc(), entryOf(block), to.next())) {
             return false;
           }
           UsePosition* usePosition =
@@ -1734,8 +1717,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         // This is a dead phi, so add a dummy range over all phis. This
         // can go away if we have an earlier dead code elimination pass.
         CodePosition entryPos = entryOf(block);
-        if (!vreg(def).addInitialRange(alloc(), entryPos, entryPos.next(),
-                                       &numRanges)) {
+        if (!vreg(def).addInitialRange(alloc(), entryPos, entryPos.next())) {
           return false;
         }
       }
@@ -1754,7 +1736,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
       CodePosition to = exitOf(backedge->lir()).next();
 
       for (BitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
-        if (!vregs[*liveRegId].addInitialRange(alloc(), from, to, &numRanges)) {
+        if (!vregs[*liveRegId].addInitialRange(alloc(), from, to)) {
           return false;
         }
       }

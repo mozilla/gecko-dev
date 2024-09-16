@@ -568,7 +568,7 @@ class VirtualRegister {
   LiveBundle* firstBundle() const { return firstRange()->bundle(); }
 
   [[nodiscard]] bool addInitialRange(TempAllocator& alloc, CodePosition from,
-                                     CodePosition to, size_t* numRanges);
+                                     CodePosition to);
   void addInitialUse(UsePosition* use);
   void setInitialDefinition(CodePosition from);
 };
