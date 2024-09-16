@@ -187,6 +187,11 @@ static bool CanDecodeAudio(const Config& aConfig) {
         return false;
       }
     }
+    if (!aConfig.mDescription && (aConfig.mCodec.EqualsLiteral("vorbis") ||
+                                  aConfig.mCodec.EqualsLiteral("flac"))) {
+      LOG("vorbis and flac require a description");
+      return false;
+    }
   }
 
   return true;
