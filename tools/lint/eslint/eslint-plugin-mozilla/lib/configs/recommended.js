@@ -176,6 +176,7 @@ module.exports = {
     "mozilla/reject-chromeutils-import": "error",
     "mozilla/reject-chromeutils-import-params": "error",
     "mozilla/reject-importGlobalProperties": ["error", "allownonwebidl"],
+    "mozilla/reject-multiple-await": "error",
     "mozilla/reject-multiple-getters-calls": "error",
     "mozilla/reject-scriptableunicodeconverter": "warn",
     "mozilla/rejects-requires-await": "error",
