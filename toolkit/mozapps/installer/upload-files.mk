@@ -3,26 +3,18 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 ifndef MOZ_PKG_FORMAT
-    ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
-        MOZ_PKG_FORMAT  = DMG
+    ifeq ($(MOZ_WIDGET_TOOLKIT),cocoa)
+        MOZ_PKG_FORMAT = DMG
+    else ifeq ($(OS_ARCH),WINNT)
+        MOZ_PKG_FORMAT = ZIP
+    else ifeq ($(OS_ARCH),SunOS)
+        MOZ_PKG_FORMAT = BZ2
+    else ifeq ($(MOZ_WIDGET_TOOLKIT),gtk)
+        MOZ_PKG_FORMAT = BZ2
+    else ifeq ($(MOZ_WIDGET_TOOLKIT),android)
+        MOZ_PKG_FORMAT = APK
     else
-        ifeq (WINNT,$(OS_ARCH))
-            MOZ_PKG_FORMAT  = ZIP
-        else
-            ifeq (SunOS,$(OS_ARCH))
-                MOZ_PKG_FORMAT  = BZ2
-            else
-                ifeq (gtk,$(MOZ_WIDGET_TOOLKIT))
-                    MOZ_PKG_FORMAT  = BZ2
-                else
-                    ifeq (android,$(MOZ_WIDGET_TOOLKIT))
-                        MOZ_PKG_FORMAT = APK
-                    else
-                        MOZ_PKG_FORMAT = TGZ
-                    endif
-                endif
-            endif
-        endif
+        MOZ_PKG_FORMAT = TGZ
     endif
 endif # MOZ_PKG_FORMAT
 
