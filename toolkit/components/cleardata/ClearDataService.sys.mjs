@@ -1963,7 +1963,7 @@ const BounceTrackingProtectionStateCleaner = {
     ) {
       return;
     }
-    await lazy.bounceTrackingProtection.clearAll();
+    lazy.bounceTrackingProtection.clearAll();
   },
 
   async deleteByPrincipal(aPrincipal) {
@@ -1974,21 +1974,23 @@ const BounceTrackingProtectionStateCleaner = {
       return;
     }
     let { baseDomain, originAttributes } = aPrincipal;
-    await lazy.bounceTrackingProtection.clearBySiteHostAndOA(
+    lazy.bounceTrackingProtection.clearBySiteHostAndOriginAttributes(
       baseDomain,
       originAttributes
     );
   },
 
-  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
     if (
       lazy.bounceTrackingProtectionMode ==
       Ci.nsIBounceTrackingProtection.MODE_DISABLED
     ) {
       return;
     }
-    await lazy.bounceTrackingProtection.clearBySiteHost(aSchemelessSite);
+    lazy.bounceTrackingProtection.clearBySiteHostAndOriginAttributesPattern(
+      aSchemelessSite,
+      aOriginAttributesPattern
+    );
   },
 
   async deleteByRange(aFrom, aTo) {
@@ -1998,10 +2000,10 @@ const BounceTrackingProtectionStateCleaner = {
     ) {
       return;
     }
-    await lazy.bounceTrackingProtection.clearByTimeRange(aFrom, aTo);
+    lazy.bounceTrackingProtection.clearByTimeRange(aFrom, aTo);
   },
 
-  async deleteByHost(aHost) {
+  async deleteByHost(aHost, aOriginAttributesPattern = {}) {
     if (
       lazy.bounceTrackingProtectionMode ==
       Ci.nsIBounceTrackingProtection.MODE_DISABLED
@@ -2009,7 +2011,10 @@ const BounceTrackingProtectionStateCleaner = {
       return;
     }
     let baseDomain = Services.eTLD.getSchemelessSiteFromHost(aHost);
-    await lazy.bounceTrackingProtection.clearBySiteHost(baseDomain);
+    lazy.bounceTrackingProtection.clearBySiteHostAndOriginAttributesPattern(
+      baseDomain,
+      aOriginAttributesPattern
+    );
   },
 
   async deleteByOriginAttributes(aOriginAttributesPatternString) {
@@ -2019,7 +2024,7 @@ const BounceTrackingProtectionStateCleaner = {
     ) {
       return;
     }
-    await lazy.bounceTrackingProtection.clearByOriginAttributesPattern(
+    lazy.bounceTrackingProtection.clearByOriginAttributesPattern(
       aOriginAttributesPatternString
     );
   },
