@@ -198,6 +198,13 @@ class ShoppingSidebarManagerClass {
       true,
       this.updateSidebarVisibility
     );
+    XPCOMUtils.defineLazyPreferenceGetter(
+      this,
+      "isIntegratedSidebarPanel",
+      "browser.shopping.experience2023.integratedSidebar",
+      false,
+      this.updateSidebarVisibility
+    );
     this.updateSidebarVisibility();
 
     lazy.EveryWindow.registerCallback(
@@ -226,8 +233,9 @@ class ShoppingSidebarManagerClass {
   }
 
   updateSidebarVisibility() {
-    this.enabled = lazy.NimbusFeatures.shopping2023.getVariable("enabled");
-
+    this.enabled =
+      lazy.NimbusFeatures.shopping2023.getVariable("enabled") &&
+      !this.isIntegratedSidebarPanel;
     for (let window of lazy.BrowserWindowTracker.orderedWindows) {
       let isPBM = lazy.PrivateBrowsingUtils.isWindowPrivate(window);
       if (isPBM) {
@@ -275,6 +283,13 @@ class ShoppingSidebarManagerClass {
         .forEach(splitter => {
           splitter.remove();
         });
+      let button = document.getElementById("shopping-sidebar-button");
+      if (button) {
+        button.hidden = true;
+        // Reset attributes to defaults.
+        button.setAttribute("shoppingsidebaropen", false);
+        document.l10n.setAttributes(button, "shopping-sidebar-open-button2");
+      }
       return;
     }
 
