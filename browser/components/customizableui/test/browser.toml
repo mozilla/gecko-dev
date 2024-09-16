@@ -97,8 +97,7 @@ skip-if = ["os == 'linux'"]
 ["browser_927717_customize_drag_empty_toolbar.js"]
 
 ["browser_934113_menubar_removable.js"]
-# Because this test is about the menubar, it can't be run on mac
-skip-if = ["os == 'mac'"]
+run-if = ["os != 'mac'"] # Because this test is about the menubar, it can't be run on mac
 
 ["browser_934951_zoom_in_toolbar.js"]
 
@@ -283,7 +282,7 @@ https_first_disabled = true
 ["browser_insert_before_moved_node.js"]
 
 ["browser_menubar_visibility.js"]
-skip-if = ["os == 'mac'"] # no toggle-able menubar on macOS.
+run-if = ["os != 'mac'"] # no toggle-able menubar on macOS.
 
 ["browser_newtab_button_customizemode.js"]
 
@@ -303,7 +302,7 @@ skip-if = ["verify"]
 
 ["browser_panelUINotifications_fullscreen.js"]
 tags = "fullscreen"
-skip-if = ["os == 'mac'"]
+run-if = ["os != 'mac'"]
 
 ["browser_panelUINotifications_fullscreen_noAutoHideToolbar.js"]
 skip-if = ["verify && (os == 'linux' || os == 'mac')"]

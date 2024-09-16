@@ -20,7 +20,7 @@ tags = "os_integration"
 ["browser_about_settings.js"]
 
 ["browser_advanced_update.js"]
-skip-if = ["!updater"]
+run-if = ["updater"]
 
 ["browser_application_xml_handle_internally.js"]
 
@@ -141,7 +141,7 @@ https_first_disabled = true
 ["browser_ignore_invalid_capability.js"]
 
 ["browser_keyboardfocus.js"]
-skip-if = ["os != 'mac'"]
+run-if = ["os == 'mac'"]
 
 ["browser_languages_subdialog.js"]
 
@@ -295,7 +295,7 @@ support-files = [
 ["browser_warning_permanent_private_browsing.js"]
 
 ["browser_windows_launch_on_login.js"]
-run-if = ["(os == 'win' && !msix)"]
+run-if = ["os == 'win' && !msix"]
 
 ["browser_windows_launch_on_login_msix.js"]
-run-if = ["(os == 'win' && msix)"]
+run-if = ["os == 'win' && msix"]

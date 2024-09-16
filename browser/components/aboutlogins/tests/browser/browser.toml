@@ -51,11 +51,11 @@ skip-if = ["os == 'linux' && bits == 64 && os_version == '18.04'"] # Bug 1587625
 ["browser_openFiltered.js"]
 
 ["browser_openImport.js"]
-skip-if = [
-  "os == 'linux'",  # import is only available on Windows and macOS
-  "os == 'android'",  # import is only available on Windows and macOS
-  "os == 'mac' && !debug",  # bug 1775753
+run-if = [
+  "os == 'win'", #  import is only available on Windows and macOS
+  "os == 'mac'", #  import is only available on Windows and macOS
 ]
+skip-if = ["os == 'mac' && !debug"]  # bug 1775753
 
 ["browser_openImportCSV.js"]
 

@@ -40,10 +40,8 @@ prefs = [
 ["browser_overwrite_cache.js"]
 
 ["browser_process_crash.js"]
-skip-if = [
-  "!crashreporter",
-  "os == 'mac' && fission", # Bug 1659427; medium frequency intermittent on osx: test timed out
-]
+run-if = ["crashreporter"]
+skip-if = ["os == 'mac'"] # Bug 1659427; medium frequency intermittent on osx: test timed out
 
 ["browser_same_consumer.js"]
 

@@ -64,7 +64,10 @@ skip-if = ["verify"] # bug 1834620 - order of events not stable
 ["browser_newtab_trigger.js"]
 
 ["browser_open_tab_focus.js"]
-skip-if = ["os == 'linux'"] # Test setup only implemented for OSX and Windows
+run-if = [
+  "os == 'win'", # Test setup only implemented for OSX and Windows
+  "os == 'mac'", # Test setup only implemented for OSX and Windows
+]
 
 ["browser_topsites_annotation.js"]
 skip-if = [

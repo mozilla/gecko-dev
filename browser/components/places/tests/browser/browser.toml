@@ -20,7 +20,7 @@ prefs = [
 ["browser_autoshow_bookmarks_toolbar.js"]
 
 ["browser_bookmarkMenu_hiddenWindow.js"]
-skip-if = ["os != 'mac'"] # Mac-only functionality
+run-if = ["os == 'mac'"] # Mac-only functionality
 
 ["browser_bookmarkProperties_addFolderDefaultButton.js"]
 

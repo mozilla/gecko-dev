@@ -32,7 +32,7 @@ support-files = ["test_spammy_page.html"]
 ["browser_download_starts_in_tmp.js"]
 
 ["browser_download_succeeds_with_inaccessible_tmp.js"]
-skip-if = ["os == 'win'"] # Due to chmod the test only makes sense on Unix-like.
+run-if = ["os != 'win'"] # Due to chmod the test only makes sense on Unix-like.
 
 ["browser_downloads_autohide.js"]
 
