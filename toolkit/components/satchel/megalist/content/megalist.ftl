@@ -156,6 +156,38 @@ passwords-origin-tooltip = Enter the exact address where you’ll sign in to thi
 passwords-username-tooltip = Enter the username, email address, or account number you use to sign in.
 passwords-password-tooltip = Enter the password used to sign in to this account.
 
+website-icon =
+  .alt = Website Icon
+copy-icon =
+  .alt = Copy
+check-icon =
+  .alt = Copied
+alert-icon =
+  .alt = Warning
+
+# Variables
+#   $url (string) - The url associated with the login
+origin-login-line =
+  .aria-label = Visit { $url }
+  .title = Visit { $url }
+# Variables
+#   $username (string) - The username associated with the login
+username-login-line =
+  .aria-label = Copy Username { $username }
+  .title = Copy Username { $username }
+password-login-line =
+  .aria-label = Copy Password
+  .title = Copy Password
+edit-login-button = Edit
+  .tooltiptext = Edit Password
+
+show-password-button =
+  .aria-label = Show Password
+  .title = Show Password
+hide-password-button =
+  .aria-label = Hide Password
+  .title = Hide Password
+
 ## Payments
 
 payments-command-create = Add Payment Method

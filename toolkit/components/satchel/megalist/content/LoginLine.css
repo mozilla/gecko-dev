@@ -1,0 +1,237 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+:host {
+  --outer-border-radius: var(--border-radius-small);
+  --inner-border-radius: calc(var(--outer-border-radius) - 2px);
+  --alert-color: var(--icon-color-warning);
+  --input-field-color: var(--link-color);
+  --input-field-color-hover:  var(--button-text-color-hover);
+  --copy-tansition: opacity 250ms linear;
+  background-color: var(--background-color-box);
+  color: inherit;
+  padding: 3px;
+}
+
+:host([linetype="password"]) {
+  --alert-color: var(--icon-color-critical);
+}
+
+:host([linetype="username"]) {
+  --alert-color: var(--icon-color-information);
+}
+
+:host([linetype="password"]),
+:host([linetype="username"]) {
+  /* We must give this component a fixed height because it will be used inside a virtual list which requires
+  *  to know the height of its content. */
+  --line-container-height: 48px;
+  --input-field-color: var(--button-text-color);
+  --input-field-color-hover: var(--input-field-color);
+}
+
+:host([linetype="origin"]) {
+  --line-container-height: 44px;
+  border-radius: var(--outer-border-radius) var(--outer-border-radius) 0 0;
+
+  .input-field {
+    text-decoration: underline;
+  }
+}
+
+:host(login-line:focus-visible) {
+  > .line-container {
+    background-color: var(--button-background-color-hover);
+  }
+
+  .input-field {
+    color: var(--input-field-color-hover);
+  }
+}
+
+:host(concealed-login-line) {
+  display: flex;
+  padding: 0;
+
+  > login-line {
+    flex-grow: 1;
+
+    &:focus-visible {
+      z-index: 1;
+    }
+  }
+
+  > .reveal-button-container {
+    display: flex;
+    justify-content: end;
+    align-items: center;
+    height: var(--line-container-height);
+    margin-inline-end: var(--space-small);
+    background-color: var(--background-color-box);
+    --button-text-color-ghost: var(--icon-color);
+    --button-text-color-ghost-hover: var(--icon-color);
+
+    &:focus-visible {
+      z-index: 1;
+    }
+
+    > moz-button:focus-within {
+      background-color: var(--button-background-color-ghost-hover);
+      border-color: var(--button-border-color-ghost-hover);
+      color: var(--button-text-color-ghost-hover);
+    }
+  }
+}
+
+:host([linetype="username"]),
+:host([linetype="password"]) {
+  > .line-container.copied {
+    &:hover,
+    &:focus-visible,
+    &:active {
+      background-color: var(--background-color-box);
+    }
+
+    .input-label::after {
+      position: static;
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .copy-icon {
+      opacity: 0;
+    }
+
+    .check-icon {
+      visibility: visible;
+      opacity: 1;
+    }
+  }
+
+  .copy-container {
+    display: grid;
+    justify-items: center;
+    align-items: center;
+    height: 32px;
+    width: 32px;
+
+    > .copy-icon {
+      grid-column: 1;
+      grid-row: 1;
+      height: var(--icon-size-default);
+      width: var(--icon-size-default);
+      -moz-context-properties: fill;
+      fill: var(--icon-color);
+
+      @media not (prefers-reduced-motion) {
+        transition: var(--copy-tansition);
+      }
+    }
+
+    > .check-icon {
+      grid-column: 1;
+      grid-row: 1;
+      height: var(--icon-size-default);
+      width: var(--icon-size-default);
+      -moz-context-properties: fill;
+      fill: var(--icon-color-success);
+      opacity: 0;
+      visibility: hidden;
+
+      @media not (prefers-reduced-motion) {
+        transition: var(--copy-tansition);
+      }
+    }
+  }
+}
+
+:host([alert]) .alert-icon {
+  display: block;
+  height: 12px;
+  width: 12px;
+  -moz-context-properties: fill, stroke;
+  fill: var(--alert-color);
+  stroke: var(--alert-color);
+}
+
+.label-container {
+  display: flex;
+  column-gap: var(--space-xxsmall);
+  position: relative;
+}
+
+.input-label {
+  display: block;
+  text-transform: uppercase;
+  color: var(--text-color);
+  font-size: 0.525em;
+  cursor: unset;
+
+  &::after {
+    position: absolute;
+    content: " " attr(data-after);
+    visibility: hidden;
+    opacity: 0;
+
+    @media not (prefers-reduced-motion) {
+      transition: var(--copy-tansition);
+    }
+  }
+}
+
+.line-container {
+  height: var(--line-container-height);
+  border-radius: var(--inner-border-radius);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: var(--button-background-color-hover);
+
+    .input-field {
+      color: var(--input-field-color-hover);
+    }
+  }
+
+  &:active {
+    background: var(---button-background-color-active);
+
+    .input-field {
+      color: var(--input-field-color-hover);
+    }
+  }
+}
+
+.input-container {
+  display: flex;
+  flex-direction: column;
+  row-gap: var(--space-xxsmall);
+  margin-inline-start: var(--space-medium);
+}
+
+.value-container {
+  display: flex;
+  align-items: end;
+  column-gap: var(--space-small);
+}
+
+.fav-icon {
+  margin: 0;
+  height: var(--icon-size-default);
+  width: var(--icon-size-default);
+ -moz-context-properties: fill;
+  fill: var(--icon-color);
+}
+
+.input-field {
+  all: unset;
+  display: inline-block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  appearance: textfield;
+  color: var(--input-field-color);
+}
