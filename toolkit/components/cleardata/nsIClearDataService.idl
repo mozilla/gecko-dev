@@ -187,10 +187,7 @@ interface nsIClearDataService : nsISupports
    */
   const uint32_t CLEAR_DOWNLOADS = 1 << 4;
 
-  /**
-   * Stored passwords.
-   */
-  const uint32_t CLEAR_PASSWORDS = 1 << 5;
+  // Free bit here.
 
   /**
    * Media devices.

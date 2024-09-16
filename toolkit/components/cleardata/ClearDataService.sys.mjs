@@ -614,52 +614,6 @@ const DownloadsCleaner = {
   },
 };
 
-const PasswordsCleaner = {
-  deleteByHost(aHost) {
-    // Clearing by host also clears associated subdomains.
-    return this._deleteInternal(aLogin =>
-      Services.eTLD.hasRootDomain(aLogin.hostname, aHost)
-    );
-  },
-
-  deleteByPrincipal(aPrincipal) {
-    // Login origins don't contain any origin attributes.
-    return this._deleteInternal(
-      aLogin => aLogin.origin == aPrincipal.originNoSuffix
-    );
-  },
-
-  deleteByBaseDomain(aBaseDomain) {
-    return this._deleteInternal(aLogin =>
-      Services.eTLD.hasRootDomain(aLogin.hostname, aBaseDomain)
-    );
-  },
-
-  deleteAll() {
-    return this._deleteInternal(() => true);
-  },
-
-  async _deleteInternal(aCb) {
-    try {
-      let logins = await Services.logins.getAllLogins();
-      for (let login of logins) {
-        if (aCb(login)) {
-          Services.logins.removeLogin(login);
-        }
-      }
-    } catch (ex) {
-      // XXXehsan: is there a better way to do this rather than this
-      // hacky comparison?
-      if (
-        !ex.message.includes("User canceled Master Password entry") &&
-        ex.result != Cr.NS_ERROR_NOT_IMPLEMENTED
-      ) {
-        throw new Error("Exception occured in clearing passwords: " + ex);
-      }
-    }
-  },
-};
-
 const MediaDevicesCleaner = {
   async deleteByRange(aFrom) {
     let mediaMgr = Cc["@mozilla.org/mediaManagerService;1"].getService(
@@ -1997,11 +1951,6 @@ const FLAGS_MAP = [
   {
     flag: Ci.nsIClearDataService.CLEAR_DOWNLOADS,
     cleaners: [DownloadsCleaner, AboutHomeStartupCacheCleaner],
-  },
-
-  {
-    flag: Ci.nsIClearDataService.CLEAR_PASSWORDS,
-    cleaners: [PasswordsCleaner],
   },
 
   {
