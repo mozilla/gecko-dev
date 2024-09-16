@@ -929,14 +929,6 @@ workers:
             implementation: generic-worker
             os: macosx
             worker-type: 'gecko-{alias}'
-        t-linux-xlarge-pgo:
-            provisioner:
-                by-level:
-                    '3': '{trust-domain}-{level}'
-                    default: '{trust-domain}-t'
-            implementation: docker-worker
-            os: linux
-            worker-type: 't-linux-xlarge-noscratch-gcp'
         b-osx-1015:
             provisioner: releng-hardware
             implementation: generic-worker
