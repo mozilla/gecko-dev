@@ -257,8 +257,9 @@ class ContentChild final : public PContentChild,
 
   mozilla::ipc::IPCResult RecvClearImageCacheFromPrincipal(
       nsIPrincipal* aPrincipal);
-  mozilla::ipc::IPCResult RecvClearImageCacheFromBaseDomain(
-      const nsCString& aBaseDomain);
+  mozilla::ipc::IPCResult RecvClearImageCacheFromSite(
+      const nsCString& aSchemelessSite,
+      const OriginAttributesPattern& aPattern);
   mozilla::ipc::IPCResult RecvClearImageCache(const bool& privateLoader,
                                               const bool& chrome);
 

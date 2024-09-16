@@ -2114,15 +2114,16 @@ mozilla::ipc::IPCResult ContentChild::RecvClearImageCacheFromPrincipal(
     loader = imgLoader::NormalLoader();
   }
 
-  loader->RemoveEntriesInternal(aPrincipal, nullptr);
+  loader->RemoveEntriesInternal(Some(aPrincipal), Nothing(), Nothing());
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult ContentChild::RecvClearImageCacheFromBaseDomain(
-    const nsCString& aBaseDomain) {
-  imgLoader::NormalLoader()->RemoveEntriesInternal(nullptr, &aBaseDomain);
-  imgLoader::PrivateBrowsingLoader()->RemoveEntriesInternal(nullptr,
-                                                            &aBaseDomain);
+mozilla::ipc::IPCResult ContentChild::RecvClearImageCacheFromSite(
+    const nsCString& aSchemelessSite, const OriginAttributesPattern& aPattern) {
+  imgLoader::NormalLoader()->RemoveEntriesInternal(
+      Nothing(), Some(aSchemelessSite), Some(aPattern));
+  imgLoader::PrivateBrowsingLoader()->RemoveEntriesInternal(
+      Nothing(), Some(aSchemelessSite), Some(aPattern));
 
   return IPC_OK();
 }
