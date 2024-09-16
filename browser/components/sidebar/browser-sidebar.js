@@ -1519,7 +1519,8 @@ var SidebarController = {
 
   toggleTabstrip() {
     let toVerticalTabs = CustomizableUI.verticalTabsEnabled;
-    let arrowScrollbox = gBrowser.tabContainer.arrowScrollbox;
+    let tabStrip = gBrowser.tabContainer;
+    let arrowScrollbox = tabStrip.arrowScrollbox;
     let currentScrollOrientation = arrowScrollbox.getAttribute("orient");
 
     if (
@@ -1530,7 +1531,6 @@ var SidebarController = {
       return;
     }
 
-    let tabStrip = gBrowser.tabContainer;
     if (toVerticalTabs) {
       this.toggleExpanded(this._sidebarMain.expanded);
       arrowScrollbox.setAttribute("orient", "vertical");
@@ -1544,16 +1544,6 @@ var SidebarController = {
     let verticalToolbar = document.getElementById(
       CustomizableUI.AREA_VERTICAL_TABSTRIP
     );
-    let indicatorTabs = gBrowser.visibleTabs.filter(tab => {
-      return (
-        tab.hasAttribute("soundplaying") ||
-        tab.hasAttribute("muted") ||
-        tab.hasAttribute("activemedia-blocked")
-      );
-    });
-    for (const indicatorTab of indicatorTabs) {
-      tabStrip.updateTabIndicatorAttr(indicatorTab);
-    }
     verticalToolbar.toggleAttribute("visible", toVerticalTabs);
   },
 };
