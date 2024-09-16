@@ -160,3 +160,90 @@ add_task(async function test_clear_fingerprinting_protection_state() {
 
   Services.prefs.clearUserPref("privacy.resistFingerprinting");
 });
+
+add_task(
+  async function test_clear_fingerprinting_protection_state_by_site_and_pattern() {
+    info("Enabling fingerprinting randomization");
+    Services.prefs.setBoolPref("privacy.resistFingerprinting", true);
+
+    let uri = Services.io.newURI("https://example.com");
+    let principal = Services.scriptSecurityManager.createContentPrincipal(
+      uri,
+      {}
+    );
+    let privateBrowsingPrincipal =
+      Services.scriptSecurityManager.createContentPrincipal(uri, {
+        privateBrowsingId: 1,
+      });
+
+    let channel = Services.io.newChannelFromURI(
+      uri,
+      null, // aLoadingNode
+      principal,
+      null, // aTriggeringPrincipal
+      Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+      Ci.nsIContentPolicy.TYPE_DOCUMENT
+    );
+    let pbmChannel = Services.io.newChannelFromURI(
+      uri,
+      null, // aLoadingNode
+      privateBrowsingPrincipal,
+      null, // aTriggeringPrincipal
+      Ci.nsILoadInfo.SEC_ALLOW_CROSS_ORIGIN_SEC_CONTEXT_IS_NULL,
+      Ci.nsIContentPolicy.TYPE_DOCUMENT
+    );
+
+    let [key, pbmKey] = [channel, pbmChannel].map(c => {
+      let k = Services.rfp.testGenerateRandomKey(c);
+      let keyStr = k.map(bytes => bytes.toString(16).padStart(2, "0")).join("");
+
+      // Verify that the key remains the same without clearing.
+      k = Services.rfp.testGenerateRandomKey(c);
+      let keyStrAgain = k
+        .map(bytes => bytes.toString(16).padStart(2, "0"))
+        .join("");
+
+      Assert.equal(
+        keyStr,
+        keyStrAgain,
+        "The fingerprinting randomization key remain the same without clearing."
+      );
+
+      return keyStr;
+    });
+
+    info("Trigger the deleteDataFromSite clearing only PBM data.");
+    await new Promise(resolve => {
+      Services.clearData.deleteDataFromSite(
+        "example.com",
+        { privateBrowsingId: 1 },
+        true /* user request */,
+        Ci.nsIClearDataService.CLEAR_FINGERPRINTING_PROTECTION_STATE,
+        _ => {
+          resolve();
+        }
+      );
+    });
+
+    let [newKey, newPBMKey] = [channel, pbmChannel].map(c => {
+      return Services.rfp
+        .testGenerateRandomKey(c)
+        .map(bytes => bytes.toString(16).padStart(2, "0"))
+        .join("");
+    });
+
+    Assert.equal(
+      key,
+      newKey,
+      "The fingerprinting randomization key remains the same for normal browsing."
+    );
+
+    Assert.notEqual(
+      pbmKey,
+      newPBMKey,
+      "The fingerprinting randomization key is reset properly for private browsing."
+    );
+
+    Services.prefs.clearUserPref("privacy.resistFingerprinting");
+  }
+);

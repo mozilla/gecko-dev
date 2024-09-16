@@ -400,9 +400,11 @@ const FingerprintingProtectionStateCleaner = {
     Services.rfp.cleanRandomKeyByPrincipal(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
-    Services.rfp.cleanRandomKeyByDomain(aSchemelessSite);
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    Services.rfp.cleanRandomKeyBySite(
+      aSchemelessSite,
+      aOriginAttributesPattern
+    );
   },
 
   async deleteByHost(aHost, aOriginAttributesPattern) {
