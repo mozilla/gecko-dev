@@ -1488,3 +1488,74 @@ networking:
       - necko@mozilla.com
       - acreskey@mozilla.com
     expires: never
+
+  http_3_udp_datagram_segment_size_sent:
+    type: memory_distribution
+    memory_unit: byte
+    description: >
+      HTTP3 UDP datagram segment size sent.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+
+  http_3_udp_datagram_segment_size_received:
+    type: memory_distribution
+    memory_unit: byte
+    description: >
+      HTTP3 UDP datagram size received.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+
+  http_3_udp_datagram_size_received:
+    type: memory_distribution
+    memory_unit: byte
+    description: >
+      HTTP3 UDP datagram size received.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+
+  http_3_udp_datagram_segments_received:
+    type: custom_distribution
+    unit: integer
+    range_min: 0
+    # Maximum number of UDP segments per datagram.
+    #
+    # See e.g. Linux https://github.com/torvalds/linux/blob/20371ba120635d9ab7fc7670497105af8f33eb08/include/linux/udp.h#L111.
+    range_max: 128
+    bucket_count: 100
+    histogram_type: exponential
+    description: >
+      HTTP3 UDP number of segments per datagram received.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1906853
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never

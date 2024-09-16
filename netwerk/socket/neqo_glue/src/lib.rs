@@ -39,6 +39,18 @@ use uuid::Uuid;
 use winapi::shared::ws2def::{AF_INET, AF_INET6};
 use xpcom::{interfaces::nsISocketProvider, AtomicRefcnt, RefCounted, RefPtr};
 
+/// Provides a buffered wrapper around [`firefox_on_glean`] metrics.
+///
+/// Enables instrumentation in the UDP IO hotpath, without a significant
+/// performance overhead through instrumentation itself.
+///
+/// See also performance analysis without it in
+/// <https://phabricator.services.mozilla.com/D216034#7453056>.
+///
+/// Will be replaced by <https://bugzilla.mozilla.org/show_bug.cgi?id=1915388>
+/// once available.
+mod metrics;
+
 #[repr(C)]
 pub struct NeqoHttp3Conn {
     conn: Http3Client,
@@ -59,6 +71,7 @@ pub struct NeqoHttp3Conn {
 impl Drop for NeqoHttp3Conn {
     fn drop(&mut self) {
         self.record_stats_in_glean();
+        metrics::METRICS.with_borrow_mut(|m| m.sync_to_glean());
     }
 }
 
@@ -543,12 +556,21 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
         if dgrams.is_empty() {
             break;
         }
-        bytes_read += dgrams.iter().map(|d| d.len()).sum::<usize>();
-        if !static_prefs::pref!("network.http.http3.ecn") {
-            for dgram in &mut dgrams {
+
+        let mut sum = 0;
+        let ecn_enabled = static_prefs::pref!("network.http.http3.ecn");
+        for dgram in &mut dgrams {
+            if !ecn_enabled {
                 dgram.set_tos(Default::default());
             }
+            metrics::METRICS
+                .with_borrow_mut(|m| m.datagram_segment_size_received.sample(dgram.len()));
+            sum += dgram.len();
         }
+        metrics::METRICS.with_borrow_mut(|m| m.datagram_size_received.sample(sum));
+        metrics::METRICS.with_borrow_mut(|m| m.datagram_segments_received.sample(dgrams.len()));
+        bytes_read += sum;
+
         conn.conn
             .process_multiple_input(dgrams.iter(), Instant::now());
     }
@@ -705,6 +727,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
                     }
                 }
                 bytes_written += dg.len();
+                metrics::METRICS.with_borrow_mut(|m| m.datagram_segment_size_sent.sample(dg.len()));
             }
             Output::Callback(to) => {
                 if to.is_zero() {
