@@ -312,7 +312,7 @@ pub fn add_marker<T>(
     mut options: MarkerOptions,
     payload: T,
 ) where
-    T: ProfilerMarker,
+    T: ProfilerMarker + 'static,
 {
     if !crate::profiler_state::can_accept_markers() {
         // Nothing to do.
