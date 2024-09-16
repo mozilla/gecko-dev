@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+const onstatechange = () => {
+  const xhr = new XMLHttpRequest("󠟨.")
+  xhr.open("POST", "1", false)
+  xhr.send()
+}
+const observe = (ev) => {
+  ev.addEventListener("statechange", onstatechange, { })
+}
+document.addEventListener("DOMContentLoaded", async () => {
+  await self.fetch(".", {
+    keepalive: true,
+    observe,
+  })
+})
+</script>

@@ -89,8 +89,13 @@ mozilla::ipc::IPCResult FetchChild::RecvOnResponseAvailableInternal(
     if (mFetchObserver) {
       mFetchObserver->SetState(FetchState::Complete);
     }
+
+    // mFetchObserver->SetState runs JS and a blocking JS function can run
+    // queued runnables, including ActorDestroy that nullifies mPromise.
+    if (!mPromise) {
+      return IPC_OK();
+    }
     nsCOMPtr<nsIGlobalObject> global;
-    // global = mWorkerRef->Private()->GlobalScope();
     global = mPromise->GetGlobalObject();
     RefPtr<Response> response =
         new Response(global, internalResponse.clonePtr(), mSignalImpl);
@@ -105,6 +110,12 @@ mozilla::ipc::IPCResult FetchChild::RecvOnResponseAvailableInternal(
        this, static_cast<int32_t>(internalResponse->GetErrorCode())));
   if (mFetchObserver) {
     mFetchObserver->SetState(FetchState::Errored);
+  }
+
+  // mFetchObserver->SetState runs JS and a blocking JS function can run queued
+  // runnables, including ActorDestroy that nullifies mPromise.
+  if (!mPromise) {
+    return IPC_OK();
   }
   mPromise->MaybeRejectWithTypeError<MSG_FETCH_FAILED>();
   return IPC_OK();
@@ -127,6 +138,12 @@ mozilla::ipc::IPCResult FetchChild::RecvOnResponseEnd(ResponseEndArgs&& aArgs) {
         ("FetchChild::RecvOnResponseEnd [%p] endReason is eAborted", this));
     if (mFetchObserver) {
       mFetchObserver->SetState(FetchState::Errored);
+    }
+
+    // mFetchObserver->SetState runs JS and a blocking JS function can run
+    // queued runnables, including ActorDestroy that nullifies mPromise.
+    if (!mPromise) {
+      return IPC_OK();
     }
     mPromise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);
   }
