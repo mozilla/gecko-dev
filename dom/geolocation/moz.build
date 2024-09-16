@@ -38,7 +38,7 @@ UNIFIED_SOURCES += [
 # Permission UI so it uses the platform-agnostic version.
 if (
     CONFIG["OS_TARGET"] == "WINNT"
-    and CONFIG["CC_TYPE"] == "clang-cl"
+    and (CONFIG["CC_TYPE"] == "clang-cl" or CONFIG["MOZ_ARTIFACT_BUILDS"])
     and CONFIG["MOZ_BUILD_APP"] == "browser"
 ):
     UNIFIED_SOURCES += [
