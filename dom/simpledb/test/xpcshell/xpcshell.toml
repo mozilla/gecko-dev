@@ -2,4 +2,3 @@
 head = "head.js"
 
 ["test_slowStorageInitialization.js"]
-skip-if = ["true"]

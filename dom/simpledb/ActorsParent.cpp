@@ -1399,6 +1399,10 @@ void OpenOp::DirectoryLockAcquired(DirectoryLock* aLock) {
     MOZ_ALWAYS_SUCCEEDS(self->Run());
   };
 
+  if (mDirectoryLock->Invalidated()) {
+    return cleanupAndReturn(NS_ERROR_ABORT);
+  }
+
   QM_TRY(MOZ_TO_RESULT(SendToIOThread()), cleanupAndReturn);
 }
 
