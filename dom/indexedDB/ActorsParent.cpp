@@ -15075,15 +15075,17 @@ void FactoryOp::DirectoryLockAcquired(DirectoryLock* aLock) {
   MOZ_ASSERT(mDirectoryLock->Id() >= 0);
   mDirectoryLockId = mDirectoryLock->Id();
 
-  QM_WARNONLY_TRY(MOZ_TO_RESULT(DirectoryOpen()), [this](const nsresult rv) {
-    SetFailureCodeIfUnset(rv);
+  auto cleanupAndReturn = [self = RefPtr(this)](const nsresult rv) {
+    self->SetFailureCodeIfUnset(rv);
 
     // The caller holds a strong reference to us, no need for a self reference
     // before calling Run().
 
-    mState = State::SendingResults;
-    MOZ_ALWAYS_SUCCEEDS(Run());
-  });
+    self->mState = State::SendingResults;
+    MOZ_ALWAYS_SUCCEEDS(self->Run());
+  };
+
+  QM_WARNONLY_TRY(MOZ_TO_RESULT(DirectoryOpen()), cleanupAndReturn);
 }
 
 void FactoryOp::DirectoryLockFailed() {
