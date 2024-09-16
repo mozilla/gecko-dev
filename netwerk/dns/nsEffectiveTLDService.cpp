@@ -206,6 +206,23 @@ nsEffectiveTLDService::GetSchemelessSite(nsIURI* aURI, nsACString& aSite) {
   return rv;
 }
 
+// Variant of GetSchemelessSite which accepts a host string instead of a URI.
+NS_IMETHODIMP
+nsEffectiveTLDService::GetSchemelessSiteFromHost(const nsACString& aHostname,
+                                                 nsACString& aSite) {
+  NS_ENSURE_TRUE(!aHostname.IsEmpty(), NS_ERROR_FAILURE);
+
+  nsresult rv = GetBaseDomainFromHost(aHostname, 0, aSite);
+  if (rv == NS_ERROR_HOST_IS_IP_ADDRESS ||
+      rv == NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS) {
+    aSite.Assign(aHostname);
+    nsContentUtils::MaybeFixIPv6Host(aSite);
+
+    return NS_OK;
+  }
+  return rv;
+}
+
 // External function for dealing with URIs to get site correctly.
 // Calls through to GetSchemelessSite(), and serializes with the scheme and
 // "://" prepended.
