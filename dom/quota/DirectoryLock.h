@@ -38,6 +38,8 @@ class NS_NO_VTABLE DirectoryLock {
 
   virtual nsTArray<RefPtr<DirectoryLock>> LocksMustWaitFor() const = 0;
 
+  virtual bool Invalidated() const = 0;
+
   virtual bool Dropped() const = 0;
 
   virtual RefPtr<BoolPromise> Acquire() = 0;

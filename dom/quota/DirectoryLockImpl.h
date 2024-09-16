@@ -190,6 +190,8 @@ class DirectoryLockImpl final : public ClientDirectoryLock,
 
   nsTArray<RefPtr<DirectoryLock>> LocksMustWaitFor() const override;
 
+  bool Invalidated() const override { return mInvalidated; }
+
   bool Dropped() const override { return mDropped; }
 
   RefPtr<BoolPromise> Acquire() override;
