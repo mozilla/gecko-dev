@@ -11,8 +11,7 @@
 add_task(async function test_sanitize() {
   let testFlags = [
     ["downloads", Ci.nsIClearDataService.CLEAR_DOWNLOADS],
-    ["places history", Ci.nsIClearDataService.CLEAR_HISTORY],
-    ["session history", Ci.nsIClearDataService.CLEAR_SESSION_HISTORY],
+    ["history", Ci.nsIClearDataService.CLEAR_HISTORY],
   ];
 
   await withFullyLoadedAboutHome(async browser => {

@@ -291,7 +291,7 @@ function purgeDomainData(browser, domain) {
     Services.clearData.deleteDataFromHost(
       domain,
       true,
-      Services.clearData.CLEAR_SESSION_HISTORY,
+      Services.clearData.CLEAR_HISTORY,
       resolve
     );
   });

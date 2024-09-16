@@ -559,7 +559,6 @@ export var Sanitizer = {
         await clearData(
           range,
           Ci.nsIClearDataService.CLEAR_HISTORY |
-            Ci.nsIClearDataService.CLEAR_SESSION_HISTORY |
             Ci.nsIClearDataService.CLEAR_CONTENT_BLOCKING_RECORDS
         );
 
@@ -842,7 +841,6 @@ export var Sanitizer = {
         await clearData(
           range,
           Ci.nsIClearDataService.CLEAR_HISTORY |
-            Ci.nsIClearDataService.CLEAR_SESSION_HISTORY |
             Ci.nsIClearDataService.CLEAR_CONTENT_BLOCKING_RECORDS
         );
 

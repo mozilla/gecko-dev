@@ -2208,12 +2208,11 @@ const FLAGS_MAP = [
 
   {
     flag: Ci.nsIClearDataService.CLEAR_HISTORY,
-    cleaners: [HistoryCleaner, AboutHomeStartupCacheCleaner],
-  },
-
-  {
-    flag: Ci.nsIClearDataService.CLEAR_SESSION_HISTORY,
-    cleaners: [SessionHistoryCleaner, AboutHomeStartupCacheCleaner],
+    cleaners: [
+      HistoryCleaner,
+      SessionHistoryCleaner,
+      AboutHomeStartupCacheCleaner,
+    ],
   },
 
   {

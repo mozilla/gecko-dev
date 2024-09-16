@@ -54,8 +54,7 @@ const ClearFlags = [
   [
     // HISTORY
     1 << 3,
-    Ci.nsIClearDataService.CLEAR_HISTORY |
-      Ci.nsIClearDataService.CLEAR_SESSION_HISTORY,
+    Ci.nsIClearDataService.CLEAR_HISTORY,
   ],
   [
     // DOM_STORAGES
