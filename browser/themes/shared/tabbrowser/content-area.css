@@ -47,11 +47,9 @@
 #tabbrowser-tabbox {
   position: relative;
   margin: 0;
-}
 
-/* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "sidebar.revamp") {
-  .browserSidebarContainer {
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.revamp") {
     outline: 0.01px solid var(--chrome-content-separator-color);
     box-shadow: var(--content-area-shadow);
   }
