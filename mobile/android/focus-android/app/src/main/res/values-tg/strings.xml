@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Ҷустуҷӯ дар «Focus»</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Ҷустуҷӯ дар «Focus»</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Ҷустуҷӯ дар «Klar»</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Ҷустуҷӯ дар «Klar»</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Ҷустуҷӯ дар «Focus Beta»</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Ҷустуҷӯ дар «Focus Beta»</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Ҷустуҷӯ дар «Focus Nightly»</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Ҷустуҷӯ дар «Focus Nightly»</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>«%1$s» ба шумо идора медиҳад.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>«%1$s» ба шумо идора медиҳад.</p>
 <p>Онро ҳамчун браузери хусусӣ истифода баред:
   <ul>
     <li>Ҷустуҷӯ кунед ва рост дар дохили барнома тамошо намоед</li>
@@ -592,9 +592,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Пок кардани таърихи тамошо</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Пӯшидани варақаҳои дигар</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Боргирӣ кардани «Firefox»</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Боргирӣ кардани «Firefox»</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -603,24 +606,24 @@
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[Браузери «%1$s» тибқи шартҳои <a href="%2$s">Иҷозатномаи ҷамъиятии «Mozilla»</a> ва иҷозатномаҳои манбаи кушоди дигар ба шумо барои истифода дастрас шудааст.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Браузери «%1$s» тибқи шартҳои <a href="%2$s">Иҷозатномаи ҷамъиятии «Mozilla»</a> ва иҷозатномаҳои манбаи кушоди дигар ба шумо барои истифода дастрас шудааст.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Ба шумо нисбат ба тамғаҳои тиҷории «Mozilla Foundation» ё ягон тарафи дигар, аз он ҷумла,
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Ба шумо нисбат ба тамғаҳои тиҷории «Mozilla Foundation» ё ягон тарафи дигар, аз он ҷумла,
 бе маҳдудият нисбат ба тамға ё номи «Mozilla», «Firefox» or «%1$s» ягон ҳуқуқи тамғаи тиҷорӣ ё иҷозатномавӣ таъмин нашудааст. Маълумоти иловагӣ метавонад <a href="%2$s">дар ин ҷо</a> пайдо карда шавад.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Рамзи манбаи иловагӣ барои «%1$s» дар таҳти <a href="%2$s">иҷозатномаҳои</a> гуногуни дигари манбаи кушод ва ройгон дастрас аст.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Рамзи манбаи иловагӣ барои «%1$s» дар таҳти <a href="%2$s">иҷозатномаҳои</a> гуногуни дигари манбаи кушод ва ройгон дастрас аст.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[«%1$s», инчунин, аз рӯйхатҳои манъкуние, ки аз ҷониби «Disconnect, Inc.» таъмин шудаанд, ҳамчун корҳои алоҳида ва мустақил дар таҳти <a href="%2$s">Иҷозатномаи ҷамъиятии умумии GNU v3</a> истифода мебарад ва рӯйхати мазкур <a href="%3$s">дар ин ҷо</a> дастрас аст.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[«%1$s», инчунин, аз рӯйхатҳои манъкуние, ки аз ҷониби «Disconnect, Inc.» таъмин шудаанд, ҳамчун корҳои алоҳида ва мустақил дар таҳти <a href="%2$s">Иҷозатномаи ҷамъиятии умумии GNU v3</a> истифода мебарад ва рӯйхати мазкур <a href="%3$s">дар ин ҷо</a> дастрас аст.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Номи корбар</string>
@@ -809,7 +812,7 @@
     <string name="preference_studies">Омӯзишҳо</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Баъзе вақт «Firefox» метавонад омӯзишҳоро насб ва иҷро намояд.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Баъзе вақт «Firefox» метавонад омӯзишҳоро насб ва иҷро намояд.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Маълумоти бештар</string>
@@ -1014,7 +1017,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[Барои бехатарии бештар, «%1$s» кӯшиш мекунад, ки аз пайвасти «HTTPS» ба қадри имкон истифода барад.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Барои бехатарии бештар, «%1$s» кӯшиш мекунад, ки аз пайвасти «HTTPS» ба қадри имкон истифода барад.
      <a href="%2$s">Маълумоти бештар</a> <br/><br/>
      Шумо метавонед ин танзимро дар Танзимот > Махфият ва амният > Бехатарӣ иваз кунед.]]></string>
 

@@ -238,6 +238,8 @@
     <string name="browser_menu_add_to_homescreen">Lisää aloitusnäytölle</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Lisää aloitusnäytölle…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi-laitteet saattavat tarvita ylimääräisiä käyttöoikeuksia lisätäkseen pikakuvakkeita aloitusnäyttöön. Tarkista asetuksesi.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Synkronoi uudelleen</string>
     <!-- Browser menu button that opens the find in page menu -->

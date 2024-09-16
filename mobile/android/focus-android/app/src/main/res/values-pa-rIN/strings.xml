@@ -124,23 +124,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Focus ਵਿੱਚ ਲੱਭੋ</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Focus ਵਿੱਚ ਲੱਭੋ</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Klar ਵਿੱਚ ਲੱਭੋ</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Klar ਵਿੱਚ ਲੱਭੋ</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Focus Beta ਵਿੱਚ ਲੱਭੋ</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Focus Beta ਵਿੱਚ ਲੱਭੋ</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Focus Nightly ਵਿੱਚ ਲੱਭੋ</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightly ਵਿੱਚ ਲੱਭੋ</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s ਕੰਟਰੋਲ ਤੁਹਾਡੇ ਹੱਥ ਦਿੰਦਾ ਹੈ।</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ਕੰਟਰੋਲ ਤੁਹਾਡੇ ਹੱਥ ਦਿੰਦਾ ਹੈ।</p>
 <p>ਇਸ ਨੂੰ ਨਿੱਜੀ ਬਰਾਊਜ਼ਰ ਵਜੋਂ ਵਰਤੋਂ:
   <ul>
     <li>ਐਪ ਦੇ ਵਿੱਚ ਖੋਲ੍ਹੋ ਅਤੇ ਬਰਾਊਜ਼ ਕਰੋp</li>
@@ -606,9 +606,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">ਬਰਾਊਜ਼ ਕਰਨ ਦਾ ਅਤੀਤ ਮਿਟਾਓ</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">ਹੋਰ ਟੈਬਾਂ ਨੂੰ ਬੰਦ ਕਰੋ</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox ਡਾਊਨਲੋਡ ਕਰੋ</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox ਡਾਊਨਲੋਡ ਕਰੋ</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -617,23 +620,23 @@
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s ਤੁਹਾਨੂੰ <a href="%2$s">Mozilla ਜਨਤਕ ਲਸੰਸ</a> ਅਤੇ ਹੋਰ ਖੁੱਲ੍ਹੇ ਵਸੀਲਿਆਂ ਦੇ ਲਸੰਸਾਂ ਦੀਆਂ ਸ਼ਰਤਾਂ ਹੇਠ ਮੁਹੱਈਆ ਕਰਵਾਇਆ ਗਿਆ ਹੈ।]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ਤੁਹਾਨੂੰ <a href="%2$s">Mozilla ਜਨਤਕ ਲਸੰਸ</a> ਅਤੇ ਹੋਰ ਖੁੱਲ੍ਹੇ ਵਸੀਲਿਆਂ ਦੇ ਲਸੰਸਾਂ ਦੀਆਂ ਸ਼ਰਤਾਂ ਹੇਠ ਮੁਹੱਈਆ ਕਰਵਾਇਆ ਗਿਆ ਹੈ।]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[ਤੁਹਾਨੂੰ Mozilla Foundation ਜਾਂ Mozilla, Firefox ਜਾਂ %1$s ਨਾਂ ਜਾਂ ਲੋਗੋ ਸਮੇਤ ਕਿਸੇ ਵੀ ਪਾਰਟੀ ਦੇ ਮਾਰਕੇ ਲਈ ਕੋਈ ਅਧਿਕਾਰ ਜਾਂ ਲਸੰਸ ਨਹੀਂ ਮਿਲੇ ਹਨ। ਵਾਧੂ ਜਾਣਕਾਰੀ ਵੀ <a href="%2$s"> ਇੱਥੇ</a>ਮਿਲ ਸਕਦੀ ਹੈ।]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[ਤੁਹਾਨੂੰ Mozilla Foundation ਜਾਂ Mozilla, Firefox ਜਾਂ %1$s ਨਾਂ ਜਾਂ ਲੋਗੋ ਸਮੇਤ ਕਿਸੇ ਵੀ ਪਾਰਟੀ ਦੇ ਮਾਰਕੇ ਲਈ ਕੋਈ ਅਧਿਕਾਰ ਜਾਂ ਲਸੰਸ ਨਹੀਂ ਮਿਲੇ ਹਨ। ਵਾਧੂ ਜਾਣਕਾਰੀ ਵੀ <a href="%2$s"> ਇੱਥੇ</a>ਮਿਲ ਸਕਦੀ ਹੈ।]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[%1$s ਲਈ ਹੋਰ ਸੋਰਸ ਕੋਡ ਹੋਰ ਕਈ ਮੁਫਤ ਅਤੇ ਖੁੱਲ੍ਹੇ ਵਸੀਲਿਆਂ (ਓਪਨ ਸੋਰਸ) ਦੇ <a href="%2$s">ਲਸੰਸਾਂ</a> ਹੇਠ ਮਿਲਦਾ ਹੈ।]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ਲਈ ਹੋਰ ਸੋਰਸ ਕੋਡ ਹੋਰ ਕਈ ਮੁਫਤ ਅਤੇ ਖੁੱਲ੍ਹੇ ਵਸੀਲਿਆਂ (ਓਪਨ ਸੋਰਸ) ਦੇ <a href="%2$s">ਲਸੰਸਾਂ</a> ਹੇਠ ਮਿਲਦਾ ਹੈ।]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s Disconnect, Inc. ਵਲੋਂ ਪਾਬੰਦੀਸੁਦਾ-ਸੂਚੀਆਂ ਦੀ ਵਰਤੋਂ ਵੱਖਰੇ ਅਤੇ ਆਜ਼ਾਦਾਨਾ ਤੌਰ ਉੱਤੇ <a href="%2$s">GNU ਜਰਨਲ ਪਬਲਿਕ ਲਸੰਸ v3</a> ਦੇ ਤਹਿਤ ਕਰਦਾ ਹੈ ਅਤੇ ਇਹ <a href="%3$s">ਇੱਥੇ ਮੌਜੂਦ ਹੈ</a>।]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s Disconnect, Inc. ਵਲੋਂ ਪਾਬੰਦੀਸੁਦਾ-ਸੂਚੀਆਂ ਦੀ ਵਰਤੋਂ ਵੱਖਰੇ ਅਤੇ ਆਜ਼ਾਦਾਨਾ ਤੌਰ ਉੱਤੇ <a href="%2$s">GNU ਜਰਨਲ ਪਬਲਿਕ ਲਸੰਸ v3</a> ਦੇ ਤਹਿਤ ਕਰਦਾ ਹੈ ਅਤੇ ਇਹ <a href="%3$s">ਇੱਥੇ ਮੌਜੂਦ ਹੈ</a>।]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">ਵਰਤੋਂਕਾਰ-ਨਾਂ</string>
@@ -825,7 +828,7 @@
     <string name="preference_studies">ਅਧਿਐਨ</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox ਸਮੇਂ ਸਮੇਂ ਉੱਤੇ ਅਧਿਐਨ ਇੰਸਟਾਲ ਕਰ ਤੇ ਚਲਾ ਸਕਦਾ ਹੈ।</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox ਸਮੇਂ ਸਮੇਂ ਉੱਤੇ ਅਧਿਐਨ ਇੰਸਟਾਲ ਕਰ ਤੇ ਚਲਾ ਸਕਦਾ ਹੈ।</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">ਹੋਰ ਜਾਣੋ</string>
@@ -1033,7 +1036,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s ਜਦੋਂ ਵੀ ਸੰਭਵ ਹੋ ਸਕੇ ਜ਼ਿਆਦਾ ਸੁਰੱਖਿਆ ਲਈ HTTPS ਵਰਤਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਦਾ ਹੈ।
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ਜਦੋਂ ਵੀ ਸੰਭਵ ਹੋ ਸਕੇ ਜ਼ਿਆਦਾ ਸੁਰੱਖਿਆ ਲਈ HTTPS ਵਰਤਣ ਦੀ ਕੋਸ਼ਿਸ਼ ਕਰਦਾ ਹੈ।
  <a href="%2$s">ਹੋਰ ਜਾਣੋ</a><br/><br/>
  ਇਸ ਸੈਟਿੰਗ ਨੂੰ ਸੈਟਿੰਗਾਂ > ਪਰਦੇਦਾਰੀ ਤੇ ਸੁਰੱਖਿਆ > ਸੁਰੱਖਿਆ ਵਿੱਚੋਂ ਬਦਲੋ।]]></string>
 
