@@ -1378,53 +1378,8 @@ const AuthCacheCleaner = {
   },
 };
 
-// helper functions for Permission cleaners
+// Type of the shutdown exception permission.
 const SHUTDOWN_EXCEPTION_PERMISSION = "cookie";
-
-function deleteSingleInternalPerm(
-  { baseDomain, host },
-  perm,
-  skipThirdPartyStoragePerms = false
-) {
-  let toBeRemoved;
-
-  if (baseDomain) {
-    toBeRemoved = perm.principal.baseDomain == baseDomain;
-  } else {
-    try {
-      toBeRemoved = Services.eTLD.hasRootDomain(perm.principal.host, host);
-    } catch (ex) {
-      return;
-    }
-  }
-
-  if (
-    !skipThirdPartyStoragePerms &&
-    !toBeRemoved &&
-    (perm.type.startsWith("3rdPartyStorage^") ||
-      perm.type.startsWith("3rdPartyFrameStorage^"))
-  ) {
-    let parts = perm.type.split("^");
-    let uri;
-    try {
-      uri = Services.io.newURI(parts[1]);
-    } catch (ex) {
-      return;
-    }
-
-    toBeRemoved = Services.eTLD.hasRootDomain(uri.host, baseDomain || host);
-  }
-
-  if (!toBeRemoved) {
-    return;
-  }
-
-  try {
-    Services.perms.removePermission(perm);
-  } catch (ex) {
-    // Ignore entry
-  }
-}
 
 const ShutdownExceptionsCleaner = {
   async _deleteInternal(filter) {
@@ -1495,37 +1450,89 @@ const ShutdownExceptionsCleaner = {
 };
 
 const PermissionsCleaner = {
-  /**
-   * Delete permissions by either base domain or host.
-   * Clearing by host also clears associated subdomains.
-   * For example, clearing "example.com" will also clear permissions for
-   * "test.example.com" and "another.test.example.com".
-   * @param options
-   * @param {string} options.baseDomain - Base domain to delete permissions for.
-   * @param {string} options.host - Host to delete permissions for.
-   */
-  async _deleteInternal({ baseDomain, host }) {
-    for (let perm of Services.perms.all) {
-      // skip shutdown exception permission because it is handled by ShutDownExceptionsCleaner
-      if (SHUTDOWN_EXCEPTION_PERMISSION == perm.type) {
-        continue;
-      }
+  _deleteInternal(filter) {
+    Services.perms.all
+      // Skip shutdown exception permission because it is handled by ShutDownExceptionsCleaner
+      .filter(({ type }) => type != SHUTDOWN_EXCEPTION_PERMISSION)
+      .filter(filter)
+      .forEach(perm => {
+        try {
+          Services.perms.removePermission(perm);
+        } catch (ex) {
+          console.error(ex);
+        }
+      });
+  },
 
-      deleteSingleInternalPerm({ baseDomain, host }, perm);
+  _thirdPartyStoragePermissionMatchesHost(permissionType, aHost) {
+    if (
+      !permissionType.startsWith("3rdPartyStorage^") &&
+      !permissionType.startsWith("3rdPartyFrameStorage^")
+    ) {
+      return false;
+    }
+    let [, site] = permissionType.split("^");
+    let uri;
+    try {
+      uri = Services.io.newURI(site);
+    } catch (ex) {
+      return false;
+    }
+    return Services.eTLD.hasRootDomain(uri.host, aHost);
+  },
+
+  _getPrincipalHost(principal) {
+    try {
+      return principal.host;
+    } catch (e) {
+      return null;
     }
   },
 
-  deleteByHost(aHost) {
-    return this._deleteInternal({ host: aHost });
+  async deleteByHost(aHost) {
+    this._deleteInternal(({ principal, type }) => {
+      let principalHost = this._getPrincipalHost(principal);
+      if (!principalHost?.length) {
+        return false;
+      }
+      if (Services.eTLD.hasRootDomain(principalHost, aHost)) {
+        return true;
+      }
+
+      return this._thirdPartyStoragePermissionMatchesHost(type, aHost);
+    });
   },
 
-  deleteByPrincipal(aPrincipal) {
-    return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
+  async deleteByPrincipal(aPrincipal) {
+    this._deleteInternal(({ principal, type }) => {
+      if (principal.equals(aPrincipal)) {
+        return true;
+      }
+      let principalHost = this._getPrincipalHost(aPrincipal);
+      if (!principalHost?.length) {
+        return false;
+      }
+      return this._thirdPartyStoragePermissionMatchesHost(type, principalHost);
+    });
   },
 
-  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern.
-    return this._deleteInternal({ baseDomain: aSchemelessSite });
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    // If we don't isolate by private browsing / user context we need to clear
+    // the pattern field. Otherwise permissions returned by the permission
+    // manager will never match. The permission manager strips these fields when
+    // their prefs are set to `false`.
+    if (!lazy.permissionManagerIsolateByPrivateBrowsing) {
+      delete aOriginAttributesPattern.privateBrowsingId;
+    }
+    if (!lazy.permissionManagerIsolateByUserContext) {
+      delete aOriginAttributesPattern.userContextId;
+    }
+
+    this._deleteInternal(
+      ({ principal, type }) =>
+        hasSite({ principal }, aSchemelessSite, aOriginAttributesPattern) ||
+        this._thirdPartyStoragePermissionMatchesHost(type, aSchemelessSite)
+    );
   },
 
   async deleteByRange(aFrom) {
