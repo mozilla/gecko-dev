@@ -19,93 +19,94 @@ support_class = "browsertime_pageload.py"
 
 ## Keep this test list in alphabetical order
 
-["allrecipes"]
+[allrecipes]
 test_url = "https://www.allrecipes.com/"
+playback_pageset_manifest = "mitm8-android-gve-{subtest}.manifest"
 
-["amazon"]
+[amazon]
 test_url = "https://www.amazon.com"
 
-["amazon-search"]
+[amazon-search]
 test_url = "https://www.amazon.com/s/ref=nb_sb_noss_2/139-6317191-5622045?url=search-alias%3Daps&field-keywords=mobile+phone"
 
-["bild-de"]
+[bild-de]
 playback_pageset_manifest = "mitm8-android-fenix-{subtest}.manifest"
 test_url = "https://www.bild.de/sport/american-football/nfl/super-bowl-rekordquote-fuer-die-nfl-87139668.bild.html"
 
-["bing"]
+[bing]
 test_url = "https://www.bing.com/"
 
-["bing-search-restaurants"]
+[bing-search-restaurants]
 test_url = "https://www.bing.com/search?q=restaurants+in+exton+pa+19341"
 
-["booking"]
+[booking]
 test_url = "https://www.booking.com/"
 
-["cnn"]
+[cnn]
 test_url = "https://cnn.com"
 
-["cnn-ampstories"]
+[cnn-ampstories]
 test_url = "https://cnn.com/ampstories/us/why-hurricane-michael-is-a-monster-unlike-any-other"
 
-["dailymail"]
+[dailymail]
 test_url = "https://www.dailymail.co.uk/sciencetech/article-9749081/Experts-say-Hubble-repair-despite-NASA-insisting-multiple-options-fix.html"
 
-["ebay-kleinanzeigen"]
+[ebay-kleinanzeigen]
 test_url = "https://m.ebay-kleinanzeigen.de"
 
-["ebay-kleinanzeigen-search"]
+[ebay-kleinanzeigen-search]
 test_url = "https://m.ebay-kleinanzeigen.de/s-anzeigen/auf-zeit-wg-berlin/zimmer/c199-l3331"
 
-["espn"]
+[espn]
 test_url = "http://www.espn.com/nba/story/_/page/allstarweekend25788027/the-comparison-lebron-james-michael-jordan-their-own-words"
 
-["facebook"]
+[facebook]
 login = true
 playback_pageset_manifest = "mitm6-g5-fenix-{subtest}.manifest"
 test_url = "https://m.facebook.com"
 
-["facebook-cristiano"]
+[facebook-cristiano]
 test_url = "https://m.facebook.com/Cristiano"
 
-["google"]
+[google]
 login = true
 playback_pageset_manifest = "mitm6-g5-fenix-{subtest}.manifest"
 test_url = "https://www.google.com"
 
-["google-maps"]
+[google-maps]
 test_url = "https://www.google.com/maps?force=pwa"
 
-["google-search-restaurants"]
+[google-search-restaurants]
 login = true
 playback_pageset_manifest = "mitm6-g5-fenix-{subtest}.manifest"
 test_url = "https://www.google.com/search?q=restaurants+near+me"
 
-["imdb"]
+[imdb]
 test_url = "https://m.imdb.com/"
 
-["instagram"]
+[instagram]
 login = true
 playback_pageset_manifest = "mitm8-android-gve-{subtest}.manifest"
 test_url = "https://www.instagram.com"
 
-["microsoft-support"]
+[microsoft-support]
 test_url = "https://support.microsoft.com/en-us"
 
-["reddit"]
+[reddit]
 test_url = "https://www.reddit.com"
 
-["sina"]
+[sina]
 playback_pageset_manifest = "mitm8-android-fenix-{subtest}.manifest"
 test_url = "https://www.sina.com.cn/"
 
-["stackoverflow"]
+[stackoverflow]
 test_url = "https://stackoverflow.com/"
 
-["wikipedia"]
+[wikipedia]
 test_url = "https://en.m.wikipedia.org/wiki/Main_Page"
 
-["youtube"]
+[youtube]
 test_url = "https://m.youtube.com"
 
-["youtube-watch"]
+[youtube-watch]
 test_url = "https://www.youtube.com/watch?v=COU5T-Wafa4"

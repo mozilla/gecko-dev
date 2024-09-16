@@ -30608,7 +30608,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **page cycles**: 25
    * **page timeout**: 60000
    * **playback**: mitmproxy-android
-   * **playback pageset manifest**: mitm6-android-fenix-allrecipes.manifest
+   * **playback pageset manifest**: mitm8-android-gve-allrecipes.manifest
    * **playback version**: 8.1.1
    * **support class**: browsertime_pageload.py
    * **test url**: `<https://www.allrecipes.com/>`__
@@ -30748,7 +30748,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#25>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#26>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -31313,7 +31313,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#28>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#29>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -31473,7 +31473,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#31>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#32>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -31673,7 +31673,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#35>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#36>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -31873,7 +31873,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#38>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#39>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -32073,7 +32073,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#41>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#42>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -32273,7 +32273,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#44>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#45>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -32758,7 +32758,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#47>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#48>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -32958,7 +32958,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#50>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#51>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -33158,7 +33158,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#53>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#54>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -33358,7 +33358,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#56>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#57>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -33558,7 +33558,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#59>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#60>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -33878,7 +33878,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#62>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#63>`__
    * **login**: true
    * **lower is better**: true
    * **page cycles**: 25
@@ -34224,7 +34224,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#67>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#68>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -34424,7 +34424,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#70>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#71>`__
    * **login**: true
    * **lower is better**: true
    * **page cycles**: 25
@@ -34570,7 +34570,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#75>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#76>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -34770,7 +34770,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#78>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#79>`__
    * **login**: true
    * **lower is better**: true
    * **page cycles**: 25
@@ -34971,7 +34971,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#83>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#84>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -35416,7 +35416,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#86>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#87>`__
    * **login**: true
    * **lower is better**: true
    * **page cycles**: 25
@@ -35917,7 +35917,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#91>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#92>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -36062,7 +36062,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#94>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#95>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -36507,7 +36507,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#97>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#98>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -36667,7 +36667,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#101>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#102>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -36867,7 +36867,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#104>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#105>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -37372,7 +37372,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#107>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#108>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
@@ -37817,7 +37817,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
-   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#110>`__
+   * **link searchfox**: `<https://searchfox.org/mozilla-central/source/testing/raptor/raptor/tests/tp6/mobile/browsertime-tp6m.toml#111>`__
    * **lower is better**: true
    * **page cycles**: 25
    * **page timeout**: 60000
