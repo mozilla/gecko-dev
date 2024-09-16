@@ -569,7 +569,7 @@ export const PREFS_CONFIG = new Map([
       title:
         "Endpoint prefixes (comma-separated) that are allowed to be requested",
       value:
-        "https://getpocket.cdn.mozilla.net/,https://firefox-api-proxy.cdn.mozilla.net/,https://spocs.getpocket.com/,https://merino.services.mozilla.com/",
+        "https://getpocket.cdn.mozilla.net/,https://firefox-api-proxy.cdn.mozilla.net/,https://spocs.getpocket.com/,https://merino.services.mozilla.com/,https://ads.mozilla.org/",
     },
   ],
   [
