@@ -15,6 +15,8 @@ import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import androidx.appcompat.app.AlertDialog
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.content.getSystemService
 import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
@@ -48,6 +50,7 @@ import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavHostActivity
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.databinding.FragmentBookmarkBinding
@@ -57,10 +60,16 @@ import org.mozilla.fenix.ext.getRootView
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.setTextColor
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.library.LibraryPageFragment
+import org.mozilla.fenix.library.bookmarks.ui.BookmarksMiddleware
+import org.mozilla.fenix.library.bookmarks.ui.BookmarksScreen
+import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
+import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
+import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.utils.allowUndo
 
 /**
@@ -116,6 +125,34 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
         bookmarkView = BookmarkView(binding.bookmarkLayout, bookmarkInteractor, findNavController())
         bookmarkView.binding.bookmarkFoldersSignIn.visibility = View.GONE
 
+        if (requireContext().settings().useNewBookmarks) {
+            return ComposeView(requireContext()).apply {
+                setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+                val store = BookmarksStore(
+                    initialState = BookmarksState(
+                        bookmarkItems = listOf(),
+                        folderTitle = "Bookmarks",
+                        selectedItems = listOf(),
+                    ),
+                    middleware = listOf(
+                        BookmarksMiddleware(
+                            bookmarksStorage = requireContext().bookmarkStorage,
+                            navController = findNavController(),
+                            resolveFolderTitle = { friendlyRootTitle(requireContext(), it) ?: "" },
+                            getBrowsingMode = { BrowsingMode.Normal },
+                            openTab = { _, _ -> },
+                        ),
+                    ),
+                )
+
+                setContent {
+                    FirefoxTheme {
+                        BookmarksScreen(store = store)
+                    }
+                }
+            }
+        }
+
         viewLifecycleOwner.lifecycle.addObserver(
             BookmarkDeselectNavigationListener(
                 findNavController(),
@@ -152,6 +189,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        if (requireContext().settings().useNewBookmarks) { return }
 
         requireActivity().addMenuProvider(this, viewLifecycleOwner, Lifecycle.State.RESUMED)
 
@@ -170,6 +208,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
 
     override fun onResume() {
         super.onResume()
+        if (requireContext().settings().useNewBookmarks) { return }
 
         (activity as NavHostActivity).getSupportActionBarAndInflateIfNecessary().show()
 
@@ -288,6 +327,9 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
     }
 
     override fun onBackPressed(): Boolean {
+        if (requireContext().settings().useNewBookmarks) {
+            return false
+        }
         sharedViewModel.selectedFolder = null
         return bookmarkView.onBackPressed()
     }

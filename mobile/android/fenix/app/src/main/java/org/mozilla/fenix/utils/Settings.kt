@@ -2266,4 +2266,12 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         appContext.getPreferenceKey(R.string.pref_key_use_new_crash_reporter),
         default = false,
     )
+
+    /**
+     * Indicates whether or not we should use the new bookmarks UI.
+     */
+    val useNewBookmarks by booleanPreference(
+        appContext.getPreferenceKey(R.string.pref_key_use_new_bookmarks_ui),
+        default = false,
+    )
 }
