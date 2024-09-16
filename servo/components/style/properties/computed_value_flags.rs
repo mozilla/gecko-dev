@@ -4,16 +4,19 @@
 
 //! Misc information about a given computed style.
 
+/// Misc information about a given computed style.
+///
+/// All flags are currently inherited for text, pseudo elements, and
+/// anonymous boxes, see StyleBuilder::for_inheritance and its callsites.
+/// If we ever want to add some flags that shouldn't inherit for them,
+/// we might want to add a function to handle this.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "servo", derive(MallocSizeOf))]
+pub struct ComputedValueFlags(u32);
+
 bitflags! {
-    /// Misc information about a given computed style.
-    ///
-    /// All flags are currently inherited for text, pseudo elements, and
-    /// anonymous boxes, see StyleBuilder::for_inheritance and its callsites.
-    /// If we ever want to add some flags that shouldn't inherit for them,
-    /// we might want to add a function to handle this.
-    #[repr(C)]
-    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-    pub struct ComputedValueFlags: u32 {
+    impl ComputedValueFlags: u32 {
         /// Whether the style or any of the ancestors has a text-decoration-line
         /// property that should get propagated to descendants.
         ///
