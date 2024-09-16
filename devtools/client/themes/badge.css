@@ -16,6 +16,8 @@
   --badge-scrollable-active-background-color: #8000D7;
 
   &[forced-colors-active] {
+    --badge-active-background-color: SelectedItem;
+    --badge-active-border-color: SelectedItemText;
     --badge-color: ButtonText;
   }
 }

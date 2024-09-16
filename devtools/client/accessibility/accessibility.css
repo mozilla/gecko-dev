@@ -486,7 +486,7 @@ body {
 
 .treeTable:focus-within .treeRow.selected .badges .badge {
   background-color: var(--badge-active-background-color);
-  border-color: var(--accessible-active-border-color);
+  border-color: var(--badge-active-border-color);
   color: var(--theme-selection-color);
 }
 
