@@ -2526,7 +2526,7 @@ nsresult LaunchChild(bool aBlankCommandLine, bool aTryExec) {
 #  if defined(XP_MACOSX)
   InitializeMacApp();
   CommandLineServiceMac::SetupMacCommandLine(gRestartArgc, gRestartArgv, true);
-  LaunchChildMac(gRestartArgc, gRestartArgv);
+  LaunchMacApp(gRestartArgc, gRestartArgv);
 #  else
   nsCOMPtr<nsIFile> lf;
   nsresult rv = XRE_GetBinaryPath(getter_AddRefs(lf));
