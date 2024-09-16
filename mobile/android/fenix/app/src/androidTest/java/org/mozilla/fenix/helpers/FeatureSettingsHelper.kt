@@ -104,6 +104,11 @@ interface FeatureSettingsHelper {
      */
     var isSetAsDefaultBrowserPromptEnabled: Boolean
 
+    /**
+     * Enable or disable bottom toolbar position.
+     */
+    var shouldUseBottomToolbar: Boolean
+
     fun applyFlagUpdates()
 
     fun resetAllFeatureFlags()

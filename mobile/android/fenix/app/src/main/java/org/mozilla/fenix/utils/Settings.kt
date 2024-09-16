@@ -949,10 +949,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         default = true,
     )
 
-    var shouldUseBottomToolbar by lazyFeatureFlagPreference(
+    var shouldUseBottomToolbar by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_toolbar_bottom),
-        featureFlag = true,
-        default = { shouldDefaultToBottomToolbar() },
+        default = false,
     )
 
     val toolbarPosition: ToolbarPosition
@@ -995,18 +994,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         get() {
             return touchExplorationIsEnabled || switchServiceIsEnabled
         }
-
-    val toolbarPositionTop: Boolean
-        get() = FxNimbus.features.toolbar.value().toolbarPositionTop
-
-    /**
-     * Checks if we should default to bottom toolbar.
-     */
-    fun shouldDefaultToBottomToolbar(): Boolean {
-        // Default accessibility users to top toolbar
-        return (!touchExplorationIsEnabled && !switchServiceIsEnabled) &&
-            !toolbarPositionTop
-    }
 
     fun getDeleteDataOnQuit(type: DeleteBrowsingDataOnQuitType): Boolean =
         preferences.getBoolean(type.getPreferenceKey(appContext), false)
