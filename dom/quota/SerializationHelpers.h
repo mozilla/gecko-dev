@@ -84,36 +84,13 @@ struct ParamTraits<mozilla::OriginAttributesPattern> {
     WriteParam(aWriter, aParam.mPrivateBrowsingId);
     WriteParam(aWriter, aParam.mUserContextId);
     WriteParam(aWriter, aParam.mGeckoViewSessionContextId);
-    WriteParam(aWriter, aParam.mPartitionKey);
-    WriteParam(aWriter, aParam.mPartitionKeyPattern);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
     return ReadParam(aReader, &aResult->mFirstPartyDomain) &&
            ReadParam(aReader, &aResult->mPrivateBrowsingId) &&
            ReadParam(aReader, &aResult->mUserContextId) &&
-           ReadParam(aReader, &aResult->mGeckoViewSessionContextId) &&
-           ReadParam(aReader, &aResult->mPartitionKey) &&
-           ReadParam(aReader, &aResult->mPartitionKeyPattern);
-  }
-};
-
-template <>
-struct ParamTraits<mozilla::dom::PartitionKeyPatternDictionary> {
-  typedef mozilla::dom::PartitionKeyPatternDictionary paramType;
-
-  static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    WriteParam(aWriter, aParam.mScheme);
-    WriteParam(aWriter, aParam.mBaseDomain);
-    WriteParam(aWriter, aParam.mPort);
-    WriteParam(aWriter, aParam.mForeignByAncestorContext);
-  }
-
-  static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadParam(aReader, &aResult->mScheme) &&
-           ReadParam(aReader, &aResult->mBaseDomain) &&
-           ReadParam(aReader, &aResult->mPort) &&
-           ReadParam(aReader, &aResult->mForeignByAncestorContext);
+           ReadParam(aReader, &aResult->mGeckoViewSessionContextId);
   }
 };
 

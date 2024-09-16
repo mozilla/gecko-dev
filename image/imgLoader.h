@@ -336,10 +336,8 @@ class imgLoader final : public imgILoader,
 
   void VerifyCacheSizes();
 
-  nsresult RemoveEntriesInternal(
-      const mozilla::Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
-      const mozilla::Maybe<nsCString>& aSchemelessSite,
-      const mozilla::Maybe<mozilla::OriginAttributesPattern>& aPattern);
+  nsresult RemoveEntriesInternal(nsIPrincipal* aPrincipal,
+                                 const nsACString* aBaseDomain);
 
   // The image loader maintains a hash table of all imgCacheEntries. However,
   // only some of them will be evicted from the cache: those who have no

@@ -31,7 +31,6 @@
 #include "mozilla/StaticPrefs_image.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/StoragePrincipalHelper.h"
-#include "mozilla/Maybe.h"
 #include "mozilla/dom/CacheExpirationTime.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/FetchPriority.h"
@@ -1399,74 +1398,49 @@ imgLoader::RemoveEntriesFromPrincipalInAllProcesses(nsIPrincipal* aPrincipal) {
     loader = imgLoader::NormalLoader();
   }
 
-  return loader->RemoveEntriesInternal(Some(aPrincipal), Nothing(), Nothing());
+  return loader->RemoveEntriesInternal(aPrincipal, nullptr);
 }
 
 NS_IMETHODIMP
-imgLoader::RemoveEntriesFromSiteInAllProcesses(
-    const nsACString& aSchemelessSite,
-    JS::Handle<JS::Value> aOriginAttributesPattern, JSContext* aCx) {
+imgLoader::RemoveEntriesFromBaseDomainInAllProcesses(
+    const nsACString& aBaseDomain) {
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  OriginAttributesPattern pattern;
-  if (!aOriginAttributesPattern.isObject() ||
-      !pattern.Init(aCx, aOriginAttributesPattern)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
   for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-    Unused << cp->SendClearImageCacheFromSite(aSchemelessSite, pattern);
+    Unused << cp->SendClearImageCacheFromBaseDomain(aBaseDomain);
   }
 
-  return RemoveEntriesInternal(Nothing(), Some(nsCString(aSchemelessSite)),
-                               Some(pattern));
+  return RemoveEntriesInternal(nullptr, &aBaseDomain);
 }
 
-nsresult imgLoader::RemoveEntriesInternal(
-    const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
-    const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
-  // Can only clear by either principal or site + pattern.
-  if ((!aPrincipal && !aSchemelessSite) || (aPrincipal && aSchemelessSite) ||
-      aSchemelessSite.isSome() != aPattern.isSome()) {
+nsresult imgLoader::RemoveEntriesInternal(nsIPrincipal* aPrincipal,
+                                          const nsACString* aBaseDomain) {
+  // Can only clear by either principal or base domain.
+  if ((!aPrincipal && !aBaseDomain) || (aPrincipal && aBaseDomain)) {
     return NS_ERROR_INVALID_ARG;
   }
 
   nsCOMPtr<nsIEffectiveTLDService> tldService;
   AutoTArray<RefPtr<imgCacheEntry>, 128> entriesToBeRemoved;
 
-  Maybe<OriginAttributesPattern> patternWithPartitionKey = Nothing();
-  if (aPattern) {
-    // Used for checking for cache entries partitioned under aSchemelessSite.
-    OriginAttributesPattern pattern(aPattern.ref());
-    pattern.mPartitionKeyPattern.Construct();
-    pattern.mPartitionKeyPattern.Value().mBaseDomain.Construct(
-        NS_ConvertUTF8toUTF16(aSchemelessSite.ref()));
-
-    patternWithPartitionKey.emplace(std::move(pattern));
-  }
-
   // For base domain we only clear the non-chrome cache.
   for (const auto& entry : mCache) {
     const auto& key = entry.GetKey();
 
     const bool shouldRemove = [&] {
-      // The isolation key is either just the site, or an origin suffix
-      // which contains the partitionKey holding the baseDomain.
-
       if (aPrincipal) {
         nsCOMPtr<nsIPrincipal> keyPrincipal =
             BasePrincipal::CreateContentPrincipal(key.URI(),
                                                   key.OriginAttributesRef());
-        return keyPrincipal->Equals(aPrincipal.ref());
+        return keyPrincipal->Equals(aPrincipal);
       }
 
-      if (!aSchemelessSite) {
+      if (!aBaseDomain) {
         return false;
       }
-      // Clear by site and pattern.
+      // Clear by baseDomain.
       nsAutoCString host;
       nsresult rv = key.URI()->GetHost(host);
       if (NS_FAILED(rv) || host.IsEmpty()) {
@@ -1481,43 +1455,31 @@ nsresult imgLoader::RemoveEntriesInternal(
       }
 
       bool hasRootDomain = false;
-      rv = tldService->HasRootDomain(host, aSchemelessSite.ref(),
-                                     &hasRootDomain);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return false;
-      }
-
-      if (hasRootDomain && aPattern->Matches(key.OriginAttributesRef())) {
+      rv = tldService->HasRootDomain(host, *aBaseDomain, &hasRootDomain);
+      if (NS_SUCCEEDED(rv) && hasRootDomain) {
         return true;
       }
 
-      // Attempt to parse isolation key into origin attributes.
-      Maybe<OriginAttributes> originAttributesWithPartitionKey;
-      {
-        OriginAttributes attrs;
-        if (attrs.PopulateFromSuffix(key.IsolationKeyRef())) {
-          OriginAttributes attrsWithPartitionKey(key.OriginAttributesRef());
-          attrsWithPartitionKey.mPartitionKey = attrs.mPartitionKey;
-          originAttributesWithPartitionKey.emplace(
-              std::move(attrsWithPartitionKey));
-        }
+      // If we don't get a direct base domain match, also check for cache of
+      // third parties partitioned under aBaseDomain.
+
+      // The isolation key is either just the base domain, or an origin suffix
+      // which contains the partitionKey holding the baseDomain.
+
+      if (key.IsolationKeyRef().Equals(*aBaseDomain)) {
+        return true;
       }
 
-      // Match it against the pattern that contains the partition key and any
-      // fields set by the caller pattern.
-      if (originAttributesWithPartitionKey.isSome()) {
-        nsAutoCString oaSuffixForPrinting;
-        originAttributesWithPartitionKey->CreateSuffix(oaSuffixForPrinting);
-
-        nsAutoString patternForPrinting;
-        patternWithPartitionKey->ToJSON(patternForPrinting);
-
-        return patternWithPartitionKey.ref().Matches(
-            originAttributesWithPartitionKey.ref());
+      // The isolation key does not match the given base domain. It may be an
+      // origin suffix. Parse it into origin attributes.
+      OriginAttributes attrs;
+      if (!attrs.PopulateFromSuffix(key.IsolationKeyRef())) {
+        // Key is not an origin suffix.
+        return false;
       }
 
-      // The isolation key is the site.
-      return aSchemelessSite->Equals(key.IsolationKeyRef());
+      return StoragePrincipalHelper::PartitionKeyHasBaseDomain(
+          attrs.mPartitionKey, *aBaseDomain);
     }();
 
     if (shouldRemove) {

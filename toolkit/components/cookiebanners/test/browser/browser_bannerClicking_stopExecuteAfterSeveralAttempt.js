@@ -268,11 +268,10 @@ add_task(async function testClearDataServiceWithStopExecuteAfterOneAttempt() {
     expected: "OptOut",
   });
 
-  // Invoke deleteDataFromSite.
+  // Invoke deleteDataFromBaseDomain.
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromSite(
+    Services.clearData.deleteDataFromBaseDomain(
       TEST_DOMAIN_A,
-      {},
       true /* user request */,
       Ci.nsIClearDataService.CLEAR_COOKIE_BANNER_EXECUTED_RECORD,
       aResolve

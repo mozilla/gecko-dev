@@ -535,7 +535,7 @@ BounceTrackingProtection::ClearAll() {
 }
 
 NS_IMETHODIMP
-BounceTrackingProtection::ClearBySiteHostAndOriginAttributes(
+BounceTrackingProtection::ClearBySiteHostAndOA(
     const nsACString& aSiteHost, JS::Handle<JS::Value> aOriginAttributes,
     JSContext* aCx) {
   NS_ENSURE_ARG_POINTER(aCx);
@@ -553,23 +553,10 @@ BounceTrackingProtection::ClearBySiteHostAndOriginAttributes(
 }
 
 NS_IMETHODIMP
-BounceTrackingProtection::ClearBySiteHostAndOriginAttributesPattern(
-    const nsACString& aSiteHost, JS::Handle<JS::Value> aOriginAttributesPattern,
-    JSContext* aCx) {
-  NS_ENSURE_ARG_POINTER(aCx);
+BounceTrackingProtection::ClearBySiteHost(const nsACString& aSiteHost) {
+  BounceTrackingState::ResetAll();
 
-  OriginAttributesPattern pattern;
-  if (!aOriginAttributesPattern.isObject() ||
-      !pattern.Init(aCx, aOriginAttributesPattern)) {
-    return NS_ERROR_INVALID_ARG;
-  }
-
-  // Clear per-tab state.
-  BounceTrackingState::ResetAllForOriginAttributesPattern(pattern);
-
-  // Clear global state including on-disk state.
-  return mStorage->ClearByOriginAttributesPattern(pattern,
-                                                  Some(nsCString(aSiteHost)));
+  return mStorage->ClearBySiteHost(aSiteHost, nullptr);
 }
 
 NS_IMETHODIMP
@@ -1065,8 +1052,8 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
       cb->OnDataDeleted(0);
     } else {
       // TODO: Bug 1842067: Clear by site + OA.
-      rv = clearDataService->DeleteDataFromSiteAndOriginAttributesPatternString(
-          host, u""_ns, false, TRACKER_PURGE_FLAGS, cb);
+      rv = clearDataService->DeleteDataFromBaseDomain(host, false,
+                                                      TRACKER_PURGE_FLAGS, cb);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         clearPromise->Reject(0, __func__);
       }

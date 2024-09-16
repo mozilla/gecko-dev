@@ -77,10 +77,8 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
   [[nodiscard]] nsresult ClearByTimeRange(PRTime aFrom, PRTime aTo);
 
   // Clear all state for a given OriginAttributesPattern.
-  // Optional filtering for site host via aSiteHost.
   [[nodiscard]] nsresult ClearByOriginAttributesPattern(
-      const OriginAttributesPattern& aOriginAttributesPattern,
-      const Maybe<nsCString>& aSiteHost = Nothing());
+      const OriginAttributesPattern& aOriginAttributesPattern);
 
   // Clear all state.
   [[nodiscard]] nsresult Clear();
@@ -159,11 +157,10 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
       BounceTrackingProtectionStorage::EntryType aEntryType);
 
   // Delete all entries matching the given OriginAttributesPattern. Worker
-  // thread only. May pass aSiteHost for additional filtering.
+  // thread only.
   [[nodiscard]] static nsresult DeleteDataByOriginAttributesPattern(
       mozIStorageConnection* aDatabaseConnection,
-      const OriginAttributesPattern& aOriginAttributesPattern,
-      const Maybe<nsCString>& aSiteHost = Nothing());
+      const OriginAttributesPattern& aOriginAttributesPattern);
 
   // Clear all entries from the database.
   [[nodiscard]] static nsresult ClearData(
@@ -216,11 +213,8 @@ class BounceTrackingProtectionStorage final : public nsIObserver,
       BounceTrackingProtectionStorage::EntryType aEntryType);
 
   // Deletes all DB entries matching the given OriginAttributesPattern.
-  // Pass aSiteHost for additional filtering. By default all site hosts are
-  // targeted.
   [[nodiscard]] nsresult DeleteDBEntriesByOriginAttributesPattern(
-      const OriginAttributesPattern& aOriginAttributesPattern,
-      const Maybe<nsCString>& aSiteHost = Nothing());
+      const OriginAttributesPattern& aOriginAttributesPattern);
 };
 
 // A SQL function to match DB entries by OriginAttributesPattern.

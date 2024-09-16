@@ -326,11 +326,9 @@ export const GeckoViewStorageController = {
   },
 
   clearBaseDomainData(aBaseDomain, aFlags, aCallback) {
-    // Ensure we have a site at this point.
-    let schemelessSite = Services.eTLD.getSchemelessSiteFromHost(aBaseDomain);
     new Promise(resolve => {
-      Services.clearData.deleteDataFromSite(
-        schemelessSite,
+      Services.clearData.deleteDataFromBaseDomain(
+        aBaseDomain,
         /* isUserRequest */ true,
         convertFlags(aFlags),
         resolve

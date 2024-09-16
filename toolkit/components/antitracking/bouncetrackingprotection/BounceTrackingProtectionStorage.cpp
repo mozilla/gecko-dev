@@ -120,27 +120,12 @@ nsresult BounceTrackingProtectionStorage::ClearByTimeRange(PRTime aFrom,
 }
 
 nsresult BounceTrackingProtectionStorage::ClearByOriginAttributesPattern(
-    const OriginAttributesPattern& aOriginAttributesPattern,
-    const Maybe<nsCString>& aSiteHost) {
+    const OriginAttributesPattern& aOriginAttributesPattern) {
   // Clear in memory state.
   for (auto iter = mStateGlobal.Iter(); !iter.Done(); iter.Next()) {
-    BounceTrackingStateGlobal* stateGlobal = iter.Data();
-    MOZ_ASSERT(stateGlobal);
-
-    if (!aOriginAttributesPattern.Matches(stateGlobal->OriginAttributesRef())) {
-      continue;
-    }
-
-    // If there is no site host filtering we can remove the entire state global.
-    if (aSiteHost.isNothing()) {
+    if (aOriginAttributesPattern.Matches(iter.Key())) {
       iter.Remove();
-      continue;
     }
-
-    // Otherwise we need to clear just the entries that match the site host.
-    // Update in memory state. Skip storage so we can batch the writes later.
-    nsresult rv = stateGlobal->ClearSiteHost(aSiteHost.ref(), true);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   // Update the database.
@@ -150,8 +135,7 @@ nsresult BounceTrackingProtectionStorage::ClearByOriginAttributesPattern(
           nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID) {
     return NS_OK;
   }
-  return DeleteDBEntriesByOriginAttributesPattern(aOriginAttributesPattern,
-                                                  aSiteHost);
+  return DeleteDBEntriesByOriginAttributesPattern(aOriginAttributesPattern);
 }
 
 nsresult BounceTrackingProtectionStorage::UpdateDBEntry(
@@ -323,30 +307,25 @@ nsresult BounceTrackingProtectionStorage::DeleteDBEntriesByType(
 
 nsresult
 BounceTrackingProtectionStorage::DeleteDBEntriesByOriginAttributesPattern(
-    const OriginAttributesPattern& aOriginAttributesPattern,
-    const Maybe<nsCString>& aSiteHost) {
+    const OriginAttributesPattern& aOriginAttributesPattern) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(!aOriginAttributesPattern.mPrivateBrowsingId.WasPassed() ||
                  aOriginAttributesPattern.mPrivateBrowsingId.Value() ==
                      nsIScriptSecurityManager::DEFAULT_PRIVATE_BROWSING_ID,
              "Must not clear private browsing data from the table.");
-  if (aSiteHost.isSome()) {
-    MOZ_ASSERT(!aSiteHost->IsEmpty(), "aSiteHost must not be empty.");
-  }
 
   nsresult rv = WaitForInitialization();
   NS_ENSURE_SUCCESS(rv, rv);
 
   IncrementPendingWrites();
   RefPtr<BounceTrackingProtectionStorage> self = this;
-
   mBackgroundThread->Dispatch(
       NS_NewRunnableFunction(
           "BounceTrackingProtectionStorage::"
           "DeleteEntriesByOriginAttributesPattern",
-          [self, aOriginAttributesPattern, siteHost = aSiteHost]() {
+          [self, aOriginAttributesPattern]() {
             nsresult rv = DeleteDataByOriginAttributesPattern(
-                self->mDatabaseConnection, aOriginAttributesPattern, siteHost);
+                self->mDatabaseConnection, aOriginAttributesPattern);
             self->DecrementPendingWrites();
             NS_ENSURE_SUCCESS_VOID(rv);
           }),
@@ -893,25 +872,10 @@ nsresult BounceTrackingProtectionStorage::DeleteDataByType(
 
 nsresult BounceTrackingProtectionStorage::DeleteDataByOriginAttributesPattern(
     mozIStorageConnection* aDatabaseConnection,
-    const OriginAttributesPattern& aOriginAttributesPattern,
-    const Maybe<nsCString>& aSiteHost) {
+    const OriginAttributesPattern& aOriginAttributesPattern) {
   MOZ_ASSERT(!NS_IsMainThread(),
              "Must not write to the table from the main thread.");
   MOZ_ASSERT(aDatabaseConnection);
-  if (aSiteHost.isSome()) {
-    MOZ_ASSERT(!aSiteHost->IsEmpty(), "aSiteHost must not be empty.");
-  }
-
-  nsAutoCString deleteQuery(
-      "DELETE FROM sites WHERE "
-      "ORIGIN_ATTRS_PATTERN_MATCH_OA_SUFFIX(originAttributeSuffix)");
-
-  // Filtering by site host is optional.
-  if (aSiteHost.isSome()) {
-    deleteQuery.AppendLiteral(" AND siteHost = :siteHost");
-  }
-
-  deleteQuery.AppendLiteral(";");
 
   nsCOMPtr<mozIStorageFunction> patternMatchFunction(
       new OriginAttrsPatternMatchOASuffixSQLFunction(aOriginAttributesPattern));
@@ -920,17 +884,9 @@ nsresult BounceTrackingProtectionStorage::DeleteDataByOriginAttributesPattern(
       "ORIGIN_ATTRS_PATTERN_MATCH_OA_SUFFIX"_ns, 1, patternMatchFunction);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsCOMPtr<mozIStorageStatement> deleteStmt;
-  rv = aDatabaseConnection->CreateStatement(deleteQuery,
-                                            getter_AddRefs(deleteStmt));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aSiteHost.isSome()) {
-    rv = deleteStmt->BindUTF8StringByName("siteHost"_ns, aSiteHost.ref());
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  rv = deleteStmt->Execute();
+  rv = aDatabaseConnection->ExecuteSimpleSQL(
+      "DELETE FROM sites WHERE "
+      "ORIGIN_ATTRS_PATTERN_MATCH_OA_SUFFIX(originAttributeSuffix);"_ns);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return aDatabaseConnection->RemoveFunction(
