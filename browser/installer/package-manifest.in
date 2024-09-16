@@ -441,12 +441,6 @@ bin/libfreebl_64int_3.so
 @BINPATH@/@DLL_PREFIX@wmfclearkey@DLL_SUFFIX@
 #endif
 
-#ifdef MOZ_DMD
-; DMD
-@RESPATH@/dmd.py
-@RESPATH@/fix_stacks.py
-#endif
-
 #ifdef PKG_LOCALE_MANIFEST
 #include @PKG_LOCALE_MANIFEST@
 #endif

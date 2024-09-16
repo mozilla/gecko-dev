@@ -43,6 +43,8 @@ activated. Note that the stack information you get will likely be less
 detailed, due to being unable to symbolicate. You will be able to get
 function names, but not line numbers.
 
+The [`dmd.py`](https://searchfox.org/mozilla-central/rev/c414b4538dd3c7e1dc674f7b66176e7c309afa95/memory/replace/dmd/dmd.py) script can be found in the Firefox repository.
+
 ### Desktop Firefox
 
 #### Build
@@ -232,12 +234,7 @@ can pull them like so:
 
 DMD outputs one gzipped JSON file per process that contains a
 description of that process's heap. You can analyze these files (either
-gzipped or not) using `dmd.py`. On Nightly Firefox, `dmd.py` is included
-in the distribution. For instance on OS X, it is located in the
-directory `/Applications/Firefox Nightly.app/Contents/Resources/`. For
-Nightly, symbolication will fail, but you can at least get some
-information. In a local build, `dmd.py` will be located in the directory
-`$OBJDIR/dist/bin/`.
+gzipped or not) using `dmd.py`.
 
 Some platforms (Linux, Mac, Android) require stack fixing, which adds
 missing filenames, function names and line number information. This will
