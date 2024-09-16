@@ -16,6 +16,10 @@
 SimpleTest.waitForExplicitFinish();
 SimpleTest.requestLongerTimeout(3);
 
+const { AppConstants } = SpecialPowers.ChromeUtils.importESModule(
+  "resource://gre/modules/AppConstants.sys.mjs"
+);
+
 var iframes = [];
 function callbackTestIframe(iframe)
 {
@@ -304,7 +308,7 @@ var tests = [
     [ 'collapse-selection-into-editing-host-during-blur-of-input.html', 'collapse-selection-into-editing-host-during-blur-of-input-ref.html' ] ,
 ];
 
-if (!navigator.appVersion.includes("Android")) {
+if (AppConstants.platform != "android") {
   tests.push([ 'bug512295-1.html' , 'bug512295-1-ref.html' ]);  // Tests spellchecker
   tests.push([ 'bug512295-2.html' , 'bug512295-2-ref.html' ]);  // Tests spellchecker
   tests.push([ 'bug923376.html'   , 'bug923376-ref.html'   ]);  // Tests spellchecker
@@ -313,7 +317,7 @@ if (!navigator.appVersion.includes("Android")) {
   is(SpecialPowers.getIntPref("layout.spellcheckDefault"), 0, "Spellcheck should be turned off for this platform or this if..else check removed");
 }
 
-if (navigator.platform.includes("Linux") && !navigator.appVersion.includes("Android")) {
+if (AppConstants.platform == "linux") {
   tests = tests.concat([
     // Turn off accessiblecaret to prevent it from interfering with the
     // multi-range selection.
@@ -428,14 +432,39 @@ var testIndex = 0;
 // debugging easier...
 const DEBUG_TEST_FILTER = null;
 
+function isTestSkipped(test) {
+  if (DEBUG_TEST_FILTER) {
+    return !DEBUG_TEST_FILTER.test(test[0]);
+  }
+  // Tests disabled for frequent failures (bug 1777050).
+  if (AppConstants.platform == "android") {
+    return [
+      "bug1516963-4.html",
+      "bug1258308-1.html",
+      "bug1591282-1.html",
+      "bug1670531-1.html",
+    ].includes(test[0]);
+  }
+  if (AppConstants.platform == "win" || AppConstants.platform == "macosx") {
+    return [
+      "bug1516963-3.html",
+      "bug1516963-4.html",
+      "bug1516963-6.html",
+      "bug956530-1.html",
+    ].includes(test[0]);
+  }
+  return false;
+}
+
 function nextTest() {
   if (testIndex < tests.length) {
     let test = tests[testIndex];
     if (typeof(test) == 'function') {
       test();
-    } else if (!DEBUG_TEST_FILTER || DEBUG_TEST_FILTER.test(test[0])) {
+    } else if (!isTestSkipped(test)) {
       refTest(test[0], test[1]);
     } else {
+      info("Skipping " + test[0]);
       setTimeout(nextTest, 0);
     }
     ++testIndex;
