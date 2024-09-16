@@ -1504,12 +1504,6 @@ static bool IsInputReused(LInstruction* ins, LUse* use) {
 bool BacktrackingAllocator::buildLivenessInfo() {
   JitSpew(JitSpew_RegAlloc, "Beginning liveness analysis");
 
-  Vector<MBasicBlock*, 1, SystemAllocPolicy> loopWorkList;
-  BitSet loopDone(graph.numBlockIds());
-  if (!loopDone.init(alloc())) {
-    return false;
-  }
-
   size_t numRanges = 0;
 
   for (size_t i = graph.numBlocks(); i > 0; i--) {
@@ -1748,72 +1742,39 @@ bool BacktrackingAllocator::buildLivenessInfo() {
     }
 
     if (mblock->isLoopHeader()) {
-      // A divergence from the published algorithm is required here, as
-      // our block order does not guarantee that blocks of a loop are
-      // contiguous. As a result, a single live range spanning the
-      // loop is not possible. Additionally, we require liveIn in a later
-      // pass for resolution, so that must also be fixed up here.
-      MBasicBlock* loopBlock = mblock->backedge();
-      while (true) {
-        // Blocks must already have been visited to have a liveIn set.
-        MOZ_ASSERT(loopBlock->id() >= mblock->id());
+      // MakeLoopsContiguous ensures blocks of a loop are contiguous, so add a
+      // single live range spanning the loop. Because we require liveIn in a
+      // later pass for resolution, we also have to fix that up for all loop
+      // blocks.
 
-        // Add a range for this entire loop block
-        CodePosition from = entryOf(loopBlock->lir());
-        CodePosition to = exitOf(loopBlock->lir()).next();
+      MBasicBlock* backedge = mblock->backedge();
 
-        for (BitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
-          if (!vregs[*liveRegId].addInitialRange(alloc(), from, to,
-                                                 &numRanges)) {
-            return false;
-          }
-        }
+      // Add a range for this entire loop
+      CodePosition from = entryOf(mblock->lir());
+      CodePosition to = exitOf(backedge->lir()).next();
 
-        // Fix up the liveIn set.
-        liveIn[loopBlock->id()].insertAll(live);
-
-        // Make sure we don't visit this node again
-        loopDone.insert(loopBlock->id());
-
-        // If this is the loop header, any predecessors are either the
-        // backedge or out of the loop, so skip any predecessors of
-        // this block
-        if (loopBlock != mblock) {
-          for (size_t i = 0; i < loopBlock->numPredecessors(); i++) {
-            MBasicBlock* pred = loopBlock->getPredecessor(i);
-            if (loopDone.contains(pred->id())) {
-              continue;
-            }
-            if (!loopWorkList.append(pred)) {
-              return false;
-            }
-          }
-        }
-
-        // Terminate loop if out of work.
-        if (loopWorkList.empty()) {
-          break;
-        }
-
-        // Grab the next block off the work list, skipping any OSR block.
-        MBasicBlock* osrBlock = graph.mir().osrBlock();
-        while (!loopWorkList.empty()) {
-          loopBlock = loopWorkList.popCopy();
-          if (loopBlock != osrBlock) {
-            break;
-          }
-        }
-
-        // If end is reached without finding a non-OSR block, then no more work
-        // items were found.
-        if (loopBlock == osrBlock) {
-          MOZ_ASSERT(loopWorkList.empty());
-          break;
+      for (BitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
+        if (!vregs[*liveRegId].addInitialRange(alloc(), from, to, &numRanges)) {
+          return false;
         }
       }
 
-      // Clear the done set for other loops
-      loopDone.clear();
+      if (mblock != backedge) {
+        // Start at the block after |mblock|.
+        MOZ_ASSERT(graph.getBlock(i - 1) == mblock->lir());
+        size_t j = i;
+        while (true) {
+          MBasicBlock* loopBlock = graph.getBlock(j)->mir();
+
+          // Fix up the liveIn set.
+          liveIn[loopBlock->id()].insertAll(live);
+
+          if (loopBlock == backedge) {
+            break;
+          }
+          j++;
+        }
+      }
     }
 
     MOZ_ASSERT_IF(!mblock->numPredecessors(), live.empty());
