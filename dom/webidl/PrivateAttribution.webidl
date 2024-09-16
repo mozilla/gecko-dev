@@ -22,7 +22,7 @@ dictionary PrivateAttributionConversionOptions {
   sequence<UTF8String> sources = [];
 };
 
-[Trial="PrivateAttribution", SecureContext, Exposed=Window]
+[Trial="PrivateAttributionV2", SecureContext, Exposed=Window]
 interface PrivateAttribution {
   [Throws] undefined saveImpression(PrivateAttributionImpressionOptions options);
   [Throws] undefined measureConversion(PrivateAttributionConversionOptions options);

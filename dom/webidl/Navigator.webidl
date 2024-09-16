@@ -399,6 +399,6 @@ partial interface Navigator {
 
 [SecureContext]
 partial interface Navigator {
-  [SameObject, Trial="PrivateAttribution"]
+  [SameObject, Trial="PrivateAttributionV2"]
   readonly attribute PrivateAttribution privateAttribution;
 };
