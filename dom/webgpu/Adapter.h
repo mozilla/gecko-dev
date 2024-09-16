@@ -91,7 +91,7 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
   // to unlink them in CC unlink.
   RefPtr<SupportedFeatures> mFeatures;
   RefPtr<SupportedLimits> mLimits;
-
+  RefPtr<AdapterInfo> mInfo;
   const std::shared_ptr<ffi::WGPUAdapterInformation> mInfoInner;
 
  public:
@@ -99,6 +99,7 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
           const std::shared_ptr<ffi::WGPUAdapterInformation>& aInfo);
   const RefPtr<SupportedFeatures>& Features() const;
   const RefPtr<SupportedLimits>& Limits() const;
+  const RefPtr<AdapterInfo>& Info() const;
   bool IsFallbackAdapter() const;
   bool SupportExternalTextureInSwapChain() const;
 
@@ -114,7 +115,7 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
       const dom::GPUDeviceDescriptor& aDesc, ErrorResult& aRv);
 
   already_AddRefed<dom::Promise> RequestAdapterInfo(
-      const dom::Sequence<nsString>& aUnmaskHints, ErrorResult& aRv);
+      const dom::Sequence<nsString>& aUnmaskHints, ErrorResult& aRv) const;
 };
 
 }  // namespace webgpu

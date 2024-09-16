@@ -87,7 +87,7 @@ void AdapterInfo::GetWgpuBackend(nsString& s) const {
 
 // -
 
-GPU_IMPL_CYCLE_COLLECTION(Adapter, mParent, mBridge, mFeatures, mLimits)
+GPU_IMPL_CYCLE_COLLECTION(Adapter, mParent, mBridge, mFeatures, mLimits, mInfo)
 GPU_IMPL_JS_WRAP(Adapter)
 
 static Maybe<ffi::WGPUFeatures> ToWGPUFeatures(
@@ -156,6 +156,7 @@ Adapter::Adapter(Instance* const aParent, WebGPUChild* const aBridge,
       mId(aInfo->id),
       mFeatures(new SupportedFeatures(this)),
       mLimits(new SupportedLimits(this, aInfo->limits)),
+      mInfo(new AdapterInfo(this, aInfo)),
       mInfoInner(aInfo) {
   ErrorResult ignoredRv;  // It's onerous to plumb this in from outside in this
                           // case, and we don't really need to.
@@ -210,6 +211,8 @@ void Adapter::Cleanup() {
 
 const RefPtr<SupportedFeatures>& Adapter::Features() const { return mFeatures; }
 const RefPtr<SupportedLimits>& Adapter::Limits() const { return mLimits; }
+const RefPtr<AdapterInfo>& Adapter::Info() const { return mInfo; }
+
 bool Adapter::IsFallbackAdapter() const {
   return mInfoInner->device_type == ffi::WGPUDeviceType::WGPUDeviceType_Cpu;
 }
@@ -490,11 +493,11 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
 // -
 
 already_AddRefed<dom::Promise> Adapter::RequestAdapterInfo(
-    const dom::Sequence<nsString>& /*aUnmaskHints*/, ErrorResult& aRv) {
+    const dom::Sequence<nsString>& /*aUnmaskHints*/, ErrorResult& aRv) const {
   RefPtr<dom::Promise> promise = dom::Promise::Create(GetParentObject(), aRv);
   if (!promise) return nullptr;
 
-  RefPtr<AdapterInfo> rai = new AdapterInfo(this, mInfoInner);
+  RefPtr<AdapterInfo> rai = mInfo;
   promise->MaybeResolve(rai);
   return promise.forget();
 }
