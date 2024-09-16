@@ -528,9 +528,11 @@ const CSSCacheCleaner = {
     ChromeUtils.clearStyleSheetCacheByPrincipal(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
-    ChromeUtils.clearStyleSheetCacheByBaseDomain(aSchemelessSite);
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    ChromeUtils.clearStyleSheetCacheBySite(
+      aSchemelessSite,
+      aOriginAttributesPattern
+    );
   },
 
   async deleteAll() {
@@ -560,9 +562,11 @@ const JSCacheCleaner = {
     ChromeUtils.clearScriptCacheByPrincipal(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
-    ChromeUtils.clearScriptCacheByBaseDomain(aSchemelessSite);
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    ChromeUtils.clearScriptCacheBySite(
+      aSchemelessSite,
+      aOriginAttributesPattern
+    );
   },
 
   async deleteAll() {

@@ -199,21 +199,21 @@ SharedStyleSheetCache::CollectReports(nsIHandleReportCallback* aHandleReport,
   return NS_OK;
 }
 
-void SharedStyleSheetCache::Clear(nsIPrincipal* aForPrincipal,
-                                  const nsACString* aBaseDomain) {
+void SharedStyleSheetCache::Clear(
+    const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
+    const Maybe<nsCString>& aSchemelessSite,
+    const Maybe<OriginAttributesPattern>& aPattern) {
   using ContentParent = dom::ContentParent;
 
   if (XRE_IsParentProcess()) {
-    auto forPrincipal = aForPrincipal ? Some(RefPtr(aForPrincipal)) : Nothing();
-    auto baseDomain = aBaseDomain ? Some(nsCString(*aBaseDomain)) : Nothing();
-
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-      Unused << cp->SendClearStyleSheetCache(forPrincipal, baseDomain);
+      Unused << cp->SendClearStyleSheetCache(aPrincipal, aSchemelessSite,
+                                             aPattern);
     }
   }
 
   if (sSingleton) {
-    sSingleton->ClearInProcess(aForPrincipal, aBaseDomain);
+    sSingleton->ClearInProcess(aPrincipal, aSchemelessSite, aPattern);
   }
 }
 

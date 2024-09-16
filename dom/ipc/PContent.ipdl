@@ -109,6 +109,7 @@ using mozilla::widget::ThemeChangeKind from "mozilla/widget/WidgetMessageUtils.h
 using class mozilla::dom::MessagePort from "mozilla/dom/MessagePort.h";
 [MoveOnly=data] using class mozilla::dom::ipc::StructuredCloneData from "mozilla/dom/ipc/StructuredCloneData.h";
 using mozilla::OriginAttributes from "mozilla/ipc/BackgroundUtils.h";
+using mozilla::OriginAttributesPattern from "mozilla/dom/quota/SerializationHelpers.h";
 using struct mozilla::layers::TextureFactoryIdentifier from "mozilla/layers/CompositorTypes.h";
 using mozilla::layers::CompositorOptions from "mozilla/layers/CompositorOptions.h";
 using mozilla::layers::LayersId from "mozilla/layers/LayersTypes.h";
@@ -667,11 +668,13 @@ child:
 
     async ClearImageCache(bool privateLoader, bool chrome);
 
-    async ClearStyleSheetCache(nullable nsIPrincipal? aForPrincipal,
-                               nsCString? aBaseDomain);
+    async ClearStyleSheetCache(nullable nsIPrincipal? aPrincipal,
+                               nsCString? aSchemelessSite,
+                               OriginAttributesPattern? aPattern);
 
-    async ClearScriptCache(nullable nsIPrincipal? aForPrincipal,
-                           nsCString? aBaseDomain);
+    async ClearScriptCache(nullable nsIPrincipal? aPrincipal,
+                           nsCString? aSchemelessSite,
+                           OriginAttributesPattern? aPattern);
 
     async SetOffline(bool offline);
     async SetConnectivity(bool connectivity);
