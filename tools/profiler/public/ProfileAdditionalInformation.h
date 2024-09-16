@@ -14,7 +14,7 @@
 #ifndef ProfileAdditionalInformation_h
 #define ProfileAdditionalInformation_h
 
-#include "BaseProfilerSharedLibraries.h"
+#include "SharedLibraries.h"
 #include "js/Value.h"
 #include "nsString.h"
 

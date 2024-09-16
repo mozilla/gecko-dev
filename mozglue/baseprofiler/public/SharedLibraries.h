@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef BASE_PROFILER_SHARED_LIBRARIES_H_
-#define BASE_PROFILER_SHARED_LIBRARIES_H_
+#ifndef SHARED_LIBRARIES_H_
+#define SHARED_LIBRARIES_H_
 
 #include "BaseProfiler.h"
 
@@ -189,4 +189,4 @@ class SharedLibraryInfo {
   friend struct IPC::ParamTraits<SharedLibraryInfo>;
 };
 
-#endif  // BASE_PROFILER_SHARED_LIBRARIES_H_
+#endif  // SHARED_LIBRARIES_H_

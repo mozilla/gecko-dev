@@ -26,7 +26,7 @@
 
 #include "EHABIStackWalk.h"
 
-#include "BaseProfilerSharedLibraries.h"
+#include "SharedLibraries.h"
 #include "platform.h"
 
 #include "mozilla/Atomics.h"
