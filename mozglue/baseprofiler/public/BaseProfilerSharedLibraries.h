@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <string>
 #include <vector>
+#include <tuple>
 
 class SharedLibrary {
  public:
@@ -86,6 +87,12 @@ class SharedLibrary {
   const std::string& GetDebugPath() const { return mDebugPath; }
   const std::string& GetVersion() const { return mVersion; }
   const std::string& GetArch() const { return mArch; }
+  size_t SizeOf() const {
+    return sizeof *this + mBreakpadId.length() + mCodeId.length() +
+           mModuleName.length() * 2 + mModulePath.length() * 2 +
+           mDebugName.length() * 2 + mDebugPath.length() * 2 +
+           mVersion.length() + mArch.size();
+  }
 
  private:
   SharedLibrary() : mStart{0}, mEnd{0}, mOffset{0} {}
@@ -142,6 +149,11 @@ class SharedLibraryInfo {
 
   void AddSharedLibrary(SharedLibrary entry) { mEntries.push_back(entry); }
 
+  void AddAllSharedLibraries(const SharedLibraryInfo& sharedLibraryInfo) {
+    mEntries.insert(mEntries.end(), sharedLibraryInfo.mEntries.begin(),
+                    sharedLibraryInfo.mEntries.end());
+  }
+
   const SharedLibrary& GetEntry(size_t i) const { return mEntries[i]; }
 
   SharedLibrary& GetMutableEntry(size_t i) { return mEntries[i]; }
@@ -163,7 +175,39 @@ class SharedLibraryInfo {
     std::sort(mEntries.begin(), mEntries.end(), CompareAddresses);
   }
 
+  // Remove duplicate entries from the vector.
+  //
+  // We purposefully don't use the operator== implementation of SharedLibrary
+  // because it compares all the fields including mStart, mEnd and mOffset which
+  // are not the same across different processes.
+  void DeduplicateEntries() {
+    static auto cmpSort = [](const SharedLibrary& a, const SharedLibrary& b) {
+      return std::tie(a.GetModuleName(), a.GetBreakpadId()) <
+             std::tie(b.GetModuleName(), b.GetBreakpadId());
+    };
+    static auto cmpEqual = [](const SharedLibrary& a, const SharedLibrary& b) {
+      return std::tie(a.GetModuleName(), a.GetBreakpadId()) ==
+             std::tie(b.GetModuleName(), b.GetBreakpadId());
+    };
+    // std::unique requires the vector to be sorted first. It can only remove
+    // consecutive duplicate elements.
+    std::sort(mEntries.begin(), mEntries.end(), cmpSort);
+    // Remove the duplicates since it's sorted now.
+    mEntries.erase(std::unique(mEntries.begin(), mEntries.end(), cmpEqual),
+                   mEntries.end());
+  }
+
   void Clear() { mEntries.clear(); }
+
+  size_t SizeOf() const {
+    size_t size = 0;
+
+    for (const auto& item : mEntries) {
+      size += item.SizeOf();
+    }
+
+    return size;
+  }
 
  private:
 #ifdef XP_WIN
