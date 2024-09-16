@@ -369,10 +369,6 @@ browsertime-benchmark:
                             - [assorted-dom, dom]
                             - [jetstream2, js2]
                             - [matrix-react-bench, mrb]
-                            - [motionmark-animometer, mm-a]
-                            - [motionmark-animometer-ramp, mm-ar]
-                            - [motionmark-htmlsuite-ramp, mm-hr]
-                            - [motionmark-htmlsuite, mm-h]
                             - [motionmark-1-3, mm-1.3]
                             - [motionmark-htmlsuite-1-3, mm-h-1.3]
                             - [speedometer, sp]
@@ -387,10 +383,6 @@ browsertime-benchmark:
                             - [assorted-dom, dom]
                             - [jetstream2, js2]
                             # - [matrix-react-bench, mrb] Perma fails on osx 10.15.x machines (Bug 1807754)
-                            - [motionmark-animometer, mm-a]
-                            - [motionmark-htmlsuite, mm-h]
-                            - [motionmark-animometer-ramp, mm-ar]
-                            - [motionmark-htmlsuite-ramp, mm-hr]
                             - [motionmark-1-3, mm-1.3]
                             - [motionmark-htmlsuite-1-3, mm-h-1.3]
                             - [speedometer, sp]
@@ -402,8 +394,6 @@ browsertime-benchmark:
                         custom-car:
                             - [speedometer, sp]
                             - [speedometer3, sp3]
-                            - [motionmark-animometer-ramp, mm-ar]
-                            - [motionmark-htmlsuite-ramp, mm-hr]
                             - [motionmark-1-3, mm-1.3]
                             - [motionmark-htmlsuite-1-3, mm-h-1.3]
                         chrome:
@@ -413,8 +403,6 @@ browsertime-benchmark:
                                     - [assorted-dom, dom]
                                     - [jetstream2, js2]
                                     - [matrix-react-bench, mrb]
-                                    - [motionmark-animometer, mm-a]
-                                    - [motionmark-htmlsuite, mm-h]
                                     - [motionmark-1-3, mm-1.3]
                                     - [motionmark-htmlsuite-1-3, mm-h-1.3]
                                     - [speedometer, sp]
@@ -428,10 +416,6 @@ browsertime-benchmark:
                                     - [assorted-dom, dom]
                                     - [jetstream2, js2]
                                     - [matrix-react-bench, mrb]
-                                    - [motionmark-animometer, mm-a]
-                                    - [motionmark-animometer-ramp, mm-ar]
-                                    - [motionmark-htmlsuite, mm-h]
-                                    - [motionmark-htmlsuite-ramp, mm-hr]
                                     - [motionmark-1-3, mm-1.3]
                                     - [motionmark-htmlsuite-1-3, mm-h-1.3]
                                     - [speedometer, sp]
@@ -445,10 +429,6 @@ browsertime-benchmark:
                             - [assorted-dom, dom]
                             - [jetstream2, js2]
                             - [matrix-react-bench, mrb]
-                            - [motionmark-animometer, mm-a]
-                            - [motionmark-animometer-ramp, mm-ar]
-                            - [motionmark-htmlsuite, mm-h]
-                            - [motionmark-htmlsuite-ramp, mm-hr]
                             - [motionmark-1-3, mm-1.3]
                             - [motionmark-htmlsuite-1-3, mm-h-1.3]
                             - [speedometer, sp]
@@ -461,16 +441,10 @@ browsertime-benchmark:
     tier:
         by-app:
             firefox:
-                by-subtest:
-                    motionmark-animometer:
-                        by-test-platform:
-                            linux1804-64-clang-trunk-qr/opt: 2
-                            default: 1
-                    default:
-                        by-test-platform:
-                            windows.*-64-ccov.*/.*: 3
-                            linux64-ccov.*/.*: 3
-                            default: 2
+                by-test-platform:
+                    windows.*-64-ccov.*/.*: 3
+                    linux64-ccov.*/.*: 3
+                    default: 2
             default:
                 by-subtest:
                     unity-webgl: 3
@@ -535,9 +509,6 @@ browsertime-benchmark:
                     default: 1500
             jetstream2: 8000
             matrix-react-bench: 1500
-            motionmark-htmlsuite: 1500
-            motionmark-htmlsuite-ramp: 3000
-            motionmark-animometer-ramp: 2100
             motionmark-1-3: 3000
             motionmark-htmlsuite-1-3: 3000
             unity-webgl: 2400

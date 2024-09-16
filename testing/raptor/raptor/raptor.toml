@@ -13,14 +13,6 @@
 
 ["include:tests/benchmarks/motionmark-1-3-mobile.toml"]
 
-["include:tests/benchmarks/motionmark-animometer-desktop.toml"]
-
-["include:tests/benchmarks/motionmark-animometer-mobile.toml"]
-
-["include:tests/benchmarks/motionmark-htmlsuite-desktop.toml"]
-
-["include:tests/benchmarks/motionmark-htmlsuite-mobile.toml"]
-
 ["include:tests/benchmarks/speedometer-desktop.toml"]
 
 ["include:tests/benchmarks/speedometer-mobile.toml"]

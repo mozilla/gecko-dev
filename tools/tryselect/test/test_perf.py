@@ -33,7 +33,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 FTG_SAMPLE_PATH = pathlib.Path(here, "full-task-graph-perf-test.json")
 
 TASKS = [
-    "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-motionmark-animometer",
+    "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-motionmark-animometer-1-3",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-wasm-firefox-wasm-godot-optimizing",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-webaudio",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-speedometer",
@@ -48,7 +48,7 @@ TASKS = [
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-assorted-dom",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-stylebench",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-wasm-firefox-wasm-misc-baseline",
-    "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-motionmark-htmlsuite",
+    "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-motionmark-htmlsuite-1-3",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-firefox-unity-webgl",
     "test-linux1804-64-shippable-qr/opt-browsertime-benchmark-wasm-firefox-wasm-godot",
     "test-linux1804-64-shippable-qr/opt-browsertime-amazon",
