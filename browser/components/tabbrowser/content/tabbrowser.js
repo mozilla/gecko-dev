@@ -2751,8 +2751,7 @@
       let animate =
         !skipAnimation &&
         !pinned &&
-        !this.tabContainer.verticalMode &&
-        !this.tabContainer.overflowing &&
+        this.tabContainer.getAttribute("overflow") != "true" &&
         !gReduceMotion;
 
       let uriInfo = this._determineURIToLoad(uriString, createLazyBrowser);
@@ -4161,12 +4160,11 @@
       }
 
       let lockTabSizing =
-        !this.tabContainer.verticalMode ||
-        (!aTab.pinned &&
-          !aTab.hidden &&
-          aTab._fullyOpen &&
-          triggeringEvent?.inputSource == MouseEvent.MOZ_SOURCE_MOUSE &&
-          triggeringEvent?.target.closest(".tabbrowser-tab"));
+        !aTab.pinned &&
+        !aTab.hidden &&
+        aTab._fullyOpen &&
+        triggeringEvent?.inputSource == MouseEvent.MOZ_SOURCE_MOUSE &&
+        triggeringEvent?.target.closest(".tabbrowser-tab");
       if (lockTabSizing) {
         this.tabContainer._lockTabSizing(aTab, tabWidth);
       } else {
@@ -4179,7 +4177,6 @@
         isLastTab ||
         aTab.pinned ||
         aTab.hidden ||
-        this.tabContainer.verticalMode ||
         this._removingTabs.size >
           3 /* don't want lots of concurrent animations */ ||
         !aTab.hasAttribute(

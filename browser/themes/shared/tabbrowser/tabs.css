@@ -11,10 +11,9 @@
   &[uidensity=touch] {
     --tab-min-height: 41px;
   }
-  --tab-collapsed-width: 40px;
-  --tab-inline-padding: var(--space-medium);
+  --collapsed-tab-width: 40px;
+  --inline-tab-padding: var(--space-medium);
   --tab-border-radius: 4px;
-  --tab-overflow-clip-margin: 2px;
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
@@ -51,32 +50,24 @@
 }
 
 #tabbrowser-tabs {
+  --tab-min-width: 76px;
+  --tab-overflow-pinned-tabs-width: 0px;
+  padding-inline: var(--tab-overflow-pinned-tabs-width) 0;
   /* Use a bigger flex value than the searchbar to prevent it from
    * taking all the toolbar space. */
   flex: 1000 1000;
 
-  &[orient="horizontal"] {
-    --tab-overflow-pinned-tabs-width: 0px;
-    padding-inline: var(--tab-overflow-pinned-tabs-width) 0;
+  &[orient="horizontal"][positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
+    /* Add padding to match the shadow's blur radius so the
+       shadow doesn't get clipped when either the first or
+       last tab is selected */
+    padding-inline: var(--tab-shadow-max-size);
+  }
 
-    --tab-min-width: 76px;
-    :root[uidensity="touch"] & {
-      /* Touch mode needs additional space for the close button. */
-      --tab-min-width: 86px;
-    }
-
-    &[positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
-      /* Add padding to match the shadow's blur radius so the
-         shadow doesn't get clipped when either the first or
-         last tab is selected */
-      padding-inline: var(--tab-shadow-max-size);
-    }
-
-    /* Make it easier to drag tabs by expanding the drag area downwards. */
-    &[movingtab] {
-      padding-bottom: 15px;
-      margin-bottom: -15px;
-    }
+  /* Make it easier to drag tabs by expanding the drag area downwards. */
+  &[movingtab] {
+    padding-bottom: 15px;
+    margin-bottom: -15px;
   }
 }
 
@@ -112,15 +103,16 @@
   border-radius: 0;
   border-width: 0;
   margin: 0;
-  padding: 0 var(--tab-overflow-clip-margin);
+  padding: 0 2px;
   align-items: stretch;
   /* Needed so that overflowing content overflows towards the end rather than
      getting centered. That prevents tab opening animation from looking off at
      the start, see bug 1759221. */
   justify-content: flex-start;
   overflow: clip;
-  /* Needed to avoid clipping the tab-background shadow, which has a 4px blur. */
-  overflow-clip-margin: var(--tab-overflow-clip-margin);
+  /* Needed to avoid clipping the tab-background shadow, which has a 4px blur
+   * (we only have 2px padding in the inline direction) */
+  overflow-clip-margin: 2px;
 
   &:not([pinned]) {
     flex: 100 100;
@@ -128,6 +120,11 @@
     min-width: var(--tab-min-width);
     transition: min-width 100ms ease-out,
                 max-width 100ms ease-out;
+
+    :root[uidensity=touch] & {
+      /* Touch mode needs additional space for the close button. */
+      min-width: calc(var(--tab-min-width) + 10px);
+    }
   }
 
   &:not([pinned], [fadein]) {
@@ -161,7 +158,7 @@
 }
 
 .tab-content {
-  padding: 0 var(--tab-inline-padding);
+  padding: 0 var(--inline-tab-padding);
 
   &:not([pinned]) {
     min-width: 0;
@@ -518,7 +515,7 @@
 
 .tab-close-button {
   -moz-context-properties: fill, fill-opacity;
-  margin-inline-end: calc(var(--tab-inline-padding) / -2);
+  margin-inline-end: calc(var(--inline-tab-padding) / -2);
   width: 24px;
   height: 24px;
   padding: 6px;
@@ -808,8 +805,7 @@ tab-group {
   font: message-box; /* match .tabbrowser-tab on macOS */
   min-height: var(--tab-min-height);
   border-radius: var(--border-radius-medium);
-  padding: 0 var(--tab-inline-padding);
-  margin-inline: var(--tab-overflow-clip-margin);
+  padding: 0 var(--inline-tab-padding);
 
   #tabbrowser-tabs[orient="horizontal"] > &,
   #tabbrowser-tabs[orient="vertical"]:not([expanded]) > & > .toolbarbutton-text {
@@ -830,7 +826,7 @@ tab-group {
 #vertical-tabs {
   overflow: hidden;
   display: none;
-  padding-inline: calc(var(--space-medium) - var(--tab-overflow-clip-margin));
+  padding-inline: var(--space-medium);
   padding-block-start: var(--space-medium);
 
   &[visible] {
@@ -840,7 +836,7 @@ tab-group {
 
 #vertical-pinned-tabs-container {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--tab-collapsed-width), auto));
+  grid-template-columns: repeat(auto-fit, minmax(var(--collapsed-tab-width), auto));
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
@@ -871,21 +867,14 @@ tab-group {
 }
 
 #tabbrowser-tabs[orient="vertical"] {
-  --tab-min-width: unset;
-
-  min-height: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   align-content: flex-start;
   grid-gap: var(--space-small);
-  padding: 0; /* override tabbox.css on macOS */
 
   &[overflow] {
     border-bottom: var(--tabstrip-inner-border);
-  }
-
-  .tabbrowser-tab {
-    flex: none;
   }
 
   .tab-close-button {
@@ -904,7 +893,9 @@ tab-group {
 
   &:not([expanded]) {
     .tabbrowser-tab {
-      width: var(--tab-collapsed-width);
+      min-width: inherit;
+      width: var(--collapsed-tab-width);
+      flex: none;
     }
 
     .tab-label-container {
@@ -916,7 +907,10 @@ tab-group {
     --tab-icon-end-margin: 7.5px;
 
     .tabbrowser-tab {
+      min-width: calc(100% - var(--space-medium));
+      flex: none;
       max-width: none;
+      padding: 0;
 
       &:is(:hover, [selected]):not([pinned]) .tab-close-button {
         display: flex;
