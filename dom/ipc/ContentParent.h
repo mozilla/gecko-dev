@@ -25,6 +25,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/DataMutex.h"
 #include "mozilla/HalTypes.h"
+#include "mozilla/IdleTaskRunner.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReportingProcess.h"
@@ -398,14 +399,17 @@ class ContentParent final : public PContentParent,
    * shutdown process.  Automatically called whenever a KeepAlive is removed, or
    * a BrowserParent is removed.
    *
-   * Returns `true` if shutdown for the process has been started, and `false`
-   * otherwise.
+   * By default when a process becomes unused, it will be kept alive for a short
+   * time, potentially allowing the process to be re-used.
    *
+   * @param aImmediate If true, immediately begins shutdown if the process is
+   *                   eligible, without any grace period for process re-use.
    * @param aIgnoreKeepAlivePref If true, the dom.ipc.keepProcessesAlive.*
    *                             preferences will be ignored, for clean-up of
-   *                             cached processes.
+   *                             cached processes. Requires aImmediate.
    */
-  bool MaybeBeginShutDown(bool aIgnoreKeepAlivePref = false);
+  void MaybeBeginShutDown(bool aImmediate = false,
+                          bool aIgnoreKeepAlivePref = false);
 
   TestShellParent* CreateTestShell();
 
@@ -1614,6 +1618,8 @@ class ContentParent final : public PContentParent,
   // A preference serializer used to share preferences with the process.
   // Cleared once startup is complete.
   UniquePtr<mozilla::ipc::SharedPreferenceSerializer> mPrefSerializer;
+
+  RefPtr<IdleTaskRunner> mMaybeBeginShutdownRunner;
 
   static uint32_t sMaxContentProcesses;
   static uint32_t sPageLoadEventCounter;

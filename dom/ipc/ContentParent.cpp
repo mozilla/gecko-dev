@@ -747,7 +747,9 @@ void ContentParent::ReleaseCachedProcesses() {
   }
 
   for (const auto& cp : fixArray) {
-    if (cp->MaybeBeginShutDown(/* aIgnoreKeepAlivePref */ true)) {
+    cp->MaybeBeginShutDown(/* aImmediate */ true,
+                           /* aIgnoreKeepAlivePref */ true);
+    if (cp->IsDead()) {
       // Make sure that this process is no longer accessible from JS by its
       // message manager.
       cp->ShutDownMessageManager();
@@ -2093,8 +2095,19 @@ void ContentParent::ActorDestroy(ActorDestroyReason why) {
 
 UniqueContentParentKeepAlive ContentParent::TryAddKeepAlive(
     uint64_t aBrowserId) {
-  return UniqueContentParentKeepAliveFromThreadsafe(
-      mThreadsafeHandle->TryAddKeepAlive(aBrowserId));
+  UniqueContentParentKeepAlive keepAlive =
+      UniqueContentParentKeepAliveFromThreadsafe(
+          mThreadsafeHandle->TryAddKeepAlive(aBrowserId));
+  // If we successfully added a KeepAlive, we can cancel any pending
+  // MaybeBeginShutDown call (as it will no longer begin process shutdown due to
+  // outstanding KeepAlives).
+  // This is just an optimization and the MaybeBeginShutDown call will be a
+  // no-op if it is called with the KeepAlive held.
+  if (keepAlive && mMaybeBeginShutdownRunner) {
+    mMaybeBeginShutdownRunner->Cancel();
+    mMaybeBeginShutdownRunner = nullptr;
+  }
+  return keepAlive;
 }
 
 UniqueContentParentKeepAlive ContentParent::AddKeepAlive(uint64_t aBrowserId) {
@@ -2118,8 +2131,26 @@ void ContentParent::RemoveKeepAlive(uint64_t aBrowserId) {
   MaybeBeginShutDown();
 }
 
-bool ContentParent::MaybeBeginShutDown(bool aIgnoreKeepAlivePref) {
+void ContentParent::MaybeBeginShutDown(bool aImmediate,
+                                       bool aIgnoreKeepAlivePref) {
   AssertIsOnMainThread();
+  MOZ_ASSERT(!aIgnoreKeepAlivePref || aImmediate,
+             "aIgnoreKeepAlivePref requires aImmediate");
+
+  // Don't bother waiting, even if `aImmediate` is not true, if the process
+  // can no longer be re-used (e.g. because it is dead, or we're in shutdown).
+  bool immediate =
+      aImmediate || IsDead() ||
+      AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed) ||
+      StaticPrefs::dom_ipc_processReuse_unusedGraceMs() == 0;
+
+  // Clean up any scheduled idle task unless we schedule a new one.
+  auto cancelIdleTask = MakeScopeExit([&] {
+    if (mMaybeBeginShutdownRunner) {
+      mMaybeBeginShutdownRunner->Cancel();
+      mMaybeBeginShutdownRunner = nullptr;
+    }
+  });
 
   {
     RecursiveMutexAutoLock lock(mThreadsafeHandle->mMutex);
@@ -2127,7 +2158,7 @@ bool ContentParent::MaybeBeginShutDown(bool aIgnoreKeepAlivePref) {
     // down. Return.
     if (IsLaunching() ||
         !mThreadsafeHandle->mKeepAlivesPerBrowserId.IsEmpty()) {
-      return false;
+      return;
     }
 
     // If we're not in main process shutdown, we might want to keep some content
@@ -2151,13 +2182,50 @@ bool ContentParent::MaybeBeginShutDown(bool aIgnoreKeepAlivePref) {
               static_cast<size_t>(processesToKeepAlive)) {
         // We're keeping this process alive even though there are no keepalives
         // for it due to the keepalive pref.
-        return false;
+        return;
       }
     }
 
-    // We're not keeping this process alive, begin shutdown.
-    mThreadsafeHandle->mShutdownStarted = true;
+    if (immediate) {
+      // We're not keeping this process alive, begin shutdown.
+      mThreadsafeHandle->mShutdownStarted = true;
+    }
   }
+
+  // If we're not beginning shutdown immediately, make sure an idle task runner
+  // is scheduled to call us back. This delay is intended to avoid unnecessary
+  // process churn when a process becomes momentarily unused (which can happen
+  // frequently when running tests).
+  if (!immediate) {
+    // We want an idle task to call us back, don't cancel it.
+    cancelIdleTask.release();
+
+    MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
+            ("MaybeBeginShutDown(%d) would begin shutdown, %s", OtherChildID(),
+             mMaybeBeginShutdownRunner ? "already delayed" : "delaying"));
+
+    if (!mMaybeBeginShutdownRunner) {
+      TimeDuration startDelay = TimeDuration::FromMilliseconds(
+          StaticPrefs::dom_ipc_processReuse_unusedGraceMs());
+      TimeDuration maxDelay = startDelay + TimeDuration::FromSeconds(1);
+      mMaybeBeginShutdownRunner = IdleTaskRunner::Create(
+          [self = RefPtr{this}](TimeStamp) -> bool {
+            MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
+                    ("MaybeBeginShutDown(%d) resuming after delay",
+                     self->OtherChildID()));
+            self->MaybeBeginShutDown(/* aImmediate */ true);
+            return true;
+          },
+          "ContentParent::IdleMaybeBeginShutdown", startDelay, maxDelay,
+          /* aMinimumUsefulBudget */ TimeDuration::FromMilliseconds(3),
+          /* aRepeating */ false, [] { return false; });
+    }
+    return;
+  }
+
+  MOZ_LOG(ContentParent::GetLog(), LogLevel::Debug,
+          ("MaybeBeginShutDown(%d) shutdown starting (%u bps)", OtherChildID(),
+           ManagedPBrowserParent().Count()));
 
   MarkAsDead();
   SignalImpendingShutdownToContentJS();
@@ -2171,7 +2239,6 @@ bool ContentParent::MaybeBeginShutDown(bool aIgnoreKeepAlivePref) {
     // All tabs are dead, we can fully begin shutting down.
     AsyncSendShutDownMessage();
   }
-  return true;
 }
 
 void ContentParent::StartSendShutdownTimer() {
