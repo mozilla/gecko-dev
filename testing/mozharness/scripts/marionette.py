@@ -417,6 +417,11 @@ class MarionetteTest(TestingMixin, MercurialScript, TransferMixin, CodeCoverageM
         # Causes Firefox to crash when using non-local connections.
         env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
 
+        # Avoid issues when printing messages containing unicode characters on
+        # windows (Bug 1800035).
+        if self._is_windows():
+            env["PYTHONIOENCODING"] = "utf-8"
+
         env = self.query_env(partial_env=env)
 
         try:
