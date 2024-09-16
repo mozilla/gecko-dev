@@ -1389,18 +1389,17 @@ void OpenOp::DirectoryLockAcquired(DirectoryLock* aLock) {
 
   mDirectoryLock = aLock;
 
-  nsresult rv = SendToIOThread();
-  if (NS_WARN_IF(NS_FAILED(rv))) {
-    MaybeSetFailureCode(rv);
+  auto cleanupAndReturn = [self = RefPtr(this)](const nsresult rv) {
+    self->MaybeSetFailureCode(rv);
 
     // The caller holds a strong reference to us, no need for a self reference
     // before calling Run().
 
-    mState = State::SendingResults;
-    MOZ_ALWAYS_SUCCEEDS(Run());
+    self->mState = State::SendingResults;
+    MOZ_ALWAYS_SUCCEEDS(self->Run());
+  };
 
-    return;
-  }
+  QM_TRY(MOZ_TO_RESULT(SendToIOThread()), cleanupAndReturn);
 }
 
 void OpenOp::DirectoryLockFailed() {
