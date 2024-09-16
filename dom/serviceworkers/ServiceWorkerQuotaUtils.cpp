@@ -36,7 +36,7 @@ namespace mozilla::dom {
  *    b. Group headroom is satisfied after origin usage mitigation.
  *       This invokes nsIClearDataService::DeleteDataFromPrincipal().
  *    c. Group headroom is satisfied after group usage mitigation.
- *       This invokes nsIClearDataService::DeleteDataFromBaseDomain().
+ *       This invokes nsIClearDataService::DeleteDataFromSite().
  *    QuotaUsageChecker::CheckQuotaHeadroom() implements this step.
  *
  * If the algorithm is done or error out, the QuotaUsageCheck::mCallback will
@@ -54,7 +54,7 @@ class QuotaUsageChecker final : public nsIQuotaCallback,
   NS_DECL_NSIQUOTAUSAGECALLBACK
 
   // For nsIClearDataService::DeleteDataFromPrincipal() and
-  // nsIClearDataService::DeleteDataFromBaseDomain()
+  // nsIClearDataService::DeleteDataFromSite()
   NS_DECL_NSICLEARDATACALLBACK
 
   QuotaUsageChecker(nsIPrincipal* aPrincipal,
@@ -193,14 +193,13 @@ void QuotaUsageChecker::CheckQuotaHeadroom() {
   // Group usage headroom is not satisfied even removing the origin usage,
   // clear all group usage.
   if ((groupAvailable + mOriginUsage) < groupHeadroom) {
-    nsAutoCString host;
-    nsresult rv = mPrincipal->GetHost(host);
+    nsAutoCString baseDomain;
+    nsresult rv = mPrincipal->GetBaseDomain(baseDomain);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }
-
-    rv = csd->DeleteDataFromBaseDomain(
-        host, false, nsIClearDataService::CLEAR_DOM_QUOTA, this);
+    rv = csd->DeleteDataFromSite(baseDomain, false,
+                                 nsIClearDataService::CLEAR_DOM_QUOTA, this);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;
     }
