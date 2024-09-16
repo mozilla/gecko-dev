@@ -61,7 +61,7 @@ pub fn get_or_insert_deserializer_tag<T>() -> u8
 where
     T: ProfilerMarker,
 {
-    let unique_marker_tag = &T::marker_type_name as *const _ as usize;
+    let unique_marker_tag = T::marker_type_name as *const () as usize;
     let mut state = DESERIALIZER_TAGS_STATE.write().unwrap();
 
     match state.marker_tag_to_deserializer_tag.get(&unique_marker_tag) {
