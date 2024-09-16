@@ -106,13 +106,13 @@ extern "C" {
   RustBuffer uniffi_uniffi_custom_types_fn_func_get_custom_types_demo(RustBuffer, RustCallStatus*);
   double uniffi_uniffi_fixture_external_types_fn_func_gradient(RustBuffer, RustCallStatus*);
   RustBuffer uniffi_uniffi_fixture_external_types_fn_func_intersection(RustBuffer, RustBuffer, RustCallStatus*);
+  double uniffi_uniffi_geometry_fn_func_gradient(RustBuffer, RustCallStatus*);
+  RustBuffer uniffi_uniffi_geometry_fn_func_intersection(RustBuffer, RustBuffer, RustCallStatus*);
   void* uniffi_uniffi_fixture_refcounts_fn_clone_singletonobject(void*, RustCallStatus*);
   void uniffi_uniffi_fixture_refcounts_fn_free_singletonobject(void*, RustCallStatus*);
   void uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method(void*, RustCallStatus*);
   int32_t uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount(RustCallStatus*);
   void* uniffi_uniffi_fixture_refcounts_fn_func_get_singleton(RustCallStatus*);
-  double uniffi_uniffi_geometry_fn_func_gradient(RustBuffer, RustCallStatus*);
-  RustBuffer uniffi_uniffi_geometry_fn_func_intersection(RustBuffer, RustBuffer, RustCallStatus*);
   void* uniffi_uniffi_rondpoint_fn_clone_optionneur(void*, RustCallStatus*);
   void uniffi_uniffi_rondpoint_fn_free_optionneur(void*, RustCallStatus*);
   void* uniffi_uniffi_rondpoint_fn_constructor_optionneur_new(RustCallStatus*);
@@ -2761,6 +2761,92 @@ public:
         );
     }
 };
+class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<double>::FromRust(
+            uniffi_uniffi_geometry_fn_func_gradient(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<double>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn1;
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn2;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn1, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mLn2, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
+            uniffi_uniffi_geometry_fn_func_intersection(
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn1)),
+                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn2)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<RustBuffer>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
 class ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount : public UniffiHandlerBase {
 private:
     // PrepareRustArgs stores the resulting arguments in these fields
@@ -2858,92 +2944,6 @@ public:
     }
 
     virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
-    }
-};
-class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient : public UniffiHandlerBase {
-private:
-    // PrepareRustArgs stores the resulting arguments in these fields
-    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn;
-
-    // MakeRustCall stores the result of the call in these fields
-    typename ScaffoldingConverter<double>::IntermediateType mUniffiReturnValue;
-
-public:
-    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
-        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn, aError);
-        if (aError.Failed()) {
-            return;
-        }
-    }
-
-    void MakeRustCall() override {
-        RustCallStatus callStatus{};
-        mUniffiReturnValue = ScaffoldingConverter<double>::FromRust(
-            uniffi_uniffi_geometry_fn_func_gradient(
-                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn)),
-                &callStatus
-            )
-        );
-
-        mUniffiCallStatusCode = callStatus.code;
-        if (callStatus.error_buf.data) {
-            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
-        }
-    }
-
-    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
-        ScaffoldingConverter<double>::IntoJs(
-          aCx,
-          std::move(mUniffiReturnValue),
-          aDest,
-          aError
-        );
-    }
-};
-class ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection : public UniffiHandlerBase {
-private:
-    // PrepareRustArgs stores the resulting arguments in these fields
-    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn1;
-    typename ScaffoldingConverter<RustBuffer>::IntermediateType mLn2;
-
-    // MakeRustCall stores the result of the call in these fields
-    typename ScaffoldingConverter<RustBuffer>::IntermediateType mUniffiReturnValue;
-
-public:
-    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
-        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[0], &mLn1, aError);
-        if (aError.Failed()) {
-            return;
-        }
-        ScaffoldingConverter<RustBuffer>::FromJs(aArgs[1], &mLn2, aError);
-        if (aError.Failed()) {
-            return;
-        }
-    }
-
-    void MakeRustCall() override {
-        RustCallStatus callStatus{};
-        mUniffiReturnValue = ScaffoldingConverter<RustBuffer>::FromRust(
-            uniffi_uniffi_geometry_fn_func_intersection(
-                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn1)),
-                ScaffoldingConverter<RustBuffer>::IntoRust(std::move(mLn2)),
-                &callStatus
-            )
-        );
-
-        mUniffiCallStatusCode = callStatus.code;
-        if (callStatus.error_buf.data) {
-            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
-        }
-    }
-
-    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
-        ScaffoldingConverter<RustBuffer>::IntoJs(
-          aCx,
-          std::move(mUniffiReturnValue),
-          aDest,
-          aError
-        );
     }
 };
 class ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte : public UniffiHandlerBase {
@@ -6629,19 +6629,19 @@ UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId) {
         return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureExternalTypesFnFuncIntersection>();
     }
     case 60: {
-        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount>();
-    }
-    case 61: {
-        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetSingleton>();
-    }
-    case 62: {
-        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnMethodSingletonobjectMethod>();
-    }
-    case 63: {
         return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncGradient>();
     }
-    case 64: {
+    case 61: {
         return MakeUnique<ScaffoldingCallHandlerUniffiUniffiGeometryFnFuncIntersection>();
+    }
+    case 62: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetJsRefcount>();
+    }
+    case 63: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnFuncGetSingleton>();
+    }
+    case 64: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiFixtureRefcountsFnMethodSingletonobjectMethod>();
     }
     case 65: {
         return MakeUnique<ScaffoldingCallHandlerUniffiUniffiRondpointFnFuncCopieCarte>();

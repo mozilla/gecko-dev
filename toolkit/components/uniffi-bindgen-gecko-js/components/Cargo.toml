@@ -1,0 +1,22 @@
+[package]
+name = "gkrust-uniffi-components"
+version = "0.1.0"
+authors = ["The Mozilla Project Developers"]
+license = "MPL-2.0"
+description = "UniFFI-enabled Rust components for libxul"
+
+[lib]
+crate-type = ["rlib", "staticlib"]
+path = "lib.rs"
+test = false
+doctest = false
+bench = false
+doc = false
+plugin = false
+harness = false
+
+[dependencies]
+uniffi = { workspace = true }
+tabs = "0.1"
+suggest = "0.1"
+relevancy = "0.1"

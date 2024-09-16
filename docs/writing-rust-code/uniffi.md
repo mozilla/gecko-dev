@@ -43,17 +43,18 @@ You can see an example of this feature in use: [when application-services swappe
 Here's how you can create a new set of bindings using UniFFI:
 
   1. UniFFI your crate (if it isn't already):
-      - [Create a UDL file to describe your interface](https://mozilla.github.io/uniffi-rs/udl_file_spec.html)
-      - [Set up your Rust crate to generate scaffolding](https://mozilla.github.io/uniffi-rs/tutorial/Rust_scaffolding.html)
+      - Follow the steps from the [UniFFI user guide](https://mozilla.github.io/uniffi-rs/0.27/) to add support to your crate.
+      - UDL and proc-macros are both supported.
   2. Add your crate as a Firefox dependency (if it isn't already)
       - **If the code will exist in the mozilla-central repo:**
         - Create a new directory for the Rust crate
-        - Edit `toolkit/library/rust/shared/Cargo.toml` and add a dependency to your library path
+        - Edit `toolkit/components/uniffi-bindgen-gecko-js/components/Cargo.toml` and add a dependency to your library path
       - **If the code exists in an external repo:**
-        - Edit `toolkit/library/rust/shared/Cargo.toml` and add a dependency to your library URL
+        - Edit `toolkit/components/uniffi-bindgen-gecko-js/components/Cargo.toml` and add a dependency to your library URL
         - Run `mach vendor rust` to vendor in your Rust code
-  3. Generate bindings code for your crate
-      - Add the path of your UDL (that you made in step 1) in `toolkit/components/uniffi-bindgen-gecko-js/config.toml`
+  3. Configure your crate (optional)
+      - Edit `toolkit/components/uniffi-bindgen-gecko-js/config.toml` and add an entry for your crate.
+  4. Generate bindings code for your crate
       - Run `./mach uniffi generate`
           - add your newly generated `Rust{udl-name}.sys.mjs` file to `toolkit/components/uniffi-bindgen-gecko-js/components/moz.build`
       - Then simply import your module to the file you want to use it in and start using your APIs!

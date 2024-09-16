@@ -2315,6 +2315,8 @@ dependencies = [
  "gecko-profiler",
  "gecko_logger",
  "geckoservo",
+ "gkrust-uniffi-components",
+ "gkrust-uniffi-fixtures",
  "gkrust_utils",
  "http_sfv",
  "idna_glue",
@@ -2349,19 +2351,39 @@ dependencies = [
  "processtools",
  "profiler_helper",
  "qcms",
- "relevancy",
  "rsdparsa_capi",
  "rure",
  "rusqlite",
  "rust_minidump_writer_linux",
  "static_prefs",
  "storage",
- "suggest",
- "tabs",
  "unic-langid",
  "unic-langid-ffi",
  "unicode-bidi",
  "unicode-bidi-ffi",
+ "url",
+ "viaduct",
+ "webext_storage_bridge",
+ "webrender_bindings",
+ "wgpu_bindings",
+ "wpf-gpu-raster",
+ "xpcom",
+]
+
+[[package]]
+name = "gkrust-uniffi-components"
+version = "0.1.0"
+dependencies = [
+ "relevancy",
+ "suggest",
+ "tabs",
+ "uniffi",
+]
+
+[[package]]
+name = "gkrust-uniffi-fixtures"
+version = "0.1.0"
+dependencies = [
  "uniffi",
  "uniffi-example-arithmetic",
  "uniffi-example-custom-types",
@@ -2372,13 +2394,6 @@ dependencies = [
  "uniffi-fixture-callbacks",
  "uniffi-fixture-external-types",
  "uniffi-fixture-refcounts",
- "url",
- "viaduct",
- "webext_storage_bridge",
- "webrender_bindings",
- "wgpu_bindings",
- "wpf-gpu-raster",
- "xpcom",
 ]
 
 [[package]]
@@ -6226,6 +6241,7 @@ dependencies = [
  "anyhow",
  "askama",
  "camino",
+ "cargo_metadata",
  "clap",
  "extend",
  "heck",

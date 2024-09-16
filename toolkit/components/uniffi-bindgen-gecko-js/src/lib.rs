@@ -7,7 +7,7 @@ use askama::Template;
 use camino::Utf8PathBuf;
 use clap::Parser;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 use std::fs::File;
 use std::io::Write;
 
@@ -27,6 +27,12 @@ struct CliArgs {
     // This is a really convoluted set of arguments, but we're only expecting to be called by
     // `mach_commands.py`
     #[clap(long, value_name = "FILE")]
+    library_path: Utf8PathBuf,
+
+    #[clap(long, value_name = "FILE")]
+    fixtures_library_path: Utf8PathBuf,
+
+    #[clap(long, value_name = "FILE")]
     js_dir: Utf8PathBuf,
 
     #[clap(long, value_name = "FILE")]
@@ -36,18 +42,11 @@ struct CliArgs {
     cpp_path: Utf8PathBuf,
 }
 
-/// Configuration for all components, read from `uniffi.toml`
-type ConfigMap = HashMap<String, Config>;
-
 type Component = uniffi_bindgen::Component<Config>;
 
 /// Configuration for a single Component
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Config {
-    crate_name: String,
-    udl_file: String,
-    #[serde(default)]
-    fixture: bool,
     #[serde(default)]
     receiver_thread: ReceiverThreadConfig,
 }
@@ -113,9 +112,7 @@ fn render_js(
 
 pub fn run_main() -> Result<()> {
     let args = CliArgs::parse();
-    let config_map: ConfigMap =
-        toml::from_str(include_str!("../config.toml")).expect("Error parsing config.toml");
-    let components = ComponentUniverse::new(config_map)?;
+    let components = ComponentUniverse::new(args.library_path, args.fixtures_library_path)?;
     let function_ids = FunctionIds::new(&components);
     let object_ids = ObjectIds::new(&components);
     let callback_ids = CallbackIds::new(&components);

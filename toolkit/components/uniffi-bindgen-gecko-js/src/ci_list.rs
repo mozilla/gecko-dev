@@ -13,12 +13,14 @@
 //!
 //! This module manages the list of ComponentInterface and the object ids.
 
-use crate::render::cpp::exposed_functions;
-use crate::{Component, Config, ConfigMap};
-use anyhow::{bail, Context, Result};
-use camino::Utf8PathBuf;
 use std::collections::{BTreeSet, HashMap, HashSet};
+
+use anyhow::{anyhow, bail, Context, Result};
+use camino::{Utf8Path, Utf8PathBuf};
 use uniffi_bindgen::interface::{CallbackInterface, ComponentInterface, FfiFunction, Object};
+
+use crate::render::cpp::exposed_functions;
+use crate::Component;
 
 pub struct ComponentUniverse {
     pub components: Vec<Component>,
@@ -26,10 +28,11 @@ pub struct ComponentUniverse {
 }
 
 impl ComponentUniverse {
-    pub fn new(config_map: ConfigMap) -> Result<Self> {
+    pub fn new(library_path: Utf8PathBuf, fixtures_library_path: Utf8PathBuf) -> Result<Self> {
+        let config_supplier = GeckoJsCrateConfigSupplier::new()?;
         let universe = Self {
-            components: parse_udl_files(&config_map, false)?,
-            fixture_components: parse_udl_files(&config_map, true)?,
+            components: find_components(&library_path, &config_supplier)?,
+            fixture_components: find_components(&fixtures_library_path, &config_supplier)?,
         };
         universe.check_udl_namespaces_unique()?;
         universe.check_callback_interfaces()?;
@@ -72,31 +75,65 @@ impl ComponentUniverse {
     }
 }
 
-fn parse_udl_files(config_map: &ConfigMap, fixture: bool) -> Result<Vec<Component>> {
-    // Sort config entries to ensure consistent output
-    let mut entries: Vec<_> = config_map.iter().collect();
-    entries.sort_by_key(|(key, _)| *key);
-    entries
+fn find_components(
+    library_path: &Utf8Path,
+    config_supplier: &GeckoJsCrateConfigSupplier,
+) -> Result<Vec<Component>> {
+    let mut components = uniffi_bindgen::find_components(library_path, config_supplier)?
         .into_iter()
-        .filter_map(|(_, config)| {
-            if config.fixture == fixture {
-                Some(parse_udl_file(&config).map(|ci| Component {
-                    ci,
-                    config: config.clone(),
-                }))
-            } else {
-                None
-            }
+        // FIXME(Bug 1913982): Need to filter out components that use callback interfaces for now
+        .filter(|component| {
+            let namespace = component.ci.namespace();
+            namespace != "errorsupport" && namespace != "fixture_callbacks"
         })
-        .collect()
+        .map(|component| {
+            Ok(Component {
+                config: toml::Value::Table(component.config).try_into()?,
+                ci: component.ci,
+            })
+        })
+        .collect::<Result<Vec<Component>>>()?;
+    // Sort components entries to ensure consistent output
+    components.sort_by(|c1, c2| c1.ci.namespace().cmp(c2.ci.namespace()));
+    Ok(components)
 }
 
-fn parse_udl_file(config: &Config) -> Result<ComponentInterface> {
-    let udl_file = Utf8PathBuf::from(&config.udl_file);
-    let udl = std::fs::read_to_string(udl_file)
-        .context(format!("Error reading UDL file '{}'", config.udl_file))?;
-    ComponentInterface::from_webidl(&udl, &config.crate_name)
-        .context(format!("Failed to parse UDL '{}'", config.udl_file))
+/// Responsible for finding UDL files and config values for crates
+struct GeckoJsCrateConfigSupplier {
+    // Used to lookup the UDL files
+    cargo_crate_config_supplier: uniffi_bindgen::cargo_metadata::CrateConfigSupplier,
+    // Used to get config values
+    config_table: toml::map::Map<String, toml::Value>,
+}
+
+impl GeckoJsCrateConfigSupplier {
+    fn new() -> Result<Self> {
+        Ok(Self {
+            cargo_crate_config_supplier: cargo_metadata::MetadataCommand::new()
+                .exec()
+                .context("error running cargo metadata")?
+                .into(),
+            config_table: toml::from_str(include_str!("../config.toml"))?,
+        })
+    }
+}
+
+impl uniffi_bindgen::BindgenCrateConfigSupplier for GeckoJsCrateConfigSupplier {
+    fn get_udl(&self, crate_name: &str, udl_name: &str) -> anyhow::Result<String> {
+        self.cargo_crate_config_supplier
+            .get_udl(crate_name, udl_name)
+    }
+
+    fn get_toml(&self, crate_name: &str) -> anyhow::Result<Option<toml::value::Table>> {
+        self.config_table
+            .get(crate_name)
+            .map(|v| {
+                v.as_table()
+                    .ok_or_else(|| anyhow!("Config value not table"))
+                    .cloned()
+            })
+            .transpose()
+    }
 }
 
 pub struct FunctionIds<'a> {

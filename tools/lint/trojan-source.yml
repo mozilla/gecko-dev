@@ -26,7 +26,7 @@ trojan-source:
         - security/nss/gtests/mozpkix_gtest/pkixnames_tests.cpp
         - testing/web-platform/tests/webdriver/tests/bidi/input/perform_actions/key_tentative.py
         - testing/web-platform/tests/webdriver/tests/classic/perform_actions/key_tentative.py
-        - toolkit/components/uniffi-fixtures/rondpoint/tests/bindings/test_rondpoint.py
+        - toolkit/components/uniffi-bindgen-gecko-js/fixtures/rondpoint/tests/bindings/test_rondpoint.py
     extensions:
         - .c
         - .cc

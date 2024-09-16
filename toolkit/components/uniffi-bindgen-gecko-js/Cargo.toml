@@ -12,6 +12,7 @@ path = "src/main.rs"
 anyhow = "1"
 askama = { version = "0.12", default-features = false, features = ["config"] }
 clap = { version = "4", default-features = false, features = ["std", "derive", "cargo"] }
+cargo_metadata = "0.15"
 extend = "1.1"
 heck = "0.5"
 uniffi = { workspace = true }
