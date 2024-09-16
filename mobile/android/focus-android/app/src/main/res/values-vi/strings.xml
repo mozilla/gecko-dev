@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Tìm kiếm trong Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Tìm kiếm trong Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Tìm kiếm trong Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Tìm kiếm trong Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Tìm kiếm trong Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Tìm kiếm trong Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Tìm kiếm trong Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Tìm kiếm trong Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s giúp bạn kiểm soát mọi thứ.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s giúp bạn kiểm soát mọi thứ.</p>
 <p>Sử dụng nó như một trình duyệt riêng tư:
   <ul>
     <li>Tìm kiếm và duyệt ngay trong ứng dụng</li>
@@ -609,9 +609,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Xóa lịch sử duyệt web</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Đóng các thẻ khác</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Tải Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Tải Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -623,23 +626,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s được cung cấp cho bạn theo các điều khoản của <a href="%2$s">Giấy phép Công cộng Mozilla</a> và các giấy phép mã nguồn mở khác.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s được cung cấp cho bạn theo các điều khoản của <a href="%2$s">Giấy phép Công cộng Mozilla</a> và các giấy phép mã nguồn mở khác.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Bạn không được cấp bất kỳ quyền hoặc giấy phép nào đối với nhãn hiệu của Tổ chức Mozilla hoặc bất kỳ bên nào, bao gồm tên hoặc logo của Mozilla, Firefox hoặc %1$s. Thông tin bổ sung có thể được tìm thấy <a href="%2$s">tại đây</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Bạn không được cấp bất kỳ quyền hoặc giấy phép nào đối với nhãn hiệu của Tổ chức Mozilla hoặc bất kỳ bên nào, bao gồm tên hoặc logo của Mozilla, Firefox hoặc %1$s. Thông tin bổ sung có thể được tìm thấy <a href="%2$s">tại đây</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Mã nguồn bổ sung cho %1$s có sẵn dưới nhiều <a href="%2$s">giấy phép nguồn mở miễn phí</a> khác.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Mã nguồn bổ sung cho %1$s có sẵn dưới nhiều <a href="%2$s">giấy phép nguồn mở miễn phí</a> khác.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s cũng sử dụng danh sách chặn được cung cấp bởi Disconnect, Inc. là các tác phẩm riêng biệt và độc lập theo <a href="%2$s">GNU General Public License v3</a> và có sẵn <a href="%3$s">ở đây</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s cũng sử dụng danh sách chặn được cung cấp bởi Disconnect, Inc. là các tác phẩm riêng biệt và độc lập theo <a href="%2$s">GNU General Public License v3</a> và có sẵn <a href="%3$s">ở đây</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Tên đăng nhập</string>
@@ -830,7 +833,7 @@
     <string name="preference_studies">Nghiên cứu</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox có thể cài đặt và chạy các nghiên cứu theo thời gian.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox có thể cài đặt và chạy các nghiên cứu theo thời gian.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Tìm hiểu thêm</string>
@@ -1035,7 +1038,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s đã thử kết nối HTTPS bất cứ khi nào có thể để bảo mật hơn.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s đã thử kết nối HTTPS bất cứ khi nào có thể để bảo mật hơn.
      <a href="%2$s">Tìm hiểu thêm</a> <br/><br/>
      Thay đổi cài đặt này trong Cài đặt > Riêng tư &amp; bảo mật > Bảo mật.]]></string>
 

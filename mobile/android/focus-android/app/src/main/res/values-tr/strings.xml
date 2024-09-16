@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Focus’ta ara</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Focus’ta ara</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Klar’da ara</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Klar’da ara</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Focus Beta’da ara</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Focus Beta’da ara</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Focus Nightly’de ara</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightly’de ara</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s kontrolü size verir.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s kontrolü size verir.</p>
 <p>Onu gizlilik odaklı bir tarayıcı olarak kullanabilirsiniz:
   <ul>
     <li>Doğrudan uygulamada arama yapabilir ve web’de gezinebilirsiniz</li>
@@ -609,9 +609,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Gezinti geçmişini sil</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Diğer sekmeleri kapat</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox’u indir</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox’u indir</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -623,23 +626,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s, <a href="%2$s">Mozilla Kamu Lisansı</a> ve diğer açık kaynak lisanslarının koşullarıyla sunulmaktadır.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s, <a href="%2$s">Mozilla Kamu Lisansı</a> ve diğer açık kaynak lisanslarının koşullarıyla sunulmaktadır.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Mozilla Vakfı’nın tescilli markaları olan Mozilla, Firefox, %1$s adları ve logoları da dahil olmak üzere, tescilli markalarımızın hakları ve lisansları sizinle paylaşılmamaktadır. Daha fazla bilgi almak isterseniz <a href="%2$s">buraya</a> bakabilirsiniz.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Mozilla Vakfı’nın tescilli markaları olan Mozilla, Firefox, %1$s adları ve logoları da dahil olmak üzere, tescilli markalarımızın hakları ve lisansları sizinle paylaşılmamaktadır. Daha fazla bilgi almak isterseniz <a href="%2$s">buraya</a> bakabilirsiniz.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Bazı ek %1$s kaynak kodları çeşitli özgür lisanslar ve açık kaynak <a href="%2$s">lisansları</a> ile sunulmaktadır.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Bazı ek %1$s kaynak kodları çeşitli özgür lisanslar ve açık kaynak <a href="%2$s">lisansları</a> ile sunulmaktadır.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s ayrıca Disconnect, Inc. tarafından sağlanan engelleme listelerini kullanır. Tarayıcıdan ayrı ve bağımsız olan <a href="%3$s">bu çalışmalar</a> <a href="%2$s">GNU Kamu Lisansı v3</a> ile sunulmaktadır.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ayrıca Disconnect, Inc. tarafından sağlanan engelleme listelerini kullanır. Tarayıcıdan ayrı ve bağımsız olan <a href="%3$s">bu çalışmalar</a> <a href="%2$s">GNU Kamu Lisansı v3</a> ile sunulmaktadır.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Kullanıcı adı</string>
@@ -831,7 +834,7 @@
     <string name="preference_studies">Araştırmalar</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox zaman zaman araştırmalar yükleyip çalıştırabilir.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox zaman zaman araştırmalar yükleyip çalıştırabilir.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Daha fazla bilgi al</string>
@@ -1042,7 +1045,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s, güvenliğinizi artırmak için mümkünse HTTPS bağlantısı kullanmaya çalışır.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s, güvenliğinizi artırmak için mümkünse HTTPS bağlantısı kullanmaya çalışır.
      <a href="%2$s">Daha fazla bilgi alın</a> <br/><br/>
      Bu ayarı Ayarlar > Gizlilik ve Güvenlik > Güvenlik kısmından değiştirebilirsiniz.]]></string>
 

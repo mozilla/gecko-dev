@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Sök i Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Sök i Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Sök i Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Sök i Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Sök i Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Sök i Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Sök i Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Sök i Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s ger dig full kontroll.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s ger dig full kontroll.</p>
 <p>Använd den som en privat webbläsare:
   <ul>
     <li>Sök och surfa direkt i appen</li>
@@ -609,9 +609,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Radera webbhistorik</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Stäng andra flikar</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Hämta Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Hämta Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -623,23 +626,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s är tillgänglig för dig enligt villkoren i <a href="%2$s">Mozilla Public License</a> och andra open source-licenser.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s är tillgänglig för dig enligt villkoren i <a href="%2$s">Mozilla Public License</a> och andra open source-licenser.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Du är inte beviljad några rättigheter eller licenser till varumärken som tillhör Mozilla Foundation eller någon part, däribland Mozilla, Firefox eller %1$s namn eller logotyper. Ytterligare information kan hittas <a href="%2$s">här</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Du är inte beviljad några rättigheter eller licenser till varumärken som tillhör Mozilla Foundation eller någon part, däribland Mozilla, Firefox eller %1$s namn eller logotyper. Ytterligare information kan hittas <a href="%2$s">här</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Ytterligare källkod för %1$s finns tillgänglig under flera andra gratis och open source-<a href="%2$s">licenser</a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Ytterligare källkod för %1$s finns tillgänglig under flera andra gratis och open source-<a href="%2$s">licenser</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s använder också blocklistor som tillhandahålls av Disconnect, Inc. som separata och oberoende verk under <a href="%2$s">GNU General Public License v3</a> och tillgänglig <a href="%3$s">här</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s använder också blocklistor som tillhandahålls av Disconnect, Inc. som separata och oberoende verk under <a href="%2$s">GNU General Public License v3</a> och tillgänglig <a href="%3$s">här</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Användarnamn</string>
@@ -831,7 +834,7 @@
     <string name="preference_studies">Studier</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox kan installera och köra studier då och då.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox kan installera och köra studier då och då.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Läs mer</string>
@@ -1036,7 +1039,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s försöker använda en HTTPS-anslutning när det är möjligt för ökad säkerhet.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s försöker använda en HTTPS-anslutning när det är möjligt för ökad säkerhet.
      <a href="%2$s">Läs mer</a> <br/><br/>
      Ändra den här inställningen i Inställningar > Sekretess &amp; Säkerhet > Säkerhet.]]></string>
 

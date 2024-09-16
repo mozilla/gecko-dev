@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Focus에서 검색</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Focus에서 검색</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Klar에서 검색</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Klar에서 검색</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Focus Beta에서 검색</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Focus Beta에서 검색</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Focus Nightly에서 검색</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Focus Nightly에서 검색</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s를 여러 기능으로 사용할 수 있습니다.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s를 여러 기능으로 사용할 수 있습니다.</p>
 <p>개인 정보 보호 브라우저로 사용:
   <ul>
     <li>앱에서 바로 검색과 브라우징 하기</li>
@@ -605,9 +605,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">방문 기록 삭제</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">다른 탭 닫기</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Firefox 다운로드</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Firefox 다운로드</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -619,23 +622,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s는 <a href="%2$s">Mozilla 공개 라이선스</a> 및 기타 다른 오픈 소스 라이선스 이용 약관에 따라 제공됩니다.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s는 <a href="%2$s">Mozilla 공개 라이선스</a> 및 기타 다른 오픈 소스 라이선스 이용 약관에 따라 제공됩니다.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[귀하는 Mozilla와 Firefox, %1$s 명칭이나 로고를 포함한 Mozilla 재단 및 다른 서비스 제공자 소유의 지적재산권으로 보호받는 권리나 라이선스가 부여되는 것이 아님을 인지하셔야 합니다. 추가적인 정보는 <a href="%2$s">다음</a>을 참고하시기 바랍니다.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[귀하는 Mozilla와 Firefox, %1$s 명칭이나 로고를 포함한 Mozilla 재단 및 다른 서비스 제공자 소유의 지적재산권으로 보호받는 권리나 라이선스가 부여되는 것이 아님을 인지하셔야 합니다. 추가적인 정보는 <a href="%2$s">다음</a>을 참고하시기 바랍니다.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[%1$s의 소스 코드는 기타 다양한 무료 및 오픈 소스 <a href="%2$s">라이선스</a> 계약에 따라 제공됩니다.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s의 소스 코드는 기타 다양한 무료 및 오픈 소스 <a href="%2$s">라이선스</a> 계약에 따라 제공됩니다.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s는 Disconnect, Inc에서 제공하는 차단목록에서 <a href="%2$s">GNU General Public License v3</a>를 바탕으로 자체적으로 별도로 관리하는 차단목록을 사용합니다. 자세한 내용은 <a href="%3$s">다음</a>에서 확인할 수 있습니다.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s는 Disconnect, Inc에서 제공하는 차단목록에서 <a href="%2$s">GNU General Public License v3</a>를 바탕으로 자체적으로 별도로 관리하는 차단목록을 사용합니다. 자세한 내용은 <a href="%3$s">다음</a>에서 확인할 수 있습니다.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">사용자명</string>
@@ -827,7 +830,7 @@
     <string name="preference_studies">연구</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox가 때때로 연구를 설치하고 실행할 수 있습니다.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox가 때때로 연구를 설치하고 실행할 수 있습니다.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">자세히 알아보기</string>
@@ -1032,7 +1035,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s는 보안 강화를 위해 가능할 때마다 HTTPS 연결을 사용하려고 합니다.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s는 보안 강화를 위해 가능할 때마다 HTTPS 연결을 사용하려고 합니다.
      <a href="%2$s">자세히 알아보기</a> <br/><br/>
      설정 > 개인 정보 보호 &amp; 보안 > 보안에서 이 설정을 바꿀 수 있습니다.]]></string>
 
