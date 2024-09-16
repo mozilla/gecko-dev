@@ -197,6 +197,7 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 
 ["browser_dbg-features-breakable-lines.js"]
 skip-if = [
+  "os == 'linux' && os_version == '18.04' && !debug", # Bug 1767701
   "apple_catalina && !debug", # Bug 1767701
 ]
 
