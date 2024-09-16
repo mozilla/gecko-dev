@@ -6700,11 +6700,12 @@ nscoord nsIFrame::ComputeBSizeValueAsPercentageBasis(
     const StyleSize& aStyleBSize, const StyleSize& aStyleMinBSize,
     const StyleMaxSize& aStyleMaxBSize, nscoord aCBBSize,
     nscoord aContentEdgeToBoxSizingBSize) {
-  const nscoord bSize = nsLayoutUtils::IsAutoBSize(aStyleBSize, aCBBSize)
-                            ? NS_UNCONSTRAINEDSIZE
-                            : nsLayoutUtils::ComputeBSizeValue(
-                                  aCBBSize, aContentEdgeToBoxSizingBSize,
-                                  aStyleBSize.AsLengthPercentage());
+  if (nsLayoutUtils::IsAutoBSize(aStyleBSize, aCBBSize)) {
+    return NS_UNCONSTRAINEDSIZE;
+  }
+
+  const nscoord bSize = nsLayoutUtils::ComputeBSizeValue(
+      aCBBSize, aContentEdgeToBoxSizingBSize, aStyleBSize.AsLengthPercentage());
 
   const nscoord minBSize = nsLayoutUtils::IsAutoBSize(aStyleMinBSize, aCBBSize)
                                ? 0
