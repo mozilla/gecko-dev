@@ -11,3 +11,14 @@ endif
 endif
 
 include $(topsrcdir)/config/rules.mk
+
+ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
+	XPCSHELLTESTDIR = $(topobjdir)/_tests/xpcshell/toolkit/mozapps/update/tests/data/
+
+libs::
+	$(NSINSTALL) -D $(DIST)/bin/callback_app.app
+	rsync -a -C $(srcdir)/macbuild/Contents $(DIST)/bin/callback_app.app
+	$(NSINSTALL) -D $(DIST)/bin/callback_app.app/Contents/MacOS
+	$(NSINSTALL) $(XPCSHELLTESTDIR)/TestAUSHelper $(DIST)/bin/callback_app.app/Contents/MacOS
+	cp -R $(DIST)/bin/callback_app.app $(XPCSHELLTESTDIR)
+endif

@@ -45,9 +45,13 @@ const Cm = Components.manager;
 /* global MOZ_VERIFY_MAR_SIGNATURE, IS_AUTHENTICODE_CHECK_ENABLED */
 load("../data/xpcshellConstantsPP.js");
 
-const DIR_MACOS = AppConstants.platform == "macosx" ? "Contents/MacOS/" : "";
+// Note: DIR_CONTENTS, DIR_MACOS and DIR_RESOURCES only differ on macOS. They
+//       default to "" on all other platforms.
+const DIR_CONTENTS = AppConstants.platform == "macosx" ? "Contents/" : "";
+const DIR_MACOS =
+  AppConstants.platform == "macosx" ? DIR_CONTENTS + "MacOS/" : "";
 const DIR_RESOURCES =
-  AppConstants.platform == "macosx" ? "Contents/Resources/" : "";
+  AppConstants.platform == "macosx" ? DIR_CONTENTS + "Resources/" : "";
 const TEST_FILE_SUFFIX = AppConstants.platform == "macosx" ? "_mac" : "";
 const FILE_COMPLETE_MAR = "complete" + TEST_FILE_SUFFIX + ".mar";
 const FILE_PARTIAL_MAR = "partial" + TEST_FILE_SUFFIX + ".mar";
@@ -75,13 +79,19 @@ const APP_BIN_SUFFIX =
   AppConstants.platform == "linux" ? "-bin" : mozinfo.bin_suffix;
 const FILE_APP_BIN = AppConstants.MOZ_APP_NAME + APP_BIN_SUFFIX;
 const FILE_COMPLETE_EXE = "complete.exe";
-const FILE_HELPER_BIN = "TestAUSHelper" + mozinfo.bin_suffix;
+const FILE_HELPER_BIN =
+  AppConstants.platform == "macosx"
+    ? "callback_app.app/Contents/MacOS/TestAUSHelper"
+    : "TestAUSHelper" + mozinfo.bin_suffix;
+const FILE_HELPER_APP =
+  AppConstants.platform == "macosx" ? "callback_app.app" : FILE_HELPER_BIN;
 const FILE_MAINTENANCE_SERVICE_BIN = "maintenanceservice.exe";
 const FILE_MAINTENANCE_SERVICE_INSTALLER_BIN =
   "maintenanceservice_installer.exe";
 const FILE_OLD_VERSION_MAR = "old_version.mar";
 const FILE_PARTIAL_EXE = "partial.exe";
-const FILE_UPDATER_BIN = "updater" + mozinfo.bin_suffix;
+const FILE_UPDATER_BIN =
+  "updater" + (AppConstants.platform == "macosx" ? ".app" : mozinfo.bin_suffix);
 
 const PERFORMING_STAGED_UPDATE = "Performing a staged update";
 const CALL_QUIT = "calling QuitProgressUI";
@@ -145,8 +155,21 @@ var gPIDPersistProcess;
 
 // Variables are used instead of contants so tests can override these values if
 // necessary.
-var gCallbackBinFile = "callback_app" + mozinfo.bin_suffix;
 var gCallbackArgs = ["./", "callback.log", "Test Arg 2", "Test Arg 3"];
+var gCallbackApp = (() => {
+  if (AppConstants.platform == "macosx") {
+    return "callback_app.app";
+  }
+  return "callback_app" + mozinfo.bin_suffix;
+})();
+
+var gCallbackBinFile = (() => {
+  if (AppConstants.platform == "macosx") {
+    return FILE_HELPER_BIN;
+  }
+  return "callback_app" + mozinfo.bin_suffix;
+})();
+
 var gPostUpdateBinFile = "postup_app" + mozinfo.bin_suffix;
 
 var gTimeoutRuns = 0;
@@ -227,7 +250,43 @@ var gTestFilesCommonMac = [
     description: "Should never change",
     fileName: FILE_UPDATE_SETTINGS_FRAMEWORK,
     relPathDir:
-      "Contents/MacOS/updater.app/Contents/Frameworks/UpdateSettings.framework/",
+      DIR_MACOS + "updater.app/Contents/Frameworks/UpdateSettings.framework/",
+    originalContents: null,
+    compareContents: null,
+    originalFile: null,
+    compareFile: null,
+    originalPerms: null,
+    comparePerms: null,
+    existingFile: true,
+  },
+  {
+    description: "Should never change",
+    fileName: FILE_INFO_PLIST,
+    relPathDir: DIR_CONTENTS,
+    originalContents: DIR_APP_INFO_PLIST_FILE_CONTENTS,
+    compareContents: DIR_APP_INFO_PLIST_FILE_CONTENTS,
+    originalFile: null,
+    compareFile: null,
+    originalPerms: null,
+    comparePerms: null,
+    existingFile: true,
+  },
+  {
+    description: "Should never change",
+    fileName: FILE_INFO_PLIST,
+    relPathDir: DIR_MACOS + "updater.app/Contents/",
+    originalContents: null,
+    compareContents: null,
+    originalFile: null,
+    compareFile: null,
+    originalPerms: null,
+    comparePerms: null,
+    existingFile: true,
+  },
+  {
+    description: "Should never change",
+    fileName: FILE_INFO_PLIST,
+    relPathDir: DIR_MACOS + "callback_app.app/Contents/",
     originalContents: null,
     compareContents: null,
     originalFile: null,
@@ -999,10 +1058,10 @@ function setupTestCommon(aAppUpdateAutoEnabled = false, aAllowBits = false) {
   );
   syncManager.resetLock();
 
-  // Remove the updates directory on Windows and Mac OS X which is located
+  // Remove the updates directory on Windows and macOS which is located
   // outside of the application directory after the call to adjustGeneralPaths
-  // has set it up. Since the test hasn't ran yet and the directory shouldn't
-  // exist this is non-fatal for the test.
+  // has set it up. Since the test hasn't run yet, the directory shouldn't
+  // exist and failure to remove the directory should be non-fatal for the test.
   if (AppConstants.platform == "win" || AppConstants.platform == "macosx") {
     let updatesDir = getMockUpdRootD();
     if (updatesDir.exists()) {
@@ -1501,7 +1560,7 @@ function getApplyDirPath() {
  * update will be applied.
  *
  * The files for the update are located two directories below the apply to
- * directory since Mac OS X sets the last modified time for the root directory
+ * directory since macOS sets the last modified time for the root directory
  * to the current time and if the update changes any files in the root directory
  * then it wouldn't be possible to test (bug 600098).
  *
@@ -1909,6 +1968,21 @@ function removeUpdateInProgressLockFile(aDir) {
   Assert.ok(!file.exists(), MSG_SHOULD_NOT_EXIST + getMsgPath(file.path));
 }
 
+function stripQuarantineBitFromPath(aPath) {
+  if (AppConstants.platform != "macosx") {
+    do_throw("macOS-only function called by a different platform!");
+  }
+
+  let args = ["-dr", "com.apple.quarantine", aPath];
+  let stripQuarantineBitProcess = Cc[
+    "@mozilla.org/process/util;1"
+  ].createInstance(Ci.nsIProcess);
+  let xattrBin = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
+  xattrBin.initWithPath("/usr/bin/xattr");
+  stripQuarantineBitProcess.init(xattrBin);
+  stripQuarantineBitProcess.run(true, args, args.length);
+}
+
 /**
  * Copies the test updater to the GRE binary directory and returns the nsIFile
  * for the copied test updater.
@@ -1916,15 +1990,15 @@ function removeUpdateInProgressLockFile(aDir) {
  * @return  nsIFIle for the copied test updater.
  */
 function copyTestUpdaterToBinDir() {
-  let updaterLeafName =
-    AppConstants.platform == "macosx" ? "updater.app" : FILE_UPDATER_BIN;
-  let testUpdater = getTestDirFile(updaterLeafName);
+  let testUpdater = getTestDirFile(FILE_UPDATER_BIN);
   let updater = getGREBinDir();
-  updater.append(updaterLeafName);
+  updater.append(FILE_UPDATER_BIN);
   if (!updater.exists()) {
-    testUpdater.copyToFollowingLinks(updater.parent, updaterLeafName);
+    testUpdater.copyToFollowingLinks(updater.parent, FILE_UPDATER_BIN);
   }
+
   if (AppConstants.platform == "macosx") {
+    stripQuarantineBitFromPath(updater.path);
     updater.append("Contents");
     updater.append("MacOS");
     updater.append("org.mozilla.updater");
@@ -2051,8 +2125,8 @@ function runUpdate(
 
   let svcOriginalLog;
   if (gIsServiceTest) {
-    copyFileToTestAppDir(FILE_MAINTENANCE_SERVICE_BIN, false);
-    copyFileToTestAppDir(FILE_MAINTENANCE_SERVICE_INSTALLER_BIN, false);
+    copyFileToTestAppDir(FILE_MAINTENANCE_SERVICE_BIN, DIR_MACOS);
+    copyFileToTestAppDir(FILE_MAINTENANCE_SERVICE_INSTALLER_BIN, DIR_MACOS);
     if (aCheckSvcLog) {
       svcOriginalLog = readServiceLogFile();
     }
@@ -2067,6 +2141,7 @@ function runUpdate(
   if (!gUpdateBin) {
     gUpdateBin = copyTestUpdaterToBinDir();
   }
+
   Assert.ok(
     gUpdateBin.exists(),
     MSG_SHOULD_EXIST + getMsgPath(gUpdateBin.path)
@@ -2077,7 +2152,7 @@ function runUpdate(
   let applyToDirPath = aApplyToDirPath || getApplyDirFile().path;
   let stageDirPath = aApplyToDirPath || getStageDirFile().path;
 
-  let callbackApp = getApplyDirFile(DIR_RESOURCES + gCallbackBinFile);
+  let callbackApp = getApplyDirFile(DIR_MACOS + gCallbackApp);
   Assert.ok(
     callbackApp.exists(),
     MSG_SHOULD_EXIST + ", path: " + callbackApp.path
@@ -2548,19 +2623,19 @@ function setupAppFiles({ requiresOmnijar = false } = {}) {
   // Required files for the application or the test that aren't listed in the
   // dependentlibs.list file.
   let appFiles = [
-    { relPath: FILE_APP_BIN, inGreDir: false },
-    { relPath: FILE_APPLICATION_INI, inGreDir: true },
-    { relPath: "dependentlibs.list", inGreDir: true },
+    { relPath: FILE_APP_BIN, inDir: DIR_MACOS },
+    { relPath: FILE_APPLICATION_INI, inDir: DIR_RESOURCES },
+    { relPath: "dependentlibs.list", inDir: DIR_RESOURCES },
   ];
 
   if (requiresOmnijar) {
-    appFiles.push({ relPath: AppConstants.OMNIJAR_NAME, inGreDir: true });
+    appFiles.push({ relPath: AppConstants.OMNIJAR_NAME, inDir: DIR_RESOURCES });
 
     if (AppConstants.MOZ_BUILD_APP == "browser") {
       // Only Firefox uses an app-specific omnijar.
       appFiles.push({
         relPath: "browser/" + AppConstants.OMNIJAR_NAME,
-        inGreDir: true,
+        inDir: DIR_RESOURCES,
       });
     }
   }
@@ -2569,8 +2644,8 @@ function setupAppFiles({ requiresOmnijar = false } = {}) {
   // symlinked or copied.
   if (AppConstants.platform == "linux") {
     appFiles.push(
-      { relPath: "icons/updater.png", inGreDir: true },
-      { relPath: "libsoftokn3.so", inGreDir: true }
+      { relPath: "icons/updater.png", inDir: DIR_RESOURCES },
+      { relPath: "libsoftokn3.so", inDir: DIR_RESOURCES }
     );
   }
 
@@ -2588,13 +2663,13 @@ function setupAppFiles({ requiresOmnijar = false } = {}) {
   let line = {};
   do {
     hasMore = fis.readLine(line);
-    appFiles.push({ relPath: line.value, inGreDir: false });
+    appFiles.push({ relPath: line.value, inDir: DIR_MACOS });
   } while (hasMore);
 
   fis.close();
 
   appFiles.forEach(function CMAF_FLN_FE(aAppFile) {
-    copyFileToTestAppDir(aAppFile.relPath, aAppFile.inGreDir);
+    copyFileToTestAppDir(aAppFile.relPath, aAppFile.inDir);
   });
 
   copyTestUpdaterToBinDir();
@@ -2612,18 +2687,39 @@ function setupAppFiles({ requiresOmnijar = false } = {}) {
  * @param   aFileRelPath
  *          The relative path to the source and the destination of the file to
  *          copy.
- * @param   aInGreDir
- *          Whether the file is located in the GRE directory which is
- *          <bundle>/Contents/Resources on Mac OS X and is the installation
- *          directory on all other platforms. If false the file must be in the
- *          GRE Binary directory which is <bundle>/Contents/MacOS on Mac OS X
- *          and is the installation directory on on all other platforms.
+ * @param   aDir
+ *          The relative subdirectory within the .app bundle on macOS. This is
+ *          ignored on all other platforms.
  */
-function copyFileToTestAppDir(aFileRelPath, aInGreDir) {
+function copyFileToTestAppDir(aFileRelPath, aDir) {
+  let srcFile;
+  let destFile;
+
   // gGREDirOrig and gGREBinDirOrig must always be cloned when changing its
   // properties
-  let srcFile = aInGreDir ? gGREDirOrig.clone() : gGREBinDirOrig.clone();
-  let destFile = aInGreDir ? getGREDir() : getGREBinDir();
+  if (AppConstants.platform == "macosx") {
+    switch (aDir) {
+      case DIR_RESOURCES:
+        srcFile = gGREDirOrig.clone();
+        destFile = getGREDir();
+        break;
+      case DIR_MACOS:
+        srcFile = gGREBinDirOrig.clone();
+        destFile = getGREBinDir();
+        break;
+      case DIR_CONTENTS:
+        srcFile = gGREBinDirOrig.parent.clone();
+        destFile = getGREBinDir().parent;
+        break;
+      default:
+        debugDump("invalid path given. Path: " + aDir);
+        break;
+    }
+  } else {
+    srcFile = gGREDirOrig.clone();
+    destFile = getGREDir();
+  }
+
   let fileRelPath = aFileRelPath;
   let pathParts = fileRelPath.split("/");
   for (let i = 0; i < pathParts.length; i++) {
@@ -2640,10 +2736,6 @@ function copyFileToTestAppDir(aFileRelPath, aInGreDir) {
         ".app exists. Path: " +
         srcFile.path
     );
-    // gGREDirOrig and gGREBinDirOrig must always be cloned when changing its
-    // properties
-    srcFile = aInGreDir ? gGREDirOrig.clone() : gGREBinDirOrig.clone();
-    destFile = aInGreDir ? getGREDir() : getGREBinDir();
     for (let i = 0; i < pathParts.length; i++) {
       if (pathParts[i]) {
         srcFile.append(
@@ -3180,17 +3272,24 @@ async function setupUpdaterTest(
   let mar = getTestDirFile(aMarFile);
   mar.copyToFollowingLinks(updatesPatchDir, FILE_UPDATE_MAR);
 
+  let helperApp = getTestDirFile(FILE_HELPER_APP);
   let helperBin = getTestDirFile(FILE_HELPER_BIN);
+  helperApp.permissions = PERMS_DIRECTORY;
   helperBin.permissions = PERMS_DIRECTORY;
-  let afterApplyBinDir = getApplyDirFile(DIR_RESOURCES);
-  helperBin.copyToFollowingLinks(afterApplyBinDir, gCallbackBinFile);
+  let afterApplyBinDir = getApplyDirFile(DIR_MACOS);
+
   helperBin.copyToFollowingLinks(afterApplyBinDir, gPostUpdateBinFile);
+  helperApp.copyToFollowingLinks(afterApplyBinDir, gCallbackApp);
 
   // On macOS, some test files (like the Update Settings file) may be within the
   // updater app bundle, so make sure it is in place now in case we want to
   // manipulate it.
   if (!gUpdateBin) {
     gUpdateBin = copyTestUpdaterToBinDir();
+  }
+
+  if (AppConstants.platform == "macosx") {
+    stripQuarantineBitFromPath(afterApplyBinDir.parent.parent.path);
   }
 
   gTestFiles.forEach(function SUT_TF_FE(aTestFile) {
@@ -3366,11 +3465,7 @@ function createUpdaterINI(
   }
 
   let exeRelPathMac =
-    "ExeRelPath=" +
-    aExeRelPathPrefix +
-    DIR_RESOURCES +
-    gPostUpdateBinFile +
-    "\n";
+    "ExeRelPath=" + aExeRelPathPrefix + DIR_MACOS + gPostUpdateBinFile + "\n";
   let exeRelPathWin =
     "ExeRelPath=" + aExeRelPathPrefix + gPostUpdateBinFile + "\n";
   let updaterIniContents =
@@ -4044,9 +4139,10 @@ function checkFilesAfterUpdateCommon(aStageDirExists, aToBeDeletedDirExists) {
  *        parameter passed to the callback executable (in the apply directory).
  */
 function checkCallbackLog(
-  appLaunchLog = getApplyDirFile(DIR_RESOURCES + gCallbackArgs[1])
+  appLaunchLog = getApplyDirFile(DIR_MACOS + gCallbackArgs[1])
 ) {
   if (!appLaunchLog.exists()) {
+    debugDump("Callback log does not exist yet. Path: " + appLaunchLog.path);
     // Uses do_timeout instead of do_execute_soon to lessen log spew.
     do_timeout(FILE_IN_USE_TIMEOUT_MS, checkCallbackLog);
     return;
@@ -4107,7 +4203,7 @@ function checkCallbackLog(
  *          The string to append to the post update test helper binary path.
  */
 function getPostUpdateFile(aSuffix) {
-  return getApplyDirFile(DIR_RESOURCES + gPostUpdateBinFile + aSuffix);
+  return getApplyDirFile(DIR_MACOS + gPostUpdateBinFile + aSuffix);
 }
 
 /**
