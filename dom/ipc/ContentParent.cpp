@@ -2134,7 +2134,7 @@ bool ContentParent::MaybeBeginShutDown(bool aIgnoreKeepAlivePref) {
     // processes alive for performance reasons (e.g. test runs and privileged
     // content process for some about: pages). We don't want to alter behavior
     // if the pref is not set, so default to 0.
-    if (!aIgnoreKeepAlivePref && mIsInPool &&
+    if (!aIgnoreKeepAlivePref && mIsInPool && !mRemoteType.Contains('=') &&
         !AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
       auto* contentParents = sBrowserContentParents->Get(mRemoteType);
       MOZ_RELEASE_ASSERT(
@@ -2142,13 +2142,7 @@ bool ContentParent::MaybeBeginShutDown(bool aIgnoreKeepAlivePref) {
           "mIsInPool, yet no entry for mRemoteType in sBrowserContentParents?");
 
       nsAutoCString keepAlivePref("dom.ipc.keepProcessesAlive.");
-      if (StringBeginsWith(mRemoteType, FISSION_WEB_REMOTE_TYPE) &&
-          xpc::IsInAutomation()) {
-        keepAlivePref.Append(FISSION_WEB_REMOTE_TYPE);
-        keepAlivePref.AppendLiteral(".perOrigin");
-      } else {
-        keepAlivePref.Append(mRemoteType);
-      }
+      keepAlivePref.Append(mRemoteType);
 
       int32_t processesToKeepAlive = 0;
       if (NS_SUCCEEDED(Preferences::GetInt(keepAlivePref.get(),
