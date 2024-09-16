@@ -73,7 +73,7 @@ addAccessibleTask(
     await invokeContentTask(browser, [src], cSrc => {
       content.iframe.src = cSrc;
     });
-    iframeDocAcc = (await await loaded).accessible;
+    iframeDocAcc = (await loaded).accessible;
     await testIframe();
   },
   { chrome: true, topLevel: true }

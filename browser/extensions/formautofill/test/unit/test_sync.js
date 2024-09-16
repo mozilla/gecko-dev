@@ -362,7 +362,7 @@ add_task(async function test_applyIncoming_both_deleted() {
     await engine.sync();
 
     ok(
-      !(await await profileStorage.addresses.get(guid)),
+      !(await profileStorage.addresses.get(guid)),
       "Should not return record for locally deleted item"
     );
 
@@ -396,7 +396,7 @@ add_task(async function test_applyIncoming_nonexistent_tombstone() {
 
     ok(
       !(await profileStorage.addresses.get(guid)),
-      "Should not return record for uknown deleted item"
+      "Should not return record for unknown deleted item"
     );
     let localTombstone = (
       await profileStorage.addresses.getAll({

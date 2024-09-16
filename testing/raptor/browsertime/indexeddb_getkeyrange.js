@@ -34,7 +34,7 @@ module.exports = logTest(
         await commands.wait.byTime(page_cycle_delay);
 
         context.log.info("Cycle %d, starting the measure", count);
-        await await commands.measure.start();
+        await commands.measure.start();
         await commands.js.run(`
         const notifyDone = arguments[arguments.length - 1];
         async function resPromise() {

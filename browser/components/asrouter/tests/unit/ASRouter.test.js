@@ -1479,12 +1479,12 @@ describe("ASRouter", () => {
       assert.isEmpty(Router.state.messages.filter(Router.isUnblockedMessage));
     });
     it("should be able to add multiple items to the messageBlockList", async () => {
-      await await Router.blockMessageById(FAKE_BUNDLE.map(b => b.id));
+      await Router.blockMessageById(FAKE_BUNDLE.map(b => b.id));
       assert.isTrue(Router.state.messageBlockList.includes(FAKE_BUNDLE[0].id));
       assert.isTrue(Router.state.messageBlockList.includes(FAKE_BUNDLE[1].id));
     });
     it("should save the messageBlockList", async () => {
-      await await Router.blockMessageById(FAKE_BUNDLE.map(b => b.id));
+      await Router.blockMessageById(FAKE_BUNDLE.map(b => b.id));
       assert.calledWithExactly(Router._storage.set, "messageBlockList", [
         FAKE_BUNDLE[0].id,
         FAKE_BUNDLE[1].id,

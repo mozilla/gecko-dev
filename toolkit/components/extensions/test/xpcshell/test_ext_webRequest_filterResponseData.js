@@ -504,7 +504,7 @@ add_task(async function test_alternate_cached_data() {
 
   await extension.startup();
 
-  let page_cached = await await ExtensionTestUtils.loadContentPage(
+  let page_cached = await ExtensionTestUtils.loadContentPage(
     "http://example.com/data/file_script.html"
   );
   await Promise.all([

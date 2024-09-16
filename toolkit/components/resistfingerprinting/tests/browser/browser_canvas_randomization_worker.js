@@ -192,7 +192,7 @@ async function runTest(enabled) {
     // Clear telemetry before starting test.
     Services.fog.testResetFOG();
 
-    let data = await await runFunctionInWorker(
+    let data = await runFunctionInWorker(
       tab.linkedBrowser,
       test.extractCanvasData
     );
@@ -211,7 +211,7 @@ async function runTest(enabled) {
       `The data for '${test.name}' of first and second access should be the same.`
     );
 
-    let privateData = await await runFunctionInWorker(
+    let privateData = await runFunctionInWorker(
       privateTab.linkedBrowser,
       test.extractCanvasData
     );

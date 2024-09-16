@@ -1924,10 +1924,8 @@ add_task(async function test_separator() {
     url: "https://bar.foo",
   });
 
-  let child2Guid = await PlacesSyncUtils.bookmarks.recordIdToGuid(
-    childBmk.recordId
-  );
-  let parentGuid = await await PlacesSyncUtils.bookmarks.recordIdToGuid("menu");
+  let child2Guid = PlacesSyncUtils.bookmarks.recordIdToGuid(childBmk.recordId);
+  let parentGuid = PlacesSyncUtils.bookmarks.recordIdToGuid("menu");
   let separatorGuid =
     PlacesSyncUtils.bookmarks.recordIdToGuid(separatorRecordId);
 
