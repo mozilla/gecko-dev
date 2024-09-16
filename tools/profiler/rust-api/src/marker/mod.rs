@@ -321,7 +321,7 @@ pub fn add_marker<T>(
 
     let encoded_payload: Vec<u8> = bincode::serialize(&payload).unwrap();
     let payload_size = encoded_payload.len();
-    let maker_tag = get_or_insert_deserializer_tag::<T>();
+    let marker_tag = get_or_insert_deserializer_tag::<T>();
 
     unsafe {
         bindings::gecko_profiler_add_marker(
@@ -330,7 +330,7 @@ pub fn add_marker<T>(
             category.to_cpp_enum_value(),
             options.timing.0.as_mut_ptr(),
             options.stack,
-            maker_tag,
+            marker_tag,
             encoded_payload.as_ptr(),
             payload_size,
         )
