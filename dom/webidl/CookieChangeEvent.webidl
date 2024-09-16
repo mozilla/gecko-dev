@@ -7,7 +7,7 @@
  * https://wicg.github.io/cookie-store/#CookieChangeEvent
  */
 
-[Exposed=Window,
+[Exposed=(ServiceWorker,Window),
  SecureContext,
  Pref="dom.cookieStore.enabled"]
 interface CookieChangeEvent : Event {
