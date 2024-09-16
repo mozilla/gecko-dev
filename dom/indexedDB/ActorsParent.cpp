@@ -15085,6 +15085,10 @@ void FactoryOp::DirectoryLockAcquired(DirectoryLock* aLock) {
     MOZ_ALWAYS_SUCCEEDS(self->Run());
   };
 
+  if (mDirectoryLock->Invalidated()) {
+    return cleanupAndReturn(NS_ERROR_DOM_INDEXEDDB_ABORT_ERR);
+  }
+
   QM_WARNONLY_TRY(MOZ_TO_RESULT(DirectoryOpen()), cleanupAndReturn);
 }
 
