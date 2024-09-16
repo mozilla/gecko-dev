@@ -1427,36 +1427,51 @@ function deleteSingleInternalPerm(
 }
 
 const ShutdownExceptionsCleaner = {
-  /**
-   * Delete permissions by either base domain or host.
-   * Clearing by host also clears associated subdomains.
-   * For example, clearing "example.com" will also clear permissions for
-   * "test.example.com" and "another.test.example.com".
-   * @param options
-   * @param {string} options.baseDomain - Base domain to delete permissions for.
-   * @param {string} options.host - Host to delete permissions for.
-   */
-  async _deleteInternal({ baseDomain, host }) {
-    for (let perm of Services.perms.all) {
-      if (SHUTDOWN_EXCEPTION_PERMISSION != perm.type) {
-        continue;
+  async _deleteInternal(filter) {
+    Services.perms.all
+      .filter(({ type }) => type == SHUTDOWN_EXCEPTION_PERMISSION)
+      .filter(filter)
+      .forEach(perm => {
+        try {
+          Services.perms.removePermission(perm);
+        } catch (ex) {
+          console.error(ex);
+        }
+      });
+  },
+
+  async deleteByHost(aHost) {
+    this._deleteInternal(({ principal }) => {
+      let { host: principalHost } = principal;
+      if (!principalHost?.length) {
+        return false;
       }
+      return Services.eTLD.hasRootDomain(principal.host, aHost);
+    });
+  },
 
-      deleteSingleInternalPerm({ baseDomain, host }, perm, true);
+  async deleteByPrincipal(aPrincipal) {
+    Services.perms.removeFromPrincipal(
+      aPrincipal,
+      SHUTDOWN_EXCEPTION_PERMISSION
+    );
+  },
+
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    // If we don't isolate by private browsing / user context we need to clear
+    // the pattern field. Otherwise permissions returned by the permission
+    // manager will never match. The permission manager strips these fields when
+    // their prefs are set to `false`.
+    if (!lazy.permissionManagerIsolateByPrivateBrowsing) {
+      delete aOriginAttributesPattern.privateBrowsingId;
     }
-  },
+    if (!lazy.permissionManagerIsolateByUserContext) {
+      delete aOriginAttributesPattern.userContextId;
+    }
 
-  deleteByHost(aHost) {
-    return this._deleteInternal({ host: aHost });
-  },
-
-  deleteByPrincipal(aPrincipal) {
-    return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
-  },
-
-  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
-    return this._deleteInternal({ baseDomain: aSchemelessSite });
+    this._deleteInternal(({ principal }) =>
+      hasSite({ principal }, aSchemelessSite, aOriginAttributesPattern)
+    );
   },
 
   async deleteByRange(aFrom) {
