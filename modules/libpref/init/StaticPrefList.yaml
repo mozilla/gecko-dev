@@ -3513,6 +3513,12 @@
   value: 0
   mirror: always
 
+# A pref that is used to slow down storage initialization for testing purposes.
+- name: dom.quotaManager.storageInitialization.pauseOnIOThreadMs
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 # A pref that is used to enable testing features.
 - name: dom.quotaManager.testing
   type: SequentiallyConsistentAtomicBool

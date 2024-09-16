@@ -5083,6 +5083,12 @@ nsresult QuotaManager::EnsureStorageIsInitializedInternal() {
       gInvalidateQuotaCache = false;
     }
 
+    uint32_t pauseOnIOThreadMs =
+        StaticPrefs::dom_quotaManager_storageInitialization_pauseOnIOThreadMs();
+    if (pauseOnIOThreadMs > 0) {
+      PR_Sleep(PR_MillisecondsToInterval(pauseOnIOThreadMs));
+    }
+
     mStorageConnection = std::move(connection);
 
     return NS_OK;
