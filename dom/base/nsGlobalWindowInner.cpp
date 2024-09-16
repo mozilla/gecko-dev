@@ -107,6 +107,8 @@
 #include "mozilla/dom/ClientSource.h"
 #include "mozilla/dom/ClientState.h"
 #include "mozilla/dom/ClientsBinding.h"
+#include "mozilla/dom/CloseWatcher.h"
+#include "mozilla/dom/CloseWatcherManager.h"
 #include "mozilla/dom/Console.h"
 #include "mozilla/dom/CookieStore.h"
 #include "mozilla/dom/ContentChild.h"
@@ -1443,6 +1445,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindowInner)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mFocusedElement)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowsingContext)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mWindowGlobalChild)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mCloseWatcherManager)
 
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMenubar)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mToolbar)
@@ -7695,6 +7698,13 @@ bool nsPIDOMWindowInner::UsingStorageAccess() {
   }
 
   return wc->GetUsingStorageAccess();
+}
+
+CloseWatcherManager* nsPIDOMWindowInner::EnsureCloseWatcherManager() {
+  if (!mCloseWatcherManager) {
+    mCloseWatcherManager = new CloseWatcherManager();
+  }
+  return mCloseWatcherManager;
 }
 
 nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter* aOuterWindow,

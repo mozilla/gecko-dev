@@ -227,6 +227,13 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   // successfully.
   bool ConsumeTransientUserGestureActivation();
 
+  // Return true if its corresponding window has history activation.
+  bool HasValidHistoryActivation() const;
+
+  // Return true if the corresponding window has valid history activation
+  // and the history activation had been consumed successfully.
+  bool ConsumeHistoryActivation();
+
   bool GetTransientUserGestureActivationModifiers(
       UserActivation::Modifiers* aModifiers);
 
@@ -394,6 +401,11 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   // The start time of user gesture, this is only available if the window
   // context is in process.
   TimeStamp mUserGestureStart;
+
+  // https://html.spec.whatwg.org/#history-action-activation
+  // This is set to mUserGestureStart every time ConsumeHistoryActivation is
+  // called.
+  TimeStamp mHistoryActivation;
 };
 
 using WindowContextTransaction = WindowContext::BaseTransaction;

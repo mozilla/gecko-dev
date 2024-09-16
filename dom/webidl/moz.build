@@ -474,6 +474,7 @@ WEBIDL_FILES = [
     "Clients.webidl",
     "Clipboard.webidl",
     "ClipboardEvent.webidl",
+    "CloseWatcher.webidl",
     "Comment.webidl",
     "CompositionEvent.webidl",
     "CompressionStream.webidl",
