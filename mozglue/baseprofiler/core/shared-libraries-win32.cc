@@ -10,6 +10,7 @@
 #include "mozilla/glue/WindowsUnicode.h"
 #include "mozilla/NativeNt.h"
 #include "mozilla/WindowsEnumProcessModules.h"
+#include "mozilla/WindowsProcessMitigations.h"
 
 #include <cctype>
 #include <string>
@@ -54,11 +55,11 @@ static void AppendHex(T aValue, std::string& aOut, bool aWithPadding,
   }
 }
 
-static bool IsModuleUnsafeToLoad(const std::string& aModuleName) {
-  auto LowerCaseEqualsLiteral = [](char aModuleChar, char aDetouredChar) {
-    return std::tolower(aModuleChar) == aDetouredChar;
-  };
+bool LowerCaseEqualsLiteral(char aModuleChar, char aDetouredChar) {
+  return std::tolower(aModuleChar) == aDetouredChar;
+}
 
+static bool IsModuleUnsafeToLoad(const std::string& aModuleName) {
   // Hackaround for Bug 1723868.  There is no safe way to prevent the module
   // Microsoft's VP9 Video Decoder from being unloaded because mfplat.dll may
   // have posted more than one task to unload the module in the work queue
@@ -90,6 +91,15 @@ void AddSharedLibraryFromModuleInfo(SharedLibraryInfo& sharedLibraryInfo,
 
   // If the module is unsafe to call LoadLibraryEx for, we skip.
   if (IsModuleUnsafeToLoad(moduleNameStr)) {
+    return;
+  }
+
+  // If EAF+ is enabled, parsing ntdll's PE header causes a crash.
+  constexpr std::string_view ntdll_dll = "ntdll.dll";
+  if (mozilla::IsEafPlusEnabled() &&
+      std::equal(moduleNameStr.cbegin(), moduleNameStr.cend(),
+                 ntdll_dll.cbegin(), ntdll_dll.cend(),
+                 LowerCaseEqualsLiteral)) {
     return;
   }
 
