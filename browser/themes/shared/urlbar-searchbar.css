@@ -808,9 +808,6 @@
 /* stylelint-disable-next-line media-query-no-invalid */
 @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
   #urlbar[persistsearchterms] {
-    .urlbar-input {
-      padding-inline: var(--space-medium);
-    }
     .urlbar-revert-button {
       list-style-image: url(chrome://global/skin/icons/close.svg);
       fill: var(--toolbarbutton-icon-fill);
@@ -821,7 +818,9 @@
     .urlbar-searchmode-and-input-box-container {
       align-items: center;
       background-color: light-dark(rgba(255, 255, 255, 0.4), rgba(0, 0, 0, 0.4));
-      border: 1px solid var(--urlbar-searchmode-and-input-box-container-border-color);
+      /* Use an outline to avoid shifting the input field contents */
+      outline: 1px solid var(--urlbar-searchmode-and-input-box-container-border-color);
+      outline-offset: -1px;
       border-radius: calc(var(--toolbarbutton-border-radius) + 1px);
       box-shadow: var(--urlbar-searchmode-and-input-box-container-shadow);
       padding-inline-end: var(--space-small);
@@ -1140,7 +1139,6 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
     #urlbar[persistsearchterms] & {
       height: 100%;
       margin-inline-start: 0;
-      margin-inline-end: 0;
       background-color: var(--urlbar-search-mode-picker-persisted-background-color);
     }
     #urlbar[persistsearchterms] &:hover {
@@ -1217,8 +1215,6 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 
 /* stylelint-disable-next-line media-query-no-invalid */
 @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
-  /* Don't hide on mousedown to avoid shifting input field text */
-  #urlbar[focused]:not([focusing-via-mousedown]) #identity-box,
   #urlbar[searchmode] > .urlbar-input-container > #urlbar-search-mode-indicator {
     display: none;
   }

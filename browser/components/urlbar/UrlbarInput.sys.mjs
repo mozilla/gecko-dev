@@ -246,7 +246,6 @@ export class UrlbarInput {
       this.window.addEventListener("draggableregionleftmousedown", this);
     }
     this.textbox.addEventListener("mousedown", this);
-    this.textbox.addEventListener("mouseup", this);
 
     // This listener handles clicks from our children too, included the search mode
     // indicator close button.
@@ -3800,11 +3799,9 @@ export class UrlbarInput {
     // an invalid pageproxystate.
     if (this.window.gBrowser.selectedBrowser.searchTerms) {
       // When focusing via mousedown, we don't want to cause a shift of the
-      // string, thus we postpone to the mouseup event.
-      if (this.focusedViaMousedown) {
-        this.#setProxyStateToInvalidOnMouseUp = true;
-      } else {
-        this.removeAttribute("persistsearchterms");
+      // string, it will instead happen on the next input event.
+      this.removeAttribute("persistsearchterms");
+      if (!this.focusedViaMousedown) {
         this.setPageProxyState("invalid", true);
       }
     }
@@ -3871,7 +3868,6 @@ export class UrlbarInput {
   _on_mousedown(event) {
     switch (event.currentTarget) {
       case this.textbox: {
-        this.toggleAttribute("focusing-via-mousedown", !this.focused);
         this._mousedownOnUrlbarDescendant = true;
 
         if (
@@ -3951,16 +3947,6 @@ export class UrlbarInput {
     }
   }
 
-  _on_mouseup() {
-    this.toggleAttribute("focusing-via-mousedown", false);
-
-    if (this.#setProxyStateToInvalidOnMouseUp) {
-      this.#setProxyStateToInvalidOnMouseUp = false;
-      this.setPageProxyState("invalid", true);
-      this.removeAttribute("persistsearchterms");
-    }
-  }
-
   _on_input(event) {
     if (
       this._autofillPlaceholder &&
@@ -4001,6 +3987,7 @@ export class UrlbarInput {
       this.value != this._lastValidURLStr
     ) {
       this.setPageProxyState("invalid", true);
+      this.removeAttribute("persistsearchterms");
     }
 
     if (this.view.isOpen) {
@@ -4585,8 +4572,6 @@ export class UrlbarInput {
         this._isKeyDownWithMetaAndLeft)
     );
   }
-
-  #setProxyStateToInvalidOnMouseUp = false;
 }
 
 /**

@@ -67,27 +67,17 @@ add_task(async function load_url() {
 });
 
 // Focusing and blurring the urlbar while the search terms
-// persist should change the pageproxystate.
+// persist should change the "persistsearchterms" attribute.
 add_task(async function focus_and_unfocus() {
   let { tab } = await searchWithTab(SEARCH_STRING);
 
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
-  Assert.equal(
-    gURLBar.getAttribute("pageproxystate"),
-    "invalid",
-    "Should have matching pageproxystate."
-  );
   Assert.ok(
     !gURLBar.hasAttribute("persistsearchterms"),
     "Urlbar does not have persistsearchterms attribute."
   );
 
   gURLBar.blur();
-  Assert.equal(
-    gURLBar.getAttribute("pageproxystate"),
-    "valid",
-    "Should have matching pageproxystate."
-  );
   Assert.ok(
     gURLBar.hasAttribute("persistsearchterms"),
     "Urlbar has persistsearchterms attribute."
@@ -102,11 +92,6 @@ add_task(async function focus_and_unfocus_modified() {
   let { tab } = await searchWithTab(SEARCH_STRING);
 
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
-  Assert.equal(
-    gURLBar.getAttribute("pageproxystate"),
-    "invalid",
-    "Should have matching pageproxystate."
-  );
   Assert.ok(
     !gURLBar.hasAttribute("persistsearchterms"),
     "Urlbar does not have persistsearchterms attribute."
@@ -118,6 +103,11 @@ add_task(async function focus_and_unfocus_modified() {
     value: "another search term",
     fireInputEvent: true,
   });
+  Assert.equal(
+    gURLBar.getAttribute("pageproxystate"),
+    "invalid",
+    "Should have matching pageproxystate."
+  );
 
   gURLBar.blur();
   Assert.equal(
