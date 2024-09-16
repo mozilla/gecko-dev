@@ -56,7 +56,7 @@ add_task(async function test_delete_exception() {
     "The exception is properly cleared."
   );
 
-  // Test nsIClearDataService.deleteDataFromBaseDomain
+  // Test nsIClearDataService.deleteDataFromSite
   info("Adding an exception for example.com");
   Services.cookieBanners.setDomainPref(
     uri,
@@ -71,10 +71,11 @@ add_task(async function test_delete_exception() {
     "The exception is properly set."
   );
 
-  info("Trigger the deleteDataFromBaseDomain");
+  info("Trigger the deleteDataFromSite");
   await new Promise(resolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.com",
+      {},
       true /* user request */,
       Ci.nsIClearDataService.CLEAR_COOKIE_BANNER_EXCEPTION,
       _ => {
@@ -210,7 +211,7 @@ add_task(async function test_delete_executed_record() {
     "The record is properly cleared."
   );
 
-  // Test nsIClearDataService.deleteDataFromBaseDomain
+  // Test nsIClearDataService.deleteDataFromSite
   info("Adding a record for example.com");
   Services.cookieBanners.markSiteExecuted("example.com", true, false);
 
@@ -224,10 +225,11 @@ add_task(async function test_delete_executed_record() {
     "The record is properly set."
   );
 
-  info("Trigger the deleteDataFromBaseDomain");
+  info("Trigger the deleteDataFromSite");
   await new Promise(resolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.com",
+      {},
       true /* user request */,
       Ci.nsIClearDataService.CLEAR_COOKIE_BANNER_EXECUTED_RECORD,
       _ => {

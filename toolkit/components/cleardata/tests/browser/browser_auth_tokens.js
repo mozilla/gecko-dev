@@ -44,8 +44,9 @@ function clearData({ deleteBy = "all", hasUserInput = false } = {}) {
         }
       );
     } else if (deleteBy == "baseDomain") {
-      Services.clearData.deleteDataFromBaseDomain(
+      Services.clearData.deleteDataFromSite(
         TEST_PRINCIPAL.baseDomain,
+        {},
         hasUserInput,
         TEST_CLEAR_DATA_FLAGS,
         value => {

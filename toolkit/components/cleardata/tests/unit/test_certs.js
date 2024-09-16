@@ -203,8 +203,9 @@ add_task(async function test_deleteByBaseDomain() {
   });
 
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.com",
+      {},
       true /* user request */,
       Ci.nsIClearDataService.CLEAR_CERT_EXCEPTIONS,
       value => {
