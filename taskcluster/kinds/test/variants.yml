@@ -83,7 +83,7 @@ aab:
 
 geckoview-no-fission:
     description: "{description} without fission enabled"
-    component: "GeckoView::Sandboxing"
+    component: "GeckoView::General"
     expiration: "2025-03-01"
     when:
         <<: *gv_e10s_filter
@@ -96,7 +96,7 @@ geckoview-no-fission:
 
 geckoview-fission:
     description: "{description} with fission enabled and default isolation strategy"
-    component: "GeckoView::Sandboxing"
+    component: "GeckoView::General"
     expiration: "2025-03-01"
     when:
         <<: *gv_e10s_filter
@@ -105,7 +105,7 @@ geckoview-fission:
 
 geckoview-fission-isolate-high-value:
     description: "{description} with fission enabled and isolation strategy isolateHighValue"
-    component: "GeckoView::Sandboxing"
+    component: "GeckoView::General"
     expiration: "2025-03-01"
     when:
         <<: *gv_e10s_filter
@@ -134,7 +134,7 @@ no-fission:
 
 geckoview-no-fission-ship:
     description: "{description} with fission disabled and ship enabled"
-    component: "GeckoView::Sandboxing"
+    component: "GeckoView::General"
     expiration: "2025-03-01"
     suffix: "nofis-ship"
     when:
