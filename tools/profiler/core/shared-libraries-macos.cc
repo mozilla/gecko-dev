@@ -3,11 +3,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "BaseProfilerSharedLibraries.h"
+#include "shared-libraries.h"
 
-#include "platform.h"
-
+#include "ClearOnShutdown.h"
+#include "mozilla/StaticMutex.h"
 #include "mozilla/Unused.h"
+#include "nsNativeCharsetUtils.h"
 #include <AvailabilityMacros.h>
 
 #include <dlfcn.h>
@@ -44,22 +45,7 @@ struct NativeSharedLibrary {
   std::string path;
 };
 static std::vector<NativeSharedLibrary>* sSharedLibrariesList = nullptr;
-
-class MOZ_RAII SharedLibrariesLock {
- public:
-  SharedLibrariesLock() { sSharedLibrariesMutex.Lock(); }
-
-  ~SharedLibrariesLock() { sSharedLibrariesMutex.Unlock(); }
-
-  SharedLibrariesLock(const SharedLibrariesLock&) = delete;
-  void operator=(const SharedLibrariesLock&) = delete;
-
- private:
-  static mozilla::baseprofiler::detail::BaseProfilerMutex sSharedLibrariesMutex;
-};
-
-mozilla::baseprofiler::detail::BaseProfilerMutex
-    SharedLibrariesLock::sSharedLibrariesMutex;
+static mozilla::StaticMutex sSharedLibrariesMutex MOZ_UNANNOTATED;
 
 static void SharedLibraryAddImage(const struct mach_header* mh,
                                   intptr_t vmaddr_slide) {
@@ -73,7 +59,7 @@ static void SharedLibraryAddImage(const struct mach_header* mh,
     return;
   }
 
-  SharedLibrariesLock lock;
+  mozilla::StaticMutexAutoLock lock(sSharedLibrariesMutex);
   if (!sSharedLibrariesList) {
     return;
   }
@@ -89,7 +75,7 @@ static void SharedLibraryRemoveImage(const struct mach_header* mh,
   // it to the right type here.
   auto header = reinterpret_cast<const platform_mach_header*>(mh);
 
-  SharedLibrariesLock lock;
+  mozilla::StaticMutexAutoLock lock(sSharedLibrariesMutex);
   if (!sSharedLibrariesList) {
     return;
   }
@@ -141,42 +127,61 @@ static void addSharedLibrary(const platform_mach_header* header,
         reinterpret_cast<const char*>(cmd) + cmd->cmdsize);
   }
 
-  std::string uuid;
-  std::string breakpadId;
+  nsAutoCString uuid;
+  nsAutoCString breakpadId;
   if (uuid_bytes != nullptr) {
-    static constexpr char digits[16] = {'0', '1', '2', '3', '4', '5', '6', '7',
-                                        '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
-    for (int i = 0; i < 16; ++i) {
-      uint8_t byte = uuid_bytes[i];
-      uuid += digits[byte >> 4];
-      uuid += digits[byte & 0xFu];
-    }
+    uuid.AppendPrintf(
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X"
+        "%02X",
+        uuid_bytes[0], uuid_bytes[1], uuid_bytes[2], uuid_bytes[3],
+        uuid_bytes[4], uuid_bytes[5], uuid_bytes[6], uuid_bytes[7],
+        uuid_bytes[8], uuid_bytes[9], uuid_bytes[10], uuid_bytes[11],
+        uuid_bytes[12], uuid_bytes[13], uuid_bytes[14], uuid_bytes[15]);
 
     // Breakpad id is the same as the uuid but with the additional trailing 0
     // for the breakpad id age.
-    breakpadId = uuid;
-    // breakpad id age.
-    breakpadId += '0';
+    breakpadId.AppendPrintf(
+        "%s"
+        "0" /* breakpad id age */,
+        uuid.get());
   }
 
-  std::string pathStr = path;
+  nsAutoString pathStr;
+  mozilla::Unused << NS_WARN_IF(
+      NS_FAILED(NS_CopyNativeToUnicode(nsDependentCString(path), pathStr)));
 
-  size_t pos = pathStr.rfind('\\');
-  std::string nameStr =
-      (pos != std::string::npos) ? pathStr.substr(pos + 1) : pathStr;
+  nsAutoString nameStr = pathStr;
+  int32_t pos = nameStr.RFindChar('/');
+  if (pos != kNotFound) {
+    nameStr.Cut(0, pos + 1);
+  }
 
   const NXArchInfo* archInfo =
       NXGetArchInfoFromCpuType(header->cputype, header->cpusubtype);
 
-  info.AddSharedLibrary(SharedLibrary(
-      start, start + size, 0, breakpadId, uuid, nameStr, pathStr, nameStr,
-      pathStr, std::string{}, archInfo ? archInfo->name : ""));
+  info.AddSharedLibrary(SharedLibrary(start, start + size, 0, breakpadId, uuid,
+                                      nameStr, pathStr, nameStr, pathStr, ""_ns,
+                                      archInfo ? archInfo->name : ""));
 }
 
 // Translate the statically stored sSharedLibrariesList information into a
 // SharedLibraryInfo object.
 SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
-  SharedLibrariesLock lock;
+  mozilla::StaticMutexAutoLock lock(sSharedLibrariesMutex);
   SharedLibraryInfo sharedLibraryInfo;
 
   for (auto& info : *sSharedLibrariesList) {

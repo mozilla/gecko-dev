@@ -66,6 +66,10 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
                 "lul/LulMain.cpp",
                 "lul/platform-linux-lul.cpp",
             ]
+        # These files cannot be built in unified mode because of name clashes with mozglue headers on Android.
+        SOURCES += [
+            "core/shared-libraries-linux.cc",
+        ]
         if not CONFIG["MOZ_CRASHREPORTER"]:
             SOURCES += [
                 "/toolkit/crashreporter/google-breakpad/src/common/linux/elfutils.cc",
@@ -90,6 +94,9 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
                 "core/EHABIStackWalk.cpp",
             ]
     elif CONFIG["OS_TARGET"] == "Darwin":
+        UNIFIED_SOURCES += [
+            "core/shared-libraries-macos.cc",
+        ]
         if CONFIG["TARGET_CPU"] == "aarch64":
             UNIFIED_SOURCES += [
                 "core/PowerCounters-mac-arm64.cpp",
@@ -108,6 +115,7 @@ if CONFIG["MOZ_GECKO_PROFILER"]:
             }
         SOURCES += [
             "core/ProfilerCPUFreq-win.cpp",
+            "core/shared-libraries-win32.cc",
         ]
 
     LOCAL_INCLUDES += [
@@ -172,6 +180,7 @@ EXPORTS += [
     "public/ProfilerParent.h",
     "public/ProfilerRustBindings.h",
     "public/ProfilerStackWalk.h",
+    "public/shared-libraries.h",
 ]
 
 EXPORTS.mozilla += [

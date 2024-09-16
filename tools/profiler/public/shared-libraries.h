@@ -7,16 +7,19 @@
 #ifndef SHARED_LIBRARIES_H_
 #define SHARED_LIBRARIES_H_
 
-#include "BaseProfiler.h"
+#include "nsNativeCharsetUtils.h"
+#include "nsString.h"
+#include <nsID.h>
 
 #include <algorithm>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string>
 #include <vector>
-#include <tuple>
 
 namespace IPC {
+class MessageReader;
+class MessageWriter;
 template <typename T>
 struct ParamTraits;
 }  // namespace IPC
@@ -24,10 +27,10 @@ struct ParamTraits;
 class SharedLibrary {
  public:
   SharedLibrary(uintptr_t aStart, uintptr_t aEnd, uintptr_t aOffset,
-                const std::string& aBreakpadId, const std::string& aCodeId,
-                const std::string& aModuleName, const std::string& aModulePath,
-                const std::string& aDebugName, const std::string& aDebugPath,
-                const std::string& aVersion, const char* aArch)
+                const nsCString& aBreakpadId, const nsCString& aCodeId,
+                const nsString& aModuleName, const nsString& aModulePath,
+                const nsString& aDebugName, const nsString& aDebugPath,
+                const nsCString& aVersion, const char* aArch)
       : mStart(aStart),
         mEnd(aEnd),
         mOffset(aOffset),
@@ -53,19 +56,26 @@ class SharedLibrary {
   uintptr_t GetStart() const { return mStart; }
   uintptr_t GetEnd() const { return mEnd; }
   uintptr_t GetOffset() const { return mOffset; }
-  const std::string& GetBreakpadId() const { return mBreakpadId; }
-  const std::string& GetCodeId() const { return mCodeId; }
-  const std::string& GetModuleName() const { return mModuleName; }
-  const std::string& GetModulePath() const { return mModulePath; }
-  const std::string& GetDebugName() const { return mDebugName; }
-  const std::string& GetDebugPath() const { return mDebugPath; }
-  const std::string& GetVersion() const { return mVersion; }
+  const nsCString& GetBreakpadId() const { return mBreakpadId; }
+  const nsCString& GetCodeId() const { return mCodeId; }
+  const nsString& GetModuleName() const { return mModuleName; }
+  const nsString& GetModulePath() const { return mModulePath; }
+  const std::string GetNativeDebugPath() const {
+    nsAutoCString debugPathStr;
+
+    NS_CopyUnicodeToNative(mDebugPath, debugPathStr);
+
+    return debugPathStr.get();
+  }
+  const nsString& GetDebugName() const { return mDebugName; }
+  const nsString& GetDebugPath() const { return mDebugPath; }
+  const nsCString& GetVersion() const { return mVersion; }
   const std::string& GetArch() const { return mArch; }
   size_t SizeOf() const {
-    return sizeof *this + mBreakpadId.length() + mCodeId.length() +
-           mModuleName.length() * 2 + mModulePath.length() * 2 +
-           mDebugName.length() * 2 + mDebugPath.length() * 2 +
-           mVersion.length() + mArch.size();
+    return sizeof *this + mBreakpadId.Length() + mCodeId.Length() +
+           mModuleName.Length() * 2 + mModulePath.Length() * 2 +
+           mDebugName.Length() * 2 + mDebugPath.Length() * 2 +
+           mVersion.Length() + mArch.size();
   }
 
   SharedLibrary() : mStart{0}, mEnd{0}, mOffset{0} {}
@@ -74,7 +84,7 @@ class SharedLibrary {
   uintptr_t mStart;
   uintptr_t mEnd;
   uintptr_t mOffset;
-  std::string mBreakpadId;
+  nsCString mBreakpadId;
   // A string carrying an identifier for a binary.
   //
   // All platforms have different formats:
@@ -85,12 +95,12 @@ class SharedLibrary {
   //  breakpad ID.
   // - Linux/Android: The code ID for a Linux ELF file.
   //  It's the complete build ID, as hex string.
-  std::string mCodeId;
-  std::string mModuleName;
-  std::string mModulePath;
-  std::string mDebugName;
-  std::string mDebugPath;
-  std::string mVersion;
+  nsCString mCodeId;
+  nsString mModuleName;
+  nsString mModulePath;
+  nsString mDebugName;
+  nsString mDebugPath;
+  nsCString mVersion;
   std::string mArch;
 
   friend struct IPC::ParamTraits<SharedLibrary>;
@@ -104,12 +114,12 @@ static bool CompareAddresses(const SharedLibrary& first,
 class SharedLibraryInfo {
  public:
 #ifdef MOZ_GECKO_PROFILER
-  MFBT_API static SharedLibraryInfo GetInfoForSelf();
+  static SharedLibraryInfo GetInfoForSelf();
 #  ifdef XP_WIN
-  MFBT_API static SharedLibraryInfo GetInfoFromPath(const wchar_t* aPath);
+  static SharedLibraryInfo GetInfoFromPath(const wchar_t* aPath);
 #  endif
 
-  MFBT_API static void Initialize();
+  static void Initialize();
 #else
   static SharedLibraryInfo GetInfoForSelf() { return SharedLibraryInfo(); }
 #  ifdef XP_WIN
@@ -189,4 +199,22 @@ class SharedLibraryInfo {
   friend struct IPC::ParamTraits<SharedLibraryInfo>;
 };
 
-#endif  // SHARED_LIBRARIES_H_
+namespace IPC {
+template <>
+struct ParamTraits<SharedLibrary> {
+  typedef SharedLibrary paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam);
+  static bool Read(MessageReader* aReader, paramType* aResult);
+};
+
+template <>
+struct ParamTraits<SharedLibraryInfo> {
+  typedef SharedLibraryInfo paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam);
+  static bool Read(MessageReader* aReader, paramType* aResult);
+};
+}  // namespace IPC
+
+#endif

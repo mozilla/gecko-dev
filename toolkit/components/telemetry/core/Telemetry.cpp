@@ -723,9 +723,7 @@ class GetLoadedModulesResultRunnable final : public Runnable {
 
       // Module name.
       JS::Rooted<JSString*> moduleName(
-          cx,
-          JS_NewUCStringCopyZ(
-              cx, NS_ConvertUTF8toUTF16(info.GetModuleName().c_str()).get()));
+          cx, JS_NewUCStringCopyZ(cx, info.GetModuleName().get()));
       if (!moduleName || !JS_DefineProperty(cx, moduleObj, "name", moduleName,
                                             JSPROP_ENUMERATE)) {
         mPromise->MaybeReject(NS_ERROR_FAILURE);
@@ -735,11 +733,9 @@ class GetLoadedModulesResultRunnable final : public Runnable {
       // Module debug name.
       JS::Rooted<JS::Value> moduleDebugName(cx);
 
-      if (!info.GetDebugName().empty()) {
+      if (!info.GetDebugName().IsEmpty()) {
         JS::Rooted<JSString*> str_moduleDebugName(
-            cx,
-            JS_NewUCStringCopyZ(
-                cx, NS_ConvertUTF8toUTF16(info.GetDebugName().c_str()).get()));
+            cx, JS_NewUCStringCopyZ(cx, info.GetDebugName().get()));
         if (!str_moduleDebugName) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
           return NS_OK;
@@ -758,9 +754,9 @@ class GetLoadedModulesResultRunnable final : public Runnable {
       // Module Breakpad identifier.
       JS::Rooted<JS::Value> id(cx);
 
-      if (!info.GetBreakpadId().empty()) {
+      if (!info.GetBreakpadId().IsEmpty()) {
         JS::Rooted<JSString*> str_id(
-            cx, JS_NewStringCopyZ(cx, info.GetBreakpadId().c_str()));
+            cx, JS_NewStringCopyZ(cx, info.GetBreakpadId().get()));
         if (!str_id) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
           return NS_OK;
@@ -778,9 +774,9 @@ class GetLoadedModulesResultRunnable final : public Runnable {
       // Module version.
       JS::Rooted<JS::Value> version(cx);
 
-      if (!info.GetVersion().empty()) {
+      if (!info.GetVersion().IsEmpty()) {
         JS::Rooted<JSString*> v(
-            cx, JS_NewStringCopyZ(cx, info.GetVersion().c_str()));
+            cx, JS_NewStringCopyZ(cx, info.GetVersion().BeginReading()));
         if (!v) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
           return NS_OK;
@@ -798,8 +794,7 @@ class GetLoadedModulesResultRunnable final : public Runnable {
 
 #  if defined(XP_WIN)
       // Cert Subject.
-      if (auto subject = mCertSubjects.Lookup(
-              NS_ConvertUTF8toUTF16(info.GetModulePath().c_str()))) {
+      if (auto subject = mCertSubjects.Lookup(info.GetModulePath())) {
         JS::Rooted<JSString*> jsOrg(cx, ToJSString(cx, *subject));
         if (!jsOrg) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
@@ -839,12 +834,10 @@ class GetLoadedModulesResultRunnable final : public Runnable {
     for (unsigned int i = 0, n = mRawModules.GetSize(); i != n; i++) {
       const SharedLibrary& info = mRawModules.GetEntry(i);
 
-      auto orgName = dllSvc->GetBinaryOrgName(
-          NS_ConvertUTF8toUTF16(info.GetModulePath().c_str()).get());
+      auto orgName = dllSvc->GetBinaryOrgName(info.GetModulePath().get());
       if (orgName) {
-        mCertSubjects.InsertOrUpdate(
-            NS_ConvertUTF8toUTF16(info.GetModulePath().c_str()),
-            nsDependentString(orgName.get()));
+        mCertSubjects.InsertOrUpdate(info.GetModulePath(),
+                                     nsDependentString(orgName.get()));
       }
     }
   }

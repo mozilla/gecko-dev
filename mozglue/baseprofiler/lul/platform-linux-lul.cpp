@@ -11,7 +11,7 @@
 
 #include "AutoObjectMapper.h"
 #include "BaseProfiler.h"
-#include "SharedLibraries.h"
+#include "BaseProfilerSharedLibraries.h"
 #include "platform.h"
 #include "PlatformMacros.h"
 #include "LulMain.h"
