@@ -127,7 +127,7 @@ browsertime-tp6:
                         default: []
         treeherder-symbol: Btime(tp6)
     raptor:
-        apps: [firefox, chrome]
+        apps: [firefox, chrome, custom-car]
         test: tp6
         run-visual-metrics: true
         subtests:

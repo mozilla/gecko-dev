@@ -16880,6 +16880,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-amazon**
         - ❌
         - ❌
@@ -16937,6 +16947,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon-nofis**
         - ❌
         - ❌
         - ❌
@@ -17782,6 +17802,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-buzzfeed**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-buzzfeed**
         - ✅
         - ✅
@@ -17884,6 +17909,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-buzzfeed**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-buzzfeed**
         - ❌
         - ❌
         - ❌
@@ -17994,6 +18024,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-cnn**
         - ❌
         - ❌
@@ -18051,6 +18091,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-nofis**
         - ❌
         - ❌
         - ❌
@@ -18686,6 +18736,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-ebay**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-ebay**
         - ✅
         - ✅
@@ -18837,6 +18892,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-ebay**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-ebay**
         - ✅
         - ✅
@@ -18933,6 +18993,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-espn-nofis**
         - ✅
         - ✅
@@ -18970,6 +19035,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-essential-chrome-m-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-espn-nofis**
         - ❌
         - ❌
         - ❌
@@ -19059,6 +19129,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-espn**
         - ❌
         - ❌
         - ❌
@@ -19165,6 +19240,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-espn**
         - ❌
         - ❌
         - ❌
@@ -19345,6 +19425,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-expedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-expedia**
         - ✅
         - ✅
@@ -19447,6 +19532,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-expedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-expedia**
         - ❌
         - ❌
         - ❌
@@ -19642,6 +19732,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-facebook**
         - ✅
         - ✅
@@ -19784,6 +19879,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-facebook**
         - ❌
         - ❌
         - ❌
@@ -20255,6 +20355,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-google-docs**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-google-docs**
         - ✅
         - ✅
@@ -20406,6 +20511,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-google-docs**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-google-docs**
         - ✅
         - ✅
@@ -20529,6 +20639,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-google-mail**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-google-mail**
         - ❌
         - ❌
         - ❌
@@ -20684,6 +20799,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-google-mail**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-google-mail**
         - ✅
         - ✅
@@ -20807,6 +20927,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-google-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-google-search**
         - ❌
         - ❌
         - ❌
@@ -20958,6 +21083,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-google-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-google-search**
         - ❌
         - ❌
         - ❌
@@ -21417,6 +21547,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-imdb**
         - ❌
         - ❌
@@ -21474,6 +21614,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb-nofis**
         - ❌
         - ❌
         - ❌
@@ -21593,6 +21743,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-imdb**
         - ❌
         - ❌
         - ❌
@@ -21748,6 +21903,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-imdb**
         - ✅
         - ✅
@@ -21873,6 +22033,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-imgur**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-imgur**
         - ❌
         - ❌
         - ❌
@@ -22018,6 +22183,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-imgur**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-imgur**
         - ✅
         - ✅
@@ -22129,6 +22299,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-instagram**
         - ❌
         - ❌
@@ -22186,6 +22366,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram-nofis**
         - ❌
         - ❌
         - ❌
@@ -22643,6 +22833,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-linkedin**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-linkedin**
         - ✅
         - ✅
@@ -22794,6 +22989,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-linkedin**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-linkedin**
         - ✅
         - ✅
@@ -22918,6 +23118,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-microsoft**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-microsoft**
         - ❌
         - ❌
         - ❌
@@ -23073,6 +23278,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-microsoft**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-microsoft**
         - ✅
         - ✅
@@ -23197,6 +23407,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-netflix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-netflix**
         - ❌
         - ❌
         - ❌
@@ -23343,6 +23558,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-netflix**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-netflix**
         - ❌
         - ❌
         - ❌
@@ -23533,6 +23753,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-nytimes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-nytimes**
         - ✅
         - ✅
@@ -23635,6 +23860,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-nytimes**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-nytimes**
         - ❌
         - ❌
         - ❌
@@ -23742,6 +23972,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-office**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-office**
         - ✅
         - ✅
@@ -23844,6 +24079,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-office**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-office**
         - ❌
         - ❌
         - ❌
@@ -24158,6 +24398,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-outlook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-outlook**
         - ✅
         - ✅
@@ -24304,6 +24549,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-outlook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-outlook**
         - ✅
         - ✅
@@ -24427,6 +24677,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-paypal**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-paypal**
         - ❌
         - ❌
         - ❌
@@ -24582,6 +24837,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-paypal**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-paypal**
         - ✅
         - ✅
@@ -24706,6 +24966,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-pinterest**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-pinterest**
         - ❌
         - ❌
         - ❌
@@ -24861,6 +25126,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-pinterest**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-pinterest**
         - ✅
         - ✅
@@ -24977,6 +25247,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-reddit**
         - ❌
         - ❌
@@ -25034,6 +25314,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit-nofis**
         - ❌
         - ❌
         - ❌
@@ -25153,6 +25443,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-reddit**
         - ❌
         - ❌
         - ❌
@@ -25304,6 +25599,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-reddit**
         - ❌
         - ❌
         - ❌
@@ -25822,6 +26122,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-tumblr**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-tumblr**
         - ✅
         - ✅
@@ -25973,6 +26278,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-tumblr**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-tumblr**
         - ✅
         - ✅
@@ -26099,6 +26409,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-twitch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-twitch**
         - ❌
         - ❌
         - ❌
@@ -26250,6 +26565,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-twitch**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-twitch**
         - ❌
         - ❌
         - ❌
@@ -26893,6 +27213,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-wikia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-wikia**
         - ✅
         - ✅
@@ -26995,6 +27320,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-wikia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-wikia**
         - ❌
         - ❌
         - ❌
@@ -27105,6 +27435,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-wikipedia**
         - ❌
         - ❌
@@ -27162,6 +27502,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia-nofis**
         - ❌
         - ❌
         - ❌
@@ -27950,6 +28300,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-youtube**
         - ❌
         - ❌
@@ -28007,6 +28367,16 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube-nofis**
         - ❌
         - ❌
         - ❌
@@ -28126,6 +28496,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-youtube**
         - ❌
         - ❌
         - ❌
@@ -28277,6 +28652,11 @@ Tests for page-load performance. The links direct to the actual websites that ar
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-youtube**
         - ❌
         - ❌
         - ❌
@@ -30599,7 +30979,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -30662,6 +31042,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-allrecipes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-allrecipes-nofis**
         - ✅
         - ✅
@@ -30699,6 +31084,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-essential-chrome-m-allrecipes-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-allrecipes-nofis**
         - ❌
         - ❌
         - ❌
@@ -30744,7 +31134,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -30827,6 +31217,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-amazon**
         - ❌
         - ❌
@@ -30884,6 +31284,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-amazon-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-amazon-nofis**
         - ❌
         - ❌
         - ❌
@@ -31309,7 +31719,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -31377,6 +31787,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-amazon-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-amazon-search-nofis**
         - ✅
         - ✅
@@ -31419,6 +31834,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-essential-chrome-m-amazon-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-amazon-search-nofis**
         - ❌
         - ❌
         - ❌
@@ -31469,7 +31889,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -31552,6 +31972,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-bild-de**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-bild-de-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-bild-de**
         - ❌
         - ❌
@@ -31613,6 +32043,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-bild-de**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-bild-de-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-bild-de**
         - ❌
         - ❌
@@ -31669,7 +32109,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -31752,6 +32192,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-bing**
         - ❌
         - ❌
@@ -31813,6 +32263,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-bing**
         - ❌
         - ❌
@@ -31869,7 +32329,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -31952,6 +32412,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-bing-search-restaurants**
         - ❌
         - ❌
@@ -32013,6 +32483,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-bing-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-bing-search-restaurants**
         - ❌
         - ❌
@@ -32069,7 +32549,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -32152,6 +32632,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-booking**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-booking-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-booking**
         - ❌
         - ❌
@@ -32213,6 +32703,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-booking**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-booking-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-booking**
         - ❌
         - ❌
@@ -32269,7 +32769,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -32352,6 +32852,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-cnn**
         - ❌
         - ❌
@@ -32409,6 +32919,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-cnn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-nofis**
         - ❌
         - ❌
         - ❌
@@ -32754,7 +33274,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -32837,6 +33357,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-ampstories**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-ampstories-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-cnn-ampstories**
         - ❌
         - ❌
@@ -32898,6 +33428,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-ampstories**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-cnn-ampstories-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-cnn-ampstories**
         - ❌
         - ❌
@@ -32954,7 +33494,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -33037,6 +33577,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-dailymail**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-dailymail-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-dailymail**
         - ❌
         - ❌
@@ -33098,6 +33648,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-dailymail**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-dailymail-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-dailymail**
         - ❌
         - ❌
@@ -33154,7 +33714,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -33237,6 +33797,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen**
         - ❌
         - ❌
@@ -33298,6 +33868,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen**
         - ❌
         - ❌
@@ -33354,7 +33934,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -33437,6 +34017,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen-search**
         - ❌
         - ❌
@@ -33498,6 +34088,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen-search**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-ebay-kleinanzeigen-search-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-ebay-kleinanzeigen-search**
         - ❌
         - ❌
@@ -33554,7 +34154,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -33617,6 +34217,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-espn-nofis**
         - ✅
         - ✅
@@ -33654,6 +34259,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-essential-chrome-m-espn-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-espn-nofis**
         - ❌
         - ❌
         - ❌
@@ -33743,6 +34353,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-espn**
         - ❌
         - ❌
         - ❌
@@ -33853,6 +34468,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-espn**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-espn**
         - ✅
         - ✅
@@ -33874,7 +34494,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -34043,6 +34663,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-facebook**
         - ✅
         - ✅
@@ -34189,6 +34814,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-facebook**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-facebook**
         - ✅
         - ✅
@@ -34220,7 +34850,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -34303,6 +34933,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-facebook-cristiano**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-facebook-cristiano-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-facebook-cristiano**
         - ❌
         - ❌
@@ -34364,6 +35004,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-facebook-cristiano**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-facebook-cristiano-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-facebook-cristiano**
         - ❌
         - ❌
@@ -34420,7 +35070,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -34484,6 +35134,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-google-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-google-nofis**
         - ✅
         - ✅
@@ -34521,6 +35176,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-essential-chrome-m-google-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-google-nofis**
         - ❌
         - ❌
         - ❌
@@ -34566,7 +35226,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -34649,6 +35309,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-maps**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-maps-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-google-maps**
         - ❌
         - ❌
@@ -34710,6 +35380,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-maps**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-maps-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-google-maps**
         - ❌
         - ❌
@@ -34766,7 +35446,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -34850,6 +35530,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-google-search-restaurants**
         - ❌
         - ❌
@@ -34911,6 +35601,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-search-restaurants**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-google-search-restaurants-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-google-search-restaurants**
         - ❌
         - ❌
@@ -34967,7 +35667,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -35050,6 +35750,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-imdb**
         - ❌
         - ❌
@@ -35107,6 +35817,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-imdb-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-imdb-nofis**
         - ❌
         - ❌
         - ❌
@@ -35226,6 +35946,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-imdb**
         - ❌
         - ❌
         - ❌
@@ -35381,6 +36106,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-imdb**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-imdb**
         - ✅
         - ✅
@@ -35412,7 +36142,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -35496,6 +36226,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-instagram**
         - ❌
         - ❌
@@ -35553,6 +36293,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-instagram-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-instagram-nofis**
         - ❌
         - ❌
         - ❌
@@ -35913,7 +36663,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -35976,6 +36726,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-microsoft-support-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-microsoft-support-nofis**
         - ✅
         - ✅
@@ -36013,6 +36768,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-essential-chrome-m-microsoft-support-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-microsoft-support-nofis**
         - ❌
         - ❌
         - ❌
@@ -36058,7 +36818,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -36141,6 +36901,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-reddit**
         - ❌
         - ❌
@@ -36198,6 +36968,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-reddit-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-reddit-nofis**
         - ❌
         - ❌
         - ❌
@@ -36317,6 +37097,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-reddit**
         - ❌
         - ❌
         - ❌
@@ -36472,6 +37257,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-reddit**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-reddit**
         - ✅
         - ✅
@@ -36503,7 +37293,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -36576,6 +37366,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-sina**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-sina-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-sina**
         - ❌
         - ❌
@@ -36622,6 +37422,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-sina**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-sina-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-sina**
         - ❌
         - ❌
@@ -36663,7 +37473,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -36746,6 +37556,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-stackoverflow**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-stackoverflow-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-stackoverflow**
         - ❌
         - ❌
@@ -36807,6 +37627,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-stackoverflow**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-stackoverflow-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-stackoverflow**
         - ❌
         - ❌
@@ -36863,7 +37693,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -36946,6 +37776,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-wikipedia**
         - ❌
         - ❌
@@ -37003,6 +37843,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-wikipedia-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-wikipedia-nofis**
         - ❌
         - ❌
         - ❌
@@ -37368,7 +38218,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -37451,6 +38301,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-fenix-youtube**
         - ❌
         - ❌
@@ -37508,6 +38368,16 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
       * - **browsertime-tp6m-chrome-m-youtube-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-cstm-car-m-youtube-nofis**
         - ❌
         - ❌
         - ❌
@@ -37627,6 +38497,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6-chrome-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6-custom-car-youtube**
         - ❌
         - ❌
         - ❌
@@ -37782,6 +38657,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6-custom-car-youtube**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6-firefox-youtube**
         - ✅
         - ✅
@@ -37813,7 +38693,7 @@ Page-load performance test suite on Android. The links direct to the actual webs
 
    * **alert on**: `fcp <raptor-metrics.html#first-paint>`__, `loadtime <raptor-metrics.html#load-time>`__, `ContentfulSpeedIndex <raptor-metrics.html#contentful-speed-index>`__, `PerceptualSpeedIndex <raptor-metrics.html#perceptual-speed-index>`__, `SpeedIndex <raptor-metrics.html#speed-index>`__, `FirstVisualChange <raptor-metrics.html#first-visual-change>`__, `LastVisualChange <raptor-metrics.html#last-visual-change>`__, `largestContentfulPaint <raptor-metrics.html#largest-contentful-paint>`__
    * **alert threshold**: 2.0
-   * **apps**: geckoview, fenix, refbrow, chrome-m
+   * **apps**: geckoview, fenix, refbrow, chrome-m, cstm-car-m
    * **benchmark page**: true
    * **browser cycles**: 15
    * **expected**: pass
@@ -37876,6 +38756,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - ❌
         - ❌
         - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-youtube-watch-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
       * - **browsertime-tp6m-essential-fenix-youtube-watch-nofis**
         - ✅
         - ✅
@@ -37913,6 +38798,11 @@ Page-load performance test suite on Android. The links direct to the actual webs
         - mozilla-release
         - mozilla-beta
       * - **browsertime-tp6m-essential-chrome-m-youtube-watch-nofis**
+        - ❌
+        - ❌
+        - ❌
+        - ❌
+      * - **browsertime-tp6m-essential-cstm-car-m-youtube-watch-nofis**
         - ❌
         - ❌
         - ❌

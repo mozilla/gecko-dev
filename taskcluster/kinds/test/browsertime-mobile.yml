@@ -102,7 +102,7 @@ browsertime-tp6m:
                 default: 3
         treeherder-symbol: Btime(tp6m)
     raptor:
-        apps: [geckoview, fenix, chrome-m, refbrow]
+        apps: [geckoview, fenix, chrome-m, refbrow, cstm-car-m]
         run-visual-metrics: true
         test: tp6m
         subtests:
@@ -166,7 +166,7 @@ browsertime-tp6m-essential:
     <<: *tp6m-defaults
     run-without-variant: false
     raptor:
-        apps: [geckoview, fenix, chrome-m, refbrow]
+        apps: [geckoview, fenix, chrome-m, refbrow, cstm-car-m]
         run-visual-metrics: true
         test: tp6m
         subtests:
