@@ -20,7 +20,7 @@
 #include "mozilla/GfxMessageUtils.h"  // For ParamTraits<GeckoProcessType>
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/Try.h"
-#include "shared-libraries.h"
+#include "BaseProfilerSharedLibraries.h"
 
 static const char MAGIC[] = "permahangsavev1";
 
@@ -399,7 +399,8 @@ void ReadModuleInformation(HangStack& stack) {
     }
 
     if (moduleReferenced) {
-      HangModule module(info.GetDebugName(), info.GetBreakpadId());
+      HangModule module(NS_ConvertUTF8toUTF16(info.GetDebugName().c_str()),
+                        nsCString(info.GetBreakpadId().c_str()));
       stack.modules().AppendElement(module);
     }
   }
