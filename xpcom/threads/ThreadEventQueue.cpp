@@ -108,11 +108,6 @@ bool ThreadEventQueue::PutEventInternal(already_AddRefed<nsIRunnable>&& aEvent,
           aPriority = EventQueuePriority::Low;
         }
       }
-
-      if (aPriority == EventQueuePriority::Control &&
-          !StaticPrefs::threads_control_event_queue_enabled()) {
-        aPriority = EventQueuePriority::MediumHigh;
-      }
     }
 
     MutexAutoLock lock(mLock);

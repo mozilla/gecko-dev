@@ -15942,12 +15942,6 @@
 # Prefs starting with "thread."
 #---------------------------------------------------------------------------
 
-# If control tasks aren't enabled, they get medium high priority.
-- name: threads.control_event_queue.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # If the service is available, set threads to low-power mode when in the background.
 - name: threads.use_low_power.enabled
   type: RelaxedAtomicBool
