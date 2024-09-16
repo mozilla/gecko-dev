@@ -3042,9 +3042,12 @@ HttpChannelChild::RetargetDeliveryTo(nsISerialEventTarget* aNewTarget) {
     return rv;
   }
 
+  // We allow multiple retargeting. However all such modification must happen
+  // before we have have received the first OnDataAvailable.
+  // See Bug 1887783
+  MOZ_ASSERT(mOnDataAvailableStartTime.IsNull());
   {
     MutexAutoLock lock(mEventTargetMutex);
-    MOZ_ASSERT(!mODATarget);
     RetargetDeliveryToImpl(aNewTarget, lock);
   }
 
