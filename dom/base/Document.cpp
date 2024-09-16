@@ -16819,9 +16819,10 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
   if (!rb) {
     return;
   }
+  const bool isInactiveTop = aBc->IsTop() && !aBc->IsActive();
   nsSubDocumentFrame* subDocFrame = do_QueryFrame(el->GetPrimaryFrame());
   rb->UpdateEffects([&] {
-    if (aIsHidden || (aBc->IsTop() && !aBc->IsActive())) {
+    if (aIsHidden || isInactiveTop) {
       // Fully hidden if in the background.
       return EffectsInfo::FullyHidden();
     }
@@ -16857,10 +16858,8 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
     return EffectsInfo::VisibleWithinRect(visibleRect, rasterScale,
                                           transformToAncestorScale);
   }());
-  if (subDocFrame) {
+  if (subDocFrame && !isInactiveTop) {
     if (nsFrameLoader* fl = subDocFrame->FrameLoader()) {
-      // TODO(emilio): Consider not doing this for inactive tops? It'd make
-      // janking the browser harder.
       fl->UpdatePositionAndSize(subDocFrame);
     }
   }
