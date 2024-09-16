@@ -12,6 +12,21 @@
 
 namespace mozilla::dom::quota {
 
+namespace {
+
+/**
+ * Automatically log information about a directory lock if acquiring of the
+ * directory lock takes this long. We've chosen a value that is long enough
+ * that it is unlikely for the problem to be falsely triggered by slow system
+ * I/O. We've also chosen a value long enough so that testers can notice the
+ * timeout; we want to know about the timeouts, not hide them. On the other
+ * hand this value is less than 45 seconds which is used by quota manager to
+ * crash a hung quota manager shutdown.
+ */
+const uint32_t kAcquireTimeoutMs = 30000;
+
+}  // namespace
+
 DirectoryLockImpl::DirectoryLockImpl(
     MovingNotNull<RefPtr<QuotaManager>> aQuotaManager,
     const PersistenceScope& aPersistenceScope, const nsACString& aSuffix,
@@ -105,6 +120,11 @@ bool DirectoryLockImpl::MustWaitFor(const DirectoryLockImpl& aLock) const {
 
 void DirectoryLockImpl::NotifyOpenListener() {
   AssertIsOnOwningThread();
+
+  if (mAcquireTimer) {
+    mAcquireTimer->Cancel();
+    mAcquireTimer = nullptr;
+  }
 
   if (mInvalidated) {
     mAcquirePromiseHolder.Reject(NS_ERROR_FAILURE, __func__);
@@ -229,6 +249,23 @@ void DirectoryLockImpl::AcquireInternal() {
     NotifyOpenListener();
     return;
   }
+
+  mAcquireTimer = NS_NewTimer();
+
+  MOZ_ALWAYS_SUCCEEDS(mAcquireTimer->InitWithNamedFuncCallback(
+      [](nsITimer* aTimer, void* aClosure) {
+        if (!QM_LOG_TEST()) {
+          return;
+        }
+
+        auto* const lock = static_cast<DirectoryLockImpl*>(aClosure);
+
+        QM_LOG(("Directory lock [%p] is taking too long to be acquired", lock));
+
+        lock->Log();
+      },
+      this, kAcquireTimeoutMs, nsITimer::TYPE_ONE_SHOT,
+      "quota::DirectoryLockImpl::AcquireInternal"));
 
   if (!mExclusive || !mInternal) {
     return;
