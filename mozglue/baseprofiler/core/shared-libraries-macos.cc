@@ -161,7 +161,7 @@ static void addSharedLibrary(const platform_mach_header* header,
 
   std::string pathStr = path;
 
-  size_t pos = pathStr.rfind('\\');
+  size_t pos = pathStr.rfind('/');
   std::string nameStr =
       (pos != std::string::npos) ? pathStr.substr(pos + 1) : pathStr;
 
