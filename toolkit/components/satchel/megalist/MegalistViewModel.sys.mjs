@@ -90,11 +90,12 @@ export class MegalistViewModel {
       snapshot.href = snapshotData.href;
     }
 
-    if (snapshotData.stickers) {
-      for (const sticker of snapshotData.stickers()) {
-        snapshot.stickers ??= [];
-        snapshot.stickers.push(sticker);
-      }
+    if ("breached" in snapshotData) {
+      snapshot.breached = snapshotData.breached;
+    }
+
+    if ("vulnerable" in snapshotData) {
+      snapshot.vulnerable = snapshotData.vulnerable;
     }
 
     if ("toggleTooltip" in snapshotData) {
@@ -171,11 +172,22 @@ export class MegalistViewModel {
     }
   }
 
-  async #verifyUser(promptMessage, prefName) {
+  async #verifyUser(
+    promptMessage,
+    prefName,
+    captionDialog = "",
+    parentWindow = null,
+    generateKeyIfNotAvailable = false
+  ) {
     if (!this.getOSAuthEnabled(prefName)) {
       promptMessage = false;
     }
-    let result = await lazy.OSKeyStore.ensureLoggedIn(promptMessage);
+    let result = await lazy.OSKeyStore.ensureLoggedIn(
+      promptMessage,
+      captionDialog,
+      parentWindow,
+      generateKeyIfNotAvailable
+    );
     return result.authenticated;
   }
 

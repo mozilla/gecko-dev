@@ -28,11 +28,11 @@ const ALERT_VALUES = {
   none: 2,
 };
 
-const SUPPORT_URL =
+export const SUPPORT_URL =
   Services.urlFormatter.formatURLPref("app.support.baseURL") +
   "password-manager-remember-delete-edit-logins";
 
-const PREFRENCES_URL = "about:preferences#privacy-logins";
+export const PREFERENCES_URL = "about:preferences#privacy-logins";
 
 /**
  * Data source for Logins.
@@ -90,10 +90,6 @@ export class LoginDataSource extends DataSourceBase {
         id: "DismissBreach",
         label: strings.dismissBreachCommandLabel,
       };
-      const noOriginSticker = { type: "error", label: "😾 Missing origin" };
-      const noPasswordSticker = { type: "error", label: "😾 Missing password" };
-      const breachedSticker = { type: "warning", label: "BREACH" };
-      const vulnerableSticker = { type: "risk", label: "🤮 Vulnerable" };
       const tooltip = {
         expand: strings.expandSection,
         collapse: strings.collapseSection,
@@ -126,9 +122,11 @@ export class LoginDataSource extends DataSourceBase {
 
       this.#header.executeImportFromBrowser = () => this.#importFromBrowser();
       this.#header.executeRemoveAll = () => this.#removeAllPasswords();
-      this.#header.executeSettings = () => this.#openMenuLink(PREFRENCES_URL);
-      this.#header.executeHelp = () => this.#openMenuLink(SUPPORT_URL);
       this.#header.executeExport = async () => this.#confirmExportLogins();
+      this.#header.executeSettings = () => this.#openLink(PREFERENCES_URL);
+      this.#header.executeHelp = () => this.#openLink(SUPPORT_URL);
+      this.#header.executeExport = async () => this.#confirmExportLogins();
+
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
         OSAuthDialogCaption: strings.passwordOSAuthDialogCaption,
@@ -153,6 +151,8 @@ export class LoginDataSource extends DataSourceBase {
           this.#reloadDataSource();
         }
       };
+
+      const openOriginInNewTab = origin => this.#openLink(origin);
 
       this.#originPrototype = this.prototypeDataLine({
         field: { value: "origin" },
@@ -199,15 +199,9 @@ export class LoginDataSource extends DataSourceBase {
             this.setLayout({ id: "remove-login" });
           },
         },
-        stickers: {
-          *value() {
-            if (this.isEditing() && !this.editingValue.length) {
-              yield noOriginSticker;
-            }
-
-            if (this.breached) {
-              yield breachedSticker;
-            }
+        executeOpenLink: {
+          value() {
+            openOriginInNewTab(this.record.origin);
           },
         },
       });
@@ -251,17 +245,6 @@ export class LoginDataSource extends DataSourceBase {
               this.editingValue ??
               (this.concealed ? "••••••••" : this.record.password)
             );
-          },
-        },
-        stickers: {
-          *value() {
-            if (this.isEditing() && !this.editingValue.length) {
-              yield noPasswordSticker;
-            }
-
-            if (this.vulnerable) {
-              yield vulnerableSticker;
-            }
           },
         },
         commands: {
@@ -482,7 +465,7 @@ export class LoginDataSource extends DataSourceBase {
     fp.open(fpCallback);
   }
 
-  #openMenuLink(url) {
+  #openLink(url) {
     const { BrowserWindowTracker } = ChromeUtils.importESModule(
       "resource:///modules/BrowserWindowTracker.sys.mjs"
     );

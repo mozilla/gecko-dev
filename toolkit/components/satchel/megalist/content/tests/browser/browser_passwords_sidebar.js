@@ -7,21 +7,25 @@ const { SUPPORT_URL, PREFERENCES_URL } = ChromeUtils.importESModule(
   "resource://gre/modules/megalist/aggregator/datasources/LoginDataSource.sys.mjs"
 );
 
+const { OSKeyStoreTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/OSKeyStoreTestUtils.sys.mjs"
+);
+
 const EXPECTED_PASSWORD_CARD_VALUES = [
   {
-    "login-origin-field": { value: "example1.com" },
-    "login-username-field": { value: "bob" },
-    "login-password-field": { value: "••••••••" },
+    originLine: { value: "example1.com" },
+    usernameLine: { value: "bob" },
+    passwordLine: { value: "••••••••" },
   },
   {
-    "login-origin-field": { value: "example2.com" },
-    "login-username-field": { value: "sally" },
-    "login-password-field": { value: "••••••••" },
+    originLine: { value: "example2.com" },
+    usernameLine: { value: "sally" },
+    passwordLine: { value: "••••••••" },
   },
   {
-    "login-origin-field": { value: "example3.com" },
-    "login-username-field": { value: "ned" },
-    "login-password-field": { value: "••••••••" },
+    originLine: { value: "example3.com" },
+    usernameLine: { value: "ned" },
+    passwordLine: { value: "••••••••" },
   },
 ];
 
@@ -32,12 +36,11 @@ function checkPasswordCardFields(megalist) {
   for (let i = 0; i < EXPECTED_PASSWORD_CARD_VALUES.length; i++) {
     const card = cards[i];
     const expectedCard = EXPECTED_PASSWORD_CARD_VALUES[i];
-
     for (let selector of Object.keys(expectedCard)) {
-      let actualValue = card.shadowRoot.querySelector(selector).value;
+      let actualValue = card[selector].value;
       const expectedValue = expectedCard[selector].value;
 
-      if (selector === "login-password-field") {
+      if (selector === "passwordLine") {
         // Skip since we don't expose password value
         continue;
       }
@@ -79,6 +82,67 @@ add_task(async function test_passwords_sidebar() {
 // <panel-item>  has a default role="presentation," which cannot be overridden.
 const getShadowBtn = (menu, selector) =>
   menu.querySelector(selector).shadowRoot.querySelector("button");
+
+add_task(async function test_login_line_commands() {
+  await addLocalOriginLogin();
+  const passwordsSidebar = await openPasswordsSidebar();
+  const list = passwordsSidebar.querySelector(".passwords-list");
+  const card = list.querySelector("password-card");
+  const expectedPasswordCard = {
+    originLine: { value: "about:preferences#privacy" },
+    usernameLine: { value: "john" },
+    passwordLine: { value: "pass4" },
+  };
+  const selectors = Object.keys(expectedPasswordCard);
+
+  for (const selector of selectors) {
+    let loginLine = card[selector];
+    if (selector === "originLine") {
+      const browserLoadedPromise = BrowserTestUtils.browserLoaded(
+        gBrowser.selectedBrowser,
+        false,
+        expectedPasswordCard[selector].value
+      );
+      info(`click on ${selector}`);
+      loginLine.click();
+      await browserLoadedPromise;
+      ok(true, "origin url loaded");
+    } else if (selector === "usernameLine") {
+      await SimpleTest.promiseClipboardChange(
+        expectedPasswordCard[selector].value,
+        () => {
+          info(`click on ${selector}`);
+          loginLine.click();
+        }
+      );
+    } else if (
+      OSKeyStoreTestUtils.canTestOSKeyStoreLogin() &&
+      selector === "passwordLine"
+    ) {
+      const loginLine = card[selector].loginLine;
+      /* Once we pass the prompt message and pref to #verifyUser in MegalistViewModel,
+       * we will have to do something like this:
+       * let reauthObserved = Promise.resolve();
+       * if (OSKeyStore.canReauth()) {
+       *		reauthObserved = OSKeyStoreTestUtils.waitForOSKeyStoreLogin(true);
+       * }
+       * ...
+       * await reauthObserved;
+       */
+      await SimpleTest.promiseClipboardChange(
+        expectedPasswordCard[selector].value,
+        () => {
+          info(`click on ${selector}`);
+          loginLine.click();
+        }
+      );
+    }
+  }
+
+  BrowserTestUtils.addTab(gBrowser, "about:blank");
+  BrowserTestUtils.removeTab(gBrowser.selectedTab);
+  SidebarController.hide();
+});
 
 add_task(async function test_passwords_menu_external_links() {
   const passwordsSidebar = await openPasswordsSidebar();

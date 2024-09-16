@@ -131,9 +131,13 @@ passwords-remove-all-message =
     *[other] This will remove your saved passwords and any breach alerts. You cannot undo this action.
   }
 
-passwords-origin-label = Website address
+passwords-origin-label = Website
+# The attribute .data-after describes the text that should be displayed for the ::after pseudo-selector
 passwords-username-label = Username
+  .data-after = Copied
+# The attribute .data-after describes the text that should be displayed for the ::after pseudo-selector
 passwords-password-label = Password
+  .data-after = Copied
 
 passwords-radiogroup-label =
   .aria-label = Filter passwords
