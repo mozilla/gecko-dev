@@ -3,7 +3,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
-// #define SHOW_BOUNDING_BOX 1
 #ifndef nsIMathMLFrame_h___
 #define nsIMathMLFrame_h___
 
@@ -294,12 +293,6 @@ struct nsPresentationData {
 // a bit used for debug
 #define NS_MATHML_STRETCH_DONE 0x20000000U
 
-// This bit is used for visual debug. When set, the bounding box
-// of your frame is painted. This visual debug enable to ensure that
-// you have properly filled your mReference and mBoundingMetrics in
-// Place().
-#define NS_MATHML_SHOW_BOUNDING_METRICS 0x10000000U
-
 // Macros that retrieve those bits
 
 #define NS_MATHML_IS_COMPRESSED(_flags) \
@@ -321,10 +314,6 @@ struct nsPresentationData {
 
 #define NS_MATHML_STRETCH_WAS_DONE(_flags) \
   (NS_MATHML_STRETCH_DONE == ((_flags) & NS_MATHML_STRETCH_DONE))
-
-#define NS_MATHML_PAINT_BOUNDING_METRICS(_flags) \
-  (NS_MATHML_SHOW_BOUNDING_METRICS ==            \
-   ((_flags) & NS_MATHML_SHOW_BOUNDING_METRICS))
 
 // ==========================================================================
 // Bits used for the embellish flags -- these bits are set

@@ -569,16 +569,6 @@ void nsMathMLContainerFrame::PropagatePresentationDataFromChildAt(
 void nsMathMLContainerFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
                                               const nsDisplayListSet& aLists) {
   BuildDisplayListForInline(aBuilder, aLists);
-
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
-  // for visual debug
-  // ----------------
-  // if you want to see your bounding box, make sure to properly fill
-  // your mBoundingMetrics and mReference point, and set
-  // mPresentationData.flags |= NS_MATHML_SHOW_BOUNDING_METRICS
-  // in the Init() of your sub-class
-  DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics, aLists);
-#endif
 }
 
 // Note that this method re-builds the automatic data in the children -- not

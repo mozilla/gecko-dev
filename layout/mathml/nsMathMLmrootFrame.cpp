@@ -83,15 +83,6 @@ void nsMathMLmrootFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
   mSqrChar.Display(aBuilder, this, aLists, 0);
 
   DisplayBar(aBuilder, this, mBarRect, aLists);
-
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
-  // for visual debug
-  nsRect rect;
-  mSqrChar.GetRect(rect);
-  nsBoundingMetrics bm;
-  mSqrChar.GetBoundingMetrics(bm);
-  DisplayBoundingMetrics(aBuilder, this, rect.TopLeft(), bm, aLists);
-#endif
 }
 
 void nsMathMLmrootFrame::GetRadicalXOffsets(nscoord aIndexWidth,

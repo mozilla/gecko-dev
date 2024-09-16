@@ -84,12 +84,6 @@ void nsMathMLmoFrame::BuildDisplayList(nsDisplayListBuilder* aBuilder,
     }
     mMathMLChar.Display(aBuilder, this, aLists, 0,
                         isSelected ? &selectedRect : nullptr);
-
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
-    // for visual debug
-    DisplayBoundingMetrics(aBuilder, this, mReference, mBoundingMetrics,
-                           aLists);
-#endif
   }
 }
 

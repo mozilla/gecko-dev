@@ -1809,12 +1809,6 @@ void nsMathMLChar::Display(nsDisplayListBuilder* aBuilder, nsIFrame* aForFrame,
   if (isSelected) {
     aLists.BorderBackground()->AppendNewToTop<nsDisplayMathMLSelectionRect>(
         aBuilder, aForFrame, *aSelectedRect);
-  } else if (mRect.width && mRect.height) {
-#if defined(DEBUG) && defined(SHOW_BOUNDING_BOX)
-    // for visual debug
-    aLists.BorderBackground()->AppendNewToTop<nsDisplayMathMLCharDebug>(
-        aBuilder, aForFrame, mRect);
-#endif
   }
   aLists.Content()->AppendNewToTopWithIndex<nsDisplayMathMLCharForeground>(
       aBuilder, aForFrame, aIndex, this, isSelected);
