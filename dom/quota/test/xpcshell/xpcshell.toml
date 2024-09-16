@@ -53,6 +53,8 @@ skip-if = ["true"] # Only used for recreating unsetLastAccessTime_profile.zip
 
 ["test_clearStoragesForPrivateBrowsing.js"]
 
+["test_clientDirectoryOpeningStarted.js"]
+
 ["test_createLocalStorage.js"]
 
 ["test_estimateOrigin.js"]

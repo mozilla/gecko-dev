@@ -71,4 +71,14 @@ void NotifyMaintenanceStarted(QuotaManager& aQuotaManager) {
   NotifyObserversOnMainThread("QuotaManager::MaintenanceStarted");
 }
 
+void NotifyClientDirectoryOpeningStarted(QuotaManager& aQuotaManager) {
+  aQuotaManager.AssertIsOnOwningThread();
+
+  if (!StaticPrefs::dom_quotaManager_testing()) {
+    return;
+  }
+
+  NotifyObserversOnMainThread("QuotaManager::ClientDirectoryOpeningStarted");
+}
+
 }  // namespace mozilla::dom::quota

@@ -17,6 +17,8 @@ void NotifyStoragePressure(QuotaManager& aQuotaManager, uint64_t aUsage);
 
 void NotifyMaintenanceStarted(QuotaManager& aQuotaManager);
 
+void NotifyClientDirectoryOpeningStarted(QuotaManager& aQuotaManager);
+
 }  // namespace mozilla::dom::quota
 
 #endif  // DOM_QUOTA_NOTIFYUTILS_H_
