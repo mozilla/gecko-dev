@@ -192,6 +192,9 @@ class MenuNavigationMiddleware(
                                     SaveCollectionStep.NameCollection
                                 },
                             ),
+                            navOptions = NavOptions.Builder()
+                                .setPopUpTo(R.id.browserFragment, false)
+                                .build(),
                         )
                     }
                 }

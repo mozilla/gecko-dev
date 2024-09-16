@@ -337,6 +337,9 @@ class MenuNavigationMiddlewareTest {
                     selectedTabIds = arrayOf(tab.id),
                     saveCollectionStep = SaveCollectionStep.SelectCollection,
                 ),
+                navOptions = NavOptions.Builder()
+                    .setPopUpTo(R.id.browserFragment, false)
+                    .build(),
             )
         }
     }
