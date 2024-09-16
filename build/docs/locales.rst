@@ -39,15 +39,13 @@ find the available localizations from `firefox-l10n <https://github.com/mozilla-
 
       ./mach build installers-$AB_CD
 
-You should find a re-packaged build at ``OBJDIR/dist/``, and a
-runnable binary in ``OBJDIR/dist/l10n-stage/``.
-The ``installers`` target runs quite a few things for you, including getting
-the localizations from https://github.com/mozilla-l10n/firefox-l10n.
-It will clone them into ``~/.mozbuild/l10n-central``.
-If you have an existing repository there, you
-may want to occasionally update that via ``git pull``. If you prefer
-to have the l10n repositories at a different location on your disk, you
-can point to the directory via
+You should find a re-packaged build at ``OBJDIR/dist/``, and a runnable binary
+in ``OBJDIR/dist/l10n-stage/``. The ``installers`` target runs quite a few
+things for you, including getting the localizations from
+https://github.com/mozilla-l10n/firefox-l10n (or updating it if already
+present). It will clone them into ``~/.mozbuild/l10n-central``. If you prefer to
+have the l10n repositories at a different location on your disk, you can point
+to the directory via
 
    .. code-block:: shell
 
