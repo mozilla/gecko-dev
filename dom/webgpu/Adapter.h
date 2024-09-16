@@ -9,7 +9,6 @@
 #include <memory>
 
 #include "mozilla/AlreadyAddRefed.h"
-#include "mozilla/dom/NonRefcountedDOMObject.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "nsPrintfCString.h"
@@ -31,6 +30,7 @@ class Sequence;
 }  // namespace dom
 
 namespace webgpu {
+class Adapter;
 class Device;
 class Instance;
 class SupportedFeatures;
@@ -40,14 +40,21 @@ namespace ffi {
 struct WGPUAdapterInformation;
 }  // namespace ffi
 
-class AdapterInfo final : public dom::NonRefcountedDOMObject {
- private:
+class AdapterInfo final : public nsWrapperCache, public ChildOf<Adapter> {
+ public:
+  GPU_DECL_CYCLE_COLLECTION(AdapterInfo)
+  GPU_DECL_JS_WRAP(AdapterInfo)
+
+ protected:
   const std::shared_ptr<ffi::WGPUAdapterInformation> mAboutSupportInfo;
+  ~AdapterInfo() = default;
+  void Cleanup() {}
 
  public:
   explicit AdapterInfo(
+      Adapter* const aParent,
       const std::shared_ptr<ffi::WGPUAdapterInformation>& aAboutSupportInfo)
-      : mAboutSupportInfo(aAboutSupportInfo) {}
+      : ChildOf(aParent), mAboutSupportInfo(aAboutSupportInfo) {}
 
   void GetVendor(nsString& s) const { s = nsString(); }
   void GetArchitecture(nsString& s) const { s = nsString(); }
@@ -62,9 +69,6 @@ class AdapterInfo final : public dom::NonRefcountedDOMObject {
   void GetWgpuDriver(nsString&) const;
   void GetWgpuDriverInfo(nsString&) const;
   void GetWgpuBackend(nsString&) const;
-
-  bool WrapObject(JSContext*, JS::Handle<JSObject*>,
-                  JS::MutableHandle<JSObject*>);
 };
 
 inline auto ToHexCString(const uint64_t v) {
@@ -110,7 +114,7 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
       const dom::GPUDeviceDescriptor& aDesc, ErrorResult& aRv);
 
   already_AddRefed<dom::Promise> RequestAdapterInfo(
-      const dom::Sequence<nsString>& aUnmaskHints, ErrorResult& aRv) const;
+      const dom::Sequence<nsString>& aUnmaskHints, ErrorResult& aRv);
 };
 
 }  // namespace webgpu

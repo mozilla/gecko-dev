@@ -18,11 +18,8 @@
 
 namespace mozilla::webgpu {
 
-bool AdapterInfo::WrapObject(JSContext* const cx,
-                             JS::Handle<JSObject*> givenProto,
-                             JS::MutableHandle<JSObject*> reflector) {
-  return dom::GPUAdapterInfo_Binding::Wrap(cx, this, givenProto, reflector);
-}
+GPU_IMPL_CYCLE_COLLECTION(AdapterInfo, mParent)
+GPU_IMPL_JS_WRAP(AdapterInfo)
 
 void AdapterInfo::GetWgpuName(nsString& s) const {
   s = mAboutSupportInfo->name;
@@ -493,12 +490,12 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
 // -
 
 already_AddRefed<dom::Promise> Adapter::RequestAdapterInfo(
-    const dom::Sequence<nsString>& /*aUnmaskHints*/, ErrorResult& aRv) const {
+    const dom::Sequence<nsString>& /*aUnmaskHints*/, ErrorResult& aRv) {
   RefPtr<dom::Promise> promise = dom::Promise::Create(GetParentObject(), aRv);
   if (!promise) return nullptr;
 
-  auto rai = UniquePtr<AdapterInfo>{new AdapterInfo(mInfoInner)};
-  promise->MaybeResolve(std::move(rai));
+  RefPtr<AdapterInfo> rai = new AdapterInfo(this, mInfoInner);
+  promise->MaybeResolve(rai);
   return promise.forget();
 }
 
