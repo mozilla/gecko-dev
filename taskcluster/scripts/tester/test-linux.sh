@@ -237,7 +237,7 @@ elif [[ $NEED_COMPIZ == true ]] && [[ $RELEASE == 18.04 ]]; then
 fi
 
 # Bug 1607713 - set cursor position to 0,0 to avoid odd libx11 interaction
-if [ $NEED_WINDOW_MANAGER ] && [ $DISPLAY == ':0' ]; then
+if $NEED_WINDOW_MANAGER && [ $DISPLAY == ':0' ]; then
     xwit -root -warp 0 0
 fi
 
