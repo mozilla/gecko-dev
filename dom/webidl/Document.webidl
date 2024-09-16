@@ -501,6 +501,16 @@ partial interface Document {
    */
   [ChromeOnly]
   sequence<ShadowRoot> getConnectedShadowRoots();
+
+  /**
+   * By default, we don't send resizes to inactive top browsers.
+   * Some callers (as of this writing the window sizing code and puppeteer)
+   * need to trigger these resizes.
+   *
+   * @param aIncludeInactive whether to include background tabs.
+   */
+  [ChromeOnly]
+  undefined synchronouslyUpdateRemoteBrowserDimensions(optional boolean aIncludeInactive = false);
 };
 
 dictionary BlockParsingOptions {

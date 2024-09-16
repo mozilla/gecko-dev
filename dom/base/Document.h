@@ -3139,6 +3139,9 @@ class Document : public nsINode,
   // WebIDL method for chrome code.
   void GetConnectedShadowRoots(nsTArray<RefPtr<ShadowRoot>>&) const;
 
+  void SynchronouslyUpdateRemoteBrowserDimensions(
+      bool aIncludeInactive = false);
+
   // Notifies any responsive content added by AddResponsiveContent upon media
   // features values changing.
   void NotifyMediaFeatureValuesChanged();
@@ -3755,7 +3758,7 @@ class Document : public nsINode,
   // same-process subdocuments.
   void UpdateIntersections(TimeStamp aNowTime);
   // Update the EffectsInfo of remote browsers.
-  void UpdateRemoteFrameEffects();
+  void UpdateRemoteFrameEffects(bool aIncludeInactive = false);
   MOZ_CAN_RUN_SCRIPT void NotifyIntersectionObservers();
 
   DOMIntersectionObserver* GetLazyLoadObserver() { return mLazyLoadObserver; }

@@ -912,8 +912,7 @@ NS_IMETHODIMP AppWindow::SetVisibility(bool aVisibility) {
   // which means content might be able to observe the old size unexpectedly.
   if (aVisibility && mDominantClientSize) {
     if (RefPtr doc = mDocShell->GetDocument()) {
-      doc->FlushPendingNotifications(FlushType::Layout);
-      doc->UpdateRemoteFrameEffects();
+      doc->SynchronouslyUpdateRemoteBrowserDimensions();
     }
   }
 
