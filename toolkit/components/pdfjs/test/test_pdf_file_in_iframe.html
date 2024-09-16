@@ -16,10 +16,7 @@
 
           async function test() {
             await SpecialPowers.pushPrefEnv({
-              "set": [
-                ["pdfjs.disabled", false],
-                ["pdfjs.enableFloatingToolbar", false],
-              ],
+              "set": [["pdfjs.disabled", false]],
             });
 
             const iframe = document.createElement("iframe");
