@@ -34,6 +34,9 @@ To be able to include it, a new dependency entry needs to be added to the projec
 Note that the relative path needs to be updated depending on the project's location
 in mozilla-central.
 
+After updating ``Cargo.toml``, ``cargo update -p gkrust-shared`` needs to be
+executed to update the ``Cargo.lock`` file.
+
 Registering Threads
 -------------------
 
