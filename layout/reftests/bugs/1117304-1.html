@@ -1,0 +1,20 @@
+<!--
+     Any copyright is dedicated to the Public Domain.
+     http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Bug 1117304 - Different surface formats for different input tiles in feTile filter</title>
+
+<div style="filter:url(#feTileFilter); height:100px;"></div>
+
+<svg style="height:0">
+  <defs>
+    <filter id="feTileFilter" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB"
+            x="0" y="0" width="400" height="100">
+      <feFlood x="300" width="10" flood-color="black"/>
+      <feOffset x="10" width="300"/>
+      <feTile width="300"/>
+    </filter>
+  </defs>
+</svg>
