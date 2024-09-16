@@ -159,7 +159,7 @@ Adapter::Adapter(Instance* const aParent, WebGPUChild* const aBridge,
       mId(aInfo->id),
       mFeatures(new SupportedFeatures(this)),
       mLimits(new SupportedLimits(this, aInfo->limits)),
-      mInfo(aInfo) {
+      mInfoInner(aInfo) {
   ErrorResult ignoredRv;  // It's onerous to plumb this in from outside in this
                           // case, and we don't really need to.
 
@@ -214,11 +214,11 @@ void Adapter::Cleanup() {
 const RefPtr<SupportedFeatures>& Adapter::Features() const { return mFeatures; }
 const RefPtr<SupportedLimits>& Adapter::Limits() const { return mLimits; }
 bool Adapter::IsFallbackAdapter() const {
-  return mInfo->device_type == ffi::WGPUDeviceType::WGPUDeviceType_Cpu;
+  return mInfoInner->device_type == ffi::WGPUDeviceType::WGPUDeviceType_Cpu;
 }
 
 bool Adapter::SupportExternalTextureInSwapChain() const {
-  return mInfo->support_use_external_texture_in_swap_chain;
+  return mInfoInner->support_use_external_texture_in_swap_chain;
 }
 
 static std::string_view ToJsKey(const Limit limit) {
@@ -497,7 +497,7 @@ already_AddRefed<dom::Promise> Adapter::RequestAdapterInfo(
   RefPtr<dom::Promise> promise = dom::Promise::Create(GetParentObject(), aRv);
   if (!promise) return nullptr;
 
-  auto rai = UniquePtr<AdapterInfo>{new AdapterInfo(mInfo)};
+  auto rai = UniquePtr<AdapterInfo>{new AdapterInfo(mInfoInner)};
   promise->MaybeResolve(std::move(rai));
   return promise.forget();
 }

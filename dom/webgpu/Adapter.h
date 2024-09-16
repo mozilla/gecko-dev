@@ -88,7 +88,7 @@ class Adapter final : public ObjectBase, public ChildOf<Instance> {
   RefPtr<SupportedFeatures> mFeatures;
   RefPtr<SupportedLimits> mLimits;
 
-  const std::shared_ptr<ffi::WGPUAdapterInformation> mInfo;
+  const std::shared_ptr<ffi::WGPUAdapterInformation> mInfoInner;
 
  public:
   Adapter(Instance* const aParent, WebGPUChild* const aBridge,
