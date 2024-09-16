@@ -351,19 +351,19 @@ namespace ChromeUtils {
                         optional ImportESModuleOptionsDictionary aOptions = {});
 
   /**
-   * Defines propertys on the given target which lazily imports a ES module
+   * Defines properties on the given target which lazily imports a ES module
    * when accessed.
    *
    * @param aTarget The target object on which to define the property.
    * @param aModules An object with a property for each module property to be
    *                 imported, where the property name is the name of the
    *                 imported symbol and the value is the module URI.
-   * @param aOption An option to specify where to load the module into.
+   * @param aOptions An option to specify where to load the module into.
    *
-   * In worker threads, aOption is required and only { global: "current" } and
+   * In worker threads, aOptions is required and only { global: "current" } and
    * { global: "contextual" } are supported.
    *
-   * In DevTools distinct global, aOptions.global is reuiqred.
+   * In DevTools distinct global, aOptions.global is required.
    */
   [Throws]
   undefined defineESModuleGetters(object aTarget, object aModules,
