@@ -1631,29 +1631,21 @@ nsITheme::Transparency Theme::GetWidgetTransparency(
   return eUnknownTransparency;
 }
 
-NS_IMETHODIMP
-Theme::WidgetStateChanged(nsIFrame* aFrame, StyleAppearance aAppearance,
-                          nsAtom* aAttribute, bool* aShouldRepaint,
-                          const nsAttrValue* aOldValue) {
-  if (!aAttribute) {
-    // Hover/focus/active changed.  Always repaint.
-    *aShouldRepaint = true;
-  } else {
-    // Check the attribute to see if it's relevant.
-    // disabled, checked, dlgtype, default, etc.
-    *aShouldRepaint = false;
-    if (aAttribute == nsGkAtoms::disabled || aAttribute == nsGkAtoms::checked ||
-        aAttribute == nsGkAtoms::selected ||
-        aAttribute == nsGkAtoms::visuallyselected ||
-        aAttribute == nsGkAtoms::menuactive ||
-        aAttribute == nsGkAtoms::sortDirection ||
-        aAttribute == nsGkAtoms::focused || aAttribute == nsGkAtoms::_default ||
-        aAttribute == nsGkAtoms::open || aAttribute == nsGkAtoms::hover) {
-      *aShouldRepaint = true;
-    }
-  }
-
-  return NS_OK;
+bool Theme::WidgetAttributeChangeRequiresRepaint(StyleAppearance aAppearance,
+                                                 nsAtom* aAttribute) {
+  // Check the attribute to see if it's relevant.
+  // TODO(emilio): The non-native theme doesn't use these attributes. Other
+  // themes do, but not all of them (and not all of the ones they check are
+  // here).
+  return aAttribute == nsGkAtoms::disabled ||
+         aAttribute == nsGkAtoms::checked ||
+         aAttribute == nsGkAtoms::selected ||
+         aAttribute == nsGkAtoms::visuallyselected ||
+         aAttribute == nsGkAtoms::menuactive ||
+         aAttribute == nsGkAtoms::sortDirection ||
+         aAttribute == nsGkAtoms::focused ||
+         aAttribute == nsGkAtoms::_default || aAttribute == nsGkAtoms::open ||
+         aAttribute == nsGkAtoms::hover;
 }
 
 NS_IMETHODIMP

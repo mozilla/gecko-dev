@@ -1127,58 +1127,16 @@ LayoutDeviceIntSize nsNativeThemeGTK::GetMinimumWidgetSize(
                                     GetWidgetScaleFactor(aFrame));
 }
 
-NS_IMETHODIMP
-nsNativeThemeGTK::WidgetStateChanged(nsIFrame* aFrame,
-                                     StyleAppearance aAppearance,
-                                     nsAtom* aAttribute, bool* aShouldRepaint,
-                                     const nsAttrValue* aOldValue) {
-  *aShouldRepaint = false;
-
-  if (IsWidgetNonNative(aFrame, aAppearance) != NonNative::No) {
-    return Theme::WidgetStateChanged(aFrame, aAppearance, aAttribute,
-                                     aShouldRepaint, aOldValue);
-  }
-
+bool nsNativeThemeGTK::WidgetAttributeChangeRequiresRepaint(
+    StyleAppearance aAppearance, nsAtom* aAttribute) {
   // Some widget types just never change state.
   if (aAppearance == StyleAppearance::Progresschunk ||
       aAppearance == StyleAppearance::ProgressBar ||
       aAppearance == StyleAppearance::Tooltip ||
       aAppearance == StyleAppearance::MozWindowDecorations) {
-    return NS_OK;
+    return false;
   }
-
-  if (aAppearance == StyleAppearance::MozWindowTitlebar ||
-      aAppearance == StyleAppearance::MozWindowTitlebarMaximized ||
-      aAppearance == StyleAppearance::MozWindowButtonClose ||
-      aAppearance == StyleAppearance::MozWindowButtonMinimize ||
-      aAppearance == StyleAppearance::MozWindowButtonMaximize ||
-      aAppearance == StyleAppearance::MozWindowButtonRestore) {
-    *aShouldRepaint = true;
-    return NS_OK;
-  }
-
-  // XXXdwh Not sure what can really be done here.  Can at least guess for
-  // specific widgets that they're highly unlikely to have certain states.
-  // For example, a toolbar doesn't care about any states.
-  if (!aAttribute) {
-    // Hover/focus/active changed.  Always repaint.
-    *aShouldRepaint = true;
-    return NS_OK;
-  }
-
-  // Check the attribute to see if it's relevant.
-  // disabled, checked, dlgtype, default, etc.
-  *aShouldRepaint = false;
-  if (aAttribute == nsGkAtoms::disabled || aAttribute == nsGkAtoms::checked ||
-      aAttribute == nsGkAtoms::selected ||
-      aAttribute == nsGkAtoms::visuallyselected ||
-      aAttribute == nsGkAtoms::focused || aAttribute == nsGkAtoms::readonly ||
-      aAttribute == nsGkAtoms::_default ||
-      aAttribute == nsGkAtoms::menuactive || aAttribute == nsGkAtoms::open) {
-    *aShouldRepaint = true;
-    return NS_OK;
-  }
-  return NS_OK;
+  return Theme::WidgetAttributeChangeRequiresRepaint(aAppearance, aAttribute);
 }
 
 NS_IMETHODIMP
