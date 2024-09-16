@@ -59,6 +59,7 @@
 dropmarker {
   pointer-events: none;
   flex: 0;
+  align-self: center;
 
   :host(:not([native])) & {
     display: flex;
