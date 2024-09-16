@@ -5081,13 +5081,6 @@ bool jit::MakeLoopsContiguous(MIRGraph& graph) {
       continue;
     }
 
-    // If there's an OSR block entering the loop in the middle, it's tricky,
-    // so don't try to handle it, for now.
-    if (canOsr) {
-      UnmarkLoopBlocks(graph, header);
-      continue;
-    }
-
     // Move all blocks between header and backedge that aren't marked to
     // the end of the loop, making the loop itself contiguous.
     MakeLoopContiguous(graph, header, numMarked);
