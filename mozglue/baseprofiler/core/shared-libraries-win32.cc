@@ -73,8 +73,9 @@ static bool IsModuleUnsafeToLoad(const std::string& aModuleName) {
   return false;
 }
 
-void SharedLibraryInfo::AddSharedLibraryFromModuleInfo(
-    const wchar_t* aModulePath, mozilla::Maybe<HMODULE> aModule) {
+void AddSharedLibraryFromModuleInfo(SharedLibraryInfo& sharedLibraryInfo,
+                                    const wchar_t* aModulePath,
+                                    mozilla::Maybe<HMODULE> aModule) {
   mozilla::UniquePtr<char[]> utf8ModulePath(
       mozilla::glue::WideToUTF8(aModulePath));
   if (!utf8ModulePath) {
@@ -172,7 +173,7 @@ void SharedLibraryInfo::AddSharedLibraryFromModuleInfo(
                       0,  // DLLs are always mapped at offset 0 on Windows
                       breakpadId, codeId, moduleNameStr, modulePathStr,
                       pdbNameStr, pdbPathStr, versionStr, "");
-  AddSharedLibrary(shlib);
+  sharedLibraryInfo.AddSharedLibrary(shlib);
 }
 
 SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
@@ -180,8 +181,8 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
 
   auto addSharedLibraryFromModuleInfo =
       [&sharedLibraryInfo](const wchar_t* aModulePath, HMODULE aModule) {
-        sharedLibraryInfo.AddSharedLibraryFromModuleInfo(
-            aModulePath, mozilla::Some(aModule));
+        AddSharedLibraryFromModuleInfo(sharedLibraryInfo, aModulePath,
+                                       mozilla::Some(aModule));
       };
 
   mozilla::EnumerateProcessModules(addSharedLibraryFromModuleInfo);
@@ -190,7 +191,7 @@ SharedLibraryInfo SharedLibraryInfo::GetInfoForSelf() {
 
 SharedLibraryInfo SharedLibraryInfo::GetInfoFromPath(const wchar_t* aPath) {
   SharedLibraryInfo sharedLibraryInfo;
-  sharedLibraryInfo.AddSharedLibraryFromModuleInfo(aPath, mozilla::Nothing());
+  AddSharedLibraryFromModuleInfo(sharedLibraryInfo, aPath, mozilla::Nothing());
   return sharedLibraryInfo;
 }
 

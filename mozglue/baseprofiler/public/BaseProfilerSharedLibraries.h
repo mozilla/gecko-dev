@@ -177,11 +177,6 @@ class SharedLibraryInfo {
   }
 
  private:
-#ifdef XP_WIN
-  void AddSharedLibraryFromModuleInfo(const wchar_t* aModulePath,
-                                      mozilla::Maybe<HMODULE> aModule);
-#endif
-
   std::vector<SharedLibrary> mEntries;
 };
 
