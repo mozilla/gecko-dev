@@ -272,8 +272,9 @@ class nsNativeThemeCocoa : public mozilla::widget::ThemeCocoa {
 
   LayoutDeviceIntSize GetMinimumWidgetSize(nsPresContext*, nsIFrame*,
                                            StyleAppearance) override;
-  bool WidgetAttributeChangeRequiresRepaint(StyleAppearance,
-                                            nsAtom* aAttribute) override;
+  NS_IMETHOD WidgetStateChanged(nsIFrame*, StyleAppearance, nsAtom* aAttribute,
+                                bool* aShouldRepaint,
+                                const nsAttrValue* aOldValue) override;
   NS_IMETHOD ThemeChanged() override;
   bool ThemeSupportsWidget(nsPresContext* aPresContext, nsIFrame*,
                            StyleAppearance) override;

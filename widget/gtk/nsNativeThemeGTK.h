@@ -64,8 +64,10 @@ class nsNativeThemeGTK final : public mozilla::widget::Theme {
       nsPresContext* aPresContext, nsIFrame* aFrame,
       StyleAppearance aAppearance) override;
 
-  bool WidgetAttributeChangeRequiresRepaint(StyleAppearance,
-                                            nsAtom* aAttribute) override;
+  NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, StyleAppearance aAppearance,
+                                nsAtom* aAttribute, bool* aShouldRepaint,
+                                const nsAttrValue* aOldValue) override;
+
   NS_IMETHOD ThemeChanged() override;
 
   NS_IMETHOD_(bool)

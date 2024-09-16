@@ -2871,8 +2871,11 @@ LayoutDeviceIntSize nsNativeThemeCocoa::GetMinimumWidgetSize(
   NS_OBJC_END_TRY_BLOCK_RETURN(LayoutDeviceIntSize());
 }
 
-bool nsNativeThemeCocoa::WidgetAttributeChangeRequiresRepaint(
-    StyleAppearance aAppearance, nsAtom* aAttribute) {
+NS_IMETHODIMP
+nsNativeThemeCocoa::WidgetStateChanged(nsIFrame* aFrame,
+                                       StyleAppearance aAppearance,
+                                       nsAtom* aAttribute, bool* aShouldRepaint,
+                                       const nsAttrValue* aOldValue) {
   // Some widget types just never change state.
   switch (aAppearance) {
     case StyleAppearance::MozWindowTitlebar:
@@ -2886,11 +2889,33 @@ bool nsNativeThemeCocoa::WidgetAttributeChangeRequiresRepaint(
     case StyleAppearance::ProgressBar:
     case StyleAppearance::Meter:
     case StyleAppearance::Meterchunk:
-      return false;
+      *aShouldRepaint = false;
+      return NS_OK;
     default:
       break;
   }
-  return Theme::WidgetAttributeChangeRequiresRepaint(aAppearance, aAttribute);
+
+  // XXXdwh Not sure what can really be done here.  Can at least guess for
+  // specific widgets that they're highly unlikely to have certain states.
+  // For example, a toolbar doesn't care about any states.
+  if (!aAttribute) {
+    // Hover/focus/active changed.  Always repaint.
+    *aShouldRepaint = true;
+  } else {
+    // Check the attribute to see if it's relevant.
+    // disabled, checked, dlgtype, default, etc.
+    *aShouldRepaint = false;
+    if (aAttribute == nsGkAtoms::disabled || aAttribute == nsGkAtoms::checked ||
+        aAttribute == nsGkAtoms::selected ||
+        aAttribute == nsGkAtoms::visuallyselected ||
+        aAttribute == nsGkAtoms::menuactive ||
+        aAttribute == nsGkAtoms::sortDirection ||
+        aAttribute == nsGkAtoms::focused || aAttribute == nsGkAtoms::_default ||
+        aAttribute == nsGkAtoms::open || aAttribute == nsGkAtoms::hover)
+      *aShouldRepaint = true;
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP

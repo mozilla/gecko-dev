@@ -179,9 +179,14 @@ class nsITheme : public nsISupports {
     return eUnknownTransparency;
   }
 
-  /** Returns whether an attribute change should trigger a repaint. */
-  virtual bool WidgetAttributeChangeRequiresRepaint(StyleAppearance,
-                                                    nsAtom* aAttribute);
+  /**
+   * Sets |*aShouldRepaint| to indicate whether an attribute or content state
+   * change should trigger a repaint.  Call with null |aAttribute| (and
+   * null |aOldValue|) for content state changes.
+   */
+  NS_IMETHOD WidgetStateChanged(nsIFrame* aFrame, StyleAppearance aWidgetType,
+                                nsAtom* aAttribute, bool* aShouldRepaint,
+                                const nsAttrValue* aOldValue) = 0;
 
   NS_IMETHOD ThemeChanged() = 0;
 
