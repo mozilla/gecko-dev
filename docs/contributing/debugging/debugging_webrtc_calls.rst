@@ -359,9 +359,6 @@ Alternatively one can set the following environment variable:
 
    MOZ_LOG="jsep:5,sdp:5,signaling:5,mtransport:5,nicer:5,RTCRtpReceiver:5,RTCRtpSender:5,RTCDMTFSender:5,VideoFrameConverter:5,WebrtcTCPSocket:5,CamerasChild:5,CamerasParent:5,VideoEngine:5,ShmemPool:5,TabShare:5,MediaChild:5,MediaParent:5,MediaManager:5,MediaTrackGraph:5,cubeb:5,MediaStream:5,MediaStreamTrack:5,DriftCompensator:5,ForwardInputTrack:5,MediaRecorder:5,MediaEncoder:5,TrackEncoder:5,VP8TrackEncoder:5,Muxer:5,GetUserMedia:5,MediaPipeline:5,PeerConnectionImpl:5,WebAudioAPI:5,webrtc_trace:5,RTCRtpTransceiver:5,ForwardedInputTrack:5,HTMLMediaElement:5,HTMLMediaElementEvents:5"
 
-Note that webrtc_trace will not be active until "Enable WebRTC Log
-Preset" is pressed.
-
 .. _standard-logging-modules:
 
 Standard Logging Modules
