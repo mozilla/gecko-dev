@@ -129,6 +129,14 @@ browser.engagement.navigation.*
       For ``urlbar`` or ``searchbar``, indicates the user confirmed a search
       suggestion.
 
+navigation.search (OBSOLETE)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+  This is a legacy and disabled event telemetry that is currently under
+  discussion for removal or modernization. It can't be enabled through a pref.
+  it's more or less equivalent to browser.engagement.navigation, but can also
+  report the picked search engine.
+
 SearchSERPTelemetry.sys.mjs
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 

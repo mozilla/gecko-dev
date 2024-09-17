@@ -288,6 +288,15 @@ class BrowserSearchTelemetryHandler {
       scalarKey,
       1
     );
+    Services.telemetry.recordEvent(
+      "navigation",
+      "search",
+      scalarSource,
+      action,
+      {
+        engine: engine.telemetryId,
+      }
+    );
   }
 
   /**

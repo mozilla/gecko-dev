@@ -113,6 +113,9 @@ add_setup(async function () {
   let oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
 
+  // Enable event recording for the events tested here.
+  Services.telemetry.setEventRecordingEnabled("navigation", true);
+
   // Clear history so that history added by previous tests doesn't mess up this
   // test when it selects results in the urlbar.
   await PlacesUtils.history.clear();
@@ -134,6 +137,7 @@ add_setup(async function () {
     Services.prefs.setBoolPref(SUGGEST_URLBAR_PREF, suggestionsEnabled);
     await PlacesUtils.history.clear();
     await UrlbarTestUtils.formHistory.clear();
+    Services.telemetry.setEventRecordingEnabled("navigation", false);
   });
 });
 
@@ -185,6 +189,20 @@ add_task(async function test_simpleQuery() {
     undefined
   );
 
+  // Also check events.
+  TelemetryTestUtils.assertEvents(
+    [
+      [
+        "navigation",
+        "search",
+        "urlbar",
+        "enter",
+        { engine: "other-MozSearch" },
+      ],
+    ],
+    { category: "navigation", method: "search" }
+  );
+
   TelemetryTestUtils.assertHistogram(
     resultMethodHist,
     UrlbarTestUtils.SELECTED_RESULT_METHODS.enter,
@@ -225,6 +243,20 @@ add_task(async function test_searchMode_enter() {
     Object.keys(scalars[SCALAR_SEARCHMODE]).length,
     1,
     "This search must only increment one entry in the scalar."
+  );
+
+  // Also check events.
+  TelemetryTestUtils.assertEvents(
+    [
+      [
+        "navigation",
+        "search",
+        "urlbar_searchmode",
+        "enter",
+        { engine: "other-MozSearch" },
+      ],
+    ],
+    { category: "navigation", method: "search" }
   );
 
   TelemetryTestUtils.assertHistogram(
@@ -299,6 +331,20 @@ add_task(async function test_oneOff_enter() {
     search_hist,
     "other-MozSearch.alias",
     undefined
+  );
+
+  // Also check events.
+  TelemetryTestUtils.assertEvents(
+    [
+      [
+        "navigation",
+        "search",
+        "urlbar_searchmode",
+        "enter",
+        { engine: "other-MozSearch" },
+      ],
+    ],
+    { category: "navigation", method: "search" }
   );
 
   TelemetryTestUtils.assertHistogram(
@@ -459,6 +505,20 @@ add_task(async function test_suggestion_click() {
       1
     );
 
+    // Also check events.
+    TelemetryTestUtils.assertEvents(
+      [
+        [
+          "navigation",
+          "search",
+          "urlbar",
+          "suggestion",
+          { engine: searchEngineId },
+        ],
+      ],
+      { category: "navigation", method: "search" }
+    );
+
     TelemetryTestUtils.assertHistogram(
       resultMethodHist,
       UrlbarTestUtils.SELECTED_RESULT_METHODS.click,
@@ -614,6 +674,20 @@ add_task(async function test_searchmode_suggestion_click() {
       search_hist,
       searchEngineId + ".urlbar-searchmode",
       1
+    );
+
+    // Also check events.
+    TelemetryTestUtils.assertEvents(
+      [
+        [
+          "navigation",
+          "search",
+          "urlbar_searchmode",
+          "suggestion",
+          { engine: searchEngineId },
+        ],
+      ],
+      { category: "navigation", method: "search" }
     );
 
     TelemetryTestUtils.assertHistogram(
@@ -782,6 +856,20 @@ add_task(async function test_formHistory_click() {
       search_hist,
       searchEngineId + ".urlbar",
       1
+    );
+
+    // Also check events.
+    TelemetryTestUtils.assertEvents(
+      [
+        [
+          "navigation",
+          "search",
+          "urlbar",
+          "formhistory",
+          { engine: searchEngineId },
+        ],
+      ],
+      { category: "navigation", method: "search" }
     );
 
     TelemetryTestUtils.assertHistogram(
