@@ -1541,6 +1541,8 @@ abstract class BaseBrowserFragment :
                                     },
                                 )
                             }
+                        } else {
+                            restoreBrowserToolbarAfterMicrosurveyPrompt(browserToolbar)
                         }
 
                         if (isToolbarAtBottom) {
@@ -1744,6 +1746,7 @@ abstract class BaseBrowserFragment :
         }
     }
 
+    @Suppress("LongMethod")
     private fun initializeMicrosurveyPrompt() {
         val context = requireContext()
         val view = requireView()
@@ -1799,6 +1802,8 @@ abstract class BaseBrowserFragment :
                                     },
                                 )
                             }
+                        } else {
+                            restoreBrowserToolbarAfterMicrosurveyPrompt(browserToolbar)
                         }
 
                         if (isToolbarAtBottom) {
@@ -1842,6 +1847,15 @@ abstract class BaseBrowserFragment :
         )
         browserToolbar.background = drawable
         browserToolbar.elevation = 0.0f
+    }
+
+    private fun restoreBrowserToolbarAfterMicrosurveyPrompt(browserToolbar: BrowserToolbar) {
+        val defaultBackground = ResourcesCompat.getDrawable(
+            resources,
+            R.drawable.toolbar_background,
+            context?.theme,
+        )
+        browserToolbar.background = defaultBackground
     }
 
     private var currentMicrosurvey: MicrosurveyUIData? = null
