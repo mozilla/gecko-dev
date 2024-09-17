@@ -73,8 +73,7 @@ class AudioChannelTest : public ::testing::Test {
     // simplify network routing logic.
     rtc::scoped_refptr<AudioChannel> audio_channel =
         rtc::make_ref_counted<AudioChannel>(
-            &transport_, ssrc, &env_.task_queue_factory(), audio_mixer_.get(),
-            decoder_factory_);
+            env_, &transport_, ssrc, audio_mixer_.get(), decoder_factory_);
     audio_channel->SetEncoder(
         kPcmuPayload, kPcmuFormat,
         encoder_factory_->Create(env_, kPcmuFormat,

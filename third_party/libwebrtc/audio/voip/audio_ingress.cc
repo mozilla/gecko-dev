@@ -41,18 +41,18 @@ acm2::AcmReceiver::Config CreateAcmConfig(
 }  // namespace
 
 AudioIngress::AudioIngress(
+    const Environment& env,
     RtpRtcpInterface* rtp_rtcp,
-    Clock* clock,
     ReceiveStatistics* receive_statistics,
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory)
-    : playing_(false),
+    : env_(env),
+      playing_(false),
       remote_ssrc_(0),
       first_rtp_timestamp_(-1),
       rtp_receive_statistics_(receive_statistics),
       rtp_rtcp_(rtp_rtcp),
       acm_receiver_(CreateAcmConfig(decoder_factory)),
-      ntp_estimator_(clock),
-      clock_(clock) {}
+      ntp_estimator_(&env_.clock()) {}
 
 AudioIngress::~AudioIngress() = default;
 
@@ -186,8 +186,8 @@ void AudioIngress::ReceivedRTPPacket(rtc::ArrayView<const uint8_t> rtp_packet) {
   auto data_view = rtc::ArrayView<const uint8_t>(payload, payload_data_length);
 
   // Push the incoming payload (parsed and ready for decoding) into the ACM.
-  if (acm_receiver_.InsertPacket(header, data_view, clock_->CurrentTime()) !=
-      0) {
+  if (acm_receiver_.InsertPacket(header, data_view,
+                                 env_.clock().CurrentTime()) != 0) {
     RTC_DLOG(LS_ERROR) << "AudioIngress::ReceivedRTPPacket() unable to "
                           "push data to the ACM";
   }
