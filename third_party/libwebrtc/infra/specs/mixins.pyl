@@ -157,19 +157,19 @@
       }
     }
   },
-  'mac_12_x64': {
+  'mac_14_arm64': {
     'swarming': {
       'dimensions': {
-        'cpu': 'x86-64',
-        'os': 'Mac-12'
+        'cpu': 'arm64',
+        'os': 'Mac-14'
       }
     }
   },
-  'mac_13_x64': {
+  'mac_14_x64': {
     'swarming': {
       'dimensions': {
         'cpu': 'x86-64',
-        'os': 'Mac-13'
+        'os': 'Mac-14'
       }
     }
   },
