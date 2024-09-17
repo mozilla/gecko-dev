@@ -1,8 +1,7 @@
 import asyncio
+
 import pytest
-
 from tests.bidi import get_viewport_dimensions
-
 
 pytestmark = pytest.mark.asyncio
 
