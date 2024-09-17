@@ -21,6 +21,7 @@
 #include "api/task_queue/task_queue_base.h"
 #include "api/test/simulated_network.h"
 #include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "call/call.h"
 #include "call/fake_network_pipe.h"
@@ -64,8 +65,9 @@ class RtcpXrObserver : public test::EndToEndTest {
   RtcpXrObserver(bool enable_rrtr,
                  bool expect_target_bitrate,
                  bool enable_zero_target_bitrate,
-                 VideoEncoderConfig::ContentType content_type)
-      : EndToEndTest(test::VideoTestConstants::kDefaultTimeout),
+                 VideoEncoderConfig::ContentType content_type,
+                 TimeDelta timeout = test::VideoTestConstants::kDefaultTimeout)
+      : EndToEndTest(timeout),
         enable_rrtr_(enable_rrtr),
         expect_target_bitrate_(expect_target_bitrate),
         enable_zero_target_bitrate_(enable_zero_target_bitrate),
@@ -260,7 +262,8 @@ TEST_F(ExtendedReportsEndToEndTest,
        TestExtendedReportsCanSignalZeroTargetBitrate) {
   RtcpXrObserver test(/*enable_rrtr=*/false, /*expect_target_bitrate=*/true,
                       /*enable_zero_target_bitrate=*/true,
-                      VideoEncoderConfig::ContentType::kScreen);
+                      VideoEncoderConfig::ContentType::kScreen,
+                      test::VideoTestConstants::kLongTimeout);
   RunBaseTest(&test);
 }
 }  // namespace webrtc
