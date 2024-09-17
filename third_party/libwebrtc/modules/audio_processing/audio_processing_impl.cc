@@ -1454,7 +1454,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
       // TODO(bugs.webrtc.org/7494): Let AGC2 detect applied input volume
       // changes.
       submodules_.gain_controller2->Process(
-          /*speech_probability=*/std::nullopt,
+          /*speech_probability=*/absl::nullopt,
           capture_.applied_input_volume_changed, capture_buffer);
     }
 
