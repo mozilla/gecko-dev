@@ -152,7 +152,6 @@ rtc_library("audio_processing") {
     ":audio_frame_view",
     ":gain_controller2",
     ":high_pass_filter",
-    ":optionally_built_submodule_creators",
     ":rms_level",
     "../../api:array_view",
     "../../api:function_view",
@@ -191,7 +190,6 @@ rtc_library("audio_processing") {
     "agc2:input_volume_stats_reporter",
     "capture_levels_adjuster",
     "ns",
-    "transient:transient_suppressor_api",
     "vad",
     "//third_party/abseil-cpp/absl/base:nullability",
     "//third_party/abseil-cpp/absl/strings",
@@ -236,17 +234,6 @@ rtc_library("residual_echo_detector") {
     "../../rtc_base:logging",
     "../../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/types:optional",
-  ]
-}
-
-rtc_library("optionally_built_submodule_creators") {
-  sources = [
-    "optionally_built_submodule_creators.cc",
-    "optionally_built_submodule_creators.h",
-  ]
-  deps = [
-    "transient:transient_suppressor_api",
-    "transient:transient_suppressor_impl",
   ]
 }
 
@@ -435,7 +422,6 @@ if (rtc_include_tests) {
           ":audioproc_protobuf_utils",
           ":audioproc_test_utils",
           ":audioproc_unittest_proto",
-          ":optionally_built_submodule_creators",
           ":residual_echo_detector",
           ":rms_level",
           ":runtime_settings_protobuf_utils",

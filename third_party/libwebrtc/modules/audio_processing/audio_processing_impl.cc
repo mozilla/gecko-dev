@@ -31,7 +31,6 @@
 #include "modules/audio_processing/audio_buffer.h"
 #include "modules/audio_processing/include/audio_frame_view.h"
 #include "modules/audio_processing/logging/apm_data_dumper.h"
-#include "modules/audio_processing/optionally_built_submodule_creators.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/field_trial_parser.h"
 #include "rtc_base/logging.h"
@@ -324,12 +323,6 @@ constexpr int kUnspecifiedDataDumpInputVolume = -100;
 // Throughout webrtc, it's assumed that success is represented by zero.
 static_assert(AudioProcessing::kNoError == 0, "kNoError must be zero");
 
-bool AudioProcessingImpl::UseApmVadSubModule(
-    const AudioProcessing::Config& config) {
-  // Without "WebRTC-Audio-GainController2" always return false.
-  return false;
-}
-
 AudioProcessingImpl::SubmoduleStates::SubmoduleStates(
     bool capture_post_processor_enabled,
     bool render_pre_processor_enabled,
@@ -344,10 +337,8 @@ bool AudioProcessingImpl::SubmoduleStates::Update(
     bool noise_suppressor_enabled,
     bool adaptive_gain_controller_enabled,
     bool gain_controller2_enabled,
-    bool voice_activity_detector_enabled,
     bool gain_adjustment_enabled,
-    bool echo_controller_enabled,
-    bool transient_suppressor_enabled) {
+    bool echo_controller_enabled) {
   bool changed = false;
   changed |= (high_pass_filter_enabled != high_pass_filter_enabled_);
   changed |=
@@ -356,21 +347,16 @@ bool AudioProcessingImpl::SubmoduleStates::Update(
   changed |=
       (adaptive_gain_controller_enabled != adaptive_gain_controller_enabled_);
   changed |= (gain_controller2_enabled != gain_controller2_enabled_);
-  changed |=
-      (voice_activity_detector_enabled != voice_activity_detector_enabled_);
   changed |= (gain_adjustment_enabled != gain_adjustment_enabled_);
   changed |= (echo_controller_enabled != echo_controller_enabled_);
-  changed |= (transient_suppressor_enabled != transient_suppressor_enabled_);
   if (changed) {
     high_pass_filter_enabled_ = high_pass_filter_enabled;
     mobile_echo_controller_enabled_ = mobile_echo_controller_enabled;
     noise_suppressor_enabled_ = noise_suppressor_enabled;
     adaptive_gain_controller_enabled_ = adaptive_gain_controller_enabled;
     gain_controller2_enabled_ = gain_controller2_enabled;
-    voice_activity_detector_enabled_ = voice_activity_detector_enabled;
     gain_adjustment_enabled_ = gain_adjustment_enabled;
     echo_controller_enabled_ = echo_controller_enabled;
-    transient_suppressor_enabled_ = transient_suppressor_enabled;
   }
 
   changed |= first_update_;
@@ -447,7 +433,6 @@ AudioProcessingImpl::AudioProcessingImpl(
     : data_dumper_(new ApmDataDumper(instance_count_.fetch_add(1) + 1)),
       use_setup_specific_default_aec3_config_(
           UseSetupSpecificDefaultAec3Congfig()),
-      transient_suppressor_vad_mode_(TransientSuppressor::VadMode::kDefault),
       capture_runtime_settings_(RuntimeSettingQueueSize()),
       render_runtime_settings_(RuntimeSettingQueueSize()),
       capture_runtime_settings_enqueuer_(&capture_runtime_settings_),
@@ -466,8 +451,7 @@ AudioProcessingImpl::AudioProcessingImpl(
                  !field_trial::IsEnabled(
                      "WebRTC-ApmExperimentalMultiChannelCaptureKillSwitch"),
                  EnforceSplitBandHpf(),
-                 MinimizeProcessingForUnusedOutput(),
-                 field_trial::IsEnabled("WebRTC-TransientSuppressorForcedOff")),
+                 MinimizeProcessingForUnusedOutput()),
       capture_(),
       capture_nonlocked_(),
       applied_input_volume_stats_reporter_(
@@ -486,6 +470,10 @@ AudioProcessingImpl::AudioProcessingImpl(
   if (!DenormalDisabler::IsSupported()) {
     RTC_LOG(LS_INFO) << "Denormal disabler unsupported";
   }
+
+  // TODO(bugs.webrtc.org/7494): Remove transient suppression from the config.
+  // Disable for clarity; enabling transient suppression has no effect.
+  config_.transient_suppression.enabled = false;
 
   RTC_LOG(LS_INFO) << "AudioProcessing: " << config_.ToString();
 
@@ -588,12 +576,10 @@ void AudioProcessingImpl::InitializeLocked() {
   AllocateRenderQueue();
 
   InitializeGainController1();
-  InitializeTransientSuppressor();
   InitializeHighPassFilter(true);
   InitializeResidualEchoDetector();
   InitializeEchoController();
   InitializeGainController2();
-  InitializeVoiceActivityDetector();
   InitializeNoiseSuppressor();
   InitializeAnalyzer();
   InitializePostProcessor();
@@ -714,9 +700,6 @@ void AudioProcessingImpl::ApplyConfig(const AudioProcessing::Config& config) {
       config_.noise_suppression.enabled != config.noise_suppression.enabled ||
       config_.noise_suppression.level != config.noise_suppression.level;
 
-  const bool ts_config_changed = config_.transient_suppression.enabled !=
-                                 config.transient_suppression.enabled;
-
   const bool pre_amplifier_config_changed =
       config_.pre_amplifier.enabled != config.pre_amplifier.enabled ||
       config_.pre_amplifier.fixed_gain_factor !=
@@ -727,16 +710,16 @@ void AudioProcessingImpl::ApplyConfig(const AudioProcessing::Config& config) {
 
   config_ = config;
 
+  // TODO(bugs.webrtc.org/7494): Remove transient suppression from the config.
+  // Disable for clarity; enabling transient suppression has no effect.
+  config_.transient_suppression.enabled = false;
+
   if (aec_config_changed) {
     InitializeEchoController();
   }
 
   if (ns_config_changed) {
     InitializeNoiseSuppressor();
-  }
-
-  if (ts_config_changed) {
-    InitializeTransientSuppressor();
   }
 
   InitializeHighPassFilter(false);
@@ -752,11 +735,8 @@ void AudioProcessingImpl::ApplyConfig(const AudioProcessing::Config& config) {
     config_.gain_controller2 = AudioProcessing::Config::GainController2();
   }
 
-  if (agc2_config_changed || ts_config_changed) {
-    // AGC2 also depends on TS because of the possible dependency on the APM VAD
-    // sub-module.
+  if (agc2_config_changed) {
     InitializeGainController2();
-    InitializeVoiceActivityDetector();
   }
 
   if (pre_amplifier_config_changed || gain_adjustment_config_changed) {
@@ -768,12 +748,6 @@ void AudioProcessingImpl::ApplyConfig(const AudioProcessing::Config& config) {
   if (pipeline_config_changed) {
     InitializeLocked(formats_.api_format);
   }
-}
-
-void AudioProcessingImpl::OverrideSubmoduleCreationForTesting(
-    const ApmSubmoduleCreationOverrides& overrides) {
-  MutexLock lock(&mutex_capture_);
-  submodule_creation_overrides_ = overrides;
 }
 
 int AudioProcessingImpl::proc_sample_rate_hz() const {
@@ -1471,42 +1445,6 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
                                       capture_buffer->num_frames()));
     }
 
-    absl::optional<float> voice_probability;
-    if (!!submodules_.voice_activity_detector) {
-      voice_probability =
-          submodules_.voice_activity_detector->Analyze(capture_buffer->view());
-    }
-
-    if (submodules_.transient_suppressor) {
-      float transient_suppressor_voice_probability = 1.0f;
-      switch (transient_suppressor_vad_mode_) {
-        case TransientSuppressor::VadMode::kDefault:
-          if (submodules_.agc_manager) {
-            transient_suppressor_voice_probability =
-                submodules_.agc_manager->voice_probability();
-          }
-          break;
-        case TransientSuppressor::VadMode::kRnnVad:
-          RTC_DCHECK(voice_probability.has_value());
-          transient_suppressor_voice_probability = *voice_probability;
-          break;
-        case TransientSuppressor::VadMode::kNoVad:
-          // The transient suppressor will ignore `voice_probability`.
-          break;
-      }
-      float delayed_voice_probability =
-          submodules_.transient_suppressor->Suppress(
-              capture_buffer->channels()[0], capture_buffer->num_frames(),
-              capture_buffer->num_channels(),
-              capture_buffer->split_bands_const(0)[kBand0To8kHz],
-              capture_buffer->num_frames_per_band(),
-              /*reference_data=*/nullptr, /*reference_length=*/0,
-              transient_suppressor_voice_probability, capture_.key_pressed);
-      if (voice_probability.has_value()) {
-        *voice_probability = delayed_voice_probability;
-      }
-    }
-
     // Experimental APM sub-module that analyzes `capture_buffer`.
     if (submodules_.capture_analyzer) {
       submodules_.capture_analyzer->Analyze(capture_buffer);
@@ -1516,8 +1454,8 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
       // TODO(bugs.webrtc.org/7494): Let AGC2 detect applied input volume
       // changes.
       submodules_.gain_controller2->Process(
-          voice_probability, capture_.applied_input_volume_changed,
-          capture_buffer);
+          /*speech_probability=*/std::nullopt,
+          capture_.applied_input_volume_changed, capture_buffer);
     }
 
     if (submodules_.capture_post_processor) {
@@ -1916,43 +1854,9 @@ bool AudioProcessingImpl::UpdateActiveSubmoduleStates() {
   return submodule_states_.Update(
       config_.high_pass_filter.enabled, !!submodules_.echo_control_mobile,
       !!submodules_.noise_suppressor, !!submodules_.gain_control,
-      !!submodules_.gain_controller2, !!submodules_.voice_activity_detector,
+      !!submodules_.gain_controller2,
       config_.pre_amplifier.enabled || config_.capture_level_adjustment.enabled,
-      capture_nonlocked_.echo_controller_enabled,
-      !!submodules_.transient_suppressor);
-}
-
-void AudioProcessingImpl::InitializeTransientSuppressor() {
-  // Choose the VAD mode for TS and detect a VAD mode change.
-  const TransientSuppressor::VadMode previous_vad_mode =
-      transient_suppressor_vad_mode_;
-  transient_suppressor_vad_mode_ = TransientSuppressor::VadMode::kDefault;
-  if (UseApmVadSubModule(config_)) {
-    transient_suppressor_vad_mode_ = TransientSuppressor::VadMode::kRnnVad;
-  }
-  const bool vad_mode_changed =
-      previous_vad_mode != transient_suppressor_vad_mode_;
-
-  if (config_.transient_suppression.enabled &&
-      !constants_.transient_suppressor_forced_off) {
-    // Attempt to create a transient suppressor, if one is not already created.
-    if (!submodules_.transient_suppressor || vad_mode_changed) {
-      submodules_.transient_suppressor = CreateTransientSuppressor(
-          submodule_creation_overrides_, transient_suppressor_vad_mode_,
-          proc_fullband_sample_rate_hz(), capture_nonlocked_.split_rate,
-          num_proc_channels());
-      if (!submodules_.transient_suppressor) {
-        RTC_LOG(LS_WARNING)
-            << "No transient suppressor created (probably disabled)";
-      }
-    } else {
-      submodules_.transient_suppressor->Initialize(
-          proc_fullband_sample_rate_hz(), capture_nonlocked_.split_rate,
-          num_proc_channels());
-    }
-  } else {
-    submodules_.transient_suppressor.reset();
-  }
+      capture_nonlocked_.echo_controller_enabled);
 }
 
 void AudioProcessingImpl::InitializeHighPassFilter(bool forced_reset) {
@@ -2140,26 +2044,12 @@ void AudioProcessingImpl::InitializeGainController2() {
   // AGC2.
   const InputVolumeController::Config input_volume_controller_config =
       InputVolumeController::Config{};
-  // If the APM VAD sub-module is not used, let AGC2 use its internal VAD.
-  const bool use_internal_vad = !UseApmVadSubModule(config_);
   submodules_.gain_controller2 = std::make_unique<GainController2>(
       config_.gain_controller2, input_volume_controller_config,
-      proc_fullband_sample_rate_hz(), num_output_channels(), use_internal_vad);
+      proc_fullband_sample_rate_hz(), num_output_channels(),
+      /*use_internal_vad=*/true);
   submodules_.gain_controller2->SetCaptureOutputUsed(
       capture_.capture_output_used);
-}
-
-void AudioProcessingImpl::InitializeVoiceActivityDetector() {
-  if (!UseApmVadSubModule(config_)) {
-    submodules_.voice_activity_detector.reset();
-    return;
-  }
-
-  // TODO(bugs.webrtc.org/13663): Cache CPU features in APM and use here.
-  submodules_.voice_activity_detector =
-      std::make_unique<VoiceActivityDetectorWrapper>(
-          submodules_.gain_controller2->GetCpuFeatures(),
-          proc_fullband_sample_rate_hz());
 }
 
 void AudioProcessingImpl::InitializeNoiseSuppressor() {
@@ -2296,8 +2186,9 @@ void AudioProcessingImpl::WriteAecDumpConfigMessage(bool forced) {
   apm_config.ns_enabled = config_.noise_suppression.enabled;
   apm_config.ns_level = static_cast<int>(config_.noise_suppression.level);
 
-  apm_config.transient_suppression_enabled =
-      config_.transient_suppression.enabled;
+  // TODO(bugs.webrtc.org/7494): Remove transient suppression from the config.
+  // Disable for clarity; enabling transient suppression has no effect.
+  apm_config.transient_suppression_enabled = false;
   apm_config.experiments_description = experiments_description;
   apm_config.pre_amplifier_enabled = config_.pre_amplifier.enabled;
   apm_config.pre_amplifier_fixed_gain_factor =

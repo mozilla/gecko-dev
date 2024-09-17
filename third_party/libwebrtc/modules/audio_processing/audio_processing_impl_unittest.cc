@@ -19,7 +19,6 @@
 #include "api/audio/audio_processing.h"
 #include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"
-#include "modules/audio_processing/optionally_built_submodule_creators.h"
 #include "modules/audio_processing/test/audio_processing_builder_for_testing.h"
 #include "modules/audio_processing/test/echo_canceller_test_tools.h"
 #include "modules/audio_processing/test/echo_control_mock.h"
@@ -633,151 +632,6 @@ TEST(AudioProcessingImplTest, RenderPreProcessorBeforeEchoDetector) {
             test_echo_detector->last_render_audio_first_sample());
 }
 
-// Disabling build-optional submodules and trying to enable them via the APM
-// config should be bit-exact with running APM with said submodules disabled.
-// This mainly tests that SetCreateOptionalSubmodulesForTesting has an effect.
-TEST(ApmWithSubmodulesExcludedTest, BitexactWithDisabledModules) {
-  auto apm = rtc::make_ref_counted<AudioProcessingImpl>();
-  ASSERT_EQ(apm->Initialize(), AudioProcessing::kNoError);
-
-  ApmSubmoduleCreationOverrides overrides;
-  overrides.transient_suppression = true;
-  apm->OverrideSubmoduleCreationForTesting(overrides);
-
-  AudioProcessing::Config apm_config = apm->GetConfig();
-  apm_config.transient_suppression.enabled = true;
-  apm->ApplyConfig(apm_config);
-
-  rtc::scoped_refptr<AudioProcessing> apm_reference =
-      AudioProcessingBuilder().Create();
-  apm_config = apm_reference->GetConfig();
-  apm_config.transient_suppression.enabled = false;
-  apm_reference->ApplyConfig(apm_config);
-
-  constexpr int kSampleRateHz = 16000;
-  constexpr int kNumChannels = 1;
-  std::array<float, kSampleRateHz / 100> buffer;
-  std::array<float, kSampleRateHz / 100> buffer_reference;
-  float* channel_pointers[] = {buffer.data()};
-  float* channel_pointers_reference[] = {buffer_reference.data()};
-  StreamConfig stream_config(/*sample_rate_hz=*/kSampleRateHz,
-                             /*num_channels=*/kNumChannels);
-  Random random_generator(2341U);
-  constexpr int kFramesToProcessPerConfiguration = 10;
-
-  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
-    RandomizeSampleVector(&random_generator, buffer);
-    std::copy(buffer.begin(), buffer.end(), buffer_reference.begin());
-    ASSERT_EQ(apm->ProcessStream(channel_pointers, stream_config, stream_config,
-                                 channel_pointers),
-              kNoErr);
-    ASSERT_EQ(
-        apm_reference->ProcessStream(channel_pointers_reference, stream_config,
-                                     stream_config, channel_pointers_reference),
-        kNoErr);
-    for (int j = 0; j < kSampleRateHz / 100; ++j) {
-      EXPECT_EQ(buffer[j], buffer_reference[j]);
-    }
-  }
-}
-
-// Disable transient suppressor creation and run APM in ways that should trigger
-// calls to the transient suppressor API.
-TEST(ApmWithSubmodulesExcludedTest, ReinitializeTransientSuppressor) {
-  auto apm = rtc::make_ref_counted<AudioProcessingImpl>();
-  ASSERT_EQ(apm->Initialize(), kNoErr);
-
-  ApmSubmoduleCreationOverrides overrides;
-  overrides.transient_suppression = true;
-  apm->OverrideSubmoduleCreationForTesting(overrides);
-
-  AudioProcessing::Config config = apm->GetConfig();
-  config.transient_suppression.enabled = true;
-  apm->ApplyConfig(config);
-  // 960 samples per frame: 10 ms of <= 48 kHz audio with <= 2 channels.
-  float buffer[960];
-  float* channel_pointers[] = {&buffer[0], &buffer[480]};
-  Random random_generator(2341U);
-  constexpr int kFramesToProcessPerConfiguration = 3;
-
-  StreamConfig initial_stream_config(/*sample_rate_hz=*/16000,
-                                     /*num_channels=*/1);
-  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
-    RandomizeSampleVector(&random_generator, buffer);
-    EXPECT_EQ(apm->ProcessStream(channel_pointers, initial_stream_config,
-                                 initial_stream_config, channel_pointers),
-              kNoErr);
-  }
-
-  StreamConfig stereo_stream_config(/*sample_rate_hz=*/16000,
-                                    /*num_channels=*/2);
-  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
-    RandomizeSampleVector(&random_generator, buffer);
-    EXPECT_EQ(apm->ProcessStream(channel_pointers, stereo_stream_config,
-                                 stereo_stream_config, channel_pointers),
-              kNoErr);
-  }
-
-  StreamConfig high_sample_rate_stream_config(/*sample_rate_hz=*/48000,
-                                              /*num_channels=*/2);
-  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
-    RandomizeSampleVector(&random_generator, buffer);
-    EXPECT_EQ(
-        apm->ProcessStream(channel_pointers, high_sample_rate_stream_config,
-                           high_sample_rate_stream_config, channel_pointers),
-        kNoErr);
-  }
-}
-
-// Disable transient suppressor creation and run APM in ways that should trigger
-// calls to the transient suppressor API.
-TEST(ApmWithSubmodulesExcludedTest, ToggleTransientSuppressor) {
-  auto apm = rtc::make_ref_counted<AudioProcessingImpl>();
-  ASSERT_EQ(apm->Initialize(), AudioProcessing::kNoError);
-
-  ApmSubmoduleCreationOverrides overrides;
-  overrides.transient_suppression = true;
-  apm->OverrideSubmoduleCreationForTesting(overrides);
-
-  //  960 samples per frame: 10 ms of <= 48 kHz audio with <= 2 channels.
-  float buffer[960];
-  float* channel_pointers[] = {&buffer[0], &buffer[480]};
-  Random random_generator(2341U);
-  constexpr int kFramesToProcessPerConfiguration = 3;
-  StreamConfig stream_config(/*sample_rate_hz=*/16000,
-                             /*num_channels=*/1);
-
-  AudioProcessing::Config config = apm->GetConfig();
-  config.transient_suppression.enabled = true;
-  apm->ApplyConfig(config);
-  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
-    RandomizeSampleVector(&random_generator, buffer);
-    EXPECT_EQ(apm->ProcessStream(channel_pointers, stream_config, stream_config,
-                                 channel_pointers),
-              kNoErr);
-  }
-
-  config = apm->GetConfig();
-  config.transient_suppression.enabled = false;
-  apm->ApplyConfig(config);
-  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
-    RandomizeSampleVector(&random_generator, buffer);
-    EXPECT_EQ(apm->ProcessStream(channel_pointers, stream_config, stream_config,
-                                 channel_pointers),
-              kNoErr);
-  }
-
-  config = apm->GetConfig();
-  config.transient_suppression.enabled = true;
-  apm->ApplyConfig(config);
-  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
-    RandomizeSampleVector(&random_generator, buffer);
-    EXPECT_EQ(apm->ProcessStream(channel_pointers, stream_config, stream_config,
-                                 channel_pointers),
-              kNoErr);
-  }
-}
-
 class StartupInputVolumeParameterizedTest
     : public ::testing::TestWithParam<int> {};
 
@@ -1026,6 +880,53 @@ TEST_P(Agc2ParametrizedTest, ProcessSucceedsWhenOneAgcEnabled) {
   }
 }
 
+TEST_P(Agc2ParametrizedTest,
+       BitExactWithAndWithoutTransientSuppressionEnabledInConfig) {
+  // Enable transient suppression in the config (expect no effect).
+  auto config = GetParam();
+  config.transient_suppression.enabled = true;
+  auto apm = AudioProcessingBuilder().SetConfig(config).Create();
+  ASSERT_EQ(apm->Initialize(), AudioProcessing::kNoError);
+  // Disable transient suppression in the config.
+  auto config_reference = GetParam();
+  config_reference.transient_suppression.enabled = false;
+  auto apm_reference =
+      AudioProcessingBuilder().SetConfig(config_reference).Create();
+  ASSERT_EQ(apm_reference->Initialize(), AudioProcessing::kNoError);
+
+  constexpr int kSampleRateHz = 16000;
+  constexpr int kNumChannels = 1;
+  std::array<float, kSampleRateHz / 100> buffer;
+  std::array<float, kSampleRateHz / 100> buffer_reference;
+  float* channel_pointers[] = {buffer.data()};
+  float* channel_pointers_reference[] = {buffer_reference.data()};
+  StreamConfig stream_config(/*sample_rate_hz=*/kSampleRateHz,
+                             /*num_channels=*/kNumChannels);
+  Random random_generator(2341U);
+  constexpr int kFramesToProcessPerConfiguration = 100;
+  int volume = 100;
+  int volume_reference = 100;
+  for (int i = 0; i < kFramesToProcessPerConfiguration; ++i) {
+    RandomizeSampleVector(&random_generator, buffer);
+    std::copy(buffer.begin(), buffer.end(), buffer_reference.begin());
+    apm->set_stream_analog_level(volume);
+    apm_reference->set_stream_analog_level(volume_reference);
+    ASSERT_EQ(apm->ProcessStream(channel_pointers, stream_config, stream_config,
+                                 channel_pointers),
+              kNoErr);
+    ASSERT_EQ(
+        apm_reference->ProcessStream(channel_pointers_reference, stream_config,
+                                     stream_config, channel_pointers_reference),
+        kNoErr);
+    volume = apm->recommended_stream_analog_level();
+    volume_reference = apm_reference->recommended_stream_analog_level();
+    for (int j = 0; j < kSampleRateHz / 100; ++j) {
+      // Expect no effect from transient suppression.
+      EXPECT_EQ(buffer[j], buffer_reference[j]);
+    }
+  }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     AudioProcessingImplTest,
     Agc2ParametrizedTest,
@@ -1033,14 +934,6 @@ INSTANTIATE_TEST_SUITE_P(
         // Full AGC1, TS disabled.
         AudioProcessing::Config{
             .transient_suppression = {.enabled = false},
-            .gain_controller1 =
-                {.enabled = true,
-                 .analog_gain_controller = {.enabled = true,
-                                            .enable_digital_adaptive = true}},
-            .gain_controller2 = {.enabled = false}},
-        // Full AGC1, TS enabled.
-        AudioProcessing::Config{
-            .transient_suppression = {.enabled = true},
             .gain_controller1 =
                 {.enabled = true,
                  .analog_gain_controller = {.enabled = true,
@@ -1055,28 +948,9 @@ INSTANTIATE_TEST_SUITE_P(
                                             .enable_digital_adaptive = false}},
             .gain_controller2 = {.enabled = true,
                                  .adaptive_digital = {.enabled = true}}},
-        // Hybrid AGC, TS enabled.
-        AudioProcessing::Config{
-            .transient_suppression = {.enabled = true},
-            .gain_controller1 =
-                {.enabled = true,
-                 .analog_gain_controller = {.enabled = true,
-                                            .enable_digital_adaptive = false}},
-            .gain_controller2 = {.enabled = true,
-                                 .adaptive_digital = {.enabled = true}}},
         // Full AGC2, TS disabled.
         AudioProcessing::Config{
             .transient_suppression = {.enabled = false},
-            .gain_controller1 =
-                {.enabled = false,
-                 .analog_gain_controller = {.enabled = false,
-                                            .enable_digital_adaptive = false}},
-            .gain_controller2 = {.enabled = true,
-                                 .input_volume_controller = {.enabled = true},
-                                 .adaptive_digital = {.enabled = true}}},
-        // Full AGC2, TS enabled.
-        AudioProcessing::Config{
-            .transient_suppression = {.enabled = true},
             .gain_controller1 =
                 {.enabled = false,
                  .analog_gain_controller = {.enabled = false,
@@ -1101,20 +975,20 @@ TEST(AudioProcessingImplTest, CanDisableTransientSuppressor) {
   EXPECT_FALSE(apm->GetConfig().transient_suppression.enabled);
 }
 
-TEST(AudioProcessingImplTest, CanEnableTs) {
+TEST(AudioProcessingImplTest, CannotEnableTs) {
   constexpr AudioProcessing::Config kOriginal = {
       .transient_suppression = {.enabled = true}};
 
   // Test config application via `AudioProcessing` ctor.
   auto adjusted =
       AudioProcessingBuilder().SetConfig(kOriginal).Create()->GetConfig();
-  EXPECT_TRUE(adjusted.transient_suppression.enabled);
+  EXPECT_FALSE(adjusted.transient_suppression.enabled);
 
   // Test config application via `AudioProcessing::ApplyConfig()`.
   auto apm = AudioProcessingBuilder().Create();
   apm->ApplyConfig(kOriginal);
   adjusted = apm->GetConfig();
-  EXPECT_TRUE(adjusted.transient_suppression.enabled);
+  EXPECT_FALSE(adjusted.transient_suppression.enabled);
 }
 
 }  // namespace webrtc

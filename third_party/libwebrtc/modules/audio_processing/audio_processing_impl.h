@@ -40,10 +40,8 @@
 #include "modules/audio_processing/include/aec_dump.h"
 #include "modules/audio_processing/include/audio_frame_proxies.h"
 #include "modules/audio_processing/ns/noise_suppressor.h"
-#include "modules/audio_processing/optionally_built_submodule_creators.h"
 #include "modules/audio_processing/render_queue_item_verifier.h"
 #include "modules/audio_processing/rms_level.h"
-#include "modules/audio_processing/transient/transient_suppressor.h"
 #include "rtc_base/gtest_prod_util.h"
 #include "rtc_base/swap_queue.h"
 #include "rtc_base/synchronization/mutex.h"
@@ -157,20 +155,11 @@ class AudioProcessingImpl : public AudioProcessing {
   FRIEND_TEST_ALL_PREFIXES(ApmConfiguration, DefaultBehavior);
   FRIEND_TEST_ALL_PREFIXES(ApmConfiguration, ValidConfigBehavior);
   FRIEND_TEST_ALL_PREFIXES(ApmConfiguration, InValidConfigBehavior);
-  FRIEND_TEST_ALL_PREFIXES(ApmWithSubmodulesExcludedTest,
-                           ToggleTransientSuppressor);
-  FRIEND_TEST_ALL_PREFIXES(ApmWithSubmodulesExcludedTest,
-                           ReinitializeTransientSuppressor);
-  FRIEND_TEST_ALL_PREFIXES(ApmWithSubmodulesExcludedTest,
-                           BitexactWithDisabledModules);
 
   void set_stream_analog_level_locked(int level)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
   void UpdateRecommendedInputVolumeLocked()
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
-
-  void OverrideSubmoduleCreationForTesting(
-      const ApmSubmoduleCreationOverrides& overrides);
 
   // Class providing thread-safe message pipe functionality for
   // `runtime_settings_`.
@@ -190,12 +179,6 @@ class AudioProcessingImpl : public AudioProcessing {
   const std::unique_ptr<ApmDataDumper> data_dumper_;
   static std::atomic<int> instance_count_;
   const bool use_setup_specific_default_aec3_config_;
-
-  // Deprecated.
-  // TODO(bugs.webrtc.org/7494): Remove.
-  static bool UseApmVadSubModule(const AudioProcessing::Config& config);
-
-  TransientSuppressor::VadMode transient_suppressor_vad_mode_;
 
   SwapQueue<RuntimeSetting> capture_runtime_settings_;
   SwapQueue<RuntimeSetting> render_runtime_settings_;
@@ -217,10 +200,8 @@ class AudioProcessingImpl : public AudioProcessing {
                 bool noise_suppressor_enabled,
                 bool adaptive_gain_controller_enabled,
                 bool gain_controller2_enabled,
-                bool voice_activity_detector_enabled,
                 bool gain_adjustment_enabled,
-                bool echo_controller_enabled,
-                bool transient_suppressor_enabled);
+                bool echo_controller_enabled);
     bool CaptureMultiBandSubModulesActive() const;
     bool CaptureMultiBandProcessingPresent() const;
     bool CaptureMultiBandProcessingActive(bool ec_processing_active) const;
@@ -239,11 +220,9 @@ class AudioProcessingImpl : public AudioProcessing {
     bool mobile_echo_controller_enabled_ = false;
     bool noise_suppressor_enabled_ = false;
     bool adaptive_gain_controller_enabled_ = false;
-    bool voice_activity_detector_enabled_ = false;
     bool gain_controller2_enabled_ = false;
     bool gain_adjustment_enabled_ = false;
     bool echo_controller_enabled_ = false;
-    bool transient_suppressor_enabled_ = false;
     bool first_update_ = true;
   };
 
@@ -280,18 +259,9 @@ class AudioProcessingImpl : public AudioProcessing {
   void InitializeHighPassFilter(bool forced_reset)
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
   void InitializeGainController1() RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
-  void InitializeTransientSuppressor()
-      RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
   // Initializes the `GainController2` sub-module. If the sub-module is enabled,
   // recreates it.
   void InitializeGainController2() RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
-  // Initializes the `VoiceActivityDetectorWrapper` sub-module. If the
-  // sub-module is enabled, recreates it. Call `InitializeGainController2()`
-  // first.
-  // TODO(bugs.webrtc.org/13663): Remove if TS is removed otherwise remove call
-  // order requirement - i.e., decouple from `InitializeGainController2()`.
-  void InitializeVoiceActivityDetector()
-      RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
   void InitializeNoiseSuppressor() RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
   void InitializeCaptureLevelsAdjuster()
       RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_capture_);
@@ -386,10 +356,6 @@ class AudioProcessingImpl : public AudioProcessing {
   // Struct containing the Config specifying the behavior of APM.
   AudioProcessing::Config config_;
 
-  // Overrides for testing the exclusion of some submodules from the build.
-  ApmSubmoduleCreationOverrides submodule_creation_overrides_
-      RTC_GUARDED_BY(mutex_capture_);
-
   // Class containing information about what submodules are active.
   SubmoduleStates submodule_states_;
 
@@ -411,12 +377,10 @@ class AudioProcessingImpl : public AudioProcessing {
     std::unique_ptr<AgcManagerDirect> agc_manager;
     std::unique_ptr<GainControlImpl> gain_control;
     std::unique_ptr<GainController2> gain_controller2;
-    std::unique_ptr<VoiceActivityDetectorWrapper> voice_activity_detector;
     std::unique_ptr<HighPassFilter> high_pass_filter;
     std::unique_ptr<EchoControl> echo_controller;
     std::unique_ptr<EchoControlMobileImpl> echo_control_mobile;
     std::unique_ptr<NoiseSuppressor> noise_suppressor;
-    std::unique_ptr<TransientSuppressor> transient_suppressor;
     std::unique_ptr<CaptureLevelsAdjuster> capture_levels_adjuster;
   } submodules_;
 
@@ -442,19 +406,16 @@ class AudioProcessingImpl : public AudioProcessing {
     ApmConstants(bool multi_channel_render_support,
                  bool multi_channel_capture_support,
                  bool enforce_split_band_hpf,
-                 bool minimize_processing_for_unused_output,
-                 bool transient_suppressor_forced_off)
+                 bool minimize_processing_for_unused_output)
         : multi_channel_render_support(multi_channel_render_support),
           multi_channel_capture_support(multi_channel_capture_support),
           enforce_split_band_hpf(enforce_split_band_hpf),
           minimize_processing_for_unused_output(
-              minimize_processing_for_unused_output),
-          transient_suppressor_forced_off(transient_suppressor_forced_off) {}
+              minimize_processing_for_unused_output) {}
     bool multi_channel_render_support;
     bool multi_channel_capture_support;
     bool enforce_split_band_hpf;
     bool minimize_processing_for_unused_output;
-    bool transient_suppressor_forced_off;
   } constants_;
 
   struct ApmCaptureState {

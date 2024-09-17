@@ -118,7 +118,7 @@ index 3073050988..e1a590558f 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index d03f7c4246..53f1d958b1 100644
+index 6f1844d661..6e3cc8de4c 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -141,7 +141,7 @@ index d03f7c4246..53f1d958b1 100644
    if (!rtc_builtin_ssl_root_certificates) {
      defines += [ "WEBRTC_EXCLUDE_BUILT_IN_SSL_ROOT_CERTS" ]
    }
-@@ -509,9 +513,11 @@ config("common_config") {
+@@ -505,9 +509,11 @@ config("common_config") {
    }
  }
  
@@ -153,7 +153,7 @@ index d03f7c4246..53f1d958b1 100644
  
  if (!build_with_chromium) {
    # Target to build all the WebRTC production code.
-@@ -562,6 +568,34 @@ if (!build_with_chromium) {
+@@ -558,6 +564,34 @@ if (!build_with_chromium) {
        "sdk",
        "video",
      ]
@@ -188,7 +188,7 @@ index d03f7c4246..53f1d958b1 100644
  
      if (rtc_include_builtin_audio_codecs) {
        deps += [
-@@ -574,6 +608,16 @@ if (!build_with_chromium) {
+@@ -570,6 +604,16 @@ if (!build_with_chromium) {
        deps += [
          "api/video:video_frame",
          "api/video:video_rtp_headers",
@@ -1317,7 +1317,7 @@ index a23d4bb6ce..369894c236 100644
      "../api/adaptation:resource_adaptation_api",
      "../api/environment",
 diff --git a/webrtc.gni b/webrtc.gni
-index 3f0e7feccb..c7d1b523a9 100644
+index 45293063a9..98c1dd279f 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -35,6 +35,11 @@ if (is_mac) {
@@ -1407,7 +1407,7 @@ index 3f0e7feccb..c7d1b523a9 100644
  
    # Set this to true to enable the avx2 support in webrtc.
    # TODO: Make sure that AVX2 works also for non-clang compilers.
-@@ -350,6 +357,9 @@ declare_args() {
+@@ -346,6 +353,9 @@ declare_args() {
    rtc_enable_grpc = rtc_enable_protobuf && (is_linux || is_mac)
  }
  
@@ -1417,7 +1417,7 @@ index 3f0e7feccb..c7d1b523a9 100644
  # Make it possible to provide custom locations for some libraries (move these
  # up into declare_args should we need to actually use them for the GN build).
  rtc_libvpx_dir = "//third_party/libvpx"
-@@ -1193,7 +1203,7 @@ if (is_mac || is_ios) {
+@@ -1189,7 +1199,7 @@ if (is_mac || is_ios) {
    }
  }
  
