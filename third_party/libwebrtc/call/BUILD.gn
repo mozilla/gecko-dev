@@ -115,6 +115,7 @@ rtc_library("rtp_interfaces") {
     "../api:frame_transformer_interface",
     "../api:network_state_predictor_api",
     "../api:rtp_headers",
+    "../api:rtp_packet_sender",
     "../api:rtp_parameters",
     "../api/crypto:options",
     "../api/environment",

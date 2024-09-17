@@ -21,8 +21,6 @@ rtc_library("rtp_rtcp_format") {
     "include/rtcp_statistics.h",
     "include/rtp_cvo.h",
     "include/rtp_header_extension_map.h",
-    "include/rtp_packet_sender.h",  # Kept for compatibility with downstream
-                                    # projects
     "include/rtp_rtcp_defines.h",
     "source/byte_io.h",
     "source/rtcp_packet.h",
