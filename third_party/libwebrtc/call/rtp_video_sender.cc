@@ -124,11 +124,10 @@ bool ShouldDisableRedAndUlpfec(bool flexfec_enabled,
 
 // TODO(brandtr): Update this function when we support multistream protection.
 std::unique_ptr<VideoFecGenerator> MaybeCreateFecGenerator(
-    Clock* clock,
+    const Environment& env,
     const RtpConfig& rtp,
     const std::map<uint32_t, RtpState>& suspended_ssrcs,
-    int simulcast_index,
-    const FieldTrialsView& trials) {
+    int simulcast_index) {
   // If flexfec is configured that takes priority.
   if (rtp.flexfec.payload_type >= 0) {
     RTC_DCHECK_GE(rtp.flexfec.payload_type, 0);
@@ -171,14 +170,15 @@ std::unique_ptr<VideoFecGenerator> MaybeCreateFecGenerator(
     return std::make_unique<FlexfecSender>(
         rtp.flexfec.payload_type, rtp.flexfec.ssrc,
         rtp.flexfec.protected_media_ssrcs[0], rtp.mid, rtp.extensions,
-        RTPSender::FecExtensionSizes(), rtp_state, clock);
+        RTPSender::FecExtensionSizes(), rtp_state, &env.clock());
   } else if (rtp.ulpfec.red_payload_type >= 0 &&
              rtp.ulpfec.ulpfec_payload_type >= 0 &&
              !ShouldDisableRedAndUlpfec(/*flexfec_enabled=*/false, rtp,
-                                        trials)) {
+                                        env.field_trials())) {
     // Flexfec not configured, but ulpfec is and is not disabled.
-    return std::make_unique<UlpfecGenerator>(
-        rtp.ulpfec.red_payload_type, rtp.ulpfec.ulpfec_payload_type, clock);
+    return std::make_unique<UlpfecGenerator>(rtp.ulpfec.red_payload_type,
+                                             rtp.ulpfec.ulpfec_payload_type,
+                                             &env.clock());
   }
 
   // Not a single FEC is given.
@@ -186,25 +186,21 @@ std::unique_ptr<VideoFecGenerator> MaybeCreateFecGenerator(
 }
 
 std::vector<RtpStreamSender> CreateRtpStreamSenders(
-    Clock* clock,
+    const Environment& env,
     const RtpConfig& rtp_config,
     const RtpSenderObservers& observers,
     int rtcp_report_interval_ms,
     Transport* send_transport,
     RtpTransportControllerSendInterface* transport,
     const std::map<uint32_t, RtpState>& suspended_ssrcs,
-    RtcEventLog* event_log,
     RateLimiter* retransmission_rate_limiter,
     FrameEncryptorInterface* frame_encryptor,
     const CryptoOptions& crypto_options,
-    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
-    const FieldTrialsView& trials,
-    TaskQueueFactory* task_queue_factory) {
+    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer) {
   RTC_DCHECK_GT(rtp_config.ssrcs.size(), 0);
-  RTC_DCHECK(task_queue_factory);
 
   RtpRtcpInterface::Configuration configuration;
-  configuration.clock = clock;
+  configuration.clock = &env.clock();
   configuration.audio = false;
   configuration.receiver_only = false;
   configuration.outgoing_transport = send_transport;
@@ -222,8 +218,8 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
   configuration.paced_sender = transport->packet_sender();
   configuration.send_bitrate_observer = observers.bitrate_observer;
   configuration.send_packet_observer = observers.send_packet_observer;
-  configuration.event_log = event_log;
-  if (trials.IsDisabled("WebRTC-DisableRtxRateLimiter")) {
+  configuration.event_log = &env.event_log();
+  if (env.field_trials().IsDisabled("WebRTC-DisableRtxRateLimiter")) {
     configuration.retransmission_rate_limiter = retransmission_rate_limiter;
   }
   configuration.rtp_stats_callback = observers.rtp_stats;
@@ -232,7 +228,7 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
       crypto_options.sframe.require_frame_encryption;
   configuration.extmap_allow_mixed = rtp_config.extmap_allow_mixed;
   configuration.rtcp_report_interval_ms = rtcp_report_interval_ms;
-  configuration.field_trials = &trials;
+  configuration.field_trials = &env.field_trials();
   configuration.enable_send_packet_batching =
       rtp_config.enable_send_packet_batching;
 
@@ -251,7 +247,7 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
     configuration.local_media_ssrc = rtp_config.ssrcs[i];
 
     std::unique_ptr<VideoFecGenerator> fec_generator =
-        MaybeCreateFecGenerator(clock, rtp_config, suspended_ssrcs, i, trials);
+        MaybeCreateFecGenerator(env, rtp_config, suspended_ssrcs, i);
     configuration.fec_generator = fec_generator.get();
 
     configuration.rtx_send_ssrc =
@@ -276,7 +272,7 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
     video_config.frame_encryptor = frame_encryptor;
     video_config.require_frame_encryption =
         crypto_options.sframe.require_frame_encryption;
-    video_config.field_trials = &trials;
+    video_config.field_trials = &env.field_trials();
     video_config.enable_retransmit_all_layers =
         !video_config.field_trials->IsDisabled(
             "WebRTC-Video-EnableRetransmitAllLayers");
@@ -284,8 +280,8 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
     const bool using_flexfec =
         fec_generator &&
         fec_generator->GetFecType() == VideoFecGenerator::FecType::kFlexFec;
-    const bool should_disable_red_and_ulpfec =
-        ShouldDisableRedAndUlpfec(using_flexfec, rtp_config, trials);
+    const bool should_disable_red_and_ulpfec = ShouldDisableRedAndUlpfec(
+        using_flexfec, rtp_config, env.field_trials());
     if (!should_disable_red_and_ulpfec &&
         rtp_config.ulpfec.red_payload_type != -1) {
       video_config.red_payload_type = rtp_config.ulpfec.red_payload_type;
@@ -295,7 +291,7 @@ std::vector<RtpStreamSender> CreateRtpStreamSenders(
       video_config.fec_overhead_bytes = fec_generator->MaxPacketOverhead();
     }
     video_config.frame_transformer = frame_transformer;
-    video_config.task_queue_factory = task_queue_factory;
+    video_config.task_queue_factory = &env.task_queue_factory();
     auto sender_video = std::make_unique<RTPSenderVideo>(video_config);
     rtp_streams.emplace_back(std::move(rtp_rtcp), std::move(sender_video),
                              std::move(fec_generator));
@@ -359,7 +355,7 @@ bool IsFirstFrameOfACodedVideoSequence(
 }  // namespace
 
 RtpVideoSender::RtpVideoSender(
-    Clock* clock,
+    const Environment& env,
     const std::map<uint32_t, RtpState>& suspended_ssrcs,
     const std::map<uint32_t, RtpPayloadState>& states,
     const RtpConfig& rtp_config,
@@ -367,43 +363,37 @@ RtpVideoSender::RtpVideoSender(
     Transport* send_transport,
     const RtpSenderObservers& observers,
     RtpTransportControllerSendInterface* transport,
-    RtcEventLog* event_log,
     RateLimiter* retransmission_limiter,
     std::unique_ptr<FecController> fec_controller,
     FrameEncryptorInterface* frame_encryptor,
     const CryptoOptions& crypto_options,
-    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
-    const FieldTrialsView& field_trials,
-    TaskQueueFactory* task_queue_factory)
-    : field_trials_(field_trials),
+    rtc::scoped_refptr<FrameTransformerInterface> frame_transformer)
+    : env_(env),
       use_frame_rate_for_overhead_(absl::StartsWith(
-          field_trials_.Lookup("WebRTC-Video-UseFrameRateForOverhead"),
+          env.field_trials().Lookup("WebRTC-Video-UseFrameRateForOverhead"),
           "Enabled")),
       has_packet_feedback_(TransportSeqNumExtensionConfigured(rtp_config)),
       active_(false),
       fec_controller_(std::move(fec_controller)),
       fec_allowed_(true),
-      rtp_streams_(CreateRtpStreamSenders(clock,
+      rtp_streams_(CreateRtpStreamSenders(env,
                                           rtp_config,
                                           observers,
                                           rtcp_report_interval_ms,
                                           send_transport,
                                           transport,
                                           suspended_ssrcs,
-                                          event_log,
                                           retransmission_limiter,
                                           frame_encryptor,
                                           crypto_options,
-                                          std::move(frame_transformer),
-                                          field_trials_,
-                                          task_queue_factory)),
+                                          std::move(frame_transformer))),
       rtp_config_(rtp_config),
       codec_type_(GetVideoCodecType(rtp_config)),
       transport_(transport),
       independent_frame_ids_(
-          !field_trials_.IsDisabled(
+          !env.field_trials().IsDisabled(
               "WebRTC-Video-SimulcastIndependentFrameIds") &&
-          field_trials_.IsDisabled("WebRTC-GenericDescriptorAuth")),
+          env.field_trials().IsDisabled("WebRTC-GenericDescriptorAuth")),
       transport_overhead_bytes_per_packet_(0),
       encoder_target_rate_bps_(0),
       frame_counts_(rtp_config.ssrcs.size()),
@@ -421,7 +411,7 @@ RtpVideoSender::RtpVideoSender(
       state = &it->second;
       shared_frame_id_ = std::max(shared_frame_id_, state->shared_frame_id);
     }
-    params_.push_back(RtpPayloadParams(ssrc, state, field_trials_));
+    params_.push_back(RtpPayloadParams(ssrc, state, env.field_trials()));
   }
 
   // RTP/RTCP initialization.
