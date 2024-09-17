@@ -749,6 +749,12 @@ if (rtc_include_tests && !build_with_chromium) {
       ]
       shard_timeout = 900
     }
+
+    # Link unit tests against OpenSSL when not building with BoringSSL.
+    ldflags = []
+    if (!rtc_build_ssl) {
+      ldflags += [ "-lssl" ]
+    }
   }
 
   if (rtc_enable_google_benchmarks) {

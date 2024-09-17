@@ -18,6 +18,8 @@ if (!rtc_build_ssl) {
     assert(rtc_ssl_root != "",
            "You must specify rtc_ssl_root when rtc_build_ssl==0.")
     include_dirs = [ rtc_ssl_root ]
+
+    # Note: do not link against OpenSSL here.
   }
 }
 
@@ -1624,6 +1626,7 @@ if (!build_with_mozilla) {
       "openssl_identity.cc",
       "openssl_identity.h",
     ]
+    deps += [ ":crypto_random" ]
 
     configs += [ ":external_ssl_library" ]
   }
