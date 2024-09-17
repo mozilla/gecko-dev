@@ -127,6 +127,7 @@ fatal warnings:
     - "WARNING: Non-consecutive header level"
     - "WARNING: Document headings start at"
     - "WARNING: Parsing of expression failed"
+    - "WARNING: Title underline too short"
 
 # A regexp of errors we currently allow so that we can fail on new errors,
 # but resolve these at a later date. Please do not add new items to this list
@@ -144,4 +145,4 @@ allowed_errors:
     - "security/nss/releases/nss_3_94\\.rst.* ERROR: Unknown target name:"
     - "security/nss/getting_started\\.rst.* CRITICAL: Unexpected section title"
 
-max_num_warnings: 794
+max_num_warnings: 781
