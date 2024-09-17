@@ -10,7 +10,21 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Sqlite: "resource://gre/modules/Sqlite.sys.mjs",
   BackupError: "resource:///modules/backup/BackupError.mjs",
   ERRORS: "chrome://browser/content/backup/backup-constants.mjs",
+  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
+
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "isBrowsingHistoryEnabled",
+  "places.history.enabled",
+  true
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "isSanitizeOnShutdownEnabled",
+  "privacy.sanitize.sanitizeOnShutdown",
+  false
+);
 
 // Convert from bytes to kilobytes (not kibibytes).
 export const BYTES_IN_KB = 1000;
@@ -223,6 +237,20 @@ export class BackupResource {
         await IOUtils.copy(sourceFilePath, destFilePath, { recursive: true });
       }
     }
+  }
+
+  /**
+   * Returns true if the browser is configured in such a way that backing up
+   * things related to browsing history is allowed. Otherwise, returns false.
+   *
+   * @returns {boolean}
+   */
+  static canBackupHistory() {
+    return (
+      !lazy.PrivateBrowsingUtils.permanentPrivateBrowsing &&
+      !lazy.isSanitizeOnShutdownEnabled &&
+      lazy.isBrowsingHistoryEnabled
+    );
   }
 
   constructor() {}
