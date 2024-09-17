@@ -21,14 +21,6 @@ import sys
 import urllib.request
 
 
-def FindSrcDirPath():
-    """Returns the abs path to the src/ dir of the project."""
-    src_dir = os.path.dirname(os.path.abspath(__file__))
-    while os.path.basename(src_dir) != 'src':
-        src_dir = os.path.normpath(os.path.join(src_dir, os.pardir))
-    return src_dir
-
-
 # Skip these dependencies (list without solution name prefix).
 DONT_AUTOROLL_THESE = [
     'src/examples/androidtests/third_party/gradle',
@@ -66,7 +58,8 @@ CLANG_REVISION_RE = re.compile(r'^CLANG_REVISION = \'([-0-9a-z]+)\'$')
 ROLL_BRANCH_NAME = 'roll_chromium_revision'
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-CHECKOUT_SRC_DIR = FindSrcDirPath()
+CHECKOUT_SRC_DIR = os.path.realpath(
+    os.path.join(SCRIPT_DIR, os.pardir, os.pardir))
 CHECKOUT_ROOT_DIR = os.path.realpath(os.path.join(CHECKOUT_SRC_DIR, os.pardir))
 
 # Copied from tools/android/roll/android_deps/.../BuildConfigGenerator.groovy.

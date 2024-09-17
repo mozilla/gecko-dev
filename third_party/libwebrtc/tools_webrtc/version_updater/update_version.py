@@ -19,16 +19,10 @@ import subprocess
 import sys
 
 
-def find_src_dir_path():
-    """Returns the abs path to the src/ dir of the project."""
-    src_dir = os.path.dirname(os.path.abspath(__file__))
-    while os.path.basename(src_dir) != 'src':
-        src_dir = os.path.normpath(os.path.join(src_dir, os.pardir))
-    return src_dir
-
-
 UPDATE_BRANCH_NAME = 'webrtc_version_update'
-CHECKOUT_SRC_DIR = find_src_dir_path()
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+CHECKOUT_SRC_DIR = os.path.realpath(
+  os.path.join(SCRIPT_DIR, os.pardir, os.pardir))
 
 NOTIFY_EMAIL = 'webrtc-trooper@webrtc.org'
 
