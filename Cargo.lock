@@ -1812,6 +1812,7 @@ version = "0.1.0"
 dependencies = [
  "bincode",
  "chrono",
+ "gecko-profiler",
  "glean",
  "inherent",
  "log",
