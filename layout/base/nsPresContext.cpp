@@ -297,7 +297,8 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
 #ifdef DEBUG
       mInitialized(false),
 #endif
-      mOverriddenOrEmbedderColorScheme(dom::PrefersColorSchemeOverride::None) {
+      mOverriddenOrEmbedderColorScheme(dom::PrefersColorSchemeOverride::None),
+      mForcedColors(StyleForcedColors::None) {
 #ifdef DEBUG
   PodZero(&mLayoutPhaseCount);
 #endif
@@ -328,6 +329,7 @@ nsPresContext::nsPresContext(dom::Document* aDocument, nsPresContextType aType)
   }
 
   UpdateFontVisibility();
+  UpdateForcedColors(/* aNotify = */ false);
 }
 
 static const char* gExactCallbackPrefs[] = {
@@ -617,6 +619,7 @@ void nsPresContext::PreferenceChanged(const char* aPrefName) {
   if (PreferenceSheet::AffectedByPref(prefName)) {
     restyleHint |= RestyleHint::RestyleSubtree();
     PreferenceSheet::Refresh();
+    UpdateForcedColors();
   }
 
   // Same, this just frees a bunch of memory.
@@ -734,6 +737,46 @@ nsresult nsPresContext::Init(nsDeviceContext* aDeviceContext) {
 #endif
 
   return NS_OK;
+}
+
+void nsPresContext::UpdateForcedColors(bool aNotify) {
+  auto old = mForcedColors;
+  mForcedColors = [&] {
+    if (Document()->IsBeingUsedAsImage()) {
+      return StyleForcedColors::None;
+    }
+
+    // TODO: Handle BrowsingContext override.
+
+    const auto& prefs = PrefSheetPrefs();
+    if (!prefs.mUseDocumentColors) {
+      return StyleForcedColors::Active;
+    }
+    // On Windows, having a high contrast theme also means that the OS is
+    // requesting the colors to be forced. This is mostly convenience for the
+    // front-end, which wants to reuse the forced-colors styles for chrome in
+    // this case as well, and it's a lot more convenient to use
+    // `(forced-colors)` than `(forced-colors) or ((-moz-platform: windows) and
+    // (prefers-contrast))`.
+    //
+    // TODO(emilio): We might want to factor in here the lwtheme attribute in
+    // the root element and so on.
+#ifdef XP_WINDOWS
+    if (prefs.mUseAccessibilityTheme && prefs.mIsChrome) {
+      return StyleForcedColors::Requested;
+    }
+#endif
+    return StyleForcedColors::None;
+  }();
+  if (aNotify && mForcedColors != old) {
+    MediaFeatureValuesChanged(
+        MediaFeatureChange::ForPreferredColorSchemeOrForcedColorsChange(),
+        MediaFeatureChangePropagation::JustThisDocument);
+  }
+}
+
+bool nsPresContext::ForcingColors() const {
+  return mForcedColors == StyleForcedColors::Active;
 }
 
 bool nsPresContext::UpdateFontVisibility() {
@@ -924,7 +967,7 @@ void nsPresContext::SetColorSchemeOverride(
 
   if (mDocument->PreferredColorScheme() != oldScheme) {
     MediaFeatureValuesChanged(
-        MediaFeatureChange::ForPreferredColorSchemeChange(),
+        MediaFeatureChange::ForPreferredColorSchemeOrForcedColorsChange(),
         MediaFeatureChangePropagation::JustThisDocument);
   }
 }
@@ -962,6 +1005,8 @@ void nsPresContext::RecomputeBrowsingContextDependentData() {
     }
     return browsingContext->GetEmbedderColorSchemes().mPreferred;
   }());
+
+  UpdateForcedColors();
 
   SetInRDMPane(top->GetInRDMPane());
 
@@ -1845,6 +1890,7 @@ void nsPresContext::ThemeChangedInternal() {
   LookAndFeel::HandleGlobalThemeChange();
 
   // Full zoom might have changed as a result of the text scale factor.
+  // Forced colors might also have changed.
   RecomputeBrowsingContextDependentData();
 
   // Changes to system metrics and other look and feel values can change media
@@ -1949,7 +1995,7 @@ void nsPresContext::EmulateMedium(nsAtom* aMediaType) {
 
   MediaFeatureChange change(MediaFeatureChangeReason::MediumChange);
   if (oldScheme != mDocument->PreferredColorScheme()) {
-    change |= MediaFeatureChange::ForPreferredColorSchemeChange();
+    change |= MediaFeatureChange::ForPreferredColorSchemeOrForcedColorsChange();
   }
   MediaFeatureValuesChanged(change,
                             MediaFeatureChangePropagation::JustThisDocument);
