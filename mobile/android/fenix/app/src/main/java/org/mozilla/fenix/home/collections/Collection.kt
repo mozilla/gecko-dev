@@ -5,7 +5,6 @@
 package org.mozilla.fenix.home.collections
 
 import android.content.Context
-import android.content.res.Configuration
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -29,7 +28,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.recover.RecoverableTab
 import mozilla.components.concept.engine.Engine
@@ -40,10 +38,10 @@ import org.mozilla.fenix.R.drawable
 import org.mozilla.fenix.R.string
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.MenuItem
+import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.ext.getIconColor
 import org.mozilla.fenix.theme.FirefoxTheme
-import org.mozilla.fenix.theme.Theme
 
 /**
  * Rectangular shape with all corners rounded used to display a collapsed collection.
@@ -75,7 +73,7 @@ fun Collection(
     onCollectionShareTabsClicked: (TabCollection) -> Unit,
 ) {
     var isMenuExpanded by remember(collection) { mutableStateOf(false) }
-    val isExpanded by remember(collection) { mutableStateOf(expanded) }
+    val isExpanded by remember(collection, expanded) { mutableStateOf(expanded) }
 
     Card(
         modifier = Modifier
@@ -155,56 +153,36 @@ fun Collection(
 }
 
 @Composable
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-private fun CollectionDarkPreview() {
-    FirefoxTheme(Theme.Dark) {
+@LightDarkPreview
+private fun CollectionExpandedPreview() {
+    FirefoxTheme {
+        var expanded by remember { mutableStateOf(true) }
+
         Collection(
             collection = collectionPreview,
-            expanded = false,
+            expanded = expanded,
             menuItems = emptyList(),
-            onToggleCollectionExpanded = { _, _ -> },
+            onToggleCollectionExpanded = { _, expand ->
+                expanded = expand
+            },
             onCollectionShareTabsClicked = {},
         )
     }
 }
 
 @Composable
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-private fun CollectionDarkExpandedPreview() {
-    FirefoxTheme(Theme.Dark) {
-        Collection(
-            collection = collectionPreview,
-            expanded = true,
-            menuItems = emptyList(),
-            onToggleCollectionExpanded = { _, _ -> },
-            onCollectionShareTabsClicked = {},
-        )
-    }
-}
+@LightDarkPreview
+private fun CollectionPreview() {
+    FirefoxTheme {
+        var expanded by remember { mutableStateOf(false) }
 
-@Composable
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
-private fun CollectionLightPreview() {
-    FirefoxTheme(Theme.Light) {
         Collection(
             collection = collectionPreview,
-            expanded = false,
+            expanded = expanded,
             menuItems = emptyList(),
-            onToggleCollectionExpanded = { _, _ -> },
-            onCollectionShareTabsClicked = {},
-        )
-    }
-}
-
-@Composable
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_NO)
-private fun CollectionLightExpandedPreview() {
-    FirefoxTheme(Theme.Light) {
-        Collection(
-            collection = collectionPreview,
-            expanded = true,
-            menuItems = emptyList(),
-            onToggleCollectionExpanded = { _, _ -> },
+            onToggleCollectionExpanded = { _, expand ->
+                expanded = expand
+            },
             onCollectionShareTabsClicked = {},
         )
     }
