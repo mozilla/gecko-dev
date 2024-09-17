@@ -15,12 +15,12 @@
 #include <utility>
 #include <vector>
 
+#include "api/environment/environment_factory.h"
 #include "api/test/mock_audio_mixer.h"
 #include "api/test/mock_frame_decryptor.h"
 #include "audio/conversion.h"
 #include "audio/mock_voe_channel_proxy.h"
 #include "call/rtp_stream_receiver_controller.h"
-#include "logging/rtc_event_log/mock/mock_rtc_event_log.h"
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
 #include "modules/pacing/packet_router.h"
@@ -146,8 +146,7 @@ struct ConfigHelper {
 
   std::unique_ptr<AudioReceiveStreamImpl> CreateAudioReceiveStream() {
     auto ret = std::make_unique<AudioReceiveStreamImpl>(
-        Clock::GetRealTimeClock(), &packet_router_, stream_config_,
-        audio_state_, &event_log_,
+        CreateEnvironment(), &packet_router_, stream_config_, audio_state_,
         std::unique_ptr<voe::ChannelReceiveInterface>(channel_receive_));
     ret->RegisterWithTransport(&rtp_stream_receiver_controller_);
     return ret;
@@ -184,7 +183,6 @@ struct ConfigHelper {
 
  private:
   PacketRouter packet_router_;
-  MockRtcEventLog event_log_;
   rtc::scoped_refptr<AudioState> audio_state_;
   rtc::scoped_refptr<MockAudioMixer> audio_mixer_;
   AudioReceiveStreamInterface::Config stream_config_;

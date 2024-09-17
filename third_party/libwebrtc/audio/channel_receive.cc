@@ -91,11 +91,10 @@ class ChannelReceive : public ChannelReceiveInterface,
  public:
   // Used for receive streams.
   ChannelReceive(
-      Clock* clock,
+      const Environment& env,
       NetEqFactory* neteq_factory,
       AudioDeviceModule* audio_device_module,
       Transport* rtcp_send_transport,
-      RtcEventLog* rtc_event_log,
       uint32_t local_ssrc,
       uint32_t remote_ssrc,
       size_t jitter_buffer_max_packets,
@@ -222,6 +221,7 @@ class ChannelReceive : public ChannelReceiveInterface,
   RTC_NO_UNIQUE_ADDRESS SequenceChecker worker_thread_checker_;
   RTC_NO_UNIQUE_ADDRESS SequenceChecker network_thread_checker_;
 
+  const Environment env_;
   TaskQueueBase* const worker_thread_;
   ScopedTaskSafety worker_safety_;
 
@@ -234,8 +234,6 @@ class ChannelReceive : public ChannelReceiveInterface,
   Mutex volume_settings_mutex_;
 
   bool playing_ RTC_GUARDED_BY(worker_thread_checker_) = false;
-
-  RtcEventLog* const event_log_;
 
   // Indexed by payload type.
   std::map<uint8_t, int> payload_type_frequencies_;
@@ -393,7 +391,7 @@ AudioMixer::Source::AudioFrameInfo ChannelReceive::GetAudioFrameWithInfo(
   RTC_DCHECK_RUNS_SERIALIZED(&audio_thread_race_checker_);
   audio_frame->sample_rate_hz_ = sample_rate_hz;
 
-  event_log_->Log(std::make_unique<RtcEventAudioPlayout>(remote_ssrc_));
+  env_.event_log().Log(std::make_unique<RtcEventAudioPlayout>(remote_ssrc_));
 
   // Get 10ms raw PCM data from the ACM (mixer limits output frequency)
   if (acm_receiver_.GetAudio(audio_frame->sample_rate_hz_, audio_frame) == -1) {
@@ -522,11 +520,10 @@ void ChannelReceive::SetSourceTracker(SourceTracker* source_tracker) {
 }
 
 ChannelReceive::ChannelReceive(
-    Clock* clock,
+    const Environment& env,
     NetEqFactory* neteq_factory,
     AudioDeviceModule* audio_device_module,
     Transport* rtcp_send_transport,
-    RtcEventLog* rtc_event_log,
     uint32_t local_ssrc,
     uint32_t remote_ssrc,
     size_t jitter_buffer_max_packets,
@@ -539,9 +536,9 @@ ChannelReceive::ChannelReceive(
     const webrtc::CryptoOptions& crypto_options,
     rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
     RtcpEventObserver* rtcp_event_observer)
-    : worker_thread_(TaskQueueBase::Current()),
-      event_log_(rtc_event_log),
-      rtp_receive_statistics_(ReceiveStatistics::Create(clock)),
+    : env_(env),
+      worker_thread_(TaskQueueBase::Current()),
+      rtp_receive_statistics_(ReceiveStatistics::Create(&env_.clock())),
       remote_ssrc_(remote_ssrc),
       acm_receiver_(AcmConfig(neteq_factory,
                               decoder_factory,
@@ -550,7 +547,7 @@ ChannelReceive::ChannelReceive(
                               jitter_buffer_fast_playout,
                               jitter_buffer_min_delay_ms)),
       _outputAudioLevel(),
-      ntp_estimator_(clock),
+      ntp_estimator_(&env_.clock()),
       playout_timestamp_rtp_(0),
       playout_delay_ms_(0),
       capture_start_rtp_time_stamp_(-1),
@@ -560,19 +557,19 @@ ChannelReceive::ChannelReceive(
       associated_send_channel_(nullptr),
       frame_decryptor_(frame_decryptor),
       crypto_options_(crypto_options),
-      absolute_capture_time_interpolator_(clock) {
+      absolute_capture_time_interpolator_(&env_.clock()) {
   RTC_DCHECK(audio_device_module);
 
   network_thread_checker_.Detach();
 
   rtp_receive_statistics_->EnableRetransmitDetection(remote_ssrc_, true);
   RtpRtcpInterface::Configuration configuration;
-  configuration.clock = clock;
+  configuration.clock = &env_.clock();
   configuration.audio = true;
   configuration.receiver_only = true;
   configuration.outgoing_transport = rtcp_send_transport;
   configuration.receive_statistics = rtp_receive_statistics_.get();
-  configuration.event_log = event_log_;
+  configuration.event_log = &env_.event_log();
   configuration.local_media_ssrc = local_ssrc;
   configuration.rtcp_packet_type_counter_observer = this;
   configuration.non_sender_rtt_measurement = enable_non_sender_rtt;
@@ -1025,7 +1022,7 @@ ChannelReceive::GetCurrentEstimatedPlayoutNtpTimestampMs(int64_t now_ms) const {
 }
 
 bool ChannelReceive::SetBaseMinimumPlayoutDelayMs(int delay_ms) {
-  event_log_->Log(
+  env_.event_log().Log(
       std::make_unique<RtcEventNetEqSetMinimumDelay>(remote_ssrc_, delay_ms));
   return acm_receiver_.SetBaseMinimumDelayMs(delay_ms);
 }
@@ -1112,11 +1109,10 @@ int ChannelReceive::GetRtpTimestampRateHz() const {
 }  // namespace
 
 std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
-    Clock* clock,
+    const Environment& env,
     NetEqFactory* neteq_factory,
     AudioDeviceModule* audio_device_module,
     Transport* rtcp_send_transport,
-    RtcEventLog* rtc_event_log,
     uint32_t local_ssrc,
     uint32_t remote_ssrc,
     size_t jitter_buffer_max_packets,
@@ -1130,12 +1126,11 @@ std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
     rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
     RtcpEventObserver* rtcp_event_observer) {
   return std::make_unique<ChannelReceive>(
-      clock, neteq_factory, audio_device_module, rtcp_send_transport,
-      rtc_event_log, local_ssrc, remote_ssrc, jitter_buffer_max_packets,
-      jitter_buffer_fast_playout, jitter_buffer_min_delay_ms,
-      enable_non_sender_rtt, decoder_factory, codec_pair_id,
-      std::move(frame_decryptor), crypto_options, std::move(frame_transformer),
-      rtcp_event_observer);
+      env, neteq_factory, audio_device_module, rtcp_send_transport, local_ssrc,
+      remote_ssrc, jitter_buffer_max_packets, jitter_buffer_fast_playout,
+      jitter_buffer_min_delay_ms, enable_non_sender_rtt, decoder_factory,
+      codec_pair_id, std::move(frame_decryptor), crypto_options,
+      std::move(frame_transformer), rtcp_event_observer);
 }
 
 }  // namespace voe

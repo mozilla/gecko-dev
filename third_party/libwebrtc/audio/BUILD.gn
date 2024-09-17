@@ -194,7 +194,6 @@ if (rtc_include_tests) {
       "../call:rtp_receiver",
       "../call:rtp_sender",
       "../common_audio",
-      "../logging:mocks",
       "../modules/audio_coding:audio_coding_module_typedefs",
       "../modules/audio_device:audio_device_impl",  # For TestAudioDeviceModule
       "../modules/audio_device:mock_audio_device",
@@ -240,6 +239,7 @@ if (rtc_include_tests) {
       "../api/audio:audio_device",
       "../api/audio_codecs:builtin_audio_decoder_factory",
       "../api/crypto:frame_decryptor_interface",
+      "../api/environment:environment_factory",
       "../api/task_queue:default_task_queue_factory",
       "../logging:mocks",
       "../modules/audio_device:mock_audio_device",

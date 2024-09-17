@@ -803,8 +803,8 @@ webrtc::AudioReceiveStreamInterface* Call::CreateAudioReceiveStream(
       CreateRtcLogStreamConfig(config)));
 
   AudioReceiveStreamImpl* receive_stream = new AudioReceiveStreamImpl(
-      &env_.clock(), transport_send_->packet_router(), config_.neteq_factory,
-      config, config_.audio_state, &env_.event_log());
+      env_, transport_send_->packet_router(), config_.neteq_factory, config,
+      config_.audio_state);
   audio_receive_streams_.insert(receive_stream);
 
   // TODO(bugs.webrtc.org/11993): Make the registration on the network thread
