@@ -260,21 +260,6 @@ void QualityScaler::ReportQp(int qp, int64_t time_sent_us) {
     qp_smoother_low_->Add(qp, time_sent_us);
 }
 
-bool QualityScaler::QpFastFilterLow() const {
-  RTC_DCHECK_RUN_ON(&task_checker_);
-  size_t num_frames = config_.use_all_drop_reasons
-                          ? framedrop_percent_all_.Size()
-                          : framedrop_percent_media_opt_.Size();
-  const size_t kMinNumFrames = 10;
-  if (num_frames < kMinNumFrames) {
-    return false;  // Wait for more frames before making a decision.
-  }
-  absl::optional<int> avg_qp_high = qp_smoother_high_
-                                        ? qp_smoother_high_->GetAvg()
-                                        : average_qp_.GetAverageRoundedDown();
-  return (avg_qp_high) ? (avg_qp_high.value() <= thresholds_.low) : false;
-}
-
 QualityScaler::CheckQpResult QualityScaler::CheckQp() const {
   RTC_DCHECK_RUN_ON(&task_checker_);
   // Should be set through InitEncode -> Should be set by now.

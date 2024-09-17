@@ -51,7 +51,6 @@ class QualityScaler {
   void ReportQp(int qp, int64_t time_sent_us);
 
   void SetQpThresholds(VideoEncoder::QpThresholds thresholds);
-  bool QpFastFilterLow() const;
 
   // The following members declared protected for testing purposes.
  protected:
