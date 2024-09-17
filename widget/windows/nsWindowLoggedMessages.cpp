@@ -5,6 +5,8 @@
 
 #include <windef.h>
 #include <winuser.h>
+#include "mozilla/ClearOnShutdown.h"
+#include "mozilla/Likely.h"
 #include "mozilla/StaticPrefs_storage.h"
 #include "mozilla/StaticPrefs_widget.h"
 #include "nsWindowLoggedMessages.h"
@@ -80,7 +82,30 @@ struct CircularMessageBuffer {
   size_t mNextFreeIndex = 0;
   std::vector<WindowMessageData> mMessages;
 };
-static std::map<HWND, std::map<UINT, CircularMessageBuffer>> gWindowMessages;
+using WindowMessageMap = std::map<HWND, std::map<UINT, CircularMessageBuffer>>;
+
+static WindowMessageMap* GetStaticMessageBuffer() {
+  MOZ_ASSERT(NS_IsMainThread());
+  static StaticAutoPtr<WindowMessageMap> gWindowMessages;
+  static bool gWindowMessagesShutdown = false;
+
+  if (MOZ_LIKELY(gWindowMessages)) {
+    return gWindowMessages.get();
+  }
+  if (gWindowMessagesShutdown) {
+    return nullptr;
+  }
+
+  gWindowMessages = new WindowMessageMap();
+
+  RunOnShutdown([]() {
+    MOZ_ASSERT(NS_IsMainThread());
+    gWindowMessages = nullptr;
+    gWindowMessagesShutdown = true;
+  });
+
+  return gWindowMessages.get();
+}
 
 static HWND GetHwndFromWidget(nsIWidget* windowWidget) {
   nsWindow* window = static_cast<nsWindow*>(windowWidget);
@@ -255,12 +280,18 @@ nsCString MakeFriendlyMessage(UINT event, bool isPreEvent, long eventCounter,
   return str;
 }
 
-void WindowClosed(HWND hwnd) { gWindowMessages.erase(hwnd); }
+void WindowClosed(HWND hwnd) {
+  if (auto* msgs = GetStaticMessageBuffer()) {
+    msgs->erase(hwnd);
+  }
+}
 
 void LogWindowMessage(HWND hwnd, UINT event, bool isPreEvent, long eventCounter,
                       WPARAM wParam, LPARAM lParam, mozilla::Maybe<bool> result,
                       LRESULT retValue) {
-  auto& hwndMessages = gWindowMessages[hwnd];
+  auto* messageBuf = GetStaticMessageBuffer();
+  if (!messageBuf) return;
+  auto& hwndMessages = (*messageBuf)[hwnd];
   auto& hwndWindowMessages = hwndMessages[event];
   WindowMessageData messageData = {
       eventCounter, isPreEvent, MakeMessageSpecificData(event, wParam, lParam),
@@ -278,10 +309,12 @@ void LogWindowMessage(HWND hwnd, UINT event, bool isPreEvent, long eventCounter,
       (hwndWindowMessages.mNextFreeIndex + 1) % numberOfMessagesToKeep;
 }
 
-void GetLatestWindowMessages(RefPtr<nsIWidget> windowWidget,
+void GetLatestWindowMessages(nsIWidget* windowWidget,
                              nsTArray<nsCString>& messages) {
+  auto* messageBuf = GetStaticMessageBuffer();
+  if (!messageBuf) return;
   HWND hwnd = GetHwndFromWidget(windowWidget);
-  const auto& rawMessages = gWindowMessages[hwnd];
+  const auto& rawMessages = (*messageBuf)[hwnd];
   nsTArray<std::pair<WindowMessageDataSortKey, nsCString>>
       sortKeyAndMessageArray;
   sortKeyAndMessageArray.SetCapacity(
@@ -299,7 +332,7 @@ void GetLatestWindowMessages(RefPtr<nsIWidget> windowWidget,
   }
   std::sort(sortKeyAndMessageArray.begin(), sortKeyAndMessageArray.end());
   messages.SetCapacity(sortKeyAndMessageArray.Length());
-  for (const std::pair<WindowMessageDataSortKey, nsCString>& entry :
+  for (std::pair<WindowMessageDataSortKey, nsCString>& entry :
        sortKeyAndMessageArray) {
     messages.AppendElement(std::move(entry.second));
   }

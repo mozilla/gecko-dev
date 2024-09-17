@@ -18,7 +18,7 @@ void LogWindowMessage(HWND hwnd, UINT event, bool isPreEvent, long eventCounter,
                       WPARAM wParam, LPARAM lParam, mozilla::Maybe<bool> result,
                       LRESULT retValue);
 void WindowClosed(HWND hwnd);
-void GetLatestWindowMessages(RefPtr<nsIWidget> windowWidget,
+void GetLatestWindowMessages(nsIWidget* windowWidget,
                              nsTArray<nsCString>& messages);
 
 }  // namespace mozilla::widget
