@@ -76,10 +76,18 @@ def parse(args):
     then return the parsed objects for further processing.
     """
 
-    if len(args) == 2 and args[0].endswith(".cached"):
-        cache_file, _ = args
-        with open(cache_file, "rb") as cache:
-            return pickle.load(cache)
+    if all(arg.endswith(".cached") for arg in args[:-1]):
+        objects = dict()
+        options = None
+        for cache_file in args[:-1]:
+            with open(cache_file, "rb") as cache:
+                cached_objects, cached_options = pickle.load(cache)
+                objects.update(cached_objects)
+                assert (
+                    options is None or cached_options == options
+                ), "consistent options"
+                options = options or cached_options
+        return objects, options
 
     # Unfortunately, GeneratedFile appends `flags` directly after `inputs`
     # instead of listifying either, so we need to pull stuff from a *args.
