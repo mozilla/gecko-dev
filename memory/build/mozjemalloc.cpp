@@ -426,7 +426,7 @@ struct arena_chunk_t {
   size_t ndirty;
 
   // Map of pages within chunk that keeps track of free/large/small.
-  arena_chunk_map_t map[1];  // Dynamically sized.
+  arena_chunk_map_t map[];  // Dynamically sized.
 };
 
 // ***************************************************************************
@@ -577,8 +577,8 @@ DEFINE_GLOBAL(size_t) gChunkNumPages = kChunkSize >> gPageSize2Pow;
 // Number of pages necessary for a chunk header plus a guard page.
 DEFINE_GLOBAL(size_t)
 gChunkHeaderNumPages =
-    1 + (((sizeof(arena_chunk_t) +
-           sizeof(arena_chunk_map_t) * (gChunkNumPages - 1) + gPageSizeMask) &
+    1 + (((sizeof(arena_chunk_t) + sizeof(arena_chunk_map_t) * gChunkNumPages +
+           gPageSizeMask) &
           ~gPageSizeMask) >>
          gPageSize2Pow);
 
@@ -1020,7 +1020,7 @@ struct arena_run_t {
 #endif
 
   // Bitmask of in-use regions (0: in use, 1: free).
-  unsigned mRegionsMask[1];  // Dynamically sized.
+  unsigned mRegionsMask[];  // Dynamically sized.
 };
 
 struct arena_bin_t {
@@ -1199,7 +1199,7 @@ struct arena_t {
   //  |      46  | 3584 |
   //  |      47  | 3840 |
   //  +----------+------+
-  arena_bin_t mBins[1];  // Dynamically sized.
+  arena_bin_t mBins[];  // Dynamically sized.
 
   explicit arena_t(arena_params_t* aParams, bool aIsPrivate);
   ~arena_t();
@@ -1910,7 +1910,7 @@ arena_t* TypedBaseAlloc<arena_t>::sFirstFree = nullptr;
 template <>
 size_t TypedBaseAlloc<arena_t>::size_of() {
   // Allocate enough space for trailing bins.
-  return sizeof(arena_t) + (sizeof(arena_bin_t) * (NUM_SMALL_CLASSES - 1));
+  return sizeof(arena_t) + (sizeof(arena_bin_t) * NUM_SMALL_CLASSES);
 }
 
 template <typename T>
