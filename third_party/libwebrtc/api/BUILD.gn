@@ -587,6 +587,11 @@ rtc_source_set("audio_quality_analyzer_api") {
   ]
 }
 
+rtc_library("rtp_packet_sender") {
+  visibility = [ "*" ]
+  sources = [ "rtp_packet_sender.h" ]
+}
+
 rtc_source_set("stats_observer_interface") {
   visibility = [ "*" ]
   testonly = true

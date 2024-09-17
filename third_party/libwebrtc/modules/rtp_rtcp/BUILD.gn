@@ -21,7 +21,8 @@ rtc_library("rtp_rtcp_format") {
     "include/rtcp_statistics.h",
     "include/rtp_cvo.h",
     "include/rtp_header_extension_map.h",
-    "include/rtp_packet_sender.h",
+    "include/rtp_packet_sender.h",  # Kept for compatibility with downstream
+                                    # projects
     "include/rtp_rtcp_defines.h",
     "source/byte_io.h",
     "source/rtcp_packet.h",
@@ -114,6 +115,7 @@ rtc_library("rtp_rtcp_format") {
     "../../api:function_view",
     "../../api:refcountedbase",
     "../../api:rtp_headers",
+    "../../api:rtp_packet_sender",  # For compatibility with downstream projects
     "../../api:rtp_parameters",
     "../../api:scoped_refptr",
     "../../api/audio_codecs:audio_codecs_api",
@@ -281,6 +283,7 @@ rtc_library("rtp_rtcp") {
     "../../api:function_view",
     "../../api:rtp_headers",
     "../../api:rtp_packet_info",
+    "../../api:rtp_packet_sender",
     "../../api:rtp_parameters",
     "../../api:scoped_refptr",
     "../../api:sequence_checker",
@@ -671,6 +674,7 @@ if (rtc_include_tests) {
       "../../api:mock_transformable_video_frame",
       "../../api:rtp_headers",
       "../../api:rtp_packet_info",
+      "../../api:rtp_packet_sender",
       "../../api:rtp_parameters",
       "../../api:scoped_refptr",
       "../../api:time_controller",

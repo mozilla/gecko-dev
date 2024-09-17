@@ -17,24 +17,7 @@
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
 
-namespace webrtc {
-
-class RtpPacketSender {
- public:
-  virtual ~RtpPacketSender() = default;
-
-  // Insert a set of packets into queue, for eventual transmission. Based on the
-  // type of packets, they will be prioritized and scheduled relative to other
-  // packets and the current target send rate.
-  virtual void EnqueuePackets(
-      std::vector<std::unique_ptr<RtpPacketToSend>> packets) = 0;
-
-  // Clear any pending packets with the given SSRC from the queue.
-  // TODO(crbug.com/1395081): Make pure virtual when downstream code has been
-  // updated.
-  virtual void RemovePacketsForSsrc(uint32_t ssrc) {}
-};
-
-}  // namespace webrtc
+// Kept for compatibility with the newer location of the header
+#include "api/rtp_packet_sender.h"
 
 #endif  // MODULES_RTP_RTCP_INCLUDE_RTP_PACKET_SENDER_H_

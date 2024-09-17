@@ -16,6 +16,7 @@
 #include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
 #include "pc/media_session.h"
 #include "pc/test/mock_peer_connection_observers.h"

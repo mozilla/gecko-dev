@@ -15,6 +15,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/rtc_event_log/rtc_event.h"
+#include "api/rtp_packet_sender.h"
 #include "api/units/frequency.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
@@ -23,7 +24,6 @@
 #include "logging/rtc_event_log/mock/mock_rtc_event_log.h"
 #include "modules/rtp_rtcp/include/rtp_cvo.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
-#include "modules/rtp_rtcp/include/rtp_packet_sender.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/packet_sequencer.h"
 #include "modules/rtp_rtcp/source/rtp_format_video_generic.h"
