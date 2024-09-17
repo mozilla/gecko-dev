@@ -202,11 +202,11 @@ already_AddRefed<RenderBundle> RenderBundleEncoder::Finish(
   RawId id;
   if (mValid) {
     id = ffi::wgpu_client_create_render_bundle(
-        bridge->GetClient(), mEncoder.get(), deviceId, &desc, ToFFI(&bb));
+        bridge->GetClient(), mEncoder.get(), &desc, ToFFI(&bb));
 
   } else {
-    id = ffi::wgpu_client_create_render_bundle_error(
-        bridge->GetClient(), deviceId, label.Get(), ToFFI(&bb));
+    id = ffi::wgpu_client_create_render_bundle_error(bridge->GetClient(),
+                                                     label.Get(), ToFFI(&bb));
   }
 
   if (bridge->CanSend()) {

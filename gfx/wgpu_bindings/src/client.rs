@@ -11,7 +11,7 @@ use crate::{
 use crate::SwapChainId;
 
 use wgc::{id, identity::IdentityManager};
-use wgt::{Backend, TextureFormat};
+use wgt::TextureFormat;
 
 use wgc::id::markers;
 
@@ -327,87 +327,50 @@ impl Default for IdentityHub {
 }
 
 impl ImplicitLayout<'_> {
-    fn new(identities: &mut IdentityHub, backend: Backend) -> Self {
+    fn new(identities: &IdentityHub) -> Self {
         ImplicitLayout {
-            pipeline: identities.pipeline_layouts.process(backend),
+            pipeline: identities.pipeline_layouts.process(),
             bind_groups: Cow::Owned(
                 (0..8) // hal::MAX_BIND_GROUPS
-                    .map(|_| identities.bind_group_layouts.process(backend))
+                    .map(|_| identities.bind_group_layouts.process())
                     .collect(),
             ),
         }
     }
 }
 
-#[derive(Debug, Default)]
-struct Identities {
-    vulkan: IdentityHub,
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
-    metal: IdentityHub,
-    #[cfg(windows)]
-    dx12: IdentityHub,
-}
-
-impl Identities {
-    fn select(&mut self, backend: Backend) -> &mut IdentityHub {
-        match backend {
-            Backend::Vulkan => &mut self.vulkan,
-            #[cfg(any(target_os = "ios", target_os = "macos"))]
-            Backend::Metal => &mut self.metal,
-            #[cfg(windows)]
-            Backend::Dx12 => &mut self.dx12,
-            _ => panic!("Unexpected backend: {:?}", backend),
-        }
-    }
-}
-
 #[derive(Debug)]
 pub struct Client {
-    identities: Mutex<Identities>,
+    identities: Mutex<IdentityHub>,
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_drop_action(client: &mut Client, byte_buf: &ByteBuf) {
     let mut cursor = std::io::Cursor::new(byte_buf.as_slice());
-    let mut identities = client.identities.lock();
+    let identities = client.identities.lock();
     while let Ok(action) = bincode::deserialize_from(&mut cursor) {
         match action {
-            DropAction::Adapter(id) => identities.select(id.backend()).adapters.free(id),
-            DropAction::Device(id) => identities.select(id.backend()).devices.free(id),
-            DropAction::ShaderModule(id) => identities.select(id.backend()).shader_modules.free(id),
-            DropAction::PipelineLayout(id) => {
-                identities.select(id.backend()).pipeline_layouts.free(id)
-            }
-            DropAction::BindGroupLayout(id) => {
-                identities.select(id.backend()).bind_group_layouts.free(id)
-            }
-            DropAction::BindGroup(id) => identities.select(id.backend()).bind_groups.free(id),
-            DropAction::CommandBuffer(id) => {
-                identities.select(id.backend()).command_buffers.free(id)
-            }
-            DropAction::RenderBundle(id) => identities.select(id.backend()).render_bundles.free(id),
-            DropAction::RenderPipeline(id) => {
-                identities.select(id.backend()).render_pipelines.free(id)
-            }
-            DropAction::ComputePipeline(id) => {
-                identities.select(id.backend()).compute_pipelines.free(id)
-            }
-            DropAction::Buffer(id) => identities.select(id.backend()).buffers.free(id),
-            DropAction::Texture(id) => identities.select(id.backend()).textures.free(id),
-            DropAction::TextureView(id) => identities.select(id.backend()).texture_views.free(id),
-            DropAction::Sampler(id) => identities.select(id.backend()).samplers.free(id),
+            DropAction::Adapter(id) => identities.adapters.free(id),
+            DropAction::Device(id) => identities.devices.free(id),
+            DropAction::ShaderModule(id) => identities.shader_modules.free(id),
+            DropAction::PipelineLayout(id) => identities.pipeline_layouts.free(id),
+            DropAction::BindGroupLayout(id) => identities.bind_group_layouts.free(id),
+            DropAction::BindGroup(id) => identities.bind_groups.free(id),
+            DropAction::CommandBuffer(id) => identities.command_buffers.free(id),
+            DropAction::RenderBundle(id) => identities.render_bundles.free(id),
+            DropAction::RenderPipeline(id) => identities.render_pipelines.free(id),
+            DropAction::ComputePipeline(id) => identities.compute_pipelines.free(id),
+            DropAction::Buffer(id) => identities.buffers.free(id),
+            DropAction::Texture(id) => identities.textures.free(id),
+            DropAction::TextureView(id) => identities.texture_views.free(id),
+            DropAction::Sampler(id) => identities.samplers.free(id),
         }
     }
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_kill_device_id(client: &Client, id: id::DeviceId) {
-    client
-        .identities
-        .lock()
-        .select(id.backend())
-        .devices
-        .free(id)
+    client.identities.lock().devices.free(id)
 }
 
 #[repr(C)]
@@ -421,7 +384,7 @@ pub struct Infrastructure {
 pub extern "C" fn wgpu_client_new() -> Infrastructure {
     log::info!("Initializing WGPU client");
     let client = Box::new(Client {
-        identities: Mutex::new(Identities::default()),
+        identities: Mutex::new(IdentityHub::default()),
     });
     Infrastructure {
         client: Box::into_raw(client),
@@ -440,32 +403,9 @@ pub unsafe extern "C" fn wgpu_client_delete(client: *mut Client) {
     let _client = Box::from_raw(client);
 }
 
-/// # Safety
-///
-/// This function is unsafe as there is no guarantee that the given pointer is
-/// valid for `id_length` elements.
 #[no_mangle]
-pub unsafe extern "C" fn wgpu_client_make_adapter_ids(
-    client: &Client,
-    ids: *mut id::AdapterId,
-    id_length: usize,
-) -> usize {
-    let identities = client.identities.lock();
-    assert_ne!(id_length, 0);
-    let mut ids = std::slice::from_raw_parts_mut(ids, id_length).iter_mut();
-
-    *ids.next().unwrap() = identities.vulkan.adapters.process(Backend::Vulkan);
-
-    #[cfg(any(target_os = "ios", target_os = "macos"))]
-    {
-        *ids.next().unwrap() = identities.metal.adapters.process(Backend::Metal);
-    }
-    #[cfg(windows)]
-    {
-        *ids.next().unwrap() = identities.dx12.adapters.process(Backend::Dx12);
-    }
-
-    id_length - ids.len()
+pub unsafe extern "C" fn wgpu_client_make_adapter_id(client: &Client) -> id::AdapterId {
+    client.identities.lock().adapters.process()
 }
 
 #[no_mangle]
@@ -541,55 +481,33 @@ pub struct DeviceQueueId {
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_client_make_device_queue_id(
-    client: &Client,
-    adapter_id: id::AdapterId,
-) -> DeviceQueueId {
-    let backend = adapter_id.backend();
-    let mut identities_guard = client.identities.lock();
-    let hub = identities_guard.select(backend);
-    let device = hub.devices.process(backend);
-    let queue = hub.queues.process(backend);
+pub extern "C" fn wgpu_client_make_device_queue_id(client: &Client) -> DeviceQueueId {
+    let identities = client.identities.lock();
+    let device = identities.devices.process();
+    let queue = identities.queues.process();
     DeviceQueueId { device, queue }
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_client_make_buffer_id(
-    client: &Client,
-    device_id: id::DeviceId,
-) -> id::BufferId {
-    let backend = device_id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .buffers
-        .process(backend)
+pub extern "C" fn wgpu_client_make_buffer_id(client: &Client) -> id::BufferId {
+    client.identities.lock().buffers.process()
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_buffer_id(client: &Client, id: id::BufferId) {
-    let backend = id.backend();
-    client.identities.lock().select(backend).buffers.free(id)
+    client.identities.lock().buffers.free(id)
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_texture(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &wgt::TextureDescriptor<Option<&nsACString>, crate::FfiSlice<TextureFormat>>,
     swap_chain_id: Option<&SwapChainId>,
     bb: &mut ByteBuf,
 ) -> id::TextureId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .textures
-        .process(backend);
+    let id = client.identities.lock().textures.process();
 
     let view_formats = unsafe { desc.view_formats.as_slice() }.to_vec();
 
@@ -605,26 +523,18 @@ pub extern "C" fn wgpu_client_create_texture(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_texture_id(client: &Client, id: id::TextureId) {
-    let backend = id.backend();
-    client.identities.lock().select(backend).textures.free(id)
+    client.identities.lock().textures.free(id)
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_texture_view(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &TextureViewDescriptor,
     bb: &mut ByteBuf,
 ) -> id::TextureViewId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .texture_views
-        .process(backend);
+    let id = client.identities.lock().texture_views.process();
 
     let wgpu_desc = wgc::resource::TextureViewDescriptor {
         label,
@@ -646,31 +556,18 @@ pub extern "C" fn wgpu_client_create_texture_view(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_texture_view_id(client: &Client, id: id::TextureViewId) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .texture_views
-        .free(id)
+    client.identities.lock().texture_views.free(id)
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_sampler(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &SamplerDescriptor,
     bb: &mut ByteBuf,
 ) -> id::SamplerId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .samplers
-        .process(backend);
+    let id = client.identities.lock().samplers.process();
 
     let wgpu_desc = wgc::resource::SamplerDescriptor {
         label,
@@ -691,32 +588,24 @@ pub extern "C" fn wgpu_client_create_sampler(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_sampler_id(client: &Client, id: id::SamplerId) {
-    let backend = id.backend();
-    client.identities.lock().select(backend).samplers.free(id)
+    client.identities.lock().samplers.free(id)
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_client_make_encoder_id(
-    client: &Client,
-    device_id: id::DeviceId,
-) -> id::CommandEncoderId {
-    let backend = device_id.backend();
+pub extern "C" fn wgpu_client_make_encoder_id(client: &Client) -> id::CommandEncoderId {
     client
         .identities
         .lock()
-        .select(backend)
         .command_buffers
-        .process(backend)
+        .process()
         .into_command_encoder_id()
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_command_encoder_id(client: &Client, id: id::CommandEncoderId) {
-    let backend = id.backend();
     client
         .identities
         .lock()
-        .select(backend)
         .command_buffers
         .free(id.into_command_buffer_id())
 }
@@ -724,19 +613,16 @@ pub extern "C" fn wgpu_client_free_command_encoder_id(client: &Client, id: id::C
 #[no_mangle]
 pub extern "C" fn wgpu_client_create_command_encoder(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &wgt::CommandEncoderDescriptor<Option<&nsACString>>,
     bb: &mut ByteBuf,
 ) -> id::CommandEncoderId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
     let id = client
         .identities
         .lock()
-        .select(backend)
         .command_buffers
-        .process(backend)
+        .process()
         .into_command_encoder_id();
 
     let action = DeviceAction::CreateCommandEncoder(id, desc.map_label(|_| label));
@@ -796,19 +682,12 @@ pub unsafe extern "C" fn wgpu_render_bundle_encoder_destroy(
 pub unsafe extern "C" fn wgpu_client_create_render_bundle(
     client: &Client,
     encoder: *mut wgc::command::RenderBundleEncoder,
-    device_id: id::DeviceId,
     desc: &wgt::RenderBundleDescriptor<Option<&nsACString>>,
     bb: &mut ByteBuf,
 ) -> id::RenderBundleId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .render_bundles
-        .process(backend);
+    let id = client.identities.lock().render_bundles.process();
 
     let action =
         DeviceAction::CreateRenderBundle(id, *Box::from_raw(encoder), desc.map_label(|_| label));
@@ -819,19 +698,12 @@ pub unsafe extern "C" fn wgpu_client_create_render_bundle(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_render_bundle_error(
     client: &Client,
-    device_id: id::DeviceId,
     label: Option<&nsACString>,
     bb: &mut ByteBuf,
 ) -> id::RenderBundleId {
     let label = wgpu_string(label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .render_bundles
-        .process(backend);
+    let id = client.identities.lock().render_bundles.process();
 
     let action = DeviceAction::CreateRenderBundleError(id, label);
     *bb = make_byte_buf(&action);
@@ -840,13 +712,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_bundle_error(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_render_bundle_id(client: &Client, id: id::RenderBundleId) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .render_bundles
-        .free(id)
+    client.identities.lock().render_bundles.free(id)
 }
 
 #[repr(C)]
@@ -983,19 +849,12 @@ pub unsafe extern "C" fn wgpu_render_pass_destroy(pass: *mut crate::command::Rec
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_bind_group_layout(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &BindGroupLayoutDescriptor,
     bb: &mut ByteBuf,
 ) -> id::BindGroupLayoutId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .bind_group_layouts
-        .process(backend);
+    let id = client.identities.lock().bind_group_layouts.process();
 
     let mut entries = Vec::with_capacity(desc.entries_length);
     for entry in make_slice(desc.entries, desc.entries_length) {
@@ -1077,13 +936,7 @@ pub extern "C" fn wgpu_client_free_bind_group_layout_id(
     client: &Client,
     id: id::BindGroupLayoutId,
 ) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .bind_group_layouts
-        .free(id)
+    client.identities.lock().bind_group_layouts.free(id)
 }
 
 #[no_mangle]
@@ -1093,13 +946,7 @@ pub unsafe extern "C" fn wgpu_client_render_pipeline_get_bind_group_layout(
     index: u32,
     bb: &mut ByteBuf,
 ) -> id::BindGroupLayoutId {
-    let backend = pipeline_id.backend();
-    let bgl_id = client
-        .identities
-        .lock()
-        .select(backend)
-        .bind_group_layouts
-        .process(backend);
+    let bgl_id = client.identities.lock().bind_group_layouts.process();
 
     let action = DeviceAction::RenderPipelineGetBindGroupLayout(pipeline_id, index, bgl_id);
     *bb = make_byte_buf(&action);
@@ -1114,13 +961,7 @@ pub unsafe extern "C" fn wgpu_client_compute_pipeline_get_bind_group_layout(
     index: u32,
     bb: &mut ByteBuf,
 ) -> id::BindGroupLayoutId {
-    let backend = pipeline_id.backend();
-    let bgl_id = client
-        .identities
-        .lock()
-        .select(backend)
-        .bind_group_layouts
-        .process(backend);
+    let bgl_id = client.identities.lock().bind_group_layouts.process();
 
     let action = DeviceAction::ComputePipelineGetBindGroupLayout(pipeline_id, index, bgl_id);
     *bb = make_byte_buf(&action);
@@ -1131,19 +972,12 @@ pub unsafe extern "C" fn wgpu_client_compute_pipeline_get_bind_group_layout(
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_pipeline_layout(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &PipelineLayoutDescriptor,
     bb: &mut ByteBuf,
 ) -> id::PipelineLayoutId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .pipeline_layouts
-        .process(backend);
+    let id = client.identities.lock().pipeline_layouts.process();
 
     let wgpu_desc = wgc::binding_model::PipelineLayoutDescriptor {
         label,
@@ -1161,31 +995,18 @@ pub unsafe extern "C" fn wgpu_client_create_pipeline_layout(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_pipeline_layout_id(client: &Client, id: id::PipelineLayoutId) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .pipeline_layouts
-        .free(id)
+    client.identities.lock().pipeline_layouts.free(id)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_bind_group(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &BindGroupDescriptor,
     bb: &mut ByteBuf,
 ) -> id::BindGroupId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let id = client
-        .identities
-        .lock()
-        .select(backend)
-        .bind_groups
-        .process(backend);
+    let id = client.identities.lock().bind_groups.process();
 
     let mut entries = Vec::with_capacity(desc.entries_length);
     for entry in make_slice(desc.entries, desc.entries_length) {
@@ -1219,44 +1040,22 @@ pub unsafe extern "C" fn wgpu_client_create_bind_group(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_bind_group_id(client: &Client, id: id::BindGroupId) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .bind_groups
-        .free(id)
+    client.identities.lock().bind_groups.free(id)
 }
 
 #[no_mangle]
-pub extern "C" fn wgpu_client_make_shader_module_id(
-    client: &Client,
-    device_id: id::DeviceId,
-) -> id::ShaderModuleId {
-    let backend = device_id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .shader_modules
-        .process(backend)
+pub extern "C" fn wgpu_client_make_shader_module_id(client: &Client) -> id::ShaderModuleId {
+    client.identities.lock().shader_modules.process()
 }
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_shader_module_id(client: &Client, id: id::ShaderModuleId) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .shader_modules
-        .free(id)
+    client.identities.lock().shader_modules.free(id)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &ComputePipelineDescriptor,
     bb: &mut ByteBuf,
     implicit_pipeline_layout_id: *mut Option<id::PipelineLayoutId>,
@@ -1264,12 +1063,8 @@ pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
 ) -> id::ComputePipelineId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let mut identities = client.identities.lock();
-    let id = identities
-        .select(backend)
-        .compute_pipelines
-        .process(backend);
+    let identities = client.identities.lock();
+    let id = identities.compute_pipelines.process();
 
     let wgpu_desc = wgc::pipeline::ComputePipelineDescriptor {
         label,
@@ -1281,7 +1076,7 @@ pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
     let implicit = match desc.layout {
         Some(_) => None,
         None => {
-            let implicit = ImplicitLayout::new(identities.select(backend), backend);
+            let implicit = ImplicitLayout::new(&identities);
             ptr::write(implicit_pipeline_layout_id, Some(implicit.pipeline));
             for (i, bgl_id) in implicit.bind_groups.iter().enumerate() {
                 *implicit_bind_group_layout_ids.add(i) = Some(*bgl_id);
@@ -1297,19 +1092,12 @@ pub unsafe extern "C" fn wgpu_client_create_compute_pipeline(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_compute_pipeline_id(client: &Client, id: id::ComputePipelineId) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .compute_pipelines
-        .free(id)
+    client.identities.lock().compute_pipelines.free(id)
 }
 
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
     client: &Client,
-    device_id: id::DeviceId,
     desc: &RenderPipelineDescriptor,
     bb: &mut ByteBuf,
     implicit_pipeline_layout_id: *mut Option<id::PipelineLayoutId>,
@@ -1317,9 +1105,8 @@ pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
 ) -> id::RenderPipelineId {
     let label = wgpu_string(desc.label);
 
-    let backend = device_id.backend();
-    let mut identities = client.identities.lock();
-    let id = identities.select(backend).render_pipelines.process(backend);
+    let identities = client.identities.lock();
+    let id = identities.render_pipelines.process();
 
     let wgpu_desc = wgc::pipeline::RenderPipelineDescriptor {
         label,
@@ -1336,7 +1123,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
     let implicit = match desc.layout {
         Some(_) => None,
         None => {
-            let implicit = ImplicitLayout::new(identities.select(backend), backend);
+            let implicit = ImplicitLayout::new(&identities);
             ptr::write(implicit_pipeline_layout_id, Some(implicit.pipeline));
             for (i, bgl_id) in implicit.bind_groups.iter().enumerate() {
                 *implicit_bind_group_layout_ids.add(i) = Some(*bgl_id);
@@ -1352,13 +1139,7 @@ pub unsafe extern "C" fn wgpu_client_create_render_pipeline(
 
 #[no_mangle]
 pub extern "C" fn wgpu_client_free_render_pipeline_id(client: &Client, id: id::RenderPipelineId) {
-    let backend = id.backend();
-    client
-        .identities
-        .lock()
-        .select(backend)
-        .render_pipelines
-        .free(id)
+    client.identities.lock().render_pipelines.free(id)
 }
 
 #[no_mangle]

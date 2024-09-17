@@ -48,8 +48,7 @@ class WebGPUParent final : public PWebGPUParent, public SupportsWeakPtr {
   explicit WebGPUParent();
 
   ipc::IPCResult RecvInstanceRequestAdapter(
-      const dom::GPURequestAdapterOptions& aOptions,
-      const nsTArray<RawId>& aTargetIds,
+      const dom::GPURequestAdapterOptions& aOptions, RawId aAdapterId,
       InstanceRequestAdapterResolver&& resolver);
   ipc::IPCResult RecvAdapterRequestDevice(
       RawId aAdapterId, const ipc::ByteBuf& aByteBuf, RawId aDeviceId,
