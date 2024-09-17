@@ -206,7 +206,7 @@ index 3c78142a25..dbc03c9f8b 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index c8ff1dd282..0edecbe967 100644
+index 63c1326adf..23774aeab8 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -44,6 +44,9 @@ rtc_source_set("enable_media") {

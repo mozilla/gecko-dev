@@ -25,6 +25,7 @@
 #include "api/task_queue/pending_task_safety_flag.h"
 #include "api/task_queue/task_queue_base.h"
 #include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
 #include "audio/audio_level.h"
 #include "audio/channel_receive_frame_transformer_delegate.h"
 #include "audio/channel_send.h"
@@ -372,11 +373,10 @@ void ChannelReceive::InitFrameTransformerDelegate(
   // the delegate to receive transformed audio.
   ChannelReceiveFrameTransformerDelegate::ReceiveFrameCallback
       receive_audio_callback = [this](rtc::ArrayView<const uint8_t> packet,
-                                      const RTPHeader& header) {
+                                      const RTPHeader& header,
+                                      Timestamp receive_time) {
         RTC_DCHECK_RUN_ON(&worker_thread_checker_);
-        // TODO(lionelk): Get the receive time.
-        OnReceivedPayloadData(packet, header,
-                              /*receive_time=*/Timestamp::MinusInfinity());
+        OnReceivedPayloadData(packet, header, receive_time);
       };
   frame_transformer_delegate_ =
       rtc::make_ref_counted<ChannelReceiveFrameTransformerDelegate>(
@@ -726,7 +726,7 @@ void ChannelReceive::ReceivePacket(const uint8_t* packet,
               << (it != payload_type_map_.end() ? it->second.name
                                                 : "x-unknown");
     frame_transformer_delegate_->Transform(payload_data, header, remote_ssrc_,
-                                           mime_type.str());
+                                           mime_type.str(), receive_time);
   } else {
     OnReceivedPayloadData(payload_data, header, receive_time);
   }

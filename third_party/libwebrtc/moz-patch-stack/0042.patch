@@ -43,10 +43,10 @@ index 0073930d9f..94dcced9c1 100644
  }  // namespace
  
 diff --git a/audio/channel_receive.cc b/audio/channel_receive.cc
-index b2fa0bf3cc..203c57eed2 100644
+index 9f2662edd0..286a2d8a01 100644
 --- a/audio/channel_receive.cc
 +++ b/audio/channel_receive.cc
-@@ -105,7 +105,8 @@ class ChannelReceive : public ChannelReceiveInterface,
+@@ -106,7 +106,8 @@ class ChannelReceive : public ChannelReceiveInterface,
        absl::optional<AudioCodecPairId> codec_pair_id,
        rtc::scoped_refptr<FrameDecryptorInterface> frame_decryptor,
        const webrtc::CryptoOptions& crypto_options,

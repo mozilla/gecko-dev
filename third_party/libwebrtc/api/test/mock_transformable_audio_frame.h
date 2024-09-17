@@ -14,6 +14,7 @@
 #include <string>
 
 #include "api/frame_transformer_interface.h"
+#include "api/units/timestamp.h"
 #include "test/gmock.h"
 
 namespace webrtc {
@@ -50,6 +51,8 @@ class MockTransformableAudioFrame : public TransformableAudioFrameInterface {
               (),
               (const, override));
   MOCK_METHOD(absl::optional<uint8_t>, AudioLevel, (), (const, override));
+
+  MOCK_METHOD(absl::optional<Timestamp>, ReceiveTime, (), (const, override));
 };
 
 }  // namespace webrtc
