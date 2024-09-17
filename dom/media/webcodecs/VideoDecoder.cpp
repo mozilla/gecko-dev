@@ -215,8 +215,24 @@ static bool CanDecode(const Config& aConfig) {
   if (!IsSupportedVideoCodec(param.mParsedCodec)) {
     return false;
   }
-  // TODO: Instead of calling CanHandleContainerType with the guessed the
-  // containers, DecoderTraits should provide an API to tell if a codec is
+
+  // TODO (1880326): code below is wrongly using the logic of HTMLMediaElement
+  // for determining if a codec can be played, and incorrect codec string for
+  // h264 are accepted for HTMLMediaElement for compat reasons. Perform stricter
+  // check here until we fix it for real.
+  if (IsH264CodecString(param.mParsedCodec)) {
+    uint8_t profile, constraint;
+    H264_LEVEL level;
+    bool supported =
+        ExtractH264CodecDetails(aConfig.mCodec, profile, constraint, level,
+                                H264CodecStringStrictness::Strict);
+    if (!supported) {
+      return false;
+    }
+  }
+
+  // TODO (1880326): Instead of calling CanHandleContainerType with the guessed
+  // the containers, DecoderTraits should provide an API to tell if a codec is
   // decodable or not.
   for (const nsCString& mime : GuessMIMETypes(param)) {
     if (Maybe<MediaContainerType> containerType =
