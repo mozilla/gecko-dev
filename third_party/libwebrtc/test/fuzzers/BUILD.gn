@@ -383,6 +383,8 @@ webrtc_fuzzer_test("audio_encoder_opus_fuzzer") {
   deps = [
     ":audio_encoder_fuzzer",
     "../../api/audio_codecs/opus:audio_encoder_opus",
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../rtc_base:checks",
   ]
 }

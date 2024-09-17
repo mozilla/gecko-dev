@@ -674,8 +674,8 @@ TEST(AudioEncoderOpusTest, TestConfigFromInvalidParams) {
 TEST(AudioEncoderOpusTest, GetFrameLenghtRange) {
   AudioEncoderOpusConfig config =
       CreateConfigWithParameters({{"maxptime", "10"}, {"ptime", "10"}});
-  std::unique_ptr<AudioEncoder> encoder =
-      AudioEncoderOpus::MakeAudioEncoder(config, kDefaultOpusPayloadType);
+  std::unique_ptr<AudioEncoder> encoder = AudioEncoderOpus::MakeAudioEncoder(
+      CreateEnvironment(), config, {.payload_type = kDefaultOpusPayloadType});
   auto ptime = webrtc::TimeDelta::Millis(10);
   absl::optional<std::pair<webrtc::TimeDelta, webrtc::TimeDelta>> range = {
       {ptime, ptime}};
@@ -766,8 +766,8 @@ TEST_P(AudioEncoderOpusTest, OpusFlagDtxAsNonSpeech) {
   AudioEncoderOpusConfig config;
   config.dtx_enabled = true;
   config.sample_rate_hz = sample_rate_hz_;
-  constexpr int payload_type = 17;
-  const auto encoder = AudioEncoderOpus::MakeAudioEncoder(config, payload_type);
+  const auto encoder = AudioEncoderOpus::MakeAudioEncoder(
+      CreateEnvironment(), config, {.payload_type = 17});
 
   // Open file containing speech and silence.
   const std::string kInputFileName =

@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/codecs/g711/audio_decoder_pcm.h"
 #include "modules/audio_coding/codecs/g711/audio_encoder_pcm.h"
 #include "modules/audio_coding/codecs/g722/audio_decoder_g722.h"
@@ -392,7 +393,8 @@ class AudioDecoderOpusTest
     config.application = opus_num_channels_ == 1
                              ? AudioEncoderOpusConfig::ApplicationMode::kVoip
                              : AudioEncoderOpusConfig::ApplicationMode::kAudio;
-    audio_encoder_ = AudioEncoderOpus::MakeAudioEncoder(config, payload_type_);
+    audio_encoder_ = AudioEncoderOpus::MakeAudioEncoder(
+        CreateEnvironment(), config, {.payload_type = payload_type_});
     audio_encoder_->OnReceivedOverhead(kOverheadBytesPerPacket);
   }
   const int opus_sample_rate_hz_{std::get<0>(GetParam())};

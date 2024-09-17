@@ -10,11 +10,13 @@
 
 #include "api/audio_codecs/opus/audio_decoder_opus.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "common_audio/include/audio_util.h"
 #include "common_audio/window_generator.h"
 #include "modules/audio_coding/codecs/opus/test/lapped_transform.h"
 #include "modules/audio_coding/neteq/tools/audio_loop.h"
-#include "test/field_trial.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gtest.h"
 #include "test/testsupport/file_utils.h"
 
@@ -103,8 +105,9 @@ float EncodedPowerRatio(AudioEncoder* encoder,
 
 // TODO(ivoc): Remove this test, WebRTC-AdjustOpusBandwidth is obsolete.
 TEST(BandwidthAdaptationTest, BandwidthAdaptationTest) {
-  test::ScopedFieldTrials override_field_trials(
-      "WebRTC-AdjustOpusBandwidth/Enabled/");
+  const Environment env =
+      CreateEnvironment(std::make_unique<test::ExplicitKeyValueConfig>(
+          "WebRTC-AdjustOpusBandwidth/Enabled/"));
 
   constexpr float kMaxNarrowbandRatio = 0.0035f;
   constexpr float kMinWidebandRatio = 0.01f;
@@ -113,8 +116,8 @@ TEST(BandwidthAdaptationTest, BandwidthAdaptationTest) {
   AudioEncoderOpusConfig enc_config;
   enc_config.bitrate_bps = absl::optional<int>(7999);
   enc_config.num_channels = kNumChannels;
-  constexpr int payload_type = 17;
-  auto encoder = AudioEncoderOpus::MakeAudioEncoder(enc_config, payload_type);
+  auto encoder =
+      AudioEncoderOpus::MakeAudioEncoder(env, enc_config, {.payload_type = 17});
 
   // Create decoder.
   AudioDecoderOpus::Config dec_config;
