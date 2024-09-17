@@ -10,9 +10,18 @@
 
 #include "rtc_base/ssl_stream_adapter.h"
 
-#include "absl/memory/memory.h"
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 #include "rtc_base/openssl_stream_adapter.h"
+#include "rtc_base/ssl_identity.h"
+#include "rtc_base/stream.h"
 
 namespace rtc {
 

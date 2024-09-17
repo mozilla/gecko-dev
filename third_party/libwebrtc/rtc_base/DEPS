@@ -20,5 +20,11 @@ specific_include_rules = {
   ],
   "trace_event\.h": [
     "+third_party/perfetto",
-  ]
+  ],
+  "openssl_adapter.cc": [
+    "+openssl",
+  ],
+  "openssl_stream_adapter.cc": [
+    "+openssl",
+  ],
 }

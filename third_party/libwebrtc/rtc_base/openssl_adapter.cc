@@ -14,11 +14,27 @@
 #include <openssl/bio.h>
 #include <openssl/err.h>
 
+#include <cstdint>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "absl/strings/string_view.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "openssl/base.h"
+#include "openssl/ssl.h"
+#include "rtc_base/async_socket.h"
+#include "rtc_base/boringssl_certificate.h"
+#include "rtc_base/openssl_session_cache.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/ssl_adapter.h"
+#include "rtc_base/ssl_certificate.h"
+#include "rtc_base/ssl_identity.h"
+#include "rtc_base/ssl_stream_adapter.h"
 #ifdef OPENSSL_IS_BORINGSSL
 #include <openssl/pool.h>
 #endif
-#include <openssl/rand.h>
 #include <openssl/x509.h>
 #include <string.h>
 #include <time.h>
@@ -37,7 +53,6 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
-#include "rtc_base/openssl.h"
 #ifdef OPENSSL_IS_BORINGSSL
 #include "rtc_base/boringssl_identity.h"
 #else
@@ -45,7 +60,6 @@
 #endif
 #include "rtc_base/openssl_utility.h"
 #include "rtc_base/strings/str_join.h"
-#include "rtc_base/strings/string_builder.h"
 #include "rtc_base/thread.h"
 #include "system_wrappers/include/field_trial.h"
 

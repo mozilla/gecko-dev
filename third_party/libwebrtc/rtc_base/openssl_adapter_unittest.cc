@@ -10,14 +10,19 @@
 
 #include "rtc_base/openssl_adapter.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <vector>
 
-#include "absl/memory/memory.h"
-#include "rtc_base/gunit.h"
 #include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/ssl_certificate.h"
+#include "rtc_base/thread.h"
 #include "test/gmock.h"
+#include "test/gtest.h"
 
 namespace rtc {
 namespace {

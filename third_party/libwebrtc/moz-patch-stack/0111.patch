@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee2f06666bcc6d22c
  1 file changed, 2 insertions(+)
 
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index cf9677cf47..a3b0ecaab2 100644
+index aa55fe3fd2..cd82b37fc1 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -1644,6 +1644,7 @@ if (!build_with_mozilla) {
@@ -20,7 +20,7 @@ index cf9677cf47..a3b0ecaab2 100644
    visibility = [ "*" ]
    sources = [
      "openssl_adapter.cc",
-@@ -1693,6 +1694,7 @@ rtc_library("ssl_adapter") {
+@@ -1694,6 +1695,7 @@ rtc_library("ssl_adapter") {
      configs += [ ":external_ssl_library" ]
    }
  }
