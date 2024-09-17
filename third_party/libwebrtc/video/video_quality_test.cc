@@ -1241,7 +1241,7 @@ void VideoQualityTest::RunWithAnalyzer(const Params& params) {
       InitializeAudioDevice(&send_call_config, &recv_call_config,
                             params_.audio.use_real_adm);
 
-    CreateCalls(send_call_config, recv_call_config);
+    CreateCalls(std::move(send_call_config), std::move(recv_call_config));
     send_transport = CreateSendTransport();
     recv_transport = CreateReceiveTransport();
   });
@@ -1468,7 +1468,7 @@ void VideoQualityTest::RunWithRenderers(const Params& params) {
       InitializeAudioDevice(&send_call_config, &recv_call_config,
                             params_.audio.use_real_adm);
 
-    CreateCalls(send_call_config, recv_call_config);
+    CreateCalls(std::move(send_call_config), std::move(recv_call_config));
 
     // TODO(minyue): consider if this is a good transport even for audio only
     // calls.

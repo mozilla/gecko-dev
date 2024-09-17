@@ -1429,7 +1429,7 @@ TEST(WebRtcVideoEngineNewVideoCodecFactoryTest, Vp8) {
       webrtc::Timestamp::Millis(4711));
   CallConfig call_config(CreateEnvironment(
       time_controller.CreateTaskQueueFactory(), time_controller.GetClock()));
-  const std::unique_ptr<Call> call = Call::Create(call_config);
+  const std::unique_ptr<Call> call = Call::Create(std::move(call_config));
 
   // Create send channel.
   const int send_ssrc = 123;

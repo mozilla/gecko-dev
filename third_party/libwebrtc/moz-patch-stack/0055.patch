@@ -31,7 +31,7 @@ index 276c6ee5c4..062702edf3 100644
    deps = [
      ":audio_sender_interface",
 diff --git a/call/call.cc b/call/call.cc
-index 817a532e3c..8fca0a0e8d 100644
+index bb8436ff3f..09f8de1db1 100644
 --- a/call/call.cc
 +++ b/call/call.cc
 @@ -454,19 +454,6 @@ class Call final : public webrtc::Call,
@@ -51,11 +51,11 @@ index 817a532e3c..8fca0a0e8d 100644
 -  return ss.str();
 -}
 -
- std::unique_ptr<Call> Call::Create(const CallConfig& config) {
+ std::unique_ptr<Call> Call::Create(CallConfig config) {
    std::unique_ptr<RtpTransportControllerSendInterface> transport_send;
    if (config.rtp_transport_controller_send_factory != nullptr) {
 diff --git a/call/call.h b/call/call.h
-index a680335192..e7d37c0abd 100644
+index 6ada035a22..c7e127ee3b 100644
 --- a/call/call.h
 +++ b/call/call.h
 @@ -21,6 +21,7 @@
@@ -89,7 +89,7 @@ index a680335192..e7d37c0abd 100644
 -  };
 +  using Stats = CallBasicStats;
  
-   static std::unique_ptr<Call> Create(const CallConfig& config);
+   static std::unique_ptr<Call> Create(CallConfig config);
  
 diff --git a/call/call_basic_stats.cc b/call/call_basic_stats.cc
 new file mode 100644

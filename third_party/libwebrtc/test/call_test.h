@@ -72,11 +72,10 @@ class CallTest : public ::testing::Test, public RtpPacketSinkInterface {
   CallConfig RecvCallConfig() const;
 
   void CreateCalls();
-  void CreateCalls(const CallConfig& sender_config,
-                   const CallConfig& receiver_config);
+  void CreateCalls(CallConfig sender_config, CallConfig receiver_config);
   void CreateSenderCall();
-  void CreateSenderCall(const CallConfig& config);
-  void CreateReceiverCall(const CallConfig& config);
+  void CreateSenderCall(CallConfig config);
+  void CreateReceiverCall(CallConfig config);
   void DestroyCalls();
 
   void CreateVideoSendConfig(VideoSendStream::Config* video_config,

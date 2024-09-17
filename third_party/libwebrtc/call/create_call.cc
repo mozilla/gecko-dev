@@ -77,14 +77,14 @@ std::vector<TimeScopedNetworkConfig> GetNetworkConfigs(
 
 }  // namespace
 
-std::unique_ptr<Call> CreateCall(const CallConfig& config) {
+std::unique_ptr<Call> CreateCall(CallConfig config) {
   std::vector<DegradedCall::TimeScopedNetworkConfig> send_degradation_configs =
       GetNetworkConfigs(config.env.field_trials(), /*send=*/true);
   std::vector<DegradedCall::TimeScopedNetworkConfig>
       receive_degradation_configs =
           GetNetworkConfigs(config.env.field_trials(), /*send=*/false);
 
-  std::unique_ptr<Call> call = Call::Create(config);
+  std::unique_ptr<Call> call = Call::Create(std::move(config));
 
   if (!send_degradation_configs.empty() ||
       !receive_degradation_configs.empty()) {

@@ -48,13 +48,12 @@ void EnableMediaWithDefaultsAndTimeController(
         absl::Nonnull<std::unique_ptr<MediaFactory>> media_factory)
         : clock_(clock), media_factory_(std::move(media_factory)) {}
 
-    std::unique_ptr<Call> CreateCall(const CallConfig& config) override {
+    std::unique_ptr<Call> CreateCall(CallConfig config) override {
       EnvironmentFactory env_factory(config.env);
       env_factory.Set(clock_);
 
-      CallConfig config_with_custom_clock = config;
-      config_with_custom_clock.env = env_factory.Create();
-      return media_factory_->CreateCall(config_with_custom_clock);
+      config.env = env_factory.Create();
+      return media_factory_->CreateCall(std::move(config));
     }
 
     std::unique_ptr<cricket::MediaEngineInterface> CreateMediaEngine(

@@ -183,7 +183,7 @@ class Call final : public webrtc::Call,
                    public TargetTransferRateObserver,
                    public BitrateAllocator::LimitObserver {
  public:
-  Call(const CallConfig& config,
+  Call(CallConfig config,
        std::unique_ptr<RtpTransportControllerSendInterface> transport_send);
   ~Call() override;
 
@@ -454,7 +454,7 @@ class Call final : public webrtc::Call,
 };
 }  // namespace internal
 
-std::unique_ptr<Call> Call::Create(const CallConfig& config) {
+std::unique_ptr<Call> Call::Create(CallConfig config) {
   std::unique_ptr<RtpTransportControllerSendInterface> transport_send;
   if (config.rtp_transport_controller_send_factory != nullptr) {
     transport_send = config.rtp_transport_controller_send_factory->Create(
@@ -464,7 +464,8 @@ std::unique_ptr<Call> Call::Create(const CallConfig& config) {
         config.ExtractTransportConfig());
   }
 
-  return std::make_unique<internal::Call>(config, std::move(transport_send));
+  return std::make_unique<internal::Call>(std::move(config),
+                                          std::move(transport_send));
 }
 
 // This method here to avoid subclasses has to implement this method.
@@ -630,7 +631,7 @@ void Call::SendStats::SetMinAllocatableRate(BitrateAllocationLimits limits) {
   min_allocated_send_bitrate_bps_ = limits.min_allocatable_rate.bps();
 }
 
-Call::Call(const CallConfig& config,
+Call::Call(CallConfig config,
            std::unique_ptr<RtpTransportControllerSendInterface> transport_send)
     : env_(config.env),
       worker_thread_(GetCurrentTaskQueueOrThread()),
@@ -647,7 +648,7 @@ Call::Call(const CallConfig& config,
       num_cpu_cores_(CpuInfo::DetectNumberOfCores()),
       call_stats_(new CallStats(&env_.clock(), worker_thread_)),
       bitrate_allocator_(new BitrateAllocator(this)),
-      config_(config),
+      config_(std::move(config)),
       audio_network_state_(kNetworkDown),
       video_network_state_(kNetworkDown),
       aggregate_network_up_(false),

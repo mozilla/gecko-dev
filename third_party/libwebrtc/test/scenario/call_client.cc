@@ -75,7 +75,7 @@ std::unique_ptr<Call> CreateCall(
       config.transport.rates.start_rate.bps();
   call_config.network_controller_factory = network_controller_factory;
   call_config.audio_state = audio_state;
-  return Call::Create(call_config);
+  return Call::Create(std::move(call_config));
 }
 
 std::unique_ptr<RtcEventLog> CreateEventLog(

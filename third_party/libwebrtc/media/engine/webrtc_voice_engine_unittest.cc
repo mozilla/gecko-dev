@@ -3883,7 +3883,7 @@ TEST(WebRtcVoiceEngineTest, SetRtpSendParametersMaxBitrate) {
         webrtc::test::MockAudioDeviceModule::CreateNice();
     call_config.audio_state = webrtc::AudioState::Create(config);
   }
-  std::unique_ptr<Call> call = Call::Create(call_config);
+  std::unique_ptr<Call> call = Call::Create(std::move(call_config));
   cricket::WebRtcVoiceSendChannel channel(
       &engine, cricket::MediaConfig(), cricket::AudioOptions(),
       webrtc::CryptoOptions(), call.get(), webrtc::AudioCodecPairId::Create());
