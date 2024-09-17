@@ -123,6 +123,40 @@ function runFunctionInWorker(browser, fn) {
   });
 }
 
+/**
+ *
+ * Spawns a service worker in the given browser and sends a callback function to it.
+ * The result of the callback function is returned as a Promise.
+ *
+ * @param {object} browser - The browser context to spawn the service worker in.
+ * @param {Function} fn - The callback function to send to the service worker.
+ * @returns {Promise} A Promise that resolves to the result of the callback function.
+ */
+function runFunctionInServiceWorker(browser, fn) {
+  return SpecialPowers.spawn(browser, [fn.toString()], async callback => {
+    // Create a service worker.
+    const sw = await content.navigator.serviceWorker.register(
+      "serviceWorkerTester.js",
+      {
+        scope: content.location.pathname,
+      }
+    );
+
+    return new content.Promise(resolve => {
+      content.navigator.serviceWorker.addEventListener("message", async e => {
+        await sw.unregister();
+        resolve(e.data.result);
+      });
+
+      content.navigator.serviceWorker.ready.then(registration => {
+        registration.active.postMessage({
+          callback,
+        });
+      });
+    });
+  });
+}
+
 const TEST_FIRST_PARTY_CONTEXT_PAGE =
   getRootDirectory(gTestPath).replace(
     "chrome://mochitests/content",

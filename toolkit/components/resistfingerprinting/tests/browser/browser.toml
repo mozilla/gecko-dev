@@ -6,6 +6,7 @@ support-files = [
   "head.js",
   "scriptExecPage.html",
   "serviceWorker.js",
+  "serviceWorkerTester.js",
   "testHelpers.js",
   "testPage.html",
   "worker.js",
@@ -14,6 +15,8 @@ support-files = [
 ["browser_canvas_fingerprinter_telemetry.js"]
 
 ["browser_canvas_randomization.js"]
+
+["browser_canvas_randomization_permission.js"]
 
 ["browser_canvas_randomization_worker.js"]
 
@@ -32,8 +35,10 @@ support-files = ["file_pdf.pdf"]
 
 ["browser_serviceWorker_fingerprinting_webcompat.js"]
 
-["browser_usercharacteristics_gamepads.js"]
+["browser_service_worker_overrides.js"]
 
 ["browser_usercharacteristics.js"]
 
-["browser_canvas_randomization_permission.js"]
+["browser_usercharacteristics_gamepads.js"]
+
+["browser_worker_overrides.js"]
