@@ -193,13 +193,9 @@ class RTC_EXPORT VideoFrame {
   void set_rtp_timestamp(uint32_t rtp_timestamp) {
     timestamp_rtp_ = rtp_timestamp;
   }
-  // TODO(https://bugs.webrtc.org/13756): Deprecate and use set_rtp_timestamp.
-  void set_timestamp(uint32_t timestamp) { timestamp_rtp_ = timestamp; }
 
   // Get frame timestamp (90kHz).
   uint32_t rtp_timestamp() const { return timestamp_rtp_; }
-  // TODO(https://bugs.webrtc.org/13756): Deprecate and use rtp_timestamp.
-  uint32_t timestamp() const { return timestamp_rtp_; }
 
   // Set capture ntp time in milliseconds.
   void set_ntp_time_ms(int64_t ntp_time_ms) { ntp_time_ms_ = ntp_time_ms; }
@@ -229,14 +225,6 @@ class RTC_EXPORT VideoFrame {
   RenderParameters render_parameters() const { return render_parameters_; }
   void set_render_parameters(const RenderParameters& render_parameters) {
     render_parameters_ = render_parameters;
-  }
-
-  // Deprecated in favor of render_parameters, will be removed once Chromium is
-  // updated. max_composition_delay_in_frames() is used in an experiment of a
-  // low-latency renderer algorithm see crbug.com/1138888.
-  [[deprecated("Use render_parameters() instead.")]] absl::optional<int32_t>
-  max_composition_delay_in_frames() const {
-    return render_parameters_.max_composition_delay_in_frames;
   }
 
   // Get render time in milliseconds.
