@@ -288,7 +288,13 @@ int OpenSSLAdapter::BeginSSL() {
   // need to create one, and specify `false` to disable session caching.
   if (ssl_session_cache_ == nullptr) {
     RTC_DCHECK(!ssl_ctx_);
-    ssl_ctx_ = CreateContext(ssl_mode_, false, permute_extension_);
+#ifdef OPENSSL_IS_BORINGSSL
+    ssl_ctx_ =
+        CreateContext(ssl_mode_, /* enable_cache= */ false, permute_extension_);
+#else
+    ssl_ctx_ = CreateContext(ssl_mode_, /* enable_cache= */ false,
+                             /* permute_extension= */ false);
+#endif
   }
 
   if (!ssl_ctx_) {
