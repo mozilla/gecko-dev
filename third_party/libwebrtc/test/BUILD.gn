@@ -1364,7 +1364,6 @@ rtc_library("video_codec_tester") {
     "video_codec_tester.h",
   ]
   deps = [
-    ":scoped_key_value_config",
     ":video_frame_writer",
     ":video_test_support",
     "../api:array_view",
@@ -1401,8 +1400,6 @@ rtc_library("video_codec_tester") {
     "../rtc_base:timeutils",
     "../rtc_base/synchronization:mutex",
     "../system_wrappers",
-    "../system_wrappers:field_trial",
-    "../test:explicit_key_value_config",
     "../test:fileutils",
     "../video/config:streams_config",
     "//third_party/abseil-cpp/absl/strings",
