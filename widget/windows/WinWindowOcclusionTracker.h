@@ -7,7 +7,8 @@
 #ifndef widget_windows_WinWindowOcclusionTracker_h
 #define widget_windows_WinWindowOcclusionTracker_h
 
-#include <string>
+#include <windef.h>
+
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -15,10 +16,7 @@
 #include "nsIWeakReferenceUtils.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/StaticPtr.h"
-#include "mozilla/WindowsVersion.h"
-#include "mozilla/ThreadSafeWeakPtr.h"
 #include "mozilla/widget/WindowOcclusionState.h"
-#include "mozilla/widget/WinEventObserver.h"
 #include "Units.h"
 #include "nsThreadUtils.h"
 
@@ -41,8 +39,7 @@ class UpdateOcclusionStateRunnable;
 
 // This class handles window occlusion tracking by using HWND.
 // Implementation is borrowed from chromium's NativeWindowOcclusionTrackerWin.
-class WinWindowOcclusionTracker final : public DisplayStatusListener,
-                                        public SessionChangeListener {
+class WinWindowOcclusionTracker final {
  public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(WinWindowOcclusionTracker)
 
@@ -60,12 +57,6 @@ class WinWindowOcclusionTracker final : public DisplayStatusListener,
 
   /// Can be called from any thread.
   static bool IsInWinWindowOcclusionThread();
-
-  /// Can only be called from the main thread.
-  void EnsureDisplayStatusObserver();
-
-  /// Can only be called from the main thread.
-  void EnsureSessionChangeObserver();
 
   // Enables notifying to widget via NotifyOcclusionState() when the occlusion
   // state has been computed.
@@ -280,15 +271,16 @@ class WinWindowOcclusionTracker final : public DisplayStatusListener,
   void UpdateOcclusionState(std::unordered_map<HWND, OcclusionState>* aMap,
                             bool aShowAllWindows);
 
+ public:
   // This is called with session changed notifications. If the screen is locked
   // by the current session, it marks app windows as occluded.
-  void OnSessionChange(WPARAM aStatusCode,
-                       Maybe<bool> aIsCurrentSession) override;
+  void OnSessionChange(WPARAM aStatusCode, Maybe<bool> aIsCurrentSession);
 
   // This is called when the display is put to sleep. If the display is sleeping
   // it marks app windows as occluded.
-  void OnDisplayStateChanged(bool aDisplayOn) override;
+  void OnDisplayStateChanged(bool aDisplayOn);
 
+ private:
   // Marks all root windows as either occluded, or if hwnd IsIconic, hidden.
   void MarkNonIconicWindowsOccluded();
 
@@ -315,10 +307,6 @@ class WinWindowOcclusionTracker final : public DisplayStatusListener,
 
   // If the display is off, windows are considered occluded.
   bool mDisplayOn = true;
-
-  RefPtr<DisplayStatusObserver> mDisplayStatusObserver;
-
-  RefPtr<SessionChangeObserver> mSessionChangeObserver;
 
   // Used to serialize tasks related to mRootWindowHwndsOcclusionState.
   RefPtr<SerializedTaskDispatcher> mSerializedTaskDispatcher;
