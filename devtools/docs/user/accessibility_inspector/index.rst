@@ -241,7 +241,7 @@ See `Color contrast <https://developer.mozilla.org/en-US/docs/Web/Accessibility/
 Accessibility picker
 --------------------
 
-Like the element picker button on the :ref:`Page Inspector <page-inspector-how-to-select-an-element-with-the-node-picker>`, the *Accessibility* tab's element picker button allows you to hover and select UI items on the current pageto highlight objects in the accessibility tree.
+Like the element picker button on the :ref:`Page Inspector <page-inspector-how-to-select-an-element-with-the-node-picker>`, the *Accessibility* tab's element picker button allows you to hover and select UI items on the current page to highlight objects in the accessibility tree.
 
 The accessibility tab element picker looks slightly different from the Page Inspector HTML pane picker, as shown below:
 
