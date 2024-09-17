@@ -112,7 +112,7 @@ private fun StrongPasswordBottomSheetDescription(
 ) {
     Text(
         modifier = modifier.padding(start = 40.dp, top = 0.dp, end = 12.dp, bottom = 16.dp),
-        text = stringResource(id = R.string.mozac_feature_prompts_suggest_strong_password_description_2),
+        text = stringResource(id = R.string.mozac_feature_prompts_suggest_strong_password_description_3),
         style = TextStyle(
             fontSize = FONT_SIZE,
             lineHeight = LINE_HEIGHT,
