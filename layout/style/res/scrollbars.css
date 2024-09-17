@@ -176,15 +176,6 @@ scrollbar[root] {
   }
 }
 
-slider {
-  appearance: auto;
-  -moz-default-appearance: scrollbartrack-horizontal;
-}
-
-slider[orient="vertical"] {
-  -moz-default-appearance: scrollbartrack-vertical;
-}
-
 scrollbarbutton {
   appearance: auto;
   -moz-default-appearance: scrollbarbutton-right;
