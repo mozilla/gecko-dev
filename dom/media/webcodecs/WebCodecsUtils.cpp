@@ -16,6 +16,7 @@
 #include "mozilla/dom/VideoFrameBinding.h"
 #include "mozilla/gfx/Types.h"
 #include "nsDebug.h"
+#include "nsString.h"
 
 extern mozilla::LazyLogModule gWebCodecsLog;
 
@@ -597,7 +598,8 @@ Maybe<CodecType> CodecStringToCodecType(const nsAString& aCodecString) {
   if (StringBeginsWith(aCodecString, u"vp09"_ns)) {
     return Some(CodecType::VP9);
   }
-  if (StringBeginsWith(aCodecString, u"avc1"_ns)) {
+  if (StringBeginsWith(aCodecString, u"avc1"_ns) ||
+      StringBeginsWith(aCodecString, u"avc3"_ns)) {
     return Some(CodecType::H264);
   }
   return Nothing();
