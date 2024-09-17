@@ -118,6 +118,7 @@ class FontInspector {
     this.update = this.update.bind(this);
     this.updateFontVariationSettings =
       this.updateFontVariationSettings.bind(this);
+    this.onResourceAvailable = this.onResourceAvailable.bind(this);
 
     this.init();
   }
@@ -183,6 +184,11 @@ class FontInspector {
     this.inspector.selection.on("new-node-front", this.onNewNode);
     // @see ToolSidebar.onSidebarTabSelected()
     this.inspector.sidebar.on("fontinspector-selected", this.onNewNode);
+
+    this.inspector.toolbox.resourceCommand.watchResources(
+      [this.inspector.toolbox.resourceCommand.TYPES.DOCUMENT_EVENT],
+      { onAvailable: this.onResourceAvailable }
+    );
 
     // Listen for theme changes as the color of the previews depend on the theme
     gDevTools.on("theme-switched", this.onThemeChanged);
@@ -324,6 +330,12 @@ class FontInspector {
     this.ruleView.off("property-value-updated", this.onRulePropertyUpdated);
     gDevTools.off("theme-switched", this.onThemeChanged);
 
+    this.inspector.toolbox.resourceCommand.unwatchResources(
+      [this.inspector.toolbox.resourceCommand.TYPES.DOCUMENT_EVENT],
+      { onAvailable: this.onResourceAvailable }
+    );
+
+    this.fontsHighlighter = null;
     this.document = null;
     this.inspector = null;
     this.node = null;
@@ -334,6 +346,21 @@ class FontInspector {
     this.store = null;
     this.writers.clear();
     this.writers = null;
+  }
+
+  onResourceAvailable(resources) {
+    for (const resource of resources) {
+      if (
+        resource.resourceType ===
+          this.inspector.commands.resourceCommand.TYPES.DOCUMENT_EVENT &&
+        resource.name === "will-navigate" &&
+        resource.targetFront.isTopLevel
+      ) {
+        // Reset the fontsHighlighter so the next call to `onToggleFontHighlight` will
+        // re-create it from the inspector front tied to the new document.
+        this.fontsHighlighter = null;
+      }
+    }
   }
 
   /**
@@ -869,24 +896,32 @@ class FontInspector {
    *         just to the current element selection.
    */
   async onToggleFontHighlight(font, show, isForCurrentElement = true) {
+    if (!this.fontsHighlighter) {
+      try {
+        this.fontsHighlighter =
+          await this.inspector.inspectorFront.getHighlighterByType(
+            HIGHLIGHTER_TYPES.FONTS
+          );
+      } catch (e) {
+        // the FontsHighlighter won't be available when debugging a XUL document.
+        // Silently fail here and prevent any future calls to the function.
+        this.onToggleFontHighlight = () => {};
+        return;
+      }
+    }
+
     try {
       if (show) {
         const node = isForCurrentElement
-          ? this.inspector.selection.nodeFront
+          ? this.node
           : this.node.walkerFront.rootNode;
 
-        await this.inspector.highlighters.showHighlighterTypeForNode(
-          HIGHLIGHTER_TYPES.FONTS,
-          node,
-          {
-            CSSFamilyName: font.CSSFamilyName,
-            name: font.name,
-          }
-        );
+        await this.fontsHighlighter.show(node, {
+          CSSFamilyName: font.CSSFamilyName,
+          name: font.name,
+        });
       } else {
-        await this.inspector.highlighters.hideHighlighterType(
-          HIGHLIGHTER_TYPES.FONTS
-        );
+        await this.fontsHighlighter.hide();
       }
     } catch (e) {
       // Silently handle protocol errors here, because these might be called during

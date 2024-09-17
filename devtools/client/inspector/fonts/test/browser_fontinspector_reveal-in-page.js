@@ -11,20 +11,16 @@ add_task(async function () {
   // events simulation will fail.
   await pushPref("devtools.toolbox.footer.height", 500);
 
-  const { inspector, view } = await openFontInspectorForURL(TEST_URI);
-  await testFontHighlighting(view, inspector);
+  const { view } = await openFontInspectorForURL(TEST_URI);
+  await testFontHighlighting(view);
 
   info("Check that highlighting still works after reloading the page");
   await reloadBrowser();
 
-  await testFontHighlighting(view, inspector);
-
-  info("Check that highlighting works for iframe nodes");
-  await testFontHighlightingInIframe(view, inspector);
+  await testFontHighlighting(view);
 });
 
-async function testFontHighlighting(view, inspector) {
-  await selectNode("body", inspector);
+async function testFontHighlighting(view) {
   // The number of window selection change events we expect to get as we hover over each
   // font in the list. Waiting for those events is how we know that text-runs were
   // highlighted in the page.
@@ -72,10 +68,7 @@ async function testFontHighlighting(view, inspector) {
 
     // Simulating a mouse over event on the font name and expecting a selectionchange.
     const nameEl = fontEls[i];
-    let onEvents = waitForNSelectionEvents(
-      gBrowser.selectedBrowser,
-      expectedEvents
-    );
+    let onEvents = waitForNSelectionEvents(expectedEvents);
     EventUtils.synthesizeMouse(
       nameEl,
       2,
@@ -89,7 +82,7 @@ async function testFontHighlighting(view, inspector) {
 
     // Simulating a mouse out event on the font name and expecting a selectionchange.
     const otherEl = viewDoc.querySelector("body");
-    onEvents = waitForNSelectionEvents(gBrowser.selectedBrowser, 1);
+    onEvents = waitForNSelectionEvents(1);
     EventUtils.synthesizeMouse(
       otherEl,
       2,
@@ -103,76 +96,24 @@ async function testFontHighlighting(view, inspector) {
   }
 }
 
-async function testFontHighlightingInIframe(view, inspector) {
-  await selectNodeInFrames(["iframe", "div"], inspector);
-
-  const viewDoc = view.document;
-
-  // Wait for the view to have all the expected used fonts.
-  const fontEls = await waitFor(() => {
-    const els = getUsedFontsEls(viewDoc);
-
-    if (!els.length) {
-      return false;
-    }
-
-    return [...els];
-  });
-
-  is(fontEls.length, 1, "There's only one font used in the iframe document");
-  is(fontEls[0].innerText, "Times New Roman", "The expected font is displayed");
-
-  const iframeBrowsingContext = await SpecialPowers.spawn(
+async function waitForNSelectionEvents(numberOfTimes) {
+  await SpecialPowers.spawn(
     gBrowser.selectedBrowser,
-    [],
-    () => content.document.querySelector("iframe").browsingContext
-  );
+    [numberOfTimes],
+    async function (n) {
+      const win = content.wrappedJSObject;
 
-  info(`Mousing over and out of the font  in the list`);
+      await new Promise(resolve => {
+        let received = 0;
+        win.document.addEventListener("selectionchange", function listen() {
+          received++;
 
-  // Simulating a mouse over event on the font name and expecting a selectionchange.
-  const nameEl = fontEls[0];
-  let onEvents = waitForNSelectionEvents(iframeBrowsingContext, 1);
-  EventUtils.synthesizeMouse(
-    nameEl,
-    2,
-    2,
-    { type: "mouseover" },
-    viewDoc.defaultView
-  );
-  await onEvents;
-
-  ok(true, `A selectionchange events detected on mouseover`);
-
-  // Simulating a mouse out event on the font name and expecting a selectionchange.
-  const otherEl = viewDoc.querySelector("body");
-  onEvents = waitForNSelectionEvents(iframeBrowsingContext, 1);
-  EventUtils.synthesizeMouse(
-    otherEl,
-    2,
-    2,
-    { type: "mouseover" },
-    viewDoc.defaultView
-  );
-  await onEvents;
-
-  ok(true, "1 selectionchange events detected on mouseout");
-}
-
-async function waitForNSelectionEvents(browser, numberOfTimes) {
-  await SpecialPowers.spawn(browser, [numberOfTimes], async function (n) {
-    const win = content.wrappedJSObject;
-
-    await new Promise(resolve => {
-      let received = 0;
-      win.document.addEventListener("selectionchange", function listen() {
-        received++;
-
-        if (received === n) {
-          win.document.removeEventListener("selectionchange", listen);
-          resolve();
-        }
+          if (received === n) {
+            win.document.removeEventListener("selectionchange", listen);
+            resolve();
+          }
+        });
       });
-    });
-  });
+    }
+  );
 }
