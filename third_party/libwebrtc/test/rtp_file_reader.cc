@@ -573,7 +573,7 @@ class PcapReader : public RtpFileReaderImpl {
           return kResultFail;
         }
         return kResultSuccess;
-      } break;
+      }
     }
     return kResultSkip;
   }
