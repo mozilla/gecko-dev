@@ -104,7 +104,9 @@ def vcs_setup(command_context, update_only=False):
                 Path(command_context._mach_context.state_dir),
             )
         else:
-            bootstrap.update_vct(vcs, Path(command_context._mach_context.state_dir))
+            bootstrap.configure_mercurial(
+                vcs, Path(command_context._mach_context.state_dir), update_only=True
+            )
     else:
         if repo.name == "git":
             bootstrap.configure_git(
