@@ -445,8 +445,7 @@ nsresult nsHttpResponseHead::ParseHeaderLine_locked(
 
   // reject the header if there are 0x00 bytes in the value.
   // (see https://github.com/httpwg/http-core/issues/215 for details).
-  if (StaticPrefs::network_http_reject_NULs_in_response_header_values() &&
-      val.FindChar('\0') >= 0) {
+  if (val.FindChar('\0') >= 0) {
     return NS_ERROR_DOM_INVALID_HEADER_VALUE;
   }
 

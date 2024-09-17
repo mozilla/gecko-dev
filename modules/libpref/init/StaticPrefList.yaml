@@ -14025,12 +14025,6 @@
   value: 5
   mirror: always
 
-  # If true, requests will be canceled if any of the response headers values has a NUL character
-- name: network.http.reject_NULs_in_response_header_values
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
   # If true, will be more strict with status code parsing
 - name: network.http.strict_response_status_line_parsing
   type: RelaxedAtomicBool
