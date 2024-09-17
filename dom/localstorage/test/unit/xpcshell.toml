@@ -85,7 +85,6 @@ support-files = ["migration_emptyValue_profile.zip",]
 ["test_schema4upgrade.js"]
 
 ["test_slowStorageInitialization.js"]
-skip-if = ["true"]
 
 ["test_snapshotting.js"]
 skip-if = ["tsan"] # Unreasonably slow, bug 1612707
