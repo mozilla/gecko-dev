@@ -86,7 +86,6 @@ class FrameGeneratorCapturer : public TestVideoCapturer {
   void InsertFrame();
   static bool Run(void* obj);
   int GetCurrentConfiguredFramerate();
-  void UpdateFps(int max_fps) RTC_EXCLUSIVE_LOCKS_REQUIRED(&lock_);
 
   Clock* const clock_;
   RepeatingTaskHandle frame_task_;
@@ -98,7 +97,6 @@ class FrameGeneratorCapturer : public TestVideoCapturer {
 
   int source_fps_ RTC_GUARDED_BY(&lock_);
   int target_capture_fps_ RTC_GUARDED_BY(&lock_);
-  absl::optional<int> wanted_fps_ RTC_GUARDED_BY(&lock_);
   VideoRotation fake_rotation_ = kVideoRotation_0;
   absl::optional<ColorSpace> fake_color_space_ RTC_GUARDED_BY(&lock_);
 
