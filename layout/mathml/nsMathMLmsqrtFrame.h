@@ -8,7 +8,7 @@
 #define nsMathMLmsqrtFrame_h___
 
 #include "mozilla/Attributes.h"
-#include "nsMathMLmencloseFrame.h"
+#include "nsMathMLmrootFrame.h"
 
 namespace mozilla {
 class PresShell;
@@ -37,22 +37,15 @@ These attributes are inherited by every element from its rendering environment,
 but can be set explicitly only on <mstyle>. (See Section 3.3.4.)
 */
 
-// TODO(bug 1918310): msqrt should share its logic with mroot instead.
-class nsMathMLmsqrtFrame final : public nsMathMLmencloseFrame {
+class nsMathMLmsqrtFrame final : public nsMathMLmrootFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsMathMLmsqrtFrame)
 
   friend nsIFrame* NS_NewMathMLmsqrtFrame(mozilla::PresShell* aPresShell,
                                           ComputedStyle* aStyle);
 
-  virtual void Init(nsIContent* aContent, nsContainerFrame* aParent,
-                    nsIFrame* aPrevInFlow) override;
-
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) override;
-
-  virtual nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
-                                    int32_t aModType) override;
 
   virtual bool IsMrowLike() override {
     return mFrames.FirstChild() != mFrames.LastChild() || !mFrames.FirstChild();

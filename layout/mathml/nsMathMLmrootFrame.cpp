@@ -29,8 +29,8 @@ nsIFrame* NS_NewMathMLmrootFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
 NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmrootFrame)
 
 nsMathMLmrootFrame::nsMathMLmrootFrame(ComputedStyle* aStyle,
-                                       nsPresContext* aPresContext)
-    : nsMathMLContainerFrame(aStyle, aPresContext, kClassID) {}
+                                       nsPresContext* aPresContext, ClassID aID)
+    : nsMathMLContainerFrame(aStyle, aPresContext, aID) {}
 
 nsMathMLmrootFrame::~nsMathMLmrootFrame() = default;
 
@@ -45,6 +45,11 @@ void nsMathMLmrootFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
 }
 
 bool nsMathMLmrootFrame::ShouldUseRowFallback() {
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  if (!isRootWithIndex) {
+    return false;
+  }
+  // An mroot element expects exactly two children.
   nsIFrame* baseFrame = mFrames.FirstChild();
   if (!baseFrame) {
     return true;
@@ -55,17 +60,25 @@ bool nsMathMLmrootFrame::ShouldUseRowFallback() {
 
 NS_IMETHODIMP
 nsMathMLmrootFrame::TransmitAutomaticData() {
-  // 1. The REC says:
-  //    The <mroot> element increments scriptlevel by 2, and sets displaystyle
-  //    to "false", within index, but leaves both attributes unchanged within
-  //    base.
-  // 2. The TeXbook (Ch 17. p.141) says \sqrt is compressed
-  UpdatePresentationDataFromChildAt(1, 1, NS_MATHML_COMPRESSED,
-                                    NS_MATHML_COMPRESSED);
-  UpdatePresentationDataFromChildAt(0, 0, NS_MATHML_COMPRESSED,
-                                    NS_MATHML_COMPRESSED);
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  if (isRootWithIndex) {
+    // 1. The REC says:
+    //    The <mroot> element increments scriptlevel by 2, and sets displaystyle
+    //    to "false", within index, but leaves both attributes unchanged within
+    //    base.
+    // 2. The TeXbook (Ch 17. p.141) says \sqrt is compressed
+    UpdatePresentationDataFromChildAt(1, 1, NS_MATHML_COMPRESSED,
+                                      NS_MATHML_COMPRESSED);
+    UpdatePresentationDataFromChildAt(0, 0, NS_MATHML_COMPRESSED,
+                                      NS_MATHML_COMPRESSED);
 
-  PropagateFrameFlagFor(mFrames.LastChild(), NS_FRAME_MATHML_SCRIPT_DESCENDANT);
+    PropagateFrameFlagFor(mFrames.LastChild(),
+                          NS_FRAME_MATHML_SCRIPT_DESCENDANT);
+  } else {
+    // The TeXBook (Ch 17. p.141) says that \sqrt is cramped
+    UpdatePresentationDataFromChildAt(0, -1, NS_MATHML_COMPRESSED,
+                                      NS_MATHML_COMPRESSED);
+  }
 
   return NS_OK;
 }
@@ -131,15 +144,31 @@ nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
     return PlaceAsMrow(aDrawTarget, aFlags, aDesiredSize);
   }
 
+  const bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
   nsBoundingMetrics bmSqr, bmBase, bmIndex;
-  nsIFrame* baseFrame = mFrames.FirstChild();
-  nsIFrame* indexFrame = baseFrame->GetNextSibling();
-  nsMargin baseMargin = GetMarginForPlace(aFlags, baseFrame),
-           indexMargin = GetMarginForPlace(aFlags, indexFrame);
+  nsIFrame *baseFrame = nullptr, *indexFrame = nullptr;
+  nsMargin baseMargin, indexMargin;
   ReflowOutput baseSize(aDesiredSize.GetWritingMode());
   ReflowOutput indexSize(aDesiredSize.GetWritingMode());
-  GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
-  GetReflowAndBoundingMetricsFor(indexFrame, indexSize, bmIndex);
+  if (isRootWithIndex) {
+    baseFrame = mFrames.FirstChild();
+    indexFrame = baseFrame->GetNextSibling();
+    baseMargin = GetMarginForPlace(aFlags, baseFrame);
+    indexMargin = GetMarginForPlace(aFlags, indexFrame);
+    GetReflowAndBoundingMetricsFor(baseFrame, baseSize, bmBase);
+    GetReflowAndBoundingMetricsFor(indexFrame, indexSize, bmIndex);
+  } else {
+    // Format our content as an mrow without border/padding to obtain the
+    // square root base. The metrics/frame for the index are ignored.
+    PlaceFlags flags =
+        aFlags + PlaceFlag::MeasureOnly + PlaceFlag::IgnoreBorderPadding;
+    nsresult rv = nsMathMLContainerFrame::Place(aDrawTarget, flags, baseSize);
+    if (NS_FAILED(rv)) {
+      DidReflowChildren(PrincipalChildList().FirstChild());
+      return rv;
+    }
+    bmBase = baseSize.mBoundingMetrics;
+  }
 
   ////////////
   // Prepare the radical symbol and the overline bar
@@ -220,50 +249,52 @@ nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
                mBoundingMetrics.descent + ruleThickness);
   aDesiredSize.Width() = mBoundingMetrics.width;
 
-  /////////////
-  // Re-adjust the desired size to include the index.
+  nscoord indexClearance = 0, dxIndex = 0, dxSqr = 0, indexRaisedAscent = 0;
+  if (isRootWithIndex) {
+    /////////////
+    // Re-adjust the desired size to include the index.
 
-  // the index is raised by some fraction of the height
-  // of the radical, see \mroot macro in App. B, TexBook
-  float raiseIndexPercent = 0.6f;
-  RefPtr<gfxFont> mathFont = fm->GetThebesFontGroup()->GetFirstMathFont();
-  if (mathFont) {
-    raiseIndexPercent = mathFont->MathTable()->Constant(
-        gfxMathTable::RadicalDegreeBottomRaisePercent);
+    // the index is raised by some fraction of the height
+    // of the radical, see \mroot macro in App. B, TexBook
+    float raiseIndexPercent = 0.6f;
+    RefPtr<gfxFont> mathFont = fm->GetThebesFontGroup()->GetFirstMathFont();
+    if (mathFont) {
+      raiseIndexPercent = mathFont->MathTable()->Constant(
+          gfxMathTable::RadicalDegreeBottomRaisePercent);
+    }
+    nscoord raiseIndexDelta =
+        NSToCoordRound(raiseIndexPercent * (bmSqr.ascent + bmSqr.descent));
+    indexRaisedAscent = mBoundingMetrics.ascent  // top of radical
+                        -
+                        (bmSqr.ascent + bmSqr.descent)  // to bottom of radical
+                        + raiseIndexDelta + bmIndex.ascent + bmIndex.descent +
+                        indexMargin.TopBottom();  // to top of raised index
+
+    if (mBoundingMetrics.ascent < indexRaisedAscent) {
+      indexClearance =
+          indexRaisedAscent -
+          mBoundingMetrics.ascent;  // excess gap introduced by a tall index
+      mBoundingMetrics.ascent = indexRaisedAscent;
+      nscoord descent = aDesiredSize.Height() - aDesiredSize.BlockStartAscent();
+      aDesiredSize.SetBlockStartAscent(mBoundingMetrics.ascent + leading);
+      aDesiredSize.Height() = aDesiredSize.BlockStartAscent() + descent;
+    }
+
+    GetRadicalXOffsets(bmIndex.width + indexMargin.LeftRight(), bmSqr.width, fm,
+                       &dxIndex, &dxSqr);
+
+    mBoundingMetrics.width =
+        dxSqr + bmSqr.width + bmBase.width + baseMargin.LeftRight();
+    mBoundingMetrics.leftBearing =
+        std::min(dxIndex + bmIndex.leftBearing, dxSqr + bmSqr.leftBearing);
+    mBoundingMetrics.rightBearing =
+        dxSqr + bmSqr.width +
+        std::max(bmBase.width + baseMargin.LeftRight(),
+                 bmBase.rightBearing + baseMargin.left);
+
+    aDesiredSize.Width() = mBoundingMetrics.width;
   }
-  nscoord raiseIndexDelta =
-      NSToCoordRound(raiseIndexPercent * (bmSqr.ascent + bmSqr.descent));
-  nscoord indexRaisedAscent =
-      mBoundingMetrics.ascent           // top of radical
-      - (bmSqr.ascent + bmSqr.descent)  // to bottom of radical
-      + raiseIndexDelta + bmIndex.ascent + bmIndex.descent +
-      indexMargin.TopBottom();  // to top of raised index
 
-  nscoord indexClearance = 0;
-  if (mBoundingMetrics.ascent < indexRaisedAscent) {
-    indexClearance =
-        indexRaisedAscent -
-        mBoundingMetrics.ascent;  // excess gap introduced by a tall index
-    mBoundingMetrics.ascent = indexRaisedAscent;
-    nscoord descent = aDesiredSize.Height() - aDesiredSize.BlockStartAscent();
-    aDesiredSize.SetBlockStartAscent(mBoundingMetrics.ascent + leading);
-    aDesiredSize.Height() = aDesiredSize.BlockStartAscent() + descent;
-  }
-
-  nscoord dxIndex, dxSqr;
-  GetRadicalXOffsets(bmIndex.width + indexMargin.LeftRight(), bmSqr.width, fm,
-                     &dxIndex, &dxSqr);
-
-  mBoundingMetrics.width =
-      dxSqr + bmSqr.width + bmBase.width + baseMargin.LeftRight();
-  mBoundingMetrics.leftBearing =
-      std::min(dxIndex + bmIndex.leftBearing, dxSqr + bmSqr.leftBearing);
-  mBoundingMetrics.rightBearing =
-      dxSqr + bmSqr.width +
-      std::max(bmBase.width + baseMargin.LeftRight(),
-               bmBase.rightBearing + baseMargin.left);
-
-  aDesiredSize.Width() = mBoundingMetrics.width;
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
   // Add padding+border around the final layout.
@@ -273,18 +304,22 @@ nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
 
   if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
     nsPresContext* presContext = PresContext();
-    // place the index
     const bool isRTL = StyleVisibility()->mDirection == StyleDirection::Rtl;
     nscoord borderPaddingInlineStart =
         isRTL ? borderPadding.right : borderPadding.left;
-    nscoord dx = borderPaddingInlineStart + dxIndex +
-                 indexMargin.Side(isRTL ? eSideRight : eSideLeft);
-    nscoord dy =
-        aDesiredSize.BlockStartAscent() -
-        (indexRaisedAscent + indexSize.BlockStartAscent() - bmIndex.ascent);
-    FinishReflowChild(indexFrame, presContext, indexSize, nullptr,
-                      MirrorIfRTL(aDesiredSize.Width(), indexSize.Width(), dx),
-                      dy + indexMargin.top, ReflowChildFlags::Default);
+    nscoord dx, dy;
+
+    if (isRootWithIndex) {
+      // place the index
+      dx = borderPaddingInlineStart + dxIndex +
+           indexMargin.Side(isRTL ? eSideRight : eSideLeft);
+      dy = aDesiredSize.BlockStartAscent() -
+           (indexRaisedAscent + indexSize.BlockStartAscent() - bmIndex.ascent);
+      FinishReflowChild(
+          indexFrame, presContext, indexSize, nullptr,
+          MirrorIfRTL(aDesiredSize.Width(), indexSize.Width(), dx),
+          dy + indexMargin.top, ReflowChildFlags::Default);
+    }
 
     // place the radical symbol and the radical bar
     dx = borderPaddingInlineStart + dxSqr;
@@ -298,11 +333,19 @@ nsresult nsMathMLmrootFrame::Place(DrawTarget* aDrawTarget,
                      dy, bmBase.width + baseMargin.LeftRight(), ruleThickness);
 
     // place the base
-    dx += isRTL ? baseMargin.right : baseMargin.left;
-    dy = aDesiredSize.BlockStartAscent() - baseSize.BlockStartAscent();
-    FinishReflowChild(baseFrame, presContext, baseSize, nullptr,
-                      MirrorIfRTL(aDesiredSize.Width(), baseSize.Width(), dx),
-                      dy, ReflowChildFlags::Default);
+    if (isRootWithIndex) {
+      dx += isRTL ? baseMargin.right : baseMargin.left;
+      dy = aDesiredSize.BlockStartAscent() - baseSize.BlockStartAscent();
+      FinishReflowChild(baseFrame, presContext, baseSize, nullptr,
+                        MirrorIfRTL(aDesiredSize.Width(), baseSize.Width(), dx),
+                        dy, ReflowChildFlags::Default);
+    } else {
+      nscoord dx_left = borderPadding.left;
+      if (!isRTL) {
+        dx_left += bmSqr.width;
+      }
+      PositionRowChildFrames(dx_left, aDesiredSize.BlockStartAscent());
+    }
   }
 
   mReference.x = 0;

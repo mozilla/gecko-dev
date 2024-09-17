@@ -19,7 +19,7 @@ class PresShell;
 // <msqrt> and <mroot> -- form a radical
 //
 
-class nsMathMLmrootFrame final : public nsMathMLContainerFrame {
+class nsMathMLmrootFrame : public nsMathMLContainerFrame {
  public:
   NS_DECL_FRAMEARENA_HELPERS(nsMathMLmrootFrame)
 
@@ -47,7 +47,8 @@ class nsMathMLmrootFrame final : public nsMathMLContainerFrame {
 
  protected:
   explicit nsMathMLmrootFrame(ComputedStyle* aStyle,
-                              nsPresContext* aPresContext);
+                              nsPresContext* aPresContext,
+                              ClassID aID = kClassID);
   virtual ~nsMathMLmrootFrame();
 
   nsMathMLChar mSqrChar;

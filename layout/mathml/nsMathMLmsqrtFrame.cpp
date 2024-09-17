@@ -24,16 +24,9 @@ NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmsqrtFrame)
 
 nsMathMLmsqrtFrame::nsMathMLmsqrtFrame(ComputedStyle* aStyle,
                                        nsPresContext* aPresContext)
-    : nsMathMLmencloseFrame(aStyle, aPresContext, kClassID) {}
+    : nsMathMLmrootFrame(aStyle, aPresContext, kClassID) {}
 
 nsMathMLmsqrtFrame::~nsMathMLmsqrtFrame() = default;
-
-void nsMathMLmsqrtFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
-                              nsIFrame* aPrevInFlow) {
-  nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
-  AllocateMathMLChar(NOTATION_RADICAL);
-  mNotationsToDraw += NOTATION_RADICAL;
-}
 
 NS_IMETHODIMP
 nsMathMLmsqrtFrame::InheritAutomaticData(nsIFrame* aParent) {
@@ -42,14 +35,4 @@ nsMathMLmsqrtFrame::InheritAutomaticData(nsIFrame* aParent) {
   mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY;
 
   return NS_OK;
-}
-
-nsresult nsMathMLmsqrtFrame::AttributeChanged(int32_t aNameSpaceID,
-                                              nsAtom* aAttribute,
-                                              int32_t aModType) {
-  // Skip nsMathMLmencloseFrame::AttributeChanged, since msqrt does not accept
-  // the notation attribute.
-  // TODO(bug 1918310): msqrt should share its logic with mroot instead.
-  return nsMathMLContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
-                                                  aModType);
 }

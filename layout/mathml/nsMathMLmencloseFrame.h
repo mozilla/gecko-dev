@@ -32,7 +32,6 @@ class PresShell;
 
 enum nsMencloseNotation {
   NOTATION_LONGDIV,
-  NOTATION_RADICAL,
   NOTATION_ROUNDEDBOX,
   NOTATION_CIRCLE,
   NOTATION_LEFT,
@@ -68,9 +67,6 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
   NS_IMETHOD
   InheritAutomaticData(nsIFrame* aParent) override;
 
-  NS_IMETHOD
-  TransmitAutomaticData() override;
-
   virtual nscoord FixInterFrameSpacing(ReflowOutput& aDesiredSize) override;
 
   bool IsMrowLike() override {
@@ -79,8 +75,7 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
 
  protected:
   explicit nsMathMLmencloseFrame(ComputedStyle* aStyle,
-                                 nsPresContext* aPresContext,
-                                 ClassID aID = kClassID);
+                                 nsPresContext* aPresContext);
   virtual ~nsMathMLmencloseFrame();
 
   // functions to parse the "notation" attribute.
@@ -94,9 +89,8 @@ class nsMathMLmencloseFrame : public nsMathMLContainerFrame {
   }
 
   nscoord mRuleThickness;
-  nscoord mRadicalRuleThickness;
   nsTArray<nsMathMLChar> mMathMLChar;
-  int8_t mLongDivCharIndex, mRadicalCharIndex;
+  int8_t mLongDivCharIndex;
   nscoord mContentWidth;
   nsresult AllocateMathMLChar(nsMencloseNotation mask);
 
