@@ -21,6 +21,10 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+const PERSONAL_TOOLBAR_VISIBILITY_PREF =
+  "browser.toolbars.bookmarks.visibility";
+const VERTICAL_TABS_PREF = "sidebar.verticalTabs";
+
 function parseColor(color, kind) {
   if (typeof color == "string") {
     let rgba = InspectorUtils.colorToRGBA(color);
@@ -511,6 +515,20 @@ export class BrowserActionBase extends PanelActionBase {
       Services.policies?.getExtensionSettings(extension.id)?.default_area ||
       options.default_area ||
       "menupanel";
+
+    // When the personal toolbar (bookmarks) is never visible OR vertical tabs
+    // are enabled, we want to place the extension action (widget) in the panel
+    // and not in one of these areas, otherwise it would be invisible to the
+    // user.
+    if (
+      (default_area === "tabstrip" &&
+        Services.prefs.getBoolPref(VERTICAL_TABS_PREF)) ||
+      (default_area === "personaltoolbar" &&
+        Services.prefs.getStringPref(PERSONAL_TOOLBAR_VISIBILITY_PREF) ===
+          "never")
+    ) {
+      default_area = "menupanel";
+    }
 
     this.defaults = {
       ...this.defaults,

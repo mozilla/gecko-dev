@@ -9,7 +9,7 @@ var browserAreas = {
   personaltoolbar: CustomizableUI.AREA_BOOKMARKS,
 };
 
-async function testInArea(area) {
+async function testInArea(area, fallbackDefaultArea = null) {
   let manifest = {
     browser_action: {
       browser_style: true,
@@ -24,17 +24,17 @@ async function testInArea(area) {
   await extension.startup();
   let widget = getBrowserActionWidget(extension);
   let placement = CustomizableUI.getPlacementOfWidget(widget.id);
-  let fallbackDefaultArea = CustomizableUI.AREA_ADDONS;
+  let expectedArea = fallbackDefaultArea ?? browserAreas[area];
   is(
     placement && placement.area,
-    browserAreas[area] || fallbackDefaultArea,
+    expectedArea,
     `widget located in correct area`
   );
   await extension.unload();
 }
 
 add_task(async function testBrowserActionDefaultArea() {
-  await testInArea();
+  await testInArea(null, CustomizableUI.AREA_ADDONS);
 });
 
 add_task(async function testBrowserActionInToolbar() {
@@ -123,4 +123,42 @@ add_task(async function testPolicyOverridesBrowserActionToMenuPanel() {
     `widget located in extensions menu`
   );
   await extension.unload();
+});
+
+add_task(async function testBrowserActionWithVerticalTabs() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", true]],
+  });
+
+  await testInArea("tabstrip", CustomizableUI.AREA_ADDONS);
+  // Make sure other areas aren't affected.
+  await testInArea(null, CustomizableUI.AREA_ADDONS);
+  await testInArea("menupanel");
+  await testInArea("navbar");
+  await testInArea("personaltoolbar");
+
+  await SpecialPowers.popPrefEnv();
+
+  // Test action is still placed in tabstrip when sidebar.verticalTabs is not
+  // set to true anymore.
+  await testInArea("tabstrip");
+});
+
+add_task(async function testBrowserActionWithPersonalToolbarNeverShown() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.toolbars.bookmarks.visibility", "never"]],
+  });
+
+  await testInArea("personaltoolbar", CustomizableUI.AREA_ADDONS);
+  // Make sure other areas aren't affected.
+  await testInArea(null, CustomizableUI.AREA_ADDONS);
+  await testInArea("menupanel");
+  await testInArea("navbar");
+  await testInArea("tabstrip");
+
+  await SpecialPowers.popPrefEnv();
+
+  // Test action is still placed in personaltoolbar if the bookmark.visibility
+  // pref is flipped back to its default value ('newtab').
+  await testInArea("personaltoolbar");
 });
