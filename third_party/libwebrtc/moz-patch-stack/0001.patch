@@ -1,110 +1,145 @@
-From: Sergey Silkin <ssilkin@webrtc.org>
-Date: Fri, 26 Jul 2024 08:06:08 +0000
-Subject: (cherry-pick-branch-heads/6613) [M128] Revert "Update support for
- missing HIGH profiles and 1080p"
-MIME-Version: 1.0
-Content-Type: text/plain; charset=UTF-8
-Content-Transfer-Encoding: 8bit
+From: Jan Grulich <grulja@gmail.com>
+Date: Tue, 30 Jul 2024 22:19:03 +0200
+Subject: (cherry-pick-branch-heads/6613) [M128] PipeWire camera: Annotate
+ functions with PipeWire calls to avoid CFI
 
-M128 merge approval: https://issues.chromium.org/issues/354143228#comment11
+Similar to PipeWire implementation of desktop capture, we have to avoid
+CFI check for calls of dlopened PipeWire library. This avoid crashing
+PipeWire camera backend when "is_official_build=true" option is used as
+this turns on "is_cfi=true" enabling control flow integrity.
 
-This reverts commit 46b43e007296737751aea10685f92ddf4df63e0d.
+iOS bots are broken due to xcode version mismatch. But the change is linux-only, so they are irrelevant. Disabling presubmit checks.
 
-Reason for revert: chromium:354143228
+(cherry picked from commit 9e755f0e19a9f3fdd5015283b5328fc65a7bfe1c)
 
-Original change's description:
-> Update support for missing HIGH profiles and 1080p
->
-> The High and ConstrainedHigh profiles are missing from the decoder capabilities. Also level 3.1 doesn't allow 1080p
->
-> Bug: webrtc:347724928
-> Change-Id: I3f33468327d2aaf352fc80f69d2ee31481bafcb5
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/355001
-> Reviewed-by: Sergey Silkin <ssilkin@webrtc.org>
-> Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-> Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42528}
-
-(cherry picked from commit 12f9d5ce601a13cd45d56f40ed9ed94f3a90d91e)
-
-Bug: chromium:354143228, webrtc:347724928
-Change-Id: I4d55b2982aca2e94ec983473336c4fa2a72d842f
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357861
-Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-Commit-Queue: Sergey Silkin <ssilkin@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#42675}
-No-Try: True
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358021
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Reviewed-by: Åsa Persson <asapersson@webrtc.org>
-Cr-Commit-Position: refs/branch-heads/6613@{#1}
+No-Try: true
+Bug: chromium:354776214
+Change-Id: I7a9fc1c2d77c4ee0e8fe0586369b7246e0bb9180
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358103
+Commit-Queue: Jan Grulich <grulja@gmail.com>
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+Cr-Original-Commit-Position: refs/heads/main@{#42706}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/359162
+Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Jan Grulich <grulja@gmail.com>
+Cr-Commit-Position: refs/branch-heads/6613@{#2}
 Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
 ---
- modules/video_coding/codecs/h264/h264.cc      | 26 +++++++------------
- .../test/videocodec_test_fixture_impl.cc      |  2 +-
- 2 files changed, 11 insertions(+), 17 deletions(-)
+ modules/video_capture/BUILD.gn                        | 5 ++++-
+ modules/video_capture/linux/pipewire_session.cc       | 7 +++++++
+ modules/video_capture/linux/video_capture_pipewire.cc | 4 ++++
+ 3 files changed, 15 insertions(+), 1 deletion(-)
 
-diff --git a/modules/video_coding/codecs/h264/h264.cc b/modules/video_coding/codecs/h264/h264.cc
-index b2deda5ea8..60142c88c1 100644
---- a/modules/video_coding/codecs/h264/h264.cc
-+++ b/modules/video_coding/codecs/h264/h264.cc
-@@ -90,17 +90,17 @@ std::vector<SdpVideoFormat> SupportedH264Codecs(bool add_scalability_modes) {
-   //
-   // We support both packetization modes 0 (mandatory) and 1 (optional,
-   // preferred).
--  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
-+  return {CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
-                            "1", add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel4_2,
-+          CreateH264Format(H264Profile::kProfileBaseline, H264Level::kLevel3_1,
-                            "0", add_scalability_modes),
-           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
--                           H264Level::kLevel4_2, "1", add_scalability_modes),
-+                           H264Level::kLevel3_1, "1", add_scalability_modes),
-           CreateH264Format(H264Profile::kProfileConstrainedBaseline,
--                           H264Level::kLevel4_2, "0", add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "1",
-+                           H264Level::kLevel3_1, "0", add_scalability_modes),
-+          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "1",
-                            add_scalability_modes),
--          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel4_2, "0",
-+          CreateH264Format(H264Profile::kProfileMain, H264Level::kLevel3_1, "0",
-                            add_scalability_modes)};
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index 59df8fe4f3..29a7bea9d9 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -81,7 +81,10 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         "linux/video_capture_v4l2.cc",
+         "linux/video_capture_v4l2.h",
+       ]
+-      deps += [ "../../media:rtc_media_base" ]
++      deps += [
++        "../../media:rtc_media_base",
++        "../../rtc_base:sanitizer",
++      ]
+ 
+       if (rtc_use_pipewire) {
+         sources += [
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 107ea3dfbd..0642713f91 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -19,6 +19,7 @@
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/video_capture/device_info_impl.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/sanitizer.h"
+ #include "rtc_base/string_encode.h"
+ #include "rtc_base/string_to_number.h"
+ 
+@@ -52,6 +53,7 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
+   }
  }
  
-@@ -111,18 +111,12 @@ std::vector<SdpVideoFormat> SupportedH264DecoderCodecs() {
- 
-   std::vector<SdpVideoFormat> supportedCodecs = SupportedH264Codecs();
- 
-+  // OpenH264 doesn't yet support High Predictive 4:4:4 encoding but it does
-+  // support decoding.
-   supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "1"));
-+      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "1"));
-   supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfileConstrainedHigh, H264Level::kLevel4_2, "0"));
--  supportedCodecs.push_back(
--      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "1"));
--  supportedCodecs.push_back(
--      CreateH264Format(H264Profile::kProfileHigh, H264Level::kLevel4_2, "0"));
--  supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "1"));
--  supportedCodecs.push_back(CreateH264Format(
--      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel4_2, "0"));
-+      H264Profile::kProfilePredictiveHigh444, H264Level::kLevel3_1, "0"));
- 
-   return supportedCodecs;
++RTC_NO_SANITIZE("cfi-icall")
+ PipeWireNode::PipeWireNode(PipeWireSession* session,
+                            uint32_t id,
+                            const spa_dict* props)
+@@ -79,6 +81,7 @@ PipeWireNode::~PipeWireNode() {
  }
-diff --git a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-index 03a8beca23..40569597f3 100644
---- a/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-+++ b/modules/video_coding/codecs/test/videocodec_test_fixture_impl.cc
-@@ -178,7 +178,7 @@ SdpVideoFormat CreateSdpVideoFormat(
-     CodecParameterMap codec_params = {
-         {cricket::kH264FmtpProfileLevelId,
-          *H264ProfileLevelIdToString(H264ProfileLevelId(
--             config.h264_codec_settings.profile, H264Level::kLevel4_2))},
-+             config.h264_codec_settings.profile, H264Level::kLevel3_1))},
-         {cricket::kH264FmtpPacketizationMode, packetization_mode},
-         {cricket::kH264FmtpLevelAsymmetryAllowed, "1"}};
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+   PipeWireNode* that = static_cast<PipeWireNode*>(data);
+ 
+@@ -113,6 +116,7 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+ }
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireNode::OnNodeParam(void* data,
+                                int seq,
+                                uint32_t id,
+@@ -264,6 +268,7 @@ void PipeWireSession::InitPipeWire(int fd) {
+     Finish(VideoCaptureOptions::Status::ERROR);
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ bool PipeWireSession::StartPipeWire(int fd) {
+   pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
+ 
+@@ -330,6 +335,7 @@ void PipeWireSession::StopPipeWire() {
+   }
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireSession::PipeWireSync() {
+   sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
+ }
+@@ -356,6 +362,7 @@ void PipeWireSession::OnCoreDone(void* data, uint32_t id, int seq) {
+ }
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireSession::OnRegistryGlobal(void* data,
+                                        uint32_t id,
+                                        uint32_t permissions,
+diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
+index 1672b7583f..940db43fd5 100644
+--- a/modules/video_capture/linux/video_capture_pipewire.cc
++++ b/modules/video_capture/linux/video_capture_pipewire.cc
+@@ -20,6 +20,7 @@
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/portal/pipewire_utils.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/sanitizer.h"
+ #include "rtc_base/string_to_number.h"
+ 
+ namespace webrtc {
+@@ -128,6 +129,7 @@ static spa_pod* BuildFormat(spa_pod_builder* builder,
+   return static_cast<spa_pod*>(spa_pod_builder_pop(builder, &frames[0]));
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ int32_t VideoCaptureModulePipeWire::StartCapture(
+     const VideoCaptureCapability& capability) {
+   RTC_DCHECK_RUN_ON(&api_checker_);
+@@ -247,6 +249,7 @@ void VideoCaptureModulePipeWire::OnStreamParamChanged(
+     that->OnFormatChanged(format);
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
+ 
+@@ -395,6 +398,7 @@ static VideoRotation VideorotationFromPipeWireTransform(uint32_t transform) {
+   }
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ void VideoCaptureModulePipeWire::ProcessBuffers() {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
  

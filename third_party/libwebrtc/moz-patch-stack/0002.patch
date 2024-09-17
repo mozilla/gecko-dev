@@ -1,145 +1,154 @@
-From: Jan Grulich <grulja@gmail.com>
-Date: Tue, 30 Jul 2024 22:19:03 +0200
-Subject: (cherry-pick-branch-heads/6613) [M128] PipeWire camera: Annotate
- functions with PipeWire calls to avoid CFI
+From: Johannes Kron <kron@webrtc.org>
+Date: Thu, 15 Aug 2024 11:49:54 +0200
+Subject: (cherry-pick-branch-heads/6613) [M128] Ensure calls to QP convergence
+ controller are on the same sequence
 
-Similar to PipeWire implementation of desktop capture, we have to avoid
-CFI check for calls of dlopened PipeWire library. This avoid crashing
-PipeWire camera backend when "is_official_build=true" option is used as
-this turns on "is_cfi=true" enabling control flow integrity.
+The original CL overlooked the possibility that the encoder may be
+reconfigured in the middle of a stream.
 
-iOS bots are broken due to xcode version mismatch. But the change is linux-only, so they are irrelevant. Disabling presubmit checks.
+Restructure the code so that all calls to QP convergence controller
+happen on the encoder queue.
 
-(cherry picked from commit 9e755f0e19a9f3fdd5015283b5328fc65a7bfe1c)
+A side effect of this CL is that `EncodedImage::SetAtTargetQuality()`
+is never called. The information is supplied to the frame cadence
+adapter directly without this intermediate step.
 
-No-Try: true
-Bug: chromium:354776214
-Change-Id: I7a9fc1c2d77c4ee0e8fe0586369b7246e0bb9180
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358103
-Commit-Queue: Jan Grulich <grulja@gmail.com>
+`EncodedImage::SetAtTargetQuality()` and
+`EncodedImage::IsAtTargetQuality()` are being marked as deprecated
+in https://webrtc-review.googlesource.com/c/src/+/359660.
+
+(cherry picked from commit b47cd6fbe315690756f2f03e7658d4e26fe27b1e)
+
+Bug: chromium:359410061
+Change-Id: I941b5f60b1a9fd7694dbedf2f3e4ff5253ccf357
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/359640
+Commit-Queue: Johannes Kron <kron@webrtc.org>
 Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Reviewed-by: Alexander Cooper <alcooper@chromium.org>
-Cr-Original-Commit-Position: refs/heads/main@{#42706}
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/359162
-Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Reviewed-by: Jan Grulich <grulja@gmail.com>
-Cr-Commit-Position: refs/branch-heads/6613@{#2}
+Reviewed-by: Markus Handell <handellm@webrtc.org>
+Cr-Original-Commit-Position: refs/heads/main@{#42788}
+No-Try: true
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360240
+Cr-Commit-Position: refs/branch-heads/6613@{#3}
 Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
 ---
- modules/video_capture/BUILD.gn                        | 5 ++++-
- modules/video_capture/linux/pipewire_session.cc       | 7 +++++++
- modules/video_capture/linux/video_capture_pipewire.cc | 4 ++++
- 3 files changed, 15 insertions(+), 1 deletion(-)
+ video/quality_convergence_controller.cc | 10 ++++++++++
+ video/quality_convergence_controller.h  |  2 ++
+ video/video_stream_encoder.cc           | 24 +++++++++---------------
+ video/video_stream_encoder.h            |  3 ++-
+ 4 files changed, 23 insertions(+), 16 deletions(-)
 
-diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
-index 59df8fe4f3..29a7bea9d9 100644
---- a/modules/video_capture/BUILD.gn
-+++ b/modules/video_capture/BUILD.gn
-@@ -81,7 +81,10 @@ if (!build_with_chromium || is_linux || is_chromeos) {
-         "linux/video_capture_v4l2.cc",
-         "linux/video_capture_v4l2.h",
-       ]
--      deps += [ "../../media:rtc_media_base" ]
-+      deps += [
-+        "../../media:rtc_media_base",
-+        "../../rtc_base:sanitizer",
-+      ]
- 
-       if (rtc_use_pipewire) {
-         sources += [
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index 107ea3dfbd..0642713f91 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -19,6 +19,7 @@
- #include "common_video/libyuv/include/webrtc_libyuv.h"
- #include "modules/video_capture/device_info_impl.h"
- #include "rtc_base/logging.h"
-+#include "rtc_base/sanitizer.h"
- #include "rtc_base/string_encode.h"
- #include "rtc_base/string_to_number.h"
- 
-@@ -52,6 +53,7 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
+diff --git a/video/quality_convergence_controller.cc b/video/quality_convergence_controller.cc
+index 7a46e11062..a19cb8c998 100644
+--- a/video/quality_convergence_controller.cc
++++ b/video/quality_convergence_controller.cc
+@@ -44,6 +44,7 @@ void QualityConvergenceController::Initialize(
+     absl::optional<int> static_qp_threshold,
+     VideoCodecType codec,
+     const FieldTrialsView& trials) {
++  RTC_DCHECK(sequence_checker_.IsCurrent());
+   RTC_CHECK(number_of_layers > 0);
+   number_of_layers_ = number_of_layers;
+   convergence_monitors_.clear();
+@@ -61,11 +62,20 @@ bool QualityConvergenceController::AddSampleAndCheckTargetQuality(
+     int layer_index,
+     int qp,
+     bool is_refresh_frame) {
++  RTC_DCHECK(sequence_checker_.IsCurrent());
+   RTC_CHECK(initialized_);
+   if (layer_index < 0 || layer_index >= number_of_layers_) {
+     return false;
    }
+ 
++  // TODO(kron): Remove temporary check that verifies that the initialization is
++  // working as expected. See https://crbug.com/359410061.
++  RTC_DCHECK(number_of_layers_ ==
++             static_cast<int>(convergence_monitors_.size()));
++  if (number_of_layers_ != static_cast<int>(convergence_monitors_.size())) {
++    return false;
++  }
++
+   convergence_monitors_[layer_index]->AddSample(qp, is_refresh_frame);
+   return convergence_monitors_[layer_index]->AtTargetQuality();
  }
+diff --git a/video/quality_convergence_controller.h b/video/quality_convergence_controller.h
+index 46f8419c41..a09dc872a7 100644
+--- a/video/quality_convergence_controller.h
++++ b/video/quality_convergence_controller.h
+@@ -16,6 +16,7 @@
  
-+RTC_NO_SANITIZE("cfi-icall")
- PipeWireNode::PipeWireNode(PipeWireSession* session,
-                            uint32_t id,
-                            const spa_dict* props)
-@@ -79,6 +81,7 @@ PipeWireNode::~PipeWireNode() {
- }
+ #include "absl/types/optional.h"
+ #include "api/field_trials_view.h"
++#include "api/sequence_checker.h"
+ #include "api/video/video_codec_type.h"
+ #include "video/quality_convergence_monitor.h"
  
- // static
-+RTC_NO_SANITIZE("cfi-icall")
- void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
-   PipeWireNode* that = static_cast<PipeWireNode*>(data);
+@@ -41,6 +42,7 @@ class QualityConvergenceController {
+   bool initialized_ = false;
+   int number_of_layers_ = 0;
+   std::vector<std::unique_ptr<QualityConvergenceMonitor>> convergence_monitors_;
++  SequenceChecker sequence_checker_{SequenceChecker::kDetached};
+ };
  
-@@ -113,6 +116,7 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
- }
- 
- // static
-+RTC_NO_SANITIZE("cfi-icall")
- void PipeWireNode::OnNodeParam(void* data,
-                                int seq,
-                                uint32_t id,
-@@ -264,6 +268,7 @@ void PipeWireSession::InitPipeWire(int fd) {
-     Finish(VideoCaptureOptions::Status::ERROR);
- }
- 
-+RTC_NO_SANITIZE("cfi-icall")
- bool PipeWireSession::StartPipeWire(int fd) {
-   pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
- 
-@@ -330,6 +335,7 @@ void PipeWireSession::StopPipeWire() {
+ }  // namespace webrtc
+diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
+index af26db8719..a9391e0cea 100644
+--- a/video/video_stream_encoder.cc
++++ b/video/video_stream_encoder.cc
+@@ -2090,22 +2090,11 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
+             .value_or(-1);
    }
+ 
+-  // Check if the encoded image has reached target quality.
+-  const size_t simulcast_index = encoded_image.SimulcastIndex().value_or(0);
+-  bool at_target_quality =
+-      quality_convergence_controller_.AddSampleAndCheckTargetQuality(
+-          simulcast_index, image_copy.qp_,
+-          image_copy.IsSteadyStateRefreshFrame());
+-  image_copy.SetAtTargetQuality(at_target_quality);
+   TRACE_EVENT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
+                "stream_idx", stream_idx, "qp", image_copy.qp_);
+-  TRACE_EVENT_INSTANT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
+-                       TRACE_EVENT_SCOPE_GLOBAL, "simulcast_idx",
+-                       simulcast_index, "at_target_quality", at_target_quality);
+   RTC_LOG(LS_VERBOSE) << __func__ << " ntp time " << encoded_image.NtpTimeMs()
+                       << " stream_idx " << stream_idx << " qp "
+-                      << image_copy.qp_ << " at target quality "
+-                      << at_target_quality;
++                      << image_copy.qp_;
+   return image_copy;
  }
  
-+RTC_NO_SANITIZE("cfi-icall")
- void PipeWireSession::PipeWireSync() {
-   sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
- }
-@@ -356,6 +362,7 @@ void PipeWireSession::OnCoreDone(void* data, uint32_t id, int seq) {
- }
+@@ -2128,11 +2117,16 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
+   unsigned int image_width = image_copy._encodedWidth;
+   unsigned int image_height = image_copy._encodedHeight;
+   encoder_queue_->PostTask([this, codec_type, image_width, image_height,
+-                            simulcast_index,
+-                            at_target_quality =
+-                                image_copy.IsAtTargetQuality()] {
++                            simulcast_index, qp = image_copy.qp_,
++                            is_steady_state_refresh_frame =
++                                image_copy.IsSteadyStateRefreshFrame()] {
+     RTC_DCHECK_RUN_ON(encoder_queue_.get());
  
- // static
-+RTC_NO_SANITIZE("cfi-icall")
- void PipeWireSession::OnRegistryGlobal(void* data,
-                                        uint32_t id,
-                                        uint32_t permissions,
-diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
-index 1672b7583f..940db43fd5 100644
---- a/modules/video_capture/linux/video_capture_pipewire.cc
-+++ b/modules/video_capture/linux/video_capture_pipewire.cc
-@@ -20,6 +20,7 @@
- #include "common_video/libyuv/include/webrtc_libyuv.h"
- #include "modules/portal/pipewire_utils.h"
- #include "rtc_base/logging.h"
-+#include "rtc_base/sanitizer.h"
- #include "rtc_base/string_to_number.h"
++    // Check if the encoded image has reached target quality.
++    bool at_target_quality =
++        quality_convergence_controller_.AddSampleAndCheckTargetQuality(
++            simulcast_index, qp, is_steady_state_refresh_frame);
++
+     // Let the frame cadence adapter know about quality convergence.
+     if (frame_cadence_adapter_)
+       frame_cadence_adapter_->UpdateLayerQualityConvergence(simulcast_index,
+diff --git a/video/video_stream_encoder.h b/video/video_stream_encoder.h
+index 579cd3238c..e593f91d44 100644
+--- a/video/video_stream_encoder.h
++++ b/video/video_stream_encoder.h
+@@ -422,7 +422,8 @@ class VideoStreamEncoder : public VideoStreamEncoderInterface,
+   // The quality convergence controller is used to determine if a codec has
+   // reached its target quality. This is used for screenshare to determine when
+   // there's no need to continue encoding the same repeated frame.
+-  QualityConvergenceController quality_convergence_controller_;
++  QualityConvergenceController quality_convergence_controller_
++      RTC_GUARDED_BY(encoder_queue_);
  
- namespace webrtc {
-@@ -128,6 +129,7 @@ static spa_pod* BuildFormat(spa_pod_builder* builder,
-   return static_cast<spa_pod*>(spa_pod_builder_pop(builder, &frames[0]));
- }
- 
-+RTC_NO_SANITIZE("cfi-icall")
- int32_t VideoCaptureModulePipeWire::StartCapture(
-     const VideoCaptureCapability& capability) {
-   RTC_DCHECK_RUN_ON(&api_checker_);
-@@ -247,6 +249,7 @@ void VideoCaptureModulePipeWire::OnStreamParamChanged(
-     that->OnFormatChanged(format);
- }
- 
-+RTC_NO_SANITIZE("cfi-icall")
- void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
-   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
- 
-@@ -395,6 +398,7 @@ static VideoRotation VideorotationFromPipeWireTransform(uint32_t transform) {
-   }
- }
- 
-+RTC_NO_SANITIZE("cfi-icall")
- void VideoCaptureModulePipeWire::ProcessBuffers() {
-   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
- 
+   // Enables encoder switching on initialization failures.
+   bool switch_encoder_on_init_failures_;

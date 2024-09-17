@@ -1,23 +1,31 @@
-From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 17 May 2024 22:30:00 -0500
-Subject: Bug 1897501 - (fix-09bb4f09e1) keep default python intepreter as
- python3
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 23 May 2024 17:28:00 +0000
+Subject: Bug 1897459 - P0 - for BSD do not build physical_socket_server in
+ libwebrtc;r=mjf,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98515624de0e43a237698726c
+libwebrtc added the use of several non-portable socket options in this code.
+Firefox does not use any of the code in this file, but there is a header dependency chain leading from code that is used.
+
+Differential Revision: https://phabricator.services.mozilla.com/D210858
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e35b227b517acadbbad957004
 ---
- .gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ rtc_base/BUILD.gn | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
-diff --git a/.gn b/.gn
-index 2f2de25df6..285198d08f 100644
---- a/.gn
-+++ b/.gn
-@@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"
- 
- # The python interpreter to use by default. On Windows, this will look
- # for vpython3.exe and vpython3.bat.
--script_executable = "vpython3"
-+script_executable = "python3"
- 
- # The secondary source root is a parallel directory tree where
- # GN build files are placed when they can not be placed directly
+diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
+index d51059c140..63b5b047ee 100644
+--- a/rtc_base/BUILD.gn
++++ b/rtc_base/BUILD.gn
+@@ -1020,6 +1020,12 @@ rtc_library("threading") {
+     "thread.cc",
+     "thread.h",
+   ]
++  if (is_bsd && build_with_mozilla) {
++    sources -= [
++      "physical_socket_server.cc",
++      "physical_socket_server.h",
++    ]
++  }
+   deps = [
+     ":async_dns_resolver",
+     ":byte_order",
