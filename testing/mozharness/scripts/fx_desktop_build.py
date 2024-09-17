@@ -8,9 +8,6 @@
 
 script harness to build nightly firefox within Mozilla's build environment
 and developer machines alike
-
-author: Jordan Lund
-
 """
 
 import os
