@@ -34,17 +34,18 @@ def CheckPatchFormatted(input_api, output_api):
           output_api.PresubmitError('Error calling "' + shlex.join(cmd) + '"')
       )
 
-    new_content = f.NewContents()
+    # Make sure NewContents reads the updated files from disk and not cache.
+    new_content = f.NewContents(flush_cache=True)
     if new_content != prev_content:
       path = f.LocalPath()
-      diff = difflib.unified_diff(prev_content, new_content, path, path)
-      diffs.append(''.join(diff))
+      diff = difflib.unified_diff(prev_content, new_content, path, path, lineterm='')
+      diffs.append('\n'.join(diff))
 
   if diffs:
     combined_diffs = '\n'.join(diffs)
     msg = (
-        'Diff found after running "yapf -i" on modified .pyl files:\n'
-        f'{combined_diffs}\n'
+        'Diff found after running "yapf -i" on modified .pyl files:\n\n'
+        f'{combined_diffs}\n\n'
         'Please commit or discard the new changes.'
     )
     results.append(output_api.PresubmitError(msg))
