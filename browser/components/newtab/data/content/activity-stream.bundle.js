@@ -2939,9 +2939,13 @@ class _DSCard extends (external_React_default()).PureComponent {
       height: 101
     }];
     this.listCardImageSizes = [{
-      mediaMatcher: "default",
+      mediaMatcher: "(min-width: 1122px)",
       width: 75,
       height: 75
+    }, {
+      mediaMatcher: "default",
+      width: 50,
+      height: 50
     }];
   }
   doesLinkTopicMatchSelectedTopic() {
@@ -4023,17 +4027,14 @@ class _CardGrid extends (external_React_default()).PureComponent {
     }
     if (listFeedEnabled) {
       // commenting out for landing in nightly - uncomment to use in development
-      // const listFeedRecs = this.props.data.recommendations
-      //   .filter(rec => !rec.flight_id)
-      //   .slice(0, 5);
       // const listFeed = (
       //   <ListFeed
-      //     recs={listFeedRecs}
+      //     recs={this.props.data.recommendations}
       //     firstVisibleTimestamp={this.props.firstVisibleTimestamp}
       //     type={this.props.type}
       //   />
       // );
-      // // place the list feed as the 3 element in the card grid
+      // place the list feed as the 3 element in the card grid
       // cards.splice(2, 1, listFeed);
     }
     let moreRecsHeader = "";

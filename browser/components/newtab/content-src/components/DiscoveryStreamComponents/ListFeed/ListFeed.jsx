@@ -8,8 +8,17 @@ import { DSCard } from "../DSCard/DSCard";
 
 function ListFeed({ type, firstVisibleTimestamp, recs }) {
   const dispatch = useDispatch();
+  // Todo: need to remove ads while using default recommendations, remove this line once API has been updated.
+  const listFeedRecs = recs.filter(rec => !rec.flight_id).slice(0, 5);
+  const { length: listLength } = listFeedRecs;
+  // determine if the list should take up all availible height or not
+  const fullList = listLength >= 5;
   return (
-    <div className="list-feed">
+    <div
+      className={`list-feed ${fullList ? "full-height" : ""} ${
+        listLength > 2 ? "span-2" : "span-1"
+      }`}
+    >
       <div className="list-feed-inner-wrapper">
         <h1 className="list-feed-title" id="list-feed-title">
           <span className="icon icon-trending"></span>
@@ -20,11 +29,11 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
           role="menu"
           aria-labelledby="list-feed-title"
         >
-          {recs.map(rec => {
+          {listFeedRecs.map((rec, index) => {
             if (!rec || rec.placeholder) {
               return (
                 <DSCard
-                  key={`list-card-${rec.id}`}
+                  key={`list-card-${index}`}
                   placeholder={true}
                   isListCard={true}
                 />

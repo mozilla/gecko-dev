@@ -202,9 +202,14 @@ export class _DSCard extends React.PureComponent {
 
     this.listCardImageSizes = [
       {
-        mediaMatcher: "default",
+        mediaMatcher: "(min-width: 1122px)",
         width: 75,
         height: 75,
+      },
+      {
+        mediaMatcher: "default",
+        width: 50,
+        height: 50,
       },
     ];
   }
