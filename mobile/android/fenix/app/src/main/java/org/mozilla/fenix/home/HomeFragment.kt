@@ -631,10 +631,8 @@ class HomeFragment : Fragment() {
                         if (!activity.isMicrosurveyPromptDismissed.value &&
                             !context.settings().shouldShowNavigationBarCFR
                         ) {
-                            currentMicrosurvey.let {
-                                if (it == null) {
-                                    binding.bottomBarShadow.visibility = View.VISIBLE
-                                } else {
+                            currentMicrosurvey
+                                ?.let {
                                     if (isToolbarAtBottom) {
                                         updateToolbarViewUIForMicrosurveyPrompt()
                                     }
@@ -665,7 +663,8 @@ class HomeFragment : Fragment() {
                                         },
                                     )
                                 }
-                            }
+                        } else {
+                            binding.bottomBarShadow.visibility = View.VISIBLE
                         }
 
                         if (isToolbarAtBottom) {
@@ -835,10 +834,8 @@ class HomeFragment : Fragment() {
                             context.shouldAddNavigationBar() && context.settings().shouldShowNavigationBarCFR
 
                         if (!activity.isMicrosurveyPromptDismissed.value && !shouldShowNavBarCFR) {
-                            currentMicrosurvey.let {
-                                if (it == null) {
-                                    binding.bottomBarShadow.visibility = View.VISIBLE
-                                } else {
+                            currentMicrosurvey
+                                ?.let {
                                     if (isToolbarAtTheBottom) {
                                         updateToolbarViewUIForMicrosurveyPrompt()
                                     }
@@ -867,7 +864,8 @@ class HomeFragment : Fragment() {
                                         },
                                     )
                                 }
-                            }
+                        } else {
+                            binding.bottomBarShadow.visibility = View.VISIBLE
                         }
 
                         if (isToolbarAtTheBottom) {
