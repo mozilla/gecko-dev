@@ -292,7 +292,7 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
       permute_extension_(
           !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
 #endif
-      ssl_mode_(SSL_MODE_TLS),
+      ssl_mode_(SSL_MODE_DTLS),
       ssl_max_version_(SSL_PROTOCOL_TLS_12) {
   stream_->SetEventCallback(
       [this](int events, int err) { OnEvent(events, err); });

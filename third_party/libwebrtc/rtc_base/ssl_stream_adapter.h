@@ -130,8 +130,8 @@ class SSLStreamAdapter : public StreamInterface {
   // TODO(ekr@rtfm.com): rename this SetRole to reflect its new function
   virtual void SetServerRole(SSLRole role = SSL_SERVER) = 0;
 
-  // Do DTLS or TLS.
-  virtual void SetMode(SSLMode mode) = 0;
+  [[deprecated("Only DTLS is supported by the stream adapter")]] virtual void
+  SetMode(SSLMode mode) = 0;
 
   // Set maximum supported protocol version. The highest version supported by
   // both ends will be used for the connection, i.e. if one party supports

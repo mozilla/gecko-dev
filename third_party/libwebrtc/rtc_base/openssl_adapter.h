@@ -56,7 +56,7 @@ class OpenSSLAdapter final : public SSLAdapter {
   void SetIgnoreBadCert(bool ignore) override;
   void SetAlpnProtocols(const std::vector<std::string>& protos) override;
   void SetEllipticCurves(const std::vector<std::string>& curves) override;
-  void SetMode(SSLMode mode) override;
+  [[deprecated]] void SetMode(SSLMode mode) override;
   void SetCertVerifier(SSLCertificateVerifier* ssl_cert_verifier) override;
   void SetIdentity(std::unique_ptr<SSLIdentity> identity) override;
   void SetRole(SSLRole role) override;

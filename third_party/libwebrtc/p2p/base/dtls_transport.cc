@@ -376,7 +376,6 @@ bool DtlsTransport::SetupDtls() {
   }
 
   dtls_->SetIdentity(local_certificate_->identity()->Clone());
-  dtls_->SetMode(rtc::SSL_MODE_DTLS);
   dtls_->SetMaxProtocolVersion(ssl_max_version_);
   dtls_->SetServerRole(*dtls_role_);
   dtls_->SetEventCallback(
