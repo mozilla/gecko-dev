@@ -10278,7 +10278,7 @@
 # Whether to enable experimental requestVideoFrameCallback support
 - name: media.rvfc.enabled
   type: bool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # VideoSink
