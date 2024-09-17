@@ -928,6 +928,20 @@ TEST(AudioSendStreamTest, DefaultsHonorsPriorityBitrate) {
   send_stream->Stop();
 }
 
+TEST(AudioSendStreamTest, DefaultsToContributeUnusedBitrate) {
+  ConfigHelper helper(true, true, true);
+  auto send_stream = helper.CreateAudioSendStream();
+  EXPECT_CALL(
+      *helper.bitrate_allocator(),
+      AddObserver(send_stream.get(),
+                  Field(&MediaStreamAllocationConfig::rate_elasticity,
+                        TrackRateElasticity::kCanContributeUnusedRate)));
+  EXPECT_CALL(*helper.channel_send(), StartSend());
+  send_stream->Start();
+  EXPECT_CALL(*helper.channel_send(), StopSend());
+  send_stream->Stop();
+}
+
 TEST(AudioSendStreamTest, OverridesPriorityBitrate) {
   ConfigHelper helper(true, true, true);
   ScopedKeyValueConfig field_trials(helper.field_trials,

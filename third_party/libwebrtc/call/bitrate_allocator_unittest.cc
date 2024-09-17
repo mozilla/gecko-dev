@@ -75,6 +75,9 @@ class TestBitrateObserver : public BitrateAllocatorObserver {
     last_probing_interval_ms_ = update.bwe_period.ms();
     return update.target_bitrate.bps() * protection_ratio_;
   }
+  absl::optional<DataRate> GetUsedRate() const override {
+    return absl::nullopt;
+  }
   uint32_t last_bitrate_bps_;
   uint8_t last_fraction_loss_;
   int64_t last_rtt_ms_;

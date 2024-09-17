@@ -492,6 +492,11 @@ uint32_t AudioSendStream::OnBitrateUpdated(BitrateAllocationUpdate update) {
   return 0;
 }
 
+absl::optional<DataRate> AudioSendStream::GetUsedRate() const {
+  // TODO(bugs.webrtc.org/35055527): Implement
+  return absl::nullopt;
+}
+
 void AudioSendStream::SetTransportOverhead(
     int transport_overhead_per_packet_bytes) {
   RTC_DCHECK_RUN_ON(&worker_thread_checker_);
@@ -808,7 +813,8 @@ void AudioSendStream::ConfigureBitrateObserver() {
           constraints->min.bps<uint32_t>(), constraints->max.bps<uint32_t>(), 0,
           priority_bitrate.bps(), true,
           allocation_settings_.bitrate_priority.value_or(
-              config_.bitrate_priority)});
+              config_.bitrate_priority),
+          TrackRateElasticity::kCanContributeUnusedRate});
 
   registered_with_allocator_ = true;
 }
