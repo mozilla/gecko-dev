@@ -270,6 +270,11 @@ class TextLeafRange final {
       : mStart(aStart), mEnd(aStart) {}
   explicit TextLeafRange() {}
 
+  // Create a TextLeafRange spanning the entire leaf.
+  static TextLeafRange FromAccessible(Accessible* aAcc) {
+    return {{aAcc, 0}, {aAcc, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT}};
+  }
+
   /**
    * A valid TextLeafRange evaluates to true. An invalid TextLeafRange
    * evaluates to false.
@@ -297,6 +302,13 @@ class TextLeafRange final {
    * works on remote accessibles, and assumes caching is enabled.
    */
   LayoutDeviceIntRect Bounds() const;
+
+  /*
+   * Returns a TextLeafPoint corresponding to the point in the TextLeafRange
+   * containing the given screen point. The function returns a TextLeafPoint
+   * constructed from mStart if it does not find a containing character.
+   */
+  TextLeafPoint TextLeafPointAtScreenPoint(int32_t aX, int32_t aY) const;
 
   /**
    * Get the ranges of text that are selected within this Accessible. The caret

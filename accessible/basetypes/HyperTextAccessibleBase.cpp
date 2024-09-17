@@ -307,24 +307,12 @@ int32_t HyperTextAccessibleBase::OffsetAtPoint(int32_t aX, int32_t aY,
   }
 
   TextLeafPoint startPoint = ToTextLeafPoint(0, false);
-  // As with TextBounds, we walk to the very end of the text contained in this
-  // hypertext and then step backwards to make our endPoint inclusive.
+  // Walk to the very end of the text contained in this hypertext in order to
+  // hit test it in its entirety.
   TextLeafPoint endPoint =
       ToTextLeafPoint(static_cast<int32_t>(CharacterCount()), true);
-  endPoint =
-      endPoint.FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
-  TextLeafPoint point = startPoint;
-  // XXX: We should create a TextLeafRange object for this hypertext and move
-  // this search inside the TextLeafRange class.
-  // If there are no characters in this container, we might have moved endPoint
-  // before startPoint. In that case, we shouldn't try to move further forward,
-  // as that might result in an infinite loop.
-  if (startPoint <= endPoint) {
-    for (; !point.ContainsPoint(coords.x, coords.y) && point != endPoint;
-         point =
-             point.FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirNext)) {
-    }
-  }
+  TextLeafRange range{startPoint, endPoint};
+  TextLeafPoint point = range.TextLeafPointAtScreenPoint(coords.x, coords.y);
   if (!point.ContainsPoint(coords.x, coords.y)) {
     LayoutDeviceIntRect startRect = startPoint.CharBounds();
     if (coords.x < startRect.x || coords.y < startRect.y) {

@@ -74,17 +74,40 @@ UiaText::RangeFromChild(__RPC__in_opt IRawElementProviderSimple* aChildElement,
   if (!child || !acc->IsAncestorOf(child)) {
     return E_INVALIDARG;
   }
-  TextLeafRange range({child, 0},
-                      {child, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT});
+  TextLeafRange range = TextLeafRange::FromAccessible(child);
   RefPtr uiaRange = new UiaTextRange(range);
   uiaRange.forget(aRetVal);
   return S_OK;
 }
 
 STDMETHODIMP
-UiaText::RangeFromPoint(struct UiaPoint point,
+UiaText::RangeFromPoint(struct UiaPoint aPoint,
                         __RPC__deref_out_opt ITextRangeProvider** aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  *aRetVal = nullptr;
+  Accessible* acc = Acc();
+  if (!acc) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+
+  // Find the deepest accessible node at the given screen coordinates.
+  Accessible* child = acc->ChildAtPoint(
+      aPoint.x, aPoint.y, Accessible::EWhichChildAtPoint::DeepestChild);
+  if (!child) {
+    return E_INVALIDARG;
+  }
+
+  // Find the closest point within the entirety of the leaf where the screen
+  // coordinates lie.
+  TextLeafRange leafRange = TextLeafRange::FromAccessible(child);
+  TextLeafPoint closestPoint =
+      leafRange.TextLeafPointAtScreenPoint(aPoint.x, aPoint.y);
+  TextLeafRange range{closestPoint, closestPoint};
+  RefPtr uiaRange = new UiaTextRange(range);
+  uiaRange.forget(aRetVal);
+  return S_OK;
 }
 
 STDMETHODIMP
@@ -100,8 +123,7 @@ UiaText::get_DocumentRange(__RPC__deref_out_opt ITextRangeProvider** aRetVal) {
   // just a text input control, depending on the element on which the Text
   // pattern was queried. See:
   // https://learn.microsoft.com/en-us/windows/win32/winauto/uiauto-textpattern-and-embedded-objects-overview#webpage-and-text-input-controls-in-edge
-  TextLeafRange range({acc, 0},
-                      {acc, nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT});
+  TextLeafRange range = TextLeafRange::FromAccessible(acc);
   RefPtr uiaRange = new UiaTextRange(range);
   uiaRange.forget(aRetVal);
   return S_OK;

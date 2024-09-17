@@ -2054,6 +2054,28 @@ LayoutDeviceIntRect TextLeafRange::Bounds() const {
   return result;
 }
 
+TextLeafPoint TextLeafRange::TextLeafPointAtScreenPoint(int32_t aX,
+                                                        int32_t aY) const {
+  // Step backwards one character to make the endPoint inclusive. This means we
+  // can use operator!= when comparing against endPoint below (which is very
+  // fast), rather than operator< (which might be significantly slower).
+  const TextLeafPoint endPoint =
+      mEnd.FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
+
+  // If there are no characters in this container, we might have moved endPoint
+  // before mStart. In that case, we shouldn't try to move farther forward, as
+  // that might result in an infinite loop.
+  TextLeafPoint point = mStart;
+  if (mStart <= endPoint) {
+    for (; !point.ContainsPoint(aX, aY) && point != endPoint;
+         point =
+             point.FindBoundary(nsIAccessibleText::BOUNDARY_CHAR, eDirNext)) {
+    }
+  }
+
+  return point;
+}
+
 bool TextLeafRange::SetSelection(int32_t aSelectionNum) const {
   if (!mStart || !mEnd || mStart.mAcc->IsLocal() != mEnd.mAcc->IsLocal()) {
     return false;

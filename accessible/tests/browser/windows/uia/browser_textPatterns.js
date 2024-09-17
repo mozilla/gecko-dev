@@ -1089,3 +1089,48 @@ addUiaTask(
   // The IA2 -> UIA proxy has too many quirks/bugs here.
   { uiaEnabled: true, uiaDisabled: false }
 );
+
+/**
+ * Test the Text pattern's RangeFromPoint method.
+ */
+addUiaTask(
+  `<div id="test">a <span>b </span>c</div>`,
+  async function testTextRangeFromPoint(browser, docAcc) {
+    const acc = findAccessibleChildByID(docAcc, "test", [nsIAccessibleText]);
+    await runPython(`
+      global doc, docText
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+    `);
+
+    // Walk through every offset in the accessible and hit test each. Verify
+    // that the returned range is empty, and that it hit the right character.
+    for (let offset = 0; offset < acc.characterCount; ++offset) {
+      const x = {};
+      const y = {};
+      acc.getCharacterExtents(offset, x, y, {}, {}, COORDTYPE_SCREEN_RELATIVE);
+      await runPython(`
+        global range
+        range = docText.RangeFromPoint(POINT(${x.value}, ${y.value}))`);
+      is(
+        await runPython(`range.GetText(-1)`),
+        ``,
+        "doc returned correct empty range"
+      );
+      await runPython(`range.ExpandToEnclosingUnit(TextUnit_Character)`);
+      const charAtOffset = acc.getCharacterAtOffset(offset);
+      is(
+        await runPython(`range.GetText(-1)`),
+        `${charAtOffset}`,
+        "doc returned correct range"
+      );
+    }
+
+    // An arbitrary invalid point should cause an invalid argument error.
+    await testPythonRaises(
+      `docText.RangeFromPoint(POINT(9999999999, 9999999999))`,
+      "no text leaves at invalid point"
+    );
+  },
+  { uiaEnabled: true, uiaDisabled: true }
+);
