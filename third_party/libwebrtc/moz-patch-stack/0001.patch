@@ -1,213 +1,145 @@
-From: Michael Froman <mjfroman@mac.com>
-Date: Tue, 17 Sep 2024 10:55:37 -0500
-Subject: (tmp-cherry-pick) Revert "Enable TLS Client Hello extension
- permutation by default" (dfa7b2b425)
+From: Jan Grulich <grulja@gmail.com>
+Date: Tue, 30 Jul 2024 22:19:03 +0200
+Subject: (cherry-pick-branch-heads/6613) [M128] PipeWire camera: Annotate
+ functions with PipeWire calls to avoid CFI
 
-This reverts commit e13945bf0761d34b902ecbd4e1cc6deb1788a2c9.
+Similar to PipeWire implementation of desktop capture, we have to avoid
+CFI check for calls of dlopened PipeWire library. This avoid crashing
+PipeWire camera backend when "is_official_build=true" option is used as
+this turns on "is_cfi=true" enabling control flow integrity.
 
-Reason for revert: Breaks downstream project
+iOS bots are broken due to xcode version mismatch. But the change is linux-only, so they are irrelevant. Disabling presubmit checks.
 
-Original change's description:
-> Enable TLS Client Hello extension permutation by default
->
-> similar to the previous change for DTLS. This affects native TURN/TLS
-> connections which are already using this in Chromium.
->
-> BUG=webrtc:422225803
->
-> Change-Id: I605f106371f2dbe23b1ad5f8385e0e01abe7c48f
-> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357903
-> Commit-Queue: Philipp Hancke <phancke@meta.com>
-> Reviewed-by: Danil Chapovalov <danilchap@webrtc.org>
-> Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-> Cr-Commit-Position: refs/heads/main@{#42688}
+(cherry picked from commit 9e755f0e19a9f3fdd5015283b5328fc65a7bfe1c)
 
-Bug: webrtc:422225803
-Change-Id: I8020e420e270c0f47cb8e26a210c801e94f8de7d
-No-Presubmit: true
-No-Tree-Checks: true
 No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/357883
-Reviewed-by: Harald Alvestrand <hta@webrtc.org>
-Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
-Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
-Cr-Commit-Position: refs/heads/main@{#42689}
+Bug: chromium:354776214
+Change-Id: I7a9fc1c2d77c4ee0e8fe0586369b7246e0bb9180
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358103
+Commit-Queue: Jan Grulich <grulja@gmail.com>
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+Cr-Original-Commit-Position: refs/heads/main@{#42706}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/359162
+Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Jan Grulich <grulja@gmail.com>
+Cr-Commit-Position: refs/branch-heads/6613@{#2}
+Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
 ---
- p2p/base/turn_server.cc              |  4 ++--
- rtc_base/openssl_adapter.cc          | 20 ++++----------------
- rtc_base/openssl_adapter.h           | 12 +++---------
- rtc_base/openssl_adapter_unittest.cc |  6 ++----
- rtc_base/ssl_adapter.h               |  3 +--
- 5 files changed, 12 insertions(+), 33 deletions(-)
+ modules/video_capture/BUILD.gn                        | 5 ++++-
+ modules/video_capture/linux/pipewire_session.cc       | 7 +++++++
+ modules/video_capture/linux/video_capture_pipewire.cc | 4 ++++
+ 3 files changed, 15 insertions(+), 1 deletion(-)
 
-diff --git a/p2p/base/turn_server.cc b/p2p/base/turn_server.cc
-index 2ab65283c0..4fd899ee2d 100644
---- a/p2p/base/turn_server.cc
-+++ b/p2p/base/turn_server.cc
-@@ -140,8 +140,8 @@ void TurnServer::AcceptConnection(rtc::Socket* server_socket) {
-   if (accepted_socket != NULL) {
-     const ServerSocketInfo& info = server_listen_sockets_[server_socket];
-     if (info.ssl_adapter_factory) {
--      rtc::SSLAdapter* ssl_adapter = info.ssl_adapter_factory->CreateAdapter(
--          accepted_socket, /*permute_extensions=*/true);
-+      rtc::SSLAdapter* ssl_adapter =
-+          info.ssl_adapter_factory->CreateAdapter(accepted_socket);
-       ssl_adapter->StartSSL("");
-       accepted_socket = ssl_adapter;
-     }
-diff --git a/rtc_base/openssl_adapter.cc b/rtc_base/openssl_adapter.cc
-index 98c5fe77ae..2743859006 100644
---- a/rtc_base/openssl_adapter.cc
-+++ b/rtc_base/openssl_adapter.cc
-@@ -47,7 +47,6 @@
- #include "rtc_base/strings/str_join.h"
- #include "rtc_base/strings/string_builder.h"
- #include "rtc_base/thread.h"
--#include "system_wrappers/include/field_trial.h"
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index 59df8fe4f3..29a7bea9d9 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -81,7 +81,10 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         "linux/video_capture_v4l2.cc",
+         "linux/video_capture_v4l2.h",
+       ]
+-      deps += [ "../../media:rtc_media_base" ]
++      deps += [
++        "../../media:rtc_media_base",
++        "../../rtc_base:sanitizer",
++      ]
  
- //////////////////////////////////////////////////////////////////////
- // SocketBIO
-@@ -197,10 +196,6 @@ OpenSSLAdapter::OpenSSLAdapter(Socket* socket,
-       ssl_ctx_(nullptr),
-       ssl_mode_(SSL_MODE_TLS),
-       ignore_bad_cert_(false),
--#ifdef OPENSSL_IS_BORINGSSL
--      permute_extension_(
--          !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
--#endif
-       custom_cert_verifier_status_(false) {
-   // If a factory is used, take a reference on the factory's SSL_CTX.
-   // Otherwise, we'll create our own later.
-@@ -288,7 +283,7 @@ int OpenSSLAdapter::BeginSSL() {
-   // need to create one, and specify `false` to disable session caching.
-   if (ssl_session_cache_ == nullptr) {
-     RTC_DCHECK(!ssl_ctx_);
--    ssl_ctx_ = CreateContext(ssl_mode_, false, permute_extension_);
-+    ssl_ctx_ = CreateContext(ssl_mode_, false);
+       if (rtc_use_pipewire) {
+         sources += [
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 107ea3dfbd..0642713f91 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -19,6 +19,7 @@
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/video_capture/device_info_impl.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/sanitizer.h"
+ #include "rtc_base/string_encode.h"
+ #include "rtc_base/string_to_number.h"
+ 
+@@ -52,6 +53,7 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
    }
- 
-   if (!ssl_ctx_) {
-@@ -954,9 +949,7 @@ int OpenSSLAdapter::NewSSLSessionCallback(SSL* ssl, SSL_SESSION* session) {
-   return 1;  // We've taken ownership of the session; OpenSSL shouldn't free it.
  }
  
--SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode,
--                                       bool enable_cache,
--                                       bool permute_extension) {
-+SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode, bool enable_cache) {
- #ifdef WEBRTC_USE_CRYPTO_BUFFER_CALLBACK
-   // If X509 objects aren't used, we can use these methods to avoid
-   // linking the sizable crypto/x509 code.
-@@ -1018,9 +1011,6 @@ SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode,
-     SSL_CTX_sess_set_new_cb(ctx, &OpenSSLAdapter::NewSSLSessionCallback);
++RTC_NO_SANITIZE("cfi-icall")
+ PipeWireNode::PipeWireNode(PipeWireSession* session,
+                            uint32_t id,
+                            const spa_dict* props)
+@@ -79,6 +81,7 @@ PipeWireNode::~PipeWireNode() {
+ }
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+   PipeWireNode* that = static_cast<PipeWireNode*>(data);
+ 
+@@ -113,6 +116,7 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+ }
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireNode::OnNodeParam(void* data,
+                                int seq,
+                                uint32_t id,
+@@ -264,6 +268,7 @@ void PipeWireSession::InitPipeWire(int fd) {
+     Finish(VideoCaptureOptions::Status::ERROR);
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ bool PipeWireSession::StartPipeWire(int fd) {
+   pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
+ 
+@@ -330,6 +335,7 @@ void PipeWireSession::StopPipeWire() {
    }
- 
--#ifdef OPENSSL_IS_BORINGSSL
--  SSL_CTX_set_permute_extensions(ctx, permute_extension);
--#endif
-   return ctx;
  }
  
-@@ -1079,11 +1069,9 @@ void OpenSSLAdapterFactory::SetIgnoreBadCert(bool ignore) {
-   ignore_bad_cert_ = ignore;
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireSession::PipeWireSync() {
+   sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
+ }
+@@ -356,6 +362,7 @@ void PipeWireSession::OnCoreDone(void* data, uint32_t id, int seq) {
  }
  
--OpenSSLAdapter* OpenSSLAdapterFactory::CreateAdapter(Socket* socket,
--                                                     bool permute_extension) {
-+OpenSSLAdapter* OpenSSLAdapterFactory::CreateAdapter(Socket* socket) {
-   if (ssl_session_cache_ == nullptr) {
--    SSL_CTX* ssl_ctx =
--        OpenSSLAdapter::CreateContext(ssl_mode_, true, permute_extension);
-+    SSL_CTX* ssl_ctx = OpenSSLAdapter::CreateContext(ssl_mode_, true);
-     if (ssl_ctx == nullptr) {
-       return nullptr;
-     }
-diff --git a/rtc_base/openssl_adapter.h b/rtc_base/openssl_adapter.h
-index a758db5657..4c05471b2b 100644
---- a/rtc_base/openssl_adapter.h
-+++ b/rtc_base/openssl_adapter.h
-@@ -78,9 +78,7 @@ class OpenSSLAdapter final : public SSLAdapter {
-   // OpenSSLAdapterFactory will call this method to create its own internal
-   // SSL_CTX, and OpenSSLAdapter will also call this when used without a
-   // factory.
--  static SSL_CTX* CreateContext(SSLMode mode,
--                                bool enable_cache,
--                                bool permute_extension);
-+  static SSL_CTX* CreateContext(SSLMode mode, bool enable_cache);
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireSession::OnRegistryGlobal(void* data,
+                                        uint32_t id,
+                                        uint32_t permissions,
+diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
+index 1672b7583f..940db43fd5 100644
+--- a/modules/video_capture/linux/video_capture_pipewire.cc
++++ b/modules/video_capture/linux/video_capture_pipewire.cc
+@@ -20,6 +20,7 @@
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/portal/pipewire_utils.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/sanitizer.h"
+ #include "rtc_base/string_to_number.h"
  
-  protected:
-   void OnConnectEvent(Socket* socket) override;
-@@ -172,9 +170,6 @@ class OpenSSLAdapter final : public SSLAdapter {
-   std::vector<std::string> alpn_protocols_;
-   // List of elliptic curves to be used in the TLS elliptic curves extension.
-   std::vector<std::string> elliptic_curves_;
--#ifdef OPENSSL_IS_BORINGSSL
--  const bool permute_extension_;
--#endif
-   // Holds the result of the call to run of the ssl_cert_verify_->Verify()
-   bool custom_cert_verifier_status_;
-   // Flag to cancel pending timeout task.
-@@ -211,8 +206,7 @@ class OpenSSLAdapterFactory : public SSLAdapterFactory {
-   // Constructs a new socket using the shared OpenSSLSessionCache. This means
-   // existing SSLSessions already in the cache will be reused instead of
-   // re-created for improved performance.
--  OpenSSLAdapter* CreateAdapter(Socket* socket,
--                                bool permute_extensions) override;
-+  OpenSSLAdapter* CreateAdapter(Socket* socket) override;
- 
-  private:
-   // Holds the SSLMode (DTLS,TLS) that will be used to set the session cache.
-@@ -225,7 +219,7 @@ class OpenSSLAdapterFactory : public SSLAdapterFactory {
-   // Holds a cache of existing SSL Sessions.
-   std::unique_ptr<OpenSSLSessionCache> ssl_session_cache_;
-   // Provides an optional custom callback for verifying SSL certificates, this
--  // in currently only used for TURN/TLS connections.
-+  // in currently only used for TLS-TURN connections.
-   SSLCertificateVerifier* ssl_cert_verifier_ = nullptr;
-   // TODO(benwright): Remove this when context is moved to OpenSSLCommon.
-   // Hold a friend class to the OpenSSLAdapter to retrieve the context.
-diff --git a/rtc_base/openssl_adapter_unittest.cc b/rtc_base/openssl_adapter_unittest.cc
-index 3a4877ba04..5b59a8019e 100644
---- a/rtc_base/openssl_adapter_unittest.cc
-+++ b/rtc_base/openssl_adapter_unittest.cc
-@@ -22,8 +22,6 @@
- namespace rtc {
- namespace {
- 
--constexpr bool kPermuteExtensions = true;
--
- class MockAsyncSocket : public Socket {
-  public:
-   virtual ~MockAsyncSocket() = default;
-@@ -98,7 +96,7 @@ TEST(OpenSSLAdapterFactoryTest, CreateSingleOpenSSLAdapter) {
-   OpenSSLAdapterFactory adapter_factory;
-   Socket* async_socket = new MockAsyncSocket();
-   auto simple_adapter = std::unique_ptr<OpenSSLAdapter>(
--      adapter_factory.CreateAdapter(async_socket, kPermuteExtensions));
-+      adapter_factory.CreateAdapter(async_socket));
-   EXPECT_NE(simple_adapter, nullptr);
+ namespace webrtc {
+@@ -128,6 +129,7 @@ static spa_pod* BuildFormat(spa_pod_builder* builder,
+   return static_cast<spa_pod*>(spa_pod_builder_pop(builder, &frames[0]));
  }
  
-@@ -114,7 +112,7 @@ TEST(OpenSSLAdapterFactoryTest, CreateWorksWithCustomVerifier) {
-   adapter_factory.SetCertVerifier(cert_verifier.get());
-   Socket* async_socket = new MockAsyncSocket();
-   auto simple_adapter = std::unique_ptr<OpenSSLAdapter>(
--      adapter_factory.CreateAdapter(async_socket, kPermuteExtensions));
-+      adapter_factory.CreateAdapter(async_socket));
-   EXPECT_NE(simple_adapter, nullptr);
++RTC_NO_SANITIZE("cfi-icall")
+ int32_t VideoCaptureModulePipeWire::StartCapture(
+     const VideoCaptureCapability& capability) {
+   RTC_DCHECK_RUN_ON(&api_checker_);
+@@ -247,6 +249,7 @@ void VideoCaptureModulePipeWire::OnStreamParamChanged(
+     that->OnFormatChanged(format);
  }
  
-diff --git a/rtc_base/ssl_adapter.h b/rtc_base/ssl_adapter.h
-index 9322f7a789..4b8b9c74e0 100644
---- a/rtc_base/ssl_adapter.h
-+++ b/rtc_base/ssl_adapter.h
-@@ -52,8 +52,7 @@ class SSLAdapterFactory {
-   virtual void SetIgnoreBadCert(bool ignore) = 0;
++RTC_NO_SANITIZE("cfi-icall")
+ void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
  
-   // Creates a new SSL adapter, but from a shared context.
--  virtual SSLAdapter* CreateAdapter(Socket* socket,
--                                    bool permute_extensions) = 0;
-+  virtual SSLAdapter* CreateAdapter(Socket* socket) = 0;
+@@ -395,6 +398,7 @@ static VideoRotation VideorotationFromPipeWireTransform(uint32_t transform) {
+   }
+ }
  
-   static std::unique_ptr<SSLAdapterFactory> Create();
- };
++RTC_NO_SANITIZE("cfi-icall")
+ void VideoCaptureModulePipeWire::ProcessBuffers() {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
+ 
