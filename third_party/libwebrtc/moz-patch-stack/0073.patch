@@ -1,31 +1,23 @@
 From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Mon, 27 Feb 2023 16:22:00 +0000
-Subject: Bug 1817024 - (fix-fdcfefa708) In PhysicalSocket avoid a non-trivial
- designated initializer. r=mjf,webrtc-reviewers
+Date: Wed, 11 Jan 2023 22:42:00 +0000
+Subject: Bug 1800942 - Add DCHECKs to
+ TimestampExtrapolator::ExtrapolateLocalTime. r=mjf
 
-This fixes a build failure in the base-toolchain job with GCC 7.5.0:
-  In file included from Unified_cpp_threading_gn0.cpp:38:0:
-  .../third_party/libwebrtc/rtc_base/physical_socket_server.cc: In member function 'int rtc::PhysicalSocket::DoReadFromSocket(void*, size_t, rtc::SocketAddress*, int64_t*)':
-  .../third_party/libwebrtc/rtc_base/physical_socket_server.cc:463:51: sorry, unimplemented: non-trivial designated initializers not supported
-       msghdr msg = {.msg_iov = &iov, .msg_iovlen = 1};
-                                                   ^
-
-Differential Revision: https://phabricator.services.mozilla.com/D171057
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/a3447f709befd84a282ca40f29b7a5ea76d5b68d
+Differential Revision: https://phabricator.services.mozilla.com/D166536
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/c5df7f40392464ffc63f44a53ddcaab2091741e0
 ---
- rtc_base/physical_socket_server.cc | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/video_coding/timing/timestamp_extrapolator.cc | 1 +
+ 1 file changed, 1 insertion(+)
 
-diff --git a/rtc_base/physical_socket_server.cc b/rtc_base/physical_socket_server.cc
-index 5a75fbb707..809efb8814 100644
---- a/rtc_base/physical_socket_server.cc
-+++ b/rtc_base/physical_socket_server.cc
-@@ -520,7 +520,7 @@ int PhysicalSocket::DoReadFromSocket(void* buffer,
- #if defined(WEBRTC_POSIX)
-   int received = 0;
-   iovec iov = {.iov_base = buffer, .iov_len = length};
--  msghdr msg = {.msg_iov = &iov, .msg_iovlen = 1};
-+  msghdr msg = {.msg_name = nullptr, .msg_namelen = 0, .msg_iov = &iov, .msg_iovlen = 1};
-   if (out_addr) {
-     out_addr->Clear();
-     msg.msg_name = addr;
+diff --git a/modules/video_coding/timing/timestamp_extrapolator.cc b/modules/video_coding/timing/timestamp_extrapolator.cc
+index cc7eff97ba..cbe3754875 100644
+--- a/modules/video_coding/timing/timestamp_extrapolator.cc
++++ b/modules/video_coding/timing/timestamp_extrapolator.cc
+@@ -126,6 +126,7 @@ void TimestampExtrapolator::Update(Timestamp now, uint32_t ts90khz) {
+ absl::optional<Timestamp> TimestampExtrapolator::ExtrapolateLocalTime(
+     uint32_t timestamp90khz) const {
+   int64_t unwrapped_ts90khz = unwrapper_.PeekUnwrap(timestamp90khz);
++  RTC_DCHECK_GE(unwrapped_ts90khz, 0);
+ 
+   if (!first_unwrapped_timestamp_) {
+     return absl::nullopt;

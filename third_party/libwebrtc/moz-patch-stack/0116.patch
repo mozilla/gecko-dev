@@ -1,228 +1,82 @@
-From: Michael Froman <mjfroman@mac.com>
-Date: Mon, 2 Sep 2024 21:41:53 -0500
-Subject: Bug 1913286 - WebRTC backport: PipeWire camera: filter out devices
- with no capabilities r=pehrsons,webrtc-reviewers
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Tue, 27 Aug 2024 10:01:00 +0000
+Subject: Bug 1914835 - With ScreenCaptureKit embed the mouse cursor directly.
+ r=webrtc-reviewers,ng
 
-Filter out devices that do not support any format supported by WebRTC.
-This will for example be IR cameras that show as duplicated in the list
-of cameras, but support only GRAY8 format and for that reason do not
-work at all.
+The MouseCursorMonitor on macOS is rather expensive, as for every pulled frame
+it compares all pixels of the cursors used for the current and last frames.
+Getting to the pixels may also incur a conversion.
 
-This is a simple backport of an WebRTC upstream change.
+Note that this comparison happens even if the backend reports it had embedded
+the cursor already, as the embedding only affects composing the monitored cursor
+into a captured frame.
 
-Upstream commit: b4aba7834e6c94adace1cb4c20e2e1ee70eb9cc5
-
-Differential Revision: https://phabricator.services.mozilla.com/D219224
+Differential Revision: https://phabricator.services.mozilla.com/D220092
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8ca7b371646d8aa40b2c3faf54570fcd1331a677
 ---
- .../linux/device_info_pipewire.cc             | 20 ++++-----
- .../video_capture/linux/pipewire_session.cc   | 43 +++++++++++++------
- .../video_capture/linux/pipewire_session.h    | 21 ++++++---
- 3 files changed, 57 insertions(+), 27 deletions(-)
+ .../desktop_capture/mac/screen_capturer_sck.h   |  3 +++
+ .../desktop_capture/mac/screen_capturer_sck.mm  | 17 ++++++++++++++---
+ 2 files changed, 17 insertions(+), 3 deletions(-)
 
-diff --git a/modules/video_capture/linux/device_info_pipewire.cc b/modules/video_capture/linux/device_info_pipewire.cc
-index 31d922035b..db2a3c7099 100644
---- a/modules/video_capture/linux/device_info_pipewire.cc
-+++ b/modules/video_capture/linux/device_info_pipewire.cc
-@@ -57,31 +57,31 @@ int32_t DeviceInfoPipeWire::GetDeviceName(uint32_t deviceNumber,
-   if (deviceNumber >= NumberOfDevices())
-     return -1;
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.h b/modules/desktop_capture/mac/screen_capturer_sck.h
+index 2c5241d33e..105cbf0783 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.h
++++ b/modules/desktop_capture/mac/screen_capturer_sck.h
+@@ -18,6 +18,9 @@
  
--  const PipeWireNode& node = pipewire_session_->nodes().at(deviceNumber);
-+  const auto& node = pipewire_session_->nodes().at(deviceNumber);
+ namespace webrtc {
  
--  if (deviceNameLength <= node.display_name().length()) {
-+  if (deviceNameLength <= node->display_name().length()) {
-     RTC_LOG(LS_INFO) << "deviceNameUTF8 buffer passed is too small";
-     return -1;
-   }
--  if (deviceUniqueIdUTF8Length <= node.unique_id().length()) {
-+  if (deviceUniqueIdUTF8Length <= node->unique_id().length()) {
-     RTC_LOG(LS_INFO) << "deviceUniqueIdUTF8 buffer passed is too small";
-     return -1;
-   }
-   if (productUniqueIdUTF8 &&
--      productUniqueIdUTF8Length <= node.model_id().length()) {
-+      productUniqueIdUTF8Length <= node->model_id().length()) {
-     RTC_LOG(LS_INFO) << "productUniqueIdUTF8 buffer passed is too small";
-     return -1;
-   }
- 
-   memset(deviceNameUTF8, 0, deviceNameLength);
--  node.display_name().copy(deviceNameUTF8, deviceNameLength);
-+  node->display_name().copy(deviceNameUTF8, deviceNameLength);
- 
-   memset(deviceUniqueIdUTF8, 0, deviceUniqueIdUTF8Length);
--  node.unique_id().copy(deviceUniqueIdUTF8, deviceUniqueIdUTF8Length);
-+  node->unique_id().copy(deviceUniqueIdUTF8, deviceUniqueIdUTF8Length);
- 
-   if (productUniqueIdUTF8) {
-     memset(productUniqueIdUTF8, 0, productUniqueIdUTF8Length);
--    node.model_id().copy(productUniqueIdUTF8, productUniqueIdUTF8Length);
-+    node->model_id().copy(productUniqueIdUTF8, productUniqueIdUTF8Length);
-   }
- 
-   return 0;
-@@ -92,11 +92,11 @@ int32_t DeviceInfoPipeWire::CreateCapabilityMap(
-   RTC_CHECK(pipewire_session_);
- 
-   for (auto& node : pipewire_session_->nodes()) {
--    if (node.unique_id().compare(deviceUniqueIdUTF8) != 0)
-+    if (node->unique_id().compare(deviceUniqueIdUTF8) != 0)
-       continue;
- 
--    _captureCapabilities = node.capabilities();
--    _lastUsedDeviceNameLength = node.unique_id().length();
-+    _captureCapabilities = node->capabilities();
-+    _lastUsedDeviceNameLength = node->unique_id().length();
-     _lastUsedDeviceName = static_cast<char*>(
-         realloc(_lastUsedDeviceName, _lastUsedDeviceNameLength + 1));
-     memcpy(_lastUsedDeviceName, deviceUniqueIdUTF8,
-diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
-index 0642713f91..fd93b31063 100644
---- a/modules/video_capture/linux/pipewire_session.cc
-+++ b/modules/video_capture/linux/pipewire_session.cc
-@@ -53,6 +53,19 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
-   }
- }
- 
-+void PipeWireNode::PipeWireNodeDeleter::operator()(
-+    PipeWireNode* node) const noexcept {
-+  pw_proxy_destroy(node->proxy_);
-+  spa_hook_remove(&node->node_listener_);
-+}
++// Returns true if the ScreenCaptureKit capturer is available.
++bool ScreenCapturerSckAvailable();
 +
-+// static
-+PipeWireNode::PipeWireNodePtr PipeWireNode::Create(PipeWireSession* session,
-+                                                   uint32_t id,
-+                                                   const spa_dict* props) {
-+  return PipeWireNodePtr(new PipeWireNode(session, id, props));
-+}
-+
- RTC_NO_SANITIZE("cfi-icall")
- PipeWireNode::PipeWireNode(PipeWireSession* session,
-                            uint32_t id,
-@@ -75,11 +88,6 @@ PipeWireNode::PipeWireNode(PipeWireSession* session,
-   pw_node_add_listener(proxy_, &node_listener_, &node_events, this);
- }
+ // A DesktopCapturer implementation that uses ScreenCaptureKit.
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(
+     const DesktopCaptureOptions& options);
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 2dad8b356b..a16a74d451 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -24,6 +24,8 @@
  
--PipeWireNode::~PipeWireNode() {
--  pw_proxy_destroy(proxy_);
--  spa_hook_remove(&node_listener_);
--}
--
- // static
- RTC_NO_SANITIZE("cfi-icall")
- void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
-@@ -102,7 +110,9 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
-                pid.value());
-       that->model_id_ = model_str;
-     }
--  } else if (info->change_mask & PW_NODE_CHANGE_MASK_PARAMS) {
+ using webrtc::DesktopFrameIOSurface;
+ 
++#define SCK_AVAILABLE @available(macOS 14.0, *)
++
+ namespace webrtc {
+ class ScreenCapturerSck;
+ }  // namespace webrtc
+@@ -48,6 +50,14 @@ - (void)releaseCapturer;
+ 
+ namespace webrtc {
+ 
++bool ScreenCapturerSckAvailable() {
++  bool sonomaOrHigher = false;
++  if (SCK_AVAILABLE) {
++    sonomaOrHigher = true;
 +  }
++  return sonomaOrHigher;
++}
 +
-+  if (info->change_mask & PW_NODE_CHANGE_MASK_PARAMS) {
-     for (uint32_t i = 0; i < info->n_params; i++) {
-       uint32_t id = info->params[i].id;
-       if (id == SPA_PARAM_EnumFormat &&
-@@ -356,6 +366,14 @@ void PipeWireSession::OnCoreDone(void* data, uint32_t id, int seq) {
-   if (id == PW_ID_CORE) {
-     if (seq == that->sync_seq_) {
-       RTC_LOG(LS_VERBOSE) << "Enumerating PipeWire camera devices complete.";
-+
-+      // Remove camera devices with no capabilities
-+      auto it = std::remove_if(that->nodes_.begin(), that->nodes_.end(),
-+                               [](const PipeWireNode::PipeWireNodePtr& node) {
-+                                 return node->capabilities().empty();
-+                               });
-+      that->nodes_.erase(it, that->nodes_.end());
-+
-       that->Finish(VideoCaptureOptions::Status::SUCCESS);
-     }
-   }
-@@ -373,8 +391,8 @@ void PipeWireSession::OnRegistryGlobal(void* data,
- 
-   // Skip already added nodes to avoid duplicate camera entries
-   if (std::find_if(that->nodes_.begin(), that->nodes_.end(),
--                   [id](const PipeWireNode& node) {
--                     return node.id() == id;
-+                   [id](const PipeWireNode::PipeWireNodePtr& node) {
-+                     return node->id() == id;
-                    }) != that->nodes_.end())
-     return;
- 
-@@ -388,7 +406,7 @@ void PipeWireSession::OnRegistryGlobal(void* data,
-   if (!node_role || strcmp(node_role, "Camera"))
-     return;
- 
--  that->nodes_.emplace_back(that, id, props);
-+  that->nodes_.push_back(PipeWireNode::Create(that, id, props));
-   that->PipeWireSync();
- }
- 
-@@ -396,9 +414,10 @@ void PipeWireSession::OnRegistryGlobal(void* data,
- void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
-   PipeWireSession* that = static_cast<PipeWireSession*>(data);
- 
--  auto it = std::remove_if(
--      that->nodes_.begin(), that->nodes_.end(),
--      [id](const PipeWireNode& node) { return node.id() == id; });
-+  auto it = std::remove_if(that->nodes_.begin(), that->nodes_.end(),
-+                           [id](const PipeWireNode::PipeWireNodePtr& node) {
-+                             return node->id() == id;
-+                           });
-   that->nodes_.erase(it, that->nodes_.end());
- }
- 
-diff --git a/modules/video_capture/linux/pipewire_session.h b/modules/video_capture/linux/pipewire_session.h
-index fdc06a6b2a..84273ea695 100644
---- a/modules/video_capture/linux/pipewire_session.h
-+++ b/modules/video_capture/linux/pipewire_session.h
-@@ -37,8 +37,15 @@ class VideoCaptureModulePipeWire;
- // So they all represent one camera that is available via PipeWire.
- class PipeWireNode {
+ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapturer {
   public:
--  PipeWireNode(PipeWireSession* session, uint32_t id, const spa_dict* props);
--  ~PipeWireNode();
-+  struct PipeWireNodeDeleter {
-+    void operator()(PipeWireNode* node) const noexcept;
-+  };
-+
-+  using PipeWireNodePtr =
-+      std::unique_ptr<PipeWireNode, PipeWireNode::PipeWireNodeDeleter>;
-+  static PipeWireNodePtr Create(PipeWireSession* session,
-+                                uint32_t id,
-+                                const spa_dict* props);
+   explicit ScreenCapturerSck(const DesktopCaptureOptions& options);
+@@ -353,11 +363,10 @@ class API_AVAILABLE(macos(14.0)) ScreenCapturerSck final : public DesktopCapture
+ }
  
-   uint32_t id() const { return id_; }
-   std::string display_name() const { return display_name_; }
-@@ -48,6 +55,9 @@ class PipeWireNode {
-     return capabilities_;
+ std::unique_ptr<DesktopCapturer> CreateScreenCapturerSck(const DesktopCaptureOptions& options) {
+-  if (@available(macOS 14.0, *)) {
++  if (SCK_AVAILABLE) {
+     return std::make_unique<ScreenCapturerSck>(options);
+-  } else {
+-    return nullptr;
    }
++  return nullptr;
+ }
  
-+ protected:
-+  PipeWireNode(PipeWireSession* session, uint32_t id, const spa_dict* props);
+ }  // namespace webrtc
+@@ -418,3 +427,5 @@ - (void)releaseCapturer {
+ }
+ 
+ @end
 +
-  private:
-   static void OnNodeInfo(void* data, const pw_node_info* info);
-   static void OnNodeParam(void* data,
-@@ -87,8 +97,9 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
- 
-   void Init(VideoCaptureOptions::Callback* callback,
-             int fd = kInvalidPipeWireFd);
--
--  const std::deque<PipeWireNode>& nodes() const { return nodes_; }
-+  const std::deque<PipeWireNode::PipeWireNodePtr>& nodes() const {
-+    return nodes_;
-+  }
- 
-   friend class CameraPortalNotifier;
-   friend class PipeWireNode;
-@@ -134,7 +145,7 @@ class PipeWireSession : public rtc::RefCountedNonVirtual<PipeWireSession> {
- 
-   int sync_seq_ = 0;
- 
--  std::deque<PipeWireNode> nodes_;
-+  std::deque<PipeWireNode::PipeWireNodePtr> nodes_;
-   std::unique_ptr<CameraPortal> portal_;
-   std::unique_ptr<CameraPortalNotifier> portal_notifier_;
- };
++#undef SCK_AVAILABLE

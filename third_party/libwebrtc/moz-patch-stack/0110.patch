@@ -1,30 +1,31 @@
-From: Byron Campen <docfaraday@gmail.com>
-Date: Thu, 25 Jul 2024 10:07:00 -0500
-Subject: Bug 1909234 - (fix-4fec6f9c67dc) Hollow out the new ssl_adapter lib.
- r?mjf
+From: Nico Grunbaum <na-g@nostrum.com>
+Date: Thu, 23 May 2024 17:28:00 +0000
+Subject: Bug 1897459 - P0 - for BSD do not build physical_socket_server in
+ libwebrtc;r=mjf,webrtc-reviewers
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee2f06666bcc6d22c4d7c93b78fb52d28452d055
+libwebrtc added the use of several non-portable socket options in this code.
+Firefox does not use any of the code in this file, but there is a header dependency chain leading from code that is used.
+
+Differential Revision: https://phabricator.services.mozilla.com/D210858
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e35b227b517acadbbad957004
 ---
- rtc_base/BUILD.gn | 2 ++
- 1 file changed, 2 insertions(+)
+ rtc_base/BUILD.gn | 6 ++++++
+ 1 file changed, 6 insertions(+)
 
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 63b5b047ee..cc9d60e48d 100644
+index d51059c140..63b5b047ee 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -1641,6 +1641,7 @@ if (!build_with_mozilla) {
- }
- 
- rtc_library("ssl_adapter") {
-+if (!build_with_mozilla) {
-   visibility = [ "*" ]
-   sources = [
-     "openssl_adapter.cc",
-@@ -1690,6 +1691,7 @@ rtc_library("ssl_adapter") {
-     configs += [ ":external_ssl_library" ]
-   }
- }
-+}
- 
- rtc_source_set("gtest_prod") {
-   sources = [ "gtest_prod_util.h" ]
+@@ -1020,6 +1020,12 @@ rtc_library("threading") {
+     "thread.cc",
+     "thread.h",
+   ]
++  if (is_bsd && build_with_mozilla) {
++    sources -= [
++      "physical_socket_server.cc",
++      "physical_socket_server.h",
++    ]
++  }
+   deps = [
+     ":async_dns_resolver",
+     ":byte_order",

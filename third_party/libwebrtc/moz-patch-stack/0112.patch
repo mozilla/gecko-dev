@@ -1,25 +1,59 @@
-From: Dan Baker <dbaker@mozilla.com>
-Date: Tue, 27 Aug 2024 14:09:00 -0600
-Subject: Bug 1912989 - (fix-2360208f7d) Removed build command causing failure.
- - moz.build file updates
+From: Michael Froman <mfroman@mozilla.com>
+Date: Fri, 21 Jun 2024 16:28:00 -0500
+Subject: Bug 1903098 - (fix-cd09858f4a) disable perfetto usage to avoid new
+ third_party library.
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd4bc7427678a45283f0f56418ee2c70fac711e6
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b050c455caa1d24a0cfa4933ac8cd82c9cd3c347
 ---
- .gn | 4 +++-
- 1 file changed, 3 insertions(+), 1 deletion(-)
+ BUILD.gn                                |  2 ++
+ modules/video_coding/generic_decoder.cc | 10 +++++-----
+ 2 files changed, 7 insertions(+), 5 deletions(-)
 
-diff --git a/.gn b/.gn
-index 285198d08f..907da535db 100644
---- a/.gn
-+++ b/.gn
-@@ -38,7 +38,9 @@ no_check_targets = [
- exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
-                         [ "//build_overrides/build.gni" ]
+diff --git a/BUILD.gn b/BUILD.gn
+index c97de4a997..48dd688442 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -275,6 +275,7 @@ config("rtc_prod_config") {
+ }
  
--export_compile_commands = [ "*" ]
-+# Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
-+# available yet.
-+#export_compile_commands = [ "*" ]
+ group("tracing") {
++if (!build_with_mozilla) {
+   all_dependent_configs = [ "//third_party/perfetto/gn:public_config" ]
+   if (rtc_use_perfetto) {
+     if (build_with_chromium) {
+@@ -291,6 +292,7 @@ group("tracing") {
+         [ "//third_party/perfetto/include/perfetto/tracing" ]
+   }
+ }
++}
  
- default_args = {
-   # Webrtc does not support component builds because we are not using the
+ if (rtc_use_perfetto) {
+   rtc_library("webrtc_libperfetto") {
+diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
+index 0bfc628d2c..0a9920a176 100644
+--- a/modules/video_coding/generic_decoder.cc
++++ b/modules/video_coding/generic_decoder.cc
+@@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
+                                       absl::optional<int32_t> decode_time_ms,
+                                       absl::optional<uint8_t> qp) {
+   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
+-  TRACE_EVENT(
+-      "webrtc", "VCMDecodedFrameCallback::Decoded",
+-      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
++  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
++                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
++                       decodedImage.rtp_timestamp());
+   // TODO(holmer): We should improve this so that we can handle multiple
+   // callbacks from one call to Decode().
+   absl::optional<FrameInfo> frame_info;
+@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
+ int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
+                                   Timestamp now,
+                                   int64_t render_time_ms) {
+-  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
+-              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
++  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
++               frame.RtpTimestamp());
+   FrameInfo frame_info;
+   frame_info.rtp_timestamp = frame.RtpTimestamp();
+   frame_info.decode_start = now;

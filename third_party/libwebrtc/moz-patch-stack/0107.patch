@@ -1,31 +1,44 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Thu, 23 May 2024 17:28:00 +0000
-Subject: Bug 1897459 - P0 - for BSD do not build physical_socket_server in
- libwebrtc;r=mjf,webrtc-reviewers
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Mon, 6 May 2024 07:28:00 +0000
+Subject: Bug 1892329 - Invert _captureThread check in
+ VideoCaptureModuleV4L2::StartCapture. r=webrtc-reviewers,mjf
 
-libwebrtc added the use of several non-portable socket options in this code.
-Firefox does not use any of the code in this file, but there is a header dependency chain leading from code that is used.
-
-Differential Revision: https://phabricator.services.mozilla.com/D210858
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e35b227b517acadbbad957004
+Differential Revision: https://phabricator.services.mozilla.com/D208186
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6ed6737b8214bf664642eb17cbf66a8c8450e569
 ---
- rtc_base/BUILD.gn | 6 ++++++
- 1 file changed, 6 insertions(+)
+ .../video_capture/linux/video_capture_v4l2.cc | 21 +++++++++++--------
+ 1 file changed, 12 insertions(+), 9 deletions(-)
 
-diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index d51059c140..63b5b047ee 100644
---- a/rtc_base/BUILD.gn
-+++ b/rtc_base/BUILD.gn
-@@ -1020,6 +1020,12 @@ rtc_library("threading") {
-     "thread.cc",
-     "thread.h",
-   ]
-+  if (is_bsd && build_with_mozilla) {
-+    sources -= [
-+      "physical_socket_server.cc",
-+      "physical_socket_server.h",
-+    ]
-+  }
-   deps = [
-     ":async_dns_resolver",
-     ":byte_order",
+diff --git a/modules/video_capture/linux/video_capture_v4l2.cc b/modules/video_capture/linux/video_capture_v4l2.cc
+index 74af348a6c..29ca864e19 100644
+--- a/modules/video_capture/linux/video_capture_v4l2.cc
++++ b/modules/video_capture/linux/video_capture_v4l2.cc
+@@ -303,16 +303,19 @@ int32_t VideoCaptureModuleV4L2::StartCapture(
+   }
+ 
+   // start capture thread;
+-  if (_captureThread.empty()) {
+-    quit_ = false;
+-    _captureThread = rtc::PlatformThread::SpawnJoinable(
+-        [self = scoped_refptr(this)] {
+-          while (self->CaptureProcess()) {
+-          }
+-        },
+-        "CaptureThread",
+-        rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
++  if (!_captureThread.empty()) {
++    return 0;
+   }
++
++  quit_ = false;
++
++  _captureThread = rtc::PlatformThread::SpawnJoinable(
++      [self = scoped_refptr(this)] {
++        while (self->CaptureProcess()) {
++        }
++      },
++      "CaptureThread",
++      rtc::ThreadAttributes().SetPriority(rtc::ThreadPriority::kHigh));
+   return 0;
+ }
+ 

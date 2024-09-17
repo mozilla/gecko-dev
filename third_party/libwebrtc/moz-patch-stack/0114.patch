@@ -1,28 +1,26 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Wed, 28 Aug 2024 07:50:00 +0000
-Subject: Bug 1915082 - From ScreenCapturerSck request frames in sRGB
- colorspace. r=webrtc-reviewers,ng
+From: Byron Campen <docfaraday@gmail.com>
+Date: Fri, 26 Jul 2024 09:26:00 -0500
+Subject: Bug 1909234 - (fix-a0d1a51217) Move this errant include where it
+ belongs. r?mjf
 
-The desktop capture path has no colorspace handling for RGB, and libyuv assumes
-sRGB by default. ScreenCaptureKit returns frames in the display's colorspace
-unless told otherwise. On modern macs this is 'Display P3' and will render
-inaccurately when interpreted as sRGB.
-
-Differential Revision: https://phabricator.services.mozilla.com/D220219
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6f6acc479b373662d4ed3ef3be84c3581622297f
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6baf67202c67b27c6464cb8e4dbb419485aa6c4c
 ---
- modules/desktop_capture/mac/screen_capturer_sck.mm | 1 +
- 1 file changed, 1 insertion(+)
+ api/test/network_emulation/BUILD.gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
-index a16a74d451..a7fdfb1012 100644
---- a/modules/desktop_capture/mac/screen_capturer_sck.mm
-+++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
-@@ -245,6 +245,7 @@ void ScreenCapturerSck::OnShareableContentCreated(SCShareableContent* content) {
-                                                     excludingWindows:@[]];
-   SCStreamConfiguration* config = [[SCStreamConfiguration alloc] init];
-   config.pixelFormat = kCVPixelFormatType_32BGRA;
-+  config.colorSpaceName = kCGColorSpaceSRGB;
-   config.showsCursor = capture_options_.prefer_cursor_embedded();
-   config.width = filter.contentRect.size.width * filter.pointPixelScale;
-   config.height = filter.contentRect.size.height * filter.pointPixelScale;
+diff --git a/api/test/network_emulation/BUILD.gn b/api/test/network_emulation/BUILD.gn
+index 4a126a0a94..ac07325bbf 100644
+--- a/api/test/network_emulation/BUILD.gn
++++ b/api/test/network_emulation/BUILD.gn
+@@ -6,10 +6,10 @@
+ # in the file PATENTS.  All contributing project authors may
+ # be found in the AUTHORS file in the root of the source tree.
+ 
+-import("//third_party/protobuf/proto_library.gni")
+ import("../../../webrtc.gni")
+ 
+ if (rtc_enable_protobuf) {
++  import("//third_party/protobuf/proto_library.gni")
+   proto_library("network_config_schedule_proto") {
+     visibility = [ "*" ]
+     sources = [ "network_config_schedule.proto" ]

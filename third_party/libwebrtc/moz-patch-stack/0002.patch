@@ -1,43 +1,145 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Sat, 13 Feb 2021 04:20:00 -0800
-Subject: Bug 1654112 - Add pid_t to desktop_capture_types.h; r=pehrsons
+From: Jan Grulich <grulja@gmail.com>
+Date: Tue, 30 Jul 2024 22:19:03 +0200
+Subject: (cherry-pick-branch-heads/6613) [M128] PipeWire camera: Annotate
+ functions with PipeWire calls to avoid CFI
 
-Upstreaming bug 1697385
+Similar to PipeWire implementation of desktop capture, we have to avoid
+CFI check for calls of dlopened PipeWire library. This avoid crashing
+PipeWire camera backend when "is_official_build=true" option is used as
+this turns on "is_cfi=true" enabling control flow integrity.
 
-Also includes:
-Bug 1654112 - Clarifying prev. rev that moved pid_t into the global namespace; r=dminor
+iOS bots are broken due to xcode version mismatch. But the change is linux-only, so they are irrelevant. Disabling presubmit checks.
 
-Differential Revision: https://phabricator.services.mozilla.com/D107897
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/539b69f0e21118a1898f1ef689577c7193ff7be7
+(cherry picked from commit 9e755f0e19a9f3fdd5015283b5328fc65a7bfe1c)
+
+No-Try: true
+Bug: chromium:354776214
+Change-Id: I7a9fc1c2d77c4ee0e8fe0586369b7246e0bb9180
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358103
+Commit-Queue: Jan Grulich <grulja@gmail.com>
+Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Alexander Cooper <alcooper@chromium.org>
+Cr-Original-Commit-Position: refs/heads/main@{#42706}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/359162
+Commit-Queue: Ilya Nikolaevskiy <ilnik@webrtc.org>
+Reviewed-by: Jan Grulich <grulja@gmail.com>
+Cr-Commit-Position: refs/branch-heads/6613@{#2}
+Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
 ---
- modules/desktop_capture/desktop_capture_types.h | 4 ++++
- modules/video_capture/video_capture.h           | 1 +
- 2 files changed, 5 insertions(+)
+ modules/video_capture/BUILD.gn                        | 5 ++++-
+ modules/video_capture/linux/pipewire_session.cc       | 7 +++++++
+ modules/video_capture/linux/video_capture_pipewire.cc | 4 ++++
+ 3 files changed, 15 insertions(+), 1 deletion(-)
 
-diff --git a/modules/desktop_capture/desktop_capture_types.h b/modules/desktop_capture/desktop_capture_types.h
-index a4e3e897fd..e777a45f92 100644
---- a/modules/desktop_capture/desktop_capture_types.h
-+++ b/modules/desktop_capture/desktop_capture_types.h
-@@ -13,6 +13,10 @@
+diff --git a/modules/video_capture/BUILD.gn b/modules/video_capture/BUILD.gn
+index 59df8fe4f3..29a7bea9d9 100644
+--- a/modules/video_capture/BUILD.gn
++++ b/modules/video_capture/BUILD.gn
+@@ -81,7 +81,10 @@ if (!build_with_chromium || is_linux || is_chromeos) {
+         "linux/video_capture_v4l2.cc",
+         "linux/video_capture_v4l2.h",
+       ]
+-      deps += [ "../../media:rtc_media_base" ]
++      deps += [
++        "../../media:rtc_media_base",
++        "../../rtc_base:sanitizer",
++      ]
  
- #include <stdint.h>
+       if (rtc_use_pipewire) {
+         sources += [
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index 107ea3dfbd..0642713f91 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -19,6 +19,7 @@
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/video_capture/device_info_impl.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/sanitizer.h"
+ #include "rtc_base/string_encode.h"
+ #include "rtc_base/string_to_number.h"
  
-+#ifdef XP_WIN      // Moving this into the global namespace
-+typedef int pid_t; // matching what used to be in
-+#endif             // video_capture_defines.h
-+
+@@ -52,6 +53,7 @@ VideoType PipeWireRawFormatToVideoType(uint32_t id) {
+   }
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ PipeWireNode::PipeWireNode(PipeWireSession* session,
+                            uint32_t id,
+                            const spa_dict* props)
+@@ -79,6 +81,7 @@ PipeWireNode::~PipeWireNode() {
+ }
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+   PipeWireNode* that = static_cast<PipeWireNode*>(data);
+ 
+@@ -113,6 +116,7 @@ void PipeWireNode::OnNodeInfo(void* data, const pw_node_info* info) {
+ }
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireNode::OnNodeParam(void* data,
+                                int seq,
+                                uint32_t id,
+@@ -264,6 +268,7 @@ void PipeWireSession::InitPipeWire(int fd) {
+     Finish(VideoCaptureOptions::Status::ERROR);
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ bool PipeWireSession::StartPipeWire(int fd) {
+   pw_init(/*argc=*/nullptr, /*argv=*/nullptr);
+ 
+@@ -330,6 +335,7 @@ void PipeWireSession::StopPipeWire() {
+   }
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireSession::PipeWireSync() {
+   sync_seq_ = pw_core_sync(pw_core_, PW_ID_CORE, sync_seq_);
+ }
+@@ -356,6 +362,7 @@ void PipeWireSession::OnCoreDone(void* data, uint32_t id, int seq) {
+ }
+ 
+ // static
++RTC_NO_SANITIZE("cfi-icall")
+ void PipeWireSession::OnRegistryGlobal(void* data,
+                                        uint32_t id,
+                                        uint32_t permissions,
+diff --git a/modules/video_capture/linux/video_capture_pipewire.cc b/modules/video_capture/linux/video_capture_pipewire.cc
+index 1672b7583f..940db43fd5 100644
+--- a/modules/video_capture/linux/video_capture_pipewire.cc
++++ b/modules/video_capture/linux/video_capture_pipewire.cc
+@@ -20,6 +20,7 @@
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/portal/pipewire_utils.h"
+ #include "rtc_base/logging.h"
++#include "rtc_base/sanitizer.h"
+ #include "rtc_base/string_to_number.h"
+ 
  namespace webrtc {
+@@ -128,6 +129,7 @@ static spa_pod* BuildFormat(spa_pod_builder* builder,
+   return static_cast<spa_pod*>(spa_pod_builder_pop(builder, &frames[0]));
+ }
  
- enum class CaptureType { kWindow, kScreen, kAnyScreenContent };
-diff --git a/modules/video_capture/video_capture.h b/modules/video_capture/video_capture.h
-index f31b239c71..7279bed476 100644
---- a/modules/video_capture/video_capture.h
-+++ b/modules/video_capture/video_capture.h
-@@ -13,6 +13,7 @@
++RTC_NO_SANITIZE("cfi-icall")
+ int32_t VideoCaptureModulePipeWire::StartCapture(
+     const VideoCaptureCapability& capability) {
+   RTC_DCHECK_RUN_ON(&api_checker_);
+@@ -247,6 +249,7 @@ void VideoCaptureModulePipeWire::OnStreamParamChanged(
+     that->OnFormatChanged(format);
+ }
  
- #include "api/video/video_rotation.h"
- #include "api/video/video_sink_interface.h"
-+#include "modules/desktop_capture/desktop_capture_types.h"
- #include "modules/video_capture/raw_video_sink_interface.h"
- #include "modules/video_capture/video_capture_defines.h"
- #include <set>
++RTC_NO_SANITIZE("cfi-icall")
+ void VideoCaptureModulePipeWire::OnFormatChanged(const struct spa_pod* format) {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
+ 
+@@ -395,6 +398,7 @@ static VideoRotation VideorotationFromPipeWireTransform(uint32_t transform) {
+   }
+ }
+ 
++RTC_NO_SANITIZE("cfi-icall")
+ void VideoCaptureModulePipeWire::ProcessBuffers() {
+   RTC_CHECK_RUNS_SERIALIZED(&capture_checker_);
+ 

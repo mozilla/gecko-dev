@@ -1,52 +1,74 @@
-From: Nico Grunbaum <na-g@nostrum.com>
-Date: Thu, 2 May 2024 00:47:00 -0700
-Subject: Bug 1892299 - fix-afaae4e38a - fix adapted_track_source build
- exclusion;r?mjf
+From: Dan Baker <dbaker@mozilla.com>
+Date: Thu, 14 Mar 2024 10:51:00 -0600
+Subject: Bug 1883116 - (fix-e79e722834) add enviroment_factory to libwebrtc
+ build and enforce providing clock and task_queue when creating Environment
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/60304c5d8a86fdecfe7527e75629dbc65fc9cbc1
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2185cab977988fd4ab03b38dc67f9b06162444da
 ---
- media/BUILD.gn | 17 +++++++++++------
- 1 file changed, 11 insertions(+), 6 deletions(-)
+ BUILD.gn                               |  1 +
+ api/environment/environment_factory.cc | 10 ++++++++++
+ api/task_queue/BUILD.gn                |  5 +++++
+ 3 files changed, 16 insertions(+)
 
-diff --git a/media/BUILD.gn b/media/BUILD.gn
-index 57b3d64265..cde30ba1fe 100644
---- a/media/BUILD.gn
-+++ b/media/BUILD.gn
-@@ -56,6 +56,11 @@ rtc_library("rtc_media_base") {
-     "base/video_broadcaster.h",  # Used downstream
-     "base/video_common.h",  # Used downstream
-   ]
-+  if (build_with_mozilla) {
-+    sources -= [
-+      "base/adapted_video_track_source.h",
-+    ]
-+  }
-   deps = [
-     ":adapted_video_track_source",
-     ":codec",
-@@ -128,12 +133,6 @@ rtc_library("rtc_media_base") {
-     "../video/config:encoder_config",
-     "//third_party/abseil-cpp/absl/types:optional",
-   ]
--    if (build_with_mozilla) {
--    sources -= [
--      "base/adapted_video_track_source.cc",
--      "base/adapted_video_track_source.h",
--    ]
--  }
+diff --git a/BUILD.gn b/BUILD.gn
+index d213f92def..c97de4a997 100644
+--- a/BUILD.gn
++++ b/BUILD.gn
+@@ -609,6 +609,7 @@ if (!build_with_chromium) {
+ 
+     if (build_with_mozilla) {
+       deps += [
++        "api/environment:environment_factory",
+         "api/video:video_frame",
+         "api/video:video_rtp_headers",
+         "test:rtp_test_utils",
+diff --git a/api/environment/environment_factory.cc b/api/environment/environment_factory.cc
+index 293ef6cf8a..b9cb6b4f53 100644
+--- a/api/environment/environment_factory.cc
++++ b/api/environment/environment_factory.cc
+@@ -102,12 +102,22 @@ Environment EnvironmentFactory::CreateWithDefaults() && {
+   if (field_trials_ == nullptr) {
+     Set(std::make_unique<FieldTrialBasedConfig>());
+   }
++#if defined(WEBRTC_MOZILLA_BUILD)
++  // We want to use our clock, not GetRealTimeClockRaw, and we avoid
++  // building the code under third_party/libwebrtc/task_queue.  To
++  // ensure we're setting up things correctly, namely providing an
++  // Environment object with a preset task_queue_factory and clock,
++  // we'll do a release assert here.
++  RTC_CHECK(clock_);
++  RTC_CHECK(task_queue_factory_);
++#else
+   if (clock_ == nullptr) {
+     Set(Clock::GetRealTimeClock());
+   }
+   if (task_queue_factory_ == nullptr) {
+     Set(CreateDefaultTaskQueueFactory(field_trials_));
+   }
++#endif
+   if (event_log_ == nullptr) {
+     Set(std::make_unique<RtcEventLogNull>());
+   }
+diff --git a/api/task_queue/BUILD.gn b/api/task_queue/BUILD.gn
+index aa6878a9e2..dadc74720d 100644
+--- a/api/task_queue/BUILD.gn
++++ b/api/task_queue/BUILD.gn
+@@ -82,6 +82,10 @@ rtc_library("task_queue_test") {
  }
  
- rtc_library("adapted_video_track_source") {
-@@ -141,6 +140,12 @@ rtc_library("adapted_video_track_source") {
-     "base/adapted_video_track_source.cc",
-     "base/adapted_video_track_source.h",
-   ]
-+  if (build_with_mozilla) {
-+    sources -= [
-+      "base/adapted_video_track_source.cc",
-+      "base/adapted_video_track_source.h",
-+    ]
-+  }
-   deps = [
-     ":video_adapter",
-     ":video_broadcaster",
+ rtc_library("default_task_queue_factory") {
++# Mozilla - disable this entire target to avoid inclusion of code we want
++# to avoid.  Better here than trying to wack-a-mole for places that list
++# it as a dependency.
++if (!build_with_mozilla) {
+   visibility = [ "*" ]
+   if (!is_ios && !is_android) {
+     # Internally webrtc shouldn't rely on any specific TaskQueue implementation
+@@ -120,6 +124,7 @@ rtc_library("default_task_queue_factory") {
+     sources += [ "default_task_queue_factory_stdlib.cc" ]
+     deps += [ "../../rtc_base:rtc_task_queue_stdlib" ]
+   }
++} # of if (!build_with_mozilla) {
+ }
+ 
+ rtc_library("pending_task_safety_flag") {

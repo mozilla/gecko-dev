@@ -1,59 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Fri, 21 Jun 2024 16:28:00 -0500
-Subject: Bug 1903098 - (fix-cd09858f4a) disable perfetto usage to avoid new
- third_party library.
+Date: Fri, 17 May 2024 22:30:00 -0500
+Subject: Bug 1897501 - (fix-09bb4f09e1) keep default python intepreter as
+ python3
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b050c455caa1d24a0cfa4933ac8cd82c9cd3c347
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/b21ca84c8b2620a98515624de0e43a237698726c
 ---
- BUILD.gn                                |  2 ++
- modules/video_coding/generic_decoder.cc | 10 +++++-----
- 2 files changed, 7 insertions(+), 5 deletions(-)
+ .gn | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/BUILD.gn b/BUILD.gn
-index c97de4a997..48dd688442 100644
---- a/BUILD.gn
-+++ b/BUILD.gn
-@@ -275,6 +275,7 @@ config("rtc_prod_config") {
- }
+diff --git a/.gn b/.gn
+index 2f2de25df6..285198d08f 100644
+--- a/.gn
++++ b/.gn
+@@ -13,7 +13,7 @@ buildconfig = "//build/config/BUILDCONFIG.gn"
  
- group("tracing") {
-+if (!build_with_mozilla) {
-   all_dependent_configs = [ "//third_party/perfetto/gn:public_config" ]
-   if (rtc_use_perfetto) {
-     if (build_with_chromium) {
-@@ -291,6 +292,7 @@ group("tracing") {
-         [ "//third_party/perfetto/include/perfetto/tracing" ]
-   }
- }
-+}
+ # The python interpreter to use by default. On Windows, this will look
+ # for vpython3.exe and vpython3.bat.
+-script_executable = "vpython3"
++script_executable = "python3"
  
- if (rtc_use_perfetto) {
-   rtc_library("webrtc_libperfetto") {
-diff --git a/modules/video_coding/generic_decoder.cc b/modules/video_coding/generic_decoder.cc
-index 0bfc628d2c..0a9920a176 100644
---- a/modules/video_coding/generic_decoder.cc
-+++ b/modules/video_coding/generic_decoder.cc
-@@ -103,9 +103,9 @@ void VCMDecodedFrameCallback::Decoded(VideoFrame& decodedImage,
-                                       absl::optional<int32_t> decode_time_ms,
-                                       absl::optional<uint8_t> qp) {
-   RTC_DCHECK(_receiveCallback) << "Callback must not be null at this point";
--  TRACE_EVENT(
--      "webrtc", "VCMDecodedFrameCallback::Decoded",
--      perfetto::TerminatingFlow::ProcessScoped(decodedImage.rtp_timestamp()));
-+  TRACE_EVENT_INSTANT1("webrtc", "VCMDecodedFrameCallback::Decoded",
-+                       TRACE_EVENT_SCOPE_GLOBAL, "timestamp",
-+                       decodedImage.rtp_timestamp());
-   // TODO(holmer): We should improve this so that we can handle multiple
-   // callbacks from one call to Decode().
-   absl::optional<FrameInfo> frame_info;
-@@ -293,8 +293,8 @@ int32_t VCMGenericDecoder::Decode(const VCMEncodedFrame& frame, Timestamp now) {
- int32_t VCMGenericDecoder::Decode(const EncodedImage& frame,
-                                   Timestamp now,
-                                   int64_t render_time_ms) {
--  TRACE_EVENT("webrtc", "VCMGenericDecoder::Decode",
--              perfetto::Flow::ProcessScoped(frame.RtpTimestamp()));
-+  TRACE_EVENT1("webrtc", "VCMGenericDecoder::Decode", "timestamp",
-+               frame.RtpTimestamp());
-   FrameInfo frame_info;
-   frame_info.rtp_timestamp = frame.RtpTimestamp();
-   frame_info.decode_start = now;
+ # The secondary source root is a parallel directory tree where
+ # GN build files are placed when they can not be placed directly
