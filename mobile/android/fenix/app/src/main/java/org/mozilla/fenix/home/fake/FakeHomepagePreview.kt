@@ -14,9 +14,14 @@ import mozilla.components.concept.sync.DeviceType
 import mozilla.components.feature.tab.collections.Tab
 import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
+import mozilla.components.service.nimbus.messaging.Message
+import mozilla.components.service.pocket.PocketStory
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
+import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
+import org.mozilla.fenix.home.interactor.HomepageInteractor
+import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
@@ -27,6 +32,8 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGrou
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
+import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
+import org.mozilla.fenix.wallpapers.WallpaperState
 import java.io.File
 import kotlin.random.Random
 
@@ -36,41 +43,116 @@ import kotlin.random.Random
 internal object FakeHomepagePreview {
     private val random = Random(seed = 1)
 
+    val homepageInteractor: HomepageInteractor
+        get() = object :
+            HomepageInteractor,
+            PrivateBrowsingInteractor by privateBrowsingInteractor,
+            TopSiteInteractor by topSitesInteractor,
+            RecentTabInteractor by recentTabInteractor,
+            RecentSyncedTabInteractor by recentSyncedTabInterator,
+            BookmarksInteractor by bookmarksInteractor,
+            RecentVisitsInteractor by recentVisitsInteractor {
+            override fun onCollectionAddTabTapped(collection: TabCollection) { /* no op */ }
+
+            override fun onCollectionOpenTabClicked(tab: Tab) { /* no op */ }
+
+            override fun onCollectionOpenTabsTapped(collection: TabCollection) { /* no op */ }
+
+            override fun onCollectionRemoveTab(collection: TabCollection, tab: Tab) { /* no op */ }
+
+            override fun onCollectionShareTabsClicked(collection: TabCollection) { /* no op */ }
+
+            override fun onDeleteCollectionTapped(collection: TabCollection) { /* no op */ }
+
+            override fun onRenameCollectionTapped(collection: TabCollection) { /* no op */ }
+
+            override fun onToggleCollectionExpanded(collection: TabCollection, expand: Boolean) { /* no op */ }
+
+            override fun onAddTabsToCollectionTapped() { /* no op */ }
+
+            override fun onRemoveCollectionsPlaceholder() { /* no op */ }
+
+            override fun reportSessionMetrics(state: AppState) { /* no op */ }
+
+            override fun onPasteAndGo(clipboardText: String) { /* no op */ }
+
+            override fun onPaste(clipboardText: String) { /* no op */ }
+
+            override fun onNavigateSearch() { /* no op */ }
+
+            override fun onMessageClicked(message: Message) { /* no op */ }
+
+            override fun onMessageClosedClicked(message: Message) { /* no op */ }
+
+            override fun openCustomizeHomePage() { /* no op */ }
+
+            override fun onStoryShown(storyShown: PocketStory, storyPosition: Pair<Int, Int>) { /* no op */ }
+
+            override fun onStoriesShown(storiesShown: List<PocketStory>) { /* no op */ }
+
+            override fun onCategoryClicked(categoryClicked: PocketRecommendedStoriesCategory) { /* no op */ }
+
+            override fun onStoryClicked(storyClicked: PocketStory, storyPosition: Pair<Int, Int>) { /* no op */ }
+
+            override fun onLearnMoreClicked(link: String) { /* no op */ }
+
+            override fun onDiscoverMoreClicked(link: String) { /* no op */ }
+
+            override fun onMenuItemTapped(item: SearchSelectorMenu.Item) { /* no op */ }
+
+            override fun showWallpapersOnboardingDialog(state: WallpaperState): Boolean {
+                return false
+            }
+        }
+
     internal val privateBrowsingInteractor
         get() = object : PrivateBrowsingInteractor {
             override fun onLearnMoreClicked() { /* no op */ }
+
             override fun onPrivateModeButtonClicked(newMode: BrowsingMode) { /* no op */ }
         }
 
     internal val topSitesInteractor
         get() = object : TopSiteInteractor {
             override fun onOpenInPrivateTabClicked(topSite: TopSite) { /* no op */ }
+
             override fun onEditTopSiteClicked(topSite: TopSite) { /* no op */ }
+
             override fun onRemoveTopSiteClicked(topSite: TopSite) { /* no op */ }
+
             override fun onSelectTopSite(topSite: TopSite, position: Int) { /* no op */ }
+
             override fun onSettingsClicked() { /* no op */ }
+
             override fun onSponsorPrivacyClicked() { /* no op */ }
+
             override fun onTopSiteLongClicked(topSite: TopSite) { /* no op */ }
         }
 
     internal val recentTabInteractor
         get() = object : RecentTabInteractor {
             override fun onRecentTabClicked(tabId: String) { /* no op */ }
+
             override fun onRecentTabShowAllClicked() { /* no op */ }
+
             override fun onRemoveRecentTab(tab: RecentTab.Tab) { /* no op */ }
         }
 
     internal val recentSyncedTabInterator
         get() = object : RecentSyncedTabInteractor {
             override fun onRecentSyncedTabClicked(tab: RecentSyncedTab) { /* no op */ }
+
             override fun onSyncedTabShowAllClicked() { /* no op */ }
+
             override fun onRemovedRecentSyncedTab(tab: RecentSyncedTab) { /* no op */ }
         }
 
     internal val bookmarksInteractor
         get() = object : BookmarksInteractor {
             override fun onBookmarkClicked(bookmark: Bookmark) { /* no op */ }
+
             override fun onShowAllBookmarksClicked() { /* no op */ }
+
             override fun onBookmarkRemoved(bookmark: Bookmark) { /* no op */ }
         }
 
@@ -179,7 +261,10 @@ internal object FakeHomepagePreview {
             }
         }
 
-    internal fun recentHistory(historyGroupCount: Int = 1, historyHightlightCount: Int = 1): List<RecentlyVisitedItem> =
+    internal fun recentHistory(
+        historyGroupCount: Int = 1,
+        historyHightlightCount: Int = 1,
+    ): List<RecentlyVisitedItem> =
         mutableListOf<RecentlyVisitedItem>().apply {
             repeat(historyGroupCount) {
                 add(

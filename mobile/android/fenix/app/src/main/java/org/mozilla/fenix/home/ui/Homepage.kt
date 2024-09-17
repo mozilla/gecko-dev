@@ -29,8 +29,7 @@ import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
 import org.mozilla.fenix.home.bookmarks.view.Bookmarks
 import org.mozilla.fenix.home.bookmarks.view.BookmarksMenuItem
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
-import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
-import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
+import org.mozilla.fenix.home.interactor.HomepageInteractor
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTab
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
@@ -42,7 +41,6 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHigh
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.recentvisits.view.RecentVisitMenuItem
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
-import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
 import org.mozilla.fenix.home.store.HomepageState
@@ -55,24 +53,14 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * Top level composable for the homepage.
  *
  * @param state State representing the homepage.
- * @param privateBrowsingInteractor for interactions in private browsing mode.
- * @param topSiteInteractor For interactions with the top sites UI.
- * @param recentTabInteractor For interactions with the recent tab UI.
- * @param recentSyncedTabInteractor For interactions with the recent synced tab UI.
- * @param bookmarksInteractor For interactions with the bookmarks UI.
- * @param recentVisitsInteractor For interactions with the recent visits UI.
+ * @param interactor for interactions with the homepage UI.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
 @Suppress("LongParameterList")
 @Composable
 internal fun Homepage(
     state: HomepageState,
-    privateBrowsingInteractor: PrivateBrowsingInteractor,
-    topSiteInteractor: TopSiteInteractor,
-    recentTabInteractor: RecentTabInteractor,
-    recentSyncedTabInteractor: RecentSyncedTabInteractor,
-    bookmarksInteractor: BookmarksInteractor,
-    recentVisitsInteractor: RecentVisitsInteractor,
+    interactor: HomepageInteractor,
     onTopSitesItemBound: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -81,11 +69,11 @@ internal fun Homepage(
                 is HomepageState.Private -> {
                     if (feltPrivateBrowsingEnabled) {
                         FeltPrivacyModeInfoCard(
-                            onLearnMoreClick = privateBrowsingInteractor::onLearnMoreClicked,
+                            onLearnMoreClick = interactor::onLearnMoreClicked,
                         )
                     } else {
                         PrivateBrowsingDescription(
-                            onLearnMoreClick = privateBrowsingInteractor::onLearnMoreClicked,
+                            onLearnMoreClick = interactor::onLearnMoreClicked,
                         )
                     }
                 }
@@ -95,14 +83,14 @@ internal fun Homepage(
                         TopSites(
                             topSites = topSites,
                             topSiteColors = topSiteColors,
-                            interactor = topSiteInteractor,
+                            interactor = interactor,
                             onTopSitesItemBound = onTopSitesItemBound,
                         )
                     }
 
                     if (showRecentTabs) {
                         RecentTabsSection(
-                            interactor = recentTabInteractor,
+                            interactor = interactor,
                             cardBackgroundColor = cardBackgroundColor,
                             recentTabs = recentTabs,
                         )
@@ -115,9 +103,9 @@ internal fun Homepage(
                                 backgroundColor = cardBackgroundColor,
                                 buttonBackgroundColor = buttonBackgroundColor,
                                 buttonTextColor = buttonTextColor,
-                                onRecentSyncedTabClick = recentSyncedTabInteractor::onRecentSyncedTabClicked,
-                                onSeeAllSyncedTabsButtonClick = recentSyncedTabInteractor::onSyncedTabShowAllClicked,
-                                onRemoveSyncedTab = recentSyncedTabInteractor::onRemovedRecentSyncedTab,
+                                onRecentSyncedTabClick = interactor::onRecentSyncedTabClicked,
+                                onSeeAllSyncedTabsButtonClick = interactor::onSyncedTabShowAllClicked,
+                                onRemoveSyncedTab = interactor::onRemovedRecentSyncedTab,
                             )
                         }
                     }
@@ -126,7 +114,7 @@ internal fun Homepage(
                         BookmarksSection(
                             bookmarks = bookmarks,
                             cardBackgroundColor = cardBackgroundColor,
-                            interactor = bookmarksInteractor,
+                            interactor = interactor,
                         )
                     }
 
@@ -134,7 +122,7 @@ internal fun Homepage(
                         RecentlyVisitedSection(
                             recentVisits = recentlyVisited,
                             cardBackgroundColor = cardBackgroundColor,
-                            interactor = recentVisitsInteractor,
+                            interactor = interactor,
                         )
                     }
                 }
@@ -282,12 +270,7 @@ private fun HomepagePreview() {
                     showRecentlyVisited = true,
                     recentlyVisited = FakeHomepagePreview.recentHistory(),
                 ),
-                topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
-                privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
-                recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
-                recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
-                bookmarksInteractor = FakeHomepagePreview.bookmarksInteractor,
-                recentVisitsInteractor = FakeHomepagePreview.recentVisitsInteractor,
+                interactor = FakeHomepagePreview.homepageInteractor,
                 onTopSitesItemBound = {},
             )
         }
@@ -307,12 +290,7 @@ private fun PrivateHomepagePreview() {
                 HomepageState.Private(
                     feltPrivateBrowsingEnabled = false,
                 ),
-                topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
-                privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
-                recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
-                recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
-                bookmarksInteractor = FakeHomepagePreview.bookmarksInteractor,
-                recentVisitsInteractor = FakeHomepagePreview.recentVisitsInteractor,
+                interactor = FakeHomepagePreview.homepageInteractor,
                 onTopSitesItemBound = {},
             )
         }
