@@ -522,21 +522,38 @@ class RelayOffered {
         // and by then gFlowId might have another value
         const flowId = gFlowId;
 
-        // Capture the selected tab panel ID so we can come back to it after the user finishes FXA sign-in
+        // Capture the selected tab panel ID so we can come back to it after the
+        // user finishes FXA sign-in
         const tabPanelId = browser.ownerGlobal.gBrowser.selectedTab.linkedPanel;
 
-        // TODO: add some visual treatment to the tab and/or the form field to indicate to the user
-        // that they need to complete sign-in to receive a mask
+        // TODO: add some visual treatment to the tab and/or the form field to
+        // indicate to the user that they need to complete sign-in to receive a
+        // mask
 
         // Add an observer for ONVERIFIED_NOTIFICATION
-        // to detect when user verifies their email during FXA sign-in
-        // TODO: handle existing FXA users who don't have to verify email, but simply have to complete the login
-        const obs = async (_subject, _topic) => {
-          // Remove the observer to prevent it from running again
-          Services.obs.removeObserver(
-            obs,
-            lazy.fxAccountsCommon.ONVERIFIED_NOTIFICATION
-          );
+        // to detect if a new FxA user verifies their email during sign-up,
+        // and add an observer for ONLOGIN_NOTIFICATION
+        // to detect if an existing FxA user logs in.
+        const notificationsToObserve = [
+          lazy.fxAccountsCommon.ONVERIFIED_NOTIFICATION,
+          lazy.fxAccountsCommon.ONLOGIN_NOTIFICATION,
+        ];
+        const obs = async (_subject, topic) => {
+          // When a user first signs up for FxA, Firefox receives an
+          // ONLOGIN_NOTIFICATION *before* the user verifies their email
+          // address. We can't forward any Relay emails until they verify their
+          // email address, so we shouldn't call notifyServerTermsAcceptedAsync.
+          // So, ignore login notifications for unverified users.
+          if (topic == lazy.fxAccountsCommon.ONLOGIN_NOTIFICATION) {
+            const fxaUser = await lazy.fxAccounts.getSignedInUser();
+            if (!fxaUser || !fxaUser.verified) {
+              return;
+            }
+          }
+          // Remove the observers to prevent them from running again
+          for (const observedNotification of notificationsToObserve) {
+            Services.obs.removeObserver(obs, observedNotification);
+          }
 
           // Go back to the tab with the form that started the FXA sign-in flow
           const tabToFocus = Array.from(browser.ownerGlobal.gBrowser.tabs).find(
@@ -547,19 +564,28 @@ class RelayOffered {
             // TODO: figure out the real UX here?
             return;
           }
+
+          // TODO: Update the visual treatment to the form field to indicate to
+          // the user that we are hiding their email address.
+
           browser.ownerGlobal.gBrowser.selectedTab = tabToFocus;
 
-          // Create the relay user, mark feature enabled, fill in the username field with a mask
+          // Create the relay user, mark feature enabled, fill in the username
+          // field with a mask
+          // FIXME: If the Relay server user record is corrupted (See MPP-3512),
+          // notifyServerTermsAcceptedAsync receives a 500 error from Relay
+          // server. But we can't use fxAccounts.listAttachedOAuthClients to
+          // detect if the user already has Desktop Relay, because Desktop
+          // Relay does not show up as an OAuth client
           if (await this.notifyServerTermsAcceptedAsync(browser)) {
             feature.markAsEnabled();
             FirefoxRelayTelemetry.recordRelayOptInPanelEvent("enabled", flowId);
             fillUsername(await generateUsernameAsync(browser, origin));
           }
         };
-        Services.obs.addObserver(
-          obs,
-          lazy.fxAccountsCommon.ONVERIFIED_NOTIFICATION
-        );
+        for (const notificationToObserve of notificationsToObserve) {
+          Services.obs.addObserver(obs, notificationToObserve);
+        }
 
         // Open tab to sign up for FxA and Relay
         const fxaUrl =
