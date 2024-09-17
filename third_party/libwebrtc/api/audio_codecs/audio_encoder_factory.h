@@ -28,9 +28,22 @@ namespace webrtc {
 class AudioEncoderFactory : public RefCountInterface {
  public:
   struct Options {
+    // The encoder will tags its payloads with the specified payload type.
     // TODO(ossu): Try to avoid audio encoders having to know their payload
     // type.
     int payload_type = -1;
+
+    // Links encoders and decoders that talk to the same remote entity: if
+    // a AudioEncoderFactory::Create() and a
+    // AudioDecoderFactory::MakeAudioDecoder() call receive non-null IDs that
+    // compare equal, the factory implementations may assume that the encoder
+    // and decoder form a pair. (The intended use case for this is to set up
+    // communication between the AudioEncoder and AudioDecoder instances, which
+    // is needed for some codecs with built-in bandwidth adaptation.)
+    //
+    // Note: Implementations need to be robust against combinations other than
+    // one encoder, one decoder getting the same ID; such encoders must still
+    // work.
     absl::optional<AudioCodecPairId> codec_pair_id;
   };
 
@@ -43,54 +56,13 @@ class AudioEncoderFactory : public RefCountInterface {
   virtual absl::optional<AudioCodecInfo> QueryAudioEncoder(
       const SdpAudioFormat& format) = 0;
 
-  // Creates an AudioEncoder for the specified format. The encoder will tags its
-  // payloads with the specified payload type. The `codec_pair_id` argument is
-  // used to link encoders and decoders that talk to the same remote entity: if
-  // a AudioEncoderFactory::MakeAudioEncoder() and a
-  // AudioDecoderFactory::MakeAudioDecoder() call receive non-null IDs that
-  // compare equal, the factory implementations may assume that the encoder and
-  // decoder form a pair. (The intended use case for this is to set up
-  // communication between the AudioEncoder and AudioDecoder instances, which is
-  // needed for some codecs with built-in bandwidth adaptation.)
-  //
+  // Creates an AudioEncoder for the specified format.
   // Returns null if the format isn't supported.
-  //
-  // Note: Implementations need to be robust against combinations other than
-  // one encoder, one decoder getting the same ID; such encoders must still
-  // work.
-  // TODO: bugs.webrtc.org/343086059 - make pure virtual when all
-  // implementations of the `AudioEncoderFactory` are updated.
-  virtual absl::Nullable<std::unique_ptr<AudioEncoder>>
-  Create(const Environment& env, const SdpAudioFormat& format, Options options);
-
-  // TODO: bugs.webrtc.org/343086059 - Update all callers to use `Create`
-  // instead, update implementations not to override it, then delete.
-  virtual std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      int payload_type,
+  virtual absl::Nullable<std::unique_ptr<AudioEncoder>> Create(
+      const Environment& env,
       const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id);
+      Options options) = 0;
 };
-
-//------------------------------------------------------------------------------
-// Implementation details follow
-//------------------------------------------------------------------------------
-
-inline absl::Nullable<std::unique_ptr<AudioEncoder>>
-AudioEncoderFactory::Create(const Environment& env,
-                            const SdpAudioFormat& format,
-                            Options options) {
-  return MakeAudioEncoder(options.payload_type, format, options.codec_pair_id);
-}
-
-inline absl::Nullable<std::unique_ptr<AudioEncoder>>
-AudioEncoderFactory::MakeAudioEncoder(
-    int payload_type,
-    const SdpAudioFormat& format,
-    absl::optional<AudioCodecPairId> codec_pair_id) {
-  // Newer shouldn't call it.
-  // Older code should implement it.
-  RTC_CHECK_NOTREACHED();
-}
 
 }  // namespace webrtc
 

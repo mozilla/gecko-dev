@@ -161,11 +161,6 @@ TEST(AudioEncoderFactoryTemplateTest,
   const Environment env = CreateEnvironment();
   auto factory = CreateAudioEncoderFactory<AudioEncoderApiWithV1Make>();
 
-  EXPECT_THAT(
-      factory->MakeAudioEncoder(17, BaseAudioEncoderApi::AudioFormat(), {}),
-      Pointer(Property(&AudioEncoder::SampleRateHz,
-                       BaseAudioEncoderApi::kV1SameRate)));
-
   EXPECT_THAT(factory->Create(env, BaseAudioEncoderApi::AudioFormat(), {}),
               Pointer(Property(&AudioEncoder::SampleRateHz,
                                BaseAudioEncoderApi::kV1SameRate)));
@@ -180,13 +175,6 @@ TEST(AudioEncoderFactoryTemplateTest,
   EXPECT_THAT(factory->Create(env, BaseAudioEncoderApi::AudioFormat(), {}),
               Pointer(Property(&AudioEncoder::SampleRateHz,
                                BaseAudioEncoderApi::kV2SameRate)));
-
-  // For backward compatibility legacy AudioEncoderFactory::MakeAudioEncoder
-  // still can be used, and uses older signature of the Trait::MakeAudioEncoder.
-  EXPECT_THAT(
-      factory->MakeAudioEncoder(17, BaseAudioEncoderApi::AudioFormat(), {}),
-      Pointer(Property(&AudioEncoder::SampleRateHz,
-                       BaseAudioEncoderApi::kV1SameRate)));
 }
 
 TEST(AudioEncoderFactoryTemplateTest, CanUseTraitWithOnlyV2MakeAudioEncoder) {
@@ -196,17 +184,6 @@ TEST(AudioEncoderFactoryTemplateTest, CanUseTraitWithOnlyV2MakeAudioEncoder) {
               Pointer(Property(&AudioEncoder::SampleRateHz,
                                BaseAudioEncoderApi::kV2SameRate)));
 }
-
-#if GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
-TEST(AudioEncoderFactoryTemplateTest, CrashesWhenV2OnlyTraitUsedWithOlderApi) {
-  auto factory = CreateAudioEncoderFactory<AudioEncoderApiWithV2Make>();
-  // V2 signature requires Environment that
-  // AudioEncoderFactory::MakeAudioEncoder doesn't provide.
-  EXPECT_DEATH(
-      factory->MakeAudioEncoder(17, BaseAudioEncoderApi::AudioFormat(), {}),
-      "");
-}
-#endif
 
 TEST(AudioEncoderFactoryTemplateTest, NoEncoderTypes) {
   test::ScopedKeyValueConfig field_trials;

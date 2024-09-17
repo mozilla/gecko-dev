@@ -41,12 +41,6 @@ struct Helper<> {
       const SdpAudioFormat& format) {
     return absl::nullopt;
   }
-  static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      int payload_type,
-      const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id) {
-    return nullptr;
-  }
   static absl::Nullable<std::unique_ptr<AudioEncoder>> CreateAudioEncoder(
       const Environment& env,
       const SdpAudioFormat& format,
@@ -90,30 +84,6 @@ absl::Nullable<std::unique_ptr<AudioEncoder>> CreateEncoder(
                                  options.codec_pair_id);
 }
 
-template <typename Trait,
-          typename = std::enable_if_t<std::is_convertible_v<
-              decltype(Trait::MakeAudioEncoder(
-                  std::declval<typename Trait::Config>(),
-                  int{},
-                  std::declval<absl::optional<AudioCodecPairId>>())),
-              std::unique_ptr<AudioEncoder>>>>
-absl::Nullable<std::unique_ptr<AudioEncoder>> LegacyCreateEncoder(
-    Rank1,
-    const typename Trait::Config& config,
-    int payload_type,
-    absl::optional<AudioCodecPairId> codec_pair_ids) {
-  return Trait::MakeAudioEncoder(config, payload_type, codec_pair_ids);
-}
-
-template <typename Trait>
-absl::Nullable<std::unique_ptr<AudioEncoder>> LegacyCreateEncoder(
-    Rank0,
-    const typename Trait::Config& config,
-    int payload_type,
-    absl::optional<AudioCodecPairId> codec_pair_ids) {
-  RTC_CHECK_NOTREACHED();
-}
-
 // Inductive case: Called with n + 1 template parameters; calls subroutines
 // with n template parameters.
 template <typename T, typename... Ts>
@@ -132,19 +102,6 @@ struct Helper<T, Ts...> {
     return opt_config ? absl::optional<AudioCodecInfo>(
                             T::QueryAudioEncoder(*opt_config))
                       : Helper<Ts...>::QueryAudioEncoder(format);
-  }
-  static std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      int payload_type,
-      const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id) {
-    auto opt_config = T::SdpToConfig(format);
-    if (opt_config) {
-      return LegacyCreateEncoder<T>(Rank1{}, *opt_config, payload_type,
-                                    codec_pair_id);
-    } else {
-      return Helper<Ts...>::MakeAudioEncoder(payload_type, format,
-                                             codec_pair_id);
-    }
   }
 
   static absl::Nullable<std::unique_ptr<AudioEncoder>> CreateAudioEncoder(
@@ -170,13 +127,6 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
   absl::optional<AudioCodecInfo> QueryAudioEncoder(
       const SdpAudioFormat& format) override {
     return Helper<Ts...>::QueryAudioEncoder(format);
-  }
-
-  std::unique_ptr<AudioEncoder> MakeAudioEncoder(
-      int payload_type,
-      const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id) override {
-    return Helper<Ts...>::MakeAudioEncoder(payload_type, format, codec_pair_id);
   }
 
   absl::Nullable<std::unique_ptr<AudioEncoder>> Create(
@@ -223,11 +173,6 @@ class AudioEncoderFactoryT : public AudioEncoderFactory {
 // create an AudioEncoder. T::Config (where T is the encoder struct) should
 // either be the config type, or an alias for it.
 // When both MakeAudioEncoder signatures are present, 1st one is preferred.
-//
-// Note: AudioEncoderFactory::MakeAudioEncoder factory can't use 1st signature,
-// and thus uses 2nd signature when available, crashes otherwise.
-// TODO: bugs.webrtc.org/343086059 - Remove the note above when MakeAudioEncoder
-// is removed.
 //
 // Whenever it tries to do something, the new factory will try each of the
 // encoders in the order they were specified in the template argument list,
