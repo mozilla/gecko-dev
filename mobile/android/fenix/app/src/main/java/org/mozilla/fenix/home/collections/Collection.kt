@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.home.collections
 
-import android.content.Context
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -29,9 +28,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import mozilla.components.browser.state.state.recover.RecoverableTab
-import mozilla.components.concept.engine.Engine
-import mozilla.components.feature.tab.collections.Tab
 import mozilla.components.feature.tab.collections.TabCollection
 import org.mozilla.fenix.R
 import org.mozilla.fenix.R.drawable
@@ -41,6 +37,7 @@ import org.mozilla.fenix.compose.MenuItem
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.ExpandableListHeader
 import org.mozilla.fenix.ext.getIconColor
+import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
@@ -159,7 +156,7 @@ private fun CollectionExpandedPreview() {
         var expanded by remember { mutableStateOf(true) }
 
         Collection(
-            collection = collectionPreview,
+            collection = FakeHomepagePreview.collection(),
             expanded = expanded,
             menuItems = emptyList(),
             onToggleCollectionExpanded = { _, expand ->
@@ -177,7 +174,7 @@ private fun CollectionPreview() {
         var expanded by remember { mutableStateOf(false) }
 
         Collection(
-            collection = collectionPreview,
+            collection = FakeHomepagePreview.collection(),
             expanded = expanded,
             menuItems = emptyList(),
             onToggleCollectionExpanded = { _, expand ->
@@ -186,23 +183,4 @@ private fun CollectionPreview() {
             onCollectionShareTabsClicked = {},
         )
     }
-}
-
-private val collectionPreview = object : TabCollection {
-    override val id: Long = 1L
-    override val tabs: List<Tab> = emptyList()
-    override val title: String = "Collection 1"
-
-    override fun restore(
-        context: Context,
-        engine: Engine,
-        restoreSessionId: Boolean,
-    ): List<RecoverableTab> = emptyList()
-
-    override fun restoreSubset(
-        context: Context,
-        engine: Engine,
-        tabs: List<Tab>,
-        restoreSessionId: Boolean,
-    ): List<RecoverableTab> = emptyList()
 }

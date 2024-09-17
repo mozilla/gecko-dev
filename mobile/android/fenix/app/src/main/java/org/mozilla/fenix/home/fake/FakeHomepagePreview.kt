@@ -4,10 +4,15 @@
 
 package org.mozilla.fenix.home.fake
 
+import android.content.Context
 import com.google.firebase.util.nextAlphanumericString
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
+import mozilla.components.browser.state.state.recover.RecoverableTab
+import mozilla.components.concept.engine.Engine
 import mozilla.components.concept.sync.DeviceType
+import mozilla.components.feature.tab.collections.Tab
+import mozilla.components.feature.tab.collections.TabCollection
 import mozilla.components.feature.top.sites.TopSite
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.home.bookmarks.Bookmark
@@ -22,6 +27,7 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGrou
 import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
+import java.io.File
 import kotlin.random.Random
 
 /**
@@ -187,6 +193,41 @@ internal object FakeHomepagePreview {
                 )
             }
         }
+
+    internal fun collection(tabs: List<Tab> = emptyList()): TabCollection {
+        return object : TabCollection {
+            override val id: Long = 1L
+            override val tabs: List<Tab> = tabs
+            override val title: String = "Collection 1"
+
+            override fun restore(
+                context: Context,
+                engine: Engine,
+                restoreSessionId: Boolean,
+            ): List<RecoverableTab> = emptyList()
+
+            override fun restoreSubset(
+                context: Context,
+                engine: Engine,
+                tabs: List<Tab>,
+                restoreSessionId: Boolean,
+            ): List<RecoverableTab> = emptyList()
+        }
+    }
+
+    internal fun tab(): Tab {
+        return object : Tab {
+            override val id = 2L
+            override val title = "Mozilla-Firefox"
+            override val url = "https://www.mozilla.org/en-US/firefox/whats-new-in-last-version"
+
+            override fun restore(
+                filesDir: File,
+                engine: Engine,
+                restoreSessionId: Boolean,
+            ): RecoverableTab? = null
+        }
+    }
 
     private const val URL = "mozilla.com"
 
