@@ -28,9 +28,7 @@ async def test_when_context_created(
 ):
     test_viewport = {"width": 499, "height": 599}
 
-    await bidi_session.session.subscribe(
-        events=["browsingContext.contextCreated"]
-    )
+    await bidi_session.session.subscribe(events=["browsingContext.contextCreated"])
     on_context_created = wait_for_event("browsingContext.contextCreated")
 
     # Save the task to await for it later.
