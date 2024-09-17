@@ -697,7 +697,7 @@ dependencies {
     implementation ComponentsDependencies.androidx_viewpager2
     implementation ComponentsDependencies.androidx_work_runtime
 
-    implementation FenixDependencies.protobuf_javalite
+    implementation ComponentsDependencies.protobuf_javalite
     implementation ComponentsDependencies.google_material
 
     implementation FenixDependencies.adjust
@@ -761,7 +761,7 @@ dependencies {
 
 protobuf {
     protoc {
-        artifact = FenixDependencies.protobuf_compiler
+        artifact = ComponentsDependencies.protobuf_compiler
     }
 
     // Generates the java Protobuf-lite code for the Protobufs in this project. See

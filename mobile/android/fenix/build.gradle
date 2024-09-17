@@ -38,7 +38,7 @@ buildscript {
     ext {
         detekt_plugin = Versions.detekt
         ksp_plugin = Versions.ksp_plugin
-        protobuf_plugin = FenixVersions.protobuf_plugin
+        protobuf_plugin = Versions.protobuf_plugin
         python_envs_plugin = Versions.python_envs_plugin
     }
 }
