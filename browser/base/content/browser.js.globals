@@ -128,7 +128,6 @@
   "E10SUtils",
   "ExtensionsUI",
   "HomePage",
-  "isProductURL",
   "LightweightThemeConsumer",
   "LoginHelper",
   "LoginManagerParent",
