@@ -98,3 +98,19 @@ start_menu:
     send_in_pings:
       - events
     lifetime: ping
+
+sslkeylogging:
+  enabled:
+    type: boolean
+    description: >
+      Records whether TLS key logging has been enabled via the environment
+      variable SSLKEYLOGFILE.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918455
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918455
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - dkeeler@mozilla.com
+    expires: never

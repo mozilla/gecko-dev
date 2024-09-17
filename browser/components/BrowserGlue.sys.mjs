@@ -3312,6 +3312,13 @@ BrowserGlue.prototype = {
       },
 
       {
+        name: "SSLKEYLOGFILE telemetry",
+        task: () => {
+          Glean.sslkeylogging.enabled.set(Services.env.exists("SSLKEYLOGFILE"));
+        },
+      },
+
+      {
         name: "browser-startup-idle-tasks-finished",
         task: () => {
           // Use idleDispatch a second time to run this after the per-window
