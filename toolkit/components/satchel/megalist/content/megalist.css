@@ -331,6 +331,7 @@ password-card {
 .second-row {
   display: flex;
   justify-content: space-between;
+  align-items: center;
 }
 
 .selected::part(button) {

@@ -3,9 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 filter-input =
-  .placeholder = Search Your Data
+  .placeholder = Search passwords
   .key = F
-  .aria-label = Search Your Data
+  .aria-label = Search passwords
 
 menu-more-options-button =
   .title = More options
