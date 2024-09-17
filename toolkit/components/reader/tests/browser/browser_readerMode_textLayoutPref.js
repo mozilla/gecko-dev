@@ -168,9 +168,16 @@ async function testTextLayoutFocus() {
           "Focus moves back to the first focusable button"
         );
 
+        firstFocusableElement.focus();
+        EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, content);
+        is(
+          doc.activeElement,
+          advancedHeader,
+          "Focus moves to last focusable button"
+        );
+
         // Expand the advanced layout accordion.
         advancedHeader.click();
-
         let resetButton = doc.querySelector(".text-layout-reset-button");
         resetButton.focus();
 
@@ -179,6 +186,14 @@ async function testTextLayoutFocus() {
           doc.activeElement,
           firstFocusableElement,
           "Focus moves back to the first focusable button"
+        );
+
+        firstFocusableElement.focus();
+        EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, content);
+        is(
+          doc.activeElement,
+          resetButton,
+          "Focus moves from first focusable button to last focusable button"
         );
       });
     }

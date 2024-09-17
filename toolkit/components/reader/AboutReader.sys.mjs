@@ -1276,6 +1276,16 @@ AboutReader.prototype = {
         textFirstFocusable.focus();
       }
     });
+    textFirstFocusable.addEventListener("keydown", e => {
+      if (e.key === "Tab" && e.shiftKey) {
+        e.preventDefault();
+        if (accordion.hasAttribute("open")) {
+          textResetButton.focus();
+        } else {
+          advancedHeader.focus();
+        }
+      }
+    });
   },
 
   _setColorScheme(newColorScheme) {
@@ -1865,6 +1875,23 @@ AboutReader.prototype = {
       if (e.key === "Tab" && !e.shiftKey) {
         e.preventDefault();
         customThemeFirstFocusable.focus();
+      }
+    });
+    defaultThemeFirstFocusable.addEventListener("keydown", e => {
+      if (e.key === "Tab" && e.shiftKey) {
+        e.preventDefault();
+        let themeLabels = themeButtons.getElementsByTagName("label");
+        for (const label of themeLabels) {
+          if (label.hasAttribute("checked")) {
+            doc.querySelector(`.${label.className}`).focus();
+          }
+        }
+      }
+    });
+    customThemeFirstFocusable.addEventListener("keydown", e => {
+      if (e.key === "Tab" && e.shiftKey) {
+        e.preventDefault();
+        themeResetButton.focus();
       }
     });
   },
