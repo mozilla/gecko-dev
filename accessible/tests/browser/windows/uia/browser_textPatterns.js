@@ -1134,3 +1134,57 @@ addUiaTask(
   },
   { uiaEnabled: true, uiaDisabled: true }
 );
+
+/**
+ * Test the TextRange pattern's GetBoundingRectangles method.
+ */
+addUiaTask(
+  `
+<div id="test"><p id="line1">abc</p><p id="line2">d</p><p id="line3"></p></div>
+<div id="offscreen" style="position:absolute; left:200vw;">xyz</div>
+  `,
+  async function testTextRangeGetBoundingRectangles(browser, docAcc) {
+    const line1 = findAccessibleChildByID(docAcc, "line1", [nsIAccessibleText]);
+    const line2 = findAccessibleChildByID(docAcc, "line2", [nsIAccessibleText]);
+
+    const lineRects = await runPython(`
+      global doc, docText, testAcc, range
+      doc = getDocUia()
+      docText = getUiaPattern(doc, "Text")
+      testAcc = findUiaByDomId(doc, "test")
+      range = docText.RangeFromChild(testAcc)
+      return range.GetBoundingRectangles()
+    `);
+
+    is(lineRects.length, 8, "GetBoundingRectangles returned two rectangles");
+    const firstLineRect = [
+      lineRects[0],
+      lineRects[1],
+      lineRects[2],
+      lineRects[3],
+    ];
+    const secondLineRect = [
+      lineRects[4],
+      lineRects[5],
+      lineRects[6],
+      lineRects[7],
+    ];
+    testTextBounds(line1, 0, -1, firstLineRect, COORDTYPE_SCREEN_RELATIVE);
+    testTextBounds(line2, 0, -1, secondLineRect, COORDTYPE_SCREEN_RELATIVE);
+    // line3 has no rectangle - GetBoundingRectangles shouldn't return anything for empty lines.
+
+    // GetBoundingRectangles shouldn't return anything for offscreen lines.
+    const offscreenRects = await runPython(`
+      global offscreenAcc, range
+      offscreenAcc = findUiaByDomId(doc, "offscreen")
+      range = docText.RangeFromChild(offscreenAcc)
+      return range.GetBoundingRectangles()
+    `);
+    is(
+      offscreenRects.length,
+      0,
+      "GetBoundingRectangles returned no rectangles"
+    );
+  },
+  { uiaEnabled: true, uiaDisabled: true, chrome: true }
+);

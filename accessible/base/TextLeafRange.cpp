@@ -2018,40 +2018,40 @@ bool TextLeafRange::Crop(Accessible* aContainer) {
 }
 
 LayoutDeviceIntRect TextLeafRange::Bounds() const {
-  if (mEnd == mStart || mEnd < mStart) {
-    return LayoutDeviceIntRect();
+  // Walk all the lines and union them into the result rectangle.
+  LayoutDeviceIntRect result = TextLeafPoint{mStart}.CharBounds();
+  const bool succeeded =
+      WalkLineRects([&result](LayoutDeviceIntRect aLineRect) {
+        result.UnionRect(result, aLineRect);
+      });
+
+  if (!succeeded) {
+    return {};
   }
-
-  bool locatedFinalLine = false;
-  TextLeafPoint currPoint = mStart;
-  LayoutDeviceIntRect result = currPoint.CharBounds();
-
-  // Union the first and last chars of each line to create a line rect. Then,
-  // union the lines together.
-  while (!locatedFinalLine) {
-    // Fetch the last point in the current line by getting the
-    // start of the next line and going back one char. We don't
-    // use BOUNDARY_LINE_END here because it is equivalent to LINE_START when
-    // the line doesn't end with a line feed character.
-    TextLeafPoint lineStartPoint = currPoint.FindBoundary(
-        nsIAccessibleText::BOUNDARY_LINE_START, eDirNext);
-    TextLeafPoint lastPointInLine = lineStartPoint.FindBoundary(
-        nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
-    // If currPoint is the end of the document, lineStartPoint will be equal
-    // to currPoint and we would be in an endless loop.
-    if (lineStartPoint == currPoint || mEnd <= lastPointInLine) {
-      lastPointInLine = mEnd;
-      locatedFinalLine = true;
-    }
-
-    LayoutDeviceIntRect currLine = currPoint.CharBounds();
-    currLine.UnionRect(currLine, lastPointInLine.CharBounds());
-    result.UnionRect(result, currLine);
-
-    currPoint = lineStartPoint;
-  }
-
   return result;
+}
+
+nsTArray<LayoutDeviceIntRect> TextLeafRange::LineRects() const {
+  // Get the bounds of the content so we can restrict our lines to just the
+  // text visible within the bounds of the document.
+  Maybe<LayoutDeviceIntRect> contentBounds;
+  if (Accessible* doc = nsAccUtils::DocumentFor(mStart.mAcc)) {
+    contentBounds.emplace(doc->Bounds());
+  }
+
+  nsTArray<LayoutDeviceIntRect> lineRects;
+  WalkLineRects([&lineRects, &contentBounds](LayoutDeviceIntRect aLineRect) {
+    // Clip the bounds to the bounds of the content area.
+    bool boundsVisible = true;
+    if (contentBounds.isSome()) {
+      boundsVisible = aLineRect.IntersectRect(aLineRect, *contentBounds);
+    }
+    if (boundsVisible) {
+      lineRects.AppendElement(aLineRect);
+    }
+  });
+
+  return lineRects;
 }
 
 TextLeafPoint TextLeafRange::TextLeafPointAtScreenPoint(int32_t aX,
@@ -2199,6 +2199,40 @@ void TextLeafRange::ScrollIntoView(uint32_t aScrollType) const {
 
   nsCoreUtils::ScrollSubstringTo(mStart.mAcc->AsLocal()->GetFrame(), domRange,
                                  aScrollType);
+}
+
+bool TextLeafRange::WalkLineRects(LineRectCallback aCallback) const {
+  if (mEnd <= mStart) {
+    return false;
+  }
+
+  bool locatedFinalLine = false;
+  TextLeafPoint currPoint = mStart;
+
+  // Union the first and last chars of each line to create a line rect.
+  while (!locatedFinalLine) {
+    // Fetch the last point in the current line by getting the
+    // start of the next line and going back one char. We don't
+    // use BOUNDARY_LINE_END here because it is equivalent to LINE_START when
+    // the line doesn't end with a line feed character.
+    TextLeafPoint lineStartPoint = currPoint.FindBoundary(
+        nsIAccessibleText::BOUNDARY_LINE_START, eDirNext);
+    TextLeafPoint lastPointInLine = lineStartPoint.FindBoundary(
+        nsIAccessibleText::BOUNDARY_CHAR, eDirPrevious);
+    // If currPoint is the end of the document, lineStartPoint will be equal
+    // to currPoint and we would be in an endless loop.
+    if (lineStartPoint == currPoint || mEnd <= lastPointInLine) {
+      lastPointInLine = mEnd;
+      locatedFinalLine = true;
+    }
+
+    LayoutDeviceIntRect currLine = currPoint.CharBounds();
+    currLine.UnionRect(currLine, lastPointInLine.CharBounds());
+    aCallback(currLine);
+
+    currPoint = lineStartPoint;
+  }
+  return true;
 }
 
 TextLeafRange::Iterator TextLeafRange::Iterator::BeginIterator(

@@ -334,7 +334,58 @@ UiaTextRange::GetAttributeValue(TEXTATTRIBUTEID aAttributeId,
 
 STDMETHODIMP
 UiaTextRange::GetBoundingRectangles(__RPC__deref_out_opt SAFEARRAY** aRetVal) {
-  return E_NOTIMPL;
+  if (!aRetVal) {
+    return E_INVALIDARG;
+  }
+  *aRetVal = nullptr;
+  TextLeafRange range = GetRange();
+  if (!range) {
+    return CO_E_OBJNOTCONNECTED;
+  }
+
+  // Get the rectangles for each line.
+  const nsTArray<LayoutDeviceIntRect> lineRects = range.LineRects();
+
+  // For UIA's purposes, the rectangles of this array are four doubles arranged
+  // in order {left, top, width, height}.
+  SAFEARRAY* rectsVec = SafeArrayCreateVector(VT_R8, 0, lineRects.Length() * 4);
+  if (!rectsVec) {
+    return E_OUTOFMEMORY;
+  }
+
+  // Empty range, return an empty array.
+  if (lineRects.IsEmpty()) {
+    *aRetVal = rectsVec;
+    return S_OK;
+  }
+
+  // Get the double array out of the SAFEARRAY so we can write to it directly.
+  double* safeArrayData = nullptr;
+  HRESULT hr =
+      SafeArrayAccessData(rectsVec, reinterpret_cast<void**>(&safeArrayData));
+  if (FAILED(hr) || !safeArrayData) {
+    SafeArrayDestroy(rectsVec);
+    return E_FAIL;
+  }
+
+  // Convert the int array to a double array.
+  for (size_t index = 0; index < lineRects.Length(); ++index) {
+    const LayoutDeviceIntRect& lineRect = lineRects[index];
+    safeArrayData[index * 4 + 0] = static_cast<double>(lineRect.x);
+    safeArrayData[index * 4 + 1] = static_cast<double>(lineRect.y);
+    safeArrayData[index * 4 + 2] = static_cast<double>(lineRect.width);
+    safeArrayData[index * 4 + 3] = static_cast<double>(lineRect.height);
+  }
+
+  // Release the lock on the data. If that fails, bail out.
+  hr = SafeArrayUnaccessData(rectsVec);
+  if (FAILED(hr)) {
+    SafeArrayDestroy(rectsVec);
+    return E_FAIL;
+  }
+
+  *aRetVal = rectsVec;
+  return S_OK;
 }
 
 STDMETHODIMP

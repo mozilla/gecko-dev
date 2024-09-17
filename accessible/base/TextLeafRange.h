@@ -12,6 +12,7 @@
 #include "AccAttributes.h"
 #include "nsDirection.h"
 #include "nsIAccessibleText.h"
+#include "mozilla/FunctionRef.h"
 
 namespace mozilla {
 namespace dom {
@@ -164,8 +165,6 @@ class TextLeafPoint final {
   /**
    * Returns a rect (in dev pixels) describing position and size of
    * the character at mOffset in mAcc. This rect is screen-relative.
-   * This function only works on remote accessibles, and assumes caching
-   * is enabled.
    */
   LayoutDeviceIntRect CharBounds();
 
@@ -173,8 +172,7 @@ class TextLeafPoint final {
    * Returns true if the given point (in screen coords) is contained
    * in the char bounds of the current TextLeafPoint. Returns false otherwise.
    * If the current point is an empty container, we use the acc's bounds instead
-   * of char bounds. Because this depends on CharBounds, this function only
-   * works on remote accessibles, and assumes caching is enabled.
+   * of char bounds.
    */
   bool ContainsPoint(int32_t aX, int32_t aY);
 
@@ -298,10 +296,15 @@ class TextLeafRange final {
 
   /**
    * Returns a union rect (in dev pixels) of all character bounds in this range.
-   * This rect is screen-relative and inclusive of mEnd. This function only
-   * works on remote accessibles, and assumes caching is enabled.
+   * This rect is screen-relative and inclusive of mEnd.
    */
   LayoutDeviceIntRect Bounds() const;
+
+  /*
+   * Returns an array of bounding rectangles, one for each visible text line in
+   * this range. These rectangles are screen-relative and inclusive of mEnd.
+   */
+  nsTArray<LayoutDeviceIntRect> LineRects() const;
 
   /*
    * Returns a TextLeafPoint corresponding to the point in the TextLeafRange
@@ -329,6 +332,17 @@ class TextLeafRange final {
  private:
   TextLeafPoint mStart;
   TextLeafPoint mEnd;
+
+  /*
+   * Walk all of the lines within the TextLeafRange. This function invokes the
+   * given callback with each line-bounding rectangle. The bounds are inclusive
+   * of all characters in each line. Each rectangle is screen-relative. The
+   * function returns true if it walks any lines, and false if it could not walk
+   * any rects, which could happen if the start and end points are improperly
+   * positioned.
+   */
+  using LineRectCallback = FunctionRef<void(LayoutDeviceIntRect)>;
+  bool WalkLineRects(LineRectCallback aCallback) const;
 
  public:
   /**
