@@ -423,6 +423,8 @@ void WorkletThread::Terminate() {
   DispatchRunnable(runnable.forget());
 }
 
+uint32_t WorkletThread::StackSize() { return kWorkletStackSize; }
+
 void WorkletThread::TerminateInternal() {
   MOZ_ASSERT(!CycleCollectedJSContext::Get() || IsOnWorkletThread());
 
