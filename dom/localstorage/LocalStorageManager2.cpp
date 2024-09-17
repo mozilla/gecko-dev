@@ -511,6 +511,7 @@ void AsyncRequestHelper::Finish() {
   }
 
   mManager = nullptr;
+  mPromise = nullptr;
 
   mState = State::Complete;
 }
