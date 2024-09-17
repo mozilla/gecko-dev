@@ -202,8 +202,14 @@ already_AddRefed<SharedThreadPool> GetMediaThreadPool(MediaThreadType aType);
 // http://blog.pearce.org.nz/2013/11/what-does-h264avc1-codecs-parameters.html
 // for more details.
 // Returns false on failure.
+enum class H264CodecStringStrictness {
+  Lenient,  // Allow and returns invalid profile, constraint and level values.
+            // It is necessary to accept those strings for Web Compat reasons.
+  Strict    // Rejects invalid profile, constraint and level values.
+};
 bool ExtractH264CodecDetails(const nsAString& aCodecs, uint8_t& aProfile,
-                             uint8_t& aConstraint, H264_LEVEL& aLevel);
+                             uint8_t& aConstraint, H264_LEVEL& aLevel,
+                             H264CodecStringStrictness aStrictness);
 
 struct VideoColorSpace {
   // Default values are set according to

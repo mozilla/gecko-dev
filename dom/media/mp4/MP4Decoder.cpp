@@ -26,7 +26,9 @@ static bool IsWhitelistedH264Codec(const nsAString& aCodec) {
   uint8_t profile = 0, constraint = 0;
   H264_LEVEL level;
 
-  if (!ExtractH264CodecDetails(aCodec, profile, constraint, level)) {
+  // Don't validate too much here, validation happens below
+  if (!ExtractH264CodecDetails(aCodec, profile, constraint, level,
+                               H264CodecStringStrictness::Lenient)) {
     return false;
   }
 
@@ -138,7 +140,8 @@ nsTArray<UniquePtr<TrackInfo>> MP4Decoder::GetTracksInfo(
       uint8_t profile = 0, constraint = 0;
       H264_LEVEL level;
       MOZ_ALWAYS_TRUE(
-          ExtractH264CodecDetails(codec, profile, constraint, level));
+          ExtractH264CodecDetails(codec, profile, constraint, level,
+                                  H264CodecStringStrictness::Lenient));
       uint32_t width = aType.ExtendedType().GetWidth().refOr(1280);
       uint32_t height = aType.ExtendedType().GetHeight().refOr(720);
       trackInfo->GetAsVideoInfo()->mExtraData =

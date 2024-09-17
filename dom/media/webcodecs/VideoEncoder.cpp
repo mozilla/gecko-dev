@@ -228,7 +228,8 @@ EncoderConfig VideoEncoderConfigInternal::ToEncoderConfig() const {
     } else {
       format = H264BitStreamFormat::AVC;
     }
-    if (ExtractH264CodecDetails(mCodec, profile, constraints, level)) {
+    if (ExtractH264CodecDetails(mCodec, profile, constraints, level,
+                                H264CodecStringStrictness::Strict)) {
       if (profile == H264_PROFILE_BASE || profile == H264_PROFILE_MAIN ||
           profile == H264_PROFILE_EXTENDED || profile == H264_PROFILE_HIGH) {
         specific.emplace(
