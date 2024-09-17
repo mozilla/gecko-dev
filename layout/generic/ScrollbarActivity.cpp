@@ -42,14 +42,17 @@ void ScrollbarActivity::ActivityOccurred() {
   ActivityStopped();
 }
 
-static void SetBooleanAttribute(Element* aElement, nsAtom* aAttribute,
-                                bool aValue) {
-  if (aElement) {
-    if (aValue) {
-      aElement->SetAttr(kNameSpaceID_None, aAttribute, u"true"_ns, true);
-    } else {
-      aElement->UnsetAttr(kNameSpaceID_None, aAttribute, true);
+static void SetScrollbarActive(Element* aScrollbar, bool aIsActive) {
+  if (!aScrollbar) {
+    return;
+  }
+  if (aIsActive) {
+    if (nsScrollbarFrame* sf = do_QueryFrame(aScrollbar->GetPrimaryFrame())) {
+      sf->WillBecomeActive();
     }
+    aScrollbar->SetAttr(kNameSpaceID_None, nsGkAtoms::active, u""_ns, true);
+  } else {
+    aScrollbar->UnsetAttr(kNameSpaceID_None, nsGkAtoms::active, true);
   }
 }
 
@@ -60,10 +63,13 @@ void ScrollbarActivity::ActivityStarted() {
     return;
   }
   CancelFadeTimer();
+  if (mScrollbarEffectivelyVisible) {
+    return;
+  }
   StartListeningForScrollbarEvents();
   StartListeningForScrollAreaEvents();
-  SetBooleanAttribute(GetHorizontalScrollbar(), nsGkAtoms::active, true);
-  SetBooleanAttribute(GetVerticalScrollbar(), nsGkAtoms::active, true);
+  SetScrollbarActive(GetHorizontalScrollbar(), true);
+  SetScrollbarActive(GetVerticalScrollbar(), true);
   mScrollbarEffectivelyVisible = true;
 }
 
@@ -78,8 +84,6 @@ void ScrollbarActivity::ActivityStopped() {
   if (IsActive()) {
     return;
   }
-  // Clear sticky scrollbar hover status.
-  HoveredScrollbar(nullptr);
   StartFadeTimer();
 }
 
@@ -145,11 +149,8 @@ void ScrollbarActivity::HandleEventForScrollbar(const nsAString& aType,
     bool newHoveredState = aType.EqualsLiteral("mouseover");
     if (newHoveredState && !*aStoredHoverState) {
       ActivityStarted();
-      HoveredScrollbar(aScrollbar);
     } else if (*aStoredHoverState && !newHoveredState) {
       ActivityStopped();
-      // Don't call HoveredScrollbar(nullptr) here because we want the hover
-      // attribute to stick until the scrollbars are hidden.
     }
     *aStoredHoverState = newHoveredState;
   }
@@ -245,32 +246,8 @@ void ScrollbarActivity::StartFadeTimer() {
 void ScrollbarActivity::BeginFade() {
   MOZ_ASSERT(!IsActive());
   mScrollbarEffectivelyVisible = false;
-  SetBooleanAttribute(GetHorizontalScrollbar(), nsGkAtoms::active, false);
-  SetBooleanAttribute(GetVerticalScrollbar(), nsGkAtoms::active, false);
-}
-
-static void MaybeInvalidateScrollbarForHover(
-    Element* aScrollbarToInvalidate, Element* aScrollbarAboutToGetHover) {
-  if (aScrollbarToInvalidate) {
-    bool hasHover = aScrollbarToInvalidate->HasAttr(nsGkAtoms::hover);
-    bool willHaveHover = aScrollbarAboutToGetHover == aScrollbarToInvalidate;
-    if (hasHover != willHaveHover) {
-      if (nsIFrame* f = aScrollbarToInvalidate->GetPrimaryFrame()) {
-        f->SchedulePaint();
-      }
-    }
-  }
-}
-
-void ScrollbarActivity::HoveredScrollbar(Element* aScrollbar) {
-  Element* vertScrollbar = GetVerticalScrollbar();
-  Element* horzScrollbar = GetHorizontalScrollbar();
-  MaybeInvalidateScrollbarForHover(vertScrollbar, aScrollbar);
-  MaybeInvalidateScrollbarForHover(horzScrollbar, aScrollbar);
-
-  SetBooleanAttribute(horzScrollbar, nsGkAtoms::hover, false);
-  SetBooleanAttribute(vertScrollbar, nsGkAtoms::hover, false);
-  SetBooleanAttribute(aScrollbar, nsGkAtoms::hover, true);
+  SetScrollbarActive(GetHorizontalScrollbar(), false);
+  SetScrollbarActive(GetVerticalScrollbar(), false);
 }
 
 Element* ScrollbarActivity::GetScrollbarContent(bool aVertical) {

@@ -1157,13 +1157,12 @@ static ScrollbarDrawing::ScrollbarKind ComputeScrollbarKind(
   if (aIsHorizontal) {
     return ScrollbarDrawing::ScrollbarKind::Horizontal;
   }
-  nsIFrame* scrollbar = ScrollbarDrawing::GetParentScrollbarFrame(aFrame);
+  nsScrollbarFrame* scrollbar =
+      ScrollbarDrawing::GetParentScrollbarFrame(aFrame);
   if (NS_WARN_IF(!scrollbar)) {
     return ScrollbarDrawing::ScrollbarKind::VerticalRight;
   }
-  MOZ_ASSERT(scrollbar->IsScrollbarFrame());
-  nsIScrollbarMediator* sm =
-      static_cast<nsScrollbarFrame*>(scrollbar)->GetScrollbarMediator();
+  nsIScrollbarMediator* sm = scrollbar->GetScrollbarMediator();
   if (NS_WARN_IF(!sm)) {
     return ScrollbarDrawing::ScrollbarKind::VerticalRight;
   }
@@ -1644,8 +1643,7 @@ bool Theme::WidgetAttributeChangeRequiresRepaint(StyleAppearance aAppearance,
          aAttribute == nsGkAtoms::menuactive ||
          aAttribute == nsGkAtoms::sortDirection ||
          aAttribute == nsGkAtoms::focused ||
-         aAttribute == nsGkAtoms::_default || aAttribute == nsGkAtoms::open ||
-         aAttribute == nsGkAtoms::hover;
+         aAttribute == nsGkAtoms::_default || aAttribute == nsGkAtoms::open;
 }
 
 NS_IMETHODIMP

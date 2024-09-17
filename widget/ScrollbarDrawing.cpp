@@ -12,7 +12,7 @@
 #include "nsDeviceContext.h"
 #include "nsIFrame.h"
 #include "nsLayoutUtils.h"
-#include "nsLookAndFeel.h"
+#include "nsScrollbarFrame.h"
 #include "nsNativeTheme.h"
 
 using namespace mozilla::gfx;
@@ -37,27 +37,24 @@ auto ScrollbarDrawing::GetDPIRatioForScrollbarPart(const nsPresContext* aPc)
 }
 
 /*static*/
-nsIFrame* ScrollbarDrawing::GetParentScrollbarFrame(nsIFrame* aFrame) {
-  // Walk our parents to find a scrollbar frame
-  nsIFrame* scrollbarFrame = aFrame;
-  do {
-    if (scrollbarFrame->IsScrollbarFrame()) {
-      break;
+nsScrollbarFrame* ScrollbarDrawing::GetParentScrollbarFrame(nsIFrame* aFrame) {
+  for (; aFrame; aFrame = aFrame->GetParent()) {
+    if (nsScrollbarFrame* f = do_QueryFrame(aFrame)) {
+      return f;
     }
-  } while ((scrollbarFrame = scrollbarFrame->GetParent()));
-
-  // We return null if we can't find a parent scrollbar frame
-  return scrollbarFrame;
+  }
+  return nullptr;
 }
 
 /*static*/
 bool ScrollbarDrawing::IsParentScrollbarRolledOver(nsIFrame* aFrame) {
-  nsIFrame* scrollbarFrame = GetParentScrollbarFrame(aFrame);
-  return aFrame->PresContext()->UseOverlayScrollbars()
-             ? nsNativeTheme::CheckBooleanAttr(scrollbarFrame, nsGkAtoms::hover)
-             : nsNativeTheme::GetContentState(scrollbarFrame,
-                                              StyleAppearance::None)
-                   .HasState(ElementState::HOVER);
+  if (nsScrollbarFrame* f = GetParentScrollbarFrame(aFrame)) {
+    if (f->PresContext()->UseOverlayScrollbars()) {
+      return f->HasBeenHovered();
+    }
+    return f->GetContent()->AsElement()->State().HasState(ElementState::HOVER);
+  }
+  return false;
 }
 
 /*static*/

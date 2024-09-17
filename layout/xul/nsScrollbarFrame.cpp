@@ -58,6 +58,45 @@ void nsScrollbarFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   AddStateBits(NS_FRAME_REFLOW_ROOT);
 }
 
+nsScrollbarFrame* nsScrollbarFrame::GetOppositeScrollbar() const {
+  ScrollContainerFrame* sc = do_QueryFrame(GetParent());
+  if (!sc) {
+    return nullptr;
+  }
+  auto* vScrollbar = sc->GetScrollbarBox(/* aVertical= */ true);
+  if (vScrollbar == this) {
+    return sc->GetScrollbarBox(/* aVertical= */ false);
+  }
+  MOZ_ASSERT(sc->GetScrollbarBox(/* aVertical= */ false) == this,
+             "Which scrollbar are we?");
+  return vScrollbar;
+}
+
+void nsScrollbarFrame::ElementStateChanged(dom::ElementState aStates) {
+  if (!aStates.HasState(dom::ElementState::HOVER)) {
+    return;
+  }
+  // Hover state on the scrollbar changes both the scrollbar and potentially
+  // descendants too, so invalidate when it changes.
+  InvalidateFrameSubtree();
+  if (!mContent->AsElement()->State().HasState(dom::ElementState::HOVER)) {
+    return;
+  }
+  mHasBeenHovered = true;
+  // When hovering over one scrollbar, remove the sticky hover effect from the
+  // opposite scrollbar, if needed.
+  if (auto* opposite = GetOppositeScrollbar();
+      opposite && opposite->mHasBeenHovered) {
+    opposite->mHasBeenHovered = false;
+    opposite->InvalidateFrameSubtree();
+  }
+}
+
+void nsScrollbarFrame::WillBecomeActive() {
+  // Reset our sticky hover state before becoming active.
+  mHasBeenHovered = false;
+}
+
 void nsScrollbarFrame::Destroy(DestroyContext& aContext) {
   aContext.AddAnonymousContent(mUpTopButton.forget());
   aContext.AddAnonymousContent(mDownTopButton.forget());
