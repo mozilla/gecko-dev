@@ -17,6 +17,10 @@ import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.home.recentsyncedtabs.interactor.RecentSyncedTabInteractor
 import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
+import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
+import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
+import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
+import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 import kotlin.random.Random
 
@@ -62,6 +66,19 @@ internal object FakeHomepagePreview {
             override fun onBookmarkClicked(bookmark: Bookmark) { /* no op */ }
             override fun onShowAllBookmarksClicked() { /* no op */ }
             override fun onBookmarkRemoved(bookmark: Bookmark) { /* no op */ }
+        }
+
+    internal val recentVisitsInteractor
+        get() = object : RecentVisitsInteractor {
+            override fun onHistoryShowAllClicked() { /* no op */ }
+
+            override fun onRecentHistoryGroupClicked(recentHistoryGroup: RecentHistoryGroup) { /* no op */ }
+
+            override fun onRemoveRecentHistoryGroup(groupTitle: String) { /* no op */ }
+
+            override fun onRecentHistoryHighlightClicked(recentHistoryHighlight: RecentHistoryHighlight) { /* no op */ }
+
+            override fun onRemoveRecentHistoryHighlight(highlightUrl: String) { /* no op */ }
         }
 
     internal fun topSites(
@@ -152,6 +169,21 @@ internal object FakeHomepagePreview {
                         url = "https://www.example.com",
                         previewImageUrl = null,
                     ),
+                )
+            }
+        }
+
+    internal fun recentHistory(historyGroupCount: Int = 1, historyHightlightCount: Int = 1): List<RecentlyVisitedItem> =
+        mutableListOf<RecentlyVisitedItem>().apply {
+            repeat(historyGroupCount) {
+                add(
+                    RecentHistoryGroup(title = "running shoes"),
+                )
+            }
+
+            repeat(historyHightlightCount) {
+                add(
+                    RecentHistoryHighlight(title = "Mozilla", url = "www.mozilla.com"),
                 )
             }
         }

@@ -18,6 +18,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.GleanMetrics.History
+import org.mozilla.fenix.GleanMetrics.RecentlyVisitedHomepage
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.home.HomeSectionHeader
@@ -33,6 +36,12 @@ import org.mozilla.fenix.home.recenttabs.RecentTab
 import org.mozilla.fenix.home.recenttabs.interactor.RecentTabInteractor
 import org.mozilla.fenix.home.recenttabs.view.RecentTabMenuItem
 import org.mozilla.fenix.home.recenttabs.view.RecentTabs
+import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
+import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryGroup
+import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHighlight
+import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
+import org.mozilla.fenix.home.recentvisits.view.RecentVisitMenuItem
+import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
 import org.mozilla.fenix.home.sessioncontrol.TopSiteInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
@@ -51,8 +60,10 @@ import org.mozilla.fenix.wallpapers.WallpaperState
  * @param recentTabInteractor For interactions with the recent tab UI.
  * @param recentSyncedTabInteractor For interactions with the recent synced tab UI.
  * @param bookmarksInteractor For interactions with the bookmarks UI.
+ * @param recentVisitsInteractor For interactions with the recent visits UI.
  * @param onTopSitesItemBound Invoked during the composition of a top site item.
  */
+@Suppress("LongParameterList")
 @Composable
 internal fun Homepage(
     state: HomepageState,
@@ -61,6 +72,7 @@ internal fun Homepage(
     recentTabInteractor: RecentTabInteractor,
     recentSyncedTabInteractor: RecentSyncedTabInteractor,
     bookmarksInteractor: BookmarksInteractor,
+    recentVisitsInteractor: RecentVisitsInteractor,
     onTopSitesItemBound: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(horizontal = 16.dp)) {
@@ -115,6 +127,14 @@ internal fun Homepage(
                             bookmarks = bookmarks,
                             cardBackgroundColor = cardBackgroundColor,
                             interactor = bookmarksInteractor,
+                        )
+                    }
+
+                    if (showRecentlyVisited) {
+                        RecentlyVisitedSection(
+                            recentVisits = recentlyVisited,
+                            cardBackgroundColor = cardBackgroundColor,
+                            interactor = recentVisitsInteractor,
                         )
                     }
                 }
@@ -182,6 +202,58 @@ private fun BookmarksSection(
 }
 
 @Composable
+private fun RecentlyVisitedSection(
+    recentVisits: List<RecentlyVisitedItem>,
+    cardBackgroundColor: Color,
+    interactor: RecentVisitsInteractor,
+) {
+    Spacer(modifier = Modifier.height(40.dp))
+
+    HomeSectionHeader(
+        headerText = stringResource(R.string.history_metadata_header_2),
+        description = stringResource(R.string.past_explorations_show_all_content_description_2),
+        onShowAllClick = interactor::onHistoryShowAllClicked,
+    )
+
+    Spacer(Modifier.height(16.dp))
+
+    RecentlyVisited(
+        recentVisits = recentVisits,
+        menuItems = listOfNotNull(
+            RecentVisitMenuItem(
+                title = stringResource(R.string.recently_visited_menu_item_remove),
+                onClick = { visit ->
+                    when (visit) {
+                        is RecentHistoryGroup -> interactor.onRemoveRecentHistoryGroup(visit.title)
+                        is RecentHistoryHighlight -> interactor.onRemoveRecentHistoryHighlight(
+                            visit.url,
+                        )
+                    }
+                },
+            ),
+        ),
+        backgroundColor = cardBackgroundColor,
+        onRecentVisitClick = { recentlyVisitedItem, pageNumber ->
+            when (recentlyVisitedItem) {
+                is RecentHistoryHighlight -> {
+                    RecentlyVisitedHomepage.historyHighlightOpened.record(NoExtras())
+                    interactor.onRecentHistoryHighlightClicked(recentlyVisitedItem)
+                }
+                is RecentHistoryGroup -> {
+                    RecentlyVisitedHomepage.searchGroupOpened.record(NoExtras())
+                    History.recentSearchesTapped.record(
+                        History.RecentSearchesTappedExtra(
+                            pageNumber.toString(),
+                        ),
+                    )
+                    interactor.onRecentHistoryGroupClicked(recentlyVisitedItem)
+                }
+            }
+        },
+    )
+}
+
+@Composable
 @LightDarkPreview
 private fun HomepagePreview() {
     FirefoxTheme {
@@ -207,12 +279,15 @@ private fun HomepagePreview() {
                     syncedTab = FakeHomepagePreview.recentSyncedTab(),
                     showBookmarks = true,
                     bookmarks = FakeHomepagePreview.bookmarks(),
+                    showRecentlyVisited = true,
+                    recentlyVisited = FakeHomepagePreview.recentHistory(),
                 ),
                 topSiteInteractor = FakeHomepagePreview.topSitesInteractor,
                 privateBrowsingInteractor = FakeHomepagePreview.privateBrowsingInteractor,
                 recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
                 recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
                 bookmarksInteractor = FakeHomepagePreview.bookmarksInteractor,
+                recentVisitsInteractor = FakeHomepagePreview.recentVisitsInteractor,
                 onTopSitesItemBound = {},
             )
         }
@@ -237,6 +312,7 @@ private fun PrivateHomepagePreview() {
                 recentTabInteractor = FakeHomepagePreview.recentTabInteractor,
                 recentSyncedTabInteractor = FakeHomepagePreview.recentSyncedTabInterator,
                 bookmarksInteractor = FakeHomepagePreview.bookmarksInteractor,
+                recentVisitsInteractor = FakeHomepagePreview.recentVisitsInteractor,
                 onTopSitesItemBound = {},
             )
         }

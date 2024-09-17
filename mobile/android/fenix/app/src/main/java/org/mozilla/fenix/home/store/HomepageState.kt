@@ -14,6 +14,7 @@ import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTab
 import org.mozilla.fenix.home.recentsyncedtabs.RecentSyncedTabState
 import org.mozilla.fenix.home.recenttabs.RecentTab
+import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem
 import org.mozilla.fenix.home.topsites.TopSiteColors
 import org.mozilla.fenix.utils.Settings
 
@@ -38,10 +39,12 @@ internal sealed class HomepageState {
      * @property recentTabs List of [RecentTab] to display.
      * @property syncedTab The [RecentSyncedTab] to display.
      * @property bookmarks List of [Bookmark] to display.
+     * @property recentlyVisited List of [RecentlyVisitedItem] to display.
      * @property showTopSites Whether to show top sites or not.
      * @property showRecentTabs Whether to show recent tabs or not.
      * @property showRecentSyncedTab Whether to show recent synced tab or not.
      * @property showBookmarks Whether to show bookmarks.
+     * @property showRecentlyVisited Whether to show recent history section.
      * @property topSiteColors The color set defined by [TopSiteColors] used to style a top site.
      * @property cardBackgroundColor Background color for card items.
      * @property buttonBackgroundColor Background [Color] for buttons.
@@ -52,10 +55,12 @@ internal sealed class HomepageState {
         val recentTabs: List<RecentTab>,
         val syncedTab: RecentSyncedTab?,
         val bookmarks: List<Bookmark>,
+        val recentlyVisited: List<RecentlyVisitedItem>,
         val showTopSites: Boolean,
         val showRecentTabs: Boolean,
         val showRecentSyncedTab: Boolean,
         val showBookmarks: Boolean,
+        val showRecentlyVisited: Boolean,
         val topSiteColors: TopSiteColors,
         val cardBackgroundColor: Color,
         val buttonBackgroundColor: Color,
@@ -99,6 +104,8 @@ internal sealed class HomepageState {
                         buttonTextColor = wallpaperState.buttonTextColor,
                         showBookmarks = settings.showBookmarksHomeFeature && bookmarks.isNotEmpty(),
                         bookmarks = bookmarks,
+                        showRecentlyVisited = settings.historyMetadataUIFeature && recentHistory.isNotEmpty(),
+                        recentlyVisited = recentHistory,
                     )
                 }
             }
