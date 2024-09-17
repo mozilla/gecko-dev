@@ -4046,14 +4046,6 @@ void AsyncPanZoomController::HandleFlingOverscroll(
   }
 }
 
-void AsyncPanZoomController::HandleSmoothScrollOverscroll(
-    const ParentLayerPoint& aVelocity, SideBits aOverscrollSideBits) {
-  // We must call BuildOverscrollHandoffChain from this deferred callback
-  // function in order to avoid a deadlock when acquiring the tree lock.
-  HandleFlingOverscroll(aVelocity, aOverscrollSideBits,
-                        BuildOverscrollHandoffChain(), nullptr);
-}
-
 ParentLayerPoint AsyncPanZoomController::ConvertDestinationToDelta(
     CSSPoint& aDestination) const {
   ParentLayerPoint startPoint, endPoint;
