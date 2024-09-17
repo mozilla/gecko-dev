@@ -1317,11 +1317,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
     }
 
     @VisibleForTesting
+    @SuppressLint("NewApi") // The Android Q check is done in the systemGesturesInsets property getter
     internal fun collectOSNavigationTelemetry() {
         binding.root.doOnAttach {
             val systemGestureInsets = binding.root.systemGesturesInsets
 
-            @SuppressLint("NewApi") // The Android Q check is done in the systemGesturesInsets property getter
             val isUsingGesturesNavigation =
                 (systemGestureInsets?.left ?: 0) > 0 && (systemGestureInsets?.right ?: 0) > 0
             NavigationBar.osNavigationUsesGestures.set(isUsingGesturesNavigation)
