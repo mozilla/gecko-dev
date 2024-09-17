@@ -782,7 +782,7 @@ MediaStreamAllocationConfig VideoSendStreamImpl::GetAllocationConfig() const {
       !config_.suspend_below_min_bitrate,
       encoder_bitrate_priority_,
       (content_type_ == VideoEncoderConfig::ContentType::kRealtimeVideo)
-          ? absl::optional(TrackRateElasticity::kCanConsumeExtraRate)
+          ? absl::optional<TrackRateElasticity>(TrackRateElasticity::kCanConsumeExtraRate)
           : absl::nullopt};
 }
 
