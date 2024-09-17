@@ -42,12 +42,12 @@ mod private {
     // See [Labeled Booleans](https://mozilla.github.io/glean/book/user/metrics/labeled_booleans.html).
     impl Sealed for LabeledBooleanMetric {
         type GleanMetric = glean::private::BooleanMetric;
-        fn from_glean_metric(id: MetricId, metric: Arc<Self::GleanMetric>, _label: &str) -> Self {
+        fn from_glean_metric(_id: MetricId, metric: Arc<Self::GleanMetric>, _label: &str) -> Self {
             if need_ipc() {
                 // TODO: Instrument this error.
                 LabeledBooleanMetric::Child(crate::private::boolean::BooleanMetricIpc)
             } else {
-                LabeledBooleanMetric::Parent { id, inner: metric }
+                LabeledBooleanMetric::Parent(metric)
             }
         }
     }
@@ -57,12 +57,12 @@ mod private {
     // See [Labeled Strings](https://mozilla.github.io/glean/book/user/metrics/labeled_strings.html).
     impl Sealed for LabeledStringMetric {
         type GleanMetric = glean::private::StringMetric;
-        fn from_glean_metric(id: MetricId, metric: Arc<Self::GleanMetric>, _label: &str) -> Self {
+        fn from_glean_metric(_id: MetricId, metric: Arc<Self::GleanMetric>, _label: &str) -> Self {
             if need_ipc() {
                 // TODO: Instrument this error.
                 LabeledStringMetric::Child(crate::private::string::StringMetricIpc)
             } else {
-                LabeledStringMetric::Parent { id, inner: metric }
+                LabeledStringMetric::Parent(metric)
             }
         }
     }

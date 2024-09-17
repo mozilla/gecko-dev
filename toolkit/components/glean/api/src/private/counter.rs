@@ -2,55 +2,13 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
-use glean::traits::Counter;
 use inherent::inherent;
 use std::sync::Arc;
 
+use glean::traits::Counter;
+
 use super::{CommonMetricData, MetricId};
 use crate::ipc::{need_ipc, with_ipc_payload};
-
-#[cfg(feature = "with_gecko")]
-use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
-
-#[cfg(feature = "with_gecko")]
-use gecko_profiler::gecko_profiler_category;
-
-#[cfg(feature = "with_gecko")]
-#[derive(serde::Serialize, serde::Deserialize, Debug)]
-struct CounterMetricMarker {
-    id: MetricId,
-    val: i32,
-}
-
-#[cfg(feature = "with_gecko")]
-impl gecko_profiler::ProfilerMarker for CounterMetricMarker {
-    fn marker_type_name() -> &'static str {
-        "CounterMetric"
-    }
-
-    fn marker_type_display() -> gecko_profiler::MarkerSchema {
-        use gecko_profiler::schema::*;
-        let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
-        schema.set_tooltip_label("{marker.data.id} {marker.data.val}");
-        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.val}");
-        schema.add_key_label_format_searchable(
-            "id",
-            "Metric",
-            Format::String,
-            Searchable::Searchable,
-        );
-        schema.add_key_label_format("val", "Value", Format::Integer);
-        schema
-    }
-
-    fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
-        json_writer.string_property(
-            "id",
-            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
-        );
-        json_writer.int_property("val", self.val.into());
-    }
-}
 
 /// A counter metric.
 ///
@@ -133,31 +91,10 @@ impl Counter for CounterMetric {
     /// Logs an error if the `amount` is 0 or negative.
     pub fn add(&self, amount: i32) {
         match self {
-            #[allow(unused)]
-            CounterMetric::Parent { id, inner, .. } => {
-                #[cfg(feature = "with_gecko")]
-                gecko_profiler::add_marker(
-                    "Counter::add",
-                    gecko_profiler_category!(Telemetry),
-                    Default::default(),
-                    CounterMetricMarker {
-                        id: *id,
-                        val: amount,
-                    },
-                );
+            CounterMetric::Parent { inner, .. } => {
                 inner.add(amount);
             }
             CounterMetric::Child(c) => {
-                #[cfg(feature = "with_gecko")]
-                gecko_profiler::add_marker(
-                    "Counter::add",
-                    gecko_profiler_category!(Telemetry),
-                    Default::default(),
-                    CounterMetricMarker {
-                        id: c.0,
-                        val: amount,
-                    },
-                );
                 with_ipc_payload(move |payload| {
                     if let Some(v) = payload.counters.get_mut(&c.0) {
                         *v += amount;
