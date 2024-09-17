@@ -60,13 +60,11 @@ add_setup(async function () {
 
   const oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
-  Services.telemetry.setEventRecordingEnabled("navigation", true);
 
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
 
     Services.telemetry.canRecordExtended = oldCanRecord;
-    Services.telemetry.setEventRecordingEnabled("navigation", false);
 
     SearchSERPTelemetry.overrideSearchTelemetryForTests();
 
@@ -143,18 +141,6 @@ async function assertHandoffResult(histogram) {
     ["browser.search.content.urlbar_handoff", "example:tagged:ff", 1],
   ]);
   await assertHistogram(histogram, [["other-Example.urlbar-handoff", 1]]);
-  TelemetryTestUtils.assertEvents(
-    [
-      [
-        "navigation",
-        "search",
-        "urlbar_handoff",
-        "enter",
-        { engine: "other-Example" },
-      ],
-    ],
-    { category: "navigation", method: "search" }
-  );
 }
 
 async function assertHistogram(histogram, expectedResults) {

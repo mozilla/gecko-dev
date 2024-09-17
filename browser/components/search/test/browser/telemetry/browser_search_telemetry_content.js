@@ -28,12 +28,8 @@ add_setup(async function () {
   let oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
 
-  // Enable event recording for the events tested here.
-  Services.telemetry.setEventRecordingEnabled("navigation", true);
-
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
-    Services.telemetry.setEventRecordingEnabled("navigation", false);
     Services.telemetry.canRecordExtended = oldCanRecord;
   });
 });
@@ -101,18 +97,6 @@ add_task(async function test_context_menu() {
     1
   );
 
-  // Also check events.
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "contextmenu",
-        value: null,
-        extra: { engine: "other-MozSearch" },
-      },
-    ],
-    { category: "navigation", method: "search" }
-  );
-
   contextMenu.hidePopup();
   BrowserTestUtils.removeTab(gBrowser.selectedTab);
   BrowserTestUtils.removeTab(tab);
@@ -172,18 +156,6 @@ add_task(async function test_about_newtab() {
     search_hist,
     "other-MozSearch.newtab",
     1
-  );
-
-  // Also check events.
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "about_newtab",
-        value: "enter",
-        extra: { engine: "other-MozSearch" },
-      },
-    ],
-    { category: "navigation", method: "search" }
   );
 
   // Also also check Glean events.

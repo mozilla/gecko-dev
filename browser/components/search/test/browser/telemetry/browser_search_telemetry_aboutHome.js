@@ -32,9 +32,6 @@ add_setup(async function () {
   let oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
 
-  // Enable event recording for the events tested here.
-  Services.telemetry.setEventRecordingEnabled("navigation", true);
-
   await SpecialPowers.pushPrefEnv({
     set: [
       [
@@ -46,7 +43,6 @@ add_setup(async function () {
 
   registerCleanupFunction(async function () {
     await PlacesUtils.history.clear();
-    Services.telemetry.setEventRecordingEnabled("navigation", false);
     Services.telemetry.canRecordExtended = oldCanRecord;
   });
 });
@@ -106,19 +102,7 @@ add_task(async function test_abouthome_activitystream_simpleQuery() {
     1
   );
 
-  // Also check events.
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "about_home",
-        value: "enter",
-        extra: { engine: "other-MozSearch" },
-      },
-    ],
-    { category: "navigation", method: "search" }
-  );
-
-  // Also also check Glean events.
+  // Also check Glean events.
   const record = Glean.newtabSearch.issued.testGetValue();
   Assert.ok(!!record, "Must have recorded a search issuance");
   Assert.equal(record.length, 1, "One search, one event");
