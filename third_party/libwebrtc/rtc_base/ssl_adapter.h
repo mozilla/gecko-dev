@@ -52,7 +52,12 @@ class SSLAdapterFactory {
   virtual void SetIgnoreBadCert(bool ignore) = 0;
 
   // Creates a new SSL adapter, but from a shared context.
-  virtual SSLAdapter* CreateAdapter(Socket* socket) = 0;
+  virtual SSLAdapter* CreateAdapter(Socket* socket,
+                                    bool permute_extensions) = 0;
+  [[deprecated(
+      "Use CreateAdapter(socket, permute_extensions) "
+      "instead")]] virtual SSLAdapter*
+  CreateAdapter(Socket* socket) = 0;
 
   static std::unique_ptr<SSLAdapterFactory> Create();
 };
