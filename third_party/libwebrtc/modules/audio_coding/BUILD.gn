@@ -473,7 +473,6 @@ rtc_library("webrtc_opus") {
     "../../api/audio_codecs:audio_codecs_api",
     "../../api/audio_codecs/opus:audio_encoder_opus_config",
     "../../api/environment",
-    "../../api/transport:field_trial_based_config",
     "../../common_audio",
     "../../rtc_base:buffer",
     "../../rtc_base:checks",
