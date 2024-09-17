@@ -1252,13 +1252,6 @@ nsDisplayRemote::nsDisplayRemote(nsDisplayListBuilder* aBuilder,
 namespace mozilla {
 
 void nsDisplayRemote::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
-  nsPresContext* pc = mFrame->PresContext();
-  nsFrameLoader* fl = GetFrameLoader();
-  if (pc->GetPrintSettings() && fl->IsRemoteFrame()) {
-    // See the comment below in CreateWebRenderCommands() as for why doing this.
-    fl->UpdatePositionAndSize(static_cast<nsSubDocumentFrame*>(mFrame));
-  }
-
   DrawTarget* target = aCtx->GetDrawTarget();
   if (!target->IsRecording() || mPaintData.mTabId == 0) {
     NS_WARNING("Remote iframe not rendered");
@@ -1273,7 +1266,8 @@ void nsDisplayRemote::Paint(nsDisplayListBuilder* aBuilder, gfxContext* aCtx) {
   //
   // Similarly, rendering the inner document will scale up by the cross process
   // paint scale again, so we also need to account for that.
-  const int32_t appUnitsPerDevPixel = pc->AppUnitsPerDevPixel();
+  const int32_t appUnitsPerDevPixel =
+      mFrame->PresContext()->AppUnitsPerDevPixel();
 
   gfxContextMatrixAutoSaveRestore saveMatrix(aCtx);
   gfxFloat targetAuPerDev =
