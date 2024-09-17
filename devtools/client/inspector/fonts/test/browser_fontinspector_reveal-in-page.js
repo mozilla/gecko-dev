@@ -11,16 +11,20 @@ add_task(async function () {
   // events simulation will fail.
   await pushPref("devtools.toolbox.footer.height", 500);
 
-  const { view } = await openFontInspectorForURL(TEST_URI);
-  await testFontHighlighting(view);
+  const { inspector, view } = await openFontInspectorForURL(TEST_URI);
+  await testFontHighlighting(view, inspector);
 
   info("Check that highlighting still works after reloading the page");
   await reloadBrowser();
 
-  await testFontHighlighting(view);
+  await testFontHighlighting(view, inspector);
+
+  info("Check that highlighting works for iframe nodes");
+  await testFontHighlightingInIframe(view, inspector);
 });
 
-async function testFontHighlighting(view) {
+async function testFontHighlighting(view, inspector) {
+  await selectNode("body", inspector);
   // The number of window selection change events we expect to get as we hover over each
   // font in the list. Waiting for those events is how we know that text-runs were
   // highlighted in the page.
@@ -68,7 +72,10 @@ async function testFontHighlighting(view) {
 
     // Simulating a mouse over event on the font name and expecting a selectionchange.
     const nameEl = fontEls[i];
-    let onEvents = waitForNSelectionEvents(expectedEvents);
+    let onEvents = waitForNSelectionEvents(
+      gBrowser.selectedBrowser,
+      expectedEvents
+    );
     EventUtils.synthesizeMouse(
       nameEl,
       2,
@@ -82,7 +89,7 @@ async function testFontHighlighting(view) {
 
     // Simulating a mouse out event on the font name and expecting a selectionchange.
     const otherEl = viewDoc.querySelector("body");
-    onEvents = waitForNSelectionEvents(1);
+    onEvents = waitForNSelectionEvents(gBrowser.selectedBrowser, 1);
     EventUtils.synthesizeMouse(
       otherEl,
       2,
@@ -96,24 +103,80 @@ async function testFontHighlighting(view) {
   }
 }
 
-async function waitForNSelectionEvents(numberOfTimes) {
-  await SpecialPowers.spawn(
-    gBrowser.selectedBrowser,
-    [numberOfTimes],
-    async function (n) {
-      const win = content.wrappedJSObject;
+async function testFontHighlightingInIframe(view, inspector) {
+  await selectNodeInFrames(["iframe", "div"], inspector);
 
-      await new Promise(resolve => {
-        let received = 0;
-        win.document.addEventListener("selectionchange", function listen() {
-          received++;
+  const viewDoc = view.document;
 
-          if (received === n) {
-            win.document.removeEventListener("selectionchange", listen);
-            resolve();
-          }
-        });
-      });
+  // Wait for the view to have all the expected used fonts.
+  const fontEls = await waitFor(() => {
+    const els = getUsedFontsEls(viewDoc);
+
+    if (!els.length) {
+      return false;
     }
+
+    return [...els];
+  });
+
+  is(fontEls.length, 1, "There's only one font used in the iframe document");
+  ok(
+    // On Linux, Times New Roman does not exist. Liberation Serif is used instead.
+    ["Times New Roman", "Liberation Serif"].includes(fontEls[0].innerText),
+    "The expected font is displayed"
   );
+
+  const iframeBrowsingContext = await SpecialPowers.spawn(
+    gBrowser.selectedBrowser,
+    [],
+    () => content.document.querySelector("iframe").browsingContext
+  );
+
+  info(`Mousing over and out of the font  in the list`);
+
+  // Simulating a mouse over event on the font name and expecting a selectionchange.
+  const nameEl = fontEls[0];
+  let onEvents = waitForNSelectionEvents(iframeBrowsingContext, 1);
+  EventUtils.synthesizeMouse(
+    nameEl,
+    2,
+    2,
+    { type: "mouseover" },
+    viewDoc.defaultView
+  );
+  await onEvents;
+
+  ok(true, `A selectionchange events detected on mouseover`);
+
+  // Simulating a mouse out event on the font name and expecting a selectionchange.
+  const otherEl = viewDoc.querySelector("body");
+  onEvents = waitForNSelectionEvents(iframeBrowsingContext, 1);
+  EventUtils.synthesizeMouse(
+    otherEl,
+    2,
+    2,
+    { type: "mouseover" },
+    viewDoc.defaultView
+  );
+  await onEvents;
+
+  ok(true, "1 selectionchange events detected on mouseout");
+}
+
+async function waitForNSelectionEvents(browser, numberOfTimes) {
+  await SpecialPowers.spawn(browser, [numberOfTimes], async function (n) {
+    const win = content.wrappedJSObject;
+
+    await new Promise(resolve => {
+      let received = 0;
+      win.document.addEventListener("selectionchange", function listen() {
+        received++;
+
+        if (received === n) {
+          win.document.removeEventListener("selectionchange", listen);
+          resolve();
+        }
+      });
+    });
+  });
 }
