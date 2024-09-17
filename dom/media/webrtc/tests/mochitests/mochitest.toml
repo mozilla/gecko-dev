@@ -83,3 +83,6 @@ skip-if = ["os != 'linux'"] # the only platform with real devices
 ["test_setSinkId_preMutedElement.html"]
 
 ["test_unfocused_pref.html"]
+
+["test_ondevicechange_resistfingerprinting.html"]
+run-sequentially = "sets prefs that may disrupt other tests"
