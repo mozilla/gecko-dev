@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Emulation of forced-colors (bug 1916589)</title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+<style>
+#test {
+  background-color: GrayText;
+  color: rgb(1, 2, 3);
+
+  @media (forced-colors: active) {
+    color: GrayText;
+  }
+}
+</style>
+<div id="test"></div>
+<script>
+function getTestElementComputedStyle() {
+  return getComputedStyle(document.getElementById("test"))
+}
+
+function getColor() {
+  return getTestElementComputedStyle().color;
+}
+
+{
+
+  const grayTextComputedColor = getTestElementComputedStyle().backgroundColor;
+  info(`GrayText is ${grayTextComputedColor}`);
+
+  let bc = SpecialPowers.wrap(window).browsingContext.top;
+  ok('forcedColorsOverride' in bc, "API should exist");
+  is(bc.forcedColorsOverride, "none", "Override shouldn't be active.");
+
+  let color = getColor();
+  info(`Original color is "${color}"`);
+  // sanity checks
+  is(color, "rgb(1, 2, 3)", "base color is the expected one");
+  isnot(color, grayTextComputedColor, "base color is not GrayText");
+
+  bc.forcedColorsOverride = "active";
+  is(getColor(), grayTextComputedColor, `Active emulation works, color is now GrayText`);
+
+  bc.forcedColorsOverride = "none";
+  is(getColor(), color, `Clearing the override works, color is back to ${color}`);
+}
+</script>

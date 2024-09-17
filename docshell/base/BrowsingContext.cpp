@@ -110,6 +110,11 @@ struct ParamTraits<mozilla::dom::PrefersColorSchemeOverride>
           mozilla::dom::PrefersColorSchemeOverride> {};
 
 template <>
+struct ParamTraits<mozilla::dom::ForcedColorsOverride>
+    : public mozilla::dom::WebIDLEnumSerializer<
+          mozilla::dom::ForcedColorsOverride> {};
+
+template <>
 struct ParamTraits<mozilla::dom::ExplicitActiveStatus>
     : public ContiguousEnumSerializer<
           mozilla::dom::ExplicitActiveStatus,
@@ -2846,6 +2851,15 @@ void BrowsingContext::DidSet(FieldIndex<IDX_PrefersColorSchemeOverride>,
                              dom::PrefersColorSchemeOverride aOldValue) {
   MOZ_ASSERT(IsTop());
   if (PrefersColorSchemeOverride() == aOldValue) {
+    return;
+  }
+  PresContextAffectingFieldChanged();
+}
+
+void BrowsingContext::DidSet(FieldIndex<IDX_ForcedColorsOverride>,
+                             dom::ForcedColorsOverride aOldValue) {
+  MOZ_ASSERT(IsTop());
+  if (ForcedColorsOverride() == aOldValue) {
     return;
   }
   PresContextAffectingFieldChanged();

@@ -746,7 +746,12 @@ void nsPresContext::UpdateForcedColors(bool aNotify) {
       return StyleForcedColors::None;
     }
 
-    // TODO: Handle BrowsingContext override.
+    // Handle BrowsingContext override.
+    if (auto* bc = mDocument->GetBrowsingContext();
+        bc &&
+        bc->Top()->ForcedColorsOverride() == ForcedColorsOverride::Active) {
+      return StyleForcedColors::Active;
+    }
 
     const auto& prefs = PrefSheetPrefs();
     if (!prefs.mUseDocumentColors) {

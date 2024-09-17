@@ -54,6 +54,14 @@ enum PrefersColorSchemeOverride {
 };
 
 /**
+ * CSS forced-colors values.
+ */
+enum ForcedColorsOverride {
+  "none",
+  "active",
+};
+
+/**
  * Allowed overrides of platform/pref default behaviour for touch events.
  */
 enum TouchEventsOverride {
@@ -208,6 +216,9 @@ interface BrowsingContext {
 
   // Color-scheme simulation, for DevTools.
   [SetterThrows] attribute PrefersColorSchemeOverride prefersColorSchemeOverride;
+
+  // Forced-colors simulation, for DevTools
+  [SetterThrows] attribute ForcedColorsOverride forcedColorsOverride;
 
   /**
    * A unique identifier for the browser element that is hosting this
