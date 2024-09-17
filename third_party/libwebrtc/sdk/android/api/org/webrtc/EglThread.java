@@ -18,7 +18,6 @@ import androidx.annotation.GuardedBy;
 import androidx.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import org.webrtc.EglBase.EglConnection;
 
 /** EGL graphics thread that allows multiple clients to share the same underlying EGLContext. */
@@ -123,7 +122,7 @@ public class EglThread implements RenderSynchronizer.Listener {
   private final HandlerWithExceptionCallbacks handler;
   private final EglConnection eglConnection;
   private final RenderSynchronizer renderSynchronizer;
-  private Optional<RenderUpdate> pendingRenderUpdate = Optional.empty();
+  private final List<RenderUpdate> pendingRenderUpdates = new ArrayList<>();
   private boolean renderWindowOpen = true;
 
   private EglThread(
@@ -194,7 +193,7 @@ public class EglThread implements RenderSynchronizer.Listener {
     if (renderWindowOpen) {
       update.update(/* runsInline = */true);
     } else {
-      pendingRenderUpdate = Optional.of(update);
+      pendingRenderUpdates.add(update);
     }
   }
 
@@ -203,9 +202,10 @@ public class EglThread implements RenderSynchronizer.Listener {
     handler.post(
         () -> {
           renderWindowOpen = true;
-          pendingRenderUpdate.ifPresent(
-              renderUpdate -> renderUpdate.update(/* runsInline = */ false));
-          pendingRenderUpdate = Optional.empty();
+          for (RenderUpdate update : pendingRenderUpdates) {
+            update.update(/* runsInline = */false);
+          }
+          pendingRenderUpdates.clear();
         });
   }
 
