@@ -123,24 +123,24 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Chwilio o fewn Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Chwilio o fewn Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Chwilio o fewn Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Chwilio o fewn Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Chwilio o fewn Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Chwilio o fewn Focus Beta</string>
 
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Chwilio o fewn Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Chwilio o fewn Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>Gyda %1$s chi sy’n rheoli.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>Gyda %1$s chi sy’n rheoli.</p>
 <p>Defnyddiwch ef fel porwr preifat:
   <ul>
   <li>Chwilio a phori o fewn yr ap</li>
@@ -611,9 +611,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Dileu hanes pori</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Cau tabiau eraill</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Llwytho Firefox i Lawr</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Llwytho Firefox i Lawr</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -625,23 +628,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[Mae %1$s ar gael i chi o dan amodau <a href="%2$s">Trwydded Gyhoeddus Mozilla</a> a thrwyddedau cod agored eraill.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Mae %1$s ar gael i chi o dan amodau <a href="%2$s">Trwydded Gyhoeddus Mozilla</a> a thrwyddedau cod agored eraill.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Nid ydych yn derbyn unrhyw hawliau na thrwyddedau i nod masnach y Mozilla Foundation neu unrhyw barti arall, gan gynnwys enwau a logos Mozilla, Firefox n %1$s. Mae gwybodaeth bellach i’w gael <a href="%2$s">yma</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Nid ydych yn derbyn unrhyw hawliau na thrwyddedau i nod masnach y Mozilla Foundation neu unrhyw barti arall, gan gynnwys enwau a logos Mozilla, Firefox n %1$s. Mae gwybodaeth bellach i’w gael <a href="%2$s">yma</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Mae cod ffynhonnell ychwanegol ar gyfer %1$s ar gael o dan amrywiol <a href="%2$s">drwyddedau</a> rhydd a chod agored.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Mae cod ffynhonnell ychwanegol ar gyfer %1$s ar gael o dan amrywiol <a href="%2$s">drwyddedau</a> rhydd a chod agored.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[Mae %1$s hefyd yn defnyddio rhestrau rhwystro sy’n cael eu darparu gan Disconnect, Inc. fel gweithiau ar wahân ac annibynnol o dan <a href="%2$s">Trwydded Gyhoeddus Gyffredinol GNU v3</a>, ac sydd ar gael <a href = "%3$s">yma</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Mae %1$s hefyd yn defnyddio rhestrau rhwystro sy’n cael eu darparu gan Disconnect, Inc. fel gweithiau ar wahân ac annibynnol o dan <a href="%2$s">Trwydded Gyhoeddus Gyffredinol GNU v3</a>, ac sydd ar gael <a href = "%3$s">yma</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Enw Defnyddiwr</string>
@@ -833,7 +836,7 @@
     <string name="preference_studies">Astudiaethau</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Efallai y bydd Firefox yn gosod a rhedeg astudiaethau o bryd i’w gilydd.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Efallai y bydd Firefox yn gosod a rhedeg astudiaethau o bryd i’w gilydd.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Darllen rhagor</string>
@@ -1037,7 +1040,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[Mae %1$s yn ceisio defnyddio cysylltiad HTTPS pryd bynnag y bo modd i fod yn fwy diogel.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Mae %1$s yn ceisio defnyddio cysylltiad HTTPS pryd bynnag y bo modd i fod yn fwy diogel.
      <a href="%2$s">Dysgu rhagor</a> <br/><br/>
      Newidiwch y gosodiad hwn yn Gosodiadau > Preifatrwydd a Diogelwch > Diogelwch.]]></string>
 

@@ -128,6 +128,11 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">تَکڑا پاس ورڈ وَرتو؟</string>
 
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">ہک مضبوط، بے ترتیبا تیار تھیا پاس ورڈ ورت تے  آپݨے اکاؤنٹس دی حفاظت کرو۔ آپݨے اکاؤنٹ وچ محفوظ کرتے آپݨے پاس ورڈز تائیں فوری رسائی گھنو۔</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">ہک مضبوط، بے ترتیبا تیار تھیا پاس ورڈ ورت تے  آپݨے اکاؤنٹس دی حفاظت کرو۔ ایہ مستقبل وچ ورتݨ کیتے تہاݙے کھاتے وچ محفوظ تھی ویسی۔</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">پاس ورڈ ورتو</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -200,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s کوں لاگ ان مہیاکار دے طور تے ورتو</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ہِک %2$s اکاؤنٹ دے نال %1$s وِچ لاگ اِن کرݨ اِنّھاں دے <a href="%3$s">رازداری پالیسی</a> اَتے <a href="%4$s">خدمت دیاں شرطاں</a>دے تابع ہِے۔]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ہِک %2$s اکاؤنٹ دے نال %1$s وِچ لاگ اِن کرݨ اِنّھاں دے <a href="%3$s">رازداری پالیسی</a> اَتے <a href="%4$s">خدمت دیاں شرطاں</a>دے تابع ہِے۔]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">جاری</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
