@@ -50,24 +50,32 @@
 }
 
 #tabbrowser-tabs {
-  --tab-min-width: 76px;
-  --tab-overflow-pinned-tabs-width: 0px;
-  padding-inline: var(--tab-overflow-pinned-tabs-width) 0;
   /* Use a bigger flex value than the searchbar to prevent it from
    * taking all the toolbar space. */
   flex: 1000 1000;
 
-  &[orient="horizontal"][positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
-    /* Add padding to match the shadow's blur radius so the
-       shadow doesn't get clipped when either the first or
-       last tab is selected */
-    padding-inline: var(--tab-shadow-max-size);
-  }
+  &[orient="horizontal"] {
+    --tab-overflow-pinned-tabs-width: 0px;
+    padding-inline: var(--tab-overflow-pinned-tabs-width) 0;
 
-  /* Make it easier to drag tabs by expanding the drag area downwards. */
-  &[movingtab] {
-    padding-bottom: 15px;
-    margin-bottom: -15px;
+    --tab-min-width: 76px;
+    :root[uidensity="touch"] & {
+      /* Touch mode needs additional space for the close button. */
+      --tab-min-width: 86px;
+    }
+
+    &[positionpinnedtabs] > #tabbrowser-arrowscrollbox::part(scrollbox) {
+      /* Add padding to match the shadow's blur radius so the
+         shadow doesn't get clipped when either the first or
+         last tab is selected */
+      padding-inline: var(--tab-shadow-max-size);
+    }
+
+    /* Make it easier to drag tabs by expanding the drag area downwards. */
+    &[movingtab] {
+      padding-bottom: 15px;
+      margin-bottom: -15px;
+    }
   }
 }
 
@@ -120,11 +128,6 @@
     min-width: var(--tab-min-width);
     transition: min-width 100ms ease-out,
                 max-width 100ms ease-out;
-
-    :root[uidensity=touch] & {
-      /* Touch mode needs additional space for the close button. */
-      min-width: calc(var(--tab-min-width) + 10px);
-    }
   }
 
   &:not([pinned], [fadein]) {
@@ -872,6 +875,7 @@ tab-group {
   flex-direction: column;
   align-content: flex-start;
   grid-gap: var(--space-small);
+  padding: 0; /* override tabbox.css on macOS */
 
   &[overflow] {
     border-bottom: var(--tabstrip-inner-border);
@@ -892,8 +896,9 @@ tab-group {
   }
 
   &:not([expanded]) {
+    --tab-min-width: inherit;
+
     .tabbrowser-tab {
-      min-width: inherit;
       width: var(--collapsed-tab-width);
       flex: none;
     }
@@ -904,10 +909,10 @@ tab-group {
   }
 
   &[expanded] {
+    --tab-min-width: calc(100% - var(--space-medium));
     --tab-icon-end-margin: 7.5px;
 
     .tabbrowser-tab {
-      min-width: calc(100% - var(--space-medium));
       flex: none;
       max-width: none;
       padding: 0;
