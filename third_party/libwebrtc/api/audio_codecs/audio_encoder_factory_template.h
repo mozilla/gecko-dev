@@ -22,7 +22,6 @@
 #include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/audio_codecs/audio_format.h"
 #include "api/environment/environment.h"
-#include "api/field_trials_view.h"
 #include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"
 
@@ -191,13 +190,6 @@ rtc::scoped_refptr<AudioEncoderFactory> CreateAudioEncoderFactory() {
 
   return rtc::make_ref_counted<
       audio_encoder_factory_template_impl::AudioEncoderFactoryT<Ts...>>();
-}
-
-// TODO: bugs.webrtc.org/343086059 - Delete after 2024-07-24
-template <typename... Ts>
-[[deprecated]] rtc::scoped_refptr<AudioEncoderFactory>
-CreateAudioEncoderFactory(const FieldTrialsView*) {
-  return CreateAudioEncoderFactory<Ts...>();
 }
 
 }  // namespace webrtc
