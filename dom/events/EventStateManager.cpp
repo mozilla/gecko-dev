@@ -1017,7 +1017,9 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           SetClickCount(mouseEvent, aStatus);
           break;
       }
-      NotifyTargetUserActivation(aEvent, aTargetContent);
+      if (!StaticPrefs::dom_popup_experimental()) {
+        NotifyTargetUserActivation(aEvent, aTargetContent);
+      }
       break;
     }
     case eMouseUp: {
@@ -1100,7 +1102,14 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         PointerEventHandler::UpdateActivePointerState(mouseEvent,
                                                       aTargetContent);
         PointerEventHandler::ImplicitlyCapturePointer(aTargetFrame, aEvent);
-        if (mouseEvent->mInputSource != MouseEvent_Binding::MOZ_SOURCE_TOUCH) {
+        if (StaticPrefs::dom_popup_experimental()) {
+          // https://html.spec.whatwg.org/multipage/interaction.html#activation-triggering-input-event
+          if (mouseEvent->mInputSource ==
+              MouseEvent_Binding::MOZ_SOURCE_MOUSE) {
+            NotifyTargetUserActivation(aEvent, aTargetContent);
+          }
+        } else if (mouseEvent->mInputSource !=
+                   MouseEvent_Binding::MOZ_SOURCE_TOUCH) {
           NotifyTargetUserActivation(aEvent, aTargetContent);
         }
 
@@ -1135,6 +1144,10 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     case ePointerUp:
       LightDismissOpenPopovers(aEvent, aTargetContent);
       GenerateMouseEnterExit(mouseEvent);
+      if (StaticPrefs::dom_popup_experimental() &&
+          mouseEvent->mInputSource != MouseEvent_Binding::MOZ_SOURCE_MOUSE) {
+        NotifyTargetUserActivation(aEvent, aTargetContent);
+      }
       break;
     case ePointerGotCapture:
       GenerateMouseEnterExit(mouseEvent);
@@ -1317,7 +1330,9 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
       SetGestureDownPoint(aEvent->AsTouchEvent());
       break;
     case eTouchEnd:
-      NotifyTargetUserActivation(aEvent, aTargetContent);
+      if (!StaticPrefs::dom_popup_experimental()) {
+        NotifyTargetUserActivation(aEvent, aTargetContent);
+      }
       break;
     default:
       break;
@@ -1332,8 +1347,15 @@ nsresult EventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 // The modifiers associated with the user activation is used for controlling
 // where the `window.open` is opened into.
 static bool CanReflectModifiersToUserActivation(WidgetInputEvent* aEvent) {
-  MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == eMouseDown ||
-             aEvent->mMessage == ePointerDown || aEvent->mMessage == eTouchEnd);
+  if (StaticPrefs::dom_popup_experimental()) {
+    MOZ_ASSERT(aEvent->mMessage == eKeyDown ||
+               aEvent->mMessage == ePointerDown ||
+               aEvent->mMessage == ePointerUp);
+  } else {
+    MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == eMouseDown ||
+               aEvent->mMessage == ePointerDown ||
+               aEvent->mMessage == eTouchEnd);
+  }
 
   WidgetKeyboardEvent* keyEvent = aEvent->AsKeyboardEvent();
   if (keyEvent) {
@@ -1375,15 +1397,22 @@ void EventStateManager::NotifyTargetUserActivation(WidgetEvent* aEvent,
   // into scroll/pan/swipe actions. We don't want to gesture activate on such
   // actions, we want to only gesture activate on touches that are taps.
   // That is, touches that end in roughly the same place that they started.
-  if (aEvent->mMessage == eTouchEnd && aEvent->AsTouchEvent() &&
-      IsEventOutsideDragThreshold(aEvent->AsTouchEvent())) {
+  if ((aEvent->mMessage == eTouchEnd ||
+       (aEvent->mMessage == ePointerUp &&
+        aEvent->AsPointerEvent()->mInputSource ==
+            MouseEvent_Binding::MOZ_SOURCE_TOUCH)) &&
+      IsEventOutsideDragThreshold(aEvent->AsInputEvent())) {
     return;
   }
 
   // Do not treat the click on scrollbar as a user interaction with the web
   // content.
   if (StaticPrefs::dom_user_activation_ignore_scrollbars() &&
-      (aEvent->mMessage == eMouseDown || aEvent->mMessage == ePointerDown) &&
+      ((StaticPrefs::dom_popup_experimental() &&
+        (aEvent->mMessage == ePointerDown || aEvent->mMessage == ePointerUp)) ||
+       (!StaticPrefs::dom_popup_experimental() &&
+        (aEvent->mMessage == eMouseDown ||
+         aEvent->mMessage == ePointerDown))) &&
       aTargetContent->IsInNativeAnonymousSubtree()) {
     nsIContent* current = aTargetContent;
     do {
@@ -1398,8 +1427,18 @@ void EventStateManager::NotifyTargetUserActivation(WidgetEvent* aEvent,
     } while (current);
   }
 
-  MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == eMouseDown ||
-             aEvent->mMessage == ePointerDown || aEvent->mMessage == eTouchEnd);
+#ifdef DEBUG
+  if (StaticPrefs::dom_popup_experimental()) {
+    MOZ_ASSERT(aEvent->mMessage == eKeyDown ||
+               aEvent->mMessage == ePointerDown ||
+               aEvent->mMessage == ePointerUp);
+  } else {
+    MOZ_ASSERT(aEvent->mMessage == eKeyDown || aEvent->mMessage == eMouseDown ||
+               aEvent->mMessage == ePointerDown ||
+               aEvent->mMessage == eTouchEnd);
+  }
+#endif
+
   UserActivation::Modifiers modifiers;
   if (WidgetInputEvent* inputEvent = aEvent->AsInputEvent()) {
     if (CanReflectModifiersToUserActivation(inputEvent)) {

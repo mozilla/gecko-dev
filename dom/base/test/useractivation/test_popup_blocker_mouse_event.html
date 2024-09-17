@@ -11,6 +11,8 @@
 <div id="target" style="width: 50px; height: 50px; background: green"></div>
 <script>
 
+const experimental = SpecialPowers.getBoolPref("dom.popup.experimental");
+
 function sendMouseEvent(element, eventName, button, listenEventName, handler) {
   let needToCheckHandler = false;
   let handlerIsCalled = false;
@@ -44,6 +46,13 @@ function checkBlockOpenPopup(e) {
 }
 
 add_setup(async function() {
+  if (experimental) {
+    // This is a rather fragile test when experimental pref isn't enabled.
+    // Use default prefs in experimental case.
+    SpecialPowers.wrap(document).clearUserGestureActivation();
+    await SpecialPowers.pushPrefEnv({ set: [["dom.block_multiple_popups", true],
+                                            ["dom.disable_open_during_load", true]]});
+  }
   const DENY_ACTION = SpecialPowers.Ci.nsIPermissionManager.DENY_ACTION;
   let xorigin = SimpleTest.getTestFileURL("").replace(location.hostname, 'mochi.xorigin-test');
   await SpecialPowers.pushPermissions([
@@ -65,15 +74,21 @@ add_task(function testMouseDownUpMove() {
   // Left button
   sendMouseEvent(target, "mousedown", LEFT_BUTTON, "mousedown", checkAllowOpenPopup);
   sendMouseEvent(target, "mousemove", LEFT_BUTTON, "mousemove", checkBlockOpenPopup);
-  sendMouseEvent(target, "mouseup", LEFT_BUTTON, "mouseup", checkAllowOpenPopup);
+  sendMouseEvent(target, "mouseup", LEFT_BUTTON, "mouseup", experimental ?
+                                                              checkBlockOpenPopup :
+                                                              checkAllowOpenPopup);
 
   // Middle button
   sendMouseEvent(target, "mousedown", MIDDLE_BUTTON, "mousedown", checkAllowOpenPopup);
   sendMouseEvent(target, "mousemove", MIDDLE_BUTTON, "mousemove", checkBlockOpenPopup);
-  sendMouseEvent(target, "mouseup", MIDDLE_BUTTON, "mouseup", checkAllowOpenPopup);
+  sendMouseEvent(target, "mouseup", MIDDLE_BUTTON, "mouseup", experimental ?
+                                                                checkBlockOpenPopup :
+                                                                checkAllowOpenPopup);
 
   // Right button
-  sendMouseEvent(target, "mousedown", RIGHT_BUTTON, "mousedown", checkBlockOpenPopup);
+  sendMouseEvent(target, "mousedown", RIGHT_BUTTON, "mousedown", experimental ?
+                                                                   checkAllowOpenPopup :
+                                                                   checkBlockOpenPopup);
   sendMouseEvent(target, "mousemove", RIGHT_BUTTON, "mousemove", checkBlockOpenPopup);
   sendMouseEvent(target, "mouseup", RIGHT_BUTTON, "mouseup", checkBlockOpenPopup);
 });
