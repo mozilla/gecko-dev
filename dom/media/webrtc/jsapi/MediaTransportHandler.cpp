@@ -1124,9 +1124,10 @@ void MediaTransportHandlerSTS::SendPacket(const std::string& aTransportId,
 
         MOZ_ASSERT(layer);
 
-        if (layer->SendPacket(aPacket) < 0) {
-          CSFLogError(LOGTAG, "%s: Transport flow (%s) failed to send packet",
-                      mIceCtx->name().c_str(), aTransportId.c_str());
+        if (int error = layer->SendPacket(aPacket); error < 0) {
+          CSFLogError(LOGTAG,
+                      "%s: Transport flow (%s) failed to send packet. error=%d",
+                      mIceCtx->name().c_str(), aTransportId.c_str(), error);
         }
       },
       [](const std::string& aError) {});
