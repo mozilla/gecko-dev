@@ -472,7 +472,8 @@
   display: none;
 }
 
-#urlbar-search-mode-indicator-close {
+#urlbar-search-mode-indicator-close,
+#searchmode-switcher-close {
   background: url(chrome://global/skin/icons/close.svg) no-repeat center;
   background-size: round(62.5%, 2px);
   width: round(max(16px, 1em), 2px);
@@ -1116,11 +1117,17 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 }
 
 #urlbar-searchmode-switcher {
+  appearance: none;
   display: none;
-  background-color: var(--toolbar-field-background-color);
-  border-radius: var(--toolbarbutton-border-radius);
-  margin-inline: 0 var(--urlbar-icon-padding);
-  padding-block: 0;
+  background-color: var(--urlbar-box-bgcolor);
+  border-radius: var(--urlbar-icon-border-radius);
+  margin: 0;
+  margin-inline-end: var(--urlbar-icon-padding);
+  padding-inline: var(--urlbar-searchmodeswitcher-spacing);
+
+  #urlbar[focused] & {
+    background-color: var(--urlbar-box-focus-bgcolor);
+  }
 
   &:focus-visible {
     outline: var(--focus-outline);
@@ -1151,19 +1158,19 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 }
 
 #searchmode-switcher-icon {
-  width: calc(var(--urlbar-min-height) - 2px - 2 * var(--urlbar-container-padding));
-  height: calc(var(--urlbar-min-height) - 2px - 2 * var(--urlbar-container-padding));
+  width: 16px;
+  height: 16px;
   border-radius: var(--urlbar-icon-border-radius);
-  padding: var(--urlbar-icon-padding);
   -moz-context-properties: fill;
   fill: var(--text-color-deemphasized);
 }
 
 #searchmode-switcher-chicklet {
-  background-color: var(--toolbar-field-background-color);
+  background-color: var(--urlbar-box-bgcolor);
   border-start-end-radius: var(--toolbarbutton-border-radius);
-  border-end-end-radius: var(--toolbarbutton-border-radius);
+  border-end-end-radius: var(--urlbar-icon-border-radius);
   align-items: center;
+  height: 100%;
   margin-inline-end: var(--urlbar-icon-padding);
   display: none;
 
@@ -1173,10 +1180,18 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
       display: inline-flex;
     }
   }
+
+  #urlbar[focused] & {
+    background-color: var(--urlbar-box-focus-bgcolor);
+  }
+
+  #urlbar[persistsearchterms] & {
+    background-color: var(--urlbar-search-mode-picker-persisted-background-color);
+  }
 }
 
 #searchmode-switcher-title {
-  margin-inline-start: 0;
+  margin: 0;
   align-items: center;
 
   &:empty {
@@ -1185,10 +1200,9 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 }
 
 #searchmode-switcher-close {
-  list-style-image: url("chrome://global/skin/icons/close-12.svg");
+  appearance: none;
   pointer-events: all;
-  -moz-context-properties: fill;
-  fill: var(--text-color-deemphasized);
+  margin-inline: var(--urlbar-searchmodeswitcher-spacing);
 
   #urlbar[searchmode] & {
     display: inline-flex;
@@ -1196,6 +1210,8 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 }
 
 #searchmode-switcher-dropmarker {
+  margin-inline-start: var(--urlbar-searchmodeswitcher-spacing);
+
   #urlbar[searchmode] & {
     display: none;
   }
