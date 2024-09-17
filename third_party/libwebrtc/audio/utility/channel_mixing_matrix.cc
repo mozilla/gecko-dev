@@ -17,17 +17,10 @@
 #include "audio/utility/channel_mixer.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 
 namespace {
-
-// Selects the default usage of VoIP channel mapping adjustments.
-bool UseChannelMappingAdjustmentsByDefault() {
-  return !field_trial::IsEnabled(
-      "WebRTC-VoIPChannelRemixingAdjustmentKillSwitch");
-}
 
 ChannelLayout CheckInputLayout(ChannelLayout input_layout,
                                ChannelLayout output_layout) {
@@ -81,9 +74,7 @@ ChannelMixingMatrix::ChannelMixingMatrix(ChannelLayout input_layout,
                                          int input_channels,
                                          ChannelLayout output_layout,
                                          int output_channels)
-    : use_voip_channel_mapping_adjustments_(
-          UseChannelMappingAdjustmentsByDefault()),
-      input_layout_(CheckInputLayout(input_layout, output_layout)),
+    : input_layout_(CheckInputLayout(input_layout, output_layout)),
       input_channels_(input_channels),
       output_layout_(output_layout),
       output_channels_(output_channels) {
@@ -123,8 +114,7 @@ bool ChannelMixingMatrix::CreateTransformationMatrix(
   }
 
   // If specified, use adjusted channel mapping for the VoIP scenario.
-  if (use_voip_channel_mapping_adjustments_ &&
-      input_layout_ == CHANNEL_LAYOUT_MONO &&
+  if (input_layout_ == CHANNEL_LAYOUT_MONO &&
       ChannelLayoutToChannelCount(output_layout_) >= 2) {
     // Only place the mono input in the front left and right channels.
     (*matrix_)[0][0] = 1.f;
