@@ -198,14 +198,18 @@ allprojects {
                             configuration.files(dependency)
                         } catch(e) {
                             println("Could not resolve ${configuration.name} -> ${dependency.name}")
-                            println(" > ${e.message}")
-                            if (e.cause) {
-                                println(" >> ${e.cause}")
-                                if (e.cause.cause) {
-                                    println(" >> ${e.cause.cause}")
+                            if (project.hasProperty('displayErrorDetails') && project.property('displayErrorDetails') == 'true') {
+                                println(" > ${e.message}")
+                                if (e.cause) {
+                                    println(" >> ${e.cause}")
+                                    if (e.cause.cause) {
+                                        println(" >> ${e.cause.cause}")
+                                    }
                                 }
+                                println("")
+                            } else {
+                                println("\t >> Re-run with -PdisplayErrorDetails=true to see more details")
                             }
-                            println("")
                         }
                     }
                 }
