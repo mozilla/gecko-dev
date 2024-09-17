@@ -190,6 +190,83 @@ static nscoord SynthesizeBaselineFromBorderBox(BaselineSharingGroup aGroup,
                                : (aBorderBoxSize / 2) + (aBorderBoxSize % 2);
 }
 
+// The helper struct to hold the box sizing adjustment.
+struct BoxSizingAdjustment {
+  BoxSizingAdjustment() = delete;
+  BoxSizingAdjustment(const WritingMode aWM, const ComputedStyle& aStyle)
+      : mWM(aWM), mStyle(aStyle) {}
+
+  const LogicalSize& EnsureAndGet() {
+    if (mValue) {
+      return mValue.ref();
+    }
+
+    if (mStyle.StylePosition()->mBoxSizing != StyleBoxSizing::Border) {
+      // Use default, (0, 0).
+      mValue.emplace(mWM);
+      return mValue.ref();
+    }
+
+    const auto& padding = mStyle.StylePadding()->mPadding;
+    LogicalMargin border(mWM, mStyle.StyleBorder()->GetComputedBorder());
+    // We can use zero percentage basis since this is only called from
+    // intrinsic sizing code.
+    const nscoord percentageBasis = 0;
+    const nscoord iBP =
+        std::max(padding.GetIStart(mWM).Resolve(percentageBasis), 0) +
+        std::max(padding.GetIEnd(mWM).Resolve(percentageBasis), 0) +
+        border.IStartEnd(mWM);
+    const nscoord bBP =
+        std::max(padding.GetBStart(mWM).Resolve(percentageBasis), 0) +
+        std::max(padding.GetBEnd(mWM).Resolve(percentageBasis), 0) +
+        border.BStartEnd(mWM);
+    mValue.emplace(mWM, iBP, bBP);
+    return mValue.ref();
+  }
+
+ private:
+  const WritingMode mWM;
+  const ComputedStyle& mStyle;
+  // The wrapped value we would like to use for the box sizing adjustment.
+  Maybe<LogicalSize> mValue;
+};
+
+template <typename Type>
+static inline bool IsInitialSize(const Type&, const LogicalAxis);
+
+template <>
+inline bool IsInitialSize(const StyleSize& aSize, const LogicalAxis aAxis) {
+  return aAxis == LogicalAxis::Inline
+             ? aSize.IsAuto()
+             : aSize.BehavesLikeInitialValueOnBlockAxis();
+}
+
+template <>
+inline bool IsInitialSize(const StyleMaxSize& aSize, const LogicalAxis aAxis) {
+  return aAxis == LogicalAxis::Inline
+             ? aSize.IsNone()
+             : aSize.BehavesLikeInitialValueOnBlockAxis();
+}
+
+template <typename Type>
+static Maybe<nscoord> ComputeTransferredSize(
+    const Type& aRatioDeterminingSize, const LogicalAxis aAxis,
+    const WritingMode aWM, const AspectRatio& aAspectRatio,
+    BoxSizingAdjustment& aBoxSizingAdjustment) {
+  nscoord rdSize = 0;
+  if (aRatioDeterminingSize.ConvertsToLength()) {
+    rdSize = aRatioDeterminingSize.ToLength();
+  } else if (aRatioDeterminingSize.HasPercent()) {
+    // TODO: Resolve the percentage in the following patch.
+    return Nothing();
+  } else {
+    // Either we are not using LengthPercentage or there is no percentage basis.
+    return Nothing();
+  }
+  return Some(aAspectRatio.ComputeRatioDependentSize(
+      aAxis, aWM, rdSize, aBoxSizingAdjustment.EnsureAndGet()));
+}
+
 // The input sizes for calculating the number of repeat(auto-fill/fit) tracks.
 // https://drafts.csswg.org/css-grid-2/#auto-repeat
 struct RepeatTrackSizingInput {
@@ -204,50 +281,53 @@ struct RepeatTrackSizingInput {
   // This should be used in intrinsic sizing (i.e. when we can't initialize
   // the sizes directly from ReflowInput values).
   void InitFromStyle(LogicalAxis aAxis, WritingMode aWM,
-                     const ComputedStyle* aStyle) {
+                     const ComputedStyle* aStyle,
+                     const AspectRatio& aAspectRatio) {
     const auto& pos = aStyle->StylePosition();
-    const bool borderBoxSizing = pos->mBoxSizing == StyleBoxSizing::Border;
-    nscoord bp = NS_UNCONSTRAINEDSIZE;  // a sentinel to calculate it only once
-    auto adjustForBoxSizing = [borderBoxSizing, aWM, aAxis, aStyle,
-                               &bp](nscoord aSize) {
-      if (!borderBoxSizing) {
-        return aSize;
-      }
-      if (bp == NS_UNCONSTRAINEDSIZE) {
-        const auto& padding = aStyle->StylePadding()->mPadding;
-        LogicalMargin border(aWM, aStyle->StyleBorder()->GetComputedBorder());
-        // We can use zero percentage basis since this is only called from
-        // intrinsic sizing code.
-        const nscoord percentageBasis = 0;
-        if (aAxis == LogicalAxis::Inline) {
-          bp = std::max(padding.GetIStart(aWM).Resolve(percentageBasis), 0) +
-               std::max(padding.GetIEnd(aWM).Resolve(percentageBasis), 0) +
-               border.IStartEnd(aWM);
-        } else {
-          bp = std::max(padding.GetBStart(aWM).Resolve(percentageBasis), 0) +
-               std::max(padding.GetBEnd(aWM).Resolve(percentageBasis), 0) +
-               border.BStartEnd(aWM);
-        }
-      }
-      return std::max(aSize - bp, 0);
+    BoxSizingAdjustment boxSizingAdjustment(aWM, *aStyle);
+
+    auto adjustForBoxSizing = [aWM, aAxis,
+                               &boxSizingAdjustment](nscoord aSize) {
+      return std::max(
+          aSize - boxSizingAdjustment.EnsureAndGet().Size(aAxis, aWM), 0);
     };
+
     nscoord& min = mMin.Size(aAxis, aWM);
-    nscoord& size = mSize.Size(aAxis, aWM);
+    const auto& styleMinSize = pos->MinSize(aAxis, aWM);
+    if (styleMinSize.ConvertsToLength()) {
+      min = adjustForBoxSizing(styleMinSize.ToLength());
+    } else if (aAspectRatio && IsInitialSize(styleMinSize, aAxis)) {
+      // Use GetOrthogonalAxis() to get the ratio-determining axis. Same for max
+      // and size below in this function.
+      const auto& styleRDMinSize = pos->MinSize(GetOrthogonalAxis(aAxis), aWM);
+      if (Maybe<nscoord> resolvedMinSize = ComputeTransferredSize(
+              styleRDMinSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment)) {
+        min = *resolvedMinSize;
+      }
+    }
+
     nscoord& max = mMax.Size(aAxis, aWM);
-    const auto& minCoord =
-        aAxis == LogicalAxis::Inline ? pos->MinISize(aWM) : pos->MinBSize(aWM);
-    if (minCoord.ConvertsToLength()) {
-      min = adjustForBoxSizing(minCoord.ToLength());
+    const auto& styleMaxSize = pos->MaxSize(aAxis, aWM);
+    if (styleMaxSize.ConvertsToLength()) {
+      max = std::max(min, adjustForBoxSizing(styleMaxSize.ToLength()));
+    } else if (aAspectRatio && IsInitialSize(styleMaxSize, aAxis)) {
+      const auto& styleRDMaxSize = pos->MaxSize(GetOrthogonalAxis(aAxis), aWM);
+      if (Maybe<nscoord> resolvedMaxSize = ComputeTransferredSize(
+              styleRDMaxSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment)) {
+        max = std::max(min, *resolvedMaxSize);
+      }
     }
-    const auto& maxCoord =
-        aAxis == LogicalAxis::Inline ? pos->MaxISize(aWM) : pos->MaxBSize(aWM);
-    if (maxCoord.ConvertsToLength()) {
-      max = std::max(min, adjustForBoxSizing(maxCoord.ToLength()));
-    }
-    const auto& sizeCoord =
-        aAxis == LogicalAxis::Inline ? pos->ISize(aWM) : pos->BSize(aWM);
-    if (sizeCoord.ConvertsToLength()) {
-      size = Clamp(adjustForBoxSizing(sizeCoord.ToLength()), min, max);
+
+    nscoord& size = mSize.Size(aAxis, aWM);
+    const auto& styleSize = pos->Size(aAxis, aWM);
+    if (styleSize.ConvertsToLength()) {
+      size = Clamp(adjustForBoxSizing(styleSize.ToLength()), min, max);
+    } else if (aAspectRatio && IsInitialSize(styleSize, aAxis)) {
+      const auto& styleRDSize = pos->Size(GetOrthogonalAxis(aAxis), aWM);
+      if (Maybe<nscoord> resolvedSize = ComputeTransferredSize(
+              styleRDSize, aAxis, aWM, aAspectRatio, boxSizingAdjustment)) {
+        size = Clamp(*resolvedSize, min, max);
+      }
     }
   }
 
@@ -4839,11 +4919,13 @@ void nsGridContainerFrame::Grid::SubgridPlaceGridItems(
   RepeatTrackSizingInput repeatSizing(state.mWM);
   if (!childGrid->IsColSubgrid() && state.mColFunctions.mHasRepeatAuto) {
     repeatSizing.InitFromStyle(LogicalAxis::Inline, state.mWM,
-                               state.mFrame->Style());
+                               state.mFrame->Style(),
+                               state.mFrame->GetAspectRatio());
   }
   if (!childGrid->IsRowSubgrid() && state.mRowFunctions.mHasRepeatAuto) {
     repeatSizing.InitFromStyle(LogicalAxis::Block, state.mWM,
-                               state.mFrame->Style());
+                               state.mFrame->Style(),
+                               state.mFrame->GetAspectRatio());
   }
 
   PlaceGridItems(state, repeatSizing);
@@ -9487,7 +9569,8 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
   RepeatTrackSizingInput repeatSizing(state.mWM);
   if (!IsColSubgrid() && state.mColFunctions.mHasRepeatAuto) {
     repeatSizing.InitFromStyle(LogicalAxis::Inline, state.mWM,
-                               state.mFrame->Style());
+                               state.mFrame->Style(),
+                               state.mFrame->GetAspectRatio());
   }
   if ((!IsRowSubgrid() && state.mRowFunctions.mHasRepeatAuto &&
        !(state.mGridStyle->mGridAutoFlow & StyleGridAutoFlow::ROW)) ||
@@ -9496,7 +9579,8 @@ nscoord nsGridContainerFrame::ComputeIntrinsicISize(
     // the only case where our block-size can affect the number of columns.
     // Masonry layout always depends on how many rows we have though.
     repeatSizing.InitFromStyle(LogicalAxis::Block, state.mWM,
-                               state.mFrame->Style());
+                               state.mFrame->Style(),
+                               state.mFrame->GetAspectRatio());
   }
 
   Grid grid;
