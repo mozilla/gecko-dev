@@ -1217,6 +1217,24 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
 
             ev.wait()
 
+        def do_macos_video_recording(suite_name, upload_dir, ev):
+            import os
+            import subprocess
+
+            target_file = os.path.join(
+                upload_dir,
+                "video_{}.mov".format(suite_name),
+            )
+            self.info("Recording suite {} to {}".format(suite_name, target_file))
+
+            process = subprocess.Popen(
+                ["/usr/sbin/screencapture", "-v", "-k", target_file],
+                stdin=subprocess.PIPE,
+            )
+            ev.wait()
+            process.stdin.write(b"p")
+            process.wait()
+
         if suites:
             self.info("#### Running %s suites" % suite_category)
             for suite in suites:
@@ -1368,8 +1386,16 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                     finish_video = threading.Event()
                     do_video_recording = os.getenv("MOZ_RECORD_TEST")
                     if do_video_recording:
+                        if sys.platform == "linux":
+                            target = do_gnome_video_recording
+                        elif sys.platform == "darwin":
+                            target = do_macos_video_recording
+                        else:
+                            raise NotImplementedError(
+                                "Screen recording not implemented for this platform"
+                            )
                         thread = threading.Thread(
-                            target=do_gnome_video_recording,
+                            target=target,
                             args=(
                                 suite,
                                 env["MOZ_UPLOAD_DIR"],
