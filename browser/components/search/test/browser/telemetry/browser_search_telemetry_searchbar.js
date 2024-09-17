@@ -78,12 +78,8 @@ add_setup(async function () {
   let oldCanRecord = Services.telemetry.canRecordExtended;
   Services.telemetry.canRecordExtended = true;
 
-  // Enable event recording for the events tested here.
-  Services.telemetry.setEventRecordingEnabled("navigation", true);
-
   registerCleanupFunction(async function () {
     Services.telemetry.canRecordExtended = oldCanRecord;
-    Services.telemetry.setEventRecordingEnabled("navigation", false);
   });
 });
 
@@ -127,18 +123,6 @@ add_task(async function test_plainQuery() {
     search_hist,
     "other-MozSearch.searchbar",
     1
-  );
-
-  // Also check events.
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "searchbar",
-        value: "enter",
-        extra: { engine: "other-MozSearch" },
-      },
-    ],
-    { category: "navigation", method: "search" }
   );
 
   // Check the histograms as well.
@@ -197,18 +181,6 @@ add_task(async function test_oneOff_enter() {
     search_hist,
     "other-MozSearch2.searchbar",
     1
-  );
-
-  // Also check events.
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "searchbar",
-        value: "oneoff",
-        extra: { engine: "other-MozSearch2" },
-      },
-    ],
-    { category: "navigation", method: "search" }
   );
 
   // Check the histograms as well.
@@ -349,18 +321,6 @@ async function checkSuggestionClick(clickOptions, waitForActionFn) {
     search_hist,
     searchEngineId + ".searchbar",
     1
-  );
-
-  // Also check events.
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "searchbar",
-        value: "suggestion",
-        extra: { engine: searchEngineId },
-      },
-    ],
-    { category: "navigation", method: "search" }
   );
 
   // Check the histograms as well.

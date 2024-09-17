@@ -667,29 +667,6 @@ homepage:
     extra_keys:
       webExtensionId: The identifier of the webextension, if known.
 
-navigation:
-  search:
-    objects: ["about_home", "about_newtab", "contextmenu", "oneoff",
-              "suggestion", "alias", "enter", "searchbar", "urlbar",
-              "urlbar_handoff", "urlbar_persisted", "urlbar_searchmode",
-              "webextension"]
-    release_channel_collection: opt-out
-    products:
-      - "firefox"
-      - "fennec"
-    record_in_processes: ["main"]
-    description: >
-      This is recorded on each search navigation.
-      The value field records the action used to trigger the search:
-        "enter", "oneoff", "suggestion", "alias", null (for contextmenu and webextension)
-    bug_numbers: [1316281, 1496764]
-    notification_emails:
-      - "mdeboer@mozilla.com"
-      - "rharter@mozilla.com"
-    expiry_version: never
-    extra_keys:
-      engine: The id of the search engine used.
-
 upgrade_dialog:
   trigger:
     objects: ["reason"]
