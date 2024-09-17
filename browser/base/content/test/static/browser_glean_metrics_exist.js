@@ -39,36 +39,161 @@ function uriIsAllowed(uri) {
   return false;
 }
 
+function recursivelyCheckForGleanCalls(obj, parent = null) {
+  if (!obj) {
+    return;
+  }
+
+  if (Array.isArray(obj)) {
+    for (let item of obj) {
+      recursivelyCheckForGleanCalls(item, { obj, parent });
+    }
+    return;
+  }
+
+  for (let key in obj) {
+    if (key == "loc") {
+      continue;
+    }
+    if (typeof obj[key] == "object") {
+      recursivelyCheckForGleanCalls(obj[key], { obj, parent });
+    }
+  }
+
+  if (obj.type != "Identifier" || obj.name != "Glean") {
+    return;
+  }
+
+  function getMemberName(object, child) {
+    if (
+      object.type == "MemberExpression" &&
+      !object.computed &&
+      object.object === child &&
+      object.property.type == "Identifier"
+    ) {
+      return object.property.name;
+    }
+    return "";
+  }
+
+  let cat = getMemberName(parent.obj, obj);
+  if (cat) {
+    if (Glean.hasOwnProperty(cat)) {
+      ok(true, `The category ${cat} should exist in the global Glean object`);
+    } else {
+      record(
+        false,
+        `The category ${cat} should exist in the global Glean object`,
+        undefined,
+        `${obj.loc.source}:${obj.loc.start.line}`
+      );
+      return;
+    }
+
+    let name = getMemberName(parent.parent.obj, parent.obj);
+    if (name) {
+      if (Glean[cat].hasOwnProperty(name)) {
+        ok(true, `The metric ${name} should exist in the Glean.${cat} object`);
+      } else {
+        record(
+          false,
+          `The metric ${name} should exist in the Glean.${cat} object`,
+          undefined,
+          `${obj.loc.source}:${obj.loc.start.line}`,
+          // Object metrics are not supported yet in artifact builds (see bug 1883857),
+          // so we expect some failures.
+          Services.prefs.getBoolPref("telemetry.fog.artifact_build", false)
+            ? "fail"
+            : undefined
+        );
+        return;
+      }
+
+      let methodOrLabel = getMemberName(
+        parent.parent.parent.obj,
+        parent.parent.obj
+      );
+      if (methodOrLabel) {
+        if (methodOrLabel in Glean[cat][name]) {
+          ok(true, `${methodOrLabel} should exist in Glean.${cat}.${name}`);
+        } else {
+          record(
+            false,
+            `${methodOrLabel} should exist in Glean.${cat}.${name}`,
+            undefined,
+            `${obj.loc.source}:${obj.loc.start.line}`
+          );
+          return;
+        }
+
+        let object = Glean[cat][name];
+        let method = methodOrLabel;
+        if (typeof Glean[cat][name][methodOrLabel] == "object") {
+          method = getMemberName(
+            parent.parent.parent.parent.obj,
+            parent.parent.parent.obj
+          );
+          if (!method) {
+            return;
+          }
+          object = Glean[cat][name][methodOrLabel];
+        }
+
+        if (method in object) {
+          ok(true, `${method} exists`);
+          is(
+            typeof object[method],
+            "function",
+            `${method} should be a function`
+          );
+        } else {
+          record(
+            false,
+            `${method} should exist`,
+            undefined,
+            `${obj.loc.source}:${obj.loc.start.line}`
+          );
+        }
+      }
+    }
+  }
+}
+
 function parsePromise(uri, parseTarget) {
-  let promise = new Promise(resolve => {
+  return new Promise(resolve => {
     let xhr = new XMLHttpRequest();
     xhr.open("GET", uri, true);
     xhr.onreadystatechange = function () {
       if (this.readyState == this.DONE) {
         let scriptText = this.responseText;
+        if (!scriptText.includes("Glean.")) {
+          resolve();
+          return;
+        }
+
         try {
           info(`Checking ${parseTarget} ${uri}`);
           let parseOpts = {
             source: uri,
             target: parseTarget,
           };
-          Reflect.parse(scriptText, parseOpts);
-          resolve(true);
+          recursivelyCheckForGleanCalls(
+            Reflect.parse(scriptText, parseOpts).body
+          );
         } catch (ex) {
           let errorMsg = "Script error reading " + uri + ": " + ex;
           ok(false, errorMsg);
-          resolve(false);
         }
+        resolve();
       }
     };
     xhr.onerror = error => {
       ok(false, "XHR error reading " + uri + ": " + error);
-      resolve(false);
+      resolve();
     };
     xhr.overrideMimeType("application/javascript");
     xhr.send(null);
   });
-  return promise;
 }
 
 add_task(async function checkAllTheJS() {
@@ -128,11 +253,7 @@ add_task(async function checkAllTheJS() {
       info("Not checking allowlisted " + uri.spec);
       return undefined;
     }
-    let target = "script";
-    if (uriIsESModule(uri)) {
-      target = "module";
-    }
-    return parsePromise(uri.spec, target);
+    return parsePromise(uri.spec, uriIsESModule(uri) ? "module" : "script");
   });
   ok(true, "All files parsed");
 });
