@@ -10,11 +10,13 @@
 
 #include "pc/data_channel_controller.h"
 
+#include <cstdint>
 #include <utility>
 
 #include "absl/algorithm/container.h"
 #include "absl/types/optional.h"
 #include "api/peer_connection_interface.h"
+#include "api/priority.h"
 #include "api/rtc_error.h"
 #include "pc/peer_connection_internal.h"
 #include "pc/sctp_utils.h"
@@ -52,10 +54,11 @@ RTCError DataChannelController::SendData(
                                            payload);
 }
 
-void DataChannelController::AddSctpDataStream(StreamId sid) {
+void DataChannelController::AddSctpDataStream(StreamId sid,
+                                              PriorityValue priority) {
   RTC_DCHECK_RUN_ON(network_thread());
   if (data_channel_transport_) {
-    data_channel_transport_->OpenChannel(sid.stream_id_int());
+    data_channel_transport_->OpenChannel(sid.stream_id_int(), priority);
   }
 }
 
@@ -349,7 +352,8 @@ DataChannelController::CreateDataChannel(const std::string& label,
 
   // If we have an id already, notify the transport.
   if (sid.has_value())
-    AddSctpDataStream(*sid);
+    AddSctpDataStream(*sid,
+                      config.priority.value_or(PriorityValue(Priority::kLow)));
 
   return channel;
 }
@@ -412,7 +416,7 @@ void DataChannelController::AllocateSctpSids(rtc::SSLRole role) {
       absl::optional<StreamId> sid = sid_allocator_.AllocateSid(role);
       if (sid.has_value()) {
         (*it)->SetSctpSid_n(*sid);
-        AddSctpDataStream(*sid);
+        AddSctpDataStream(*sid, (*it)->priority());
         if (ready_to_send) {
           RTC_LOG(LS_INFO) << "AllocateSctpSids: Id assigned, ready to send.";
           (*it)->OnTransportReady();
@@ -471,7 +475,7 @@ void DataChannelController::NotifyDataChannelsOfTransportCreated() {
 
   for (const auto& channel : sctp_data_channels_n_) {
     if (channel->sid_n().has_value())
-      AddSctpDataStream(*channel->sid_n());
+      AddSctpDataStream(*channel->sid_n(), channel->priority());
     channel->OnTransportChannelCreated();
   }
 }

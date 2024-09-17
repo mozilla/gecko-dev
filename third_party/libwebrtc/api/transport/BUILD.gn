@@ -76,6 +76,7 @@ rtc_source_set("datagram_transport_interface") {
   sources = [ "data_channel_transport_interface.h" ]
   deps = [
     "..:array_view",
+    "..:priority",
     "..:rtc_error",
     "../../rtc_base:copy_on_write_buffer",
     "//third_party/abseil-cpp/absl/types:optional",

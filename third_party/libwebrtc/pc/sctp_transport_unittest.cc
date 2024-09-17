@@ -16,6 +16,7 @@
 #include "absl/memory/memory.h"
 #include "absl/types/optional.h"
 #include "api/dtls_transport_interface.h"
+#include "api/priority.h"
 #include "api/transport/data_channel_transport_interface.h"
 #include "media/base/media_channel.h"
 #include "p2p/base/fake_dtls_transport.h"
@@ -47,7 +48,7 @@ class FakeCricketSctpTransport : public cricket::SctpTransportInternal {
   bool Start(int local_port, int remote_port, int max_message_size) override {
     return true;
   }
-  bool OpenStream(int sid) override { return true; }
+  bool OpenStream(int sid, PriorityValue priority) override { return true; }
   bool ResetStream(int sid) override { return true; }
   RTCError SendData(int sid,
                     const SendDataParams& params,

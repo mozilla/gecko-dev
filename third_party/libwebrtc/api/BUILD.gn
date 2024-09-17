@@ -544,6 +544,10 @@ rtc_source_set("rtp_transceiver_direction") {
 rtc_source_set("priority") {
   visibility = [ "*" ]
   sources = [ "priority.h" ]
+  deps = [
+    "../rtc_base:checks",
+    "../rtc_base:strong_alias",
+  ]
 }
 
 rtc_library("rtp_parameters") {
@@ -1166,6 +1170,7 @@ if (rtc_include_tests) {
 
     deps = [
       ":libjingle_peerconnection_api",
+      ":priority",
       "../test:test_support",
     ]
   }

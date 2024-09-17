@@ -13,6 +13,7 @@
 #define API_TRANSPORT_DATA_CHANNEL_TRANSPORT_INTERFACE_H_
 
 #include "absl/types/optional.h"
+#include "api/priority.h"
 #include "api/rtc_error.h"
 #include "rtc_base/copy_on_write_buffer.h"
 
@@ -99,7 +100,7 @@ class DataChannelTransportInterface {
 
   // Opens a data `channel_id` for sending.  May return an error if the
   // specified `channel_id` is unusable.  Must be called before `SendData`.
-  virtual RTCError OpenChannel(int channel_id) = 0;
+  virtual RTCError OpenChannel(int channel_id, PriorityValue priority) = 0;
 
   // Sends a data buffer to the remote endpoint using the given send parameters.
   // `buffer` may not be larger than 256 KiB. Returns an error if the send

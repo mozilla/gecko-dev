@@ -21,6 +21,7 @@
 #include "api/array_view.h"
 #include "api/data_channel_interface.h"
 #include "api/environment/environment.h"
+#include "api/priority.h"
 #include "media/base/media_channel.h"
 #include "net/dcsctp/public/dcsctp_socket_factory.h"
 #include "net/dcsctp/public/packet_observer.h"
@@ -222,16 +223,27 @@ bool DcSctpTransport::Start(int local_sctp_port,
 
   MaybeConnectSocket();
 
+  for (const auto& [sid, stream_state] : stream_states_) {
+    socket_->SetStreamPriority(sid, stream_state.priority);
+  }
+
   return true;
 }
 
-bool DcSctpTransport::OpenStream(int sid) {
+bool DcSctpTransport::OpenStream(int sid, PriorityValue priority) {
   RTC_DCHECK_RUN_ON(network_thread_);
-  RTC_DLOG(LS_INFO) << debug_name_ << "->OpenStream(" << sid << ").";
+  RTC_DLOG(LS_INFO) << debug_name_ << "->OpenStream(" << sid << ", "
+                    << priority.value() << ").";
 
   StreamState stream_state;
+  stream_state.priority = dcsctp::StreamPriority(priority.value());
   stream_states_.insert_or_assign(dcsctp::StreamID(static_cast<uint16_t>(sid)),
                                   stream_state);
+  if (socket_) {
+    socket_->SetStreamPriority(dcsctp::StreamID(sid),
+                               dcsctp::StreamPriority(priority.value()));
+  }
+
   return true;
 }
 

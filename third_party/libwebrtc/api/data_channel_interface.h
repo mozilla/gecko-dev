@@ -67,7 +67,7 @@ struct DataChannelInit {
   int id = -1;
 
   // https://w3c.github.io/webrtc-priority/#new-rtcdatachannelinit-member
-  absl::optional<Priority> priority;
+  absl::optional<PriorityValue> priority;
 };
 
 // At the JavaScript level, data can be passed in as a string or a blob, so
@@ -172,7 +172,7 @@ class RTC_EXPORT DataChannelInterface : public RefCountInterface {
   // If negotiated in-band, this ID will be populated once the DTLS role is
   // determined, and until then this will return -1.
   virtual int id() const = 0;
-  virtual Priority priority() const { return Priority::kLow; }
+  virtual PriorityValue priority() const;
   virtual DataState state() const = 0;
   // When state is kClosed, and the DataChannel was not closed using
   // the closing procedure, returns the error information about the closing.

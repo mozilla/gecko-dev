@@ -14,6 +14,7 @@
 #include <string>
 
 #include "api/data_channel_interface.h"
+#include "api/priority.h"
 #include "test/gmock.h"
 
 namespace webrtc {
@@ -41,7 +42,7 @@ class MockDataChannelInterface
   MOCK_METHOD(std::string, protocol, (), (const, override));
   MOCK_METHOD(bool, negotiated, (), (const, override));
   MOCK_METHOD(int, id, (), (const, override));
-  MOCK_METHOD(Priority, priority, (), (const, override));
+  MOCK_METHOD(PriorityValue, priority, (), (const, override));
   MOCK_METHOD(DataState, state, (), (const, override));
   MOCK_METHOD(RTCError, error, (), (const, override));
   MOCK_METHOD(uint32_t, messages_sent, (), (const, override));

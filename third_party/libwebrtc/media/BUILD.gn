@@ -729,6 +729,7 @@ rtc_source_set("rtc_data_sctp_transport_internal") {
   sources = [ "sctp/sctp_transport_internal.h" ]
   deps = [
     ":media_channel",
+    "../api:priority",
     "../api:rtc_error",
     "../api/transport:datagram_transport_interface",
     "../p2p:packet_transport_internal",
@@ -749,6 +750,7 @@ if (rtc_build_dcsctp) {
       ":rtc_data_sctp_transport_internal",
       "../api:array_view",
       "../api:libjingle_peerconnection_api",
+      "../api:priority",
       "../api/environment",
       "../api/task_queue:pending_task_safety_flag",
       "../api/task_queue:task_queue",
@@ -945,6 +947,7 @@ if (rtc_include_tests) {
         "../api:mock_video_bitrate_allocator_factory",
         "../api:mock_video_codec_factory",
         "../api:mock_video_encoder",
+        "../api:priority",
         "../api:rtp_parameters",
         "../api:scoped_refptr",
         "../api:simulcast_test_fixture_api",
@@ -990,6 +993,7 @@ if (rtc_include_tests) {
         "../modules/video_coding:webrtc_h264",
         "../modules/video_coding:webrtc_vp8",
         "../modules/video_coding/svc:scalability_mode_util",
+        "../net/dcsctp/public:types",
         "../p2p:p2p_test_utils",
         "../rtc_base:async_packet_socket",
         "../rtc_base:byte_order",

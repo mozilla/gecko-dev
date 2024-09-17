@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "api/data_channel_interface.h"
+#include "api/priority.h"
 #include "api/rtc_error.h"
 #include "api/scoped_refptr.h"
 #include "api/transport/data_channel_transport_interface.h"
@@ -100,7 +101,7 @@ class SctpDataChannelTest : public ::testing::Test {
       RTC_DCHECK_RUN_ON(&network_thread_);
       if (!inner_channel_->sid_n().has_value()) {
         inner_channel_->SetSctpSid_n(sid);
-        controller_->AddSctpDataStream(sid);
+        controller_->AddSctpDataStream(sid, inner_channel_->priority());
       }
       inner_channel_->OnTransportChannelCreated();
     });
@@ -117,7 +118,7 @@ class SctpDataChannelTest : public ::testing::Test {
                      StreamId sid) {
     network_thread_.BlockingCall([&]() {
       channel->SetSctpSid_n(sid);
-      controller_->AddSctpDataStream(sid);
+      controller_->AddSctpDataStream(sid, channel->priority());
     });
   }
 
@@ -162,7 +163,7 @@ TEST_F(SctpDataChannelTest, VerifyConfigurationGetters) {
   EXPECT_EQ(channel_->reliable(), init_.reliable);
   EXPECT_EQ(channel_->ordered(), init_.ordered);
   EXPECT_EQ(channel_->negotiated(), init_.negotiated);
-  EXPECT_EQ(channel_->priority(), Priority::kLow);
+  EXPECT_EQ(channel_->priority(), PriorityValue(Priority::kLow));
   EXPECT_EQ(channel_->maxRetransmitTime(), static_cast<uint16_t>(-1));
   EXPECT_EQ(channel_->maxPacketLifeTime(), init_.maxRetransmitTime);
   EXPECT_EQ(channel_->maxRetransmits(), static_cast<uint16_t>(-1));

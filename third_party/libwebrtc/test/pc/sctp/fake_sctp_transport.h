@@ -14,6 +14,7 @@
 #include <memory>
 
 #include "api/environment/environment.h"
+#include "api/priority.h"
 #include "api/transport/sctp_transport_factory_interface.h"
 #include "media/sctp/sctp_transport_internal.h"
 
@@ -31,7 +32,9 @@ class FakeSctpTransport : public cricket::SctpTransportInternal {
     max_message_size_ = max_message_size;
     return true;
   }
-  bool OpenStream(int sid) override { return true; }
+  bool OpenStream(int sid, webrtc::PriorityValue priority) override {
+    return true;
+  }
   bool ResetStream(int sid) override { return true; }
   webrtc::RTCError SendData(int sid,
                             const webrtc::SendDataParams& params,

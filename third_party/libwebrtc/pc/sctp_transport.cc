@@ -15,6 +15,7 @@
 
 #include "absl/types/optional.h"
 #include "api/dtls_transport_interface.h"
+#include "api/priority.h"
 #include "api/sequence_checker.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
@@ -75,10 +76,10 @@ void SctpTransport::UnregisterObserver() {
   observer_ = nullptr;
 }
 
-RTCError SctpTransport::OpenChannel(int channel_id) {
+RTCError SctpTransport::OpenChannel(int channel_id, PriorityValue priority) {
   RTC_DCHECK_RUN_ON(owner_thread_);
   RTC_DCHECK(internal_sctp_transport_);
-  internal_sctp_transport_->OpenStream(channel_id);
+  internal_sctp_transport_->OpenStream(channel_id, priority);
   return RTCError::OK();
 }
 

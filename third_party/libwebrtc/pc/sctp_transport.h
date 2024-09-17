@@ -45,7 +45,7 @@ class SctpTransport : public SctpTransportInterface,
   void UnregisterObserver() override;
 
   // DataChannelTransportInterface
-  RTCError OpenChannel(int channel_id) override;
+  RTCError OpenChannel(int channel_id, PriorityValue priority) override;
   RTCError SendData(int channel_id,
                     const SendDataParams& params,
                     const rtc::CopyOnWriteBuffer& buffer) override;
