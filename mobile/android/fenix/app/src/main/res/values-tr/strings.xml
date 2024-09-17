@@ -238,6 +238,8 @@
     <string name="browser_menu_add_to_homescreen">Ana ekrana ekle</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Ana ekrana ekle…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi cihazlarda ana ekrana kısayol eklemek için ek izinlere ihtiyaç olabilir. Lütfen ayarlarınızı kontrol edin.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Yeniden eşitle</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -578,13 +580,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Vazgeç</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">İstek gönder</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Sitenin eklenmesini isteyin</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">İstek gönder</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Bu site için destek istensin mi?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">%1$s çerezleri otomatik olarak reddetsin mi?</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Bu site için destek istensin mi?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">İstek gönderildi</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -592,18 +590,14 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Destek isteği gönderildi</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Bu site şu anda desteklenmiyor</string>
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">Bu site desteklenmiyor</string>
+    <string name="reduce_cookie_banner_unsupported_site">Bu site şu anda desteklenmiyor</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">%1$s için çerez bildirimlerini engelleme açılsın mı?</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">%1$s için çerez bildirimlerini engelleme kapatılsın mı?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s bu sitedeki çerez isteklerini otomatik olarak reddedemiyor. İleride bu siteyi desteklememiz için istekte bulunabilirsiniz.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s bu sitedeki çerez isteklerini otomatik olarak reddedemiyor. İleride bu siteyi desteklememiz için istekte bulunabilirsiniz.</string>
 
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Şimdilik bu sitedeki çerez bildirimlerini otomatik olarak reddedemiyoruz.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Bunu kapatırsanız %1$s çerezleri temizleyip bu siteyi yeniden yükleyecektir. Bu durumda oturumunuz kapanabilir veya alışveriş sepetleriniz boşalabilir.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -1252,8 +1246,12 @@
     <string name="bookmark_url_label">ADRES</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">KLASÖR</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Kayıt konumu</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">İSİM</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Adı</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Klasör ekle</string>
     <!-- Bookmark select folder screen title -->

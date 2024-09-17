@@ -183,10 +183,14 @@
     <string name="browser_menu_stop">Спыніць</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Пашырэнні</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Даведацца больш</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Кіраваць пашырэннямі</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Адкрыйце для сябе іншыя пашырэнні</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Часова адключана</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Ваш уліковы запіс</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -292,6 +296,10 @@
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Друкаваць…</string>
 
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Выйсці з %1$s</string>
+
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
     <string name="extensions_management_no_extensions">Тут няма пашырэнняў</string>
@@ -387,12 +395,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Паведамленне аб прыватнасці Firefox</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Паведамленне аб прыватнасці Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Нам падабаецца забяспечваць вашу бяспеку</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Даведайцеся, чаму мільёны людзей любяць Firefox</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Даведайцеся, чаму мільёны людзей любяць Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Бяспечнае агляданне з вялікім выбарам</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -414,7 +422,7 @@
     <string name="juno_onboarding_sign_in_title_2">Заставайцеся зашыфраванымі падчас пераходу паміж прыладамі</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Калі вы ўвайшлі ў сістэму і правялі сінхранізацыю, вы ў большай бяспецы. Firefox шыфруе вашыя паролі, закладкі і многае іншае.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Калі вы ўвайшлі ў сістэму і правялі сінхранізацыю, вы ў большай бяспецы. Firefox шыфруе вашыя паролі, закладкі і многае іншае.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Увайсці</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -422,10 +430,10 @@
 
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Апавяшчэнні дапамагаюць вам заставацца ў бяспецы з Firefox</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Апавяшчэнні дапамагаюць вам заставацца ў бяспецы з Firefox</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Бяспечна перасылайце карткі паміж сваімі прыладамі і адкрыйце для сябе іншыя функцыі прыватнасці ў Firefox.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Бяспечна перасылайце карткі паміж сваімі прыладамі і адкрыйце для сябе іншыя функцыі прыватнасці ў Firefox.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Уключыць апавяшчэнні</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -433,13 +441,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Паспрабуйце віджэт пошуку Firefox</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Паспрабуйце віджэт пошуку Firefox</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">З Firefox на вашым галоўным экране, вы атрымаеце лёгкі доступ да браўзера, які дбае аб прыватнасці і блакуе міжсайтавыя трэкеры.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">З Firefox на вашым галоўным экране, вы атрымаеце лёгкі доступ да браўзера, які дбае аб прыватнасці і блакуе міжсайтавыя трэкеры.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Дадаць віджэт Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Дадаць віджэт Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Не зараз</string>
 
@@ -479,9 +487,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Настройкі адраснага радка</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Адрасны радок - Firefox Suggest</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Адрасны радок - Firefox Suggest</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Даведайцеся больш пра Firefox Suggest</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Даведайцеся больш пра Firefox Suggest</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Ацаніць у Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -578,8 +586,6 @@
     <string name="toast_override_account_sync_server_done">Сервер уліковых запісаў Mozilla/сінхранізацыі зменены. Выхад з праграмы, каб прымяніць змены…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Уліковы запіс</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Паліца інструментаў</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Размяшчэнне адраснага радка</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -739,7 +745,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Даступныя новыя пашырэнні</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Азнаёмцеся з больш за 100 новых пашырэнняў, якія дазваляюць зрабіць Firefox вашым уласным.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Азнаёмцеся з больш за 100 новых пашырэнняў, якія дазваляюць зрабіць Firefox вашым уласным.</string>
 
     <!-- Extension process crash dialog to user -->
     <!-- Title of the extension crash dialog shown to the user when enough errors have occurred with extensions and they need to be temporarily disabled -->
@@ -798,7 +804,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Атрыманыя карткі</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Апавяшчэнні для картак, атрыманых ад іншых прылад Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Апавяшчэнні для картак, атрыманых ад іншых прылад Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Атрыманая картка</string>
     <!-- %s is the device name -->
@@ -870,8 +876,6 @@
 
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Пракруціць, каб схаваць панэль інструментаў</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Пасунуць убок панэль інструментаў, каб пераключыць карткі</string>
 
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Пасуньце ўверх панэль інструментаў, каб адкрыць карткі</string>
@@ -1060,7 +1064,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Назва калекцыі</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Перайменаваць</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Перайменаваць</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Выдаліць</string>
 
@@ -1135,6 +1139,8 @@
     <string name="bookmark_add_folder">Дадаць папку</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Закладка захавана!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Захавана ў “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ЗМЯНІЦЬ</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1194,6 +1200,11 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Увядзіце пошукавыя запыты</string>
+
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description">Закрыць закладкі</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Шукаць у закладках</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1369,7 +1380,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Падключыць іншую прыладу</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Каб адправіць картку, увайдзіце ў Firefox прынамсі на адной іншай прыладзе.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Каб адправіць картку, увайдзіце ў Firefox прынамсі на адной іншай прыладзе.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Зразумела</string>
 
@@ -1407,10 +1418,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox хуткі і прыватны</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox хуткі і прыватны</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Зрабіце Firefox вашым прадвызначаным браўзерам</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Зрабіце Firefox вашым прадвызначаным браўзерам</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Паспрабуйце Прыватнае агляданне</string>
 
@@ -1431,7 +1442,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Калі ласка, дапамажыце палепшыць Firefox, прыняўшы ўдзел у кароткім апытанні.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Калі ласка, дапамажыце палепшыць Firefox, прыняўшы ўдзел у кароткім апытанні.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Прайсці апытанне</string>
     <!-- Preference for not taking the short survey. -->
@@ -1448,6 +1459,8 @@
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Карткі закрыты</string>
 
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Карткі закрыты: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Закладкі захаваны!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1579,7 +1592,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Скануйце код</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Адкрыйце Firefox на сваім камп’ютары і перайдзіце на <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Адкрыйце Firefox на сваім камп’ютары і перайдзіце на <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Гатовы да сканавання</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1587,7 +1600,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Выкарыстаць электронную пошту</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Не маеце ўліковага запісу? <u> Стварыце яго, </u> каб сінхранізаваць Firefox паміж прыладамі.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Не маеце ўліковага запісу? <u> Стварыце яго, </u> каб сінхранізаваць Firefox паміж прыладамі.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s спыніць сінхранізацыю з вашым уліковым запісам, але не выдаліць дадзеныя аглядання на гэтай прыладзе.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2117,7 +2130,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Калі ласка, уключыце сінхранізацыю картак.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">На іншых вашых прыладах у Firefox не адкрыта ніводнай карткі.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">На іншых вашых прыладах у Firefox не адкрыта ніводнай карткі.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Пабачыць спіс картак з іншых прылад.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2146,7 +2159,7 @@
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Назва цэтліка</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">OK</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Адмена</string>
 
@@ -2156,6 +2169,9 @@
     <string name="top_sites_menu_sponsor_privacy">Нашы спонсары і ваша прыватнасць</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Спонсарскі</string>
+
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Захаваць</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -2173,7 +2189,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Аўтаматычна закрываць праз месяц?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox можа закрываць карткі, якія вы не праглядалі за апошні месяц.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox можа закрываць карткі, якія вы не праглядалі за апошні месяц.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">УКЛЮЧЫЦЬ АЎТАЗАКРЫЦЦЁ</string>
     <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
@@ -2181,7 +2197,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Прапановы Firefox</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Прапановы Firefox</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Пошук у Google</string>
@@ -2192,7 +2208,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Змяніць прадвызначаны браўзер</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Наладзьце аўтаматычнае адкрыццё спасылак з сайтаў, пошты і паведамленняў у Firefox.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Наладзьце аўтаматычнае адкрыццё спасылак з сайтаў, пошты і паведамленняў у Firefox.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Выдаліць</string>
@@ -2216,7 +2232,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">Пры падтрымцы %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Частка сямейства Firefox. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Частка сямейства Firefox. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Даведацца больш</string>
 
@@ -2554,8 +2570,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Выдаліць усе мовы</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Выдаліць</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">У працэсе</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">У працэсе</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2580,11 +2594,11 @@
 
     <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
     The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title">Скасаваць сцягванне %1$s?</string>
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Скасаваць сцягванне %1$s?</string>
     <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text">Так</string>
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Так</string>
     <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text">Не</string>
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Не</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2638,17 +2652,11 @@
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Працягнуць</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Запоўніць гэтае апытанне</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Калі ласка, запоўніце апытанне</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Паведамленне аб прыватнасці</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Паведамленне аб прыватнасці</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Падаць</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Закрыць</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Апытанне завершана</string>
     <!-- The survey completion confirmation text -->
@@ -2668,7 +2676,7 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Я ёй не карыстаюся</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Лагатып Firefox</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Лагатып Firefox</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Адкрыць апытанне</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
@@ -2686,9 +2694,9 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і выкарыстайце жэст &quot;Назад&quot;.</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і выкарыстайце жэст &quot;Назад&quot;.</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і націсніце назад</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Каб выйсці з поўнаэкраннага рэжыму, пацягніце зверху і націсніце назад</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

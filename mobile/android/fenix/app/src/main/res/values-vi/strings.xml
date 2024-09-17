@@ -236,6 +236,8 @@
     <string name="browser_menu_add_to_homescreen">Thêm vào màn hình chính</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Thêm vào màn hình chính…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Các thiết bị Xiaomi có thể cần thêm quyền để thêm lối tắt vào màn hình chính. Vui lòng kiểm tra cài đặt của bạn.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Đồng bộ hóa lại</string>
     <!-- Browser menu button that opens the find in page menu -->

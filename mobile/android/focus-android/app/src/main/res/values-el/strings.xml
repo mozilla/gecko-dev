@@ -125,23 +125,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Αναζήτηση στο Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Αναζήτηση στο Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Αναζήτηση στο Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Αναζήτηση στο Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Αναζήτηση στο Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Αναζήτηση στο Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Αναζήτηση στο Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Αναζήτηση στο Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>Το %1$s σάς δίνει τον έλεγχο.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>Το %1$s σάς δίνει τον έλεγχο.</p>
 <p>Χρησιμοποιήστε το για:
   <ul>
     <li>Αναζήτηση και περιήγηση</li>
@@ -611,9 +611,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Διαγραφή ιστορικού περιήγησης</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Κλείσιμο των άλλων καρτελών</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Λήψη του Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Λήψη του Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -625,23 +628,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[Το %1$s διατίθεται βάσει των όρων της <a href="%2$s">Mozilla Public License</a> και άλλων αδειών ανοικτού κώδικα.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Το %1$s διατίθεται βάσει των όρων της <a href="%2$s">Mozilla Public License</a> και άλλων αδειών ανοικτού κώδικα.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Δεν έχετε δικαίωμα ή άδεια για τα εμπορικά σήματα του Mozilla Foundation ή άλλου μέρους, όπως της Mozilla, του Firefox και τα ονόματα ή λογότυπα του %1$s. Μπορείτε να βρείτε περισσότερες πληροφορίες <a href="%2$s">εδώ</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Δεν έχετε δικαίωμα ή άδεια για τα εμπορικά σήματα του Mozilla Foundation ή άλλου μέρους, όπως της Mozilla, του Firefox και τα ονόματα ή λογότυπα του %1$s. Μπορείτε να βρείτε περισσότερες πληροφορίες <a href="%2$s">εδώ</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Επιπρόσθετος πηγαίος κώδικας του %1$s διατίθεται βάσει άλλων ελεύθερων <a href="%2$s">αδειών</a> ανοικτού κώδικα.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Επιπρόσθετος πηγαίος κώδικας του %1$s διατίθεται βάσει άλλων ελεύθερων <a href="%2$s">αδειών</a> ανοικτού κώδικα.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[Το %1$s χρησιμοποιεί επίσης λίστες αποκλεισμού από την ανεξάρτητη Disconnect, Inc. βάσει της <a href="%2$s">GNU General Public License v3</a>, που βρίσκονται <a href="%3$s">εδώ</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Το %1$s χρησιμοποιεί επίσης λίστες αποκλεισμού από την ανεξάρτητη Disconnect, Inc. βάσει της <a href="%2$s">GNU General Public License v3</a>, που βρίσκονται <a href="%3$s">εδώ</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Όνομα χρήστη</string>
@@ -833,7 +836,7 @@
     <string name="preference_studies">Μελέτες</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Το Firefox ενδέχεται να εγκαθιστά και να εκτελεί περιστασιακά μελέτες.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Το Firefox ενδέχεται να εγκαθιστά και να εκτελεί περιστασιακά μελέτες.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Μάθετε περισσότερα</string>
@@ -1043,7 +1046,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[Το %1$s προσπαθεί να χρησιμοποιεί σύνδεση HTTPS, όποτε αυτό είναι δυνατό, για περισσότερη ασφάλεια.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Το %1$s προσπαθεί να χρησιμοποιεί σύνδεση HTTPS, όποτε αυτό είναι δυνατό, για περισσότερη ασφάλεια.
      <a href="%2$s">Μάθετε περισσότερα</a> <br/><br/>
      Αλλάξτε αυτήν τη ρύθμιση στις Ρυθμίσεις > Απόρρητο και ασφάλεια > Ασφάλεια.]]></string>
 
