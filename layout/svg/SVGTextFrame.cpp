@@ -367,10 +367,10 @@ static float GetContextScale(SVGTextFrame* aFrame) {
       RelativeTo{aFrame}, RelativeTo{SVGUtils::GetOuterSVGFrame(aFrame)});
   Matrix transform2D;
   if (!matrix.CanDraw2D(&transform2D)) {
-    return {};
+    return 1.0f;
   }
   auto scales = transform2D.ScaleFactors();
-  return std::max(1.0f, std::max(scales.xScale, scales.yScale));
+  return std::max(0.0f, std::max(scales.xScale, scales.yScale));
 }
 
 // ============================================================================
