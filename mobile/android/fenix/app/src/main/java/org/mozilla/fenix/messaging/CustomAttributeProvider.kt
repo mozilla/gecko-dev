@@ -16,6 +16,7 @@ import org.mozilla.fenix.components.metrics.UTMParams.Companion.UTM_CONTENT
 import org.mozilla.fenix.components.metrics.UTMParams.Companion.UTM_MEDIUM
 import org.mozilla.fenix.components.metrics.UTMParams.Companion.UTM_SOURCE
 import org.mozilla.fenix.components.metrics.UTMParams.Companion.UTM_TERM
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.settings
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -92,6 +93,11 @@ object CustomAttributeProvider : JexlAttributeProvider {
                 "android_version" to android.os.Build.VERSION.SDK_INT,
 
                 "is_fxa_signed_in" to settings.signedInFxaAccount,
+
+                "fxa_connected_devices" to (
+                    context.components.backgroundServices.syncStore.state
+                        .constellationState?.otherDevices?.size ?: 0
+                    ),
             ),
         )
     }
