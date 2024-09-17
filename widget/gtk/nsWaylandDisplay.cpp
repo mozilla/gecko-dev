@@ -330,7 +330,8 @@ static void global_registry_handler(void* data, wl_registry* registry,
     auto* pointer_constraints = WaylandRegistryBind<zwp_pointer_constraints_v1>(
         registry, id, &zwp_pointer_constraints_v1_interface, 1);
     display->SetPointerConstraints(pointer_constraints);
-  } else if (iface.EqualsLiteral("wl_compositor")) {
+  } else if (iface.EqualsLiteral("wl_compositor") &&
+             version >= WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION) {
     auto* compositor = WaylandRegistryBind<wl_compositor>(
         registry, id, &wl_compositor_interface,
         WL_SURFACE_DAMAGE_BUFFER_SINCE_VERSION);
@@ -343,9 +344,11 @@ static void global_registry_handler(void* data, wl_registry* registry,
     auto* viewporter = WaylandRegistryBind<wp_viewporter>(
         registry, id, &wp_viewporter_interface, 1);
     display->SetViewporter(viewporter);
-  } else if (iface.EqualsLiteral("zwp_linux_dmabuf_v1") && version > 2) {
+  } else if (iface.EqualsLiteral("zwp_linux_dmabuf_v1") &&
+             version >= ZWP_LINUX_DMABUF_V1_MODIFIER_SINCE_VERSION) {
     auto* dmabuf = WaylandRegistryBind<zwp_linux_dmabuf_v1>(
-        registry, id, &zwp_linux_dmabuf_v1_interface, 3);
+        registry, id, &zwp_linux_dmabuf_v1_interface,
+        ZWP_LINUX_DMABUF_V1_MODIFIER_SINCE_VERSION);
     display->SetDmabuf(dmabuf);
   } else if (iface.EqualsLiteral("xdg_activation_v1")) {
     auto* activation = WaylandRegistryBind<xdg_activation_v1>(
@@ -356,12 +359,11 @@ static void global_registry_handler(void* data, wl_registry* registry,
         WaylandRegistryBind<xdg_dbus_annotation_manager_v1>(
             registry, id, &xdg_dbus_annotation_manager_v1_interface, 1);
     display->SetXdgDbusAnnotationManager(annotationManager);
-  } else if (iface.EqualsLiteral("wl_seat")) {
+  } else if (iface.EqualsLiteral("wl_seat") &&
+             version >= WL_POINTER_RELEASE_SINCE_VERSION) {
     auto* seat = WaylandRegistryBind<wl_seat>(registry, id, &wl_seat_interface,
                                               WL_POINTER_RELEASE_SINCE_VERSION);
-    if (seat) {
-      display->SetSeat(seat, id);
-    }
+    display->SetSeat(seat, id);
   } else if (iface.EqualsLiteral("wp_fractional_scale_manager_v1")) {
     auto* manager = WaylandRegistryBind<wp_fractional_scale_manager_v1>(
         registry, id, &wp_fractional_scale_manager_v1_interface, 1);
@@ -369,13 +371,13 @@ static void global_registry_handler(void* data, wl_registry* registry,
   } else if (iface.EqualsLiteral("gtk_primary_selection_device_manager") ||
              iface.EqualsLiteral("zwp_primary_selection_device_manager_v1")) {
     display->EnablePrimarySelection();
-  } else if (iface.EqualsLiteral("zwp_pointer_gestures_v1")) {
+  } else if (iface.EqualsLiteral("zwp_pointer_gestures_v1") &&
+             version >=
+                 ZWP_POINTER_GESTURES_V1_GET_HOLD_GESTURE_SINCE_VERSION) {
     auto* gestures = WaylandRegistryBind<zwp_pointer_gestures_v1>(
         registry, id, &zwp_pointer_gestures_v1_interface,
         ZWP_POINTER_GESTURES_V1_GET_HOLD_GESTURE_SINCE_VERSION);
-    if (gestures) {
-      display->SetPointerGestures(gestures);
-    }
+    display->SetPointerGestures(gestures);
   }
 }
 
