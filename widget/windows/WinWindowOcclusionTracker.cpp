@@ -703,15 +703,10 @@ void WinWindowOcclusionTracker::UpdateOcclusionState(
   }
 }
 
-void WinWindowOcclusionTracker::OnSessionChange(WPARAM aStatusCode,
-                                                Maybe<bool> aIsCurrentSession) {
+void WinWindowOcclusionTracker::OnSessionChange(WPARAM aStatusCode) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!StaticPrefs::
           widget_windows_window_occlusion_tracking_session_lock_enabled()) {
-    return;
-  }
-
-  if (aIsCurrentSession.isNothing() || !*aIsCurrentSession) {
     return;
   }
 
