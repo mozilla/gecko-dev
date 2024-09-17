@@ -773,6 +773,13 @@ void P2PTransportChannel::ParseFieldTrials(
   if (!ice_field_trials_.enable_goog_delta) {
     stun_dict_writer_.Disable();
   }
+
+  if (field_trials->IsEnabled("WebRTC-RFC8888CongestionControlFeedback")) {
+    int desired_recv_esn = 1;
+    RTC_LOG(LS_INFO) << "Set WebRTC-RFC8888CongestionControlFeedback: Enable "
+                        "and set ECN recving mode";
+    SetOption(rtc::Socket::OPT_RECV_ECN, desired_recv_esn);
+  }
 }
 
 const IceConfig& P2PTransportChannel::config() const {
