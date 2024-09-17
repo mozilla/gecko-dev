@@ -19,7 +19,7 @@ async function run_test() {
   gTestDirs = gTestDirsCompleteSuccess;
   await setupUpdaterTest(FILE_COMPLETE_MAR, true);
   setupSymLinks();
-  await runHelperFileInUse(DIR_RESOURCES + gCallbackBinFile, false);
+  await runHelperFileInUse(DIR_MACOS + gCallbackBinFile, false);
   await stageUpdate(STATE_AFTER_STAGE, true);
   checkPostUpdateRunningFile(false);
   checkFilesAfterUpdateSuccess(getStageDirFile, true);
