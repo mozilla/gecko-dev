@@ -327,7 +327,7 @@ private fun String.replaceEscapedCharacters(): String {
  * Replaces continuous spaces with a single space.
  */
 private fun String.replaceContinuousSpaces(): String {
-    val escapedCharactersRegex = "\\s+".toRegex()
+    val escapedCharactersRegex = "[\\p{Z}\\s]+".toRegex()
     return replace(escapedCharactersRegex, SPACE)
 }
 
