@@ -8,8 +8,9 @@
 addAccessibleTask(
   `<div id="test">test</div>`,
   async function (browser, docAcc) {
-    // On Linux, the viewport cache is populated on the DocAccessible without
-    // explicitly requesting it and is present once the document has loaded.
+    // On Linux and macOS, inconsistently, the viewport cache is populated on
+    // the DocAccessible without explicitly requesting it and is present once
+    // the document has loaded.
     await testCachingPerPlatform(docAcc, "viewport", () => {
       docAcc.getState({}, {});
     });
