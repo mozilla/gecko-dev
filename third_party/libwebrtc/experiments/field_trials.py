@@ -109,7 +109,7 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
                date(2024, 4, 1)),
     FieldTrial('WebRTC-PermuteTlsClientHello',
                42225803,
-               date(2024, 7, 1)),
+               date(2025, 1, 1)),
     FieldTrial('WebRTC-QCM-Dynamic-AV1',
                349860657,
                date(2025, 7, 1)),

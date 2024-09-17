@@ -1674,14 +1674,23 @@ TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
 }
 
 TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
-       ClientDefaultServerPermute) {
-  Initialize("", "WebRTC-PermuteTlsClientHello/Enabled/");
+       ClientDisabledServerDisabled) {
+  Initialize("WebRTC-PermuteTlsClientHello/Disabled/",
+             "WebRTC-PermuteTlsClientHello/Disabled/");
   TestHandshake();
 }
 
 TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
-       ClientPermuteServerDefault) {
-  Initialize("WebRTC-PermuteTlsClientHello/Enabled/", "");
+       ClientDisabledServerPermute) {
+  Initialize("WebRTC-PermuteTlsClientHello/Disabled/",
+             "WebRTC-PermuteTlsClientHello/Enabled/");
+  TestHandshake();
+}
+
+TEST_F(SSLStreamAdapterTestDTLSExtensionPermutation,
+       ClientPermuteServerDisabled) {
+  Initialize("WebRTC-PermuteTlsClientHello/Enabled/",
+             "WebRTC-PermuteTlsClientHello/Disabled/");
   TestHandshake();
 }
 

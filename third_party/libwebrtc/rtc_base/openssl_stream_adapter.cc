@@ -290,7 +290,7 @@ OpenSSLStreamAdapter::OpenSSLStreamAdapter(
       ssl_ctx_(nullptr),
 #ifdef OPENSSL_IS_BORINGSSL
       permute_extension_(
-          webrtc::field_trial::IsEnabled("WebRTC-PermuteTlsClientHello")),
+          !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
 #endif
       ssl_mode_(SSL_MODE_TLS),
       ssl_max_version_(SSL_PROTOCOL_TLS_12) {
