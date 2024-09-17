@@ -24,7 +24,6 @@ UNIFIED_SOURCES += [
     "nsMathMLmrootFrame.cpp",
     "nsMathMLmrowFrame.cpp",
     "nsMathMLmspaceFrame.cpp",
-    "nsMathMLmsqrtFrame.cpp",
     "nsMathMLmtableFrame.cpp",
     "nsMathMLmunderoverFrame.cpp",
     "nsMathMLOperators.cpp",

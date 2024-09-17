@@ -88,7 +88,6 @@ FRAME_CLASSES = [
     Frame("nsMathMLmrootFrame", "None", MATHML_CONTAINER),
     Frame("nsMathMLmrowFrame", "None", MATHML_CONTAINER),
     Frame("nsMathMLmspaceFrame", "None", MATHML_CONTAINER | LEAF),
-    Frame("nsMathMLmsqrtFrame", "None", MATHML_CONTAINER),
     Frame("nsMathMLmtableFrame", "Table", TABLE | MATHML),
     Frame("nsMathMLmtableWrapperFrame", "TableWrapper", BLOCK | MATHML),
     Frame("nsMathMLmtdFrame", "TableCell", TABLE_CELL | MATHML),

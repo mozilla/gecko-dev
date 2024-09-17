@@ -29,8 +29,8 @@ nsIFrame* NS_NewMathMLmrootFrame(PresShell* aPresShell, ComputedStyle* aStyle) {
 NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmrootFrame)
 
 nsMathMLmrootFrame::nsMathMLmrootFrame(ComputedStyle* aStyle,
-                                       nsPresContext* aPresContext, ClassID aID)
-    : nsMathMLContainerFrame(aStyle, aPresContext, aID) {}
+                                       nsPresContext* aPresContext)
+    : nsMathMLContainerFrame(aStyle, aPresContext, kClassID) {}
 
 nsMathMLmrootFrame::~nsMathMLmrootFrame() = default;
 
@@ -56,6 +56,26 @@ bool nsMathMLmrootFrame::ShouldUseRowFallback() {
   }
   nsIFrame* indexFrame = baseFrame->GetNextSibling();
   return !indexFrame || indexFrame->GetNextSibling();
+}
+
+bool nsMathMLmrootFrame::IsMrowLike() {
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  if (isRootWithIndex) {
+    return false;
+  }
+  return mFrames.FirstChild() != mFrames.LastChild() || !mFrames.FirstChild();
+}
+
+NS_IMETHODIMP
+nsMathMLmrootFrame::InheritAutomaticData(nsIFrame* aParent) {
+  nsMathMLContainerFrame::InheritAutomaticData(aParent);
+
+  bool isRootWithIndex = GetContent()->IsMathMLElement(nsGkAtoms::mroot_);
+  if (!isRootWithIndex) {
+    mPresentationData.flags |= NS_MATHML_STRETCH_ALL_CHILDREN_VERTICALLY;
+  }
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP

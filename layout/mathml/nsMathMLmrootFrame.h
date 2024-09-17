@@ -32,6 +32,9 @@ class nsMathMLmrootFrame : public nsMathMLContainerFrame {
                     nsIFrame* aPrevInFlow) override;
 
   NS_IMETHOD
+  InheritAutomaticData(nsIFrame* aParent) final;
+
+  NS_IMETHOD
   TransmitAutomaticData() override;
 
   void GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
@@ -47,8 +50,7 @@ class nsMathMLmrootFrame : public nsMathMLContainerFrame {
 
  protected:
   explicit nsMathMLmrootFrame(ComputedStyle* aStyle,
-                              nsPresContext* aPresContext,
-                              ClassID aID = kClassID);
+                              nsPresContext* aPresContext);
   virtual ~nsMathMLmrootFrame();
 
   nsMathMLChar mSqrChar;
@@ -56,6 +58,7 @@ class nsMathMLmrootFrame : public nsMathMLContainerFrame {
 
  private:
   bool ShouldUseRowFallback();
+  bool IsMrowLike() final;
   nsresult Place(DrawTarget* aDrawTarget, const PlaceFlags& aFlags,
                  ReflowOutput& aDesiredSize) final;
 };
