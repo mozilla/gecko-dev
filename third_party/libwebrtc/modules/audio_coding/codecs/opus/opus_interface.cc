@@ -38,9 +38,6 @@ enum {
 constexpr char kPlcUsePrevDecodedSamplesFieldTrial[] =
     "WebRTC-Audio-OpusPlcUsePrevDecodedSamples";
 
-constexpr char kAvoidNoisePumpingDuringDtxFieldTrial[] =
-    "WebRTC-Audio-OpusAvoidNoisePumpingDuringDtx";
-
 static int FrameSizePerChannel(int frame_size_ms, int sample_rate_hz) {
   RTC_DCHECK_GT(frame_size_ms, 0);
   RTC_DCHECK_EQ(frame_size_ms % 10, 0);
@@ -57,46 +54,6 @@ static int MaxFrameSizePerChannel(int sample_rate_hz) {
 // Default sample count per channel.
 static int DefaultFrameSizePerChannel(int sample_rate_hz) {
   return FrameSizePerChannel(20, sample_rate_hz);
-}
-
-// Returns true if the `encoded` payload corresponds to a refresh DTX packet
-// whose energy is larger than the expected for non activity packets.
-static bool WebRtcOpus_IsHighEnergyRefreshDtxPacket(
-    OpusEncInst* inst,
-    rtc::ArrayView<const int16_t> frame,
-    rtc::ArrayView<const uint8_t> encoded) {
-  if (encoded.size() <= 2) {
-    return false;
-  }
-  int number_frames =
-      frame.size() / DefaultFrameSizePerChannel(inst->sample_rate_hz);
-  if (number_frames > 0 &&
-      WebRtcOpus_PacketHasVoiceActivity(encoded.data(), encoded.size()) == 0) {
-    const float average_frame_energy =
-        std::accumulate(frame.begin(), frame.end(), 0.0f,
-                        [](float a, int32_t b) { return a + b * b; }) /
-        number_frames;
-    if (WebRtcOpus_GetInDtx(inst) == 1 &&
-        average_frame_energy >= inst->smooth_energy_non_active_frames * 0.5f) {
-      // This is a refresh DTX packet as the encoder is in DTX and has
-      // produced a payload > 2 bytes. This refresh packet has a higher energy
-      // than the smooth energy of non activity frames (with a 3 dB negative
-      // margin) and, therefore, it is flagged as a high energy refresh DTX
-      // packet.
-      return true;
-    }
-    // The average energy is tracked in a similar way as the modeling of the
-    // comfort noise in the Silk decoder in Opus
-    // (third_party/opus/src/silk/CNG.c).
-    if (average_frame_energy < inst->smooth_energy_non_active_frames * 0.5f) {
-      inst->smooth_energy_non_active_frames = average_frame_energy;
-    } else {
-      inst->smooth_energy_non_active_frames +=
-          (average_frame_energy - inst->smooth_energy_non_active_frames) *
-          0.25f;
-    }
-  }
-  return false;
 }
 
 int16_t WebRtcOpus_EncoderCreate(OpusEncInst** inst,
@@ -134,9 +91,6 @@ int16_t WebRtcOpus_EncoderCreate(OpusEncInst** inst,
   state->in_dtx_mode = 0;
   state->channels = channels;
   state->sample_rate_hz = sample_rate_hz;
-  state->smooth_energy_non_active_frames = 0.0f;
-  state->avoid_noise_pumping_during_dtx =
-      webrtc::field_trial::IsEnabled(kAvoidNoisePumpingDuringDtxFieldTrial);
 
   *inst = state;
   return 0;
@@ -182,8 +136,6 @@ int16_t WebRtcOpus_MultistreamEncoderCreate(
   state->in_dtx_mode = 0;
   state->channels = channels;
   state->sample_rate_hz = sample_rate_hz;
-  state->smooth_energy_non_active_frames = 0.0f;
-  state->avoid_noise_pumping_during_dtx = false;
 
   *inst = state;
   return 0;
@@ -241,21 +193,6 @@ int WebRtcOpus_Encode(OpusEncInst* inst,
     }
   }
 
-  if (inst->avoid_noise_pumping_during_dtx && WebRtcOpus_GetUseDtx(inst) == 1 &&
-      WebRtcOpus_IsHighEnergyRefreshDtxPacket(
-          inst, rtc::MakeArrayView(audio_in, samples),
-          rtc::MakeArrayView(encoded, res))) {
-    // This packet is a high energy refresh DTX packet. For avoiding an increase
-    // of the energy in the DTX region at the decoder, this packet is
-    // substituted by a TOC byte with one empty frame.
-    // The number of frames described in the TOC byte
-    // (https://tools.ietf.org/html/rfc6716#section-3.1) are overwritten to
-    // always indicate one frame (last two bits equal to 0).
-    encoded[0] = encoded[0] & 0b11111100;
-    inst->in_dtx_mode = 1;
-    // The payload is just the TOC byte and has 1 byte as length.
-    return 1;
-  }
   inst->in_dtx_mode = 0;
   return res;
 }
@@ -436,19 +373,6 @@ int16_t WebRtcOpus_SetForceChannels(OpusEncInst* inst, size_t num_channels) {
   } else {
     return -1;
   }
-}
-
-int32_t WebRtcOpus_GetInDtx(OpusEncInst* inst) {
-  if (!inst) {
-    return -1;
-  }
-#ifdef OPUS_GET_IN_DTX
-  int32_t in_dtx;
-  if (ENCODER_CTL(inst, OPUS_GET_IN_DTX(&in_dtx)) == 0) {
-    return in_dtx;
-  }
-#endif
-  return -1;
 }
 
 int16_t WebRtcOpus_DecoderCreate(OpusDecInst** inst,
