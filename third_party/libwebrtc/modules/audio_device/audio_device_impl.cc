@@ -239,8 +239,9 @@ int32_t AudioDeviceModuleImpl::CreatePlatformSpecificObjects() {
 // iOS ADM implementation.
 #if defined(WEBRTC_IOS)
   if (audio_layer == kPlatformDefaultAudio) {
-    audio_device_.reset(
-        new ios_adm::AudioDeviceIOS(/*bypass_voice_processing=*/false));
+    audio_device_.reset(new ios_adm::AudioDeviceIOS(
+        /*bypass_voice_processing=*/false,
+        /*muted_speech_event_handler=*/nullptr));
     RTC_LOG(LS_INFO) << "iPhone Audio APIs will be utilized.";
   }
 // END #if defined(WEBRTC_IOS)

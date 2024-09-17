@@ -72,8 +72,10 @@ static OSStatus GetAGCState(AudioUnit audio_unit, UInt32* enabled) {
 }
 
 VoiceProcessingAudioUnit::VoiceProcessingAudioUnit(bool bypass_voice_processing,
+                                                   bool detect_mute_speech,
                                                    VoiceProcessingAudioUnitObserver* observer)
     : bypass_voice_processing_(bypass_voice_processing),
+      detect_mute_speech_(detect_mute_speech),
       observer_(observer),
       vpio_unit_(nullptr),
       state_(kInitRequired) {
@@ -250,6 +252,24 @@ bool VoiceProcessingAudioUnit::Initialize(Float64 sample_rate) {
   }
   if (result == noErr) {
     RTCLog(@"Voice Processing I/O unit is now initialized.");
+  }
+
+  if (detect_mute_speech_) {
+    if (@available(iOS 15, *)) {
+      // Set listener for muted speech event.
+      AUVoiceIOMutedSpeechActivityEventListener listener = ^(AUVoiceIOSpeechActivityEvent event) {
+        observer_->OnReceivedMutedSpeechActivity(event);
+      };
+      result = AudioUnitSetProperty(vpio_unit_,
+                                    kAUVoiceIOProperty_MutedSpeechActivityEventListener,
+                                    kAudioUnitScope_Global,
+                                    0,
+                                    &listener,
+                                    sizeof(AUVoiceIOMutedSpeechActivityEventListener));
+      if (result != noErr) {
+        RTCLog(@"Failed to set muted speech activity event listener. Error=%ld.", (long)result);
+      }
+    }
   }
 
   if (bypass_voice_processing_) {

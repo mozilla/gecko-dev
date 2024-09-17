@@ -91,8 +91,11 @@ static void LogDeviceInfo() {
 }
 #endif  // !defined(NDEBUG)
 
-AudioDeviceIOS::AudioDeviceIOS(bool bypass_voice_processing)
+AudioDeviceIOS::AudioDeviceIOS(
+    bool bypass_voice_processing,
+    AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler)
     : bypass_voice_processing_(bypass_voice_processing),
+      muted_speech_event_handler_(muted_speech_event_handler),
       audio_device_buffer_(nullptr),
       audio_unit_(nullptr),
       recording_(0),
@@ -477,6 +480,17 @@ OSStatus AudioDeviceIOS::OnGetPlayoutData(AudioUnitRenderActionFlags* flags,
   return noErr;
 }
 
+void AudioDeviceIOS::OnReceivedMutedSpeechActivity(AUVoiceIOSpeechActivityEvent event) {
+  RTCLog(@"Received muted speech activity %d.", event);
+  if (muted_speech_event_handler_ != 0) {
+    if (event == kAUVoiceIOSpeechActivityHasStarted) {
+      muted_speech_event_handler_(AudioDeviceModule::kMutedSpeechStarted);
+    } else if (event == kAUVoiceIOSpeechActivityHasEnded) {
+      muted_speech_event_handler_(AudioDeviceModule::kMutedSpeechEnded);
+    }
+  }
+}
+
 void AudioDeviceIOS::HandleInterruptionBegin() {
   RTC_DCHECK_RUN_ON(thread_);
   RTCLog(@"Interruption begin. IsInterrupted changed from %d to 1.", is_interrupted_);
@@ -713,8 +727,9 @@ void AudioDeviceIOS::SetupAudioBuffersForActiveAudioSession() {
 
 bool AudioDeviceIOS::CreateAudioUnit() {
   RTC_DCHECK(!audio_unit_);
-
-  audio_unit_.reset(new VoiceProcessingAudioUnit(bypass_voice_processing_, this));
+  BOOL detect_mute_speech_ = (muted_speech_event_handler_ != 0);
+  audio_unit_.reset(
+      new VoiceProcessingAudioUnit(bypass_voice_processing_, detect_mute_speech_, this));
   if (!audio_unit_->Init()) {
     audio_unit_.reset();
     return false;
