@@ -48,8 +48,6 @@ FFmpegAudioDecoder<LIBAV_VER>::FFmpegAudioDecoder(
   }
 
   if (mCodecID == AV_CODEC_ID_FLAC) {
-    MOZ_DIAGNOSTIC_ASSERT(
-        mAudioInfo.mCodecSpecificConfig.is<FlacCodecSpecificData>());
     // Gracefully handle bad data. If don't hit the preceding assert once this
     // has been shipped for awhile, we can remove it and make the following code
     // non-conditional.
@@ -70,7 +68,8 @@ FFmpegAudioDecoder<LIBAV_VER>::FFmpegAudioDecoder(
     }
   }
 
-  // Vorbis and Opus are handled by this case.
+  // Vorbis, Opus are handled by this case, as well as any codec that has
+  // non-tagged variant, because the data comes from Web Codecs.
   RefPtr<MediaByteBuffer> audioCodecSpecificBinaryBlob =
       GetAudioCodecSpecificBlob(mAudioInfo.mCodecSpecificConfig);
   if (audioCodecSpecificBinaryBlob && audioCodecSpecificBinaryBlob->Length()) {
