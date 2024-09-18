@@ -15,6 +15,7 @@
 #include <vector>
 
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "api/neteq/default_neteq_controller_factory.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_controller.h"
@@ -255,10 +256,8 @@ class NetEqImplTest : public ::testing::Test {
 // TODO(hlundin): Move to separate file?
 TEST(NetEq, CreateAndDestroy) {
   NetEq::Config config;
-  SimulatedClock clock(0);
-  auto decoder_factory = CreateBuiltinAudioDecoderFactory();
-  std::unique_ptr<NetEq> neteq =
-      DefaultNetEqFactory().CreateNetEq(config, decoder_factory, &clock);
+  std::unique_ptr<NetEq> neteq = DefaultNetEqFactory().Create(
+      CreateEnvironment(), config, CreateBuiltinAudioDecoderFactory());
 }
 
 TEST_F(NetEqImplTest, RegisterPayloadType) {

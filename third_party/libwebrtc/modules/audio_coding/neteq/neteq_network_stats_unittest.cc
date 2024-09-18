@@ -9,15 +9,15 @@
  */
 
 #include <memory>
+#include <utility>
 
-#include "absl/memory/memory.h"
 #include "api/audio/audio_frame.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "api/neteq/neteq.h"
 #include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "modules/audio_coding/neteq/tools/rtp_generator.h"
-#include "system_wrappers/include/clock.h"
 #include "test/audio_decoder_proxy_factory.h"
 #include "test/gmock.h"
 
@@ -28,9 +28,9 @@ namespace {
 
 std::unique_ptr<NetEq> CreateNetEq(
     const NetEq::Config& config,
-    Clock* clock,
-    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
-  return DefaultNetEqFactory().CreateNetEq(config, decoder_factory, clock);
+    scoped_refptr<AudioDecoderFactory> decoder_factory) {
+  return DefaultNetEqFactory().Create(CreateEnvironment(), config,
+                                      std::move(decoder_factory));
 }
 
 }  // namespace
@@ -169,7 +169,7 @@ class NetEqNetworkStatsTest {
         packet_loss_interval_(0xffffffff) {
     NetEq::Config config;
     config.sample_rate_hz = format.clockrate_hz;
-    neteq_ = CreateNetEq(config, Clock::GetRealTimeClock(), decoder_factory_);
+    neteq_ = CreateNetEq(config, decoder_factory_);
     neteq_->RegisterPayloadType(kPayloadType, format);
   }
 

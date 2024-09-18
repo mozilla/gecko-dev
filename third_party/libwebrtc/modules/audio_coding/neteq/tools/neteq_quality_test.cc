@@ -16,6 +16,7 @@
 
 #include "absl/flags/flag.h"
 #include "absl/strings/string_view.h"
+#include "api/environment/environment_factory.h"
 #include "api/units/timestamp.h"
 #include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "modules/audio_coding/neteq/tools/neteq_quality_test.h"
@@ -84,9 +85,9 @@ namespace {
 
 std::unique_ptr<NetEq> CreateNetEq(
     const NetEq::Config& config,
-    Clock* clock,
-    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
-  return DefaultNetEqFactory().CreateNetEq(config, decoder_factory, clock);
+    scoped_refptr<AudioDecoderFactory> decoder_factory) {
+  return DefaultNetEqFactory().Create(CreateEnvironment(), config,
+                                      std::move(decoder_factory));
 }
 
 const std::string& GetInFilenamePath(absl::string_view file_name) {
@@ -249,7 +250,7 @@ NetEqQualityTest::NetEqQualityTest(
 
   NetEq::Config config;
   config.sample_rate_hz = out_sampling_khz_ * 1000;
-  neteq_ = CreateNetEq(config, Clock::GetRealTimeClock(), decoder_factory);
+  neteq_ = CreateNetEq(config, decoder_factory);
   max_payload_bytes_ = in_size_samples_ * channels_ * sizeof(int16_t);
   in_data_.reset(new int16_t[in_size_samples_ * channels_]);
 }
