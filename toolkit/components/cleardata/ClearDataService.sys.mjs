@@ -912,8 +912,10 @@ const QuotaCleaner = {
     // completed.
     let swCleanupError;
     try {
-      // TODO: aOriginAttributesPattern
-      await lazy.ServiceWorkerCleanUp.removeFromBaseDomain(aSchemelessSite);
+      await lazy.ServiceWorkerCleanUp.removeFromSite(
+        aSchemelessSite,
+        aOriginAttributesPattern
+      );
     } catch (error) {
       swCleanupError = error;
     }
