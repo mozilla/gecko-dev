@@ -13,11 +13,12 @@ import androidx.test.espresso.action.ViewActions.typeText
 import androidx.test.espresso.assertion.ViewAssertions.matches
 import androidx.test.espresso.matcher.ViewMatchers
 import androidx.test.espresso.matcher.ViewMatchers.withId
-import androidx.test.espresso.matcher.ViewMatchers.withText
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.Until
 import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
+import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.click
@@ -68,12 +69,7 @@ class FindInPageRobot {
         mDevice.waitNotNull(Until.findObject(By.res("org.mozilla.fenix.debug:id/find_in_page_result_text")), waitingTime)
     }
 
-    fun verifyFindInPageResult(ratioCounter: String) {
-        mDevice.waitNotNull(Until.findObject(By.text(ratioCounter)), waitingTime)
-        Log.i(TAG, "verifyFindInPageResult: Trying to verify $ratioCounter results")
-        findInPageResult().check(matches(withText((ratioCounter))))
-        Log.i(TAG, "verifyFindInPageResult: Verified $ratioCounter results")
-    }
+    fun verifyFindInPageResult(ratioCounter: String) = assertUIObjectExists(itemContainingText(ratioCounter))
 
     class Transition {
         fun closeFindInPageWithCloseButton(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
