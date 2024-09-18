@@ -102,6 +102,8 @@ def build_dict(config, env=os.environ):
     )
     d["automation"] = substs.get("MOZ_AUTOMATION") == "1"
 
+    d["opt"] = not d["debug"] and not d["asan"] and not d["tsan"] and not d["ccov"]
+
     def guess_platform():
         if d["buildapp"] == "browser":
             p = d["os"]

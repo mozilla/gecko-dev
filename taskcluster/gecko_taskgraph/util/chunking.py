@@ -82,6 +82,9 @@ def guess_mozinfo_from_task(task, repo="", test_tags=[]):
     # the following are used to evaluate reftest skip-if
     info["release_or_beta"] = not info["nightly_build"]  # TO BE VALIDATED
     info["webrtc"] = not info["mingwclang"]
+    info["opt"] = (
+        not info["debug"] and not info["asan"] and not info["tsan"] and not info["ccov"]
+    )
 
     for platform in ("android", "linux", "mac", "win"):
         if p_os["name"].startswith(platform):
