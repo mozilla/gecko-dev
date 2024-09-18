@@ -30,6 +30,9 @@ const { ExtensionTestUtils } = ChromeUtils.importESModule(
 const { formAutofillStorage } = ChromeUtils.importESModule(
   "resource://autofill/FormAutofillStorage.sys.mjs"
 );
+const { Sanitizer } = ChromeUtils.importESModule(
+  "resource:///modules/Sanitizer.sys.mjs"
+);
 
 ExtensionTestUtils.init(this);
 AddonTestUtils.init(this);
@@ -438,4 +441,17 @@ add_task(async function test_address_removed() {
   await expectRegeneration(async () => {
     await formAutofillStorage.addresses.remove(guid);
   }, "Saw regeneration on address removal.");
+});
+
+/**
+ * Tests that backup regeneration occurs after any kind of data sanitization.
+ */
+add_task(async function test_sanitization() {
+  await expectRegeneration(async () => {
+    await Sanitizer.sanitize(["cookiesAndStorage"]);
+  }, "Saw regeneration on sanitization of cookies and storage.");
+
+  await expectRegeneration(async () => {
+    await Sanitizer.sanitize(["siteSettings"]);
+  }, "Saw regeneration on sanitization of site settings.");
 });
