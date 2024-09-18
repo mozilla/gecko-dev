@@ -52,4 +52,34 @@ add_heuristic_tests([
       },
     ],
   },
+  {
+    description:
+      "When a label contains both organization-related keywords and all other address-related keywords, it should be an address",
+    fixtureData: `
+        <html>
+        <body>
+          <form>
+            <input type="text" id="name" autocomplete="name" />
+            <input type="text" id="country" autocomplete="country"/>
+            <input type="text" id="address-line1" autocomplete="address-line1"/>
+            <label for="organization-address-line2">organization-address-2</label>
+            <input type="text" id="organization-address-line2" />
+          </form>
+        </body>
+        </html>
+      `,
+    expectedResult: [
+      {
+        default: {
+          reason: "autocomplete",
+        },
+        fields: [
+          { fieldName: "name" },
+          { fieldName: "country" },
+          { fieldName: "address-line1" },
+          { fieldName: "address-line2", reason: "update-heuristic" },
+        ],
+      },
+    ],
+  },
 ]);
