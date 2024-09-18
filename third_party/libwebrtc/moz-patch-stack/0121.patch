@@ -1,23 +1,23 @@
 From: Michael Froman <mfroman@mozilla.com>
-Date: Tue, 17 Sep 2024 17:32:00 -0500
-Subject: Bug 1918268 - (fix-90c430cda4) don't use std::nullopt with
- absl::optional
+Date: Tue, 17 Sep 2024 13:33:00 -0500
+Subject: Bug 1918268 - (fix-96c1b9c5ea) provide template arg for optional to
+ fix compile error
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/507f630a6ffe51a07797b37d3b970e85c12dbe27
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ca2211dbb0dd8864768cdcce1ea146bdbb0faeda
 ---
- modules/audio_processing/audio_processing_impl.cc | 2 +-
+ video/video_send_stream_impl.cc | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
-diff --git a/modules/audio_processing/audio_processing_impl.cc b/modules/audio_processing/audio_processing_impl.cc
-index f093e5fd07..6196a0c0c4 100644
---- a/modules/audio_processing/audio_processing_impl.cc
-+++ b/modules/audio_processing/audio_processing_impl.cc
-@@ -1454,7 +1454,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
-       // TODO(bugs.webrtc.org/7494): Let AGC2 detect applied input volume
-       // changes.
-       submodules_.gain_controller2->Process(
--          /*speech_probability=*/std::nullopt,
-+          /*speech_probability=*/absl::nullopt,
-           capture_.applied_input_volume_changed, capture_buffer);
-     }
+diff --git a/video/video_send_stream_impl.cc b/video/video_send_stream_impl.cc
+index 181f146540..265f79a479 100644
+--- a/video/video_send_stream_impl.cc
++++ b/video/video_send_stream_impl.cc
+@@ -782,7 +782,7 @@ MediaStreamAllocationConfig VideoSendStreamImpl::GetAllocationConfig() const {
+       !config_.suspend_below_min_bitrate,
+       encoder_bitrate_priority_,
+       (content_type_ == VideoEncoderConfig::ContentType::kRealtimeVideo)
+-          ? absl::optional(TrackRateElasticity::kCanConsumeExtraRate)
++          ? absl::optional<TrackRateElasticity>(TrackRateElasticity::kCanConsumeExtraRate)
+           : absl::nullopt};
+ }
  

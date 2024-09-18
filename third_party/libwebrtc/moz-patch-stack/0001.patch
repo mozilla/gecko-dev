@@ -1,154 +1,301 @@
-From: Johannes Kron <kron@webrtc.org>
-Date: Thu, 15 Aug 2024 11:49:54 +0200
-Subject: (cherry-pick-branch-heads/6613) [M128] Ensure calls to QP convergence
- controller are on the same sequence
+From: Michael Froman <mjfroman@mac.com>
+Date: Tue, 17 Sep 2024 21:37:09 -0500
+Subject: (tmp-cherry-pick) Revert "Each spatial layer can only have 1 QP
+ value." (b1b6129944)
 
-The original CL overlooked the possibility that the encoder may be
-reconfigured in the middle of a stream.
+This reverts commit 962b3935e44053641764beb0bd095540fe8cbd64.
 
-Restructure the code so that all calls to QP convergence controller
-happen on the encoder queue.
+Reason for revert: Breaks downstream tests.
 
-A side effect of this CL is that `EncodedImage::SetAtTargetQuality()`
-is never called. The information is supplied to the frame cadence
-adapter directly without this intermediate step.
+Original change's description:
+> Each spatial layer can only have 1 QP value.
+>
+> As the code is now, it looks like it accepts that a spatial layer can have more than 1 QP value. These QP values according to the code are summed. However, to my best knowledge this cannot be the case and makes the code hard to read. Therefore, updating it with a check such that it checks that each spatial layer only have 1 QP value and would be easier for a future code reader.
+>
+> Bug: webrtc:357636606
+> Change-Id: I650cac724811a1ddc7ab8933c1e1ac5fe844b61c
+> Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358101
+> Reviewed-by: Mirko Bonadei <mbonadei@webrtc.org>
+> Reviewed-by: Artem Titov <titovartem@webrtc.org>
+> Commit-Queue: Emil Vardar (xWF) <vardar@google.com>
+> Cr-Commit-Position: refs/heads/main@{#42736}
 
-`EncodedImage::SetAtTargetQuality()` and
-`EncodedImage::IsAtTargetQuality()` are being marked as deprecated
-in https://webrtc-review.googlesource.com/c/src/+/359660.
-
-(cherry picked from commit b47cd6fbe315690756f2f03e7658d4e26fe27b1e)
-
-Bug: chromium:359410061
-Change-Id: I941b5f60b1a9fd7694dbedf2f3e4ff5253ccf357
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/359640
-Commit-Queue: Johannes Kron <kron@webrtc.org>
-Reviewed-by: Ilya Nikolaevskiy <ilnik@webrtc.org>
-Reviewed-by: Markus Handell <handellm@webrtc.org>
-Cr-Original-Commit-Position: refs/heads/main@{#42788}
+Bug: webrtc:357636606
+Change-Id: I60a2d4e1285f961f2ed2ea4c1d2e5942ea68b365
+No-Presubmit: true
+No-Tree-Checks: true
 No-Try: true
-Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/360240
-Cr-Commit-Position: refs/branch-heads/6613@{#3}
-Cr-Branched-From: 1ac162ee20a214bf97f6594a7effcbbc21f1effb-refs/heads/main@{#42664}
+Reviewed-on: https://webrtc-review.googlesource.com/c/src/+/358721
+Bot-Commit: rubber-stamper@appspot.gserviceaccount.com <rubber-stamper@appspot.gserviceaccount.com>
+Owners-Override: Mirko Bonadei <mbonadei@webrtc.org>
+Commit-Queue: Mirko Bonadei <mbonadei@webrtc.org>
+Cr-Commit-Position: refs/heads/main@{#42737}
 ---
- video/quality_convergence_controller.cc | 10 ++++++++++
- video/quality_convergence_controller.h  |  2 ++
- video/video_stream_encoder.cc           | 24 +++++++++---------------
- video/video_stream_encoder.h            |  3 ++-
- 4 files changed, 23 insertions(+), 16 deletions(-)
+ .../video/default_video_quality_analyzer.cc   |  3 +-
+ ...ideo_quality_analyzer_frames_comparator.cc | 12 ++---
+ ...quality_analyzer_frames_comparator_test.cc | 53 +++++++++++--------
+ ...quality_analyzer_internal_shared_objects.h |  9 +---
+ 4 files changed, 40 insertions(+), 37 deletions(-)
 
-diff --git a/video/quality_convergence_controller.cc b/video/quality_convergence_controller.cc
-index 7a46e11062..a19cb8c998 100644
---- a/video/quality_convergence_controller.cc
-+++ b/video/quality_convergence_controller.cc
-@@ -44,6 +44,7 @@ void QualityConvergenceController::Initialize(
-     absl::optional<int> static_qp_threshold,
-     VideoCodecType codec,
-     const FieldTrialsView& trials) {
-+  RTC_DCHECK(sequence_checker_.IsCurrent());
-   RTC_CHECK(number_of_layers > 0);
-   number_of_layers_ = number_of_layers;
-   convergence_monitors_.clear();
-@@ -61,11 +62,20 @@ bool QualityConvergenceController::AddSampleAndCheckTargetQuality(
-     int layer_index,
-     int qp,
-     bool is_refresh_frame) {
-+  RTC_DCHECK(sequence_checker_.IsCurrent());
-   RTC_CHECK(initialized_);
-   if (layer_index < 0 || layer_index >= number_of_layers_) {
-     return false;
-   }
+diff --git a/test/pc/e2e/analyzer/video/default_video_quality_analyzer.cc b/test/pc/e2e/analyzer/video/default_video_quality_analyzer.cc
+index e25680037d..d2f5725cc9 100644
+--- a/test/pc/e2e/analyzer/video/default_video_quality_analyzer.cc
++++ b/test/pc/e2e/analyzer/video/default_video_quality_analyzer.cc
+@@ -365,8 +365,7 @@ void DefaultVideoQualityAnalyzer::OnFrameEncoded(
+   // TODO(https://crbug.com/webrtc/14891): If we want to support a mix of
+   // simulcast and SVC we'll also need to consider the case where we have both
+   // simulcast and spatial indices.
+-  // In singlecast, spatial/simulcast is expected not to be set.
+-  int stream_index = encoded_image.SpatialIndex().value_or(
++  size_t stream_index = encoded_image.SpatialIndex().value_or(
+       encoded_image.SimulcastIndex().value_or(0));
+   frame_in_flight.OnFrameEncoded(
+       now, time_between_encoded_frames, encoded_image._frameType,
+diff --git a/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator.cc b/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator.cc
+index 5cd8bf71f3..eb10aef34c 100644
+--- a/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator.cc
++++ b/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator.cc
+@@ -501,14 +501,12 @@ void DefaultVideoQualityAnalyzerFramesComparator::ProcessComparison(
+         frame_stats.encoded_image_size.bytes();
+     stats->target_encode_bitrate.AddSample(StatsSample(
+         frame_stats.target_encode_bitrate, frame_stats.encoded_time, metadata));
+-    for (const auto& [spatial_layer, qp_value] :
++    for (const auto& [spatial_layer, qp_values] :
+          frame_stats.spatial_layers_qp) {
+-      // Each spatial/simulcast layer can only have one qp value.
+-      RTC_CHECK_EQ(qp_value.GetTimedSamples().size(), 1)
+-          << "Can only be 1 QP value per spatial layer.";
+-      SamplesStatsCounter::StatsSample qp = qp_value.GetTimedSamples()[0];
+-      qp.metadata = metadata;
+-      stats->spatial_layers_qp[spatial_layer].AddSample(std::move(qp));
++      for (SamplesStatsCounter::StatsSample qp : qp_values.GetTimedSamples()) {
++        qp.metadata = metadata;
++        stats->spatial_layers_qp[spatial_layer].AddSample(std::move(qp));
++      }
+     }
  
-+  // TODO(kron): Remove temporary check that verifies that the initialization is
-+  // working as expected. See https://crbug.com/359410061.
-+  RTC_DCHECK(number_of_layers_ ==
-+             static_cast<int>(convergence_monitors_.size()));
-+  if (number_of_layers_ != static_cast<int>(convergence_monitors_.size())) {
-+    return false;
-+  }
-+
-   convergence_monitors_[layer_index]->AddSample(qp, is_refresh_frame);
-   return convergence_monitors_[layer_index]->AtTargetQuality();
- }
-diff --git a/video/quality_convergence_controller.h b/video/quality_convergence_controller.h
-index 46f8419c41..a09dc872a7 100644
---- a/video/quality_convergence_controller.h
-+++ b/video/quality_convergence_controller.h
-@@ -16,6 +16,7 @@
+     // Stats sliced on encoded frame type.
+diff --git a/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator_test.cc b/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator_test.cc
+index e4387d5152..2656bf5d44 100644
+--- a/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator_test.cc
++++ b/test/pc/e2e/analyzer/video/default_video_quality_analyzer_frames_comparator_test.cc
+@@ -503,7 +503,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
  
- #include "absl/types/optional.h"
- #include "api/field_trials_view.h"
-+#include "api/sequence_checker.h"
- #include "api/video/video_codec_type.h"
- #include "video/quality_convergence_monitor.h"
+   comparator.Start(/*max_threads_count=*/1);
+   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
+@@ -533,7 +534,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectEmpty(stats.recv_key_frame_size_bytes);
+   ExpectEmpty(stats.recv_delta_frame_size_bytes);
+@@ -578,7 +579,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
  
-@@ -41,6 +42,7 @@ class QualityConvergenceController {
-   bool initialized_ = false;
-   int number_of_layers_ = 0;
-   std::vector<std::unique_ptr<QualityConvergenceMonitor>> convergence_monitors_;
-+  SequenceChecker sequence_checker_{SequenceChecker::kDetached};
- };
+   comparator.Start(/*max_threads_count=*/1);
+   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
+@@ -608,7 +610,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectEmpty(stats.recv_key_frame_size_bytes);
+   ExpectEmpty(stats.recv_delta_frame_size_bytes);
+@@ -653,7 +655,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
+   // Frame pre decoded
+   frame_stats.pre_decoded_frame_type = VideoFrameType::kVideoFrameKey;
+   frame_stats.pre_decoded_image_size = DataSize::Bytes(500);
+@@ -689,7 +692,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectSizeAndAllElementsAre(stats.recv_key_frame_size_bytes, /*size=*/1,
+                               /*value=*/500.0);
+@@ -735,7 +738,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
+   // Frame pre decoded
+   frame_stats.pre_decoded_frame_type = VideoFrameType::kVideoFrameKey;
+   frame_stats.pre_decoded_image_size = DataSize::Bytes(500);
+@@ -778,7 +782,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectSizeAndAllElementsAre(stats.recv_key_frame_size_bytes, /*size=*/1,
+                               /*value=*/500.0);
+@@ -825,7 +829,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
+   // Frame pre decoded
+   frame_stats.pre_decoded_frame_type = VideoFrameType::kVideoFrameKey;
+   frame_stats.pre_decoded_image_size = DataSize::Bytes(500);
+@@ -865,7 +870,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectSizeAndAllElementsAre(stats.recv_key_frame_size_bytes, /*size=*/1,
+                               /*value=*/500.0);
+@@ -1033,7 +1038,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
  
- }  // namespace webrtc
-diff --git a/video/video_stream_encoder.cc b/video/video_stream_encoder.cc
-index af26db8719..a9391e0cea 100644
---- a/video/video_stream_encoder.cc
-+++ b/video/video_stream_encoder.cc
-@@ -2090,22 +2090,11 @@ EncodedImage VideoStreamEncoder::AugmentEncodedImage(
-             .value_or(-1);
-   }
+   comparator.Start(/*max_threads_count=*/1);
+   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
+@@ -1063,7 +1069,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectEmpty(stats.recv_key_frame_size_bytes);
+   ExpectEmpty(stats.recv_delta_frame_size_bytes);
+@@ -1108,7 +1114,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
  
--  // Check if the encoded image has reached target quality.
--  const size_t simulcast_index = encoded_image.SimulcastIndex().value_or(0);
--  bool at_target_quality =
--      quality_convergence_controller_.AddSampleAndCheckTargetQuality(
--          simulcast_index, image_copy.qp_,
--          image_copy.IsSteadyStateRefreshFrame());
--  image_copy.SetAtTargetQuality(at_target_quality);
-   TRACE_EVENT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
-                "stream_idx", stream_idx, "qp", image_copy.qp_);
--  TRACE_EVENT_INSTANT2("webrtc", "VideoStreamEncoder::AugmentEncodedImage",
--                       TRACE_EVENT_SCOPE_GLOBAL, "simulcast_idx",
--                       simulcast_index, "at_target_quality", at_target_quality);
-   RTC_LOG(LS_VERBOSE) << __func__ << " ntp time " << encoded_image.NtpTimeMs()
-                       << " stream_idx " << stream_idx << " qp "
--                      << image_copy.qp_ << " at target quality "
--                      << at_target_quality;
-+                      << image_copy.qp_;
-   return image_copy;
- }
+   comparator.Start(/*max_threads_count=*/1);
+   comparator.EnsureStatsForStream(stream, sender, /*peers_count=*/2,
+@@ -1138,7 +1145,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectEmpty(stats.recv_key_frame_size_bytes);
+   ExpectEmpty(stats.recv_delta_frame_size_bytes);
+@@ -1260,7 +1267,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
+   // Frame pre decoded
+   frame_stats.pre_decoded_frame_type = VideoFrameType::kVideoFrameKey;
+   frame_stats.pre_decoded_image_size = DataSize::Bytes(500);
+@@ -1301,7 +1309,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectEmpty(stats.recv_key_frame_size_bytes);
+   ExpectEmpty(stats.recv_delta_frame_size_bytes);
+@@ -1347,7 +1355,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
+   // Frame pre decoded
+   frame_stats.pre_decoded_frame_type = VideoFrameType::kVideoFrameKey;
+   frame_stats.pre_decoded_image_size = DataSize::Bytes(500);
+@@ -1387,7 +1396,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectSizeAndAllElementsAre(stats.recv_key_frame_size_bytes, /*size=*/1,
+                               /*value=*/500.0);
+@@ -1438,7 +1447,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
+   // Frame pre decoded
+   frame_stats.pre_decoded_frame_type = VideoFrameType::kVideoFrameKey;
+   frame_stats.pre_decoded_image_size = DataSize::Bytes(500);
+@@ -1482,7 +1492,7 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest,
+   ExpectSizeAndAllElementsAre(stats.target_encode_bitrate, /*size=*/1,
+                               /*value=*/2000.0);
+   EXPECT_THAT(stats.spatial_layers_qp, SizeIs(1));
+-  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/1,
++  ExpectSizeAndAllElementsAre(stats.spatial_layers_qp[0], /*size=*/2,
+                               /*value=*/5.0);
+   ExpectSizeAndAllElementsAre(stats.recv_key_frame_size_bytes, /*size=*/1,
+                               /*value=*/500.0);
+@@ -1530,7 +1540,8 @@ TEST(DefaultVideoQualityAnalyzerFramesComparatorTest, AllStatsHaveMetadataSet) {
+   frame_stats.target_encode_bitrate = 2000;
+   frame_stats.spatial_layers_qp = {
+       {0, StatsCounter(
+-              /*samples=*/{{5, Timestamp::Seconds(1)}})}};
++              /*samples=*/{{5, Timestamp::Seconds(1)},
++                           {5, Timestamp::Seconds(2)}})}};
+   // Frame pre decoded
+   frame_stats.pre_decoded_frame_type = VideoFrameType::kVideoFrameKey;
+   frame_stats.pre_decoded_image_size = DataSize::Bytes(500);
+diff --git a/test/pc/e2e/analyzer/video/default_video_quality_analyzer_internal_shared_objects.h b/test/pc/e2e/analyzer/video/default_video_quality_analyzer_internal_shared_objects.h
+index 1c35d6f9b3..88c0335b5a 100644
+--- a/test/pc/e2e/analyzer/video/default_video_quality_analyzer_internal_shared_objects.h
++++ b/test/pc/e2e/analyzer/video/default_video_quality_analyzer_internal_shared_objects.h
+@@ -69,13 +69,8 @@ struct FrameStats {
+   VideoFrameType pre_decoded_frame_type = VideoFrameType::kEmptyFrame;
+   DataSize pre_decoded_image_size = DataSize::Bytes(0);
+   uint32_t target_encode_bitrate = 0;
+-  // Sender side qp value per spatial layer. In case when spatial layer is not
+-  // set for `webrtc::EncodedImage`, 0 is used as default. Each spatial layer
+-  // can only have 1 QP value. Reason for using `SamplesStatsCounter` is because
+-  // `SamplesStatsCounter::StatsSample` not having a default ctor and
+-  // `Timestamp` is of interest.
+-  // TODO(webrtc:357636606): Replace `SamplesStatsCounter` with optional<int>
+-  // and `Timestamp`.
++  // Sender side qp values per spatial layer. In case when spatial layer is not
++  // set for `webrtc::EncodedImage`, 0 is used as default.
+   std::map<int, SamplesStatsCounter> spatial_layers_qp;
  
-@@ -2128,11 +2117,16 @@ EncodedImageCallback::Result VideoStreamEncoder::OnEncodedImage(
-   unsigned int image_width = image_copy._encodedWidth;
-   unsigned int image_height = image_copy._encodedHeight;
-   encoder_queue_->PostTask([this, codec_type, image_width, image_height,
--                            simulcast_index,
--                            at_target_quality =
--                                image_copy.IsAtTargetQuality()] {
-+                            simulcast_index, qp = image_copy.qp_,
-+                            is_steady_state_refresh_frame =
-+                                image_copy.IsSteadyStateRefreshFrame()] {
-     RTC_DCHECK_RUN_ON(encoder_queue_.get());
- 
-+    // Check if the encoded image has reached target quality.
-+    bool at_target_quality =
-+        quality_convergence_controller_.AddSampleAndCheckTargetQuality(
-+            simulcast_index, qp, is_steady_state_refresh_frame);
-+
-     // Let the frame cadence adapter know about quality convergence.
-     if (frame_cadence_adapter_)
-       frame_cadence_adapter_->UpdateLayerQualityConvergence(simulcast_index,
-diff --git a/video/video_stream_encoder.h b/video/video_stream_encoder.h
-index 579cd3238c..e593f91d44 100644
---- a/video/video_stream_encoder.h
-+++ b/video/video_stream_encoder.h
-@@ -422,7 +422,8 @@ class VideoStreamEncoder : public VideoStreamEncoderInterface,
-   // The quality convergence controller is used to determine if a codec has
-   // reached its target quality. This is used for screenshare to determine when
-   // there's no need to continue encoding the same repeated frame.
--  QualityConvergenceController quality_convergence_controller_;
-+  QualityConvergenceController quality_convergence_controller_
-+      RTC_GUARDED_BY(encoder_queue_);
- 
-   // Enables encoder switching on initialization failures.
-   bool switch_encoder_on_init_failures_;
+   absl::optional<int> decoded_frame_width = absl::nullopt;
