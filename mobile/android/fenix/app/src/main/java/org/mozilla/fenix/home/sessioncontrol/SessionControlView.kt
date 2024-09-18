@@ -196,12 +196,12 @@ class SessionControlView(
 
                     with(settings()) {
                         if (!featureRecommended && !showHomeOnboardingDialog) {
-                            if (!showHomeOnboardingDialog && searchDialogFragment == null && shouldShowACfr()) {
+                            if (!showHomeOnboardingDialog && searchDialogFragment == null && showSyncCFR) {
                                 featureRecommended =
                                     HomeCFRPresenter(context = context, recyclerView = view).show()
                             }
 
-                            if (showWallpaperOnboarding && !featureRecommended) {
+                            if (showWallpaperOnboardingDialog(featureRecommended)) {
                                 featureRecommended = interactor.showWallpapersOnboardingDialog(
                                     context.components.appStore.state.wallpaperState,
                                 )
@@ -222,11 +222,21 @@ class SessionControlView(
         }
     }
 
-    private fun View.shouldShowACfr() = settings().showSyncCFR
-
     fun update(state: AppState, shouldReportMetrics: Boolean = false) {
         if (shouldReportMetrics) interactor.reportSessionMetrics(state)
 
         sessionControlAdapter.submitList(state.toAdapterList(view.context.settings()))
     }
 }
+
+private const val MIN_NUMBER_OF_APP_LAUNCHES = 3
+
+/**
+ * Try to show the wallpaper onboarding dialog on the third opening of the app.
+ *
+ * Note: We use 'at least three' instead of exactly 'three' in case the app is opened in such a
+ * way that the other conditions are not met.
+ */
+@VisibleForTesting
+internal fun Settings.showWallpaperOnboardingDialog(featureRecommended: Boolean) =
+    numberOfAppLaunches >= MIN_NUMBER_OF_APP_LAUNCHES && showWallpaperOnboarding && !featureRecommended

@@ -12,6 +12,7 @@ import mozilla.components.service.nimbus.messaging.Message
 import mozilla.components.service.pocket.PocketStory
 import mozilla.components.service.pocket.PocketStory.PocketRecommendedStory
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mozilla.fenix.home.bookmarks.Bookmark
@@ -287,5 +288,41 @@ class SessionControlViewTest {
         )
 
         assertTrue(results[0] is AdapterItem.TopPlaceholderItem)
+    }
+
+    @Test
+    fun `GIVEN app opened three times, should show the dialog and wallpaper feature has not been recommended WHEN showWallpaperOnboardingDialog THEN returns true`() {
+        val settings = mockk<Settings>()
+        every { settings.numberOfAppLaunches } returns 3
+        every { settings.showWallpaperOnboarding } returns true
+
+        assertTrue(settings.showWallpaperOnboardingDialog(false))
+    }
+
+    @Test
+    fun `GIVEN app opened two times, should show the dialog and wallpaper feature has not been recommended WHEN showWallpaperOnboardingDialog THEN returns false`() {
+        val settings = mockk<Settings>()
+        every { settings.numberOfAppLaunches } returns 2
+        every { settings.showWallpaperOnboarding } returns true
+
+        assertFalse(settings.showWallpaperOnboardingDialog(false))
+    }
+
+    @Test
+    fun `GIVEN app opened three times, should not show the dialog and wallpaper feature has not been recommended WHEN showWallpaperOnboardingDialog THEN returns false`() {
+        val settings = mockk<Settings>()
+        every { settings.numberOfAppLaunches } returns 3
+        every { settings.showWallpaperOnboarding } returns false
+
+        assertFalse(settings.showWallpaperOnboardingDialog(false))
+    }
+
+    @Test
+    fun `GIVEN app opened three times, should show the dialog and wallpaper feature already recommended WHEN showWallpaperOnboardingDialog THEN returns false`() {
+        val settings = mockk<Settings>()
+        every { settings.numberOfAppLaunches } returns 3
+        every { settings.showWallpaperOnboarding } returns false
+
+        assertFalse(settings.showWallpaperOnboardingDialog(true))
     }
 }
