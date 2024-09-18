@@ -41,18 +41,18 @@ index a511eda7bd..75a4a1cac0 100644
  DegradedCall::~DegradedCall() {
    RTC_DCHECK_RUN_ON(call_->worker_thread());
 diff --git a/modules/audio_coding/acm2/acm_receiver.cc b/modules/audio_coding/acm2/acm_receiver.cc
-index e50545fa94..99c8277230 100644
+index 7d044586dd..fe61a23d5f 100644
 --- a/modules/audio_coding/acm2/acm_receiver.cc
 +++ b/modules/audio_coding/acm2/acm_receiver.cc
-@@ -51,7 +51,7 @@ std::unique_ptr<NetEq> CreateNetEq(
+@@ -67,7 +67,7 @@ AcmReceiver::AcmReceiver(const Environment& env, Config config)
+ }
  
- AcmReceiver::Config::Config(
-     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory)
--    : clock(*Clock::GetRealTimeClock()), decoder_factory(decoder_factory) {}
-+    : clock(*Clock::GetRealTimeClockRaw()), decoder_factory(decoder_factory) {}
- 
- AcmReceiver::Config::Config(const Config&) = default;
- AcmReceiver::Config::~Config() = default;
+ AcmReceiver::AcmReceiver(const Config& config)
+-    : clock_(*Clock::GetRealTimeClock()),
++    : clock_(*Clock::GetRealTimeClockRaw()),
+       neteq_(CreateNetEq(config.neteq_factory,
+                          config.neteq_config,
+                          &clock_,
 diff --git a/modules/rtp_rtcp/include/flexfec_receiver.h b/modules/rtp_rtcp/include/flexfec_receiver.h
 index a869c8ad41..b6a33882d1 100644
 --- a/modules/rtp_rtcp/include/flexfec_receiver.h

@@ -175,9 +175,8 @@ class AudioCodingModuleTestOldApi : public ::testing::Test {
   void SetUp() {
     acm_ = AudioCodingModule::Create();
     acm2::AcmReceiver::Config config;
-    config.clock = env_.clock();
     config.decoder_factory = CreateBuiltinAudioDecoderFactory();
-    acm_receiver_ = std::make_unique<acm2::AcmReceiver>(config);
+    acm_receiver_ = std::make_unique<acm2::AcmReceiver>(env_, config);
 
     rtp_utility_->Populate(&rtp_header_);
 

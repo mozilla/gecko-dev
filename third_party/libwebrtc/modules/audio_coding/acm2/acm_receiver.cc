@@ -51,17 +51,27 @@ std::unique_ptr<NetEq> CreateNetEq(
 
 AcmReceiver::Config::Config(
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory)
-    : clock(*Clock::GetRealTimeClockRaw()), decoder_factory(decoder_factory) {}
+    : decoder_factory(decoder_factory) {}
 
 AcmReceiver::Config::Config(const Config&) = default;
 AcmReceiver::Config::~Config() = default;
 
-AcmReceiver::AcmReceiver(const Config& config)
-    : neteq_(CreateNetEq(config.neteq_factory,
+AcmReceiver::AcmReceiver(const Environment& env, Config config)
+    : clock_(env.clock()),
+      neteq_(CreateNetEq(config.neteq_factory,
                          config.neteq_config,
-                         &config.clock,
+                         &clock_,
                          config.decoder_factory)),
-      clock_(config.clock),
+      resampled_last_output_frame_(true) {
+  ClearSamples(last_audio_buffer_);
+}
+
+AcmReceiver::AcmReceiver(const Config& config)
+    : clock_(*Clock::GetRealTimeClockRaw()),
+      neteq_(CreateNetEq(config.neteq_factory,
+                         config.neteq_config,
+                         &clock_,
+                         config.decoder_factory)),
       resampled_last_output_frame_(true) {
   ClearSamples(last_audio_buffer_);
 }

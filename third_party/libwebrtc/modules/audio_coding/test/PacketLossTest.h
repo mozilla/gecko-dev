@@ -42,7 +42,8 @@ class ReceiverWithPacketLoss : public Receiver {
 class SenderWithFEC : public Sender {
  public:
   SenderWithFEC();
-  void Setup(AudioCodingModule* acm,
+  void Setup(const Environment& env,
+             AudioCodingModule* acm,
              RTPStream* rtpStream,
              absl::string_view in_file_name,
              int payload_type,

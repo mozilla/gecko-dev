@@ -51,7 +51,7 @@ AudioIngress::AudioIngress(
       first_rtp_timestamp_(-1),
       rtp_receive_statistics_(receive_statistics),
       rtp_rtcp_(rtp_rtcp),
-      acm_receiver_(CreateAcmConfig(decoder_factory)),
+      acm_receiver_(env_, CreateAcmConfig(decoder_factory)),
       ntp_estimator_(&env_.clock()) {}
 
 AudioIngress::~AudioIngress() = default;

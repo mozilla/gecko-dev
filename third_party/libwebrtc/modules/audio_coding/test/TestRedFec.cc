@@ -46,6 +46,7 @@ TestRedFec::TestRedFec()
                                                  AudioDecoderOpus>()),
       _acmA(AudioCodingModule::Create()),
       _acm_receiver(std::make_unique<acm2::AcmReceiver>(
+          env_,
           acm2::AcmReceiver::Config(decoder_factory_))),
       _channelA2B(NULL),
       _testCntr(0) {}

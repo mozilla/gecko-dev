@@ -46,6 +46,7 @@ rtc_library("audio_coding") {
     "../../api:function_view",
     "../../api/audio:audio_frame_api",
     "../../api/audio_codecs:audio_codecs_api",
+    "../../api/environment",
     "../../api/neteq:neteq_api",
     "../../api/units:timestamp",
     "../../common_audio",
@@ -1138,6 +1139,7 @@ if (rtc_include_tests) {
       "../../api:scoped_refptr",
       "../../api/audio_codecs:audio_codecs_api",
       "../../api/audio_codecs:builtin_audio_decoder_factory",
+      "../../api/environment:environment_factory",
       "../../test:test_support",
       "//testing/gtest",
     ]

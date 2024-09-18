@@ -27,6 +27,7 @@
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_format.h"
+#include "api/environment/environment.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_factory.h"
 #include "api/units/timestamp.h"
@@ -53,13 +54,14 @@ class AcmReceiver {
     ~Config();
 
     NetEq::Config neteq_config;
-    Clock& clock;
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory;
     NetEqFactory* neteq_factory = nullptr;
   };
 
-  // Constructor of the class
-  explicit AcmReceiver(const Config& config);
+  [[deprecated("bugs.webrtc.org/356878416")]] explicit AcmReceiver(
+      const Config& config);
+
+  AcmReceiver(const Environment& env, Config config);
 
   // Destructor of the class.
   ~AcmReceiver();
@@ -231,12 +233,12 @@ class AcmReceiver {
 
   uint32_t NowInTimestamp(int decoder_sampling_rate) const;
 
+  Clock& clock_;
   mutable Mutex mutex_;
   absl::optional<DecoderInfo> last_decoder_ RTC_GUARDED_BY(mutex_);
   ACMResampler resampler_ RTC_GUARDED_BY(mutex_);
   CallStatistics call_stats_ RTC_GUARDED_BY(mutex_);
   const std::unique_ptr<NetEq> neteq_;  // NetEq is thread-safe; no lock needed.
-  Clock& clock_;
   bool resampled_last_output_frame_ RTC_GUARDED_BY(mutex_);
   std::array<int16_t, AudioFrame::kMaxDataSizeSamples> last_audio_buffer_
       RTC_GUARDED_BY(mutex_);

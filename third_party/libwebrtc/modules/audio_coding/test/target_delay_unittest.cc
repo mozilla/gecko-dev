@@ -12,6 +12,7 @@
 
 #include "api/audio/audio_frame.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "api/rtp_headers.h"
 #include "api/units/timestamp.h"
 #include "modules/audio_coding/acm2/acm_receiver.h"
@@ -26,6 +27,7 @@ class TargetDelayTest : public ::testing::Test {
  protected:
   TargetDelayTest()
       : receiver_(
+            CreateEnvironment(),
             acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory())) {}
 
   ~TargetDelayTest() {}

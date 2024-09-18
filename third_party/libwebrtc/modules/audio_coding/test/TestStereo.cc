@@ -102,6 +102,7 @@ TestStereo::TestStereo()
     : env_(CreateEnvironment()),
       acm_a_(AudioCodingModule::Create()),
       acm_b_(std::make_unique<acm2::AcmReceiver>(
+          env_,
           acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()))),
       channel_a2b_(NULL),
       test_cntr_(0),
