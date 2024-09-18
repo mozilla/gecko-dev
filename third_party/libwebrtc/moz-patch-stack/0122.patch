@@ -1,0 +1,21 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Wed, 18 Sep 2024 11:14:00 -0500
+Subject: Bug 1918268 - (fix-ec5a968070) readd an include that upstream removed
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8c080511a17a87c65771747faa74f859b7fe70bb
+---
+ api/transport/network_control.h | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/api/transport/network_control.h b/api/transport/network_control.h
+index de408a5523..815c29f083 100644
+--- a/api/transport/network_control.h
++++ b/api/transport/network_control.h
+@@ -17,6 +17,7 @@
+ #include "absl/types/optional.h"
+ #include "api/environment/environment.h"
+ #include "api/field_trials_view.h"
++#include "api/rtc_event_log/rtc_event_log.h"
+ #include "api/transport/network_types.h"
+ #include "api/units/data_rate.h"
+ #include "api/units/time_delta.h"
