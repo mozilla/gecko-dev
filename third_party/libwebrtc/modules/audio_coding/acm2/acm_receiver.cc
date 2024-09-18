@@ -39,12 +39,12 @@ namespace {
 std::unique_ptr<NetEq> CreateNetEq(
     NetEqFactory* neteq_factory,
     const NetEq::Config& config,
-    Clock* clock,
-    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
+    const Environment& env,
+    scoped_refptr<AudioDecoderFactory> decoder_factory) {
   if (neteq_factory) {
-    return neteq_factory->CreateNetEq(config, decoder_factory, clock);
+    return neteq_factory->Create(env, config, std::move(decoder_factory));
   }
-  return DefaultNetEqFactory().CreateNetEq(config, decoder_factory, clock);
+  return DefaultNetEqFactory().Create(env, config, std::move(decoder_factory));
 }
 
 }  // namespace
@@ -60,8 +60,8 @@ AcmReceiver::AcmReceiver(const Environment& env, Config config)
     : env_(env),
       neteq_(CreateNetEq(config.neteq_factory,
                          config.neteq_config,
-                         &env_.clock(),
-                         config.decoder_factory)),
+                         env_,
+                         std::move(config.decoder_factory))),
       resampled_last_output_frame_(true) {
   ClearSamples(last_audio_buffer_);
 }

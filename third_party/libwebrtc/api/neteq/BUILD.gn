@@ -21,9 +21,11 @@ rtc_source_set("neteq_api") {
     "..:rtp_headers",
     "..:rtp_packet_info",
     "..:scoped_refptr",
+    "../../rtc_base:checks",
     "../../rtc_base:stringutils",
     "../../system_wrappers:system_wrappers",
     "../audio_codecs:audio_codecs_api",
+    "../environment",
     "../units:timestamp",
     "//third_party/abseil-cpp/absl/types:optional",
   ]

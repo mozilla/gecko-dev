@@ -14,7 +14,10 @@
 #include <memory>
 
 #include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/environment/environment.h"
 #include "api/neteq/neteq.h"
+#include "api/scoped_refptr.h"
+#include "rtc_base/checks.h"
 #include "system_wrappers/include/clock.h"
 
 namespace webrtc {
@@ -27,10 +30,21 @@ class NetEqFactory {
   // Creates a new NetEq object, with parameters set in `config`. The `config`
   // object will only have to be valid for the duration of the call to this
   // method.
+  virtual std::unique_ptr<NetEq> Create(
+      const Environment& env,
+      const NetEq::Config& config,
+      scoped_refptr<AudioDecoderFactory> decoder_factory) const {
+    return CreateNetEq(config, decoder_factory, &env.clock());
+  }
+
   virtual std::unique_ptr<NetEq> CreateNetEq(
       const NetEq::Config& config,
       const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory,
-      Clock* clock) const = 0;
+      Clock* clock) const {
+    // TODO: b/356878416 - Delete this function when all callers are migrated
+    // to `Create` function above.
+    RTC_CHECK_NOTREACHED();
+  }
 };
 
 }  // namespace webrtc
