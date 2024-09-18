@@ -127,23 +127,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Leita í Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Leita í Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Leita í Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Leita í Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Leita í Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Leita í Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Leita í Focus næturútgáfunni</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Leita í Focus næturútgáfunni</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s setur þig við stjórnvölinn.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s setur þig við stjórnvölinn.</p>
 <p>Notaðu það sem huliðsvafra:
   <ul>
     <li>Leitaðu og flettu beint í forritinu</li>
@@ -588,9 +588,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Eyða vafurferli</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Loka öðrum flipum</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Sækja Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Sækja Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -599,23 +602,23 @@
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s er þér aðgengilegt samkvæmt skilmálum <a href="%2$s">Mozilla Public License</a> og annarra notkunarleyfa opins hugbúnaðar.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s er þér aðgengilegt samkvæmt skilmálum <a href="%2$s">Mozilla Public License</a> og annarra notkunarleyfa opins hugbúnaðar.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Þú hefur ekki réttindi á eða leyfi til að nota vörumerki eða hefur leyfi fyrir vörumerkjum frá Mozilla-stofnunni eða öðrum aðilum, innifelur það í sér án allra takmarkana nönf eða fyrirtækismerki Mozilla, Firefox eða %1$s . Meiri upplýsingar fást <a href="%2$s">hér</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Þú hefur ekki réttindi á eða leyfi til að nota vörumerki eða hefur leyfi fyrir vörumerkjum frá Mozilla-stofnunni eða öðrum aðilum, innifelur það í sér án allra takmarkana nönf eða fyrirtækismerki Mozilla, Firefox eða %1$s . Meiri upplýsingar fást <a href="%2$s">hér</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Viðbótargrunnkóði fyrir %1$s er tiltækur með ýmsum öðrum ókeypis og opnum <a href="%2$s">hugbúnaðarleyfum</a>.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Viðbótargrunnkóði fyrir %1$s er tiltækur með ýmsum öðrum ókeypis og opnum <a href="%2$s">hugbúnaðarleyfum</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s notar einnig útilokunarlista frá Disconnect, Inc. sem aðskilin og sjálfstæð verk samkvæmt <a href="%2$s">almenna GNU General Public notkunarleyfinu útg.3</a> og er tiltækt <a href="%3$s">hér</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s notar einnig útilokunarlista frá Disconnect, Inc. sem aðskilin og sjálfstæð verk samkvæmt <a href="%2$s">almenna GNU General Public notkunarleyfinu útg.3</a> og er tiltækt <a href="%3$s">hér</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Notandanafn</string>
@@ -805,7 +808,7 @@
     <string name="preference_studies">Rannsóknir</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox kann að setja upp og keyra rannsóknir af og til.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox kann að setja upp og keyra rannsóknir af og til.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Fræðast meira</string>
@@ -1009,7 +1012,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s reynir að nota HTTPS tengingu þegar mögulegt er til að auka öryggi.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s reynir að nota HTTPS tengingu þegar mögulegt er til að auka öryggi.
      <a href="%2$s">Frekari upplýsingar</a> <br/><br/>
      Breyttu þessari stillingu í Stillingar > Persónuvernd og öryggi > Öryggi.]]></string>
 

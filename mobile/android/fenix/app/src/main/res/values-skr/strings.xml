@@ -112,6 +112,9 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">نویں نیویگیشݨ نال تکھیرا براؤز کرو</string>
 
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">نواں: ہک ٹیپ پچھوں  تے اڳوں تیر</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_message">تکھیری نیویگیشن توں لطف اندوز تھیوو جہڑی ہمیشہ تہاݙے ݙوݙیاں  تے ہوندی ہے۔</string>
 
