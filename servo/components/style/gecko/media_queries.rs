@@ -17,7 +17,7 @@ use crate::properties::ComputedValues;
 use crate::string_cache::Atom;
 use crate::values::computed::font::GenericFontFamily;
 use crate::values::computed::{ColorScheme, Length, NonNegativeLength};
-use crate::values::specified::color::{SystemColor, ColorSchemeFlags};
+use crate::values::specified::color::SystemColor;
 use crate::values::specified::font::{FONT_MEDIUM_LINE_HEIGHT_PX, FONT_MEDIUM_PX};
 use crate::values::specified::ViewportVariant;
 use crate::values::{CustomIdent, KeyframesName};
@@ -507,14 +507,14 @@ impl Device {
     pub(crate) fn system_nscolor(
         &self,
         system_color: SystemColor,
-        color_scheme: ColorSchemeFlags,
+        color_scheme: &ColorScheme,
     ) -> u32 {
-        unsafe { bindings::Gecko_ComputeSystemColor(system_color, self.document(), &color_scheme) }
+        unsafe { bindings::Gecko_ComputeSystemColor(system_color, self.document(), color_scheme) }
     }
 
     /// Returns whether the used color-scheme for `color-scheme` should be dark.
-    pub(crate) fn is_dark_color_scheme(&self, color_scheme: ColorSchemeFlags) -> bool {
-        unsafe { bindings::Gecko_IsDarkColorScheme(self.document(), &color_scheme) }
+    pub(crate) fn is_dark_color_scheme(&self, color_scheme: &ColorScheme) -> bool {
+        unsafe { bindings::Gecko_IsDarkColorScheme(self.document(), color_scheme) }
     }
 
     /// Returns the default background color.
@@ -522,14 +522,16 @@ impl Device {
     /// This is only for forced-colors/high-contrast, so looking at light colors
     /// is ok.
     pub fn default_background_color(&self) -> AbsoluteColor {
-        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvas, ColorScheme::normal().bits))
+        let normal = ColorScheme::normal();
+        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvas, &normal))
     }
 
     /// Returns the default foreground color.
     ///
     /// See above for looking at light colors only.
     pub fn default_color(&self) -> AbsoluteColor {
-        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvastext, ColorScheme::normal().bits))
+        let normal = ColorScheme::normal();
+        convert_nscolor_to_absolute_color(self.system_nscolor(SystemColor::Canvastext, &normal))
     }
 
     /// Returns the current effective text zoom.

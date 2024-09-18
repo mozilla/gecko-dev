@@ -492,10 +492,10 @@ GeckoImplicitScopeRoot Gecko_StyleSheet_ImplicitScopeRoot(
 bool Gecko_IsDocumentBody(const mozilla::dom::Element* element);
 
 bool Gecko_IsDarkColorScheme(const mozilla::dom::Document*,
-                             const mozilla::StyleColorSchemeFlags*);
+                             const mozilla::StyleColorScheme*);
 nscolor Gecko_ComputeSystemColor(mozilla::StyleSystemColor,
                                  const mozilla::dom::Document*,
-                                 const mozilla::StyleColorSchemeFlags*);
+                                 const mozilla::StyleColorScheme*);
 
 // We use an int32_t here instead of a LookAndFeel::IntID/FloatID because
 // forward-declaring a nested enum/struct is impossible.

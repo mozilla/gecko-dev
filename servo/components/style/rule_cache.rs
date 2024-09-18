@@ -95,7 +95,7 @@ impl CachedConditions {
         }
 
         if let Some(cs) = self.color_scheme {
-            if style.get_inherited_ui().color_scheme_bits() != cs {
+            if style.get_inherited_ui().clone_color_scheme().bits != cs {
                 return false;
             }
         }

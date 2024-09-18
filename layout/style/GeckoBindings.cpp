@@ -703,13 +703,14 @@ bool Gecko_IsDocumentBody(const Element* aElement) {
 }
 
 bool Gecko_IsDarkColorScheme(const Document* aDoc,
-                             const StyleColorSchemeFlags* aStyle) {
-  return LookAndFeel::ColorSchemeForStyle(*aDoc, *aStyle) == ColorScheme::Dark;
+                             const StyleColorScheme* aStyle) {
+  return LookAndFeel::ColorSchemeForStyle(*aDoc, aStyle->bits) ==
+         ColorScheme::Dark;
 }
 
 nscolor Gecko_ComputeSystemColor(StyleSystemColor aColor, const Document* aDoc,
-                                 const StyleColorSchemeFlags* aStyle) {
-  auto colorScheme = LookAndFeel::ColorSchemeForStyle(*aDoc, *aStyle);
+                                 const StyleColorScheme* aStyle) {
+  auto colorScheme = LookAndFeel::ColorSchemeForStyle(*aDoc, aStyle->bits);
   const auto& prefs = PreferenceSheet::PrefsFor(*aDoc);
   if (prefs.mMustUseLightSystemColors) {
     colorScheme = ColorScheme::Light;
