@@ -206,7 +206,7 @@ index 7c8a0fcb1e..92e12eb277 100644
      } else {
        deps += [
 diff --git a/api/BUILD.gn b/api/BUILD.gn
-index 63c1326adf..23774aeab8 100644
+index 419ebc1785..54bd4b6a63 100644
 --- a/api/BUILD.gn
 +++ b/api/BUILD.gn
 @@ -44,6 +44,9 @@ rtc_source_set("enable_media") {
@@ -298,7 +298,7 @@ index 63c1326adf..23774aeab8 100644
  
  rtc_source_set("frame_transformer_interface") {
    visibility = [ "*" ]
-@@ -589,6 +618,7 @@ rtc_source_set("peer_network_dependencies") {
+@@ -592,6 +621,7 @@ rtc_source_set("peer_network_dependencies") {
  }
  
  rtc_source_set("peer_connection_quality_test_fixture_api") {
@@ -306,7 +306,7 @@ index 63c1326adf..23774aeab8 100644
    visibility = [ "*" ]
    testonly = true
    sources = [ "test/peerconnection_quality_test_fixture.h" ]
-@@ -635,6 +665,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
+@@ -638,6 +668,7 @@ rtc_source_set("peer_connection_quality_test_fixture_api") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -314,7 +314,7 @@ index 63c1326adf..23774aeab8 100644
  
  rtc_source_set("frame_generator_api") {
    visibility = [ "*" ]
-@@ -758,6 +789,7 @@ rtc_library("create_frame_generator") {
+@@ -763,6 +794,7 @@ rtc_library("create_frame_generator") {
    ]
  }
  
@@ -322,7 +322,7 @@ index 63c1326adf..23774aeab8 100644
  rtc_library("create_peer_connection_quality_test_frame_generator") {
    visibility = [ "*" ]
    testonly = true
-@@ -774,6 +806,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
+@@ -781,6 +813,7 @@ rtc_library("create_peer_connection_quality_test_frame_generator") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -330,7 +330,7 @@ index 63c1326adf..23774aeab8 100644
  
  rtc_source_set("libjingle_logging_api") {
    visibility = [ "*" ]
-@@ -954,6 +987,7 @@ rtc_source_set("refcountedbase") {
+@@ -968,6 +1001,7 @@ rtc_source_set("refcountedbase") {
    ]
  }
  
@@ -338,7 +338,7 @@ index 63c1326adf..23774aeab8 100644
  rtc_library("ice_transport_factory") {
    visibility = [ "*" ]
    sources = [
-@@ -979,6 +1013,7 @@ rtc_library("ice_transport_factory") {
+@@ -993,6 +1027,7 @@ rtc_library("ice_transport_factory") {
      "rtc_event_log:rtc_event_log",
    ]
  }
@@ -1295,7 +1295,7 @@ index 67ff523aad..81a0ffacac 100644
  rtc_library("call_config_utils") {
    testonly = true
 diff --git a/video/BUILD.gn b/video/BUILD.gn
-index 77b453e077..da584a1c1d 100644
+index aa18fd019a..377ca361c3 100644
 --- a/video/BUILD.gn
 +++ b/video/BUILD.gn
 @@ -17,7 +17,7 @@ rtc_library("video_stream_encoder_interface") {

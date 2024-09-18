@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "api/test/videocodec_test_stats.h"  // NOLINT(build/include)
 
 namespace webrtc {

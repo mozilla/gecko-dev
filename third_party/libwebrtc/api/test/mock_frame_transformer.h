@@ -11,10 +11,11 @@
 #ifndef API_TEST_MOCK_FRAME_TRANSFORMER_H_
 #define API_TEST_MOCK_FRAME_TRANSFORMER_H_
 
+#include <cstdint>
 #include <memory>
-#include <vector>
 
 #include "api/frame_transformer_interface.h"
+#include "api/scoped_refptr.h"
 #include "test/gmock.h"
 
 namespace webrtc {

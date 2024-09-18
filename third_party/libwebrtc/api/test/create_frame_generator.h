@@ -11,6 +11,8 @@
 #ifndef API_TEST_CREATE_FRAME_GENERATOR_H_
 #define API_TEST_CREATE_FRAME_GENERATOR_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>

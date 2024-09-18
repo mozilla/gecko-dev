@@ -11,15 +11,35 @@
 #ifndef API_TEST_MOCK_PEERCONNECTIONINTERFACE_H_
 #define API_TEST_MOCK_PEERCONNECTIONINTERFACE_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <type_traits>
-#include <utility>
 #include <vector>
 
+#include "absl/types/optional.h"
+#include "api/adaptation/resource.h"
+#include "api/candidate.h"
+#include "api/data_channel_interface.h"
+#include "api/dtls_transport_interface.h"
+#include "api/jsep.h"
+#include "api/make_ref_counted.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
 #include "api/peer_connection_interface.h"
+#include "api/rtc_error.h"
+#include "api/rtc_event_log_output.h"
+#include "api/rtp_parameters.h"
+#include "api/rtp_receiver_interface.h"
+#include "api/rtp_sender_interface.h"
+#include "api/rtp_transceiver_interface.h"
 #include "api/scoped_refptr.h"
 #include "api/sctp_transport_interface.h"
+#include "api/set_remote_description_observer_interface.h"
+#include "api/stats/rtc_stats_collector_callback.h"
+#include "api/transport/bandwidth_estimation_settings.h"
+#include "api/transport/bitrate_settings.h"
+#include "api/transport/network_control.h"
 #include "rtc_base/ref_counted_object.h"
 #include "test/gmock.h"
 

@@ -11,10 +11,16 @@
 #ifndef API_TEST_MOCK_DATA_CHANNEL_H_
 #define API_TEST_MOCK_DATA_CHANNEL_H_
 
+#include <cstdint>
 #include <string>
 
+#include "absl/functional/any_invocable.h"
+#include "absl/types/optional.h"
 #include "api/data_channel_interface.h"
 #include "api/priority.h"
+#include "api/rtc_error.h"
+#include "api/scoped_refptr.h"
+#include "rtc_base/ref_counted_object.h"
 #include "test/gmock.h"
 
 namespace webrtc {

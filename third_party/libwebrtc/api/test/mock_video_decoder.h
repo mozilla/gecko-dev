@@ -11,8 +11,11 @@
 #ifndef API_TEST_MOCK_VIDEO_DECODER_H_
 #define API_TEST_MOCK_VIDEO_DECODER_H_
 
-#include <utility>
+#include <cstdint>
 
+#include "absl/types/optional.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_frame.h"
 #include "api/video_codecs/video_decoder.h"
 #include "test/gmock.h"
 

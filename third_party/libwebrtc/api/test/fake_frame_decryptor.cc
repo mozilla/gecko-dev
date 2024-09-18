@@ -10,8 +10,12 @@
 
 #include "api/test/fake_frame_decryptor.h"
 
+#include <cstddef>
+#include <cstdint>
 #include <vector>
 
+#include "api/array_view.h"
+#include "api/media_types.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {

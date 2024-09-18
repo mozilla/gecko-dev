@@ -11,8 +11,11 @@
 #ifndef API_TEST_MOCK_TRANSFORMABLE_AUDIO_FRAME_H_
 #define API_TEST_MOCK_TRANSFORMABLE_AUDIO_FRAME_H_
 
+#include <cstdint>
 #include <string>
 
+#include "absl/types/optional.h"
+#include "api/array_view.h"
 #include "api/frame_transformer_interface.h"
 #include "api/units/timestamp.h"
 #include "test/gmock.h"

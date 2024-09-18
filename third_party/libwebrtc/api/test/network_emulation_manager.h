@@ -11,13 +11,17 @@
 #ifndef API_TEST_NETWORK_EMULATION_MANAGER_H_
 #define API_TEST_NETWORK_EMULATION_MANAGER_H_
 
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "api/array_view.h"
+#include "api/field_trials_view.h"
 #include "api/packet_socket_factory.h"
 #include "api/test/network_emulation/cross_traffic.h"
 #include "api/test/network_emulation/network_emulation_interfaces.h"
@@ -25,9 +29,10 @@
 #include "api/test/simulated_network.h"
 #include "api/test/time_controller.h"
 #include "api/units/data_rate.h"
-#include "api/units/timestamp.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/network.h"
 #include "rtc_base/network_constants.h"
+#include "rtc_base/socket_address.h"
 #include "rtc_base/thread.h"
 
 namespace webrtc {

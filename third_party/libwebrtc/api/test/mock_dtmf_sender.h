@@ -12,8 +12,12 @@
 #define API_TEST_MOCK_DTMF_SENDER_H_
 
 #include <string>
+#include <type_traits>
 
 #include "api/dtmf_sender_interface.h"
+#include "api/make_ref_counted.h"
+#include "api/scoped_refptr.h"
+#include "rtc_base/ref_counted_object.h"
 #include "test/gmock.h"
 
 namespace webrtc {

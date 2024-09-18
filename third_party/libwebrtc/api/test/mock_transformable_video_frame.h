@@ -11,10 +11,15 @@
 #ifndef API_TEST_MOCK_TRANSFORMABLE_VIDEO_FRAME_H_
 #define API_TEST_MOCK_TRANSFORMABLE_VIDEO_FRAME_H_
 
+#include <cstdint>
 #include <string>
-#include <vector>
+#include <type_traits>
 
+#include "absl/types/optional.h"
+#include "api/array_view.h"
 #include "api/frame_transformer_interface.h"
+#include "api/units/timestamp.h"
+#include "api/video/video_frame_metadata.h"
 #include "test/gmock.h"
 
 namespace webrtc {

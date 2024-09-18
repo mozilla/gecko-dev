@@ -11,6 +11,10 @@
 #ifndef API_TEST_MOCK_ENCODER_SELECTOR_H_
 #define API_TEST_MOCK_ENCODER_SELECTOR_H_
 
+#include "absl/types/optional.h"
+#include "api/units/data_rate.h"
+#include "api/video/render_resolution.h"
+#include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder_factory.h"
 #include "test/gmock.h"
 
