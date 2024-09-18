@@ -1030,8 +1030,7 @@ TEST_F(RtpRtcpImpl2Test, GeneratesFlexfec) {
 TEST_F(RtpRtcpImpl2Test, GeneratesUlpfec) {
   constexpr int kUlpfecPayloadType = 118;
   constexpr int kRedPayloadType = 119;
-  UlpfecGenerator ulpfec_sender(kRedPayloadType, kUlpfecPayloadType,
-                                time_controller_.GetClock());
+  UlpfecGenerator ulpfec_sender(env_, kRedPayloadType, kUlpfecPayloadType);
   ReinitWithFec(&ulpfec_sender, kRedPayloadType);
 
   // Parameters selected to generate a single FEC packet per media packet.

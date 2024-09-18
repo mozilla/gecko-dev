@@ -184,6 +184,8 @@ webrtc_fuzzer_test("ulpfec_header_reader_fuzzer") {
 webrtc_fuzzer_test("ulpfec_generator_fuzzer") {
   sources = [ "ulpfec_generator_fuzzer.cc" ]
   deps = [
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../modules:module_api_public",
     "../../modules/rtp_rtcp",
     "../../modules/rtp_rtcp:fec_test_helper",

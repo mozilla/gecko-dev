@@ -94,8 +94,8 @@ FlexfecSender::FlexfecSender(
       seq_num_(rtp_state ? rtp_state->sequence_number
                          : random_.Rand(1, kMaxInitRtpSeqNumber)),
       ulpfec_generator_(
-          ForwardErrorCorrection::CreateFlexfec(ssrc, protected_media_ssrc),
-          &env_.clock()),
+          env_,
+          ForwardErrorCorrection::CreateFlexfec(ssrc, protected_media_ssrc)),
       rtp_header_extension_map_(
           RegisterSupportedExtensions(rtp_header_extensions)),
       header_extensions_size_(

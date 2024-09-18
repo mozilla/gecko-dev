@@ -18,6 +18,7 @@
 #include <memory>
 #include <vector>
 
+#include "api/environment/environment.h"
 #include "modules/include/module_fec_types.h"
 #include "modules/rtp_rtcp/source/forward_error_correction.h"
 #include "modules/rtp_rtcp/source/video_fec_generator.h"
@@ -33,7 +34,9 @@ class UlpfecGenerator : public VideoFecGenerator {
   friend class FlexfecSender;
 
  public:
-  UlpfecGenerator(int red_payload_type, int ulpfec_payload_type, Clock* clock);
+  UlpfecGenerator(const Environment& env,
+                  int red_payload_type,
+                  int ulpfec_payload_type);
   ~UlpfecGenerator();
 
   FecType GetFecType() const override {
@@ -72,7 +75,8 @@ class UlpfecGenerator : public VideoFecGenerator {
     FecProtectionParams keyframe_params;
   };
 
-  UlpfecGenerator(std::unique_ptr<ForwardErrorCorrection> fec, Clock* clock);
+  UlpfecGenerator(const Environment& env,
+                  std::unique_ptr<ForwardErrorCorrection> fec);
 
   // Overhead is defined as relative to the number of media packets, and not
   // relative to total number of packets. This definition is inherited from the
@@ -95,9 +99,9 @@ class UlpfecGenerator : public VideoFecGenerator {
 
   void ResetState();
 
+  const Environment env_;
   const int red_payload_type_;
   const int ulpfec_payload_type_;
-  Clock* const clock_;
 
   rtc::RaceChecker race_checker_;
   const std::unique_ptr<ForwardErrorCorrection> fec_
