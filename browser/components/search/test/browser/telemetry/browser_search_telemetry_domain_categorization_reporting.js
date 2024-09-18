@@ -9,6 +9,8 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   CATEGORIZATION_SETTINGS: "resource:///modules/SearchSERPTelemetry.sys.mjs",
+  SearchSERPDomainToCategoriesMap:
+    "resource:///modules/SearchSERPTelemetry.sys.mjs",
 });
 
 const TEST_PROVIDER_INFO = [
@@ -146,9 +148,10 @@ add_task(async function test_categorization_reporting() {
 add_task(async function test_no_reporting_if_download_failure() {
   resetTelemetry();
 
-  // Delete the attachment associated with the record so that syncing
-  // will cause an error.
-  await client.attachments.cacheImpl.delete(categorizationRecord.id);
+  let sandbox = sinon.createSandbox();
+  sandbox
+    .stub(RemoteSettings(TELEMETRY_CATEGORIZATION_KEY).attachments, "download")
+    .throws(new Error("Simulated Download Error"));
 
   let observeDownloadError = TestUtils.consoleMessageObserved(msg => {
     return (
@@ -172,11 +175,13 @@ add_task(async function test_no_reporting_if_download_failure() {
   // We should not record telemetry if attachments weren't downloaded.
   assertCategorizationValues([]);
 
-  // Re-insert the attachment for other tests.
-  await client.attachments.cacheImpl.set(
-    categorizationRecord.id,
-    categorizationAttachment
-  );
+  await sandbox.restore();
+
+  // The map is going to attempt to redo a download. There are other tests that
+  // do it, so instead reset the map so later tests don't get interrupted by
+  // a sync event caused by this test.
+  await SearchSERPDomainToCategoriesMap.uninit();
+  await SearchSERPDomainToCategoriesMap.init();
 });
 
 add_task(async function test_no_reporting_if_no_records() {
@@ -195,12 +200,23 @@ add_task(async function test_no_reporting_if_no_records() {
 
   let url = getSERPUrl("searchTelemetryDomainCategorizationReporting.html");
   info("Load a sample SERP with organic results.");
-  let promise = waitForPageWithCategorizedDomains();
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser, url);
-  await promise;
 
+  info("Wait roughly the amount of time a categorization event should occur.");
+  let waitPromise = sleep(1000);
+  let categorizationPromise = waitForPageWithCategorizedDomains();
+  let result = await Promise.race([
+    waitPromise.then(() => false),
+    categorizationPromise.then(() => true),
+  ]);
+  Assert.equal(
+    result,
+    false,
+    "Received a categorization event before the timeout."
+  );
   await BrowserTestUtils.removeTab(tab);
-  // We should not record telemetry if there are no records.
+
+  // We should not record telemetry if there are no records matching the region.
   assertCategorizationValues([]);
 });
 

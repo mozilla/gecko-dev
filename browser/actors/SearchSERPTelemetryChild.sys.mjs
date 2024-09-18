@@ -19,6 +19,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "serpEventTelemetryCategorizationRegionEnabled",
+  "browser.search.serpEventTelemetryCategorization.regionEnabled",
+  false
+);
+
 ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
   return console.createInstance({
     prefix: "SearchTelemetry",
@@ -28,6 +35,7 @@ ChromeUtils.defineLazyGetter(lazy, "logConsole", () => {
 
 export const CATEGORIZATION_SETTINGS = {
   MAX_DOMAINS_TO_CATEGORIZE: 10,
+  HAS_MATCHING_REGION: "SearchTelemetry:HasMatchingRegion",
 };
 
 // Duplicated from SearchSERPTelemetry to avoid loading the module on content
@@ -1428,6 +1436,7 @@ export class SearchSERPTelemetryChild extends JSWindowActorChild {
    * @type {number | null}
    */
   #adTimeout;
+
   /**
    * Determines if there is a provider that matches the supplied URL and returns
    * the information associated with that provider.
@@ -1537,6 +1546,7 @@ export class SearchSERPTelemetryChild extends JSWindowActorChild {
 
     if (
       lazy.serpEventTelemetryCategorization &&
+      lazy.serpEventTelemetryCategorizationRegionEnabled &&
       providerInfo.domainExtraction &&
       (eventType == "load" || eventType == "pageshow")
     ) {
@@ -1546,6 +1556,7 @@ export class SearchSERPTelemetryChild extends JSWindowActorChild {
         providerInfo.domainExtraction.nonAds,
         providerInfo.telemetryId
       );
+
       let adDomains = domainExtractor.extractDomainsFromDocument(
         doc,
         providerInfo.domainExtraction.ads,

@@ -517,7 +517,15 @@ registerCleanupFunction(async () => {
   await PlacesUtils.history.clear();
 });
 
-async function mockRecordWithAttachment({ id, version, filename, mapping }) {
+async function mockRecordWithAttachment({
+  id,
+  version,
+  filename,
+  mapping,
+  includeRegions,
+  excludeRegions,
+  isDefault = true,
+}) {
   // Get the bytes of the file for the hash and size for attachment metadata.
   let buffer = new TextEncoder().encode(JSON.stringify(mapping)).buffer;
   let stream = Cc["@mozilla.org/io/arraybuffer-input-stream;1"].createInstance(
@@ -539,6 +547,9 @@ async function mockRecordWithAttachment({ id, version, filename, mapping }) {
   let record = {
     id,
     version,
+    includeRegions,
+    excludeRegions,
+    isDefault,
     attachment: {
       hash,
       location: `main-workspace/search-categorization/${filename}`,
@@ -597,6 +608,9 @@ async function insertRecordIntoCollection() {
     version: 1,
     filename: "domain_category_mappings.json",
     mapping: CONVERTED_ATTACHMENT_VALUES,
+    includeRegions: [],
+    excludeRegions: [],
+    isDefault: true,
   });
   await db.create(record);
   await client.attachments.cacheImpl.set(record.id, attachment);
