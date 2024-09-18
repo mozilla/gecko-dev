@@ -655,12 +655,10 @@ auto DocumentLoadListener::Open(nsDocShellLoadState* aLoadState,
   mHTTPSFirstDowngradeData = aLoadState->GetHttpsFirstDowngradeData().forget();
 
   // Check for infinite recursive object or iframe loads
-  if (aLoadState->OriginalFrameSrc() || !mIsDocumentLoad) {
-    if (!CheckRecursiveLoad(loadingContext, aLoadState, mIsDocumentLoad)) {
-      *aRv = NS_ERROR_RECURSIVE_DOCUMENT_LOAD;
-      mParentChannelListener = nullptr;
-      return nullptr;
-    }
+  if (!CheckRecursiveLoad(loadingContext, aLoadState, mIsDocumentLoad)) {
+    *aRv = NS_ERROR_RECURSIVE_DOCUMENT_LOAD;
+    mParentChannelListener = nullptr;
+    return nullptr;
   }
 
   auto* documentContext = GetDocumentBrowsingContext();

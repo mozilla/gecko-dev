@@ -97,10 +97,20 @@
         "about:srcdoc",
       ],
     },
+    { // too many recursive dynamically created iframes
+      frameId: "dynamicrecursive",
+      expectedLocations: [
+        // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+        "http://example.com/tests/docshell/test/navigation/frame_recursive_dynamic.html",
+        // eslint-disable-next-line @microsoft/sdl/no-insecure-url
+        "http://example.com/tests/docshell/test/navigation/frame_recursive_dynamic.html",
+        "about:blank"
+      ],
+    },
   ];
 
   async function checkRecursiveLoad(level) {
-    let el = content.document.getElementById("static");
+    let el = content.document.getElementById("static") || content.document.getElementById("dynamic");
     let documentURI = await SpecialPowers.spawn(
       el,
       [],
@@ -152,7 +162,6 @@
       );
     }
   });
-
   </script>
 </pre>
 <div>
@@ -160,8 +169,9 @@
   <iframe style="height: 100vh; width:25%;" id="twoRecursiveIframes" src="http://example.com/tests/docshell/test/navigation/frame_load_as_example_com.html"></iframe>
   <iframe style="height: 100vh; width:25%;" id="threeRecursiveIframes" src="http://sub1.test1.mochi.test:8888/tests/docshell/test/navigation/frame_load_as_host1.html"></iframe>
   <iframe style="height: 100vh; width:25%;" id="sixRecursiveIframes" src="http://example.com/tests/docshell/test/navigation/frame_1_out_of_6.html"></iframe>
-  <object width="400" height="300" id="recursiveObject" data="http://sub2.xn--lt-uia.mochi.test:8888/tests/docshell/test/navigation/object_recursive_load.html"></object> 
+  <object width="400" height="300" id="recursiveObject" data="http://sub2.xn--lt-uia.mochi.test:8888/tests/docshell/test/navigation/object_recursive_load.html"></object>
   <iframe id="nestedSrcdoc" srcdoc="Srcdoc that will embed an iframe &lt;iframe id=&quot;static&quot; src=&quot;http://example.com/tests/docshell/test/navigation/file_nested_srcdoc.html&quot;&gt;&lt;/iframe&gt;"></iframe>
+  <iframe style="height: 100vh; width:25%;" id="dynamicrecursive" src="http://example.com/tests/docshell/test/navigation/frame_recursive_dynamic.html"></iframe>
 </div>
 </body>
 </html>

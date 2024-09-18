@@ -1,0 +1,8 @@
+<script>
+  addEventListener("load", () => {
+    let e = document.createElement("iframe");
+    e.id = "dynamic";
+    document.body.appendChild(e); // append before setting source, forcing load of about:blank
+    e.src = window.location.href; // set src to ourselves to start recursing
+  }, { once: true });
+</script>

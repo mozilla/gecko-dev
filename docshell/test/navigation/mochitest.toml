@@ -86,6 +86,7 @@ support-files = [
   "frame_5_out_of_6.html",
   "frame_6_out_of_6.html",
   "frame_recursive.html",
+  "frame_recursive_dynamic.html",
   "object_recursive_load.html",
   "file_nested_srcdoc.html",
 ]
