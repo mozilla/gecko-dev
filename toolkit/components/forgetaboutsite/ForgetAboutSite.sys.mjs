@@ -21,6 +21,7 @@ export var ForgetAboutSite = {
     let errorCount = await new Promise(resolve => {
       Services.clearData.deleteDataFromSite(
         schemelessSite,
+        {},
         true /* user request */,
         Ci.nsIClearDataService.CLEAR_FORGET_ABOUT_SITE,
         errorCode => resolve(bitCounting(errorCode))

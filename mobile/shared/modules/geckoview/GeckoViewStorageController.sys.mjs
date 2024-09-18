@@ -331,6 +331,7 @@ export const GeckoViewStorageController = {
     new Promise(resolve => {
       Services.clearData.deleteDataFromSite(
         schemelessSite,
+        {},
         /* isUserRequest */ true,
         convertFlags(aFlags),
         resolve
