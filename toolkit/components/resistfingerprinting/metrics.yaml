@@ -1767,6 +1767,156 @@ characteristics:
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
 
+  voices_count:
+    type: quantity
+    unit: int
+    description: >
+      Number of speechSynthesis voices available to the user.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  voices_local_count:
+    type: quantity
+    unit: int
+    description: >
+      Number of local speechSynthesis voices available to the user.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  voices_default:
+    type: string
+    description: >
+      The default speechSynthesis voice.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  voices_sample:
+    type: text
+    description: >
+      Names of 5 sample speechSynthesis voices.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  voices_sha1:
+    type: text
+    description: >
+      SHA1 hash of all the voices.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
+
+  voices_all_ssdeep:
+    type: string
+    description: >
+      ssdeep hash of all speechSynthesis voices.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  voices_local_ssdeep:
+    type: string
+    description: >
+      ssdeep hash of local speechSynthesis voices.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
+  voices_nonlocal_ssdeep:
+    type: string
+    description: >
+      ssdeep hash of non-local speechSynthesis voices.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+    expires: never
+    data_sensitivity:
+      - technical
+
   zoom_count:
     type: quantity
     unit: int

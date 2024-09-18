@@ -135,7 +135,7 @@ export class UserCharacteristicsPageService {
       [this.populateDevicePixelRatio, [browser.ownerGlobal]],
       [this.populateDisabledMediaPrefs, []],
       [this.populateMathOps, []],
-      [this.populateMapableData, [data.output]],
+      [this.populateMappableData, [data.output]],
       [this.populateGamepads, [data.output.gamepads]],
       [this.populateClientInfo, []],
       [this.populateCPUInfo, []],
@@ -287,7 +287,7 @@ export class UserCharacteristicsPageService {
     }
   }
 
-  async populateMapableData(data) {
+  async populateMappableData(data) {
     // We set data from usercharacteristics.js
     // We could do Object.keys(data), but this
     // is more explicit and provides better
@@ -322,7 +322,14 @@ export class UserCharacteristicsPageService {
         "canvasdata11Webglsoftware",
         "canvasdata12Fingerprintjs1software",
         "canvasdata13Fingerprintjs2software",
-        "voices",
+        "voicesCount",
+        "voicesLocalCount",
+        "voicesDefault",
+        "voicesSample",
+        "voicesSha1",
+        "voicesAllSsdeep",
+        "voicesLocalSsdeep",
+        "voicesNonlocalSsdeep",
         "mediaCapabilitiesUnsupported",
         "mediaCapabilitiesNotSmooth",
         "mediaCapabilitiesNotEfficient",
