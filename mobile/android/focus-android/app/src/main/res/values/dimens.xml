@@ -86,7 +86,6 @@
 
     <!-- DisplayToolbar -->
     <dimen name="mozac_browser_toolbar_background_margin_end" tools:ignore="UnusedResources">8dp</dimen>
-    <dimen name="mozac_browser_toolbar_start_end_margin" tools:ignore="UnusedResources">0dp</dimen>
 
     <!-- Default values for Material Bottom sheet. -->
     <dimen name="tablet_bottom_sheet_width">@dimen/match_parent</dimen>
