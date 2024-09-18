@@ -1233,7 +1233,7 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name ="bookmark_add_new_folder_button_content_description">Add a new folder</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name ="bookmark_close_button_content_description">Close bookmarks</string>
+    <string name ="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Close bookmarks</string>
     <!-- Content description for bookmark search floating action button -->
     <string name ="bookmark_search_button_content_description">Search bookmarks</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->

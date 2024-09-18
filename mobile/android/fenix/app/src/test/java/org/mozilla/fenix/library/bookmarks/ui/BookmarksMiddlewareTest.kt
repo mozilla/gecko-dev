@@ -8,20 +8,27 @@ import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runTest
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
+import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
 import mozilla.components.support.test.rule.runTestOnMain
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.mockito.Mockito.never
+import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
 import org.mozilla.fenix.NavGraphDirections
@@ -35,8 +42,9 @@ class BookmarksMiddlewareTest {
     @get:Rule
     val coroutineRule = MainCoroutineRule()
 
-    private val bookmarksStorage: BookmarksStorage = mock()
-    private val navController: NavController = mock()
+    private lateinit var bookmarksStorage: BookmarksStorage
+    private lateinit var navController: NavController
+    private lateinit var exitBookmarks: () -> Unit
     private lateinit var getBrowsingMode: () -> BrowsingMode
     private lateinit var openTab: (String, Boolean) -> Unit
     private val resolveFolderTitle = { node: BookmarkNode ->
@@ -56,6 +64,9 @@ class BookmarksMiddlewareTest {
 
     @Before
     fun setup() {
+        bookmarksStorage = mock()
+        navController = mock()
+        exitBookmarks = { }
         getBrowsingMode = { BrowsingMode.Normal }
         openTab = { _, _ -> }
     }
@@ -186,9 +197,11 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `WHEN folder is clicked THEN children are loaded and screen title is updated to folder title`() = runTestOnMain {
-        val folderNode = bookmarkTree.first { it.type == BookmarkNodeType.FOLDER }
+        val bookmarkTree = generateBookmarkTree()
+        val folderNode = bookmarkTree.children!!.first { it.type == BookmarkNodeType.FOLDER }
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
-        `when`(bookmarksStorage.getTree(folderNode.guid)).thenReturn(generateBookmarkFolder(folderNode.guid, folderNode.title!!))
+        `when`(bookmarksStorage.getTree(folderNode.guid))
+            .thenReturn(generateBookmarkFolder(folderNode.guid, folderNode.title!!, BookmarkRoot.Mobile.id))
 
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
@@ -210,13 +223,93 @@ class BookmarksMiddlewareTest {
         verify(navController).navigate(NavGraphDirections.actionGlobalSearchDialog(sessionId = null))
     }
 
+    @Test
+    fun `WHEN add folder button is clicked THEN navigate to folder screen`() {
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(AddFolderClicked)
+
+        verify(navController).navigate(BookmarksDestinations.ADD_FOLDER)
+    }
+
+    @Test
+    fun `GIVEN current screen is add folder and new folder title is nonempty WHEN back is clicked THEN navigate back, save the new folder, and load the updated tree`() = runTest {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+        val newFolderTitle = "test"
+
+        store.dispatch(AddFolderClicked)
+        store.dispatch(AddFolderAction.TitleChanged(newFolderTitle))
+
+        assertNotNull(store.state.bookmarksAddFolderState)
+
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage).addFolder(store.state.folderGuid, title = newFolderTitle)
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+        verify(navController).popBackStack()
+        assertNull(store.state.bookmarksAddFolderState)
+    }
+
+    @Test
+    fun `GIVEN current screen is add folder and new folder title is empty WHEN back is clicked THEN navigate back to the previous tree and don't save anything`() = runTestOnMain {
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(AddFolderClicked)
+        store.dispatch(AddFolderAction.TitleChanged("test"))
+        store.dispatch(AddFolderAction.TitleChanged(""))
+        assertNotNull(store.state.bookmarksAddFolderState)
+
+        store.dispatch(BackClicked)
+        this.advanceUntilIdle()
+
+        verify(bookmarksStorage, never()).addFolder(parentGuid = store.state.folderGuid, title = "")
+        verify(navController).popBackStack()
+        assertNull(store.state.bookmarksAddFolderState)
+    }
+
+    @Test
+    fun `GIVEN current screen is list and the top-level is loaded WHEN back is clicked THEN exit bookmarks`() = runTestOnMain {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        var exited = false
+        exitBookmarks = { exited = true }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BackClicked)
+
+        assertTrue(exited)
+    }
+
+    @Test
+    fun `GIVEN current screen is list and a sub-level folder is loaded WHEN back is clicked THEN load the parent level`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        val firstFolderNode = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        `when`(bookmarksStorage.getTree(firstFolderNode.guid)).thenReturn(generateBookmarkTree())
+        `when`(bookmarksStorage.getBookmark(firstFolderNode.guid)).thenReturn(firstFolderNode)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(FolderClicked(BookmarkItem.Folder(title = firstFolderNode.title!!, guid = firstFolderNode.guid)))
+        assertEquals(firstFolderNode.guid, store.state.folderGuid)
+        store.dispatch(BackClicked)
+
+        assertEquals(BookmarkRoot.Mobile.id, store.state.folderGuid)
+        assertEquals(tree.children!!.size, store.state.bookmarkItems.size)
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         navController = navController,
+        exitBookmarks = exitBookmarks,
         resolveFolderTitle = resolveFolderTitle,
         getBrowsingMode = getBrowsingMode,
         openTab = openTab,
-        scope = coroutineRule.scope,
+        ioDispatcher = coroutineRule.testDispatcher,
     )
 
     private fun BookmarksMiddleware.makeStore(
@@ -224,17 +317,21 @@ class BookmarksMiddlewareTest {
     ) = BookmarksStore(
         initialState = initialState,
         middleware = listOf(this),
-    )
+    ).also {
+        it.waitUntilIdle()
+    }
 
-    private val bookmarkFolders = List(5) {
-        generateBookmarkFolder("folder guid $it", "folder title $it")
+    private fun generateBookmarkFolders(parentGuid: String) = List(5) {
+        generateBookmarkFolder(
+            guid = "folder guid $it",
+            title = "folder title $it",
+            parentGuid = parentGuid,
+        )
     }
 
     private val bookmarkItems = List(5) {
         generateBookmark("item guid $it", "item title $it", "item url $it")
     }
-
-    private val bookmarkTree = bookmarkFolders + bookmarkItems
 
     private fun generateBookmarkTree() = BookmarkNode(
         type = BookmarkNodeType.FOLDER,
@@ -244,13 +341,13 @@ class BookmarksMiddlewareTest {
         title = "mobile",
         url = null,
         dateAdded = 0L,
-        children = bookmarkFolders + bookmarkItems,
+        children = generateBookmarkFolders(BookmarkRoot.Mobile.id) + bookmarkItems,
     )
 
-    private fun generateBookmarkFolder(guid: String, title: String) = BookmarkNode(
+    private fun generateBookmarkFolder(guid: String, title: String, parentGuid: String) = BookmarkNode(
         type = BookmarkNodeType.FOLDER,
         guid = guid,
-        parentGuid = null,
+        parentGuid = parentGuid,
         position = 0U,
         title = title,
         url = null,

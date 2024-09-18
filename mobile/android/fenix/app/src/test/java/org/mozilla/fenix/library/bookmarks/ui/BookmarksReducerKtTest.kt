@@ -18,16 +18,29 @@ class BookmarksReducerKtTest {
     }
 
     @Test
-    fun `WHEN bookmarks are loaded THEN they are added to state and folder title is updated`() {
+    fun `WHEN bookmarks are loaded THEN they are added to state with their parent folder data`() {
         val state = BookmarksState.default
         val items = List(5) {
             BookmarkItem.Folder("$it", "guid$it")
         }
         val newTitle = "bookmarks"
+        val newGuid = "guid"
 
-        val result = bookmarksReducer(state, BookmarksLoaded(folderTitle = newTitle, bookmarkItems = items))
+        val result = bookmarksReducer(
+            state,
+            BookmarksLoaded(
+                folderTitle = newTitle,
+                folderGuid = newGuid,
+                bookmarkItems = items,
+            ),
+        )
 
-        assertEquals(state.copy(folderTitle = newTitle, bookmarkItems = items), result)
+        val expected = state.copy(
+            folderTitle = newTitle,
+            folderGuid = newGuid,
+            bookmarkItems = items,
+        )
+        assertEquals(expected, result)
     }
 
     @Test
@@ -120,6 +133,35 @@ class BookmarksReducerKtTest {
         val result = bookmarksReducer(state, FolderClicked(folder2))
 
         assertFalse(result.selectedItems.contains(folder2))
+    }
+
+    @Test
+    fun `WHEN the title of a folder is changed on the add folder screen THEN that is reflected in state`() {
+        val state = BookmarksState.default
+        val titleChange = "test"
+
+        val result = bookmarksReducer(state, AddFolderAction.TitleChanged(titleChange))
+
+        val expected = BookmarksState.default.copy(bookmarksAddFolderState = BookmarksAddFolderState(folderBeingAddedTitle = titleChange))
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN we are on the add folder screen WHEN back is clicked THEN add folder state is removed`() {
+        val state = BookmarksState.default.copy(bookmarksAddFolderState = BookmarksAddFolderState(folderBeingAddedTitle = ""))
+
+        val result = bookmarksReducer(state, BackClicked)
+
+        assertEquals(BookmarksState.default, result)
+    }
+
+    @Test
+    fun `GIVEN there is no substate screen present WHEN back is clicked THEN state is unchanged`() {
+        val state = BookmarksState.default
+
+        val result = bookmarksReducer(state, BackClicked)
+
+        assertEquals(BookmarksState.default, result)
     }
 
     private fun generateBookmark(

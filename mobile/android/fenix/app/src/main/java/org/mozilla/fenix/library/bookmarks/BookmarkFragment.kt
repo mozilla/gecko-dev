@@ -24,6 +24,7 @@ import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDirections
+import androidx.navigation.NavHostController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +37,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.concept.engine.EngineSession
 import mozilla.components.concept.engine.prompt.ShareData
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
@@ -46,6 +48,7 @@ import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.kotlin.toShortUrl
 import mozilla.components.ui.widgets.withCenterAlignedButtons
 import mozilla.telemetry.glean.private.NoExtras
+import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.NavHostActivity
@@ -64,7 +67,6 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.library.LibraryPageFragment
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksScreen
-import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
@@ -93,6 +95,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
 
     override val selectedItems get() = bookmarkStore.state.mode.selectedItems
 
+    @Suppress("LongMethod")
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
@@ -128,26 +131,37 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
         if (requireContext().settings().useNewBookmarks) {
             return ComposeView(requireContext()).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-                val store = BookmarksStore(
-                    initialState = BookmarksState(
-                        bookmarkItems = listOf(),
-                        folderTitle = "Bookmarks",
-                        selectedItems = listOf(),
-                    ),
-                    middleware = listOf(
-                        BookmarksMiddleware(
-                            bookmarksStorage = requireContext().bookmarkStorage,
-                            navController = findNavController(),
-                            resolveFolderTitle = { friendlyRootTitle(requireContext(), it) ?: "" },
-                            getBrowsingMode = { BrowsingMode.Normal },
-                            openTab = { _, _ -> },
-                        ),
-                    ),
-                )
+                val buildStore = { navController: NavHostController ->
+                    StoreProvider.get(this@BookmarkFragment) {
+                        BookmarksStore(
+                            middleware = listOf(
+                                BookmarksMiddleware(
+                                    bookmarksStorage = requireContext().bookmarkStorage,
+                                    exitBookmarks = { findNavController().popBackStack() },
+                                    navController = navController,
+                                    resolveFolderTitle = {
+                                        friendlyRootTitle(requireContext(), it) ?: ""
+                                    },
+                                    getBrowsingMode = { BrowsingMode.Normal },
+                                    openTab = { url, openInNewTab ->
+                                        (activity as HomeActivity).openToBrowserAndLoad(
+                                            searchTermOrURL = url,
+                                            newTab = openInNewTab,
+                                            from = BrowserDirection.FromBookmarks,
+                                            flags = EngineSession.LoadUrlFlags.select(
+                                                EngineSession.LoadUrlFlags.ALLOW_JAVASCRIPT_URL,
+                                            ),
+                                        )
+                                    },
+                                ),
+                            ),
+                        )
+                    }
+                }
 
                 setContent {
                     FirefoxTheme {
-                        BookmarksScreen(store = store)
+                        BookmarksScreen(buildStore = buildStore)
                     }
                 }
             }

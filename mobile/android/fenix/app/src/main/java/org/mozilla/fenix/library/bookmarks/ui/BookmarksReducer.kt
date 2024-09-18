@@ -11,6 +11,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     is BookmarksLoaded -> state.copy(
         folderTitle = action.folderTitle,
         bookmarkItems = action.bookmarkItems,
+        folderGuid = action.folderGuid,
     )
     is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
     is FolderLongClicked -> state.toggleSelectionOf(action.item)
@@ -24,7 +25,15 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     } else {
         state
     }
+    is AddFolderAction.TitleChanged -> state.copy(
+        bookmarksAddFolderState = BookmarksAddFolderState(
+            folderBeingAddedTitle = action.updatedText,
+        ),
+    )
+    BackClicked -> state.respondToBackClick()
+    AddFolderAction.ParentFolderClicked,
     SearchClicked,
+    AddFolderClicked,
     Init,
     -> state
 }
@@ -35,3 +44,8 @@ private fun BookmarksState.toggleSelectionOf(item: BookmarkItem): BookmarksState
     } else {
         copy(selectedItems = selectedItems + item)
     }
+
+private fun BookmarksState.respondToBackClick(): BookmarksState = when {
+    bookmarksAddFolderState != null -> copy(bookmarksAddFolderState = null)
+    else -> this
+}

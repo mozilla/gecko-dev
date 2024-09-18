@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,17 +18,20 @@ import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
 import androidx.compose.material.TextField
+import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
@@ -39,24 +43,50 @@ import org.mozilla.fenix.theme.FirefoxTheme
 
 /**
  * The UI host for the Bookmarks list screen and related subscreens.
+ *
+ * @param buildStore A builder function to construct a [BookmarksStore] using the NavController that's local
+ * to the nav graph for the Bookmarks view hierarchy.
  */
 @Composable
-internal fun BookmarksScreen(store: BookmarksStore) {
+internal fun BookmarksScreen(buildStore: (NavHostController) -> BookmarksStore) {
+    val navController = rememberNavController()
+    val store = buildStore(navController)
     val state by store.observeAsState(initialValue = store.state) { it }
-    BookmarksList(
-        bookmarkItems = state.bookmarkItems,
-        selectedItems = state.selectedItems,
-        folderTitle = state.folderTitle,
-        onBookmarkClick = { item -> store.dispatch(BookmarkClicked(item)) },
-        onBookmarkLongClick = { item -> store.dispatch(BookmarkLongClicked(item)) },
-        onFolderClick = { item -> store.dispatch(FolderClicked(item)) },
-        onFolderLongClick = { item -> store.dispatch(FolderLongClicked(item)) },
-        onBackClick = {},
-        onNewFolderClick = {},
-        onCloseClick = {},
-        onMenuClick = {},
-        onSearchClick = { store.dispatch(SearchClicked) },
-    )
+    BackHandler { store.dispatch(BackClicked) }
+    NavHost(
+        navController = navController,
+        startDestination = BookmarksDestinations.LIST,
+    ) {
+        composable(route = BookmarksDestinations.LIST) {
+            BookmarksList(
+                bookmarkItems = state.bookmarkItems,
+                selectedItems = state.selectedItems,
+                folderTitle = state.folderTitle,
+                onBookmarkClick = { item -> store.dispatch(BookmarkClicked(item)) },
+                onBookmarkLongClick = { item -> store.dispatch(BookmarkLongClicked(item)) },
+                onFolderClick = { item -> store.dispatch(FolderClicked(item)) },
+                onFolderLongClick = { item -> store.dispatch(FolderLongClicked(item)) },
+                onBackClick = { store.dispatch(BackClicked) },
+                onNewFolderClick = { store.dispatch(AddFolderClicked) },
+                onMenuClick = {},
+                onSearchClick = { store.dispatch(SearchClicked) },
+            )
+        }
+        composable(route = BookmarksDestinations.ADD_FOLDER) {
+            AddFolderScreen(
+                folderTitle = state.bookmarksAddFolderState?.folderBeingAddedTitle ?: "",
+                parentFolderTitle = state.folderTitle,
+                onTextChange = { updatedText -> store.dispatch(AddFolderAction.TitleChanged(updatedText)) },
+                onParentFolderIconClick = { store.dispatch(AddFolderAction.ParentFolderClicked) },
+                onBackClick = { store.dispatch(BackClicked) },
+            )
+        }
+    }
+}
+
+internal object BookmarksDestinations {
+    const val LIST = "list"
+    const val ADD_FOLDER = "add folder"
 }
 
 /**
@@ -70,7 +100,6 @@ internal fun BookmarksScreen(store: BookmarksStore) {
  * @param onFolderLongClick Invoked when the user clicks on a folder item row.
  * @param onBackClick Invoked when the user clicks on the toolbar back button.
  * @param onNewFolderClick Invoked when the user clicks on the toolbar new folder button.
- * @param onCloseClick Invoked when the user clicks on the toolbar close button.
  * @param onMenuClick Invoked when the user clicks on a bookmark item overflow menu.
  * @param onSearchClick Invoked when the user clicks on the search floating action button.
  */
@@ -86,7 +115,6 @@ private fun BookmarksList(
     onFolderLongClick: (BookmarkItem.Folder) -> Unit,
     onBackClick: () -> Unit,
     onNewFolderClick: () -> Unit,
-    onCloseClick: () -> Unit,
     onMenuClick: (BookmarkItem) -> Unit,
     onSearchClick: () -> Unit,
 ) {
@@ -103,7 +131,6 @@ private fun BookmarksList(
                 folderTitle = folderTitle,
                 onBackClick = onBackClick,
                 onNewFolderClick = onNewFolderClick,
-                onCloseClick = onCloseClick,
             )
         },
         backgroundColor = FirefoxTheme.colors.layer1,
@@ -156,7 +183,6 @@ private fun BookmarksListTopBar(
     folderTitle: String,
     onBackClick: () -> Unit,
     onNewFolderClick: () -> Unit,
-    onCloseClick: () -> Unit,
 ) {
     TopAppBar(
         backgroundColor = FirefoxTheme.colors.layer1,
@@ -184,41 +210,33 @@ private fun BookmarksListTopBar(
                     tint = FirefoxTheme.colors.iconPrimary,
                 )
             }
-
-            IconButton(onClick = onCloseClick) {
-                Icon(
-                    painter = painterResource(R.drawable.mozac_ic_cross_24),
-                    contentDescription = stringResource(R.string.bookmark_close_button_content_description),
-                    tint = FirefoxTheme.colors.iconPrimary,
-                )
-            }
         },
     )
 }
 
 @Composable
-private fun AddFolder(
+private fun AddFolderScreen(
+    folderTitle: String,
     parentFolderTitle: String,
     onTextChange: (String) -> Unit,
     onParentFolderIconClick: () -> Unit,
     onBackClick: () -> Unit,
 ) {
-    Scaffold(topBar = { AddFolderTopBar(onBackClick) }) { paddingValues ->
-        var text by remember { mutableStateOf("") }
-
+    Scaffold(
+        topBar = { AddFolderTopBar(onBackClick) },
+        backgroundColor = FirefoxTheme.colors.layer1,
+    ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             TextField(
-                value = text,
-                onValueChange = { newText ->
-                    text = newText
-                    onTextChange(newText)
-                },
+                value = folderTitle,
+                onValueChange = { newText -> onTextChange(newText) },
                 label = {
                     Text(
                         stringResource(R.string.bookmark_name_label_normal_case),
                         color = FirefoxTheme.colors.textPrimary,
                     )
                 },
+                colors = TextFieldDefaults.textFieldColors(textColor = FirefoxTheme.colors.textPrimary),
                 modifier = Modifier.padding(start = 16.dp, top = 32.dp),
             )
 
@@ -226,7 +244,8 @@ private fun AddFolder(
 
             Text(
                 stringResource(R.string.bookmark_save_in_label),
-                fontSize = 14.sp,
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.body2,
                 modifier = Modifier.padding(start = 16.dp),
             )
 
@@ -279,17 +298,21 @@ private fun BookmarksScreenPreview() {
         }
     }
 
-    val store = BookmarksStore(
-        initialState = BookmarksState(
-            bookmarkItems = bookmarkItems,
-            folderTitle = "Bookmarks",
-            selectedItems = listOf(),
-        ),
-    )
+    val store = { _: NavHostController ->
+        BookmarksStore(
+            initialState = BookmarksState(
+                bookmarkItems = bookmarkItems,
+                selectedItems = listOf(),
+                folderTitle = "Bookmarks",
+                folderGuid = BookmarkRoot.Mobile.id,
+                bookmarksAddFolderState = null,
+            ),
+        )
+    }
 
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
-            BookmarksScreen(store)
+            BookmarksScreen(buildStore = store)
         }
     }
 }
@@ -299,7 +322,7 @@ private fun BookmarksScreenPreview() {
 private fun AddFolderPreview() {
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
-            AddFolder("Bookmarks", {}, {}, {})
+            AddFolderScreen("", "Bookmarks", {}, {}, {})
         }
     }
 }
