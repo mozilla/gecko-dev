@@ -10,12 +10,13 @@
 #ifndef API_TEST_NETWORK_EMULATION_NETWORK_EMULATION_INTERFACES_H_
 #define API_TEST_NETWORK_EMULATION_NETWORK_EMULATION_INTERFACES_H_
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 #include <map>
-#include <memory>
 #include <vector>
 
 #include "absl/types/optional.h"
-#include "api/array_view.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"

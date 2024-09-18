@@ -48,8 +48,10 @@ if (!build_with_chromium) {
         "echo/echo_emulation.h",
       ]
       deps = [
+        "../../../api:sequence_checker",
         "../../../api/test/pclf:media_configuration",
         "../../../modules/audio_device:test_audio_device_module",
+        "../../../rtc_base:logging",
         "../../../rtc_base:swap_queue",
       ]
     }

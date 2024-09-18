@@ -9,6 +9,7 @@
  */
 #include "api/test/network_emulation/schedulable_network_node_builder.h"
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -17,6 +18,7 @@
 #include "api/test/network_emulation/network_config_schedule.pb.h"
 #include "api/test/network_emulation_manager.h"
 #include "api/units/timestamp.h"
+#include "rtc_base/time_utils.h"
 #include "test/network/schedulable_network_behavior.h"
 
 namespace webrtc {

@@ -63,6 +63,8 @@ rtc_library("media_quality_test_params") {
   deps = [
     ":media_configuration",
     "../..:async_dns_resolver",
+    "../..:ice_transport_interface",
+    "../..:scoped_refptr",
     "../../../api:fec_controller_api",
     "../../../api:field_trials_view",
     "../../../api:libjingle_peerconnection_api",
@@ -74,11 +76,17 @@ rtc_library("media_quality_test_params") {
     "../../../p2p:connection",
     "../../../p2p:port_allocator",
     "../../../p2p:rtc_p2p",
+    "../../../rtc_base:checks",
     "../../../rtc_base:network",
     "../../../rtc_base:rtc_certificate_generator",
     "../../../rtc_base:ssl",
     "../../../rtc_base:threading",
     "../../audio:audio_processing",
+    "../../audio_codecs:audio_codecs_api",
+    "../../neteq:neteq_api",
+    "../../transport:bitrate_settings",
+    "../../units:time_delta",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 

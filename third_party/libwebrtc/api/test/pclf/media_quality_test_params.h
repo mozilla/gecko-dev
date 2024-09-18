@@ -11,21 +11,33 @@
 #define API_TEST_PCLF_MEDIA_QUALITY_TEST_PARAMS_H_
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "api/async_dns_resolver.h"
 #include "api/audio/audio_mixer.h"
 #include "api/audio/audio_processing.h"
+#include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/audio_codecs/audio_encoder_factory.h"
 #include "api/fec_controller.h"
 #include "api/field_trials_view.h"
+#include "api/ice_transport_interface.h"
+#include "api/neteq/neteq_factory.h"
+#include "api/packet_socket_factory.h"
+#include "api/peer_connection_interface.h"
 #include "api/rtc_event_log/rtc_event_log_factory_interface.h"
+#include "api/scoped_refptr.h"
 #include "api/test/pclf/media_configuration.h"
+#include "api/transport/bitrate_settings.h"
 #include "api/transport/network_control.h"
+#include "api/units/time_delta.h"
 #include "api/video_codecs/video_decoder_factory.h"
 #include "api/video_codecs/video_encoder_factory.h"
 #include "p2p/base/port_allocator.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/network.h"
 #include "rtc_base/rtc_certificate_generator.h"
 #include "rtc_base/ssl_certificate.h"

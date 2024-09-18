@@ -10,13 +10,20 @@
 
 #include "api/test/pclf/media_configuration.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <functional>
+#include <map>
+#include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/test/video/video_frame_writer.h"
+#include "api/units/time_delta.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
 #include "test/pc/e2e/analyzer/video/video_dumping.h"
