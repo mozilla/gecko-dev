@@ -2007,11 +2007,11 @@ characteristics:
     data_sensitivity:
       - technical
 
-  media_devices:
-    type: text
+  camera_count:
+    type: quantity
+    unit: int
     description: >
-      A JSON object containing the number of audio input/output, video input and
-      the number of unique group ids.
+      Number of cameras available on the device.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -2019,14 +2019,88 @@ characteristics:
       - tom@mozilla.com
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896736
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896736#c4
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
     expires: never
     data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
+      - technical
+
+  microphone_count:
+    type: quantity
+    unit: int
+    description: >
+      Number of microphones available on the device.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  speaker_count:
+    type: quantity
+    unit: int
+    description: >
+      Number of speakers available on the device.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  group_count:
+    type: quantity
+    unit: int
+    description: >
+      Number of device groups reported by the device.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
+    expires: never
+    data_sensitivity:
+      - technical
+
+  group_count_wo_speakers:
+    type: quantity
+    unit: int
+    description: >
+      Number of device groups without speakers reported by the device.
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
+    expires: never
+    data_sensitivity:
+      - technical
 
   audio_frames:
     type: quantity
