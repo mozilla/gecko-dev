@@ -47,6 +47,10 @@
      If your highlighter has UI that needs to be interacted with, add
      'pointer-events:auto;' on its container element. */
   pointer-events: none;
+
+  /* Don't allow forced colors for now. We might revisit this once we have High Contrast Mode
+     support in the DevTools toolbox */
+  forced-color-adjust: none;
 }
 
 .highlighter-container.box-model {
