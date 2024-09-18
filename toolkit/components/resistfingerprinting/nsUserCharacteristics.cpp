@@ -461,14 +461,12 @@ RefPtr<PopulatePromise> PopulateMediaDevices() {
           }
         }
 
-        glean::characteristics::camera_count.Set(cameraCount);
-        glean::characteristics::microphone_count.Set(microphoneCount);
-        glean::characteristics::speaker_count.Set(speakerCount);
-        glean::characteristics::group_count.Set(
-            static_cast<int64_t>(groupIds.size()));
-        glean::characteristics::group_count_wo_speakers.Set(
-            static_cast<int64_t>(groupIdsWoSpeakers.size()));
-
+        nsCString json;
+        json.AppendPrintf(
+            R"({"cameraCount": %u, "microphoneCount": %u, "speakerCount": %u, "groupCount": %zu, "groupCountWoSpeakers": %zu})",
+            cameraCount, microphoneCount, speakerCount, groupIds.size(),
+            groupIdsWoSpeakers.size());
+        glean::characteristics::media_devices.Set(json);
         populatePromise->Resolve(void_t(), __func__);
       },
       [=](RefPtr<MediaMgrError>&& reason) {
@@ -667,7 +665,7 @@ const RefPtr<PopulatePromise>& TimoutPromise(
 // metric is set, this variable should be incremented. It'll be a lot. It's
 // okay. We're going to need it to know (including during development) what is
 // the source of the data we are looking at.
-const int kSubmissionSchema = 6;
+const int kSubmissionSchema = 5;
 
 const auto* const kUUIDPref =
     "toolkit.telemetry.user_characteristics_ping.uuid";

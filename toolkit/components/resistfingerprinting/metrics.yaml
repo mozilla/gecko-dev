@@ -1710,289 +1710,19 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  gl_version:
-    type: quantity
-    unit: int
-    description: >
-      The version of OpenGL supported by the user's system.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_extensions:
+  webglinfo:
     type: text
     description: >
-      The list of OpenGL extensions supported by the user's system.
+      A JSON blob that contains information about the graphics hardware exposed by WebGL.
     lifetime: application
     send_in_pings:
       - user-characteristics
     notification_emails:
       - tom@mozilla.com
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896101
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_extensions_raw:
-    type: text
-    description: >
-      The raw list of OpenGL extensions supported by the user's system.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_renderer:
-    type: string
-    description: >
-      The OpenGL renderer string.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_renderer_raw:
-    type: string
-    description: >
-      The raw OpenGL renderer string.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_vendor:
-    type: string
-    description: >
-      The OpenGL vendor string.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_vendor_raw:
-    type: string
-    description: >
-      The raw OpenGL vendor string.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_version_raw:
-    type: string
-    description: >
-      The raw OpenGL version string.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_fragment_shader:
-    type: string
-    description: >
-      Hash of the transformed source of the fragment shader.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_vertex_shader:
-    type: string
-    description: >
-      Hash of the transformed source of the vertex shader.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      - technical
-
-  gl_minimal_source:
-    type: text
-    description: >
-      Transformed source of the minimal shader.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_params_extensions:
-    type: text
-    description: >
-      The list of GL parameters of the extensions.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_params_v1:
-    type: text
-    description: >
-      The list of GL parameters of GL1.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_params_v2:
-    type: text
-    description: >
-      The list of GL parameters of GL2.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_precision_fragment:
-    type: text
-    description: >
-      Precisions of the fragment shader.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  gl_precision_vertex:
-    type: text
-    description: >
-      Precisions of the vertex shader.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=xxx
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -2017,66 +1747,10 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  voices_count:
-    type: quantity
-    unit: int
-    description: >
-      Number of speechSynthesis voices available to the user.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  voices_local_count:
-    type: quantity
-    unit: int
-    description: >
-      Number of local speechSynthesis voices available to the user.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  voices_default:
-    type: string
-    description: >
-      The default speechSynthesis voice.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  voices_sample:
+  voices:
     type: text
     description: >
-      Names of 5 sample speechSynthesis voices.
+      Available speechSynthesis voices.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -2084,88 +1758,14 @@ characteristics:
       - tom@mozilla.com
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886387
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1886387#c4
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
-
-  voices_sha1:
-    type: text
-    description: >
-      SHA1 hash of all the voices.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  voices_all_ssdeep:
-    type: string
-    description: >
-      ssdeep hash of all speechSynthesis voices.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  voices_local_ssdeep:
-    type: string
-    description: >
-      ssdeep hash of local speechSynthesis voices.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
-    expires: never
-    data_sensitivity:
-      - technical
-
-  voices_nonlocal_ssdeep:
-    type: string
-    description: >
-      ssdeep hash of non-local speechSynthesis voices.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c3
-    expires: never
-    data_sensitivity:
-      - technical
 
   zoom_count:
     type: quantity
@@ -2407,11 +2007,11 @@ characteristics:
     data_sensitivity:
       - technical
 
-  camera_count:
-    type: quantity
-    unit: int
+  media_devices:
+    type: text
     description: >
-      Number of cameras available on the device.
+      A JSON object containing the number of audio input/output, video input and
+      the number of unique group ids.
     lifetime: application
     send_in_pings:
       - user-characteristics
@@ -2419,88 +2019,14 @@ characteristics:
       - tom@mozilla.com
     bugs:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896736
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1896736#c4
     expires: never
     data_sensitivity:
-      - technical
-
-  microphone_count:
-    type: quantity
-    unit: int
-    description: >
-      Number of microphones available on the device.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
-    expires: never
-    data_sensitivity:
-      - technical
-
-  speaker_count:
-    type: quantity
-    unit: int
-    description: >
-      Number of speakers available on the device.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
-    expires: never
-    data_sensitivity:
-      - technical
-
-  group_count:
-    type: quantity
-    unit: int
-    description: >
-      Number of device groups reported by the device.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
-    expires: never
-    data_sensitivity:
-      - technical
-
-  group_count_wo_speakers:
-    type: quantity
-    unit: int
-    description: >
-      Number of device groups without speakers reported by the device.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1879151
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c2
-    expires: never
-    data_sensitivity:
-      - technical
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
 
   audio_frames:
     type: quantity
@@ -2595,76 +2121,19 @@ characteristics:
     data_sensitivity:
       - interaction
 
-  media_capabilities_unsupported:
+  media_capabilities:
     type: text
     description: >
-      Which, if any, media types are not supported.
+      Which, if any, media types are not supported, and whether they can be run smoothly and power-efficiently.
     lifetime: application
     send_in_pings:
       - user-characteristics
     notification_emails:
       - tom@mozilla.com
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1899181
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c1
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  media_capabilities_not_smooth:
-    type: text
-    description: >
-      Which, if any, media types are not smooth.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c1
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  media_capabilities_not_efficient:
-    type: text
-    description: >
-      Which, if any, media types are not power efficient.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c1
-    expires: never
-    data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
-
-  media_capabilities_h264:
-    type: text
-    description: >
-      Levels of support for H264 codec.
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c1
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1899181#c3
     expires: never
     data_sensitivity:
       # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
@@ -2857,41 +2326,25 @@ characteristics:
     data_sensitivity:
       - technical
 
-  ice_order:
-    type: quantity
-    unit: int
+  ice_foundations:
+    type: text
     description: >
-      Unique ICE foundations occurrence count
+      Unique ICE foundations occurance count and the
+      standard deviation of latencies
     lifetime: application
     send_in_pings:
       - user-characteristics
     notification_emails:
       - tom@mozilla.com
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c4
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003#c2
     expires: never
     data_sensitivity:
-      - technical
-
-  ice_sd:
-    type: quantity
-    unit: int
-    description: >
-      ICE foundation discovery latency standard deviation sum multiplied by 1000
-    lifetime: application
-    send_in_pings:
-      - user-characteristics
-    notification_emails:
-      - tom@mozilla.com
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c4
-    expires: never
-    data_sensitivity:
-      - technical
+      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
+      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
+      - highly_sensitive
 
   pointer_height:
     type: quantity
