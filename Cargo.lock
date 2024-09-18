@@ -38,6 +38,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "allocator-api2"
+version = "0.2.999"
+dependencies = [
+ "serde",
+]
+
+[[package]]
 name = "alsa"
 version = "0.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6698,6 +6705,7 @@ dependencies = [
 name = "webrender"
 version = "0.62.0"
 dependencies = [
+ "allocator-api2",
  "bincode",
  "bitflags 2.6.0",
  "build-parallel",
