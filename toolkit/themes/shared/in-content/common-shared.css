@@ -24,7 +24,6 @@
   --in-content-icon-color: rgb(91,91,102);
   --in-content-accent-color: var(--in-content-primary-button-background);
   --in-content-accent-color-active: var(--in-content-primary-button-background-hover);
-  --in-content-border-hover: var(--grey-90-a50);
   --in-content-border-invalid: var(--red-50);
   --in-content-border-color: #d7d7db;
   --in-content-warning-icon-color: #ffa436;
@@ -72,7 +71,6 @@
   --grey-90-a10: rgba(12, 12, 13, 0.1);
   --grey-90-a20: rgba(12, 12, 13, 0.2);
   --grey-90-a30: rgba(12, 12, 13, 0.3);
-  --grey-90-a50: rgba(12, 12, 13, 0.5);
   --grey-90-a60: rgba(12, 12, 13, 0.6);
   --green-60: #12bc00;
   --green-70: #058b00;
@@ -117,7 +115,6 @@
     --in-content-box-info-background: rgba(249,249,250,0.15);
 
     --in-content-border-color: rgba(249,249,250,0.2);
-    --in-content-border-hover: rgba(249,249,250,0.3);
     --in-content-border-invalid: rgb(255,132,139);
 
     --in-content-warning-icon-color: #ffbd4f;
@@ -171,7 +168,6 @@
     --in-content-accent-color: SelectedItem;
     --in-content-accent-color-active: SelectedItem;
 
-    --in-content-border-hover: ThreeDShadow;
     /* This is not great, but there is no suitable keyword for this.
      * In theory, we shouldn't be conveying invalid state just with a colour
      * change... */

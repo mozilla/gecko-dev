@@ -130,7 +130,7 @@
 }
 
 .perf-settings-dir-list:hover {
-  border-color: var(--in-content-border-hover);
+  border-color: var(--border-color-interactive-hover);
 }
 
 .pref-settings-dir-list-item {
