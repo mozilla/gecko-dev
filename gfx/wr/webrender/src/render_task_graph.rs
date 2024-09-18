@@ -11,6 +11,7 @@ use api::units::*;
 use api::ImageFormat;
 use crate::gpu_cache::{GpuCache, GpuCacheAddress};
 use crate::internal_types::{TextureSource, CacheTextureId, FastHashMap, FastHashSet, FrameId};
+use crate::internal_types::size_of_frame_vec;
 use crate::render_task::{StaticRenderTaskSurface, RenderTaskLocation, RenderTask};
 use crate::render_target::RenderTargetKind;
 use crate::render_task::{RenderTaskData, RenderTaskKind};
@@ -741,6 +742,26 @@ impl RenderTaskGraph {
         Some((uv_address, texture_source))
     }
 
+    pub fn report_memory(&self) -> usize {
+        // We can't use wr_malloc_sizeof here because the render task
+        // graph's memory is mainly backed by frame's custom allocator.
+        // So we calulate the memory footprint manually.
+
+        let mut mem = size_of_frame_vec(&self.tasks)
+            +  size_of_frame_vec(&self.task_data)
+            +  size_of_frame_vec(&self.passes);
+
+        for pass in &self.passes {
+            mem += size_of_frame_vec(&pass.task_ids)
+                + size_of_frame_vec(&pass.sub_passes)
+                + size_of_frame_vec(&pass.textures_to_invalidate);
+            for sub_pass in &pass.sub_passes {
+                mem += size_of_frame_vec(&sub_pass.task_ids);
+            }
+        }
+
+        mem
+    }
 
     #[cfg(test)]
     pub fn new_for_testing() -> Self {

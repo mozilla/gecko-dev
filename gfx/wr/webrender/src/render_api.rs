@@ -1399,7 +1399,6 @@ pub struct MemoryReport {
     pub clip_stores: usize,
     pub gpu_cache_metadata: usize,
     pub gpu_cache_cpu_mirror: usize,
-    pub render_tasks: usize,
     pub hit_testers: usize,
     pub fonts: usize,
     pub weak_fonts: usize,
@@ -1410,6 +1409,8 @@ pub struct MemoryReport {
     pub display_list: usize,
     pub upload_staging_memory: usize,
     pub swgl: usize,
+    pub frame_allocator: usize,
+    pub render_tasks: usize,
 
     //
     // GPU memory.

@@ -718,7 +718,6 @@ WebRenderMemoryReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
         helper.Report(aReport.clip_stores, "clip-stores");
         helper.Report(aReport.gpu_cache_metadata, "gpu-cache/metadata");
         helper.Report(aReport.gpu_cache_cpu_mirror, "gpu-cache/cpu-mirror");
-        helper.Report(aReport.render_tasks, "render-tasks");
         helper.Report(aReport.hit_testers, "hit-testers");
         helper.Report(aReport.fonts, "resource-cache/fonts");
         helper.Report(aReport.weak_fonts, "resource-cache/weak-fonts");
@@ -731,6 +730,8 @@ WebRenderMemoryReporter::CollectReports(nsIHandleReportCallback* aHandleReport,
         helper.Report(aReport.display_list, "display-list");
         helper.Report(aReport.swgl, "swgl");
         helper.Report(aReport.upload_staging_memory, "upload-stagin-memory");
+        helper.Report(aReport.frame_allocator, "frame-allocator");
+        helper.Report(aReport.render_tasks, "frame-allocator/render-tasks");
 
         WEBRENDER_FOR_EACH_INTERNER(REPORT_INTERNER, );
         WEBRENDER_FOR_EACH_INTERNER(REPORT_DATA_STORE, );

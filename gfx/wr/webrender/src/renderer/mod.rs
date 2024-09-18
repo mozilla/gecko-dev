@@ -5401,11 +5401,6 @@ impl Renderer {
         self.device.end_frame();
     }
 
-    fn size_of<T>(&self, ptr: *const T) -> usize {
-        let ops = self.size_of_ops.as_ref().unwrap();
-        unsafe { ops.malloc_size_of(ptr) }
-    }
-
     /// Collects a memory report.
     pub fn report_memory(&self, swgl: *mut c_void) -> MemoryReport {
         let mut report = MemoryReport::default();
@@ -5417,8 +5412,9 @@ impl Renderer {
 
         // Render task CPU memory.
         for (_id, doc) in &self.active_documents {
-            report.render_tasks += self.size_of(doc.frame.render_tasks.tasks.as_ptr());
-            report.render_tasks += self.size_of(doc.frame.render_tasks.task_data.as_ptr());
+            let frame_alloc_stats = doc.frame.allocator_memory.get_stats();
+            report.frame_allocator += frame_alloc_stats.reserved_bytes;
+            report.render_tasks += doc.frame.render_tasks.report_memory();
         }
 
         // Vertex data GPU memory.
