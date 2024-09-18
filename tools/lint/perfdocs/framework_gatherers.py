@@ -677,7 +677,7 @@ class AwsyGatherer(FrameworkGatherer):
         result = f".. dropdown:: {title} ({test_description})\n"
         result += f"   :class-container: anchor-id-{title}-{dropdown_suite_name}\n\n"
         result += self.build_command_to_run_locally(
-            "awsy-test", "" if title == "tp5" else f"--{title}"
+            "awsy-test", "" if title == "tp6" else f"--{title}"
         )
 
         awsy_data = read_yaml(self._yaml_path)["suites"]["Awsy tests"]

@@ -182,8 +182,7 @@ class AwsyTestCommand:
         test = ["./mach", AwsyTestCommand.mach_command]
         if "Base " in series_signature["suite"]:
             return test + ["--base"]
-        else:
-            return test + ["--tp6"]
+        return test
 
     def get_exact_options(command, series_signature):
         ind = -1
@@ -195,7 +194,7 @@ class AwsyTestCommand:
         option_ind = ind + 1
         while (option_ind := option_ind + 1) < len(command):
             option = command[option_ind]
-            if option in ("--requires-gpu", "--base", "--tp6"):
+            if option in ("--requires-gpu", "--base"):
                 continue
             if option in ("--download-symbols"):
                 option_ind += 1

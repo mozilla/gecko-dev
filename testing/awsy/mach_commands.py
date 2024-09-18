@@ -64,7 +64,7 @@ def run_awsy(command_context, tests, binary=None, **kwargs):
         "settleWaitTime",
         "maxTabs",
         "dmd",
-        "tp6",
+        "tp5",
     ):
         if arg in kwargs and kwargs[arg] is not None:
             runtime_testvars[arg] = kwargs[arg]
@@ -279,12 +279,12 @@ def run_awsy(command_context, tests, binary=None, **kwargs):
     help="Enable DMD during testing. Requires a DMD-enabled build.",
 )
 @CommandArgument(
-    "--tp6",
+    "--tp5",
     group="AWSY",
     action="store_true",
-    dest="tp6",
+    dest="tp5",
     default=False,
-    help="Use the tp6 pageset during testing.",
+    help="Use the tp5 pageset during testing.",
 )
 @CommandArgument(
     "--base",

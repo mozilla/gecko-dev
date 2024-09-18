@@ -44,7 +44,7 @@
   "test-platform-android/opt-awsy": {
     "task": {
       "payload": {
-        "command": [["options", "--tp6"]]
+        "command": [[]]
       }
     }
   }

@@ -126,10 +126,10 @@ class TestMemoryUsage(AwsyTestCase):
         self._urls = []
         self._extra_opts = None
 
-        if self.testvars.get("tp6", False):
-            self.setupTp6()
-        else:
+        if self.testvars.get("tp5", False):
             self.setupTp5()
+        else:
+            self.setupTp6()
 
         self.logger.info(
             "areweslimyet run by %d pages, %d iterations,"
@@ -148,10 +148,10 @@ class TestMemoryUsage(AwsyTestCase):
 
         self.logger.info("tearing down webservers!")
 
-        if self.testvars.get("tp6", False):
-            self._playback.stop()
-        else:
+        if self.testvars.get("tp5", False):
             self._webservers.stop()
+        else:
+            self._playback.stop()
 
         AwsyTestCase.tearDown(self)
 

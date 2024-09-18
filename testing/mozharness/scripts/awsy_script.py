@@ -75,12 +75,12 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
                 },
             ],
             [
-                ["--tp6"],
+                ["--tp5"],
                 {
                     "action": "store_true",
-                    "dest": "tp6",
+                    "dest": "tp5",
                     "default": False,
-                    "help": "Runs tests with the tp6 pageset.",
+                    "help": "Runs tests with the tp5 pageset.",
                 },
             ],
         ]
@@ -221,8 +221,8 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
 
             env["DMD"] = "--mode=dark-matter --stacks=full"
 
-        runtime_testvars["tp6"] = self.config["tp6"]
-        if self.config["tp6"]:
+        runtime_testvars["tp5"] = self.config["tp5"]
+        if not self.config["tp5"]:
             # mitmproxy needs path to mozharness when installing the cert, and tooltool
             env["SCRIPTSPATH"] = scripts_path
             env["EXTERNALTOOLSPATH"] = external_tools_path
@@ -238,9 +238,8 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
         if self.config["test_about_blank"]:
             test_vars_file = "base-testvars.json"
         else:
-            if self.config["tp6"]:
-                test_vars_file = "tp6-testvars.json"
-            else:
+            test_vars_file = "tp6-testvars.json"
+            if self.config["tp5"]:
                 test_vars_file = "testvars.json"
 
         cmd.append(
@@ -266,9 +265,8 @@ class AWSY(TestingMixin, MercurialScript, TooltoolMixin, CodeCoverageMixin):
             prefs_file = "base-prefs.json"
         else:
             test_file = os.path.join(self.awsy_libdir, "test_memory_usage.py")
-            if self.config["tp6"]:
-                prefs_file = "tp6-prefs.json"
-            else:
+            prefs_file = "tp6-prefs.json"
+            if self.config["tp5"]:
                 prefs_file = "prefs.json"
 
         cmd.append(
