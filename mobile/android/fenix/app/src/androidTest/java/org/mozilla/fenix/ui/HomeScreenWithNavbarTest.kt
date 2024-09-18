@@ -33,7 +33,6 @@ class HomeScreenWithNavbarTest : TestSetup() {
     @Test
     fun verifyTabCounterUpdateInNavbarTest() {
         composeTestRule.activityRule.applySettingsExceptions {
-            it.isJumpBackInCFREnabled = false
             it.isNavigationToolbarEnabled = true
             it.isNavigationBarCFREnabled = false
         }

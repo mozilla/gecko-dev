@@ -20,9 +20,6 @@ class CfrToolsPreferencesMiddleware(
         action: CfrToolsAction,
     ) {
         when (action) {
-            is CfrToolsAction.ToggleHomepageIntroShown -> {
-                settings.shouldShowJumpBackInCFR = !settings.shouldShowJumpBackInCFR
-            }
             is CfrToolsAction.ToggleHomepageSyncShown -> {
                 settings.showSyncCFR = !settings.showSyncCFR
             }

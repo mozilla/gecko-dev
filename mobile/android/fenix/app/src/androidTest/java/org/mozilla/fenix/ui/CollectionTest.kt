@@ -36,7 +36,6 @@ class CollectionTest : TestSetup() {
         AndroidComposeTestRule(
             HomeActivityIntentTestRule(
                 isHomeOnboardingDialogEnabled = false,
-                isJumpBackInCFREnabled = false,
                 isRecentTabsFeatureEnabled = false,
                 isRecentlyVisitedFeatureEnabled = false,
                 isPocketEnabled = false,

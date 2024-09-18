@@ -32,7 +32,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         isHomeOnboardingDialogEnabled = settings.showHomeOnboardingDialog,
         homeOnboardingDialogVersion = getHomeOnboardingVersion(),
         isPocketEnabled = settings.showPocketRecommendationsFeature,
-        isJumpBackInCFREnabled = settings.shouldShowJumpBackInCFR,
         isNavigationBarCFREnabled = settings.shouldShowNavigationBarCFR,
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature,
@@ -67,7 +66,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         }
 
     override var isPocketEnabled: Boolean by updatedFeatureFlags::isPocketEnabled
-    override var isJumpBackInCFREnabled: Boolean by updatedFeatureFlags::isJumpBackInCFREnabled
     override var isNavigationBarCFREnabled: Boolean by updatedFeatureFlags::isNavigationBarCFREnabled
     override var isWallpaperOnboardingEnabled: Boolean by updatedFeatureFlags::isWallpaperOnboardingEnabled
     override var isRecentTabsFeatureEnabled: Boolean by updatedFeatureFlags::isRecentTabsFeatureEnabled
@@ -101,7 +99,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         settings.showHomeOnboardingDialog = featureFlags.isHomeOnboardingDialogEnabled
         setHomeOnboardingVersion(featureFlags.homeOnboardingDialogVersion)
         settings.showPocketRecommendationsFeature = featureFlags.isPocketEnabled
-        settings.shouldShowJumpBackInCFR = featureFlags.isJumpBackInCFREnabled
         settings.shouldShowNavigationBarCFR = featureFlags.isNavigationBarCFREnabled
         settings.showRecentTabsFeature = featureFlags.isRecentTabsFeatureEnabled
         settings.historyMetadataUIFeature = featureFlags.isRecentlyVisitedFeatureEnabled
@@ -124,7 +121,6 @@ private data class FeatureFlags(
     var isHomeOnboardingDialogEnabled: Boolean,
     var homeOnboardingDialogVersion: Int,
     var isPocketEnabled: Boolean,
-    var isJumpBackInCFREnabled: Boolean,
     var isNavigationBarCFREnabled: Boolean,
     var isRecentTabsFeatureEnabled: Boolean,
     var isRecentlyVisitedFeatureEnabled: Boolean,

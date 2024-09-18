@@ -49,7 +49,6 @@ class HomeActivityTestRule(
         isHomeOnboardingDialogEnabled: Boolean = settings.showHomeOnboardingDialog &&
             FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
-        isJumpBackInCFREnabled: Boolean = settings.shouldShowJumpBackInCFR,
         isNavigationBarCFREnabled: Boolean = settings.shouldShowNavigationBarCFR,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
@@ -68,7 +67,6 @@ class HomeActivityTestRule(
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
-        this.isJumpBackInCFREnabled = isJumpBackInCFREnabled
         this.isNavigationBarCFREnabled = isNavigationBarCFREnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
@@ -124,7 +122,6 @@ class HomeActivityTestRule(
          * app features that would otherwise negatively impact most tests.
          *
          * The disabled features are:
-         *  - the Jump back in CFR,
          *  - the Total Cookie Protection CFR,
          *  - the PWA prompt dialog,
          *  - the wallpaper onboarding.
@@ -138,7 +135,6 @@ class HomeActivityTestRule(
             initialTouchMode = initialTouchMode,
             launchActivity = launchActivity,
             skipOnboarding = skipOnboarding,
-            isJumpBackInCFREnabled = false,
             isPWAsPromptEnabled = false,
             isTCPCFREnabled = false,
             isWallpaperOnboardingEnabled = false,
@@ -177,7 +173,6 @@ class HomeActivityIntentTestRule internal constructor(
         isHomeOnboardingDialogEnabled: Boolean = settings.showHomeOnboardingDialog &&
             FenixOnboarding(appContext).userHasBeenOnboarded(),
         isPocketEnabled: Boolean = settings.showPocketRecommendationsFeature,
-        isJumpBackInCFREnabled: Boolean = settings.shouldShowJumpBackInCFR,
         isNavigationBarCFREnabled: Boolean = settings.shouldShowNavigationBarCFR,
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
@@ -196,7 +191,6 @@ class HomeActivityIntentTestRule internal constructor(
     ) : this(initialTouchMode, launchActivity, skipOnboarding) {
         this.isHomeOnboardingDialogEnabled = isHomeOnboardingDialogEnabled
         this.isPocketEnabled = isPocketEnabled
-        this.isJumpBackInCFREnabled = isJumpBackInCFREnabled
         this.isNavigationBarCFREnabled = isNavigationBarCFREnabled
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
@@ -271,7 +265,6 @@ class HomeActivityIntentTestRule internal constructor(
         isHomeOnboardingDialogEnabled =
             settings.showHomeOnboardingDialog && FenixOnboarding(appContext).userHasBeenOnboarded()
         isPocketEnabled = settings.showPocketRecommendationsFeature
-        isJumpBackInCFREnabled = settings.shouldShowJumpBackInCFR
         isNavigationBarCFREnabled = settings.shouldShowNavigationBarCFR
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature
@@ -294,7 +287,6 @@ class HomeActivityIntentTestRule internal constructor(
          * app features that would otherwise negatively impact most tests.
          *
          * The disabled features are:
-         *  - the Jump back in CFR,
          *  - the Total Cookie Protection CFR,
          *  - the PWA prompt dialog,
          *  - the wallpaper onboarding.
@@ -308,7 +300,6 @@ class HomeActivityIntentTestRule internal constructor(
             initialTouchMode = initialTouchMode,
             launchActivity = launchActivity,
             skipOnboarding = skipOnboarding,
-            isJumpBackInCFREnabled = false,
             isPWAsPromptEnabled = false,
             isTCPCFREnabled = false,
             isWallpaperOnboardingEnabled = false,

@@ -35,7 +35,6 @@ class WebControlsTest : TestSetup() {
 
     @get:Rule
     val activityTestRule = HomeActivityTestRule(
-        isJumpBackInCFREnabled = false,
         isTCPCFREnabled = false,
     )
 

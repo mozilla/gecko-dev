@@ -24,12 +24,6 @@ interface FeatureSettingsHelper {
     var isPocketEnabled: Boolean
 
     /**
-     * Whether the "Jump back in" CFR should be shown or not.
-     * It should appear on the first visit to homescreen given that there is a tab opened.
-     */
-    var isJumpBackInCFREnabled: Boolean
-
-    /**
      * Whether the "Navigation bar" CFR should be shown or not.
      * It should appear on the first visit to homescreen given that there is a navigation bar.
      */

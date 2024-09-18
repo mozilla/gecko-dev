@@ -32,40 +32,6 @@ class CfrToolsPreferencesMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN the homepage intro CFR should not be shown WHEN the toggle homepage intro CFR action is dispatched THEN its preference is set to should be shown`() {
-        settings.shouldShowJumpBackInCFR = false
-        assertFalse(settings.shouldShowJumpBackInCFR)
-
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageIntroShown = true,
-            ),
-            middlewares = listOf(
-                middleware,
-            ),
-        )
-        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown)
-        assertTrue(settings.shouldShowJumpBackInCFR)
-    }
-
-    @Test
-    fun `GIVEN the homepage intro CFR should be shown WHEN the toggle homepage intro CFR action is dispatched THEN its preference is set to should not be shown`() {
-        settings.shouldShowJumpBackInCFR = true
-        assertTrue(settings.shouldShowJumpBackInCFR)
-
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                homepageIntroShown = false,
-            ),
-            middlewares = listOf(
-                middleware,
-            ),
-        )
-        store.dispatch(CfrToolsAction.ToggleHomepageIntroShown)
-        assertFalse(settings.shouldShowJumpBackInCFR)
-    }
-
-    @Test
     fun `GIVEN the homepage sync CFR should not be shown WHEN the toggle homepage sync CFR action is dispatched THEN its preference is set to should be shown`() {
         settings.showSyncCFR = false
         assertFalse(settings.showSyncCFR)

@@ -206,10 +206,7 @@ class SessionControlView(
                             ).show()
                         }
 
-                        if (!context.settings().shouldShowJumpBackInCFR &&
-                            context.settings().showWallpaperOnboarding &&
-                            !featureRecommended
-                        ) {
+                        if (context.settings().showWallpaperOnboarding && !featureRecommended) {
                             featureRecommended = interactor.showWallpapersOnboardingDialog(
                                 context.components.appStore.state.wallpaperState,
                             )
@@ -229,8 +226,7 @@ class SessionControlView(
         }
     }
 
-    private fun Context.shouldShowACfr() =
-        settings().showSyncCFR || settings().shouldShowJumpBackInCFR
+    private fun Context.shouldShowACfr() = settings().showSyncCFR
 
     fun update(state: AppState, shouldReportMetrics: Boolean = false) {
         if (shouldReportMetrics) interactor.reportSessionMetrics(state)

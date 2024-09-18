@@ -158,10 +158,6 @@
     <string name="debug_drawer_cfr_tools_private_mode_title">Add Private Tab to Home</string>
     <!-- The private mode CFR description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_private_mode_description">Displayed when the user enters PBM the first time AND the Focus browser is installed, OR after entering PBM three times AND the Focus browser is not installed. This will only be shown if a CFR has not been shown in at least 3 days.</string>
-    <!-- The homepage intro CFR title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_homepage_intro_title">Homepage Intro</string>
-    <!-- The homepage intro CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_homepage_intro_description">Displayed the first time the \"Jump back in\" section appears, which happens when the user visits another site and returns to the homepage. Note that this will not be shown if the Homepage Sync CFR has been shown or if the Homepage Navigation Toolbar CFR has not been shown yet.</string>
     <!-- The homepage nav toolbar CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_title">Homepage Navigation Toolbar</string>
     <!-- The homepage nav toolbar CFR description in CFR Tools -->
