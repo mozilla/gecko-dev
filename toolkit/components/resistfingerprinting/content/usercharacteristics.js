@@ -666,7 +666,7 @@ async function populateVoiceList() {
     return uri;
   }
 
-  async function stringifyVoices(voices) {
+  async function processVoices(voices) {
     voices = voices
       .map(voice => ({
         voiceURI: trimVoiceURI(voice.voiceURI),
@@ -688,18 +688,18 @@ async function populateVoiceList() {
     );
     const defaultVoice = voices.find(voice => voice.default);
 
-    voices = voices.map(voice => voice.voiceURI);
+    voices = voices.map(voice => voice.voiceURI).sort();
 
-    return JSON.stringify({
-      count: voices.length,
-      localServices: localServices.length,
-      defaultVoice: defaultVoice ? defaultVoice.voiceURI : null,
-      samples: sample(voices, 5),
-      sha1: await sha1(voices.join("|")),
-      allHash: ssdeep.digest(voices.join("|")),
-      localHash: ssdeep.digest(localServices.join("|")),
-      nonLocalHash: ssdeep.digest(nonLocalServices.join("|")),
-    });
+    return {
+      voicesCount: voices.length,
+      voicesLocalCount: localServices.length,
+      voicesDefault: defaultVoice ? defaultVoice.voiceURI : null,
+      voicesSample: sample(voices, 5).join(","),
+      voicesSha1: await sha1(voices.join("|")),
+      voicesAllSsdeep: ssdeep.digest(voices.join("|")),
+      voicesLocalSsdeep: ssdeep.digest(localServices.join("|")),
+      voicesNonlocalSsdeep: ssdeep.digest(nonLocalServices.join("|")),
+    };
   }
 
   function fetchVoices() {
@@ -722,9 +722,7 @@ async function populateVoiceList() {
     return Promise.race([promise, timeout]);
   }
 
-  return {
-    voices: fetchVoices().then(stringifyVoices),
-  };
+  return fetchVoices().then(processVoices);
 }
 
 async function populateMediaCapabilities() {
