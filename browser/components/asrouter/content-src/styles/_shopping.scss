@@ -28,6 +28,45 @@
     display: none;
   }
 
+  &.FS_OPT_IN_SIDEBAR_VARIANT {
+    box-shadow: none;
+
+    .section-main .main-content {
+      background-color: transparent;
+
+      &.no-steps {
+        padding: 0;
+      }
+
+      .main-content-inner {
+        justify-content: unset;
+      }
+
+      .welcome-text {
+        padding-inline: 16px;
+        margin-block: 20px 8px;
+        text-align: center;
+
+        h1 {
+          font-weight: var(--font-weight-bold);
+        }
+      }
+
+      .link-paragraph {
+        padding-inline: 16px;
+        margin-block: 0 20px;
+        text-align: center;
+      }
+
+      .legal-paragraph {
+        padding-inline: 16px;
+        margin-block: 0 40px;
+        color: var(--text-color-deemphasized);
+        text-align: center;
+      }
+    }
+  }
+
   .section-main {
     width: auto;
     height: auto;
