@@ -595,7 +595,8 @@ void nsPNGDecoder::info_callback(png_structp png_ptr, png_infop info_ptr) {
         intent = pIntent;
       }
     }
-    if (!decoder->mInProfile || !decoder->GetCMSOutputProfile()) {
+    const bool hasColorInfo = decoder->mInProfile || sRGBTag;
+    if (!hasColorInfo || !decoder->GetCMSOutputProfile()) {
       png_set_gray_to_rgb(png_ptr);
 
       // only do gamma correction if CMS isn't entirely disabled
