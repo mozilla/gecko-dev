@@ -1,6 +1,7 @@
 "use strict";
 
 const OPT_OUT_PREF = "app.shield.optoutstudies.enabled";
+const TELEMETRY_UPLOAD_PREF = "datareporting.healthreport.uploadEnabled";
 
 function withPrivacyPrefs() {
   return function (testFunc) {
@@ -13,7 +14,10 @@ function withPrivacyPrefs() {
 
 decorate_task(
   withPrefEnv({
-    set: [[OPT_OUT_PREF, true]],
+    set: [
+      [OPT_OUT_PREF, true],
+      [TELEMETRY_UPLOAD_PREF, true],
+    ],
   }),
   withPrivacyPrefs(),
   async function testCheckedOnLoad({ browser }) {
@@ -29,7 +33,33 @@ decorate_task(
 
 decorate_task(
   withPrefEnv({
-    set: [[OPT_OUT_PREF, false]],
+    set: [
+      [OPT_OUT_PREF, true],
+      [TELEMETRY_UPLOAD_PREF, false],
+    ],
+  }),
+  withPrivacyPrefs(),
+  async function testCheckedOnLoadWithTelemetryDisabled({ browser }) {
+    const checkbox = browser.contentDocument.getElementById(
+      "optOutStudiesEnabled"
+    );
+    ok(
+      !checkbox.checked,
+      "Opt-out checkbox is not checked on load when telemetry is disabled."
+    );
+    ok(
+      checkbox.disabled,
+      "Opt-out checkbox is disabled on load when telemetry is disabled."
+    );
+  }
+);
+
+decorate_task(
+  withPrefEnv({
+    set: [
+      [OPT_OUT_PREF, false],
+      [TELEMETRY_UPLOAD_PREF, true],
+    ],
   }),
   withPrivacyPrefs(),
   async function testUncheckedOnLoad({ browser }) {
@@ -45,7 +75,10 @@ decorate_task(
 
 decorate_task(
   withPrefEnv({
-    set: [[OPT_OUT_PREF, true]],
+    set: [
+      [OPT_OUT_PREF, true],
+      [TELEMETRY_UPLOAD_PREF, true],
+    ],
   }),
   withPrivacyPrefs(),
   async function testCheckboxes({ browser }) {
@@ -68,7 +101,10 @@ decorate_task(
 
 decorate_task(
   withPrefEnv({
-    set: [[OPT_OUT_PREF, true]],
+    set: [
+      [OPT_OUT_PREF, true],
+      [TELEMETRY_UPLOAD_PREF, true],
+    ],
   }),
   withPrivacyPrefs(),
   async function testPrefWatchers({ browser }) {

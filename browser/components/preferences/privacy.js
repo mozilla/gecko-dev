@@ -3521,22 +3521,27 @@ var gPrivacyPane = {
     const allowedByPolicy = Services.policies.isAllowed("Shield");
     const checkbox = document.getElementById("optOutStudiesEnabled");
 
-    if (
-      allowedByPolicy &&
-      Services.prefs.getBoolPref(PREF_NORMANDY_ENABLED, false)
-    ) {
-      if (Services.prefs.getBoolPref(PREF_OPT_OUT_STUDIES_ENABLED, false)) {
-        checkbox.setAttribute("checked", "true");
+    function updateCheckbox() {
+      if (
+        allowedByPolicy &&
+        Services.prefs.getBoolPref(PREF_UPLOAD_ENABLED, false) &&
+        Services.prefs.getBoolPref(PREF_NORMANDY_ENABLED, false)
+      ) {
+        if (Services.prefs.getBoolPref(PREF_OPT_OUT_STUDIES_ENABLED, false)) {
+          checkbox.setAttribute("checked", "true");
+        } else {
+          checkbox.removeAttribute("checked");
+        }
+        checkbox.setAttribute("preference", PREF_OPT_OUT_STUDIES_ENABLED);
+        checkbox.removeAttribute("disabled");
       } else {
+        checkbox.removeAttribute("preference");
         checkbox.removeAttribute("checked");
+        checkbox.setAttribute("disabled", "true");
       }
-      checkbox.setAttribute("preference", PREF_OPT_OUT_STUDIES_ENABLED);
-      checkbox.removeAttribute("disabled");
-    } else {
-      checkbox.removeAttribute("preference");
-      checkbox.removeAttribute("checked");
-      checkbox.setAttribute("disabled", "true");
     }
+    Preferences.get(PREF_UPLOAD_ENABLED).on("change", updateCheckbox);
+    updateCheckbox();
   },
 
   initAddonRecommendationsCheckbox() {
