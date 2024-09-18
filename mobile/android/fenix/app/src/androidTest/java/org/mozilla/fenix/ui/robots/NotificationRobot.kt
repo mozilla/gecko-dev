@@ -6,11 +6,15 @@ package org.mozilla.fenix.ui.robots
 
 import android.app.NotificationManager
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.test.uiautomator.UiObject
 import androidx.test.uiautomator.UiScrollable
 import androidx.test.uiautomator.UiSelector
+import org.mozilla.fenix.R
 import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
+import org.mozilla.fenix.helpers.DataGenerationHelper.getStringResource
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
@@ -74,8 +78,19 @@ class NotificationRobot {
     }
 
     fun verifyPrivateTabsNotification() {
-        verifySystemNotificationExists("$appName (Private)")
-        verifySystemNotificationExists("Close private tabs")
+        when (Build.VERSION.SDK_INT) {
+            // For API 34 the notification is slightly different
+            Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
+                {
+                    verifySystemNotificationExists(getStringResource(R.string.notification_erase_title_android_14))
+                    verifySystemNotificationExists(getStringResource(R.string.notification_erase_text_android_14))
+                }
+            else ->
+                {
+                    verifySystemNotificationExists("$appName (Private)")
+                    verifySystemNotificationExists("Close private tabs")
+                }
+        }
     }
 
     fun clickMediaNotificationControlButton(action: String) {
@@ -253,8 +268,19 @@ fun notificationShade(interact: NotificationRobot.() -> Unit): NotificationRobot
     return NotificationRobot.Transition()
 }
 
-private fun closePrivateTabsNotification() =
-    mDevice.findObject(UiSelector().text("Close private tabs"))
+private fun closePrivateTabsNotification(): UiObject {
+    lateinit var privateTabsNotification: UiObject
+
+    when (Build.VERSION.SDK_INT) {
+        // For API 34 the notification is slightly different
+        Build.VERSION_CODES.UPSIDE_DOWN_CAKE ->
+            privateTabsNotification = mDevice.findObject(UiSelector().text(getStringResource(R.string.notification_erase_title_android_14)))
+        else ->
+            privateTabsNotification = mDevice.findObject(UiSelector().text("Close private tabs"))
+    }
+
+    return privateTabsNotification
+}
 
 private fun downloadSystemNotificationButton(action: String) =
     mDevice.findObject(

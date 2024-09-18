@@ -5,7 +5,6 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
-import androidx.test.filters.SdkSuppress
 import com.google.android.material.bottomsheet.BottomSheetBehavior
 import mozilla.components.concept.engine.mediasession.MediaSession
 import org.junit.Rule
@@ -175,7 +174,6 @@ class TabbedBrowsingTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/903592
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifyCloseAllPrivateTabsNotificationTest() {
