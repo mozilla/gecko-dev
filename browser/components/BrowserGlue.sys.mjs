@@ -761,8 +761,11 @@ let JSWINDOWACTORS = {
     },
     child: {
       esModuleURI: "resource:///actors/ProfilesChild.sys.mjs",
+      events: {
+        DOMDocElementInserted: { wantUntrusted: true },
+      },
     },
-    matches: ["about:profilemanager"],
+    matches: ["about:editprofile"],
     enablePreference: "browser.profiles.enabled",
   },
 

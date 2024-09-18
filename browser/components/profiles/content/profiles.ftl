@@ -12,6 +12,8 @@ profile-window-create-profile = Create a profile
 #   $number (number) - The number of the profile
 default-profile-name = Profile { $number }
 
+edit-profile-page-title = Edit profile
+
 
 appmenu-manage-profiles =
     .label = Manage profiles

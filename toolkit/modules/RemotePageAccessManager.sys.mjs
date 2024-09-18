@@ -172,6 +172,9 @@ export let RemotePageAccessManager = {
       RPMIsWindowPrivate: ["*"],
       RPMGetBoolPref: ["browser.privatebrowsing.felt-privacy-v1"],
     },
+    "about:editprofile": {
+      RPMSendQuery: ["Profiles:GetEditProfileContent"],
+    },
     "about:protections": {
       RPMSendAsyncMessage: [
         "OpenContentBlockingPreferences",
