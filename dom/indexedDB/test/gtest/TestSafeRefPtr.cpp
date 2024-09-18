@@ -273,6 +273,18 @@ TEST(DOM_IndexedDB_SafeRefPtr, SafeRefPtrFromThis_DiscardInCtor)
   ASSERT_EQ(1, SafeBase::sNumDestroyed);
 }
 
+TEST(DOM_IndexedDB_SafeRefPtr, Construct_FromSelf)
+{
+  SafeBase::sNumDestroyed = 0;
+  {
+    SafeRefPtr<SafeBase> ptr = MakeSafeRefPtr<SafeBase>();
+    ptr = std::move(static_cast<SafeRefPtr<SafeBase>&>(ptr));
+    ASSERT_EQ(1u, ptr->refCount());
+    ASSERT_EQ(0, SafeBase::sNumDestroyed);
+  }
+  ASSERT_EQ(1, SafeBase::sNumDestroyed);
+}
+
 static_assert(
     std::is_same_v<SafeRefPtr<Base>,
                    decltype(std::declval<bool>() ? MakeSafeRefPtr<Derived>()
