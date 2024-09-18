@@ -72,6 +72,8 @@
   display: inline-block;
   vertical-align: middle;
   outline-offset: 2px;
+  /* Make sure that the background color is properly set in High Contrast Mode */
+  forced-color-adjust: none;
 }
 
 .layout-color-value {
