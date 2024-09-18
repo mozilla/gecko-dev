@@ -153,9 +153,6 @@
     <!-- Menu -->
     <string name="pref_key_menu_cfr" translatable="false">pref_key_menu_cfr</string>
 
-    <!-- Tablet Navigation Bar -->
-    <string name="pref_key_tablet_toolbar_navigation_cfr" translatable="false">pref_key_tablet_toolbar_navigation_cfr</string>
-
     <!-- Privacy Pop Window -->
     <string name="pref_key_privacy_pop_window" translatable="false">pref_key_privacy_pop_window</string>
 

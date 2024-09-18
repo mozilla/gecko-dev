@@ -1503,9 +1503,7 @@ abstract class BaseBrowserFragment :
             content = {
                 FirefoxTheme {
                     Column {
-                        if (!activity.isMicrosurveyPromptDismissed.value &&
-                            !(context.isTablet() && context.settings().shouldShowTabletNavigationCFR)
-                        ) {
+                        if (!activity.isMicrosurveyPromptDismissed.value) {
                             currentMicrosurvey?.let {
                                 if (isToolbarAtBottom) {
                                     updateBrowserToolbarForMicrosurveyPrompt(browserToolbar)

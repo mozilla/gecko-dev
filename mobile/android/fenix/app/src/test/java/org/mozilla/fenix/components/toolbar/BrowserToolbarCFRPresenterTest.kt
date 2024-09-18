@@ -221,7 +221,6 @@ class BrowserToolbarCFRPresenterTest {
                 every { shouldShowTotalCookieProtectionCFR } returns false
                 every { shouldShowReviewQualityCheckCFR } returns false
                 every { shouldShowEraseActionCFR } returns false
-                every { shouldShowTabletNavigationCFR } returns false
             },
         )
 
@@ -471,42 +470,6 @@ class BrowserToolbarCFRPresenterTest {
         verify(exactly = 1) { presenter.showShoppingCFR(false) }
     }
 
-    @Test
-    fun `GIVEN using a tablet and haven't seen the navigation buttons CFR before WHEN the page is fully loaded THEN show the navigation buttons CFR`() {
-        val tab = createTab(url = "")
-        val browserStore = createBrowserStore(
-            tab = tab,
-            selectedTabId = tab.id,
-        )
-
-        val presenter = createPresenterThatShowsCFRs(
-            context = mockk {
-                every { isTablet() } returns true
-            },
-            browserStore = browserStore,
-            settings = mockk {
-                every { shouldShowTotalCookieProtectionCFR } returns false
-                every { shouldShowEraseActionCFR } returns false
-                every { shouldShowReviewQualityCheckCFR } returns false
-                every { shouldShowTabletNavigationCFR } returns true
-                every { navigationToolbarEnabled } returns true
-            },
-        )
-
-        presenter.start()
-
-        assertNotNull(presenter.scope)
-
-        browserStore.dispatch(ContentAction.UpdateProgressAction(tab.id, 14)).joinBlocking()
-        verify(exactly = 0) { presenter.showTabletNavigationCFR() }
-
-        browserStore.dispatch(ContentAction.UpdateProgressAction(tab.id, 99)).joinBlocking()
-        verify(exactly = 0) { presenter.showTabletNavigationCFR() }
-
-        browserStore.dispatch(ContentAction.UpdateProgressAction(tab.id, 100)).joinBlocking()
-        verify { presenter.showTabletNavigationCFR() }
-    }
-
     /**
      * Creates and return a [spyk] of a [BrowserToolbarCFRPresenter] that can handle actually showing CFRs.
      */
@@ -521,7 +484,6 @@ class BrowserToolbarCFRPresenterTest {
             every { openTabsCount } returns 5
             every { shouldShowReviewQualityCheckCFR } returns false
             every { shouldShowEraseActionCFR } returns false
-            every { shouldShowTabletNavigationCFR } returns false
         },
         toolbar: BrowserToolbar = mockk(),
         isPrivate: Boolean = false,
@@ -530,7 +492,6 @@ class BrowserToolbarCFRPresenterTest {
         every { showTcpCfr() } just Runs
         every { showShoppingCFR(any()) } just Runs
         every { showEraseCfr() } just Runs
-        every { showTabletNavigationCFR() } just Runs
     }
 
     /**
@@ -542,7 +503,6 @@ class BrowserToolbarCFRPresenterTest {
             every { getString(R.string.tcp_cfr_message) } returns "Test"
             every { getColor(any()) } returns 0
             every { getString(R.string.pref_key_should_show_review_quality_cfr) } returns "test"
-            every { isTablet() } returns false
         },
         anchor: View = mockk(relaxed = true),
         browserStore: BrowserStore = mockk(),
@@ -552,7 +512,6 @@ class BrowserToolbarCFRPresenterTest {
             every { openTabsCount } returns 5
             every { shouldShowCookieBannersCFR } returns true
             every { shouldShowReviewQualityCheckCFR } returns true
-            every { shouldShowTabletNavigationCFR } returns true
         },
         toolbar: BrowserToolbar = mockk {
             every { findViewById<View>(R.id.mozac_browser_toolbar_security_indicator) } returns anchor

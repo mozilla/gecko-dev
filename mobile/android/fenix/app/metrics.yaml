@@ -11997,32 +11997,6 @@ address_toolbar:
     notification_emails:
       - android-probes@mozilla.com
     expires: never
-  tablet_navigation_cfr_shown:
-    type: event
-    description: |
-      Tablet navigation bar CFR was shown to the user.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908425
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D218373
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-  tablet_navigation_cfr_dismissed:
-    type: event
-    description: |
-      A user has dismissed the tablet navigation bar CFR.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908425
-    data_reviews:
-      - https://phabricator.services.mozilla.com/D218373
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
 
 customization_settings:
   dynamic_toolbar:

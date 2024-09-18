@@ -1781,14 +1781,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     )
 
     /**
-     * Indicates if Tablet's navigation address bar buttons CFR should be displayed to the user.
-     */
-    var shouldShowTabletNavigationCFR by booleanPreference(
-        key = appContext.getPreferenceKey(R.string.pref_key_tablet_toolbar_navigation_cfr),
-        default = true,
-    )
-
-    /**
      * Indicates if the menu CFR should be displayed to the user.
      */
     var shouldShowMenuCFR by booleanPreference(
