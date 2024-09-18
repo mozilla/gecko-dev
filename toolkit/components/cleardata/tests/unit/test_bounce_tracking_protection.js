@@ -119,97 +119,6 @@ function addTestData() {
   );
 }
 
-async function runDeleteBySiteHostTest(clearDataServiceFn) {
-  addTestData();
-
-  let baseDomain = "common-bounce-tracker.com";
-  info("Deleting by base domain " + baseDomain);
-  await new Promise(function (resolve) {
-    clearDataServiceFn(
-      baseDomain,
-      true,
-      CLEAR_BOUNCE_TRACKING_PROTECTION_STATE,
-      failedFlags => {
-        Assert.equal(failedFlags, 0, "Clearing should have succeeded");
-        resolve();
-      }
-    );
-  });
-
-  Assert.deepEqual(
-    bounceTrackingProtection
-      .testGetBounceTrackerCandidateHosts(OA_DEFAULT)
-      .map(entry => entry.siteHost)
-      .sort(),
-    [
-      "bounce-tracker-normal-browsing.com",
-      "bounce-tracker-normal-browsing2.com",
-    ],
-    "Should have deleted only 'common-bounce-tracker.com' for default OA."
-  );
-  Assert.deepEqual(
-    bounceTrackingProtection
-      .testGetUserActivationHosts(OA_DEFAULT)
-      .map(entry => entry.siteHost)
-      .sort(),
-    [
-      "common-user-activation.com",
-      "user-activation-normal-browsing.com",
-      "user-activation-normal-browsing2.com",
-    ],
-    "Should not have deleted any user activations for default OA."
-  );
-
-  Assert.deepEqual(
-    bounceTrackingProtection
-      .testGetBounceTrackerCandidateHosts(OA_PRIVATE_BROWSING)
-      .map(entry => entry.siteHost)
-      .sort(),
-    [
-      "bounce-tracker-private-browsing.com",
-      "bounce-tracker-private-browsing2.com",
-    ],
-    "Should have deleted only 'common-bounce-tracker.com' for private browsing."
-  );
-  Assert.deepEqual(
-    bounceTrackingProtection
-      .testGetUserActivationHosts(OA_PRIVATE_BROWSING)
-      .map(entry => entry.siteHost)
-      .sort(),
-    [
-      "common-user-activation.com",
-      "user-activation-private-browsing.com",
-      "user-activation-private-browsing2.com",
-    ],
-    "Should not have deleted any user activations for private browsing."
-  );
-
-  Assert.deepEqual(
-    bounceTrackingProtection
-      .testGetBounceTrackerCandidateHosts(OA_CONTAINER)
-      .map(entry => entry.siteHost)
-      .sort(),
-    ["bounce-tracker-container.com", "bounce-tracker-container2.com"],
-    "Should have deleted only 'common-bounce-tracker.com' for container."
-  );
-
-  Assert.deepEqual(
-    bounceTrackingProtection
-      .testGetUserActivationHosts(OA_CONTAINER)
-      .map(entry => entry.siteHost)
-      .sort(),
-    [
-      "common-user-activation.com",
-      "user-activation-container.com",
-      "user-activation-container2.com",
-    ],
-    "Should not have deleted any user activations for container."
-  );
-
-  // Cleanup.
-  bounceTrackingProtection.clearAll();
-}
-
 do_get_profile();
 
 add_task(async function test_deleteAll() {
@@ -272,7 +181,6 @@ add_task(async function test_deleteByPrincipal() {
     Services.io.newURI("https://common-bounce-tracker.com"),
     {}
   );
-  console.debug("principal", principal.origin);
 
   info("Deleting by principal " + principal.origin);
   await new Promise(function (resolve) {
@@ -295,7 +203,7 @@ add_task(async function test_deleteByPrincipal() {
     [
       "bounce-tracker-normal-browsing.com",
       "bounce-tracker-normal-browsing2.com",
-    ],
+    ].sort(),
     "Should have deleted only 'common-bounce-tracker.com' for default OA."
   );
   Assert.deepEqual(
@@ -307,7 +215,7 @@ add_task(async function test_deleteByPrincipal() {
       "common-user-activation.com",
       "user-activation-normal-browsing.com",
       "user-activation-normal-browsing2.com",
-    ],
+    ].sort(),
     "Should not have deleted any user activations for default OA."
   );
 
@@ -320,7 +228,7 @@ add_task(async function test_deleteByPrincipal() {
       "bounce-tracker-private-browsing.com",
       "bounce-tracker-private-browsing2.com",
       "common-bounce-tracker.com",
-    ],
+    ].sort(),
     "Should not have deleted 'common-bounce-tracker.com' for private browsing."
   );
   Assert.deepEqual(
@@ -332,7 +240,7 @@ add_task(async function test_deleteByPrincipal() {
       "common-user-activation.com",
       "user-activation-private-browsing.com",
       "user-activation-private-browsing2.com",
-    ],
+    ].sort(),
     "Should not have deleted any user activations for private browsing."
   );
 
@@ -345,7 +253,7 @@ add_task(async function test_deleteByPrincipal() {
       "bounce-tracker-container.com",
       "bounce-tracker-container2.com",
       "common-bounce-tracker.com",
-    ],
+    ].sort(),
     "Should not have deleted 'common-bounce-tracker.com' for container."
   );
   Assert.deepEqual(
@@ -357,7 +265,7 @@ add_task(async function test_deleteByPrincipal() {
       "common-user-activation.com",
       "user-activation-container.com",
       "user-activation-container2.com",
-    ],
+    ].sort(),
     "Should not have deleted any user activations for container."
   );
 
@@ -387,7 +295,7 @@ add_task(async function test_deleteByPrincipal() {
     [
       "bounce-tracker-normal-browsing.com",
       "bounce-tracker-normal-browsing2.com",
-    ],
+    ].sort(),
     "Should not have deleted any bounce tracker candidates for default OA."
   );
   Assert.deepEqual(
@@ -399,7 +307,7 @@ add_task(async function test_deleteByPrincipal() {
       "common-user-activation.com",
       "user-activation-normal-browsing.com",
       "user-activation-normal-browsing2.com",
-    ],
+    ].sort(),
     "Should not have deleted 'common-user-activation.com' for default OA."
   );
 
@@ -412,7 +320,7 @@ add_task(async function test_deleteByPrincipal() {
       "bounce-tracker-private-browsing.com",
       "bounce-tracker-private-browsing2.com",
       "common-bounce-tracker.com",
-    ],
+    ].sort(),
     "Should not have deleted any bounce tracker candidates for private browsing."
   );
   Assert.deepEqual(
@@ -424,7 +332,7 @@ add_task(async function test_deleteByPrincipal() {
       "common-user-activation.com",
       "user-activation-private-browsing.com",
       "user-activation-private-browsing2.com",
-    ],
+    ].sort(),
     "Should not have deleted 'common-user-activation.com' for private browsing."
   );
 
@@ -437,7 +345,7 @@ add_task(async function test_deleteByPrincipal() {
       "bounce-tracker-container.com",
       "bounce-tracker-container2.com",
       "common-bounce-tracker.com",
-    ],
+    ].sort(),
     "Should not have deleted any bounce tracker candidates for container."
   );
   Assert.deepEqual(
@@ -453,8 +361,201 @@ add_task(async function test_deleteByPrincipal() {
   bounceTrackingProtection.clearAll();
 });
 
-add_task(async function test_deleteByBaseDomain() {
-  await runDeleteBySiteHostTest(Services.clearData.deleteDataFromBaseDomain);
+// Tests clearing BTP data for a site for all OriginAttributes.
+add_task(async function test_deleteBySite_allOriginAttributes() {
+  addTestData();
+
+  let schemelessSite = "common-bounce-tracker.com";
+  info("Deleting by site " + schemelessSite);
+  await new Promise(function (resolve) {
+    Services.clearData.deleteDataFromSite(
+      schemelessSite,
+      {}, // Default OriginAttributesPattern which matches all OriginAttributes.
+      true,
+      CLEAR_BOUNCE_TRACKING_PROTECTION_STATE,
+      failedFlags => {
+        Assert.equal(failedFlags, 0, "Clearing should have succeeded");
+        resolve();
+      }
+    );
+  });
+  schemelessSite = "common-user-activation.com";
+  info("Deleting by site " + schemelessSite);
+  await new Promise(function (resolve) {
+    Services.clearData.deleteDataFromSite(
+      schemelessSite,
+      {}, // Default OriginAttributesPattern which matches all OriginAttributes.
+      true,
+      CLEAR_BOUNCE_TRACKING_PROTECTION_STATE,
+      failedFlags => {
+        Assert.equal(failedFlags, 0, "Clearing should have succeeded");
+        resolve();
+      }
+    );
+  });
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_DEFAULT)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "bounce-tracker-normal-browsing.com",
+      "bounce-tracker-normal-browsing2.com",
+    ].sort(),
+    "Should have deleted bounce tracker candidate 'common-bounce-tracker.com' for default OA."
+  );
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_DEFAULT)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "user-activation-normal-browsing.com",
+      "user-activation-normal-browsing2.com",
+    ].sort(),
+    "Should have deleted user activation for 'common-user-activation.com' for default OA."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_PRIVATE_BROWSING)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "bounce-tracker-private-browsing.com",
+      "bounce-tracker-private-browsing2.com",
+    ].sort(),
+    "Should have deleted 'common-bounce-tracker.com' for private browsing."
+  );
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_PRIVATE_BROWSING)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "user-activation-private-browsing.com",
+      "user-activation-private-browsing2.com",
+    ].sort(),
+    "Should have deleted user activation for 'common-bounce-tracker.com' for private browsing."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_CONTAINER)
+      .map(entry => entry.siteHost)
+      .sort(),
+    ["bounce-tracker-container.com", "bounce-tracker-container2.com"].sort(),
+    "Should have deleted only 'common-bounce-tracker.com' for container."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_CONTAINER)
+      .map(entry => entry.siteHost)
+      .sort(),
+    ["user-activation-container.com", "user-activation-container2.com"].sort(),
+    "Should have deleted user activation for 'common-bounce-tracker.com' for container."
+  );
+
+  // Cleanup.
+  bounceTrackingProtection.clearAll();
+});
+
+// Tests clearing BTP data for a site for specific a specific OriginAttributes pattern.
+add_task(async function test_deleteBySite_OAPattern() {
+  addTestData();
+
+  let schemelessSite = "common-bounce-tracker.com";
+  info("Deleting by site " + schemelessSite);
+  await new Promise(function (resolve) {
+    Services.clearData.deleteDataFromSite(
+      schemelessSite,
+      // An OriginAttributesPattern that matches normal browsing => any OA that
+      // has mPrivateBrowsingId == 0
+      { privateBrowsingId: 0 },
+      true,
+      CLEAR_BOUNCE_TRACKING_PROTECTION_STATE,
+      failedFlags => {
+        Assert.equal(failedFlags, 0, "Clearing should have succeeded");
+        resolve();
+      }
+    );
+  });
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_DEFAULT)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "bounce-tracker-normal-browsing.com",
+      "bounce-tracker-normal-browsing2.com",
+    ].sort(),
+    "Should have deleted only 'common-bounce-tracker.com' for default OA."
+  );
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_DEFAULT)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "common-user-activation.com",
+      "user-activation-normal-browsing.com",
+      "user-activation-normal-browsing2.com",
+    ].sort(),
+    "Should not have deleted any user activations for default OA."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_PRIVATE_BROWSING)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "common-bounce-tracker.com",
+      "bounce-tracker-private-browsing.com",
+      "bounce-tracker-private-browsing2.com",
+    ].sort(),
+    "Should not have deleted 'common-bounce-tracker.com' for private browsing."
+  );
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_PRIVATE_BROWSING)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "common-user-activation.com",
+      "user-activation-private-browsing.com",
+      "user-activation-private-browsing2.com",
+    ].sort(),
+    "Should not have deleted any user activations for private browsing."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_CONTAINER)
+      .map(entry => entry.siteHost)
+      .sort(),
+    ["bounce-tracker-container.com", "bounce-tracker-container2.com"].sort(),
+    "Should have deleted 'common-bounce-tracker.com' for container."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_CONTAINER)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "common-user-activation.com",
+      "user-activation-container.com",
+      "user-activation-container2.com",
+    ].sort(),
+    "Should not have deleted any user activations for container."
+  );
+
+  // Cleanup.
+  bounceTrackingProtection.clearAll();
 });
 
 add_task(async function test_deleteByRange() {
@@ -537,7 +638,94 @@ add_task(async function test_deleteByRange() {
 });
 
 add_task(async function test_deleteByHost() {
-  await runDeleteBySiteHostTest(Services.clearData.deleteDataFromHost);
+  addTestData();
+
+  let host = "common-bounce-tracker.com";
+  info("Deleting by host " + host);
+  await new Promise(function (resolve) {
+    Services.clearData.deleteDataFromHost(
+      host,
+      true,
+      CLEAR_BOUNCE_TRACKING_PROTECTION_STATE,
+      failedFlags => {
+        Assert.equal(failedFlags, 0, "Clearing should have succeeded");
+        resolve();
+      }
+    );
+  });
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_DEFAULT)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "bounce-tracker-normal-browsing.com",
+      "bounce-tracker-normal-browsing2.com",
+    ].sort(),
+    "Should have deleted only 'common-bounce-tracker.com' for default OA."
+  );
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_DEFAULT)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "common-user-activation.com",
+      "user-activation-normal-browsing.com",
+      "user-activation-normal-browsing2.com",
+    ].sort(),
+    "Should not have deleted any user activations for default OA."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_PRIVATE_BROWSING)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "bounce-tracker-private-browsing.com",
+      "bounce-tracker-private-browsing2.com",
+    ].sort(),
+    "Should have deleted only 'common-bounce-tracker.com' for private browsing."
+  );
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_PRIVATE_BROWSING)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "common-user-activation.com",
+      "user-activation-private-browsing.com",
+      "user-activation-private-browsing2.com",
+    ].sort(),
+    "Should not have deleted any user activations for private browsing."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetBounceTrackerCandidateHosts(OA_CONTAINER)
+      .map(entry => entry.siteHost)
+      .sort(),
+    ["bounce-tracker-container.com", "bounce-tracker-container2.com"].sort(),
+    "Should have deleted only 'common-bounce-tracker.com' for container."
+  );
+
+  Assert.deepEqual(
+    bounceTrackingProtection
+      .testGetUserActivationHosts(OA_CONTAINER)
+      .map(entry => entry.siteHost)
+      .sort(),
+    [
+      "common-user-activation.com",
+      "user-activation-container.com",
+      "user-activation-container2.com",
+    ].sort(),
+    "Should not have deleted any user activations for container."
+  );
+
+  // Cleanup.
+  bounceTrackingProtection.clearAll();
 });
 
 add_task(async function test_deleteByOriginAttributes() {
@@ -563,7 +751,7 @@ add_task(async function test_deleteByOriginAttributes() {
       "bounce-tracker-normal-browsing.com",
       "bounce-tracker-normal-browsing2.com",
       "common-bounce-tracker.com",
-    ],
+    ].sort(),
     "Should not have deleted any bounce tracker candidates for default OA."
   );
   Assert.deepEqual(
@@ -575,7 +763,7 @@ add_task(async function test_deleteByOriginAttributes() {
       "common-user-activation.com",
       "user-activation-normal-browsing.com",
       "user-activation-normal-browsing2.com",
-    ],
+    ].sort(),
     "Should not have deleted any user activations for default OA."
   );
 
@@ -588,7 +776,7 @@ add_task(async function test_deleteByOriginAttributes() {
       "bounce-tracker-private-browsing.com",
       "bounce-tracker-private-browsing2.com",
       "common-bounce-tracker.com",
-    ],
+    ].sort(),
     "Should not have deleted any bounce tracker candidates for private browsing."
   );
   Assert.deepEqual(
@@ -600,7 +788,7 @@ add_task(async function test_deleteByOriginAttributes() {
       "common-user-activation.com",
       "user-activation-private-browsing.com",
       "user-activation-private-browsing2.com",
-    ],
+    ].sort(),
     "Should not have deleted any user activations for private browsing."
   );
 
