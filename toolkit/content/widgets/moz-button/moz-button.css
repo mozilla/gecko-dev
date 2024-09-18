@@ -13,8 +13,9 @@ button {
   background: transparent;
   border: none;
   /* HTML button gets `font: -moz-button` from UA styles,
-  * but we want it to match the root font styling. */
+   * but we want it to match the root font styling. */
   font: inherit;
+  color: var(--button-text-color);
   width: 100%;
 
   &:focus-visible {
@@ -30,7 +31,6 @@ button {
 .button-background {
   box-sizing: border-box;
   min-height: var(--button-min-height);
-  color: var(--button-text-color);
   border: var(--button-border);
   border-radius: var(--button-border-radius);
   background-color: var(--button-background-color);
