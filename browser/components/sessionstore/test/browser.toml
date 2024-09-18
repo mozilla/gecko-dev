@@ -90,6 +90,7 @@ https_first_disabled = true
 ["browser_closed_tabs_closed_windows.js"]
 
 ["browser_closed_tabs_windows.js"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && !debug"] # Bug 1836198
 
 ["browser_cookies.js"]
 
