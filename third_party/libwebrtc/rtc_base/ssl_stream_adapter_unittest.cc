@@ -493,6 +493,8 @@ class SSLStreamAdapterTestBase : public ::testing::Test,
             : rtc::SSLPeerCertificateDigestError::VERIFICATION_FAILED;
 
     RTC_LOG(LS_INFO) << "Setting peer identities by digest";
+    RTC_DCHECK(server_identity());
+    RTC_DCHECK(client_identity());
 
     rv = server_identity()->certificate().ComputeDigest(
         digest_algorithm_, server_digest, digest_length_, &server_digest_len);
