@@ -65,10 +65,13 @@ rtc_library("metrics_logger") {
     ":metric",
     ":metrics_accumulator",
     "../..:array_view",
+    "../../../rtc_base:macromagic",
     "../../../rtc_base/synchronization:mutex",
     "../../../system_wrappers",
     "../../numerics",
+    "../../units:timestamp",
     "//third_party/abseil-cpp/absl/strings:string_view",
+    "//third_party/abseil-cpp/absl/types:optional",
   ]
 }
 
@@ -152,6 +155,7 @@ rtc_library("metrics_set_proto_file_exporter") {
     "../..:array_view",
     "../../../rtc_base:logging",
     "../../../test:fileutils",
+    "//third_party/abseil-cpp/absl/strings:string_view",
   ]
 
   if (rtc_enable_protobuf) {
@@ -198,6 +202,7 @@ if (rtc_include_tests) {
       "../../../system_wrappers",
       "../../../test:test_support",
       "../../numerics",
+      "../../units:timestamp",
       "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
@@ -210,6 +215,7 @@ if (rtc_include_tests) {
       ":metrics_accumulator",
       "../../../test:test_support",
       "../../units:timestamp",
+      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 
