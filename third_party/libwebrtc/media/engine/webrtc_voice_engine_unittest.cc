@@ -850,12 +850,12 @@ class WebRtcVoiceEngineTestFake : public ::testing::TestWithParam<bool> {
   rtc::scoped_refptr<webrtc::test::MockAudioDeviceModule> adm_;
   rtc::scoped_refptr<StrictMock<webrtc::test::MockAudioProcessing>> apm_;
   cricket::FakeCall call_;
+  FakeAudioSource fake_source_;
   std::unique_ptr<cricket::WebRtcVoiceEngine> engine_;
   std::unique_ptr<cricket::VoiceMediaSendChannelInterface> send_channel_;
   std::unique_ptr<cricket::VoiceMediaReceiveChannelInterface> receive_channel_;
   cricket::AudioSenderParameter send_parameters_;
   cricket::AudioReceiverParameters recv_parameters_;
-  FakeAudioSource fake_source_;
   webrtc::AudioProcessing::Config apm_config_;
 };
 

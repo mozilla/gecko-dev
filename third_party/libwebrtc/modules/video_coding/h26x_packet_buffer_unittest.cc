@@ -1124,7 +1124,7 @@ TEST(H26xPacketBufferTest, H265VpsSpsPpsIdrIsKeyframe) {
 }
 
 TEST(H26xPacketBufferTest, H265IrapIsNotKeyframe) {
-  std::vector<const H265::NaluType> irap_types = {
+  std::vector<H265::NaluType> irap_types = {
       H265::NaluType::kBlaWLp,      H265::NaluType::kBlaWRadl,
       H265::NaluType::kBlaNLp,      H265::NaluType::kIdrWRadl,
       H265::NaluType::kIdrNLp,      H265::NaluType::kCra,

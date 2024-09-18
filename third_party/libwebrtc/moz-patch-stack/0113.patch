@@ -9,7 +9,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd4bc7427678a4528
  1 file changed, 3 insertions(+), 1 deletion(-)
 
 diff --git a/.gn b/.gn
-index bfc1c5f020..40f5238cf6 100644
+index 8325a46ed3..52acee7e60 100644
 --- a/.gn
 +++ b/.gn
 @@ -38,7 +38,9 @@ no_check_targets = [
