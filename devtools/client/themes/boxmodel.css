@@ -3,23 +3,21 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/ */
 
 :root {
-  --marginbox-color: #FDFFDF;
-  --borderbox-color: var(--grey-50);
-  --paddingbox-color: #E3DCFF;
-  --contentbox-color: #CFF0FB;
-  --marginbox-border-color: #D8E60A;
-  --contentbox-border-color: #54A9FF;
-  --position-border-color: var(--grey-50);
-}
+  --position-text-color: light-dark(var(--grey-90), var(--grey-30));
+  --position-border-color: light-dark(var(--grey-50), var(--grey-40));
 
-:root.theme-dark {
-  --marginbox-color: #73764A;
-  --borderbox-color: var(--grey-70);
-  --paddingbox-color: #6657A6;
-  --contentbox-color: #407AA4;
-  --marginbox-border-color: #BDCA00;
-  --contentbox-border-color: #00B8FF;
-  --position-border-color: var(--grey-40);
+  --margin-box-color: light-dark(#FDFFDF, #73764A);
+  --margin-box-text-color: light-dark(var(--grey-90), var(--grey-10));
+  --margin-box-border-color: light-dark(#D8E60A, #BDCA00);
+
+  --border-box-color: light-dark(var(--grey-50), var(--grey-70));
+  --border-box-text-color: light-dark(var(--theme-selection-color), var(--grey-10));
+
+  --padding-box-color: light-dark(#E3DCFF, #6657A6);
+  --padding-box-text-color: light-dark(var(--grey-90), var(--grey-10));
+
+  --content-box-color: light-dark(#CFF0FB, #407AA4);
+  --content-box-border-color: light-dark(#54A9FF, #00B8FF);
 }
 
 .boxmodel-container {
@@ -46,7 +44,6 @@
 
 .boxmodel-main {
   position: relative;
-  color: var(--theme-selection-color);
   /* Make sure there is some space between the window's edges and the regions */
   margin: 14px auto;
   width: calc(100% - 2 * 14px);
@@ -84,13 +81,13 @@
 
 .boxmodel-contents {
   height: 18px;
-  outline: dashed 1px var(--contentbox-border-color);
+  outline: dashed 1px var(--content-box-border-color);
 }
 
 .boxmodel-margins {
   border-width: 22px;
   border-style: solid;
-  outline: dashed 1px var(--marginbox-border-color);
+  outline: dashed 1px var(--margin-box-border-color);
 }
 
 .boxmodel-borders {
@@ -106,19 +103,19 @@
 /* Regions colors */
 
 .boxmodel-margins {
-  border-color: var(--marginbox-color);
+  border-color: var(--margin-box-color);
 }
 
 .boxmodel-borders {
-  border-color: var(--borderbox-color);
+  border-color: var(--border-box-color);
 }
 
 .boxmodel-paddings {
-  border-color: var(--paddingbox-color);
+  border-color: var(--padding-box-color);
 }
 
 .boxmodel-contents {
-  background-color: var(--contentbox-color);
+  background-color: var(--content-box-color);
 }
 
 /* Editable region sizes are contained in absolutely positioned <p> */
@@ -300,38 +297,29 @@
 .boxmodel-legend[data-box="margin"] {
   margin-left: 9px;
   margin-top: 4px;
-  color: var(--grey-90);
+  color: var(--margin-box-text-color);
 }
 
 .boxmodel-legend[data-box="position"] {
-  color: var(--grey-90);
+  color: var(--position-text-color);
   margin: -18px 13px;
 }
 
 .boxmodel-legend[data-box="padding"] {
   margin-top: 12px;
   margin-left: 12px;
-  color: var(--grey-90);
+  color: var(--padding-box-text-color);
 }
 
 .boxmodel-legend[data-box="border"] {
-  background-color: var(--borderbox-color);
+  background-color: var(--border-box-color);
+  color: var(--border-box-text-color);
   height: 15px;
   padding-top: 1px;
   padding-left: 4px;
   padding-right: 4px;
   border-radius: 3px;
   margin: 0px 0px;
-}
-
-.theme-dark .boxmodel-legend[data-box="margin"],
-.theme-dark .boxmodel-legend[data-box="border"],
-.theme-dark .boxmodel-legend[data-box="padding"] {
-  color: var(--grey-10);
-}
-
-.theme-dark .boxmodel-legend[data-box="position"] {
-  color: var(--grey-30);
 }
 
 /* Editable fields */
@@ -345,7 +333,8 @@
 }
 
 .boxmodel-editable[data-box="border"] {
-  background-color: var(--borderbox-color);
+  background-color: var(--border-box-color);
+  color: var(--border-box-text-color);
   border-radius: 3px;
   padding: 0 2px;
 }
@@ -361,7 +350,7 @@
 }
 
 .boxmodel-editable[data-box="margin"]:hover {
-  background-color: var(--marginbox-border-color);
+  background-color: var(--margin-box-border-color);
 }
 
 .boxmodel-editable[data-box="padding"]:hover {
@@ -373,7 +362,7 @@
 }
 
 .boxmodel-editable[data-box="content"]:hover {
-  background-color: var(--contentbox-border-color);
+  background-color: var(--content-box-border-color);
 }
 
 .boxmodel-editable[data-box="margin"]:hover,
@@ -410,15 +399,11 @@
 
 .boxmodel-container .reference-element-type {
   background: var(--theme-highlight-purple);
-  color: white;
+  color: light-dark(white, black);
   padding: 1px 2px;
   border-radius: 2px;
   font-size: 9px;
   margin-inline-end: 5px;
-}
-
-.theme-dark .boxmodel-container .reference-element-type {
-  color: black;
 }
 
 /* Box Model Main - Offset Parent */
