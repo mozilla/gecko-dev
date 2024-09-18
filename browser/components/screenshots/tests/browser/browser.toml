@@ -43,9 +43,7 @@ skip-if = [
 ["browser_screenshots_face_focusable.js"]
 
 ["browser_screenshots_focus_test.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04'", # Bug 1803618
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && socketprocess_networking"] # Bug 1803618
 
 ["browser_screenshots_overlay_panel_sync.js"]
 

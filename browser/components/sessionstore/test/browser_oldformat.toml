@@ -165,24 +165,22 @@ skip-if = [
 skip-if = ["true"] # Bug 1380968
 
 ["browser_524745.js"]
-skip-if = [
-  "win10_2009 && !ccov", # Bug 1418627
-  "os == 'linux'", # Bug 1803187
-]
 
 ["browser_528776.js"]
 
 ["browser_579868.js"]
 
 ["browser_579879.js"]
-skip-if = ["os == 'linux' && (debug || asan)"] # Bug 1234404
 
 ["browser_581937.js"]
 
 ["browser_586068-apptabs.js"]
 
 ["browser_586068-apptabs_ondemand.js"]
-skip-if = ["verify && (os == 'mac' || os == 'win')"]
+skip-if = [
+  "verify && debug && os == 'win'",
+  "verify && debug && os == 'mac'",
+]
 
 ["browser_586068-browser_state_interrupted.js"]
 
@@ -210,7 +208,6 @@ https_first_disabled = true
 ["browser_595601-restore_hidden.js"]
 
 ["browser_597071.js"]
-skip-if = ["true"] # Needs to be rewritten as Marionette test, bug 995916
 
 ["browser_600545.js"]
 
@@ -231,10 +228,6 @@ https_first_disabled = true
 ["browser_615394-SSWindowState_events_undoCloseTab.js"]
 
 ["browser_615394-SSWindowState_events_undoCloseWindow.js"]
-skip-if = [
-  "os == 'win' && !debug", # Bug 1572554
-  "os == 'linux'",         # Bug 1572554
-]
 
 ["browser_618151.js"]
 
@@ -244,10 +237,6 @@ skip-if = [
 
 ["browser_625016.js"]
 run-if = ["os != 'mac'"] # not running on macOS where closing all windows doesn't quit the application
-skip-if = [
-  "os == 'linux'", # linux, Bug 1348583
-  "os == 'win' && debug", # Bug 1430977
-]
 
 ["browser_628270.js"]
 
@@ -296,6 +285,5 @@ skip-if = ["true"] # Bug 1284312, Bug 1341980, bug 1381451
 
 ["browser_906076_lazy_tabs.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && os_version == '18.04'"] # bug 1446464
 
 ["browser_911547.js"]

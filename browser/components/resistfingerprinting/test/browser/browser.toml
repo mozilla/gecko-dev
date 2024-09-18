@@ -88,10 +88,12 @@ https_first_disabled = true
 
 ["browser_dynamical_window_rounding.js"]
 https_first_disabled = true
-skip-if = [
-  "os == 'mac'", # Bug 1570812
-  "os == 'linux'", # Bug 1570812, Bug 1775698
-]
+skip-if = ["os == 'linux'"] # Bug 1570812, Bug 1775698
+
+["browser_exslt_time_precision.js"]
+
+["browser_exslt_timezone_load.js"]
+skip-if = ["os == 'win'"] # Bug 1918104
 
 ["browser_hwconcurrency_etp_iframes.js"]
 
@@ -152,11 +154,5 @@ https_first_disabled = true
 ["browser_roundedWindow_open_min_inner.js"]
 
 ["browser_spoofing_keyboard_event.js"]
-skip-if = ["(debug || asan) && os == 'linux' && bits == 64"] #Bug 1518179
 
 ["browser_timezone.js"]
-
-["browser_exslt_timezone_load.js"]
-skip-if = ["os == 'win'"] # Bug 1918104
-
-["browser_exslt_time_precision.js"]

@@ -55,16 +55,8 @@ skip-if = ["os == 'linux' && os_version == '18.04' && !debug && verify"]
 skip-if = ["os == 'linux' && os_version == '18.04' && !debug && verify"]
 
 ["browser_UITour_showProtectionReport.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && asan", # Bug 1697217
-  "os == 'linux' && os_version == '18.04' && debug", # Bug 1697217
-  "os == 'linux' && os_version == '18.04' && tsan", # Bug 1697217
-]
 
 ["browser_UITour_sync.js"]
-skip-if = [
-  "os == 'linux' && os_version == '18.04'", # Bug 1678417
-]
 
 ["browser_UITour_toggleReaderMode.js"]
 skip-if = ["os == 'linux' && os_version == '18.04' && !debug && verify"]

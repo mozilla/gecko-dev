@@ -28,7 +28,7 @@ prefs = ["browser.bookmarks.testing.skipDefaultBookmarksImport=true"]
 ["browser_quicksuggest_merinoSessions.js"]
 
 ["browser_quicksuggest_onboardingDialog.js"]
-skip-if = ["os == 'linux' && bits == 64"] # Bug 1773830
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl"] # Bug 1773830
 
 ["browser_quicksuggest_pocket.js"]
 tags = "search-telemetry"

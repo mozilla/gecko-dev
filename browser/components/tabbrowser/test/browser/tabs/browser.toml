@@ -23,9 +23,6 @@ prefs = [
 
 ["browser_audioTabIcon.js"]
 tags = "audiochannel"
-skip-if = [
-  "apple_silicon && !debug" # Bug 1862716
-]
 
 ["browser_bfcache_exemption_about_pages.js"]
 run-if = ["fission"]
@@ -215,7 +212,6 @@ support-files = ["file_observe_height_changes.html"]
 
 ["browser_new_tab_in_privilegedabout_process_pref.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && debug"] # Bug 1581500.
 
 ["browser_new_tab_insert_position.js"]
 https_first_disabled = true
@@ -275,10 +271,6 @@ https_first_disabled = true
 ["browser_relatedTabs_reset.js"]
 
 ["browser_reload_deleted_file.js"]
-skip-if = [
-  "debug && os == 'mac'", #Bug 1421183, disabled on Linux/OSX for leaked windows
-  "debug && os == 'linux'", #Bug 1421183, disabled on Linux/OSX for leaked windows
-]
 
 ["browser_removeTabsToTheEnd.js"]
 
@@ -325,7 +317,6 @@ skip-if = ["true"] # Bug 1616418 Bug 1549985
 ["browser_tab_manager_drag.js"]
 
 ["browser_tab_manager_keyboard_access.js"]
-skip-if = ["true"] # Bug 1900477
 
 ["browser_tab_move_to_new_window_reload.js"]
 

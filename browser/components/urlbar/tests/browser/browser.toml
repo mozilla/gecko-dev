@@ -88,19 +88,14 @@ support-files = [
 ["browser_UrlbarInput_untrimOnUserInteraction.js"]
 
 ["browser_aboutHomeLoading.js"]
-skip-if = [
-  "tsan", # Intermittently times out, see 1622698 (frequent on TSan).
-  "os == 'linux' && bits == 64 && !debug", # Bug 1622698
-]
+skip-if = ["tsan"] # Intermittently times out, see 1622698 (frequent on TSan).
 
 ["browser_acknowledgeFeedbackAndDismissal.js"]
 
 ["browser_action_searchengine.js"]
 skip-if = [
   "os == 'linux' && asan",  # Bug 1834810
-  "os == 'linux' && debug", # Bug 1834810
   "os == 'win' && asan",  # Bug 1834810
-  "os == 'win' && debug", # Bug 1834810
 ]
 
 ["browser_action_searchengine_alias.js"]
@@ -339,9 +334,7 @@ support-files = [
 ]
 
 ["browser_oneOffs_heuristicRestyle.js"]
-skip-if = [
-  "os == 'linux' && bits == 64 && !debug", # Bug 1775811
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && socketprocess_networking"] # Bug 1775811
 
 ["browser_oneOffs_keyModifiers.js"]
 support-files = [
@@ -486,11 +479,6 @@ https_first_disabled = true
 
 ["browser_searchMode_sessionStore.js"]
 https_first_disabled = true
-skip-if = [
-  "os == 'mac' && debug", # Bug 1671045, Bug 1849098
-  "os == 'linux' && (debug || tsan || asan)", # Bug 1849098
-  "os == 'win' && debug", # Bug 1849098
-]
 
 ["browser_searchMode_setURI.js"]
 https_first_disabled = true
@@ -508,7 +496,7 @@ support-files = [
 
 ["browser_searchSingleWordNotification.js"]
 https_first_disabled = true
-skip-if = ["os == 'linux' && bits == 64"] # Bug 1773830
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && a11y_checks && swgl"] # Bug 1773830
 
 ["browser_searchSuggestions.js"]
 support-files = [
@@ -723,9 +711,7 @@ support-files = [
 ]
 
 ["browser_view_selectionByMouse.js"]
-skip-if = [
-  "os == 'linux' && asan", # Bug 1789051
-]
+skip-if = ["os == 'linux' && asan"] # Bug 1789051
 
 ["browser_waitForLoadStartOrTimeout.js"]
 https_first_disabled = true
