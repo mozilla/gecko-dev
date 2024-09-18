@@ -323,7 +323,6 @@ export class UrlbarController {
             this.view.close();
           } else {
             this.input.handleRevert({
-              dontShowSearchTerms: true,
               escapeSearchMode: true,
             });
           }

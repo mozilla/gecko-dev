@@ -165,31 +165,6 @@ add_task(async function switch_to_tab_and_search() {
   BrowserTestUtils.removeTab(tab2);
 });
 
-// When a user reverts the Urlbar after the search terms persist,
-// conducting another search should still be registered as a
-// urlbar-persisted SAP.
-add_task(async function handle_revert() {
-  let search_hist =
-    TelemetryTestUtils.getAndClearKeyedHistogram("SEARCH_COUNTS");
-
-  const tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-  await searchForString(SEARCH_STRING, tab);
-
-  gURLBar.handleRevert();
-  await searchForString(SEARCH_STRING, tab);
-
-  assertScalarSearchEnter(1);
-
-  // Check search count.
-  TelemetryTestUtils.assertKeyedHistogramSum(
-    search_hist,
-    "Example.urlbar-persisted",
-    1
-  );
-
-  BrowserTestUtils.removeTab(tab);
-});
-
 // A user going back and forth in history should trigger
 // urlbar-persisted telemetry when returning to a SERP
 // and conducting a search.

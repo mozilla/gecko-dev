@@ -376,7 +376,7 @@ export class UrlbarInput {
    * @param {boolean} [dueToSessionRestore]
    *        True if this is being called due to session restore and false
    *        otherwise.
-   * @param {boolean} [dontShowSearchTerms]
+   * @param {boolean} [hideSearchTerms]
    *        True if userTypedValue should not be overidden by search terms
    *        and false otherwise.
    * @param {boolean} [isSameDocument]
@@ -388,7 +388,7 @@ export class UrlbarInput {
     uri = null,
     dueToTabSwitch = false,
     dueToSessionRestore = false,
-    dontShowSearchTerms = false,
+    hideSearchTerms = false,
     isSameDocument = false
   ) {
     // We only need to update the searchModeUI on tab switch conditionally
@@ -399,7 +399,7 @@ export class UrlbarInput {
     if (!this.window.gBrowser.userTypedValue) {
       this.window.gBrowser.selectedBrowser.searchTerms = "";
       if (
-        !dontShowSearchTerms &&
+        !hideSearchTerms &&
         lazy.UrlbarPrefs.isPersistedSearchTermsEnabled()
       ) {
         this.window.gBrowser.selectedBrowser.searchTerms =
@@ -412,6 +412,7 @@ export class UrlbarInput {
 
     let value = this.window.gBrowser.userTypedValue;
     let valid = false;
+    let shouldPersist = false;
 
     // If `value` is null or if it's an empty string and we're switching tabs
     // or the userTypedValue equals the search terms, set value to either
@@ -429,7 +430,9 @@ export class UrlbarInput {
     ) {
       if (this.window.gBrowser.selectedBrowser.searchTerms) {
         value = this.window.gBrowser.selectedBrowser.searchTerms;
-        valid = !dueToSessionRestore && !this.window.gBrowser.userTypedValue;
+        if (!this.searchMode) {
+          shouldPersist = true;
+        }
         if (!isSameDocument) {
           Services.telemetry.scalarAdd(
             "urlbar.persistedsearchterms.view_count",
@@ -500,12 +503,7 @@ export class UrlbarInput {
     this.value = value;
     this.valueIsTyped = !valid;
     this.toggleAttribute("usertyping", !valid && value);
-    this.toggleAttribute(
-      "persistsearchterms",
-      lazy.UrlbarPrefs.isPersistedSearchTermsEnabled() &&
-        !!this.window.gBrowser.selectedBrowser.searchTerms &&
-        valid
-    );
+    this.toggleAttribute("persistsearchterms", shouldPersist);
 
     if (this.focused && value != previousUntrimmedValue) {
       if (
@@ -866,7 +864,7 @@ export class UrlbarInput {
     // Don't add further handling here, the catch above is our last resort.
   }
 
-  handleRevert({ dontShowSearchTerms = false, escapeSearchMode = false } = {}) {
+  handleRevert({ escapeSearchMode = false } = {}) {
     this.window.gBrowser.userTypedValue = null;
     // Nullify search mode before setURI so it won't try to restore it.
     if (
@@ -875,7 +873,7 @@ export class UrlbarInput {
     ) {
       this.searchMode = null;
     }
-    this.setURI(null, true, false, dontShowSearchTerms);
+    this.setURI(null, true, false, true);
     if (this.value && this.focused) {
       this.select();
     }
@@ -886,7 +884,7 @@ export class UrlbarInput {
       anchorElement?.closest("#urlbar") &&
       this.window.gBrowser.selectedBrowser.searchTerms
     ) {
-      this.handleRevert({ dontShowSearchTerms: true });
+      this.handleRevert();
       Services.telemetry.scalarAdd(
         "urlbar.persistedsearchterms.revert_by_popup_count",
         1
@@ -3726,15 +3724,14 @@ export class UrlbarInput {
       this.view.close();
     }
 
-    // If there were search terms shown in the URL bar and the user
-    // didn't end up modifying the userTypedValue while it was
-    // focused, change back to a valid pageproxystate.
+    // If there were search terms shown in the URL bar but the user
+    // didn't modify the userTypedValue, restore the persisted search terms
+    // state.
     if (
       this.window.gBrowser.selectedBrowser.searchTerms &&
       this.window.gBrowser.userTypedValue == null
     ) {
       this.toggleAttribute("persistsearchterms", true);
-      this.setPageProxyState("valid", true);
     }
 
     // We may have hidden popup notifications, show them again if necessary.

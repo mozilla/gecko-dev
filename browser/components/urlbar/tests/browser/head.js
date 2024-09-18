@@ -311,7 +311,7 @@ function assertSearchStringIsInUrlbar(
   searchString,
   {
     win = window,
-    pageProxyState = "valid",
+    pageProxyState = "invalid",
     userTypedValue = null,
     persistSearchTerms = true,
   } = {}

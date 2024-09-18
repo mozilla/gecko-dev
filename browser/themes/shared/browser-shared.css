@@ -65,11 +65,6 @@ body {
   /* This should be used for icons and chiclets inside the input field. It makes
      the gap around them more uniform when they are close to the field edges */
   --urlbar-icon-border-radius: calc(var(--toolbarbutton-border-radius) - 1px);
-  --urlbar-searchmode-and-input-box-container-border-color: color-mix(in srgb, currentColor 30%, transparent);
-  --urlbar-searchmode-and-input-box-container-shadow: 0 2px 6px rgba(0, 0, 0, 15%);
-  --urlbar-search-mode-picker-persisted-background-color: color-mix(in srgb, currentColor 14%, transparent);
-  --urlbar-search-mode-picker-persisted-background-color-hover: color-mix(in srgb, currentColor 28%, transparent);
-  --urlbar-search-mode-picker-persisted-background-color-active: color-mix(in srgb, currentColor 35%, transparent);
   --urlbar-searchmodeswitcher-spacing: 6px;
 
   --pocket-icon-fill: #ef4056;

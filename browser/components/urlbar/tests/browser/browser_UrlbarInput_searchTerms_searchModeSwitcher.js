@@ -41,14 +41,6 @@ add_task(async function visibility_of_elements() {
   );
 
   Assert.equal(
-    BrowserTestUtils.isVisible(
-      urlbar.querySelector(".urlbar-show-page-actions-button")
-    ),
-    true,
-    "Show all page actions button is visible."
-  );
-
-  Assert.equal(
     BrowserTestUtils.isVisible(urlbar.querySelector(".urlbar-revert-button")),
     true,
     "Revert button is visible."
@@ -285,48 +277,6 @@ add_task(async function revert_button() {
   Assert.ok(
     BrowserTestUtils.isHidden(revertButton),
     "Revert button is hidden."
-  );
-
-  Assert.ok(
-    !gURLBar.hasAttribute("persistsearchterms"),
-    "Urlbar does not have persistsearchterms attribute."
-  );
-
-  Assert.equal(
-    gURLBar.getAttribute("pageproxystate"),
-    "valid",
-    "Page proxy state."
-  );
-
-  BrowserTestUtils.removeTab(tab);
-});
-
-// TODO: The expand page actions button just reverts the urlbar
-// but UX has said it will show a popover containing a list of page actions.
-add_task(async function expand_page_actions_button() {
-  let { tab } = await searchWithTab(SEARCH_STRING);
-
-  let urlbar = window.gURLBar;
-
-  let pageActionsContainer = urlbar.querySelector("#page-action-buttons");
-  info("Verify page actions are not visible.");
-  Assert.equal(
-    BrowserTestUtils.isVisible(pageActionsContainer),
-    false,
-    "Page actions are visible."
-  );
-
-  info("Click expand page actions button.");
-  let showPageActionsButton = urlbar.querySelector(
-    ".urlbar-show-page-actions-button"
-  );
-  EventUtils.synthesizeMouseAtCenter(showPageActionsButton, {}, window);
-
-  info("Verify page actions are visible.");
-  Assert.equal(
-    BrowserTestUtils.isVisible(pageActionsContainer),
-    true,
-    "Page actions are visible."
   );
 
   Assert.ok(

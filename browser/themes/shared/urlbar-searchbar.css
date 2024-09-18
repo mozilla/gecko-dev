@@ -21,7 +21,6 @@
 #urlbar[usertyping] > .urlbar-input-container > #page-action-buttons > #urlbar-zoom-button,
 #urlbar:not([usertyping]) > .urlbar-input-container > .urlbar-go-button,
 #urlbar:not([focused]) > .urlbar-input-container > .urlbar-go-button,
-.urlbar-show-page-actions-button,
 .urlbar-revert-button {
   display: none;
 }
@@ -46,8 +45,7 @@
 }
 
 #urlbar,
-#searchbar,
-.urlbar-searchmode-and-input-box-container {
+#searchbar {
   /* Setting a min-width to let the location & search bars maintain a constant
    * width in case they haven't been resized manually. (bug 965772) */
   min-width: 1px;
@@ -129,23 +127,23 @@
     text-align: right !important;
   }
 
-  #urlbar:not([focused])[domaindir="ltr"]> .urlbar-input-container > .urlbar-searchmode-and-input-box-container > .urlbar-input-box > & {
+  #urlbar:not([focused])[domaindir="ltr"]> .urlbar-input-container > .urlbar-input-box > & {
     direction: ltr;
     unicode-bidi: embed;
   }
 
   /* The following rules apply overflow masks to the unfocused urlbar
      This mask may be overriden when a Contextual Feature Recommendation is shown. */
-  #urlbar:not([focused])[textoverflow="both"] > .urlbar-input-container > .urlbar-searchmode-and-input-box-container > .urlbar-input-box > & {
+  #urlbar:not([focused])[textoverflow="both"] > .urlbar-input-container > .urlbar-input-box > & {
     mask-image: linear-gradient(to right, transparent, black 3ch, black calc(100% - 3ch), transparent);
   }
-  #urlbar:not([focused])[textoverflow="right"] > .urlbar-input-container > .urlbar-searchmode-and-input-box-container > .urlbar-input-box > & {
+  #urlbar:not([focused])[textoverflow="right"] > .urlbar-input-container > .urlbar-input-box > & {
     mask-image: linear-gradient(to left, transparent, black 3ch);
   }
-  #urlbar:not([focused])[textoverflow="left"] > .urlbar-input-container > .urlbar-searchmode-and-input-box-container > .urlbar-input-box > & {
+  #urlbar:not([focused])[textoverflow="left"] > .urlbar-input-container > .urlbar-input-box > & {
     mask-image: linear-gradient(to right, transparent, black 3ch);
   }
-  #urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > .urlbar-input-container > .urlbar-searchmode-and-input-box-container > .urlbar-input-box > & {
+  #urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > .urlbar-input-container > .urlbar-input-box > & {
     mask-image: linear-gradient(to right, transparent var(--urlbar-scheme-size), black calc(var(--urlbar-scheme-size) + 3ch));
   }
 }
@@ -562,7 +560,6 @@
 
 .urlbar-page-action,
 .urlbar-revert-button,
-.urlbar-show-page-actions-button,
 .urlbar-go-button,
 .search-go-button {
   width: calc(var(--urlbar-min-height) - 2px /* border */ - 2 * var(--urlbar-container-padding));
@@ -807,41 +804,15 @@
 
 /* Persisted Search Terms rules specific when the Unified Search Button is present */
 /* stylelint-disable-next-line media-query-no-invalid */
-@media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
-  #urlbar[persistsearchterms] {
-    .urlbar-revert-button {
-      list-style-image: url(chrome://global/skin/icons/close.svg);
-      fill: var(--toolbarbutton-icon-fill);
-    }
-    .urlbar-show-page-actions-button {
-      list-style-image: url(chrome://global/skin/icons/more.svg);
-    }
-    .urlbar-searchmode-and-input-box-container {
-      align-items: center;
-      background-color: light-dark(rgba(255, 255, 255, 0.4), rgba(0, 0, 0, 0.4));
-      /* Use an outline to avoid shifting the input field contents */
-      outline: 1px solid var(--urlbar-searchmode-and-input-box-container-border-color);
-      outline-offset: -1px;
-      border-radius: calc(var(--toolbarbutton-border-radius) + 1px);
-      box-shadow: var(--urlbar-searchmode-and-input-box-container-shadow);
-      padding-inline-end: var(--space-small);
-    }
-    .urlbar-go-button {
-      display: none;
-    }
-    #page-action-buttons {
-      display: none;
-    }
-    .urlbar-show-page-actions-button {
-      height: auto;
-    }
-    .urlbar-show-page-actions-button,
-    .urlbar-revert-button {
-      display: inherit;
-    }
+#urlbar[persistsearchterms] {
+  .urlbar-revert-button {
+    list-style-image: url(chrome://global/skin/icons/defaultFavicon.svg);
+    fill: var(--color-accent-primary);
+    display: inherit;
   }
-  #urlbar[focused][persistedsearchterms] .urlbar-searchmode-and-input-box-container {
-    background-color: transparent;
+  #page-action-buttons,
+  .urlbar-go-button {
+    display: none;
   }
 }
 
@@ -1143,17 +1114,6 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "browser.urlbar.searchModeSwitcher.featureGate") or (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
     display: flex;
-    #urlbar[persistsearchterms] & {
-      height: 100%;
-      margin-inline-start: 0;
-      background-color: var(--urlbar-search-mode-picker-persisted-background-color);
-    }
-    #urlbar[persistsearchterms] &:hover {
-      background-color: var(--urlbar-search-mode-picker-persisted-background-color-hover);
-    }
-    #urlbar[persistsearchterms] &[open] {
-      background-color: var(--urlbar-search-mode-picker-persisted-background-color-active);
-    }
   }
 }
 
@@ -1183,10 +1143,6 @@ moz-input-box > menupopup .context-menu-add-engine > .menu-iconic-left::after {
 
   #urlbar[focused] & {
     background-color: var(--urlbar-box-focus-bgcolor);
-  }
-
-  #urlbar[persistsearchterms] & {
-    background-color: var(--urlbar-search-mode-picker-persisted-background-color);
   }
 }
 
