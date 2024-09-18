@@ -6209,7 +6209,7 @@ main section {
   border-radius: 0;
   box-shadow: none;
   flex-direction: row-reverse;
-  height: 135px;
+  min-height: 135px;
   gap: var(--space-large);
   padding-inline: var(--space-large);
   padding-block: var(--space-large) var(--space-small);
@@ -6222,18 +6222,30 @@ main section {
 .ds-card-grid .list-feed-content .ds-card.list-feed-card .meta {
   padding: 0;
 }
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .meta .story-footer {
+  margin-block-start: var(--space-xsmall);
+}
 .ds-card-grid .list-feed-content .ds-card.list-feed-card .excerpt {
   display: none;
 }
 .ds-card-grid .list-feed-content .ds-card.list-feed-card .card-stp-button-hover-background {
   border-radius: 0;
   height: 100%;
+  opacity: 1;
+  background-color: transparent;
   padding-block-start: 0;
   inset-inline-start: 0;
 }
 .ds-card-grid .list-feed-content .ds-card.list-feed-card .card-stp-button-hover-background .card-stp-button-position-wrapper {
   inset-block-end: var(--space-small);
   inset-inline-end: var(--space-large);
+  align-items: flex-end;
+}
+.ds-card-grid .list-feed-content .ds-card.list-feed-card .card-stp-button-hover-background .context-menu-button {
+  opacity: 1;
+  transform: scale(1);
+  background-color: transparent;
+  box-shadow: none;
 }
 .ds-card-grid .list-feed-content .ds-card.list-feed-card .img-wrapper {
   flex-shrink: 0;
@@ -6270,10 +6282,6 @@ main section {
 }
 .ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .card-stp-button-position-wrapper, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .card-stp-button-position-wrapper {
   align-items: flex-end;
-}
-.ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .context-menu-button, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .context-menu-button {
-  background-color: transparent;
-  box-shadow: none;
 }
 .ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .context-menu-button:hover, .ds-card-grid .list-feed-content .ds-card.list-feed-card:hover .context-menu-button:focus, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .context-menu-button:hover, .ds-card-grid .list-feed-content .ds-card.list-feed-card:focus-within .context-menu-button:focus {
   background-color: var(--newtab-button-background);

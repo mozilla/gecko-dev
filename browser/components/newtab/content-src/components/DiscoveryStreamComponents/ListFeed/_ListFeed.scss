@@ -160,7 +160,7 @@
   border-radius: 0;
   box-shadow: none;
   flex-direction: row-reverse;
-  height: 135px;
+  min-height: 135px;
   gap: var(--space-large);
   padding-inline: var(--space-large);
   padding-block: var(--space-large) var(--space-small);
@@ -173,6 +173,10 @@
 
   .meta {
     padding: 0;
+
+    .story-footer {
+      margin-block-start: var(--space-xsmall);
+    }
   }
 
   .excerpt {
@@ -182,13 +186,22 @@
   .card-stp-button-hover-background {
     border-radius: 0;
     height: 100%;
-    // note: not using padding-block-start to override a rule from DSCard
+    opacity: 1;
+    background-color: transparent;
     padding-block-start: 0;
     inset-inline-start: 0;
 
     .card-stp-button-position-wrapper {
       inset-block-end: var(--space-small);
       inset-inline-end: var(--space-large);
+      align-items: flex-end;
+    }
+
+    .context-menu-button {
+      opacity: 1;
+      transform: scale(1);
+      background-color: transparent;
+      box-shadow: none;
     }
   }
 
@@ -235,9 +248,6 @@
     }
 
     .context-menu-button {
-      background-color: transparent;
-      box-shadow: none;
-
       &:hover, &:focus {
         background-color: var(--newtab-button-background);
       }
