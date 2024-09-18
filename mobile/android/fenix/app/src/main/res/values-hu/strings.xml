@@ -234,6 +234,8 @@
     <string name="browser_menu_add_to_homescreen">Kezdőképernyőhöz adás</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Hozzáadás a kezdőképernyőhöz…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">A Xiaomi eszközöknek további engedélyekre lehet szükségük ahhoz, hogy indítóikonokat adjanak a kezdőképernyőhöz. Ellenőrizze a beállításait.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Újraszinkronizálás</string>
     <!-- Browser menu button that opens the find in page menu -->

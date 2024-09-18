@@ -119,6 +119,16 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">Deg usmel web, afeggag-a yettnefḍas mi ara tedrurmeḍ d akessar i wakken ad d-trebḥeḍ tallunt.</string>
 
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Sit, teṭṭfeḍ tineccabin akken ad tneggzed gar yisebtar deg uzray n yiccer-a.</string>
+
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title">Tigejdit: tineccabin n tunigin s usiti</string>
+
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message">Amer s tunigin tuzribt yezgan ɣef wafus.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Isɛa anekcum ɣer tkamiṛat. Ddu ɣer iɣewwaṛen Android, sit ɣef tisirag, sakin senned sireg.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -203,12 +213,17 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Browser menu banner header text for extensions onboarding.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_extensions_banner_onboarding_header">Err-it %s d ayla-k·m</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Isiɣzaf snernayen tunigin, s ubeddel n urwes neɣ n tikli n %s neɣ s useǧhed n tbaḍnit d tɣellist.</string>
     <!-- Browser menu banner link text for learning more about extensions -->
     <string name="browser_menu_extensions_banner_learn_more">Issin ugar</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Sefrek isiɣzaf</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Snirem ugar n yisiɣzaf</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Yensa i kra n wakud</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Talut n umiḍan</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -227,6 +242,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="browser_menu_add_to_homescreen">Rnu ɣer ugdil agejdan</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Rnu ɣer ugdil agejdan…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Ibenkan Xiaomi zemren ad d-ssutren tisirag niḍen i tmerna n yinegzumen ɣef ugdil. Ttxil-k senqed iɣewwaren.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Ales amtawi</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -331,6 +348,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Menu "contextual feature recommendation" (CFR) -->
     <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
     <string name="menu_cfr_title">Amaynut: Umuɣ afessas</string>
+
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Af s zzerb ayen tesriḍ, seg tunigin tusligt ɣer tigawin n usekles.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -2835,6 +2855,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Tumreḍ s usiggez deg Firefox?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Tumreḍ s usebtar-ik agejdan n Firefox?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Tumreḍ s unadi ɣef Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Alugu Firefox</string>
@@ -2868,6 +2890,13 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen seqdec asilif n tuɣalin</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">i wakken ad teffɣeḍ seg ugdil aččura, zuɣer seg usawen syen sit ɣef uɣal</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Zuɣer-d seg usawen syen seqdec asilif n tuɣalin i tuffɣa</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Zuɣer-d seg usawen syen sit ɣef tqeffalt uɣal i tuffɣa</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
