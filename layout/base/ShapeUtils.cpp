@@ -109,28 +109,22 @@ nsSize ShapeUtils::ComputeEllipseRadii(const StyleBasicShape& aBasicShape,
 /* static */
 nsRect ShapeUtils::ComputeInsetRect(
     const StyleRect<LengthPercentage>& aStyleRect, const nsRect& aRefBox) {
-  nsMargin inset(aStyleRect._0.Resolve(aRefBox.Height()),
-                 aStyleRect._1.Resolve(aRefBox.Width()),
-                 aStyleRect._2.Resolve(aRefBox.Height()),
-                 aStyleRect._3.Resolve(aRefBox.Width()));
+  const nsMargin inset(aStyleRect._0.Resolve(aRefBox.Height()),
+                       aStyleRect._1.Resolve(aRefBox.Width()),
+                       aStyleRect._2.Resolve(aRefBox.Height()),
+                       aStyleRect._3.Resolve(aRefBox.Width()));
 
-  nscoord x = aRefBox.X() + inset.left;
-  nscoord width = aRefBox.Width() - inset.LeftRight();
-  nscoord y = aRefBox.Y() + inset.top;
-  nscoord height = aRefBox.Height() - inset.TopBottom();
-
-  // Invert left and right, if necessary.
-  if (width < 0) {
-    width *= -1;
-    x -= width;
-  }
-
-  // Invert top and bottom, if necessary.
-  if (height < 0) {
-    height *= -1;
-    y -= height;
-  }
-
+  const nscoord x = aRefBox.X() + inset.left;
+  const nscoord y = aRefBox.Y() + inset.top;
+  // All <basic-shape-rect> functions are converted into inset() at the
+  // computing time, and it seems other browsers just clamp the width/height to
+  // 0 if the dimension (i.e. top+bottom or left+right) is larger than 100%.
+  // This is identical to flooring right/bottom values in rect(). Therefore,
+  // here we also floor right/bottom (i.e. make sure the width/height is not
+  // negative) to match the behavior of other browsers and the spec of rect().
+  // https://github.com/w3c/csswg-drafts/issues/10870
+  const nscoord width = std::max(0, aRefBox.Width() - inset.LeftRight());
+  const nscoord height = std::max(0, aRefBox.Height() - inset.TopBottom());
   return nsRect(x, y, width, height);
 }
 
