@@ -307,6 +307,7 @@ TEST_F(NetEqImplTest, InsertPacket) {
   fake_packet.sequence_number = kFirstSequenceNumber;
   fake_packet.timestamp = kFirstTimestamp;
 
+  const Environment env = CreateEnvironment();
   auto mock_decoder_factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
   EXPECT_CALL(*mock_decoder_factory, MakeAudioDecoderMock(_, _, _))
       .WillOnce(Invoke([&](const SdpAudioFormat& format,
@@ -321,7 +322,7 @@ TEST_F(NetEqImplTest, InsertPacket) {
 
         *dec = std::move(mock_decoder);
       }));
-  DecoderDatabase::DecoderInfo info(SdpAudioFormat("pcmu", 8000, 1),
+  DecoderDatabase::DecoderInfo info(env, SdpAudioFormat("pcmu", 8000, 1),
                                     absl::nullopt, mock_decoder_factory.get());
 
   // Expectations for decoder database.
@@ -1644,6 +1645,7 @@ TEST_F(NetEqImplTest, NoCrashWith1000Channels) {
 
   AudioDecoder* decoder = nullptr;
 
+  const Environment env = CreateEnvironment();
   auto mock_decoder_factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
   EXPECT_CALL(*mock_decoder_factory, MakeAudioDecoderMock(_, _, _))
       .WillOnce(Invoke([&](const SdpAudioFormat& format,
@@ -1653,7 +1655,7 @@ TEST_F(NetEqImplTest, NoCrashWith1000Channels) {
         *dec = std::make_unique<AudioDecoderPcmU>(1000);
         decoder = dec->get();
       }));
-  DecoderDatabase::DecoderInfo info(SdpAudioFormat("pcmu", 8000, 1),
+  DecoderDatabase::DecoderInfo info(env, SdpAudioFormat("pcmu", 8000, 1),
                                     absl::nullopt, mock_decoder_factory.get());
   // Expectations for decoder database.
   EXPECT_CALL(*mock_decoder_database_, GetDecoderInfo(kPayloadType))

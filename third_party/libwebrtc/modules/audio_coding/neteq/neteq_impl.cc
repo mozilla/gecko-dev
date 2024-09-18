@@ -115,7 +115,9 @@ NetEqImpl::Dependencies::Dependencies(
       tick_timer(new TickTimer),
       stats(new StatisticsCalculator),
       decoder_database(
-          new DecoderDatabase(decoder_factory, config.codec_pair_id)),
+          std::make_unique<DecoderDatabase>(env,
+                                            std::move(decoder_factory),
+                                            config.codec_pair_id)),
       dtmf_buffer(new DtmfBuffer(config.sample_rate_hz)),
       dtmf_tone_generator(new DtmfToneGenerator),
       packet_buffer(new PacketBuffer(config.max_packets_in_buffer,
