@@ -28,6 +28,13 @@
     )
   };
 
+  async function gleanFlushChildren() {
+    return SpecialPowers.spawnChrome([], async () => {
+      await Services.fog.testFlushAllChildren();
+      }
+    )
+  };
+
 
   async function getAllWarningRates() {
     return {
@@ -580,6 +587,8 @@
       pc1.addTrack(stream.getTracks()[0]);
 
       await connect(pc1, pc2, 32000, "DTLS connected", true, true);
+      // This telemetry happens on STS/socket process
+      await gleanFlushChildren();
 
       client_successes = await GleanTest.webrtcdtls.clientHandshakeResult.SUCCESS.testGetValue() || 0;
       server_successes = await GleanTest.webrtcdtls.serverHandshakeResult.SUCCESS.testGetValue() || 0;
@@ -606,6 +615,8 @@
           pc1.addTrack(stream.getTracks()[0]);
 
           await connect(pc1, pc2, 32000, "DTLS connected", true, true);
+          // This telemetry happens on STS/socket process
+          await gleanFlushChildren();
 
           cipher_count = await GleanTest.webrtcdtls.cipher["0x1303"].testGetValue() || 0;
           is(cipher_count, 2);
@@ -655,6 +666,8 @@
         Promise.all(connectionPromises),
         throwOnTimeout()
       ]);
+      // This telemetry happens on STS/socket process
+      await gleanFlushChildren();
 
       client_failures = await GleanTest.webrtcdtls.clientHandshakeResult.SSL_ERROR_BAD_CERTIFICATE.testGetValue() || 0;
       server_failures = await GleanTest.webrtcdtls.serverHandshakeResult.SSL_ERROR_BAD_CERT_ALERT.testGetValue() || 0;
@@ -678,6 +691,8 @@
       pc1.addTrack(stream.getTracks()[0]);
 
       await connect(pc1, pc2, 32000, "DTLS connected", true, true);
+      // This telemetry happens on STS/socket process
+      await gleanFlushChildren();
 
       count1_0 = await GleanTest.webrtcdtls.protocolVersion["1.0"].testGetValue() || 0;
       count1_2 = await GleanTest.webrtcdtls.protocolVersion["1.2"].testGetValue() || 0;
@@ -705,6 +720,8 @@
           pc1.addTrack(stream.getTracks()[0]);
 
           await connect(pc1, pc2, 32000, "DTLS connected", true, true);
+          // This telemetry happens on STS/socket process
+          await gleanFlushChildren();
 
           count1_0 = await GleanTest.webrtcdtls.protocolVersion["1.0"].testGetValue() || 0;
           count1_2 = await GleanTest.webrtcdtls.protocolVersion["1.2"].testGetValue() || 0;
@@ -734,6 +751,8 @@
           pc1.addTrack(stream.getTracks()[0]);
 
           await connect(pc1, pc2, 32000, "DTLS connected", true, true);
+          // This telemetry happens on STS/socket process
+          await gleanFlushChildren();
 
           count1_0 = await GleanTest.webrtcdtls.protocolVersion["1.0"].testGetValue() || 0;
           count1_2 = await GleanTest.webrtcdtls.protocolVersion["1.2"].testGetValue() || 0;
