@@ -480,8 +480,8 @@ pub mod test_nested {
     #[derive(Default, Debug, Clone, Hash, Eq, PartialEq)]
     #[allow(non_snake_case)]
     pub struct EventMetricWithExtraExtra {
-        pub an_extra_key: Option<String>,
-        pub another_extra_key: Option<String>,
+        pub r#an_extra_key: Option<String>,
+        pub r#another_extra_key: Option<String>,
     }
 
     impl ExtraKeys for EventMetricWithExtraExtra {
@@ -489,8 +489,8 @@ pub mod test_nested {
 
         fn into_ffi_extra(self) -> ::std::collections::HashMap<String, String> {
           let mut map = ::std::collections::HashMap::new();
-          self.an_extra_key.and_then(|val| map.insert("an_extra_key".into(), val.to_string()));
-          self.another_extra_key.and_then(|val| map.insert("another_extra_key".into(), val.to_string()));
+          self.r#an_extra_key.and_then(|val| map.insert("an_extra_key".into(), val.to_string()));
+          self.r#another_extra_key.and_then(|val| map.insert("another_extra_key".into(), val.to_string()));
           map
         }
     }

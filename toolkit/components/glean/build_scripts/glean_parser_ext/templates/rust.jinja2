@@ -62,7 +62,7 @@ pub type {{ name }} = {{ struct.type|structure_type_name }};
 #[allow(non_snake_case)]
 pub struct {{ obj.name|Camelize }}{{ suffix }} {
     {% for item, type in obj|attr(name) %}
-    pub {{ item }}: Option<{{type|extra_type_name}}>,
+    pub r#{{ item }}: Option<{{type|extra_type_name}}>,
     {% endfor %}
 }
 
@@ -72,7 +72,7 @@ impl ExtraKeys for {{ obj.name|Camelize }}{{ suffix }} {
     fn into_ffi_extra(self) -> ::std::collections::HashMap<String, String> {
       let mut map = ::std::collections::HashMap::new();
       {% for key, _ in obj|attr(name) %}
-      self.{{key|snake_case}}.and_then(|val| map.insert("{{key|snake_case}}".into(), val.to_string()));
+      self.r#{{key|snake_case}}.and_then(|val| map.insert("{{key|snake_case}}".into(), val.to_string()));
       {% endfor %}
       map
     }
