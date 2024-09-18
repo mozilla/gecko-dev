@@ -1628,6 +1628,12 @@ export var Policies = {
     },
   },
 
+  MicrosoftEntraSSO: {
+    onBeforeAddons(manager, param) {
+      setAndLockPref("network.http.microsoft-entra-sso.enabled", param);
+    },
+  },
+
   ManagedBookmarks: {},
 
   ManualAppUpdateOnly: {
