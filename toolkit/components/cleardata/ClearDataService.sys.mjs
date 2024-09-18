@@ -2063,11 +2063,22 @@ const StoragePermissionsCleaner = {
     }
   },
 
-  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern.
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    // If we don't isolate by private browsing / user context we need to clear
+    // the pattern field. Otherwise permissions returned by the permission
+    // manager will never match. The permission manager strips these fields when
+    // their prefs are set to `false`.
+    if (!lazy.permissionManagerIsolateByPrivateBrowsing) {
+      delete aOriginAttributesPattern.privateBrowsingId;
+    }
+    if (!lazy.permissionManagerIsolateByUserContext) {
+      delete aOriginAttributesPattern.userContextId;
+    }
+
     let permissions = this._getStoragePermissions();
     for (let perm of permissions) {
-      if (perm.principal.baseDomain == aSchemelessSite) {
+      let { principal } = perm;
+      if (hasSite({ principal }, aSchemelessSite, aOriginAttributesPattern)) {
         Services.perms.removePermission(perm);
       }
     }
