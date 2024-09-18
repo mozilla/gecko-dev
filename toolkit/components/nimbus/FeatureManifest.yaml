@@ -852,6 +852,30 @@ newtabSponsoredContent:
         branch: user
         pref: browser.newtabpage.activity-stream.discoverystream.spoc-positions
       description: CSV string of spoc position indexes on newtab Pocket grid
+    spocPlacements:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.spocs
+      description: CSV string of spoc placement ids on newtab Pocket grid. A placement id tells our ad server where the ads are intended to be displayed.
+    spocCounts:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.spocs.counts
+      description: CSV string of spoc placement counts on newtab Pocket grid. The count tells the ad server how many ads to return for this position and placement.
+    tilesPlacements:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.tiles
+      description: CSV string of tiles placement ids on newtab tiles section. A placement id tells our ad server where the ads are intended to be displayed.
+    tilesCounts:
+      type: string
+      setPref:
+        branch: user
+        pref: browser.newtabpage.activity-stream.discoverystream.placements.tiles.counts
+      description: CSV string of tiles placement counts on newtab tiles section. The count tells the ad server how many ads to return for this position and placement.
 
 newtabTopicSelection:
   description: the about:newtab topic selection experience.

@@ -92,6 +92,8 @@ const NIMBUS_VARIABLE_CONTILE_MAX_NUM_SPONSORED = "topSitesContileMaxSponsored";
 
 const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
 const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
+const PREF_UNIFIED_ADS_PLACEMENTS = "discoverystream.placements.tiles";
+const PREF_UNIFIED_ADS_COUNTS = "discoverystream.placements.tiles.counts";
 
 // Search experiment stuff
 const FILTER_DEFAULT_SEARCH_PREF = "improvesearch.noDefaultSearchTile";
@@ -493,11 +495,9 @@ export class ContileIntegration {
     }
 
     let response;
+    const state = this._topSitesFeed.store.getState();
 
-    const unifiedAdsEnabled =
-      this._topSitesFeed.store.getState().Prefs.values[
-        PREF_UNIFIED_ADS_ENABLED
-      ];
+    const unifiedAdsEnabled = state.Prefs.values[PREF_UNIFIED_ADS_ENABLED];
 
     const serviceName = unifiedAdsEnabled ? "MARS" : "Contile";
 
@@ -507,24 +507,32 @@ export class ContileIntegration {
         const headers = new Headers();
         headers.append("content-type", "application/json");
 
-        const endpointBaseUrl =
-          this._topSitesFeed.store.getState().Prefs.values[
-            PREF_UNIFIED_ADS_ENDPOINT
-          ];
+        const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
 
         // Overwrite URL to Unified Ads endpoint
         const fetchUrl = `${endpointBaseUrl}v1/ads`;
+
+        const placementsArray = state.Prefs.values[
+          PREF_UNIFIED_ADS_PLACEMENTS
+        ]?.split(`,`)
+          .map(s => s.trim())
+          .filter(item => item);
+        const countsArray = state.Prefs.values[PREF_UNIFIED_ADS_COUNTS]?.split(
+          `,`
+        )
+          .map(s => s.trim())
+          .filter(item => item)
+          .map(item => parseInt(item, 10));
 
         response = await this._topSitesFeed.fetch(fetchUrl, {
           method: "POST",
           headers,
           body: JSON.stringify({
             context_id: lazy.contextId,
-            placements: [
-              { placement: "newtab_tile_1", count: 1 },
-              { placement: "newtab_tile_2", count: 1 },
-              { placement: "newtab_tile_3", count: 1 },
-            ],
+            placements: placementsArray.map((placement, index) => ({
+              placement,
+              count: countsArray[index],
+            })),
             blocks: [],
           }),
         });

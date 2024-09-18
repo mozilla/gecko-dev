@@ -64,6 +64,8 @@ const PREF_ENDPOINTS = "discoverystream.endpoints";
 const PREF_IMPRESSION_ID = "browser.newtabpage.activity-stream.impressionId";
 const PREF_LAYOUT_EXPERIMENT_A = "newtabLayouts.variant-a";
 const PREF_LAYOUT_EXPERIMENT_B = "newtabLayouts.variant-b";
+const PREF_SPOC_PLACEMENTS = "discoverystream.placements.spocs";
+const PREF_SPOC_COUNTS = "discoverystream.placements.spocs.counts";
 const PREF_SPOC_POSITIONS = "discoverystream.spoc-positions";
 const PREF_MERINO_FEED_EXPERIMENT =
   "browser.newtabpage.activity-stream.discoverystream.merino-feed-experiment";
@@ -1085,8 +1087,8 @@ export class DiscoveryStreamFeed {
       if (placements?.length) {
         const apiKeyPref = this.config.api_key_pref;
         const apiKey = Services.prefs.getCharPref(apiKeyPref, "");
-        let endpoint =
-          this.store.getState().DiscoveryStream.spocs.spocs_endpoint;
+        const state = this.store.getState();
+        let endpoint = state.DiscoveryStream.spocs.spocs_endpoint;
         let body = {
           pocket_id: this._impressionId,
           version: 2,
@@ -1095,13 +1097,25 @@ export class DiscoveryStreamFeed {
         };
 
         if (unifiedAdsEnabled) {
-          const endpointBaseUrl =
-            this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
+          const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
           endpoint = `${endpointBaseUrl}v1/ads`;
+
+          const placementsArray = state.Prefs.values[
+            PREF_SPOC_PLACEMENTS
+          ]?.split(`,`)
+            .map(s => s.trim())
+            .filter(item => item);
+          const countsArray = state.Prefs.values[PREF_SPOC_COUNTS]?.split(`,`)
+            .map(s => s.trim())
+            .filter(item => item)
+            .map(item => parseInt(item, 10));
 
           body = {
             context_id: lazy.contextId,
-            placements: [{ placement: "newtab_spocs", count: 6 }],
+            placements: placementsArray.map((placement, index) => ({
+              placement,
+              count: countsArray[index],
+            })),
             blocks: [],
           };
         }

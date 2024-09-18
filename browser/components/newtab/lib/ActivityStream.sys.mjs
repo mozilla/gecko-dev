@@ -432,6 +432,34 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "discoverystream.placements.spocs",
+    {
+      title:
+        "CSV string of spoc placement ids on newtab Pocket grid. A placement id tells our ad server where the ads are intended to be displayed.",
+    },
+  ],
+  [
+    "discoverystream.placements.spocs.counts",
+    {
+      title:
+        "CSV string of spoc placement counts on newtab Pocket grid. The count tells the ad server how many ads to return for this position and placement.",
+    },
+  ],
+  [
+    "discoverystream.placements.tiles",
+    {
+      title:
+        "CSV string of tiles placement ids on newtab tiles section. A placement id tells our ad server where the ads are intended to be displayed.",
+    },
+  ],
+  [
+    "discoverystream.placements.tiles.counts",
+    {
+      title:
+        "CSV string of tiles placement counts on newtab tiles section. The count tells the ad server how many ads to return for this position and placement.",
+    },
+  ],
+  [
     "newtabWallpapers.highlightEnabled",
     {
       title: "Boolean flag to show the highlight about the Wallpaper feature",
