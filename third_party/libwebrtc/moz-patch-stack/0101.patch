@@ -50,10 +50,10 @@ index 293ef6cf8a..b9cb6b4f53 100644
      Set(std::make_unique<RtcEventLogNull>());
    }
 diff --git a/api/task_queue/BUILD.gn b/api/task_queue/BUILD.gn
-index 92adcabf72..1e063290a5 100644
+index bacc3ca87a..5c3dd242b6 100644
 --- a/api/task_queue/BUILD.gn
 +++ b/api/task_queue/BUILD.gn
-@@ -82,6 +82,10 @@ rtc_library("task_queue_test") {
+@@ -83,6 +83,10 @@ rtc_library("task_queue_test") {
  }
  
  rtc_library("default_task_queue_factory") {
@@ -64,7 +64,7 @@ index 92adcabf72..1e063290a5 100644
    visibility = [ "*" ]
    if (!is_ios && !is_android) {
      # Internally webrtc shouldn't rely on any specific TaskQueue implementation
-@@ -120,6 +124,7 @@ rtc_library("default_task_queue_factory") {
+@@ -121,6 +125,7 @@ rtc_library("default_task_queue_factory") {
      sources += [ "default_task_queue_factory_stdlib.cc" ]
      deps += [ "../../rtc_base:rtc_task_queue_stdlib" ]
    }

@@ -69,6 +69,7 @@ rtc_library("task_queue_test") {
       ":task_queue",
       "../../api:field_trials_view",
       "../../api:make_ref_counted",
+      "../../api:ref_count",
       "../../api/units:time_delta",
       "../../rtc_base:refcount",
       "../../rtc_base:rtc_event",

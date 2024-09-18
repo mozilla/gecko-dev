@@ -430,7 +430,7 @@ index 0000000000..45194f5ace
 +
 +#endif  // API_RTP_SENDER_SETPARAMETERS_CALLBACK_H_
 diff --git a/api/task_queue/BUILD.gn b/api/task_queue/BUILD.gn
-index 525bf0b48b..9cd2cbbf76 100644
+index 2e72dd644d..7e6be706f8 100644
 --- a/api/task_queue/BUILD.gn
 +++ b/api/task_queue/BUILD.gn
 @@ -29,6 +29,7 @@ rtc_library("task_queue") {
@@ -441,7 +441,7 @@ index 525bf0b48b..9cd2cbbf76 100644
  rtc_library("task_queue_test") {
    visibility = [ "*" ]
    testonly = true
-@@ -73,6 +74,7 @@ rtc_library("task_queue_test") {
+@@ -74,6 +75,7 @@ rtc_library("task_queue_test") {
      ]
    }
  }
