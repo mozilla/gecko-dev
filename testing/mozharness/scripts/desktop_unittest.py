@@ -1391,7 +1391,7 @@ class DesktopUnittest(TestingMixin, MercurialScript, MozbaseMixin, CodeCoverageM
                         elif sys.platform == "darwin":
                             target = do_macos_video_recording
                         else:
-                            raise NotImplementedError(
+                            self.warning(
                                 "Screen recording not implemented for this platform"
                             )
                         thread = threading.Thread(
