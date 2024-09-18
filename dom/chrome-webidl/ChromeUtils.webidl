@@ -228,10 +228,10 @@ namespace ChromeUtils {
 #endif // NIGHTLY_BUILD
 
   /**
-   * Clears the stylesheet cache by baseDomain. This includes associated
+   * Clears the stylesheet cache by site. This includes associated
    * state-partitioned cache.
    */
-  undefined clearStyleSheetCacheByBaseDomain(UTF8String baseDomain);
+  undefined clearStyleSheetCacheBySite(UTF8String schemelessSite, optional OriginAttributesPatternDictionary pattern = {});
 
   /**
    * Clears the stylesheet cache by principal.
@@ -244,10 +244,10 @@ namespace ChromeUtils {
   undefined clearStyleSheetCache();
 
   /**
-   * Clears the JavaScript cache by baseDomain. This includes associated
+   * Clears the JavaScript cache by schemeless site. This includes associated
    * state-partitioned cache.
    */
-  undefined clearScriptCacheByBaseDomain(UTF8String baseDomain);
+  undefined clearScriptCacheBySite(UTF8String schemelessSite, optional OriginAttributesPatternDictionary pattern = {});
 
   /**
    * Clears the JavaScript cache by principal.
