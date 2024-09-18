@@ -4803,16 +4803,27 @@ void CodeGenerator::visitMegamorphicStoreSlot(LMegamorphicStoreSlot* lir) {
   Register temp2 = ToRegister(lir->temp2());
 #endif
 
+  // The instruction is marked as call-instruction so only these registers are
+  // live.
+  LiveRegisterSet liveRegs;
+  liveRegs.addUnchecked(obj);
+  liveRegs.addUnchecked(value);
+  liveRegs.addUnchecked(temp0);
+#ifndef JS_CODEGEN_X86
+  liveRegs.addUnchecked(temp1);
+  liveRegs.addUnchecked(temp2);
+#endif
+
   Label cacheHit, done;
 #ifdef JS_CODEGEN_X86
   masm.emitMegamorphicCachedSetSlot(
-      lir->mir()->name(), obj, temp0, value, &cacheHit,
+      lir->mir()->name(), obj, temp0, value, liveRegs, &cacheHit,
       [](MacroAssembler& masm, const Address& addr, MIRType mirType) {
         EmitPreBarrier(masm, addr, mirType);
       });
 #else
   masm.emitMegamorphicCachedSetSlot(
-      lir->mir()->name(), obj, temp0, temp1, temp2, value, &cacheHit,
+      lir->mir()->name(), obj, temp0, temp1, temp2, value, liveRegs, &cacheHit,
       [](MacroAssembler& masm, const Address& addr, MIRType mirType) {
         EmitPreBarrier(masm, addr, mirType);
       });
@@ -4832,9 +4843,9 @@ void CodeGenerator::visitMegamorphicStoreSlot(LMegamorphicStoreSlot* lir) {
   masm.branchPtrInNurseryChunk(Assembler::Equal, obj, temp0, &done);
   masm.branchValueIsNurseryCell(Assembler::NotEqual, value, temp0, &done);
 
-  saveVolatile(temp0);
+  // Note: because this is a call-instruction, no registers need to be saved.
+  MOZ_ASSERT(lir->isCall());
   emitPostWriteBarrier(obj);
-  restoreVolatile(temp0);
 
   masm.bind(&done);
 }
@@ -16965,16 +16976,28 @@ void CodeGenerator::visitMegamorphicSetElement(LMegamorphicSetElement* lir) {
   Register temp2 = ToRegister(lir->temp2());
 #endif
 
+  // The instruction is marked as call-instruction so only these registers are
+  // live.
+  LiveRegisterSet liveRegs;
+  liveRegs.addUnchecked(obj);
+  liveRegs.addUnchecked(idVal);
+  liveRegs.addUnchecked(value);
+  liveRegs.addUnchecked(temp0);
+#ifndef JS_CODEGEN_X86
+  liveRegs.addUnchecked(temp1);
+  liveRegs.addUnchecked(temp2);
+#endif
+
   Label cacheHit, done;
 #ifdef JS_CODEGEN_X86
   masm.emitMegamorphicCachedSetSlot(
-      idVal, obj, temp0, value, &cacheHit,
+      idVal, obj, temp0, value, liveRegs, &cacheHit,
       [](MacroAssembler& masm, const Address& addr, MIRType mirType) {
         EmitPreBarrier(masm, addr, mirType);
       });
 #else
   masm.emitMegamorphicCachedSetSlot(
-      idVal, obj, temp0, temp1, temp2, value, &cacheHit,
+      idVal, obj, temp0, temp1, temp2, value, liveRegs, &cacheHit,
       [](MacroAssembler& masm, const Address& addr, MIRType mirType) {
         EmitPreBarrier(masm, addr, mirType);
       });
@@ -16994,9 +17017,9 @@ void CodeGenerator::visitMegamorphicSetElement(LMegamorphicSetElement* lir) {
   masm.branchPtrInNurseryChunk(Assembler::Equal, obj, temp0, &done);
   masm.branchValueIsNurseryCell(Assembler::NotEqual, value, temp0, &done);
 
-  saveVolatile(temp0);
+  // Note: because this is a call-instruction, no registers need to be saved.
+  MOZ_ASSERT(lir->isCall());
   emitPostWriteBarrier(obj);
-  restoreVolatile(temp0);
 
   masm.bind(&done);
 }

@@ -3128,7 +3128,7 @@ void MacroAssembler::emitMegamorphicCachedSetSlot(
 #ifndef JS_CODEGEN_X86  // See MegamorphicSetElement in LIROps.yaml
     Register scratch2, Register scratch3,
 #endif
-    ValueOperand value, Label* cacheHit,
+    ValueOperand value, const LiveRegisterSet& liveRegs, Label* cacheHit,
     void (*emitPreBarrier)(MacroAssembler&, const Address&, MIRType)) {
   Label cacheMiss, dynamicSlot, doAdd, doSet, doAddDynamic, doSetDynamic;
 
@@ -3226,25 +3226,16 @@ void MacroAssembler::emitMegamorphicCachedSetSlot(
       scratch2);
   branchTest32(Assembler::Zero, scratch2, scratch2, &doAddDynamic);
 
-  AllocatableRegisterSet regs(RegisterSet::Volatile());
-  regs.takeUnchecked(scratch2);
-
-  LiveRegisterSet save(regs.asLiveSet());
+  LiveRegisterSet save;
+  save.set() = RegisterSet::Intersect(liveRegs.set(), RegisterSet::Volatile());
+  save.addUnchecked(scratch1);   // Used as call temp below.
+  save.takeUnchecked(scratch2);  // Used for the return value.
   PushRegsInMask(save);
 
-  Register tmp;
-  if (regs.has(obj)) {
-    regs.takeUnchecked(obj);
-    tmp = regs.takeAnyGeneral();
-    regs.addUnchecked(obj);
-  } else {
-    tmp = regs.takeAnyGeneral();
-  }
-
   using Fn = bool (*)(JSContext* cx, NativeObject* obj, uint32_t newCount);
-  setupUnalignedABICall(tmp);
-  loadJSContext(tmp);
-  passABIArg(tmp);
+  setupUnalignedABICall(scratch1);
+  loadJSContext(scratch1);
+  passABIArg(scratch1);
   passABIArg(obj);
   passABIArg(scratch2);
   callWithABI<Fn, NativeObject::growSlotsPure>();
@@ -3296,7 +3287,7 @@ template void MacroAssembler::emitMegamorphicCachedSetSlot<PropertyKey>(
 #ifndef JS_CODEGEN_X86  // See MegamorphicSetElement in LIROps.yaml
     Register scratch2, Register scratch3,
 #endif
-    ValueOperand value, Label* cacheHit,
+    ValueOperand value, const LiveRegisterSet& liveRegs, Label* cacheHit,
     void (*emitPreBarrier)(MacroAssembler&, const Address&, MIRType));
 
 template void MacroAssembler::emitMegamorphicCachedSetSlot<ValueOperand>(
@@ -3304,7 +3295,7 @@ template void MacroAssembler::emitMegamorphicCachedSetSlot<ValueOperand>(
 #ifndef JS_CODEGEN_X86  // See MegamorphicSetElement in LIROps.yaml
     Register scratch2, Register scratch3,
 #endif
-    ValueOperand value, Label* cacheHit,
+    ValueOperand value, const LiveRegisterSet& liveRegs, Label* cacheHit,
     void (*emitPreBarrier)(MacroAssembler&, const Address&, MIRType));
 
 void MacroAssembler::guardNonNegativeIntPtrToInt32(Register reg, Label* fail) {
