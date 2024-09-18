@@ -497,7 +497,6 @@ void APZEventState::ProcessAPZStateChange(ViewID aViewId,
           nsLayoutUtils::FindScrollContainerFrameFor(aViewId);
       if (sf) {
         sf->SetTransformingByAPZ(true);
-        sf->ScrollbarActivityStarted();
       }
 
       nsIContent* content = nsLayoutUtils::FindContentFor(aViewId);
@@ -514,7 +513,6 @@ void APZEventState::ProcessAPZStateChange(ViewID aViewId,
           nsLayoutUtils::FindScrollContainerFrameFor(aViewId);
       if (sf) {
         sf->SetTransformingByAPZ(false);
-        sf->ScrollbarActivityStopped();
       }
 
       nsIContent* content = nsLayoutUtils::FindContentFor(aViewId);

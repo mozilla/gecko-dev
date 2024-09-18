@@ -2296,12 +2296,18 @@ void ScrollContainerFrame::AsyncScrollCallback(ScrollContainerFrame* aInstance,
 }
 
 void ScrollContainerFrame::SetTransformingByAPZ(bool aTransforming) {
-  if (mTransformingByAPZ && !aTransforming) {
-    PostScrollEndEvent();
+  if (mTransformingByAPZ == aTransforming) {
+    return;
   }
   mTransformingByAPZ = aTransforming;
-  if (!mozilla::css::TextOverflow::HasClippedTextOverflow(this) ||
-      mozilla::css::TextOverflow::HasBlockEllipsis(mScrolledFrame)) {
+  if (aTransforming) {
+    ScrollbarActivityStarted();
+  } else {
+    ScrollbarActivityStopped();
+    PostScrollEndEvent();
+  }
+  if (!css::TextOverflow::HasClippedTextOverflow(this) ||
+      css::TextOverflow::HasBlockEllipsis(mScrolledFrame)) {
     // If the block has some overflow marker stuff we should kick off a paint
     // because we have special behaviour for it when APZ scrolling is active.
     SchedulePaint();

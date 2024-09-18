@@ -96,6 +96,8 @@ ScrollbarActivity::HandleEvent(dom::Event* aEvent) {
   nsAutoString type;
   aEvent->GetType(type);
 
+  auto* targetContent =
+      nsIContent::FromEventTargetOrNull(aEvent->GetOriginalTarget());
   if (type.EqualsLiteral("mousemove")) {
     // Mouse motions anywhere in the scrollable frame should keep the
     // scrollbars visible, but we have to be careful as content descendants of
@@ -105,8 +107,6 @@ ScrollbarActivity::HandleEvent(dom::Event* aEvent) {
     nsIFrame* scrollFrame = do_QueryFrame(mScrollableFrame);
     MOZ_ASSERT(scrollFrame);
     ScrollContainerFrame* scrollContainerFrame = do_QueryFrame(scrollFrame);
-    nsCOMPtr<nsIContent> targetContent =
-        do_QueryInterface(aEvent->GetOriginalTarget());
     nsIFrame* targetFrame =
         targetContent ? targetContent->GetPrimaryFrame() : nullptr;
     if ((scrollContainerFrame &&
@@ -119,9 +119,6 @@ ScrollbarActivity::HandleEvent(dom::Event* aEvent) {
     }
     return NS_OK;
   }
-
-  nsCOMPtr<nsIContent> targetContent =
-      do_QueryInterface(aEvent->GetOriginalTarget());
 
   HandleEventForScrollbar(type, targetContent, GetHorizontalScrollbar(),
                           &mHScrollbarHovered);
