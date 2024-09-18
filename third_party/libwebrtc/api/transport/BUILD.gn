@@ -46,6 +46,7 @@ rtc_library("network_control") {
 
   deps = [
     "../../api:field_trials_view",
+    "../../rtc_base/system:rtc_export",
     "../environment",
     "../rtc_event_log",
     "../units:data_rate",
@@ -137,6 +138,10 @@ if (rtc_include_tests) {
     deps = [
       ":network_control",
       "..:simulated_network_api",
+      "../units:data_rate",
+      "../units:data_size",
+      "../units:time_delta",
+      "../units:timestamp",
     ]
   }
   rtc_library("test_feedback_generator") {
@@ -161,8 +166,10 @@ if (rtc_include_tests) {
     sources = [ "stun_unittest.cc" ]
     deps = [
       ":stun_types",
+      "..:array_view",
       "../../rtc_base:byte_buffer",
       "../../rtc_base:byte_order",
+      "../../rtc_base:ip_address",
       "../../rtc_base:macromagic",
       "../../rtc_base:socket_address",
       "../../system_wrappers:metrics",

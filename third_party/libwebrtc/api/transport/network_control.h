@@ -10,15 +10,16 @@
 
 #ifndef API_TRANSPORT_NETWORK_CONTROL_H_
 #define API_TRANSPORT_NETWORK_CONTROL_H_
-#include <stdint.h>
 
 #include <memory>
 
 #include "absl/base/attributes.h"
+#include "absl/types/optional.h"
 #include "api/environment/environment.h"
 #include "api/field_trials_view.h"
-#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
+#include "api/units/time_delta.h"
 
 namespace webrtc {
 

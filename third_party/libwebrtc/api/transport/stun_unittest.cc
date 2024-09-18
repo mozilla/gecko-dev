@@ -10,15 +10,21 @@
 
 #include "api/transport/stun.h"
 
+#if defined(WEBRTC_POSIX)
+#include <netinet/in.h>
+#endif
 #include <string.h>
 
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 
+#include "api/array_view.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/byte_buffer.h"
 #include "rtc_base/byte_order.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/socket_address.h"
 #include "system_wrappers/include/metrics.h"
 #include "test/gtest.h"

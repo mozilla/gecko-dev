@@ -10,9 +10,11 @@
 
 #include "api/transport/goog_cc_factory.h"
 
+#include <cstdint>
 #include <memory>
 #include <utility>
 
+#include "api/transport/network_control.h"
 #include "api/units/time_delta.h"
 #include "modules/congestion_controller/goog_cc/goog_cc_network_control.h"
 

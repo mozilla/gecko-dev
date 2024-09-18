@@ -12,6 +12,7 @@
 #define API_TRANSPORT_NETWORK_TYPES_H_
 #include <stdint.h>
 
+#include <cmath>
 #include <vector>
 
 #include "absl/types/optional.h"
@@ -19,6 +20,7 @@
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
+#include "rtc_base/system/rtc_export.h"
 
 namespace webrtc {
 

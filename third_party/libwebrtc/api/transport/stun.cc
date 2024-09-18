@@ -10,20 +10,33 @@
 
 #include "api/transport/stun.h"
 
+#if defined(WEBRTC_POSIX)
+#include <netinet/in.h>
+#include <sys/socket.h>
+#endif
 #include <string.h>
 
-#include <algorithm>
+#include <algorithm>  // IWYU pragma: keep
 #include <cstdint>
+#include <cstring>
+#include <functional>
 #include <iterator>
 #include <memory>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "absl/strings/string_view.h"
+#include "api/array_view.h"
+#include "rtc_base/byte_buffer.h"
 #include "rtc_base/byte_order.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/crc32.h"
 #include "rtc_base/crypto_random.h"
+#include "rtc_base/ip_address.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/message_digest.h"
+#include "rtc_base/socket_address.h"
 #include "system_wrappers/include/metrics.h"
 
 using rtc::ByteBufferReader;

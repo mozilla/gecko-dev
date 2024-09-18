@@ -11,7 +11,6 @@
 #ifndef API_TRANSPORT_BITRATE_SETTINGS_H_
 #define API_TRANSPORT_BITRATE_SETTINGS_H_
 
-#include <algorithm>
 
 #include "absl/types/optional.h"
 #include "rtc_base/system/rtc_export.h"
