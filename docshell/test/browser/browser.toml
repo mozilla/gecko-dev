@@ -78,8 +78,6 @@ support-files = [
   "file_backforward_restore_scroll.html^headers^",
 ]
 
-["browser_backforward_text_fragment_restore_urlbar.js"]
-
 ["browser_backforward_userinteraction.js"]
 support-files = ["dummy_iframe_page.html"]
 skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1607713
