@@ -371,6 +371,17 @@ void SVGDisplayContainerFrame::ReflowSVG() {
                   NS_FRAME_HAS_DIRTY_CHILDREN);
 }
 
+void SVGDisplayContainerFrame::DidSetComputedStyle(ComputedStyle* aOldStyle) {
+  nsContainerFrame::DidSetComputedStyle(aOldStyle);
+  if (!aOldStyle) {
+    return;
+  }
+  if (StyleDisplay()->CalcTransformPropertyDifference(
+          *aOldStyle->StyleDisplay())) {
+    NotifySVGChanged(TRANSFORM_CHANGED);
+  }
+}
+
 void SVGDisplayContainerFrame::NotifySVGChanged(uint32_t aFlags) {
   MOZ_ASSERT(aFlags & (TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED),
              "Invalidation logic may need adjusting");

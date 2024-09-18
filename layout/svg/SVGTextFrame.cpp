@@ -2979,42 +2979,39 @@ void SVGTextFrame::NotifySVGChanged(uint32_t aFlags) {
 
   bool needNewBounds = false;
   bool needGlyphMetricsUpdate = false;
-  bool needNewCanvasTM = false;
-
   if ((aFlags & COORD_CONTEXT_CHANGED) &&
       HasAnyStateBits(NS_STATE_SVG_POSITIONING_MAY_USE_PERCENTAGES)) {
     needGlyphMetricsUpdate = true;
   }
 
   if (aFlags & TRANSFORM_CHANGED) {
-    needNewCanvasTM = true;
     if (mCanvasTM && mCanvasTM->IsSingular()) {
       // We won't have calculated the glyph positions correctly.
       needNewBounds = true;
       needGlyphMetricsUpdate = true;
     }
+    mCanvasTM = nullptr;
     if (StyleSVGReset()->HasNonScalingStroke()) {
       // Stroke currently contributes to our mRect, and our stroke depends on
       // the transform to our outer-<svg> if |vector-effect:non-scaling-stroke|.
       needNewBounds = true;
     }
-  }
 
-  // If the scale at which we computed our mFontSizeScaleFactor has changed by
-  // at least a factor of two, reflow the text.  This avoids reflowing text
-  // at every tick of a transform animation, but ensures our glyph metrics
-  // do not get too far out of sync with the final font size on the screen.
-  if (needNewCanvasTM && mLastContextScale != 0.0f) {
-    mCanvasTM = nullptr;
-    // If we are a non-display frame, then we don't want to get the transform
-    // since the context scale does not use it.
-    if (!HasAnyStateBits(NS_FRAME_IS_NONDISPLAY)) {
-      // Compare the old and new context scales.
-      float scale = GetContextScale(this);
-      float change = scale / mLastContextScale;
-      if (change >= 2.0f || change <= 0.5f) {
+    // If the scale at which we computed our mFontSizeScaleFactor has changed by
+    // at least a factor of two, reflow the text.  This avoids reflowing text at
+    // every tick of a transform animation, but ensures our glyph metrics
+    // do not get too far out of sync with the final font size on the screen.
+    const float scale = GetContextScale(this);
+    if (scale != mLastContextScale) {
+      if (mLastContextScale == 0.0f) {
         needNewBounds = true;
         needGlyphMetricsUpdate = true;
+      } else {
+        float change = scale / mLastContextScale;
+        if (change >= 2.0f || change <= 0.5f) {
+          needNewBounds = true;
+          needGlyphMetricsUpdate = true;
+        }
       }
     }
   }
@@ -3322,7 +3319,9 @@ void SVGTextFrame::ReflowSVG() {
     // Due to rounding issues when we have a transform applied, we sometimes
     // don't include an additional row of pixels.  For now, just inflate our
     // covered region.
-    mRect.Inflate(ceil(presContext->AppUnitsPerDevPixel() / mLastContextScale));
+    if (mLastContextScale != 0.0f) {
+      mRect.Inflate(ceil(presContext->AppUnitsPerDevPixel() / mLastContextScale));
+    }
   }
 
   if (HasAnyStateBits(NS_FRAME_FIRST_REFLOW)) {
@@ -5130,6 +5129,9 @@ void SVGTextFrame::DoReflow() {
 #define PRECISE_SIZE 200.0
 
 bool SVGTextFrame::UpdateFontSizeScaleFactor() {
+  float contextScale = GetContextScale(this);
+  mLastContextScale = contextScale;
+
   double oldFontSizeScaleFactor = mFontSizeScaleFactor;
 
   bool geometricPrecision = false;
@@ -5168,9 +5170,6 @@ bool SVGTextFrame::UpdateFontSizeScaleFactor() {
     mFontSizeScaleFactor = PRECISE_SIZE / min;
     return mFontSizeScaleFactor != oldFontSizeScaleFactor;
   }
-
-  float contextScale = GetContextScale(this);
-  mLastContextScale = contextScale;
 
   double minTextRunSize = min * contextScale;
   double maxTextRunSize = max * contextScale;

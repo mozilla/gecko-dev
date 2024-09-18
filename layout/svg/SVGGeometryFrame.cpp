@@ -113,7 +113,7 @@ void SVGGeometryFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
 
   if (StyleDisplay()->CalcTransformPropertyDifference(
           *aOldComputedStyle->StyleDisplay())) {
-    SVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
+    NotifySVGChanged(TRANSFORM_CHANGED);
   }
 
   if (element->IsGeometryChangedViaCSS(*Style(), *aOldComputedStyle)) {
