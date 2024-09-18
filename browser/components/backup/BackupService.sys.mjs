@@ -3170,6 +3170,7 @@ export class BackupService extends EventTarget {
     Services.obs.addObserver(this.#observer, "perm-changed");
     Services.obs.addObserver(this.#observer, "cookie-changed");
     Services.obs.addObserver(this.#observer, "session-cookie-changed");
+    Services.obs.addObserver(this.#observer, "newtab-linkBlocked");
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
 
@@ -3207,6 +3208,7 @@ export class BackupService extends EventTarget {
     Services.obs.removeObserver(this.#observer, "perm-changed");
     Services.obs.removeObserver(this.#observer, "cookie-changed");
     Services.obs.removeObserver(this.#observer, "session-cookie-changed");
+    Services.obs.removeObserver(this.#observer, "newtab-linkBlocked");
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
     this.#observer = null;
 
@@ -3253,6 +3255,8 @@ export class BackupService extends EventTarget {
         }
         break;
       }
+      case "newtab-linkBlocked":
+      // Intentional fall-through
       case "sanitizer-sanitization-complete": {
         this.#debounceRegeneration();
         break;
