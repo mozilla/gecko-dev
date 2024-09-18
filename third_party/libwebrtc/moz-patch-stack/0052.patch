@@ -12,13 +12,12 @@ Differential Revision: https://phabricator.services.mozilla.com/D127714
 Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0744d68b8c944e69945de4ac5c4ca71332e78ad8
 ---
  call/degraded_call.cc                       | 2 ++
- modules/audio_coding/acm2/acm_receiver.cc   | 2 +-
  modules/rtp_rtcp/include/flexfec_receiver.h | 2 ++
  modules/rtp_rtcp/source/flexfec_receiver.cc | 2 ++
  rtc_base/task_utils/repeating_task.h        | 4 ++--
  system_wrappers/include/clock.h             | 2 +-
  system_wrappers/source/clock.cc             | 2 +-
- 7 files changed, 11 insertions(+), 5 deletions(-)
+ 6 files changed, 10 insertions(+), 4 deletions(-)
 
 diff --git a/call/degraded_call.cc b/call/degraded_call.cc
 index a511eda7bd..75a4a1cac0 100644
@@ -40,19 +39,6 @@ index a511eda7bd..75a4a1cac0 100644
  
  DegradedCall::~DegradedCall() {
    RTC_DCHECK_RUN_ON(call_->worker_thread());
-diff --git a/modules/audio_coding/acm2/acm_receiver.cc b/modules/audio_coding/acm2/acm_receiver.cc
-index 7d044586dd..fe61a23d5f 100644
---- a/modules/audio_coding/acm2/acm_receiver.cc
-+++ b/modules/audio_coding/acm2/acm_receiver.cc
-@@ -67,7 +67,7 @@ AcmReceiver::AcmReceiver(const Environment& env, Config config)
- }
- 
- AcmReceiver::AcmReceiver(const Config& config)
--    : clock_(*Clock::GetRealTimeClock()),
-+    : clock_(*Clock::GetRealTimeClockRaw()),
-       neteq_(CreateNetEq(config.neteq_factory,
-                          config.neteq_config,
-                          &clock_,
 diff --git a/modules/rtp_rtcp/include/flexfec_receiver.h b/modules/rtp_rtcp/include/flexfec_receiver.h
 index a869c8ad41..b6a33882d1 100644
 --- a/modules/rtp_rtcp/include/flexfec_receiver.h

@@ -57,20 +57,10 @@ AcmReceiver::Config::Config(const Config&) = default;
 AcmReceiver::Config::~Config() = default;
 
 AcmReceiver::AcmReceiver(const Environment& env, Config config)
-    : clock_(env.clock()),
+    : env_(env),
       neteq_(CreateNetEq(config.neteq_factory,
                          config.neteq_config,
-                         &clock_,
-                         config.decoder_factory)),
-      resampled_last_output_frame_(true) {
-  ClearSamples(last_audio_buffer_);
-}
-
-AcmReceiver::AcmReceiver(const Config& config)
-    : clock_(*Clock::GetRealTimeClockRaw()),
-      neteq_(CreateNetEq(config.neteq_factory,
-                         config.neteq_config,
-                         &clock_,
+                         &env_.clock(),
                          config.decoder_factory)),
       resampled_last_output_frame_(true) {
   ClearSamples(last_audio_buffer_);
@@ -348,7 +338,7 @@ uint32_t AcmReceiver::NowInTimestamp(int decoder_sampling_rate) const {
   // We masked 6 most significant bits of 32-bit so there is no overflow in
   // the conversion from milliseconds to timestamp.
   const uint32_t now_in_ms =
-      static_cast<uint32_t>(clock_.TimeInMilliseconds() & 0x03ffffff);
+      static_cast<uint32_t>(env_.clock().TimeInMilliseconds() & 0x03ffffff);
   return static_cast<uint32_t>((decoder_sampling_rate / 1000) * now_in_ms);
 }
 
