@@ -8,7 +8,7 @@ use crate::composite::CompositeFeatures;
 use crate::segment::EdgeAaSegmentMask;
 use crate::spatial_tree::{SpatialTree, SpatialNodeIndex};
 use crate::gpu_cache::{GpuCacheAddress, GpuDataRequest};
-use crate::internal_types::FastHashMap;
+use crate::internal_types::{FastHashMap, FrameVec, FrameMemory};
 use crate::prim_store::ClipData;
 use crate::render_task::RenderTaskAddress;
 use crate::render_task_graph::RenderTaskId;
@@ -17,6 +17,7 @@ use std::i32;
 use crate::util::{TransformedRectKind, MatrixHelpers};
 use glyph_rasterizer::SubpixelDirection;
 use crate::util::{ScaleOffset, pack_as_float};
+
 
 // Contains type that must exactly match the same structures declared in GLSL.
 
@@ -416,16 +417,16 @@ pub struct PrimitiveHeaderIndex(pub i32);
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct PrimitiveHeaders {
     // The integer-type headers for a primitive.
-    pub headers_int: Vec<PrimitiveHeaderI>,
+    pub headers_int: FrameVec<PrimitiveHeaderI>,
     // The float-type headers for a primitive.
-    pub headers_float: Vec<PrimitiveHeaderF>,
+    pub headers_float: FrameVec<PrimitiveHeaderF>,
 }
 
 impl PrimitiveHeaders {
-    pub fn new() -> PrimitiveHeaders {
+    pub fn new(memory: &FrameMemory) -> PrimitiveHeaders {
         PrimitiveHeaders {
-            headers_int: Vec::new(),
-            headers_float: Vec::new(),
+            headers_int: memory.new_vec(),
+            headers_float: memory.new_vec(),
         }
     }
 
@@ -803,7 +804,7 @@ struct RelativeTransformKey {
 //           specifying a coordinate system that the transform
 //           should be relative to.
 pub struct TransformPalette {
-    transforms: Vec<TransformData>,
+    transforms: FrameVec<TransformData>,
     metadata: Vec<TransformMetadata>,
     map: FastHashMap<RelativeTransformKey, usize>,
 }
@@ -811,10 +812,11 @@ pub struct TransformPalette {
 impl TransformPalette {
     pub fn new(
         count: usize,
+        memory: &FrameMemory,
     ) -> Self {
         let _ = VECS_PER_TRANSFORM;
 
-        let mut transforms = Vec::with_capacity(count);
+        let mut transforms = memory.new_vec_with_capacity(count);
         let mut metadata = Vec::with_capacity(count);
 
         transforms.push(TransformData::invalid());
@@ -827,7 +829,7 @@ impl TransformPalette {
         }
     }
 
-    pub fn finish(self) -> Vec<TransformData> {
+    pub fn finish(self) -> FrameVec<TransformData> {
         self.transforms
     }
 
@@ -972,7 +974,7 @@ impl ImageSource {
 // node in the transform palette.
 fn register_transform(
     metadatas: &mut Vec<TransformMetadata>,
-    transforms: &mut Vec<TransformData>,
+    transforms: &mut FrameVec<TransformData>,
     transform: LayoutToPictureTransform,
 ) -> usize {
     // TODO: refactor the calling code to not even try

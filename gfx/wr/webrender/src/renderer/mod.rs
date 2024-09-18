@@ -71,7 +71,7 @@ use crate::gpu_cache::{GpuCacheUpdate, GpuCacheUpdateList};
 use crate::gpu_cache::{GpuCacheDebugChunk, GpuCacheDebugCmd};
 use crate::gpu_types::{ScalingInstance, SvgFilterInstance, SVGFEFilterInstance, CopyInstance, PrimitiveInstanceData};
 use crate::gpu_types::{BlurInstance, ClearInstance, CompositeInstance};
-use crate::internal_types::{TextureSource, TextureSourceExternal, TextureCacheCategory, FrameId};
+use crate::internal_types::{TextureSource, TextureSourceExternal, TextureCacheCategory, FrameId, FrameVec};
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::internal_types::DebugOutput;
 use crate::internal_types::{CacheTextureId, FastHashMap, FastHashSet, RenderedDocument, ResultMsg};
@@ -1019,7 +1019,7 @@ impl Renderer {
                     // because a) we don't need to render to the main framebuffer
                     // so it is cheaper not to, and b) doing so without a
                     // subsequent present would break partial present.
-                    if let Some(mut prev_doc) = self.active_documents.remove(&document_id) {
+                    let prev_frame_memory = if let Some(mut prev_doc) = self.active_documents.remove(&document_id) {
                         doc.profile.merge(&mut prev_doc.profile);
 
                         if prev_doc.frame.must_be_drawn() {
@@ -1031,6 +1031,17 @@ impl Renderer {
                                 0,
                             ).ok();
                         }
+
+                        Some(prev_doc.frame.allocator_memory)
+                    } else {
+                        None
+                    };
+
+                    // TODO: Send the memory back to the render backen thread for reuse.
+                    if let Some(memory) = prev_frame_memory {
+                        // We just dropped the frame a few lives above. There should be no
+                        // live allocations left in the frame's memory.
+                        memory.assert_memory_reusable();
                     }
 
                     self.active_documents.insert(document_id, doc);
@@ -2188,8 +2199,8 @@ impl Renderer {
     fn handle_prims(
         &mut self,
         draw_target: &DrawTarget,
-        prim_instances: &[FastHashMap<TextureSource, Vec<PrimitiveInstanceData>>],
-        prim_instances_with_scissor: &FastHashMap<(DeviceIntRect, PatternKind), FastHashMap<TextureSource, Vec<PrimitiveInstanceData>>>,
+        prim_instances: &[FastHashMap<TextureSource, FrameVec<PrimitiveInstanceData>>],
+        prim_instances_with_scissor: &FastHashMap<(DeviceIntRect, PatternKind), FastHashMap<TextureSource, FrameVec<PrimitiveInstanceData>>>,
         projection: &default::Transform3D<f32>,
         stats: &mut RendererStats,
     ) {
@@ -2460,7 +2471,7 @@ impl Renderer {
 
     fn handle_scaling(
         &mut self,
-        scalings: &FastHashMap<TextureSource, Vec<ScalingInstance>>,
+        scalings: &FastHashMap<TextureSource, FrameVec<ScalingInstance>>,
         projection: &default::Transform3D<f32>,
         stats: &mut RendererStats,
     ) {
@@ -2469,7 +2480,6 @@ impl Renderer {
         }
 
         let _timer = self.gpu_profiler.start_timer(GPU_TAG_SCALE);
-
         for (source, instances) in scalings {
             let buffer_kind = source.image_buffer_kind();
 
@@ -2489,9 +2499,9 @@ impl Renderer {
                         new_instance.source_rect = DeviceRect::new(texel_rect.uv0, texel_rect.uv1);
                         new_instance
                     }).collect::<Vec<_>>();
-                    &uv_override_instances
+                    uv_override_instances.as_slice()
                 }
-                _ => &instances
+                _ => instances.as_slice()
             };
 
             self.shaders
@@ -3664,7 +3674,7 @@ impl Renderer {
 
     fn draw_blurs(
         &mut self,
-        blurs: &FastHashMap<TextureSource, Vec<BlurInstance>>,
+        blurs: &FastHashMap<TextureSource, FrameVec<BlurInstance>>,
         stats: &mut RendererStats,
     ) {
         for (texture, blurs) in blurs {

@@ -35,6 +35,9 @@ use crate::capture::ExternalCaptureImage;
 #[cfg(feature = "replay")]
 use crate::capture::PlainExternalImage;
 
+pub use crate::frame_allocator::{FrameAllocator, FrameMemory};
+pub type FrameVec<T> = allocator_api2::vec::Vec<T, FrameAllocator>;
+
 pub type FastHashMap<K, V> = HashMap<K, V, BuildHasherDefault<FxHasher>>;
 pub type FastHashSet<K> = HashSet<K, BuildHasherDefault<FxHasher>>;
 

@@ -18,7 +18,7 @@ use crate::gpu_types::{PrimitiveInstanceData, RasterizationSpace, GlyphInstance}
 use crate::gpu_types::{PrimitiveHeader, PrimitiveHeaderIndex, TransformPaletteId, TransformPalette};
 use crate::gpu_types::{ImageBrushData, get_shader_opacity, BoxShadowData, MaskInstance};
 use crate::gpu_types::{ClipMaskInstanceCommon, ClipMaskInstanceRect, ClipMaskInstanceBoxShadow};
-use crate::internal_types::{FastHashMap, Swizzle, TextureSource, Filter};
+use crate::internal_types::{FastHashMap, Filter, FrameAllocator, FrameMemory, FrameVec, Swizzle, TextureSource};
 use crate::picture::{Picture3DContext, PictureCompositeMode, calculate_screen_uv};
 use crate::prim_store::{PrimitiveInstanceKind, ClipData};
 use crate::prim_store::{PrimitiveInstance, PrimitiveOpacity, SegmentInstanceIndex};
@@ -258,14 +258,19 @@ pub struct BatchRects {
     batch: PictureRect,
     /// When the batch rectangle above isn't a good enough approximation, we
     /// store per item rects.
-    items: Option<Vec<PictureRect>>,
+    items: Option<FrameVec<PictureRect>>,
+    // TODO: batch rects don't need to be part of the frame but they currently
+    // are. It may be cleaner to remove them from the frame's final data structure
+    // and not use the frame's allocator.
+    allocator: FrameAllocator,
 }
 
 impl BatchRects {
-    fn new() -> Self {
+    fn new(allocator: FrameAllocator) -> Self {
         BatchRects {
             batch: PictureRect::zero(),
             items: None,
+            allocator,
         }
     }
 
@@ -278,7 +283,7 @@ impl BatchRects {
         if let Some(items) = &mut self.items {
             items.push(*rect);
         } else if self.batch.area() + rect.area() < union.area() {
-            let mut items = Vec::with_capacity(16);
+            let mut items = self.allocator.clone().new_vec_with_capacity(16);
             items.push(self.batch);
             items.push(*rect);
             self.items = Some(items);
@@ -305,18 +310,18 @@ impl BatchRects {
 
 
 pub struct AlphaBatchList {
-    pub batches: Vec<PrimitiveBatch>,
-    pub batch_rects: Vec<BatchRects>,
+    pub batches: FrameVec<PrimitiveBatch>,
+    pub batch_rects: FrameVec<BatchRects>,
     current_batch_index: usize,
     current_z_id: ZBufferId,
     break_advanced_blend_batches: bool,
 }
 
 impl AlphaBatchList {
-    fn new(break_advanced_blend_batches: bool, preallocate: usize) -> Self {
+    fn new(break_advanced_blend_batches: bool, preallocate: usize, memory: &FrameMemory) -> Self {
         AlphaBatchList {
-            batches: Vec::with_capacity(preallocate),
-            batch_rects: Vec::with_capacity(preallocate),
+            batches: memory.new_vec_with_capacity(preallocate),
+            batch_rects: memory.new_vec_with_capacity(preallocate),
             current_z_id: ZBufferId::invalid(),
             current_batch_index: usize::MAX,
             break_advanced_blend_batches,
@@ -341,7 +346,7 @@ impl AlphaBatchList {
         // multiple primitive segments coming with the same `z_id`.
         z_bounding_rect: &PictureRect,
         z_id: ZBufferId,
-    ) -> &mut Vec<PrimitiveInstanceData> {
+    ) -> &mut FrameVec<PrimitiveInstanceData> {
         if z_id != self.current_z_id ||
            self.current_batch_index == usize::MAX ||
            !self.batches[self.current_batch_index].key.is_compatible_with(&key)
@@ -383,11 +388,11 @@ impl AlphaBatchList {
                     BatchKind::TextRun(..) => 128,
                     _ => 16,
                 };
-                let mut new_batch = PrimitiveBatch::new(key);
+                let mut new_batch = PrimitiveBatch::new(key, self.batches.allocator().clone());
                 new_batch.instances.reserve(prealloc);
                 selected_batch_index = Some(self.batches.len());
                 self.batches.push(new_batch);
-                self.batch_rects.push(BatchRects::new());
+                self.batch_rects.push(BatchRects::new(self.batches.allocator().clone()));
             }
 
             self.current_batch_index = selected_batch_index.unwrap();
@@ -405,15 +410,15 @@ impl AlphaBatchList {
 
 pub struct OpaqueBatchList {
     pub pixel_area_threshold_for_new_batch: f32,
-    pub batches: Vec<PrimitiveBatch>,
+    pub batches: FrameVec<PrimitiveBatch>,
     pub current_batch_index: usize,
     lookback_count: usize,
 }
 
 impl OpaqueBatchList {
-    fn new(pixel_area_threshold_for_new_batch: f32, lookback_count: usize) -> Self {
+    fn new(pixel_area_threshold_for_new_batch: f32, lookback_count: usize, memory: &FrameMemory) -> Self {
         OpaqueBatchList {
-            batches: Vec::new(),
+            batches: memory.new_vec(),
             pixel_area_threshold_for_new_batch,
             current_batch_index: usize::MAX,
             lookback_count,
@@ -436,7 +441,7 @@ impl OpaqueBatchList {
         // multiple primitive segments produced by a primitive, which we allow to check
         // `current_batch_index` instead of iterating the batches.
         z_bounding_rect: &PictureRect,
-    ) -> &mut Vec<PrimitiveInstanceData> {
+    ) -> &mut FrameVec<PrimitiveInstanceData> {
         // If the area of this primitive is larger than the given threshold,
         // then it is large enough to warrant breaking a batch for. In this
         // case we just see if it can be added to the existing batch or
@@ -466,7 +471,7 @@ impl OpaqueBatchList {
             }
 
             if selected_batch_index.is_none() {
-                let new_batch = PrimitiveBatch::new(key);
+                let new_batch = PrimitiveBatch::new(key, self.batches.allocator().clone());
                 selected_batch_index = Some(self.batches.len());
                 self.batches.push(new_batch);
             }
@@ -498,7 +503,7 @@ impl OpaqueBatchList {
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct PrimitiveBatch {
     pub key: BatchKey,
-    pub instances: Vec<PrimitiveInstanceData>,
+    pub instances: FrameVec<PrimitiveInstanceData>,
     pub features: BatchFeatures,
 }
 
@@ -524,10 +529,10 @@ bitflags! {
 }
 
 impl PrimitiveBatch {
-    fn new(key: BatchKey) -> PrimitiveBatch {
+    fn new(key: BatchKey, allocator: FrameAllocator) -> PrimitiveBatch {
         PrimitiveBatch {
             key,
-            instances: Vec::new(),
+            instances: FrameVec::new_in(allocator),
             features: BatchFeatures::empty(),
         }
     }
@@ -542,8 +547,8 @@ impl PrimitiveBatch {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct AlphaBatchContainer {
-    pub opaque_batches: Vec<PrimitiveBatch>,
-    pub alpha_batches: Vec<PrimitiveBatch>,
+    pub opaque_batches: FrameVec<PrimitiveBatch>,
+    pub alpha_batches: FrameVec<PrimitiveBatch>,
     /// The overall scissor rect for this render task, if one
     /// is required.
     pub task_scissor_rect: Option<DeviceIntRect>,
@@ -555,10 +560,11 @@ pub struct AlphaBatchContainer {
 impl AlphaBatchContainer {
     pub fn new(
         task_scissor_rect: Option<DeviceIntRect>,
+        memory: &FrameMemory,
     ) -> AlphaBatchContainer {
         AlphaBatchContainer {
-            opaque_batches: Vec::new(),
-            alpha_batches: Vec::new(),
+            opaque_batches: memory.new_vec(),
+            alpha_batches: memory.new_vec(),
             task_scissor_rect,
             task_rect: DeviceIntRect::zero(),
         }
@@ -632,14 +638,15 @@ impl AlphaBatchBuilder {
         lookback_count: usize,
         render_task_id: RenderTaskId,
         render_task_address: RenderTaskAddress,
+        memory: &FrameMemory,
     ) -> Self {
         // The threshold for creating a new batch is
         // one quarter the screen size.
         let batch_area_threshold = (screen_size.width * screen_size.height) as f32 / 4.0;
 
         AlphaBatchBuilder {
-            alpha_batch_list: AlphaBatchList::new(break_advanced_blend_batches, 128),
-            opaque_batch_list: OpaqueBatchList::new(batch_area_threshold, lookback_count),
+            alpha_batch_list: AlphaBatchList::new(break_advanced_blend_batches, 128, memory),
+            opaque_batch_list: OpaqueBatchList::new(batch_area_threshold, lookback_count, memory),
             render_task_id,
             render_task_address,
         }
@@ -655,7 +662,7 @@ impl AlphaBatchBuilder {
 
     pub fn build(
         mut self,
-        batch_containers: &mut Vec<AlphaBatchContainer>,
+        batch_containers: &mut FrameVec<AlphaBatchContainer>,
         merged_batches: &mut AlphaBatchContainer,
         task_rect: DeviceIntRect,
         task_scissor_rect: Option<DeviceIntRect>,
@@ -692,7 +699,7 @@ impl AlphaBatchBuilder {
         features: BatchFeatures,
         bounding_rect: &PictureRect,
         z_id: ZBufferId,
-    ) -> &mut Vec<PrimitiveInstanceData> {
+    ) -> &mut FrameVec<PrimitiveInstanceData> {
         match key.blend_mode {
             BlendMode::None => {
                 self.opaque_batch_list
@@ -3561,21 +3568,21 @@ impl BrushBatchParameters {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct ClipMaskInstanceList {
-    pub mask_instances_fast: Vec<MaskInstance>,
-    pub mask_instances_slow: Vec<MaskInstance>,
+    pub mask_instances_fast: FrameVec<MaskInstance>,
+    pub mask_instances_slow: FrameVec<MaskInstance>,
 
-    pub mask_instances_fast_with_scissor: FastHashMap<DeviceIntRect, Vec<MaskInstance>>,
-    pub mask_instances_slow_with_scissor: FastHashMap<DeviceIntRect, Vec<MaskInstance>>,
+    pub mask_instances_fast_with_scissor: FastHashMap<DeviceIntRect, FrameVec<MaskInstance>>,
+    pub mask_instances_slow_with_scissor: FastHashMap<DeviceIntRect, FrameVec<MaskInstance>>,
 
-    pub image_mask_instances: FastHashMap<TextureSource, Vec<PrimitiveInstanceData>>,
-    pub image_mask_instances_with_scissor: FastHashMap<(DeviceIntRect, TextureSource), Vec<PrimitiveInstanceData>>,
+    pub image_mask_instances: FastHashMap<TextureSource, FrameVec<PrimitiveInstanceData>>,
+    pub image_mask_instances_with_scissor: FastHashMap<(DeviceIntRect, TextureSource), FrameVec<PrimitiveInstanceData>>,
 }
 
 impl ClipMaskInstanceList {
-    pub fn new() -> Self {
+    pub fn new(memory: &FrameMemory) -> Self {
         ClipMaskInstanceList {
-            mask_instances_fast: Vec::new(),
-            mask_instances_slow: Vec::new(),
+            mask_instances_fast: memory.new_vec(),
+            mask_instances_slow: memory.new_vec(),
             mask_instances_fast_with_scissor: FastHashMap::default(),
             mask_instances_slow_with_scissor: FastHashMap::default(),
             image_mask_instances: FastHashMap::default(),
@@ -3590,16 +3597,16 @@ impl ClipMaskInstanceList {
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct ClipBatchList {
     /// Rectangle draws fill up the rectangles with rounded corners.
-    pub slow_rectangles: Vec<ClipMaskInstanceRect>,
-    pub fast_rectangles: Vec<ClipMaskInstanceRect>,
-    pub box_shadows: FastHashMap<TextureSource, Vec<ClipMaskInstanceBoxShadow>>,
+    pub slow_rectangles: FrameVec<ClipMaskInstanceRect>,
+    pub fast_rectangles: FrameVec<ClipMaskInstanceRect>,
+    pub box_shadows: FastHashMap<TextureSource, FrameVec<ClipMaskInstanceBoxShadow>>,
 }
 
 impl ClipBatchList {
-    fn new() -> Self {
+    fn new(memory: &FrameMemory) -> Self {
         ClipBatchList {
-            slow_rectangles: Vec::new(),
-            fast_rectangles: Vec::new(),
+            slow_rectangles: memory.new_vec(),
+            fast_rectangles: memory.new_vec(),
             box_shadows: FastHashMap::default(),
         }
     }
@@ -3624,10 +3631,11 @@ pub struct ClipBatcher {
 impl ClipBatcher {
     pub fn new(
         gpu_supports_fast_clears: bool,
+        memory: &FrameMemory,
     ) -> Self {
         ClipBatcher {
-            primary_clips: ClipBatchList::new(),
-            secondary_clips: ClipBatchList::new(),
+            primary_clips: ClipBatchList::new(memory),
+            secondary_clips: ClipBatchList::new(memory),
             gpu_supports_fast_clears,
         }
     }
@@ -3814,7 +3822,7 @@ impl ClipBatcher {
                     self.get_batch_list(is_first_clip)
                         .box_shadows
                         .entry(texture)
-                        .or_insert_with(Vec::new)
+                        .or_insert_with(|| ctx.frame_memory.new_vec())
                         .push(ClipMaskInstanceBoxShadow {
                             common,
                             resource_address: uv_rect_address,

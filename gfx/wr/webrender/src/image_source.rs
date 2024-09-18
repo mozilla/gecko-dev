@@ -16,14 +16,14 @@ use crate::prim_store::DeferredResolve;
 use crate::renderer::BLOCKS_PER_UV_RECT;
 use crate::render_task_cache::RenderTaskCacheEntryHandle;
 use crate::resource_cache::{ResourceCache, ImageRequest, CacheItem};
-use crate::internal_types::{TextureSource, TextureSourceExternal, DeferredResolveIndex};
+use crate::internal_types::{TextureSource, TextureSourceExternal, DeferredResolveIndex, FrameVec};
 
 /// Resolve a resource cache's imagre request into a texture cache item.
 pub fn resolve_image(
     request: ImageRequest,
     resource_cache: &ResourceCache,
     gpu_cache: &mut GpuCache,
-    deferred_resolves: &mut Vec<DeferredResolve>,
+    deferred_resolves: &mut FrameVec<DeferredResolve>,
 ) -> CacheItem {
     match resource_cache.get_image_properties(request.key) {
         Some(image_properties) => {

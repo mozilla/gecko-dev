@@ -9,7 +9,7 @@ use crate::image_source::resolve_image;
 use euclid::Box2D;
 use crate::gpu_cache::GpuCache;
 use crate::gpu_types::{ZBufferId, ZBufferIdGenerator};
-use crate::internal_types::TextureSource;
+use crate::internal_types::{FrameAllocator, FrameMemory, FrameVec, TextureSource};
 use crate::picture::{ImageDependency, ResolvedSurfaceTexture, TileCacheInstance, TileId, TileSurface};
 use crate::prim_store::DeferredResolve;
 use crate::resource_cache::{ImageRequest, ResourceCache};
@@ -489,11 +489,11 @@ impl CompositeStatePreallocator {
     }
 
     pub fn preallocate(&self, state: &mut CompositeState) {
-        self.tiles.preallocate_vec(&mut state.tiles);
-        self.external_surfaces.preallocate_vec(&mut state.external_surfaces);
-        self.occluders.preallocate_vec(&mut state.occluders.occluders);
-        self.occluders_events.preallocate_vec(&mut state.occluders.events);
-        self.occluders_active.preallocate_vec(&mut state.occluders.active);
+        self.tiles.preallocate_framevec(&mut state.tiles);
+        self.external_surfaces.preallocate_framevec(&mut state.external_surfaces);
+        self.occluders.preallocate_framevec(&mut state.occluders.occluders);
+        self.occluders_events.preallocate_framevec(&mut state.occluders.events);
+        self.occluders_active.preallocate_framevec(&mut state.occluders.active);
         self.descriptor_surfaces.preallocate_vec(&mut state.descriptor.surfaces);
     }
 }
@@ -538,9 +538,9 @@ pub struct CompositeState {
     /// List of tiles to be drawn by the Draw compositor.
     /// Tiles are accumulated in this vector and sorted from front to back at the end of the
     /// frame.
-    pub tiles: Vec<CompositeTile>,
+    pub tiles: FrameVec<CompositeTile>,
     /// List of primitives that were promoted to be compositor surfaces.
-    pub external_surfaces: Vec<ResolvedExternalSurface>,
+    pub external_surfaces: FrameVec<ResolvedExternalSurface>,
     /// Used to generate z-id values for tiles in the Draw compositor mode.
     pub z_generator: ZBufferIdGenerator,
     // If false, we can't rely on the dirty rects in the CompositeTile
@@ -559,7 +559,7 @@ pub struct CompositeState {
     /// Debugging information about the state of the pictures cached for regression testing.
     pub picture_cache_debug: PictureCacheDebugInfo,
     /// List of registered transforms used by picture cache or external surfaces
-    pub transforms: Vec<CompositorTransform>,
+    pub transforms: FrameVec<CompositorTransform>,
     /// Whether we have low quality pinch zoom enabled
     low_quality_pinch_zoom: bool,
 }
@@ -572,17 +572,18 @@ impl CompositeState {
         max_depth_ids: i32,
         dirty_rects_are_valid: bool,
         low_quality_pinch_zoom: bool,
+        memory: &FrameMemory,
     ) -> Self {
         CompositeState {
-            tiles: Vec::new(),
+            tiles: memory.new_vec(),
             z_generator: ZBufferIdGenerator::new(max_depth_ids),
             dirty_rects_are_valid,
             compositor_kind,
-            occluders: Occluders::new(),
+            occluders: Occluders::new(memory),
             descriptor: CompositeDescriptor::empty(),
-            external_surfaces: Vec::new(),
+            external_surfaces: memory.new_vec(),
             picture_cache_debug: PictureCacheDebugInfo::new(),
-            transforms: Vec::new(),
+            transforms: memory.new_vec(),
             low_quality_pinch_zoom,
         }
     }
@@ -675,7 +676,7 @@ impl CompositeState {
         device_clip_rect: DeviceRect,
         resource_cache: &ResourceCache,
         gpu_cache: &mut GpuCache,
-        deferred_resolves: &mut Vec<DeferredResolve>,
+        deferred_resolves: &mut FrameVec<DeferredResolve>,
     ) {
         let clip_rect = external_surface
             .clip_rect
@@ -778,7 +779,7 @@ impl CompositeState {
         device_clip_rect: DeviceRect,
         resource_cache: &ResourceCache,
         gpu_cache: &mut GpuCache,
-        deferred_resolves: &mut Vec<DeferredResolve>,
+        deferred_resolves: &mut FrameVec<DeferredResolve>,
     ) {
         let slice_transform = self.get_compositor_transform(tile_cache.transform_index);
 
@@ -929,7 +930,7 @@ impl CompositeState {
         required_plane_count: usize,
         resource_cache: &ResourceCache,
         gpu_cache: &mut GpuCache,
-        deferred_resolves: &mut Vec<DeferredResolve>,
+        deferred_resolves: &mut FrameVec<DeferredResolve>,
     ) -> ResolvedExternalSurfaceIndex {
         let mut planes = [
             ExternalPlaneDescriptor::invalid(),
@@ -1412,23 +1413,23 @@ impl OcclusionEvent {
 #[cfg_attr(feature = "capture", derive(Serialize))]
 #[cfg_attr(feature = "replay", derive(Deserialize))]
 pub struct Occluders {
-    occluders: Vec<Occluder>,
+    occluders: FrameVec<Occluder>,
 
     // The two vectors below are kept to avoid unnecessary reallocations in area().
 
     #[cfg_attr(feature = "serde", serde(skip))]
-    events: Vec<OcclusionEvent>,
+    events: FrameVec<OcclusionEvent>,
 
     #[cfg_attr(feature = "serde", serde(skip))]
-    active: Vec<ops::Range<i32>>,
+    active: FrameVec<ops::Range<i32>>,
 }
 
 impl Occluders {
-    fn new() -> Self {
+    fn new(memory: &FrameMemory) -> Self {
         Occluders {
-            occluders: Vec::new(),
-            events: Vec::new(),
-            active: Vec::new(),
+            occluders: memory.new_vec(),
+            events: memory.new_vec(),
+            active: memory.new_vec(),
         }
     }
 

@@ -19,6 +19,8 @@ use crate::{
     render_task::RenderTaskData,
 };
 
+use crate::internal_types::{FrameVec};
+
 pub const VERTEX_TEXTURE_EXTRA_ROWS: i32 = 10;
 
 pub const MAX_VERTEX_TEXTURE_WIDTH: usize = webrender_build::MAX_VERTEX_TEXTURE_WIDTH;
@@ -876,7 +878,7 @@ impl<T> VertexDataTexture<T> {
         &'a mut self,
         device: &mut Device,
         texture_uploader: &mut TextureUploader<'a>,
-        data: &mut Vec<T>,
+        data: &mut FrameVec<T>,
     ) {
         debug_assert!(mem::size_of::<T>() % 16 == 0);
         let texels_per_item = mem::size_of::<T>() / 16;

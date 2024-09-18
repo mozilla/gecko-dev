@@ -7,7 +7,7 @@ use api::{APZScrollGeneration, HasScrollLinkedEffect, PipelineId, SampledScrollO
 use api::units::*;
 use euclid::Transform3D;
 use crate::gpu_types::TransformPalette;
-use crate::internal_types::{FastHashMap, FastHashSet, PipelineInstanceId};
+use crate::internal_types::{FastHashMap, FastHashSet, FrameMemory, PipelineInstanceId};
 use crate::print_tree::{PrintableTree, PrintTree, PrintTreePrinter};
 use crate::scene::SceneProperties;
 use crate::spatial_node::{ReferenceFrameInfo, SpatialNode, SpatialNodeType, StickyFrameInfo, SpatialNodeDescriptor};
@@ -1247,9 +1247,9 @@ impl SpatialTree {
         }
     }
 
-    pub fn build_transform_palette(&self) -> TransformPalette {
+    pub fn build_transform_palette(&self, memory: &FrameMemory) -> TransformPalette {
         profile_scope!("build_transform_palette");
-        TransformPalette::new(self.spatial_nodes.len())
+        TransformPalette::new(self.spatial_nodes.len(), memory)
     }
 
     fn print_node<T: PrintTreePrinter>(
