@@ -46,6 +46,12 @@ add_task(async function testCloseOnCreateBookmark() {
 });
 
 add_task(async function testCloseOnNewcontainertab() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["privacy.userContext.newTabContainerOnLeftClick.enabled", true],
+      ["privacy.userContext.enabled", true],
+    ],
+  });
   let contextMenuParent = document.getElementById(
     "placesContext_open:newcontainertab"
   );
@@ -59,6 +65,7 @@ add_task(async function testCloseOnNewcontainertab() {
   );
   let newTab = await promiseTabOpened;
   BrowserTestUtils.removeTab(newTab);
+  await SpecialPowers.popPrefEnv();
 });
 
 async function openBookmarkPanel() {
