@@ -391,7 +391,7 @@
 }
 
 .devtools-tabbar-button:disabled {
-  color: var(--theme-icon-dimmed-color) !important;
+  color: var(--theme-icon-disabled-color) !important;
   background-color: transparent !important;
 }
 

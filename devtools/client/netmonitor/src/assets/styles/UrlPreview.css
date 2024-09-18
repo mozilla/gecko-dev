@@ -69,7 +69,7 @@
 /* Collapsed url */
 .url-preview tr.treeRow:first-child .treeLabelCell {
   font-weight: bold;
-  color: var(--theme-icon-dimmed-color);
+  color: var(--theme-comment);
 }
 
 .url-preview tr.treeRow .treeLabelCell {
@@ -92,7 +92,7 @@
 
 .url-preview .url-scheme,
 .url-preview .url-chars {
-  color: var(--theme-icon-dimmed-color);
+  color: var(--theme-comment);
 }
 
 .url-preview .url-params-name {

@@ -182,6 +182,7 @@
   --theme-icon-color: light-dark(rgba(12, 12, 13, 0.8), rgba(249, 249, 250, 0.7));
   --theme-icon-hover-color: var(--theme-icon-color);
   --theme-icon-dimmed-color: light-dark(rgba(135, 135, 137, 0.9), rgba(147, 147, 149, 0.9));
+  --theme-icon-disabled-color: var(--theme-icon-dimmed-color);
   --theme-icon-checked-color: light-dark(var(--blue-60), var(--blue-30));
   --theme-icon-error-color: light-dark(var(--red-60), var(--red-40));
   --theme-icon-warning-color: light-dark(var(--yellow-65), var(--yellow-60));
@@ -278,5 +279,8 @@
     --theme-focus-outline-color: CanvasText;
     --theme-icon-color: ButtonText;
     --theme-icon-hover-color: SelectedItem;
+    /* We don't want dimmed colors in high Contrast Mode, use the same colors as non-dimmed icons */
+    --theme-icon-dimmed-color: var(--theme-icon-color);
+    --theme-icon-disabled-color: GrayText;
   }
 }
