@@ -664,7 +664,7 @@ child:
 
     async ClearImageCacheFromPrincipal(nullable nsIPrincipal aPrincipal);
 
-    async ClearImageCacheFromBaseDomain(nsCString aBaseDomain);
+    async ClearImageCacheFromSite(nsCString aSchemelessSite, OriginAttributesPattern aPattern);
 
     async ClearImageCache(bool privateLoader, bool chrome);
 
