@@ -1286,6 +1286,10 @@ mask-mode mask-repeat mask-clip mask-origin mask-composite mask-position-x mask-
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="InheritedUI">
+    #[inline]
+    pub fn color_scheme_bits(&self) -> values::specified::color::ColorSchemeFlags {
+        self.mColorScheme.bits
+    }
 </%self:impl_trait>
 
 <%self:impl_trait style_struct_name="Column"

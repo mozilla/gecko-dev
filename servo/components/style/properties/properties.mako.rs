@@ -37,7 +37,7 @@ use crate::str::CssStringWriter;
 use crate::values::{
     computed,
     resolved,
-    specified::{font::SystemFont, length::LineHeightBase},
+    specified::{font::SystemFont, length::LineHeightBase, color::ColorSchemeFlags},
 };
 use std::cell::Cell;
 use super::{
@@ -2357,6 +2357,10 @@ pub struct StyleBuilder<'a> {
     /// TODO(emilio): Make private.
     pub writing_mode: WritingMode,
 
+    /// The color-scheme bits. Needed because they may otherwise be different between visited and
+    /// unvisited colors.
+    pub color_scheme: ColorSchemeFlags,
+
     /// The effective zoom.
     pub effective_zoom: computed::Zoom,
 
@@ -2386,7 +2390,7 @@ impl<'a> StyleBuilder<'a> {
         let inherited_style = parent_style.unwrap_or(reset_style);
 
         let flags = inherited_style.flags.inherited();
-        StyleBuilder {
+        Self {
             device,
             stylist,
             inherited_style,
@@ -2399,6 +2403,7 @@ impl<'a> StyleBuilder<'a> {
             invalid_non_custom_properties: LonghandIdSet::default(),
             writing_mode: inherited_style.writing_mode,
             effective_zoom: inherited_style.effective_zoom,
+            color_scheme: inherited_style.get_inherited_ui().color_scheme_bits(),
             flags: Cell::new(flags),
             visited_style: None,
             % for style_struct in data.active_style_structs():
@@ -2425,7 +2430,7 @@ impl<'a> StyleBuilder<'a> {
     ) -> Self {
         let reset_style = device.default_computed_values();
         let inherited_style = parent_style.unwrap_or(reset_style);
-        StyleBuilder {
+        Self {
             device,
             stylist,
             inherited_style,
@@ -2438,6 +2443,7 @@ impl<'a> StyleBuilder<'a> {
             invalid_non_custom_properties: LonghandIdSet::default(),
             writing_mode: style_to_derive_from.writing_mode,
             effective_zoom: style_to_derive_from.effective_zoom,
+            color_scheme: style_to_derive_from.get_inherited_ui().color_scheme_bits(),
             flags: Cell::new(style_to_derive_from.flags),
             visited_style: None,
             % for style_struct in data.active_style_structs():
