@@ -168,9 +168,9 @@ std::unique_ptr<VideoFecGenerator> MaybeCreateFecGenerator(
 
     RTC_DCHECK_EQ(1U, rtp.flexfec.protected_media_ssrcs.size());
     return std::make_unique<FlexfecSender>(
-        rtp.flexfec.payload_type, rtp.flexfec.ssrc,
+        env, rtp.flexfec.payload_type, rtp.flexfec.ssrc,
         rtp.flexfec.protected_media_ssrcs[0], rtp.mid, rtp.extensions,
-        RTPSender::FecExtensionSizes(), rtp_state, &env.clock());
+        RTPSender::FecExtensionSizes(), rtp_state);
   } else if (rtp.ulpfec.red_payload_type >= 0 &&
              rtp.ulpfec.ulpfec_payload_type >= 0 &&
              !ShouldDisableRedAndUlpfec(/*flexfec_enabled=*/false, rtp,

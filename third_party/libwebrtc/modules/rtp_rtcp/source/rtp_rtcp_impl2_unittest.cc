@@ -17,6 +17,8 @@
 #include <utility>
 
 #include "absl/types/optional.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/field_trials_registry.h"
 #include "api/units/time_delta.h"
 #include "modules/rtp_rtcp/include/rtp_header_extension_map.h"
@@ -30,7 +32,6 @@
 #include "rtc_base/logging.h"
 #include "rtc_base/rate_limiter.h"
 #include "rtc_base/strings/string_builder.h"
-#include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/rtcp_packet_parser.h"
@@ -45,8 +46,6 @@ using ::testing::Gt;
 using ::testing::Not;
 using ::testing::Optional;
 using ::testing::SizeIs;
-
-using webrtc::test::ExplicitKeyValueConfig;
 
 namespace webrtc {
 namespace {
@@ -170,21 +169,18 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
     uint32_t ssrc;
   };
 
-  RtpRtcpModule(GlobalSimulatedTimeController* time_controller,
-                bool is_sender,
-                const FieldTrialsRegistry& trials)
-      : time_controller_(time_controller),
+  RtpRtcpModule(const Environment& env,
+                GlobalSimulatedTimeController* time_controller,
+                bool is_sender)
+      : env_(env),
         is_sender_(is_sender),
-        trials_(trials),
-        receive_statistics_(
-            ReceiveStatistics::Create(time_controller->GetClock())),
+        receive_statistics_(ReceiveStatistics::Create(&env.clock())),
         transport_(kOneWayNetworkDelay, time_controller) {
     CreateModuleImpl();
   }
 
-  TimeController* const time_controller_;
+  const Environment env_;
   const bool is_sender_;
-  const FieldTrialsRegistry& trials_;
   RtcpPacketTypeCounter packets_sent_;
   RtcpPacketTypeCounter packets_received_;
   std::unique_ptr<ReceiveStatistics> receive_statistics_;
@@ -242,7 +238,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
   void CreateModuleImpl() {
     RtpRtcpInterface::Configuration config;
     config.audio = false;
-    config.clock = time_controller_->GetClock();
+    config.clock = &env_.clock();
     config.outgoing_transport = &transport_;
     config.receive_statistics = receive_statistics_.get();
     config.rtcp_packet_type_counter_observer = this;
@@ -253,7 +249,7 @@ class RtpRtcpModule : public RtcpPacketTypeCounterObserver,
         is_sender_ ? absl::make_optional(kRtxSenderSsrc) : absl::nullopt;
     config.need_rtp_packet_infos = true;
     config.non_sender_rtt_measurement = true;
-    config.field_trials = &trials_;
+    config.field_trials = &env_.field_trials();
     config.send_packet_observer = this;
     config.fec_generator = fec_generator_;
     impl_.reset(new ModuleRtpRtcpImpl2(config));
@@ -273,13 +269,14 @@ class RtpRtcpImpl2Test : public ::testing::Test {
  protected:
   RtpRtcpImpl2Test()
       : time_controller_(Timestamp::Micros(133590000000000)),
-        field_trials_(""),
-        sender_(&time_controller_,
-                /*is_sender=*/true,
-                field_trials_),
-        receiver_(&time_controller_,
-                  /*is_sender=*/false,
-                  field_trials_) {}
+        env_(CreateEnvironment(time_controller_.GetClock(),
+                               time_controller_.CreateTaskQueueFactory())),
+        sender_(env_,
+                &time_controller_,
+                /*is_sender=*/true),
+        receiver_(env_,
+                  &time_controller_,
+                  /*is_sender=*/false) {}
 
   void SetUp() override {
     // Send module.
@@ -291,7 +288,7 @@ class RtpRtcpImpl2Test : public ::testing::Test {
     RTPSenderVideo::Config video_config;
     video_config.clock = time_controller_.GetClock();
     video_config.rtp_sender = sender_.impl_->RtpSender();
-    video_config.field_trials = &field_trials_;
+    video_config.field_trials = &env_.field_trials();
     sender_video_ = std::make_unique<RTPSenderVideo>(video_config);
 
     // Receive module.
@@ -318,7 +315,7 @@ class RtpRtcpImpl2Test : public ::testing::Test {
     RTPSenderVideo::Config video_config;
     video_config.clock = time_controller_.GetClock();
     video_config.rtp_sender = sender_.impl_->RtpSender();
-    video_config.field_trials = &field_trials_;
+    video_config.field_trials = &env_.field_trials();
     video_config.fec_overhead_bytes = fec_generator->MaxPacketOverhead();
     video_config.fec_type = fec_generator->GetFecType();
     video_config.red_payload_type = red_payload_type;
@@ -326,7 +323,7 @@ class RtpRtcpImpl2Test : public ::testing::Test {
   }
 
   GlobalSimulatedTimeController time_controller_;
-  test::ExplicitKeyValueConfig field_trials_;
+  const Environment env_;
   RtpRtcpModule sender_;
   std::unique_ptr<RTPSenderVideo> sender_video_;
   RtpRtcpModule receiver_;
@@ -1008,9 +1005,9 @@ TEST_F(RtpRtcpImpl2Test, GeneratesFlexfec) {
   const uint16_t fec_start_seq = sender_.impl_->SequenceNumber() + 100;
   RtpState start_state;
   start_state.sequence_number = fec_start_seq;
-  FlexfecSender flexfec_sender(kFlexfecPayloadType, kFlexfecSsrc, kSenderSsrc,
-                               kNoMid, kNoRtpExtensions, kNoRtpExtensionSizes,
-                               &start_state, time_controller_.GetClock());
+  FlexfecSender flexfec_sender(env_, kFlexfecPayloadType, kFlexfecSsrc,
+                               kSenderSsrc, kNoMid, kNoRtpExtensions,
+                               kNoRtpExtensionSizes, &start_state);
   ReinitWithFec(&flexfec_sender, /*red_payload_type=*/absl::nullopt);
 
   // Parameters selected to generate a single FEC packet per media packet.

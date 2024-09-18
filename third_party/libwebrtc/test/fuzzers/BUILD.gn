@@ -163,6 +163,8 @@ webrtc_fuzzer_test("flexfec_header_reader_fuzzer") {
 webrtc_fuzzer_test("flexfec_sender_fuzzer") {
   sources = [ "flexfec_sender_fuzzer.cc" ]
   deps = [
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../modules/rtp_rtcp",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../system_wrappers",
