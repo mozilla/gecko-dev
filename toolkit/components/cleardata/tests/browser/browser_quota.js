@@ -271,10 +271,11 @@ add_task(async function test_deleteBaseDomain() {
     getPrincipal(ORG_ORIGIN, getOAWithPartitionKey(COM_DOMAIN))
   );
 
-  info(`Verifying deleteDataFromBaseDomain`);
+  info(`Verifying deleteDataFromSite`);
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       ORG_DOMAIN,
+      {},
       true,
       Ci.nsIClearDataService.CLEAR_DOM_QUOTA,
       value => {

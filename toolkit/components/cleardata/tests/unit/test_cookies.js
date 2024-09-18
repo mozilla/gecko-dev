@@ -172,7 +172,7 @@ add_task(async function test_localfile_cookies() {
 });
 
 // The following tests ensure we properly clear (partitioned/unpartitioned)
-// cookies when using deleteDataFromBaseDomain and deleteDataFromHost.
+// cookies when using deleteDataFromSite and deleteDataFromHost.
 
 function getTestCookieName(host, topLevelBaseDomain) {
   if (!topLevelBaseDomain) {
@@ -263,8 +263,9 @@ add_task(async function test_baseDomain_cookies() {
 
   // Clear cookies of example.net including partitions.
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.net",
+      {},
       false,
       Ci.nsIClearDataService.CLEAR_COOKIES,
       aResolve
