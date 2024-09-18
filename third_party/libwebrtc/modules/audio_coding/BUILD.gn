@@ -716,6 +716,7 @@ rtc_library("neteq") {
     "../../api:scoped_refptr",
     "../../api/audio:audio_frame_api",
     "../../api/audio_codecs:audio_codecs_api",
+    "../../api/environment",
     "../../api/neteq:neteq_api",
     "../../api/neteq:neteq_controller_api",
     "../../api/neteq:tick_timer",
@@ -754,9 +755,9 @@ rtc_source_set("default_neteq_factory") {
     ":neteq",
     "../../api:scoped_refptr",
     "../../api/audio_codecs:audio_codecs_api",
+    "../../api/environment",
     "../../api/neteq:default_neteq_controller_factory",
     "../../api/neteq:neteq_api",
-    "../../system_wrappers:system_wrappers",
   ]
 }
 

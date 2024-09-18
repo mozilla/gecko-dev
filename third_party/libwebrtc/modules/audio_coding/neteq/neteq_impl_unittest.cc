@@ -72,13 +72,14 @@ int DeletePacketsAndReturnOk(PacketList* packet_list) {
 
 class NetEqImplTest : public ::testing::Test {
  protected:
-  NetEqImplTest() : clock_(0) { config_.sample_rate_hz = 8000; }
+  NetEqImplTest() : clock_(0), env_(CreateEnvironment(&clock_)) {
+    config_.sample_rate_hz = 8000;
+  }
 
-  void CreateInstance(
-      const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
+  void CreateInstance(scoped_refptr<AudioDecoderFactory> decoder_factory) {
     ASSERT_TRUE(decoder_factory);
     config_.enable_muted_state = enable_muted_state_;
-    NetEqImpl::Dependencies deps(config_, &clock_, decoder_factory,
+    NetEqImpl::Dependencies deps(env_, config_, std::move(decoder_factory),
                                  DefaultNetEqControllerFactory());
 
     // Get a local pointer to NetEq's TickTimer object.
@@ -230,6 +231,7 @@ class NetEqImplTest : public ::testing::Test {
   std::unique_ptr<NetEqImpl> neteq_;
   NetEq::Config config_;
   SimulatedClock clock_;
+  const Environment env_;
   TickTimer* tick_timer_ = nullptr;
   MockDecoderDatabase* mock_decoder_database_ = nullptr;
   DecoderDatabase* decoder_database_ = nullptr;

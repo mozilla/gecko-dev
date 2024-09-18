@@ -107,11 +107,11 @@ bool EqualSampleRates(uint8_t pt1,
 }  // namespace
 
 NetEqImpl::Dependencies::Dependencies(
+    const Environment& env,
     const NetEq::Config& config,
-    Clock* clock,
-    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory,
+    scoped_refptr<AudioDecoderFactory> decoder_factory,
     const NetEqControllerFactory& controller_factory)
-    : clock(clock),
+    : env(env),
       tick_timer(new TickTimer),
       stats(new StatisticsCalculator),
       decoder_database(
@@ -127,7 +127,7 @@ NetEqImpl::Dependencies::Dependencies(
                                 config.max_packets_in_buffer,
                                 !config.for_test_no_time_stretching,
                                 tick_timer.get(),
-                                clock)),
+                                &env.clock())),
       red_payload_splitter(new RedPayloadSplitter),
       timestamp_scaler(new TimestampScaler(*decoder_database)),
       accelerate_factory(new AccelerateFactory),
@@ -139,7 +139,7 @@ NetEqImpl::Dependencies::~Dependencies() = default;
 NetEqImpl::NetEqImpl(const NetEq::Config& config,
                      Dependencies&& deps,
                      bool create_components)
-    : clock_(deps.clock),
+    : env_(deps.env),
       tick_timer_(std::move(deps.tick_timer)),
       decoder_database_(std::move(deps.decoder_database)),
       dtmf_buffer_(std::move(deps.dtmf_buffer)),
@@ -1981,7 +1981,7 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     if (packet->packet_info.has_value() &&
         !packet->packet_info->receive_time().IsMinusInfinity()) {
       processing_time =
-          clock_->CurrentTime() - packet->packet_info->receive_time();
+          env_.clock().CurrentTime() - packet->packet_info->receive_time();
     }
 
     stats_->JitterBufferDelay(
