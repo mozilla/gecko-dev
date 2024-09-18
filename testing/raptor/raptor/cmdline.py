@@ -736,7 +736,7 @@ class _PrintTests(_StopAction):
         # exit Raptor
         parser.exit()
 
-    def filter_app(self, tests, values):
+    def filter_app(self, tests, values, strict=True):
         for test in tests:
             if values["app"] in test["apps"]:
                 yield test

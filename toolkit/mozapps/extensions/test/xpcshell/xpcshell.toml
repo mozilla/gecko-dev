@@ -312,7 +312,6 @@ skip-if = ["os == 'android'"]
 ["test_signed_updatepref.js"]
 skip-if = [
   "require_signing",
-  "!allow_legacy_extensions",
   "os == 'android'",
 ]
 

@@ -42,7 +42,7 @@ playback_settings = [
 ]
 
 
-def filter_app(tests, values):
+def filter_app(tests, values, strict=False):
     for test in tests:
         if values["app"] in [app.strip() for app in test["apps"].split(",")]:
             yield test

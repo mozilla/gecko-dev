@@ -312,7 +312,7 @@ class ExpressionParser(object):
     __call__ = parse
 
 
-def parse(text, **values):
+def parse(text, strict=False, **values):
     """
     Parse and evaluate a boolean expression.
     :param text: The expression to parse, as a string.
@@ -321,4 +321,4 @@ def parse(text, **values):
     :rtype: the final value of the expression.
     :raises: :py:exc::ParseError: will be raised if parsing fails.
     """
-    return ExpressionParser(text, values).parse()
+    return ExpressionParser(text, values, strict=strict).parse()
