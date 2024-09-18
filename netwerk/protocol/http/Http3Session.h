@@ -253,7 +253,9 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   void CallCertVerification(Maybe<nsCString> aEchPublicName);
   void SetSecInfo();
 
+#ifndef ANDROID
   void EchOutcomeTelemetry();
+#endif
 
   void StreamReadyToWrite(Http3StreamBase* aStream);
   void MaybeResumeSend();
@@ -261,6 +263,7 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
   void CloseConnectionTelemetry(CloseError& aError, bool aClosing);
   void Finish0Rtt(bool aRestart);
 
+#ifndef ANDROID
   enum ZeroRttOutcome {
     NOT_USED,
     USED_SUCCEEDED,
@@ -269,6 +272,7 @@ class Http3Session final : public nsAHttpTransaction, public nsAHttpConnection {
     USED_CONN_CLOSED_BY_NECKO
   };
   void ZeroRttTelemetry(ZeroRttOutcome aOutcome);
+#endif
 
   RefPtr<NeqoHttp3Conn> mHttp3Connection;
   RefPtr<nsAHttpConnection> mConnection;

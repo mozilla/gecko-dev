@@ -3560,22 +3560,6 @@
     "n_buckets": 200,
     "description": "ms of SSL wait time for full handshake including TCP and proxy tunneling, keyed by the key exchange algorithm used"
   },
-  "HTTP3_ECH_OUTCOME": {
-    "record_in_processes": ["main"],
-    "products": ["firefox", "fennec"],
-    "alert_emails": [
-      "seceng-telemetry@mozilla.com",
-      "necko@mozilla.com",
-      "djackson@mozilla.com"
-    ],
-    "bug_numbers": [182287],
-    "releaseChannelCollection": "opt-out",
-    "expires_in_version": "never",
-    "kind": "enumerated",
-    "keyed": true,
-    "n_values": 32,
-    "description": "Success / Fail Rates for HTTP3 Keyed by ECH Usage"
-  },
   "SSL_BYTES_BEFORE_CERT_CALLBACK": {
     "record_in_processes": ["main"],
     "products": ["firefox"],
@@ -4116,30 +4100,6 @@
     "n_values": 100,
     "keyed": true,
     "description": "Error code when http3 connection is closed. Look at Http3Session for more details."
-  },
-  "HTTP3_0RTT_STATE": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox"],
-    "alert_emails": ["necko@mozilla.com", "ddamjanovic@mozilla.com"],
-    "bug_numbers": [1688850],
-    "expires_in_version": "never",
-    "releaseChannelCollection": "opt-out",
-    "kind": "enumerated",
-    "n_values": 5,
-    "description": "Collect what is the outcome when 0rtt is used: (0)0RTT_NOT_USED, (1)0RTT_USED_SUCCESS, (2)0RTT_USED_REJECT, (3)0RTT_USED_CONN_ERROR, (4)0RTT_CONN_CLOSED_BY_NECKO."
-  },
-  "HTTP3_0RTT_STATE_DURATION": {
-    "record_in_processes": ["main", "socket"],
-    "products": ["firefox"],
-    "alert_emails": ["necko@mozilla.com", "ddamjanovic@mozilla.com"],
-    "bug_numbers": [1688850],
-    "expires_in_version": "never",
-    "releaseChannelCollection": "opt-out",
-    "kind": "exponential",
-    "high": 30000,
-    "n_buckets": 50,
-    "keyed": true,
-    "description": "The time a connection was in the zero rtt state, it is keyed by the zero rtt outcome."
   },
   "HTTP3_TIME_TO_REUSE_IDLE_CONNECTTION_MS": {
     "record_in_processes": ["main", "content"],

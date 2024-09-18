@@ -25,6 +25,76 @@ netwerk:
       - manuel@mozilla.com
     expires: never
 
+  http3_ech_outcome_none: &http3_ech_outcome_none
+    type: labeled_counter
+    description: >
+      Success / Fail Rates for HTTP3 when No ECH Extension was sent
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1822876
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905939
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905939
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    labels:
+      - success
+      - fail
+
+  http3_ech_outcome_grease:
+    <<: *http3_ech_outcome_none
+    description: >
+      Success / Fail Rates for HTTP3 when a GREASE ECH Extension was sent
+
+  http3_ech_outcome_real:
+    <<: *http3_ech_outcome_none
+    description: >
+      Success / Fail Rates for HTTP3 when a 'real' ECH Extension was sent
+
+  http3_0rtt_state:
+    type: labeled_counter
+    description: >
+      Gather the outcome of 0-RTT usage:
+      - "not_used": 0RTT_NOT_USED
+      - "succeeded": 0RTT_USED_SUCCESS
+      - "rejected": 0RTT_USED_REJECT
+      - "conn_error": 0RTT_USED_CONN_ERROR
+      - "conn_closed_by_necko": 0RTT_CONN_CLOSED_BY_NECKO
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1688850
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905939
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905939
+    notification_emails:
+      - necko@mozilla.com
+    expires: never
+    labels:
+      - not_used
+      - succeeded
+      - rejected
+      - conn_error
+      - conn_closed_by_necko
+
+  http3_0rtt_state_duration:
+    type: labeled_timing_distribution
+    time_unit: millisecond
+    description: >
+      The time a connection was in the 0-RTT state
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1688850
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905939
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1905939
+    notification_emails:
+      - necko@mozilla.com
+    labels:
+      - succeeded
+      - rejected
+      - conn_error
+      - conn_closed_by_necko
+      - not_used
+    expires: never
+
 network:
   byte_range_request:
     type: labeled_counter
