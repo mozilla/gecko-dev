@@ -8,7 +8,6 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   setInterval: "resource://gre/modules/Timer.sys.mjs",
   clearInterval: "resource://gre/modules/Timer.sys.mjs",
@@ -75,9 +74,8 @@ export class CookieBannerChild extends JSWindowActorChild {
   #isEnabledCached = null;
   #isTopLevel;
   #clickRules;
-  #givenUp = false;
+  #observerCleanUp;
   #observerCleanUpTimer;
-  #hasActiveObserver = false;
   // Indicates whether the page "load" event occurred.
   #didLoad = false;
   // Indicates whether we are using global rules to handle the banner.
@@ -321,7 +319,7 @@ export class CookieBannerChild extends JSWindowActorChild {
 
     lazy.logConsole.debug("Observed 'load' event", {
       href: this.document?.location.href,
-      hasActiveObserver: this.#hasActiveObserver,
+      hasActiveObserver: !!this.#observerCleanUp,
       observerCleanupTimer: this.#observerCleanUpTimer,
     });
 
@@ -349,11 +347,9 @@ export class CookieBannerChild extends JSWindowActorChild {
         "#startOrResetCleanupTimer: Cancelling existing cleanup timeout",
         {
           didLoad: this.#didLoad,
-          id: this.#observerCleanUpTimer,
         }
       );
       lazy.clearTimeout(this.#observerCleanUpTimer);
-      this.#observerCleanUpTimer = null;
     }
 
     let durationMS = this.#didLoad
@@ -364,27 +360,29 @@ export class CookieBannerChild extends JSWindowActorChild {
       {
         durationMS,
         didLoad: this.#didLoad,
+        hasObserverCleanup: !!this.#observerCleanUp,
       }
     );
 
-    this.#observerCleanUpTimer = lazy.setTimeout(() => {
+    this.#observerCleanUpTimer = this.contentWindow?.setTimeout(() => {
       lazy.logConsole.debug(
         "#startOrResetCleanupTimer: Cleanup timeout triggered",
         {
           durationMS,
           didLoad: this.#didLoad,
+          hasObserverCleanup: !!this.#observerCleanUp,
         }
       );
       this.#observerCleanUpTimer = null;
-      this.#givenUp = true;
+      this.#observerCleanUp?.();
     }, durationMS);
   }
 
   didDestroy() {
     this.#reportTelemetry();
 
-    // Cause the observer and polling function to be cleaned up.
-    this.#givenUp = true;
+    // Clean up the observer and timer if needed.
+    this.#observerCleanUp?.();
   }
 
   #reportTelemetry() {
@@ -411,7 +409,7 @@ export class CookieBannerChild extends JSWindowActorChild {
     } = this.#telemetryStatus;
 
     // Check if we got interrupted during an observe.
-    if (this.#hasActiveObserver && !success) {
+    if (this.#observerCleanUp && !success) {
       failReason = "actor_destroyed";
     }
 
@@ -590,12 +588,12 @@ export class CookieBannerChild extends JSWindowActorChild {
    * check function or null if the function times out.
    */
   #promiseObserve(checkFn) {
-    if (this.#hasActiveObserver) {
+    if (this.#observerCleanUp) {
       throw new Error(
         "The promiseObserve is called before previous one resolves."
       );
     }
-    this.#hasActiveObserver = true;
+    lazy.logConsole.debug("#promiseObserve", { didLoad: this.#didLoad });
 
     return new Promise(resolve => {
       let win = this.contentWindow;
@@ -619,15 +617,6 @@ export class CookieBannerChild extends JSWindowActorChild {
 
       // Start polling checkFn.
       let intervalFn = () => {
-        lazy.logConsole.debug(
-          "#promiseObserve interval function",
-          this.document?.location.href
-        );
-
-        if (this.#givenUp) {
-          cleanup(null);
-        }
-
         // Nothing changed since last run, skip running checkFn.
         if (!sawMutation) {
           return;
@@ -649,7 +638,6 @@ export class CookieBannerChild extends JSWindowActorChild {
           observer,
           cleanupTimeoutId: this.#observerCleanUpTimer,
           pollIntervalId,
-          href: this.document?.location.href,
         });
 
         // Unregister the observer.
@@ -664,8 +652,20 @@ export class CookieBannerChild extends JSWindowActorChild {
           pollIntervalId = null;
         }
 
-        this.#hasActiveObserver = false;
+        // Clear the cleanup timeout. This can happen when the actor gets
+        // destroyed before the cleanup timeout itself fires.
+        if (this.#observerCleanUpTimer) {
+          lazy.clearTimeout(this.#observerCleanUpTimer);
+        }
+
+        this.#observerCleanUp = null;
         resolve(result);
+      };
+
+      // The clean up function to clean unfinished observer and timer on timeout
+      // or when the actor destroys.
+      this.#observerCleanUp = () => {
+        cleanup(null);
       };
     });
   }
