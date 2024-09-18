@@ -354,6 +354,7 @@ const ProxyMessenger = {
   async recvRuntimeMessage(arg, { sender }) {
     arg.firstResponse = true;
     let kind = await this.normalizeArgs(arg, sender);
+    arg.query = true;
     let result = await this.conduit.castRuntimeMessage(kind, arg);
     if (!result) {
       // "throw new ExtensionError" cannot be used because then the stack of the
@@ -380,6 +381,7 @@ const ProxyMessenger = {
 
     try {
       let kind = await this.normalizeArgs(arg, sender);
+      arg.query = true;
       let all = await this.conduit.castPortConnect(kind, arg);
       resolve();
 
