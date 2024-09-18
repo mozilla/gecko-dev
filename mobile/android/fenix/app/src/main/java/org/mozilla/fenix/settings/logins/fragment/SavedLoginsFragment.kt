@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.settings.logins.fragment
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.Menu
@@ -14,12 +15,14 @@ import android.view.ViewGroup
 import android.view.inputmethod.EditorInfo
 import android.widget.FrameLayout
 import android.widget.ImageView
+import androidx.activity.result.ActivityResultLauncher
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.appcompat.widget.Toolbar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.os.bundleOf
 import androidx.core.view.MenuProvider
+import androidx.core.view.isVisible
 import androidx.fragment.app.setFragmentResult
 import androidx.fragment.app.setFragmentResultListener
 import androidx.lifecycle.Lifecycle
@@ -28,6 +31,7 @@ import androidx.navigation.fragment.findNavController
 import mozilla.components.concept.menu.MenuController
 import mozilla.components.concept.menu.Orientation
 import mozilla.components.lib.state.ext.consumeFrom
+import org.mozilla.fenix.BiometricAuthenticationManager
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.R
@@ -35,9 +39,10 @@ import org.mozilla.fenix.SecureFragment
 import org.mozilla.fenix.components.StoreProvider
 import org.mozilla.fenix.databinding.FragmentSavedLoginsBinding
 import org.mozilla.fenix.ext.components
-import org.mozilla.fenix.ext.redirectToReAuth
+import org.mozilla.fenix.ext.registerForActivityResult
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.showToolbar
+import org.mozilla.fenix.settings.biometric.bindBiometricsCredentialsPromptOrShowWarning
 import org.mozilla.fenix.settings.logins.LoginsAction
 import org.mozilla.fenix.settings.logins.LoginsFragmentStore
 import org.mozilla.fenix.settings.logins.LoginsListState
@@ -66,8 +71,28 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
     private var deletedGuid = mutableSetOf<String>()
     private var searchQuery: LoginsListState? = null
 
+    private var _binding: FragmentSavedLoginsBinding? = null
+    private val binding get() = _binding!!
+    private lateinit var startForResult: ActivityResultLauncher<Intent>
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        startForResult = registerForActivityResult { setSecureContentVisibility(true) }
+    }
+
     override fun onResume() {
         super.onResume()
+        if (BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate) {
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate = false
+            setSecureContentVisibility(false)
+            bindBiometricsCredentialsPromptOrShowWarning(
+                view = requireView(),
+                onShowPinVerification = { intent -> startForResult.launch(intent) },
+                onAuthSuccess = { setSecureContentVisibility(true) },
+            )
+        } else {
+            setSecureContentVisibility(true)
+        }
         initToolbar()
     }
 
@@ -77,7 +102,10 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
         savedInstanceState: Bundle?,
     ): View? {
         val view = inflater.inflate(R.layout.fragment_saved_logins, container, false)
-        val binding = FragmentSavedLoginsBinding.bind(view)
+
+        _binding = FragmentSavedLoginsBinding.bind(view)
+        setSecureContentVisibility(false)
+        BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate = true
 
         savedLoginsStore =
             StoreProvider.get(findNavController().getBackStackEntry(R.id.savedLogins)) {
@@ -213,12 +241,6 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
             LoginDetailFragment.HAS_QUERY_KEY,
             bundleOf(LoginDetailFragment.HAS_QUERY_BUNDLE to searchQuery?.searchedForText),
         )
-
-        redirectToReAuth(
-            listOf(R.id.loginDetailFragment, R.id.addLoginFragment),
-            findNavController().currentDestination?.id,
-            R.id.savedLoginsFragment,
-        )
         super.onPause()
     }
 
@@ -288,5 +310,9 @@ class SavedLoginsFragment : SecureFragment(), MenuProvider {
         sortingStrategyMenu.updateMenu(itemToHighlight)
 
         attachMenu()
+    }
+
+    private fun setSecureContentVisibility(isVisible: Boolean) {
+        binding.savedLoginsLayout.isVisible = isVisible
     }
 }

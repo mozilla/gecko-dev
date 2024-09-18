@@ -83,13 +83,6 @@ fun Fragment.redirectToReAuth(
         // https://issuetracker.google.com/issues/37125819
         activity?.invalidateOptionsMenu()
         when (currentLocation) {
-            R.id.loginDetailFragment,
-            R.id.editLoginFragment,
-            R.id.addLoginFragment,
-            R.id.savedLoginsFragment,
-            -> {
-                findNavController().popBackStack(R.id.savedLoginsAuthFragment, false)
-            }
             R.id.creditCardEditorFragment,
             R.id.creditCardsManagementFragment,
             -> {

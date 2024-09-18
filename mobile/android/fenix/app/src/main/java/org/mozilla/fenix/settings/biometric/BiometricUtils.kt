@@ -33,8 +33,6 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
     view: View,
     onShowPinVerification: (Intent) -> Unit,
     onAuthSuccess: () -> Unit,
-    onAuthFailure: () -> Unit = {},
-    doWhileAuthenticating: () -> Unit = {},
 ) {
     val (fragment, context) = Result.runCatching {
         view.findFragment() as Fragment to view.context
@@ -53,12 +51,11 @@ fun bindBiometricsCredentialsPromptOrShowWarning(
                     }
                 }
             },
-            onAuthFailure = onAuthFailure,
+            onAuthFailure = {},
         ),
     )
     // Use the BiometricPrompt first
     if (BiometricPromptFeature.canUseFeature(context)) {
-        doWhileAuthenticating()
         biometricPromptFeature.get()
             ?.requestAuthentication(context.resources.getString(R.string.logins_biometric_prompt_message_2))
         return

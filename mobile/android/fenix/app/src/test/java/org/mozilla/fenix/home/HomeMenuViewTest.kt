@@ -63,15 +63,12 @@ class HomeMenuViewTest {
         menuButton = spyk(MenuButton(testContext))
 
         homeMenuView = HomeMenuView(
-            view = view,
             context = testContext,
             lifecycleOwner = lifecycleOwner,
             homeActivity = homeActivity,
             navController = navController,
             homeFragment = homeFragment,
             menuButton = WeakReference(menuButton),
-            onShowPinVerification = {},
-            onBiometricAuthenticationSuccessful = {},
         )
     }
 

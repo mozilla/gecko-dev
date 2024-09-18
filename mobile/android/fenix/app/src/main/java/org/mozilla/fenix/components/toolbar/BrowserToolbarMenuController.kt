@@ -52,7 +52,6 @@ import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.navigateSafe
 import org.mozilla.fenix.ext.openSetDefaultBrowserOption
-import org.mozilla.fenix.settings.biometric.bindBiometricsCredentialsPromptOrShowWarning
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
 import org.mozilla.fenix.utils.Settings
 
@@ -82,8 +81,6 @@ class DefaultBrowserToolbarMenuController(
     private val tabCollectionStorage: TabCollectionStorage,
     private val topSitesStorage: DefaultTopSitesStorage,
     private val pinnedSiteStorage: PinnedSiteStorage,
-    private val onShowPinVerification: (Intent) -> Unit,
-    private val onBiometricAuthenticationSuccessful: () -> Unit,
 ) : BrowserToolbarMenuController {
 
     private val currentSession
@@ -359,13 +356,10 @@ class DefaultBrowserToolbarMenuController(
                 )
             }
             is ToolbarMenu.Item.Passwords -> {
-                fragment.view?.let { view ->
-                    bindBiometricsCredentialsPromptOrShowWarning(
-                        view = view,
-                        onShowPinVerification = onShowPinVerification,
-                        onAuthSuccess = onBiometricAuthenticationSuccessful,
-                    )
-                }
+                navController.nav(
+                    R.id.browserFragment,
+                    BrowserFragmentDirections.actionLoginsListFragment(),
+                )
             }
             is ToolbarMenu.Item.Downloads -> browserAnimator.captureEngineViewAndDrawStatically {
                 navController.nav(

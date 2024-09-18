@@ -100,6 +100,7 @@ import org.mozilla.fenix.ext.isKnownSearchDomain
 import org.mozilla.fenix.ext.setCustomEndpointIfAvailable
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.lifecycle.StoreLifecycleObserver
+import org.mozilla.fenix.lifecycle.VisibilityLifecycleObserver
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.MARKETING_CHANNEL_ID
 import org.mozilla.fenix.perf.ApplicationExitInfoMetrics
@@ -308,6 +309,7 @@ open class FenixApplication : LocaleAwareApplication(), Provider {
                 appStore = components.appStore,
                 browserStore = components.core.store,
             ),
+            VisibilityLifecycleObserver(),
         )
 
         components.analytics.metricsStorage.tryRegisterAsUsageRecorder(this)

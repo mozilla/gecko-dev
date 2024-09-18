@@ -5,8 +5,6 @@
 package org.mozilla.fenix.home
 
 import android.content.Context
-import android.content.Intent
-import android.view.View
 import androidx.annotation.VisibleForTesting
 import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.core.content.ContextCompat
@@ -30,7 +28,6 @@ import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.settings.SupportUtils
-import org.mozilla.fenix.settings.biometric.bindBiometricsCredentialsPromptOrShowWarning
 import org.mozilla.fenix.settings.deletebrowsingdata.deleteAndQuit
 import org.mozilla.fenix.theme.ThemeManager
 import org.mozilla.fenix.whatsnew.WhatsNew
@@ -40,7 +37,6 @@ import org.mozilla.fenix.GleanMetrics.HomeMenu as HomeMenuMetrics
 /**
  * Helper class for building the [HomeMenu].
  *
- * @param view The [View] to attach the snackbar to.
  * @param context An Android [Context].
  * @param lifecycleOwner [LifecycleOwner] for the view.
  * @param homeActivity [HomeActivity] used to open URLs in a new tab.
@@ -49,13 +45,9 @@ import org.mozilla.fenix.GleanMetrics.HomeMenu as HomeMenuMetrics
  * @param menuButton The [MenuButton] that will be used to create a menu when the button is
  * clicked.
  * @param fxaEntrypoint The source entry point to FxA.
- * @param onShowPinVerification Callback for registering the pin verification result.
- * @param onBiometricAuthenticationSuccessful Callback for displaying the next screen after a
- * successful biometric authentication.
  */
 @Suppress("LongParameterList")
 class HomeMenuView(
-    private val view: View,
     private val context: Context,
     private val lifecycleOwner: LifecycleOwner,
     private val homeActivity: HomeActivity,
@@ -63,8 +55,6 @@ class HomeMenuView(
     private val homeFragment: HomeFragment,
     private val menuButton: WeakReference<MenuButton>,
     private val fxaEntrypoint: FxAEntryPoint = FenixFxAEntryPoint.HomeMenu,
-    private val onShowPinVerification: (Intent) -> Unit,
-    private val onBiometricAuthenticationSuccessful: () -> Unit,
 ) {
 
     /**
@@ -188,10 +178,9 @@ class HomeMenuView(
                 )
             }
             HomeMenu.Item.Passwords -> {
-                bindBiometricsCredentialsPromptOrShowWarning(
-                    view = view,
-                    onShowPinVerification = onShowPinVerification,
-                    onAuthSuccess = onBiometricAuthenticationSuccessful,
+                navController.nav(
+                    R.id.homeFragment,
+                    HomeFragmentDirections.actionHomeFragmentToLoginsListFragment(),
                 )
             }
             HomeMenu.Item.Help -> {

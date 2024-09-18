@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.home
 
-import android.content.Intent
 import android.view.Gravity
 import android.view.ViewGroup
 import androidx.annotation.VisibleForTesting
@@ -39,8 +38,6 @@ class ToolbarView(
     private val interactor: ToolbarInteractor,
     private val homeFragment: HomeFragment,
     private val homeActivity: HomeActivity,
-    private val onShowPinVerification: (Intent) -> Unit,
-    private val onBiometricAuthenticationSuccessful: () -> Unit,
 ) {
 
     private var context = homeFragment.requireContext()
@@ -102,15 +99,12 @@ class ToolbarView(
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
     internal fun buildHomeMenu() = HomeMenuView(
-        view = homeFragment.requireView(),
         context = context,
         lifecycleOwner = homeFragment.viewLifecycleOwner,
         homeActivity = homeActivity,
         navController = homeFragment.findNavController(),
         homeFragment = homeFragment,
         menuButton = WeakReference(binding.menuButton),
-        onShowPinVerification = { intent -> onShowPinVerification(intent) },
-        onBiometricAuthenticationSuccessful = { onBiometricAuthenticationSuccessful() },
     ).also { it.build() }
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
