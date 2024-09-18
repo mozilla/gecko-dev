@@ -1278,9 +1278,11 @@ impl ResourceCache {
         self.cached_render_tasks.begin_frame(&mut self.texture_cache);
         self.current_frame_id = stamp.frame_id();
 
-        // pop the old frame and push a new one
-        self.deleted_blob_keys.pop_front();
-        self.deleted_blob_keys.push_back(Vec::new());
+        // Pop the old frame and push a new one.
+        // Recycle the allocation if any.
+        let mut v = self.deleted_blob_keys.pop_front().unwrap_or_else(Vec::new);
+        v.clear();
+        self.deleted_blob_keys.push_back(v);
 
         self.texture_cache.run_compaction(gpu_cache);
     }
