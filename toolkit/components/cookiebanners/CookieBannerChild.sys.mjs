@@ -8,6 +8,7 @@ import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   setInterval: "resource://gre/modules/Timer.sys.mjs",
   clearInterval: "resource://gre/modules/Timer.sys.mjs",
@@ -364,7 +365,7 @@ export class CookieBannerChild extends JSWindowActorChild {
       }
     );
 
-    this.#observerCleanUpTimer = this.contentWindow?.setTimeout(() => {
+    this.#observerCleanUpTimer = lazy.setTimeout(() => {
       lazy.logConsole.debug(
         "#startOrResetCleanupTimer: Cleanup timeout triggered",
         {
