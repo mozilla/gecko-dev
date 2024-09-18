@@ -543,6 +543,10 @@ RefPtr<BoolPromise> FileSystemDataManager::BeginOpen() {
 
             self->mDirectoryLock = std::move(value.ResolveValue());
 
+            if (self->mDirectoryLock->Invalidated()) {
+              return BoolPromise::CreateAndReject(NS_ERROR_ABORT, __func__);
+            }
+
             return BoolPromise::CreateAndResolve(true, __func__);
           })
       ->Then(mQuotaManager->IOThread(), __func__,
