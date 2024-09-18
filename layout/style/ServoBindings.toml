@@ -488,6 +488,7 @@ cbindgen-types = [
     { gecko = "StyleTouchAction", servo = "crate::values::computed::TouchAction" },
     { gecko = "StyleWillChange", servo = "crate::values::specified::box_::WillChange" },
     { gecko = "StyleColorScheme", servo = "crate::values::specified::color::ColorScheme" },
+    { gecko = "StyleColorSchemeFlags", servo = "crate::values::specified::color::ColorSchemeFlags" },
     { gecko = "StyleTextDecorationLine", servo = "crate::values::computed::TextDecorationLine" },
     { gecko = "StyleMasonryAutoFlow", servo = "crate::values::specified::MasonryAutoFlow" },
     { gecko = "StyleMasonryPlacement", servo = "crate::values::specified::MasonryPlacement" },
