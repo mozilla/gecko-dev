@@ -424,7 +424,7 @@ void NetEqImpl::FlushBuffers() {
 void NetEqImpl::EnableNack(size_t max_nack_list_size) {
   MutexLock lock(&mutex_);
   if (!nack_enabled_) {
-    nack_ = std::make_unique<NackTracker>();
+    nack_ = std::make_unique<NackTracker>(env_.field_trials());
     nack_enabled_ = true;
     nack_->UpdateSampleRate(fs_hz_);
   }

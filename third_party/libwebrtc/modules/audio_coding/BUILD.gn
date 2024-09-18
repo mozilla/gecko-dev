@@ -711,6 +711,7 @@ rtc_library("neteq") {
     ":webrtc_cng",
     "..:module_api_public",
     "../../api:array_view",
+    "../../api:field_trials_view",
     "../../api:rtp_headers",
     "../../api:rtp_packet_info",
     "../../api:scoped_refptr",

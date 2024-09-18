@@ -13,10 +13,10 @@
 #include <cstdint>
 #include <utility>
 
+#include "api/field_trials_view.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/struct_parameters_parser.h"
 #include "rtc_base/logging.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {
@@ -28,14 +28,13 @@ constexpr char kNackTrackerConfigFieldTrial[] =
 
 }  // namespace
 
-NackTracker::Config::Config() {
+NackTracker::Config::Config(const FieldTrialsView& field_trials) {
   auto parser = StructParametersParser::Create(
       "packet_loss_forget_factor", &packet_loss_forget_factor,
       "ms_per_loss_percent", &ms_per_loss_percent, "never_nack_multiple_times",
       &never_nack_multiple_times, "require_valid_rtt", &require_valid_rtt,
       "max_loss_rate", &max_loss_rate);
-  parser->Parse(
-      webrtc::field_trial::FindFullName(kNackTrackerConfigFieldTrial));
+  parser->Parse(field_trials.Lookup(kNackTrackerConfigFieldTrial));
   RTC_LOG(LS_INFO) << "Nack tracker config:"
                       " packet_loss_forget_factor="
                    << packet_loss_forget_factor
@@ -45,8 +44,9 @@ NackTracker::Config::Config() {
                    << " max_loss_rate=" << max_loss_rate;
 }
 
-NackTracker::NackTracker()
-    : sequence_num_last_received_rtp_(0),
+NackTracker::NackTracker(const FieldTrialsView& field_trials)
+    : config_(field_trials),
+      sequence_num_last_received_rtp_(0),
       timestamp_last_received_rtp_(0),
       any_rtp_received_(false),
       sequence_num_last_decoded_rtp_(0),
