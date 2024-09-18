@@ -50,7 +50,7 @@ index 293ef6cf8a..b9cb6b4f53 100644
      Set(std::make_unique<RtcEventLogNull>());
    }
 diff --git a/api/task_queue/BUILD.gn b/api/task_queue/BUILD.gn
-index aa6878a9e2..dadc74720d 100644
+index 92adcabf72..1e063290a5 100644
 --- a/api/task_queue/BUILD.gn
 +++ b/api/task_queue/BUILD.gn
 @@ -82,6 +82,10 @@ rtc_library("task_queue_test") {

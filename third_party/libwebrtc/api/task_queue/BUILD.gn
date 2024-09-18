@@ -134,6 +134,7 @@ rtc_library("pending_task_safety_flag") {
     "pending_task_safety_flag.h",
   ]
   deps = [
+    ":task_queue",
     "../../api:refcountedbase",
     "../../api:scoped_refptr",
     "../../api:sequence_checker",
@@ -161,6 +162,9 @@ if (rtc_include_tests) {
     sources = [ "pending_task_safety_flag_unittest.cc" ]
     deps = [
       ":pending_task_safety_flag",
+      ":task_queue",
+      "..:scoped_refptr",
+      "../../rtc_base:checks",
       "../../rtc_base:logging",
       "../../rtc_base:rtc_event",
       "../../rtc_base:task_queue_for_test",

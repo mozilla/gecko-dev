@@ -430,7 +430,7 @@ index 0000000000..45194f5ace
 +
 +#endif  // API_RTP_SENDER_SETPARAMETERS_CALLBACK_H_
 diff --git a/api/task_queue/BUILD.gn b/api/task_queue/BUILD.gn
-index bb30cf6908..7f0ab8faf0 100644
+index 525bf0b48b..9cd2cbbf76 100644
 --- a/api/task_queue/BUILD.gn
 +++ b/api/task_queue/BUILD.gn
 @@ -29,6 +29,7 @@ rtc_library("task_queue") {
