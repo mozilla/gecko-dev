@@ -186,6 +186,14 @@ var gIdentityHandler = {
   },
 
   _initializePopupListeners() {
+    let popup = this._identityPopup;
+    popup.addEventListener("popupshown", event => {
+      this.onPopupShown(event);
+    });
+    popup.addEventListener("popuphidden", event => {
+      this.onPopupHidden(event);
+    });
+
     const COMMANDS = {
       "identity-popup-security-button": () => {
         this.showSecuritySubView();
