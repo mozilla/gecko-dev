@@ -42,15 +42,15 @@ interface nsIToolkitProfileService : nsISupports
         restart = 2,
     };
 
-    attribute boolean startWithLastProfile;
+    [infallible] attribute boolean startWithLastProfile;
 
-    readonly attribute nsISimpleEnumerator /*nsIToolkitProfile*/ profiles;
+    [infallible] readonly attribute nsISimpleEnumerator /*nsIToolkitProfile*/ profiles;
 
     /**
      * The profile currently in use if it is a named profile. This will return
      * null if the current profile path doesn't match a profile in the database.
      */
-    readonly attribute nsIToolkitProfile currentProfile;
+    [infallible] readonly attribute nsIToolkitProfile currentProfile;
 
     /**
      * The single named profile in a profile group.
@@ -60,7 +60,7 @@ interface nsIToolkitProfileService : nsISupports
      * named profile with the same StoreID.
      * If the current profile has no StoreID, this will be null.
      */
-    readonly attribute nsIToolkitProfile groupProfile;
+    [infallible] readonly attribute nsIToolkitProfile groupProfile;
 
     /**
      * The default profile for this build.
@@ -142,7 +142,7 @@ interface nsIToolkitProfileService : nsISupports
      * Returns the number of profiles.
      * @return the number of profiles.
      */
-    readonly attribute unsigned long profileCount;
+    [infallible] readonly attribute unsigned long profileCount;
 
     /**
      * Flush the profiles list file. This will fail with

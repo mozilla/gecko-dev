@@ -53,13 +53,13 @@ interface nsIToolkitProfile : nsISupports
      * The location of the profile directory. This may not match the current
      * profile directory if this is the current profile.
      */
-    attribute nsIFile rootDir;
+    [infallible] attribute nsIFile rootDir;
 
     /**
      * The location of the profile local directory, which may be the same as
      * the root directory.  See nsIProfileLock::localDirectory.
      */
-    readonly attribute nsIFile localDir;
+    [infallible] readonly attribute nsIFile localDir;
 
     /**
      * The name of the profile.
