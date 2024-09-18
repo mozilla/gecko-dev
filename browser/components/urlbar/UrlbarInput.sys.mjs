@@ -241,6 +241,10 @@ export class UrlbarInput {
       this.addEventListener(name, this);
     }
 
+    // These are on the window to detect focusing shortcuts like F6.
+    this.window.addEventListener("keydown", this);
+    this.window.addEventListener("keyup", this);
+
     this.window.addEventListener("mousedown", this);
     if (AppConstants.platform == "win") {
       this.window.addEventListener("draggableregionleftmousedown", this);
@@ -500,8 +504,7 @@ export class UrlbarInput {
     const previousSelectionStart = this.selectionStart + offset;
     const previousSelectionEnd = this.selectionEnd + offset;
 
-    this.value = value;
-    this.valueIsTyped = !valid;
+    this._setValue(value, { allowTrim: true, valueIsTyped: !valid });
     this.toggleAttribute("usertyping", !valid && value);
     this.toggleAttribute("persistsearchterms", shouldPersist);
 
@@ -3315,8 +3318,10 @@ export class UrlbarInput {
    *  Options for untrimming.
    * @param {boolean} [options.moveCursorToStart]
    *  Whether the cursor should be moved at position 0 after untrimming.
+   * @param {boolean} [options.ignoreSelection]
+   *  Whether this should untrim, regardless of the current selection state.
    */
-  #maybeUntrimUrl({ moveCursorToStart = false } = {}) {
+  #maybeUntrimUrl({ moveCursorToStart = false, ignoreSelection = false } = {}) {
     // Check if we can untrim the current value.
     if (
       !lazy.UrlbarPrefs.getScotchBonnetPref(
@@ -3324,7 +3329,7 @@ export class UrlbarInput {
       ) ||
       !this._protocolIsTrimmed ||
       !this.focused ||
-      this.#allTextSelected
+      (!ignoreSelection && this.#allTextSelected)
     ) {
       return;
     }
@@ -3834,8 +3839,17 @@ export class UrlbarInput {
 
     if (this.focusedViaMousedown) {
       this.view.autoOpen({ event });
-    } else if (this.inputField.hasAttribute("refocused-by-panel")) {
-      this._maybeSelectAll();
+    } else {
+      if (this._untrimOnFocusAfterKeydown) {
+        // While the mousedown focus has more complex implications due to drag
+        // and double-click select, we can untrim immediately when the urlbar is
+        // focused by a keyboard shortcut.
+        this.#maybeUntrimUrl({ ignoreSelection: true });
+      }
+
+      if (this.inputField.hasAttribute("refocused-by-panel")) {
+        this._maybeSelectAll();
+      }
     }
 
     this._updateUrlTooltip();
@@ -4261,6 +4275,9 @@ export class UrlbarInput {
   }
 
   _on_TabSelect() {
+    // TabSelect may be activated by a keyboard shortcut and cause the urlbar
+    // to take focus, in this case we should not untrim.
+    this._untrimOnFocusAfterKeydown = false;
     this._gotTabSelect = true;
     this._afterTabSelectAndFocusChange();
   }
@@ -4273,6 +4290,16 @@ export class UrlbarInput {
   }
 
   _on_keydown(event) {
+    if (event.currentTarget == this.window) {
+      // It would be great if we could more easily detect the user focusing the
+      // address bar through a keyboard shortcut, but F6 and TAB bypass are
+      // not going through commands handling.
+      // Also note we'll unset this on TabSelect, as it can focus the address
+      // bar but we should not untrim in that case.
+      this._untrimOnFocusAfterKeydown = !this.focused;
+      return;
+    }
+
     // Repeated KeyboardEvents can easily cause subtle bugs in this logic, if
     // not properly handled, so let's first handle things that should not be
     // evaluated repeatedly.
@@ -4311,6 +4338,11 @@ export class UrlbarInput {
   }
 
   async _on_keyup(event) {
+    if (event.currentTarget == this.window) {
+      this._untrimOnFocusAfterKeydown = false;
+      return;
+    }
+
     if (this.#allTextSelectedOnKeyDown) {
       let moveCursorToStart = this.#isHomeKeyUpEvent(event);
       // We must set the selection immediately because:

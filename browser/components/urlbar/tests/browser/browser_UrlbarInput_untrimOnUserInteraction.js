@@ -19,7 +19,7 @@ let tests = [
     shouldUntrim: false,
   },
   {
-    description: "Test CTRL+L doesn't untrim",
+    description: "Test CTRL+L untrims",
     untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
     execute() {
       EventUtils.synthesizeKey("l", { accelKey: true });
@@ -30,7 +30,7 @@ let tests = [
         "Selection end is at and of text."
       );
     },
-    shouldUntrim: false,
+    shouldUntrim: true,
   },
   {
     description: "Test drag selection untrims",
@@ -70,10 +70,10 @@ let tests = [
     shouldUntrim: true,
   },
   {
-    description: "Test CTRL+L, HOME untrims",
+    description: "Test HOME untrims",
     untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
     execute() {
-      EventUtils.synthesizeKey("l", { accelKey: true });
+      EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
       if (AppConstants.platform == "macosx") {
         EventUtils.synthesizeKey("KEY_ArrowLeft", { metaKey: true });
       } else {
@@ -86,7 +86,7 @@ let tests = [
     description: "Test SHIFT+LEFT untrims - partial host",
     untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
     async execute() {
-      EventUtils.synthesizeKey("l", { accelKey: true });
+      EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
       EventUtils.synthesizeKey("KEY_ArrowLeft", { shiftKey: true });
       Assert.equal(
         gURLBar.selectionStart,
@@ -105,7 +105,7 @@ let tests = [
     description: "Test SHIFT+LEFT untrims - full host",
     untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/test",
     async execute() {
-      EventUtils.synthesizeKey("l", { accelKey: true });
+      EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
       EventUtils.synthesizeKey("KEY_ArrowLeft", { shiftKey: true });
       Assert.equal(gURLBar.selectionStart, 0, "Selection start is 0.");
       Assert.less(
@@ -117,10 +117,10 @@ let tests = [
     shouldUntrim: true,
   },
   {
-    description: "Test CTRL+L, repeated HOME untrims",
+    description: "Test repeated HOME untrims",
     untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
     execute() {
-      EventUtils.synthesizeKey("l", { accelKey: true });
+      EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
       if (AppConstants.platform == "macosx") {
         EventUtils.synthesizeKey("KEY_ArrowLeft", {
           metaKey: true,
@@ -129,6 +129,36 @@ let tests = [
       } else {
         EventUtils.synthesizeKey("KEY_Home", { repeat: 3 });
       }
+    },
+    shouldUntrim: true,
+  },
+  {
+    description: "Test CTRL+L untrims",
+    untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
+    async execute() {
+      await synthesizeKeyAndWaitFocus("l", { accelKey: true });
+    },
+    shouldUntrim: true,
+  },
+  {
+    description: "Test CTRL+L untrims even after a revert and blur",
+    untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
+    inNewTab: true,
+    async execute() {
+      await synthesizeKeyAndWaitFocus("l", { accelKey: true });
+      gURLBar.handleRevert();
+      Assert.equal(gURLBar.value, "www.example.com");
+      gURLBar.blur();
+      await synthesizeKeyAndWaitFocus("l", { accelKey: true });
+    },
+    shouldUntrim: true,
+  },
+  {
+    description: "Test F6 untrims",
+    untrimmedValue: BrowserUIUtils.trimURLProtocol + "www.example.com/",
+    inNewTab: true,
+    async execute() {
+      await synthesizeKeyAndWaitFocus("VK_F6");
     },
     shouldUntrim: true,
   },
@@ -141,6 +171,25 @@ add_task(async function test_untrim() {
 
   for (let test of tests) {
     info(test.description);
+
+    if (test.inNewTab) {
+      await BrowserTestUtils.withNewTab(
+        {
+          gBrowser,
+          url: test.untrimmedValue,
+        },
+        async function () {
+          await test.execute();
+          Assert.equal(
+            gURLBar.value,
+            test.shouldUntrim ? test.untrimmedValue : trimmedValue,
+            `Value should be ${test.shouldUntrim ? "un" : ""}trimmed`
+          );
+        }
+      );
+      continue;
+    }
+
     let trimmedValue = UrlbarTestUtils.trimURL(test.untrimmedValue);
     gURLBar._setValue(test.untrimmedValue, {
       allowTrim: true,
@@ -152,8 +201,19 @@ add_task(async function test_untrim() {
     Assert.equal(
       gURLBar.value,
       test.shouldUntrim ? test.untrimmedValue : trimmedValue,
-      "Value has been untrimmed"
+      `Value should be ${test.shouldUntrim ? "un" : ""}trimmed`
     );
     gURLBar.handleRevert();
   }
 });
+
+async function synthesizeKeyAndWaitFocus(key, options = {}, win = window) {
+  let focusPromise = BrowserTestUtils.waitForEvent(window, "focus", true);
+  EventUtils.synthesizeKey(
+    key,
+    Object.assign({ type: "keydown" }, options),
+    win
+  );
+  await focusPromise;
+  EventUtils.synthesizeKey(key, Object.assign({ type: "keyup" }, options), win);
+}
