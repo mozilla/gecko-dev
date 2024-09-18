@@ -27,6 +27,9 @@ const { AddonTestUtils } = ChromeUtils.importESModule(
 const { ExtensionTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/ExtensionXPCShellUtils.sys.mjs"
 );
+const { formAutofillStorage } = ChromeUtils.importESModule(
+  "resource://autofill/FormAutofillStorage.sys.mjs"
+);
 
 ExtensionTestUtils.init(this);
 AddonTestUtils.init(this);
@@ -394,4 +397,21 @@ add_task(async function test_addon_uninstalled() {
   await expectRegeneration(async () => {
     await testExtension.unload();
   }, "Saw regeneration on test extension uninstall.");
+});
+
+/**
+ * Tests that backup regeneration occurs when removing a payment method.
+ */
+add_task(async function test_payment_method_removed() {
+  await formAutofillStorage.initialize();
+  let guid = await formAutofillStorage.creditCards.add({
+    "cc-name": "Foxy the Firefox",
+    "cc-number": "5555555555554444",
+    "cc-exp-month": 5,
+    "cc-exp-year": 2099,
+  });
+
+  await expectRegeneration(async () => {
+    await formAutofillStorage.creditCards.remove(guid);
+  }, "Saw regeneration on payment method removal.");
 });

@@ -3163,6 +3163,7 @@ export class BackupService extends EventTarget {
     lazy.AddonManager.addAddonListener(this);
 
     Services.obs.addObserver(this.#observer, "passwordmgr-storage-changed");
+    Services.obs.addObserver(this.#observer, "formautofill-storage-changed");
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
 
@@ -3192,6 +3193,7 @@ export class BackupService extends EventTarget {
     lazy.AddonManager.removeAddonListener(this);
 
     Services.obs.removeObserver(this.#observer, "passwordmgr-storage-changed");
+    Services.obs.removeObserver(this.#observer, "formautofill-storage-changed");
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
     this.#observer = null;
   }
@@ -3201,7 +3203,7 @@ export class BackupService extends EventTarget {
    * quit-application-granted from the nsIObserverService. Exposed as a public
    * method mainly for ease in testing.
    *
-   * @param {nsISupports|null} _subject
+   * @param {nsISupports|null} subject
    *   The nsIUserIdleService for the idle notification, and null for the
    *   quit-application-granted topic.
    * @param {string} topic
@@ -3209,7 +3211,7 @@ export class BackupService extends EventTarget {
    * @param {string} data
    *   Optional data that was included with the notification.
    */
-  onObserve(_subject, topic, data) {
+  onObserve(subject, topic, data) {
     switch (topic) {
       case "idle": {
         this.onIdle();
@@ -3222,6 +3224,15 @@ export class BackupService extends EventTarget {
       }
       case "passwordmgr-storage-changed": {
         if (data == "removeLogin" || data == "removeAllLogins") {
+          this.#debounceRegeneration();
+        }
+        break;
+      }
+      case "formautofill-storage-changed": {
+        if (
+          data == "remove" &&
+          subject.wrappedJSObject.collectionName == "creditCards"
+        ) {
           this.#debounceRegeneration();
         }
         break;
