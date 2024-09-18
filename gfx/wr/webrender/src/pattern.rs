@@ -142,3 +142,33 @@ impl Pattern {
         }
     }
 }
+
+// A reusable pattern builder for a segment of a larger primitive that can be
+// drawn as a solid color
+pub struct SolidColorSegment {
+    pub color: ColorF,
+}
+
+impl PatternBuilder for SolidColorSegment {
+    fn build(
+        &self,
+        _sub_rect: Option<DeviceRect>,
+        _ctx: &crate::pattern::PatternBuilderContext,
+        _state: &mut crate::pattern::PatternBuilderState,
+    ) -> Pattern {
+        Pattern::color(self.color)
+    }
+
+    fn get_base_color(
+        &self,
+        _ctx: &crate::pattern::PatternBuilderContext,
+    ) -> ColorF {
+        self.color
+    }
+
+    fn use_shared_pattern(
+        &self,
+    ) -> bool {
+        true
+    }
+}
