@@ -1,31 +1,48 @@
 From: Nico Grunbaum <na-g@nostrum.com>
 Date: Thu, 23 May 2024 17:28:00 +0000
-Subject: Bug 1897459 - P0 - for BSD do not build physical_socket_server in
- libwebrtc;r=mjf,webrtc-reviewers
+Subject: Bug 1897459 - P2 - for BSD reference null socket server
+ instead;r=mjf,webrtc-reviewers
 
-libwebrtc added the use of several non-portable socket options in this code.
-Firefox does not use any of the code in this file, but there is a header dependency chain leading from code that is used.
-
-Differential Revision: https://phabricator.services.mozilla.com/D210858
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/4e7b3c485e549e7e35b227b517acadbbad957004
+Differential Revision: https://phabricator.services.mozilla.com/D211095
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/0993ae41fb7db1624dedc5cf2278cd5a505f18f5
 ---
- rtc_base/BUILD.gn | 6 ++++++
- 1 file changed, 6 insertions(+)
+ rtc_base/internal/default_socket_server.cc | 4 ++--
+ rtc_base/virtual_socket_server.cc          | 2 ++
+ 2 files changed, 4 insertions(+), 2 deletions(-)
 
-diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 9b5f6b8338..ac6ba34a34 100644
---- a/rtc_base/BUILD.gn
-+++ b/rtc_base/BUILD.gn
-@@ -1024,6 +1024,12 @@ rtc_library("threading") {
-     "thread.cc",
-     "thread.h",
-   ]
-+  if (is_bsd && build_with_mozilla) {
-+    sources -= [
-+      "physical_socket_server.cc",
-+      "physical_socket_server.h",
-+    ]
-+  }
-   deps = [
-     ":async_dns_resolver",
-     ":byte_order",
+diff --git a/rtc_base/internal/default_socket_server.cc b/rtc_base/internal/default_socket_server.cc
+index 5632b989fc..cb7b81978a 100644
+--- a/rtc_base/internal/default_socket_server.cc
++++ b/rtc_base/internal/default_socket_server.cc
+@@ -14,7 +14,7 @@
+ 
+ #include "rtc_base/socket_server.h"
+ 
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+ #include "rtc_base/null_socket_server.h"
+ #else
+ #include "rtc_base/physical_socket_server.h"
+@@ -23,7 +23,7 @@
+ namespace rtc {
+ 
+ std::unique_ptr<SocketServer> CreateDefaultSocketServer() {
+-#if defined(__native_client__)
++#if defined(__native_client__) || defined(WEBRTC_BSD)
+   return std::unique_ptr<SocketServer>(new rtc::NullSocketServer);
+ #else
+   return std::unique_ptr<SocketServer>(new rtc::PhysicalSocketServer);
+diff --git a/rtc_base/virtual_socket_server.cc b/rtc_base/virtual_socket_server.cc
+index bec7d9733f..b5488f5ff5 100644
+--- a/rtc_base/virtual_socket_server.cc
++++ b/rtc_base/virtual_socket_server.cc
+@@ -24,7 +24,9 @@
+ #include "rtc_base/event.h"
+ #include "rtc_base/fake_clock.h"
+ #include "rtc_base/logging.h"
++#if !defined(WEBRTC_BSD)
+ #include "rtc_base/physical_socket_server.h"
++#endif
+ #include "rtc_base/socket_address_pair.h"
+ #include "rtc_base/thread.h"
+ #include "rtc_base/time_utils.h"

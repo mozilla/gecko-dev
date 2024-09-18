@@ -1,26 +1,25 @@
-From: Byron Campen <docfaraday@gmail.com>
-Date: Fri, 26 Jul 2024 09:26:00 -0500
-Subject: Bug 1909234 - (fix-a0d1a51217) Move this errant include where it
- belongs. r?mjf
+From: Dan Baker <dbaker@mozilla.com>
+Date: Tue, 27 Aug 2024 14:09:00 -0600
+Subject: Bug 1912989 - (fix-2360208f7d) Removed build command causing failure.
+ - moz.build file updates
 
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/6baf67202c67b27c6464cb8e4dbb419485aa6c4c
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fd4bc7427678a45283f0f56418ee2c70fac711e6
 ---
- api/test/network_emulation/BUILD.gn | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ .gn | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
 
-diff --git a/api/test/network_emulation/BUILD.gn b/api/test/network_emulation/BUILD.gn
-index 4a126a0a94..ac07325bbf 100644
---- a/api/test/network_emulation/BUILD.gn
-+++ b/api/test/network_emulation/BUILD.gn
-@@ -6,10 +6,10 @@
- # in the file PATENTS.  All contributing project authors may
- # be found in the AUTHORS file in the root of the source tree.
+diff --git a/.gn b/.gn
+index 8325a46ed3..52acee7e60 100644
+--- a/.gn
++++ b/.gn
+@@ -38,7 +38,9 @@ no_check_targets = [
+ exec_script_whitelist = build_dotfile_settings.exec_script_whitelist +
+                         [ "//build_overrides/build.gni" ]
  
--import("//third_party/protobuf/proto_library.gni")
- import("../../../webrtc.gni")
+-export_compile_commands = [ "*" ]
++# Normally, we'd use 'if (!build_with_mozilla)', but that flag isn't
++# available yet.
++#export_compile_commands = [ "*" ]
  
- if (rtc_enable_protobuf) {
-+  import("//third_party/protobuf/proto_library.gni")
-   proto_library("network_config_schedule_proto") {
-     visibility = [ "*" ]
-     sources = [ "network_config_schedule.proto" ]
+ default_args = {
+   # Webrtc does not support component builds because we are not using the
