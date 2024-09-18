@@ -11,6 +11,9 @@ head = "head.js"
 
 ["test_getDirectoryFailure.js"]
 
+["test_slowStorageInitialization.js"]
+skip-if = ["true"]
+
 ["test_syncAccessHandle_worker.js"]
 
 ["test_writableFileStream.js"]
