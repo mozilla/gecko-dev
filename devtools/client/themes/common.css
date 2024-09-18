@@ -35,6 +35,8 @@
 
   --searchbox-no-match-background-color: #ffe5e5;
   --searchbox-no-match-stroke-color: var(--red-60);
+  --searchbox-background-color: transparent;
+  --searchbox-border-color: transparent;
 
   --devtools-searchinput-clear-cross-color: transparent;
   --devtools-searchinput-clear-hover-cross-color: transparent;
@@ -62,6 +64,9 @@
     --toggle-disabled-track-color-pressed: GrayText;
     --toggle-disabled-thumb-color: GrayText;
     --toggle-track-disabled-opacity: 1;
+
+    --searchbox-background-color: ButtonFace;
+    --searchbox-border-color: ButtonText;
 
     --devtools-searchinput-clear-opacity: 1;
     --devtools-searchinput-clear-cross-color: ButtonFace;
@@ -293,6 +298,10 @@ iframe {
   :is(input[type="radio"], input[type="checkbox"], checkbox)& {
     outline-offset: 2px;
   }
+
+  :is(input[type="text"], input[type="search"], input:not([type]))& {
+    outline-color: var(--theme-focus-textinput-outline-color);
+  }
 }
 
 /* Toolbar buttons */
@@ -520,7 +529,8 @@ iframe {
   gap: 4px;
   padding-inline-end: 4px;
   position: relative;
-  border: 1px solid transparent;
+  border: 1px solid var(--searchbox-border-color);
+  background-color: var(--searchbox-background-color);
   height: 100%;
   box-sizing: border-box;
 }
@@ -543,6 +553,7 @@ iframe {
    is focused (e.g. a button), we only want the outline on that element */
 .devtools-searchbox:focus-within:has(input:focus-visible) {
   outline: var(--theme-focus-outline);
+  outline-color: var(--theme-focus-textinput-outline-color);
   outline-offset: -2px;
 
   &.devtools-searchbox-no-match {

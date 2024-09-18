@@ -694,6 +694,14 @@ a.learn-more-link.webconsole-learn-more-link {
   /* It's important to keep this in px as it's used in JS to control the display mode
    * of the filter toolbar. */
   min-width: 150px;
+
+  /* High Contrast Mode */
+  :root[forced-colors-active] & {
+    /* Don't stretch so there is room around the input to show the borders
+       and the focus indicator */
+    align-self: unset;
+    outline-offset: 0px;
+  }
 }
 
 /* We always render the "X hidden" element in the filter bar for accessibility.

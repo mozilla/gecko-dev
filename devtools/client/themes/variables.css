@@ -38,6 +38,7 @@
   /* For accessibility purposes we want to enhance the focus styling. This
    * should improve keyboard navigation usability. */
   --theme-focus-outline-color: var(--blue-50);
+  --theme-focus-textinput-outline-color: var(--theme-focus-outline-color);
   --theme-focus-outline-size: 2px;
   --theme-focus-outline: var(--theme-focus-outline-size) solid var(--theme-focus-outline-color);
   --theme-outline-offset: 0px;
@@ -277,6 +278,7 @@
     --theme-selection-color: SelectedItemText;
     --theme-body-color: CanvasText;
     --theme-focus-outline-color: CanvasText;
+    --theme-focus-textinput-outline-color: SelectedItem;
     --theme-icon-color: ButtonText;
     --theme-icon-hover-color: SelectedItem;
     /* We don't want dimmed colors in high Contrast Mode, use the same colors as non-dimmed icons */
