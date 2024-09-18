@@ -57,7 +57,8 @@ interface nsIRFPService : nsISupports
   /**
    * Clean the fingerprinting randomization key by the given domain.
    */
-  void cleanRandomKeyByDomain(in ACString aDomain);
+  [implicit_jscontext]
+  void cleanRandomKeyBySite(in ACString aSchemelessSite, in jsval originAttributes);
 
   /**
    * Clean the fingerprinting randomization key by the given host and
