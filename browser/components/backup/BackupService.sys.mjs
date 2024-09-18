@@ -56,6 +56,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   ArchiveUtils: "resource:///modules/backup/ArchiveUtils.sys.mjs",
   BasePromiseWorker: "resource://gre/modules/PromiseWorker.sys.mjs",
   ClientID: "resource://gre/modules/ClientID.sys.mjs",
+  DeferredTask: "resource://gre/modules/DeferredTask.sys.mjs",
   DownloadPaths: "resource://gre/modules/DownloadPaths.sys.mjs",
   FileUtils: "resource://gre/modules/FileUtils.sys.mjs",
   JsonSchema: "resource://gre/modules/JsonSchema.sys.mjs",
@@ -649,12 +650,31 @@ export class BackupService extends EventTarget {
   #encState = undefined;
 
   /**
+   * The PlacesObserver instance used to monitor the Places database for
+   * history and bookmark removals to determine if backups should be
+   * regenerated.
+   *
+   * @type {PlacesObserver|null}
+   */
+  #placesObserver = null;
+
+  /**
    * The AbortController used to abort any queued requests to create or delete
    * backups that might be waiting on the WRITE_BACKUP_LOCK_NAME lock.
    *
    * @type {AbortController}
    */
   #backupWriteAbortController = null;
+
+  /**
+   * A DeferredTask that will cause the last known backup to be deleted, and
+   * a new backup to be created.
+   *
+   * See BackupService.#debounceRegeneration()
+   *
+   * @type {DeferredTask}
+   */
+  #regenerationDebouncer = null;
 
   /**
    * The path of the default parent directory for saving backups.
@@ -859,6 +879,16 @@ export class BackupService extends EventTarget {
   }
 
   /**
+   * The amount of time (in milliseconds) to wait for our backup regeneration
+   * debouncer to kick off a regeneration.
+   *
+   * @type {number}
+   */
+  static get REGENERATION_DEBOUNCE_RATE_MS() {
+    return 10000;
+  }
+
+  /**
    * Returns a reference to a BackupService singleton. If this is the first time
    * that this getter is accessed, this causes the BackupService singleton to be
    * be instantiated.
@@ -916,6 +946,10 @@ export class BackupService extends EventTarget {
     this.#postRecoveryPromise = promise;
     this.#postRecoveryResolver = resolve;
     this.#backupWriteAbortController = new AbortController();
+    this.#regenerationDebouncer = new lazy.DeferredTask(async () => {
+      await this.deleteLastBackup();
+      await this.createBackupOnIdleDispatch();
+    }, BackupService.REGENERATION_DEBOUNCE_RATE_MS);
   }
 
   /**
@@ -3115,6 +3149,16 @@ export class BackupService extends EventTarget {
     );
     lazy.logConsole.debug("Idle observer registered.");
 
+    lazy.logConsole.debug(`Registering Places observer`);
+
+    this.#placesObserver = new PlacesWeakCallbackWrapper(
+      this.onPlacesEvents.bind(this)
+    );
+    PlacesObservers.addListener(
+      ["history-cleared", "page-removed"],
+      this.#placesObserver
+    );
+
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
 
@@ -3135,6 +3179,12 @@ export class BackupService extends EventTarget {
       this.#observer,
       this.#idleThresholdSeconds
     );
+
+    PlacesObservers.removeListener(
+      ["history-cleared", "page-removed"],
+      this.#placesObserver
+    );
+
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
     this.#observer = null;
   }
@@ -3162,6 +3212,16 @@ export class BackupService extends EventTarget {
         break;
       }
     }
+  }
+
+  /**
+   * Called when the last known backup should be deleted and a new one
+   * created. This uses the #regenerationDebouncer to debounce clusters of
+   * events that might cause such a regeneration to occur.
+   */
+  #debounceRegeneration() {
+    this.#regenerationDebouncer.disarm();
+    this.#regenerationDebouncer.arm();
   }
 
   /**
@@ -3228,6 +3288,37 @@ export class BackupService extends EventTarget {
       );
       this.createBackup();
     });
+  }
+
+  /**
+   * Handler for events coming in through our PlacesObserver.
+   *
+   * @param {PlacesEvent[]} placesEvents
+   *   One or more batched events that are of a type that we subscribed to.
+   */
+  onPlacesEvents(placesEvents) {
+    // Note that if any of the events that we iterate result in a regeneration
+    // being queued, we simply return without the processing the rest, as there
+    // is not really a point.
+    for (let event of placesEvents) {
+      switch (event.type) {
+        case "page-removed": {
+          // We will get a page-removed event if a page has been deleted both
+          // manually by a user, but also automatically if the page has "aged
+          // out" of the Places database. We only want to regenerate backups
+          // in the manual case (REASON_DELETED).
+          if (event.reason == PlacesVisitRemoved.REASON_DELETED) {
+            this.#debounceRegeneration();
+            return;
+          }
+          break;
+        }
+        case "history-cleared": {
+          this.#debounceRegeneration();
+          return;
+        }
+      }
+    }
   }
 
   /**
