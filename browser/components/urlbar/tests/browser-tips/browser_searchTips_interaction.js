@@ -374,7 +374,7 @@ add_task(async function pickingTipDoesNotDisableOtherKinds() {
 add_task(async function notification() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     let box = gBrowser.getNotificationBox();
-    let note = box.appendNotification("urlbar-test", {
+    let note = await box.appendNotification("urlbar-test", {
       label: "Test",
       priority: box.PRIORITY_INFO_HIGH,
     });
