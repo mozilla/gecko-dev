@@ -8,6 +8,18 @@
 
 import("../../webrtc.gni")
 
+rtc_library("generic_mapping_functions") {
+  sources = [
+    "generic_mapping_functions.cc",
+    "generic_mapping_functions.h",
+  ]
+  deps = [
+    "../../api/video:video_frame",
+    "../../api/video_codecs:video_codecs_api",
+    "../../rtc_base:checks",
+  ]
+}
+
 rtc_library("halton_sequence") {
   sources = [
     "halton_sequence.cc",
@@ -17,6 +29,16 @@ rtc_library("halton_sequence") {
 }
 
 if (rtc_include_tests) {
+  rtc_library("generic_mapping_functions_unittest") {
+    testonly = true
+    sources = [ "generic_mapping_functions_unittest.cc" ]
+    deps = [
+      ":generic_mapping_functions",
+      "../../api/video:video_frame",
+      "../../test/:test_support",
+    ]
+  }
+
   rtc_library("halton_sequence_unittest") {
     testonly = true
     sources = [ "halton_sequence_unittest.cc" ]
@@ -29,6 +51,9 @@ if (rtc_include_tests) {
   rtc_library("corruption_detection_tests") {
     testonly = true
     sources = []
-    deps = [ ":halton_sequence_unittest" ]
+    deps = [
+      ":generic_mapping_functions_unittest",
+      ":halton_sequence_unittest",
+    ]
   }
 }
