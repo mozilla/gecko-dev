@@ -461,12 +461,14 @@ RefPtr<PopulatePromise> PopulateMediaDevices() {
           }
         }
 
-        nsCString json;
-        json.AppendPrintf(
-            R"({"cameraCount": %u, "microphoneCount": %u, "speakerCount": %u, "groupCount": %zu, "groupCountWoSpeakers": %zu})",
-            cameraCount, microphoneCount, speakerCount, groupIds.size(),
-            groupIdsWoSpeakers.size());
-        glean::characteristics::media_devices.Set(json);
+        glean::characteristics::camera_count.Set(cameraCount);
+        glean::characteristics::microphone_count.Set(microphoneCount);
+        glean::characteristics::speaker_count.Set(speakerCount);
+        glean::characteristics::group_count.Set(
+            static_cast<int64_t>(groupIds.size()));
+        glean::characteristics::group_count_wo_speakers.Set(
+            static_cast<int64_t>(groupIdsWoSpeakers.size()));
+
         populatePromise->Resolve(void_t(), __func__);
       },
       [=](RefPtr<MediaMgrError>&& reason) {
