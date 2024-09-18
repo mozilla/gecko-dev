@@ -2579,7 +2579,8 @@ dependencies = [
 [[package]]
 name = "gpu-descriptor"
 version = "0.3.0"
-source = "git+https://github.com/zakarumych/gpu-descriptor?rev=7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d#7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9c08c1f623a8d0b722b8b99f821eb0ba672a1618f0d3b16ddbee1cedd2dd8557"
 dependencies = [
  "bitflags 2.6.0",
  "gpu-descriptor-types",
@@ -2589,7 +2590,8 @@ dependencies = [
 [[package]]
 name = "gpu-descriptor-types"
 version = "0.2.0"
-source = "git+https://github.com/zakarumych/gpu-descriptor?rev=7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d#7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fdf242682df893b86f33a73828fb09ca4b2d3bb6cc95249707fc684d27484b91"
 dependencies = [
  "bitflags 2.6.0",
 ]
@@ -2651,6 +2653,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
  "ahash",
+ "allocator-api2",
 ]
 
 [[package]]

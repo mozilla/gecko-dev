@@ -100,11 +100,6 @@ git = "https://github.com/servo/unicode-bidi"
 rev = "ca612daf1c08c53abe07327cb3e6ef6e0a760f0c"
 replace-with = "vendored-sources"
 
-[source."git+https://github.com/zakarumych/gpu-descriptor?rev=7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d"]
-git = "https://github.com/zakarumych/gpu-descriptor"
-rev = "7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d"
-replace-with = "vendored-sources"
-
 
 # Take advantage of the fact that cargo will treat lines starting with #
 # as comments to add preprocessing directives. This file can thus by copied
