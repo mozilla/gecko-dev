@@ -9,10 +9,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/507f630a6ffe51a07
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules/audio_processing/audio_processing_impl.cc b/modules/audio_processing/audio_processing_impl.cc
-index f093e5fd07..6196a0c0c4 100644
+index 9a831d9435..6b448470ae 100644
 --- a/modules/audio_processing/audio_processing_impl.cc
 +++ b/modules/audio_processing/audio_processing_impl.cc
-@@ -1454,7 +1454,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
+@@ -1446,7 +1446,7 @@ int AudioProcessingImpl::ProcessCaptureStreamLocked() {
        // TODO(bugs.webrtc.org/7494): Let AGC2 detect applied input volume
        // changes.
        submodules_.gain_controller2->Process(
