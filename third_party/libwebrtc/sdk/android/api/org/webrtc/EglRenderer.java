@@ -21,6 +21,8 @@ import java.nio.ByteBuffer;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -92,6 +94,10 @@ public class EglRenderer implements VideoSink {
   }
 
   protected final String name;
+
+  // An id to uniquely identify the renderer, used for when we're scheduling
+  // frames for render.
+  private Optional<UUID> id = Optional.empty();
 
   // `eglThread` is used for rendering, and is synchronized on `threadLock`.
   private final Object threadLock = new Object();
@@ -212,6 +218,23 @@ public class EglRenderer implements VideoSink {
       eglThread.getHandler().postDelayed(
           logStatisticsRunnable, TimeUnit.SECONDS.toMillis(LOG_INTERVAL_SEC));
     }
+  }
+
+  /**
+   * Intializes this class with the given parameters.
+   *
+   * The new parameter here, `overwritePendingFrames` overwrites instead of
+   * queueing frames when passing them to the synchronized renderer.
+   */
+  public void init(
+      EglThread eglThread,
+      RendererCommon.GlDrawer drawer,
+      boolean usePresentationTimeStamp,
+      boolean overwritePendingFrames) {
+      if (overwritePendingFrames) {
+        id = Optional.of(UUID.randomUUID());
+      }
+      init(eglThread, drawer, usePresentationTimeStamp);
   }
 
   /**
@@ -444,7 +467,7 @@ public class EglRenderer implements VideoSink {
   }
 
   /**
-   * Register a callback to be invoked when a new video frame has been rendered. 
+   * Register a callback to be invoked when a new video frame has been rendered.
    *
    * @param listener The callback to be invoked. The callback will be invoked on the render thread.
    *                 It should be lightweight and must not call removeRenderListener.
@@ -611,30 +634,36 @@ public class EglRenderer implements VideoSink {
 
   private void swapBuffersOnRenderThread(final VideoFrame frame, long swapBuffersStartTimeNs) {
     synchronized (threadLock) {
-      if (eglThread != null) {
-        eglThread.scheduleRenderUpdate(
-            runsInline -> {
-              if (!runsInline) {
-                if (eglBase == null || !eglBase.hasSurface()) {
-                  return;
-                }
-                eglBase.makeCurrent();
+      if (eglThread == null) {
+        return;
+      }
+      EglThread.RenderUpdate renderUpdate =
+          runsInline -> {
+            if (!runsInline) {
+              if (eglBase == null || !eglBase.hasSurface()) {
+                return;
               }
+              eglBase.makeCurrent();
+            }
 
-              if (usePresentationTimeStamp) {
-                eglBase.swapBuffers(frame.getTimestampNs());
-              } else {
-                eglBase.swapBuffers();
-              }
+            if (usePresentationTimeStamp) {
+              eglBase.swapBuffers(frame.getTimestampNs());
+            } else {
+              eglBase.swapBuffers();
+            }
 
-              for (var listener : renderListeners) {
-                listener.onRender(System.nanoTime());
-              }
+            for (var listener : renderListeners) {
+              listener.onRender(System.nanoTime());
+            }
 
-              synchronized (statisticsLock) {
-                renderSwapBufferTimeNs += (System.nanoTime() - swapBuffersStartTimeNs);
-              }
-            });
+            synchronized (statisticsLock) {
+              renderSwapBufferTimeNs += (System.nanoTime() - swapBuffersStartTimeNs);
+            }
+          };
+      if (id.isPresent()) {
+        eglThread.scheduleRenderUpdate(id.get(), renderUpdate);
+      } else {
+        eglThread.scheduleRenderUpdate(renderUpdate);
       }
     }
   }
