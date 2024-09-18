@@ -3531,7 +3531,11 @@ pref("browser.safebrowsing.provider.mozilla.lists.base", "moz-std");
 pref("browser.safebrowsing.provider.mozilla.lists.content", "moz-full");
 
 // The table and global pref for blocking plugin content
-pref("urlclassifier.blockedTable", "moztest-block-simple,mozplugin-block-digest256");
+#ifdef NIGHTLY_BUILD
+  pref("urlclassifier.blockedTable", "moztest-block-simple,mozplugin-block-digest256");
+#else
+  pref("urlclassifier.blockedTable", "moztest-block-simple");
+#endif
 
 #ifdef XP_MACOSX
   #if !defined(RELEASE_OR_BETA) || defined(DEBUG)
