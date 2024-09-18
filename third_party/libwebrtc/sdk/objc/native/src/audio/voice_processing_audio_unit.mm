@@ -398,6 +398,39 @@ bool VoiceProcessingAudioUnit::Uninitialize() {
   return true;
 }
 
+bool VoiceProcessingAudioUnit::SetMicrophoneMute(bool enable) {
+  RTC_DCHECK_GE(state_, kUninitialized);
+
+  RTCLog(@"Setting microphone %s.", enable ? "mute" : "unmute");
+
+  OSStatus result = noErr;
+  if (detect_mute_speech_) {
+    UInt32 muteUplinkOutput = enable ? 1 : 0;
+    result = AudioUnitSetProperty(vpio_unit_,
+                                  kAUVoiceIOProperty_MuteOutput,
+                                  kAudioUnitScope_Global,
+                                  kInputBus,
+                                  &muteUplinkOutput,
+                                  sizeof(muteUplinkOutput));
+  } else {
+    UInt32 enableInput = enable ? 0 : 1;
+    result = AudioUnitSetProperty(vpio_unit_,
+                                  kAudioOutputUnitProperty_EnableIO,
+                                  kAudioUnitScope_Input,
+                                  kInputBus,
+                                  &enableInput,
+                                  sizeof(enableInput));
+  }
+
+  if (result != noErr) {
+    RTCLogError(@"Failed to %s microphone. Error=%ld", (enable ? "mute" : "unmute"), (long)result);
+    return false;
+  }
+
+  RTCLog(@"Set microphone %s.", enable ? "mute" : "unmute");
+  return true;
+}
+
 OSStatus VoiceProcessingAudioUnit::Render(AudioUnitRenderActionFlags* flags,
                                           const AudioTimeStamp* time_stamp,
                                           UInt32 output_bus_number,
