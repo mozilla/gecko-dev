@@ -489,8 +489,7 @@ nsresult SVGOuterSVGFrame::AttributeChanged(int32_t aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None &&
       !HasAnyStateBits(NS_FRAME_FIRST_REFLOW | NS_FRAME_IS_NONDISPLAY)) {
     if (aAttribute == nsGkAtoms::viewBox ||
-        aAttribute == nsGkAtoms::preserveAspectRatio ||
-        aAttribute == nsGkAtoms::transform) {
+        aAttribute == nsGkAtoms::preserveAspectRatio) {
       // make sure our cached transform matrix gets (lazily) updated
       mCanvasTM = nullptr;
 
@@ -566,8 +565,7 @@ void SVGOuterSVGFrame::NotifyViewportOrTransformChanged(uint32_t aFlags) {
                                     FULL_ZOOM_CHANGED)),
              "Unexpected aFlags value");
 
-  SVGSVGElement* content = static_cast<SVGSVGElement*>(GetContent());
-
+  auto* content = static_cast<SVGSVGElement*>(GetContent());
   if (aFlags & COORD_CONTEXT_CHANGED) {
     if (content->HasViewBox()) {
       // Percentage lengths on children resolve against the viewBox rect so we

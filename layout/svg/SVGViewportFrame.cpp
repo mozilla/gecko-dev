@@ -181,8 +181,7 @@ nsresult SVGViewportFrame::AttributeChanged(int32_t aNameSpaceID,
         SVGUtils::NotifyChildrenOfSVGChange(this, flags);
       }
 
-    } else if (aAttribute == nsGkAtoms::transform ||
-               aAttribute == nsGkAtoms::preserveAspectRatio ||
+    } else if (aAttribute == nsGkAtoms::preserveAspectRatio ||
                aAttribute == nsGkAtoms::viewBox || aAttribute == nsGkAtoms::x ||
                aAttribute == nsGkAtoms::y) {
       // make sure our cached transform matrix gets (lazily) updated
@@ -192,11 +191,6 @@ nsresult SVGViewportFrame::AttributeChanged(int32_t aNameSpaceID,
           this, aAttribute == nsGkAtoms::viewBox
                     ? TRANSFORM_CHANGED | COORD_CONTEXT_CHANGED
                     : TRANSFORM_CHANGED);
-
-      // We don't invalidate for transform changes (the layers code does that).
-      // Also note that SVGTransformableElement::GetAttributeChangeHint will
-      // return nsChangeHint_UpdateOverflow for "transform" attribute changes
-      // and cause DoApplyRenderingChangeToTree to make the SchedulePaint call.
 
       if (aAttribute == nsGkAtoms::x || aAttribute == nsGkAtoms::y) {
         nsLayoutUtils::PostRestyleEvent(

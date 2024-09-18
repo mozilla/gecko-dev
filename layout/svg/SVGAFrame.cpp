@@ -33,10 +33,6 @@ class SVGAFrame final : public SVGDisplayContainerFrame {
             nsIFrame* aPrevInFlow) override;
 #endif
 
-  // nsIFrame:
-  nsresult AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
-                            int32_t aModType) override;
-
 #ifdef DEBUG_FRAME_DUMP
   nsresult GetFrameName(nsAString& aResult) const override {
     return MakeFrameName(u"SVGA"_ns, aResult);
@@ -71,18 +67,5 @@ void SVGAFrame::Init(nsIContent* aContent, nsContainerFrame* aParent,
   SVGDisplayContainerFrame::Init(aContent, aParent, aPrevInFlow);
 }
 #endif /* DEBUG */
-
-nsresult SVGAFrame::AttributeChanged(int32_t aNameSpaceID, nsAtom* aAttribute,
-                                     int32_t aModType) {
-  if (aNameSpaceID == kNameSpaceID_None && aAttribute == nsGkAtoms::transform) {
-    // We don't invalidate for transform changes (the layers code does that).
-    // Also note that SVGTransformableElement::GetAttributeChangeHint will
-    // return nsChangeHint_UpdateOverflow for "transform" attribute changes
-    // and cause DoApplyRenderingChangeToTree to make the SchedulePaint call.
-    NotifySVGChanged(TRANSFORM_CHANGED);
-  }
-
-  return NS_OK;
-}
 
 }  // namespace mozilla

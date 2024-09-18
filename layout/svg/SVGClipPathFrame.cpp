@@ -367,17 +367,10 @@ bool SVGClipPathFrame::IsValid() {
 nsresult SVGClipPathFrame::AttributeChanged(int32_t aNameSpaceID,
                                             nsAtom* aAttribute,
                                             int32_t aModType) {
-  if (aNameSpaceID == kNameSpaceID_None) {
-    if (aAttribute == nsGkAtoms::transform) {
-      SVGObserverUtils::InvalidateRenderingObservers(this);
-      SVGUtils::NotifyChildrenOfSVGChange(
-          this, ISVGDisplayableFrame::TRANSFORM_CHANGED);
-    }
-    if (aAttribute == nsGkAtoms::clipPathUnits) {
-      SVGObserverUtils::InvalidateRenderingObservers(this);
-    }
+  if (aNameSpaceID == kNameSpaceID_None &&
+      aAttribute == nsGkAtoms::clipPathUnits) {
+    SVGObserverUtils::InvalidateRenderingObservers(this);
   }
-
   return SVGContainerFrame::AttributeChanged(aNameSpaceID, aAttribute,
                                              aModType);
 }
