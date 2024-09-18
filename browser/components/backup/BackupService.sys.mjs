@@ -950,7 +950,9 @@ export class BackupService extends EventTarget {
     this.#regenerationDebouncer = new lazy.DeferredTask(async () => {
       if (!this.#backupWriteAbortController.signal.aborted) {
         await this.deleteLastBackup();
-        await this.createBackupOnIdleDispatch();
+        if (lazy.scheduledBackupsPref) {
+          await this.createBackupOnIdleDispatch();
+        }
       }
     }, BackupService.REGENERATION_DEBOUNCE_RATE_MS);
   }
@@ -3492,21 +3494,30 @@ export class BackupService extends EventTarget {
    * @returns {Promise<undefined>}
    */
   async deleteLastBackup() {
+    if (!lazy.scheduledBackupsPref) {
+      lazy.logConsole.debug(
+        "Not deleting last backup, as scheduled backups are disabled."
+      );
+      return undefined;
+    }
+
     return locks.request(
       BackupService.WRITE_BACKUP_LOCK_NAME,
       { signal: this.#backupWriteAbortController.signal },
       async () => {
         if (this.#_state.lastBackupFileName) {
-          let backupFilePath = PathUtils.join(
-            lazy.backupDirPref,
-            this.#_state.lastBackupFileName
-          );
+          if (await this.#infalliblePathExists(lazy.backupDirPref)) {
+            let backupFilePath = PathUtils.join(
+              lazy.backupDirPref,
+              this.#_state.lastBackupFileName
+            );
 
-          lazy.logConsole.log(
-            "Attempting to delete last backup file at ",
-            backupFilePath
-          );
-          await IOUtils.remove(backupFilePath, { ignoreAbsent: true });
+            lazy.logConsole.log(
+              "Attempting to delete last backup file at ",
+              backupFilePath
+            );
+            await IOUtils.remove(backupFilePath, { ignoreAbsent: true });
+          }
 
           this.#_state.lastBackupDate = null;
           Services.prefs.clearUserPref(LAST_BACKUP_TIMESTAMP_PREF_NAME);
@@ -3521,7 +3532,7 @@ export class BackupService extends EventTarget {
           );
         }
 
-        if (await IOUtils.exists(lazy.backupDirPref)) {
+        if (await this.#infalliblePathExists(lazy.backupDirPref)) {
           // See if there are any other files lingering around in the destination
           // folder. If not, delete that folder too.
           let children = await IOUtils.getChildren(lazy.backupDirPref);
@@ -3531,5 +3542,25 @@ export class BackupService extends EventTarget {
         }
       }
     );
+  }
+
+  /**
+   * Wraps an IOUtils.exists in a try/catch and returns true iff the passed
+   * path actually exists on the file system. Returns false if the path doesn't
+   * exist or is an invalid path.
+   *
+   * @param {string} path
+   *   The path to check for existence.
+   * @returns {Promise<boolean>}
+   */
+  async #infalliblePathExists(path) {
+    let exists = false;
+    try {
+      exists = await IOUtils.exists(path);
+    } catch (e) {
+      lazy.logConsole.warn("Path failed existence check :", path);
+      return false;
+    }
+    return exists;
   }
 }

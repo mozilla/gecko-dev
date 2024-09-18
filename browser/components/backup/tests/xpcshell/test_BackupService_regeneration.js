@@ -145,6 +145,13 @@ async function expectRegeneration(taskFn, msg) {
     return Promise.resolve();
   });
 
+  // Creating a new backup will only occur if scheduled backups are enabled,
+  // so let's set the pref...
+  Services.prefs.setBoolPref("browser.backup.scheduled.enabled", true);
+  // But also stub out `onIdle` so that we don't get any interference during
+  // our test by the idle service.
+  sandbox.stub(bs, "onIdle").returns();
+
   bs.initBackupScheduler();
 
   await taskFn();
@@ -210,6 +217,13 @@ async function expectNoRegeneration(taskFn, msg) {
     regenerationPromise.reject();
     return Promise.resolve();
   });
+
+  // Creating a new backup will only occur if scheduled backups are enabled,
+  // so let's set the pref...
+  Services.prefs.setBoolPref("browser.backup.scheduled.enabled", true);
+  // But also stub out `onIdle` so that we don't get any interference during
+  // our test by the idle service.
+  sandbox.stub(bs, "onIdle").returns();
 
   bs.initBackupScheduler();
 

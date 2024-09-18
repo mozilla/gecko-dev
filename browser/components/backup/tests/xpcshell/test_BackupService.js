@@ -104,6 +104,15 @@ async function testCreateBackupHelper(sandbox, taskFn) {
   const EXPECTED_CLIENT_ID = await ClientID.getClientID();
   const EXPECTED_PROFILE_GROUP_ID = await ClientID.getProfileGroupID();
 
+  // Enable the scheduled backups pref so that backups can be deleted. We're
+  // not calling initBackupScheduler on the BackupService that we're
+  // constructing, so there's no danger of accidentally having a backup be
+  // created during this test if there's an idle period.
+  Services.prefs.setBoolPref("browser.backup.scheduled.enabled", true);
+  registerCleanupFunction(() => {
+    Services.prefs.clearUserPref("browser.backup.scheduled.enabled");
+  });
+
   let fake1ManifestEntry = { fake1: "hello from 1" };
   sandbox
     .stub(FakeBackupResource1.prototype, "backup")
