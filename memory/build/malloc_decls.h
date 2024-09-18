@@ -110,6 +110,10 @@ MALLOC_DECL(jemalloc_purge_freed_pages, void)
 // It may only be used from the main thread.
 MALLOC_DECL(jemalloc_free_dirty_pages, void)
 
+// Free dirty pages until the max dirty pages threshold is satisfied. Useful
+// after lowering the max dirty pages threshold to get RSS back to normal.
+MALLOC_DECL(jemalloc_free_excess_dirty_pages, void)
+
 // Opt in or out of a thread local arena (bool argument is whether to opt-in
 // (true) or out (false)).
 MALLOC_DECL(jemalloc_thread_local_arena, void, bool)
