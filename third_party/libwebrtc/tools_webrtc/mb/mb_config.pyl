@@ -57,6 +57,7 @@
         'dummy_audio_file_devices_no_protobuf':
         'dummy_audio_file_devices_no_protobuf_x64',
         'rtti_no_sctp': 'rtti_no_sctp_x64',
+        'openssl': 'openssl_x64',
       },
       'Linux Asan': 'asan_lsan_clang_release_bot_x64',
       'Linux MSan': 'msan_clang_release_bot_x64',
@@ -349,6 +350,7 @@
     'msan_clang_release_bot_x64':
     ['msan', 'clang', 'openh264', 'pure_release_bot', 'x64', 'h265'],
     'no_h264_debug_bot_x86': ['debug_bot', 'x86'],
+    'openssl_x64': ['debug_bot', 'x64', 'no_build_ssl'],
     'perfetto_android_arm': [ 'android', 'arm', 'perfetto', 'release_bot'],
     'perfetto_x64': [ 'x64', 'perfetto', 'release_bot'],
     'perfetto_x86': [ 'x86', 'perfetto', 'release_bot'],
@@ -488,6 +490,9 @@
     },
     'msan': {
       'gn_args': 'is_msan=true msan_track_origins=2',
+    },
+    'no_build_ssl': {
+      'gn_args': 'rtc_build_ssl=false',
     },
     'no_ios_code_signing': {
       'gn_args': 'ios_enable_code_signing=false',
