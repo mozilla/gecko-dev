@@ -6,9 +6,9 @@
   --border-style: 0.1rem solid;
   --border-radius: 0.3rem;
   --border-color: ButtonBorder;
-  --button-color: ButtonText;
-  --button-color-hover: SelectedItemText;
-  --button-color-active: SelectedItem;
+  --button-text-color: ButtonText;
+  --button-text-color-hover: SelectedItemText;
+  --button-text-color-active: SelectedItem;
   --button-background: ButtonFace;
   --button-background-hover: SelectedItem;
   --button-background-active: SelectedItemText;
@@ -54,9 +54,9 @@
 @media not (prefers-contrast) {
   :root {
     --border-color: color-mix(in srgb, FieldText 65%, transparent);
-    --button-color: inherit;
-    --button-color-hover: inherit;
-    --button-color-active: inherit;
+    --button-text-color: inherit;
+    --button-text-color-hover: inherit;
+    --button-text-color-active: inherit;
     --button-background: color-mix(in srgb, FieldText 10%, transparent);
     --button-background-hover: color-mix(in srgb, FieldText 20%, transparent);
     --button-background-active: color-mix(in srgb, FieldText 30%, transparent);
@@ -87,7 +87,7 @@ body {
 button {
   appearance: none;
   padding: 0;
-  color: var(--button-color);
+  color: var(--button-text-color);
   background: none;
   background-color: var(--button-background);
   background-repeat: no-repeat;
@@ -99,13 +99,13 @@ button {
 }
 
 button:where(:hover) {
-  color: var(--button-color-hover);
+  color: var(--button-text-color-hover);
   background-color: var(--button-background-hover);
   border-color: var(--button-border-hover);
 }
 
 button:where(:hover.active) {
-  color: var(--button-color-active);
+  color: var(--button-text-color-active);
   background-color: var(--button-background-active);
   border-color: var(--button-border-active);
 }
@@ -190,13 +190,13 @@ button.month-year:dir(rtl) {
 }
 
 button.month-year:hover {
-  color: var(--button-color-hover);
+  color: var(--button-text-color-hover);
   background-color: var(--button-background-hover);
   border-color: var(--button-border-hover);
 }
 
 button.month-year.active {
-  color: var(--button-color-active);
+  color: var(--button-text-color-active);
   background-color: var(--button-background-active);
   border-color: var(--button-border-active);
   background-image: url("chrome://global/skin/icons/arrow-up.svg");

@@ -7,7 +7,7 @@
 
   --panel-item-hover-bgcolor: var(--button-background-color-hover);
   --panel-item-active-bgcolor: var(--button-background-color-active);
-  --panel-banner-item-color: var(--button-color);
+  --panel-banner-item-color: var(--button-text-color);
   --panel-banner-item-background-color: var(--button-background-color);
   --panel-banner-item-hover-bgcolor: var(--button-background-color-hover);
   --panel-banner-item-active-bgcolor: var(--button-background-color-active);
@@ -1140,7 +1140,7 @@ panelview .toolbarbutton-1,
 #appMenu-zoomReduce-button2 > .toolbarbutton-icon,
 #appMenu-zoomEnlarge-button2 > .toolbarbutton-icon {
   -moz-context-properties: fill, stroke;
-  fill: var(--button-color);
+  fill: var(--button-text-color);
   /* the stroke color is used to fill the circle in the icon */
   stroke: var(--button-background-color);
   border-radius: 50%;
@@ -1626,7 +1626,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 #panic-button-success-closebutton {
   background-color: var(--button-background-color);
-  color: var(--button-color);
+  color: var(--button-text-color);
   margin: 5px 0 0;
   border: 1px solid transparent;
   border-radius: 4px;
@@ -1912,7 +1912,7 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
   appearance: none;
   background-color: var(--button-background-color);
   border-radius: 4px;
-  color: var(--button-color);
+  color: var(--button-text-color);
   padding: 8px;
   margin: 0 5px;
 

@@ -72,7 +72,7 @@ h1.translations-panel-header-wrapper {
   appearance: none;
   background-color: var(--button-background-color);
   border-radius: 4px;
-  color: var(--button-color);
+  color: var(--button-text-color);
   padding: 8px 16px;
   font-size: 0.9em;
 

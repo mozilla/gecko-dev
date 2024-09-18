@@ -109,20 +109,20 @@ In general, it is best to do overriding at the `:root` level, even if additional
 :root {
   /* ... */
   --button-background: #ffffff;
-  --button-color: #bbbbbb;
+  --button-text-color: #bbbbbb;
 
   @media (forced-colors) {
     /* ... */
     --button-background: ButtonFace;
-    --button-color: ButtonText;
-    --button-border-color: var(--button-color);
+    --button-text-color: ButtonText;
+    --button-border-color: var(--button-text-color);
   }
 }
 
 @media (forced-colors) {
   /* BAD: These rules are generic and should be outside of a @media block */
   .destroyButton {
-    color: var(--button-color);
+    color: var(--button-text-color);
     background-color: var(--button-background);
     border: 1px solid var(--button-border-color);
   }

@@ -14,7 +14,7 @@
   border: 0;
   border-radius: 4px;
   background-color: var(--button-background-color);
-  color: var(--button-color, inherit);
+  color: var(--button-text-color);
   font-weight: 600;
   min-width: 0;
   padding: 8px 16px;
@@ -94,7 +94,7 @@
   margin-inline-start: 4px;
   min-width: 32px;
   min-height: 32px;
-  color: var(--button-color);
+  color: var(--button-text-color);
   background-color: var(--button-background-color);
   border-radius: 4px;
 

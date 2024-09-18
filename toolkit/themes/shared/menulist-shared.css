@@ -15,7 +15,7 @@
 :host(:not([native])) {
   appearance: none;
   background-color: var(--button-background-color);
-  color: var(--button-color, ButtonText);
+  color: var(--button-text-color);
   border-radius: 4px;
   padding-block: 4px;
   padding-inline: 12px 8px;

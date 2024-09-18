@@ -190,7 +190,7 @@ html|select:where(:not([size], [multiple])) {
 
   font-weight: var(--font-weight-bold);
 
-  color: var(--button-color, inherit);
+  color: var(--button-text-color);
   background-color: var(--button-background-color);
   background-image: url(chrome://global/skin/icons/arrow-down-12.svg);
   background-position: right 10px center;
@@ -310,7 +310,7 @@ button.text-link .button-text {
   appearance: none;
   border: 0;
   border-radius: var(--border-radius-small);
-  color: var(--button-color, inherit);
+  color: var(--button-text-color);
   background-color: var(--button-background-color);
   padding: .45em 1em;
   min-height: var(--size-item-large);

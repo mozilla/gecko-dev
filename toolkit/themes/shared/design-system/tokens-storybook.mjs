@@ -424,7 +424,7 @@ export const storybookTables = {
           dark: "var(--color-gray-05)",
           default: "light-dark(var(--color-gray-100), var(--color-gray-05))",
         },
-        platform: { default: "var(--button-color)" },
+        platform: { default: "currentColor" },
       },
       name: "--button-text-color",
     },
@@ -974,7 +974,7 @@ export const variableLookupTable = {
       dark: "var(--color-gray-05)",
       default: "light-dark(var(--color-gray-100), var(--color-gray-05))",
     },
-    platform: { default: "var(--button-color)" },
+    platform: { default: "currentColor" },
   },
   "button-text-color-active": {
     default: "var(--button-text-color)",
