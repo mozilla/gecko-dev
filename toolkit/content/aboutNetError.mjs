@@ -449,7 +449,6 @@ function initPage() {
         }
         // fallthrough
 
-        case "interrupted": // This happens with subresources that are above the max tls
         case "SSL_ERROR_NO_CIPHERS_SUPPORTED":
         case "SSL_ERROR_NO_CYPHER_OVERLAP":
         case "SSL_ERROR_SSL_DISABLED":
