@@ -16,6 +16,7 @@ import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
+import mozilla.components.lib.state.Store
 import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -41,9 +42,8 @@ internal class BookmarksMiddleware(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : Middleware<BookmarksState, BookmarksAction> {
 
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val scope = CoroutineScope(ioDispatcher)
 
-    @Suppress("LongMethod", "CyclomaticComplexMethod")
     override fun invoke(
         context: MiddlewareContext<BookmarksState, BookmarksAction>,
         next: (BookmarksAction) -> Unit,
@@ -52,33 +52,13 @@ internal class BookmarksMiddleware(
         val preReductionState = context.state
         next(action)
         when (action) {
-            Init -> scope.launch {
-                loadTree(BookmarkRoot.Mobile.id)?.let { (folderTitle, bookmarkItems) ->
-                    context.store.dispatch(
-                        BookmarksLoaded(
-                            folderTitle = folderTitle,
-                            folderGuid = BookmarkRoot.Mobile.id,
-                            bookmarkItems = bookmarkItems,
-                        ),
-                    )
-                }
-            }
+            Init -> context.store.tryDispatchLoadFor(BookmarkRoot.Mobile.id)
             is BookmarkClicked -> {
                 val openInNewTab = navController.previousDestinationWasHome() ||
                     getBrowsingMode() == BrowsingMode.Private
                 openTab(action.item.url, openInNewTab)
             }
-            is FolderClicked -> scope.launch {
-                loadTree(action.item.guid)?.let { (folderTitle, bookmarkItems) ->
-                    context.store.dispatch(
-                        BookmarksLoaded(
-                            folderTitle = folderTitle,
-                            folderGuid = action.item.guid,
-                            bookmarkItems = bookmarkItems,
-                        ),
-                    )
-                }
-            }
+            is FolderClicked -> context.store.tryDispatchLoadFor(action.item.guid)
             SearchClicked -> navController.navigate(
                 NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
             )
@@ -97,15 +77,7 @@ internal class BookmarksMiddleware(
                                     title = newFolderTitle,
                                 )
                             }
-                            loadTree(preReductionState.folderGuid)?.let { (folderTitle, bookmarkItems) ->
-                                context.store.dispatch(
-                                    BookmarksLoaded(
-                                        folderTitle = folderTitle,
-                                        folderGuid = preReductionState.folderGuid,
-                                        bookmarkItems = bookmarkItems,
-                                    ),
-                                )
-                            }
+                            context.store.tryDispatchLoadFor(preReductionState.folderGuid)
                         }
                     }
                     // list screen cases
@@ -116,15 +88,7 @@ internal class BookmarksMiddleware(
                                     .getBookmark(preReductionState.folderGuid)
                                     ?.parentGuid ?: BookmarkRoot.Mobile.id
                             }
-                            loadTree(parentFolderGuid)?.let { (folderTitle, bookmarkItems) ->
-                                context.store.dispatch(
-                                    BookmarksLoaded(
-                                        folderTitle = folderTitle,
-                                        folderGuid = parentFolderGuid,
-                                        bookmarkItems = bookmarkItems,
-                                    ),
-                                )
-                            }
+                            context.store.tryDispatchLoadFor(parentFolderGuid)
                         }
                     }
                     else -> {
@@ -145,10 +109,18 @@ internal class BookmarksMiddleware(
         }
     }
 
-    private suspend fun loadTree(guid: String): Pair<String, List<BookmarkItem>>? =
-        withContext(ioDispatcher) {
+    private fun Store<BookmarksState, BookmarksAction>.tryDispatchLoadFor(guid: String) =
+        scope.launch {
             bookmarksStorage.getTree(guid)?.let { rootNode ->
-                resolveFolderTitle(rootNode) to rootNode.childItems()
+                val folderTitle = resolveFolderTitle(rootNode)
+                val items = rootNode.childItems()
+                dispatch(
+                    BookmarksLoaded(
+                        folderTitle = folderTitle,
+                        folderGuid = guid,
+                        bookmarkItems = items,
+                    ),
+                )
             }
         }
 
