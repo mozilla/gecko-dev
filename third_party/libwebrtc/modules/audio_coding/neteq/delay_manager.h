@@ -17,6 +17,7 @@
 #include <memory>
 
 #include "absl/types/optional.h"
+#include "api/field_trials_view.h"
 #include "api/neteq/tick_timer.h"
 #include "modules/audio_coding/neteq/histogram.h"
 #include "modules/audio_coding/neteq/reorder_optimizer.h"
@@ -27,7 +28,7 @@ namespace webrtc {
 class DelayManager {
  public:
   struct Config {
-    Config();
+    explicit Config(const FieldTrialsView& field_trials);
     void Log();
 
     // Options that can be configured via field trial.

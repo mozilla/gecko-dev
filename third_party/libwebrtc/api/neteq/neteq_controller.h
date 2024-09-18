@@ -67,6 +67,7 @@ class NetEqController {
     int max_packets_in_buffer;
     int base_min_delay_ms;
     TickTimer* tick_timer;
+    // Deprecated, instead use clock passed along with Config in Environment.
     webrtc::Clock* clock = nullptr;
   };
 

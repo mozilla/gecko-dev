@@ -13,6 +13,7 @@
 
 #include <memory>
 
+#include "api/environment/environment.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_controller.h"
 #include "api/neteq/tick_timer.h"
@@ -26,7 +27,7 @@ namespace webrtc {
 // This is the class for the decision tree implementation.
 class DecisionLogic : public NetEqController {
  public:
-  DecisionLogic(NetEqController::Config config);
+  DecisionLogic(const Environment& env, NetEqController::Config config);
   DecisionLogic(
       NetEqController::Config config,
       std::unique_ptr<DelayManager> delay_manager,

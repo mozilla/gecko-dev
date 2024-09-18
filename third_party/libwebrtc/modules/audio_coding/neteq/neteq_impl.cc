@@ -50,26 +50,9 @@
 #include "rtc_base/strings/audio_format_to_string.h"
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/clock.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {
-
-std::unique_ptr<NetEqController> CreateNetEqController(
-    const NetEqControllerFactory& controller_factory,
-    int base_min_delay,
-    int max_packets_in_buffer,
-    bool allow_time_stretching,
-    TickTimer* tick_timer,
-    webrtc::Clock* clock) {
-  NetEqController::Config config;
-  config.base_min_delay_ms = base_min_delay;
-  config.max_packets_in_buffer = max_packets_in_buffer;
-  config.allow_time_stretching = allow_time_stretching;
-  config.tick_timer = tick_timer;
-  config.clock = clock;
-  return controller_factory.CreateNetEqController(config);
-}
 
 AudioFrame::SpeechType ToSpeechType(NetEqImpl::OutputType type) {
   switch (type) {
@@ -123,13 +106,14 @@ NetEqImpl::Dependencies::Dependencies(
       packet_buffer(new PacketBuffer(config.max_packets_in_buffer,
                                      tick_timer.get(),
                                      stats.get())),
-      neteq_controller(
-          CreateNetEqController(controller_factory,
-                                config.min_delay_ms,
-                                config.max_packets_in_buffer,
-                                !config.for_test_no_time_stretching,
-                                tick_timer.get(),
-                                &env.clock())),
+      neteq_controller(controller_factory.Create(
+          env,
+          {.allow_time_stretching = !config.for_test_no_time_stretching,
+           .max_packets_in_buffer =
+               static_cast<int>(config.max_packets_in_buffer),
+           .base_min_delay_ms = config.min_delay_ms,
+           .tick_timer = tick_timer.get(),
+           .clock = &env.clock()})),
       red_payload_splitter(new RedPayloadSplitter),
       timestamp_scaler(new TimestampScaler(*decoder_database)),
       accelerate_factory(new AccelerateFactory),

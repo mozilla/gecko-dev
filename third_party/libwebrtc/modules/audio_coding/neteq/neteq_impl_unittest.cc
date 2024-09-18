@@ -129,7 +129,7 @@ class NetEqImplTest : public ::testing::Test {
       controller_config.max_packets_in_buffer = config_.max_packets_in_buffer;
       controller_config.clock = &clock_;
       deps.neteq_controller =
-          std::make_unique<DecisionLogic>(std::move(controller_config));
+          std::make_unique<DecisionLogic>(env_, std::move(controller_config));
     }
     neteq_controller_ = deps.neteq_controller.get();
 

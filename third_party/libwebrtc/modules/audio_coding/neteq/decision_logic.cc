@@ -37,8 +37,9 @@ constexpr int kPacketHistorySizeMs = 2000;
 constexpr size_t kCngTimeoutMs = 1000;
 
 std::unique_ptr<DelayManager> CreateDelayManager(
+    const Environment& env,
     const NetEqController::Config& neteq_config) {
-  DelayManager::Config config;
+  DelayManager::Config config(env.field_trials());
   config.max_packets_in_buffer = neteq_config.max_packets_in_buffer;
   config.base_minimum_delay_ms = neteq_config.base_min_delay_ms;
   config.Log();
@@ -63,9 +64,10 @@ bool IsExpand(NetEq::Mode mode) {
 
 }  // namespace
 
-DecisionLogic::DecisionLogic(NetEqController::Config config)
+DecisionLogic::DecisionLogic(const Environment& env,
+                             NetEqController::Config config)
     : DecisionLogic(config,
-                    CreateDelayManager(config),
+                    CreateDelayManager(env, config),
                     std::make_unique<BufferLevelFilter>()) {}
 
 DecisionLogic::DecisionLogic(

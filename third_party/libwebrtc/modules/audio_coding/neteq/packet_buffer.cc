@@ -28,7 +28,6 @@
 #include "rtc_base/experiments/struct_parameters_parser.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {

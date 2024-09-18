@@ -21,13 +21,16 @@
 #include "modules/audio_coding/neteq/mock/mock_histogram.h"
 #include "modules/audio_coding/neteq/mock/mock_statistics_calculator.h"
 #include "rtc_base/checks.h"
-#include "test/field_trial.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 
 namespace webrtc {
 
 namespace {
+
+using test::ExplicitKeyValueConfig;
+
 constexpr int kMaxNumberOfPackets = 200;
 constexpr int kTimeStepMs = 10;
 constexpr int kFrameSizeMs = 20;
@@ -47,7 +50,7 @@ class DelayManagerTest : public ::testing::Test {
 };
 
 DelayManagerTest::DelayManagerTest()
-    : dm_(DelayManager::Config(), &tick_timer_) {}
+    : dm_(DelayManager::Config(ExplicitKeyValueConfig("")), &tick_timer_) {}
 
 void DelayManagerTest::SetUp() {
   dm_.SetPacketAudioLength(kFrameSizeMs);

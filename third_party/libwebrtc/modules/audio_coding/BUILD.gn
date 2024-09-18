@@ -738,7 +738,6 @@ rtc_library("neteq") {
     "../../rtc_base/experiments:field_trial_parser",
     "../../rtc_base/synchronization:mutex",
     "../../system_wrappers",
-    "../../system_wrappers:field_trial",
     "../../system_wrappers:metrics",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/strings:string_view",
