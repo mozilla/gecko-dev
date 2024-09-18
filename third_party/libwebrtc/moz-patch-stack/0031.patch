@@ -1050,7 +1050,7 @@ index 29a7bea9d9..a8994aaa68 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 0a347817ba..2da1c1b772 100644
+index 2bdbb971ef..0ed0780651 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
 @@ -338,6 +338,7 @@ rtc_library("sample_counter") {
