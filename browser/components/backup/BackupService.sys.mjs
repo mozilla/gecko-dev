@@ -3231,7 +3231,8 @@ export class BackupService extends EventTarget {
       case "formautofill-storage-changed": {
         if (
           data == "remove" &&
-          subject.wrappedJSObject.collectionName == "creditCards"
+          (subject.wrappedJSObject.collectionName == "creditCards" ||
+            subject.wrappedJSObject.collectionName == "addresses")
         ) {
           this.#debounceRegeneration();
         }
