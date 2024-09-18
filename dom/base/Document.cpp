@@ -16841,7 +16841,10 @@ static void UpdateEffectsOnBrowsingContext(BrowsingContext* aBc,
       return EffectsInfo::FullyHidden();
     }
     Maybe<nsRect> visibleRect = subDocFrame->GetVisibleRect();
-    if (subDocFrame->PresContext()->IsPrintingOrPrintPreview()) {
+    // If we're paginated, we the display list rect might not be reasonable,
+    // because it is the one from the last display item painted. We assume the
+    // frame is fully visible, lacking something better.
+    if (subDocFrame->PresContext()->IsPaginated()) {
       visibleRect = Some(subDocFrame->GetDestRect());
     }
     if (!visibleRect) {
