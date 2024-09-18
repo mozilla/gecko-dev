@@ -2587,25 +2587,41 @@ characteristics:
     data_sensitivity:
       - technical
 
-  ice_foundations:
-    type: text
+  ice_order:
+    type: quantity
+    unit: int
     description: >
-      Unique ICE foundations occurance count and the
-      standard deviation of latencies
+      Unique ICE foundations occurrence count
     lifetime: application
     send_in_pings:
       - user-characteristics
     notification_emails:
       - tom@mozilla.com
     bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
     data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1902003#c2
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c4
     expires: never
     data_sensitivity:
-      # Text metrics are _required_ to be web_activity or highly_sensitive, so even though this
-      # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
-      - highly_sensitive
+      - technical
+
+  ice_sd:
+    type: quantity
+    unit: int
+    description: >
+      ICE foundation discovery latency standard deviation sum multiplied by 1000
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c4
+    expires: never
+    data_sensitivity:
+      - technical
 
   pointer_height:
     type: quantity
