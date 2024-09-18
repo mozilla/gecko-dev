@@ -2010,7 +2010,11 @@ fuzzy(0-129,0-48) == 1406179.html 1406179-ref.html
 == 1406183-1.html 1406183-1-ref.html
 == 1410028.html 1410028-ref.html
 fuzzy-if((!gtkWidget&&!geckoview&&!swgl&&!(isCoverageBuild&&winWidget))||useDrawSnapshot,1-2,17300-17500) skip-if(winWidget&&isCoverageBuild) == 1412375.html 1412375-ref.html # Skip WinCCov: Bug 1740155
-fuzzy(0-255,0-4054) == 1415987-1.html 1415987-1-ref.html # this is a large fuzz, without the fix the test fails in the range 246-255,3237-25110, which overlaps the fuzz range, but would still catch regressing this bug some of the time which is better than not having a test.
+# Note: The test below has a large fuzz, because svg text chooses
+# scale-dependent font metrics. Without the fix the test fails in the range
+# 246-255,3237-25110, which overlaps the fuzz range, but would still catch
+# regressing this bug some of the time which is better than not having a test.
+fuzzy(0-255,0-6025) == 1415987-1.html 1415987-1-ref.html
 == 1419820-1.html 1419820-1-ref.html
 == 1420946-1.html 1420946-1-ref.html
 == 1422393.html 1422393-ref.html
