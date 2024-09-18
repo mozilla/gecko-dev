@@ -51,8 +51,6 @@ function createTestingEnvironment(markerFileOnly = false) {
 
 /* exported testSteps */
 async function testSteps() {
-  SpecialPowers.setBoolPref("dom.quotaManager.testing", true);
-
   const name = this.window ? window.location.pathname : "Splendid Test";
 
   info("Verifying initialization");

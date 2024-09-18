@@ -21,6 +21,36 @@ var { PerfTestHelpers } = ChromeUtils.importESModule(
   "resource://testing-common/PerfTestHelpers.sys.mjs"
 );
 
+const kESModuleList = new Set([
+  /browser\/lockwise-card.js$/,
+  /browser\/monitor-card.js$/,
+  /browser\/proxy-card.js$/,
+  /browser\/vpn-card.js$/,
+  /toolkit\/content\/global\/certviewer\/components\/.*\.js$/,
+  /toolkit\/content\/global\/certviewer\/.*\.js$/,
+  /toolkit\/content\/global\/ml\/transformers.*\.js$/,
+  /chrome\/pdfjs\/content\/web\/.*\.js$/,
+]);
+
+/**
+ * Check if a URI should be parsed as an ES module.
+ *
+ * @param uri the uri to check against the ES module list
+ * @return true if the uri should be parsed as a module, otherwise parse it as a script.
+ */
+function uriIsESModule(uri) {
+  if (uri.filePath.endsWith(".mjs")) {
+    return true;
+  }
+
+  for (let allowlistItem of kESModuleList) {
+    if (allowlistItem.test(uri.spec)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /**
  * Returns a promise that is resolved with a list of files that have one of the
  * extensions passed, represented by their nsIURI objects, which exist inside

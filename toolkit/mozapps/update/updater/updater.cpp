@@ -3025,6 +3025,15 @@ int NS_main(int argc, NS_tchar** argv) {
   bool isDMGInstall = false;
 
 #ifdef XP_MACOSX
+  if (argc > 2 && NS_tstrcmp(argv[1], NS_T("--openAppBundle")) == 0) {
+    // We have been asked to open a .app bundle. The path to the .app bundle and
+    // any command line arguments have been passed to us as arguments after
+    // "--openAppBundle", so remove the first two arguments and launch the .app
+    // bundle.
+    LaunchMacApp(argc - 2, (const char**)argv + 2);
+    return 0;
+  }
+
   // We want to control file permissions explicitly, or else we could end up
   // corrupting installs for other users on the system. Accordingly, set the
   // umask to 0 for all file creations below and reset it on exit. See Bug

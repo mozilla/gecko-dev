@@ -12,6 +12,7 @@ import androidx.test.uiautomator.UiSelector
 import org.mozilla.fenix.helpers.Constants.RETRY_COUNT
 import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectExists
+import org.mozilla.fenix.helpers.MatcherHelper.assertUIObjectIsGone
 import org.mozilla.fenix.helpers.MatcherHelper.itemContainingText
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithDescription
 import org.mozilla.fenix.helpers.MatcherHelper.itemWithText
@@ -68,10 +69,8 @@ class NotificationRobot {
     }
 
     fun verifySystemNotificationDoesNotExist(notificationMessage: String) {
-        Log.i(TAG, "verifySystemNotificationDoesNotExist: Waiting for $waitingTime ms for notification: $notificationMessage to be gone")
-        mDevice.findObject(UiSelector().textContains(notificationMessage)).waitUntilGone(waitingTime)
-        Log.i(TAG, "verifySystemNotificationDoesNotExist: Waited for $waitingTime ms for notification: $notificationMessage to be gone")
-        assertUIObjectExists(itemContainingText(notificationMessage), exists = false)
+        mDevice.waitForWindowUpdate(packageName, waitingTime)
+        assertUIObjectIsGone(itemContainingText(notificationMessage), waitingTime = waitingTime)
     }
 
     fun verifyPrivateTabsNotification() {

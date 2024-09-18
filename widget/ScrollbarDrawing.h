@@ -15,6 +15,8 @@
 #include "ThemeDrawing.h"
 #include "Units.h"
 
+class nsScrollbarFrame;
+
 namespace mozilla::widget {
 
 class ScrollbarDrawing {
@@ -49,7 +51,7 @@ class ScrollbarDrawing {
 
   DPIRatio GetDPIRatioForScrollbarPart(const nsPresContext*);
 
-  static nsIFrame* GetParentScrollbarFrame(nsIFrame* aFrame);
+  static nsScrollbarFrame* GetParentScrollbarFrame(nsIFrame* aFrame);
   static bool IsParentScrollbarRolledOver(nsIFrame* aFrame);
   static bool IsParentScrollbarHoveredOrActive(nsIFrame* aFrame);
 

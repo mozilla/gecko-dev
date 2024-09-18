@@ -4814,6 +4814,7 @@ main section {
   height: 100%;
   width: 100%;
   background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, var(--newtab-background-color-secondary) 50%, rgba(255, 255, 255, 0) 100%);
+  z-index: 2;
 }
 @media (prefers-reduced-motion: no-preference) {
   .ds-card.placeholder-seen::before {
@@ -6092,19 +6093,37 @@ main section {
 }
 .list-feed .list-feed-title .icon-trending {
   margin-inline-end: var(--space-small);
-  -moz-context-properties: stroke;
-  stroke: currentColor;
   transform: none;
+  fill: var(--newtab-text-primary-color);
 }
 .list-feed .list-feed-content {
   list-style: none;
   padding-inline-start: 0;
   margin: 0;
 }
+.list-feed .ds-card.placeholder.list-card-placeholder {
+  box-shadow: unset;
+  padding-inline-end: var(--space-large);
+  padding-block: var(--space-large) var(--space-small);
+}
+.list-feed .ds-card.placeholder.list-card-placeholder .placeholder-image {
+  height: 75px;
+  width: 75px;
+  position: absolute;
+  border-radius: var(--border-radius-medium);
+  inset-inline-end: var(--space-large);
+}
+.list-feed .ds-card.placeholder.list-card-placeholder .placeholder-label {
+  margin-bottom: unset;
+}
+.list-feed .ds-card.placeholder.list-card-placeholder .placeholder-header, .list-feed .ds-card.placeholder.list-card-placeholder .placeholder-description {
+  width: 60%;
+  height: 20px;
+}
 
 .ds-card-grid .list-feed-content .ds-card.list-feed-card {
   background-color: var(--newtab-background-color-secondary);
-  border-block-start: 1px solid var(--color-gray-50);
+  border-block-start: 1px solid light-dark(var(--color-gray-70), var(--color-gray-50));
   border-radius: 0;
   box-shadow: none;
   flex-direction: row-reverse;

@@ -156,8 +156,7 @@ add_task(async function navigate_around() {
       // Disable bfcache so that we can measure more accurately the number of
       // pref accesses in the child processes.
       // If bfcache is enabled on Fission
-      // dom.ipc.keepProcessesAlive.webIsolated.perOrigin and
-      // security.sandbox.content.force-namespace are accessed only a couple of
+      // security.sandbox.content.force-namespace is accessed only a couple of
       // times.
       ["browser.sessionhistory.max_total_viewers", 0],
     ],
@@ -183,12 +182,6 @@ add_task(async function navigate_around() {
       min: 50,
       max: 51,
     };
-    // This pref is only accessed in automation to speed up tests.
-    knownProblematicPrefs["dom.ipc.keepProcessesAlive.webIsolated.perOrigin"] =
-      {
-        min: 50,
-        max: 51,
-      };
     if (AppConstants.platform == "linux") {
       // The following sandbox pref is covered by
       // https://bugzilla.mozilla.org/show_bug.cgi?id=1600189

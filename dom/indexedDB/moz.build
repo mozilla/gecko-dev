@@ -24,7 +24,7 @@ XPCSHELL_TESTS_MANIFESTS += [
     "test/unit/xpcshell-parent-process.toml",
 ]
 
-TEST_DIRS += ["test/gtest"]
+TEST_DIRS += ["test"]
 
 XPIDL_SOURCES += [
     "nsIIndexedDatabaseManager.idl",

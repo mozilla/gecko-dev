@@ -2220,7 +2220,18 @@ static bool PromiseReactionJob(JSContext* cx, unsigned argc, Value* vp) {
       // Step 1.d.ii.2. Let handlerResult be ThrowCompletion(argument).
       resolutionMode = RejectMode;
       handlerResult = argument;
-    } else {
+    }
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    else if (handlerNum == PromiseHandler::AsyncIteratorDisposeAwaitFulfilled) {
+      // Explicit Resource Management Proposal
+      // 27.1.3.1 %AsyncIteratorPrototype% [ @@asyncDispose ] ( )
+      // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-%25asynciteratorprototype%25-%40%40asyncdispose
+      //
+      // Step 6.e.i. Return undefined.
+      handlerResult = JS::UndefinedValue();
+    }
+#endif
+    else {
       // Special case for Async-from-Sync Iterator.
 
       MOZ_ASSERT(handlerNum ==
@@ -5605,6 +5616,25 @@ template <typename T>
   extraStep(reaction);
   return PerformPromiseThenWithReaction(cx, unwrappedPromise, reaction);
 }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+// Explicit Resource Management Proposal
+// 27.1.3.1 %AsyncIteratorPrototype% [ @@asyncDispose ] ( )
+// Steps 6.c-g
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-%25asynciteratorprototype%25-%40%40asyncdispose
+// The steps mentioned above are almost identical to the steps 3-7 of
+// https://tc39.es/ecma262/#await we have a utility function InternalAwait which
+// covers these steps thus this following function wraps around the utility
+// and implements the steps of %AsyncIteratorPrototype% [ @@asyncDispose ] ( ).
+[[nodiscard]] bool js::InternalAsyncIteratorDisposeAwait(
+    JSContext* cx, JS::Handle<JS::Value> value,
+    JS::Handle<JSObject*> resultPromise) {
+  auto extra = [](JS::Handle<PromiseReactionRecord*> reaction) {};
+  return InternalAwait(cx, value, resultPromise,
+                       PromiseHandler::AsyncIteratorDisposeAwaitFulfilled,
+                       PromiseHandler::Thrower, extra);
+}
+#endif
 
 [[nodiscard]] bool js::InternalAsyncGeneratorAwait(
     JSContext* cx, JS::Handle<AsyncGeneratorObject*> generator,

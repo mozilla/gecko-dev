@@ -43,9 +43,7 @@ internal fun SubmenuHeader(
         IconButton(
             onClick = { onClick() },
             modifier = Modifier.semantics {
-                if (backButtonContentDescription != null) {
-                    this.contentDescription = backButtonContentDescription
-                }
+                backButtonContentDescription?.also { this.contentDescription = it }
             },
         ) {
             Icon(

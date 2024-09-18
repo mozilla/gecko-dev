@@ -596,9 +596,16 @@ static bool StateChangeMayAffectFrame(const Element& aElement,
 
 static bool RepaintForAppearance(nsIFrame& aFrame, const Element& aElement,
                                  ElementState aStateMask) {
-  if (aStateMask.HasAtLeastOneOfStates(ElementState::HOVER |
-                                       ElementState::ACTIVE) &&
-      aElement.IsAnyOfXULElements(nsGkAtoms::checkbox, nsGkAtoms::radio)) {
+  constexpr auto kThemingStates =
+      ElementState::HOVER | ElementState::ACTIVE | ElementState::FOCUSRING |
+      ElementState::DISABLED | ElementState::CHECKED |
+      ElementState::INDETERMINATE | ElementState::READONLY |
+      ElementState::FOCUS;
+  if (!aStateMask.HasAtLeastOneOfStates(kThemingStates)) {
+    return false;
+  }
+
+  if (aElement.IsAnyOfXULElements(nsGkAtoms::checkbox, nsGkAtoms::radio)) {
     // The checkbox inside these elements inherit hover state and so on, see
     // nsNativeTheme::GetContentState.
     // FIXME(emilio): Would be nice to not have these hard-coded.
@@ -609,13 +616,7 @@ static bool RepaintForAppearance(nsIFrame& aFrame, const Element& aElement,
     return false;
   }
   nsPresContext* pc = aFrame.PresContext();
-  nsITheme* theme = pc->Theme();
-  if (!theme->ThemeSupportsWidget(pc, &aFrame, appearance)) {
-    return false;
-  }
-  bool repaint = false;
-  theme->WidgetStateChanged(&aFrame, appearance, nullptr, &repaint, nullptr);
-  return repaint;
+  return pc->Theme()->ThemeSupportsWidget(pc, &aFrame, appearance);
 }
 
 /**
@@ -3654,13 +3655,9 @@ void RestyleManager::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
         primaryFrame->StyleDisplay()->EffectiveAppearance();
     if (appearance != StyleAppearance::None) {
       nsITheme* theme = PresContext()->Theme();
-      if (theme->ThemeSupportsWidget(PresContext(), primaryFrame, appearance)) {
-        bool repaint = false;
-        theme->WidgetStateChanged(primaryFrame, appearance, aAttribute,
-                                  &repaint, aOldValue);
-        if (repaint) {
-          changeHint |= nsChangeHint_RepaintFrame;
-        }
+      if (theme->ThemeSupportsWidget(PresContext(), primaryFrame, appearance) &&
+          theme->WidgetAttributeChangeRequiresRepaint(appearance, aAttribute)) {
+        changeHint |= nsChangeHint_RepaintFrame;
       }
     }
 

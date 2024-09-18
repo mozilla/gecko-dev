@@ -70,6 +70,7 @@ body {
   --urlbar-search-mode-picker-persisted-background-color: color-mix(in srgb, currentColor 14%, transparent);
   --urlbar-search-mode-picker-persisted-background-color-hover: color-mix(in srgb, currentColor 28%, transparent);
   --urlbar-search-mode-picker-persisted-background-color-active: color-mix(in srgb, currentColor 35%, transparent);
+  --urlbar-searchmodeswitcher-spacing: 6px;
 
   --pocket-icon-fill: #ef4056;
 

@@ -38,6 +38,7 @@ class nsIContent;
 class nsIIncrementalStreamLoader;
 class nsIPrincipal;
 class nsIScriptGlobalObject;
+class nsITimer;
 class nsIURI;
 
 namespace JS {
@@ -361,7 +362,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   /**
    * Processes any pending requests that are ready for processing.
    */
-  void ProcessPendingRequests();
+  void ProcessPendingRequests(bool aAllowBypassingParserBlocking = false);
 
   /**
    * Starts deferring deferred scripts and puts them in the mDeferredRequests
@@ -571,6 +572,8 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
    * This function is virtual to allow cross-library calls to SetEnabled()
    */
   virtual void ProcessPendingRequestsAsync();
+
+  void ProcessPendingRequestsAsyncBypassParserBlocking();
 
   /**
    * If true, the loader is ready to execute parser-blocking scripts, and so are
@@ -812,6 +815,8 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   nsTArray<RefPtr<ModuleLoader>> mShadowRealmModuleLoaders;
 
   RefPtr<SharedScriptCache> mCache;
+
+  nsCOMPtr<nsITimer> mProcessPendingRequestsAsyncBypassParserBlocking;
 
   // Logging
  public:

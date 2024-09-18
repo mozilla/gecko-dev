@@ -66,6 +66,7 @@
 #include "nsIClassOfService.h"
 #include "nsICacheInfoChannel.h"
 #include "nsITimedChannel.h"
+#include "nsITimer.h"
 #include "nsIScriptElement.h"
 #include "nsISupportsPriority.h"
 #include "nsIDocShell.h"
@@ -268,6 +269,10 @@ ScriptLoader::~ScriptLoader() {
   }
 
   mModuleLoader = nullptr;
+
+  if (mProcessPendingRequestsAsyncBypassParserBlocking) {
+    mProcessPendingRequestsAsyncBypassParserBlocking->Cancel();
+  }
 }
 
 void ScriptLoader::SetGlobalObject(nsIGlobalObject* aGlobalObject) {
@@ -2147,27 +2152,24 @@ nsresult ScriptLoader::ProcessOffThreadRequest(ScriptLoadRequest* aRequest) {
 
   aRequest->SetReady();
 
-  if (aRequest == mParserBlockingRequest) {
-    if (!ReadyToExecuteParserBlockingScripts()) {
-      // If not ready to execute scripts, schedule an async call to
-      // ProcessPendingRequests to handle it.
-      ProcessPendingRequestsAsync();
-      return NS_OK;
-    }
-
-    // Same logic as in top of ProcessPendingRequests.
-    mParserBlockingRequest = nullptr;
-    UnblockParser(aRequest);
-    ProcessRequest(aRequest);
-    ContinueParserAsync(aRequest);
-    return NS_OK;
-  }
-
-  // Async scripts and blocking scripts can be executed right away.
-  if ((aRequest->GetScriptLoadContext()->IsAsyncScript() ||
+  // Move async scripts to mLoadedAsyncRequests and process them by calling
+  // ProcessPendingRequests.
+  if (aRequest != mParserBlockingRequest &&
+      (aRequest->GetScriptLoadContext()->IsAsyncScript() ||
        aRequest->GetScriptLoadContext()->IsBlockingScript()) &&
       !aRequest->isInList()) {
-    return ProcessRequest(aRequest);
+    if (aRequest->GetScriptLoadContext()->IsAsyncScript()) {
+      // We're adding the request back to async list so that it can be executed
+      // later.
+      aRequest->GetScriptLoadContext()->mInAsyncList = false;
+      AddAsyncRequest(aRequest);
+    } else {
+      MOZ_ASSERT(
+          false,
+          "This should not run ever with the current default prefs. The "
+          "request should not run synchronously but added to some queue.");
+      return ProcessRequest(aRequest);
+    }
   }
 
   // Process other scripts in the proper order.
@@ -3231,9 +3233,9 @@ bool ScriptLoader::HasPendingDynamicImports() const {
 
 void ScriptLoader::ProcessPendingRequestsAsync() {
   if (HasPendingRequests()) {
-    nsCOMPtr<nsIRunnable> task =
-        NewRunnableMethod("dom::ScriptLoader::ProcessPendingRequests", this,
-                          &ScriptLoader::ProcessPendingRequests);
+    nsCOMPtr<nsIRunnable> task = NewRunnableMethod<bool>(
+        "dom::ScriptLoader::ProcessPendingRequests", this,
+        &ScriptLoader::ProcessPendingRequests, false);
     if (mDocument) {
       mDocument->Dispatch(task.forget());
     } else {
@@ -3242,15 +3244,48 @@ void ScriptLoader::ProcessPendingRequestsAsync() {
   }
 }
 
-void ScriptLoader::ProcessPendingRequests() {
+void ProcessPendingRequestsCallback(nsITimer* aTimer, void* aClosure) {
+  RefPtr<ScriptLoader> sl = static_cast<ScriptLoader*>(aClosure);
+  sl->ProcessPendingRequests(true);
+}
+
+void ScriptLoader::ProcessPendingRequestsAsyncBypassParserBlocking() {
+  MOZ_ASSERT(HasPendingRequests());
+
+  if (!mProcessPendingRequestsAsyncBypassParserBlocking) {
+    mProcessPendingRequestsAsyncBypassParserBlocking = NS_NewTimer();
+  }
+
+  // test_bug503481b.html tests the unlikely edge case where loading parser
+  // blocking script depends on async script to be executed. So don't block
+  // async scripts forever.
+  mProcessPendingRequestsAsyncBypassParserBlocking->InitWithNamedFuncCallback(
+      ProcessPendingRequestsCallback, this, 2500, nsITimer::TYPE_ONE_SHOT,
+      "ProcessPendingRequestsAsyncBypassParserBlocking");
+}
+
+void ScriptLoader::ProcessPendingRequests(bool aAllowBypassingParserBlocking) {
   RefPtr<ScriptLoadRequest> request;
 
-  if (mParserBlockingRequest && mParserBlockingRequest->IsFinished() &&
-      ReadyToExecuteParserBlockingScripts()) {
-    request.swap(mParserBlockingRequest);
-    UnblockParser(request);
-    ProcessRequest(request);
-    ContinueParserAsync(request);
+  if (mProcessPendingRequestsAsyncBypassParserBlocking) {
+    mProcessPendingRequestsAsyncBypassParserBlocking->Cancel();
+  }
+
+  if (mParserBlockingRequest) {
+    if (mParserBlockingRequest->IsFinished() &&
+        ReadyToExecuteParserBlockingScripts()) {
+      request.swap(mParserBlockingRequest);
+      UnblockParser(request);
+      ProcessRequest(request);
+      ContinueParserAsync(request);
+      ProcessPendingRequestsAsync();
+      return;
+    }
+
+    if (!aAllowBypassingParserBlocking) {
+      ProcessPendingRequestsAsyncBypassParserBlocking();
+      return;
+    }
   }
 
   while (ReadyToExecuteParserBlockingScripts() && !mXSLTRequests.isEmpty() &&

@@ -9,12 +9,6 @@ const { BookmarkJSONUtils } = ChromeUtils.importESModule(
 const { PlacesBackupResource } = ChromeUtils.importESModule(
   "resource:///modules/backup/PlacesBackupResource.sys.mjs"
 );
-const { PrivateBrowsingUtils } = ChromeUtils.importESModule(
-  "resource://gre/modules/PrivateBrowsingUtils.sys.mjs"
-);
-
-const HISTORY_ENABLED_PREF = "places.history.enabled";
-const SANITIZE_ON_SHUTDOWN_PREF = "privacy.sanitize.sanitizeOnShutdown";
 
 registerCleanupFunction(() => {
   /**

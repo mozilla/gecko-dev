@@ -73,6 +73,15 @@ enum class PromiseHandler : uint32_t {
   AsyncFromSyncIteratorValueUnwrapDone,
   AsyncFromSyncIteratorValueUnwrapNotDone,
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  // Explicit Resource Management Proposal
+  // 27.1.3.1 %AsyncIteratorPrototype% [ @@asyncDispose ] ( )
+  // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-%25asynciteratorprototype%25-%40%40asyncdispose
+  //
+  // Step 6.e. unwrap Abstract Closure
+  AsyncIteratorDisposeAwaitFulfilled,
+#endif
+
   // One past the maximum allowed PromiseHandler value.
   Limit
 };
@@ -268,6 +277,12 @@ bool IsPromiseConstructor(const JSObject* obj);
 bool AbruptRejectPromise(JSContext* cx, JS::CallArgs& args,
                          JS::Handle<JSObject*> promiseObj,
                          JS::Handle<JSObject*> reject);
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+[[nodiscard]] bool InternalAsyncIteratorDisposeAwait(
+    JSContext* cx, JS::Handle<JS::Value> value,
+    JS::Handle<JSObject*> resultPromise);
+#endif
 }  // namespace js
 
 #endif  // builtin_Promise_h

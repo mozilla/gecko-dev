@@ -284,12 +284,6 @@ password-card {
   flex-direction: column;
 }
 
-.password-card-container {
-  display: grid;
-  grid-template-rows: 1fr 1fr 1fr;
-  grid-gap: var(--space-medium);
-}
-
 .edit-button {
   justify-self: end;
 }

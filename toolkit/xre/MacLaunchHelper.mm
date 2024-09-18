@@ -119,6 +119,10 @@ void LaunchMacApp(int aArgc, char** aArgv) {
   MacAutoreleasePool pool;
 
   NSString* launchPath = [NSString stringWithUTF8String:aArgv[0]];
+  if (![launchPath hasSuffix:@".app"]) {
+    LaunchChildMac(aArgc, aArgv, 0);
+    return;
+  }
   NSMutableArray* arguments = [NSMutableArray arrayWithCapacity:aArgc - 1];
   for (int i = 1; i < aArgc; i++) {
     [arguments addObject:[NSString stringWithUTF8String:aArgv[i]]];

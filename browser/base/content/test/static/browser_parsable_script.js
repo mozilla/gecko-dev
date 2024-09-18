@@ -12,17 +12,6 @@ const kAllowlist = new Set([
   /browser\/content\/browser\/places\/controller.js$/,
 ]);
 
-const kESModuleList = new Set([
-  /browser\/lockwise-card.js$/,
-  /browser\/monitor-card.js$/,
-  /browser\/proxy-card.js$/,
-  /browser\/vpn-card.js$/,
-  /toolkit\/content\/global\/certviewer\/components\/.*\.js$/,
-  /toolkit\/content\/global\/certviewer\/.*\.js$/,
-  /toolkit\/content\/global\/ml\/transformers.*\.js$/,
-  /chrome\/pdfjs\/content\/web\/.*\.js$/,
-]);
-
 // Normally we would use reflect.sys.mjs to get Reflect.parse. However, if
 // we do that, then all the AST data is allocated in reflect.sys.mjs's
 // zone. That exposes a bug in our GC. The GC collects reflect.sys.mjs's
@@ -43,25 +32,6 @@ init();
  */
 function uriIsAllowed(uri) {
   for (let allowlistItem of kAllowlist) {
-    if (allowlistItem.test(uri.spec)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Check if a URI should be parsed as an ES module.
- *
- * @param uri the uri to check against the ES module list
- * @return true if the uri should be parsed as a module, otherwise parse it as a script.
- */
-function uriIsESModule(uri) {
-  if (uri.filePath.endsWith(".mjs")) {
-    return true;
-  }
-
-  for (let allowlistItem of kESModuleList) {
     if (allowlistItem.test(uri.spec)) {
       return true;
     }

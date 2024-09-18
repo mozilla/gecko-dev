@@ -5,7 +5,6 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
-import androidx.test.filters.SdkSuppress
 import mozilla.components.concept.engine.mediasession.MediaSession
 import org.junit.Rule
 import org.junit.Test
@@ -41,7 +40,6 @@ class MediaNotificationTest : TestSetup() {
     val retryTestRule = RetryTestRule(3)
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1347033
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifyVideoPlaybackSystemNotificationTest() {
@@ -77,7 +75,6 @@ class MediaNotificationTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316010
-    @SdkSuppress(maxSdkVersion = 30)
     @SmokeTest
     @Test
     fun verifyAudioPlaybackSystemNotificationTest() {

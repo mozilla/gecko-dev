@@ -81,7 +81,7 @@ import org.mozilla.fenix.utils.exitSubmenu
 // three states instead of the expected two states required by design.
 private const val PEEK_HEIGHT = 460
 private const val EXPANDED_MIN_RATIO = 0.0001f
-private const val TOP_EXPANDED_OFFSET = 80
+private const val EXPANDED_OFFSET = 80
 private const val HIDING_FRICTION = 0.9f
 
 /**
@@ -111,7 +111,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     isFitToContents = true
                     peekHeight = PEEK_HEIGHT.dpToPx(resources.displayMetrics)
                     halfExpandedRatio = EXPANDED_MIN_RATIO
-                    expandedOffset = TOP_EXPANDED_OFFSET
+                    maxHeight = resources.displayMetrics.heightPixels - EXPANDED_OFFSET.dpToPx(resources.displayMetrics)
                     state = BottomSheetBehavior.STATE_COLLAPSED
                     hideFriction = HIDING_FRICTION
                 }

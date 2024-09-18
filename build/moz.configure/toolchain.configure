@@ -2865,6 +2865,13 @@ def security_hardening_cflags(
             if debug:
                 flags.extend(trivial_auto_var_init)
 
+        if (c_compiler.type == "clang" and c_compiler.version >= "16") or (
+            c_compiler.type == "gcc" and c_compiler.version >= "13"
+        ):
+            # Cannot use level 3 because we have many uses of the [0] GNU syntax.
+            # Cannot use level 2 because sqlite3 and icu use the [1] GNU syntax.
+            flags.append("-fstrict-flex-arrays=1")
+
         # ASLR ------------------------------------------------
         # ASLR (dynamicbase) is enabled by default in clang-cl; but the
         # mingw-clang build requires it to be explicitly enabled

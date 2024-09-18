@@ -265,7 +265,7 @@ If you want to help improve the developer tools, these resources will get you st
    * - `Get Involved <https://firefox-dev.tools/>`_
      - Our community website explains how to get involved.
 
-   * - `bugs.firefox-dev.tools <https://bugs.firefox-dev.tools/>`_
+   * - `codetribute.mozilla.org <https://codetribute.mozilla.org/projects/devtools/>`_
      - A tool helping to find bugs to work on.
 
    * - :ref:`Read source docs <devtools-contributor-doc>`

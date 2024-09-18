@@ -76,45 +76,11 @@ bool SmoothMsdScrollAnimation::DoSample(FrameMetrics& aFrameMetrics,
   mApzc.mX.AdjustDisplacement(displacement.x, adjustedOffset.x, overscroll.x);
   mApzc.mY.AdjustDisplacement(displacement.y, adjustedOffset.y, overscroll.y);
   mApzc.ScrollBy(adjustedOffset / zoom);
-  // The smooth scroll may have caused us to reach the end of our scroll
-  // range. This can happen if either the
-  // layout.css.scroll-behavior.damping-ratio preference is set to less than 1
-  // (underdamped) or if a smooth scroll inherits velocity from a fling
-  // gesture.
-  if (!IsZero(overscroll / zoom)) {
-    // Hand off a fling with the remaining momentum to the next APZC in the
-    // overscroll handoff chain.
 
-    // We may have reached the end of the scroll range along one axis but
-    // not the other. In such a case we only want to hand off the relevant
-    // component of the fling.
-    if (mApzc.IsZero(overscroll.x)) {
-      velocity.x = 0;
-    } else if (mApzc.IsZero(overscroll.y)) {
-      velocity.y = 0;
-    }
-
-    // To hand off the fling, we attempt to find a target APZC and start a new
-    // fling with the same velocity on that APZC. For simplicity, the actual
-    // overscroll of the current sample is discarded rather than being handed
-    // off. The compositor should sample animations sufficiently frequently
-    // that this is not noticeable. The target APZC is chosen by seeing if
-    // there is an APZC further in the handoff chain which is pannable; if
-    // there isn't, we take the new fling ourselves, entering an overscrolled
-    // state.
-    // Note: APZC is holding mRecursiveMutex, so directly calling
-    // HandleSmoothScrollOverscroll() (which acquires the tree lock) would
-    // violate the lock ordering. Instead we schedule
-    // HandleSmoothScrollOverscroll() to be called after mRecursiveMutex is
-    // released.
-    mDeferredTasks.AppendElement(NewRunnableMethod<ParentLayerPoint, SideBits>(
-        "layers::AsyncPanZoomController::HandleSmoothScrollOverscroll", &mApzc,
-        &AsyncPanZoomController::HandleSmoothScrollOverscroll, velocity,
-        apz::GetOverscrollSideBits(overscroll)));
-    return false;
-  }
-
-  return true;
+  bool reachedEndOfScrollRange = !IsZero(overscroll / zoom);
+  // Do not hand off a smooth scroll animation to an ancestor APZC,
+  // nor allow it to cause overscroll.
+  return !reachedEndOfScrollRange;
 }
 
 void SmoothMsdScrollAnimation::SetDestination(

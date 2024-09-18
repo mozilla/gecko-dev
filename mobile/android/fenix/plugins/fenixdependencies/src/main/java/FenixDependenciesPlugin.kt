@@ -20,17 +20,10 @@ object FenixVersions {
     const val installreferrer = "2.2"
 
     const val mockk = "1.13.12"
-
-    // keep in sync with the versions used in AS.
-    const val protobuf = "3.21.10"
-    const val protobuf_plugin = "0.9.4"
 }
 
 @Suppress("unused")
 object FenixDependencies {
-    const val protobuf_javalite = "com.google.protobuf:protobuf-javalite:${FenixVersions.protobuf}"
-    const val protobuf_compiler = "com.google.protobuf:protoc:${FenixVersions.protobuf}"
-
     const val adjust = "com.adjust.sdk:adjust-android:${FenixVersions.adjust}"
     const val installreferrer = "com.android.installreferrer:installreferrer:${FenixVersions.installreferrer}"
 

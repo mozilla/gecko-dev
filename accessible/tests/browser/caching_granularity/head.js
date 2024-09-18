@@ -123,7 +123,8 @@ async function testCachingPerPlatform(accessible, attribute, queryCb) {
       attribute == "layout-guess" ||
       attribute == "language" ||
       attribute == "text" ||
-      attribute == "style")
+      attribute == "style" ||
+      attribute == "viewport")
   ) {
     // These attributes work on macOS, but aren't consistent. Events may happen
     // before document load complete that cause caching before the test starts.

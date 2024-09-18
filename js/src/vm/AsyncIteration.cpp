@@ -986,6 +986,71 @@ bool js::AsyncGeneratorThrow(JSContext* cx, unsigned argc, Value* vp) {
   return AsyncGeneratorReturned(cx, generator, thisOrRval);
 }
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+/**
+ * Explicit Resource Management Proposal
+ * 27.1.3.1 %AsyncIteratorPrototype% [ @@asyncDispose ] ( )
+ * https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-%25asynciteratorprototype%25-%40%40asyncdispose
+ */
+static bool AsyncIteratorDispose(JSContext* cx, unsigned argc, Value* vp) {
+  CallArgs args = CallArgsFromVp(argc, vp);
+
+  // Step 1. Let O be the this value.
+  JS::Rooted<JS::Value> O(cx, args.thisv());
+
+  // Step 2. Let promiseCapability be ! NewPromiseCapability(%Promise%).
+  JS::Rooted<PromiseObject*> promise(cx,
+                                     PromiseObject::createSkippingExecutor(cx));
+  if (!promise) {
+    return false;
+  }
+
+  // Step 3. Let return be Completion(GetMethod(O, "return")).
+  JS::Rooted<JS::Value> returnMethod(cx);
+  if (!GetProperty(cx, O, cx->names().return_, &returnMethod)) {
+    // Step 4. IfAbruptRejectPromise(return, promiseCapability).
+    return AbruptRejectPromise(cx, args, promise, nullptr);
+  }
+
+  // Step 5. If return is undefined, then
+  // As per the spec GetMethod returns undefined if the property is either null
+  // or undefined thus here we check for both.
+  if (returnMethod.isNullOrUndefined()) {
+    // Step 5.a. Perform ! Call(promiseCapability.[[Resolve]], undefined, «
+    // undefined »).
+    if (!PromiseObject::resolve(cx, promise, JS::UndefinedHandleValue)) {
+      return false;
+    }
+    args.rval().setObject(*promise);
+    return true;
+  }
+
+  // GetMethod also throws a TypeError exception if the function is not callable
+  // thus we perform that check here.
+  if (!IsCallable(returnMethod)) {
+    ReportIsNotFunction(cx, returnMethod);
+    return AbruptRejectPromise(cx, args, promise, nullptr);
+  }
+
+  // Step 6. Else,
+  // Step 6.a. Let result be Completion(Call(return, O, « undefined »)).
+  JS::Rooted<JS::Value> rval(cx);
+  if (!Call(cx, returnMethod, O, JS::UndefinedHandleValue, &rval)) {
+    // Step 6.b. IfAbruptRejectPromise(result, promiseCapability).
+    return AbruptRejectPromise(cx, args, promise, nullptr);
+  }
+
+  // Step 6.c-g.
+  if (!InternalAsyncIteratorDisposeAwait(cx, rval, promise)) {
+    return AbruptRejectPromise(cx, args, promise, nullptr);
+  }
+
+  // Step 7. Return promiseCapability.[[Promise]].
+  args.rval().setObject(*promise);
+  return true;
+}
+#endif
+
 static const JSFunctionSpec async_generator_methods[] = {
     JS_FN("next", js::AsyncGeneratorNext, 1, 0),
     JS_FN("throw", js::AsyncGeneratorThrow, 1, 0),
@@ -1254,6 +1319,9 @@ bool GlobalObject::initAsyncFromSyncIteratorProto(
 
 static const JSFunctionSpec async_iterator_proto_methods[] = {
     JS_SELF_HOSTED_SYM_FN(asyncIterator, "AsyncIteratorIdentity", 0, 0),
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    JS_SYM_FN(asyncDispose, AsyncIteratorDispose, 0, 0),
+#endif
     JS_FS_END,
 };
 
@@ -1271,6 +1339,9 @@ static const JSFunctionSpec async_iterator_proto_methods_with_helpers[] = {
     JS_SELF_HOSTED_FN("every", "AsyncIteratorEvery", 1, 0),
     JS_SELF_HOSTED_FN("find", "AsyncIteratorFind", 1, 0),
     JS_SELF_HOSTED_SYM_FN(asyncIterator, "AsyncIteratorIdentity", 0, 0),
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+    JS_SYM_FN(asyncDispose, AsyncIteratorDispose, 0, 0),
+#endif
     JS_FS_END,
 };
 

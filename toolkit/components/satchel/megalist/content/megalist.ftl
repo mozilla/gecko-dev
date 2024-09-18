@@ -131,9 +131,13 @@ passwords-remove-all-message =
     *[other] This will remove your saved passwords and any breach alerts. You cannot undo this action.
   }
 
-passwords-origin-label = Website address
+passwords-origin-label = Website
+# The attribute .data-after describes the text that should be displayed for the ::after pseudo-selector
 passwords-username-label = Username
+  .data-after = Copied
+# The attribute .data-after describes the text that should be displayed for the ::after pseudo-selector
 passwords-password-label = Password
+  .data-after = Copied
 
 passwords-radiogroup-label =
   .aria-label = Filter passwords
@@ -155,6 +159,38 @@ passwords-edit-label =
 passwords-origin-tooltip = Enter the exact address where you’ll sign in to this site.
 passwords-username-tooltip = Enter the username, email address, or account number you use to sign in.
 passwords-password-tooltip = Enter the password used to sign in to this account.
+
+website-icon =
+  .alt = Website Icon
+copy-icon =
+  .alt = Copy
+check-icon =
+  .alt = Copied
+alert-icon =
+  .alt = Warning
+
+# Variables
+#   $url (string) - The url associated with the login
+origin-login-line =
+  .aria-label = Visit { $url }
+  .title = Visit { $url }
+# Variables
+#   $username (string) - The username associated with the login
+username-login-line =
+  .aria-label = Copy Username { $username }
+  .title = Copy Username { $username }
+password-login-line =
+  .aria-label = Copy Password
+  .title = Copy Password
+edit-login-button = Edit
+  .tooltiptext = Edit Password
+
+show-password-button =
+  .aria-label = Show Password
+  .title = Show Password
+hide-password-button =
+  .aria-label = Hide Password
+  .title = Hide Password
 
 ## Payments
 

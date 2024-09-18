@@ -115,14 +115,13 @@
         "_tabMinWidthPref",
         "browser.tabs.tabMinWidth",
         null,
-        (pref, prevValue, newValue) => (this._tabMinWidth = newValue),
+        (pref, prevValue, newValue) => this.#updateTabMinWidth(newValue),
         newValue => {
           const LIMIT = 50;
           return Math.max(newValue, LIMIT);
         }
       );
-
-      this._tabMinWidth = this._tabMinWidthPref;
+      this.#updateTabMinWidth(this._tabMinWidthPref);
 
       CustomizableUI.addListener(this);
       this._updateNewTabVisibility();
@@ -157,6 +156,19 @@
         this._resetVerticalPinnedTabs();
       }
       this._positionPinnedTabs();
+
+      this.#updateTabMinWidth();
+
+      let indicatorTabs = gBrowser.visibleTabs.filter(tab => {
+        return (
+          tab.hasAttribute("soundplaying") ||
+          tab.hasAttribute("muted") ||
+          tab.hasAttribute("activemedia-blocked")
+        );
+      });
+      for (const indicatorTab of indicatorTabs) {
+        this.updateTabIndicatorAttr(indicatorTab);
+      }
 
       super.attributeChangedCallback(name, oldValue, newValue);
     }
@@ -1326,8 +1338,16 @@
       return node.before(tab);
     }
 
-    set _tabMinWidth(val) {
-      this.style.setProperty("--tab-min-width", val + "px");
+    #updateTabMinWidth(val) {
+      const minWidthVariable = "--tab-min-width";
+      if (this.verticalMode) {
+        this.style.removeProperty(minWidthVariable);
+      } else {
+        this.style.setProperty(
+          minWidthVariable,
+          (val ?? this._tabMinWidthPref) + "px"
+        );
+      }
     }
 
     get _isCustomizing() {
@@ -1474,6 +1494,10 @@
      * Try to keep the active tab's close button under the mouse cursor
      */
     _lockTabSizing(aTab, aTabWidth) {
+      if (this.verticalMode) {
+        return;
+      }
+
       let tabs = this._getVisibleTabs();
       if (!tabs.length) {
         return;

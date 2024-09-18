@@ -128,19 +128,21 @@ export class MegalistAlpha extends MozLitElement {
 
   // TODO: This should be passed to virtualized list with an explicit height.
   renderListItem({ origin: displayOrigin, username, password }) {
-    return html`<password-card
+    return html` <password-card
+      role="group"
       .origin=${displayOrigin}
       .username=${username}
       .password=${password}
       .messageToViewModel=${this.#messageToViewModel.bind(this)}
-    ></password-card>`;
+    >
+    </password-card>`;
   }
 
   // TODO: Temporary. Should be rendered by the virtualized list.
   renderList() {
     return this.records.length
       ? html`
-          <div class="passwords-list">
+          <div class="passwords-list" role="listbox" tabindex="0">
             ${this.records.map(record => this.renderListItem(record))}
           </div>
         `

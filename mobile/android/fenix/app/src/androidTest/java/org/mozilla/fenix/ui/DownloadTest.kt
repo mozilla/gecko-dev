@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import androidx.test.espresso.intent.rule.IntentsRule
 import androidx.test.filters.SdkSuppress
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -343,6 +344,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/244125
+    @Ignore("Failing to restart the network connection, to be re-enabled when it's ready for API 34")
     @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun restartDownloadFromAppNotificationAfterConnectionIsInterruptedTest() {

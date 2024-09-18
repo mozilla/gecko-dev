@@ -3409,7 +3409,8 @@ static void AppendToTop(nsDisplayListBuilder* aBuilder,
 struct HoveredStateComparator {
   static bool Hovered(const nsIFrame* aFrame) {
     return aFrame->GetContent()->IsElement() &&
-           aFrame->GetContent()->AsElement()->HasAttr(nsGkAtoms::hover);
+           aFrame->GetContent()->AsElement()->State().HasState(
+               ElementState::HOVER);
   }
 
   bool Equals(nsIFrame* A, nsIFrame* B) const {

@@ -500,26 +500,7 @@ impl Device {
     /// Returns whether document colors are enabled.
     #[inline]
     pub fn forced_colors(&self) -> ForcedColors {
-        if self.document().mIsBeingUsedAsImage() {
-            // SVG images never force colors.
-            return ForcedColors::None;
-        }
-        let prefs = self.pref_sheet_prefs();
-        if !prefs.mUseDocumentColors {
-            return ForcedColors::Active;
-        }
-        // On Windows, having a high contrast theme also means that the OS is requesting the
-        // colors to be forced. This is mostly convenience for the front-end, which wants to
-        // reuse the forced-colors styles for chrome in this case as well, and it's a lot
-        // more convenient to use `(forced-colors)` than
-        // `(forced-colors) or ((-moz-platform: windows) and (prefers-contrast))`.
-        //
-        // TODO(emilio): We might want to factor in here the lwtheme attribute in the root element
-        // and so on.
-        if cfg!(target_os = "windows") && prefs.mUseAccessibilityTheme && prefs.mIsChrome {
-            return ForcedColors::Requested;
-        }
-        ForcedColors::None
+        self.pres_context().map_or(ForcedColors::None, |pc| pc.mForcedColors)
     }
 
     /// Computes a system color and returns it as an nscolor.

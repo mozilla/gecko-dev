@@ -49,7 +49,9 @@
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">¿Actualizar contraseña?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">¿Añadir nombre de usuario a la contraseña guardada?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">¿Añadir nombre de usuario a la contraseña guardada?</string>
+    <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
+    <string name="mozac_feature_prompt_login_add_username_headline_2">¿Actualizar nombre de usuario?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">Etiqueta para ingresar un campo de entrada de texto</string>
@@ -117,8 +119,6 @@
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Sugerir contraseña segura</string>
 
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Sugerir contraseña segura</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Usar contraseña segura</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Usar contraseña segura: %1$s</string>
@@ -126,7 +126,10 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">¿Usar contraseña segura?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description">Protege tus cuentas utilizando una contraseña segura generada aleatoriamente. Obtén acceso rápido a tus contraseñas guardándolas en tu cuenta.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protege tus cuentas utilizando una contraseña segura generada aleatoriamente. Obtén acceso rápido a tus contraseñas guardándolas en tu cuenta.</string>
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protege tus cuentas utilizando una contraseña segura generada aleatoriamente. Se guardará en tu cuenta para uso futuro.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usar contraseña</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
@@ -136,6 +139,9 @@
     <!-- Title for showing the suggest strong password updated confirmation snackbar -->
     <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Contraseña actualizada</string>
 
+
+    <!-- Title for showing the username updated confirmation snackbar -->
+    <string name="mozac_feature_prompt_login_snackbar_username_updated">Nombre de usuario actualizado</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">¿Reenviar los datos a este sitio?</string>
@@ -196,7 +202,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Usar %1$s como proveedor de inicio de sesión</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Iniciar sesión en %1$s con una cuenta %2$s está sujeto a la <a href="%3$s">Política de privacidad</a> y a los <a href="%4$s">Términos de servicio</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Iniciar sesión en %1$s con una cuenta %2$s está sujeto a la <a href="%3$s">Política de privacidad</a> y a los <a href="%4$s">Términos de servicio</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Continuar</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -20,7 +20,7 @@ buildscript {
         ksp_plugin = Versions.ksp_plugin
 
         // Used in mobile/android/fenix/app/build.gradle
-        protobuf_plugin = FenixVersions.protobuf_plugin
+        protobuf_plugin = Versions.protobuf_plugin
     }
 
     dependencies {

@@ -39,12 +39,14 @@ export class PreferencesBackupResource extends BackupResource {
     ];
     await BackupResource.copyFiles(profilePath, stagingPath, simpleCopyFiles);
 
-    const sqliteDatabases = ["permissions.sqlite", "content-prefs.sqlite"];
-    await BackupResource.copySqliteDatabases(
-      profilePath,
-      stagingPath,
-      sqliteDatabases
-    );
+    if (BackupResource.canBackupHistory()) {
+      const sqliteDatabases = ["permissions.sqlite", "content-prefs.sqlite"];
+      await BackupResource.copySqliteDatabases(
+        profilePath,
+        stagingPath,
+        sqliteDatabases
+      );
+    }
 
     // prefs.js is a special case - we have a helper function to flush the
     // current prefs state to disk off of the main thread.

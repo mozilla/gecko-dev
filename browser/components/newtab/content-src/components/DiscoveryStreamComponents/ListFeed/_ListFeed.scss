@@ -20,9 +20,8 @@
 
     .icon-trending {
       margin-inline-end: var(--space-small);
-      -moz-context-properties: stroke;
-      stroke: currentColor;
       transform: none;
+      fill: var(--newtab-text-primary-color);
     }
   }
 
@@ -31,12 +30,36 @@
     padding-inline-start: 0;
     margin: 0;
   }
+
+  .ds-card.placeholder.list-card-placeholder {
+    box-shadow: unset;
+    padding-inline-end: var(--space-large);
+    padding-block: var(--space-large) var(--space-small);
+
+    .placeholder-image {
+      height: 75px;
+      width: 75px;
+      position: absolute;
+      border-radius: var(--border-radius-medium);
+      inset-inline-end: var(--space-large);
+    }
+
+    .placeholder-label {
+      margin-bottom: unset;
+    }
+
+    .placeholder-header, .placeholder-description {
+      width: 60%;
+      height: 20px;
+    }
+  }
 }
+
 
 .ds-card-grid .list-feed-content .ds-card.list-feed-card {
   // overrides when using the DSCard component
   background-color: var(--newtab-background-color-secondary);
-  border-block-start: 1px solid var(--color-gray-50);
+  border-block-start: 1px solid light-dark(var(--color-gray-70), var(--color-gray-50));
   border-radius: 0;
   box-shadow: none;
   flex-direction: row-reverse;

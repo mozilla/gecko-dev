@@ -8,6 +8,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 #include "MacApplicationDelegate.h"
+#include "MacAutoreleasePool.h"
 #include <cstring>
 #include <Cocoa/Cocoa.h>
 
@@ -41,6 +42,8 @@ void AddToCommandLine(const char* inArgText) {
 // Caller has ownership of argv and is responsible for freeing the allocated
 // memory.
 void SetupMacCommandLine(int& argc, char**& argv, bool forRestart) {
+  mozilla::MacAutoreleasePool pool;
+
   sArgs = static_cast<char**>(malloc(kArgsGrowSize * sizeof(char*)));
   if (!sArgs) {
     return;
@@ -50,6 +53,19 @@ void SetupMacCommandLine(int& argc, char**& argv, bool forRestart) {
   sArgsUsed = 0;
 
   NSString* path = [NSString stringWithUTF8String:argv[0]];
+  if (forRestart &&
+      [path hasSuffix:[NSString stringWithUTF8String:MOZ_APP_NAME]]) {
+    // When we restart, we ask the updater binary to restart us instead.
+    // This avoids duplicate Dock icons, by giving this process a chance to
+    // shut down before the new process is launched.
+    // Essentially, we are using the updater as a relauncher process.
+    NSString* updaterPath = [[path stringByDeletingLastPathComponent]
+        stringByAppendingPathComponent:
+            @"updater.app/Contents/MacOS/org.mozilla.updater"];
+    AddToCommandLine(updaterPath.UTF8String);
+    AddToCommandLine("--openAppBundle");
+  }
+
   // We adjust the path to point to the .app bundle, rather than the executable
   // itself, to allow for the use of the NSWorkspace API for launching and
   // relaunching the application. We intentionally exclude the

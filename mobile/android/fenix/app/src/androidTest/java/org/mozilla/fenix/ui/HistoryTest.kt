@@ -36,6 +36,9 @@ class HistoryTest : TestSetup() {
         AndroidComposeTestRule(
             HomeActivityIntentTestRule(
                 isJumpBackInCFREnabled = false,
+                // workaround for toolbar at top position by default
+                // remove with https://bugzilla.mozilla.org/show_bug.cgi?id=1917640
+                shouldUseBottomToolbar = true,
             ),
         ) { it.activity }
 

@@ -200,15 +200,18 @@ void MediaDevices::MaybeResumeDeviceExposure() {
       return;
     }
   }
+  bool shouldResistFingerprinting =
+      window->AsGlobal()->ShouldResistFingerprinting(RFPTarget::MediaDevices);
   MediaManager::Get()->GetPhysicalDevices()->Then(
       GetCurrentSerialEventTarget(), __func__,
       [self = RefPtr(this), this,
        haveDeviceListChange = mHaveUnprocessedDeviceListChange,
-       enumerateDevicesPromises = std::move(mPendingEnumerateDevicesPromises)](
+       enumerateDevicesPromises = std::move(mPendingEnumerateDevicesPromises),
+       shouldResistFingerprinting](
           RefPtr<const MediaDeviceSetRefCnt> aAllDevices) mutable {
         RefPtr<MediaDeviceSetRefCnt> exposedDevices =
             FilterExposedDevices(*aAllDevices);
-        if (haveDeviceListChange) {
+        if (haveDeviceListChange && !shouldResistFingerprinting) {
           if (ShouldQueueDeviceChange(*exposedDevices)) {
             NS_DispatchToCurrentThread(NS_NewRunnableFunction(
                 "devicechange", [self = RefPtr(this), this] {
@@ -760,28 +763,6 @@ void MediaDevices::OnDeviceChange() {
   if (NS_FAILED(CheckCurrentGlobalCorrectness())) {
     // This is a ghost window, don't do anything.
     return;
-  }
-
-  // Do not fire event to content script when
-  // privacy.resistFingerprinting is true.
-
-  if (nsContentUtils::ShouldResistFingerprinting(
-          "Guarding the more expensive RFP check with a simple one",
-          RFPTarget::MediaDevices)) {
-    nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
-    auto* wrapper = GetWrapper();
-    if (!window && wrapper) {
-      nsCOMPtr<nsIGlobalObject> global = xpc::NativeGlobal(wrapper);
-      window = do_QueryInterface(global);
-    }
-    if (!window) {
-      return;
-    }
-
-    if (nsGlobalWindowInner::Cast(window)->ShouldResistFingerprinting(
-            RFPTarget::MediaDevices)) {
-      return;
-    }
   }
 
   mHaveUnprocessedDeviceListChange = true;

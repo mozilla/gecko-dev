@@ -305,6 +305,7 @@ include = [
   "ImageRendering",
   "PrintColorAdjust",
   "ForcedColorAdjust",
+  "ForcedColors",
   "ScrollbarGutter",
   "ScrollDirection",
   "HyphenateCharacter",

@@ -34,18 +34,7 @@ class nsScrollbarFrame final : public nsContainerFrame,
 
  public:
   explicit nsScrollbarFrame(ComputedStyle* aStyle, nsPresContext* aPresContext)
-      : nsContainerFrame(aStyle, aPresContext, kClassID),
-        mSmoothScroll(false),
-        mScrollUnit(mozilla::ScrollUnit::DEVICE_PIXELS),
-        mDirection(0),
-        mIncrement(0),
-        mScrollbarMediator(nullptr),
-        mUpTopButton(nullptr),
-        mDownTopButton(nullptr),
-        mSlider(nullptr),
-        mThumb(nullptr),
-        mUpBottomButton(nullptr),
-        mDownBottomButton(nullptr) {}
+      : nsContainerFrame(aStyle, aPresContext, kClassID) {}
 
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS(nsScrollbarFrame)
@@ -94,7 +83,7 @@ class nsScrollbarFrame final : public nsContainerFrame,
 
   void SetScrollbarMediatorContent(nsIContent* aMediator);
   nsIScrollbarMediator* GetScrollbarMediator();
-
+  void WillBecomeActive();
   /**
    * The following three methods set the value of mIncrement when a
    * scrollbar button is pressed.
@@ -116,7 +105,7 @@ class nsScrollbarFrame final : public nsContainerFrame,
    */
   enum class ImplementsScrollByUnit { Yes, No };
   int32_t MoveToNewPosition(ImplementsScrollByUnit aImplementsScrollByUnit);
-  int32_t GetIncrement() { return mIncrement; }
+  int32_t GetIncrement() const { return mIncrement; }
 
   // nsIAnonymousContentCreator
   nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) override;
@@ -124,17 +113,24 @@ class nsScrollbarFrame final : public nsContainerFrame,
                                 uint32_t aFilter) override;
 
   void UpdateChildrenAttributeValue(nsAtom* aAttribute, bool aNotify);
+  void ElementStateChanged(mozilla::dom::ElementState) override;
+  bool HasBeenHovered() const { return mHasBeenHovered; }
+
+  // If we're an horizontal scrollbar, get the vertical one, or viceversa.
+  nsScrollbarFrame* GetOppositeScrollbar() const;
 
  protected:
-  bool mSmoothScroll;
-  mozilla::ScrollUnit mScrollUnit;
   // Direction and multiple to scroll
-  int32_t mDirection;
-
+  int32_t mDirection = 0;
   // Amount to scroll, in CSSPixels
   // Ignored in favour of mScrollUnit/mDirection for regular scroll frames.
   // Trees use this though.
-  int32_t mIncrement;
+  int32_t mIncrement = 0;
+  mozilla::ScrollUnit mScrollUnit = mozilla::ScrollUnit::DEVICE_PIXELS;
+  bool mSmoothScroll = false;
+  // On macOS, overlay scrollbar hover state should be sticky (remain hovered
+  // while we've been hovered at least once).
+  bool mHasBeenHovered = false;
 
  private:
   nsCOMPtr<nsIContent> mScrollbarMediator;

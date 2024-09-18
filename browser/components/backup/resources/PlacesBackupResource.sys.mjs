@@ -4,27 +4,12 @@
 
 import { BackupResource } from "resource:///modules/backup/BackupResource.sys.mjs";
 import { MeasurementUtils } from "resource:///modules/backup/MeasurementUtils.sys.mjs";
-import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
   BookmarkJSONUtils: "resource://gre/modules/BookmarkJSONUtils.sys.mjs",
-  PrivateBrowsingUtils: "resource://gre/modules/PrivateBrowsingUtils.sys.mjs",
 });
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "isBrowsingHistoryEnabled",
-  "places.history.enabled",
-  true
-);
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "isSanitizeOnShutdownEnabled",
-  "privacy.sanitize.sanitizeOnShutdown",
-  false
-);
 
 const BOOKMARKS_BACKUP_FILENAME = "bookmarks.jsonlz4";
 
@@ -49,16 +34,11 @@ export class PlacesBackupResource extends BackupResource {
     profilePath = PathUtils.profileDir,
     _isEncrypting = false
   ) {
-    let canBackupHistory =
-      !lazy.PrivateBrowsingUtils.permanentPrivateBrowsing &&
-      !lazy.isSanitizeOnShutdownEnabled &&
-      lazy.isBrowsingHistoryEnabled;
-
     /**
      * Do not backup places.sqlite and favicons.sqlite if users have history disabled, want history cleared on shutdown or are using permanent private browsing mode.
      * Instead, export all existing bookmarks to a compressed JSON file that we can read when restoring the backup.
      */
-    if (!canBackupHistory) {
+    if (!BackupResource.canBackupHistory()) {
       let bookmarksBackupFile = PathUtils.join(
         stagingPath,
         BOOKMARKS_BACKUP_FILENAME

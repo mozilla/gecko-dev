@@ -623,7 +623,7 @@ class BrowserRobot {
                         clearTextFieldItem(itemWithResId("username"))
                         clickSuggestedLoginsButton()
                         verifySuggestedUserName(composeTestRule, userName)
-                        clickPageObject(itemWithResIdAndText("$packageName:id/username", userName))
+                        clickSuggestedLogin(composeTestRule, userName)
                         clickPageObject(itemWithResId("togglePassword"))
                     }
                 }

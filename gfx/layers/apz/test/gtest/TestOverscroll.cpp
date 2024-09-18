@@ -7,6 +7,7 @@
 #include "APZCBasicTester.h"
 #include "APZCTreeManagerTester.h"
 #include "APZTestCommon.h"
+#include "mozilla/ScrollPositionUpdate.h"
 #include "mozilla/layers/ScrollableLayerGuid.h"
 #include "mozilla/layers/WebRenderScrollDataWrapper.h"
 
@@ -2159,7 +2160,7 @@ TEST_F(APZCOverscrollTester, FillOutGutterWhilePanning) {
 }
 
 // Similar to FillOutGutterWhilePanning but expanding the content while an
-// overscroll animation is runnig.
+// overscroll animation is running.
 TEST_F(APZCOverscrollTester, FillOutGutterWhileAnimating) {
   SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
 
@@ -2213,3 +2214,30 @@ TEST_F(APZCOverscrollTester, FillOutGutterWhileAnimating) {
   EXPECT_FALSE(apzc->IsOverscrolled());
 }
 #endif
+
+// Test that a programmatic scroll animation does NOT trigger overscroll.
+TEST_F(APZCOverscrollTester, ProgrammaticScroll) {
+  SCOPED_GFX_PREF_BOOL("apz.overscroll.enabled", true);
+
+  // Send a SmoothMsd scroll update to a destination far outside of the
+  // scroll range (here, y=100000). This probably shouldn't happen in the
+  // first place, but even if it does for whatever reason, the smooth scroll
+  // should not trigger overscroll.
+  ScrollMetadata metadata = apzc->GetScrollMetadata();
+  nsTArray<ScrollPositionUpdate> scrollUpdates;
+  scrollUpdates.AppendElement(ScrollPositionUpdate::NewSmoothScroll(
+      ScrollMode::SmoothMsd, ScrollOrigin::Other,
+      CSSPoint::ToAppUnits(CSSPoint(0, 100000)), ScrollTriggeredByScript::Yes,
+      nullptr));
+  metadata.SetScrollUpdates(scrollUpdates);
+  metadata.GetMetrics().SetScrollGeneration(
+      scrollUpdates.LastElement().GetGeneration());
+  apzc->NotifyLayersUpdated(metadata, /*aIsFirstPaint=*/false,
+                            /*aThisLayerTreeUpdated=*/true);
+
+  apzc->AssertStateIsSmoothMsdScroll();
+
+  while (SampleAnimationOneFrame()) {
+    EXPECT_FALSE(apzc->IsOverscrolled());
+  }
+}

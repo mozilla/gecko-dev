@@ -151,15 +151,6 @@ GeneratedFile(
 )
 
 GeneratedFile(
-    "metrics_n_pings_yamls.cached",
-    script="build_scripts/glean_parser_ext/cache_yaml.py",
-    flags=[
-        CONFIG["MOZ_APP_VERSION"],
-    ],
-    inputs=metrics_yamls + pings_yamls + tags_yamls,
-)
-
-GeneratedFile(
     "GleanMetrics.h",
     "GleanJSMetricsLookup.h",
     "GleanJSMetricsLookup.cpp",
@@ -224,7 +215,7 @@ GeneratedFile(
     script="build_scripts/glean_parser_ext/run_glean_parser.py",
     entry_point="jog_factory",
     flags=[CONFIG["MOZ_APP_VERSION"]],
-    inputs=["!metrics_n_pings_yamls.cached"],
+    inputs=["!metrics_yamls.cached", "!pings_yamls.cached"],
 )
 
 # Only generate jogfile.json in Artifact Builds since
@@ -235,7 +226,7 @@ if CONFIG["MOZ_ARTIFACT_BUILDS"]:
         script="build_scripts/glean_parser_ext/run_glean_parser.py",
         entry_point="jog_file",
         flags=[CONFIG["MOZ_APP_VERSION"]],
-        inputs=["!metrics_n_pings_yamls.cached"],
+        inputs=["!metrics_yamls.cached", "!pings_yamls.cached"],
     )
     # Once generated, it needs to be placed in GreD so it can be found.
     FINAL_TARGET_FILES += ["!jogfile.json"]

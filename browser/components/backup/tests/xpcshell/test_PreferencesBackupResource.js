@@ -152,6 +152,125 @@ add_task(async function test_backup() {
 });
 
 /**
+ * Tests that the backup method does not copy the permissions or content prefs
+ * databases if the browser is configured to not save history - either while
+ * running, or to clear it at shutdown.
+ */
+add_task(async function test_backup_no_saved_history() {
+  let preferencesBackupResource = new PreferencesBackupResource();
+  let sourcePath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "PreferencesBackupResource-source-test"
+  );
+  let stagingPath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "PreferencesBackupResource-staging-test"
+  );
+
+  let sandbox = sinon.createSandbox();
+  let fakeConnection = {
+    backup: sandbox.stub().resolves(true),
+    close: sandbox.stub().resolves(true),
+  };
+  sandbox.stub(Sqlite, "openConnection").returns(fakeConnection);
+
+  // First, we'll try with browsing history in general being disabled.
+  Services.prefs.setBoolPref(HISTORY_ENABLED_PREF, false);
+  Services.prefs.setBoolPref(SANITIZE_ON_SHUTDOWN_PREF, false);
+
+  let manifestEntry = await preferencesBackupResource.backup(
+    stagingPath,
+    sourcePath
+  );
+  Assert.deepEqual(
+    manifestEntry,
+    { profilePath: sourcePath },
+    "PreferencesBackupResource.backup should return the original profile path " +
+      "in its ManifestEntry"
+  );
+
+  Assert.ok(
+    fakeConnection.backup.notCalled,
+    "No sqlite connections should have been made with remember history disabled"
+  );
+
+  // Now verify that the sanitize shutdown pref also prevents us from backing
+  // up site permissions and preferences
+  Services.prefs.setBoolPref(HISTORY_ENABLED_PREF, true);
+  Services.prefs.setBoolPref(SANITIZE_ON_SHUTDOWN_PREF, true);
+
+  fakeConnection.backup.resetHistory();
+  manifestEntry = await preferencesBackupResource.backup(
+    stagingPath,
+    sourcePath
+  );
+  Assert.deepEqual(
+    manifestEntry,
+    { profilePath: sourcePath },
+    "PreferencesBackupResource.backup should return the original profile path " +
+      "in its ManifestEntry"
+  );
+
+  Assert.ok(
+    fakeConnection.backup.notCalled,
+    "No sqlite connections should have been made with sanitize shutdown enabled"
+  );
+
+  await maybeRemovePath(stagingPath);
+  await maybeRemovePath(sourcePath);
+
+  sandbox.restore();
+  Services.prefs.clearUserPref(HISTORY_ENABLED_PREF);
+  Services.prefs.clearUserPref(SANITIZE_ON_SHUTDOWN_PREF);
+});
+
+/**
+ * Tests that the backup method correctly skips backing up the permissions and
+ * content prefs databases if permanent private browsing mode is enabled.
+ */
+add_task(async function test_backup_private_browsing() {
+  let sandbox = sinon.createSandbox();
+
+  let preferencesBackupResource = new PreferencesBackupResource();
+  let sourcePath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "PreferencesBackupResource-source-test"
+  );
+  let stagingPath = await IOUtils.createUniqueDirectory(
+    PathUtils.tempDir,
+    "PreferencesBackupResource-staging-test"
+  );
+
+  let fakeConnection = {
+    backup: sandbox.stub().resolves(true),
+    close: sandbox.stub().resolves(true),
+  };
+  sandbox.stub(Sqlite, "openConnection").returns(fakeConnection);
+  sandbox.stub(PrivateBrowsingUtils, "permanentPrivateBrowsing").value(true);
+
+  let manifestEntry = await preferencesBackupResource.backup(
+    stagingPath,
+    sourcePath
+  );
+  Assert.deepEqual(
+    manifestEntry,
+    { profilePath: sourcePath },
+    "PreferencesBackupResource.backup should return the original profile path " +
+      "in its ManifestEntry"
+  );
+
+  Assert.ok(
+    fakeConnection.backup.notCalled,
+    "No sqlite connections should have been made with permanent private browsing enabled"
+  );
+
+  await maybeRemovePath(stagingPath);
+  await maybeRemovePath(sourcePath);
+
+  sandbox.restore();
+});
+
+/**
  * Test that the recover method correctly copies items from the recovery
  * directory into the destination profile directory.
  */

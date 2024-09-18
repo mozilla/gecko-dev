@@ -225,11 +225,13 @@ function resetExperimental() {
 }
 
 function enableTesting() {
+  SpecialPowers.setBoolPref("dom.quotaManager.testing", true);
   SpecialPowers.setBoolPref("dom.indexedDB.testing", true);
 }
 
 function resetTesting() {
   SpecialPowers.clearUserPref("dom.indexedDB.testing");
+  SpecialPowers.clearUserPref("dom.quotaManager.testing");
 }
 
 function gc() {
@@ -265,30 +267,12 @@ function resetOrClearAllDatabases(callback, clear) {
     throw new Error("clearAllDatabases not implemented for child processes!");
   }
 
-  const quotaPref = "dom.quotaManager.testing";
-
-  let oldPrefValue;
-  if (Services.prefs.prefHasUserValue(quotaPref)) {
-    oldPrefValue = SpecialPowers.getBoolPref(quotaPref);
-  }
-
-  SpecialPowers.setBoolPref(quotaPref, true);
-
   let request;
 
-  try {
-    if (clear) {
-      request = Services.qms.clear();
-    } else {
-      request = Services.qms.reset();
-    }
-  } catch (e) {
-    if (oldPrefValue !== undefined) {
-      SpecialPowers.setBoolPref(quotaPref, oldPrefValue);
-    } else {
-      SpecialPowers.clearUserPref(quotaPref);
-    }
-    throw e;
+  if (clear) {
+    request = Services.qms.clear();
+  } else {
+    request = Services.qms.reset();
   }
 
   request.callback = callback;

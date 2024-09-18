@@ -9,3 +9,6 @@ toolkit.jar:
   content/global/megalist/PasswordCard.mjs    (megalist/content/PasswordCard.mjs)
   content/global/megalist/Dialog.mjs         (megalist/content/Dialog.mjs)
   content/global/megalist/LoginFormComponent/login-form.css    (megalist/content/LoginFormComponent/login-form.css)
+  content/global/megalist/PasswordCard.css    (megalist/content/PasswordCard.css)
+  content/global/megalist/LoginLine.mjs    (megalist/content/LoginLine.mjs)
+  content/global/megalist/LoginLine.css    (megalist/content/LoginLine.css)

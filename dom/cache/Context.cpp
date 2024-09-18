@@ -239,7 +239,7 @@ void Context::QuotaInitRunnable::DirectoryLockAcquired(DirectoryLock* aLock) {
   MOZ_DIAGNOSTIC_ASSERT(mDirectoryLock->Id() >= 0);
   mDirectoryMetadata->mDirectoryLockId = mDirectoryLock->Id();
 
-  if (mCanceled) {
+  if (mCanceled || mDirectoryLock->Invalidated()) {
     Complete(NS_ERROR_ABORT);
     return;
   }

@@ -99,6 +99,11 @@ async function testColorsFocus() {
           defaultTab,
           "Focus moves back to the Default tab"
         );
+
+        let themeInput = doc.querySelector("#radio-itemauto-button");
+        defaultTab.focus();
+        EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, content);
+        is(doc.activeElement, themeInput, "Focus moves to selected theme");
       });
     }
   );
@@ -130,6 +135,10 @@ async function testColorsFocus() {
 
         EventUtils.synthesizeKey("KEY_Tab", {}, content);
         is(doc.activeElement, customTab, "Focus moves back to the Custom tab");
+
+        customTab.focus();
+        EventUtils.synthesizeKey("KEY_Tab", { shiftKey: true }, content);
+        is(doc.activeElement, resetButton, "Focus moves to Reset theme button");
       });
     }
   );

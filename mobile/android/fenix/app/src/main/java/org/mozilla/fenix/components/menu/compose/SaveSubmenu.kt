@@ -37,6 +37,9 @@ internal fun SaveSubmenu(
         header = {
             SubmenuHeader(
                 header = stringResource(id = R.string.browser_menu_save),
+                backButtonContentDescription = stringResource(
+                    id = R.string.browser_menu_back_button_content_description,
+                ),
                 onClick = onBackButtonClick,
             )
         },

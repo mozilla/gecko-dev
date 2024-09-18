@@ -83,22 +83,22 @@ class APZCBasicTester : public APZCTesterBase {
   /**
    * Sample animations once, 1 ms later than the last sample.
    */
-  void SampleAnimationOnce() {
+  bool SampleAnimationOnce() {
     const TimeDuration increment = TimeDuration::FromMilliseconds(1);
     ParentLayerPoint pointOut;
     AsyncTransform viewTransformOut;
     mcc->AdvanceBy(increment);
-    apzc->SampleContentTransformForFrame(&viewTransformOut, pointOut);
+    return apzc->SampleContentTransformForFrame(&viewTransformOut, pointOut);
   }
   /**
    * Sample animations one frame, 17 ms later than the last sample.
    */
-  void SampleAnimationOneFrame() {
+  bool SampleAnimationOneFrame() {
     const TimeDuration increment = TimeDuration::FromMilliseconds(17);
     ParentLayerPoint pointOut;
     AsyncTransform viewTransformOut;
     mcc->AdvanceBy(increment);
-    apzc->SampleContentTransformForFrame(&viewTransformOut, pointOut);
+    return apzc->SampleContentTransformForFrame(&viewTransformOut, pointOut);
   }
 
   AsyncPanZoomController::GestureBehavior mGestureBehavior;

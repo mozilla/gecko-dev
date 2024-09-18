@@ -1471,6 +1471,7 @@ class BrowsingContextModule extends RootBiDiModule {
           height: targetHeight,
           width: targetWidth,
         },
+        retryOnAbort: true,
       });
     }
   }

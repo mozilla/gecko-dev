@@ -839,7 +839,15 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
   for (uint32_t i = 0; i < length; i++) {
     JS::Rooted<JSString*> str(
         cx, JS::GetRequestedModuleSpecifier(cx, moduleRecord, i));
-    MOZ_ASSERT(str);
+    if (!str) {
+      JS::Rooted<JS::Value> pendingException(cx);
+      if (!JS_GetPendingException(cx, &pendingException)) {
+        return NS_ERROR_FAILURE;
+      }
+      ms->SetParseError(pendingException);
+      JS_ClearPendingException(cx);
+      return NS_ERROR_FAILURE;
+    }
 
     nsAutoJSString specifier;
     if (!specifier.init(cx, str)) {

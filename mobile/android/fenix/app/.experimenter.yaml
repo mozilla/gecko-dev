@@ -224,14 +224,6 @@ splash-screen:
     maximum_duration_ms:
       type: int
       description: The maximum amount of time in milliseconds the splashscreen will be visible while waiting for initialization calls to complete.
-toolbar:
-  description: The searchbar/awesomebar that user uses to search.
-  hasExposure: true
-  exposureDescription: ""
-  variables:
-    toolbar-position-top:
-      type: boolean
-      description: "If true, toolbar appears at top of the screen."
 unified-search:
   description: A feature allowing user to easily search for specified results directly in the search bar.
   hasExposure: true

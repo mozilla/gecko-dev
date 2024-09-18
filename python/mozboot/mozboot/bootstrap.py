@@ -680,7 +680,9 @@ def update_vct(hg: Path, root_state_dir: Path):
     return vct_dir
 
 
-def configure_mercurial(hg: Optional[Path], root_state_dir: Path):
+def configure_mercurial(
+    hg: Optional[Path], root_state_dir: Path, update_only: bool = False
+):
     """Run the Mercurial configuration wizard."""
     vct_dir = update_vct(hg, root_state_dir)
 
@@ -693,6 +695,8 @@ def configure_mercurial(hg: Optional[Path], root_state_dir: Path):
         f"extensions.configwizard={vct_dir}/hgext/configwizard",
         "configwizard",
     ]
+    if update_only:
+        args += ["--config", "configwizard.steps="]
     subprocess.call(args)
 
 

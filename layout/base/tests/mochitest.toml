@@ -249,6 +249,8 @@ support-files = ["file_dynamic_toolbar_max_height.html"]
 
 ["test_emulate_color_scheme.html"]
 
+["test_emulate_forced_colors.html"]
+
 ["test_event_target_radius.html"]
 support-files = ["helper_bug1733509.html"]
 skip-if = ["xorigin"] # JavaScript error: resource://specialpowers/SpecialPowersChild.sys.mjs, line 73: SecurityError: Permission denied to access property "windowUtils" on cross-origin object

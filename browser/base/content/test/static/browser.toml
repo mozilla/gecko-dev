@@ -24,6 +24,8 @@ skip-if = ["os == 'win' && msix"] # Permafail on MSIX packages due to it running
 ["browser_parsable_script.js"]
 skip-if = ["ccov && os == 'linux'"] # https://bugzilla.mozilla.org/show_bug.cgi?id=1608081
 
+["browser_glean_metrics_exist.js"]
+
 ["browser_sentence_case_strings.js"]
 
 ["browser_title_case_menus.js"]

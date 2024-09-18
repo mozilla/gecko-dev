@@ -77,7 +77,7 @@ struct MediaFeatureChange {
     return *this;
   }
 
-  static MediaFeatureChange ForPreferredColorSchemeChange() {
+  static MediaFeatureChange ForPreferredColorSchemeOrForcedColorsChange() {
     // We need to restyle because not only media queries have changed, system
     // colors may as well via the prefers-color-scheme meta tag / effective
     // color-scheme property value.

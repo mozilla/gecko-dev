@@ -89,6 +89,8 @@ object Versions {
         const val work = "2.9.1"
     }
 
+    // Gradle can't deal with this being nested below.
+    const val protobuf_plugin = "0.9.4"
     object Google {
         const val accompanist = "0.36.0"
         const val firebase_messaging = "24.0.1"
@@ -98,6 +100,7 @@ object Versions {
         const val play_services_ads_id = "16.0.0"
         const val play_services_base = "18.5.0"
         const val play_services_fido = "21.1.0"
+        const val protobuf = "3.21.10" // Keep Protobuf in sync with the version used by AppServices.
     }
 
     object Testing {
@@ -265,4 +268,6 @@ object ComponentsDependencies {
     const val play_services_ads_id = "com.google.android.gms:play-services-ads-identifier:${Versions.Google.play_services_ads_id}"
     const val play_services_base = "com.google.android.gms:play-services-base:${Versions.Google.play_services_base}"
     const val play_services_fido = "com.google.android.gms:play-services-fido:${Versions.Google.play_services_fido}"
+    const val protobuf_compiler = "com.google.protobuf:protoc:${Versions.Google.protobuf}"
+    const val protobuf_javalite = "com.google.protobuf:protobuf-javalite:${Versions.Google.protobuf}"
 }

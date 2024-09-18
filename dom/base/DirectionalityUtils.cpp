@@ -214,10 +214,17 @@ static Directionality GetDirectionFromText(const Text* aTextNode,
 }
 
 /**
- * Compute auto direction aRoot should have based on descendants
- * https://html.spec.whatwg.org/#auto-directionality step 3
+ * Compute auto direction for aRoot. If aCanExcludeRoot is true and aRoot
+ * establishes its own directionality, return early.
+ * https://html.spec.whatwg.org/#contained-text-auto-directionality
  */
-Directionality WalkDescendantsAndGetDirectionFromText(nsINode* aRoot) {
+Directionality ContainedTextAutoDirectionality(nsINode* aRoot,
+                                               bool aCanExcludeRoot) {
+  MOZ_ASSERT_IF(aCanExcludeRoot, aRoot->IsElement());
+  if (aCanExcludeRoot && EstablishesOwnDirection(aRoot->AsElement())) {
+    return Directionality::Unset;
+  }
+
   nsIContent* child = aRoot->GetFirstChild();
   while (child) {
     if (child->IsElement() && EstablishesOwnDirection(child->AsElement())) {
@@ -225,7 +232,7 @@ Directionality WalkDescendantsAndGetDirectionFromText(nsINode* aRoot) {
       continue;
     }
 
-    // Step 3.2. If descendant is a slot element whose root is a shadow root,
+    // Step 1.2. If descendant is a slot element whose root is a shadow root,
     // then return the directionality of that shadow root's host.
     if (auto* slot = HTMLSlotElement::FromNode(child)) {
       if (const ShadowRoot* sr = slot->GetContainingShadow()) {
@@ -235,8 +242,8 @@ Directionality WalkDescendantsAndGetDirectionFromText(nsINode* aRoot) {
       }
     }
 
-    // Step 3.3-5. If descendant is a Text node, return its
-    // text node directionality if it is not null
+    // Step 1.3-5. If descendant is a Text node, return its
+    // text node directionality.
     if (auto* text = Text::FromNode(child)) {
       Directionality textNodeDir = GetDirectionFromText(text);
       if (textNodeDir != Directionality::Unset) {
@@ -276,22 +283,8 @@ Directionality ComputeAutoDirectionFromAssignedNodes(
       Element* assignedElement = Element::FromNode(assignedNode);
       MOZ_ASSERT(assignedElement);
 
-      // Step 2.1.3.2. Set childDirection to the auto directionality of child.
-      // Need to perform parts of the auto directionality algorithm here, as
-      // ComputeAutoDirectionality does not implement the whole algorithm.
-      if (Maybe<nsAutoString> maybe =
-              GetValueIfFormAssociatedElement(assignedElement)) {
-        const nsAutoString& value = maybe.value();
-        childDirection =
-            GetDirectionFromText(value.BeginReading(), value.Length());
-        if (childDirection == Directionality::Unset && !value.IsEmpty()) {
-          childDirection = Directionality::Ltr;
-        }
-      }
-      // Now recursively call into the remainder of auto directionality.
-      if (ParticipatesInAutoDirection(assignedElement)) {
-        childDirection = ComputeAutoDirectionality(assignedElement, aNotify);
-      }
+      // Step 2.1.3.2.
+      childDirection = ContainedTextAutoDirectionality(assignedElement, true);
     }
 
     // Step 2.1.4. If childDirection is not null, then return childDirection.
@@ -329,7 +322,7 @@ static Directionality ComputeAutoDirectionality(Element* aElement,
   }
 
   // Step 3. find first text or slot that determines the direction
-  Directionality nodeDir = WalkDescendantsAndGetDirectionFromText(aElement);
+  Directionality nodeDir = ContainedTextAutoDirectionality(aElement, false);
   if (nodeDir != Directionality::Unset) {
     return nodeDir;
   }
