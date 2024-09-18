@@ -235,10 +235,7 @@ export class AboutWelcomeTelemetry {
   handleShoppingPings(ping, event_context) {
     const message_id = ping?.message_id;
     // This function helps direct a shopping ping to the correct Glean event.
-    if (
-      message_id.startsWith("FAKESPOT_OPTIN_DEFAULT") ||
-      message_id.startsWith("FAKESPOT_OPTIN_SIDEBAR_VARIANT")
-    ) {
+    if (message_id.startsWith("FAKESPOT_OPTIN_DEFAULT")) {
       // Onboarding page message IDs are generated, but can reliably be
       // assumed to start in this manner.
       switch (ping?.event) {

@@ -388,90 +388,6 @@ export class AboutWelcomeChild extends JSWindowActorChild {
   }
 }
 
-const OPTIN_SIDEBAR_VARIANT = {
-  id: "FAKESPOT_OPTIN_SIDEBAR_VARIANT",
-  template: "multistage",
-  backdrop: "transparent",
-  aria_role: "alert",
-  UTMTerm: "opt-in",
-  screens: [
-    {
-      id: "FS_OPT_IN_SIDEBAR_VARIANT",
-      content: {
-        position: "split",
-        title: { string_id: "shopping-opt-in-integrated-headline" },
-        logo: {
-          type: "image",
-          imageURL: "chrome://browser/content/shopping/assets/optInLight.avif",
-          darkModeImageURL:
-            "chrome://browser/content/shopping/assets/optInDark.avif",
-          marginInline: "24px",
-          marginBlock: "50% 0",
-        },
-        above_button_content: [
-          {
-            type: "text",
-            text: {
-              string_id: "",
-            },
-            link_keys: ["learn_more"],
-            args: {},
-          },
-          {
-            type: "text",
-            text: {
-              string_id:
-                "shopping-opt-in-integrated-privacy-policy-and-terms-of-use",
-            },
-            link_keys: ["privacy_policy", "terms_of_use"],
-            font_styles: "legal",
-          },
-        ],
-        learn_more: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://support.mozilla.org/1/firefox/%VERSION%/%OS%/%LOCALE%/review-checker-review-quality?utm_source=review-checker&utm_campaign=learn-more&utm_medium=in-product",
-              where: "tab",
-            },
-          },
-        },
-        privacy_policy: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.mozilla.org/privacy/firefox?utm_source=review-checker&utm_campaign=privacy-policy&utm_medium=in-product&utm_term=opt-in-screen",
-              where: "tab",
-            },
-          },
-        },
-        terms_of_use: {
-          action: {
-            type: "OPEN_URL",
-            data: {
-              args: "https://www.fakespot.com/terms?utm_source=review-checker&utm_campaign=terms-of-use&utm_medium=in-product",
-              where: "tab",
-            },
-          },
-        },
-        primary_button: {
-          should_focus_button: true,
-          label: { string_id: "shopping-opt-in-integrated-button" },
-          action: {
-            type: "SET_PREF",
-            data: {
-              pref: {
-                name: "browser.shopping.experience2023.optedIn",
-                value: 1,
-              },
-            },
-          },
-        },
-      },
-    },
-  ],
-};
-
 const OPTIN_DEFAULT = {
   id: "FAKESPOT_OPTIN_DEFAULT",
   template: "multistage",
@@ -771,13 +687,6 @@ const OPTED_IN_TIME_PREF = "browser.shopping.experience2023.survey.optedInTime";
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "isIntegratedSidebar",
-  "browser.shopping.experience2023.integratedSidebar",
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "isSurveySeen",
   "browser.shopping.experience2023.survey.hasSeen",
   false
@@ -978,65 +887,6 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
   }
 
   AWSetProductURL(productUrl) {
-    let content = lazy.isIntegratedSidebar
-      ? this._AWGetOptInSidebarVariantContent(productUrl)
-      : this._AWGetOptInDefaultContent(productUrl);
-    optInDynamicContent = content;
-  }
-
-  _AWGetOptInSidebarVariantContent(productUrl) {
-    let content = JSON.parse(JSON.stringify(OPTIN_SIDEBAR_VARIANT));
-    const [optInScreen] = content.screens;
-
-    if (productUrl) {
-      optInScreen.content.above_button_content[0].text.string_id =
-        "shopping-opt-in-integrated-subtitle-all-sites";
-
-      switch (
-        productUrl // Insert the productUrl into content
-      ) {
-        case "www.amazon.fr":
-        case "www.amazon.de":
-          optInScreen.content.above_button_content[0].text.string_id =
-            "shopping-opt-in-integrated-subtitle-single-site";
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Amazon",
-          };
-          break;
-        case "www.amazon.com":
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Amazon",
-            secondSite: "Walmart",
-            thirdSite: "Best Buy",
-          };
-          break;
-        case "www.walmart.com":
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Walmart",
-            secondSite: "Amazon",
-            thirdSite: "Best Buy",
-          };
-          break;
-        case "www.bestbuy.com":
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Best Buy",
-            secondSite: "Amazon",
-            thirdSite: "Walmart",
-          };
-          break;
-        default:
-          optInScreen.content.above_button_content[0].text.args = {
-            currentSite: "Amazon",
-            secondSite: "Walmart",
-            thirdSite: "Best Buy",
-          };
-      }
-    }
-
-    return content;
-  }
-
-  _AWGetOptInDefaultContent(productUrl) {
     let content = JSON.parse(JSON.stringify(OPTIN_DEFAULT));
     const [optInScreen] = content.screens;
 
@@ -1085,7 +935,7 @@ export class AboutWelcomeShoppingChild extends AboutWelcomeChild {
       }
     }
 
-    return content;
+    optInDynamicContent = content;
   }
 
   AWEnsureLangPackInstalled() {}
