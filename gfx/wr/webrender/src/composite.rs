@@ -483,8 +483,8 @@ impl CompositeStatePreallocator {
         self.tiles.record_vec(&state.tiles);
         self.external_surfaces.record_vec(&state.external_surfaces);
         self.occluders.record_vec(&state.occluders.occluders);
-        self.occluders_events.record_vec(&state.occluders.events);
-        self.occluders_active.record_vec(&state.occluders.active);
+        self.occluders_events.record_vec(&state.occluders.scratch.events);
+        self.occluders_active.record_vec(&state.occluders.scratch.active);
         self.descriptor_surfaces.record_vec(&state.descriptor.surfaces);
     }
 
@@ -492,8 +492,8 @@ impl CompositeStatePreallocator {
         self.tiles.preallocate_framevec(&mut state.tiles);
         self.external_surfaces.preallocate_framevec(&mut state.external_surfaces);
         self.occluders.preallocate_framevec(&mut state.occluders.occluders);
-        self.occluders_events.preallocate_framevec(&mut state.occluders.events);
-        self.occluders_active.preallocate_framevec(&mut state.occluders.active);
+        self.occluders_events.preallocate_framevec(&mut state.occluders.scratch.events);
+        self.occluders_active.preallocate_framevec(&mut state.occluders.scratch.active);
         self.descriptor_surfaces.preallocate_vec(&mut state.descriptor.surfaces);
     }
 }
@@ -1407,6 +1407,23 @@ impl OcclusionEvent {
     }
 }
 
+/// This struct exists to provide a Default impl and allow #[serde(skip)]
+/// on the two frame vectors. Unfortunately FrameVec does not have a Default
+/// implementation (vectors only implement it with the global allocator).
+pub struct OccludersScratchBuffers {
+    events: FrameVec<OcclusionEvent>,
+    active: FrameVec<ops::Range<i32>>,
+}
+
+impl Default for OccludersScratchBuffers {
+    fn default() -> Self {
+        OccludersScratchBuffers {
+            events: FrameVec::new_in(FrameAllocator::fallback()),
+            active: FrameVec::new_in(FrameAllocator::fallback()),
+        }
+    }
+}
+
 /// List of registered occluders.
 ///
 /// Also store a couple of vectors for reuse.
@@ -1415,21 +1432,19 @@ impl OcclusionEvent {
 pub struct Occluders {
     occluders: FrameVec<Occluder>,
 
-    // The two vectors below are kept to avoid unnecessary reallocations in area().
-
-    #[cfg_attr(feature = "serde", serde(skip))]
-    events: FrameVec<OcclusionEvent>,
-
-    #[cfg_attr(feature = "serde", serde(skip))]
-    active: FrameVec<ops::Range<i32>>,
+    // The two vectors in scratch are kept to avoid unnecessary reallocations in area().
+    #[cfg_attr(any(feature = "capture", feature = "replay"), serde(skip))]
+    scratch: OccludersScratchBuffers,
 }
 
 impl Occluders {
     fn new(memory: &FrameMemory) -> Self {
         Occluders {
             occluders: memory.new_vec(),
-            events: memory.new_vec(),
-            active: memory.new_vec(),
+            scratch: OccludersScratchBuffers {
+                events: memory.new_vec(),
+                active: memory.new_vec(),    
+            }
         }
     }
 
@@ -1479,8 +1494,8 @@ impl Occluders {
         // This is not a particularly efficient implementation (it skips building segment trees), however
         // we typically use this where the length of the rectangles array is < 10, so simplicity is more important.
 
-        self.events.clear();
-        self.active.clear();
+        self.scratch.events.clear();
+        self.scratch.active.clear();
 
         let mut area = 0;
 
@@ -1493,37 +1508,37 @@ impl Occluders {
                 if let Some(rect) = occluder.world_rect.intersection(clip_rect) {
                     let x0 = rect.min.x;
                     let x1 = x0 + rect.width();
-                    self.events.push(OcclusionEvent::new(rect.min.y, OcclusionEventKind::Begin, x0, x1));
-                    self.events.push(OcclusionEvent::new(rect.min.y + rect.height(), OcclusionEventKind::End, x0, x1));
+                    self.scratch.events.push(OcclusionEvent::new(rect.min.y, OcclusionEventKind::Begin, x0, x1));
+                    self.scratch.events.push(OcclusionEvent::new(rect.min.y + rect.height(), OcclusionEventKind::End, x0, x1));
                 }
             }
         }
 
         // If we didn't end up with any valid events, the area must be 0
-        if self.events.is_empty() {
+        if self.scratch.events.is_empty() {
             return 0;
         }
 
         // Sort the events by y-value
-        self.events.sort_by_key(|e| e.y);
-        let mut cur_y = self.events[0].y;
+        self.scratch.events.sort_by_key(|e| e.y);
+        let mut cur_y = self.scratch.events[0].y;
 
         // Step through each y interval
-        for event in &self.events {
+        for event in &self.scratch.events {
             // This is the dimension of the y-axis we are accumulating areas for
             let dy = event.y - cur_y;
 
             // If we have active events covering x-ranges in this y-interval, process them
-            if dy != 0 && !self.active.is_empty() {
+            if dy != 0 && !self.scratch.active.is_empty() {
                 assert!(dy > 0);
 
                 // Step through the x-ranges, ordered by x0 of each event
-                self.active.sort_by_key(|i| i.start);
+                self.scratch.active.sort_by_key(|i| i.start);
                 let mut query = 0;
-                let mut cur = self.active[0].start;
+                let mut cur = self.scratch.active[0].start;
 
                 // Accumulate the non-overlapping x-interval that contributes to area for this y-interval.
-                for interval in &self.active {
+                for interval in &self.scratch.active {
                     cur = interval.start.max(cur);
                     query += (interval.end - cur).max(0);
                     cur = cur.max(interval.end);
@@ -1536,11 +1551,11 @@ impl Occluders {
             // Update the active events list
             match event.kind {
                 OcclusionEventKind::Begin => {
-                    self.active.push(event.x_range.clone());
+                    self.scratch.active.push(event.x_range.clone());
                 }
                 OcclusionEventKind::End => {
-                    let index = self.active.iter().position(|i| *i == event.x_range).unwrap();
-                    self.active.remove(index);
+                    let index = self.scratch.active.iter().position(|i| *i == event.x_range).unwrap();
+                    self.scratch.active.remove(index);
                 }
             }
 
