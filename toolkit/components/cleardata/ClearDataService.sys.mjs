@@ -95,42 +95,12 @@ function hasBaseDomain(
   });
 }
 
-/**
- * Compute the base domain from a given host. This is a wrapper around
- * Services.eTLD.getBaseDomainFromHost which also supports IP addresses and
- * hosts such as "localhost" which are considered valid base domains for
- * principals and data storage.
- * @param {string} aDomainOrHost - Domain or host to be converted. May already
- * be a valid base domain.
- * @returns {string} Base domain of the given host. Returns aDomainOrHost if
- * already a base domain.
- */
-function getBaseDomainWithFallback(aDomainOrHost) {
-  let result = aDomainOrHost;
-  try {
-    result = Services.eTLD.getBaseDomainFromHost(aDomainOrHost);
-  } catch (e) {
-    if (
-      e.result == Cr.NS_ERROR_HOST_IS_IP_ADDRESS ||
-      e.result == Cr.NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS
-    ) {
-      // For these 2 expected errors, just take the host as the result.
-      // - NS_ERROR_HOST_IS_IP_ADDRESS: the host is in ipv4/ipv6.
-      // - NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS: not enough domain parts to extract.
-      result = aDomainOrHost;
-    } else {
-      throw e;
-    }
-  }
-  return result;
-}
-
 // Here is a list of methods cleaners may implement. These methods must return a
 // Promise object.
 // * deleteAll() - this method _must_ exist. When called, it deletes all the
 //                 data owned by the cleaner.
 // * deleteByPrincipal() -  this method _must_ exist.
-// * deleteByBaseDomain() - this method _must_ exist.
+// * deleteBySite() - this method _must_ exist.
 // * deleteByHost() - this method is implemented only if the cleaner knows
 //                    how to delete data by host + originAttributes pattern. If
 //                    not implemented, deleteAll() will be used as fallback.
@@ -180,10 +150,10 @@ const CookieCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteByBaseDomain(aDomain) {
+  async deleteBySite(aSchemelessSite) {
     Services.cookies.cookies
       .filter(({ rawHost, originAttributes }) =>
-        hasBaseDomain({ host: rawHost, originAttributes }, aDomain)
+        hasBaseDomain({ host: rawHost, originAttributes }, aSchemelessSite)
       )
       .forEach(cookie => {
         Services.cookies.removeCookiesFromExactHost(
@@ -240,10 +210,10 @@ const CookieBannerExceptionCleaner = {
     }
   },
 
-  async deleteByBaseDomain(aDomain) {
+  async deleteBySite(aSchemelessSite) {
     try {
       Services.cookieBanners.removeDomainPref(
-        Services.io.newURI("https://" + aDomain),
+        Services.io.newURI("https://" + aSchemelessSite),
         false
       );
     } catch (e) {
@@ -301,9 +271,12 @@ const CookieBannerExecutedRecordCleaner = {
     }
   },
 
-  async deleteByBaseDomain(aDomain) {
+  async deleteBySite(aSchemelessSite) {
     try {
-      Services.cookieBanners.removeExecutedRecordForSite(aDomain, false);
+      Services.cookieBanners.removeExecutedRecordForSite(
+        aSchemelessSite,
+        false
+      );
     } catch (e) {
       // Don't throw an error if the cookie banner handling is disabled.
       if (e.result != Cr.NS_ERROR_NOT_AVAILABLE) {
@@ -339,8 +312,8 @@ const FingerprintingProtectionStateCleaner = {
     Services.rfp.cleanRandomKeyByPrincipal(aPrincipal);
   },
 
-  async deleteByBaseDomain(aDomain) {
-    Services.rfp.cleanRandomKeyByDomain(aDomain);
+  async deleteBySite(aSchemelessSite) {
+    Services.rfp.cleanRandomKeyByDomain(aSchemelessSite);
   },
 
   async deleteByHost(aHost, aOriginAttributesPattern) {
@@ -370,14 +343,14 @@ const CertCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
+  async deleteBySite(aSchemelessSite) {
     let overrideService = Cc["@mozilla.org/security/certoverride;1"].getService(
       Ci.nsICertOverrideService
     );
     overrideService
       .getOverrides()
       .filter(({ asciiHost }) =>
-        hasBaseDomain({ host: asciiHost }, aBaseDomain)
+        hasBaseDomain({ host: asciiHost }, aSchemelessSite)
       )
       .forEach(({ asciiHost, port }) =>
         overrideService.clearValidityOverride(asciiHost, port, {})
@@ -411,8 +384,8 @@ const NetworkCacheCleaner = {
     Services.cache2.clearOrigin(httpsPrincipal);
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
-    Services.cache2.clearBaseDomain(aBaseDomain);
+  async deleteBySite(aSchemelessSite) {
+    Services.cache2.clearBaseDomain(aSchemelessSite);
   },
 
   deleteByPrincipal(aPrincipal) {
@@ -459,8 +432,8 @@ const CSSCacheCleaner = {
     ChromeUtils.clearStyleSheetCacheByPrincipal(aPrincipal);
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
-    ChromeUtils.clearStyleSheetCacheByBaseDomain(aBaseDomain);
+  async deleteBySite(aSchemelessSite) {
+    ChromeUtils.clearStyleSheetCacheByBaseDomain(aSchemelessSite);
   },
 
   async deleteAll() {
@@ -490,8 +463,8 @@ const JSCacheCleaner = {
     ChromeUtils.clearScriptCacheByPrincipal(aPrincipal);
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
-    ChromeUtils.clearScriptCacheByBaseDomain(aBaseDomain);
+  async deleteBySite(aSchemelessSite) {
+    ChromeUtils.clearScriptCacheByBaseDomain(aSchemelessSite);
   },
 
   async deleteAll() {
@@ -528,11 +501,11 @@ const ImageCacheCleaner = {
     imageCache.removeEntriesFromPrincipalInAllProcesses(aPrincipal);
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
+  async deleteBySite(aSchemelessSite) {
     let imageCache = Cc["@mozilla.org/image/tools;1"]
       .getService(Ci.imgITools)
       .getImgCacheForDocument(null);
-    imageCache.removeEntriesFromBaseDomainInAllProcesses(aBaseDomain);
+    imageCache.removeEntriesFromBaseDomainInAllProcesses(aSchemelessSite);
   },
 
   deleteAll() {
@@ -589,8 +562,8 @@ const DownloadsCleaner = {
     return this._deleteInternal({ principal: aPrincipal });
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
-    return this._deleteInternal({ hostOrBaseDomain: aBaseDomain });
+  async deleteBySite(aSchemelessSite) {
+    return this._deleteInternal({ hostOrBaseDomain: aSchemelessSite });
   },
 
   deleteByRange(aFrom, aTo) {
@@ -629,9 +602,9 @@ const PasswordsCleaner = {
     );
   },
 
-  deleteByBaseDomain(aBaseDomain) {
+  deleteBySite(aSchemelessSite) {
     return this._deleteInternal(aLogin =>
-      Services.eTLD.hasRootDomain(aLogin.hostname, aBaseDomain)
+      Services.eTLD.hasRootDomain(aLogin.hostname, aSchemelessSite)
     );
   },
 
@@ -678,7 +651,7 @@ const MediaDevicesCleaner = {
   },
 
   // TODO: Same as above, but for base domain.
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -781,21 +754,21 @@ const QuotaCleaner = {
       });
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
+  async deleteBySite(aSchemelessSite) {
     // localStorage: The legacy LocalStorage implementation that will
     // eventually be removed depends on this observer notification to clear by
     // host.  Some other subsystems like Reporting headers depend on this too.
     Services.obs.notifyObservers(
       null,
       "extension:purge-localStorage",
-      aBaseDomain
+      aSchemelessSite
     );
 
     // Clear sessionStorage
     Services.obs.notifyObservers(
       null,
       "browser:purge-sessionStorage",
-      aBaseDomain
+      aSchemelessSite
     );
 
     // Clear third-party storage partitioned under aBaseDomain.
@@ -807,7 +780,7 @@ const QuotaCleaner = {
     Services.obs.notifyObservers(
       null,
       "dom-storage:clear-origin-attributes-data",
-      JSON.stringify({ partitionKeyPattern: { baseDomain: aBaseDomain } })
+      JSON.stringify({ partitionKeyPattern: { baseDomain: aSchemelessSite } })
     );
 
     // ServiceWorkers must be removed before cleaning QuotaManager. We store
@@ -815,13 +788,13 @@ const QuotaCleaner = {
     // completed.
     let swCleanupError;
     try {
-      await lazy.ServiceWorkerCleanUp.removeFromBaseDomain(aBaseDomain);
+      await lazy.ServiceWorkerCleanUp.removeFromBaseDomain(aSchemelessSite);
     } catch (error) {
       swCleanupError = error;
     }
 
     await this._qmsClearStoragesForPrincipalsMatching(principal =>
-      hasBaseDomain({ principal }, aBaseDomain)
+      hasBaseDomain({ principal }, aSchemelessSite)
     );
 
     // Re-throw any service worker cleanup errors.
@@ -999,7 +972,7 @@ const PredictorNetworkCleaner = {
   },
 
   // TODO: Same as above, but for base domain.
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1045,8 +1018,8 @@ const PushNotificationsCleaner = {
     return this._deleteByRootDomain(aPrincipal.host);
   },
 
-  deleteByBaseDomain(aBaseDomain) {
-    return this._deleteByRootDomain(aBaseDomain);
+  deleteBySite(aSchemelessSite) {
+    return this._deleteByRootDomain(aSchemelessSite);
   },
 
   deleteAll() {
@@ -1120,9 +1093,9 @@ const StorageAccessCleaner = {
     });
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
+  async deleteBySite(aSchemelessSite) {
     this._deleteInternal(
-      ({ principal }) => principal.baseDomain == aBaseDomain
+      ({ principal }) => principal.baseDomain == aSchemelessSite
     );
   },
 
@@ -1150,8 +1123,8 @@ const HistoryCleaner = {
     return lazy.PlacesUtils.history.removeByFilter({ host: aPrincipal.host });
   },
 
-  deleteByBaseDomain(aBaseDomain) {
-    return this.deleteByHost(aBaseDomain, {});
+  deleteBySite(aSchemelessSite) {
+    return this.deleteByHost(aSchemelessSite, {});
   },
 
   deleteByRange(aFrom, aTo) {
@@ -1187,8 +1160,8 @@ const SessionHistoryCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteByBaseDomain(aBaseDomain) {
-    return this.deleteByHost(aBaseDomain, {});
+  deleteBySite(aSchemelessSite) {
+    return this.deleteByHost(aSchemelessSite, {});
   },
 
   async deleteByRange(aFrom) {
@@ -1214,7 +1187,7 @@ const AuthTokensCleaner = {
   },
 
   // TODO: Bug 1726742
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1239,7 +1212,7 @@ const AuthCacheCleaner = {
   },
 
   // TODO: Bug 1726743
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1330,8 +1303,8 @@ const ShutdownExceptionsCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteByBaseDomain(aBaseDomain) {
-    return this._deleteInternal({ baseDomain: aBaseDomain });
+  deleteBySite(aSchemelessSite) {
+    return this._deleteInternal({ baseDomain: aSchemelessSite });
   },
 
   async deleteByRange(aFrom) {
@@ -1383,8 +1356,8 @@ const PermissionsCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteByBaseDomain(aBaseDomain) {
-    return this._deleteInternal({ baseDomain: aBaseDomain });
+  deleteBySite(aSchemelessSite) {
+    return this._deleteInternal({ baseDomain: aSchemelessSite });
   },
 
   async deleteByRange(aFrom) {
@@ -1430,8 +1403,8 @@ const PreferencesCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteByBaseDomain(aBaseDomain) {
-    return this.deleteByHost(aBaseDomain, {});
+  deleteBySite(aSchemelessSite) {
+    return this.deleteByHost(aSchemelessSite, {});
   },
 
   async deleteByRange(aFrom) {
@@ -1462,7 +1435,7 @@ const ClientAuthRememberCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteByBaseDomain(aDomain) {
+  async deleteBySite(aSchemelessSite) {
     let cars = Cc[
       "@mozilla.org/security/clientAuthRememberService;1"
     ].getService(Ci.nsIClientAuthRememberService);
@@ -1493,7 +1466,7 @@ const ClientAuthRememberCleaner = {
             host: asciiHost,
             originAttributes,
           },
-          aDomain
+          aSchemelessSite
         );
       })
       .forEach(({ entryKey }) => cars.forgetRememberedDecision(entryKey));
@@ -1520,30 +1493,17 @@ const HSTSCleaner = {
     );
   },
 
-  /**
-   * Adds brackets to a site if it's an IPv6 address.
-   * @param {string} aSite - (schemeless) site which may be an IPv6.
-   * @returns {string} bracketed IPv6 or site if site is not an IPv6.
-   */
-  _maybeFixIpv6Site(aSite) {
-    // Not an IPv6 or already has brackets.
-    if (!aSite.includes(":") || aSite[0] == "[") {
-      return aSite;
-    }
-    return `[${aSite}]`;
-  },
-
   deleteByPrincipal(aPrincipal) {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteByBaseDomain(aDomain) {
+  async deleteBySite(aSchemelessSite) {
     let sss = Cc["@mozilla.org/ssservice;1"].getService(
       Ci.nsISiteSecurityService
     );
 
     // Add brackets to IPv6 sites to ensure URI creation succeeds.
-    let uri = Services.io.newURI("https://" + this._maybeFixIpv6Site(aDomain));
+    let uri = Services.io.newURI("https://" + aSchemelessSite);
     sss.resetState(uri, {}, Ci.nsISiteSecurityService.BaseDomain);
   },
 
@@ -1569,11 +1529,11 @@ const EMECleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
+  async deleteBySite(aSchemelessSite) {
     let mps = Cc["@mozilla.org/gecko-media-plugin-service;1"].getService(
       Ci.mozIGeckoMediaPluginChromeService
     );
-    mps.forgetThisBaseDomain(aBaseDomain);
+    mps.forgetThisBaseDomain(aSchemelessSite);
   },
 
   deleteAll() {
@@ -1595,8 +1555,8 @@ const ReportsCleaner = {
     return this.deleteByHost(aPrincipal.host, aPrincipal.originAttributes);
   },
 
-  deleteByBaseDomain(aBaseDomain) {
-    return this.deleteByHost(aBaseDomain, {});
+  deleteBySite(aSchemelessSite) {
+    return this.deleteByHost(aSchemelessSite, {});
   },
 
   deleteAll() {
@@ -1619,7 +1579,7 @@ const ContentBlockingCleaner = {
     await this.deleteAll();
   },
 
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1643,7 +1603,7 @@ const AboutHomeStartupCacheCleaner = {
     await this.deleteAll();
   },
 
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1696,7 +1656,7 @@ const PreflightCacheCleaner = {
   },
 
   // TODO: Bug 1727141 (see deleteByPrincipal).
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1733,7 +1693,7 @@ const IdentityCredentialStorageCleaner = {
     }
   },
 
-  async deleteByBaseDomain(aBaseDomain, aIsUserRequest) {
+  async deleteBySite(aSchemelessSite, aIsUserRequest) {
     if (!aIsUserRequest) {
       return;
     }
@@ -1743,7 +1703,9 @@ const IdentityCredentialStorageCleaner = {
         false
       )
     ) {
-      lazy.IdentityCredentialStorageService.deleteFromBaseDomain(aBaseDomain);
+      lazy.IdentityCredentialStorageService.deleteFromBaseDomain(
+        aSchemelessSite
+      );
     }
   },
 
@@ -1821,14 +1783,14 @@ const BounceTrackingProtectionStateCleaner = {
     );
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
+  async deleteBySite(aSchemelessSite) {
     if (
       lazy.bounceTrackingProtectionMode ==
       Ci.nsIBounceTrackingProtection.MODE_DISABLED
     ) {
       return;
     }
-    await lazy.bounceTrackingProtection.clearBySiteHost(aBaseDomain);
+    await lazy.bounceTrackingProtection.clearBySiteHost(aSchemelessSite);
   },
 
   async deleteByRange(aFrom, aTo) {
@@ -1848,7 +1810,7 @@ const BounceTrackingProtectionStateCleaner = {
     ) {
       return;
     }
-    let baseDomain = getBaseDomainWithFallback(aHost);
+    let baseDomain = Services.eTLD.getSchemelessSiteFromHost(aHost);
     await lazy.bounceTrackingProtection.clearBySiteHost(baseDomain);
   },
 
@@ -1903,10 +1865,10 @@ const StoragePermissionsCleaner = {
     }
   },
 
-  async deleteByBaseDomain(aBaseDomain) {
+  async deleteBySite(aSchemelessSite) {
     let permissions = this._getStoragePermissions();
     for (let perm of permissions) {
-      if (perm.principal.baseDomain == aBaseDomain) {
+      if (perm.principal.baseDomain == aSchemelessSite) {
         Services.perms.removePermission(perm);
       }
     }
@@ -2165,21 +2127,24 @@ ClearDataService.prototype = Object.freeze({
     });
   },
 
-  deleteDataFromBaseDomain(aDomainOrHost, aIsUserRequest, aFlags, aCallback) {
-    if (!aDomainOrHost || !aCallback) {
+  deleteDataFromSite(aSchemelessSite, aIsUserRequest, aFlags, aCallback) {
+    if (!aSchemelessSite?.length || !aCallback) {
       return Cr.NS_ERROR_INVALID_ARG;
     }
-    // We may throw here if aDomainOrHost can't be converted to a base domain.
-    let baseDomain;
 
-    try {
-      baseDomain = getBaseDomainWithFallback(aDomainOrHost);
-    } catch (e) {
-      return Cr.NS_ERROR_FAILURE;
+    // For debug builds validate aSchemelessSite.
+    if (AppConstants.DEBUG) {
+      let schemelessSiteComputed =
+        Services.eTLD.getSchemelessSiteFromHost(aSchemelessSite);
+      if (schemelessSiteComputed != aSchemelessSite) {
+        throw new Error(
+          "deleteDataFromSite called with invalid aSchemelessSite."
+        );
+      }
     }
 
     return this._deleteInternal(aFlags, aCallback, aCleaner =>
-      aCleaner.deleteByBaseDomain(baseDomain, aIsUserRequest)
+      aCleaner.deleteBySite(aSchemelessSite, aIsUserRequest)
     );
   },
 

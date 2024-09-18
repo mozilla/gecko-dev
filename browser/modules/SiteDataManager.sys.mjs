@@ -532,29 +532,14 @@ export var SiteDataManager = {
         new Promise(function (resolve) {
           const { clearData } = Services;
           if (domainOrHost) {
-            // First try to clear by base domain for aDomainOrHost. If we can't
-            // get a base domain, fall back to clearing by just host.
-            try {
-              clearData.deleteDataFromBaseDomain(
-                domainOrHost,
-                true,
-                Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA,
-                resolve
-              );
-            } catch (e) {
-              if (
-                e.result != Cr.NS_ERROR_HOST_IS_IP_ADDRESS &&
-                e.result != Cr.NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS
-              ) {
-                throw e;
-              }
-              clearData.deleteDataFromHost(
-                domainOrHost,
-                true,
-                Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA,
-                resolve
-              );
-            }
+            let schemelessSite =
+              Services.eTLD.getSchemelessSiteFromHost(domainOrHost);
+            clearData.deleteDataFromSite(
+              schemelessSite,
+              true,
+              Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA,
+              resolve
+            );
           } else {
             clearData.deleteDataFromLocalFiles(
               true,

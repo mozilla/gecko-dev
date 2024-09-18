@@ -47,7 +47,7 @@ interface nsIClearDataService : nsISupports
    * @param aFlags List of flags. See below the accepted values.
    * @param aCallback this callback will be executed when the operation is
    *                  completed.
-   * @deprecated Use deleteDataFromBaseDomain instead.
+   * @deprecated Use deleteDataFromSite instead.
    */
   void deleteDataFromHost(in AUTF8String aHost,
                           in boolean aIsUserRequest,
@@ -55,15 +55,18 @@ interface nsIClearDataService : nsISupports
                           in nsIClearDataCallback aCallback);
 
   /**
-   * Delete data owned by or partitioned under a baseDomain (eTLD+1). For
-   * instance: mozilla.org. Deletes data across all origin attributes. For
-   * partitioned storage we clear both, data of the baseDomain in 1st-party and
-   * 3rd-party context.
+   * Delete data from cookie jars associated with the given schemeless site
+   * aSchemelessSite.
+   * In addition to regular first-party data this includes data of aSchemelessSite in a
+   * third-party context and data from other sites partitioned under aSchemelessSite.
+   * You can use Services.eTLD.getSchemelessSite to extract the site portion of a URI.
+   * See https://html.spec.whatwg.org/#obtain-a-site for details.
+   * If you have an nsIPrincipal object you can simply pass in
+   * principal.baseDomain.
    * When handling user requests for clearing data using this method is
    * preferred over deleteDataFromPrincipal, since origins may share information
    * with their site (e.g. cookies) that are not deleted by principal.
-   * @param aDomainOrHost the domain or host to be used. Will be converted to
-   *        baseDomain if needed.
+   * @param aSchemelessSite the site to be cleared excluding scheme.
    * @param aIsUserRequest true if this request comes from a user interaction.
    *        This information is important because if true, it's probably better
    *        to remove more than less, for privacy reason. If false (e.g.
@@ -72,10 +75,8 @@ interface nsIClearDataService : nsISupports
    * @param aFlags List of flags. See below the accepted values.
    * @param aCallback this callback will be executed when the operation is
    *                  completed.
-   * @throws Throws if base domain can't be computed from aDomainOrHost. Callers
-   * may fall back to clearing by principal or host.
    */
-  void deleteDataFromBaseDomain(in AUTF8String aDomainOrHost,
+  void deleteDataFromSite(in AUTF8String aSchemelessSite,
                                 in boolean aIsUserRequest,
                                 in uint32_t aFlags,
                                 in nsIClearDataCallback aCallback);
