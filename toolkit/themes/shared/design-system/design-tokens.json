@@ -958,6 +958,12 @@
           "prefersContrast": "inherit"
         }
       },
+      "disabled": {
+        "value": {
+          "default": "color-mix(in srgb, currentColor 40%, transparent)",
+          "forcedColors": "GrayText"
+        }
+      },
       "error": {
         "value": {
           "light": "{color.red.50}",

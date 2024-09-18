@@ -42,7 +42,7 @@ menuseparator::before {
 
 @media not (prefers-contrast) {
   menuitem:not([disabled]) > .menu-accel-container > :is(.menu-accel, .menu-iconic-accel) {
-    color: var(--panel-disabled-color);
+    color: var(--text-color-disabled);
   }
 }
 
@@ -111,7 +111,7 @@ menucaption {
 menu,
 menuitem {
   &:where([disabled="true"]) {
-    color: var(--panel-disabled-color);
+    color: var(--text-color-disabled);
     text-shadow: none;
   }
 

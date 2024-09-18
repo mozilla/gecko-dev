@@ -199,7 +199,7 @@
   background: transparent;
   border: none;
   box-shadow: none;
-  color: var(--panel-disabled-color);
+  color: var(--text-color-disabled);
   padding-inline: 10px;
 }
 

@@ -145,8 +145,8 @@ h1.translations-panel-header-wrapper {
   background-color: transparent;
 
   &:disabled {
-    color: var(--panel-disabled-color);
-    border-color: var(--panel-disabled-color);
+    color: var(--text-color-disabled);
+    border-color: var(--border-color-deemphasized);
   }
 
   &.translating {

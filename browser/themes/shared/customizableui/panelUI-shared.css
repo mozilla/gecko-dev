@@ -302,7 +302,7 @@ panelview {
 
   :is(menu, menuitem) {
     &[disabled] {
-      color: var(--panel-disabled-color);
+      color: var(--text-color-disabled);
     }
 
     &:not([disabled])[_moz-menuactive] {
@@ -763,7 +763,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
   }
 
   &:not([fxastatus="signedin"]) #PanelUI-fxa-menu-connect-device-button {
-    color: var(--panel-disabled-color);
+    color: var(--text-color-disabled);
   }
 }
 
@@ -828,7 +828,7 @@ toolbarbutton[constrain-size="true"][cui-areatype="panel"] > .toolbarbutton-badg
 }
 
 :root:not([fxastatus="signedin"]) #PanelUI-fxa-menu-connect-device-button {
-  color: var(--panel-disabled-color);
+  color: var(--text-color-disabled);
 }
 
 /* From the FxA menu -> synced tabs, we don't need to clutter the view with
@@ -1042,7 +1042,7 @@ panelview .toolbarbutton-1,
   justify-content: flex-start;
 
   &[disabled="true"] {
-    color: var(--panel-disabled-color);
+    color: var(--text-color-disabled);
   }
 
   /* We don't always display: none this item, and if it has forced width (like above)
@@ -1062,10 +1062,8 @@ panelview .toolbarbutton-1,
     display: flex;
   }
 
-  @media not (prefers-contrast) {
-    &[shortcut]:not([disabled])::after {
-      color: var(--panel-disabled-color);
-    }
+  &[shortcut]:not([disabled])::after {
+    color: var(--text-color-deemphasized);
   }
 
   &[shortcut]::after,
