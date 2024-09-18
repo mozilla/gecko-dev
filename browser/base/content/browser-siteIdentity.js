@@ -181,6 +181,37 @@ var gIdentityHandler = {
       let wrapper = document.getElementById("template-identity-popup");
       wrapper.replaceWith(wrapper.content);
       this._popupInitialized = true;
+      this._initializePopupListeners();
+    }
+  },
+
+  _initializePopupListeners() {
+    const COMMANDS = {
+      "identity-popup-security-button": () => {
+        this.showSecuritySubView();
+      },
+      "identity-popup-security-httpsonlymode-menulist": () => {
+        this.changeHttpsOnlyPermission();
+      },
+      "identity-popup-clear-sitedata-button": event => {
+        this.clearSiteData(event);
+      },
+      "identity-popup-remove-cert-exception": () => {
+        this.removeCertException();
+      },
+      "identity-popup-disable-mixed-content-blocking": () => {
+        this.disableMixedContentProtection();
+      },
+      "identity-popup-enable-mixed-content-blocking": () => {
+        this.enableMixedContentProtection();
+      },
+      "identity-popup-more-info": event => {
+        this.handleMoreInfoClick(event);
+      },
+    };
+
+    for (let [id, handler] of Object.entries(COMMANDS)) {
+      document.getElementById(id).addEventListener("command", handler);
     }
   },
 

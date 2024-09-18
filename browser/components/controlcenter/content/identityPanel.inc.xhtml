@@ -30,8 +30,7 @@
       <toolbarseparator/>
       <vbox class="panel-subview-body">
         <toolbarbutton id="identity-popup-security-button"
-                       class="identity-popup-security-connection subviewbutton subviewbutton-iconic"
-                       oncommand="gIdentityHandler.showSecuritySubView();">
+                       class="identity-popup-security-connection subviewbutton subviewbutton-iconic">
           <image class="identity-popup-security-connection-icon toolbarbutton-icon"></image>
           <hbox class="toolbarbutton-text" flex="1">
             <label class="identity-popup-connection-not-secure"
@@ -71,8 +70,7 @@
 
             <vbox id="identity-popup-security-httpsonlymode" when-httpsonlystatus="exception upgraded failed-top failed-sub">
               <label flex="1" data-l10n-id="identity-https-only-label2"></label>
-              <menulist id="identity-popup-security-httpsonlymode-menulist"
-                        oncommand="gIdentityHandler.changeHttpsOnlyPermission();" sizetopopup="none">
+              <menulist id="identity-popup-security-httpsonlymode-menulist" sizetopopup="none">
                 <menupopup>
                   <menuitem value="0" data-l10n-id="identity-https-only-dropdown-on" />
                   <menuitem value="1" data-l10n-id="identity-https-only-dropdown-off"
@@ -101,8 +99,7 @@
         <toolbarseparator/>
         <toolbarbutton id="identity-popup-clear-sitedata-button"
                 data-l10n-id="identity-clear-site-data"
-                class="subviewbutton"
-                oncommand="gIdentityHandler.clearSiteData(event);"/>
+                class="subviewbutton"/>
       </vbox>
     </panelview>
 
@@ -138,10 +135,10 @@
           </description>
 
           <!-- Remove Certificate Exception -->
-          <button when-connection="secure-cert-user-overridden"
+          <button id="identity-popup-remove-cert-exception"
+                  when-connection="secure-cert-user-overridden"
                   data-l10n-id="identity-remove-cert-exception"
-                  class="panel-button"
-                  oncommand="gIdentityHandler.removeCertException()"/>
+                  class="panel-button"/>
 
           <!-- Connection is Not Secure -->
           <description when-connection="not-secure cert-error-page net-error-page https-only-error-page"
@@ -187,14 +184,14 @@
 
 
           <!-- Buttons to enable/disable mixed content blocking. -->
-          <button when-mixedcontent="active-blocked"
+          <button id="identity-popup-disable-mixed-content-blocking"
+                  when-mixedcontent="active-blocked"
                   data-l10n-id="identity-disable-mixed-content-blocking"
-                  class="panel-button"
-                  oncommand="gIdentityHandler.disableMixedContentProtection()"/>
-          <button when-mixedcontent="active-loaded"
+                  class="panel-button"/>
+          <button id="identity-popup-enable-mixed-content-blocking"
+                  when-mixedcontent="active-loaded"
                   data-l10n-id="identity-enable-mixed-content-blocking"
-                  class="panel-button"
-                  oncommand="gIdentityHandler.enableMixedContentProtection()"/>
+                  class="panel-button"/>
         </vbox>
       </vbox>
 
@@ -203,8 +200,7 @@
         <toolbarseparator />
         <toolbarbutton id="identity-popup-more-info"
                 data-l10n-id="identity-more-info-link-text"
-                class="subviewbutton panel-subview-footer-button"
-                oncommand="gIdentityHandler.handleMoreInfoClick(event);"/>
+                class="subviewbutton panel-subview-footer-button"/>
       </vbox>
 
     </panelview>
