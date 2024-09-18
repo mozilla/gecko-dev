@@ -2667,6 +2667,42 @@ characteristics:
       # is more like 'technical' (per the Data Review), I'm marking highly sensitive.
       - highly_sensitive
 
+  ice_order:
+    type: quantity
+    unit: int
+    description: >
+      Unique ICE foundations occurrence count
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c4
+    expires: never
+    data_sensitivity:
+      - technical
+
+  ice_sd:
+    type: quantity
+    unit: int
+    description: >
+      ICE foundation discovery latency standard deviation sum multiplied by 1000
+    lifetime: application
+    send_in_pings:
+      - user-characteristics
+    notification_emails:
+      - tom@mozilla.com
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1919090#c4
+    expires: never
+    data_sensitivity:
+      - technical
+
   pointer_height:
     type: quantity
     unit: int
