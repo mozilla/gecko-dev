@@ -66,9 +66,8 @@ class SharedStyleSheetCache final
   using Base::LoadCompleted;
   static void LoadCompletedInternal(SharedStyleSheetCache*, css::SheetLoadData&,
                                     nsTArray<RefPtr<css::SheetLoadData>>&);
-  static void Clear(const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal = Nothing(),
-                    const Maybe<nsCString>& aSchemelessSite = Nothing(),
-                    const Maybe<OriginAttributesPattern>& aPattern = Nothing());
+  static void Clear(nsIPrincipal* aForPrincipal = nullptr,
+                    const nsACString* aBaseDomain = nullptr);
 
  protected:
   void InsertIfNeeded(css::SheetLoadData&);

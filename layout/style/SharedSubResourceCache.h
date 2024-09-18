@@ -156,9 +156,8 @@ class SharedSubResourceCache {
   // to be called when the document goes away, or when its principal changes.
   void UnregisterLoader(Loader&);
 
-  void ClearInProcess(const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
-                      const Maybe<nsCString>& aSchemelessSite,
-                      const Maybe<OriginAttributesPattern>& aPattern);
+  void ClearInProcess(nsIPrincipal* aForPrincipal = nullptr,
+                      const nsACString* aBaseDomain = nullptr);
 
  protected:
   void CancelPendingLoadsForLoader(Loader&);
@@ -194,52 +193,36 @@ class SharedSubResourceCache {
 
 template <typename Traits, typename Derived>
 void SharedSubResourceCache<Traits, Derived>::ClearInProcess(
-    const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
-    const Maybe<nsCString>& aSchemelessSite,
-    const Maybe<OriginAttributesPattern>& aPattern) {
-  MOZ_ASSERT(aSchemelessSite.isSome() == aPattern.isSome(),
-             "Must pass both site and OA pattern.");
-
-  if (!aPrincipal && !aSchemelessSite) {
+    nsIPrincipal* aForPrincipal, const nsACString* aBaseDomain) {
+  if (!aForPrincipal && !aBaseDomain) {
     mComplete.Clear();
     return;
   }
 
   for (auto iter = mComplete.Iter(); !iter.Done(); iter.Next()) {
     const bool shouldRemove = [&] {
-      if (aPrincipal && iter.Key().Principal()->Equals(aPrincipal.ref())) {
+      if (aForPrincipal && iter.Key().Principal()->Equals(aForPrincipal)) {
         return true;
       }
-      if (!aSchemelessSite) {
+      if (!aBaseDomain) {
         return false;
       }
-      // Clear by site.
+      // Clear by baseDomain.
       nsIPrincipal* partitionPrincipal = iter.Key().PartitionPrincipal();
 
-      // Clear entries with site. This includes entries which are partitioned
-      // under other top level sites (= have a partitionKey set).
+      // Clear entries with matching base domain. This includes entries
+      // which are partitioned under other top level sites (= have a
+      // partitionKey set).
       nsAutoCString principalBaseDomain;
       nsresult rv = partitionPrincipal->GetBaseDomain(principalBaseDomain);
-      if (NS_WARN_IF(NS_FAILED(rv))) {
-        return false;
-      }
-      if (principalBaseDomain.Equals(aSchemelessSite.ref()) &&
-          aPattern.ref().Matches(partitionPrincipal->OriginAttributesRef())) {
+      if (NS_SUCCEEDED(rv) && principalBaseDomain.Equals(*aBaseDomain)) {
         return true;
       }
 
-      // Clear entries partitioned under aSchemelessSite. We need to add the
-      // partition key filter to aPattern so that we include any OA filtering
-      // specified by the caller. For example the caller may pass aPattern = {
-      // privateBrowsingId: 1 } which means we may only clear partitioned
-      // private browsing data.
-      OriginAttributesPattern patternWithPartitionKey(aPattern.ref());
-      patternWithPartitionKey.mPartitionKeyPattern.Construct();
-      patternWithPartitionKey.mPartitionKeyPattern.Value()
-          .mBaseDomain.Construct(NS_ConvertUTF8toUTF16(aSchemelessSite.ref()));
-
-      return patternWithPartitionKey.Matches(
-          partitionPrincipal->OriginAttributesRef());
+      // Clear entries partitioned under aBaseDomain.
+      return StoragePrincipalHelper::PartitionKeyHasBaseDomain(
+          partitionPrincipal->OriginAttributesRef().mPartitionKey,
+          *aBaseDomain);
     }();
 
     if (shouldRemove) {

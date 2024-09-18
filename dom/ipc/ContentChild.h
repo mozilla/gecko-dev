@@ -246,20 +246,17 @@ class ContentChild final : public PContentChild,
       const ChromeRegistryItem& item);
 
   mozilla::ipc::IPCResult RecvClearStyleSheetCache(
-      const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
-      const Maybe<nsCString>& aSchemelessSite,
-      const Maybe<OriginAttributesPattern>& aPattern);
+      const Maybe<RefPtr<nsIPrincipal>>& aForPrincipal,
+      const Maybe<nsCString>& aBaseDomain);
 
   mozilla::ipc::IPCResult RecvClearScriptCache(
-      const Maybe<RefPtr<nsIPrincipal>>& aPrincipal,
-      const Maybe<nsCString>& aSchemelessSite,
-      const Maybe<OriginAttributesPattern>& aPattern);
+      const Maybe<RefPtr<nsIPrincipal>>& aForPrincipal,
+      const Maybe<nsCString>& aBaseDomain);
 
   mozilla::ipc::IPCResult RecvClearImageCacheFromPrincipal(
       nsIPrincipal* aPrincipal);
-  mozilla::ipc::IPCResult RecvClearImageCacheFromSite(
-      const nsCString& aSchemelessSite,
-      const OriginAttributesPattern& aPattern);
+  mozilla::ipc::IPCResult RecvClearImageCacheFromBaseDomain(
+      const nsCString& aBaseDomain);
   mozilla::ipc::IPCResult RecvClearImageCache(const bool& privateLoader,
                                               const bool& chrome);
 

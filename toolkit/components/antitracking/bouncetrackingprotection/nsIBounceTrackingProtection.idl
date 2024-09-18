@@ -44,13 +44,10 @@ interface nsIBounceTrackingProtection : nsISupports {
 
     // Clear bounce tracking state for a specific site host and OriginAttributes pair.
     [implicit_jscontext]
-    void clearBySiteHostAndOriginAttributes(in ACString aSiteHost, in jsval originAttributes);
+    void clearBySiteHostAndOA(in ACString aSiteHost, in jsval originAttributes);
 
-    // Clear bounce tracking state for a specific site host and
-    // OriginAttributesPattern.
-    // aOriginAttributesPattern = {} clears for all OriginAttributes.
-    [implicit_jscontext]
-    void clearBySiteHostAndOriginAttributesPattern(in ACString aSiteHost, in jsval aOriginAttributesPattern);
+    // Clear bounce tracking state for a specific site host for all OriginAttributes.
+    void clearBySiteHost(in ACString aSiteHost);
 
     // Clear bounce tracking state for a specific time range.
     void clearByTimeRange(in PRTime aFrom, in PRTime aTo);

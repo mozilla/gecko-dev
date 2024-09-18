@@ -164,9 +164,8 @@ add_task(async function test_clearing_by_baseDomain() {
   );
 
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromSite(
+    Services.clearData.deleteDataFromBaseDomain(
       baseDomain,
-      {},
       true,
       Ci.nsIClearDataService.CLEAR_STORAGE_PERMISSIONS,
       value => {

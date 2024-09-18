@@ -120,28 +120,6 @@ interface nsIEffectiveTLDService : nsISupports
     ACString getSchemelessSite(in nsIURI aURI);
 
     /**
-     * Same as getSchemelessSite but takes a host string. Prefer the URI variant
-     * if possible.
-     *
-     * @param aHost
-     *        The host to analyze.
-     *
-     * @return the Site.
-     *
-     * @throws NS_ERROR_UNEXPECTED
-     *         or other error returned by nsIIDNService::normalize when
-     *         the hostname contains characters disallowed in URIs
-     *
-     * @see    getSchemelessSite()
-     * @see    getBaseDomain()
-     * @see    getSite()
-     *
-     * @warning This function should not be used without good reason. Please
-     * use getSite() or the Origin if you are not absolutely certain.
-     */
-    ACString getSchemelessSiteFromHost(in AUTF8String aHost);
-
-    /**
      * Get the Site for the origin of aURI; e.g. for
      * "https://www.bbc.co.uk/index.html", this would be "https://bbc.co.uk".
      * This uses getBaseDomain() internally. This is appropriately permissive,

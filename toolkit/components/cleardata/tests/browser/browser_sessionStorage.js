@@ -131,9 +131,8 @@ add_task(async function test_deleteByBaseDomain() {
 
   info("Clearing sessionStorage for base domain A " + BASE_DOMAIN_A);
   await new Promise(resolve => {
-    Services.clearData.deleteDataFromSite(
+    Services.clearData.deleteDataFromBaseDomain(
       BASE_DOMAIN_A,
-      {},
       false,
       Ci.nsIClearDataService.CLEAR_DOM_QUOTA,
       resolve

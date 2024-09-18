@@ -185,18 +185,16 @@ class ChromeUtils {
   static void ClearStyleSheetCacheByPrincipal(GlobalObject&,
                                               nsIPrincipal* aForPrincipal);
 
-  static void ClearStyleSheetCacheBySite(
-      GlobalObject&, const nsACString& aSchemelessSite,
-      const dom::OriginAttributesPatternDictionary& aPattern);
+  static void ClearStyleSheetCacheByBaseDomain(GlobalObject& aGlobal,
+                                               const nsACString& aBaseDomain);
 
   static void ClearStyleSheetCache(GlobalObject& aGlobal);
 
   static void ClearScriptCacheByPrincipal(GlobalObject&,
                                           nsIPrincipal* aForPrincipal);
 
-  static void ClearScriptCacheBySite(
-      GlobalObject& aGlobal, const nsACString& aSchemelessSite,
-      const dom::OriginAttributesPatternDictionary& aPattern);
+  static void ClearScriptCacheByBaseDomain(GlobalObject& aGlobal,
+                                           const nsACString& aBaseDomain);
 
   static void ClearScriptCache(GlobalObject& aGlobal);
 

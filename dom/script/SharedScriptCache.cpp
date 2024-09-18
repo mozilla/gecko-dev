@@ -138,19 +138,21 @@ SharedScriptCache::Observe(nsISupports* aSubject, const char* aTopic,
   return NS_OK;
 }
 
-void SharedScriptCache::Clear(const Maybe<nsCOMPtr<nsIPrincipal>>& aPrincipal,
-                              const Maybe<nsCString>& aSchemelessSite,
-                              const Maybe<OriginAttributesPattern>& aPattern) {
+void SharedScriptCache::Clear(nsIPrincipal* aForPrincipal,
+                              const nsACString* aBaseDomain) {
   using ContentParent = dom::ContentParent;
 
   if (XRE_IsParentProcess()) {
+    auto forPrincipal = aForPrincipal ? Some(RefPtr(aForPrincipal)) : Nothing();
+    auto baseDomain = aBaseDomain ? Some(nsCString(*aBaseDomain)) : Nothing();
+
     for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-      Unused << cp->SendClearScriptCache(aPrincipal, aSchemelessSite, aPattern);
+      Unused << cp->SendClearScriptCache(forPrincipal, baseDomain);
     }
   }
 
   if (sSingleton) {
-    sSingleton->ClearInProcess(aPrincipal, aSchemelessSite, aPattern);
+    sSingleton->ClearInProcess(aForPrincipal, aBaseDomain);
   }
 }
 
