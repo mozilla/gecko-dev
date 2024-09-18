@@ -180,6 +180,7 @@
 
   /* Icon colors */
   --theme-icon-color: light-dark(rgba(12, 12, 13, 0.8), rgba(249, 249, 250, 0.7));
+  --theme-icon-hover-color: var(--theme-icon-color);
   --theme-icon-dimmed-color: light-dark(rgba(135, 135, 137, 0.9), rgba(147, 147, 149, 0.9));
   --theme-icon-checked-color: light-dark(var(--blue-60), var(--blue-30));
   --theme-icon-error-color: light-dark(var(--red-60), var(--red-40));
@@ -274,5 +275,8 @@
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
     --theme-body-color: CanvasText;
+    --theme-focus-outline-color: CanvasText;
+    --theme-icon-color: ButtonText;
+    --theme-icon-hover-color: SelectedItem;
   }
 }
