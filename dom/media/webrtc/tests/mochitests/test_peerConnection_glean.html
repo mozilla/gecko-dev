@@ -404,11 +404,11 @@
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       const sender = pc1.addTrack(stream.getTracks()[0]);
       let offer = await pc1.createOffer();
-      pc1.setLocalDescription(offer);
-      pc2.setRemoteDescription(offer);
+      await pc1.setLocalDescription(offer);
+      await pc2.setRemoteDescription(offer);
       let answer = await pc2.createAnswer();
-      pc2.setLocalDescription(answer);
-      pc1.setRemoteDescription(answer);
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
 
       // Validate logging shows ulpfec negotiated and preferred video VP8
       let ulpfecNotNegotiated = await GleanTest.codecStats.ulpfecNegotiated.not_negotiated.testGetValue() || 0;
@@ -417,6 +417,9 @@
       ok(ulpfecNegotiated == 2, "checkUlpfecNegotiated glean should show ulpfec negotiated");
       let preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
       ok(preferredVideoCodec == 2, "checkUlpfecNegotiated glean should show preferred video codec VP8");
+
+      pc1.close();
+      pc2.close();
     },
 
     async function checkNoUlpfecNegotiated() {
@@ -426,22 +429,25 @@
       await gleanResetTestValues();
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       const sender = pc1.addTrack(stream.getTracks()[0]);
-      let offer = await pc1.createOffer();
+      await pc1.setLocalDescription();
+      const offer = pc1.localDescription;
       const payloadType = sdputils.findCodecId(offer.sdp, "ulpfec");
-      offer.sdp = sdputils.removeCodec(offer.sdp, payloadType);
-      pc1.setLocalDescription(offer);
-      pc2.setRemoteDescription(offer);
+      const sdp = sdputils.removeCodec(offer.sdp, payloadType);
+      await pc2.setRemoteDescription({type: 'offer', sdp});
       let answer = await pc2.createAnswer();
-      pc2.setLocalDescription(answer);
-      pc1.setRemoteDescription(answer);
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
 
       // Validate logging shows ulpfec not negotiated and preferred video VP8
-      let ulpfecNotNegotiated = await GleanTest.codecStats.ulpfecNegotiated.not_negotiated.testGetValue() || 0;
-      ok(ulpfecNotNegotiated == 2, "checkNoUlpfecNegotiated glean should count not_negotiated");
-      let ulpfecNegotiated = await GleanTest.codecStats.ulpfecNegotiated.negotiated.testGetValue() || 0;
-      ok(ulpfecNegotiated == 0, "checkNoUlpfecNegotiated glean should not show ulpfec negotiated " + ulpfecNegotiated);
-      let preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
-      ok(preferredVideoCodec == 2, "checkNoUlpfecNegotiated glean should show preferred video codec VP8");
+      const ulpfecNotNegotiated = await GleanTest.codecStats.ulpfecNegotiated.not_negotiated.testGetValue() || 0;
+      is(ulpfecNotNegotiated, 2, "checkNoUlpfecNegotiated glean should count not_negotiated");
+      const ulpfecNegotiated = await GleanTest.codecStats.ulpfecNegotiated.negotiated.testGetValue() || 0;
+      is(ulpfecNegotiated, 0, "checkNoUlpfecNegotiated glean should not show ulpfec negotiated " + ulpfecNegotiated);
+      const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
+      is(preferredVideoCodec, 2, "checkNoUlpfecNegotiated glean should show preferred video codec VP8");
+
+      pc1.close();
+      pc2.close();
     },
 
     async function checkFlexfecOffered() {
@@ -451,21 +457,25 @@
       await gleanResetTestValues();
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       const sender = pc1.addTrack(stream.getTracks()[0]);
-      let offer = await pc1.createOffer();
-      offer.sdp = offer.sdp.replaceAll('VP8','flexfec');
-      pc1.setLocalDescription(offer);
-      pc2.setRemoteDescription(offer);
+      await pc1.setLocalDescription();
+      const offer = pc1.localDescription;
+      const sdp = offer.sdp.replaceAll('VP8','flexfec');
+      await pc2.setRemoteDescription({type: 'offer', sdp});
       let answer = await pc2.createAnswer();
-      pc2.setLocalDescription(answer);
-      pc1.setRemoteDescription(answer);
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
 
-      // Validate logging shows flexfec counted once ulpfec negotiated twice and preferred video VP9 since no VP8 was offered.
-      let flexfecOffered = await GleanTest.codecStats.otherFecSignaled.flexfec.testGetValue() || 0;
-      ok(flexfecOffered == 1, "checkFlexfecOffered glean should count flexfec being offered" + flexfecOffered);
-      let ulpfecNegotiated = await GleanTest.codecStats.ulpfecNegotiated.negotiated.testGetValue() || 0;
-      ok(ulpfecNegotiated == 2, "checkUlpfecNegotiated glean should show ulpfec negotiated");
-      let preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP9.testGetValue() || 0;
-      ok(preferredVideoCodec == 2, "checkFlexfecOffered glean should show preferred video codec VP9");
+      // Validate logging shows flexfec counted once ulpfec negotiated twice
+      // and preferred video VP9 since no VP8 was offered.
+      const flexfecOffered = await GleanTest.codecStats.otherFecSignaled.flexfec.testGetValue() || 0;
+      is(flexfecOffered, 1, "checkFlexfecOffered glean should count flexfec being offered" + flexfecOffered);
+      const ulpfecNegotiated = await GleanTest.codecStats.ulpfecNegotiated.negotiated.testGetValue() || 0;
+      is(ulpfecNegotiated, 2, "checkUlpfecNegotiated glean should show ulpfec negotiated");
+      const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP9.testGetValue() || 0;
+      is(preferredVideoCodec, 2, "checkFlexfecOffered glean should show preferred video codec VP9");
+
+      pc1.close();
+      pc2.close();
     },
 
     async function checkPreferredVideoCodec() {
@@ -475,21 +485,25 @@
       await gleanResetTestValues();
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       const sender = pc1.addTrack(stream.getTracks()[0]);
-      let offer = await pc1.createOffer();
-      // Set a video codec that does not exist to simulate receiving codecs we dont support
-      // and verify it gets logged.
-      offer.sdp = offer.sdp.replaceAll('VP8','AVADA1');
-      pc1.setLocalDescription(offer);
-      pc2.setRemoteDescription(offer);
+      await pc1.setLocalDescription();
+      const offer = pc1.localDescription;
+      // Set a video codec that does not exist to simulate receiving codecs we
+      // dont support and verify it gets logged.
+      const sdp = offer.sdp.replaceAll('VP8','AVADA1');
+      await pc2.setRemoteDescription({type: 'offer', sdp});
       let answer = await pc2.createAnswer();
-      pc2.setLocalDescription(answer);
-      pc1.setRemoteDescription(answer);
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
 
-      // We should show AVADA1 as the preferred codec from the offer and the answer should prefer VP9 since VP8 was removed.
-      let preferredVideoCodecAVADA1 = await GleanTest.codecStats.videoPreferredCodec.AVADA1.testGetValue() || 0;
-      ok(preferredVideoCodecAVADA1 == 1, "checkPreferredVideoCodec glean should show preferred video codec AVADA1" + preferredVideoCodecAVADA1);
-      let preferredVideoCodecVP9 = await GleanTest.codecStats.videoPreferredCodec.VP9.testGetValue() || 0;
-      ok(preferredVideoCodecVP9 == 1, "checkPreferredVideoCodec glean should show preferred video codec VP9" + preferredVideoCodecVP9);
+      // We should show AVADA1 as the preferred codec from the offer and the
+      // answer should prefer VP9 since VP8 was removed.
+      const preferredVideoCodecAVADA1 = await GleanTest.codecStats.videoPreferredCodec.AVADA1.testGetValue() || 0;
+      is(preferredVideoCodecAVADA1, 1, "checkPreferredVideoCodec glean should show preferred video codec AVADA1" + preferredVideoCodecAVADA1);
+      const preferredVideoCodecVP9 = await GleanTest.codecStats.videoPreferredCodec.VP9.testGetValue() || 0;
+      is(preferredVideoCodecVP9, 1, "checkPreferredVideoCodec glean should show preferred video codec VP9" + preferredVideoCodecVP9);
+
+      pc1.close();
+      pc2.close();
     },
 
     async function checkPreferredAudioCodec() {
@@ -499,21 +513,25 @@
       await gleanResetTestValues();
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const sender = pc1.addTrack(stream.getTracks()[0]);
-      let offer = await pc1.createOffer();
-      // Set an audio codec that does not exist to simulate receiving codecs we dont support
-      // and verify it gets logged.
-      offer.sdp = offer.sdp.replaceAll('opus','FAKECodec');
-      pc1.setLocalDescription(offer);
-      pc2.setRemoteDescription(offer);
+      await pc1.setLocalDescription();
+      const offer = pc1.localDescription;
+      // Set an audio codec that does not exist to simulate receiving codecs we
+      // dont support and verify it gets logged.
+      const sdp = offer.sdp.replaceAll('opus','FAKECodec');
+      await pc2.setRemoteDescription({type: 'offer', sdp});
       let answer = await pc2.createAnswer();
-      pc2.setLocalDescription(answer);
-      pc1.setRemoteDescription(answer);
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
 
-      // We should show CN as the preferred codec from the offer and the answer should prefer G722 since opus was removed.
-      let preferredAudioCodecFAKECodec = await GleanTest.codecStats.audioPreferredCodec.FAKECodec.testGetValue() || 0;
-      ok(preferredAudioCodecFAKECodec == 1, "checkPreferredAudioCodec Glean should show preferred audio codec FAKECodec " + preferredAudioCodecFAKECodec);
-      let preferredAudioCodecG722 = await GleanTest.codecStats.audioPreferredCodec.G722.testGetValue() || 0;
-      ok(preferredAudioCodecG722 == 1, "checkPreferredAudioCodec Glean should show preferred audio codec G722 " + preferredAudioCodecG722);
+      // We should show CN as the preferred codec from the offer and the answer
+      // should prefer G722 since opus was removed.
+      const preferredAudioCodecFAKECodec = await GleanTest.codecStats.audioPreferredCodec.FAKECodec.testGetValue() || 0;
+      is(preferredAudioCodecFAKECodec, 1, "checkPreferredAudioCodec Glean should show preferred audio codec FAKECodec " + preferredAudioCodecFAKECodec);
+      const preferredAudioCodecG722 = await GleanTest.codecStats.audioPreferredCodec.G722.testGetValue() || 0;
+      is(preferredAudioCodecG722, 1, "checkPreferredAudioCodec Glean should show preferred audio codec G722 " + preferredAudioCodecG722);
+
+      pc1.close();
+      pc2.close();
     },
 
     async function checkLoggingMultipleTransceivers() {
@@ -526,26 +544,23 @@
       pc1.addTransceiver(stream.getTracks()[0]);
       pc1.addTransceiver(stream.getTracks()[0]);
 
-      let offer = await pc1.createOffer();
-      pc1.setLocalDescription(offer);
-      pc2.setRemoteDescription(offer);
-      let answer = await pc2.createAnswer();
-      pc2.setLocalDescription(answer);
-      pc1.setRemoteDescription(answer);
-
-      pc1.setLocalDescription(offer);
-      pc2.setRemoteDescription(offer);
-      answer = await pc2.createAnswer();
-      pc2.setLocalDescription(answer);
-      pc1.setRemoteDescription(answer);
+      const offer = await pc1.createOffer();
+      await pc1.setLocalDescription(offer);
+      await pc2.setRemoteDescription(offer);
+      const answer = await pc2.createAnswer();
+      await pc2.setLocalDescription(answer);
+      await pc1.setRemoteDescription(answer);
 
       // Validate logging shows for each transciever but is not duplicated with the renegotiation
-      let ulpfecNotNegotiated = await GleanTest.codecStats.ulpfecNegotiated.not_negotiated.testGetValue() || 0;
-      ok(ulpfecNotNegotiated == 0, "checkLoggingMultipleTransceivers glean should not count not_negotiated");
-      let ulpfecNegotiated = await GleanTest.codecStats.ulpfecNegotiated.negotiated.testGetValue() || 0;
-      ok(ulpfecNegotiated == 6, "checkLoggingMultipleTransceivers glean should show ulpfec negotiated " + ulpfecNegotiated);
-      let preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
-      ok(preferredVideoCodec == 6, "checkLoggingMultipleTransceivers glean should show preferred video codec VP8 " + preferredVideoCodec);
+      const ulpfecNotNegotiated = await GleanTest.codecStats.ulpfecNegotiated.not_negotiated.testGetValue() || 0;
+      is(ulpfecNotNegotiated, 0, "checkLoggingMultipleTransceivers glean should not count not_negotiated");
+      const ulpfecNegotiated = await GleanTest.codecStats.ulpfecNegotiated.negotiated.testGetValue() || 0;
+      is(ulpfecNegotiated, 6, "checkLoggingMultipleTransceivers glean should show ulpfec negotiated " + ulpfecNegotiated);
+      const preferredVideoCodec = await GleanTest.codecStats.videoPreferredCodec.VP8.testGetValue() || 0;
+      is(preferredVideoCodec, 6, "checkLoggingMultipleTransceivers glean should show preferred video codec VP8 " + preferredVideoCodec);
+
+      pc1.close();
+      pc2.close();
     },
 
     async function checkDtlsHandshakeSuccess() {
