@@ -560,6 +560,7 @@ TEST(AudioSendStreamTest, AudioNetworkAdaptorReceivesOverhead) {
             }));
     EXPECT_CALL(*helper.rtp_rtcp(), ExpectedPerPacketOverhead)
         .WillRepeatedly(Return(kOverheadPerPacket.bytes<size_t>()));
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead);
 
     auto send_stream = helper.CreateAudioSendStream();
 
@@ -672,6 +673,7 @@ TEST(AudioSendStreamTest, SSBweWithOverhead) {
                                       "WebRTC-Audio-LegacyOverhead/Disabled/");
     EXPECT_CALL(*helper.rtp_rtcp(), ExpectedPerPacketOverhead)
         .WillRepeatedly(Return(kOverheadPerPacket.bytes<size_t>()));
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead);
     auto send_stream = helper.CreateAudioSendStream();
     const DataRate bitrate =
         DataRate::BitsPerSec(helper.config().max_bitrate_bps) +
@@ -694,6 +696,7 @@ TEST(AudioSendStreamTest, SSBweWithOverheadMinRespected) {
         "WebRTC-Audio-Allocation/min:6kbps,max:64kbps/");
     EXPECT_CALL(*helper.rtp_rtcp(), ExpectedPerPacketOverhead)
         .WillRepeatedly(Return(kOverheadPerPacket.bytes<size_t>()));
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead);
     auto send_stream = helper.CreateAudioSendStream();
     const DataRate bitrate = DataRate::KilobitsPerSec(6) + kMinOverheadRate;
     EXPECT_CALL(*helper.channel_send(),
@@ -714,6 +717,7 @@ TEST(AudioSendStreamTest, SSBweWithOverheadMaxRespected) {
         "WebRTC-Audio-Allocation/min:6kbps,max:64kbps/");
     EXPECT_CALL(*helper.rtp_rtcp(), ExpectedPerPacketOverhead)
         .WillRepeatedly(Return(kOverheadPerPacket.bytes<size_t>()));
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead);
     auto send_stream = helper.CreateAudioSendStream();
     const DataRate bitrate = DataRate::KilobitsPerSec(64) + kMaxOverheadRate;
     EXPECT_CALL(*helper.channel_send(),
@@ -796,6 +800,7 @@ TEST(AudioSendStreamTest, OnTransportOverheadChanged) {
 
     // CallEncoder will be called on overhead change.
     EXPECT_CALL(*helper.channel_send(), CallEncoder);
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead);
 
     const size_t transport_overhead_per_packet_bytes = 333;
     send_stream->SetTransportOverhead(transport_overhead_per_packet_bytes);
@@ -810,6 +815,8 @@ TEST(AudioSendStreamTest, DoesntCallEncoderWhenOverheadUnchanged) {
     ConfigHelper helper(false, true, use_null_audio_processing);
     auto send_stream = helper.CreateAudioSendStream();
     auto new_config = helper.config();
+
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead).Times(2);
 
     // CallEncoder will be called on overhead change.
     EXPECT_CALL(*helper.channel_send(), CallEncoder);
@@ -832,6 +839,7 @@ TEST(AudioSendStreamTest, AudioOverheadChanged) {
     const size_t audio_overhead_per_packet_bytes = 555;
     EXPECT_CALL(*helper.rtp_rtcp(), ExpectedPerPacketOverhead)
         .WillRepeatedly(Return(audio_overhead_per_packet_bytes));
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead).Times(2);
     auto send_stream = helper.CreateAudioSendStream();
 
     BitrateAllocationUpdate update;
@@ -862,6 +870,7 @@ TEST(AudioSendStreamTest, OnAudioAndTransportOverheadChanged) {
     const size_t audio_overhead_per_packet_bytes = 555;
     EXPECT_CALL(*helper.rtp_rtcp(), ExpectedPerPacketOverhead)
         .WillRepeatedly(Return(audio_overhead_per_packet_bytes));
+    EXPECT_CALL(*helper.channel_send(), RegisterPacketOverhead).Times(2);
     auto send_stream = helper.CreateAudioSendStream();
     auto new_config = helper.config();
 

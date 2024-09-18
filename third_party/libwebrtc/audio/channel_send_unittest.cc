@@ -306,6 +306,62 @@ TEST_F(ChannelSendTest, AudioLevelsAttachedToInsertedTransformedFrame) {
   EXPECT_TRUE_WAIT(sent_audio_level, 1000);
   EXPECT_EQ(*sent_audio_level, audio_level);
 }
+
+// Ensure that GetUsedRate returns null if no frames are coded.
+TEST_F(ChannelSendTest, NoUsedRateInitially) {
+  channel_->StartSend();
+  auto used_rate = channel_->GetUsedRate();
+  EXPECT_EQ(used_rate, absl::nullopt);
+}
+
+// Ensure that GetUsedRate returns value with one coded frame.
+TEST_F(ChannelSendTest, ValidUsedRateWithOneCodedFrame) {
+  channel_->StartSend();
+  EXPECT_CALL(transport_, SendRtp).Times(1);
+  ProcessNextFrame();
+  ProcessNextFrame();
+  auto used_rate = channel_->GetUsedRate();
+  EXPECT_GT(used_rate.value().bps(), 0);
+}
+
+// Ensure that GetUsedRate returns value with one coded frame.
+TEST_F(ChannelSendTest, UsedRateIsLargerofLastTwoFrames) {
+  channel_->StartSend();
+  channel_->CallEncoder(
+      [&](AudioEncoder* encoder) { encoder->OnReceivedOverhead(72); });
+  DataRate lowrate = DataRate::BitsPerSec(40000);
+  DataRate highrate = DataRate::BitsPerSec(80000);
+  BitrateAllocationUpdate update;
+  update.bwe_period = TimeDelta::Millis(100);
+
+  update.target_bitrate = lowrate;
+  channel_->OnBitrateAllocation(update);
+  EXPECT_CALL(transport_, SendRtp).Times(1);
+  ProcessNextFrame();
+  ProcessNextFrame();
+  // Last two frames have rates [32kbps, -], yielding 32kbps.
+  auto used_rate_1 = channel_->GetUsedRate();
+
+  update.target_bitrate = highrate;
+  channel_->OnBitrateAllocation(update);
+  EXPECT_CALL(transport_, SendRtp).Times(1);
+  ProcessNextFrame();
+  ProcessNextFrame();
+  // Last two frames have rates [54kbps, 32kbps], yielding 54kbps
+  auto used_rate_2 = channel_->GetUsedRate();
+
+  update.target_bitrate = lowrate;
+  channel_->OnBitrateAllocation(update);
+  EXPECT_CALL(transport_, SendRtp).Times(1);
+  ProcessNextFrame();
+  ProcessNextFrame();
+  // Last two frames have rates [32kbps 54kbps], yielding 54kbps
+  auto used_rate_3 = channel_->GetUsedRate();
+
+  EXPECT_GT(used_rate_2, used_rate_1);
+  EXPECT_EQ(used_rate_3, used_rate_2);
+}
+
 }  // namespace
 }  // namespace voe
 }  // namespace webrtc
