@@ -11,13 +11,12 @@ use api::{BoxShadowClipMode, BorderStyle, ClipMode};
 use api::units::*;
 use euclid::Scale;
 use smallvec::SmallVec;
-use crate::box_shadow::BoxShadowSegment;
 use crate::composite::CompositorSurfaceKind;
 use crate::command_buffer::{CommandBufferIndex, PrimitiveCommand};
 use crate::image_tiling::{self, Repetition};
 use crate::border::{get_max_scale_for_border, build_border_instances};
-use crate::clip::{ClipNodeRange, ClipStore};
-use crate::pattern::{Pattern, SolidColorSegment};
+use crate::clip::{ClipStore, ClipNodeRange};
+use crate::pattern::Pattern;
 use crate::spatial_tree::{SpatialNodeIndex, SpatialTree};
 use crate::clip::{ClipDataStore, ClipNodeFlags, ClipChainInstance, ClipItemKind};
 use crate::frame_builder::{FrameBuildingContext, FrameBuildingState, PictureContext, PictureState};
@@ -325,164 +324,21 @@ fn prepare_interned_prim_for_render(
         PrimitiveInstanceKind::BoxShadow { data_handle } => {
             let prim_data = &mut data_stores.box_shadow[*data_handle];
 
-            // If there isn't an inner shadow rect, draw as a single primitive
-            if prim_data.kind.inner_shadow_rect.is_empty() {
-                quad::prepare_quad(
-                    prim_data,
-                    &prim_data.kind.outer_shadow_rect,
-                    prim_instance_index,
-                    prim_spatial_node_index,
-                    &prim_instance.vis.clip_chain,
-                    device_pixel_scale,
-                    frame_context,
-                    pic_context,
-                    targets,
-                    &data_stores.clip,
-                    frame_state,
-                    pic_state,
-                    scratch,
-                );
-            } else {
-                // If we have an inner shadow rect, draw that as a solid color
-                // segment, and box-shadow segments for the outer segments
-                let dirty_world_rect = frame_state.current_dirty_region().combined;
-
-                let inner_segment = SolidColorSegment {
-                    color: prim_data.kind.color,
-                };
-
-                quad::prepare_quad(
-                    &inner_segment,
-                    &prim_data.kind.inner_shadow_rect,
-                    prim_instance_index,
-                    prim_spatial_node_index,
-                    &prim_instance.vis.clip_chain,
-                    device_pixel_scale,
-                    frame_context,
-                    pic_context,
-                    targets,
-                    &data_stores.clip,
-                    frame_state,
-                    pic_state,
-                    scratch,
-                );
-
-                let p0 = prim_data.kind.outer_shadow_rect.min;
-                let p1 = prim_data.kind.inner_shadow_rect.min;
-                let p3 = prim_data.kind.outer_shadow_rect.max;
-                let p2 = prim_data.kind.inner_shadow_rect.max;
-
-                let outer_rects = [
-                    // Corners
-                    LayoutRect::new(
-                        LayoutPoint::new(p0.x, p0.y),
-                        LayoutPoint::new(p1.x, p1.y),
-                    ),
-                    LayoutRect::new(
-                        LayoutPoint::new(p2.x, p0.y),
-                        LayoutPoint::new(p3.x, p1.y),
-                    ),
-                    LayoutRect::new(
-                        LayoutPoint::new(p2.x, p2.y),
-                        LayoutPoint::new(p3.x, p3.y),
-                    ),
-                    LayoutRect::new(
-                        LayoutPoint::new(p0.x, p2.y),
-                        LayoutPoint::new(p1.x, p3.y),
-                    ),
-
-                    // Top + Bottom
-                    LayoutRect::new(
-                        LayoutPoint::new(p1.x, p0.y),
-                        LayoutPoint::new(p2.x, p1.y),
-                    ),
-                    LayoutRect::new(
-                        LayoutPoint::new(p1.x, p2.y),
-                        LayoutPoint::new(p2.x, p3.y),
-                    ),
-
-                    // Left + Right
-                    LayoutRect::new(
-                        LayoutPoint::new(p0.x, p1.y),
-                        LayoutPoint::new(p1.x, p2.y),
-                    ),
-                    LayoutRect::new(
-                        LayoutPoint::new(p2.x, p1.y),
-                        LayoutPoint::new(p3.x, p2.y),
-                    ),
-                ];
-
-                for (i, rect) in outer_rects.iter().enumerate() {
-                    // Edge (non-corner) segments are the same across the
-                    // entire axis, so we can draw a small portion of them
-                    // and stretch when drawing the segment, to reduce
-                    // number of blurred pixels, which is important for swgl.
-                    let fixed_size = 4.0;
-
-                    let pattern_rect = match i {
-                        0 .. 4 => *rect,
-                        4 .. 6 => {
-                            LayoutRect::new(
-                                rect.min,
-                                LayoutPoint::new(rect.min.x + fixed_size, rect.max.y),
-                            )
-                        },
-                        6 .. 8 => {
-                            LayoutRect::new(
-                                rect.min,
-                                LayoutPoint::new(rect.max.x, rect.min.y + fixed_size),
-                            )
-                        }
-                        _ => unreachable!(),
-                    };
-
-                    let shadow_segment = BoxShadowSegment {
-                        color: prim_data.kind.color,
-                        blur_radius: prim_data.kind.blur_radius,
-                        clip: prim_data.kind.clip,
-                        pattern_rect,
-                    };
-
-                    frame_state.clip_store.set_active_clips_from_clip_chain(
-                        &prim_instance.vis.clip_chain,
-                        prim_spatial_node_index,
-                        &frame_context.spatial_tree,
-                        &data_stores.clip,
-                    );
-
-                    if let Some(segment_clip_chain) = frame_state
-                        .clip_store
-                        .build_clip_chain_instance(
-                            *rect,
-                            &pic_state.map_local_to_pic,
-                            &pic_state.map_pic_to_world,
-                            &frame_context.spatial_tree,
-                            frame_state.gpu_cache,
-                            frame_state.resource_cache,
-                            device_pixel_scale,
-                            &dirty_world_rect,
-                            &mut data_stores.clip,
-                            frame_state.rg_builder,
-                            false,
-                        ) {
-                        quad::prepare_quad(
-                            &shadow_segment,
-                            rect,
-                            prim_instance_index,
-                            prim_spatial_node_index,
-                            &segment_clip_chain,
-                            device_pixel_scale,
-                            frame_context,
-                            pic_context,
-                            targets,
-                            &data_stores.clip,
-                            frame_state,
-                            pic_state,
-                            scratch,
-                        );
-                    }
-                }
-            }
+            quad::prepare_quad(
+                prim_data,
+                &prim_data.kind.outer_shadow_rect,
+                prim_instance_index,
+                prim_spatial_node_index,
+                &prim_instance.vis.clip_chain,
+                device_pixel_scale,
+                frame_context,
+                pic_context,
+                targets,
+                &data_stores.clip,
+                frame_state,
+                pic_state,
+                scratch,
+            );
 
             return;
         }
