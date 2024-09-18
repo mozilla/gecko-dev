@@ -814,11 +814,18 @@ async function populateMediaCapabilities() {
       }
     }
 
-    return JSON.stringify(capabilities);
+    return capabilities;
   }
 
+  const capabilities = await getCapabilities();
+
   return {
-    mediaCapabilities: getCapabilities(),
+    mediaCapabilitiesUnsupported: JSON.stringify(capabilities.unsupported),
+    mediaCapabilitiesNotSmooth: JSON.stringify(capabilities.notSmooth),
+    mediaCapabilitiesNotEfficient: JSON.stringify(
+      capabilities.notPowerEfficient
+    ),
+    mediaCapabilitiesH264: JSON.stringify(capabilities.h264),
   };
 }
 
