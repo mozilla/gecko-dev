@@ -17,6 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import mozilla.components.feature.addons.Addon
@@ -47,6 +52,7 @@ internal fun ExtensionsSubmenu(
         header = {
             SubmenuHeader(
                 header = stringResource(id = R.string.browser_menu_extensions),
+                backButtonContentDescription = stringResource(R.string.browser_menu_back_button_content_description),
                 onClick = onBackButtonClick,
             )
         },
@@ -99,9 +105,16 @@ private fun RecommendedAddons(
                 .padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            val recommendedSectionContentDescription =
+                stringResource(id = R.string.browser_menu_recommended_section_content_description)
             Text(
                 text = stringResource(id = R.string.mozac_feature_addons_recommended_section),
-                modifier = Modifier.weight(1f),
+                modifier = Modifier
+                    .weight(1f)
+                    .semantics {
+                        heading()
+                        this.contentDescription = recommendedSectionContentDescription
+                    },
                 color = FirefoxTheme.colors.textSecondary,
                 style = FirefoxTheme.typography.subtitle2,
             )
@@ -123,6 +136,9 @@ private fun RecommendedAddons(
 
             TextListItem(
                 label = stringResource(id = R.string.browser_menu_discover_more_extensions),
+                modifier = Modifier.semantics {
+                    this.role = Role.Button
+                },
                 onClick = onDiscoverMoreExtensionsMenuClick,
                 iconPainter = painterResource(R.drawable.mozac_ic_external_link_24),
                 iconTint = FirefoxTheme.colors.iconSecondary,

@@ -322,7 +322,11 @@ fun IconListItem(
             } else {
                 IconButton(
                     onClick = onAfterIconClick,
-                    modifier = Modifier.size(ICON_SIZE),
+                    modifier = Modifier
+                        .size(ICON_SIZE)
+                        .semantics {
+                            this.role = Role.Button
+                        },
                     enabled = enabled,
                 ) {
                     Icon(
