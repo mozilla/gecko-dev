@@ -104,6 +104,7 @@ skip-if = [
 ["browser_dbg-browser-toolbox-workers.js"]
 skip-if = [
   "asan", # Bug 1591064, parent intercept mode is needed
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1767721
 ]
 
 ["browser_dbg-call-stack.js"]
