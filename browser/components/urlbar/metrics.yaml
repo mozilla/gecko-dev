@@ -919,3 +919,89 @@ quick_suggest:
     expires: never
     send_in_pings:
       - quick-suggest
+
+# Metrics from the Rust suggest component.
+#
+# We can't record metrics from Rust directly.  To work around that we:
+#   - Define the metrics here.
+#   - Define API calls in Rust suggest component that return the metrics
+#     alongside the normal results.
+#   - Record the metrics in the JS code in this component
+
+suggest:
+  ingest_time:
+    type: labeled_timing_distribution
+    description: Time for ingestion (excluding download time), labelled by record type
+    time_unit: microsecond
+    labels:
+      - icon
+      - data
+      - amo-suggestions
+      - pocket-suggestions
+      - yelp-suggestions
+      - mdn-suggestions
+      - weather
+      - configuration
+      - amp-mobile-suggestions
+      - fakespot-suggestions
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908397
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911664
+    notification_emails:
+      - disco-team@mozilla.com
+      - bdk@mozilla.com
+    expires: "never"
+    data_sensitivity:
+      - technical
+
+  ingest_download_time:
+    type: labeled_timing_distribution
+    description: Download time for ingestion, labelled by record type
+    time_unit: microsecond
+    labels:
+      - icon
+      - data
+      - amo-suggestions
+      - pocket-suggestions
+      - yelp-suggestions
+      - mdn-suggestions
+      - weather
+      - configuration
+      - amp-mobile-suggestions
+      - fakespot-suggestions
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908397
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911664
+    notification_emails:
+      - disco-team@mozilla.com
+      - bdk@mozilla.com
+    expires: "never"
+    data_sensitivity:
+      - technical
+
+  query_time:
+    type: labeled_timing_distribution
+    description: Time executing queries, labelled by provider type
+    time_unit: microsecond
+    labels:
+      - amp
+      - ampmobile
+      - wikipedia
+      - amo
+      - pocket
+      - yelp
+      - mdn
+      - weather
+      - fakespot
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1908397
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1911664
+    notification_emails:
+      - disco-team@mozilla.com
+      - bdk@mozilla.com
+    expires: "never"
+    data_sensitivity:
+      - technical
