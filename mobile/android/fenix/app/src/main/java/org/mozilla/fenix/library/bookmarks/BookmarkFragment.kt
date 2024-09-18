@@ -101,33 +101,6 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
         container: ViewGroup?,
         savedInstanceState: Bundle?,
     ): View {
-        _binding = FragmentBookmarkBinding.inflate(inflater, container, false)
-
-        bookmarkStore = StoreProvider.get(this) {
-            BookmarkFragmentStore(BookmarkFragmentState(null))
-        }
-
-        bookmarkInteractor = BookmarkFragmentInteractor(
-            bookmarksController = DefaultBookmarkController(
-                activity = requireActivity() as HomeActivity,
-                navController = findNavController(),
-                clipboardManager = requireContext().getSystemService(),
-                scope = viewLifecycleOwner.lifecycleScope,
-                store = bookmarkStore,
-                sharedViewModel = sharedViewModel,
-                tabsUseCases = activity?.components?.useCases?.tabsUseCases,
-                loadBookmarkNode = ::loadBookmarkNode,
-                showSnackbar = ::showSnackBarWithText,
-                deleteBookmarkNodes = ::deleteMulti,
-                deleteBookmarkFolder = ::showRemoveFolderDialog,
-                showTabTray = ::showTabTray,
-                warnLargeOpenAll = ::warnLargeOpenAll,
-            ),
-        )
-
-        bookmarkView = BookmarkView(binding.bookmarkLayout, bookmarkInteractor, findNavController())
-        bookmarkView.binding.bookmarkFoldersSignIn.visibility = View.GONE
-
         if (requireContext().settings().useNewBookmarks) {
             return ComposeView(requireContext()).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -166,6 +139,33 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                 }
             }
         }
+
+        _binding = FragmentBookmarkBinding.inflate(inflater, container, false)
+
+        bookmarkStore = StoreProvider.get(this) {
+            BookmarkFragmentStore(BookmarkFragmentState(null))
+        }
+
+        bookmarkInteractor = BookmarkFragmentInteractor(
+            bookmarksController = DefaultBookmarkController(
+                activity = requireActivity() as HomeActivity,
+                navController = findNavController(),
+                clipboardManager = requireContext().getSystemService(),
+                scope = viewLifecycleOwner.lifecycleScope,
+                store = bookmarkStore,
+                sharedViewModel = sharedViewModel,
+                tabsUseCases = activity?.components?.useCases?.tabsUseCases,
+                loadBookmarkNode = ::loadBookmarkNode,
+                showSnackbar = ::showSnackBarWithText,
+                deleteBookmarkNodes = ::deleteMulti,
+                deleteBookmarkFolder = ::showRemoveFolderDialog,
+                showTabTray = ::showTabTray,
+                warnLargeOpenAll = ::warnLargeOpenAll,
+            ),
+        )
+
+        bookmarkView = BookmarkView(binding.bookmarkLayout, bookmarkInteractor, findNavController())
+        bookmarkView.binding.bookmarkFoldersSignIn.visibility = View.GONE
 
         viewLifecycleOwner.lifecycle.addObserver(
             BookmarkDeselectNavigationListener(
