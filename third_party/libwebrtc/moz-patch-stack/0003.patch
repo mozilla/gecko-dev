@@ -1543,10 +1543,10 @@ index 0134e3ea58..86d1bdda16 100644
    std::unique_ptr<ScalableVideoController> svc_controller_;
    absl::optional<ScalabilityMode> scalability_mode_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index 70a1adf7dd..f1edaf7cf8 100644
+index 38805f7bce..0a347817ba 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -467,6 +467,12 @@ rtc_library("logging") {
+@@ -469,6 +469,12 @@ rtc_library("logging") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  

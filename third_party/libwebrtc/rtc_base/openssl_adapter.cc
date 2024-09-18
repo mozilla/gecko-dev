@@ -13,6 +13,7 @@
 #include <errno.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
+#include <openssl/ssl.h>
 
 #include <cstdint>
 #include <string>
@@ -21,10 +22,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/task_queue/pending_task_safety_flag.h"
-#include "openssl/base.h"
-#include "openssl/ssl.h"
 #include "rtc_base/async_socket.h"
-#include "rtc_base/boringssl_certificate.h"
 #include "rtc_base/openssl_session_cache.h"
 #include "rtc_base/socket.h"
 #include "rtc_base/socket_address.h"
@@ -33,7 +31,10 @@
 #include "rtc_base/ssl_identity.h"
 #include "rtc_base/ssl_stream_adapter.h"
 #ifdef OPENSSL_IS_BORINGSSL
+#include <openssl/base.h>
 #include <openssl/pool.h>
+
+#include "rtc_base/boringssl_certificate.h"
 #endif
 #include <openssl/x509.h>
 #include <string.h>

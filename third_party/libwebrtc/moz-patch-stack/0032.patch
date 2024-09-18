@@ -118,7 +118,7 @@ index 8928cdbaaf..b374016a64 100644
    # TODO(https://bugs.webrtc.org/14437):  Remove this section if general
    # Chromium fix resolves the problem.
 diff --git a/BUILD.gn b/BUILD.gn
-index 6f1844d661..6e3cc8de4c 100644
+index 7c8a0fcb1e..92e12eb277 100644
 --- a/BUILD.gn
 +++ b/BUILD.gn
 @@ -33,7 +33,7 @@ if (is_android) {
@@ -1050,10 +1050,10 @@ index 29a7bea9d9..a8994aaa68 100644
          "/config/external/nspr",
          "/nsprpub/lib/ds",
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index f1edaf7cf8..448220c71d 100644
+index 0a347817ba..2da1c1b772 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -336,6 +336,7 @@ rtc_library("sample_counter") {
+@@ -338,6 +338,7 @@ rtc_library("sample_counter") {
    ]
  }
  
@@ -1061,7 +1061,7 @@ index f1edaf7cf8..448220c71d 100644
  rtc_library("timestamp_aligner") {
    visibility = [ "*" ]
    sources = [
-@@ -349,6 +350,7 @@ rtc_library("timestamp_aligner") {
+@@ -351,6 +352,7 @@ rtc_library("timestamp_aligner") {
      "system:rtc_export",
    ]
  }
@@ -1069,7 +1069,7 @@ index f1edaf7cf8..448220c71d 100644
  
  rtc_library("zero_memory") {
    visibility = [ "*" ]
-@@ -856,7 +858,9 @@ rtc_library("rtc_json") {
+@@ -858,7 +860,9 @@ rtc_library("rtc_json") {
      ":stringutils",
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
@@ -1079,7 +1079,7 @@ index f1edaf7cf8..448220c71d 100644
    if (rtc_build_json) {
      deps += [ "//third_party/jsoncpp" ]
    } else {
-@@ -1208,6 +1212,7 @@ if (!build_with_chromium) {
+@@ -1210,6 +1214,7 @@ if (!build_with_chromium) {
  }
  
  rtc_library("network") {
@@ -1087,7 +1087,7 @@ index f1edaf7cf8..448220c71d 100644
    visibility = [ "*" ]
    sources = [
      "network.cc",
-@@ -1245,16 +1250,20 @@ rtc_library("network") {
+@@ -1247,16 +1252,20 @@ rtc_library("network") {
      deps += [ ":win32" ]
    }
  }
@@ -1108,7 +1108,7 @@ index f1edaf7cf8..448220c71d 100644
    visibility = [ "*" ]
    sources = [
      "net_helper.cc",
-@@ -1265,8 +1274,10 @@ rtc_library("net_helper") {
+@@ -1267,8 +1276,10 @@ rtc_library("net_helper") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -1119,7 +1119,7 @@ index f1edaf7cf8..448220c71d 100644
    visibility = [ "*" ]
    sources = [
      "socket_adapters.cc",
-@@ -1285,6 +1296,7 @@ rtc_library("socket_adapters") {
+@@ -1287,6 +1298,7 @@ rtc_library("socket_adapters") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -1127,7 +1127,7 @@ index f1edaf7cf8..448220c71d 100644
  
  rtc_library("network_route") {
    sources = [
-@@ -1299,6 +1311,7 @@ rtc_library("network_route") {
+@@ -1301,6 +1313,7 @@ rtc_library("network_route") {
  }
  
  rtc_library("async_tcp_socket") {
@@ -1135,7 +1135,7 @@ index f1edaf7cf8..448220c71d 100644
    sources = [
      "async_tcp_socket.cc",
      "async_tcp_socket.h",
-@@ -1316,8 +1329,10 @@ rtc_library("async_tcp_socket") {
+@@ -1318,8 +1331,10 @@ rtc_library("async_tcp_socket") {
      "network:sent_packet",
    ]
  }
@@ -1146,7 +1146,7 @@ index f1edaf7cf8..448220c71d 100644
    visibility = [ "*" ]
    sources = [
      "async_udp_socket.cc",
-@@ -1341,8 +1356,10 @@ rtc_library("async_udp_socket") {
+@@ -1343,8 +1358,10 @@ rtc_library("async_udp_socket") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -1157,7 +1157,7 @@ index f1edaf7cf8..448220c71d 100644
    visibility = [ "*" ]
    sources = [
      "async_packet_socket.cc",
-@@ -1362,6 +1379,7 @@ rtc_library("async_packet_socket") {
+@@ -1364,6 +1381,7 @@ rtc_library("async_packet_socket") {
      "third_party/sigslot",
    ]
  }
@@ -1165,7 +1165,7 @@ index f1edaf7cf8..448220c71d 100644
  
  if (rtc_include_tests) {
    rtc_library("async_packet_socket_unittest") {
-@@ -1417,6 +1435,7 @@ rtc_library("data_rate_limiter") {
+@@ -1419,6 +1437,7 @@ rtc_library("data_rate_limiter") {
  }
  
  rtc_library("unique_id_generator") {
@@ -1173,7 +1173,7 @@ index f1edaf7cf8..448220c71d 100644
    sources = [
      "unique_id_generator.cc",
      "unique_id_generator.h",
-@@ -1431,6 +1450,7 @@ rtc_library("unique_id_generator") {
+@@ -1433,6 +1452,7 @@ rtc_library("unique_id_generator") {
      "//third_party/abseil-cpp/absl/strings:string_view",
    ]
  }
@@ -1181,7 +1181,7 @@ index f1edaf7cf8..448220c71d 100644
  
  rtc_library("crc32") {
    sources = [
-@@ -1464,6 +1484,7 @@ rtc_library("stream") {
+@@ -1466,6 +1486,7 @@ rtc_library("stream") {
  }
  
  rtc_library("rtc_certificate_generator") {
@@ -1189,7 +1189,7 @@ index f1edaf7cf8..448220c71d 100644
    visibility = [ "*" ]
    sources = [
      "rtc_certificate_generator.cc",
-@@ -1479,6 +1500,7 @@ rtc_library("rtc_certificate_generator") {
+@@ -1481,6 +1502,7 @@ rtc_library("rtc_certificate_generator") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  }
@@ -1197,7 +1197,7 @@ index f1edaf7cf8..448220c71d 100644
  
  rtc_source_set("ssl_header") {
    visibility = [ "*" ]
-@@ -1535,6 +1557,7 @@ rtc_library("crypto_random") {
+@@ -1537,6 +1559,7 @@ rtc_library("crypto_random") {
  }
  
  rtc_library("ssl") {
@@ -1205,7 +1205,7 @@ index f1edaf7cf8..448220c71d 100644
    visibility = [ "*" ]
    sources = [
      "openssl_key_pair.cc",
-@@ -1608,6 +1631,7 @@ rtc_library("ssl") {
+@@ -1610,6 +1633,7 @@ rtc_library("ssl") {
      deps += [ ":win32" ]
    }
  }
@@ -1213,7 +1213,7 @@ index f1edaf7cf8..448220c71d 100644
  
  rtc_library("ssl_adapter") {
    visibility = [ "*" ]
-@@ -2221,7 +2245,7 @@ if (rtc_include_tests) {
+@@ -2223,7 +2247,7 @@ if (rtc_include_tests) {
    }
  }
  
