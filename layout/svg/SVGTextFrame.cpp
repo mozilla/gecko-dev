@@ -3320,7 +3320,8 @@ void SVGTextFrame::ReflowSVG() {
     // don't include an additional row of pixels.  For now, just inflate our
     // covered region.
     if (mLastContextScale != 0.0f) {
-      mRect.Inflate(ceil(presContext->AppUnitsPerDevPixel() / mLastContextScale));
+      mRect.Inflate(
+          ceil(presContext->AppUnitsPerDevPixel() / mLastContextScale));
     }
   }
 
