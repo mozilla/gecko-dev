@@ -245,6 +245,7 @@ async function do_tests(expected) {
     info(`Starting ${heuristic.name} test`);
     // Clear all site-specific data, as we don't want to have any high-value site
     // permissions from any previous iterations.
+    Services.logins.removeAllLogins();
     await new Promise(resolve =>
       Services.clearData.deleteData(Ci.nsIClearDataService.CLEAR_ALL, resolve)
     );
