@@ -445,12 +445,12 @@ export class UserCharacteristicsPageService {
         v2: [],
         extensions: [],
       },
-      shader_precision: {
+      shaderPrecision: {
         FRAGMENT_SHADER: {},
         VERTEX_SHADER: {},
       },
-      debug_shaders: {},
-      debug_params: {},
+      debugShaders: {},
+      debugParams: {},
     };
 
     const canvas = document.createElement("canvas");
@@ -581,7 +581,7 @@ export class UserCharacteristicsPageService {
           gl[shaderType],
           gl[precisionType]
         );
-        results.shader_precision[shaderType][precisionType] = {
+        results.shaderPrecision[shaderType][precisionType] = {
           rangeMin,
           rangeMax,
           precision,
@@ -592,7 +592,7 @@ export class UserCharacteristicsPageService {
     const mozDebugExt = gl.getExtension("MOZ_debug");
     const debugExt = gl.getExtension("WEBGL_debug_renderer_info");
 
-    results.debug_params = {
+    results.debugParams = {
       versionRaw: mozDebugExt.getParameter(gl.VERSION),
       vendorRaw: mozDebugExt.getParameter(gl.VENDOR),
       rendererRaw: mozDebugExt.getParameter(gl.RENDERER),
@@ -655,7 +655,7 @@ export class UserCharacteristicsPageService {
         return hashHex;
       }
 
-      results.debug_shaders = {
+      results.debugShaders = {
         fs: await sha1(
           translationExt.getTranslatedShaderSource(fragmentShader)
         ),
@@ -664,7 +664,35 @@ export class UserCharacteristicsPageService {
       };
     }
 
-    Glean.characteristics.webglinfo.set(JSON.stringify(results));
+    // General
+    Glean.characteristics.glVersion.set(results.glVersion);
+    // Debug Params
+    Glean.characteristics.glExtensions.set(results.debugParams.extensions);
+    Glean.characteristics.glExtensionsRaw.set(
+      results.debugParams.extensionsRaw
+    );
+    Glean.characteristics.glRenderer.set(results.debugParams.rendererDebugInfo);
+    Glean.characteristics.glRendererRaw.set(results.debugParams.rendererRaw);
+    Glean.characteristics.glVendor.set(results.debugParams.vendorDebugInfo);
+    Glean.characteristics.glVendorRaw.set(results.debugParams.vendorRaw);
+    Glean.characteristics.glVersionRaw.set(results.debugParams.versionRaw);
+    // Debug Shaders
+    Glean.characteristics.glFragmentShader.set(results.debugShaders.fs);
+    Glean.characteristics.glVertexShader.set(results.debugShaders.vs);
+    Glean.characteristics.glMinimalSource.set(results.debugShaders.ms);
+    // Parameters
+    Glean.characteristics.glParamsExtensions.set(
+      JSON.stringify(results.parameters.extensions)
+    );
+    Glean.characteristics.glParamsV1.set(JSON.stringify(results.parameters.v1));
+    Glean.characteristics.glParamsV2.set(JSON.stringify(results.parameters.v2));
+    // Shader Precision
+    Glean.characteristics.glPrecisionFragment.set(
+      JSON.stringify(results.shaderPrecision.FRAGMENT_SHADER)
+    );
+    Glean.characteristics.glPrecisionVertex.set(
+      JSON.stringify(results.shaderPrecision.VERTEX_SHADER)
+    );
   }
 
   async pageLoaded(browsingContext, data) {
