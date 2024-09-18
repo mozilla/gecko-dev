@@ -16,6 +16,12 @@ import androidx.core.view.WindowInsetsCompat
 import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.utils.ext.bottom
 import org.mozilla.fenix.R
+import org.mozilla.fenix.components.Components
+
+/**
+ * [View] helper to retrieve the [Components.settings].
+ */
+fun View.settings() = context.components.settings
 
 fun View.increaseTapArea(@Dimension(unit = DP) extraDps: Int) {
     val dips = extraDps.dpToPx(resources.displayMetrics)

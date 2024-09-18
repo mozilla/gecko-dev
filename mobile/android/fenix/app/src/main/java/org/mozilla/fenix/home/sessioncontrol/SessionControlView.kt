@@ -4,7 +4,6 @@
 
 package org.mozilla.fenix.home.sessioncontrol
 
-import android.content.Context
 import android.view.View
 import androidx.annotation.VisibleForTesting
 import androidx.fragment.app.Fragment
@@ -195,21 +194,18 @@ class SessionControlView(
                     val searchDialogFragment: SearchDialogFragment? =
                         fragmentManager.fragments.find { it is SearchDialogFragment } as SearchDialogFragment?
 
-                    if (!featureRecommended && !context.settings().showHomeOnboardingDialog) {
-                        if (!context.settings().showHomeOnboardingDialog &&
-                            searchDialogFragment == null &&
-                            context.shouldShowACfr()
-                        ) {
-                            featureRecommended = HomeCFRPresenter(
-                                context = context,
-                                recyclerView = view,
-                            ).show()
-                        }
+                    with(settings()) {
+                        if (!featureRecommended && !showHomeOnboardingDialog) {
+                            if (!showHomeOnboardingDialog && searchDialogFragment == null && shouldShowACfr()) {
+                                featureRecommended =
+                                    HomeCFRPresenter(context = context, recyclerView = view).show()
+                            }
 
-                        if (context.settings().showWallpaperOnboarding && !featureRecommended) {
-                            featureRecommended = interactor.showWallpapersOnboardingDialog(
-                                context.components.appStore.state.wallpaperState,
-                            )
+                            if (showWallpaperOnboarding && !featureRecommended) {
+                                featureRecommended = interactor.showWallpapersOnboardingDialog(
+                                    context.components.appStore.state.wallpaperState,
+                                )
+                            }
                         }
                     }
 
@@ -226,7 +222,7 @@ class SessionControlView(
         }
     }
 
-    private fun Context.shouldShowACfr() = settings().showSyncCFR
+    private fun View.shouldShowACfr() = settings().showSyncCFR
 
     fun update(state: AppState, shouldReportMetrics: Boolean = false) {
         if (shouldReportMetrics) interactor.reportSessionMetrics(state)
