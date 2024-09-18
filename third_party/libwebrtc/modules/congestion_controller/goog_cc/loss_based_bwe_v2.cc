@@ -809,6 +809,13 @@ double LossBasedBweV2::GetAverageReportedByteLossRatio() const {
 
   DataSize total_bytes = DataSize::Zero();
   DataSize lost_bytes = DataSize::Zero();
+  double min_loss_rate = 1.0;
+  double max_loss_rate = 0.0;
+  DataSize min_lost_bytes = DataSize::Zero();
+  DataSize max_lost_bytes = DataSize::Zero();
+  DataSize min_bytes_received = DataSize::Zero();
+  DataSize max_bytes_received = DataSize::Zero();
+
   for (const Observation& observation : observations_) {
     if (!observation.IsInitialized()) {
       continue;
@@ -819,8 +826,25 @@ double LossBasedBweV2::GetAverageReportedByteLossRatio() const {
                                               observation.id];
     total_bytes += instant_temporal_weight * observation.size;
     lost_bytes += instant_temporal_weight * observation.lost_size;
+
+    double loss_rate = !observation.size.IsZero()
+                           ? observation.lost_size / observation.size
+                           : 0.0;
+    if (num_observations_ > 3) {
+      if (loss_rate > max_loss_rate) {
+        max_loss_rate = loss_rate;
+        max_lost_bytes = instant_temporal_weight * observation.lost_size;
+        max_bytes_received = instant_temporal_weight * observation.size;
+      }
+      if (loss_rate < min_loss_rate) {
+        min_loss_rate = loss_rate;
+        min_lost_bytes = instant_temporal_weight * observation.lost_size;
+        min_bytes_received = instant_temporal_weight * observation.size;
+      }
+    }
   }
-  return lost_bytes / total_bytes;
+  return (lost_bytes - min_lost_bytes - max_lost_bytes) /
+         (total_bytes - max_bytes_received - min_bytes_received);
 }
 
 DataRate LossBasedBweV2::GetCandidateBandwidthUpperBound() const {

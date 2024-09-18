@@ -171,6 +171,9 @@ class LossBasedBweV2 {
   // Returns `0.0` if not enough loss statistics have been received.
   double GetAverageReportedLossRatio() const;
   double GetAverageReportedPacketLossRatio() const;
+  // Calculates the average loss ratio over the last `observation_window_size`
+  // observations but skips the observation with min and max loss ratio in order
+  // to filter out loss spikes.
   double GetAverageReportedByteLossRatio() const;
   std::vector<ChannelParameters> GetCandidates(bool in_alr) const;
   DataRate GetCandidateBandwidthUpperBound() const;
