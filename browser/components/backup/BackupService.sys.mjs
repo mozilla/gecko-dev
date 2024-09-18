@@ -3168,6 +3168,8 @@ export class BackupService extends EventTarget {
     Services.obs.addObserver(this.#observer, "formautofill-storage-changed");
     Services.obs.addObserver(this.#observer, "sanitizer-sanitization-complete");
     Services.obs.addObserver(this.#observer, "perm-changed");
+    Services.obs.addObserver(this.#observer, "cookie-changed");
+    Services.obs.addObserver(this.#observer, "session-cookie-changed");
     Services.obs.addObserver(this.#observer, "quit-application-granted");
   }
 
@@ -3203,6 +3205,8 @@ export class BackupService extends EventTarget {
       "sanitizer-sanitization-complete"
     );
     Services.obs.removeObserver(this.#observer, "perm-changed");
+    Services.obs.removeObserver(this.#observer, "cookie-changed");
+    Services.obs.removeObserver(this.#observer, "session-cookie-changed");
     Services.obs.removeObserver(this.#observer, "quit-application-granted");
     this.#observer = null;
 
@@ -3255,6 +3259,20 @@ export class BackupService extends EventTarget {
       }
       case "perm-changed": {
         if (data == "deleted") {
+          this.#debounceRegeneration();
+        }
+        break;
+      }
+      case "cookie-changed":
+      // Intentional fall-through
+      case "session-cookie-changed": {
+        let notification = subject.QueryInterface(Ci.nsICookieNotification);
+        if (
+          notification.action ==
+            Ci.nsICookieNotification.COOKIES_BATCH_DELETED ||
+          notification.action == Ci.nsICookieNotification.COOKIE_DELETED ||
+          notification.action == Ci.nsICookieNotification.ALL_COOKIES_CLEARED
+        ) {
           this.#debounceRegeneration();
         }
         break;
