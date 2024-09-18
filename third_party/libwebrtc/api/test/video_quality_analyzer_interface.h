@@ -72,6 +72,8 @@ class VideoQualityAnalyzerInterface
     // Decode time provided by decoder itself. If decoder doesn’t produce such
     // information can be omitted.
     absl::optional<int32_t> decode_time_ms = absl::nullopt;
+    // Decoder quantizer value.
+    absl::optional<uint8_t> qp = absl::nullopt;
   };
 
   ~VideoQualityAnalyzerInterface() override = default;

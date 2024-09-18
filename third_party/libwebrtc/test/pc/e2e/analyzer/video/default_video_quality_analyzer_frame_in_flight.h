@@ -46,6 +46,8 @@ struct ReceiverFrameStats {
   absl::optional<int> decoded_frame_width = absl::nullopt;
   absl::optional<int> decoded_frame_height = absl::nullopt;
 
+  absl::optional<uint8_t> decoded_frame_qp = absl::nullopt;
+
   // Can be not set if frame was dropped in the network.
   absl::optional<StreamCodecInfo> used_decoder = absl::nullopt;
 
@@ -113,7 +115,9 @@ class FrameInFlight {
                       Timestamp time,
                       int width,
                       int height,
-                      const StreamCodecInfo& used_decoder);
+                      const StreamCodecInfo& used_decoder,
+                      const absl::optional<uint8_t> qp);
+
   void OnDecoderError(size_t peer, const StreamCodecInfo& used_decoder);
 
   bool HasDecodeEndTime(size_t peer) const;

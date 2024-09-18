@@ -135,11 +135,13 @@ void FrameInFlight::OnFrameDecoded(size_t peer,
                                    webrtc::Timestamp time,
                                    int width,
                                    int height,
-                                   const StreamCodecInfo& used_decoder) {
+                                   const StreamCodecInfo& used_decoder,
+                                   const absl::optional<uint8_t> qp) {
   receiver_stats_[peer].decode_end_time = time;
   receiver_stats_[peer].used_decoder = used_decoder;
   receiver_stats_[peer].decoded_frame_width = width;
   receiver_stats_[peer].decoded_frame_height = height;
+  receiver_stats_[peer].decoded_frame_qp = qp;
 }
 
 void FrameInFlight::OnDecoderError(size_t peer,
@@ -204,6 +206,7 @@ FrameStats FrameInFlight::GetStatsForPeer(size_t peer) const {
         receiver_stats->time_between_rendered_frames;
     stats.decoded_frame_width = receiver_stats->decoded_frame_width;
     stats.decoded_frame_height = receiver_stats->decoded_frame_height;
+    stats.decoded_frame_qp = receiver_stats->decoded_frame_qp;
     stats.used_decoder = receiver_stats->used_decoder;
     stats.pre_decoded_frame_type = receiver_stats->frame_type;
     stats.pre_decoded_image_size = receiver_stats->encoded_image_size;

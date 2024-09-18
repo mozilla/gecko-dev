@@ -476,7 +476,7 @@ void DefaultVideoQualityAnalyzer::OnFrameDecoded(
   used_decoder.switched_on_at = now;
   used_decoder.switched_from_at = now;
   it->second.OnFrameDecoded(peer_index, now, frame.width(), frame.height(),
-                            used_decoder);
+                            used_decoder, stats.qp);
 
   if (options_.report_infra_metrics) {
     analyzer_stats_.on_frame_decoded_processing_time_ms.AddSample(
@@ -1258,6 +1258,9 @@ void DefaultVideoQualityAnalyzer::ReportResults(
                                ImprovementDirection::kSmallerIsBetter,
                                std::move(qp_metadata));
   }
+  metrics_logger_->LogMetric(
+      "rendered_frame_qp", test_case_name, stats.rendered_frame_qp,
+      Unit::kUnitless, ImprovementDirection::kSmallerIsBetter, metric_metadata);
   metrics_logger_->LogSingleValueMetric(
       "actual_encode_bitrate", test_case_name,
       static_cast<double>(stats.total_encoded_images_payload) /
