@@ -350,13 +350,6 @@ class BrowserToolbar @JvmOverloads constructor(
     }
 
     /**
-     * Sets the horizontal padding in display mode.
-     */
-    override fun setDisplayHorizontalPadding(horizontalPadding: Int) {
-        display.setHorizontalPadding(horizontalPadding)
-    }
-
-    /**
      * Switches to URL editing mode.
      *
      * @param cursorPlacement Where the cursor should be placed after focusing on the URL input field.

@@ -10,6 +10,13 @@
     android:layout_height="56dp"
     android:orientation="vertical">
 
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/mozac_browser_toolbar_start_browser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_begin="@dimen/mozac_browser_toolbar_start_end_margin" />
+
     <!-- Navigation -->
 
     <mozilla.components.browser.toolbar.internal.ActionContainer
@@ -17,7 +24,7 @@
         android:layout_width="wrap_content"
         android:layout_height="48dp"
         android:layout_marginTop="4dp"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@id/mozac_browser_toolbar_start_browser"
         app:layout_constraintTop_toTopOf="parent"
         mozac:actionContainerItemSize="48dp"
         tools:layout_width="48dp" />
@@ -28,7 +35,6 @@
         android:id="@+id/mozac_browser_toolbar_background"
         android:layout_width="0dp"
         android:layout_height="40dp"
-        app:layout_goneMarginStart="8dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="@dimen/mozac_browser_toolbar_background_margin_end"
         android:importantForAccessibility="no"
@@ -145,8 +151,15 @@
         android:layout_height="48dp"
         android:layout_marginTop="4dp"
         android:background="?android:attr/selectableItemBackgroundBorderless"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/mozac_browser_toolbar_end_browser"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/mozac_browser_toolbar_end_browser"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="@dimen/mozac_browser_toolbar_start_end_margin" />
 
     <!-- Progress Bar -->
 
