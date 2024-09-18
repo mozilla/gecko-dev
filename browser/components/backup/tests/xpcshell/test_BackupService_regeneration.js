@@ -327,3 +327,38 @@ add_task(async function test_all_passwords_removed() {
     Services.logins.removeAllLogins();
   }, "Saw regeneration on all passwords removed.");
 });
+
+/**
+ * Tests that backup regeneration occurs when removing a bookmark.
+ */
+add_task(async function test_bookmark_removed() {
+  let bookmark = await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    url: "data:text/plain,Content",
+    title: "Regeneration Test Bookmark",
+  });
+
+  await expectRegeneration(async () => {
+    await PlacesUtils.bookmarks.remove(bookmark);
+  }, "Saw regeneration on bookmark removed.");
+});
+
+/**
+ * Tests that backup regeneration occurs when all bookmarks are removed.
+ */
+add_task(async function test_all_bookmarks_removed() {
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    url: "data:text/plain,Content",
+    title: "Regeneration Test Bookmark 1",
+  });
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    url: "data:text/plain,Content2",
+    title: "Regeneration Test Bookmark 2",
+  });
+
+  await expectRegeneration(async () => {
+    await PlacesUtils.bookmarks.eraseEverything();
+  }, "Saw regeneration on all bookmarks removed.");
+});

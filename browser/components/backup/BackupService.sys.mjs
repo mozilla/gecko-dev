@@ -3155,7 +3155,7 @@ export class BackupService extends EventTarget {
       this.onPlacesEvents.bind(this)
     );
     PlacesObservers.addListener(
-      ["history-cleared", "page-removed"],
+      ["history-cleared", "page-removed", "bookmark-removed"],
       this.#placesObserver
     );
 
@@ -3182,7 +3182,7 @@ export class BackupService extends EventTarget {
     );
 
     PlacesObservers.removeListener(
-      ["history-cleared", "page-removed"],
+      ["history-cleared", "page-removed", "bookmark-removed"],
       this.#placesObserver
     );
 
@@ -3323,6 +3323,8 @@ export class BackupService extends EventTarget {
           }
           break;
         }
+        case "bookmark-removed":
+        // Intentional fall-through
         case "history-cleared": {
           this.#debounceRegeneration();
           return;
