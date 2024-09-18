@@ -3323,7 +3323,6 @@ impl<'ctx> CoreStreamData<'ctx> {
                 .map(|id| log_device_and_get_model_uid(id, DeviceType::INPUT))
                 .unwrap_or_default(),
             out_id
-                .or_else(|| get_default_device(DeviceType::OUTPUT))
                 .map(|id| log_device_and_get_model_uid(id, DeviceType::OUTPUT))
                 .unwrap_or_default(),
         );
