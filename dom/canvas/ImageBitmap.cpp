@@ -1708,8 +1708,7 @@ NS_IMPL_ISUPPORTS_INHERITED(CreateImageBitmapFromBlob, DiscardableRunnable,
 
 class CreateImageBitmapFromBlobRunnable final : public WorkerThreadRunnable {
  public:
-  explicit CreateImageBitmapFromBlobRunnable(WorkerPrivate* aWorkerPrivate,
-                                             CreateImageBitmapFromBlob* aTask,
+  explicit CreateImageBitmapFromBlobRunnable(CreateImageBitmapFromBlob* aTask,
                                              layers::Image* aImage,
                                              nsresult aStatus)
       : WorkerThreadRunnable("CreateImageBitmapFromBlobRunnable"),
@@ -2299,8 +2298,7 @@ void CreateImageBitmapFromBlob::MimeTypeAndDecodeAndCropBlobCompletedMainThread(
     }
 
     RefPtr<CreateImageBitmapFromBlobRunnable> r =
-        new CreateImageBitmapFromBlobRunnable(mWorkerRef->Private(), this,
-                                              aImage, aStatus);
+        new CreateImageBitmapFromBlobRunnable(this, aImage, aStatus);
     r->Dispatch(mWorkerRef->Private());
     return;
   }
