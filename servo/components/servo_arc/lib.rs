@@ -26,10 +26,6 @@
 #![allow(missing_docs)]
 
 #[cfg(feature = "servo")]
-extern crate serde;
-extern crate stable_deref_trait;
-
-#[cfg(feature = "servo")]
 use serde::{Deserialize, Serialize};
 use stable_deref_trait::{CloneStableDeref, StableDeref};
 use std::alloc::{self, Layout};
