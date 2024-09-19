@@ -15,7 +15,7 @@ task-defaults:
     limit-platforms:
         by-app:
             chrome:
-                - .*64.*shippable.*
+                - (.*?!macosx1015.*)shippable.*
             safari:
                 - .*macos.*shippable.*
             safari-tp:
@@ -85,7 +85,7 @@ browsertime-tp6:
         limit-platforms:
             by-app:
                 chrome:
-                    - .*shippable.*
+                    - (.*?!macosx1015.*)shippable.*
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
@@ -301,7 +301,7 @@ browsertime-tp7:
         limit-platforms:
             by-app:
                 chrome:
-                    - .*shippable.*
+                    - (.*?!macosx1015.*)shippable.*
                 safari:
                     - .*macos.*shippable.*
                 custom-car:
@@ -398,19 +398,7 @@ browsertime-benchmark:
                             - [motionmark-htmlsuite-1-3, mm-h-1.3]
                         chrome:
                             by-test-platform:
-                                macosx1015.*shippable.*:
-                                    - ares6
-                                    - [assorted-dom, dom]
-                                    - [jetstream2, js2]
-                                    - [matrix-react-bench, mrb]
-                                    - [motionmark-1-3, mm-1.3]
-                                    - [motionmark-htmlsuite-1-3, mm-h-1.3]
-                                    - [speedometer, sp]
-                                    - [speedometer3, sp3]
-                                    - [stylebench, sb]
-                                    - [sunspider, ss]
-                                    - [unity-webgl, ugl]
-                                    - [webaudio, wa]
+                                macosx1015.*shippable.*: []
                                 default:
                                     - ares6
                                     - [assorted-dom, dom]
@@ -976,7 +964,7 @@ browsertime-indexeddb:
     limit-platforms:
         by-app:
             chrome:
-                - .*shippable.*
+                - (.*?!macosx1015.*)shippable.*
             custom-car:
                 - (macosx1400|linux|windows.*-64).*shippable.*
             default: []
