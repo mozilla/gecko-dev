@@ -498,6 +498,10 @@ class SnapshotIterator {
 
   Value read() { return allocationValue(readAllocation()); }
 
+  // Like |read()| but also supports IntPtr and Int64 allocations, which are
+  // returned as BigInt values.
+  bool readMaybeUnpackedBigInt(JSContext* cx, MutableHandle<Value> result);
+
   int32_t readInt32() {
     Value val = read();
     MOZ_RELEASE_ASSERT(val.isInt32());

@@ -424,6 +424,27 @@ function rnot_object(i) {
     return i;
 }
 
+let uceFault_not_bigint_intptr = eval(`(${uceFault})`.replace('uceFault', 'uceFault_not_bigint_intptr'));
+function rnot_bigint_intptr(i) {
+    var y = BigInt(i) + 1n;
+    var x = !y;
+    if (uceFault_not_bigint_intptr(i) || uceFault_not_bigint_intptr(i))
+        assertEq(x, false /* = !100n */);
+    assertRecoveredOnBailout(x, true);
+    return y;
+}
+
+let uceFault_not_bigint_int64 = eval(`(${uceFault})`.replace('uceFault', 'uceFault_not_bigint_int64'));
+function rnot_bigint_int64(i) {
+    var ta = new BigInt64Array(1);
+    var y = ta[0];
+    var x = !y;
+    if (uceFault_not_bigint_int64(i) || uceFault_not_bigint_int64(i))
+        assertEq(x, true /* = !0n */);
+    assertRecoveredOnBailout(x, true);
+    return y;
+}
+
 var uceFault_compare_number_eq = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_number_eq'));
 function rcompare_number_eq(i) {
     var x = i == 99;
@@ -2084,6 +2105,8 @@ for (j = 100 - max; j < 100; j++) {
     rmod_object(i);
     rnot_number(i);
     rnot_object(i);
+    rnot_bigint_intptr(i);
+    rnot_bigint_int64(i);
     rcompare_number_eq(i);
     rcompare_number_stricteq(i);
     rcompare_number_ne(i);
