@@ -10,22 +10,38 @@
 
 #include "api/video_codecs/libaom_av1_encoder_factory.h"
 
+#include <cstdint>
 #include <cstdio>
+#include <memory>
+#include <ostream>
+#include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "absl/types/variant.h"
+#include "api/array_view.h"
+#include "api/scoped_refptr.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/units/timestamp.h"
+#include "api/video/encoded_image.h"
 #include "api/video/i420_buffer.h"
+#include "api/video/video_frame.h"
+#include "api/video/video_frame_buffer.h"
 #include "api/video_codecs/video_decoder.h"
+#include "api/video_codecs/video_encoder_factory_interface.h"
 #include "api/video_codecs/video_encoder_interface.h"
+#include "api/video_codecs/video_encoding_general.h"
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "modules/video_coding/codecs/av1/dav1d_decoder.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/testsupport/file_utils.h"
 #include "test/testsupport/frame_reader.h"
-#include "test/testsupport/frame_writer.h"
 
 namespace webrtc {
 namespace {

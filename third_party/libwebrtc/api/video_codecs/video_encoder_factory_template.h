@@ -13,12 +13,13 @@
 
 #include <memory>
 #include <string>
-#include <type_traits>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_encoder.h"
 #include "api/video_codecs/video_encoder_factory.h"

@@ -12,7 +12,6 @@
 #define API_VIDEO_CODECS_VIDEO_ENCODER_SOFTWARE_FALLBACK_WRAPPER_H_
 
 #include <memory>
-#include <utility>
 
 #include "api/environment/environment.h"
 #include "api/video_codecs/video_encoder.h"

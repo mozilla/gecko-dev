@@ -18,6 +18,7 @@
 #include "absl/algorithm/container.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
+#include "api/video_codecs/sdp_video_format.h"
 #include "api/video_codecs/video_decoder.h"
 #include "api/video_codecs/video_decoder_factory.h"
 

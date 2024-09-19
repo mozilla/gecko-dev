@@ -11,8 +11,11 @@
 #include "api/video_codecs/vp9_profile.h"
 
 #include <map>
+#include <string>
 #include <utility>
 
+#include "absl/types/optional.h"
+#include "api/rtp_parameters.h"
 #include "rtc_base/string_to_number.h"
 
 namespace webrtc {

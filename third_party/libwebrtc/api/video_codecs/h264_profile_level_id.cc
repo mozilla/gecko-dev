@@ -10,12 +10,15 @@
 
 #include "api/video_codecs/h264_profile_level_id.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <string>
 
+#include "absl/types/optional.h"
+#include "api/rtp_parameters.h"
 #include "rtc_base/arraysize.h"
-#include "rtc_base/checks.h"
 
 namespace webrtc {
 

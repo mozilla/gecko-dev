@@ -10,9 +10,11 @@
 
 #include "api/video_codecs/video_decoder.h"
 
+#include <cstdint>
+#include <string>
+
 #include "absl/types/optional.h"
-#include "api/video/render_resolution.h"
-#include "api/video/video_codec_type.h"
+#include "api/video/video_frame.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
 

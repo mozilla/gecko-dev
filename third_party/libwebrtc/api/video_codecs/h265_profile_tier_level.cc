@@ -12,6 +12,9 @@
 
 #include <string>
 
+#include "absl/types/optional.h"
+#include "api/rtp_parameters.h"
+#include "api/video/resolution.h"
 #include "rtc_base/arraysize.h"
 #include "rtc_base/string_to_number.h"
 

@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/strings/match.h"
@@ -22,9 +23,11 @@
 #include "api/environment/environment.h"
 #include "api/fec_controller_override.h"
 #include "api/field_trials_view.h"
-#include "api/video/i420_buffer.h"
-#include "api/video/video_bitrate_allocation.h"
+#include "api/scoped_refptr.h"
+#include "api/video/video_codec_type.h"
 #include "api/video/video_frame.h"
+#include "api/video/video_frame_buffer.h"
+#include "api/video/video_frame_type.h"
 #include "api/video_codecs/video_codec.h"
 #include "api/video_codecs/video_encoder.h"
 #include "media/base/video_common.h"

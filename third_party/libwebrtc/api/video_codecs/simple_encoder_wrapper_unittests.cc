@@ -8,11 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "api/video_codecs/simple_encoder_wrapper.h"
+#include <memory>
+#include <utility>
 
-#include "api/video/i420_buffer.h"
+#include "absl/types/optional.h"
+#include "api/video/i420_buffer.h"  // IWYU pragma: keep
 #include "api/video_codecs/libaom_av1_encoder_factory.h"
-#include "api/video_codecs/video_encoder_interface.h"
+#include "api/video_codecs/simple_encoder_wrapper.h"
+#include "api/video_codecs/video_encoder_factory_interface.h"
+#include "api/video_codecs/video_encoding_general.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/testsupport/file_utils.h"

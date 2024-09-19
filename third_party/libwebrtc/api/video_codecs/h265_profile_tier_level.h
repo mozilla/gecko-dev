@@ -14,8 +14,8 @@
 #include <string>
 
 #include "absl/types/optional.h"
+#include "api/rtp_parameters.h"
 #include "api/video/resolution.h"
-#include "api/video_codecs/sdp_video_format.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace webrtc {

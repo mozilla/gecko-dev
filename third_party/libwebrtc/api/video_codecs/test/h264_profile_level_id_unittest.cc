@@ -11,9 +11,9 @@
 #include "api/video_codecs/h264_profile_level_id.h"
 
 #include <map>
-#include <string>
 
 #include "absl/types/optional.h"
+#include "api/rtp_parameters.h"
 #include "test/gtest.h"
 
 namespace webrtc {

@@ -10,20 +10,38 @@
 
 #include "api/video_codecs/libaom_av1_encoder_factory.h"
 
-#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <map>
 #include <memory>
 #include <string>
-#include <utility>
+#include <type_traits>
 #include <vector>
 
 #include "absl/algorithm/container.h"
 #include "absl/cleanup/cleanup.h"
+#include "absl/types/optional.h"
+#include "absl/types/variant.h"
+#include "api/array_view.h"
+#include "api/scoped_refptr.h"
+#include "api/units/data_rate.h"
+#include "api/units/data_size.h"
+#include "api/units/time_delta.h"
+#include "api/video/resolution.h"
+#include "api/video/video_frame_buffer.h"
+#include "api/video_codecs/video_codec.h"
+#include "api/video_codecs/video_encoder_factory_interface.h"
 #include "api/video_codecs/video_encoder_interface.h"
+#include "api/video_codecs/video_encoding_general.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/numerics/rational.h"
 #include "rtc_base/strings/string_builder.h"
 #include "third_party/libaom/source/libaom/aom/aom_codec.h"
 #include "third_party/libaom/source/libaom/aom/aom_encoder.h"
+#include "third_party/libaom/source/libaom/aom/aom_image.h"
 #include "third_party/libaom/source/libaom/aom/aomcx.h"
 
 #define SET_OR_RETURN(param_id, param_value)                          \

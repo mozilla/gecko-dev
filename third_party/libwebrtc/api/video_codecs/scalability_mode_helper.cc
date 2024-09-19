@@ -10,6 +10,9 @@
 
 #include "api/video_codecs/scalability_mode_helper.h"
 
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+#include "api/video_codecs/scalability_mode.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
 
 namespace webrtc {
