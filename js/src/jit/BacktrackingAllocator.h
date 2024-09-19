@@ -385,14 +385,6 @@ class SpillSet : public TempObject {
   void setAllocation(LAllocation alloc);
 };
 
-#ifdef JS_JITSPEW
-// See comment on LiveBundle::debugId_ just below.  This needs to be atomic
-// because TSan automation runs on debug builds will otherwise (correctly)
-// report a race.
-static mozilla::Atomic<uint32_t> LiveBundle_debugIdCounter =
-    mozilla::Atomic<uint32_t>{0};
-#endif
-
 // A set of live ranges which are all pairwise disjoint. The register allocator
 // attempts to find allocations for an entire bundle, and if it fails the
 // bundle will be broken into smaller ones which are allocated independently.
@@ -412,24 +404,19 @@ class LiveBundle : public TempObject {
   // will not be split.
   LiveBundle* spillParent_;
 
-#ifdef JS_JITSPEW
-  // This is used only for debug-printing bundles.  It gives them an
+  // This is used for debug-printing bundles.  It gives them an
   // identifiable identity in the debug output, which they otherwise wouldn't
-  // have.
-  uint32_t debugId_;
-#endif
+  // have.  It's also used for sorting VirtualRegister's live ranges; see the
+  // comment in VirtualRegister::sortRanges.
+  const uint32_t id_;
 
-  LiveBundle(SpillSet* spill, LiveBundle* spillParent)
-      : spill_(spill), spillParent_(spillParent) {
-#ifdef JS_JITSPEW
-    debugId_ = LiveBundle_debugIdCounter++;
-#endif
-  }
+  LiveBundle(SpillSet* spill, LiveBundle* spillParent, uint32_t id)
+      : spill_(spill), spillParent_(spillParent), id_(id) {}
 
  public:
   static LiveBundle* FallibleNew(TempAllocator& alloc, SpillSet* spill,
-                                 LiveBundle* spillParent) {
-    return new (alloc.fallible()) LiveBundle(spill, spillParent);
+                                 LiveBundle* spillParent, uint32_t id) {
+    return new (alloc.fallible()) LiveBundle(spill, spillParent, id);
   }
 
   using RangeIterator = InlineForwardListIterator<LiveRange>;
@@ -467,9 +454,9 @@ class LiveBundle : public TempObject {
 
   LiveBundle* spillParent() const { return spillParent_; }
 
-#ifdef JS_JITSPEW
-  uint32_t debugId() const { return debugId_; }
+  uint32_t id() const { return id_; }
 
+#ifdef JS_JITSPEW
   // Return a string describing this bundle.
   UniqueChars toString() const;
 #endif
@@ -734,6 +721,9 @@ class BacktrackingAllocator : protected RegisterAllocator {
 
   Vector<LiveBundle*, 4, BackgroundSystemAllocPolicy> spilledBundles;
 
+  // The bundle id that will be used for the next LiveBundle that's allocated.
+  uint32_t nextBundleId_ = 0;
+
   using LiveBundleVector = Vector<LiveBundle*, 4, BackgroundSystemAllocPolicy>;
 
   // Misc accessors
@@ -745,6 +735,8 @@ class BacktrackingAllocator : protected RegisterAllocator {
     MOZ_ASSERT(alloc->isUse());
     return vregs[alloc->toUse()->virtualRegister()];
   }
+
+  uint32_t getNextBundleId() { return nextBundleId_++; }
 
   // Helpers for creating and adding MoveGroups
   [[nodiscard]] bool addMove(LMoveGroup* moves, LiveRange* from, LiveRange* to,

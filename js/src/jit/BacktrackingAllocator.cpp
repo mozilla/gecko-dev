@@ -427,7 +427,7 @@
 //
 //   LB2(parent=none v3 8-21 { 16_v3:A } ## v3 24-25 { 25_v3:F:xmm0 })
 //
-// LB merely indicates "LiveBundle", and the 2 is the debugId_ value (see
+// LB merely indicates "LiveBundle", and the 2 is the id_ value (see
 // below).  This bundle has two LiveRanges
 //
 //   v3 8-21 { 16_v3:A }
@@ -515,9 +515,10 @@
 // * else (it has a null spillParent_ field) it is a root node, and so other
 //   LiveBundles may point at it.
 //
-// When compiled with JS_JITSPEW, LiveBundle has a 32-bit `debugId_` field.
-// This is used only for debug printing, and makes it easier to see
-// parent-child relationships induced by the `spillParent_` pointers.
+// LiveBundle has a 32-bit `id_` field. This is used for debug printing, and
+// makes it easier to see parent-child relationships induced by the
+// `spillParent_` pointers. It's also used for sorting live ranges in
+// VirtualRegister::sortRanges.
 //
 // The "life cycle" of LiveBundles is described in Section 2 below.
 //
@@ -1123,10 +1124,23 @@ void VirtualRegister::sortRanges() {
   }
 
   // Sort ranges by start position in descending order.
-  auto compareRange = [](LiveRange* a, LiveRange* b) -> bool {
-    return a->from() > b->from();
+  //
+  // It would be correct to only compare the start position, but std::sort is
+  // not a stable sort and we don't want the order of ranges with the same start
+  // position to depend on the sort implementation. Use the end position and the
+  // bundle's id to ensure ranges are always sorted the same way.
+  auto compareRanges = [](LiveRange* a, LiveRange* b) -> bool {
+    if (a->from() != b->from()) {
+      return a->from() > b->from();
+    }
+    if (a->to() != b->to()) {
+      return a->to() > b->to();
+    }
+    // Overlapping live ranges must belong to different bundles.
+    MOZ_ASSERT_IF(a != b, a->bundle()->id() != b->bundle()->id());
+    return a->bundle()->id() > b->bundle()->id();
   };
-  std::sort(ranges_.begin(), ranges_.end(), compareRange);
+  std::sort(ranges_.begin(), ranges_.end(), compareRanges);
 
   rangesSorted_ = true;
 }
@@ -2188,7 +2202,8 @@ bool BacktrackingAllocator::tryMergeReusedRegister(VirtualRegister& def,
 
   // The new range goes in a separate bundle, where it will be spilled during
   // allocation.
-  LiveBundle* secondBundle = LiveBundle::FallibleNew(alloc(), nullptr, nullptr);
+  LiveBundle* secondBundle =
+      LiveBundle::FallibleNew(alloc(), nullptr, nullptr, getNextBundleId());
   if (!secondBundle) {
     return false;
   }
@@ -2207,7 +2222,8 @@ bool BacktrackingAllocator::mergeAndQueueRegisters() {
       continue;
     }
 
-    LiveBundle* bundle = LiveBundle::FallibleNew(alloc(), nullptr, nullptr);
+    LiveBundle* bundle =
+        LiveBundle::FallibleNew(alloc(), nullptr, nullptr, getNextBundleId());
     if (!bundle) {
       return false;
     }
@@ -2606,7 +2622,8 @@ bool BacktrackingAllocator::splitAt(LiveBundle* bundle,
   bool spillBundleIsNew = false;
   LiveBundle* spillBundle = bundle->spillParent();
   if (!spillBundle) {
-    spillBundle = LiveBundle::FallibleNew(alloc(), bundle->spillSet(), nullptr);
+    spillBundle = LiveBundle::FallibleNew(alloc(), bundle->spillSet(), nullptr,
+                                          getNextBundleId());
     if (!spillBundle) {
       return false;
     }
@@ -2636,8 +2653,8 @@ bool BacktrackingAllocator::splitAt(LiveBundle* bundle,
   LiveBundleVector newBundles;
 
   // The bundle which ranges are currently being added to.
-  LiveBundle* activeBundle =
-      LiveBundle::FallibleNew(alloc(), bundle->spillSet(), spillBundle);
+  LiveBundle* activeBundle = LiveBundle::FallibleNew(
+      alloc(), bundle->spillSet(), spillBundle, getNextBundleId());
   if (!activeBundle || !newBundles.append(activeBundle)) {
     return false;
   }
@@ -2651,8 +2668,8 @@ bool BacktrackingAllocator::splitAt(LiveBundle* bundle,
     LiveRange* range = *iter;
 
     if (UseNewBundle(splitPositions, range->from(), &activeSplitPosition)) {
-      activeBundle =
-          LiveBundle::FallibleNew(alloc(), bundle->spillSet(), spillBundle);
+      activeBundle = LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
+                                             spillBundle, getNextBundleId());
       if (!activeBundle || !newBundles.append(activeBundle)) {
         return false;
       }
@@ -2691,8 +2708,8 @@ bool BacktrackingAllocator::splitAt(LiveBundle* bundle,
              activeRange->usesBegin()->pos != use->pos ||
              activeRange->usesBegin()->usePolicy() == LUse::FIXED ||
              use->usePolicy() == LUse::FIXED)) {
-          activeBundle =
-              LiveBundle::FallibleNew(alloc(), bundle->spillSet(), spillBundle);
+          activeBundle = LiveBundle::FallibleNew(
+              alloc(), bundle->spillSet(), spillBundle, getNextBundleId());
           if (!activeBundle || !newBundles.append(activeBundle)) {
             return false;
           }
@@ -2883,8 +2900,8 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
     return splitAt(bundle, splitPositions);
   }
 
-  LiveBundle* hotBundle = LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
-                                                  bundle->spillParent());
+  LiveBundle* hotBundle = LiveBundle::FallibleNew(
+      alloc(), bundle->spillSet(), bundle->spillParent(), getNextBundleId());
   if (!hotBundle) {
     return false;
   }
@@ -2893,8 +2910,8 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
   LiveBundle* coldBundle = nullptr;
 
   if (testbed) {
-    coldBundle = LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
-                                         bundle->spillParent());
+    coldBundle = LiveBundle::FallibleNew(
+        alloc(), bundle->spillSet(), bundle->spillParent(), getNextBundleId());
     if (!coldBundle) {
       return false;
     }
@@ -2923,8 +2940,9 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
         }
       } else {
         if (!preBundle) {
-          preBundle = LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
-                                              bundle->spillParent());
+          preBundle =
+              LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
+                                      bundle->spillParent(), getNextBundleId());
           if (!preBundle) {
             return false;
           }
@@ -2944,8 +2962,9 @@ bool BacktrackingAllocator::trySplitAcrossHotcode(LiveBundle* bundle,
         }
       } else {
         if (!postBundle) {
-          postBundle = LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
-                                               bundle->spillParent());
+          postBundle =
+              LiveBundle::FallibleNew(alloc(), bundle->spillSet(),
+                                      bundle->spillParent(), getNextBundleId());
           if (!postBundle) {
             return false;
           }
@@ -4490,12 +4509,12 @@ UniqueChars LiveRange::toString() const {
 UniqueChars LiveBundle::toString() const {
   AutoEnterOOMUnsafeRegion oomUnsafe;
 
-  UniqueChars buf = JS_smprintf("LB%u(", debugId());
+  UniqueChars buf = JS_smprintf("LB%u(", id());
 
   if (buf) {
     if (spillParent()) {
-      buf = JS_sprintf_append(std::move(buf), "parent=LB%u",
-                              spillParent()->debugId());
+      buf =
+          JS_sprintf_append(std::move(buf), "parent=LB%u", spillParent()->id());
     } else {
       buf = JS_sprintf_append(std::move(buf), "parent=none");
     }
