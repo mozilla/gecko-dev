@@ -11,6 +11,9 @@
 #ifndef API_VOIP_VOIP_STATISTICS_H_
 #define API_VOIP_VOIP_STATISTICS_H_
 
+#include <cstdint>
+
+#include "absl/types/optional.h"
 #include "api/neteq/neteq.h"
 #include "api/voip/voip_base.h"
 

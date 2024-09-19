@@ -11,10 +11,12 @@
 #ifndef API_VOIP_TEST_MOCK_VOIP_ENGINE_H_
 #define API_VOIP_TEST_MOCK_VOIP_ENGINE_H_
 
+#include <cstdint>
 #include <map>
 
 #include "absl/types/optional.h"
 #include "api/array_view.h"
+#include "api/audio_codecs/audio_format.h"
 #include "api/voip/voip_base.h"
 #include "api/voip/voip_codec.h"
 #include "api/voip/voip_dtmf.h"
