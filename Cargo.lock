@@ -1375,17 +1375,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "derive_common"
-version = "0.0.1"
-dependencies = [
- "darling",
- "proc-macro2",
- "quote",
- "syn",
- "synstructure",
-]
-
-[[package]]
 name = "derive_more"
 version = "0.99.999"
 dependencies = [
@@ -5679,7 +5668,6 @@ name = "style_derive"
 version = "0.0.1"
 dependencies = [
  "darling",
- "derive_common",
  "proc-macro2",
  "quote",
  "syn",

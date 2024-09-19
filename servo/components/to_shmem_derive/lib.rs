@@ -7,6 +7,7 @@
 use proc_macro::TokenStream;
 
 mod to_shmem;
+mod util;
 
 #[proc_macro_derive(ToShmem, attributes(shmem))]
 pub fn derive_to_shmem(stream: TokenStream) -> TokenStream {

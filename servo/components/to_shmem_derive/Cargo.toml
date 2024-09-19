@@ -12,7 +12,6 @@ proc-macro = true
 
 [dependencies]
 darling = { version = "0.20", default-features = false }
-derive_common = { path = "../derive_common" }
 proc-macro2 = "1"
 quote = "1"
 syn = { version = "2", default-features = false, features = ["derive", "parsing"] }
