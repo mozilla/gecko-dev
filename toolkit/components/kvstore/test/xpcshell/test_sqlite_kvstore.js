@@ -20,6 +20,11 @@ async function allEntries(db) {
   return Array.from(await db.enumerate(), ({ key, value }) => ({ key, value }));
 }
 
+async function allKeys(db) {
+  let entries = await allEntries(db);
+  return entries.map(({ key }) => key);
+}
+
 add_task(async function getOrCreate() {
   const databaseDir = await makeDatabaseDir("getOrCreate");
   const database = await SQLiteKeyValueService.getOrCreate(databaseDir, "db");
@@ -174,6 +179,61 @@ add_task(async function extendedCharacterKey() {
   Assert.strictEqual(key, "Héllo, wőrld!");
 
   await database.delete("Héllo, wőrld!");
+});
+
+add_task(async function deleteRange() {
+  const databaseDir = await makeDatabaseDir("deleteRange");
+  const database = await SQLiteKeyValueService.getOrCreate(databaseDir, "db");
+
+  await database.writeMany({
+    "bool/a": true,
+    "bool/b": true,
+    "double/a": 12.34,
+    "double/b": 56.78,
+    "int/a": 12,
+    "int/b": 34,
+    "int/c": 56,
+    "int/d": 78,
+    "string/a": "Héllo",
+    "string/b": "Wőrld",
+  });
+
+  await database.deleteRange(null, "double/a");
+  Assert.deepEqual(await allKeys(database), [
+    "double/a",
+    "double/b",
+    "int/a",
+    "int/b",
+    "int/c",
+    "int/d",
+    "string/a",
+    "string/b",
+  ]);
+
+  await database.deleteRange("int/a", "string");
+  Assert.deepEqual(await allKeys(database), [
+    "double/a",
+    "double/b",
+    "string/a",
+    "string/b",
+  ]);
+
+  await database.deleteRange("string/b", "string/a");
+  Assert.deepEqual(await allKeys(database), [
+    "double/a",
+    "double/b",
+    "string/a",
+    "string/b",
+  ]);
+
+  await database.deleteRange("string");
+  Assert.deepEqual(await allKeys(database), ["double/a", "double/b"]);
+
+  await database.deleteRange("string");
+  Assert.deepEqual(await allKeys(database), ["double/a", "double/b"]);
+
+  await database.deleteRange();
+  Assert.deepEqual(await allKeys(database), []);
 });
 
 add_task(async function clear() {

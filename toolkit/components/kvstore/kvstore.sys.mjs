@@ -252,13 +252,17 @@ class KeyValueDatabase {
     return promisify(this.database.delete, key);
   }
 
+  deleteRange(fromKey, toKey) {
+    return promisify(this.database.deleteRange, fromKey, toKey);
+  }
+
   clear() {
     return promisify(this.database.clear);
   }
 
-  async enumerate(from_key, to_key) {
+  async enumerate(fromKey, toKey) {
     return new KeyValueEnumerator(
-      await promisify(this.database.enumerate, from_key, to_key)
+      await promisify(this.database.enumerate, fromKey, toKey)
     );
   }
 

@@ -212,6 +212,20 @@ interface nsIKeyValueDatabase : nsISupports {
         in AUTF8String key);
 
     /**
+     * Remove all key/value pairs in a lexicographical range from the database,
+     * including the "from" key and excluding the "to" key.
+     *
+     * If either key is omitted, the range extends to the first or last key
+     * in the database. If both keys are omitted, `deleteRange()` behaves
+     * the same as `clear()`. If the "from" key is greater than the "to" key,
+     * `deleteRange()` does nothing.
+     */
+    void deleteRange(
+        in nsIKeyValueVoidCallback callback,
+        [optional] in AUTF8String fromKey,
+        [optional] in AUTF8String toKey);
+
+    /**
      * Clear all the key/value pairs from the database.
      */
     void clear(in nsIKeyValueVoidCallback callback);
@@ -222,7 +236,8 @@ interface nsIKeyValueDatabase : nsISupports {
      * less than the "to" key (exclusive) sorted lexicographically.
      *
      * If either key is omitted, the range extends to the first and/or last key
-     * in the database.
+     * in the database. If the "from" key is greater than the "to" key,
+     * no pairs are enumerated.
      */
     void enumerate(
         in nsIKeyValueEnumeratorCallback callback,

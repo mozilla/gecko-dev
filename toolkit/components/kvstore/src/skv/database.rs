@@ -68,6 +68,27 @@ impl<'a> Database<'a> {
         self.put_or_delete(&[], &[Delete(key)])
     }
 
+    pub fn delete_range(&self, range: impl RangeBounds<Key>) -> Result<(), DatabaseError> {
+        let writer = self.store.writer()?;
+        writer.write(|tx| {
+            let fragment = RangeFragment::new("key", &range);
+            let mut statement = tx.prepare_cached(&format!(
+                "DELETE FROM
+                   data
+                 WHERE
+                   db_id = (SELECT id FROM dbs WHERE name = :name) AND
+                   {fragment}"
+            ))?;
+            let params = match (fragment.start_param(), fragment.end_param()) {
+                (Some(p), Some(q)) => vec![(":name", &self.name as &dyn ToSql), p, q],
+                (Some(p), None) | (None, Some(p)) => vec![(":name", &self.name as &dyn ToSql), p],
+                (None, None) => vec![(":name", &self.name as &dyn ToSql)],
+            };
+            statement.execute(params.as_slice())?;
+            Ok(())
+        })
+    }
+
     pub fn clear(&self) -> Result<(), DatabaseError> {
         let writer = self.store.writer()?;
         writer.write(|tx| {

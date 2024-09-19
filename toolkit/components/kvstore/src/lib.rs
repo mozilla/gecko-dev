@@ -349,6 +349,23 @@ impl KeyValueDatabase {
     }
 
     xpcom_method!(
+        delete_range => DeleteRange(
+            callback: *const nsIKeyValueVoidCallback,
+            from_key: *const nsACString,
+            to_key: *const nsACString
+        )
+    );
+
+    fn delete_range(
+        &self,
+        _callback: &nsIKeyValueVoidCallback,
+        _from_key: &nsACString,
+        _to_key: &nsACString,
+    ) -> Result<(), nsresult> {
+        Err(NS_ERROR_NOT_IMPLEMENTED)
+    }
+
+    xpcom_method!(
         clear => Clear(callback: *const nsIKeyValueVoidCallback)
     );
 

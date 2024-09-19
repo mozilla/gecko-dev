@@ -467,6 +467,56 @@ impl KeyValueDatabase {
     }
 
     xpcom_method!(
+        delete_range => DeleteRange(
+            callback: *const nsIKeyValueVoidCallback,
+            from_key: *const nsACString,
+            to_key: *const nsACString
+        )
+    );
+    fn delete_range(
+        &self,
+        callback: &nsIKeyValueVoidCallback,
+        from_key: &nsACString,
+        to_key: &nsACString,
+    ) -> Result<(), Infallible> {
+        let inputs = || -> Result<_, InterfaceError> {
+            let store = self.store()?;
+            let from_key = match from_key.is_empty() {
+                true => Bound::Unbounded,
+                false => Bound::Included(Key::try_from(from_key)?),
+            };
+            let to_key = match to_key.is_empty() {
+                true => Bound::Unbounded,
+                false => Bound::Excluded(Key::try_from(to_key)?),
+            };
+            Ok((store, from_key, to_key))
+        }();
+
+        let name = self.name.clone();
+        let request =
+            moz_task::spawn_blocking("skv:KeyValueDatabase:DeleteRange:Request", async move {
+                let (store, from_key, to_key) = inputs?;
+                let db = Database::new(&store, &name);
+                Ok(db.delete_range((from_key, to_key))?)
+            });
+
+        let signal = self.client.signal();
+        let callback = RefPtr::new(callback);
+        moz_task::spawn_local("skv:KeyValueDatabase:DeleteRange:Response", async move {
+            match signal.aborting(request).await {
+                Ok(()) => unsafe { callback.Resolve() },
+                Err(InterfaceError::Abort(_)) => unsafe {
+                    callback.Reject(&*nsCString::from("deleteRange: aborted"))
+                },
+                Err(err) => unsafe { callback.Reject(&*nsCString::from(err.to_string())) },
+            }
+        })
+        .detach();
+
+        Ok(())
+    }
+
+    xpcom_method!(
         clear => Clear(callback: *const nsIKeyValueVoidCallback)
     );
     fn clear(&self, callback: &nsIKeyValueVoidCallback) -> Result<(), Infallible> {
