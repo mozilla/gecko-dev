@@ -13,8 +13,6 @@
 
 namespace mozilla {
 
-using namespace dom::SVGLength_Binding;
-
 void SVGLengthSMILType::Init(SMILValue& aValue) const {
   MOZ_ASSERT(aValue.IsNull(), "Unexpected value type");
 
