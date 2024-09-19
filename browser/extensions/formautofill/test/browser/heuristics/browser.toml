@@ -22,6 +22,8 @@ skip-if = ["apple_silicon && !debug"]
 
 ["browser_consecutive_cc_number.js"]
 
+["browser_country_rules.js"]
+
 ["browser_de_fields.js"]
 
 ["browser_formless.js"]
