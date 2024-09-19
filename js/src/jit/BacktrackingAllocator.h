@@ -177,20 +177,8 @@ using UsePositionIterator = InlineForwardListIterator<UsePosition>;
 class LiveBundle;
 class VirtualRegister;
 
-class LiveRange : public TempObject {
+class LiveRange : public TempObject, public InlineForwardListNode<LiveRange> {
  public:
-  // Linked lists are used to keep track of the ranges in each LiveBundle.
-  class BundleLink : public InlineForwardListNode<BundleLink> {};
-
-  using BundleLinkIterator = InlineForwardListIterator<BundleLink>;
-
-  // Link in the list in LiveBundle.
-  BundleLink bundleLink;
-
-  static LiveRange* get(BundleLink* link) {
-    return reinterpret_cast<LiveRange*>(reinterpret_cast<uint8_t*>(link) -
-                                        offsetof(LiveRange, bundleLink));
-  }
   struct Range {
     // The beginning of this range, inclusive.
     CodePosition from;
@@ -413,7 +401,7 @@ class LiveBundle : public TempObject {
   SpillSet* spill_;
 
   // All the ranges in this set, ordered by location.
-  InlineForwardList<LiveRange::BundleLink> ranges_;
+  InlineForwardList<LiveRange> ranges_;
 
   // Allocation to use for ranges in this set, bogus if unallocated or spilled
   // and not yet given a physical stack slot.
@@ -444,19 +432,21 @@ class LiveBundle : public TempObject {
     return new (alloc.fallible()) LiveBundle(spill, spillParent);
   }
 
+  using RangeIterator = InlineForwardListIterator<LiveRange>;
+
   SpillSet* spillSet() const { return spill_; }
   void setSpillSet(SpillSet* spill) { spill_ = spill; }
 
-  LiveRange::BundleLinkIterator rangesBegin() const { return ranges_.begin(); }
-  LiveRange::BundleLinkIterator rangesBegin(LiveRange* range) const {
-    return ranges_.begin(&range->bundleLink);
+  RangeIterator rangesBegin() const { return ranges_.begin(); }
+  RangeIterator rangesBegin(LiveRange* range) const {
+    return ranges_.begin(range);
   }
   bool hasRanges() const { return !!rangesBegin(); }
-  LiveRange* firstRange() const { return LiveRange::get(*rangesBegin()); }
-  LiveRange* lastRange() const { return LiveRange::get(ranges_.back()); }
+  LiveRange* firstRange() const { return *rangesBegin(); }
+  LiveRange* lastRange() const { return ranges_.back(); }
   LiveRange* rangeFor(CodePosition pos) const;
   void removeRange(LiveRange* range);
-  void removeRangeAndIncrementIterator(LiveRange::BundleLinkIterator& iter) {
+  void removeRangeAndIncrementIterator(RangeIterator& iter) {
     ranges_.removeAndIncrement(iter);
   }
   void removeAllRangesFromVirtualRegisters();
