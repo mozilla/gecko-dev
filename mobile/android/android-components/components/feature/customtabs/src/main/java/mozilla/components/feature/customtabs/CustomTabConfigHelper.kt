@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@file:Suppress("TooManyFunctions")
+
 package mozilla.components.feature.customtabs
 
 import android.app.PendingIntent
@@ -66,6 +68,7 @@ import mozilla.components.browser.state.state.ExternalAppType
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.feature.customtabs.menu.sendWithUrl
 import mozilla.components.support.ktx.android.content.res.resolveAttribute
+import mozilla.components.support.utils.ColorUtils.getDisabledReadableTextColor
 import mozilla.components.support.utils.ColorUtils.getReadableTextColor
 import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeBundle
@@ -345,6 +348,32 @@ fun ColorSchemeParams?.getToolbarContrastColor(
 ): Int {
     return if (shouldUpdateTheme) {
         this?.toolbarColor?.let { getReadableTextColor(it) }
+            ?: fallbackColor
+    } else {
+        // When in private mode, the readable color needs match the app.
+        // Note: The main app is configuring the private theme, Custom Tabs is adding the
+        // additional theming for the dynamic UI elements e.g. action & share buttons.
+        val colorResId = context.theme.resolveAttribute(android.R.attr.textColorPrimary)
+        getColor(context, colorResId)
+    }
+}
+
+/**
+ * Get a disabled color with enough contrast over the toolbar color from the provided [ColorSchemeParams].
+ *
+ * @param context The [Context] used to resolve the default text color.
+ * @param shouldUpdateTheme Whether the contrast color should be calculated based on the toolbar color
+ * or default to returning the default text color.
+ * @param fallbackColor The fallback color to use if the toolbar color is not set and [shouldUpdateTheme] is `true`.
+ */
+@ColorInt
+fun ColorSchemeParams?.getToolbarContrastColorDisabled(
+    context: Context,
+    shouldUpdateTheme: Boolean,
+    @ColorInt fallbackColor: Int,
+): Int {
+    return if (shouldUpdateTheme) {
+        this?.toolbarColor?.let { getDisabledReadableTextColor(it) }
             ?: fallbackColor
     } else {
         // When in private mode, the readable color needs match the app.

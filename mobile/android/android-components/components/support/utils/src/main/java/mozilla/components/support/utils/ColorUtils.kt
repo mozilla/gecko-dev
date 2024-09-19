@@ -8,6 +8,9 @@ import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
 
+private const val LIGHT_GRAY_HEX = "#66FBFBFE"
+private const val DARK_GRAY_HEX = "#6615141A"
+
 object ColorUtils {
 
     /**
@@ -16,6 +19,18 @@ object ColorUtils {
     @JvmStatic
     fun getReadableTextColor(@ColorInt backgroundColor: Int): Int {
         return if (isDark(backgroundColor)) Color.WHITE else Color.BLACK
+    }
+
+    /**
+     * Get disabled text color (light gray or dark gray) that is readable on top of the provided background color.
+     */
+    @JvmStatic
+    fun getDisabledReadableTextColor(@ColorInt backgroundColor: Int): Int {
+        return if (isDark(backgroundColor)) {
+            Color.parseColor(LIGHT_GRAY_HEX)
+        } else {
+            Color.parseColor(DARK_GRAY_HEX)
+        }
     }
 
     /**

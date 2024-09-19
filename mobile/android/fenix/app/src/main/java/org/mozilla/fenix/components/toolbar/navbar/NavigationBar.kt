@@ -243,6 +243,8 @@ fun HomeNavBar(
  * @param backgroundColor Custom background color of the navigation bar.
  * When `null`, [FirefoxTheme.layer1] will be used.
  * @param buttonTint Custom button tint color of the navigation bar. When `null`, [Color.White] will be used.
+ * @param buttonDisabledTint Custom disabled button tint color of the navigation bar.
+ * When `null`, [FirefoxTheme.iconDisabled] will be used.
  * @param onVisibilityUpdated Invoked when the visibility of the navigation bar changes
  * informing if the navigation bar is visible.
  * @param isMenuRedesignEnabled Whether or not the menu redesign is enabled.
@@ -261,6 +263,7 @@ fun CustomTabNavBar(
     onMenuButtonClick: () -> Unit,
     @ColorInt backgroundColor: Int? = null,
     @ColorInt buttonTint: Int? = null,
+    @ColorInt buttonDisabledTint: Int? = null,
     onVisibilityUpdated: (Boolean) -> Unit,
     isMenuRedesignEnabled: Boolean = components.settings.enableMenuRedesign,
 ) {
@@ -273,6 +276,7 @@ fun CustomTabNavBar(
     }
     val background = backgroundColor?.let { Color(it) } ?: FirefoxTheme.colors.layer1
     val iconTint = buttonTint?.let { Color(it) } ?: FirefoxTheme.colors.iconPrimary
+    val disabledIconTint = buttonDisabledTint?.let { Color(it) } ?: FirefoxTheme.colors.iconDisabled
 
     NavBar(
         background = background,
@@ -283,6 +287,7 @@ fun CustomTabNavBar(
             onBackButtonLongPress = onBackButtonLongPress,
             enabled = canGoBack,
             buttonEnabledTint = iconTint,
+            buttonDisabledTint = disabledIconTint,
         )
 
         ForwardButton(
@@ -290,6 +295,7 @@ fun CustomTabNavBar(
             onForwardButtonLongPress = onForwardButtonLongPress,
             enabled = canGoForward,
             buttonEnabledTint = iconTint,
+            buttonDisabledTint = disabledIconTint,
         )
 
         OpenInBrowserButton(
@@ -347,6 +353,7 @@ private fun BackButton(
     onBackButtonLongPress: () -> Unit,
     enabled: Boolean,
     buttonEnabledTint: Color = FirefoxTheme.colors.iconPrimary,
+    buttonDisabledTint: Color = FirefoxTheme.colors.iconDisabled,
 ) {
     LongPressIconButton(
         onClick = onBackButtonClick,
@@ -357,7 +364,7 @@ private fun BackButton(
         Icon(
             painter = painterResource(R.drawable.mozac_ic_back_24),
             stringResource(id = R.string.browser_menu_back),
-            tint = if (enabled) buttonEnabledTint else FirefoxTheme.colors.iconDisabled,
+            tint = if (enabled) buttonEnabledTint else buttonDisabledTint,
         )
     }
 }
@@ -368,6 +375,7 @@ private fun ForwardButton(
     onForwardButtonLongPress: () -> Unit,
     enabled: Boolean,
     buttonEnabledTint: Color = FirefoxTheme.colors.iconPrimary,
+    buttonDisabledTint: Color = FirefoxTheme.colors.iconDisabled,
 ) {
     LongPressIconButton(
         onClick = onForwardButtonClick,
@@ -378,7 +386,7 @@ private fun ForwardButton(
         Icon(
             painter = painterResource(R.drawable.mozac_ic_forward_24),
             stringResource(id = R.string.browser_menu_forward),
-            tint = if (enabled) buttonEnabledTint else FirefoxTheme.colors.iconDisabled,
+            tint = if (enabled) buttonEnabledTint else buttonDisabledTint,
         )
     }
 }

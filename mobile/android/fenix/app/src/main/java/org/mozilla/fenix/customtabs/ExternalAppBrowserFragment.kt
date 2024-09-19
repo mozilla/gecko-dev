@@ -331,6 +331,7 @@ class ExternalAppBrowserFragment : BaseBrowserFragment() {
                         },
                         backgroundColor = navbarIntegration.backgroundColor,
                         buttonTint = navbarIntegration.buttonTint,
+                        buttonDisabledTint = navbarIntegration.buttonDisabledTint,
                         onVisibilityUpdated = {
                             configureEngineViewWithDynamicToolbarsMaxHeight()
                         },
