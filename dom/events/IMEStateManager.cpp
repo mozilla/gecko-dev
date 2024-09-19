@@ -571,9 +571,17 @@ void IMEStateManager::OnUpdateHTMLEditorRootElement(HTMLEditor& aHTMLEditor,
   }
 
   MOZ_ASSERT(aNewRootElement);
-  // Ensure IME enabled.
-  IMEState newState = GetNewIMEState(*presContext, nullptr);
-  MOZ_ASSERT(newState.mEnabled == IMEEnabled::Enabled);
+  const IMEState newState = GetNewIMEState(*presContext, nullptr);
+  // The caller wants to enable IME if there is at least one element in the most
+  // cases.  However, IME may be disabled, e.g., the menubar key listener is now
+  // installed, etc.  Therefore, if the new state is not "enabled", we should
+  // not update the state in unexpected situations.
+  if (MOZ_UNLIKELY(newState.mEnabled != IMEEnabled::Enabled)) {
+    MOZ_LOG(sISMLog, LogLevel::Warning,
+            ("  OnUpdateHTMLEditorRootElement(): WARNING, Not updating IME "
+             "state because of the new IME state is not \"enabled\""));
+    return;
+  }
   InputContextAction action(InputContextAction::CAUSE_UNKNOWN,
                             InputContextAction::GOT_FOCUS);
   InputContext::Origin origin =
