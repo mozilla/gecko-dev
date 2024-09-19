@@ -27,7 +27,7 @@ phf = "0.11"
 precomputed-hash = "0.1"
 servo_arc = { version = "0.1", path = "../servo_arc" }
 smallvec = "1.0"
-to_shmem = { path = "../to_shmem" }
+to_shmem = { path = "../to_shmem", features = ["servo_arc"] }
 to_shmem_derive = { path = "../to_shmem_derive" }
 new_debug_unreachable = "1"
 

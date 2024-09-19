@@ -5973,11 +5973,7 @@ dependencies = [
 name = "to_shmem"
 version = "0.0.1"
 dependencies = [
- "cssparser",
  "servo_arc",
- "smallbitvec",
- "smallvec",
- "thin-vec",
 ]
 
 [[package]]

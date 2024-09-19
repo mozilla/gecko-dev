@@ -3,6 +3,7 @@ name = "to_shmem"
 version = "0.0.1"
 authors = ["The Servo Project Developers"]
 license = "MPL-2.0"
+edition = "2021"
 publish = false
 
 [lib]
@@ -10,13 +11,20 @@ name = "to_shmem"
 path = "lib.rs"
 
 [features]
-servo = ["cssparser/serde", "string_cache"]
-gecko = []
+servo = ["cssparser/serde", "cssparser", "servo_arc", "smallbitvec", "smallvec", "string_cache", "thin-vec"]
+gecko = ["thin-vec/gecko-ffi", "cssparser", "servo_arc", "smallbitvec", "smallvec", "thin-vec"]
+
+cssparser = ["dep:cssparser"]
+servo_arc = ["dep:servo_arc"]
+smallbitvec = ["dep:smallbitvec"]
+smallvec = ["dep:smallvec"]
+string_cache = ["dep:string_cache"]
+thin-vec = ["dep:thin-vec"]
 
 [dependencies]
-cssparser = "0.34"
-servo_arc = { path = "../servo_arc" }
-smallbitvec = "2.1.1"
-smallvec = "1.0"
+cssparser = { version = "0.34", optional = true }
+servo_arc = { path = "../servo_arc", optional = true }
+smallbitvec = { version = "2.3.0", optional = true }
+smallvec = { version = "1.13", optional = true }
 string_cache = { version = "0.8", optional = true }
-thin-vec = { version = "0.2.1", features = ["gecko-ffi"] }
+thin-vec = { version = "0.2.1", optional = true }

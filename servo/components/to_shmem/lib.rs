@@ -12,17 +12,6 @@
 #![crate_name = "to_shmem"]
 #![crate_type = "rlib"]
 
-extern crate cssparser;
-extern crate servo_arc;
-extern crate smallbitvec;
-extern crate smallvec;
-#[cfg(feature = "string_cache")]
-extern crate string_cache;
-extern crate thin_vec;
-
-use servo_arc::{Arc, ArcUnion, ArcUnionBorrow, HeaderSlice};
-use smallbitvec::{InternalStorage, SmallBitVec};
-use smallvec::{Array, SmallVec};
 use std::alloc::Layout;
 use std::collections::HashSet;
 use std::ffi::CString;
@@ -32,12 +21,9 @@ use std::mem::{self, ManuallyDrop};
 use std::num::Wrapping;
 use std::ops::Range;
 use std::os::raw::c_char;
-#[cfg(debug_assertions)]
-use std::os::raw::c_void;
 use std::ptr::{self, NonNull};
 use std::slice;
 use std::str;
-use thin_vec::ThinVec;
 
 /// Result type for ToShmem::to_shmem.
 ///
@@ -62,8 +48,8 @@ pub struct SharedMemoryBuilder {
     /// buffer.  We use this to assert against encountering the same value
     /// twice, e.g. through another Arc reference, so that we don't
     /// inadvertently store duplicate copies of values.
-    #[cfg(debug_assertions)]
-    shared_values: HashSet<*const c_void>,
+    #[cfg(all(debug_assertions, feature = "servo_arc"))]
+    shared_values: HashSet<*const std::os::raw::c_void>,
 }
 
 /// Amount of padding needed after `size` bytes to ensure that the following
@@ -84,7 +70,7 @@ impl SharedMemoryBuilder {
             buffer,
             capacity,
             index: 0,
-            #[cfg(debug_assertions)]
+            #[cfg(all(debug_assertions, feature = "servo_arc"))]
             shared_values: HashSet::new(),
         }
     }
@@ -218,12 +204,6 @@ impl_trivial_to_shmem!(
     std::num::NonZeroUsize
 );
 
-impl_trivial_to_shmem!(
-    cssparser::SourceLocation,
-    cssparser::SourcePosition,
-    cssparser::TokenSerializationType
-);
-
 impl<T> ToShmem for PhantomData<T> {
     fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> Result<Self> {
         Ok(ManuallyDrop::new(*self))
@@ -239,14 +219,6 @@ impl<T: ToShmem> ToShmem for Range<T> {
     }
 }
 
-impl ToShmem for cssparser::UnicodeRange {
-    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> Result<Self> {
-        Ok(ManuallyDrop::new(cssparser::UnicodeRange {
-            start: self.start,
-            end: self.end,
-        }))
-    }
-}
 
 impl<T: ToShmem, U: ToShmem> ToShmem for (T, U) {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
@@ -388,38 +360,6 @@ impl<T: ToShmem> ToShmem for Vec<T> {
     }
 }
 
-impl<T: ToShmem, A: Array<Item = T>> ToShmem for SmallVec<A> {
-    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
-        let dest_vec = unsafe {
-            if self.spilled() {
-                // Place the items in a separate allocation in the shared memory
-                // buffer.
-                let dest = to_shmem_slice(self.iter(), builder)? as *mut T;
-                SmallVec::from_raw_parts(dest, self.len(), self.len())
-            } else {
-                // Place the items inline.
-                let mut s = SmallVec::new();
-                to_shmem_slice_ptr(self.iter(), s.as_mut_ptr(), builder)?;
-                s.set_len(self.len());
-                s
-            }
-        };
-
-        Ok(ManuallyDrop::new(dest_vec))
-    }
-}
-
-impl<T: ToShmem> ToShmem for Option<T> {
-    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
-        let v = match self {
-            Some(v) => Some(ManuallyDrop::into_inner(v.to_shmem(builder)?)),
-            None => None,
-        };
-
-        Ok(ManuallyDrop::new(v))
-    }
-}
-
 impl<T: ToShmem, S> ToShmem for HashSet<T, S>
 where
     Self: Default,
@@ -435,12 +375,48 @@ where
     }
 }
 
-impl<A: 'static, B: 'static> ToShmem for ArcUnion<A, B>
+impl<T: ToShmem> ToShmem for Option<T> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
+        let v = match self {
+            Some(v) => Some(ManuallyDrop::into_inner(v.to_shmem(builder)?)),
+            None => None,
+        };
+
+        Ok(ManuallyDrop::new(v))
+    }
+}
+
+#[cfg(feature = "smallvec")]
+impl<T: ToShmem, A: smallvec::Array<Item = T>> ToShmem for smallvec::SmallVec<A> {
+    fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
+        let dest_vec = unsafe {
+            if self.spilled() {
+                // Place the items in a separate allocation in the shared memory
+                // buffer.
+                let dest = to_shmem_slice(self.iter(), builder)? as *mut T;
+                Self::from_raw_parts(dest, self.len(), self.len())
+            } else {
+                // Place the items inline.
+                let mut s = Self::new();
+                to_shmem_slice_ptr(self.iter(), s.as_mut_ptr(), builder)?;
+                s.set_len(self.len());
+                s
+            }
+        };
+
+        Ok(ManuallyDrop::new(dest_vec))
+    }
+}
+
+#[cfg(feature = "servo_arc")]
+impl<A: 'static, B: 'static> ToShmem for servo_arc::ArcUnion<A, B>
 where
-    Arc<A>: ToShmem,
-    Arc<B>: ToShmem,
+    servo_arc::Arc<A>: ToShmem,
+    servo_arc::Arc<B>: ToShmem,
 {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
+        use servo_arc::ArcUnionBorrow;
+
         Ok(ManuallyDrop::new(match self.borrow() {
             ArcUnionBorrow::First(first) => Self::from_first(ManuallyDrop::into_inner(
                 first.with_arc(|a| a.to_shmem(builder))?,
@@ -451,8 +427,8 @@ where
         }))
     }
 }
-
-impl<T: ToShmem> ToShmem for Arc<T> {
+#[cfg(feature = "servo_arc")]
+impl<T: ToShmem> ToShmem for servo_arc::Arc<T> {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
         // Assert that we don't encounter any shared references to values we
         // don't expect.
@@ -471,7 +447,7 @@ impl<T: ToShmem> ToShmem for Arc<T> {
         // Create a new Arc with the shared value and have it place its
         // ArcInner in the shared memory buffer.
         unsafe {
-            let static_arc = Arc::new_static(
+            let static_arc = Self::new_static(
                 |layout| builder.alloc(layout),
                 ManuallyDrop::into_inner(value),
             );
@@ -483,8 +459,8 @@ impl<T: ToShmem> ToShmem for Arc<T> {
         }
     }
 }
-
-impl<H: ToShmem, T: ToShmem> ToShmem for Arc<HeaderSlice<H, T>> {
+#[cfg(feature = "servo_arc")]
+impl<H: ToShmem, T: ToShmem> ToShmem for servo_arc::Arc<servo_arc::HeaderSlice<H, T>> {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
         // We don't currently have any shared ThinArc values in stylesheets,
         // so don't support them for now.
@@ -521,7 +497,8 @@ impl<H: ToShmem, T: ToShmem> ToShmem for Arc<HeaderSlice<H, T>> {
     }
 }
 
-impl<T: ToShmem> ToShmem for ThinVec<T> {
+#[cfg(feature = "thin-vec")]
+impl<T: ToShmem> ToShmem for thin_vec::ThinVec<T> {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
         assert_eq!(mem::size_of::<Self>(), mem::size_of::<*const ()>());
 
@@ -577,8 +554,11 @@ impl<T: ToShmem> ToShmem for ThinVec<T> {
     }
 }
 
-impl ToShmem for SmallBitVec {
+#[cfg(feature = "smallbitvec")]
+impl ToShmem for smallbitvec::SmallBitVec {
     fn to_shmem(&self, builder: &mut SharedMemoryBuilder) -> Result<Self> {
+        use smallbitvec::InternalStorage;
+
         let storage = match self.clone().into_storage() {
             InternalStorage::Spilled(vs) => {
                 // Reserve space for the boxed slice values.
@@ -598,7 +578,7 @@ impl ToShmem for SmallBitVec {
             InternalStorage::Inline(x) => InternalStorage::Inline(x),
         };
         Ok(ManuallyDrop::new(unsafe {
-            SmallBitVec::from_storage(storage)
+            Self::from_storage(storage)
         }))
     }
 }
@@ -614,5 +594,21 @@ impl<Static: string_cache::StaticAtomSet> ToShmem for string_cache::Atom<Static>
             "If servo wants to share stylesheets across processes, \
              then ToShmem for Atom needs to be implemented"
         )
+    }
+}
+
+#[cfg(feature = "cssparser")]
+impl_trivial_to_shmem!(
+    cssparser::SourceLocation,
+    cssparser::SourcePosition,
+    cssparser::TokenSerializationType
+);
+#[cfg(feature = "cssparser")]
+impl ToShmem for cssparser::UnicodeRange {
+    fn to_shmem(&self, _builder: &mut SharedMemoryBuilder) -> Result<Self> {
+        Ok(ManuallyDrop::new(Self {
+            start: self.start,
+            end: self.end,
+        }))
     }
 }
