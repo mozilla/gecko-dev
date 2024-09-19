@@ -145,6 +145,10 @@ export class MegalistViewModel {
     }
   }
 
+  setNotification(notification) {
+    this.#messageToView("SetNotification", notification);
+  }
+
   async receiveCommand({ commandId, snapshotId, value } = {}) {
     const dotIndex = commandId?.indexOf(".");
     const index = snapshotId;

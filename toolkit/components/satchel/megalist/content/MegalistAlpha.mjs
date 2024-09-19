@@ -10,6 +10,9 @@ import "chrome://global/content/megalist/PasswordCard.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/megalist/Dialog.mjs";
 
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://global/content/megalist/NotificationMessageBar.mjs";
+
 const DISPLAY_MODES = {
   ALERTS: "SortByAlerts",
   ALL: "SortByName",
@@ -27,6 +30,7 @@ export class MegalistAlpha extends MozLitElement {
     this.searchText = "";
     this.records = [];
     this.header = null;
+    this.notification = null;
     this.displayMode = DISPLAY_MODES.ALL;
 
     window.addEventListener("MessageFromViewModel", ev =>
@@ -40,6 +44,7 @@ export class MegalistAlpha extends MozLitElement {
       searchText: { type: String },
       records: { type: Array },
       header: { type: Object },
+      notification: { type: Object },
       displayMode: { type: String },
       dialogType: { type: String },
     };
@@ -109,6 +114,10 @@ export class MegalistAlpha extends MozLitElement {
     const field = snapshot.field;
     this.records[recordIndex][field] = snapshot;
     this.requestUpdate();
+  }
+
+  receiveSetNotification(notification) {
+    this.notification = notification;
   }
 
   #createLoginRecords(snapshots) {
@@ -237,6 +246,7 @@ export class MegalistAlpha extends MozLitElement {
         <panel-item
           action="import-from-file"
           data-l10n-id="about-logins-menu-menuitem-import-from-a-file"
+          @click=${() => this.#sendCommand("Import")}
         ></panel-item>
         <panel-item
           action="export-logins"
@@ -306,6 +316,23 @@ export class MegalistAlpha extends MozLitElement {
     return "";
   }
 
+  renderNotification() {
+    if (!this.notification) {
+      return "";
+    }
+
+    return html`
+      <notification-message-bar
+        .notification=${this.notification}
+        .onDismiss=${() => {
+          this.notification = null;
+        }}
+        .messageHandler=${commandId => this.#sendCommand(commandId)}
+      >
+      </notification-message-bar>
+    `;
+  }
+
   render() {
     return html`
       <link
@@ -314,7 +341,8 @@ export class MegalistAlpha extends MozLitElement {
       />
       ${this.renderDialog()}
       <div class="container">
-        ${this.renderFirstRow()} ${this.renderSecondRow()} ${this.renderList()}
+        ${this.renderFirstRow()} ${this.renderSecondRow()}
+        ${this.renderNotification()} ${this.renderList()}
       </div>
     `;
   }

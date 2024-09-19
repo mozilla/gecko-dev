@@ -73,6 +73,25 @@ passwords-import-file-picker-tsv-filter-title =
      *[other] TSV File
   }
 
+passwords-import-success-heading =
+  .heading = Passwords imported
+
+# Variables
+#   $added (number) - Number of added passwords
+#   $modified (number) - Number of modified passwords
+passwords-import-success-message =
+  New passwords added: { $added }<br/>Existing passwords updated: { $modified }
+
+passwords-import-detailed-report = View detailed report
+passwords-import-success-button = Done
+
+passwords-import-error-heading-and-message =
+  .heading = Couldn’t import passwords
+  .message = Make sure your file includes a column for websites, usernames, and passwords.
+passwords-import-error-button-try-again = Try Again
+passwords-import-error-button-cancel = Cancel
+passwords-import-learn-more = Learn about importing passwords
+
 # Title of the file picker dialog
 passwords-export-file-picker-title = Export Passwords from { -brand-short-name }
 # The default file name shown in the file picker when exporting saved logins.

@@ -34,6 +34,11 @@ export const SUPPORT_URL =
 
 export const PREFERENCES_URL = "about:preferences#privacy-logins";
 
+const IMPORT_FILE_SUPPORT_URL =
+  "https://support.mozilla.org/kb/import-login-data-file";
+
+const IMPORT_FILE_REPORT_URL = "about:loginsimportreport";
+
 /**
  * Data source for Logins.
  *
@@ -120,12 +125,15 @@ export class LoginDataSource extends DataSourceBase {
           strings.passwordsImportFilePickerTsvFilterTitle
         );
 
+      this.#header.executeImportHelp = () =>
+        this.#openLink(IMPORT_FILE_SUPPORT_URL);
+      this.#header.executeImportReport = () =>
+        this.#openLink(IMPORT_FILE_REPORT_URL);
       this.#header.executeImportFromBrowser = () => this.#importFromBrowser();
       this.#header.executeRemoveAll = () => this.#removeAllPasswords();
       this.#header.executeExport = async () => this.#confirmExportLogins();
       this.#header.executeSettings = () => this.#openLink(PREFERENCES_URL);
       this.#header.executeHelp = () => this.#openLink(SUPPORT_URL);
-      this.#header.executeExport = async () => this.#confirmExportLogins();
 
       this.#exportPasswordsStrings = {
         OSReauthMessage: strings.exportPasswordsOSReauthMessage,
@@ -342,19 +350,28 @@ export class LoginDataSource extends DataSourceBase {
     if (result != Ci.nsIFilePicker.returnCancel) {
       try {
         const summary = await LoginCSVImport.importFromCSV(path);
-        const counts = { added: 0, modified: 0, no_change: 0, error: 0 };
+        const counts = { added: 0, modified: 0 };
 
         for (const item of summary) {
-          counts[item.result] += 1;
+          if (item.result in counts) {
+            counts[item.result] += 1;
+          }
         }
-        const l10nArgs = Object.values(counts).map(count => ({ count }));
-
-        this.setLayout({
-          id: "import-logins",
-          l10nArgs,
+        this.setNotification({
+          id: "import-success",
+          l10nArgs: counts,
+          commands: {
+            onLinkClick: "ImportReport",
+          },
         });
       } catch (e) {
-        this.setLayout({ id: "import-error" });
+        this.setNotification({
+          id: "import-error",
+          commands: {
+            onLinkClick: "ImportHelp",
+            onRetry: "Import",
+          },
+        });
       }
     }
   }
@@ -374,7 +391,7 @@ export class LoginDataSource extends DataSourceBase {
       fp.appendFilters(Ci.nsIFilePicker.filterAll);
       fp.okButtonLabel = okButtonLabel;
       fp.open(async result => {
-        resolve({ result, path: fp.file.path });
+        resolve({ result, path: fp.file ? fp.file.path : "" });
       });
     });
   }

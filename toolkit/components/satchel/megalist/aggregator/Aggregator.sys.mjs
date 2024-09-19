@@ -87,6 +87,10 @@ export class Aggregator {
       setLayout(layout) {
         aggregator.forEachViewModel(vm => vm.setLayout(layout));
       },
+
+      setNotification(notification) {
+        aggregator.forEachViewModel(vm => vm.setNotification(notification));
+      },
     };
   }
 }
