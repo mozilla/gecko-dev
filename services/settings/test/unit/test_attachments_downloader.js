@@ -71,6 +71,9 @@ async function clear_state() {
     set: async (id, obj) => {
       downloader.cache[id] = obj;
     },
+    setMultiple: async idsObjs => {
+      idsObjs.forEach(([id, obj]) => (downloader.cache[id] = obj));
+    },
     delete: async id => {
       delete downloader.cache[id];
     },
@@ -100,6 +103,11 @@ async function clear_state() {
     response.setHeader("Content-Type", "application/json; charset=UTF-8");
     response.setStatusLine(null, 200, "OK");
   });
+
+  // For tests that use a real client and DB cache, clear the local DB too.
+  const client = RemoteSettings("some-collection");
+  await client.db.clear();
+  await client.db.pruneAttachments([]);
 }
 add_task(clear_state);
 
@@ -852,6 +860,30 @@ add_task(async function test_cacheAll_happy_path() {
   );
 });
 
+add_task(async function test_cacheAll_using_real_db() {
+  const client = RemoteSettings("some-collection");
+
+  const allSuccess = await client.attachments.cacheAll();
+
+  Assert.ok(
+    allSuccess,
+    "Attachments cacheAll succesfully downloaded a bundle and saved all attachments"
+  );
+
+  Assert.equal(
+    (await client.attachments.cacheImpl.get("2")).record.title,
+    "test2",
+    "Test record 2 meta content appears accurate."
+  );
+  Assert.equal(
+    await (await client.attachments.cacheImpl.get("2")).blob.text(),
+    "test2\n",
+    "Test file 2 content is accurate."
+  );
+});
+
+add_task(clear_state);
+
 add_task(async function test_cacheAll_skips_with_existing_data() {
   downloader.cache = {
     1: "1",
@@ -900,6 +932,26 @@ add_task(async function test_cacheAll_failed_unzip() {
     false,
     "Attachments cacheAll request failed to extract a bundle and returned false"
   );
+});
+
+add_task(clear_state);
+
+add_task(async function test_cacheAll_failed_save() {
+  const client = RemoteSettings("some-collection");
+
+  const backup = client.db.saveAttachments;
+  client.db.saveAttachments = () => {
+    throw new Error("boom");
+  };
+
+  const allSuccess = await client.attachments.cacheAll();
+
+  Assert.equal(
+    allSuccess,
+    false,
+    "Attachments cacheAll failed to save entries in DB and returned false"
+  );
+  client.db.saveAttachments = backup;
 });
 
 add_task(clear_state);

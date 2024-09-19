@@ -189,6 +189,9 @@ export class Downloader {
       return null;
     }
 
+    // Save attachments in bulks.
+    const BULK_SAVE_COUNT = 50;
+
     const url =
       (await lazy.Utils.baseAttachmentsURL()) +
       `bundles/${this.bucketName}--${this.collectionName}.zip`;
@@ -218,7 +221,13 @@ export class Downloader {
       const tmpZipFile = await IOUtils.getFile(tmpZipFilePath);
       zipReader.open(tmpZipFile);
 
-      for (const entryName of zipReader.findEntries("*.meta.json")) {
+      const cacheEntries = [];
+      const zipFiles = Array.from(zipReader.findEntries("*.meta.json"));
+      allSuccess = !!zipFiles.length;
+
+      for (let i = 0; i < zipFiles.length; i++) {
+        const lastLoop = i == zipFiles.length - 1;
+        const entryName = zipFiles[i];
         try {
           // 3. Read the meta.json entry
           const recordZStream = zipReader.getInputStream(entryName);
@@ -245,17 +254,30 @@ export class Downloader {
           const fileBytes = stream.readBytes(dataLength);
           const blob = new Blob([fileBytes]);
 
-          // 5. Save to cache
-          await this.cacheImpl.set(record.id, { record, blob });
+          cacheEntries.push([record.id, { record, blob }]);
 
           stream.close();
           zStream.close();
         } catch (ex) {
           lazy.console.warn(
-            `${this.bucketName}/${this.collectionName}: Unable to save attachment entry for ${entryName}.`,
+            `${this.bucketName}/${this.collectionName}: Unable to extract attachment of ${entryName}.`,
             ex
           );
           allSuccess = false;
+        }
+
+        // 5. Save bulk to cache (last loop or reached count)
+        if (lastLoop || cacheEntries.length == BULK_SAVE_COUNT) {
+          try {
+            await this.cacheImpl.setMultiple(cacheEntries);
+          } catch (ex) {
+            lazy.console.warn(
+              `${this.bucketName}/${this.collectionName}: Unable to save attachments in cache`,
+              ex
+            );
+            allSuccess = false;
+          }
+          cacheEntries.splice(0); // start new bulk.
         }
       }
     } catch (ex) {
