@@ -366,7 +366,6 @@ const DEFAULT_ENVIRONMENT_PREFS = new Map([
   ["signon.generation.enabled", { what: RECORD_PREF_VALUE }],
   ["signon.rememberSignons", { what: RECORD_PREF_VALUE }],
   ["signon.firefoxRelay.feature", { what: RECORD_PREF_VALUE }],
-  ["toolkit.telemetry.pioneerId", { what: RECORD_PREF_STATE }],
   [
     "widget.content.gtk-high-contrast.enabled",
     { what: RECORD_DEFAULTPREF_VALUE },

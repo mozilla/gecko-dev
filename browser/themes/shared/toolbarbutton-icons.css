@@ -275,14 +275,6 @@
   }
 }
 
-#ion-button {
-  list-style-image: url("chrome://browser/skin/ion.svg");
-
-  toolbar[customizing] & {
-    display: none;
-  }
-}
-
 #import-button {
   list-style-image: url("chrome://browser/skin/import.svg");
 }

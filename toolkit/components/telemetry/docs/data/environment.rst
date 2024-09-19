@@ -427,8 +427,6 @@ The following is a partial list of `collected preferences <https://searchfox.org
 
 - ``privacy.resistFingerprinting``: True if the user has changed the (unsupported, hidden) Resist Fingerprinting preference. Defaults to false.
 
-- ``toolkit.telemetry.pioneerId``: The state of the Pioneer ID. If set, then user is enrolled in Pioneer. Note that this does *not* collect the value.
-
 - ``app.normandy.test-prefs.bool``: Test pref that will help troubleshoot uneven unenrollment in experiments. Defaults to false.
 
 - ``app.normandy.test-prefs.integer``: Test pref that will help troubleshoot uneven unenrollment in experiments. Defaults to 0.

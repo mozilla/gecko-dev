@@ -2416,84 +2416,6 @@ BrowserGlue.prototype = {
     _checkHTTPSOnlyPBMPref();
   },
 
-  _monitorIonPref() {
-    const PREF_ION_ID = "toolkit.telemetry.pioneerId";
-
-    const _checkIonPref = async () => {
-      for (let win of Services.wm.getEnumerator("navigator:browser")) {
-        win.document.getElementById("ion-button").hidden =
-          !Services.prefs.getStringPref(PREF_ION_ID, null);
-      }
-    };
-
-    const windowListener = {
-      onOpenWindow(xulWindow) {
-        const win = xulWindow.docShell.domWindow;
-        win.addEventListener("load", () => {
-          const ionButton = win.document.getElementById("ion-button");
-          if (ionButton) {
-            ionButton.hidden = !Services.prefs.getStringPref(PREF_ION_ID, null);
-          }
-        });
-      },
-      onCloseWindow() {},
-    };
-
-    Services.prefs.addObserver(PREF_ION_ID, _checkIonPref);
-    Services.wm.addListener(windowListener);
-    _checkIonPref();
-  },
-
-  _monitorIonStudies() {
-    const STUDY_ADDON_COLLECTION_KEY = "pioneer-study-addons-v1";
-    const PREF_ION_NEW_STUDIES_AVAILABLE =
-      "toolkit.telemetry.pioneer-new-studies-available";
-
-    const _badgeIcon = async () => {
-      for (let win of Services.wm.getEnumerator("navigator:browser")) {
-        win.document
-          .getElementById("ion-button")
-          .querySelector(".toolbarbutton-badge")
-          .classList.add("feature-callout");
-      }
-    };
-
-    const windowListener = {
-      onOpenWindow(xulWindow) {
-        const win = xulWindow.docShell.domWindow;
-        win.addEventListener("load", () => {
-          const ionButton = win.document.getElementById("ion-button");
-          if (ionButton) {
-            const badge = ionButton.querySelector(".toolbarbutton-badge");
-            if (
-              Services.prefs.getBoolPref(PREF_ION_NEW_STUDIES_AVAILABLE, false)
-            ) {
-              badge.classList.add("feature-callout");
-            } else {
-              badge.classList.remove("feature-callout");
-            }
-          }
-        });
-      },
-      onCloseWindow() {},
-    };
-
-    // Update all open windows if the pref changes.
-    Services.prefs.addObserver(PREF_ION_NEW_STUDIES_AVAILABLE, _badgeIcon);
-
-    // Badge any currently-open windows.
-    if (Services.prefs.getBoolPref(PREF_ION_NEW_STUDIES_AVAILABLE, false)) {
-      _badgeIcon();
-    }
-
-    lazy.RemoteSettings(STUDY_ADDON_COLLECTION_KEY).on("sync", async () => {
-      Services.prefs.setBoolPref(PREF_ION_NEW_STUDIES_AVAILABLE, true);
-    });
-
-    // When a new window opens, check if we need to badge the icon.
-    Services.wm.addListener(windowListener);
-  },
-
   _monitorGPCPref() {
     const FEATURE_PREF_ENABLED = "privacy.globalprivacycontrol.enabled";
     const FUNCTIONALITY_PREF_ENABLED =
@@ -2598,8 +2520,6 @@ BrowserGlue.prototype = {
 
     this._monitorWebcompatReporterPref();
     this._monitorHTTPSOnlyPref();
-    this._monitorIonPref();
-    this._monitorIonStudies();
     this._setupSearchDetection();
 
     this._monitorGPCPref();
@@ -3945,7 +3865,7 @@ BrowserGlue.prototype = {
   _migrateUI() {
     // Use an increasing number to keep track of the current migration state.
     // Completely unrelated to the current Firefox release number.
-    const UI_VERSION = 149;
+    const UI_VERSION = 150;
     const BROWSER_DOCURL = AppConstants.BROWSER_CHROME_URL;
 
     if (!Services.prefs.prefHasUserValue("browser.migration.version")) {
@@ -4725,6 +4645,10 @@ BrowserGlue.prototype = {
       ].forEach(type => {
         Services.perms.removeByType(type);
       });
+    }
+
+    if (currentUIVersion < 150) {
+      Services.prefs.clearUserPref("toolkit.telemetry.pioneerId");
     }
 
     // Update the migration version.

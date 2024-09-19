@@ -26,56 +26,12 @@ function desktopCheck() {
 }
 
 this.telemetry = class extends ExtensionAPI {
-  getAPI(context) {
-    let { extension } = context;
+  getAPI(_context) {
     return {
       telemetry: {
         submitPing(type, payload, options) {
           desktopCheck();
-          const manifest = extension.manifest;
-          if (manifest.telemetry) {
-            throw new ExtensionUtils.ExtensionError(
-              "Encryption settings are defined, use submitEncryptedPing instead."
-            );
-          }
-
           try {
-            TelemetryController.submitExternalPing(type, payload, options);
-          } catch (ex) {
-            throw new ExtensionUtils.ExtensionError(ex);
-          }
-        },
-        submitEncryptedPing(payload, options) {
-          desktopCheck();
-
-          const manifest = extension.manifest;
-          if (!manifest.telemetry) {
-            throw new ExtensionUtils.ExtensionError(
-              "Encrypted telemetry pings require ping_type and public_key to be set in manifest."
-            );
-          }
-
-          if (!(options.schemaName && options.schemaVersion)) {
-            throw new ExtensionUtils.ExtensionError(
-              "Encrypted telemetry pings require schema name and version to be set in options object."
-            );
-          }
-
-          try {
-            const type = manifest.telemetry.ping_type;
-
-            // Optional manifest entries.
-            if (manifest.telemetry.study_name) {
-              options.studyName = manifest.telemetry.study_name;
-            }
-            options.addPioneerId = manifest.telemetry.pioneer_id === true;
-
-            // Required manifest entries.
-            options.useEncryption = true;
-            options.publicKey = manifest.telemetry.public_key.key;
-            options.encryptionKeyId = manifest.telemetry.public_key.id;
-            options.schemaNamespace = manifest.telemetry.schemaNamespace;
-
             TelemetryController.submitExternalPing(type, payload, options);
           } catch (ex) {
             throw new ExtensionUtils.ExtensionError(ex);

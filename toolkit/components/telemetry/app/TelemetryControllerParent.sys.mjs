@@ -52,7 +52,6 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/UntrustedModulesPing.sys.mjs",
   UninstallPing: "resource://gre/modules/UninstallPing.sys.mjs",
   UpdatePing: "resource://gre/modules/UpdatePing.sys.mjs",
-  jwcrypto: "resource://services-crypto/jwcrypto.sys.mjs",
 });
 
 if (
@@ -380,16 +379,6 @@ var Impl = {
    *                 client id to the provided value. Implies aOptions.addClientId=true.
    * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
    *                 profile group id to the provided value. Implies aOptions.addClientId=true.
-   * @param {Boolean} [aOptions.useEncryption=false] if true, encrypt data client-side before sending.
-   * @param {Object}  [aOptions.publicKey=null] the public key to use if encryption is enabled (JSON Web Key).
-   * @param {String}  [aOptions.encryptionKeyId=null] the public key ID to use if encryption is enabled.
-   * @param {String}  [aOptions.studyName=null] the study name to use.
-   * @param {String}  [aOptions.schemaName=null] the schema name to use if encryption is enabled.
-   * @param {String}  [aOptions.schemaNamespace=null] the schema namespace to use if encryption is enabled.
-   * @param {String}  [aOptions.schemaVersion=null] the schema version to use if encryption is enabled.
-   * @param {Boolean} [aOptions.addPioneerId=false] true if the ping should contain the Pioneer id, false otherwise.
-   * @param {Boolean} [aOptions.overridePioneerId=undefined] if set, override the
-   *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @returns {Object} An object that contains the assembled ping data.
    */
   assemblePing: function assemblePing(aType, aPayload, aOptions = {}) {
@@ -459,16 +448,6 @@ var Impl = {
    *                  environment data.
    * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
    * @param {Boolean} [aOptions.usePingSender=false] if true, send the ping using the PingSender.
-   * @param {Boolean} [aOptions.useEncryption=false] if true, encrypt data client-side before sending.
-   * @param {Object}  [aOptions.publicKey=null] the public key to use if encryption is enabled (JSON Web Key).
-   * @param {String}  [aOptions.encryptionKeyId=null] the public key ID to use if encryption is enabled.
-   * @param {String}  [aOptions.studyName=null] the study name to use.
-   * @param {String}  [aOptions.schemaName=null] the schema name to use if encryption is enabled.
-   * @param {String}  [aOptions.schemaNamespace=null] the schema namespace to use if encryption is enabled.
-   * @param {String}  [aOptions.schemaVersion=null] the schema version to use if encryption is enabled.
-   * @param {Boolean} [aOptions.addPioneerId=false] true if the ping should contain the Pioneer id, false otherwise.
-   * @param {Boolean} [aOptions.overridePioneerId=undefined] if set, override the
-   *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
    * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the
@@ -503,58 +482,6 @@ var Impl = {
     let pingData = this.assemblePing(aType, aPayload, aOptions);
     this._log.trace("submitExternalPing - ping assembled, id: " + pingData.id);
 
-    if (aOptions.useEncryption === true) {
-      try {
-        if (!aOptions.publicKey) {
-          throw new Error("Public key is required when using encryption.");
-        }
-
-        if (
-          !(
-            aOptions.schemaName &&
-            aOptions.schemaNamespace &&
-            aOptions.schemaVersion
-          )
-        ) {
-          throw new Error(
-            "Schema name, namespace, and version are required when using encryption."
-          );
-        }
-
-        const payload = {};
-        payload.encryptedData = await lazy.jwcrypto.generateJWE(
-          aOptions.publicKey,
-          new TextEncoder().encode(JSON.stringify(aPayload))
-        );
-
-        payload.schemaVersion = aOptions.schemaVersion;
-        payload.schemaName = aOptions.schemaName;
-        payload.schemaNamespace = aOptions.schemaNamespace;
-
-        payload.encryptionKeyId = aOptions.encryptionKeyId;
-
-        if (aOptions.addPioneerId === true) {
-          if (aOptions.overridePioneerId) {
-            // The caller provided a substitute id, let's use that
-            // instead of querying the pref.
-            payload.pioneerId = aOptions.overridePioneerId;
-          } else {
-            // This will throw if there is no pioneer ID set.
-            payload.pioneerId = Services.prefs.getStringPref(
-              "toolkit.telemetry.pioneerId"
-            );
-          }
-          payload.studyName = aOptions.studyName;
-        }
-
-        pingData.payload = payload;
-      } catch (e) {
-        this._log.error("_submitPingLogic - Unable to encrypt ping", e);
-        // Do not attempt to continue
-        throw e;
-      }
-    }
-
     // Always persist the pings if we are allowed to. We should not yield on any of the
     // following operations to keep this function synchronous for the majority of the calls.
     let archivePromise = lazy.TelemetryArchive.promiseArchivePing(
@@ -588,16 +515,6 @@ var Impl = {
    *                  environment data.
    * @param {Object}  [aOptions.overrideEnvironment=null] set to override the environment data.
    * @param {Boolean} [aOptions.usePingSender=false] if true, send the ping using the PingSender.
-   * @param {Boolean} [aOptions.useEncryption=false] if true, encrypt data client-side before sending.
-   * @param {Object}  [aOptions.publicKey=null] the public key to use if encryption is enabled (JSON Web Key).
-   * @param {String}  [aOptions.encryptionKeyId=null] the public key ID to use if encryption is enabled.
-   * @param {String}  [aOptions.studyName=null] the study name to use.
-   * @param {String}  [aOptions.schemaName=null] the schema name to use if encryption is enabled.
-   * @param {String}  [aOptions.schemaNamespace=null] the schema namespace to use if encryption is enabled.
-   * @param {String}  [aOptions.schemaVersion=null] the schema version to use if encryption is enabled.
-   * @param {Boolean} [aOptions.addPioneerId=false] true if the ping should contain the Pioneer id, false otherwise.
-   * @param {Boolean} [aOptions.overridePioneerId=undefined] if set, override the
-   *                  pioneer id to the provided value. Only works if aOptions.addPioneerId=true.
    * @param {String} [aOptions.overrideClientId=undefined] if set, override the
    *                 client id to the provided value. Implies aOptions.addClientId=true.
    * @param {String} [aOptions.overrideProfileGroupId=undefined] if set, override the

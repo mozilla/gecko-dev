@@ -42,7 +42,6 @@ DIRS += [
     "extensions",
     "firefoxview",
     "genai",
-    "ion",
     "messagepreview",
     "migration",
     "newtab",

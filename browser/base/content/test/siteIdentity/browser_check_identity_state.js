@@ -66,7 +66,6 @@ add_task(async function chromeUITest() {
     "compat",
     "config",
     "downloads",
-    "ion",
     "license",
     "logins",
     "loginsimportreport",

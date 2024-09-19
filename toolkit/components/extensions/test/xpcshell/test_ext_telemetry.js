@@ -1,8 +1,5 @@
 "use strict";
 
-const { TelemetryArchive } = ChromeUtils.importESModule(
-  "resource://gre/modules/TelemetryArchive.sys.mjs"
-);
 const { TelemetryUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryUtils.sys.mjs"
 );
@@ -19,15 +16,10 @@ const { TestUtils } = ChromeUtils.importESModule(
 );
 
 // All tests run privileged unless otherwise specified not to.
-function createExtension(
-  backgroundScript,
-  permissions,
-  isPrivileged = true,
-  telemetry
-) {
+function createExtension(backgroundScript, permissions, isPrivileged = true) {
   let extensionData = {
     background: backgroundScript,
-    manifest: { permissions, telemetry },
+    manifest: { permissions },
     isPrivileged,
   };
 
@@ -38,8 +30,7 @@ async function run(test) {
   let extension = createExtension(
     test.backgroundScript,
     test.permissions || ["telemetry"],
-    test.isPrivileged,
-    test.telemetry
+    test.isPrivileged
   );
   await extension.startup();
   await extension.awaitFinish(test.doneSignal);
@@ -813,96 +804,6 @@ if (AppConstants.MOZ_BUILD_APP === "browser") {
       () => archiveTester.promiseFindPing("webext-test", []),
       "Failed to find the webext-test ping"
     );
-  });
-
-  add_task(async function test_telemetry_submit_encrypted_ping() {
-    await run({
-      backgroundScript: async () => {
-        try {
-          await browser.telemetry.submitEncryptedPing(
-            { payload: "encrypted-webext-test" },
-            {
-              schemaName: "schema-name",
-              schemaVersion: 123,
-            }
-          );
-          browser.test.fail(
-            "Expected exception without required manifest entries set."
-          );
-        } catch (e) {
-          browser.test.assertTrue(
-            e,
-            /Encrypted telemetry pings require ping_type and public_key to be set in manifest./
-          );
-          browser.test.notifyPass("submit_encrypted_ping_fail");
-        }
-      },
-      doneSignal: "submit_encrypted_ping_fail",
-    });
-
-    const telemetryManifestEntries = {
-      ping_type: "encrypted-webext-ping",
-      schemaNamespace: "schema-namespace",
-      public_key: {
-        id: "pioneer-dev-20200423",
-        key: {
-          crv: "P-256",
-          kty: "EC",
-          x: "Qqihp7EryDN2-qQ-zuDPDpy5mJD5soFBDZmzPWTmjwk",
-          y: "PiEQVUlywi2bEsA3_5D0VFrCHClCyUlLW52ajYs-5uc",
-        },
-      },
-    };
-
-    await run({
-      backgroundScript: async () => {
-        await browser.telemetry.submitEncryptedPing(
-          {
-            payload: "encrypted-webext-test",
-          },
-          {
-            schemaName: "schema-name",
-            schemaVersion: 123,
-          }
-        );
-        browser.test.notifyPass("submit_encrypted_ping_pass");
-      },
-      permissions: ["telemetry"],
-      doneSignal: "submit_encrypted_ping_pass",
-      isPrivileged: true,
-      telemetry: telemetryManifestEntries,
-    });
-
-    telemetryManifestEntries.pioneer_id = true;
-    telemetryManifestEntries.study_name = "test123";
-    Services.prefs.setStringPref("toolkit.telemetry.pioneerId", "test123");
-
-    await run({
-      backgroundScript: async () => {
-        await browser.telemetry.submitEncryptedPing(
-          { payload: "encrypted-webext-test" },
-          {
-            schemaName: "schema-name",
-            schemaVersion: 123,
-          }
-        );
-        browser.test.notifyPass("submit_encrypted_ping_pass");
-      },
-      permissions: ["telemetry"],
-      doneSignal: "submit_encrypted_ping_pass",
-      isPrivileged: true,
-      telemetry: telemetryManifestEntries,
-    });
-
-    let pings;
-    await TestUtils.waitForCondition(async function () {
-      pings = await TelemetryArchive.promiseArchivedPingList();
-      return pings.length >= 3;
-    }, "Wait until we have at least 3 pings in the telemetry archive");
-
-    equal(pings.length, 3);
-    equal(pings[1].type, "encrypted-webext-ping");
-    equal(pings[2].type, "encrypted-webext-ping");
   });
 
   add_task(async function test_telemetry_can_upload_enabled() {
