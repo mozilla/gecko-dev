@@ -1878,6 +1878,7 @@ enum SurfacePromotionFailure {
     UnderlayAlphaBackdrop,
     UnderlaySurfaceLimit,
     UnderlayIntersectsOverlay,
+    UnderlayLowQualityZoom,
     NotRootTileCache,
     ComplexTransform,
     SliceAtomic,
@@ -1897,6 +1898,7 @@ impl Display for SurfacePromotionFailure {
                 SurfacePromotionFailure::UnderlayAlphaBackdrop => "underlay requires an opaque backdrop",
                 SurfacePromotionFailure::UnderlaySurfaceLimit => "hit the underlay surface limit",
                 SurfacePromotionFailure::UnderlayIntersectsOverlay => "underlay intersects already-promoted overlay",
+                SurfacePromotionFailure::UnderlayLowQualityZoom => "underlay not allowed during low-quality pinch zoom",
                 SurfacePromotionFailure::NotRootTileCache => "is not on a root tile cache",
                 SurfacePromotionFailure::ComplexTransform => "has a complex transform",
                 SurfacePromotionFailure::SliceAtomic => "slice is atomic",
@@ -2558,6 +2560,15 @@ impl TileCacheInstance {
                 // through the existing overlay.
                 if self.overlay_region.intersects(&pic_coverage_rect) {
                     return Err(UnderlayIntersectsOverlay);
+                }
+
+                // Underlay cutouts are difficult to align with compositor surfaces when
+                // compositing during low-quality zoom, and the required invalidation
+                // whilst zooming would prevent low-quality zoom from working efficiently.
+                if frame_context.config.low_quality_pinch_zoom &&
+                    frame_context.spatial_tree.get_spatial_node(prim_spatial_node_index).is_ancestor_or_self_zooming
+                {
+                    return Err(UnderlayLowQualityZoom);
                 }
             }
             CompositorSurfaceKind::Blit => unreachable!(),
