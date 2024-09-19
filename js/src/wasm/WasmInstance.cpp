@@ -2913,8 +2913,8 @@ uintptr_t Instance::traceFrame(JSTracer* trc, const wasm::WasmFrameIter& wfi,
       continue;
     }
 
-    TraceNullableRoot(trc, (AnyRef*)&stackWords[i],
-                      "Instance::traceWasmFrame: normal word");
+    TraceManuallyBarrieredNullableEdge(trc, (AnyRef*)&stackWords[i],
+                                       "Instance::traceWasmFrame: normal word");
   }
 
   // Deal with any GC-managed fields in the DebugFrame, if it is
@@ -2926,7 +2926,7 @@ uintptr_t Instance::traceFrame(JSTracer* trc, const wasm::WasmFrameIter& wfi,
     for (size_t i = 0; i < MaxRegisterResults; i++) {
       if (debugFrame->hasSpilledRegisterRefResult(i)) {
         char* resultRefP = debugFrameP + DebugFrame::offsetOfRegisterResult(i);
-        TraceNullableRoot(
+        TraceManuallyBarrieredNullableEdge(
             trc, (AnyRef*)resultRefP,
             "Instance::traceWasmFrame: DebugFrame::resultResults_");
       }
@@ -2935,8 +2935,9 @@ uintptr_t Instance::traceFrame(JSTracer* trc, const wasm::WasmFrameIter& wfi,
     if (debugFrame->hasCachedReturnJSValue()) {
       char* cachedReturnJSValueP =
           debugFrameP + DebugFrame::offsetOfCachedReturnJSValue();
-      TraceRoot(trc, (js::Value*)cachedReturnJSValueP,
-                "Instance::traceWasmFrame: DebugFrame::cachedReturnJSValue_");
+      TraceManuallyBarrieredEdge(
+          trc, (js::Value*)cachedReturnJSValueP,
+          "Instance::traceWasmFrame: DebugFrame::cachedReturnJSValue_");
     }
   }
 

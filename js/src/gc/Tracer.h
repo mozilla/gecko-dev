@@ -254,6 +254,14 @@ inline void TraceManuallyBarrieredEdge(JSTracer* trc, T* thingp,
   gc::TraceEdgeInternal(trc, gc::ConvertToBase(thingp), name);
 }
 
+template <typename T>
+inline void TraceManuallyBarrieredNullableEdge(JSTracer* trc, T* thingp,
+                                               const char* name) {
+  if (InternalBarrierMethods<T>::isMarkable(*thingp)) {
+    gc::TraceEdgeInternal(trc, gc::ConvertToBase(thingp), name);
+  }
+}
+
 // Trace through a weak edge. If *thingp is not marked at the end of marking,
 // it is replaced by nullptr, and this method will return false to indicate that
 // the edge no longer exists.

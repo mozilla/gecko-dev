@@ -1504,6 +1504,7 @@ static void TraceJitActivation(JSTracer* trc, JitActivation* activation) {
       }
       highestByteVisitedInPrevWasmFrame = 0; /* "unknown" */
     } else {
+      gc::AssertRootMarkingPhase(trc);
       MOZ_ASSERT(frames.isWasm());
       uint8_t* nextPC = frames.resumePCinCurrentFrame();
       MOZ_ASSERT(nextPC != 0);

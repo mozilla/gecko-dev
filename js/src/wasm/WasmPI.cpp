@@ -56,7 +56,8 @@ SuspenderObjectData::SuspenderObjectData(void* stackMemory)
       suspendableFP_(nullptr),
       suspendableSP_(static_cast<uint8_t*>(stackMemory) +
                      SuspendableStackPlusRedZoneSize),
-      state_(SuspenderState::Initial) {}
+      state_(SuspenderState::Initial),
+      suspendedBy_(nullptr) {}
 
 void SuspenderObjectData::releaseStackMemory() {
   js_free(stackMemory_);
@@ -146,32 +147,44 @@ void SuspenderContext::trace(JSTracer* trc) {
   }
 }
 
-void SuspenderContext::traceRoots(JSTracer* trc) {
-  for (const SuspenderObjectData& data : suspendedStacks_) {
-    void* startFP = data.suspendableFP();
-    void* returnAddress = data.suspendedReturnAddress();
-    void* exitFP = data.suspendableExitFP();
-    MOZ_ASSERT(startFP != exitFP);
+static void TraceSuspendableStack(JSTracer* trc,
+                                  const SuspenderObjectData& data) {
+  void* startFP = data.suspendableFP();
+  void* returnAddress = data.suspendedReturnAddress();
+  void* exitFP = data.suspendableExitFP();
+  MOZ_ASSERT(startFP != exitFP);
 
-    WasmFrameIter iter(static_cast<FrameWithInstances*>(startFP),
-                       returnAddress);
-    MOZ_ASSERT(iter.stackSwitched());
-    uintptr_t highestByteVisitedInPrevWasmFrame = 0;
-    while (true) {
-      MOZ_ASSERT(!iter.done());
-      uint8_t* nextPC = iter.resumePCinCurrentFrame();
-      Instance* instance = iter.instance();
-      TraceInstanceEdge(trc, instance, "WasmFrameIter instance");
-      highestByteVisitedInPrevWasmFrame = instance->traceFrame(
-          trc, iter, nextPC, highestByteVisitedInPrevWasmFrame);
-      if (iter.frame() == exitFP) {
-        break;
-      }
-      ++iter;
-      if (iter.stackSwitched()) {
-        highestByteVisitedInPrevWasmFrame = 0;
-      }
+  WasmFrameIter iter(static_cast<FrameWithInstances*>(startFP), returnAddress);
+  MOZ_ASSERT(iter.stackSwitched());
+  uintptr_t highestByteVisitedInPrevWasmFrame = 0;
+  while (true) {
+    MOZ_ASSERT(!iter.done());
+    uint8_t* nextPC = iter.resumePCinCurrentFrame();
+    Instance* instance = iter.instance();
+    TraceInstanceEdge(trc, instance, "WasmFrameIter instance");
+    highestByteVisitedInPrevWasmFrame = instance->traceFrame(
+        trc, iter, nextPC, highestByteVisitedInPrevWasmFrame);
+    if (iter.frame() == exitFP) {
+      break;
     }
+    ++iter;
+    if (iter.stackSwitched()) {
+      highestByteVisitedInPrevWasmFrame = 0;
+    }
+  }
+}
+
+void SuspenderContext::traceRoots(JSTracer* trc) {
+  // The suspendedStacks_ contains suspended stacks frames that need to be
+  // traced only during minor GC. The major GC tracing is happening via
+  // SuspenderObject::trace.
+  // Non-suspended stack frames are traced as part of TraceJitActivations.
+  if (!trc->isTenuringTracer()) {
+    return;
+  }
+  gc::AssertRootMarkingPhase(trc);
+  for (const SuspenderObjectData& data : suspendedStacks_) {
+    TraceSuspendableStack(trc, data);
   }
 }
 
@@ -286,13 +299,14 @@ class SuspenderObject : public NativeObject {
   static const JSClassOps classOps_;
 
   static void finalize(JS::GCContext* gcx, JSObject* obj);
+  static void trace(JSTracer* trc, JSObject* obj);
 };
 
 static_assert(SuspenderObjectDataSlot == SuspenderObject::DataSlot);
 
 const JSClass SuspenderObject::class_ = {
     "SuspenderObject",
-    JSCLASS_HAS_RESERVED_SLOTS(SlotCount) | JSCLASS_BACKGROUND_FINALIZE,
+    JSCLASS_HAS_RESERVED_SLOTS(SlotCount) | JSCLASS_FOREGROUND_FINALIZE,
     &SuspenderObject::classOps_,
 };
 
@@ -306,7 +320,7 @@ const JSClassOps SuspenderObject::classOps_ = {
     finalize,  // finalize
     nullptr,   // call
     nullptr,   // construct
-    nullptr,   // trace
+    trace,     // trace
 };
 
 /* static */
@@ -316,9 +330,33 @@ void SuspenderObject::finalize(JS::GCContext* gcx, JSObject* obj) {
     return;
   }
   SuspenderObjectData* data = suspender.data();
-  MOZ_RELEASE_ASSERT(data->state() == SuspenderState::Moribund);
-  MOZ_RELEASE_ASSERT(!data->stackMemory());
+  if (data->state() == SuspenderState::Moribund) {
+    MOZ_RELEASE_ASSERT(!data->stackMemory());
+  } else {
+    // Cleaning stack memory and removing from suspendableStacks_.
+    data->releaseStackMemory();
+    if (SuspenderContext* scx = data->suspendedBy()) {
+      scx->suspendedStacks_.remove(data);
+    }
+  }
   js_free(data);
+}
+
+/* static */
+void SuspenderObject::trace(JSTracer* trc, JSObject* obj) {
+  SuspenderObject& suspender = obj->as<SuspenderObject>();
+  if (!suspender.hasData()) {
+    return;
+  }
+  SuspenderObjectData& data = *suspender.data();
+  // The SuspenderObjectData refers stacks frames that need to be traced
+  // only during major GC to determine if SuspenderObject content is
+  // reachable from JS. The frames must be suspended -- non-suspended
+  // stack frames are traced as part of TraceJitActivations.
+  if (!data.traceable() || trc->isTenuringTracer()) {
+    return;
+  }
+  TraceSuspendableStack(trc, data);
 }
 
 void SuspenderObject::setMoribund(JSContext* cx) {
@@ -362,6 +400,7 @@ void SuspenderObject::suspend(JSContext* cx) {
   MOZ_ASSERT(state() == SuspenderState::Active);
   setSuspended(cx);
   cx->wasm().promiseIntegration.suspendedStacks_.pushFront(data());
+  data()->setSuspendedBy(&cx->wasm().promiseIntegration);
   cx->wasm().promiseIntegration.setActiveSuspender(nullptr);
 }
 
@@ -369,6 +408,7 @@ void SuspenderObject::resume(JSContext* cx) {
   MOZ_ASSERT(state() == SuspenderState::Suspended);
   cx->wasm().promiseIntegration.setActiveSuspender(this);
   setActive(cx);
+  data()->setSuspendedBy(nullptr);
   cx->wasm().promiseIntegration.suspendedStacks_.remove(data());
 }
 
