@@ -10,6 +10,8 @@
 #include "mozilla/dom/JSActorService.h"
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/PWindowGlobal.h"
+#include "mozilla/dom/JSProcessActorProtocol.h"
+#include "mozilla/dom/JSWindowActorProtocol.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
@@ -191,6 +193,18 @@ void JSActorManager::ReceiveRawMessage(
   if (error.Failed()) {
     return;
   }
+
+#ifdef DEBUG
+  {
+    RefPtr<JSActorService> actorSvc = JSActorService::GetSingleton();
+    RefPtr windowProtocol(
+        actorSvc->GetJSWindowActorProtocol(aMetadata.actorName()));
+    RefPtr processProtocol(
+        actorSvc->GetJSProcessActorProtocol(aMetadata.actorName()));
+    MOZ_ASSERT(windowProtocol || processProtocol,
+               "The protocol of this actor should exist");
+  }
+#endif  // DEBUG
 
   JS::Rooted<JS::Value> data(cx);
   if (aData) {

@@ -126,8 +126,10 @@ void JSActorService::UnregisterWindowActor(const nsACString& aName) {
     // potential managers, to have the actor disabled.
     nsTArray<RefPtr<JSActorManager>> managers;
     if (XRE_IsParentProcess()) {
-      for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-        Unused << cp->SendUnregisterJSWindowActor(name);
+      for (auto* cp : ContentParent::AllProcesses(ContentParent::eAll)) {
+        if (cp->CanSend()) {
+          Unused << cp->SendUnregisterJSWindowActor(name);
+        }
         for (const auto& bp : cp->ManagedPBrowserParent()) {
           for (const auto& wgp : bp->ManagedPWindowGlobalParent()) {
             managers.AppendElement(static_cast<WindowGlobalParent*>(wgp));
@@ -283,8 +285,10 @@ void JSActorService::UnregisterProcessActor(const nsACString& aName) {
     // potential managers, to have the actor disabled.
     nsTArray<RefPtr<JSActorManager>> managers;
     if (XRE_IsParentProcess()) {
-      for (auto* cp : ContentParent::AllProcesses(ContentParent::eLive)) {
-        Unused << cp->SendUnregisterJSProcessActor(name);
+      for (auto* cp : ContentParent::AllProcesses(ContentParent::eAll)) {
+        if (cp->CanSend()) {
+          Unused << cp->SendUnregisterJSProcessActor(name);
+        }
         managers.AppendElement(cp);
       }
       managers.AppendElement(InProcessChild::Singleton());
