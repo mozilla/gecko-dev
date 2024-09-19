@@ -43,6 +43,10 @@ class ServiceWorkerRegistrationFront extends FrontClassWithSpec(
     return this._form.url;
   }
 
+  get origin() {
+    return this._form.origin;
+  }
+
   get evaluatingWorker() {
     return this._getServiceWorker("evaluatingWorker");
   }

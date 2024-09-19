@@ -275,3 +275,5 @@ skip-if = ["a11y_checks"] # Bug 1849028 and 1849179 for causing crashes
 ["browser_aboutdebugging_thisfirefox_worker_inspection.js"]
 
 ["browser_aboutdebugging_workers_remote_runtime.js"]
+
+["browser_aboutdebugging_serviceworker_runtime-page-origin.js"]

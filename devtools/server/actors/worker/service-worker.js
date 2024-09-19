@@ -10,9 +10,10 @@ const {
 } = require("resource://devtools/shared/specs/worker/service-worker.js");
 
 class ServiceWorkerActor extends Actor {
-  constructor(conn, worker) {
+  constructor(conn, worker, origin) {
     super(conn, serviceWorkerSpec);
     this._worker = worker;
+    this._origin = origin;
   }
 
   form() {
@@ -29,6 +30,7 @@ class ServiceWorkerActor extends Actor {
     return {
       actor: this.actorID,
       url: this._worker.scriptSpec,
+      origin: this._origin,
       state: this._worker.state,
       fetch,
       id: this._worker.id,

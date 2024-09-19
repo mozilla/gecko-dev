@@ -71,6 +71,7 @@ class WorkerDescriptorActor extends Actor {
 
       id: this._dbg.id,
       url: this._dbg.url,
+      origin: this._dbg.principal.origin,
       traits: {},
       type: this._dbg.type,
     };

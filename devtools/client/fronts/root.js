@@ -84,6 +84,7 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
             state: workerFront.state,
             stateText: workerFront.stateText,
             url: workerFront.url,
+            origin: workerFront.origin,
             workerDescriptorFront,
           };
         });
@@ -140,6 +141,7 @@ class RootFront extends FrontClassWithSpec(rootSpec) {
       const worker = {
         id: front.id,
         url: front.url,
+        origin: front.origin,
         name: front.url,
         workerDescriptorFront: front,
       };
