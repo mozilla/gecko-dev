@@ -1159,7 +1159,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // NOTE: keep the field sequence here in sync with the sequence in the
   // declaration of CodeMetadata.
 
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 904);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 1128);
   // Serialization doesn't handle asm.js or debug enabled modules
   MOZ_RELEASE_ASSERT(mode == MODE_SIZE || !item->isAsmJS());
 
@@ -1225,6 +1225,26 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // effect that changing the prefs, restarting the browser and reloading
   // cached wasm content would ignore the prefs change for cached content, but
   // not for new content.
+
+  // Serialize stats, taking care not to be holding the lock when the actual
+  // serialization/deserialization happens.
+  if constexpr (mode == MODE_DECODE) {
+    CodeMetadata::ProtectedOptimizationStats copy;
+    MOZ_TRY(CodePod(coder, &copy));
+    {
+      CodeMetadata::ProtectedOptimizationStats* stats =
+          &(item->stats.writeLock().get());
+      *stats = copy;
+    }
+  } else {
+    CodeMetadata::ProtectedOptimizationStats copy;
+    {
+      const CodeMetadata::ProtectedOptimizationStats* stats =
+          &(item->stats.readLock().get());
+      copy = *stats;
+    }
+    MOZ_TRY(CodePod(coder, &copy));
+  }
 
   MOZ_TRY(CodePod(coder, &item->funcDefsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->funcImportsOffsetStart));

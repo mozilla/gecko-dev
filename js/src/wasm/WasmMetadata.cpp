@@ -11,6 +11,8 @@
 
 #include "jsnum.h"  // Int32ToCStringBuf
 
+#include "vm/Logging.h"
+
 using mozilla::CheckedInt;
 
 using namespace js;
@@ -245,6 +247,82 @@ size_t CodeMetadata::sizeOfExcludingThis(
          elemSegmentTypes.sizeOfExcludingThis(mallocSizeOf) +
          asmJSSigToTableIndex.sizeOfExcludingThis(mallocSizeOf) +
          customSectionRanges.sizeOfExcludingThis(mallocSizeOf);
+}
+
+// CodeMetadata helpers -- statistics collection.
+
+void CodeMetadata::dumpStats() const {
+  // To see the statistics printed here:
+  // * configure with --enable-jitspew or --enable-debug
+  // * run with MOZ_LOG=wasmCodeMetaStats:3
+  // * this works for both JS builds and full browser builds
+#ifdef JS_JITSPEW
+  // Get the stats lock, pull a copy of the stats and drop the lock, so as to
+  // avoid possible lock-ordering problems relative to JS_LOG.
+  CodeMetadata::ProtectedOptimizationStats statsCopy;
+  {
+    auto guard = stats.readLock();
+    statsCopy = guard.get();
+  }
+  auto level = mozilla::LogLevel::Info;
+  JS_LOG(wasmCodeMetaStats, level, "CodeMetadata@..%06lx::~CodeMetadata() <<<<",
+         0xFFFFFF & (unsigned long)uintptr_t(this));
+  JS_LOG(wasmCodeMetaStats, level, "  ------ Heuristic Settings ------");
+  JS_LOG(wasmCodeMetaStats, level, "     w_e_tiering_level  (1..9) = %u",
+         lazyTieringHeuristics.level());
+  JS_LOG(wasmCodeMetaStats, level, "     w_e_inlining_level (1..9) = %u",
+         inliningHeuristics.level());
+  JS_LOG(wasmCodeMetaStats, level, "     w_e_direct_inlining  = %s",
+         inliningHeuristics.directAllowed() ? "true" : "false");
+  JS_LOG(wasmCodeMetaStats, level, "     w_e_callRef_inlining = %s",
+         inliningHeuristics.callRefAllowed() ? "true" : "false");
+  JS_LOG(wasmCodeMetaStats, level, "  ------ Complete Tier ------");
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu functions in module",
+         statsCopy.completeNumFuncs);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu bytecode bytes in module",
+         statsCopy.completeBCSize);
+  JS_LOG(wasmCodeMetaStats, level, "  ------ Partial Tier ------");
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu functions tiered up",
+         statsCopy.partialNumFuncs);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu bytecode bytes tiered up",
+         statsCopy.partialBCSize);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu direct-calls inlined",
+         statsCopy.partialNumFuncsInlinedDirect);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu callRef-calls inlined",
+         statsCopy.partialNumFuncsInlinedCallRef);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu direct-call bytecodes inlined",
+         statsCopy.partialBCInlinedSizeDirect);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu callRef-call bytecodes inlined",
+         statsCopy.partialBCInlinedSizeCallRef);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu functions overran inlining budget",
+         statsCopy.partialInlineBudgetOverruns);
+  JS_LOG(wasmCodeMetaStats, level, "    %7zu bytes mmap'd for p-t code storage",
+         statsCopy.partialCodeBytesMapped);
+  JS_LOG(wasmCodeMetaStats, level,
+         "    %7zu bytes actually used for p-t code storage",
+         statsCopy.partialCodeBytesUsed);
+
+  // This value will be 0.0 if inlining did not cause any code expansion.  A
+  // value of 1.0 means inlining doubled the total amount of bytecode, 2.0
+  // means tripled it, etc.
+  float inliningExpansion = float(statsCopy.partialBCInlinedSizeDirect +
+                                  statsCopy.partialBCInlinedSizeCallRef) /
+                            float(statsCopy.partialBCSize);
+
+  // This is always between 0.0 and 1.0.
+  float codeSpaceUseRatio = float(statsCopy.partialCodeBytesUsed) /
+                            float(statsCopy.partialCodeBytesMapped);
+
+  JS_LOG(wasmCodeMetaStats, level, "  ------ Derived Values ------");
+  JS_LOG(wasmCodeMetaStats, level,
+         "     %5.1f%% p-t bytecode expansion caused by inlining",
+         inliningExpansion * 100.0);
+  JS_LOG(wasmCodeMetaStats, level,
+         "      %4.1f%% of partial tier mapped code space used",
+         codeSpaceUseRatio * 100.0);
+  JS_LOG(wasmCodeMetaStats, level, "  ------");
+  JS_LOG(wasmCodeMetaStats, level, ">>>>");
+#endif
 }
 
 // ModuleMetadata helpers -- memory accounting.

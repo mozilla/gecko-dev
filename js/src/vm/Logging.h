@@ -83,6 +83,7 @@ class LogModule {
 
 #define FOR_EACH_JS_LOG_MODULE(_) \
   _(baselineCompileHandler)       \
+  _(wasmCodeMetaStats)            \
   JITSPEW_CHANNEL_LIST(_)
 
 // Declare Log modules

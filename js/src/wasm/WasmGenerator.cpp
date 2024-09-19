@@ -1316,6 +1316,16 @@ SharedModule ModuleGenerator::finishModule(
     memcpy(codeMeta->debugHash, hash, sizeof(ModuleHash));
   }
 
+  // Update statistics in the CodeMeta.
+  {
+    auto guard = codeMeta->stats.writeLock();
+    guard->completeNumFuncs = codeMeta->numFuncDefs();
+    guard->completeBCSize = 0;
+    for (const FuncDefRange& fr : codeMeta->funcDefRanges) {
+      guard->completeBCSize += fr.bodyLength;
+    }
+  }
+
   MutableCode code = js_new<Code>(mode(), *codeMeta_, codeMetaForAsmJS_);
   if (!code || !code->initialize(
                    std::move(funcImports_), std::move(sharedStubsCodeBlock_),
