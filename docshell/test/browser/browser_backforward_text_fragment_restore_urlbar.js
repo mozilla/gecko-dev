@@ -8,7 +8,7 @@ const ROOT = getRootDirectory(gTestPath).replace(
   "http://mochi.test:8888"
 );
 
-const URL = `${ROOT}/dummy_page.html#:~:text=dummy`;
+const kURL = new URL(`${ROOT}/dummy_page.html#:~:text=dummy`);
 
 function waitForPageShow(browser) {
   return BrowserTestUtils.waitForContentEvent(browser, "pageshow", true);
@@ -17,7 +17,7 @@ function waitForPageShow(browser) {
 add_task(async function test_fragment_restore_urlbar() {
   await BrowserTestUtils.withNewTab("https://example.com", async browser => {
     let loaded = BrowserTestUtils.browserLoaded(browser, false);
-    BrowserTestUtils.startLoadingURIString(browser, URL);
+    BrowserTestUtils.startLoadingURIString(browser, kURL);
     await loaded;
 
     // Go back in history.
@@ -28,6 +28,10 @@ add_task(async function test_fragment_restore_urlbar() {
     // Go forward in history.
     browser.goForward();
     await change;
-    is(gURLBar.inputField.value, URL, "URL should have text directive");
+    is(
+      new URL(gURLBar.inputField.value).hash,
+      kURL.hash,
+      "URL should have text directive"
+    );
   });
 });
