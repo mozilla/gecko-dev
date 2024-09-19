@@ -14,6 +14,7 @@
 
 #include <string>
 
+#include "absl/memory/memory.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/environment/environment_factory.h"
 #include "test/gmock.h"
@@ -21,10 +22,9 @@
 #include "test/mock_audio_decoder.h"
 #include "test/mock_audio_decoder_factory.h"
 
-using ::testing::_;
-using ::testing::Invoke;
-
 namespace webrtc {
+
+using ::testing::WithArg;
 
 TEST(DecoderDatabase, CreateAndDestroy) {
   DecoderDatabase db(CreateEnvironment(),
@@ -70,12 +70,10 @@ TEST(DecoderDatabase, InsertAndRemoveAll) {
 TEST(DecoderDatabase, GetDecoderInfo) {
   auto factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
   auto* decoder = new MockAudioDecoder;
-  EXPECT_CALL(*factory, MakeAudioDecoderMock(_, _, _))
-      .WillOnce(Invoke([decoder](const SdpAudioFormat& format,
-                                 absl::optional<AudioCodecPairId> codec_pair_id,
-                                 std::unique_ptr<AudioDecoder>* dec) {
+  EXPECT_CALL(*factory, Create)
+      .WillOnce(WithArg<1>([decoder](const SdpAudioFormat& format) {
         EXPECT_EQ("pcmu", format.name);
-        dec->reset(decoder);
+        return absl::WrapUnique(decoder);
       }));
   DecoderDatabase db(CreateEnvironment(), std::move(factory), absl::nullopt);
   const uint8_t kPayloadType = 0;

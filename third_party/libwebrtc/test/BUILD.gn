@@ -226,6 +226,7 @@ rtc_library("audio_test_common") {
   ]
   deps = [
     "../api/audio_codecs:audio_codecs_api",
+    "../api/environment",
     "../rtc_base:checks",
     "//third_party/abseil-cpp/absl/memory",
   ]

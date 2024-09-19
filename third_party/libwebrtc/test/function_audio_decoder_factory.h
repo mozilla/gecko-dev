@@ -19,6 +19,7 @@
 #include "absl/memory/memory.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
 #include "api/audio_codecs/audio_format.h"
+#include "api/environment/environment.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {
@@ -29,12 +30,14 @@ class FunctionAudioDecoderFactory : public AudioDecoderFactory {
  public:
   explicit FunctionAudioDecoderFactory(
       std::function<std::unique_ptr<AudioDecoder>()> create)
-      : create_([create](const SdpAudioFormat&,
+      : create_([create](const Environment&,
+                         const SdpAudioFormat&,
                          absl::optional<AudioCodecPairId> codec_pair_id) {
           return create();
         }) {}
   explicit FunctionAudioDecoderFactory(
       std::function<std::unique_ptr<AudioDecoder>(
+          const Environment&,
           const SdpAudioFormat&,
           absl::optional<AudioCodecPairId> codec_pair_id)> create)
       : create_(std::move(create)) {}
@@ -49,14 +52,16 @@ class FunctionAudioDecoderFactory : public AudioDecoderFactory {
     return true;
   }
 
-  std::unique_ptr<AudioDecoder> MakeAudioDecoder(
+  std::unique_ptr<AudioDecoder> Create(
+      const Environment& env,
       const SdpAudioFormat& format,
       absl::optional<AudioCodecPairId> codec_pair_id) override {
-    return create_(format, codec_pair_id);
+    return create_(env, format, codec_pair_id);
   }
 
  private:
   const std::function<std::unique_ptr<AudioDecoder>(
+      const Environment&,
       const SdpAudioFormat&,
       absl::optional<AudioCodecPairId> codec_pair_id)>
       create_;

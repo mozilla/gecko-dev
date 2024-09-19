@@ -308,10 +308,8 @@ TEST_F(NetEqImplTest, InsertPacket) {
 
   const Environment env = CreateEnvironment();
   auto mock_decoder_factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
-  EXPECT_CALL(*mock_decoder_factory, MakeAudioDecoderMock(_, _, _))
-      .WillOnce(Invoke([&](const SdpAudioFormat& format,
-                           absl::optional<AudioCodecPairId> codec_pair_id,
-                           std::unique_ptr<AudioDecoder>* dec) {
+  EXPECT_CALL(*mock_decoder_factory, Create)
+      .WillOnce(WithArg<1>([&](const SdpAudioFormat& format) {
         EXPECT_EQ("pcmu", format.name);
 
         std::unique_ptr<MockAudioDecoder> mock_decoder(new MockAudioDecoder);
@@ -319,7 +317,7 @@ TEST_F(NetEqImplTest, InsertPacket) {
         EXPECT_CALL(*mock_decoder, SampleRateHz()).WillRepeatedly(Return(8000));
         EXPECT_CALL(*mock_decoder, Die()).Times(1);  // Called when deleted.
 
-        *dec = std::move(mock_decoder);
+        return mock_decoder;
       }));
   DecoderDatabase::DecoderInfo info(env, SdpAudioFormat("pcmu", 8000, 1),
                                     absl::nullopt, mock_decoder_factory.get());
@@ -1646,13 +1644,12 @@ TEST_F(NetEqImplTest, NoCrashWith1000Channels) {
 
   const Environment env = CreateEnvironment();
   auto mock_decoder_factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
-  EXPECT_CALL(*mock_decoder_factory, MakeAudioDecoderMock(_, _, _))
-      .WillOnce(Invoke([&](const SdpAudioFormat& format,
-                           absl::optional<AudioCodecPairId> codec_pair_id,
-                           std::unique_ptr<AudioDecoder>* dec) {
+  EXPECT_CALL(*mock_decoder_factory, Create)
+      .WillOnce(WithArg<1>([&](const SdpAudioFormat& format) {
         EXPECT_EQ("pcmu", format.name);
-        *dec = std::make_unique<AudioDecoderPcmU>(1000);
-        decoder = dec->get();
+        auto dec = std::make_unique<AudioDecoderPcmU>(1000);
+        decoder = dec.get();
+        return dec;
       }));
   DecoderDatabase::DecoderInfo info(env, SdpAudioFormat("pcmu", 8000, 1),
                                     absl::nullopt, mock_decoder_factory.get());

@@ -24,6 +24,8 @@
 #include "api/audio_codecs/g722/audio_decoder_g722.h"
 #include "api/audio_codecs/ilbc/audio_decoder_ilbc.h"
 #include "api/audio_codecs/opus/audio_decoder_opus.h"
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/make_ref_counted.h"
 #include "api/scoped_refptr.h"
 #include "test/gmock.h"
@@ -84,30 +86,31 @@ struct AudioDecoderFakeApi {
 }  // namespace
 
 TEST(AudioDecoderFactoryTemplateTest, NoDecoderTypes) {
+  const Environment env = CreateEnvironment();
   rtc::scoped_refptr<AudioDecoderFactory> factory(
       rtc::make_ref_counted<
           audio_decoder_factory_template_impl::AudioDecoderFactoryT<>>());
   EXPECT_THAT(factory->GetSupportedDecoders(), ::testing::IsEmpty());
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"bar", 16000, 1}, absl::nullopt));
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
 }
 
 TEST(AudioDecoderFactoryTemplateTest, OneDecoderType) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioDecoderFactory<AudioDecoderFakeApi<BogusParams>>();
   EXPECT_THAT(factory->GetSupportedDecoders(),
               ::testing::ElementsAre(
                   AudioCodecSpec{{"bogus", 8000, 1}, {8000, 1, 12345}}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"bogus", 8000, 1}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"bar", 16000, 1}, absl::nullopt));
-  auto dec = factory->MakeAudioDecoder({"bogus", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
+  auto dec = factory->Create(env, {"bogus", 8000, 1}, absl::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(8000, dec->SampleRateHz());
 }
 
 TEST(AudioDecoderFactoryTemplateTest, TwoDecoderTypes) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioDecoderFactory<AudioDecoderFakeApi<BogusParams>,
                                            AudioDecoderFakeApi<ShamParams>>();
   EXPECT_THAT(factory->GetSupportedDecoders(),
@@ -119,20 +122,19 @@ TEST(AudioDecoderFactoryTemplateTest, TwoDecoderTypes) {
   EXPECT_TRUE(factory->IsSupportedDecoder({"bogus", 8000, 1}));
   EXPECT_TRUE(
       factory->IsSupportedDecoder({"sham", 16000, 2, {{"param", "value"}}}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"bar", 16000, 1}, absl::nullopt));
-  auto dec1 = factory->MakeAudioDecoder({"bogus", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
+  auto dec1 = factory->Create(env, {"bogus", 8000, 1}, absl::nullopt);
   ASSERT_NE(nullptr, dec1);
   EXPECT_EQ(8000, dec1->SampleRateHz());
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"sham", 16000, 2}, absl::nullopt));
-  auto dec2 = factory->MakeAudioDecoder(
-      {"sham", 16000, 2, {{"param", "value"}}}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"sham", 16000, 2}, absl::nullopt));
+  auto dec2 = factory->Create(env, {"sham", 16000, 2, {{"param", "value"}}},
+                              absl::nullopt);
   ASSERT_NE(nullptr, dec2);
   EXPECT_EQ(16000, dec2->SampleRateHz());
 }
 
 TEST(AudioDecoderFactoryTemplateTest, G711) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioDecoderFactory<AudioDecoderG711>();
   EXPECT_THAT(factory->GetSupportedDecoders(),
               ::testing::ElementsAre(
@@ -141,52 +143,52 @@ TEST(AudioDecoderFactoryTemplateTest, G711) {
   EXPECT_FALSE(factory->IsSupportedDecoder({"G711", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"PCMU", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"pcma", 8000, 1}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"pcmu", 16000, 1}, absl::nullopt));
-  auto dec1 = factory->MakeAudioDecoder({"pcmu", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"pcmu", 16000, 1}, absl::nullopt));
+  auto dec1 = factory->Create(env, {"pcmu", 8000, 1}, absl::nullopt);
   ASSERT_NE(nullptr, dec1);
   EXPECT_EQ(8000, dec1->SampleRateHz());
-  auto dec2 = factory->MakeAudioDecoder({"PCMA", 8000, 1}, absl::nullopt);
+  auto dec2 = factory->Create(env, {"PCMA", 8000, 1}, absl::nullopt);
   ASSERT_NE(nullptr, dec2);
   EXPECT_EQ(8000, dec2->SampleRateHz());
 }
 
 TEST(AudioDecoderFactoryTemplateTest, G722) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioDecoderFactory<AudioDecoderG722>();
   EXPECT_THAT(factory->GetSupportedDecoders(),
               ::testing::ElementsAre(
                   AudioCodecSpec{{"G722", 8000, 1}, {16000, 1, 64000}}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"G722", 8000, 1}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"bar", 16000, 1}, absl::nullopt));
-  auto dec1 = factory->MakeAudioDecoder({"G722", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
+  auto dec1 = factory->Create(env, {"G722", 8000, 1}, absl::nullopt);
   ASSERT_NE(nullptr, dec1);
   EXPECT_EQ(16000, dec1->SampleRateHz());
   EXPECT_EQ(1u, dec1->Channels());
-  auto dec2 = factory->MakeAudioDecoder({"G722", 8000, 2}, absl::nullopt);
+  auto dec2 = factory->Create(env, {"G722", 8000, 2}, absl::nullopt);
   ASSERT_NE(nullptr, dec2);
   EXPECT_EQ(16000, dec2->SampleRateHz());
   EXPECT_EQ(2u, dec2->Channels());
-  auto dec3 = factory->MakeAudioDecoder({"G722", 8000, 3}, absl::nullopt);
+  auto dec3 = factory->Create(env, {"G722", 8000, 3}, absl::nullopt);
   ASSERT_EQ(nullptr, dec3);
 }
 
 TEST(AudioDecoderFactoryTemplateTest, Ilbc) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioDecoderFactory<AudioDecoderIlbc>();
   EXPECT_THAT(factory->GetSupportedDecoders(),
               ::testing::ElementsAre(
                   AudioCodecSpec{{"ILBC", 8000, 1}, {8000, 1, 13300}}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"ilbc", 8000, 1}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"bar", 8000, 1}, absl::nullopt));
-  auto dec = factory->MakeAudioDecoder({"ilbc", 8000, 1}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 8000, 1}, absl::nullopt));
+  auto dec = factory->Create(env, {"ilbc", 8000, 1}, absl::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(8000, dec->SampleRateHz());
 }
 
 TEST(AudioDecoderFactoryTemplateTest, L16) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioDecoderFactory<AudioDecoderL16>();
   EXPECT_THAT(
       factory->GetSupportedDecoders(),
@@ -200,14 +202,14 @@ TEST(AudioDecoderFactoryTemplateTest, L16) {
   EXPECT_FALSE(factory->IsSupportedDecoder({"foo", 8000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"L16", 48000, 1}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"L16", 96000, 1}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"L16", 8000, 0}, absl::nullopt));
-  auto dec = factory->MakeAudioDecoder({"L16", 48000, 2}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"L16", 8000, 0}, absl::nullopt));
+  auto dec = factory->Create(env, {"L16", 48000, 2}, absl::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(48000, dec->SampleRateHz());
 }
 
 TEST(AudioDecoderFactoryTemplateTest, Opus) {
+  const Environment env = CreateEnvironment();
   auto factory = CreateAudioDecoderFactory<AudioDecoderOpus>();
   AudioCodecInfo opus_info{48000, 1, 64000, 6000, 510000};
   opus_info.allow_comfort_noise = false;
@@ -218,9 +220,8 @@ TEST(AudioDecoderFactoryTemplateTest, Opus) {
               ::testing::ElementsAre(AudioCodecSpec{opus_format, opus_info}));
   EXPECT_FALSE(factory->IsSupportedDecoder({"opus", 48000, 1}));
   EXPECT_TRUE(factory->IsSupportedDecoder({"opus", 48000, 2}));
-  EXPECT_EQ(nullptr,
-            factory->MakeAudioDecoder({"bar", 16000, 1}, absl::nullopt));
-  auto dec = factory->MakeAudioDecoder({"opus", 48000, 2}, absl::nullopt);
+  EXPECT_EQ(nullptr, factory->Create(env, {"bar", 16000, 1}, absl::nullopt));
+  auto dec = factory->Create(env, {"opus", 48000, 2}, absl::nullopt);
   ASSERT_NE(nullptr, dec);
   EXPECT_EQ(48000, dec->SampleRateHz());
 }
