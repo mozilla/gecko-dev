@@ -99,7 +99,8 @@ AutoSaveLiveRegisters::~AutoSaveLiveRegisters() {
              "Must have pushed JitCode* pointer");
   compiler_.allocator.restoreIonLiveRegisters(compiler_.masm,
                                               compiler_.liveRegs_.ref());
-  MOZ_ASSERT(compiler_.masm.framePushed() == compiler_.ionScript_->frameSize());
+  MOZ_ASSERT_IF(!compiler_.masm.oom(), compiler_.masm.framePushed() ==
+                                           compiler_.ionScript_->frameSize());
 }
 
 }  // namespace jit
@@ -225,8 +226,8 @@ void CacheRegisterAllocator::saveIonLiveRegisters(MacroAssembler& masm,
   freePayloadSlots_.clear();
   freeValueSlots_.clear();
 
-  MOZ_ASSERT(masm.framePushed() ==
-             ionScript->frameSize() + sizeOfLiveRegsInBytes);
+  MOZ_ASSERT_IF(!masm.oom(), masm.framePushed() == ionScript->frameSize() +
+                                                       sizeOfLiveRegsInBytes);
 
   // Step 7. All live registers and non-input operands are stored on the stack
   // now, so at this point all registers except for the input registers are
