@@ -112,8 +112,7 @@ NetEqImpl::Dependencies::Dependencies(
            .max_packets_in_buffer =
                static_cast<int>(config.max_packets_in_buffer),
            .base_min_delay_ms = config.min_delay_ms,
-           .tick_timer = tick_timer.get(),
-           .clock = &env.clock()})),
+           .tick_timer = tick_timer.get()})),
       red_payload_splitter(new RedPayloadSplitter),
       timestamp_scaler(new TimestampScaler(*decoder_database)),
       accelerate_factory(new AccelerateFactory),

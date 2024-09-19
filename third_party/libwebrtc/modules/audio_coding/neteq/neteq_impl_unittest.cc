@@ -127,7 +127,6 @@ class NetEqImplTest : public ::testing::Test {
       controller_config.base_min_delay_ms = config_.min_delay_ms;
       controller_config.allow_time_stretching = true;
       controller_config.max_packets_in_buffer = config_.max_packets_in_buffer;
-      controller_config.clock = &clock_;
       deps.neteq_controller =
           std::make_unique<DecisionLogic>(env_, std::move(controller_config));
     }

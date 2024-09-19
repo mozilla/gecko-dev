@@ -56,8 +56,6 @@ rtc_source_set("neteq_controller_api") {
   deps = [
     ":neteq_api",
     ":tick_timer",
-    "../../rtc_base:checks",
-    "../../system_wrappers:system_wrappers",
     "../environment",
     "//third_party/abseil-cpp/absl/types:optional",
   ]
