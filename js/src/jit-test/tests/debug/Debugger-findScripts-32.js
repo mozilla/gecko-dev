@@ -50,6 +50,12 @@ assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, line: 4, end: {lin
 assertNotFound({url:scriptname, line: 8, start: {line: 3}, end: {line: 3}}, gfw.script);
 assertFound({url:scriptname, line: 3, start: {line: 8}, end: {line: 8}}, gfw.script);
 
+// 'start'/'end' requires 'displayURL'/'url'/'source' like 'line'
+assertThrowsTypeError({start: {line: 8}, end: {line: 8}});
+assertFound({source:gfw.script.source, start: {line: 8}, end: {line: 8}}, gfw.script);
+// won't TypeError is the important thing here
+assertNotFound({displayURL:"f.js", start: {line: 8}, end: {line: 8}}, gfw.script);
+
 // 'start' and 'end'
 // 'start' after,  'end' after the function
 assertNotFound({url:scriptname, start: {line: 14}, end: {line: 16}}, gfw.script);

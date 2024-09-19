@@ -5458,6 +5458,15 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
       return false;
     }
 
+    if (!startProperty.isUndefined()) {
+      // endProperty is also not undefined here
+      if (displayURL.isUndefined() && url.isUndefined() && !hasSource) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_QUERY_LINE_WITHOUT_URL);
+        return false;
+      }
+    }
+
     if (hasLine && lineEnd < line) {
       JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                                 JSMSG_QUERY_START_LINE_IS_AFTER_END);
