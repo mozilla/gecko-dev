@@ -114,6 +114,8 @@ skip-if = ["os == 'win' && !debug"] # Bug 1703465
 
 ["browser_rules_color_scheme_simulation_rdm.js"]
 
+["browser_rules_color_scheme_simulation_rfp.js"]
+
 ["browser_rules_colorpicker-and-image-tooltip_01.js"]
 
 ["browser_rules_colorpicker-and-image-tooltip_02.js"]

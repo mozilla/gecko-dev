@@ -2107,6 +2107,9 @@ bool ChromeUtils::ShouldResistFingerprinting(
     case JSRFPTarget::SiteSpecificZoom:
       target = RFPTarget::SiteSpecificZoom;
       break;
+    case JSRFPTarget::CSSPrefersColorScheme:
+      target = RFPTarget::CSSPrefersColorScheme;
+      break;
     default:
       MOZ_CRASH("Unhandled JSRFPTarget enum value");
   }

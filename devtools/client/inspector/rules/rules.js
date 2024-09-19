@@ -592,6 +592,12 @@ CssRuleView.prototype = {
       "click",
       this._onToggleDarkColorSchemeSimulation
     );
+    const { rfpCSSColorScheme } = this.inspector.walker;
+    if (rfpCSSColorScheme) {
+      this.colorSchemeLightSimulationButton.setAttribute("disabled", true);
+      this.colorSchemeDarkSimulationButton.setAttribute("disabled", true);
+      console.warn("Color scheme simulation is disabled in RFP mode.");
+    }
   },
 
   /**

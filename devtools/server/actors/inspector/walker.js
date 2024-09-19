@@ -339,6 +339,10 @@ class WalkerActor extends Actor {
     return {
       actor: this.actorID,
       root: this.rootNode.form(),
+      rfpCSSColorScheme: ChromeUtils.shouldResistFingerprinting(
+        "CSSPrefersColorScheme",
+        null
+      ),
       traits: {},
     };
   }

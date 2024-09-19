@@ -1119,6 +1119,7 @@ enum PopupBlockerState {
 enum JSRFPTarget {
   "RoundWindowSize",
   "SiteSpecificZoom",
+  "CSSPrefersColorScheme",
 };
 
 #ifdef XP_UNIX
