@@ -495,13 +495,6 @@ class VirtualRegister {
   // in descending order.
   RangeVector ranges_;
 
-#ifdef DEBUG
-  // Number of active RangeIterators. Used to check that the |ranges_| vector
-  // isn't sorted while there's an active iterator because that would be
-  // error-prone.
-  size_t activeRangeIterators_ = 0;
-#endif
-
   // Whether def_ is a temp or an output.
   bool isTemp_ = false;
 
@@ -519,23 +512,14 @@ class VirtualRegister {
   void operator=(const VirtualRegister&) = delete;
   VirtualRegister(const VirtualRegister&) = delete;
 
-  void sortRanges();
-
 #ifdef DEBUG
   void assertRangesSorted();
 #else
   void assertRangesSorted() {}
 #endif
 
-  void ensureRangesSorted() {
-    if (rangesSorted_) {
-      assertRangesSorted();
-    } else {
-      sortRanges();
-    }
-  }
   RangeVector& sortedRanges() {
-    ensureRangesSorted();
+    assertRangesSorted();
     return ranges_;
   }
 
@@ -569,20 +553,23 @@ class VirtualRegister {
 
   bool hasRanges() const { return !ranges_.empty(); }
   LiveRange* firstRange() {
-    ensureRangesSorted();
+    assertRangesSorted();
     return ranges_.back();
   }
   LiveRange* lastRange() {
-    ensureRangesSorted();
+    assertRangesSorted();
     return ranges_[0];
   }
   LiveRange* rangeFor(CodePosition pos, bool preferRegister = false);
+  void sortRanges();
 
-  void removeRange(RangeIterator& iter);
-  void removeLastRange(LiveRange* range);
+  void removeFirstRange(RangeIterator& iter);
   void removeRangesForBundle(LiveBundle* bundle);
   template <typename Pred>
   void removeRangesIf(Pred&& pred);
+
+  [[nodiscard]] bool replaceLastRangeLinear(LiveRange* old, LiveRange* newPre,
+                                            LiveRange* newPost);
 
   [[nodiscard]] bool addRange(LiveRange* range);
 
@@ -598,34 +585,34 @@ class VirtualRegister {
   // iterates over the vector from index |length - 1| to 0.
   class MOZ_RAII RangeIterator {
     RangeVector& ranges_;
+#ifdef DEBUG
+    VirtualRegister& reg_;
+#endif
     // if |pos_| is 0, the iterator is done. Else, |pos_ - 1| is the index of
     // the range that will be returned by |*iter|.
     size_t pos_;
-#ifdef DEBUG
-    VirtualRegister* reg_;
-#endif
 
    public:
     explicit RangeIterator(VirtualRegister& reg)
-        : ranges_(reg.sortedRanges()), pos_(ranges_.length()) {
+        : ranges_(reg.sortedRanges()),
 #ifdef DEBUG
-      reg_ = &reg;
-      reg.activeRangeIterators_++;
+          reg_(reg),
 #endif
+          pos_(ranges_.length()) {
     }
     RangeIterator(VirtualRegister& reg, size_t index)
-        : ranges_(reg.sortedRanges()), pos_(index + 1) {
-      MOZ_ASSERT(index < ranges_.length());
+        : ranges_(reg.sortedRanges()),
 #ifdef DEBUG
-      reg_ = &reg;
-      reg.activeRangeIterators_++;
+          reg_(reg),
 #endif
+          pos_(index + 1) {
+      MOZ_ASSERT(index < ranges_.length());
     }
 
 #ifdef DEBUG
     ~RangeIterator() {
-      MOZ_ASSERT(reg_->activeRangeIterators_ > 0);
-      reg_->activeRangeIterators_--;
+      // Ranges should stay sorted during iteration.
+      reg_.assertRangesSorted();
     }
 #endif
 
@@ -889,6 +876,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
 
   // Rewriting of the LIR after bundle processing is done
   [[nodiscard]] bool insertAllRanges(LiveRangePlusSet& set, LiveBundle* bundle);
+  void sortVirtualRegisterRanges();
   [[nodiscard]] bool pickStackSlot(SpillSet* spill);
   [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool pickStackSlots();
   [[nodiscard]] bool moveAtEdge(LBlock* predecessor, LBlock* successor,
