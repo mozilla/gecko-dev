@@ -622,8 +622,6 @@ toolbarspring {
 
 /* Keyboard navigation */
 
-toolbar[keyNav]:not([collapsed=true], [customizing]) toolbartabstop,
-#tabbrowser-tabs[orient="vertical"] #tabs-newtab-button,
-#vertical-tabs-newtab-button {
+toolbar[keyNav]:not([collapsed=true], [customizing]) toolbartabstop {
   -moz-user-focus: normal;
 }

@@ -344,6 +344,14 @@ var SidebarController = {
         };
         this.browser.addEventListener("resize", this._browserResizeObserver);
       }
+
+      let newTabButton = document.getElementById("vertical-tabs-newtab-button");
+      if (!this._verticalNewTabListenerAdded) {
+        newTabButton.addEventListener("command", event => {
+          BrowserCommands.openTab({ event });
+        });
+        this._verticalNewTabListenerAdded = true;
+      }
     } else {
       this._switcherCloseButton = document.getElementById("sidebar-close");
       if (!this._switcherListenersAdded) {
@@ -1550,9 +1558,6 @@ var SidebarController = {
       CustomizableUI.AREA_VERTICAL_TABSTRIP
     );
     verticalToolbar.toggleAttribute("visible", toVerticalTabs);
-    // Re-render sidebar-main so that templating is updated
-    // for proper keyboard navigation for Tools
-    this.sidebarMain.requestUpdate();
   },
 };
 
