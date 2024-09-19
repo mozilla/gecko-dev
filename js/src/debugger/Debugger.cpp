@@ -5408,10 +5408,84 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
       }
       hasLine = true;
       line = uintLine;
+      lineEnd = line;
     } else {
       JS_ReportErrorNumberASCII(
           cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
           "query object's 'line' property", "neither undefined nor an integer");
+      return false;
+    }
+
+    // Check for a 'start' property.
+    RootedValue startProperty(cx);
+    if (!GetProperty(cx, query, query, cx->names().start, &startProperty)) {
+      return false;
+    }
+    if (startProperty.isObject()) {
+      Rooted<JSObject*> startObject(cx, &startProperty.toObject());
+      RootedValue startLineProp(cx);
+      if (!GetProperty(cx, startObject, startObject, cx->names().line,
+                       &startLineProp)) {
+        return false;
+      }
+      if (!startLineProp.isNumber()) {
+        JS_ReportErrorNumberASCII(
+            cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+            "query object's 'start.line' property", "not a number");
+        return false;
+      }
+      double doubleLine = startLineProp.toNumber();
+      uint32_t uintLine = (uint32_t)doubleLine;
+      if (doubleLine <= 0 || uintLine != doubleLine) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_DEBUG_BAD_LINE);
+        return false;
+      }
+      hasLine = true;
+      line = uintLine;
+    } else if (!startProperty.isUndefined()) {
+      JS_ReportErrorNumberASCII(
+          cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+          "query object's 'start' property", "neither undefined nor an object");
+      return false;
+    }
+
+    // Check for a 'end' property.
+    RootedValue endProperty(cx);
+    if (!GetProperty(cx, query, query, cx->names().end, &endProperty)) {
+      return false;
+    }
+    if (endProperty.isObject()) {
+      Rooted<JSObject*> endObject(cx, &endProperty.toObject());
+      RootedValue endLineProp(cx);
+      if (!GetProperty(cx, endObject, endObject, cx->names().line,
+                       &endLineProp)) {
+        return false;
+      }
+      if (!endLineProp.isNumber()) {
+        JS_ReportErrorNumberASCII(
+            cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+            "query object's 'end.line' property", "not a number");
+        return false;
+      }
+      double doubleLine = endLineProp.toNumber();
+      uint32_t uintLine = (uint32_t)doubleLine;
+      if (doubleLine <= 0 || uintLine != doubleLine) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_DEBUG_BAD_LINE);
+        return false;
+      }
+      lineEnd = uintLine;
+    } else if (!endProperty.isUndefined()) {
+      JS_ReportErrorNumberASCII(
+          cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+          "query object's 'end' property", "neither undefined nor an object");
+      return false;
+    }
+
+    if (startProperty.isUndefined() ^ endProperty.isUndefined()) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_QUERY_USE_START_AND_END_TOGETHER);
       return false;
     }
 
@@ -5613,6 +5687,8 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
   }
 
  private:
+  static const uint32_t LINE_CONSTRAINT_NOT_PROVIDED = 0;
+
   /* If this is a string, matching scripts have urls equal to it. */
   RootedValue url;
 
@@ -5631,22 +5707,28 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
   bool hasSource = false;
   Rooted<DebuggerSourceReferent> source;
 
-  /* True if the query contained a 'line' property. */
+  /* True if the query contained a 'line' or 'start' property. */
   bool hasLine = false;
 
-  /* The line matching scripts must cover. */
-  uint32_t line = 0;
+  /* The start line of the target range, inclusive. A script's lines must
+   * overlap the target line range or it will be filtered out by the query. */
+  uint32_t line = LINE_CONSTRAINT_NOT_PROVIDED;
+
+  /* The end line of the target range, inclusive. A script's lines must overlap
+   * the target line range or it will be filtered out by the query. */
+  uint32_t lineEnd = LINE_CONSTRAINT_NOT_PROVIDED;
 
   // As a performance optimization (and to avoid delazifying as many scripts),
-  // we would like to know the source offset of the target line.
+  // we would like to know the source offset of the target range start line.
   //
   // Since we do not have a simple way to compute this precisely, we instead
   // track a lower-bound of the offset value. As we collect SourceExtent
   // examples with (line,column) <-> sourceStart mappings, we can improve the
-  // bound. The target line is within the range [sourceOffsetLowerBound, Inf).
+  // bound. The target range start line is within the range
+  // [sourceOffsetLowerBound, Inf).
   //
   // NOTE: Using a SourceExtent for updating the bound happens independently of
-  //       if the script matches the target line or not in the in the end.
+  //       if the script matches the target range start line or not in the end.
   mutable uint32_t sourceOffsetLowerBound = 0;
 
   /* True if the query has an 'innermost' property whose value is true. */
@@ -5693,29 +5775,36 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
   }
 
   void updateSourceOffsetLowerBound(const SourceExtent& extent) {
-    // We trying to find the offset of (target-line, 0) so just ignore any
-    // extents on target line to keep things simple.
-    MOZ_ASSERT(extent.lineno <= line);
-    if (extent.lineno == line) {
+    // We trying to find the offset of (target-range-start-line, 0), so ignore
+    // any scripts within the target range.
+    MOZ_ASSERT(line != LINE_CONSTRAINT_NOT_PROVIDED &&
+               lineEnd != LINE_CONSTRAINT_NOT_PROVIDED);
+    MOZ_ASSERT(extent.lineno <= lineEnd);
+    if (extent.lineno >= line) {
       return;
     }
 
     // The extent.sourceStart position is now definitely *before* the target
-    // line, so update sourceOffsetLowerBound if extent.sourceStart is a tighter
-    // bound.
+    // range start line, so update sourceOffsetLowerBound if extent.sourceStart
+    // is a tighter bound.
     if (extent.sourceStart > sourceOffsetLowerBound) {
       sourceOffsetLowerBound = extent.sourceStart;
     }
   }
 
-  // A partial match is a script that starts before the target line, but may or
-  // may not end before it. If we can prove the script definitely ends before
-  // the target line, we may return false here.
+  // A partial match is a script that starts before the target range ends, but
+  // may or may not end before the target range starts. We can also return false
+  // if we can prove the script ends before the target range starts.
   bool scriptIsPartialLineMatch(BaseScript* script) {
     const SourceExtent& extent = script->extent();
 
-    // Check that start of script is before or on target line.
-    if (extent.lineno > line) {
+    // We only know for sure that the script is outside the target line range
+    // if the start of script is after the target end line, because we don't
+    // know how many lines the script has yet.
+    MOZ_ASSERT(line != LINE_CONSTRAINT_NOT_PROVIDED &&
+               lineEnd != LINE_CONSTRAINT_NOT_PROVIDED);
+    MOZ_ASSERT(line <= lineEnd);
+    if (extent.lineno > lineEnd) {
       return false;
     }
 
@@ -5725,11 +5814,11 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
     updateSourceOffsetLowerBound(script->extent());
 
     // As an optional performance optimization, we rule out any script that ends
-    // before the lower-bound on where target line exists.
+    // before the lower-bound on where target range start line exists.
     return extent.sourceEnd > sourceOffsetLowerBound;
   }
 
-  // True if any part of script source is on the target line.
+  // True if any part of script source overlaps the target range.
   bool scriptIsLineMatch(JSScript* script) {
     MOZ_ASSERT(scriptIsPartialLineMatch(script));
 

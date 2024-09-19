@@ -167,6 +167,7 @@
   MACRO_(emptyRegExp_, "(?:)")                                                 \
   MACRO_(encodeURI, "encodeURI")                                               \
   MACRO_(encodeURIComponent, "encodeURIComponent")                             \
+  MACRO_(end, "end")                                                           \
   MACRO_(endRange, "endRange")                                                 \
   MACRO_(endTimestamp, "endTimestamp")                                         \
   MACRO_(entries, "entries")                                                   \
