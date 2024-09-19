@@ -320,7 +320,7 @@ ${helpers.single_keyword(
 ${helpers.single_keyword(
     "object-fit",
     "fill contain cover none scale-down",
-    engines="gecko",
+    engines="gecko servo",
     animation_type="discrete",
     spec="https://drafts.csswg.org/css-images/#propdef-object-fit",
     gecko_enum_prefix = "StyleObjectFit",
@@ -331,7 +331,7 @@ ${helpers.predefined_type(
     "object-position",
     "Position",
     "computed::Position::center()",
-    engines="gecko",
+    engines="gecko servo",
     boxed=True,
     spec="https://drafts.csswg.org/css-images-3/#the-object-position",
     affects="layout",
