@@ -881,14 +881,14 @@ TEST_F(StunTest, CreateIPv4AddressAttribute) {
 
 // Test that we don't care what order we set the parts of an address
 TEST_F(StunTest, CreateAddressInArbitraryOrder) {
-  auto addr = StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
+  auto addr = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
   // Port first
   addr->SetPort(kTestMessagePort1);
   addr->SetIP(rtc::IPAddress(kIPv4TestAddress1));
   ASSERT_EQ(kTestMessagePort1, addr->port());
   ASSERT_EQ(rtc::IPAddress(kIPv4TestAddress1), addr->ipaddr());
 
-  auto addr2 = StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
+  auto addr2 = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
   // IP first
   addr2->SetIP(rtc::IPAddress(kIPv4TestAddress1));
   addr2->SetPort(kTestMessagePort2);
@@ -1424,154 +1424,6 @@ TEST_F(StunTest, AddFingerprint) {
   EXPECT_TRUE(msg.Write(&buf1));
   EXPECT_TRUE(StunMessage::ValidateFingerprint(
       reinterpret_cast<const char*>(buf1.Data()), buf1.Length()));
-}
-
-// Sample "GTURN" relay message.
-// clang-format off
-// clang formatting doesn't respect inline comments.
-static const uint8_t kRelayMessage[] = {
-  0x00, 0x01, 0x00, 88,    // message header
-  0x21, 0x12, 0xA4, 0x42,  // magic cookie
-  '0', '1', '2', '3',      // transaction id
-  '4', '5', '6', '7',
-  '8', '9', 'a', 'b',
-  0x00, 0x01, 0x00, 8,     // mapped address
-  0x00, 0x01, 0x00, 13,
-  0x00, 0x00, 0x00, 17,
-  0x00, 0x06, 0x00, 12,    // username
-  'a', 'b', 'c', 'd',
-  'e', 'f', 'g', 'h',
-  'i', 'j', 'k', 'l',
-  0x00, 0x0d, 0x00, 4,     // lifetime
-  0x00, 0x00, 0x00, 11,
-  0x00, 0x0f, 0x00, 4,     // magic cookie
-  0x72, 0xc6, 0x4b, 0xc6,
-  0x00, 0x10, 0x00, 4,     // bandwidth
-  0x00, 0x00, 0x00, 6,
-  0x00, 0x11, 0x00, 8,     // destination address
-  0x00, 0x01, 0x00, 13,
-  0x00, 0x00, 0x00, 17,
-  0x00, 0x12, 0x00, 8,     // source address 2
-  0x00, 0x01, 0x00, 13,
-  0x00, 0x00, 0x00, 17,
-  0x00, 0x13, 0x00, 7,     // data
-  'a', 'b', 'c', 'd',
-  'e', 'f', 'g', 0         // DATA must be padded per rfc5766.
-};
-// clang-format on
-
-// Test that we can read the GTURN-specific fields.
-TEST_F(StunTest, ReadRelayMessage) {
-  RelayMessage msg;
-
-  rtc::ByteBufferReader buf(kRelayMessage);
-  EXPECT_TRUE(msg.Read(&buf));
-
-  EXPECT_EQ(STUN_BINDING_REQUEST, msg.type());
-  EXPECT_EQ(sizeof(kRelayMessage) - 20, msg.length());
-  EXPECT_EQ("0123456789ab", msg.transaction_id());
-
-  RelayMessage msg2(STUN_BINDING_REQUEST, "0123456789ab");
-
-  in_addr legacy_in_addr;
-  legacy_in_addr.s_addr = htonl(17U);
-  rtc::IPAddress legacy_ip(legacy_in_addr);
-
-  const StunAddressAttribute* addr = msg.GetAddress(STUN_ATTR_MAPPED_ADDRESS);
-  ASSERT_TRUE(addr != NULL);
-  EXPECT_EQ(1, addr->family());
-  EXPECT_EQ(13, addr->port());
-  EXPECT_EQ(legacy_ip, addr->ipaddr());
-
-  auto addr2 = StunAttribute::CreateAddress(STUN_ATTR_MAPPED_ADDRESS);
-  addr2->SetPort(13);
-  addr2->SetIP(legacy_ip);
-  msg2.AddAttribute(std::move(addr2));
-
-  const StunByteStringAttribute* bytes = msg.GetByteString(STUN_ATTR_USERNAME);
-  ASSERT_TRUE(bytes != NULL);
-  EXPECT_EQ(12U, bytes->length());
-  EXPECT_EQ("abcdefghijkl", bytes->string_view());
-
-  auto bytes2 = StunAttribute::CreateByteString(STUN_ATTR_USERNAME);
-  bytes2->CopyBytes("abcdefghijkl");
-  msg2.AddAttribute(std::move(bytes2));
-
-  const StunUInt32Attribute* uval = msg.GetUInt32(STUN_ATTR_LIFETIME);
-  ASSERT_TRUE(uval != NULL);
-  EXPECT_EQ(11U, uval->value());
-
-  auto uval2 = StunAttribute::CreateUInt32(STUN_ATTR_LIFETIME);
-  uval2->SetValue(11);
-  msg2.AddAttribute(std::move(uval2));
-
-  bytes = msg.GetByteString(STUN_ATTR_MAGIC_COOKIE);
-  ASSERT_TRUE(bytes != NULL);
-  EXPECT_EQ(4U, bytes->length());
-  EXPECT_EQ(0, memcmp(bytes->array_view().data(), TURN_MAGIC_COOKIE_VALUE,
-                      sizeof(TURN_MAGIC_COOKIE_VALUE)));
-
-  bytes2 = StunAttribute::CreateByteString(STUN_ATTR_MAGIC_COOKIE);
-  bytes2->CopyBytes(reinterpret_cast<const char*>(TURN_MAGIC_COOKIE_VALUE),
-                    sizeof(TURN_MAGIC_COOKIE_VALUE));
-  msg2.AddAttribute(std::move(bytes2));
-
-  uval = msg.GetUInt32(STUN_ATTR_BANDWIDTH);
-  ASSERT_TRUE(uval != NULL);
-  EXPECT_EQ(6U, uval->value());
-
-  uval2 = StunAttribute::CreateUInt32(STUN_ATTR_BANDWIDTH);
-  uval2->SetValue(6);
-  msg2.AddAttribute(std::move(uval2));
-
-  addr = msg.GetAddress(STUN_ATTR_DESTINATION_ADDRESS);
-  ASSERT_TRUE(addr != NULL);
-  EXPECT_EQ(1, addr->family());
-  EXPECT_EQ(13, addr->port());
-  EXPECT_EQ(legacy_ip, addr->ipaddr());
-
-  addr2 = StunAttribute::CreateAddress(STUN_ATTR_DESTINATION_ADDRESS);
-  addr2->SetPort(13);
-  addr2->SetIP(legacy_ip);
-  msg2.AddAttribute(std::move(addr2));
-
-  addr = msg.GetAddress(STUN_ATTR_SOURCE_ADDRESS2);
-  ASSERT_TRUE(addr != NULL);
-  EXPECT_EQ(1, addr->family());
-  EXPECT_EQ(13, addr->port());
-  EXPECT_EQ(legacy_ip, addr->ipaddr());
-
-  addr2 = StunAttribute::CreateAddress(STUN_ATTR_SOURCE_ADDRESS2);
-  addr2->SetPort(13);
-  addr2->SetIP(legacy_ip);
-  msg2.AddAttribute(std::move(addr2));
-
-  bytes = msg.GetByteString(STUN_ATTR_DATA);
-  ASSERT_TRUE(bytes != NULL);
-  EXPECT_EQ(7U, bytes->length());
-  EXPECT_EQ("abcdefg", bytes->string_view());
-
-  bytes2 = StunAttribute::CreateByteString(STUN_ATTR_DATA);
-  bytes2->CopyBytes("abcdefg");
-  msg2.AddAttribute(std::move(bytes2));
-
-  rtc::ByteBufferWriter out;
-  EXPECT_TRUE(msg.Write(&out));
-  EXPECT_EQ(sizeof(kRelayMessage), out.Length());
-  size_t len1 = out.Length();
-  rtc::ByteBufferReader read_buf(out);
-  std::string outstring;
-  read_buf.ReadString(&outstring, len1);
-  EXPECT_EQ(0, memcmp(outstring.c_str(), kRelayMessage, len1));
-
-  rtc::ByteBufferWriter out2;
-  EXPECT_TRUE(msg2.Write(&out2));
-  EXPECT_EQ(sizeof(kRelayMessage), out2.Length());
-  size_t len2 = out2.Length();
-  rtc::ByteBufferReader read_buf2(out2);
-  std::string outstring2;
-  read_buf2.ReadString(&outstring2, len2);
-  EXPECT_EQ(0, memcmp(outstring2.c_str(), kRelayMessage, len2));
 }
 
 // Test that we can remove attribute from a message.
