@@ -54,6 +54,7 @@
 #include "wasm/WasmDebug.h"
 #include "wasm/WasmDebugFrame.h"
 #include "wasm/WasmFeatures.h"
+#include "wasm/WasmHeuristics.h"
 #include "wasm/WasmInitExpr.h"
 #include "wasm/WasmJS.h"
 #include "wasm/WasmMemory.h"
@@ -2698,19 +2699,12 @@ void Instance::resetTemporaryStackLimit(JSContext* cx) {
 
 int32_t Instance::computeInitialHotnessCounter(uint32_t funcIndex) {
   MOZ_ASSERT(code().mode() == CompileMode::LazyTiering);
-  // Use `150 * (bodyLength ^ 1.5)` as a proxy for Ion compilation cost, and at
-  // least 10.  This is a temporary heuristic which may be improved in future.
-  float thresholdF =
-      float(codeMeta()
-                .funcDefRanges[funcIndex - codeMeta().numFuncImports]
-                .bodyLength);
-  thresholdF = thresholdF * sqrtf(thresholdF);
-  thresholdF *= 150.0;
-  thresholdF = std::max<float>(thresholdF, 10.0);   // at least 10
-  thresholdF = std::min<float>(thresholdF, 2.0e9);  // at most 2 billion
-  int32_t thresholdI = int32_t(thresholdF);
-  MOZ_RELEASE_ASSERT(thresholdI >= 0);
-  return thresholdI;
+  uint32_t bodyLength =
+      codeMeta()
+          .funcDefRanges[funcIndex - codeMeta().numFuncImports]
+          .bodyLength;
+  return codeMeta().lazyTieringHeuristics.estimateIonCompilationCost(
+      bodyLength);
 }
 
 void Instance::resetHotnessCounter(uint32_t funcIndex) {

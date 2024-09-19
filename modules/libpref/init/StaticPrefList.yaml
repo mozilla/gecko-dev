@@ -8319,21 +8319,39 @@
     mirror: always
     set_spidermonkey_pref: startup
 
-- name: javascript.options.wasm_experimental_inline_depth_limit
-  type: uint32_t
-  value: 2
-  mirror: always
-  set_spidermonkey_pref: always
-
-- name: javascript.options.wasm_experimental_inline_size_limit
-  type: uint32_t
-  value: 256
-  mirror: always
-  set_spidermonkey_pref: always
-
 - name: javascript.options.wasm_experimental_inline_call_ref_threshold
   type: uint32_t
   value: 1
+  mirror: always
+  set_spidermonkey_pref: always
+
+# Aggressiveness of lazy tiering, allowable: 1 .. 9
+# 1 = min (almost never, set tiering threshold to max possible, == 2^31-1)
+# 9 = max (request tier up at first call, set tiering threshold to zero)
+- name: javascript.options.wasm_experimental_tiering_level
+  type: uint32_t
+  value: 5
+  mirror: always
+  set_spidermonkey_pref: always
+
+# Aggressiveness of inlining (regardless of call kind), allowable: 1 .. 9
+- name: javascript.options.wasm_experimental_inlining_level
+  type: uint32_t
+  value: 5
+  mirror: always
+  set_spidermonkey_pref: always
+
+# Are wasm direct calls (within same Instance) candidates for inlining?
+- name: javascript.options.wasm_experimental_direct_inlining
+  type: bool
+  value: true
+  mirror: always
+  set_spidermonkey_pref: always
+
+# Are wasm callRef calls (within same Instance) candidates for inlining?
+- name: javascript.options.wasm_experimental_callRef_inlining
+  type: bool
+  value: true
   mirror: always
   set_spidermonkey_pref: always
 

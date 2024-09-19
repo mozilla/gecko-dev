@@ -1159,7 +1159,7 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
   // NOTE: keep the field sequence here in sync with the sequence in the
   // declaration of CodeMetadata.
 
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 888);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::CodeMetadata, 904);
   // Serialization doesn't handle asm.js or debug enabled modules
   MOZ_RELEASE_ASSERT(mode == MODE_SIZE || !item->isAsmJS());
 
@@ -1219,6 +1219,12 @@ CoderResult CodeCodeMetadata(Coder<mode>& coder,
            mode, SharedBytes,
            &CodeRefPtr<mode, const ShareableBytes, CodeShareableBytes>>(
       coder, &item->bytecode)));
+
+  // We don't serialize `lazyTieringHeuristics` or `inliningHeuristics` because
+  // they store copies of various prefs.  Serializing them would have the
+  // effect that changing the prefs, restarting the browser and reloading
+  // cached wasm content would ignore the prefs change for cached content, but
+  // not for new content.
 
   MOZ_TRY(CodePod(coder, &item->funcDefsOffsetStart));
   MOZ_TRY(CodePod(coder, &item->funcImportsOffsetStart));

@@ -10,6 +10,7 @@
 #include "mozilla/Atomics.h"
 
 #include "wasm/WasmBinaryTypes.h"
+#include "wasm/WasmHeuristics.h"
 #include "wasm/WasmInstanceData.h"  // various of *InstanceData
 #include "wasm/WasmModuleTypes.h"
 #include "wasm/WasmProcess.h"  // IsHugeMemoryEnabled
@@ -150,6 +151,10 @@ struct CodeMetadata : public ShareableBase<CodeMetadata> {
   // A SHA-1 hash of the module bytecode for use in display urls. Only
   // available if we're debugging.
   ModuleHash debugHash;
+
+  // Heuristics for lazy tiering and inlining.
+  const LazyTieringHeuristics lazyTieringHeuristics;
+  const InliningHeuristics inliningHeuristics;
 
   // ==== Instance layout fields
   //

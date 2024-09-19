@@ -2400,7 +2400,7 @@ class FunctionCompiler {
   }
 
   [[nodiscard]]
-  bool shouldInlineCallDirect(uint32_t funcIndex) {
+  bool shouldInlineCall(InliningHeuristics::CallKind kind, uint32_t funcIndex) {
     // We only support this mode when lazy tiering. This is currently a
     // requirement because we need the full module bytecode and function
     // definition ranges, which are not available in other modes.
@@ -2410,11 +2410,6 @@ class FunctionCompiler {
 
     // We can't inline an imported function.
     if (codeMeta().funcIsImport(funcIndex)) {
-      return false;
-    }
-
-    // Limit the inlining depth.
-    if (inliningDepth() > JS::Prefs::wasm_experimental_inline_depth_limit()) {
       return false;
     }
 
@@ -2430,10 +2425,11 @@ class FunctionCompiler {
       return false;
     }
 
-    // Limit the callee function to under a specific size.
-    const FuncDefRange& funcRange = codeMeta().funcDefRange(funcIndex);
-    return funcRange.bodyLength <=
-           JS::Prefs::wasm_experimental_inline_size_limit();
+    // Ask the heuristics system if we're allowed to inline a function of this
+    // size and kind at the current inlining depth.
+    uint32_t inlineeBodySize = codeMeta().funcDefRange(funcIndex).bodyLength;
+    return codeMeta_.inliningHeuristics.isSmallEnoughToInline(
+        kind, inliningDepth(), inlineeBodySize);
   }
 
   [[nodiscard]]
@@ -5844,7 +5840,7 @@ static bool EmitCall(FunctionCompiler& f, bool asmJSFuncDef) {
       return false;
     }
   } else {
-    if (f.shouldInlineCallDirect(funcIndex)) {
+    if (f.shouldInlineCall(InliningHeuristics::CallKind::Direct, funcIndex)) {
       if (!EmitInlineCall(f, funcType, funcIndex, args, &results)) {
         return false;
       }
@@ -7946,7 +7942,9 @@ static bool EmitCallRef(FunctionCompiler& f) {
     return true;
   }
 
-  if (hint.isInlineFunc() && f.shouldInlineCallDirect(hint.inlineFuncIndex())) {
+  if (hint.isInlineFunc() &&
+      f.shouldInlineCall(InliningHeuristics::CallKind::CallRef,
+                         hint.inlineFuncIndex())) {
     DefVector results;
     if (!EmitSpeculativeInlineCallRef(f, bytecodeOffset, *funcType,
                                       hint.inlineFuncIndex(), callee, args,
