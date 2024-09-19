@@ -1,6 +1,5 @@
 #!/bin/sh
 
-# ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
 # The contents of this file are subject to the Mozilla Public License Version
@@ -35,8 +34,6 @@
 # the provisions above, a recipient may use your version of this file under
 # the terms of any one of the MPL, the GPL or the LGPL.
 #
-# ***** END LICENSE BLOCK *****
-
 #
 # GCC-compatible wrapper for cl.exe and ml.exe. Arguments are given in GCC
 # format and translated into something sensible for cl or ml.

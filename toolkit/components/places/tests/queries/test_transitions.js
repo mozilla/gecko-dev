@@ -1,9 +1,9 @@
 /* -*- indent-tabs-mode: nil; js-indent-level: 2 -*- */
 /* vim:set ts=2 sw=2 sts=2 et: */
-/* ***** BEGIN LICENSE BLOCK *****
+/*
   Any copyright is dedicated to the Public Domain.
   http://creativecommons.org/publicdomain/zero/1.0/
- * ***** END LICENSE BLOCK ***** */
+*/
 var testData = [
   {
     isVisit: true,
