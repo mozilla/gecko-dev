@@ -571,6 +571,27 @@ class VirtualRegister {
                                      CodePosition to);
   void addInitialUse(UsePosition* use);
   void setInitialDefinition(CodePosition from);
+
+  // Iterator visiting a VirtualRegister's live ranges in order of increasing
+  // start position.
+  class MOZ_RAII RangeIterator {
+    LiveRange::RegisterLinkIterator iter_;
+
+   public:
+    explicit RangeIterator(VirtualRegister& reg) : iter_(reg.rangesBegin()) {}
+
+    RangeIterator(RangeIterator&) = delete;
+    void operator=(RangeIterator&) = delete;
+
+    bool done() const { return !bool(iter_); }
+
+    explicit operator bool() const { return !done(); }
+
+    LiveRange* operator*() const { return LiveRange::get(*iter_); }
+    LiveRange* operator->() { return operator*(); }
+
+    void operator++(int) { iter_++; }
+  };
 };
 
 // A sequence of code positions, for tellings BacktrackingAllocator::splitAt

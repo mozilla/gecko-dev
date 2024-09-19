@@ -2053,10 +2053,8 @@ bool BacktrackingAllocator::mergeAndQueueRegisters() {
     if (!bundle) {
       return false;
     }
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      LiveRange* range = LiveRange::get(*iter);
-      bundle->addRange(range);
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      bundle->addRange(*iter);
     }
   }
 
@@ -2131,9 +2129,8 @@ bool BacktrackingAllocator::mergeAndQueueRegisters() {
       allocateStackDefinition(reg);
     }
 
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      LiveRange* range = LiveRange::get(*iter);
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      LiveRange* range = *iter;
       LiveBundle* bundle = range->bundle();
       if (range == bundle->firstRange()) {
         if (!alloc().ensureBallast()) {
@@ -3657,10 +3654,8 @@ bool BacktrackingAllocator::pickStackSlots() {
       return false;
     }
 
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      LiveRange* range = LiveRange::get(*iter);
-      LiveBundle* bundle = range->bundle();
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      LiveBundle* bundle = iter->bundle();
 
       if (bundle->allocation().isBogus()) {
         if (!pickStackSlot(bundle->spillSet())) {
@@ -3755,9 +3750,8 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
     // Remove ranges which will never be used.
     removeDeadRanges(reg);
 
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      LiveRange* range = LiveRange::get(*iter);
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      LiveRange* range = *iter;
 
       if (mir->shouldCancel(
               "Backtracking Resolve Control Flow (vreg inner loop)")) {
@@ -3782,9 +3776,9 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       // and has the same allocation, we don't need an explicit move at
       // the start of this range.
       bool skip = false;
-      for (LiveRange::RegisterLinkIterator prevIter = reg.rangesBegin();
-           prevIter != iter; prevIter++) {
-        LiveRange* prevRange = LiveRange::get(*prevIter);
+      for (VirtualRegister::RangeIterator prevIter(reg); *prevIter != range;
+           prevIter++) {
+        LiveRange* prevRange = *prevIter;
         if (prevRange->covers(start) && prevRange->bundle()->allocation() ==
                                             range->bundle()->allocation()) {
           skip = true;
@@ -3872,9 +3866,8 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
   // source and target.
   for (size_t i = 1; i < graph.numVirtualRegisters(); i++) {
     VirtualRegister& reg = vregs[i];
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      LiveRange* targetRange = LiveRange::get(*iter);
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      LiveRange* targetRange = *iter;
 
       size_t firstBlockId = insData[targetRange->from()]->block()->mir()->id();
       if (!targetRange->covers(entryOf(graph.getBlock(firstBlockId)))) {
@@ -3999,9 +3992,8 @@ bool BacktrackingAllocator::installAllocationsInLIR() {
       return false;
     }
 
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      LiveRange* range = LiveRange::get(*iter);
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      LiveRange* range = *iter;
 
       if (range->hasDefinition()) {
         reg.def()->setOutput(range->bundle()->allocation());
@@ -4126,9 +4118,8 @@ bool BacktrackingAllocator::populateSafepoints() {
       break;
     }
 
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      LiveRange* range = LiveRange::get(*iter);
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      LiveRange* range = *iter;
 
       for (size_t j = firstSafepoint; j < graph.numSafepoints(); j++) {
         LInstruction* ins = graph.getSafepoint(j);
@@ -4402,13 +4393,11 @@ void BacktrackingAllocator::dumpLiveRangesByVReg(const char* who) {
     JitSpewHeader(JitSpew_RegAlloc);
     JitSpewCont(JitSpew_RegAlloc, "  ");
     VirtualRegister& reg = vregs[i];
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
-         iter++) {
-      if (iter != reg.rangesBegin()) {
+    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+      if (*iter != reg.firstRange()) {
         JitSpewCont(JitSpew_RegAlloc, " ## ");
       }
-      JitSpewCont(JitSpew_RegAlloc, "%s",
-                  LiveRange::get(*iter)->toString().get());
+      JitSpewCont(JitSpew_RegAlloc, "%s", iter->toString().get());
     }
     JitSpewCont(JitSpew_RegAlloc, "\n");
   }
@@ -4422,9 +4411,8 @@ void BacktrackingAllocator::dumpLiveRangesByBundle(const char* who) {
 
   for (uint32_t i = 1; i < graph.numVirtualRegisters(); i++) {
     VirtualRegister& reg = vregs[i];
-    for (LiveRange::RegisterLinkIterator baseIter = reg.rangesBegin(); baseIter;
-         baseIter++) {
-      LiveRange* range = LiveRange::get(*baseIter);
+    for (VirtualRegister::RangeIterator baseIter(reg); baseIter; baseIter++) {
+      LiveRange* range = *baseIter;
       LiveBundle* bundle = range->bundle();
       if (range == bundle->firstRange()) {
         JitSpew(JitSpew_RegAlloc, "  %s", bundle->toString().get());

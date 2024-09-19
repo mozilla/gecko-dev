@@ -252,9 +252,8 @@ void JSONSpewer::spewRanges(BacktrackingAllocator* regalloc) {
         property("vreg", id);
         beginListProperty("ranges");
 
-        for (LiveRange::RegisterLinkIterator iter = vreg->rangesBegin(); iter;
-             iter++) {
-          LiveRange* range = LiveRange::get(*iter);
+        for (VirtualRegister::RangeIterator iter(*vreg); iter; iter++) {
+          LiveRange* range = *iter;
 
           beginObject();
           property("allocation",
