@@ -687,7 +687,6 @@ static WrFiltersStatus WrFilterOpSVGFEComponentTransfer(
   // This builds a single interleaved RGBA table as it is well suited to GPU
   // texture fetches without any dynamic component indexing in the shader which
   // can confuse buggy shader compilers.
-  float invScale = 1.0f / (float)(stops - 1);
   for (size_t c = 0; c < 4; c++) {
     auto f = aAttributes.mTypes[c];
     // Check if there's no data (we have crashtests for this).
@@ -701,11 +700,13 @@ static WrFiltersStatus WrFilterOpSVGFEComponentTransfer(
     }
     switch (f) {
       case SVG_FECOMPONENTTRANSFER_TYPE_DISCRETE: {
-        size_t length1 = (size_t)aAttributes.mValues[c].Length() - 1;
+        size_t length = (size_t)aAttributes.mValues[c].Length();
+        size_t length1 = length - 1;
+        float step = (float)length / (float)stops;
         for (size_t i = 0; i < stops; i++) {
           // find the corresponding color in the table
           // this can not overflow due to the length check
-          float kf = (float)i * invScale * (float)length1;
+          float kf = (float)i * step;
           float floorkf = floor(kf);
           size_t k = (size_t)floorkf;
           k = std::min(k, length1);
@@ -716,34 +717,31 @@ static WrFiltersStatus WrFilterOpSVGFEComponentTransfer(
         break;
       }
       case SVG_FECOMPONENTTRANSFER_TYPE_GAMMA: {
-        float slope = invScale;
-        float intercept = 0.0f;
+        float step = 1.0f / (float)(stops - 1);
         float amplitude = aAttributes.mValues[c][0];
         float exponent = aAttributes.mValues[c][1];
         float offset = aAttributes.mValues[c][2];
         for (size_t i = 0; i < stops; i++) {
-          float v =
-              amplitude * pow((float)i * slope + intercept, exponent) + offset;
+          float v = amplitude * pow((float)i * step, exponent) + offset;
           v = mozilla::clamped(v, 0.0f, 1.0f);
           values[i * 4 + c] = v;
         }
         break;
       }
       case SVG_FECOMPONENTTRANSFER_TYPE_IDENTITY: {
-        float slope = invScale;
-        float intercept = 0.0f;
+        float step = 1.0f / (float)(stops - 1);
         for (size_t i = 0; i < stops; i++) {
-          float v = (float)i * slope + intercept;
+          float v = (float)i * step;
           v = mozilla::clamped(v, 0.0f, 1.0f);
           values[i * 4 + c] = v;
         }
         break;
       }
       case SVG_FECOMPONENTTRANSFER_TYPE_LINEAR: {
-        float slope = aAttributes.mValues[c][0] * invScale;
+        float step = aAttributes.mValues[c][0] / (float)(stops - 1);
         float intercept = aAttributes.mValues[c][1];
         for (size_t i = 0; i < stops; i++) {
-          float v = (float)i * slope + intercept;
+          float v = (float)i * step + intercept;
           v = mozilla::clamped(v, 0.0f, 1.0f);
           values[i * 4 + c] = v;
         }
@@ -751,9 +749,10 @@ static WrFiltersStatus WrFilterOpSVGFEComponentTransfer(
       }
       case SVG_FECOMPONENTTRANSFER_TYPE_TABLE: {
         size_t length1 = (size_t)aAttributes.mValues[c].Length() - 1;
+        float step = (float)length1 / (float)(stops - 1);
         for (size_t i = 0; i < stops; i++) {
           // Find the corresponding color in the table and interpolate
-          float kf = (float)i * invScale * (float)length1;
+          float kf = (float)i * step;
           float floorkf = floor(kf);
           size_t k = (size_t)floorkf;
           float v1 = aAttributes.mValues[c][k];

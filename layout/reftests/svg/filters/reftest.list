@@ -28,6 +28,7 @@ fuzzy(0-2,0-1000000) == feColorMatrix-2.svg feColorMatrix-2-ref.svg
 
 == feComponentTransfer-1.svg feComponentTransfer-1-ref.svg
 == feComponentTransfer-2.svg feComponentTransfer-2-ref.svg
+fuzzy(0-1,0-375) == feComponentTransfer-discrete.svg feComponentTransfer-discrete-ref.svg
 
 fuzzy(0-2,0-1000000) == feComposite-1.svg feComposite-1-ref.svg
 fuzzy(0-2,0-1000000) == feComposite-2.svg feComposite-2-ref.svg
