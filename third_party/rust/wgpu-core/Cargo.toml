@@ -84,7 +84,7 @@ path = "../naga"
 version = "1.19.0"
 
 [dependencies.parking_lot]
-version = ">=0.11, <0.13"
+version = "0.12.1"
 
 [dependencies.profiling]
 version = "1"
