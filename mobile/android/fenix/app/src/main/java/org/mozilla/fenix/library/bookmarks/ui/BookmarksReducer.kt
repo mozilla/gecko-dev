@@ -34,6 +34,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     AddFolderAction.ParentFolderClicked,
     SearchClicked,
     AddFolderClicked,
+    SignIntoSyncClicked,
     Init,
     -> state
 }

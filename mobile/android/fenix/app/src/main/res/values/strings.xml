@@ -1238,6 +1238,16 @@
     <string name ="bookmark_search_button_content_description">Search bookmarks</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name ="bookmark_item_menu_button_content_description">Item Menu for %s</string>
+    <!-- Title for the bookmark list empty state-->
+    <string name ="bookmark_empty_list_title">No bookmarks yet</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name ="bookmark_empty_list_guest_description">Save sites as you browse. Sign in to grab bookmarks from other synced devices.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name ="bookmark_empty_list_guest_cta">Sign in to sync</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name ="bookmark_empty_list_authenticated_description">Save sites as you browse. We’ll also grab bookmarks from other synced devices.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name ="bookmark_empty_list_folder_description">Add bookmarks as you browse so you can find your favorite sites later.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
