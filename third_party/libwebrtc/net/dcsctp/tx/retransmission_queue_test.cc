@@ -1405,66 +1405,6 @@ TEST_F(RetransmissionQueueTest, CwndRecoversWhenAcking) {
   EXPECT_EQ(queue.cwnd(), kCwnd + serialized_size);
 }
 
-// Verifies that it doesn't produce tiny packets, when getting close to
-// the full congestion window.
-TEST_F(RetransmissionQueueTest, OnlySendsLargePacketsOnLargeCongestionWindow) {
-  RetransmissionQueue queue = CreateQueue();
-  size_t intial_cwnd = options_.avoid_fragmentation_cwnd_mtus * options_.mtu;
-  queue.set_cwnd(intial_cwnd);
-  EXPECT_EQ(queue.cwnd(), intial_cwnd);
-
-  // Fill the congestion window almost - leaving 500 bytes.
-  size_t chunk_size = intial_cwnd - 500;
-  EXPECT_CALL(producer_, Produce)
-      .WillOnce([chunk_size, this](Timestamp, size_t) {
-        return SendQueue::DataToSend(
-            OutgoingMessageId(0),
-            gen_.Ordered(std::vector<uint8_t>(chunk_size), "BE"));
-      })
-      .WillRepeatedly([](Timestamp, size_t) { return absl::nullopt; });
-
-  EXPECT_TRUE(queue.can_send_data());
-  std::vector<std::pair<TSN, Data>> chunks_to_send =
-      queue.GetChunksToSend(now_, 10000);
-  EXPECT_THAT(chunks_to_send, ElementsAre(Pair(TSN(10), _)));
-
-  // To little space left - will not send more.
-  EXPECT_FALSE(queue.can_send_data());
-
-  // But when the first chunk is acked, it will continue.
-  queue.HandleSack(now_, SackChunk(TSN(10), kArwnd, {}, {}));
-
-  EXPECT_TRUE(queue.can_send_data());
-  EXPECT_EQ(queue.unacked_bytes(), 0u);
-  EXPECT_EQ(queue.cwnd(), intial_cwnd + kMaxMtu);
-}
-
-TEST_F(RetransmissionQueueTest, AllowsSmallFragmentsOnSmallCongestionWindow) {
-  RetransmissionQueue queue = CreateQueue();
-  size_t intial_cwnd =
-      options_.avoid_fragmentation_cwnd_mtus * options_.mtu - 1;
-  queue.set_cwnd(intial_cwnd);
-  EXPECT_EQ(queue.cwnd(), intial_cwnd);
-
-  // Fill the congestion window almost - leaving 500 bytes.
-  size_t chunk_size = intial_cwnd - 500;
-  EXPECT_CALL(producer_, Produce)
-      .WillOnce([chunk_size, this](Timestamp, size_t) {
-        return SendQueue::DataToSend(
-            OutgoingMessageId(0),
-            gen_.Ordered(std::vector<uint8_t>(chunk_size), "BE"));
-      })
-      .WillRepeatedly([](Timestamp, size_t) { return absl::nullopt; });
-
-  EXPECT_TRUE(queue.can_send_data());
-  std::vector<std::pair<TSN, Data>> chunks_to_send =
-      queue.GetChunksToSend(now_, 10000);
-  EXPECT_THAT(chunks_to_send, ElementsAre(Pair(TSN(10), _)));
-
-  // With congestion window under limit, allow small packets to be created.
-  EXPECT_TRUE(queue.can_send_data());
-}
-
 TEST_F(RetransmissionQueueTest, ReadyForHandoverWhenHasNoOutstandingData) {
   RetransmissionQueue queue = CreateQueue();
   EXPECT_CALL(producer_, Produce)

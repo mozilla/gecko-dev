@@ -46,9 +46,6 @@ namespace dcsctp {
 namespace {
 using ::webrtc::TimeDelta;
 using ::webrtc::Timestamp;
-
-// Allow sending only slightly less than an MTU, to account for headers.
-constexpr float kMinBytesRequiredToSendFactor = 0.9;
 }  // namespace
 
 RetransmissionQueue::RetransmissionQueue(
@@ -65,7 +62,6 @@ RetransmissionQueue::RetransmissionQueue(
     bool use_message_interleaving)
     : callbacks_(*callbacks),
       options_(options),
-      min_bytes_required_to_send_(options.mtu * kMinBytesRequiredToSendFactor),
       partial_reliability_(supports_partial_reliability),
       log_prefix_(log_prefix),
       data_chunk_header_size_(use_message_interleaving
@@ -532,11 +528,6 @@ std::vector<std::pair<TSN, Data>> RetransmissionQueue::GetChunksToSend(
   }
   RTC_DCHECK(IsConsistent());
   return to_be_sent;
-}
-
-bool RetransmissionQueue::can_send_data() const {
-  return cwnd_ < options_.avoid_fragmentation_cwnd_mtus * options_.mtu ||
-         max_bytes_to_send() >= min_bytes_required_to_send_;
 }
 
 bool RetransmissionQueue::ShouldSendForwardTsn(Timestamp now) {

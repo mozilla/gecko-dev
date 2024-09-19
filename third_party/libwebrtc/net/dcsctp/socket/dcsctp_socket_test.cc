@@ -2141,55 +2141,6 @@ TEST_P(DcSctpSocketParametrizedTest, DoesntSendMoreThanMaxBurstPackets) {
   MaybeHandoverSocketAndSendMessage(a, std::move(z));
 }
 
-TEST_P(DcSctpSocketParametrizedTest, SendsOnlyLargePackets) {
-  SocketUnderTest a("A");
-  auto z = std::make_unique<SocketUnderTest>("Z");
-
-  ConnectSockets(a, *z);
-  z = MaybeHandoverSocket(std::move(z));
-
-  // A really large message, to ensure that the congestion window is often full.
-  constexpr size_t kMessageSize = 100000;
-  a.socket.Send(
-      DcSctpMessage(StreamID(1), PPID(53), std::vector<uint8_t>(kMessageSize)),
-      kSendOptions);
-
-  bool delivered_packet = false;
-  std::vector<size_t> data_packet_sizes;
-  do {
-    delivered_packet = false;
-    std::vector<uint8_t> packet_from_a = a.cb.ConsumeSentPacket();
-    if (!packet_from_a.empty()) {
-      data_packet_sizes.push_back(packet_from_a.size());
-      delivered_packet = true;
-      z->socket.ReceivePacket(std::move(packet_from_a));
-    }
-    std::vector<uint8_t> packet_from_z = z->cb.ConsumeSentPacket();
-    if (!packet_from_z.empty()) {
-      delivered_packet = true;
-      a.socket.ReceivePacket(std::move(packet_from_z));
-    }
-  } while (delivered_packet);
-
-  size_t packet_payload_bytes =
-      a.options.mtu - SctpPacket::kHeaderSize - DataChunk::kHeaderSize;
-  // +1 accounts for padding, and rounding up.
-  size_t expected_packets =
-      (kMessageSize + packet_payload_bytes - 1) / packet_payload_bytes + 1;
-  EXPECT_THAT(data_packet_sizes, SizeIs(expected_packets));
-
-  // Remove the last size - it will be the remainder. But all other sizes should
-  // be large.
-  data_packet_sizes.pop_back();
-
-  for (size_t size : data_packet_sizes) {
-    // The 4 is for padding/alignment.
-    EXPECT_GE(size, a.options.mtu - 4);
-  }
-
-  MaybeHandoverSocketAndSendMessage(a, std::move(z));
-}
-
 TEST(DcSctpSocketTest, SendMessagesAfterHandover) {
   SocketUnderTest a("A");
   auto z = std::make_unique<SocketUnderTest>("Z");
@@ -2883,20 +2834,6 @@ TEST(DcSctpSocketTest, ResetStreamsDeferred) {
                                  ReconfigurationResponseParameter::Result::
                                      kSuccessPerformed))))))));
   a.socket.ReceivePacket(reconfig3);
-
-  EXPECT_THAT(
-      data1,
-      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(0))))));
-  EXPECT_THAT(
-      data2,
-      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(0))))));
-  EXPECT_THAT(
-      data3,
-      HasChunks(ElementsAre(IsDataChunk(Property(&DataChunk::ssn, SSN(1))))));
-  EXPECT_THAT(reconfig, HasChunks(ElementsAre(IsReConfig(HasParameters(
-                            ElementsAre(IsOutgoingResetRequest(Property(
-                                &OutgoingSSNResetRequestParameter::stream_ids,
-                                ElementsAre(StreamID(1))))))))));
 
   // Send a new message after the stream has been reset.
   a.socket.Send(DcSctpMessage(StreamID(1), PPID(55),
