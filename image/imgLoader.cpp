@@ -837,6 +837,10 @@ static void AdjustPriorityForImages(nsIChannel* aChannel,
 
     supportsPriority->AdjustPriority(priority);
   }
+
+  if (nsCOMPtr<nsIClassOfService> cos = do_QueryInterface(aChannel)) {
+    cos->SetFetchPriorityDOM(aFetchPriority);
+  }
 }
 
 static nsresult NewImageChannel(
