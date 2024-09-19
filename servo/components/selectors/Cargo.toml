@@ -26,10 +26,10 @@ fxhash = "0.2"
 log = "0.4"
 phf = "0.11"
 precomputed-hash = "0.1"
-servo_arc = { version = "0.1", path = "../servo_arc" }
+servo_arc = { version = "0.4", path = "../servo_arc" }
 smallvec = "1.0"
-to_shmem = { path = "../to_shmem", features = ["servo_arc"], optional = true }
-to_shmem_derive = { path = "../to_shmem_derive", optional = true }
+to_shmem = { version = "0.1", path = "../to_shmem", features = ["servo_arc"], optional = true }
+to_shmem_derive = { version = "0.1", path = "../to_shmem_derive", optional = true }
 new_debug_unreachable = "1"
 
 [build-dependencies]
