@@ -91,6 +91,7 @@
   MACRO_(close, "close")                                                       \
   MACRO_(collation, "collation")                                               \
   MACRO_(collections, "collections")                                           \
+  MACRO_(column, "column")                                                     \
   MACRO_(columnNumber, "columnNumber")                                         \
   MACRO1(comma_, ",")                                                          \
   MACRO_(compact, "compact")                                                   \

@@ -26,6 +26,7 @@ var gjw = gw.makeDebuggeeValue(g.j);
 // actors/source.js uses {start: ..., end:...} for the query
 // {url:scriptName, start:{ line: 3, column: 0}, end:{line: 3, column: Infinity}}
 // NOTE: 'start.line' and 'end.line' are 1-origin, like 'line'
+// NOTE: 'start.column' and 'end.column' are 1-origin
 
 // 'start' correct types
 assertThrowsTypeError({url:scriptname, start:3, end: {line: 8}});
@@ -86,3 +87,58 @@ assertNotFound({url:scriptname, start: {line: 10}, end: {line: 11}}, ghw.script)
 
 // A line range outside a non-nested function does not select that function.
 assertNotFound({url:scriptname, start: {line: 7}, end: {line: 8}}, ggw.script);
+
+// columns
+
+// 'start.column' correct types
+assertThrowsTypeError({url:scriptname, start: {line: 6, column: "hi"}, end: {line: 10}});
+assertThrowsTypeError({url:scriptname, start: {line: 6, column: {}}, end: {line: 10}});
+// 'start.column' correct range
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6, column: .34}, end: {line: 10}}), RangeError);
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6, column: -11}, end: {line: 10}}), RangeError);
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6, column: 0}, end: {line: 10}}), RangeError);
+ // Columns are limited to 31 bits; see JS::ColumnNumberOneOriginLimit
+const COLUMN_LIMIT = Math.pow(2,31) / 2 - 1;
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6, column: COLUMN_LIMIT + 1}, end: {line: 10}}), RangeError);
+assertFound({url:scriptname, start: {line: 6, column: COLUMN_LIMIT}, end: {line: 10}}, gfw.script);
+// 'end.column' correct types
+assertThrowsTypeError({url:scriptname, start: {line: 6}, end: {line: 10, column: "hi"}});
+assertThrowsTypeError({url:scriptname, start: {line: 6}, end: {line: 10, column: {}}});
+// 'end.column' correct range
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6}, end: {line: 10, column: .34}}), RangeError);
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6}, end: {line: 10, column: -11}}), RangeError);
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6}, end: {line: 10, column: 0}}), RangeError);
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 6}, end: {line: 10, column: COLUMN_LIMIT + 1}}), RangeError);
+assertFound({url:scriptname, start: {line: 6}, end: {line: 10, column: COLUMN_LIMIT}}, gfw.script);
+
+// we can't easily get the script's end column, so we only consider
+// 'start.column' for single line functions
+assertFound({url:scriptname, start: {line: 19, column: 10}, end: {line: 20}}, gjw.script);
+assertFound({url:scriptname, start: {line: 19, column: 11}, end: {line: 20}}, gjw.script);
+assertFound({url:scriptname, start: {line: 19, column: 24}, end: {line: 20}}, gjw.script);
+assertFound({url:scriptname, start: {line: 19, column: 34}, end: {line: 20}}, gjw.script);
+
+assertFound({url:scriptname, start: {line: 20, column: 10}, end: {line: 20}}, gjw.script);
+assertFound({url:scriptname, start: {line: 20, column: 11}, end: {line: 20}}, gjw.script);
+assertFound({url:scriptname, start: {line: 20, column: 24}, end: {line: 20}}, gjw.script);
+// 'start.column' is past the end of the function
+assertNotFound({url:scriptname, start: {line: 20, column: 34}, end: {line: 20}}, gjw.script);
+
+assertFound({url:scriptname, start: {line: 20, column: 10}, end: {line: 21}}, gjw.script);
+assertFound({url:scriptname, start: {line: 20, column: 11}, end: {line: 21}}, gjw.script);
+assertFound({url:scriptname, start: {line: 20, column: 24}, end: {line: 21}}, gjw.script);
+
+// 'end.column' only considered when script.startLine == endLine
+assertFound({url:scriptname, start: {line: 6}, end: {line: 10, column: 5}}, gfw.script);
+assertFound({url:scriptname, start: {line: 7}, end: {line: 10, column: 5}}, gfw.script);
+assertFound({url:scriptname, start: {line: 6}, end: {line: 7, column: 11}}, gfw.script);
+assertNotFound({url:scriptname, start: {line: 6}, end: {line: 7, column: 5}}, gfw.script);
+assertNotFound({url:scriptname, start: {line: 19}, end: {line: 20, column: 10}}, gjw.script);
+assertFound({url:scriptname, start: {line: 19}, end: {line: 20, column: 11}}, gjw.script);
+
+// both 'start.column' and 'end.column'
+assertFound({url:scriptname, start: {line: 20, column: 11}, end: {line: 20, column: 23}}, gjw.script);
+assertNotFound({url:scriptname, start: {line: 20, column: 1}, end: {line: 20, column: 10}}, gjw.script);
+assertNotFound({url:scriptname, start: {line: 20, column: 34}, end: {line: 20, column: 35}}, gjw.script);
+// 'start.column' > 'end.column'
+assertNotFound({url:scriptname, start: {line: 20, column: 7}, end: {line: 20, column: 5}}, gfw.script);

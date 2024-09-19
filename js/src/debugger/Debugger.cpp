@@ -5443,6 +5443,33 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
       }
       hasLine = true;
       line = uintLine;
+
+      RootedValue startColumnProp(cx);
+      if (!GetProperty(cx, startObject, startObject, cx->names().column,
+                       &startColumnProp)) {
+        return false;
+      }
+      if (!startColumnProp.isUndefined()) {
+        if (!startColumnProp.isNumber()) {
+          JS_ReportErrorNumberASCII(
+              cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+              "query object's 'start.column' property", "not a number");
+          return false;
+        }
+        double doubleColumn = startColumnProp.toNumber();
+        uint32_t uintColumn = (uint32_t)doubleColumn;
+        if (doubleColumn <= 0 || uintColumn != doubleColumn) {
+          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                    JSMSG_BAD_COLUMN_NUMBER);
+          return false;
+        }
+        if (uintColumn > JS::LimitedColumnNumberOneOrigin::Limit) {
+          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                    JSMSG_BAD_COLUMN_NUMBER);
+          return false;
+        }
+        columnStart.emplace(JS::LimitedColumnNumberOneOrigin(uintColumn));
+      }
     } else if (!startProperty.isUndefined()) {
       JS_ReportErrorNumberASCII(
           cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
@@ -5476,6 +5503,33 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
         return false;
       }
       lineEnd = uintLine;
+
+      RootedValue endColumnProp(cx);
+      if (!GetProperty(cx, endObject, endObject, cx->names().column,
+                       &endColumnProp)) {
+        return false;
+      }
+      if (!endColumnProp.isUndefined()) {
+        if (!endColumnProp.isNumber()) {
+          JS_ReportErrorNumberASCII(
+              cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
+              "query object's 'end.column' property", "not a number");
+          return false;
+        }
+        double doubleColumn = endColumnProp.toNumber();
+        uint32_t uintColumn = (uint32_t)doubleColumn;
+        if (doubleColumn <= 0 || uintColumn != doubleColumn) {
+          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                    JSMSG_BAD_COLUMN_NUMBER);
+          return false;
+        }
+        if (uintColumn > JS::LimitedColumnNumberOneOrigin::Limit) {
+          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                    JSMSG_BAD_COLUMN_NUMBER);
+          return false;
+        }
+        columnEnd.emplace(JS::LimitedColumnNumberOneOrigin(uintColumn));
+      }
     } else if (!endProperty.isUndefined()) {
       JS_ReportErrorNumberASCII(
           cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
@@ -5718,6 +5772,10 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
    * the target line range or it will be filtered out by the query. */
   uint32_t lineEnd = LINE_CONSTRAINT_NOT_PROVIDED;
 
+  Maybe<JS::LimitedColumnNumberOneOrigin> columnStart;
+
+  Maybe<JS::LimitedColumnNumberOneOrigin> columnEnd;
+
   // As a performance optimization (and to avoid delazifying as many scripts),
   // we would like to know the source offset of the target range start line.
   //
@@ -5807,6 +5865,10 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
     if (extent.lineno > lineEnd) {
       return false;
     }
+    if (columnEnd.isSome() && script->lineno() == lineEnd &&
+        script->column() > columnEnd.value()) {
+      return false;
+    }
 
     // Use the implicit (line, column) <-> sourceStart mapping from the
     // SourceExtent to update our bounds on possible matches. We call this
@@ -5823,6 +5885,14 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
     MOZ_ASSERT(scriptIsPartialLineMatch(script));
 
     uint32_t lineCount = GetScriptLineExtent(script);
+    if (lineCount == 1 && script->lineno() == line && columnStart.isSome()) {
+      JS::LimitedColumnNumberOneOrigin lastScriptColumn =
+          script->column() +
+          JS::ColumnNumberUnsignedOffset(script->sourceLength());
+      if (lastScriptColumn <= columnStart.value()) {
+        return false;
+      }
+    }
     return (script->lineno() + lineCount > line);
   }
 
