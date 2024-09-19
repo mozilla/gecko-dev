@@ -275,7 +275,7 @@ interface BrowsingContext {
   readonly attribute ChildSHistory? childSessionHistory;
 
   // Resets the location change rate limit. Used for testing.
-  undefined resetLocationChangeRateLimit();
+  undefined resetNavigationRateLimit();
 
   readonly attribute long childOffset;
 };
