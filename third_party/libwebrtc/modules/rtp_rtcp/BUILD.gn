@@ -523,6 +523,21 @@ rtc_library("rtp_packetizer_av1_test_helper") {
   ]
 }
 
+rtc_library("corruption_detection_extension") {
+  visibility = [ "*" ]
+  sources = [
+    "source/corruption_detection_extension.cc",
+    "source/corruption_detection_extension.h",
+  ]
+  deps = [
+    ":rtp_rtcp_format",
+    "../../api:array_view",
+    "../../common_video:common_video",
+    "//third_party/abseil-cpp/absl/container:inlined_vector",
+    "//third_party/abseil-cpp/absl/strings:string_view",
+  ]
+}
+
 if (rtc_include_tests) {
   if (!build_with_chromium) {
     rtc_executable("test_packet_masks_metrics") {
@@ -652,6 +667,7 @@ if (rtc_include_tests) {
     }
 
     deps = [
+      ":corruption_detection_extension_unittest",
       ":fec_test_helper",
       ":frame_transformer_factory_unittest",
       ":leb128",
@@ -750,6 +766,17 @@ if (rtc_include_tests) {
       "../../test:test_support",
       "../../video",
       "//third_party/abseil-cpp/absl/memory",
+    ]
+  }
+
+  rtc_library("corruption_detection_extension_unittest") {
+    testonly = true
+    sources = [ "source/corruption_detection_extension_unittest.cc" ]
+    deps = [
+      ":corruption_detection_extension",
+      "../../common_video:common_video",
+      "../../test:test_support",
+      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 }
