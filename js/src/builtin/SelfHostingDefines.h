@@ -128,7 +128,6 @@
 
 #define ASYNC_ITERATOR_HELPER_GENERATOR_SLOT 0
 
-
 // For explicit resource management.
 #define USING_HINT_SYNC 0
 #define USING_HINT_ASYNC 1
