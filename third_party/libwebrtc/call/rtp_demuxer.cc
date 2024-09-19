@@ -40,25 +40,14 @@ size_t RemoveFromMapByValue(Map* map, const Value& value) {
   return EraseIf(*map, [&](const auto& elem) { return elem.second == value; });
 }
 
-// Temp fix: MID in SDP is allowed to be slightly longer than what's allowed
-// in the RTP demuxer. Truncate if needed; this won't match, but it only
-// makes sense in places that wouldn't use this for matching anyway.
-// TODO(bugs.webrtc.org/12517): remove when length 16 is policed by parser.
-std::string CheckMidLength(absl::string_view mid) {
-  std::string new_mid(mid);
-  if (new_mid.length() > BaseRtpStringExtension::kMaxValueSizeBytes) {
-    RTC_LOG(LS_WARNING) << "`mid` attribute too long. Truncating.";
-    new_mid.resize(BaseRtpStringExtension::kMaxValueSizeBytes);
-  }
-  return new_mid;
-}
-
 }  // namespace
 
 RtpDemuxerCriteria::RtpDemuxerCriteria(
     absl::string_view mid,
     absl::string_view rsid /*= absl::string_view()*/)
-    : mid_(CheckMidLength(mid)), rsid_(rsid) {}
+    : mid_(mid), rsid_(rsid) {
+  RTC_DCHECK(mid.length() <= BaseRtpStringExtension::kMaxValueSizeBytes);
+}
 
 RtpDemuxerCriteria::RtpDemuxerCriteria() = default;
 RtpDemuxerCriteria::~RtpDemuxerCriteria() = default;
