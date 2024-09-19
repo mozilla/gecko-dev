@@ -20,6 +20,21 @@ rtc_library("generic_mapping_functions") {
   ]
 }
 
+rtc_library("halton_frame_sampler") {
+  sources = [
+    "halton_frame_sampler.cc",
+    "halton_frame_sampler.h",
+  ]
+  deps = [
+    ":halton_sequence",
+    "../../api:scoped_refptr",
+    "../../api/video:video_frame",
+    "../../rtc_base:checks",
+    "../../rtc_base:logging",
+    "//third_party/abseil-cpp/absl/types:optional",
+  ]
+}
+
 rtc_library("halton_sequence") {
   sources = [
     "halton_sequence.cc",
@@ -35,7 +50,18 @@ if (rtc_include_tests) {
     deps = [
       ":generic_mapping_functions",
       "../../api/video:video_frame",
-      "../../test/:test_support",
+      "../../test:test_support",
+    ]
+  }
+
+  rtc_library("halton_frame_sampler_unittest") {
+    testonly = true
+    sources = [ "halton_frame_sampler_unittest.cc" ]
+    deps = [
+      ":halton_frame_sampler",
+      "../../api:scoped_refptr",
+      "../../api/video:video_frame",
+      "../../test:test_support",
     ]
   }
 
@@ -44,7 +70,7 @@ if (rtc_include_tests) {
     sources = [ "halton_sequence_unittest.cc" ]
     deps = [
       ":halton_sequence",
-      "../../test/:test_support",
+      "../../test:test_support",
     ]
   }
 
@@ -53,6 +79,7 @@ if (rtc_include_tests) {
     sources = []
     deps = [
       ":generic_mapping_functions_unittest",
+      ":halton_frame_sampler_unittest",
       ":halton_sequence_unittest",
     ]
   }
