@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/CSSStyleRule.h"
+#include "mozilla/dom/CSSStyleRuleBinding.h"
 
 #include "mozilla/CSSEnabledState.h"
 #include "mozilla/DeclarationBlock.h"
@@ -13,7 +14,6 @@
 #include "mozilla/dom/ShadowRoot.h"
 #include "nsCSSPseudoElements.h"
 
-#include "mozAutoDocUpdate.h"
 #include "nsISupports.h"
 
 namespace mozilla::dom {
@@ -66,6 +66,14 @@ DeclarationBlock* CSSStyleRuleDeclaration::GetOrCreateCSSDeclaration(
   return mDecls;
 }
 
+void CSSStyleRuleDeclaration::SetRawAfterClone(
+    RefPtr<StyleLockedDeclarationBlock> aRaw) {
+  auto block = MakeRefPtr<DeclarationBlock>(aRaw.forget());
+  mDecls->SetOwningRule(nullptr);
+  mDecls = std::move(block);
+  mDecls->SetOwningRule(Rule());
+}
+
 void CSSStyleRule::SetRawAfterClone(RefPtr<StyleLockedStyleRule> aRaw) {
   mRawRule = std::move(aRaw);
   mDecls.SetRawAfterClone(Servo_StyleRule_GetStyle(mRawRule).Consume());
@@ -74,14 +82,6 @@ void CSSStyleRule::SetRawAfterClone(RefPtr<StyleLockedStyleRule> aRaw) {
 
 already_AddRefed<StyleLockedCssRules> CSSStyleRule::GetOrCreateRawRules() {
   return Servo_StyleRule_EnsureRules(mRawRule, IsReadOnly()).Consume();
-}
-
-void CSSStyleRuleDeclaration::SetRawAfterClone(
-    RefPtr<StyleLockedDeclarationBlock> aRaw) {
-  auto block = MakeRefPtr<DeclarationBlock>(aRaw.forget());
-  mDecls->SetOwningRule(nullptr);
-  mDecls = std::move(block);
-  mDecls->SetOwningRule(Rule());
 }
 
 nsresult CSSStyleRuleDeclaration::SetCSSDeclaration(
@@ -102,8 +102,7 @@ nsresult CSSStyleRuleDeclaration::SetCSSDeclaration(
 }
 
 nsDOMCSSDeclaration::ParsingEnvironment
-CSSStyleRuleDeclaration::GetParsingEnvironment(
-    nsIPrincipal* aSubjectPrincipal) const {
+CSSStyleRuleDeclaration::GetParsingEnvironment(nsIPrincipal*) const {
   return GetParsingEnvironmentForRule(Rule(), StyleCssRuleType::Style);
 }
 
@@ -179,8 +178,6 @@ StyleCssRuleType CSSStyleRule::Type() const { return StyleCssRuleType::Style; }
 void CSSStyleRule::GetCssText(nsACString& aCssText) const {
   Servo_StyleRule_GetCssText(mRawRule, &aCssText);
 }
-
-nsICSSDeclaration* CSSStyleRule::Style() { return &mDecls; }
 
 /* CSSStyleRule implementation */
 
@@ -284,10 +281,6 @@ bool CSSStyleRule::SelectorMatchesElement(uint32_t aSelectorIndex,
   return Servo_StyleRule_SelectorMatchesElement(
       &rules, &aElement, aSelectorIndex, host, *pseudoType,
       aRelevantLinkVisited);
-}
-
-NotNull<DeclarationBlock*> CSSStyleRule::GetDeclarationBlock() const {
-  return WrapNotNull(mDecls.mDecls);
 }
 
 SelectorWarningKind ToWebIDLSelectorWarningKind(

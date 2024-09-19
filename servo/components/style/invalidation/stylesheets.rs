@@ -597,6 +597,9 @@ impl StylesheetInvalidationSet {
                     }
                 }
             },
+            NestedDeclarations(..) => {
+                // Our containing style rule would handle invalidation for us.
+            },
             Namespace(..) => {
                 // It's not clear what handling changes for this correctly would
                 // look like.

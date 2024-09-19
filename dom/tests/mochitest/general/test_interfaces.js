@@ -325,6 +325,8 @@ let interfaceNamesInGlobalScope = [
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSNamespaceRule", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
+  { name: "CSSNestedDeclarations", insecureContext: true },
+  // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSPageDescriptors", insecureContext: true },
   // IMPORTANT: Do not change this list without review from a DOM peer!
   { name: "CSSPageRule", insecureContext: true },

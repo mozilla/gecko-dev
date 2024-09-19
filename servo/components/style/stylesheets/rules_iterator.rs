@@ -71,6 +71,7 @@ where
             CssRule::LayerStatement(_) |
             CssRule::FontFeatureValues(_) |
             CssRule::FontPaletteValues(_) |
+            CssRule::NestedDeclarations(_) |
             CssRule::PositionTry(_) => None,
             CssRule::Page(ref page_rule) => {
                 let page_rule = page_rule.read_with(guard);

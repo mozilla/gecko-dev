@@ -37,7 +37,7 @@ use style::font_face::{self, FontFaceSourceFormat, FontFaceSourceListComponent, 
 use style::gecko::arc_types::{
     LockedCounterStyleRule, LockedCssRules, LockedDeclarationBlock, LockedFontFaceRule,
     LockedImportRule, LockedKeyframe, LockedKeyframesRule, LockedMediaList, LockedPageRule,
-    LockedPositionTryRule, LockedStyleRule,
+    LockedPositionTryRule, LockedNestedDeclarationsRule, LockedStyleRule,
 };
 use style::gecko::data::{
     AuthorStyles, GeckoStyleSheet, PerDocumentStyleData, PerDocumentStyleDataImpl,
@@ -135,10 +135,10 @@ use style::stylesheets::{
     AllowImportRules, ContainerRule, CounterStyleRule, CssRule, CssRuleType, CssRuleTypes,
     CssRules, CssRulesHelpers, DocumentRule, FontFaceRule, FontFeatureValuesRule,
     FontPaletteValuesRule, ImportRule, KeyframesRule, LayerBlockRule, LayerStatementRule,
-    MarginRule, MediaRule, NamespaceRule, Origin, OriginSet, PagePseudoClassFlags, PageRule,
-    PositionTryRule, PropertyRule, SanitizationData, SanitizationKind, ScopeRule,
-    StartingStyleRule, StyleRule, StylesheetContents, StylesheetLoader as StyleStylesheetLoader,
-    SupportsRule, UrlExtraData,
+    MarginRule, MediaRule, NamespaceRule, NestedDeclarationsRule, Origin, OriginSet,
+    PagePseudoClassFlags, PageRule, PositionTryRule, PropertyRule, SanitizationData,
+    SanitizationKind, ScopeRule, StartingStyleRule, StyleRule, StylesheetContents,
+    StylesheetLoader as StyleStylesheetLoader, SupportsRule, UrlExtraData,
 };
 use style::stylist::{add_size_of_ua_cache, AuthorStylesEnabled, RuleInclusion, Stylist};
 use style::thread_state;
@@ -2583,6 +2583,30 @@ impl_basic_rule_funcs! { (PositionTry, PositionTryRule, Locked<PositionTryRule>)
     debug: Servo_PositionTryRule_Debug,
     to_css: Servo_PositionTryRule_GetCssText,
     changed: Servo_StyleSet_PositionTryRuleChanged,
+}
+
+impl_basic_rule_funcs! { (NestedDeclarations, NestedDeclarationsRule, Locked<NestedDeclarationsRule>),
+    getter: Servo_CssRules_GetNestedDeclarationsRuleAt,
+    debug: Servo_NestedDeclarationsRule_Debug,
+    to_css: Servo_NestedDeclarationsRule_GetCssText,
+    changed: Servo_StyleSet_NestedDeclarationsRuleChanged,
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_NestedDeclarationsRule_GetStyle(
+    rule: &LockedNestedDeclarationsRule,
+) -> Strong<LockedDeclarationBlock> {
+    read_locked_arc(rule, |rule: &NestedDeclarationsRule| rule.block.clone().into())
+}
+
+#[no_mangle]
+pub extern "C" fn Servo_NestedDeclarationsRule_SetStyle(
+    rule: &LockedNestedDeclarationsRule,
+    declarations: &LockedDeclarationBlock,
+) {
+    write_locked_arc(rule, |rule: &mut NestedDeclarationsRule| {
+        rule.block = unsafe { Arc::from_raw_addrefed(declarations) };
+    })
 }
 
 #[no_mangle]

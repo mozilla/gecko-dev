@@ -17,7 +17,7 @@ use crate::stylesheets::{
     ContainerRule, CounterStyleRule, CssRules, DocumentRule, FontFaceRule, FontFeatureValuesRule,
     FontPaletteValuesRule, ImportRule, KeyframesRule, LayerBlockRule, LayerStatementRule,
     MarginRule, MediaRule, NamespaceRule, PageRule, PositionTryRule, PropertyRule, ScopeRule,
-    StartingStyleRule, StyleRule, StylesheetContents, SupportsRule,
+    StartingStyleRule, StyleRule, StylesheetContents, SupportsRule, NestedDeclarationsRule,
 };
 use servo_arc::Arc;
 
@@ -187,4 +187,10 @@ impl_locked_arc_ffi!(
     LockedPositionTryRule,
     Servo_PositionTryRule_AddRef,
     Servo_PositionTryRule_Release
+);
+impl_locked_arc_ffi!(
+    NestedDeclarationsRule,
+    LockedNestedDeclarationsRule,
+    Servo_NestedDeclarationsRule_AddRef,
+    Servo_NestedDeclarationsRule_Release
 );

@@ -17,6 +17,7 @@ mod loader;
 mod margin_rule;
 mod media_rule;
 mod namespace_rule;
+mod nested_declarations_rule;
 pub mod origin;
 mod page_rule;
 pub mod position_try_rule;
@@ -35,7 +36,7 @@ use crate::gecko_bindings::sugar::refptr::RefCounted;
 #[cfg(feature = "gecko")]
 use crate::gecko_bindings::{bindings, structs};
 use crate::parser::{NestingContext, ParserContext};
-use crate::properties::PropertyDeclarationBlock;
+use crate::properties::{parse_property_declaration_list, PropertyDeclarationBlock};
 use crate::shared_lock::{DeepCloneWithLock, Locked};
 use crate::shared_lock::{SharedRwLock, SharedRwLockReadGuard, ToCssWithGuard};
 use crate::str::CssStringWriter;
@@ -63,6 +64,7 @@ pub use self::loader::StylesheetLoader;
 pub use self::margin_rule::{MarginRule, MarginRuleType};
 pub use self::media_rule::MediaRule;
 pub use self::namespace_rule::NamespaceRule;
+pub use self::nested_declarations_rule::NestedDeclarationsRule;
 pub use self::origin::{Origin, OriginSet, OriginSetIterator, PerOrigin, PerOriginIter};
 pub use self::page_rule::{PagePseudoClassFlags, PageRule, PageSelector, PageSelectors};
 pub use self::position_try_rule::PositionTryRule;
@@ -346,6 +348,7 @@ pub enum CssRule {
     Scope(Arc<ScopeRule>),
     StartingStyle(Arc<StartingStyleRule>),
     PositionTry(Arc<Locked<PositionTryRule>>),
+    NestedDeclarations(Arc<Locked<NestedDeclarationsRule>>),
 }
 
 impl CssRule {
@@ -401,6 +404,9 @@ impl CssRule {
             CssRule::PositionTry(ref lock) => {
                 lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
             },
+            CssRule::NestedDeclarations(ref lock) => {
+                lock.unconditional_shallow_size_of(ops) + lock.read_with(guard).size_of(guard, ops)
+            },
         }
     }
 }
@@ -444,6 +450,8 @@ pub enum CssRuleType {
     StartingStyle = 22,
     // https://drafts.csswg.org/css-anchor-position-1/#om-position-try
     PositionTry = 23,
+    // https://drafts.csswg.org/css-nesting-1/#nested-declarations-rule
+    NestedDeclarations = 24,
 }
 
 impl CssRuleType {
@@ -537,14 +545,13 @@ impl CssRule {
             CssRule::Scope(_) => CssRuleType::Scope,
             CssRule::StartingStyle(_) => CssRuleType::StartingStyle,
             CssRule::PositionTry(_) => CssRuleType::PositionTry,
+            CssRule::NestedDeclarations(_) => CssRuleType::NestedDeclarations,
         }
     }
 
     /// Parse a CSS rule.
     ///
-    /// Returns a parsed CSS rule and the final state of the parser.
-    ///
-    /// Input state is None for a nested rule
+    /// This mostly implements steps 3..7 of https://drafts.csswg.org/cssom/#insert-a-css-rule
     pub fn parse(
         css: &str,
         insert_rule_context: InsertRuleContext,
@@ -584,7 +591,7 @@ impl CssRule {
         let mut input = Parser::new(&mut input);
 
         // nested rules are in the body state
-        let mut rule_parser = TopLevelRuleParser {
+        let mut parser = TopLevelRuleParser {
             context,
             shared_lock: &shared_lock,
             loader,
@@ -593,37 +600,43 @@ impl CssRule {
             insert_rule_context: Some(insert_rule_context),
             allow_import_rules,
             declaration_parser_state: Default::default(),
+            first_declaration_block: Default::default(),
+            wants_first_declaration_block: false,
             error_reporting_state: Default::default(),
             rules: Default::default(),
         };
 
-        match parse_one_rule(&mut input, &mut rule_parser) {
-            Ok(_) => Ok(rule_parser.rules.pop().unwrap()),
-            Err(_) => Err(rule_parser.dom_error.unwrap_or(RulesMutateError::Syntax)),
+        if input.try_parse(|input| parse_one_rule(input, &mut parser)).is_ok() {
+            return Ok(parser.rules.pop().unwrap());
         }
+
+        let error = parser.dom_error.take().unwrap_or(RulesMutateError::Syntax);
+        // If new rule is a syntax error, and nested is set, perform the following substeps:
+        if matches!(error, RulesMutateError::Syntax) && parser.can_parse_declarations() {
+            let declarations = parse_property_declaration_list(&parser.context, &mut input, &[]);
+            if !declarations.is_empty() {
+                return Ok(CssRule::NestedDeclarations(Arc::new(parser.shared_lock.wrap(NestedDeclarationsRule {
+                    block: Arc::new(parser.shared_lock.wrap(declarations)),
+                    source_location: input.current_source_location(),
+                }))));
+            }
+        }
+        Err(error)
     }
 }
 
 impl DeepCloneWithLock for CssRule {
     /// Deep clones this CssRule.
-    fn deep_clone_with_lock(
-        &self,
-        lock: &SharedRwLock,
-        guard: &SharedRwLockReadGuard,
-    ) -> CssRule {
+    fn deep_clone_with_lock(&self, lock: &SharedRwLock, guard: &SharedRwLockReadGuard) -> CssRule {
         match *self {
             CssRule::Namespace(ref arc) => CssRule::Namespace(arc.clone()),
             CssRule::Import(ref arc) => {
-                let rule = arc
-                    .read_with(guard)
-                    .deep_clone_with_lock(lock, guard);
+                let rule = arc.read_with(guard).deep_clone_with_lock(lock, guard);
                 CssRule::Import(Arc::new(lock.wrap(rule)))
             },
             CssRule::Style(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Style(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard)),
-                ))
+                CssRule::Style(Arc::new(lock.wrap(rule.deep_clone_with_lock(lock, guard))))
             },
             CssRule::Container(ref arc) => {
                 CssRule::Container(Arc::new(arc.deep_clone_with_lock(lock, guard)))
@@ -643,9 +656,7 @@ impl DeepCloneWithLock for CssRule {
             },
             CssRule::Keyframes(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Keyframes(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard)),
-                ))
+                CssRule::Keyframes(Arc::new(lock.wrap(rule.deep_clone_with_lock(lock, guard))))
             },
             CssRule::Margin(ref arc) => {
                 CssRule::Margin(Arc::new(arc.deep_clone_with_lock(lock, guard)))
@@ -655,9 +666,7 @@ impl DeepCloneWithLock for CssRule {
             },
             CssRule::Page(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::Page(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard)),
-                ))
+                CssRule::Page(Arc::new(lock.wrap(rule.deep_clone_with_lock(lock, guard))))
             },
             CssRule::Property(ref arc) => {
                 // @property rules are immutable, so we don't need any of the `Locked`
@@ -679,9 +688,11 @@ impl DeepCloneWithLock for CssRule {
             },
             CssRule::PositionTry(ref arc) => {
                 let rule = arc.read_with(guard);
-                CssRule::PositionTry(Arc::new(
-                    lock.wrap(rule.deep_clone_with_lock(lock, guard)),
-                ))
+                CssRule::PositionTry(Arc::new(lock.wrap(rule.deep_clone_with_lock(lock, guard))))
+            },
+            CssRule::NestedDeclarations(ref arc) => {
+                let decls = arc.read_with(guard);
+                CssRule::NestedDeclarations(Arc::new(lock.wrap(decls.clone())))
             },
         }
     }
@@ -711,6 +722,7 @@ impl ToCssWithGuard for CssRule {
             CssRule::Scope(ref rule) => rule.to_css(guard, dest),
             CssRule::StartingStyle(ref rule) => rule.to_css(guard, dest),
             CssRule::PositionTry(ref lock) => lock.read_with(guard).to_css(guard, dest),
+            CssRule::NestedDeclarations(ref lock) => lock.read_with(guard).to_css(guard, dest),
         }
     }
 }

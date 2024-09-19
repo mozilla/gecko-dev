@@ -9,9 +9,7 @@
 
 #include "mozilla/css/GroupRule.h"
 #include "mozilla/ServoBindingTypes.h"
-#include "mozilla/NotNull.h"
 #include "mozilla/WeakPtr.h"
-#include "mozilla/dom/CSSStyleRuleBinding.h"
 
 #include "nsDOMCSSDeclaration.h"
 
@@ -22,6 +20,7 @@ class DeclarationBlock;
 namespace dom {
 class DocGroup;
 class CSSStyleRule;
+struct SelectorWarning;
 
 class CSSStyleRuleDeclaration final : public nsDOMCSSDeclaration {
  public:
@@ -32,8 +31,8 @@ class CSSStyleRuleDeclaration final : public nsDOMCSSDeclaration {
   nsISupports* GetParentObject() const final;
 
  protected:
-  mozilla::DeclarationBlock* GetOrCreateCSSDeclaration(
-      Operation aOperation, mozilla::DeclarationBlock** aCreated) final;
+  DeclarationBlock* GetOrCreateCSSDeclaration(
+      Operation aOperation, DeclarationBlock** aCreated) final;
   nsresult SetCSSDeclaration(DeclarationBlock* aDecl,
                              MutationClosureData* aClosureData) final;
   ParsingEnvironment GetParsingEnvironment(
@@ -82,7 +81,7 @@ class CSSStyleRule final : public css::GroupRule, public SupportsWeakPtr {
   void GetCssText(nsACString& aCssText) const final;
   void GetSelectorText(nsACString& aSelectorText);
   void SetSelectorText(const nsACString& aSelectorText);
-  nsICSSDeclaration* Style();
+  nsICSSDeclaration* Style() { return &mDecls; }
 
   StyleLockedStyleRule* Raw() const { return mRawRule; }
   void SetRawAfterClone(RefPtr<StyleLockedStyleRule>);

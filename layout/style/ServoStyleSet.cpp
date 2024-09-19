@@ -1020,6 +1020,7 @@ void ServoStyleSet::RuleChangedInternal(StyleSheet& aSheet, css::Rule& aRule,
     CASE_FOR(Scope, Scope)
     CASE_FOR(StartingStyle, StartingStyle)
     CASE_FOR(PositionTry, PositionTry)
+    CASE_FOR(NestedDeclarations, NestedDeclarations)
     // @namespace can only be inserted / removed when there are only other
     // @namespace and @import rules, and can't be mutated.
     case StyleCssRuleType::Namespace:

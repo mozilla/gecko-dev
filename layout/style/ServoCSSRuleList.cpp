@@ -20,6 +20,7 @@
 #include "mozilla/dom/CSSMarginRule.h"
 #include "mozilla/dom/CSSMediaRule.h"
 #include "mozilla/dom/CSSMozDocumentRule.h"
+#include "mozilla/dom/CSSNestedDeclarations.h"
 #include "mozilla/dom/CSSNamespaceRule.h"
 #include "mozilla/dom/CSSPageRule.h"
 #include "mozilla/dom/CSSPropertyRule.h"
@@ -28,7 +29,6 @@
 #include "mozilla/dom/CSSStyleRule.h"
 #include "mozilla/dom/CSSSupportsRule.h"
 #include "mozilla/dom/CSSPositionTryRule.h"
-#include "mozilla/IntegerRange.h"
 #include "mozilla/ServoBindings.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/dom/Document.h"
@@ -106,6 +106,7 @@ css::Rule* ServoCSSRuleList::GetRule(uint32_t aIndex) {
       CASE_RULE_UNLOCKED(Scope, Scope)
       CASE_RULE_UNLOCKED(StartingStyle, StartingStyle)
       CASE_RULE_LOCKED(PositionTry, PositionTry)
+      CASE_RULE_LOCKED(NestedDeclarations, NestedDeclarations)
 #undef CASE_RULE_LOCKED
 #undef CASE_RULE_UNLOCKED
 #undef CASE_RULE_WITH_PREFIX
@@ -294,6 +295,7 @@ void ServoCSSRuleList::SetRawContents(RefPtr<StyleLockedCssRules> aNewRules,
       RULE_CASE_UNLOCKED(Scope, Scope)
       RULE_CASE_UNLOCKED(StartingStyle, StartingStyle)
       RULE_CASE_LOCKED(PositionTry, PositionTry)
+      RULE_CASE_LOCKED(NestedDeclarations, NestedDeclarations)
       case StyleCssRuleType::Keyframe:
         MOZ_ASSERT_UNREACHABLE("keyframe rule cannot be here");
         break;

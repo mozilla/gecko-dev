@@ -354,6 +354,7 @@ impl SanitizationKind {
             CssRule::FontFace(..) |
             CssRule::Namespace(..) |
             CssRule::Style(..) |
+            CssRule::NestedDeclarations(..) |
             CssRule::PositionTry(..) => true,
 
             CssRule::Keyframes(..) |
@@ -463,6 +464,8 @@ impl Stylesheet {
             insert_rule_context: None,
             allow_import_rules,
             declaration_parser_state: Default::default(),
+            first_declaration_block: Default::default(),
+            wants_first_declaration_block: false,
             error_reporting_state: Default::default(),
             rules: Vec::new(),
         };

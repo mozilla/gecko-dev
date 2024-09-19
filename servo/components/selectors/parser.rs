@@ -382,6 +382,14 @@ pub struct SelectorList<Impl: SelectorImpl>(
 );
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
+    /// See Arc::mark_as_intentionally_leaked
+    pub fn mark_as_intentionally_leaked(&self) {
+        if let ArcUnionBorrow::Second(ref list) = self.0.borrow() {
+            list.with_arc(|list| list.mark_as_intentionally_leaked())
+        }
+        self.slice().iter().for_each(|s| s.mark_as_intentionally_leaked())
+    }
+
     pub fn from_one(selector: Selector<Impl>) -> Self {
         #[cfg(debug_assertions)]
         let selector_repr = unsafe { *(&selector as *const _ as *const usize) };
@@ -475,14 +483,13 @@ pub enum ParseRelative {
 }
 
 impl<Impl: SelectorImpl> SelectorList<Impl> {
-    /// Returns a selector list with a single `&`
-    pub fn ampersand() -> Self {
-        Self::from_one(Selector::ampersand())
-    }
-
-    /// Returns a selector list with a single `:scope`
+    /// Returns a selector list with a single `:scope` selector (with specificity)
     pub fn scope() -> Self {
         Self::from_one(Selector::scope())
+    }
+    /// Returns a selector list with a single implicit `:scope` selector (no specificity)
+    pub fn implicit_scope() -> Self {
+        Self::from_one(Selector::implicit_scope())
     }
 
     /// Parse a comma-separated list of Selectors.
@@ -822,16 +829,6 @@ impl<Impl: SelectorImpl> Selector<Impl> {
         self.0.mark_as_intentionally_leaked()
     }
 
-    fn ampersand() -> Self {
-        Self(ThinArc::from_header_and_iter(
-            SpecificityAndFlags {
-                specificity: 0,
-                flags: SelectorFlags::HAS_PARENT,
-            },
-            std::iter::once(Component::ParentSelector),
-        ))
-    }
-
     fn scope() -> Self {
         Self(ThinArc::from_header_and_iter(
             SpecificityAndFlags {
@@ -839,6 +836,17 @@ impl<Impl: SelectorImpl> Selector<Impl> {
                 flags: SelectorFlags::HAS_SCOPE,
             },
             std::iter::once(Component::Scope),
+        ))
+    }
+
+    /// An implicit scope selector, much like :where(:scope).
+    fn implicit_scope() -> Self {
+        Self(ThinArc::from_header_and_iter(
+            SpecificityAndFlags {
+                specificity: 0,
+                flags: SelectorFlags::HAS_SCOPE,
+            },
+            std::iter::once(Component::ImplicitScope),
         ))
     }
 

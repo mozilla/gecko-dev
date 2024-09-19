@@ -506,6 +506,7 @@ WEBIDL_FILES = [
     "CSSMediaRule.webidl",
     "CSSMozDocumentRule.webidl",
     "CSSNamespaceRule.webidl",
+    "CSSNestedDeclarations.webidl",
     "CSSPageRule.webidl",
     "CSSPositionTryRule.webidl",
     "CSSPropertyRule.webidl",

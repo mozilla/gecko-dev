@@ -16,7 +16,6 @@
 #include "mozilla/IntegerRange.h"
 #include "mozilla/ServoStyleSet.h"
 #include "mozilla/StyleSheetInlines.h"
-#include "nsStyleSheetService.h"
 
 using namespace mozilla::dom;
 
@@ -81,6 +80,7 @@ void ServoStyleRuleMap::RuleRemoved(StyleSheet& aStyleSheet,
 
   switch (aStyleRule.Type()) {
     case StyleCssRuleType::Style:
+    case StyleCssRuleType::NestedDeclarations:
     case StyleCssRuleType::Import:
     case StyleCssRuleType::Media:
     case StyleCssRuleType::Supports:
@@ -153,6 +153,7 @@ void ServoStyleRuleMap::FillTableFromRule(css::Rule& aRule) {
     case StyleCssRuleType::FontFeatureValues:
     case StyleCssRuleType::FontPaletteValues:
     case StyleCssRuleType::PositionTry:
+    case StyleCssRuleType::NestedDeclarations:
       break;
   }
 }
