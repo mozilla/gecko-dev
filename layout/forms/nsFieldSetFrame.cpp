@@ -341,7 +341,7 @@ nscoord nsFieldSetFrame::IntrinsicISize(const IntrinsicSizeInput& aInput,
     // outer instead, and the padding computed for the inner is wrong
     // for percentage padding.
     contentWidth = nsLayoutUtils::IntrinsicForContainer(
-        aInput.mContext, inner, aType, Nothing(),
+        aInput.mContext, inner, aType, aInput.mPercentageBasisForChildren,
         nsLayoutUtils::IGNORE_PADDING);
   }
 
