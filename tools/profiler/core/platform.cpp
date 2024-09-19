@@ -5868,6 +5868,9 @@ void profiler_init(void* aStackTop) {
   VTUNE_INIT();
   ETW::Init();
   InitPerfetto();
+#if defined(MOZ_REPLACE_MALLOC) && defined(MOZ_PROFILER_MEMORY)
+  mozilla::profiler::memory_hooks_tls_init();
+#endif
 
   MOZ_RELEASE_ASSERT(!CorePS::Exists());
 

@@ -19,6 +19,8 @@ void enable_native_allocations();
 void disable_native_allocations();
 void unregister_memory_counter();
 
+void memory_hooks_tls_init();
+
 }  // namespace profiler
 }  // namespace mozilla
 #endif
