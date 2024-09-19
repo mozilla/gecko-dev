@@ -441,38 +441,33 @@ SVGBBox SVGGeometryFrame::GetBBoxContribution(const Matrix& aToBBoxUserspace,
       }
     }
 
-    // Be careful when replacing the following logic to get the fill and stroke
-    // extents independently (instead of computing the stroke extents from the
-    // path extents). You may think that you can just use the stroke extents if
-    // there is both a fill and a stroke. In reality it's necessary to
-    // calculate both the fill and stroke extents, and take the union of the
-    // two. There are two reasons for this:
-    //
-    // # Due to stroke dashing, in certain cases the fill extents could
-    //   actually extend outside the stroke extents.
-    // # If the stroke is very thin, cairo won't paint any stroke, and so the
-    //   stroke bounds that it will return will be empty.
-
-    Rect pathBBoxExtents = pathInBBoxSpace->GetBounds();
-    if (!pathBBoxExtents.IsFinite()) {
-      // This can happen in the case that we only have a move-to command in the
-      // path commands, in which case we know nothing gets rendered.
-      return bbox;
-    }
-
     // Account for fill:
-    if (getFill) {
+    if (getFill && !getStroke) {
+      Rect pathBBoxExtents = pathInBBoxSpace->GetBounds();
+      if (!pathBBoxExtents.IsFinite()) {
+        // This can happen in the case that we only have a move-to command in
+        // the path commands, in which case we know nothing gets rendered.
+        return bbox;
+      }
       bbox = pathBBoxExtents;
     }
 
     // Account for stroke:
     if (getStroke) {
+      // Be careful when replacing the following logic to get the fill and
+      // stroke extents independently.
+      // You may think that you can just use the stroke extents if
+      // there is both a fill and a stroke. In reality it may be necessary to
+      // calculate both the fill and stroke extents.
+      // There are two reasons for this:
+      //
+      // # Due to stroke dashing, in certain cases the fill extents could
+      //   actually extend outside the stroke extents.
+      // # If the stroke is very thin, cairo won't paint any stroke, and so the
+      //   stroke bounds that it will return will be empty.
+
       Rect strokeBBoxExtents;
       if (StaticPrefs::svg_Moz2D_strokeBounds_enabled()) {
-        SVGContentUtils::AutoStrokeOptions strokeOptions;
-        SVGContentUtils::GetStrokeOptions(
-            &strokeOptions, element, Style(), nullptr,
-            SVGContentUtils::eIgnoreStrokeDashing);
         gfxMatrix userToOuterSVG;
         if (SVGUtils::GetNonScalingStrokeTransform(this, &userToOuterSVG)) {
           Matrix outerSVGToUser = ToMatrix(userToOuterSVG);
@@ -488,7 +483,17 @@ SVGBBox SVGGeometryFrame::GetBBoxContribution(const Matrix& aToBBoxUserspace,
           strokeBBoxExtents = pathInUserSpace->GetStrokedBounds(
               strokeOptions, aToBBoxUserspace);
         }
+        if (strokeBBoxExtents.IsEmpty() && getFill) {
+          strokeBBoxExtents = pathInBBoxSpace->GetBounds();
+          if (!strokeBBoxExtents.IsFinite()) {
+            return bbox;
+          }
+        }
       } else {
+        Rect pathBBoxExtents = pathInBBoxSpace->GetBounds();
+        if (!pathBBoxExtents.IsFinite()) {
+          return bbox;
+        }
         strokeBBoxExtents = ToRect(SVGUtils::PathExtentsToMaxStrokeExtents(
             ThebesRect(pathBBoxExtents), this, ThebesMatrix(aToBBoxUserspace)));
       }
