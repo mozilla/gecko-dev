@@ -89,6 +89,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
+  "chatShortcutsIgnoreFields",
+  "browser.ml.chat.shortcuts.ignoreFields",
+  "input",
+  updateIgnoredInputs
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
   "chatSidebar",
   "browser.ml.chat.sidebar"
 );
@@ -197,9 +204,11 @@ export const GenAI = {
     lazy.chatProvider;
     lazy.chatProviders;
     lazy.chatShortcuts;
+    lazy.chatShortcutsIgnoreFields;
 
     // Apply initial ordering of providers
     reorderChatProviders();
+    updateIgnoredInputs();
 
     // Handle nimbus feature pref setting
     const featureId = "chatbot";
@@ -325,6 +334,11 @@ export const GenAI = {
         hide();
         break;
       case "GenAI:ShowShortcuts": {
+        // Ignore some input field selection to avoid showing shortcuts
+        if (this.ignoredInputs.has(data.inputType)) {
+          return;
+        }
+
         // Add shortcuts to the current tab's brower stack if it doesn't exist
         if (!shortcuts) {
           shortcuts = stack.appendChild(document.createElement("div"));
@@ -791,4 +805,14 @@ function reorderChatProviders() {
   // Hide unremoved providers before re-adding visible ones in order
   GenAI.chatProviders.forEach(val => (val.hidden = true));
   toSet.forEach(args => GenAI.chatProviders.set(...args));
+}
+
+/**
+ * Update ignored input fields Set.
+ */
+function updateIgnoredInputs() {
+  GenAI.ignoredInputs = new Set(
+    // Skip empty string as no input type is ""
+    lazy.chatShortcutsIgnoreFields.split(",").filter(v => v)
+  );
 }
