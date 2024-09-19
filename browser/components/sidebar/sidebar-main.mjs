@@ -7,6 +7,7 @@ import {
   ifDefined,
   nothing,
   repeat,
+  when,
 } from "chrome://global/content/vendor/lit.all.mjs";
 import { MozLitElement } from "chrome://global/content/lit-utils.mjs";
 
@@ -274,14 +275,24 @@ export default class SidebarMain extends MozLitElement {
             action => action.view,
             action => this.entrypointTemplate(action)
           )}
-        </button-group>
-        <div class="bottom-actions actions-list">
-          ${repeat(
-            this.bottomActions,
-            action => action.view,
-            action => this.entrypointTemplate(action)
+          ${when(window.SidebarController.sidebarVerticalTabsEnabled, () =>
+            repeat(
+              this.bottomActions,
+              action => action.view,
+              action => this.entrypointTemplate(action)
+            )
           )}
-        </div>
+        </button-group>
+        ${when(
+          !window.SidebarController.sidebarVerticalTabsEnabled,
+          () => html` <div class="bottom-actions actions-list">
+            ${repeat(
+              this.bottomActions,
+              action => action.view,
+              action => this.entrypointTemplate(action)
+            )}
+          </div>`
+        )}
       </div>
     `;
   }

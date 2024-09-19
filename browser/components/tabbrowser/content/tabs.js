@@ -155,6 +155,10 @@
       if (oldValue == "vertical" && newValue == "horizontal") {
         this._resetVerticalPinnedTabs();
       }
+      if (this.overflowing) {
+        // reset this value so we don't have incorrect styling for vertical tabs
+        this.removeAttribute("overflow");
+      }
       this._positionPinnedTabs();
 
       this.#updateTabMinWidth();
@@ -1378,9 +1382,9 @@
             "privacy.userContext.newTabContainerOnLeftClick.enabled"
           );
 
-          // There are separate "new tab" buttons for when the tab strip
-          // is overflowed and when it is not.  Attach the long click
-          // popup to both of them.
+          // There are separate "new tab" buttons for horizontal tabs toolbar, vertical tabs and
+          // for when the tab strip is overflowed (which is shared by vertical and horizontal tabs);
+          // Attach the long click popup to all of them.
           const newTab = document.getElementById("new-tab-button");
           const newTab2 = this.newTabButton;
           const newTabVertical = document.getElementById(

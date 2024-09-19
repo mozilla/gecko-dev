@@ -803,22 +803,28 @@ tab-group {
   }
 }
 
+#tabbrowser-arrowscrollbox[orient="vertical"] > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
 #vertical-tabs-newtab-button {
   appearance: none;
   font: message-box; /* match .tabbrowser-tab on macOS */
   min-height: var(--tab-min-height);
   border-radius: var(--border-radius-medium);
   padding: 0 var(--tab-inline-padding);
+  width: 100%;
   margin-inline: var(--tab-overflow-clip-margin);
 
-  #tabbrowser-tabs[orient="horizontal"] > &,
-  #tabbrowser-tabs[orient="vertical"]:not([expanded]) > & > .toolbarbutton-text {
+  #tabbrowser-tabs[orient="vertical"]:not([expanded]) & > .toolbarbutton-text {
     display: none;
   }
 
   &:hover {
     background-color: var(--tab-hover-background-color);
     outline-color: var(--tab-hover-outline-color);
+  }
+
+  &:focus-visible {
+    outline: var(--focus-outline);
+    outline-offset: var(--focus-outline-inset);
   }
 
   > .toolbarbutton-text {
@@ -998,9 +1004,10 @@ toolbar:not(#TabsToolbar) #firefox-view-button {
 }
 
 #tabbrowser-tabs[hasadjacentnewtabbutton]:not([overflow]) ~ #new-tab-button,
-#tabbrowser-tabs[orient="vertical"] > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
+#tabbrowser-tabs[orient="horizontal"] > #vertical-tabs-newtab-button,
+#tabbrowser-tabs[orient="vertical"]:not([overflow]) > #vertical-tabs-newtab-button,
 #tabbrowser-arrowscrollbox[overflowing] > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
-#tabbrowser-tabs:not([hasadjacentnewtabbutton]) > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
+#tabbrowser-tabs:not([hasadjacentnewtabbutton])[orient="horizontal"] > #tabbrowser-arrowscrollbox > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button,
 #TabsToolbar[customizing] #tabs-newtab-button {
   display: none;
 }
