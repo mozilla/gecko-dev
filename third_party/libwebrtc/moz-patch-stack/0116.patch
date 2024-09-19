@@ -1,27 +1,34 @@
-From: Andreas Pehrson <apehrson@mozilla.com>
-Date: Thu, 29 Aug 2024 08:31:00 +0000
-Subject: Bug 1914837 - Always initialize DesktopCapturer::pid.
- r=webrtc-reviewers,ng
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Wed, 4 Sep 2024 13:43:00 +0000
+Subject: Bug 1830275 - WebRTC backport: PipeWire camera: make member variable
+ with the PipeWire status updated r=pehrsons,webrtc-reviewers
 
-This member is patched on top of libwebrtc. New backends could be added from
-under us. It needs to be initialized.
+We keep information about the PipeWire camera status as a member of the
+PipeWire session, but it's never updated and remains in uninitialized
+state. Make sure it gets updated once PipeWire is initialized or when it
+fails. There is currently no use for this member variable, but there is
+a plan to use it so I'm rather keeping it instead of removing it.
 
-Differential Revision: https://phabricator.services.mozilla.com/D220265
-Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/fdf5b0a81b0c0e87d31c5963091681a0e5960678
+This is a simple backport of an WebRTC upstream change.
+
+Upstream commit: 3881cb65cfcec90b6f0a56ce7223a471aa0115f2
+
+Differential Revision: https://phabricator.services.mozilla.com/D220895
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/78bd1d147bff20fcd00d7c61cd367848387ba163
 ---
- modules/desktop_capture/desktop_capturer.h | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
+ modules/video_capture/linux/pipewire_session.cc | 2 ++
+ 1 file changed, 2 insertions(+)
 
-diff --git a/modules/desktop_capture/desktop_capturer.h b/modules/desktop_capture/desktop_capturer.h
-index 2c9c419bcd..29e05938dc 100644
---- a/modules/desktop_capture/desktop_capturer.h
-+++ b/modules/desktop_capture/desktop_capturer.h
-@@ -82,7 +82,7 @@ class RTC_EXPORT DesktopCapturer {
-   struct Source {
-     // The unique id to represent a Source of current DesktopCapturer.
-     SourceId id;
--    pid_t pid;
-+    pid_t pid = 0;
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index fd93b31063..e17e28a65f 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -422,6 +422,8 @@ void PipeWireSession::OnRegistryGlobalRemove(void* data, uint32_t id) {
+ }
  
-     // Title of the window or screen in UTF-8 encoding, maybe empty. This field
-     // should not be used to identify a source.
+ void PipeWireSession::Finish(VideoCaptureOptions::Status status) {
++  status_ = status;
++
+   webrtc::MutexLock lock(&callback_lock_);
+ 
+   if (callback_) {
