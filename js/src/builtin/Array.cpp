@@ -4252,11 +4252,6 @@ static bool array_of(JSContext* cx, unsigned argc, Value* vp) {
     return ArrayFromCallArgs(cx, args);
   }
 
-  if (!ReportUsageCounter(cx, nullptr, SUBCLASSING_ARRAY,
-                          SUBCLASSING_TYPE_II)) {
-    return false;
-  }
-
   // Step 4.
   RootedObject obj(cx);
   {

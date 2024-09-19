@@ -10,10 +10,10 @@ function ViewedArrayBufferIfReified(tarray) {
   var buf = UnsafeGetReservedSlot(tarray, JS_TYPEDARRAYLAYOUT_BUFFER_SLOT);
   assert(
     buf === false ||
-      buf === true ||
-      (IsObject(buf) &&
-        (GuardToArrayBuffer(buf) !== null ||
-          GuardToSharedArrayBuffer(buf) !== null)),
+    buf === true ||
+    (IsObject(buf) &&
+      (GuardToArrayBuffer(buf) !== null ||
+        GuardToSharedArrayBuffer(buf) !== null)),
     "unexpected value in buffer slot"
   );
   return IsObject(buf) ? buf : null;
@@ -28,7 +28,7 @@ function IsDetachedBuffer(buffer) {
 
   assert(
     GuardToArrayBuffer(buffer) !== null ||
-      GuardToSharedArrayBuffer(buffer) !== null,
+    GuardToSharedArrayBuffer(buffer) !== null,
     "non-ArrayBuffer passed to IsDetachedBuffer"
   );
 
@@ -103,7 +103,6 @@ function TypedArraySpeciesConstructor(obj) {
 
   // Step 7.
   if (IsConstructor(s)) {
-    ReportUsageCounter(s, SUBCLASS_TYPEDARRAY_TYPE_III)
     return s;
   }
 
@@ -1162,7 +1161,7 @@ function TypedArrayToLocaleString(locales = undefined, options = undefined) {
   // Steps 6-7.
   // Omit the 'if' clause in step 6, since non-empty typed arrays can't have
   // undefined or null elements.
-#if JS_HAS_INTL_API
+  #if JS_HAS_INTL_API
   var R = ToString(
     callContentFunction(
       firstElement.toLocaleString,
@@ -1171,11 +1170,11 @@ function TypedArrayToLocaleString(locales = undefined, options = undefined) {
       options
     )
   );
-#else
+  #else
   var R = ToString(
     callContentFunction(firstElement.toLocaleString, firstElement)
   );
-#endif
+  #endif
 
   // Step 3 (reordered).
   // We don't (yet?) implement locale-dependent separators.
@@ -1199,7 +1198,7 @@ function TypedArrayToLocaleString(locales = undefined, options = undefined) {
     );
 
     // Steps 9.d-e.
-#if JS_HAS_INTL_API
+    #if JS_HAS_INTL_API
     R += ToString(
       callContentFunction(
         nextElement.toLocaleString,
@@ -1208,9 +1207,9 @@ function TypedArrayToLocaleString(locales = undefined, options = undefined) {
         options
       )
     );
-#else
+    #else
     R += ToString(callContentFunction(nextElement.toLocaleString, nextElement));
-#endif
+    #endif
   }
 
   // Step 10.
@@ -1593,9 +1592,6 @@ function TypedArrayStaticFrom(source, mapfn = undefined, thisArg = undefined) {
     var len = values.length;
 
     // Step 7.c.
-    if (!IsTypedArrayConstructor(C)) {
-      ReportUsageCounter(C, SUBCLASS_TYPEDARRAY_TYPE_II);
-    }
     var targetObj = TypedArrayCreateWithLength(C, len);
 
     // Steps 7.d-e.
@@ -1631,7 +1627,6 @@ function TypedArrayStaticFrom(source, mapfn = undefined, thisArg = undefined) {
   var len = ToLength(arrayLike.length);
 
   // Step 11.
-  ReportUsageCounter(C, SUBCLASS_TYPEDARRAY_TYPE_II);
   var targetObj = TypedArrayCreateWithLength(C, len);
 
   // Steps 12-13.

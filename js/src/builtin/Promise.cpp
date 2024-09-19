@@ -1805,9 +1805,6 @@ CreatePromiseObjectWithoutResolutionFunctions(JSContext* cx) {
     return true;
   }
 
-  // At this point this is effectively subclassing;
-  ReportUsageCounter(cx, C, SUBCLASSING_PROMISE, SUBCLASSING_TYPE_II);
-
   // Step 4. Let executorClosure be a new Abstract Closure with parameters
   //         (resolve, reject) that captures promiseCapability and performs the
   //         following steps when called:
