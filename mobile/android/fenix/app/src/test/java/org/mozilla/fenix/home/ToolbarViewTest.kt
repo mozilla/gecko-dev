@@ -59,7 +59,7 @@ class ToolbarViewTest {
     @Test
     fun `GIVEN navbar is visible WHEN updateLayout is called THEN tab counter and menu are gone and not initialized`() {
         every { testContext.settings().navigationToolbarEnabled } returns true
-        toolbarView.updateButtonVisibility()
+        toolbarView.updateButtonVisibility(mockk(relaxed = true))
 
         assertFalse(binding.menuButton.isVisible)
         assertFalse(binding.tabButton.isVisible)
@@ -70,7 +70,7 @@ class ToolbarViewTest {
     @Test
     fun `GIVEN navbar isn't visible WHEN updateLayout is called THEN tab counter and menu are visible and initialized`() {
         every { testContext.settings().navigationToolbarEnabled } returns false
-        toolbarView.updateButtonVisibility()
+        toolbarView.updateButtonVisibility(mockk(relaxed = true))
 
         assertTrue(binding.menuButton.isVisible)
         assertTrue(binding.tabButton.isVisible)
@@ -84,7 +84,7 @@ class ToolbarViewTest {
 
         every { testContext.settings().navigationToolbarEnabled } returns false
 
-        toolbarView.updateButtonVisibility()
+        toolbarView.updateButtonVisibility(mockk(relaxed = true))
 
         assertTrue(binding.menuButton.isVisible)
         assertTrue(binding.tabButton.isVisible)
@@ -93,7 +93,7 @@ class ToolbarViewTest {
 
         every { testContext.settings().navigationToolbarEnabled } returns true
 
-        toolbarView.updateButtonVisibility()
+        toolbarView.updateButtonVisibility(mockk(relaxed = true))
 
         assertTrue(binding.menuButton.isVisible)
         assertTrue(binding.tabButton.isVisible)
@@ -107,7 +107,7 @@ class ToolbarViewTest {
 
         every { testContext.settings().navigationToolbarEnabled } returns false
 
-        toolbarView.updateButtonVisibility()
+        toolbarView.updateButtonVisibility(mockk(relaxed = true))
 
         assertTrue(binding.menuButton.isVisible)
         assertTrue(binding.tabButton.isVisible)
@@ -116,7 +116,7 @@ class ToolbarViewTest {
 
         every { testContext.settings().navigationToolbarEnabled } returns true
 
-        toolbarView.updateButtonVisibility()
+        toolbarView.updateButtonVisibility(mockk(relaxed = true))
 
         assertTrue(binding.menuButton.isVisible)
         assertTrue(binding.tabButton.isVisible)
@@ -126,9 +126,9 @@ class ToolbarViewTest {
 
     @Test
     fun `WHEN build is called THEN layout gets updated`() {
-        toolbarView.build()
+        toolbarView.build(mockk(relaxed = true))
 
-        verify(exactly = 1) { toolbarView.updateButtonVisibility() }
+        verify(exactly = 1) { toolbarView.updateButtonVisibility(any()) }
     }
 
     @Test

@@ -562,7 +562,7 @@ class HomeFragment : Fragment() {
                 reinitializeNavBar = ::reinitializeNavBar,
                 reinitializeMicrosurveyPrompt = { initializeMicrosurveyPrompt() },
             )
-            toolbarView?.updateButtonVisibility()
+            toolbarView?.updateButtonVisibility(requireComponents.core.store.state)
         }
 
         // If the microsurvey feature is visible, we should update it's state.
@@ -1034,7 +1034,7 @@ class HomeFragment : Fragment() {
             initializeNavBar(activity as HomeActivity)
         }
 
-        toolbarView?.build()
+        toolbarView?.build(requireComponents.core.store.state)
         if (requireContext().isTabStripEnabled()) {
             initTabStrip()
         }

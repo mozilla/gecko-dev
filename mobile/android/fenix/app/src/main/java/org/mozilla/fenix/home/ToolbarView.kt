@@ -55,8 +55,10 @@ class ToolbarView(
 
     /**
      * Setups the home screen toolbar.
+     *
+     * @param browserState [BrowserState] is used to update button visibility.
      */
-    fun build() {
+    fun build(browserState: BrowserState) {
         binding.toolbar.compoundDrawablePadding =
             context.resources.getDimensionPixelSize(R.dimen.search_bar_search_engine_icon_padding)
 
@@ -77,13 +79,15 @@ class ToolbarView(
 
         binding.toolbarWrapper.increaseTapAreaVertically(TOOLBAR_WRAPPER_INCREASE_HEIGHT_DPS)
 
-        updateButtonVisibility()
+        updateButtonVisibility(browserState)
     }
 
     /**
      * Updates the visibility of the tab counter and menu buttons.
+     *
+     * @param browserState [BrowserState] is used to update tab counter's state.
      */
-    fun updateButtonVisibility() {
+    fun updateButtonVisibility(browserState: BrowserState) {
         val showTabCounterAndMenu = !context.shouldAddNavigationBar()
         binding.menuButton.isVisible = showTabCounterAndMenu
         binding.tabButton.isVisible = showTabCounterAndMenu
@@ -91,6 +95,7 @@ class ToolbarView(
         if (showTabCounterAndMenu) {
             homeMenuView = buildHomeMenu()
             tabCounterView = buildTabCounter()
+            tabCounterView?.update(browserState)
         } else {
             homeMenuView = null
             tabCounterView = null
