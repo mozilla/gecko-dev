@@ -538,4 +538,9 @@ interface nsIHttpChannelInternal : nsISupports
         in unsigned long aStatus, in ACString aStatusText);
 
     readonly attribute nsresult lastTransportStatus;
+
+    /**
+     * For testing purposes only.
+     */
+    readonly attribute unsigned long caps;
 };
