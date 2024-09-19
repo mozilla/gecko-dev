@@ -130,7 +130,7 @@ class LoginLine extends MozLitElement {
               <img
                 data-l10n-id="check-icon"
                 class="check-icon"
-                src="chrome://global/skin/icons/check.svg"
+                src="chrome://global/skin/icons/check-filled.svg"
               />
             </div>
           `;
