@@ -1,8 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- This Source Code Form is subject to the terms of the Mozilla Public
-   - License, v. 2.0. If a copy of the MPL was not distributed with this
-   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<issues format="6" by="lint 8.6.0" type="baseline" client="gradle" dependencies="false" name="AGP (8.6.0)" variant="all" version="8.6.0">
+<issues format="6" by="lint 8.6.1" type="baseline" client="gradle" dependencies="false" name="AGP (8.6.1)" variant="all" version="8.6.1">
 
     <issue
         id="UseGetLayoutInflater"
@@ -286,7 +283,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="124"
+            line="137"
             column="17"/>
     </issue>
 
@@ -297,7 +294,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="126"
+            line="139"
             column="17"/>
     </issue>
 
@@ -308,7 +305,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="128"
+            line="141"
             column="17"/>
     </issue>
 
@@ -319,7 +316,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="130"
+            line="143"
             column="17"/>
     </issue>
 
@@ -330,7 +327,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="132"
+            line="145"
             column="17"/>
     </issue>
 
@@ -341,7 +338,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="134"
+            line="147"
             column="17"/>
     </issue>
 
@@ -352,7 +349,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="136"
+            line="149"
             column="17"/>
     </issue>
 
@@ -363,7 +360,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="138"
+            line="151"
             column="17"/>
     </issue>
 
@@ -374,7 +371,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="140"
+            line="153"
             column="17"/>
     </issue>
 
@@ -385,7 +382,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="142"
+            line="155"
             column="17"/>
     </issue>
 
@@ -396,7 +393,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="144"
+            line="157"
             column="17"/>
     </issue>
 
@@ -407,7 +404,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="146"
+            line="159"
             column="17"/>
     </issue>
 
@@ -418,7 +415,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="148"
+            line="161"
             column="17"/>
     </issue>
 
@@ -429,7 +426,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="150"
+            line="163"
             column="17"/>
     </issue>
 
@@ -440,7 +437,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="152"
+            line="165"
             column="17"/>
     </issue>
 
@@ -451,7 +448,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="154"
+            line="167"
             column="17"/>
     </issue>
 
@@ -462,7 +459,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="156"
+            line="169"
             column="17"/>
     </issue>
 
@@ -473,7 +470,7 @@
         errorLine2="                ^">
         <location
             file="src/main/AndroidManifest.xml"
-            line="158"
+            line="171"
             column="17"/>
     </issue>
 
@@ -737,7 +734,7 @@
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="174"
+            line="187"
             column="13"/>
     </issue>
 
@@ -924,7 +921,7 @@
         errorLine2="                                              ~~~~~~~~~~~~">
         <location
             file="src/main/java/org/mozilla/fenix/components/appstate/AppStoreReducer.kt"
-            line="82"
+            line="83"
             column="47"/>
     </issue>
 
@@ -1166,19 +1163,8 @@
         errorLine2="                                                                                  ^">
         <location
             file="src/main/res/values-nb-rNO/strings.xml"
-            line="386"
+            line="407"
             column="83"/>
-    </issue>
-
-    <issue
-        id="Typos"
-        message="&quot;facilmente&quot; is a common misspelling; did you mean &quot;fácilmente&quot;?"
-        errorLine1="    &lt;string name=&quot;juno_onboarding_default_browser_description_nimbus_5&quot; tools:ignore=&quot;UnusedResources&quot;>¿Rastreadores conocidos? Bloqueados automáticamente. ¿Extensiones? Más de 700. ¿PDF? Nuestro lector incorporado los administra facilmente.&lt;/string>"
-        errorLine2="                                                                                                                                                                                                                                      ^">
-        <location
-            file="src/main/res/values-es-rMX/strings.xml"
-            line="443"
-            column="231"/>
     </issue>
 
     <issue
@@ -1188,7 +1174,7 @@
         errorLine2="                                              ^">
         <location
             file="src/main/res/values-tr/strings.xml"
-            line="1061"
+            line="1069"
             column="47"/>
     </issue>
 
@@ -1199,7 +1185,7 @@
         errorLine2="                                                                                                                                                                 ^">
         <location
             file="src/main/res/values-pt-rPT/strings.xml"
-            line="2345"
+            line="2359"
             column="162"/>
     </issue>
 
@@ -1210,7 +1196,7 @@
         errorLine2="                                                                                                                                                ^">
         <location
             file="src/main/res/values-pt-rBR/strings.xml"
-            line="2347"
+            line="2361"
             column="145"/>
     </issue>
 
@@ -1254,7 +1240,7 @@
         errorLine2="         ~~~~~~~~">
         <location
             file="src/main/AndroidManifest.xml"
-            line="359"
+            line="372"
             column="10"/>
     </issue>
 
@@ -2965,6 +2951,17 @@
 
     <issue
         id="Overdraw"
+        message="Possible overdraw: Root element paints background `?scrim` with a theme that also paints a background (inferred theme is `@style/NormalTheme`)"
+        errorLine1="    android:background=&quot;?scrim&quot;"
+        errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~">
+        <location
+            file="src/main/res/layout/fragment_create_xiaomi_shortcut.xml"
+            line="11"
+            column="5"/>
+    </issue>
+
+    <issue
+        id="Overdraw"
         message="Possible overdraw: Root element paints background `?homeBackground` with a theme that also paints a background (inferred theme is `@style/NormalTheme`)"
         errorLine1="    android:background=&quot;?homeBackground&quot;>"
         errorLine2="    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
@@ -3170,17 +3167,6 @@
             file="src/main/res/values/dimens.xml"
             line="13"
             column="12"/>
-    </issue>
-
-    <issue
-        id="UnusedResources"
-        message="The resource `R.drawable.ic_home` appears to be unused"
-        errorLine1="&lt;vector xmlns:android=&quot;http://schemas.android.com/apk/res/android&quot;"
-        errorLine2="^">
-        <location
-            file="src/main/res/drawable/ic_home.xml"
-            line="5"
-            column="1"/>
     </issue>
 
     <issue

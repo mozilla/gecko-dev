@@ -1505,9 +1505,11 @@ mobile/android/**\/manifest.json
 mobile/android/android-components/components/feature/search/src/main/assets/search/search_telemetry_v2.json
 mobile/android/android-components/gradle/wrapper/
 mobile/android/android-components/samples/glean/src/main/res/raw/initial_experiments.json
+mobile/android/fenix/app/lint-baseline.xml
 mobile/android/fenix/app/src/debug/res/raw/initial_experiments.json
 mobile/android/fenix/app/src/main/res/raw/initial_experiments.json
 mobile/android/fenix/gradle/wrapper/
+mobile/android/focus-android/app/lint-baseline.xml
 mobile/android/focus-android/gradle/wrapper/
 mobile/locales/l10n-changesets.json
 mobile/locales/l10n-onchange-changesets.json

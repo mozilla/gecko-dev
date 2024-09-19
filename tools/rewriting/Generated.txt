@@ -71,10 +71,12 @@ mobile/android/android-components/components/ui/tabcounter/src/main/res/
 mobile/android/android-components/components/ui/widgets/src/main/res/
 mobile/android/android-components/gradle/wrapper/
 mobile/android/android-components/samples/glean/src/main/res/raw/initial_experiments.json
+mobile/android/fenix/app/lint-baseline.xml
 mobile/android/fenix/app/src/debug/res/raw/initial_experiments.json
 mobile/android/fenix/app/src/main/res/
 mobile/android/fenix/app/src/main/res/raw/initial_experiments.json
 mobile/android/fenix/gradle/wrapper/
+mobile/android/focus-android/app/lint-baseline.xml
 mobile/android/focus-android/app/src/main/res/
 mobile/android/focus-android/gradle/wrapper/
 mobile/locales/l10n-changesets.json
