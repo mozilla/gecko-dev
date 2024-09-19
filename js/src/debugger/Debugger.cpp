@@ -5397,7 +5397,8 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
     } else if (lineProperty.isNumber()) {
       if (displayURL.isUndefined() && url.isUndefined() && !hasSource) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_QUERY_LINE_WITHOUT_URL);
+                                  JSMSG_QUERY_LINE_WITHOUT_URL,
+                                  "'line' property");
         return false;
       }
       double doubleLine = lineProperty.toNumber();
@@ -5462,7 +5463,8 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
       // endProperty is also not undefined here
       if (displayURL.isUndefined() && url.isUndefined() && !hasSource) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_QUERY_LINE_WITHOUT_URL);
+                                  JSMSG_QUERY_LINE_WITHOUT_URL,
+                                  "'start' and 'end' properties");
         return false;
       }
     }
