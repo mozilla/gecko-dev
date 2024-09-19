@@ -46,7 +46,7 @@ webpagetest-firefox:
         symbol: perftest(linux-webpagetest)
         tier: 2
     attributes:
-        cron: true
+        cron: false
     scopes:
         - secrets:get:project/perftest/gecko/level-{level}/perftest-login
     run:
@@ -68,7 +68,7 @@ webpagetest-chrome:
         symbol: perftest-chrome(linux-webpagetest)
         tier: 2
     attributes:
-        cron: true
+        cron: false
     scopes:
         - secrets:get:project/perftest/gecko/level-{level}/perftest-login
     run:
