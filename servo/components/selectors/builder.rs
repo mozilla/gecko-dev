@@ -29,6 +29,11 @@ use servo_arc::{Arc, ThinArc};
 use smallvec::SmallVec;
 use std::cmp;
 use std::slice;
+use bitflags::bitflags;
+use derive_more::{Add, AddAssign};
+
+#[cfg(feature = "to_shmem")]
+use to_shmem_derive::ToShmem;
 
 /// Top-level SelectorBuilder struct. This should be stack-allocated by the consumer and never
 /// moved (because it contains a lot of inline data that would be slow to memmove).

@@ -24,6 +24,12 @@ use std::borrow::{Borrow, Cow};
 use std::fmt::{self, Debug};
 use std::iter::Rev;
 use std::slice;
+use bitflags::bitflags;
+use cssparser::match_ignore_ascii_case;
+use debug_unreachable::debug_unreachable;
+
+#[cfg(feature = "to_shmem")]
+use to_shmem_derive::ToShmem;
 
 /// A trait that represents a pseudo-element.
 pub trait PseudoElement: Sized + ToCss {

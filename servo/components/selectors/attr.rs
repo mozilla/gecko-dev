@@ -6,6 +6,9 @@ use crate::parser::SelectorImpl;
 use cssparser::ToCss;
 use std::fmt;
 
+#[cfg(feature = "to_shmem")]
+use to_shmem_derive::ToShmem;
+
 #[derive(Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "to_shmem", derive(ToShmem))]
 #[cfg_attr(feature = "to_shmem", shmem(no_bounds))]

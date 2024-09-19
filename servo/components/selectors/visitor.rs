@@ -8,6 +8,7 @@
 
 use crate::attr::NamespaceConstraint;
 use crate::parser::{Combinator, Component, RelativeSelector, Selector, SelectorImpl};
+use bitflags::bitflags;
 
 /// A trait to visit selector properties.
 ///

@@ -17,8 +17,11 @@ use crate::parser::{
 };
 use crate::relative_selector::cache::RelativeSelectorCachedMatch;
 use crate::tree::Element;
+use log::debug;
 use smallvec::SmallVec;
 use std::borrow::Borrow;
+use bitflags::bitflags;
+use debug_unreachable::debug_unreachable;
 
 pub use crate::context::*;
 
