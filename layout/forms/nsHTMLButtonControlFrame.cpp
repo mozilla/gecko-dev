@@ -239,8 +239,9 @@ nscoord nsHTMLButtonControlFrame::IntrinsicISize(
   if (Maybe<nscoord> containISize = ContainIntrinsicISize()) {
     return *containISize;
   }
-  return nsLayoutUtils::IntrinsicForContainer(aInput.mContext,
-                                              mFrames.FirstChild(), aType);
+  return nsLayoutUtils::IntrinsicForContainer(
+      aInput.mContext, mFrames.FirstChild(), aType,
+      aInput.mPercentageBasisForChildren);
 }
 
 void nsHTMLButtonControlFrame::Reflow(nsPresContext* aPresContext,
