@@ -55,23 +55,24 @@ export class NetworkRequest {
     this.#navigationManager = navigationManager;
     this.#rawHeaders = rawHeaders;
 
-    const currentTime = Date.now();
+    // Platform timestamp is in microseconds.
+    const currentTimeStamp = Date.now() * 1000;
     this.#timedChannel =
       this.#channel instanceof Ci.nsITimedChannel
         ? this.#channel.QueryInterface(Ci.nsITimedChannel)
         : {
             redirectCount: 0,
-            channelCreationTime: currentTime,
+            channelCreationTime: currentTimeStamp,
             redirectStartTime: 0,
             redirectEndTime: 0,
-            domainLookupStartTime: currentTime,
-            domainLookupEndTime: currentTime,
-            connectStartTime: currentTime,
-            connectEndTime: currentTime,
-            secureConnectionStartTime: currentTime,
-            requestStartTime: currentTime,
-            responseStartTime: currentTime,
-            responseEndTime: currentTime,
+            domainLookupStartTime: currentTimeStamp,
+            domainLookupEndTime: currentTimeStamp,
+            connectStartTime: currentTimeStamp,
+            connectEndTime: currentTimeStamp,
+            secureConnectionStartTime: currentTimeStamp,
+            requestStartTime: currentTimeStamp,
+            responseStartTime: currentTimeStamp,
+            responseEndTime: currentTimeStamp,
           };
     this.#wrappedChannel = ChannelWrapper.get(channel);
 
@@ -307,26 +308,30 @@ export class NetworkRequest {
 
   /**
    * Convert the provided request timing to a timing relative to the beginning
-   * of the request. All timings are numbers representing high definition
-   * timestamps.
+   * of the request. Note that https://w3c.github.io/resource-timing/#dfn-convert-fetch-timestamp
+   * only expects high resolution timestamps (double in milliseconds) as inputs
+   * of this method, but since platform timestamps are integers in microseconds,
+   * they will be converted on the fly in this helper.
    *
    * @param {number} timing
-   *     High definition timestamp for a request timing relative from the time
-   *     origin.
+   *     Platform TimeStamp for a request timing relative from the time origin
+   *     in microseconds.
    * @param {number} requestTime
-   *     High definition timestamp for the request start time relative from the
-   *     time origin.
+   *     Platform TimeStamp for the request start time relative from the time
+   *     origin, in microseconds.
    *
    * @returns {number}
-   *     High definition timestamp for the request timing relative to the start
-   *     time of the request, or 0 if the provided timing was 0.
+   *     High resolution timestamp (https://www.w3.org/TR/hr-time-3/#dom-domhighrestimestamp)
+   *     for the request timing relative to the start time of the request, or 0
+   *     if the provided timing was 0.
    */
   #convertTimestamp(timing, requestTime) {
     if (timing == 0) {
       return 0;
     }
 
-    return timing - requestTime;
+    // Convert from platform timestamp to high resolution timestamp.
+    return (timing - requestTime) / 1000;
   }
 
   #getContextId() {
