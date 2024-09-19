@@ -637,6 +637,143 @@ skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extension
 skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoji_ZWJ_Sequence.js
 skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoji.js
 
+# Requires Unicode 16
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Mongolian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Kawi.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Gunjala_Gondi.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Katakana.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Emoji.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Tulu_Tigalari.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Tai_Le.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Nonspacing_Mark.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Dash.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Kirat_Rai.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Greek.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Kannada.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Tifinagh.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Tulu_Tigalari.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Phags_Pa.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Decimal_Number.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Coptic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Georgian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Terminal_Punctuation.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Balinese.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Toto.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Caucasian_Albanian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Changes_When_Uppercased.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Extender.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Punctuation.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Shavian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Balinese.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Garay.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Garay.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Diacritic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Changes_When_NFKC_Casefolded.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Cased.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Spacing_Mark.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Devanagari.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Latin.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Latin.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Myanmar.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Duployan.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Gurung_Khema.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Kaithi.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Gothic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Myanmar.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Old_Permic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Other_Punctuation.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Bengali.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Dash_Punctuation.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Lowercase.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Old_Turkic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Arabic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Ol_Onal.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Number.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Kirat_Rai.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Glagolitic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Thai.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Lycian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Bidi_Mirrored.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Math_Symbol.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Modifier_Letter.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Todhri.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Ol_Onal.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Adlam.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Changes_When_Casefolded.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Changes_When_Casemapped.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Math.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Hebrew.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Syriac.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Mark.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Grapheme_Extend.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Cyrillic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Khitan_Small_Script.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Gurung_Khema.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Lowercase_Letter.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Elbasan.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Inherited.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Changes_When_Lowercased.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Uppercase_Letter.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Cyrillic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Osage.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Ethiopic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Lisu.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Samaritan.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Runic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Armenian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Egyptian_Hieroglyphs.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Carian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Emoji_Presentation.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Tangut.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Bopomofo.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Uppercase.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Kawi.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Old_Hungarian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Avestan.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Tibetan.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Egyptian_Hieroglyphs.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Sunuwar.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Todhri.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Cherokee.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Changes_When_Titlecased.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Meroitic_Hieroglyphs.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Case_Ignorable.js
+skip script test262/built-ins/RegExp/property-escapes/generated/General_Category_-_Cased_Letter.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Mahajani.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Khitan_Small_Script.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Sunuwar.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_-_Arabic.js
+skip script test262/built-ins/RegExp/property-escapes/generated/Script_Extensions_-_Lydian.js
+skip script test262/built-ins/RegExp/property-escapes/generated/strings/RGI_Emoji_Flag_Sequence.js
+skip script test262/built-ins/RegExp/property-escapes/generated/strings/Basic_Emoji.js
+skip script test262/built-ins/RegExp/unicodeSets/generated/rgi-emoji-16.0.js
+
+# https://github.com/tc39/test262/pull/4225
+skip script test262/language/identifiers/part-unicode-15.1.0-escaped.js
+skip script test262/language/identifiers/start-unicode-15.1.0.js
+skip script test262/language/identifiers/part-unicode-16.0.0-escaped.js
+skip script test262/language/identifiers/part-unicode-15.1.0.js
+skip script test262/language/identifiers/start-unicode-16.0.0-class.js
+skip script test262/language/identifiers/start-unicode-15.1.0-class-escaped.js
+skip script test262/language/identifiers/part-unicode-15.1.0-class.js
+skip script test262/language/identifiers/start-unicode-16.0.0-escaped.js
+skip script test262/language/identifiers/start-unicode-16.0.0-class-escaped.js
+skip script test262/language/identifiers/part-unicode-15.1.0-class-escaped.js
+skip script test262/language/identifiers/part-unicode-16.0.0-class-escaped.js
+skip script test262/language/identifiers/start-unicode-16.0.0.js
+skip script test262/language/identifiers/part-unicode-16.0.0-class.js
+skip script test262/language/identifiers/start-unicode-15.1.0-class.js
+skip script test262/language/identifiers/part-unicode-16.0.0.js
+skip script test262/language/identifiers/start-unicode-15.1.0-escaped.js
+
+# https://github.com/tc39/test262/pull/4209
+skip script test262/language/statements/with/set-mutable-binding-binding-deleted-in-get-unscopables-strict-mode.js
+skip script test262/language/statements/with/set-mutable-binding-binding-deleted-with-typed-array-in-proto-chain-strict-mode.js
+skip script test262/language/statements/with/get-mutable-binding-binding-deleted-in-get-unscopables-strict-mode.js
+skip script test262/language/statements/with/set-mutable-binding-idref-with-proxy-env.js
+skip script test262/language/statements/with/get-binding-value-idref-with-proxy-env.js
+skip script test262/language/statements/with/set-mutable-binding-idref-compound-assign-with-proxy-env.js
+
 # https://github.com/tc39/proposal-redeclarable-global-eval-vars
 skip-if(release_or_beta) script test262/language/global-code/script-decl-lex-var-declared-via-eval.js
 skip-if(release_or_beta) script test262/annexB/language/eval-code/direct/script-decl-lex-no-collision.js
@@ -1177,6 +1314,25 @@ skip script test262/built-ins/Temporal/ZonedDateTime/prototype/equals/argument-s
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/since/argument-string-minus-sign.js
 skip script test262/built-ins/Temporal/ZonedDateTime/prototype/until/argument-string-minus-sign.js
 
+# https://github.com/tc39/test262/pull/4206
+skip script test262/built-ins/Temporal/PlainMonthDay/from/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainMonthDay/prototype/with/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainDateTime/from/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/with/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainDateTime/prototype/toString/rounding-edge-of-range.js
+skip script test262/built-ins/Temporal/PlainYearMonth/from/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainYearMonth/prototype/with/options-wrong-type.js
+skip script test262/built-ins/Temporal/ZonedDateTime/from/options-wrong-type.js
+skip script test262/built-ins/Temporal/ZonedDateTime/prototype/with/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainTime/from/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainTime/from/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainTime/from/observable-get-overflow-argument-string-invalid.js
+skip script test262/built-ins/Temporal/PlainTime/prototype/with/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainTime/prototype/with/order-of-operations.js
+skip script test262/built-ins/Temporal/PlainDate/from/options-wrong-type.js
+skip script test262/built-ins/Temporal/PlainDate/prototype/with/options-wrong-type.js
+skip script test262/built-ins/Temporal/Duration/prototype/round/round-and-balance-calendar-units-with-increment-disallowed.js
+skip script test262/built-ins/Temporal/Duration/compare/relativeto-string-invalid.js
 
 ##############################################
 # Temporal Intl tests                        #
@@ -1234,6 +1390,16 @@ skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/offs
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/calendar-mismatch.js
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/options-timeZone.js
 skip script test262/intl402/Temporal/ZonedDateTime/prototype/toLocaleString/dateStyle.js
+
+skip script test262/intl402/Temporal/PlainDateTime/prototype/with/non-iso-calendar-fields.js
+skip script test262/intl402/Temporal/PlainYearMonth/prototype/with/non-iso-calendar-fields.js
+skip script test262/intl402/Temporal/ZonedDateTime/from/dst-skipped-cross-midnight.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/startOfDay/dst-skipped-cross-midnight.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/hoursInDay/dst-skipped-cross-midnight.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/withPlainTime/dst-skipped-cross-midnight.js
+skip script test262/intl402/Temporal/ZonedDateTime/prototype/round/dst-skipped-cross-midnight.js
+skip script test262/intl402/Temporal/PlainDate/prototype/toZonedDateTime/dst-skipped-cross-midnight.js
+skip script test262/intl402/Temporal/PlainDate/prototype/with/non-iso-calendar-fields.js
 
 skip script test262/staging/Intl402/Temporal/old/date-time-format.js
 skip script test262/staging/Intl402/Temporal/old/date-toLocaleString.js
