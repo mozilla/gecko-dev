@@ -3,7 +3,7 @@ Firefox AI Platform
 
 This component is an experimental machine learning local inference engine based on
 `Transformers.js <https://huggingface.co/docs/transformers.js/index>`_ and
-the `ONNX runtime <https://onnxruntime.ai/>`_.
+the `ONNX runtime <https://onnxruntime.ai/>`_
 
 You can use the component to leverage the inference runtime in the context
 of the browser. To try out some inference tasks, you can refer to the
@@ -232,4 +232,4 @@ In the code above, **progressData** is an object of type `ProgressAndStatusCallb
 about:inference
 :::::::::::::::
 
-In Nightly, you can use `about:inference <about:inference>`_ to check the status of the engine, manage downloads of models and more.
+In Nightly, you can use **about:inference** to check the status of the engine, manage downloads of models and more.
