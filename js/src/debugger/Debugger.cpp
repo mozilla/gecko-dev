@@ -5882,12 +5882,10 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
   bool scriptIsLineMatch(JSScript* script) {
     MOZ_ASSERT(scriptIsPartialLineMatch(script));
 
-    uint32_t lineCount = GetScriptLineExtent(script);
-    if (lineCount == 1 && script->lineno() == line && columnStart.isSome()) {
-      JS::LimitedColumnNumberOneOrigin lastScriptColumn =
-          script->column() +
-          JS::ColumnNumberUnsignedOffset(script->sourceLength());
-      if (lastScriptColumn <= columnStart.value()) {
+    JS::LimitedColumnNumberOneOrigin scriptEndColumn;
+    uint32_t lineCount = GetScriptLineExtent(script, &scriptEndColumn);
+    if (columnStart.isSome() && script->lineno() + lineCount - 1 == line) {
+      if (scriptEndColumn <= columnStart.value()) {
         return false;
       }
     }

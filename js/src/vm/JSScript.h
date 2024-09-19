@@ -2245,7 +2245,8 @@ extern JS::UniqueChars FormatIntroducedFilename(const char* filename,
 
 extern jsbytecode* LineNumberToPC(JSScript* script, unsigned lineno);
 
-extern JS_PUBLIC_API unsigned GetScriptLineExtent(JSScript* script);
+extern JS_PUBLIC_API unsigned GetScriptLineExtent(
+    JSScript* script, JS::LimitedColumnNumberOneOrigin* columnp = nullptr);
 
 #ifdef JS_CACHEIR_SPEW
 void maybeUpdateWarmUpCount(JSScript* script);

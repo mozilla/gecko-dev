@@ -2743,8 +2743,10 @@ out:
   return script->offsetToPC(offset);
 }
 
-JS_PUBLIC_API unsigned js::GetScriptLineExtent(JSScript* script) {
+JS_PUBLIC_API unsigned js::GetScriptLineExtent(
+    JSScript* script, JS::LimitedColumnNumberOneOrigin* columnp) {
   unsigned lineno = script->lineno();
+  JS::LimitedColumnNumberOneOrigin column = script->column();
   unsigned maxLineNo = lineno;
   for (SrcNoteIterator iter(script->notes(), script->notesEnd()); !iter.atEnd();
        ++iter) {
@@ -2752,16 +2754,27 @@ JS_PUBLIC_API unsigned js::GetScriptLineExtent(JSScript* script) {
     SrcNoteType type = sn->type();
     if (type == SrcNoteType::SetLine) {
       lineno = SrcNote::SetLine::getLine(sn, script->lineno());
+      column = JS::LimitedColumnNumberOneOrigin();
     } else if (type == SrcNoteType::SetLineColumn) {
       lineno = SrcNote::SetLineColumn::getLine(sn, script->lineno());
-    } else if (type == SrcNoteType::NewLine ||
-               type == SrcNoteType::NewLineColumn) {
+      column = SrcNote::SetLineColumn::getColumn(sn);
+    } else if (type == SrcNoteType::NewLine) {
       lineno++;
+      column = JS::LimitedColumnNumberOneOrigin();
+    } else if (type == SrcNoteType::NewLineColumn) {
+      lineno++;
+      column = SrcNote::NewLineColumn::getColumn(sn);
+    } else if (type == SrcNoteType::ColSpan) {
+      column += SrcNote::ColSpan::getSpan(sn);
     }
 
     if (maxLineNo < lineno) {
       maxLineNo = lineno;
     }
+  }
+
+  if (columnp) {
+    *columnp = column;
   }
 
   return 1 + maxLineNo - script->lineno();
