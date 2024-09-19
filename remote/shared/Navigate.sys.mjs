@@ -11,6 +11,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
   setTimeout: "resource://gre/modules/Timer.sys.mjs",
 
   Deferred: "chrome://remote/content/shared/Sync.sys.mjs",
+  isInitialDocument:
+    "chrome://remote/content/shared/messagehandler/transports/BrowsingContextUtils.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   NavigationListener:
     "chrome://remote/content/shared/listeners/NavigationListener.sys.mjs",
@@ -93,14 +95,7 @@ export async function waitForInitialNavigationCompleted(
   });
   const navigated = listener.start();
 
-  // Right after a browsing context has been attached it could happen that
-  // no window global has been set yet. Consider this as nothing has been
-  // loaded yet.
-  let isInitial = true;
-  if (browsingContext.currentWindowGlobal) {
-    isInitial = browsingContext.currentWindowGlobal.isInitialDocument;
-  }
-
+  const isInitial = lazy.isInitialDocument(browsingContext);
   const isLoadingDocument = listener.isLoadingDocument;
   lazy.logger.trace(
     lazy.truncate`[${browsingContext.id}] Wait for initial navigation: isInitial=${isInitial}, isLoadingDocument=${isLoadingDocument}`

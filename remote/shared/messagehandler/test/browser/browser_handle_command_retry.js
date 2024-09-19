@@ -16,6 +16,60 @@ PromiseTestUtils.allowMatchingRejectionsGlobally(
 // and then trigger reload and navigations to simulate AbortErrors and force the
 // MessageHandler to retry the commands, when possible.
 
+// If no retryOnAbort argument is provided, the framework should retry only if
+// context is on the initial document or already loading.
+add_task(async function test_default_retry() {
+  const tab = BrowserTestUtils.addTab(
+    gBrowser,
+    "https://example.com/document-builder.sjs?html=tab"
+  );
+  await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  const browsingContext = tab.linkedBrowser.browsingContext;
+
+  const rootMessageHandler = createRootMessageHandler("session-id-no-retry");
+
+  info("Wait until the isLoadingDocument flag is false on the webProgress");
+  await TestUtils.waitForCondition(
+    () => !browsingContext.webProgress.isLoadingDocument
+  );
+
+  try {
+    info("Call a module method which will throw");
+    const onBlockedOneTime = rootMessageHandler.handleCommand({
+      moduleName: "retry",
+      commandName: "blockedOneTime",
+      destination: {
+        type: WindowGlobalMessageHandler.type,
+        id: browsingContext.id,
+      },
+    });
+
+    // Reloading the tab will reject the pending query with an AbortError.
+    await BrowserTestUtils.reloadTab(tab);
+
+    await Assert.rejects(
+      onBlockedOneTime,
+      e => e.name == "AbortError",
+      "Caught the expected abort error when reloading"
+    );
+
+    // Now start reloading and immediately send the command, this time the
+    // framework should automatically retry.
+    const onReload = BrowserTestUtils.reloadTab(tab);
+    await rootMessageHandler.handleCommand({
+      moduleName: "retry",
+      commandName: "blockedOneTime",
+      destination: {
+        type: WindowGlobalMessageHandler.type,
+        id: browsingContext.id,
+      },
+    });
+    await onReload;
+  } finally {
+    await cleanup(rootMessageHandler, tab);
+  }
+});
+
 // Test that without retry behavior, a pending command rejects when the
 // underlying JSWindowActor pair is destroyed.
 add_task(async function test_no_retry() {
@@ -37,6 +91,7 @@ add_task(async function test_no_retry() {
         type: WindowGlobalMessageHandler.type,
         id: browsingContext.id,
       },
+      retryOnAbort: false,
     });
 
     // Reloading the tab will reject the pending query with an AbortError.

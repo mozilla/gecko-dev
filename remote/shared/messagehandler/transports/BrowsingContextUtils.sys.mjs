@@ -28,6 +28,28 @@ function isParentProcess(browsingContext) {
 }
 
 /**
+ * Check if the provided browsing context is currently displaying its initial
+ * document. For top level browsing contexts, this is usually the initial
+ * about:blank which will be replaced soon.
+ *
+ * @param {BrowsingContext} browsingContext
+ *     The browsing context to check.
+ *
+ * @returns {boolean}
+ *     True if the browsing context is on the initial document, false otherwise.
+ */
+export function isInitialDocument(browsingContext) {
+  if (!browsingContext.currentWindowGlobal) {
+    // Right after a browsing context has been attached it could happen that
+    // no window global has been set yet. Consider this as nothing has been
+    // loaded yet.
+    return true;
+  }
+
+  return browsingContext.currentWindowGlobal.isInitialDocument;
+}
+
+/**
  * Check if the given browsing context is valid for the message handler
  * to use.
  *
@@ -36,6 +58,7 @@ function isParentProcess(browsingContext) {
  * @param {object=} options
  * @param {string=} options.browserId
  *    The id of the browser to filter the browsing contexts by (optional).
+ *
  * @returns {boolean}
  *     True if the browsing context is valid, false otherwise.
  */

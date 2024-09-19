@@ -9,6 +9,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/messagehandler/MessageHandler.sys.mjs",
   isBrowsingContextCompatible:
     "chrome://remote/content/shared/messagehandler/transports/BrowsingContextUtils.sys.mjs",
+  isInitialDocument:
+    "chrome://remote/content/shared/messagehandler/transports/BrowsingContextUtils.sys.mjs",
   Log: "chrome://remote/content/shared/Log.sys.mjs",
   MessageHandlerFrameActor:
     "chrome://remote/content/shared/messagehandler/transports/js-window-actors/MessageHandlerFrameActor.sys.mjs",
@@ -106,7 +108,12 @@ export class RootTransport {
     // currently valid browsing context.
     const webProgress = browsingContext.webProgress;
 
-    const { retryOnAbort = false } = command;
+    const isInitialDocument = lazy.isInitialDocument(browsingContext);
+    const isLoadingDocument = browsingContext.webProgress.isLoadingDocument;
+
+    // By default, retry any command if we are still on the initial document or
+    // if we are currently loading a document.
+    const { retryOnAbort = isInitialDocument || isLoadingDocument } = command;
 
     let attempts = 0;
     while (true) {

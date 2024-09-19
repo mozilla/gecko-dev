@@ -210,7 +210,9 @@ export class MessageHandler extends EventEmitter {
    * @property {boolean=} retryOnAbort
    *     Optional. When true, commands will be retried upon AbortError, which
    *     can occur when the underlying JSWindowActor pair is destroyed.
-   *     Defaults to `false`.
+   *     If not explicitly set, the framework will automatically retry if the
+   *     destination is likely to be replaced (e.g. browsingContext on the
+   *     initial document or loading a document).
    */
 
   /**
