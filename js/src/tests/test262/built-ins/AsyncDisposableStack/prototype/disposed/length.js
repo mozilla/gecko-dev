@@ -1,4 +1,4 @@
-// |reftest| skip -- explicit-resource-management is not supported
+// |reftest| skip-if(!(this.hasOwnProperty('getBuildConfiguration')&&getBuildConfiguration('explicit-resource-management'))) -- explicit-resource-management is not enabled unconditionally
 // Copyright (C) 2023 Ron Buckton. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 /*---
@@ -16,7 +16,7 @@ features: [explicit-resource-management]
 var descriptor = Object.getOwnPropertyDescriptor(AsyncDisposableStack.prototype, 'disposed');
 
 verifyProperty(descriptor.get, 'length', {
-  value: 0;
+  value: 0,
   enumerable: false,
   writable: false,
   configurable: true

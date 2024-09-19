@@ -4,16 +4,10 @@
 
 /*---
 esid: sec-temporal.plaintime.from
-description: overflow property is extracted with ISO-invalid string argument.
+description: overflow property is not extracted with ISO-invalid string argument.
 includes: [compareArray.js, temporalHelpers.js]
 features: [Temporal]
 ---*/
-
-const expected = [
-  "get overflow",
-  "get overflow.toString",
-  "call overflow.toString",
-];
 
 let actual = [];
 const object = {
@@ -24,6 +18,6 @@ const object = {
 };
 
 assert.throws(RangeError, () => Temporal.PlainTime.from("24:60", object));
-assert.compareArray(actual, expected);
+assert.compareArray(actual, [], "options read after ISO string parsing");
 
 reportCompare(0, 0);

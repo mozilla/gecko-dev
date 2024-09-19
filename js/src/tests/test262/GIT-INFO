@@ -1,5 +1,15 @@
-commit 616dcadff406451eb249c6170253c5ff7486a3ea
-Author: Sosuke Suzuki <aosukeke@gmail.com>
-Date:   Tue Jul 30 14:24:39 2024 +0900
+commit dfece8cfc5a7dde260c68dffac7bbfc842fabfc7
+Author: Rezvan Mahdavi Hezaveh <rezvan@chromium.org>
+Date:   Tue Sep 17 12:19:35 2024 -0700
 
-    Fix escaped `a`
+    [explicit-resource-management] Add test for async generator body
+    
+    This cl adds a test for having `await using` in the async
+    generator function body.
+    
+    Bug: 42203814
+    Change-Id: I30c0d2fe354a3047f67a4a71f7c6472c3d832bbf
+    Reviewed-on: https://chromium-review.googlesource.com/c/v8/v8/+/5867651
+    Commit-Queue: Rezvan Mahdavi Hezaveh <rezvan@chromium.org>
+    Reviewed-by: Shu-yu Guo <syg@chromium.org>
+    Cr-Commit-Position: refs/heads/main@{#96146}

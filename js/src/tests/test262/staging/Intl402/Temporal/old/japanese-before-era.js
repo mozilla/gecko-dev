@@ -60,7 +60,7 @@ date = Temporal.PlainDate.from({
   calendar: "japanese"
 });
 assert.sameValue(`${ date }`, "1868-01-01[u-ca=japanese]");
-assert.sameValue(date.era, "ce");
+assert.sameValue(date.era, "japanese");
 assert.sameValue(date.eraYear, 1868);
 
 reportCompare(0, 0);

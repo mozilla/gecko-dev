@@ -11,13 +11,6 @@ includes: [resizableArrayBufferUtils.js]
 features: [resizable-arraybuffer, Array.prototype.includes]
 ---*/
 
-function MayNeedBigInt(ta, n) {
-  if (typeof n == 'number' && (ta instanceof BigInt64Array || ta instanceof BigUint64Array)) {
-    return BigInt(n);
-  }
-  return n;
-}
-
 for (let ctor of ctors) {
   const rab = CreateResizableArrayBuffer(4 * ctor.BYTES_PER_ELEMENT, 8 * ctor.BYTES_PER_ELEMENT);
   const fixedLength = new ctor(rab, 0, 4);
@@ -62,7 +55,7 @@ for (let ctor of ctors) {
   const rab = CreateResizableArrayBuffer(4 * ctor.BYTES_PER_ELEMENT, 8 * ctor.BYTES_PER_ELEMENT);
   const lengthTracking = new ctor(rab);
   for (let i = 0; i < 4; ++i) {
-    WriteToTypedArray(lengthTracking, i, 1);
+    lengthTracking[i] = MayNeedBigInt(lengthTracking, 1);
   }
   let evil = {
     valueOf: () => {
@@ -78,7 +71,7 @@ for (let ctor of ctors) {
 for (let ctor of ctors) {
   const rab = CreateResizableArrayBuffer(4 * ctor.BYTES_PER_ELEMENT, 8 * ctor.BYTES_PER_ELEMENT);
   const lengthTracking = new ctor(rab);
-  WriteToTypedArray(lengthTracking, 0, 1);
+  lengthTracking[0] = MayNeedBigInt(lengthTracking, 1);
   let evil = {
     valueOf: () => {
       rab.resize(6 * ctor.BYTES_PER_ELEMENT);

@@ -14,10 +14,6 @@ const expected = [
   // RejectObjectWithCalendarOrTimeZone
   "get fields.calendar",
   "get fields.timeZone",
-  // ToTemporalOverflow
-  "get options.overflow",
-  "get options.overflow.toString",
-  "call options.overflow.toString",
   // ToTemporalTimeRecord
   "get fields.hour",
   "get fields.hour.valueOf",
@@ -37,6 +33,10 @@ const expected = [
   "get fields.second",
   "get fields.second.valueOf",
   "call fields.second.valueOf",
+  // GetTemporalOverflowOption
+  "get options.overflow",
+  "get options.overflow.toString",
+  "call options.overflow.toString",
 ];
 const actual = [];
 

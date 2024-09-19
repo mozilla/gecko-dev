@@ -9,7 +9,7 @@ includes: [compareArray.js, temporalHelpers.js]
 features: [Temporal]
 ---*/
 
-const expected = [
+const expectedOptionsReading = [
   // GetTemporalDisambiguationOption
   "get options.disambiguation",
   "get options.disambiguation.toString",
@@ -22,6 +22,9 @@ const expected = [
   "get options.overflow",
   "get options.overflow.toString",
   "call options.overflow.toString",
+];
+
+const expected = [
   // ToTemporalCalendar
   "get item.calendar",
   // PrepareTemporalFields
@@ -59,7 +62,7 @@ const expected = [
   "get item.year",
   "get item.year.valueOf",
   "call item.year.valueOf",
-];
+].concat(expectedOptionsReading);
 const actual = [];
 
 const from = TemporalHelpers.propertyBagObserver(actual, {
@@ -87,7 +90,18 @@ function createOptionsObserver({ overflow = "constrain", disambiguation = "compa
   }, "options");
 }
 
-Temporal.ZonedDateTime.from(from, createOptionsObserver());
+const options = createOptionsObserver();
+Temporal.ZonedDateTime.from(from, options);
 assert.compareArray(actual, expected, "order of operations");
+
+actual.splice(0);  // clear for next test
+
+Temporal.ZonedDateTime.from(new Temporal.ZonedDateTime(0n, "UTC"), options);
+assert.compareArray(actual, expectedOptionsReading, "order of operations when cloning a ZonedDateTime instance");
+
+actual.splice(0);
+
+Temporal.ZonedDateTime.from("2001-05-02T06:54:32.987654321+00:00[UTC]", options);
+assert.compareArray(actual, expectedOptionsReading, "order of operations when parsing a string");
 
 reportCompare(0, 0);

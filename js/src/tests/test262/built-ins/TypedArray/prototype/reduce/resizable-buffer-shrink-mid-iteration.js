@@ -20,7 +20,7 @@ let resizeTo;
 // resizeTo. To be called by a method of the view being collected.
 // Note that rab, values, resizeAfter, and resizeTo may need to be reset
 // before calling this.
-function ResizeMidIteration(n) {
+function ResizeMidIteration(acc, n) {
   return CollectValuesAndResize(n, values, rab, resizeAfter, resizeTo);
 }
 
