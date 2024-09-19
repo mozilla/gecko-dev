@@ -585,7 +585,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
   bool testbed;
 
   BitSet* liveIn;
-  FixedList<VirtualRegister> vregs;
+  Vector<VirtualRegister, 0, JitAllocPolicy> vregs;
 
   // Allocation state.
   StackSlotAllocator stackSlotAllocator;
@@ -838,6 +838,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
       : RegisterAllocator(mir, lir, graph),
         testbed(testbed),
         liveIn(nullptr),
+        vregs(mir->alloc()),
         callRanges(nullptr) {}
 
   [[nodiscard]] bool go();

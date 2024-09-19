@@ -1337,11 +1337,11 @@ bool BacktrackingAllocator::init() {
   }
 
   size_t numVregs = graph.numVirtualRegisters();
-  if (!vregs.init(mir->alloc(), numVregs)) {
+  if (!vregs.initCapacity(numVregs)) {
     return false;
   }
   for (uint32_t i = 0; i < numVregs; i++) {
-    new (&vregs[i]) VirtualRegister();
+    vregs.infallibleEmplaceBack();
   }
 
   // Build virtual register objects.
