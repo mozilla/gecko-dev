@@ -14,11 +14,14 @@
 #include <memory>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/types/optional.h"
 #include "api/audio_codecs/audio_codec_pair_id.h"
 #include "api/audio_codecs/audio_decoder.h"
 #include "api/audio_codecs/audio_format.h"
+#include "api/environment/environment.h"
 #include "api/ref_count.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 
@@ -31,12 +34,12 @@ class AudioDecoderFactory : public RefCountInterface {
 
   // Create a new decoder instance. The `codec_pair_id` argument is used to link
   // encoders and decoders that talk to the same remote entity: if a
-  // AudioEncoderFactory::MakeAudioEncoder() and a
-  // AudioDecoderFactory::MakeAudioDecoder() call receive non-null IDs that
-  // compare equal, the factory implementations may assume that the encoder and
-  // decoder form a pair. (The intended use case for this is to set up
-  // communication between the AudioEncoder and AudioDecoder instances, which is
-  // needed for some codecs with built-in bandwidth adaptation.)
+  // AudioEncoderFactory::Create() and a AudioDecoderFactory::Create() call
+  // receive non-null IDs that compare equal, the factory implementations may
+  // assume that the encoder and decoder form a pair. (The intended use case for
+  // this is to set up communication between the AudioEncoder and AudioDecoder
+  // instances, which is needed for some codecs with built-in bandwidth
+  // adaptation.)
   //
   // Returns null if the format isn't supported.
   //
@@ -45,7 +48,19 @@ class AudioDecoderFactory : public RefCountInterface {
   // work.
   virtual std::unique_ptr<AudioDecoder> MakeAudioDecoder(
       const SdpAudioFormat& format,
-      absl::optional<AudioCodecPairId> codec_pair_id) = 0;
+      absl::optional<AudioCodecPairId> codec_pair_id) {
+    RTC_DCHECK_NOTREACHED();
+    return nullptr;
+  }
+
+  // TODO: bugs.webrtc.org/356878416 - Make pure virtual when  implemented by
+  // derived classes instead of the MakeAudioDecoder.
+  virtual absl::Nullable<std::unique_ptr<AudioDecoder>> Create(
+      const Environment& env,
+      const SdpAudioFormat& format,
+      absl::optional<AudioCodecPairId> codec_pair_id) {
+    return MakeAudioDecoder(format, codec_pair_id);
+  }
 };
 
 }  // namespace webrtc

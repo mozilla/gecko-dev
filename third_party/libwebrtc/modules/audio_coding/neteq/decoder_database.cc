@@ -63,7 +63,7 @@ AudioDecoder* DecoderDatabase::DecoderInfo::GetDecoder() const {
     // TODO(ossu): Keep a check here for now, since a number of tests create
     // DecoderInfos without factories.
     RTC_DCHECK(factory_);
-    decoder_ = factory_->MakeAudioDecoder(audio_format_, codec_pair_id_);
+    decoder_ = factory_->Create(env_, audio_format_, codec_pair_id_);
   }
   RTC_DCHECK(decoder_) << "Failed to create: " << rtc::ToString(audio_format_);
   return decoder_.get();

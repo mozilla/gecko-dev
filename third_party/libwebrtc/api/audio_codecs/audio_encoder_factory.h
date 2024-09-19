@@ -34,12 +34,12 @@ class AudioEncoderFactory : public RefCountInterface {
     int payload_type = -1;
 
     // Links encoders and decoders that talk to the same remote entity: if
-    // a AudioEncoderFactory::Create() and a
-    // AudioDecoderFactory::MakeAudioDecoder() call receive non-null IDs that
-    // compare equal, the factory implementations may assume that the encoder
-    // and decoder form a pair. (The intended use case for this is to set up
-    // communication between the AudioEncoder and AudioDecoder instances, which
-    // is needed for some codecs with built-in bandwidth adaptation.)
+    // a AudioEncoderFactory::Create() and a AudioDecoderFactory::Create() call
+    // receive non-null IDs that compare equal, the factory implementations may
+    // assume that the encoder and decoder form a pair. (The intended use case
+    // for this is to set up communication between the AudioEncoder and
+    // AudioDecoder instances, which is needed for some codecs with built-in
+    // bandwidth adaptation.)
     //
     // Note: Implementations need to be robust against combinations other than
     // one encoder, one decoder getting the same ID; such encoders must still
