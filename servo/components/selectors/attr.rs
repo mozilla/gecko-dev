@@ -6,15 +6,16 @@ use crate::parser::SelectorImpl;
 use cssparser::ToCss;
 use std::fmt;
 
-#[derive(Clone, Eq, PartialEq, ToShmem)]
-#[shmem(no_bounds)]
+#[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
+#[cfg_attr(feature = "to_shmem", shmem(no_bounds))]
 pub struct AttrSelectorWithOptionalNamespace<Impl: SelectorImpl> {
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "to_shmem", shmem(field_bound))]
     pub namespace: Option<NamespaceConstraint<(Impl::NamespacePrefix, Impl::NamespaceUrl)>>,
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "to_shmem", shmem(field_bound))]
     pub local_name: Impl::LocalName,
     pub local_name_lower: Impl::LocalName,
-    #[shmem(field_bound)]
+    #[cfg_attr(feature = "to_shmem", shmem(field_bound))]
     pub operation: ParsedAttrSelectorOperation<Impl::AttrValue>,
 }
 
@@ -27,7 +28,8 @@ impl<Impl: SelectorImpl> AttrSelectorWithOptionalNamespace<Impl> {
     }
 }
 
-#[derive(Clone, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
 pub enum NamespaceConstraint<NamespaceUrl> {
     Any,
 
@@ -35,7 +37,8 @@ pub enum NamespaceConstraint<NamespaceUrl> {
     Specific(NamespaceUrl),
 }
 
-#[derive(Clone, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
 pub enum ParsedAttrSelectorOperation<AttrValue> {
     Exists,
     WithValue {
@@ -71,7 +74,8 @@ impl<AttrValue> AttrSelectorOperation<AttrValue> {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Eq, PartialEq)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
 pub enum AttrSelectorOperator {
     Equal,
     Includes,
@@ -136,7 +140,8 @@ impl AttrSelectorOperator {
 /// The definition of whitespace per CSS Selectors Level 3 § 4.
 pub static SELECTOR_WHITESPACE: &[char] = &[' ', '\t', '\n', '\r', '\x0C'];
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
 pub enum ParsedCaseSensitivity {
     /// 's' was specified.
     ExplicitCaseSensitive,

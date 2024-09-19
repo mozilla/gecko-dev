@@ -25,7 +25,8 @@ gecko = [
     "regex",
     "serde",
     "style_traits/gecko",
-    "toml"
+    "toml",
+    "selectors/to_shmem"
 ]
 servo = [
     "arrayvec/use_union",
@@ -40,7 +41,8 @@ servo = [
     "string_cache",
     "style_traits/servo",
     "to_shmem/servo",
-    "url"
+    "url",
+    "selectors/to_shmem"
 ]
 gecko_debug = []
 gecko_refcount_logging = []

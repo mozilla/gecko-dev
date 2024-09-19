@@ -169,7 +169,8 @@ where
 }
 
 /// Flags that indicate at which point of parsing a selector are we.
-#[derive(Clone, Copy, Default, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
 pub(crate) struct SelectorFlags(u8);
 
 bitflags! {
@@ -206,7 +207,8 @@ impl SelectorFlags {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, ToShmem)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg_attr(feature = "to_shmem", derive(ToShmem))]
 pub struct SpecificityAndFlags {
     /// There are two free bits here, since we use ten bits for each specificity
     /// kind (id, class, element).
