@@ -613,7 +613,10 @@ class BrowserParent final : public PBrowserParent,
 
   bool HandleQueryContentEvent(mozilla::WidgetQueryContentEvent& aEvent);
 
-  bool SendInsertText(const nsString& aStringToInsert);
+  bool SendSimpleContentCommandEvent(
+      const mozilla::WidgetContentCommandEvent& aEvent);
+  bool SendInsertText(const mozilla::WidgetContentCommandEvent& aEvent);
+  bool SendReplaceText(const mozilla::WidgetContentCommandEvent& aEvent);
 
   bool SendPasteTransferable(IPCTransferable&& aTransferable);
 
