@@ -71,7 +71,7 @@ object Versions {
         const val datastore="1.1.1"
         const val drawerlayout = "1.2.0"
         const val fragment = "1.8.3"
-        const val lifecycle = "2.8.5"
+        const val lifecycle = "2.8.6"
         const val localbroadcastmanager = "1.0.0"
         const val media = "1.7.0"
         const val navigation = "2.7.7"
