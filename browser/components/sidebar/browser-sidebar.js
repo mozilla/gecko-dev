@@ -9,6 +9,7 @@
  */
 const defaultTools = {
   viewGenaiChatSidebar: "aichat",
+  viewReviewCheckerSidebar: "reviewchecker",
   viewTabsSidebar: "syncedtabs",
   viewHistorySidebar: "history",
   viewBookmarksSidebar: "bookmarks",
@@ -34,6 +35,11 @@ var SidebarController = {
 
     let switcherMenuitem;
     const updateMenus = visible => {
+      // Hide the sidebar if it is open and should not be visible.
+      if (!visible && this.isOpen && this.currentID == commandID) {
+        this.hide();
+      }
+
       // Update visibility of View -> Sidebar menu item.
       const viewItem = document.getElementById(sidebar.menuId);
       if (viewItem) {
@@ -139,6 +145,19 @@ var SidebarController = {
         // Bug 1900915 to expose as conditional tool
         revampL10nId: "sidebar-menu-genai-chat-label",
         iconUrl: "chrome://mozapps/skin/extensions/category-discover.svg",
+      }
+    );
+
+    this.registerPrefSidebar(
+      "browser.shopping.experience2023.integratedSidebar",
+      "viewReviewCheckerSidebar",
+      {
+        elementId: "sidebar-switcher-review-checker",
+        url: "chrome://browser/content/shopping/shopping.html",
+        menuId: "menu_reviewCheckerSidebar",
+        menuL10nId: "menu-view-review-checker",
+        revampL10nId: "sidebar-menu-review-checker-label",
+        iconUrl: "chrome://browser/content/shopping/assets/shopping.svg",
       }
     );
 

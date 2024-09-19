@@ -34,6 +34,8 @@ export class ShoppingSidebarParent extends JSWindowActorParent {
     "browser.shopping.experience2023.sidebarClosedCount";
   static SHOW_KEEP_SIDEBAR_CLOSED_MESSAGE_PREF =
     "browser.shopping.experience2023.showKeepSidebarClosedMessage";
+  static INTEGRATED_SIDEBAR_PANEL_PREF =
+    "browser.shopping.experience2023.integratedSidebar";
 
   updateProductURL(uri, flags) {
     this.sendAsyncMessage("ShoppingSidebar:UpdateProductURL", {
@@ -201,7 +203,7 @@ class ShoppingSidebarManagerClass {
     XPCOMUtils.defineLazyPreferenceGetter(
       this,
       "isIntegratedSidebarPanel",
-      "browser.shopping.experience2023.integratedSidebar",
+      ShoppingSidebarParent.INTEGRATED_SIDEBAR_PANEL_PREF,
       false,
       this.updateSidebarVisibility
     );

@@ -5,6 +5,9 @@
 menu-view-genai-chat =
   .label = AI Chatbot
 
+menu-view-review-checker =
+  .label = Review Checker
+
 ## Labels for sidebar history panel
 
 # Variables:
@@ -97,6 +100,8 @@ sidebar-menu-bookmarks-label =
   .label = Bookmarks
 sidebar-menu-customize-label =
   .label = Customize sidebar
+sidebar-menu-review-checker-label =
+  .label = Review Checker
 
 ## Headings for sidebar menu panels.
 

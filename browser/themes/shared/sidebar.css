@@ -44,6 +44,10 @@
   &[sidebarcommand="viewGenaiChatSidebar"] {
     min-width: 400px;
   }
+
+  &[sidebarcommand="viewReviewCheckerSidebar"] {
+    width: 340px;
+  }
 }
 
 #sidebar-header {

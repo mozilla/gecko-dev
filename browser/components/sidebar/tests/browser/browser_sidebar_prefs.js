@@ -216,3 +216,38 @@ add_task(async function test_flip_revamp_pref() {
   ok(true, "The old sidebar is hidden and the new sidebar is shown.");
   await BrowserTestUtils.closeWindow(win);
 });
+
+/**
+ * Check that conditional sidebar tools hide if open on pref change
+ */
+add_task(async function test_conditional_tools() {
+  const COMMAND_ID = "viewGenaiChatSidebar";
+  const win = await BrowserTestUtils.openNewBrowserWindow();
+  const { SidebarController } = win;
+  const sidebar = win.document.querySelector("sidebar-main");
+  await sidebar.updateComplete;
+
+  await SpecialPowers.pushPrefEnv({ set: [["browser.ml.chat.enabled", true]] });
+
+  await SidebarController.show(COMMAND_ID);
+
+  await TestUtils.waitForCondition(() => {
+    return (
+      SidebarController.isOpen && SidebarController.currentID == COMMAND_ID
+    );
+  }, "The sidebar was opened.");
+
+  ok(true, "Conditional sidebar is shown.");
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.ml.chat.enabled", false]],
+  });
+
+  await TestUtils.waitForCondition(() => {
+    return !SidebarController.isOpen;
+  }, "The sidebar is hidden.");
+
+  ok(true, "Conditional sidebar is hidden after the pref change.");
+
+  await BrowserTestUtils.closeWindow(win);
+});
