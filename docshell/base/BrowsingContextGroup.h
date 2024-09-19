@@ -200,8 +200,6 @@ class BrowsingContextGroup final : public nsWrapperCache {
   // process.
   bool IsPotentiallyCrossOriginIsolated();
 
-  void NotifyFocusedOrActiveBrowsingContextToProcess(ContentParent* aProcess);
-
   static void GetAllGroups(nsTArray<RefPtr<BrowsingContextGroup>>& aGroups);
 
   void IncInputEventSuspensionLevel();
