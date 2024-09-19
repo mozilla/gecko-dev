@@ -394,20 +394,6 @@ class HttpBaseChannel : public nsHashPropertyBag,
     return NS_OK;
   }
 
-  NS_IMETHOD GetFetchPriority(
-      nsIClassOfService::FetchPriority* aFetchPriority) override {
-    *aFetchPriority = mClassOfService.FetchPriority();
-    return NS_OK;
-  }
-
-  NS_IMETHOD SetFetchPriority(
-      nsIClassOfService::FetchPriority aFetchPriority) override {
-    mClassOfService.SetFetchPriority(aFetchPriority);
-    return NS_OK;
-  }
-
-  void SetFetchPriorityDOM(mozilla::dom::FetchPriority aPriority) override;
-
   // nsIResumableChannel
   NS_IMETHOD GetEntityID(nsACString& aEntityID) override;
 

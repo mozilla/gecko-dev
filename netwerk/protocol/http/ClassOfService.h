@@ -7,13 +7,13 @@
 
 #include "nsIClassOfService.h"
 #include "nsPrintfCString.h"
-#include "mozilla/net/NeckoMessageUtils.h"
+#include "ipc/IPCMessageUtils.h"
 
 namespace mozilla::net {
 
 class ClassOfService {
  public:
-  ClassOfService() = default;
+  ClassOfService() : mClassFlags(0), mIncremental(false) {}
   ClassOfService(unsigned long flags, bool incremental)
       : mClassFlags(flags), mIncremental(incremental) {}
 
@@ -25,11 +25,6 @@ class ClassOfService {
   bool Incremental() const { return mIncremental; }
   void SetIncremental(bool incremental) { mIncremental = incremental; }
 
-  nsIClassOfService::FetchPriority FetchPriority() { return mFetchPriority; }
-  void SetFetchPriority(nsIClassOfService::FetchPriority aPriority) {
-    mFetchPriority = aPriority;
-  }
-
   static void ToString(const ClassOfService aCos, nsACString& aOut) {
     return ToString(aCos.Flags(), aOut);
   }
@@ -39,10 +34,8 @@ class ClassOfService {
   }
 
  private:
-  unsigned long mClassFlags = 0;
-  bool mIncremental = false;
-  nsIClassOfService::FetchPriority mFetchPriority =
-      nsIClassOfService::FETCHPRIORITY_UNSET;
+  unsigned long mClassFlags;
+  bool mIncremental;
   friend IPC::ParamTraits<mozilla::net::ClassOfService>;
   friend bool operator==(const ClassOfService& lhs, const ClassOfService& rhs);
   friend bool operator!=(const ClassOfService& lhs, const ClassOfService& rhs);
@@ -50,8 +43,7 @@ class ClassOfService {
 
 inline bool operator==(const ClassOfService& lhs, const ClassOfService& rhs) {
   return lhs.mClassFlags == rhs.mClassFlags &&
-         lhs.mIncremental == rhs.mIncremental &&
-         lhs.mFetchPriority == rhs.mFetchPriority;
+         lhs.mIncremental == rhs.mIncremental;
 }
 
 inline bool operator!=(const ClassOfService& lhs, const ClassOfService& rhs) {
@@ -68,13 +60,11 @@ struct ParamTraits<mozilla::net::ClassOfService> {
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
     WriteParam(aWriter, aParam.mClassFlags);
     WriteParam(aWriter, aParam.mIncremental);
-    WriteParam(aWriter, aParam.mFetchPriority);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
     if (!ReadParam(aReader, &aResult->mClassFlags) ||
-        !ReadParam(aReader, &aResult->mIncremental) ||
-        !ReadParam(aReader, &aResult->mFetchPriority))
+        !ReadParam(aReader, &aResult->mIncremental))
       return false;
 
     return true;
