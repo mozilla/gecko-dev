@@ -5094,9 +5094,23 @@ inline void MozJemalloc::jemalloc_free_dirty_pages(void) {
   if (malloc_initialized) {
     MutexAutoLock lock(gArenas.mLock);
     MOZ_ASSERT(gArenas.IsOnMainThreadWeak());
-    for (auto arena : gArenas.iter()) {
+    for (auto* arena : gArenas.iter()) {
       MaybeMutexAutoLock arena_lock(arena->mLock);
       arena->Purge(1);
+    }
+  }
+}
+
+inline void MozJemalloc::jemalloc_free_excess_dirty_pages(void) {
+  if (malloc_initialized) {
+    MutexAutoLock lock(gArenas.mLock);
+    for (auto* arena : gArenas.iter()) {
+      MaybeMutexAutoLock arena_lock(arena->mLock);
+
+      size_t maxDirty = arena->EffectiveMaxDirty();
+      if (arena->mNumDirty > maxDirty) {
+        arena->Purge(maxDirty);
+      }
     }
   }
 }
