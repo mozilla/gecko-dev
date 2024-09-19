@@ -11,7 +11,7 @@
 
 #include <vector>
 
-#include "api/video/encoded_frame.h"
+#include "absl/types/optional.h"
 #include "test/fake_encoded_frame.h"
 #include "test/gmock.h"
 #include "test/gtest.h"

@@ -23,18 +23,18 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8e9a326a99cd5eaa6
  4 files changed, 55 insertions(+)
 
 diff --git a/api/video/frame_buffer.cc b/api/video/frame_buffer.cc
-index 09ca53ac94..8d61025912 100644
+index 00f1187748..98416b6fb8 100644
 --- a/api/video/frame_buffer.cc
 +++ b/api/video/frame_buffer.cc
-@@ -16,6 +16,7 @@
- #include "absl/container/inlined_vector.h"
+@@ -25,6 +25,7 @@
+ #include "api/video/encoded_frame.h"
  #include "rtc_base/logging.h"
  #include "rtc_base/numerics/sequence_number_util.h"
 +#include "rtc_base/trace_event.h"
  
  namespace webrtc {
  namespace {
-@@ -68,7 +69,12 @@ FrameBuffer::FrameBuffer(int max_size,
+@@ -77,7 +78,12 @@ FrameBuffer::FrameBuffer(int max_size,
        decoded_frame_history_(max_decode_history) {}
  
  bool FrameBuffer::InsertFrame(std::unique_ptr<EncodedFrame> frame) {
@@ -47,7 +47,7 @@ index 09ca53ac94..8d61025912 100644
      RTC_DLOG(LS_WARNING) << "Frame " << frame->Id()
                           << " has invalid references, dropping frame.";
      return false;
-@@ -78,23 +84,35 @@ bool FrameBuffer::InsertFrame(std::unique_ptr<EncodedFrame> frame) {
+@@ -87,23 +93,35 @@ bool FrameBuffer::InsertFrame(std::unique_ptr<EncodedFrame> frame) {
      if (legacy_frame_id_jump_behavior_ && frame->is_keyframe() &&
          AheadOf(frame->RtpTimestamp(),
                  *decoded_frame_history_.GetLastDecodedFrameTimestamp())) {
@@ -83,7 +83,7 @@ index 09ca53ac94..8d61025912 100644
        return false;
      }
    }
-@@ -149,16 +167,31 @@ void FrameBuffer::DropNextDecodableTemporalUnit() {
+@@ -158,16 +176,31 @@ void FrameBuffer::DropNextDecodableTemporalUnit() {
  
  void FrameBuffer::UpdateDroppedFramesAndDiscardedPackets(FrameIterator begin_it,
                                                           FrameIterator end_it) {

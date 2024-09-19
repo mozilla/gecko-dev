@@ -10,6 +10,12 @@
 
 #include "api/video/color_space.h"
 
+#include <cstddef>
+#include <cstdint>
+#include <string>
+
+#include "absl/types/optional.h"
+#include "api/video/hdr_metadata.h"
 #include "rtc_base/strings/string_builder.h"
 
 namespace webrtc {

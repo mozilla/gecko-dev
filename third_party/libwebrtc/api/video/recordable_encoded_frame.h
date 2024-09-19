@@ -11,7 +11,7 @@
 #ifndef API_VIDEO_RECORDABLE_ENCODED_FRAME_H_
 #define API_VIDEO_RECORDABLE_ENCODED_FRAME_H_
 
-#include "api/array_view.h"
+#include "absl/types/optional.h"
 #include "api/scoped_refptr.h"
 #include "api/units/timestamp.h"
 #include "api/video/color_space.h"

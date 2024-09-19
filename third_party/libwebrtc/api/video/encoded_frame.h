@@ -20,7 +20,6 @@
 #include "api/video/video_codec_type.h"
 #include "modules/rtp_rtcp/source/rtp_video_header.h"
 #include "modules/video_coding/include/video_codec_interface.h"
-#include "modules/video_coding/include/video_coding_defines.h"
 
 namespace webrtc {
 

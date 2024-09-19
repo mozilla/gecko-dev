@@ -11,8 +11,16 @@
 #include "api/video/video_frame.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <utility>
 
+#include "absl/types/optional.h"
+#include "api/rtp_packet_infos.h"
+#include "api/scoped_refptr.h"
+#include "api/units/timestamp.h"
+#include "api/video/color_space.h"
+#include "api/video/video_frame_buffer.h"
+#include "api/video/video_rotation.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/time_utils.h"
 

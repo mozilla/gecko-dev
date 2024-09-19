@@ -12,9 +12,10 @@
 
 #include <memory>
 
-#include "absl/base/attributes.h"
-#include "absl/base/macros.h"
+#include "api/environment/environment.h"
 #include "api/video/video_bitrate_allocator.h"
+#include "api/video/video_bitrate_allocator_factory.h"
+#include "api/video/video_codec_type.h"
 #include "api/video_codecs/video_codec.h"
 #include "modules/video_coding/svc/svc_rate_allocator.h"
 #include "modules/video_coding/utility/simulcast_rate_allocator.h"

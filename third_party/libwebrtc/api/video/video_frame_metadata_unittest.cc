@@ -10,11 +10,9 @@
 
 #include "api/video/video_frame_metadata.h"
 
-#include "api/video/video_frame.h"
 #include "modules/video_coding/codecs/h264/include/h264_globals.h"
 #include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
 #include "test/gtest.h"
-#include "video/video_receive_stream2.h"
 
 namespace webrtc {
 namespace {

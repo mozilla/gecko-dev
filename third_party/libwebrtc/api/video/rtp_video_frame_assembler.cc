@@ -10,19 +10,27 @@
 
 #include "api/video/rtp_video_frame_assembler.h"
 
-#include <algorithm>
 #include <cstdint>
-#include <map>
 #include <memory>
 #include <utility>
 #include <vector>
 
 #include "absl/container/inlined_vector.h"
 #include "absl/types/optional.h"
+#include "api/array_view.h"
+#include "api/rtp_packet_infos.h"
+#include "api/scoped_refptr.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_frame_type.h"
+#include "api/video/video_timing.h"
 #include "modules/rtp_rtcp/source/frame_object.h"
 #include "modules/rtp_rtcp/source/rtp_dependency_descriptor_extension.h"
+#include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor.h"
 #include "modules/rtp_rtcp/source/rtp_generic_frame_descriptor_extension.h"
 #include "modules/rtp_rtcp/source/rtp_packet_received.h"
+#include "modules/rtp_rtcp/source/rtp_video_header.h"
+#include "modules/rtp_rtcp/source/video_rtp_depacketizer.h"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer_av1.h"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer_generic.h"
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer_h264.h"
@@ -31,6 +39,7 @@
 #include "modules/rtp_rtcp/source/video_rtp_depacketizer_vp9.h"
 #include "modules/video_coding/packet_buffer.h"
 #include "modules/video_coding/rtp_frame_reference_finder.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/sequence_number_unwrapper.h"
 

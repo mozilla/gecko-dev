@@ -30,10 +30,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ee566d1bfb654d36e
  12 files changed, 70 insertions(+), 8 deletions(-)
 
 diff --git a/api/video/frame_buffer.cc b/api/video/frame_buffer.cc
-index 5e8fc0ff44..09ca53ac94 100644
+index b99ab0cd52..00f1187748 100644
 --- a/api/video/frame_buffer.cc
 +++ b/api/video/frame_buffer.cc
-@@ -140,14 +140,29 @@ void FrameBuffer::DropNextDecodableTemporalUnit() {
+@@ -149,14 +149,29 @@ void FrameBuffer::DropNextDecodableTemporalUnit() {
    }
  
    auto end_it = std::next(next_decodable_temporal_unit_->last_frame);
@@ -66,7 +66,7 @@ index 5e8fc0ff44..09ca53ac94 100644
  absl::optional<int64_t> FrameBuffer::LastContinuousFrameId() const {
    return last_continuous_frame_id_;
  }
-@@ -167,6 +182,9 @@ int FrameBuffer::GetTotalNumberOfContinuousTemporalUnits() const {
+@@ -176,6 +191,9 @@ int FrameBuffer::GetTotalNumberOfContinuousTemporalUnits() const {
  int FrameBuffer::GetTotalNumberOfDroppedFrames() const {
    return num_dropped_frames_;
  }
@@ -76,7 +76,7 @@ index 5e8fc0ff44..09ca53ac94 100644
  
  size_t FrameBuffer::CurrentSize() const {
    return frames_.size();
-@@ -269,6 +287,7 @@ void FrameBuffer::FindNextAndLastDecodableTemporalUnit() {
+@@ -278,6 +296,7 @@ void FrameBuffer::FindNextAndLastDecodableTemporalUnit() {
  }
  
  void FrameBuffer::Clear() {
@@ -85,10 +85,10 @@ index 5e8fc0ff44..09ca53ac94 100644
    next_decodable_temporal_unit_.reset();
    decodable_temporal_units_info_.reset();
 diff --git a/api/video/frame_buffer.h b/api/video/frame_buffer.h
-index 94edf64d5a..81fd12da58 100644
+index 7791770f52..6f9796d2d5 100644
 --- a/api/video/frame_buffer.h
 +++ b/api/video/frame_buffer.h
-@@ -66,6 +66,7 @@ class FrameBuffer {
+@@ -67,6 +67,7 @@ class FrameBuffer {
  
    int GetTotalNumberOfContinuousTemporalUnits() const;
    int GetTotalNumberOfDroppedFrames() const;
@@ -96,7 +96,7 @@ index 94edf64d5a..81fd12da58 100644
    size_t CurrentSize() const;
  
   private:
-@@ -87,6 +88,8 @@ class FrameBuffer {
+@@ -88,6 +89,8 @@ class FrameBuffer {
    void PropagateContinuity(const FrameIterator& frame_it);
    void FindNextAndLastDecodableTemporalUnit();
    void Clear();
@@ -105,7 +105,7 @@ index 94edf64d5a..81fd12da58 100644
  
    const bool legacy_frame_id_jump_behavior_;
    const size_t max_size_;
-@@ -99,6 +102,7 @@ class FrameBuffer {
+@@ -100,6 +103,7 @@ class FrameBuffer {
  
    int num_continuous_temporal_units_ = 0;
    int num_dropped_frames_ = 0;
