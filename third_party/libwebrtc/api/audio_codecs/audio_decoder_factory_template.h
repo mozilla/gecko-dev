@@ -58,11 +58,16 @@ struct Helper<T, Ts...> {
                   "absl::optional<T::Config>");
     return opt_config ? true : Helper<Ts...>::IsSupportedDecoder(format);
   }
+  // TODO: bugs.webrtc.org/356878416 - Migrate to `Create`
   static std::unique_ptr<AudioDecoder> MakeAudioDecoder(
       const SdpAudioFormat& format,
       absl::optional<AudioCodecPairId> codec_pair_id) {
     auto opt_config = T::SdpToConfig(format);
-    return opt_config ? T::MakeAudioDecoder(*opt_config, codec_pair_id)
+    return opt_config ?
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+                      T::MakeAudioDecoder(*opt_config, codec_pair_id)
+#pragma clang diagnostic pop
                       : Helper<Ts...>::MakeAudioDecoder(format, codec_pair_id);
   }
 };

@@ -122,7 +122,7 @@ TEST(BandwidthAdaptationTest, BandwidthAdaptationTest) {
   // Create decoder.
   AudioDecoderOpus::Config dec_config;
   dec_config.num_channels = kNumChannels;
-  auto decoder = AudioDecoderOpus::MakeAudioDecoder(dec_config);
+  auto decoder = AudioDecoderOpus::MakeAudioDecoder(env, dec_config);
 
   // Open speech file.
   const std::string kInputFileName =

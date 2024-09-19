@@ -67,6 +67,8 @@ rtc_library("audio_decoder_opus") {
     "../../../modules/audio_coding:webrtc_opus",
     "../../../rtc_base:checks",
     "../../../rtc_base/system:rtc_export",
+    "../../environment",
+    "../../transport:field_trial_based_config",
     "//third_party/abseil-cpp/absl/strings",
     "//third_party/abseil-cpp/absl/types:optional",
   ]

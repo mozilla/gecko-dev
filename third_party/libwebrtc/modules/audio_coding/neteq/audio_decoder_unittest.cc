@@ -28,12 +28,15 @@
 #include "modules/audio_coding/codecs/pcm16b/audio_encoder_pcm16b.h"
 #include "modules/audio_coding/neteq/tools/resample_input_audio_file.h"
 #include "rtc_base/system/arch.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gtest.h"
 #include "test/testsupport/file_utils.h"
 
 namespace webrtc {
 
 namespace {
+
+using test::ExplicitKeyValueConfig;
 
 constexpr int kOverheadBytesPerPacket = 50;
 
@@ -384,8 +387,8 @@ class AudioDecoderOpusTest
     codec_input_rate_hz_ = opus_sample_rate_hz_;
     frame_size_ = rtc::CheckedDivExact(opus_sample_rate_hz_, 100);
     data_length_ = 10 * frame_size_;
-    decoder_ =
-        new AudioDecoderOpusImpl(opus_num_channels_, opus_sample_rate_hz_);
+    decoder_ = new AudioDecoderOpusImpl(
+        ExplicitKeyValueConfig(""), opus_num_channels_, opus_sample_rate_hz_);
     AudioEncoderOpusConfig config;
     config.frame_size_ms = 10;
     config.sample_rate_hz = opus_sample_rate_hz_;
