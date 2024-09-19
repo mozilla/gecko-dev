@@ -814,3 +814,93 @@ add_task(async function test_aboutwelcome_fullscreen_property() {
   doExperimentCleanup();
   browser.closeBrowser();
 });
+
+/**
+ * Test configurability of single select picker icons styles
+ */
+add_task(async function test_aboutwelcome_single_select_icon_styles() {
+  let screens = [
+    makeTestContent(`TEST_SINGLE_SELECT_ICONS`, {
+      tiles: {
+        type: "single-select",
+        selected: "horizontal",
+        action: {
+          picker: "<event>",
+        },
+        data: [
+          {
+            icon: {
+              background: `center / contain no-repeat url("chrome://activity-stream/content/data/content/assets/fox-doodle-waving.gif")`,
+              width: "150px",
+              height: "100px",
+              marginInline: "10px",
+              borderRadius: "5px",
+            },
+            id: "test1",
+            label: {
+              raw: "test1 label",
+            },
+            action: {
+              type: "SET_PREF",
+              data: {
+                pref: {
+                  name: "test1.pref",
+                  value: true,
+                },
+              },
+            },
+          },
+          {
+            defaultValue: true,
+            icon: {
+              background: `center / contain no-repeat url("chrome://activity-stream/content/data/content/assets/heart.webp")`,
+              width: "150px",
+              height: "100px",
+              marginInline: "10px",
+              borderRadius: "5px",
+            },
+            id: "test2",
+            label: {
+              raw: "test2 label",
+            },
+            action: {
+              type: "SET_PREF",
+              data: {
+                pref: {
+                  name: "test2.pref",
+                  value: false,
+                },
+              },
+            },
+          },
+        ],
+      },
+    }),
+  ];
+
+  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "aboutwelcome",
+    value: { enabled: true, screens },
+  });
+
+  let browser = await openAboutWelcome();
+
+  await test_element_styles(
+    browser,
+    ".icon.test1",
+    // Expected styles:
+    {
+      "background-image":
+        'url("chrome://activity-stream/content/data/content/assets/fox-doodle-waving.gif")',
+      "background-repeat": "no-repeat",
+      "background-size": "contain",
+      width: "150px",
+      height: "100px",
+      "margin-inline": "10px",
+      "border-radius": "5px",
+    }
+  );
+
+  doExperimentCleanup();
+  browser.closeBrowser();
+});

@@ -332,6 +332,12 @@ const MultiStageAboutWelcome = props => {
   // multi select screen.
   const [activeMultiSelects, setActiveMultiSelects] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)({});
 
+  // Save the active single select state for each screen as string value keyed
+  // by screen id. Similar to above, this allows us to remember the state of
+  // each screen's single select picker when navigating back and forth between
+  // screens.
+  const [activeSingleSelects, setActiveSingleSelects] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)({});
+
   // Get the active theme so the rendering code can make it selected
   // by default.
   const [activeTheme, setActiveTheme] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(null);
@@ -376,6 +382,10 @@ const MultiStageAboutWelcome = props => {
       ...prevState,
       [currentScreen.id]: typeof valueOrFn === "function" ? valueOrFn(prevState[currentScreen.id]) : valueOrFn
     }));
+    const setActiveSingleSelect = valueOrFn => setActiveSingleSelects(prevState => ({
+      ...prevState,
+      [currentScreen.id]: typeof valueOrFn === "function" ? valueOrFn(prevState[currentScreen.id]) : valueOrFn
+    }));
     return index === order ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(WelcomeScreen, {
       key: currentScreen.id + order,
       id: currentScreen.id,
@@ -399,6 +409,8 @@ const MultiStageAboutWelcome = props => {
       activeMultiSelect: activeMultiSelects[currentScreen.id],
       setActiveMultiSelect: setActiveMultiSelect,
       autoAdvance: currentScreen.auto_advance,
+      activeSingleSelect: activeSingleSelects[currentScreen.id],
+      setActiveSingleSelect: setActiveSingleSelect,
       negotiatedLanguage: negotiatedLanguage,
       langPackInstallPhase: langPackInstallPhase,
       forceHideStepsIndicator: currentScreen.force_hide_steps_indicator,
@@ -587,6 +599,14 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
         window.AWSelectTheme(themeToUse);
       }
     }
+    if (action.picker) {
+      let options = props.content.tiles.data;
+      options.forEach(opt => {
+        if (opt.id === value) {
+          _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction(opt.action);
+        }
+      });
+    }
 
     // If the action has persistActiveTheme: true, we set the initial theme to the currently active theme
     // so that it can be reverted to in the event that the user navigates away from the screen
@@ -658,6 +678,8 @@ class WelcomeScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCo
       setScreenMultiSelects: this.props.setScreenMultiSelects,
       activeMultiSelect: this.props.activeMultiSelect,
       setActiveMultiSelect: this.props.setActiveMultiSelect,
+      activeSingleSelect: this.props.activeSingleSelect,
+      setActiveSingleSelect: this.props.setActiveSingleSelect,
       totalNumberOfScreens: this.props.totalNumberOfScreens,
       appAndSystemLocaleInfo: this.props.appAndSystemLocaleInfo,
       negotiatedLanguage: this.props.negotiatedLanguage,
@@ -804,7 +826,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _MobileDownloads__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(7);
 /* harmony import */ var _MultiSelect__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(8);
-/* harmony import */ var _Themes__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(9);
+/* harmony import */ var _SingleSelect__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(9);
 /* harmony import */ var _MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(4);
 /* harmony import */ var _LanguageSwitcher__WEBPACK_IMPORTED_MODULE_7__ = __webpack_require__(10);
 /* harmony import */ var _CTAParagraph__WEBPACK_IMPORTED_MODULE_8__ = __webpack_require__(11);
@@ -863,6 +885,8 @@ const MultiStageProtonScreen = props => {
     setScreenMultiSelects: props.setScreenMultiSelects,
     activeMultiSelect: props.activeMultiSelect,
     setActiveMultiSelect: props.setActiveMultiSelect,
+    activeSingleSelect: props.activeSingleSelect,
+    setActiveSingleSelect: props.setActiveSingleSelect,
     totalNumberOfScreens: props.totalNumberOfScreens,
     handleAction: props.handleAction,
     isFirstScreen: props.isFirstScreen,
@@ -1046,10 +1070,12 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
       installedAddons: this.props.installedAddons,
       message_id: this.props.messageId,
       handleAction: this.props.handleAction
-    }) : null, content.tiles && content.tiles.type === "theme" && content.tiles.data ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_Themes__WEBPACK_IMPORTED_MODULE_5__.Themes, {
+    }) : null, content.tiles && (content.tiles.type === "theme" || content.tiles.type === "single-select") && content.tiles.data ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_SingleSelect__WEBPACK_IMPORTED_MODULE_5__.SingleSelect, {
       content: content,
       activeTheme: this.props.activeTheme,
-      handleAction: this.props.handleAction
+      handleAction: this.props.handleAction,
+      activeSingleSelect: this.props.activeSingleSelect,
+      setActiveSingleSelect: this.props.setActiveSingleSelect
     }) : null, content.tiles && content.tiles.type === "mobile_downloads" && content.tiles.data ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MobileDownloads__WEBPACK_IMPORTED_MODULE_3__.MobileDownloads, {
       data: content.tiles.data,
       handleAction: this.props.handleAction
@@ -1478,7 +1504,7 @@ const MultiSelect = ({
 
 __webpack_require__.r(__webpack_exports__);
 /* harmony export */ __webpack_require__.d(__webpack_exports__, {
-/* harmony export */   Themes: () => (/* binding */ Themes)
+/* harmony export */   SingleSelect: () => (/* binding */ SingleSelect)
 /* harmony export */ });
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
@@ -1489,44 +1515,95 @@ __webpack_require__.r(__webpack_exports__);
 
 
 
-const Themes = props => {
-  const category = props.content.tiles?.category?.type;
+
+// This component was formerly "Themes" and continues to support theme and
+// wallpaper pickers.
+const SingleSelect = ({
+  activeSingleSelect,
+  activeTheme,
+  content,
+  handleAction,
+  setActiveSingleSelect
+}) => {
+  const category = content.tiles?.category?.type || content.tiles?.type;
+  const isSingleSelect = category === "single-select";
+  // When screen renders for first time or user navigates back, update state to
+  // check default option.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    if (isSingleSelect && !activeSingleSelect) {
+      let newActiveSingleSelect = content.tiles?.selected || content.tiles.data[0].id;
+      setActiveSingleSelect(newActiveSingleSelect);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const getIconStyles = (icon = {}) => {
+    const CONFIGURABLE_STYLES = ["background", "borderRadius", "height", "marginBlock", "marginInline", "paddingBlock", "paddingInline", "width"];
+    let styles = {};
+    Object.keys(icon).forEach(styleProp => {
+      if (CONFIGURABLE_STYLES.includes(styleProp)) {
+        styles[styleProp] = icon[styleProp];
+      }
+    });
+    return styles;
+  };
   return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "tiles-theme-container"
+    className: "tiles-single-select-container"
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", null, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("fieldset", {
-    className: `tiles-theme-section ${category}`
+    className: `tiles-single-select-section ${category}`
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
-    text: props.content.subtitle
+    text: content.subtitle
   }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("legend", {
     className: "sr-only"
-  })), props.content.tiles.data.map(({
-    theme,
-    label,
-    tooltip,
+  })), content.tiles.data.map(({
     description,
-    type
-  }) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
-    key: theme + label,
-    text: typeof tooltip === "object" ? tooltip : {}
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
-    className: `theme ${type}`,
-    title: theme + label
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
-    text: typeof description === "object" ? description : {}
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
-    type: "radio",
-    value: theme,
-    name: category === "wallpaper" ? theme : "theme",
-    checked: theme === props.activeTheme,
-    className: "sr-only input",
-    onClick: props.handleAction
-  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: `icon ${theme === props.activeTheme ? " selected" : ""} ${theme}`
-  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
-    text: label
-  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
-    className: "text"
-  }))))))));
+    icon,
+    id,
+    label = "",
+    theme,
+    tooltip,
+    type = ""
+  }) => {
+    const value = id || theme;
+    const selected = theme && theme === activeTheme || isSingleSelect && activeSingleSelect === value;
+    const valOrObj = val => typeof val === "object" ? val : {};
+    const handleClick = evt => {
+      if (isSingleSelect) {
+        setActiveSingleSelect(value);
+      }
+      handleAction(evt);
+    };
+    const handleKeyDown = evt => {
+      if (evt.key === "Enter" || evt.keyCode === 13) {
+        // Set target value to the input inside of the selected label
+        evt.currentTarget.value = value;
+        handleClick(evt);
+      }
+    };
+    return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+      key: value + (isSingleSelect ? "" : label),
+      text: valOrObj(tooltip)
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("label", {
+      className: `select-item ${type}`,
+      title: value,
+      onKeyDown: e => handleKeyDown(e)
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+      text: valOrObj(description)
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
+      type: "radio",
+      value: value,
+      name: category === "theme" ? "theme" : id,
+      checked: selected,
+      className: "sr-only input",
+      onClick: e => handleClick(e)
+    })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: `icon ${selected ? " selected" : ""} ${value}`,
+      style: getIconStyles(icon)
+    }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+      text: label
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "text"
+    }))));
+  }))));
 };
 
 /***/ }),

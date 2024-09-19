@@ -249,7 +249,7 @@ add_task(async function test_multistage_aboutwelcome_default() {
       "main.AW_STEP3",
       "div.onboardingContainer",
       "div.section-main",
-      "div.tiles-theme-container",
+      "div.tiles-single-select-container",
       "div.steps",
       "div.indicator.current",
     ],
@@ -498,10 +498,10 @@ add_task(async function test_AWMultistage_Themes() {
 
   await ContentTask.spawn(browser, "Themes", async () => {
     await ContentTaskUtils.waitForCondition(
-      () => content.document.querySelector("label.theme"),
+      () => content.document.querySelector("label.select-item"),
       "Theme Icons"
     );
-    let themes = content.document.querySelectorAll("label.theme");
+    let themes = content.document.querySelectorAll("label.select-item");
     Assert.equal(themes.length, 2, "Two themes displayed");
   });
 

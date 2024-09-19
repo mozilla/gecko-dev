@@ -7,7 +7,7 @@ import { Localized } from "./MSLocalized";
 import { AboutWelcomeUtils } from "../lib/aboutwelcome-utils.mjs";
 import { MobileDownloads } from "./MobileDownloads";
 import { MultiSelect } from "./MultiSelect";
-import { Themes } from "./Themes";
+import { SingleSelect } from "./SingleSelect";
 import {
   SecondaryCTA,
   StepsIndicator,
@@ -50,6 +50,8 @@ export const MultiStageProtonScreen = props => {
       setScreenMultiSelects={props.setScreenMultiSelects}
       activeMultiSelect={props.activeMultiSelect}
       setActiveMultiSelect={props.setActiveMultiSelect}
+      activeSingleSelect={props.activeSingleSelect}
+      setActiveSingleSelect={props.setActiveSingleSelect}
       totalNumberOfScreens={props.totalNumberOfScreens}
       handleAction={props.handleAction}
       isFirstScreen={props.isFirstScreen}
@@ -285,12 +287,15 @@ export class ProtonScreen extends React.PureComponent {
           />
         ) : null}
         {content.tiles &&
-        content.tiles.type === "theme" &&
+        (content.tiles.type === "theme" ||
+          content.tiles.type === "single-select") &&
         content.tiles.data ? (
-          <Themes
+          <SingleSelect
             content={content}
             activeTheme={this.props.activeTheme}
             handleAction={this.props.handleAction}
+            activeSingleSelect={this.props.activeSingleSelect}
+            setActiveSingleSelect={this.props.setActiveSingleSelect}
           />
         ) : null}
         {content.tiles &&

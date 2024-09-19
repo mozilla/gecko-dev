@@ -174,7 +174,7 @@ add_task(async function test_multistage_aboutwelcome_experimentAPI() {
       "div.secondary-cta.top",
       "button[value='secondary_button']",
       "button[value='secondary_button_top']",
-      "label.theme",
+      "label.select-item",
       "input[type='radio']",
     ],
     // Unexpected selectors:

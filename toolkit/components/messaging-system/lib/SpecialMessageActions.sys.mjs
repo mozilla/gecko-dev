@@ -218,6 +218,7 @@ export const SpecialMessageActions = {
       "cookiebanners.service.detectOnly",
       "messaging-system.askForFeedback",
       "browser.toolbars.bookmarks.visibility",
+      "sidebar.verticalTabs",
     ];
 
     if (

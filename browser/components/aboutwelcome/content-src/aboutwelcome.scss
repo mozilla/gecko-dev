@@ -853,11 +853,11 @@ html {
         }
       }
 
-      .tiles-theme-container {
+      .tiles-single-select-container {
         margin-block: -20px auto;
         align-items: initial;
 
-        .theme {
+        .select-item {
           min-width: 38px;
         }
       }
@@ -875,7 +875,7 @@ html {
       }
 
       @media only screen and (width >= 800px) {
-        .tiles-theme-section {
+        .tiles-single-select-section {
           margin-inline-start: -10px;
         }
 
@@ -915,7 +915,7 @@ html {
       // duplicate the above styles for no-rdm. unfortunately SASS won't allow
       // us to combine these selectors.
       &:where([no-rdm='true']) {
-        .tiles-theme-section {
+        .tiles-single-select-section {
           margin-inline-start: -10px;
         }
 
@@ -1485,7 +1485,7 @@ html {
     }
   }
 
-  .tiles-theme-container {
+  .tiles-single-select-container {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1503,7 +1503,7 @@ html {
     }
   }
 
-  .tiles-theme-section {
+  .tiles-single-select-section {
     border: 0;
     display: flex;
     flex-wrap: wrap;
@@ -1520,24 +1520,57 @@ html {
       outline: 2px solid var(--in-content-primary-button-background);
     }
 
-    // newtab wallpaper specific styles
-    &.wallpaper {
-      justify-content: center;
-      gap: 10px;
+    // single select only specific styles
+    &.single-select:not(.wallpaper, .theme) {
+      flex-direction: row;
+      justify-content: flex-start;
 
+      .select-item {
+        flex: unset;
+
+        &:focus-visible {
+          outline: none;
+          // Only highlight the image, not the frame around the image and the label
+          .icon {
+            outline: initial;
+          }
+        }
+      }
+    }
+
+    // theme and wallpaper specific styles
+    &.wallpaper,
+    &.theme {
+      .select-item {
+        width: 180px;
+      }
+    }
+
+    // single select and wallpaper specific styles
+    &.single-select,
+    &.wallpaper {
       &:hover, &:focus-within {
         outline: none;
       }
 
-      .theme {
-        flex: unset;
-        width: unset;
+      .select-item {
         transition: var(--transition);
 
         &:has(.input:focus) {
           outline: 2px solid var(--in-content-primary-button-background);
           outline-offset: 2px;
         }
+      }
+    }
+
+    // newtab wallpaper specific styles
+    &.wallpaper {
+      justify-content: center;
+      gap: 10px;
+
+      .select-item {
+        flex: unset;
+        width: unset;
 
         .icon {
           width: 116px;
@@ -1621,14 +1654,13 @@ html {
 
     }
 
-    .theme {
+    .select-item {
       align-items: center;
       display: flex;
       flex-direction: column;
       flex: 1;
       padding: 0;
       min-width: 50px;
-      width: 180px;
       color: #000;
       box-shadow: none;
       border-radius: 4px;
@@ -2150,7 +2182,7 @@ html {
       transition-delay: 0.8s;
     }
 
-    .tiles-theme-section,
+    .tiles-single-select-section,
     .multi-select-container,
     migration-wizard {
       transition-delay: 0.9s;
@@ -2169,7 +2201,7 @@ html {
 
   // Delays for transitioning-in of intermediate screens
   .screen:not(.dialog-initial) {
-    .tiles-theme-section,
+    .tiles-single-select-section,
     .multi-select-container
      {
       transition-delay: 0.2s;
@@ -2247,7 +2279,7 @@ html {
     .screen {
       .welcome-text,
       .multi-select-container,
-      .tiles-theme-section,
+      .tiles-single-select-section,
       .primary,
       .checkbox-container:not(.multi-select-item),
       .secondary,
@@ -2290,7 +2322,7 @@ html {
 
       // content that is nested between inner main content and navigation CTAs
       // requires an additional 0.1s transition to avoid overlap
-      .tiles-theme-section,
+      .tiles-single-select-section,
       migration-wizard {
         opacity: 0;
         translate: 0 var(--translate);

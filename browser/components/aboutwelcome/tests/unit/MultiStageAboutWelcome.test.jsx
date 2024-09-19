@@ -6,7 +6,7 @@ import {
   ProgressBar,
   WelcomeScreen,
 } from "content-src/components/MultiStageAboutWelcome";
-import { Themes } from "content-src/components/Themes";
+import { SingleSelect } from "content-src/components/SingleSelect";
 import React from "react";
 import { shallow, mount } from "enzyme";
 import { AboutWelcomeDefaults } from "modules/AboutWelcomeDefaults.sys.mjs";
@@ -367,7 +367,7 @@ describe("MultiStageAboutWelcome module", () => {
       });
 
       it("should check this.props.activeTheme in the rendered input", () => {
-        const wrapper = shallow(<Themes {...THEME_SCREEN_PROPS} />);
+        const wrapper = shallow(<SingleSelect {...THEME_SCREEN_PROPS} />);
 
         const selectedThemeInput = wrapper.find(".theme input[checked=true]");
         assert.strictEqual(
@@ -459,10 +459,119 @@ describe("MultiStageAboutWelcome module", () => {
       it("should handle wallpaper click", () => {
         const wrapper = mount(<WelcomeScreen {...WALLPAPER_SCREEN_PROPS} />);
         const wallpaperOptions = wrapper.find(
-          ".tiles-theme-section .theme input[name='mountain']"
+          ".tiles-single-select-section .select-item input[value='mountain']"
         );
         wallpaperOptions.simulate("click");
         assert.calledTwice(AboutWelcomeUtils.handleUserAction);
+      });
+    });
+
+    describe("Single select picker screen", () => {
+      let SINGLE_SELECT_SCREEN_PROPS;
+      beforeEach(() => {
+        SINGLE_SELECT_SCREEN_PROPS = {
+          content: {
+            title: {
+              raw: "Test title",
+            },
+            subtitle: {
+              raw: "Test subtitle",
+            },
+            tiles: {
+              type: "single-select",
+              selected: "test1",
+              action: {
+                picker: "<event>",
+              },
+              data: [
+                {
+                  id: "test1",
+                  label: {
+                    raw: "test1 label",
+                  },
+                  action: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "test1.pref",
+                        value: true,
+                      },
+                    },
+                  },
+                },
+                {
+                  defaultValue: true,
+                  id: "test2",
+                  label: {
+                    raw: "test2 label",
+                  },
+                  action: {
+                    type: "SET_PREF",
+                    data: {
+                      pref: {
+                        name: "test2.pref",
+                        value: false,
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+            secondary_button: {
+              label: {
+                raw: "Skip this step",
+              },
+              action: {
+                navigate: true,
+              },
+              has_arrow_icon: true,
+            },
+          },
+          navigate: sandbox.stub(),
+          setActiveSingleSelect: sandbox.stub(),
+        };
+        sandbox.stub(AboutWelcomeUtils, "handleUserAction").resolves();
+      });
+      it("should select the configured default value if present", async () => {
+        const wrapper = mount(
+          <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
+        );
+        assert.ok(
+          wrapper
+            .find(".tiles-single-select-section .select-item .test1")
+            .exists()
+        );
+      });
+      it("should preselect the active value if present", async () => {
+        SINGLE_SELECT_SCREEN_PROPS.activeSingleSelect = "test2";
+        const wrapper = mount(
+          <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
+        );
+        assert.ok(
+          wrapper
+            .find(".tiles-single-select-section .select-item .test2")
+            .exists()
+        );
+      });
+      it("should handle item click", () => {
+        const wrapper = mount(
+          <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
+        );
+        const selectOption = wrapper.find(
+          ".tiles-single-select-section .select-item input[name='test1']"
+        );
+        selectOption.simulate("click");
+        assert.calledOnce(AboutWelcomeUtils.handleUserAction);
+      });
+      it("should handle item key down selection", () => {
+        const wrapper = mount(
+          <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
+        );
+        const selectOption = wrapper.find(
+          ".tiles-single-select-section .select-item input[name='test1']"
+        );
+        selectOption.simulate("keydown", { key: "Enter" });
+        assert.calledOnce(AboutWelcomeUtils.handleUserAction);
       });
     });
 

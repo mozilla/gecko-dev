@@ -182,6 +182,12 @@ export const MultiStageAboutWelcome = props => {
   // multi select screen.
   const [activeMultiSelects, setActiveMultiSelects] = useState({});
 
+  // Save the active single select state for each screen as string value keyed
+  // by screen id. Similar to above, this allows us to remember the state of
+  // each screen's single select picker when navigating back and forth between
+  // screens.
+  const [activeSingleSelects, setActiveSingleSelects] = useState({});
+
   // Get the active theme so the rendering code can make it selected
   // by default.
   const [activeTheme, setActiveTheme] = useState(null);
@@ -243,6 +249,15 @@ export const MultiStageAboutWelcome = props => {
                   : valueOrFn,
             }));
 
+          const setActiveSingleSelect = valueOrFn =>
+            setActiveSingleSelects(prevState => ({
+              ...prevState,
+              [currentScreen.id]:
+                typeof valueOrFn === "function"
+                  ? valueOrFn(prevState[currentScreen.id])
+                  : valueOrFn,
+            }));
+
           return index === order ? (
             <WelcomeScreen
               key={currentScreen.id + order}
@@ -267,6 +282,8 @@ export const MultiStageAboutWelcome = props => {
               activeMultiSelect={activeMultiSelects[currentScreen.id]}
               setActiveMultiSelect={setActiveMultiSelect}
               autoAdvance={currentScreen.auto_advance}
+              activeSingleSelect={activeSingleSelects[currentScreen.id]}
+              setActiveSingleSelect={setActiveSingleSelect}
               negotiatedLanguage={negotiatedLanguage}
               langPackInstallPhase={langPackInstallPhase}
               forceHideStepsIndicator={currentScreen.force_hide_steps_indicator}
@@ -493,6 +510,15 @@ export class WelcomeScreen extends React.PureComponent {
       }
     }
 
+    if (action.picker) {
+      let options = props.content.tiles.data;
+      options.forEach(opt => {
+        if (opt.id === value) {
+          AboutWelcomeUtils.handleUserAction(opt.action);
+        }
+      });
+    }
+
     // If the action has persistActiveTheme: true, we set the initial theme to the currently active theme
     // so that it can be reverted to in the event that the user navigates away from the screen
     if (action.persistActiveTheme) {
@@ -574,6 +600,8 @@ export class WelcomeScreen extends React.PureComponent {
         setScreenMultiSelects={this.props.setScreenMultiSelects}
         activeMultiSelect={this.props.activeMultiSelect}
         setActiveMultiSelect={this.props.setActiveMultiSelect}
+        activeSingleSelect={this.props.activeSingleSelect}
+        setActiveSingleSelect={this.props.setActiveSingleSelect}
         totalNumberOfScreens={this.props.totalNumberOfScreens}
         appAndSystemLocaleInfo={this.props.appAndSystemLocaleInfo}
         negotiatedLanguage={this.props.negotiatedLanguage}
