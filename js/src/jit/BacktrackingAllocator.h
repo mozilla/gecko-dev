@@ -565,6 +565,7 @@ class VirtualRegister {
   void removeRangeAndIncrement(LiveRange::RegisterLinkIterator& iter) {
     ranges_.removeAndIncrement(iter);
   }
+  void removeRangesForBundle(LiveBundle* bundle);
 
   LiveBundle* firstBundle() const { return firstRange()->bundle(); }
 
