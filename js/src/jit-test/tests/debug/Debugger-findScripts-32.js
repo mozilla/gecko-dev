@@ -67,7 +67,8 @@ assertNotFound({url:scriptname, start: {line: 4}, end: {line: 6}}, gfw.script);
 assertFound({url:scriptname, start: {line: 6}, end: {line: 7}}, gfw.script);
 assertFound({url:scriptname, start: {line: 12}, end: {line: 12}}, gfw.script);
 assertFound({url:scriptname, start: {line: 20}, end: {line: 20}}, gjw.script);
-// TODO: start after end
+// 'start' after 'end'
+assertThrowsInstanceOf(() => dbg.findScripts({url:scriptname, start: {line: 20}, end: {line: 7}}), Error);
 
 // innermost filter
 assertFound({url:scriptname, innermost: true, start: {line: 20}, end: {line: 20}}, gjw.script);

@@ -5543,6 +5543,12 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
       return false;
     }
 
+    if (hasLine && lineEnd < line) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_QUERY_START_LINE_IS_AFTER_END);
+      return false;
+    }
+
     // Check for an 'innermost' property.
     PropertyName* innermostName = cx->names().innermost;
     RootedValue innermostProperty(cx);

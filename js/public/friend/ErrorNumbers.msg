@@ -601,6 +601,7 @@ MSG_DEF(JSMSG_OBJECT_METADATA_CALLBACK_ALREADY_SET, 0, JSEXN_ERR, "Cannot track 
 MSG_DEF(JSMSG_QUERY_INNERMOST_WITHOUT_LINE_URL, 0, JSEXN_TYPEERR, "findScripts query object with 'innermost' property must have 'line' and either 'displayURL', 'url', or 'source'")
 MSG_DEF(JSMSG_QUERY_LINE_WITHOUT_URL, 0, JSEXN_TYPEERR, "findScripts query object has 'line' property, but no 'displayURL', 'url', or 'source' property")
 MSG_DEF(JSMSG_QUERY_USE_START_AND_END_TOGETHER, 0, JSEXN_ERR, "findScripts query object's 'start' and 'end' properties must be used together")
+MSG_DEF(JSMSG_QUERY_START_LINE_IS_AFTER_END, 0, JSEXN_ERR, "findScripts query object's 'start.line' property is greater than its 'end.line' property, but it must be less than or equal to 'end.line'")
 MSG_DEF(JSMSG_DEBUG_CANT_SET_OPT_ENV, 1, JSEXN_REFERENCEERR, "can't set '{0}' in an optimized-out environment")
 MSG_DEF(JSMSG_DEBUG_INVISIBLE_COMPARTMENT, 0, JSEXN_TYPEERR, "object in compartment marked as invisible to Debugger")
 MSG_DEF(JSMSG_DEBUG_CENSUS_BREAKDOWN,  1, JSEXN_TYPEERR, "unrecognized 'by' value in takeCensus breakdown: {0}")
