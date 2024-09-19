@@ -44,6 +44,7 @@ namespace mozilla {
 
 using namespace mozilla::gfx;
 using dom::MediaSourceEnum;
+using dom::MediaTrackCapabilities;
 using dom::MediaTrackConstraints;
 using dom::MediaTrackSettings;
 using dom::VideoFacingModeEnum;
@@ -101,7 +102,7 @@ class MediaEngineFakeVideoSource : public MediaEngineSource {
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
 
   void GetCapabilities(
-      dom::MediaTrackCapabilities& aOutCapabilities) const override {}
+      dom::MediaTrackCapabilities& aOutCapabilities) const override;
 
   bool IsFake() const override { return true; }
 
@@ -180,6 +181,32 @@ void MediaEngineFakeVideoSource::GetSettings(
     MediaTrackSettings& aOutSettings) const {
   MOZ_ASSERT(NS_IsMainThread());
   aOutSettings = *mSettings;
+}
+
+void MediaEngineFakeVideoSource::GetCapabilities(
+    MediaTrackCapabilities& aOutCapabilities) const {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  NS_ConvertASCIItoUTF16 facingString(
+      GetEnumString(VideoFacingModeEnum::Environment));
+  nsTArray<nsString> facing;
+  facing.AppendElement(facingString);
+  aOutCapabilities.mFacingMode.Construct(std::move(facing));
+
+  dom::ULongRange widthRange;
+  widthRange.mMax.Construct(VIDEO_WIDTH_MAX);
+  widthRange.mMin.Construct(VIDEO_WIDTH_MIN);
+  aOutCapabilities.mWidth.Construct(widthRange);
+
+  dom::ULongRange heightRange;
+  heightRange.mMax.Construct(VIDEO_HEIGHT_MAX);
+  heightRange.mMin.Construct(VIDEO_HEIGHT_MIN);
+  aOutCapabilities.mHeight.Construct(heightRange);
+
+  dom::DoubleRange frameRateRange;
+  frameRateRange.mMax.Construct(double(MediaEnginePrefs::DEFAULT_VIDEO_FPS));
+  frameRateRange.mMin.Construct(0);
+  aOutCapabilities.mFrameRate.Construct(frameRateRange);
 }
 
 nsresult MediaEngineFakeVideoSource::Allocate(
@@ -462,7 +489,7 @@ class MediaEngineFakeAudioSource : public MediaEngineSource {
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
 
   void GetCapabilities(
-      dom::MediaTrackCapabilities& aOutCapabilities) const override {}
+      dom::MediaTrackCapabilities& aOutCapabilities) const override;
 
  protected:
   ~MediaEngineFakeAudioSource() = default;
@@ -490,6 +517,27 @@ void MediaEngineFakeAudioSource::GetSettings(
   aOutSettings.mEchoCancellation.Construct(false);
   aOutSettings.mNoiseSuppression.Construct(false);
   aOutSettings.mChannelCount.Construct(1);
+}
+
+void MediaEngineFakeAudioSource::GetCapabilities(
+    MediaTrackCapabilities& aOutCapabilities) const {
+  MOZ_ASSERT(NS_IsMainThread());
+  nsTArray<bool> echoCancellation;
+  echoCancellation.AppendElement(false);
+  aOutCapabilities.mEchoCancellation.Construct(std::move(echoCancellation));
+
+  nsTArray<bool> autoGainControl;
+  autoGainControl.AppendElement(false);
+  aOutCapabilities.mAutoGainControl.Construct(std::move(autoGainControl));
+
+  nsTArray<bool> noiseSuppression;
+  noiseSuppression.AppendElement(false);
+  aOutCapabilities.mNoiseSuppression.Construct(std::move(noiseSuppression));
+
+  dom::ULongRange channelCountRange;
+  channelCountRange.mMax.Construct(1);
+  channelCountRange.mMin.Construct(1);
+  aOutCapabilities.mChannelCount.Construct(channelCountRange);
 }
 
 nsresult MediaEngineFakeAudioSource::Allocate(
