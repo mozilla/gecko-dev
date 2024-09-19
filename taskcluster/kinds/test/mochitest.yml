@@ -1072,11 +1072,6 @@ mochitest-webgpu:
             default: 1800
     mozharness:
         mochitest-flavor: plain
-        extra-options:
-            by-test-platform:
-                macos.*:
-                    - --setpref=gfx.webgpu.ignore-blocklist=true
-                default: []
 
 mochitest-remote:
     description: "Mochitest for the remote agent (/remote folder)"
