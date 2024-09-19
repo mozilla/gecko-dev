@@ -17,6 +17,9 @@ permalink: /changelog/
   * Adds Store primitives (State, Action, Middleware) to be able to drive the crash reporter UI. [Bug 1905774](https://bugzilla.mozilla.org/show_bug.cgi?id=1905774)
   * Adds new parameter `useLegacyReporting` when initializing a `CrashReporter`. [Bug 1905774](https://bugzilla.mozilla.org/show_bug.cgi?id=1905774)
 
+* **feature-session**:
+  * 🚒 `FullscreenFeature.isFullscreen` now reports the new value if evaluated in the `fullScreenChanged` callback. [Bug 1918757](https://bugzilla.mozilla.org/show_bug.cgi?id=1918757)
+
 # 131.0
 * **All components**
   * ⚠️Increased `compileSdkVersion` to 35 (Android 15)

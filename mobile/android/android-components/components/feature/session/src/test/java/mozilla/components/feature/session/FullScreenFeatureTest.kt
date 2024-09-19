@@ -462,4 +462,35 @@ class FullScreenFeatureTest {
 
         verify(exitUseCase, never()).invoke(ArgumentMatchers.anyString())
     }
+
+    @Test
+    fun `GIVEN fullscreen changes WHEN informing about this THEN ensure the isFullscreen property has the right value`() {
+        val store = BrowserStore(
+            BrowserState(
+                tabs = listOf(createTab("https://www.mozilla.org", id = "A")),
+                selectedTabId = "A",
+            ),
+        )
+        var feature: FullScreenFeature? = null
+        feature = FullScreenFeature(
+            store = store,
+            sessionUseCases = mock(),
+            tabId = null,
+            viewportFitChanged = { },
+            fullScreenChanged = { value ->
+                assertTrue(value)
+                assertTrue(feature?.isFullScreen ?: false)
+            },
+        )
+
+        store.dispatch(
+            ContentAction.FullScreenChangedAction(
+                "A",
+                true,
+            ),
+        ).joinBlocking()
+
+        feature.start()
+        store.waitUntilIdle()
+    }
 }

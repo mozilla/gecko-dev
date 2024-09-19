@@ -51,15 +51,18 @@ open class FullScreenFeature(
     }
 
     private fun onChange(observation: Observation) {
-        if (observation.inFullScreen != this.observation.inFullScreen) {
+        // Immediately update the observation to allow observers of fullscreen / viewport changes
+        // to see the new value instead of it being updated after informing about the changes.
+        val previousObservation = this.observation
+        this.observation = observation
+
+        if (observation.inFullScreen != previousObservation.inFullScreen) {
             fullScreenChanged(observation.inFullScreen)
         }
 
-        if (observation.layoutInDisplayCutoutMode != this.observation.layoutInDisplayCutoutMode) {
+        if (observation.layoutInDisplayCutoutMode != previousObservation.layoutInDisplayCutoutMode) {
             viewportFitChanged(observation.layoutInDisplayCutoutMode)
         }
-
-        this.observation = observation
     }
 
     /**
