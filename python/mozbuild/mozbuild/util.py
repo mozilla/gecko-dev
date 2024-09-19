@@ -15,6 +15,7 @@ import io
 import itertools
 import os
 import re
+import subprocess
 import sys
 from io import BytesIO, StringIO
 
@@ -1251,3 +1252,20 @@ def cpu_count():
         except (AttributeError, OSError):
             pass
     return os.cpu_count()
+
+
+def macos_performance_cores():
+    """
+    Returns the number of performance cores on Mac OS
+
+    See the Python documentation for `os.cpu_count()`.
+    """
+    proc = subprocess.run(
+        ["sysctl", "-n", "hw.perflevel0.logicalcpu_max"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    )
+    if proc.returncode != 0:
+        return -1
+    return int(proc.stdout.decode("ascii", "replace").strip())
