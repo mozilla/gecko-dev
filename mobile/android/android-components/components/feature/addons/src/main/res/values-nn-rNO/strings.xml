@@ -143,7 +143,7 @@
     <!-- This is the title of page where all the add-ons are listed-->
     <string name="mozac_feature_addons_addons">Tillegg</string>
     <!-- Label for add-ons sub menu item for add-ons manager-->
-    <string name="mozac_feature_addons_addons_manager">Utvidingshandsamar</string>
+    <string name="mozac_feature_addons_addons_manager">Tilleggshandsamar</string>
     <!-- The title of the "crash" notification in the extensions manager -->
     <string name="mozac_feature_extensions_manager_notification_title_text">Utvidinga er mellombels deaktivert</string>
     <!-- The content of the "crash" notification in the extensions manager -->

@@ -112,6 +112,14 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">نویں نیویگیشݨ نال تکھیرا براؤز کرو</string>
 
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">ڄݙݨ  تساں وادھو براؤزنگ دی جاء تے  ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">ہک ویب سائٹ تے، ڄݙݨ  تساں وادھو براؤزنگ دی جاء تے  ہیٹھاں سکرول کریندے ہو تاں ایہ بار دور تھی ویندا ہے۔</string>
+
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">ٹیب دی تاریخ دے ورقیاں دے وچکار ٹپ مارݨ کیتے تیراں تے انگل لاؤ تے روکو۔</string>
+
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
     <string name="tablet_nav_bar_cfr_title">نواں: ہک ٹیپ پچھوں  تے اڳوں تیر</string>
@@ -227,6 +235,8 @@
     <string name="browser_menu_add_to_homescreen">ہوم سکرین تے شامل کرو</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">ہوم سکرین تے شامل کرو۔۔۔</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">زیومی آلات کوں ہوم اسکرین تے شارٹ کٹ شامل کرݨ کیتے اضافی اجازتاں دی لوڑ تھی سڳدی ہے۔ مہربانی کر کے آپݨی ترتیبات چیک کرو۔</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">ولدا ہم وقت کرو</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -457,6 +467,9 @@
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
     <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">جہڑیلے تُساں سائن اِن اَتے ہم وقت ہون٘دے ہِیوے تاں، تُساں وَدھ محفوظ تھی وین٘دے ہِیوے۔ فائر فاکس تُہاݙے پاس ورڈز، بُک مارکس اَتے ٻہوں کُجھ اینکرپٹ کرین٘دا ہِے۔</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">جہڑے ویلے تساں ہم وقت تھیندے ہو تاں Firefox تہاݙے پاس ورڈ، نشانیاں تے ٻیا ٻہوں کجھ خفیہ کر ݙیندا ہے۔</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">سائن ان</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->

@@ -233,6 +233,8 @@
     <string name="browser_menu_add_to_homescreen">Agiuntar al visur da partenza</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Agiuntar al visur da partenza…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Apparats da Xiaomi pon pretender permissiuns supplementaras per agiuntar scursanidas al visur da partenza. Controllescha per plaschair tes parameters.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Resincronisar</string>
     <!-- Browser menu button that opens the find in page menu -->

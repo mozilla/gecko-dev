@@ -127,6 +127,9 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Zaštitite svoje račune pomoću snažne, nasumično generirane lozinke. Brzo pristupite svojim lozinkama tako da ih spremite na svoj račun.</string>
 
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Zaštiti svoje račune pomoću snažne, nasumično generirane lozinke. Loznka će se spremiti u tvoj račun za buduću upotrebu.</string>
+
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Koristi lozinku</string>
     <!-- Pressing this will dismiss the suggested strong password dialog -->
