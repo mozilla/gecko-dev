@@ -676,6 +676,8 @@
 
 #include "jit/BacktrackingAllocator.h"
 
+#include "mozilla/BinarySearch.h"
+
 #include <algorithm>
 
 #include "jit/BitSet.h"
@@ -1056,11 +1058,47 @@ void VirtualRegister::setInitialDefinition(CodePosition from) {
 }
 
 LiveRange* VirtualRegister::rangeFor(CodePosition pos,
-                                     bool preferRegister /* = false */) const {
+                                     bool preferRegister /* = false */) {
+  ensureRangesSorted();
+
   size_t len = ranges_.length();
+
+  // Because the ranges are sorted in order of descending start position, we use
+  // binary search to find the first range where |range->from <= pos|. All
+  // ranges before that definitely don't cover |pos|.
+  auto compare = [pos](LiveRange* other) {
+    if (pos < other->from()) {
+      return 1;
+    }
+    if (pos > other->from()) {
+      return -1;
+    }
+    return 0;
+  };
+  size_t index;
+  mozilla::BinarySearchIf(ranges_, 0, len, compare, &index);
+
+  if (index == len) {
+    // None of the ranges overlap.
+    MOZ_ASSERT(ranges_.back()->from() > pos);
+    return nullptr;
+  }
+
+  // There can be multiple ranges with |range->from == pos|. We want to start at
+  // the first one.
+  while (index > 0 && ranges_[index - 1]->from() == pos) {
+    index--;
+  }
+
+  // Verify the above code is correct:
+  // * The range at |index| starts before or at |pos| and needs to be searched.
+  // * All ranges before |index| start after |pos| and can be ignored.
+  MOZ_ASSERT(ranges_[index]->from() <= pos);
+  MOZ_ASSERT_IF(index > 0, ranges_[index - 1]->from() > pos);
+
   LiveRange* found = nullptr;
-  for (size_t i = 0; i < len; i++) {
-    LiveRange* range = ranges_[i];
+  do {
+    LiveRange* range = ranges_[index];
     if (range->covers(pos)) {
       if (!preferRegister || range->bundle()->allocation().isRegister()) {
         return range;
@@ -1069,7 +1107,9 @@ LiveRange* VirtualRegister::rangeFor(CodePosition pos,
         found = range;
       }
     }
-  }
+    index++;
+  } while (index < len);
+
   return found;
 }
 

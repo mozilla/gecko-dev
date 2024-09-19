@@ -586,7 +586,7 @@ class VirtualRegister {
     ensureRangesSorted();
     return ranges_[0];
   }
-  LiveRange* rangeFor(CodePosition pos, bool preferRegister = false) const;
+  LiveRange* rangeFor(CodePosition pos, bool preferRegister = false);
 
   void removeRange(RangeIterator& iter);
   void removeLastRange(LiveRange* range);
