@@ -27,18 +27,15 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
  * @param bookmarksStorage Storage layer for reading and writing bookmarks.
  * @param navController NavController for navigating to a tab, a search fragment, etc.
  * @param exitBookmarks Invoked when back is clicked while the navController's backstack is empty.
- * @param navigateToSignIntoSync Invoked when handling [SignIntoSyncClicked].
  * @param resolveFolderTitle Invoked to lookup user-friendly bookmark titles.
  * @param getBrowsingMode Invoked when retrieving the app's current [BrowsingMode].
  * @param openTab Invoked when opening a tab when a bookmark is clicked.
  * @param ioDispatcher Coroutine dispatcher for IO operations.
  */
-@Suppress("LongParameterList")
 internal class BookmarksMiddleware(
     private val bookmarksStorage: BookmarksStorage,
     private val navController: NavController,
     private val exitBookmarks: () -> Unit,
-    private val navigateToSignIntoSync: () -> Unit,
     private val resolveFolderTitle: (BookmarkNode) -> String,
     private val getBrowsingMode: () -> BrowsingMode,
     private val openTab: (url: String, openInNewTab: Boolean) -> Unit,
@@ -66,7 +63,6 @@ internal class BookmarksMiddleware(
                 NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
             )
             AddFolderClicked -> navController.navigate(BookmarksDestinations.ADD_FOLDER)
-            SignIntoSyncClicked -> navigateToSignIntoSync()
             BackClicked -> {
                 when {
                     // non-list screen cases need to come first, since we presume if all subscreen

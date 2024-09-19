@@ -25,7 +25,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDirections
 import androidx.navigation.NavHostController
-import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.CoroutineScope
@@ -57,7 +56,6 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.FenixSnackbar
 import org.mozilla.fenix.components.StoreProvider
-import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
 import org.mozilla.fenix.databinding.FragmentBookmarkBinding
 import org.mozilla.fenix.ext.bookmarkStorage
 import org.mozilla.fenix.ext.components
@@ -69,7 +67,6 @@ import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.library.LibraryPageFragment
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksScreen
-import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
@@ -108,24 +105,12 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
             return ComposeView(requireContext()).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 val buildStore = { navController: NavHostController ->
-                    val isSignedIntoSync = requireComponents
-                        .backgroundServices.accountManager.authenticatedAccount() != null
-
                     StoreProvider.get(this@BookmarkFragment) {
                         BookmarksStore(
-                            initialState = BookmarksState.default.copy(isSignedIntoSync = isSignedIntoSync),
                             middleware = listOf(
                                 BookmarksMiddleware(
                                     bookmarksStorage = requireContext().bookmarkStorage,
                                     exitBookmarks = { findNavController().popBackStack() },
-                                    navigateToSignIntoSync = {
-                                        findNavController()
-                                            .navigate(
-                                                BookmarkFragmentDirections.actionGlobalTurnOnSync(
-                                                    entrypoint = FenixFxAEntryPoint.BookmarkView,
-                                                ),
-                                            )
-                                    },
                                     navController = navController,
                                     resolveFolderTitle = {
                                         friendlyRootTitle(requireContext(), it) ?: ""

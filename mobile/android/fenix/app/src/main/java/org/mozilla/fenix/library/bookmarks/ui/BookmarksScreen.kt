@@ -5,38 +5,26 @@
 package org.mozilla.fenix.library.bookmarks.ui
 
 import androidx.activity.compose.BackHandler
-import androidx.annotation.DrawableRes
-import androidx.annotation.StringRes
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
 import androidx.compose.material.Text
-import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -107,12 +95,6 @@ private fun BookmarksList(
         },
         backgroundColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
-        val emptyListState = state.emptyListState()
-        if (emptyListState != null) {
-            EmptyList(state = emptyListState, dispatcher = store::dispatch)
-            return@Scaffold
-        }
-
         LazyColumn(
             modifier = Modifier
                 .padding(paddingValues)
@@ -135,19 +117,21 @@ private fun BookmarksList(
                         ),
                     )
 
-                    is BookmarkItem.Folder -> SelectableIconListItem(
-                        label = item.title,
-                        isSelected = item in state.selectedItems,
-                        onClick = { store.dispatch(FolderClicked(item)) },
-                        onLongClick = { store.dispatch(FolderLongClicked(item)) },
-                        beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
-                        afterIconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                        onAfterIconClick = { /* TODO show menu */ },
-                        afterIconDescription = stringResource(
-                            R.string.bookmark_item_menu_button_content_description,
-                            item.title,
-                        ),
-                    )
+                    is BookmarkItem.Folder -> {
+                        SelectableIconListItem(
+                            label = item.title,
+                            isSelected = item in state.selectedItems,
+                            onClick = { store.dispatch(FolderClicked(item)) },
+                            onLongClick = { store.dispatch(FolderLongClicked(item)) },
+                            beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                            afterIconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                            onAfterIconClick = { /* TODO show menu */ },
+                            afterIconDescription = stringResource(
+                                R.string.bookmark_item_menu_button_content_description,
+                                item.title,
+                            ),
+                        )
+                    }
                 }
             }
         }
@@ -188,88 +172,6 @@ private fun BookmarksListTopBar(
             }
         },
     )
-}
-
-private sealed class EmptyListState {
-    data object NotAuthenticated : EmptyListState()
-    data object Authenticated : EmptyListState()
-    data object Folder : EmptyListState()
-}
-
-private fun BookmarksState.emptyListState(): EmptyListState? {
-    return when {
-        bookmarkItems.isNotEmpty() -> null
-        folderGuid != BookmarkRoot.Mobile.id -> EmptyListState.Folder
-        isSignedIntoSync -> EmptyListState.Authenticated
-        !isSignedIntoSync -> EmptyListState.NotAuthenticated
-        else -> null
-    }
-}
-
-@DrawableRes
-private fun EmptyListState.drawableId(): Int = when (this) {
-    is EmptyListState.NotAuthenticated,
-    EmptyListState.Authenticated,
-    -> R.drawable.bookmarks_star_illustration
-    EmptyListState.Folder -> R.drawable.bookmarks_folder_illustration
-}
-
-@StringRes
-private fun EmptyListState.descriptionId(): Int = when (this) {
-    is EmptyListState.NotAuthenticated -> R.string.bookmark_empty_list_guest_description
-    EmptyListState.Authenticated -> R.string.bookmark_empty_list_authenticated_description
-    EmptyListState.Folder -> R.string.bookmark_empty_list_folder_description
-}
-
-@Composable
-private fun EmptyList(
-    state: EmptyListState,
-    dispatcher: (BookmarksAction) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-        ) {
-            Image(
-                painter = painterResource(state.drawableId()),
-                contentDescription = null,
-            )
-            Text(
-                text = stringResource(R.string.bookmark_empty_list_title),
-                style = FirefoxTheme.typography.headline7,
-                color = FirefoxTheme.colors.textPrimary,
-            )
-            Text(
-                text = stringResource(state.descriptionId()),
-                style = FirefoxTheme.typography.body2,
-                color = FirefoxTheme.colors.textPrimary,
-            )
-            if (state is EmptyListState.NotAuthenticated) {
-                TextButton(
-                    onClick = { dispatcher(SignIntoSyncClicked) },
-                    colors = ButtonDefaults.buttonColors(backgroundColor = FirefoxTheme.colors.actionPrimary),
-                    shape = RoundedCornerShape(4.dp),
-                    modifier = Modifier
-                        .heightIn(36.dp)
-                        .fillMaxWidth(),
-                ) {
-                    Text(
-                        text = stringResource(R.string.bookmark_empty_list_guest_cta),
-                        color = FirefoxTheme.colors.textOnColorPrimary,
-                        style = FirefoxTheme.typography.button,
-                        textAlign = TextAlign.Center,
-                    )
-                }
-            }
-        }
-    }
 }
 
 @Composable
@@ -361,31 +263,6 @@ private fun BookmarksScreenPreview() {
                 folderTitle = "Bookmarks",
                 folderGuid = BookmarkRoot.Mobile.id,
                 bookmarksAddFolderState = null,
-                isSignedIntoSync = false,
-            ),
-        )
-    }
-
-    FirefoxTheme {
-        Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
-            BookmarksScreen(buildStore = store)
-        }
-    }
-}
-
-@Composable
-@FlexibleWindowLightDarkPreview
-@Suppress("MagicNumber")
-private fun EmptyBookmarksScreenPreview() {
-    val store = { _: NavHostController ->
-        BookmarksStore(
-            initialState = BookmarksState(
-                bookmarkItems = listOf(),
-                selectedItems = listOf(),
-                folderTitle = "Bookmarks",
-                folderGuid = BookmarkRoot.Mobile.id,
-                bookmarksAddFolderState = null,
-                isSignedIntoSync = false,
             ),
         )
     }
@@ -409,7 +286,6 @@ private fun AddFolderPreview() {
             bookmarksAddFolderState = BookmarksAddFolderState(
                 folderBeingAddedTitle = "Edit me!",
             ),
-            isSignedIntoSync = false,
         ),
     )
     FirefoxTheme {

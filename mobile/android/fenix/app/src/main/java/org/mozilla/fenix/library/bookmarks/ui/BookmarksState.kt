@@ -14,7 +14,6 @@ import mozilla.components.lib.state.State
  * @property folderTitle The title of currently selected folder whose children items are being displayed.
  * @property folderGuid The unique GUID representing the currently selected folder in storage.
  * @property bookmarksAddFolderState State representing the add folder subscreen, if visible.
- * @property isSignedIntoSync State representing if the user is currently signed into sync.
  */
 internal data class BookmarksState(
     val bookmarkItems: List<BookmarkItem>,
@@ -22,7 +21,6 @@ internal data class BookmarksState(
     val folderTitle: String,
     val folderGuid: String,
     val bookmarksAddFolderState: BookmarksAddFolderState?,
-    val isSignedIntoSync: Boolean,
 ) : State {
     companion object {
         val default: BookmarksState = BookmarksState(
@@ -31,7 +29,6 @@ internal data class BookmarksState(
             folderTitle = "",
             folderGuid = "",
             bookmarksAddFolderState = null,
-            isSignedIntoSync = false,
         )
     }
 }
