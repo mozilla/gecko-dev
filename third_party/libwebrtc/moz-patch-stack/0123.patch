@@ -1,0 +1,23 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 19 Sep 2024 13:23:00 -0500
+Subject: Bug 1918268 - (fix-2bc77cebf2) our base-toolchains builds need the
+ struct name to build
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/1055b3892393f16136a29d12e616f29b010ab2c9
+---
+ modules/audio_coding/neteq/neteq_impl.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/audio_coding/neteq/neteq_impl.cc b/modules/audio_coding/neteq/neteq_impl.cc
+index 11542d1d8a..ad0351637b 100644
+--- a/modules/audio_coding/neteq/neteq_impl.cc
++++ b/modules/audio_coding/neteq/neteq_impl.cc
+@@ -108,7 +108,7 @@ NetEqImpl::Dependencies::Dependencies(
+                                      stats.get())),
+       neteq_controller(controller_factory.Create(
+           env,
+-          {.allow_time_stretching = !config.for_test_no_time_stretching,
++          NetEqController::Config{.allow_time_stretching = !config.for_test_no_time_stretching,
+            .max_packets_in_buffer =
+                static_cast<int>(config.max_packets_in_buffer),
+            .base_min_delay_ms = config.min_delay_ms,

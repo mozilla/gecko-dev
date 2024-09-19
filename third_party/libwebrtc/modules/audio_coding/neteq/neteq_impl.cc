@@ -108,7 +108,7 @@ NetEqImpl::Dependencies::Dependencies(
                                      stats.get())),
       neteq_controller(controller_factory.Create(
           env,
-          {.allow_time_stretching = !config.for_test_no_time_stretching,
+          NetEqController::Config{.allow_time_stretching = !config.for_test_no_time_stretching,
            .max_packets_in_buffer =
                static_cast<int>(config.max_packets_in_buffer),
            .base_min_delay_ms = config.min_delay_ms,
