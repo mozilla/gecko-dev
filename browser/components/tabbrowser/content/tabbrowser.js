@@ -122,6 +122,12 @@
         "browser.tabs.allow_transparent_browser",
         false
       );
+      XPCOMUtils.defineLazyPreferenceGetter(
+        this,
+        "_tabGroupsEnabled",
+        "browser.tabs.groups.enabled",
+        false
+      );
 
       if (AppConstants.MOZ_CRASHREPORTER) {
         ChromeUtils.defineESModuleGetters(this, {
@@ -7816,6 +7822,16 @@ var TabContextMenu = {
     // Show/hide fullscreen context menu items and set the
     // autohide item's checked state to mirror the autohide pref.
     showFullScreenViewContextMenuItems(aPopupMenu);
+
+    let contextAddTabToNewGroup = document.getElementById(
+      "context_addTabToNewGroup"
+    );
+    if (gBrowser._tabGroupsEnabled) {
+      contextAddTabToNewGroup.hidden = false;
+      contextAddTabToNewGroup.setAttribute("data-l10n-args", tabCountInfo);
+    } else {
+      contextAddTabToNewGroup.hidden = true;
+    }
 
     // Only one of Reload_Tab/Reload_Selected_Tabs should be visible.
     document.getElementById("context_reloadTab").hidden = multiselectionContext;

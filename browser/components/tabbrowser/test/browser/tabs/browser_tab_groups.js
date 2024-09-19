@@ -2,6 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+add_setup(async function () {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.groups.enabled", true]],
+  });
+});
+
 add_task(async function test_tabGroupCreateAndAddTab() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let group = gBrowser.addTabGroup("blue", "test", [tab1]);
@@ -373,3 +379,221 @@ add_task(async function test_moveTabBetweenGroups() {
 
   gBrowser.removeTabGroup(group2);
 });
+
+// Context menu tests
+// ---
+
+const withTabMenu = async function (tab, callback) {
+  const tabContextMenu = document.getElementById("tabContextMenu");
+  Assert.equal(
+    tabContextMenu.state,
+    "closed",
+    "context menu is initially closed"
+  );
+  const contextMenuShown = BrowserTestUtils.waitForPopupEvent(
+    tabContextMenu,
+    "shown"
+  );
+
+  EventUtils.synthesizeMouseAtCenter(
+    tab,
+    { type: "contextmenu", button: 2 },
+    window
+  );
+  await contextMenuShown;
+
+  const addTabMenuItem = document.getElementById("context_addTabToNewGroup");
+  await callback(addTabMenuItem);
+
+  tabContextMenu.hidePopup();
+};
+
+/*
+ * Tests that the context menu options do not appear if the tab group pref is
+ * disabled
+ */
+add_task(async function test_tabGroupTabContextMenuWithoutPref() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.groups.enabled", false]],
+  });
+
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+
+  await withTabMenu(tab, async addTabMenuItem => {
+    Assert.ok(addTabMenuItem.hidden, "Add tab menu item is hidden");
+  });
+
+  BrowserTestUtils.removeTab(tab);
+  await SpecialPowers.popPrefEnv();
+});
+
+/*
+ * Tests that if a tab is selected, the "add tab to group" option appears in
+ * the context menu, and clicking it adds the tab to a new group
+ */
+add_task(async function test_tabGroupContextMenuAddTabToGroup() {
+  let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+  let otherGroup = gBrowser.addTabGroup("blue", "test", [otherTab]);
+
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+
+  await withTabMenu(tab, async addTabMenuItem => {
+    Assert.equal(tab.group, null, "tab is not in group");
+    Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
+
+    addTabMenuItem.click();
+  });
+
+  Assert.ok(tab.group, "tab is in group");
+  Assert.notEqual(
+    tab.group,
+    otherGroup,
+    "tab is not in the pre-existing group"
+  );
+  Assert.equal(tab.group.label, "", "tab group label is empty");
+
+  gBrowser.removeTabGroup(otherGroup);
+  gBrowser.removeTabGroup(tab.group);
+});
+
+/*
+ * Tests that if multiple tabs are selected and one of the selected tabs has
+ * its context menu open, the "adds tab to group" option appears in the
+ * context menu, and clicking it adds the tabs to a new group
+ */
+add_task(async function test_tabGroupContextMenuAddTabsToGroup() {
+  let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let otherGroup = gBrowser.addTabGroup("blue", "test", [otherTab]);
+
+  const tabs = Array.from({ length: 3 }, () => {
+    return BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+  });
+
+  // Click the first tab in our test group to make sure the default tab at the
+  // start of the tab strip is deselected
+  EventUtils.synthesizeMouseAtCenter(tabs[0], {});
+
+  tabs.forEach(t => {
+    EventUtils.synthesizeMouseAtCenter(
+      t,
+      { ctrlKey: true, metaKey: true },
+      window
+    );
+  });
+
+  let tabToClick = tabs[2];
+
+  await withTabMenu(tabToClick, async addTabMenuItem => {
+    Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
+    addTabMenuItem.click();
+  });
+
+  Assert.ok(tabs[0].group, "tab is in group");
+  Assert.notEqual(
+    tabs[0].group,
+    otherGroup,
+    "tab is not in the pre-existing group"
+  );
+  Assert.equal(tabs[0].group.label, "", "tab group label is empty");
+  let group = tabs[0].group;
+
+  tabs.forEach((t, idx) => {
+    Assert.equal(t.group, group, `tabs[${idx}] is in group`);
+  });
+
+  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(otherGroup);
+});
+
+/*
+ * Tests that if a tab is selected and a tab that is *not* selected
+ * has its context menu open, the "add tab to group" option appears in the
+ * context menu, and clicking it adds the *context menu* tab to the group, not
+ * the selected tab
+ */
+add_task(
+  async function test_tabGroupContextMenuAddTabToGroupWhileAnotherSelected() {
+    let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+    let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+
+    EventUtils.synthesizeMouseAtCenter(otherTab, {});
+
+    await withTabMenu(tab, async addTabMenuItem => {
+      Assert.equal(
+        gBrowser.selectedTabs.includes(TabContextMenu.contextTab),
+        false,
+        "context menu tab is not selected"
+      );
+      Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
+
+      addTabMenuItem.click();
+    });
+
+    Assert.ok(tab.group, "tab is in group");
+    Assert.equal(otherTab.group, null, "otherTab is not in group");
+
+    gBrowser.removeTabGroup(tab.group);
+    BrowserTestUtils.removeTab(otherTab);
+  }
+);
+
+/*
+ * Tests that if multiple tabs are selected and a tab that is *not* selected
+ * has its context menu open, the "add tabs to group" option appears in the
+ * context menu, and clicking it adds the *context menu* tab to the group, not
+ * the selected tabs
+ */
+add_task(
+  async function test_tabGroupContextMenuAddTabToGroupWhileOthersSelected() {
+    let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+
+    const otherTabs = Array.from({ length: 3 }, () => {
+      return BrowserTestUtils.addTab(gBrowser, "about:blank", {
+        skipAnimation: true,
+      });
+    });
+
+    otherTabs.forEach(t => {
+      EventUtils.synthesizeMouseAtCenter(
+        t,
+        { ctrlKey: true, metaKey: true },
+        window
+      );
+    });
+
+    await withTabMenu(tab, async addTabMenuItem => {
+      Assert.ok(
+        !gBrowser.selectedTabs.includes(TabContextMenu.contextTab),
+        "context menu tab is not selected"
+      );
+      Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
+
+      addTabMenuItem.click();
+    });
+
+    Assert.ok(tab.group, "tab is in group");
+
+    otherTabs.forEach((t, idx) => {
+      Assert.equal(t.group, null, `otherTab[${idx}] is not in group`);
+    });
+
+    gBrowser.removeTabGroup(tab.group);
+    otherTabs.forEach(t => {
+      BrowserTestUtils.removeTab(t);
+    });
+  }
+);

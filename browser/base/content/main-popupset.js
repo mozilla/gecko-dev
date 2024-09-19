@@ -16,6 +16,13 @@ document.addEventListener(
         case "context_openANewTab":
           gBrowser.addAdjacentNewTab(TabContextMenu.contextTab);
           break;
+        case "context_addTabToNewGroup":
+          if (gBrowser.selectedTabs.includes(TabContextMenu.contextTab)) {
+            gBrowser.addTabGroup("red", "", gBrowser.selectedTabs);
+          } else {
+            gBrowser.addTabGroup("red", "", [TabContextMenu.contextTab]);
+          }
+          break;
         case "context_reloadTab":
           gBrowser.reloadTab(TabContextMenu.contextTab);
           break;
