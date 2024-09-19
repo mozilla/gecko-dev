@@ -8,6 +8,7 @@
 #include "CamerasChild.h"
 #include "MediaManager.h"
 #include "MediaTrackConstraints.h"
+#include "mozilla/dom/MediaTrackCapabilitiesBinding.h"
 #include "mozilla/dom/MediaTrackSettingsBinding.h"
 #include "mozilla/ErrorNames.h"
 #include "mozilla/gfx/Point.h"
@@ -29,6 +30,7 @@ extern LazyLogModule gMediaManagerLog;
 
 using dom::ConstrainLongRange;
 using dom::MediaSourceEnum;
+using dom::MediaTrackCapabilities;
 using dom::MediaTrackConstraints;
 using dom::MediaTrackConstraintSet;
 using dom::MediaTrackSettings;
@@ -96,6 +98,8 @@ MediaEngineRemoteVideoSource::MediaEngineRemoteVideoSource(
                            /* max_number_of_buffers */ 1),
       mSettingsUpdatedByFrame(MakeAndAddRef<media::Refcountable<AtomicBool>>()),
       mSettings(MakeAndAddRef<media::Refcountable<MediaTrackSettings>>()),
+      mTrackCapabilities(
+          MakeAndAddRef<media::Refcountable<MediaTrackCapabilities>>()),
       mFirstFramePromise(mFirstFramePromiseHolder.Ensure(__func__)),
       mMediaDevice(aMediaDevice),
       mDeviceUUID(NS_ConvertUTF16toUTF8(aMediaDevice->mRawID)) {
@@ -110,6 +114,9 @@ MediaEngineRemoteVideoSource::MediaEngineRemoteVideoSource(
     if (facingMode.isSome()) {
       NS_ConvertASCIItoUTF16 facingString(dom::GetEnumString(*facingMode));
       mSettings->mFacingMode.Construct(facingString);
+      nsTArray<nsString> facing;
+      facing.AppendElement(facingString);
+      mTrackCapabilities->mFacingMode.Construct(std::move(facing));
       mFacingMode.emplace(facingString);
     }
   }
@@ -772,9 +779,49 @@ bool MediaEngineRemoteVideoSource::ChooseCapability(
 
   nsTArray<CapabilityCandidate> candidateSet;
   size_t num = NumCapabilities();
+  int32_t minHeight = 0, maxHeight = 0, minWidth = 0, maxWidth = 0, maxFps = 0;
   for (size_t i = 0; i < num; i++) {
-    candidateSet.AppendElement(CapabilityCandidate(GetCapability(i)));
+    auto capability = GetCapability(i);
+    if (capability.height > maxHeight) {
+      maxHeight = capability.height;
+    }
+    if (!minHeight || (capability.height < minHeight)) {
+      minHeight = capability.height;
+    }
+    if (capability.width > maxWidth) {
+      maxWidth = capability.width;
+    }
+    if (!minWidth || (capability.width < minWidth)) {
+      minWidth = capability.width;
+    }
+    if (capability.maxFPS > maxFps) {
+      maxFps = capability.maxFPS;
+    }
+    candidateSet.AppendElement(CapabilityCandidate(capability));
   }
+
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      "MediaEngineRemoteVideoSource::ChooseCapability",
+      [capabilities = mTrackCapabilities, maxHeight, minHeight, maxWidth,
+       minWidth, maxFps]() mutable {
+        dom::ULongRange widthRange;
+        widthRange.mMax.Construct(maxWidth);
+        widthRange.mMin.Construct(minWidth);
+        capabilities->mWidth.Reset();
+        capabilities->mWidth.Construct(widthRange);
+
+        dom::ULongRange heightRange;
+        heightRange.mMax.Construct(maxHeight);
+        heightRange.mMin.Construct(minHeight);
+        capabilities->mHeight.Reset();
+        capabilities->mHeight.Construct(heightRange);
+
+        dom::DoubleRange frameRateRange;
+        frameRateRange.mMax.Construct(maxFps);
+        frameRateRange.mMin.Construct(0);
+        capabilities->mFrameRate.Reset();
+        capabilities->mFrameRate.Construct(frameRateRange);
+      }));
 
   if (mCapabilitiesAreHardcoded && mCapEngine == camera::CameraEngine) {
     // We have a hardcoded capability, which means this camera didn't report
@@ -895,6 +942,11 @@ bool MediaEngineRemoteVideoSource::ChooseCapability(
 void MediaEngineRemoteVideoSource::GetSettings(
     MediaTrackSettings& aOutSettings) const {
   aOutSettings = *mSettings;
+}
+
+void MediaEngineRemoteVideoSource::GetCapabilities(
+    dom::MediaTrackCapabilities& aOutCapabilities) const {
+  aOutCapabilities = *mTrackCapabilities;
 }
 
 }  // namespace mozilla

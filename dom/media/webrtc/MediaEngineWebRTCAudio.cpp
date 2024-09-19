@@ -56,6 +56,13 @@ MediaEngineWebRTCMicrophoneSource::MediaEngineWebRTCMicrophoneSource(
           new media::Refcountable<dom::MediaTrackSettings>(),
           // Non-strict means it won't assert main thread for us.
           // It would be great if it did but we're already on the media thread.
+          /* aStrict = */ false)),
+      mCapabilities(new nsMainThreadPtrHolder<
+                    media::Refcountable<dom::MediaTrackCapabilities>>(
+          "MediaEngineWebRTCMicrophoneSource::mCapabilities",
+          new media::Refcountable<dom::MediaTrackCapabilities>(),
+          // Non-strict means it won't assert main thread for us.
+          // It would be great if it did but we're already on the media thread.
           /* aStrict = */ false)) {
   MOZ_ASSERT(aMediaDevice->mMediaSource == MediaSourceEnum::Microphone);
 #ifndef ANDROID
@@ -69,6 +76,37 @@ MediaEngineWebRTCMicrophoneSource::MediaEngineWebRTCMicrophoneSource(
   mSettings->mChannelCount.Construct(0);
 
   mState = kReleased;
+
+  // Set mMaxChannelsCapablitiy on main thread.
+  NS_DispatchToMainThread(NS_NewRunnableFunction(
+      __func__, [capabilities = mCapabilities,
+                 deviceMaxChannelCount = mDeviceMaxChannelCount] {
+        nsTArray<bool> echoCancellation;
+        echoCancellation.AppendElement(true);
+        echoCancellation.AppendElement(false);
+        capabilities->mEchoCancellation.Reset();
+        capabilities->mEchoCancellation.Construct(std::move(echoCancellation));
+
+        nsTArray<bool> autoGainControl;
+        autoGainControl.AppendElement(true);
+        autoGainControl.AppendElement(false);
+        capabilities->mAutoGainControl.Reset();
+        capabilities->mAutoGainControl.Construct(std::move(autoGainControl));
+
+        nsTArray<bool> noiseSuppression;
+        noiseSuppression.AppendElement(true);
+        noiseSuppression.AppendElement(false);
+        capabilities->mNoiseSuppression.Reset();
+        capabilities->mNoiseSuppression.Construct(std::move(noiseSuppression));
+
+        if (deviceMaxChannelCount) {
+          dom::ULongRange channelCountRange;
+          channelCountRange.mMax.Construct(deviceMaxChannelCount);
+          channelCountRange.mMin.Construct(1);
+          capabilities->mChannelCount.Reset();
+          capabilities->mChannelCount.Construct(channelCountRange);
+        }
+      }));
 }
 
 nsresult MediaEngineWebRTCMicrophoneSource::EvaluateSettings(
@@ -409,6 +447,12 @@ void MediaEngineWebRTCMicrophoneSource::GetSettings(
     dom::MediaTrackSettings& aOutSettings) const {
   MOZ_ASSERT(NS_IsMainThread());
   aOutSettings = *mSettings;
+}
+
+void MediaEngineWebRTCMicrophoneSource::GetCapabilities(
+    dom::MediaTrackCapabilities& aOutCapabilities) const {
+  MOZ_ASSERT(NS_IsMainThread());
+  aOutCapabilities = *mCapabilities;
 }
 
 AudioInputProcessing::AudioInputProcessing(uint32_t aMaxChannelCount)

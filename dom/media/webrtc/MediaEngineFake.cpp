@@ -100,6 +100,9 @@ class MediaEngineFakeVideoSource : public MediaEngineSource {
       const override;
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
 
+  void GetCapabilities(
+      dom::MediaTrackCapabilities& aOutCapabilities) const override {}
+
   bool IsFake() const override { return true; }
 
  protected:
@@ -457,6 +460,9 @@ class MediaEngineFakeAudioSource : public MediaEngineSource {
   bool IsFake() const override { return true; }
 
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
+
+  void GetCapabilities(
+      dom::MediaTrackCapabilities& aOutCapabilities) const override {}
 
  protected:
   ~MediaEngineFakeAudioSource() = default;

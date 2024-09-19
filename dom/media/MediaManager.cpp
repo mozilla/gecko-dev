@@ -174,6 +174,7 @@ using dom::MediaStreamConstraints;
 using dom::MediaStreamError;
 using dom::MediaStreamTrack;
 using dom::MediaStreamTrackSource;
+using dom::MediaTrackCapabilities;
 using dom::MediaTrackConstraints;
 using dom::MediaTrackConstraintSet;
 using dom::MediaTrackSettings;
@@ -408,6 +409,12 @@ class DeviceListener : public SupportsWeakPtr {
    * associated with aTrack.
    */
   void GetSettings(MediaTrackSettings& aOutSettings) const;
+
+  /**
+   * Gets the main thread MediaTrackCapabilities from the MediaEngineSource
+   * associated with aTrack.
+   */
+  void GetCapabilities(MediaTrackCapabilities& aOutCapabilities) const;
 
   /**
    * Posts a task to set the enabled state of the device associated with this
@@ -830,6 +837,12 @@ class LocalTrackSource : public MediaStreamTrackSource {
     }
   }
 
+  void GetCapabilities(MediaTrackCapabilities& aOutCapabilities) override {
+    if (mListener) {
+      mListener->GetCapabilities(aOutCapabilities);
+    }
+  }
+
   void Stop() override {
     if (mListener) {
       mListener->Stop();
@@ -1114,6 +1127,12 @@ LocalMediaDevice::GetCanRequestOsLevelPrompt(bool* aCanRequestOsLevelPrompt) {
 void LocalMediaDevice::GetSettings(MediaTrackSettings& aOutSettings) {
   MOZ_ASSERT(NS_IsMainThread());
   Source()->GetSettings(aOutSettings);
+}
+
+void LocalMediaDevice::GetCapabilities(
+    MediaTrackCapabilities& aOutCapabilities) {
+  MOZ_ASSERT(NS_IsMainThread());
+  Source()->GetCapabilities(aOutCapabilities);
 }
 
 MediaEngineSource* LocalMediaDevice::Source() {
@@ -4350,6 +4369,20 @@ void DeviceListener::GetSettings(MediaTrackSettings& aOutSettings) const {
       mediaSource == MediaSourceEnum::Microphone) {
     aOutSettings.mDeviceId.Construct(device->mID);
     aOutSettings.mGroupId.Construct(device->mGroupID);
+  }
+}
+
+void DeviceListener::GetCapabilities(
+    MediaTrackCapabilities& aOutCapabilities) const {
+  MOZ_ASSERT(NS_IsMainThread(), "Only call on main thread");
+  LocalMediaDevice* device = GetDevice();
+  device->GetCapabilities(aOutCapabilities);
+
+  MediaSourceEnum mediaSource = device->GetMediaSource();
+  if (mediaSource == MediaSourceEnum::Camera ||
+      mediaSource == MediaSourceEnum::Microphone) {
+    aOutCapabilities.mDeviceId.Construct(device->mID);
+    aOutCapabilities.mGroupId.Construct(device->mGroupID);
   }
 }
 

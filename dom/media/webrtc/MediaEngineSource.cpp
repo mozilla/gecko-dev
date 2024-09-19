@@ -5,6 +5,7 @@
 
 #include "MediaEngineSource.h"
 
+#include "mozilla/dom/MediaTrackCapabilitiesBinding.h"
 #include "mozilla/dom/MediaTrackSettingsBinding.h"
 
 namespace mozilla {

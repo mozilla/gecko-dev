@@ -51,6 +51,9 @@ class MediaEngineWebRTCMicrophoneSource : public MediaEngineSource {
    */
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
 
+  void GetCapabilities(
+      dom::MediaTrackCapabilities& aOutCapabilities) const override;
+
   nsresult TakePhoto(MediaEnginePhotoCallback* aCallback) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -87,6 +90,12 @@ class MediaEngineWebRTCMicrophoneSource : public MediaEngineSource {
   // main thread.
   const nsMainThreadPtrHandle<media::Refcountable<dom::MediaTrackSettings>>
       mSettings;
+
+  // The media capabilities for the underlying device.
+  // Constructed on the MediaManager thread, and then only ever accessed on the
+  // main thread.
+  const nsMainThreadPtrHandle<media::Refcountable<dom::MediaTrackCapabilities>>
+      mCapabilities;
 
   // Current state of the resource for this source.
   MediaEngineSourceState mState;
@@ -333,6 +342,9 @@ class MediaEngineWebRTCAudioCaptureSource : public MediaEngineSource {
   }
 
   void GetSettings(dom::MediaTrackSettings& aOutSettings) const override;
+
+  void GetCapabilities(
+      dom::MediaTrackCapabilities& aOutCapabilities) const override {}
 
  protected:
   virtual ~MediaEngineWebRTCAudioCaptureSource() = default;
