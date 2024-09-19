@@ -75,6 +75,8 @@ export const USER_PREFS_ENCODING = {
 export const PREF_IMPRESSION_ID = "impressionId";
 export const TELEMETRY_PREF = "telemetry";
 export const EVENTS_TELEMETRY_PREF = "telemetry.ut.events";
+export const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
+const PREF_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 
 // Used as the missing value for timestamps in the session ping
 const TIMESTAMP_MISSING_VALUE = -1;
@@ -135,6 +137,15 @@ export class TelemetryFeed {
 
   get eventTelemetryEnabled() {
     return this._prefs.get(EVENTS_TELEMETRY_PREF);
+  }
+
+  get canSendUnifiedAdsCallbacks() {
+    const unifiedAdsEnabled = this._prefs.get(PREF_UNIFIED_ADS_ENABLED);
+
+    // Check PREF_UPLOAD_ENABLED if data reporting is allowed
+    const uploadEnabled = Services.prefs.getBoolPref(PREF_UPLOAD_ENABLED);
+
+    return unifiedAdsEnabled && uploadEnabled;
   }
 
   get telemetryClientId() {
@@ -615,6 +626,8 @@ export class TelemetryFeed {
     // Legacy telemetry expects 1-based tile positions.
     const legacyTelemetryPosition = position + 1;
 
+    const unifiedAdsEnabled = this._prefs.get(PREF_UNIFIED_ADS_ENABLED);
+
     let pingType;
 
     const session = this.sessions.get(au.getPortIdOfSender(action));
@@ -659,12 +672,20 @@ export class TelemetryFeed {
     Glean.topSites.position.set(legacyTelemetryPosition);
     Glean.topSites.source.set(source);
     Glean.topSites.tileId.set(tile_id);
-    if (data.reporting_url) {
+    if (data.reporting_url && unifiedAdsEnabled) {
       Glean.topSites.reportingUrl.set(data.reporting_url);
     }
     Glean.topSites.advertiser.set(advertiser_name);
     Glean.topSites.contextId.set(lazy.contextId);
     GleanPings.topSites.submit();
+
+    if (this.canSendUnifiedAdsCallbacks) {
+      // Send callback events to MARS unified ads api
+      this.sendUnifiedAdsCallbackEvent({
+        url: data.reporting_url,
+        position,
+      });
+    }
   }
 
   handleTopSitesOrganicImpressionStats(action) {
@@ -764,16 +785,24 @@ export class TelemetryFeed {
                 }),
           });
           if (shim) {
-            Glean.pocket.shim.set(shim);
-            if (fetchTimestamp) {
-              Glean.pocket.fetchTimestamp.set(fetchTimestamp * 1000);
+            if (this.canSendUnifiedAdsCallbacks) {
+              // Send unified ads callback event
+              this.sendUnifiedAdsCallbackEvent({
+                url: shim,
+                position: action.data.action_position,
+              });
+            } else {
+              Glean.pocket.shim.set(shim);
+              if (fetchTimestamp) {
+                Glean.pocket.fetchTimestamp.set(fetchTimestamp * 1000);
+              }
+              if (firstVisibleTimestamp) {
+                Glean.pocket.newtabCreationTimestamp.set(
+                  firstVisibleTimestamp * 1000
+                );
+              }
+              GleanPings.spoc.submit("click");
             }
-            if (firstVisibleTimestamp) {
-              Glean.pocket.newtabCreationTimestamp.set(
-                firstVisibleTimestamp * 1000
-              );
-            }
-            GleanPings.spoc.submit("click");
           }
         }
         break;
@@ -868,6 +897,34 @@ export class TelemetryFeed {
     // Now that the action has become a ping, we can echo it to Glean.
     if (this.telemetryEnabled) {
       lazy.Telemetry.submitGleanPingForPing({ ...ping, pingType });
+    }
+  }
+
+  /**
+   * This function submits callback events to the MARS unified ads service.
+   */
+
+  async sendUnifiedAdsCallbackEvent(data = { url: null, position: null }) {
+    if (!data.url) {
+      throw new Error(
+        `[Unified ads callback] Missing argument (No url). Cannot send telemetry event.`
+      );
+    }
+
+    // data.position can be 0 (0)
+    if (!data.position && data.position !== 0) {
+      throw new Error(
+        `[Unified ads callback] Missing argument (No position). Cannot send telemetry event.`
+      );
+    }
+
+    const url = new URL(data.url);
+    url.searchParams.append("position", data.position);
+
+    try {
+      await fetch(url.toString());
+    } catch (error) {
+      console.error("Error:", error);
     }
   }
 
@@ -1233,16 +1290,24 @@ export class TelemetryFeed {
             }),
       });
       if (tile.shim) {
-        Glean.pocket.shim.set(tile.shim);
-        if (tile.fetchTimestamp) {
-          Glean.pocket.fetchTimestamp.set(tile.fetchTimestamp * 1000);
+        if (this.canSendUnifiedAdsCallbacks) {
+          // Send unified ads callback event
+          this.sendUnifiedAdsCallbackEvent({
+            url: tile.shim,
+            position: tile.pos,
+          });
+        } else {
+          Glean.pocket.shim.set(tile.shim);
+          if (tile.fetchTimestamp) {
+            Glean.pocket.fetchTimestamp.set(tile.fetchTimestamp * 1000);
+          }
+          if (data.firstVisibleTimestamp) {
+            Glean.pocket.newtabCreationTimestamp.set(
+              data.firstVisibleTimestamp * 1000
+            );
+          }
+          GleanPings.spoc.submit("impression");
         }
-        if (data.firstVisibleTimestamp) {
-          Glean.pocket.newtabCreationTimestamp.set(
-            data.firstVisibleTimestamp * 1000
-          );
-        }
-        GleanPings.spoc.submit("impression");
       }
     });
   }
