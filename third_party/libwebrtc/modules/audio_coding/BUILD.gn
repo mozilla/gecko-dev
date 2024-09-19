@@ -545,7 +545,6 @@ rtc_library("webrtc_opus_wrapper") {
     "../../api:array_view",
     "../../rtc_base:checks",
     "../../rtc_base:ignore_wundef",
-    "../../system_wrappers:field_trial",
   ]
 
   if (rtc_build_opus) {

@@ -15,7 +15,6 @@
 
 #include "api/array_view.h"
 #include "rtc_base/checks.h"
-#include "system_wrappers/include/field_trial.h"
 
 enum {
 #if WEBRTC_OPUS_SUPPORT_120MS_PTIME
@@ -35,9 +34,6 @@ enum {
   kWebRtcOpusPlcFrameSizeMs = 10,
 };
 
-constexpr char kPlcUsePrevDecodedSamplesFieldTrial[] =
-    "WebRTC-Audio-OpusPlcUsePrevDecodedSamples";
-
 static int FrameSizePerChannel(int frame_size_ms, int sample_rate_hz) {
   RTC_DCHECK_GT(frame_size_ms, 0);
   RTC_DCHECK_EQ(frame_size_ms % 10, 0);
@@ -49,11 +45,6 @@ static int FrameSizePerChannel(int frame_size_ms, int sample_rate_hz) {
 // Maximum sample count per channel.
 static int MaxFrameSizePerChannel(int sample_rate_hz) {
   return FrameSizePerChannel(kWebRtcOpusMaxDecodeFrameSizeMs, sample_rate_hz);
-}
-
-// Default sample count per channel.
-static int DefaultFrameSizePerChannel(int sample_rate_hz) {
-  return FrameSizePerChannel(20, sample_rate_hz);
 }
 
 int16_t WebRtcOpus_EncoderCreate(OpusEncInst** inst,
@@ -394,12 +385,6 @@ int16_t WebRtcOpus_DecoderCreate(OpusDecInst** inst,
       // Creation of memory all ok.
       state->channels = channels;
       state->sample_rate_hz = sample_rate_hz;
-      state->plc_use_prev_decoded_samples =
-          webrtc::field_trial::IsEnabled(kPlcUsePrevDecodedSamplesFieldTrial);
-      if (state->plc_use_prev_decoded_samples) {
-        state->prev_decoded_samples =
-            DefaultFrameSizePerChannel(state->sample_rate_hz);
-      }
       state->in_dtx_mode = 0;
       *inst = state;
       return 0;
@@ -438,12 +423,6 @@ int16_t WebRtcOpus_MultistreamDecoderCreate(
       // Creation of memory all ok.
       state->channels = channels;
       state->sample_rate_hz = 48000;
-      state->plc_use_prev_decoded_samples =
-          webrtc::field_trial::IsEnabled(kPlcUsePrevDecodedSamplesFieldTrial);
-      if (state->plc_use_prev_decoded_samples) {
-        state->prev_decoded_samples =
-            DefaultFrameSizePerChannel(state->sample_rate_hz);
-      }
       state->in_dtx_mode = 0;
       *inst = state;
       return 0;
@@ -542,17 +521,6 @@ static int DecodePlc(OpusDecInst* inst, int16_t* decoded) {
   int plc_samples =
       FrameSizePerChannel(kWebRtcOpusPlcFrameSizeMs, inst->sample_rate_hz);
 
-  if (inst->plc_use_prev_decoded_samples) {
-    /* The number of samples we ask for is `number_of_lost_frames` times
-     * `prev_decoded_samples_`. Limit the number of samples to maximum
-     * `MaxFrameSizePerChannel()`. */
-    plc_samples = inst->prev_decoded_samples;
-    const int max_samples_per_channel =
-        MaxFrameSizePerChannel(inst->sample_rate_hz);
-    plc_samples = plc_samples <= max_samples_per_channel
-                      ? plc_samples
-                      : max_samples_per_channel;
-  }
   decoded_samples =
       DecodeNative(inst, NULL, 0, plc_samples, decoded, &audio_type, 0);
   if (decoded_samples < 0) {
@@ -579,11 +547,6 @@ int WebRtcOpus_Decode(OpusDecInst* inst,
   }
   if (decoded_samples < 0) {
     return -1;
-  }
-
-  if (inst->plc_use_prev_decoded_samples) {
-    /* Update decoded sample memory, to be used by the PLC in case of losses. */
-    inst->prev_decoded_samples = decoded_samples;
   }
 
   return decoded_samples;
@@ -639,16 +602,6 @@ int WebRtcOpus_DurationEst(OpusDecInst* inst,
 }
 
 int WebRtcOpus_PlcDuration(OpusDecInst* inst) {
-  if (inst->plc_use_prev_decoded_samples) {
-    /* The number of samples we ask for is `number_of_lost_frames` times
-     * `prev_decoded_samples_`. Limit the number of samples to maximum
-     * `MaxFrameSizePerChannel()`. */
-    const int plc_samples = inst->prev_decoded_samples;
-    const int max_samples_per_channel =
-        MaxFrameSizePerChannel(inst->sample_rate_hz);
-    return plc_samples <= max_samples_per_channel ? plc_samples
-                                                  : max_samples_per_channel;
-  }
   return FrameSizePerChannel(kWebRtcOpusPlcFrameSizeMs, inst->sample_rate_hz);
 }
 
