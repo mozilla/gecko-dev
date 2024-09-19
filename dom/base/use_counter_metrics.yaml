@@ -107,7 +107,7 @@ use.counter:
     send_in_pings:
       - use-counters
 
-# Total of 2349 use counter metrics (excludes denominators).
+# Total of 2347 use counter metrics (excludes denominators).
 # Total of 364 'page' use counters.
 use.counter.page:
   svgsvgelement_getelementbyid:
@@ -14177,7 +14177,7 @@ use.counter.worker.service:
     send_in_pings:
       - use-counters
 
-# Total of 56 'deprecated operations (page)' use counters.
+# Total of 55 'deprecated operations (page)' use counters.
 use.counter.deprecated_ops.page:
   domsubtree_modified:
     type: counter
@@ -15114,7 +15114,7 @@ use.counter.deprecated_ops.page:
     send_in_pings:
       - use-counters
 
-# Total of 56 'deprecated operations (document)' use counters.
+# Total of 55 'deprecated operations (document)' use counters.
 use.counter.deprecated_ops.doc:
   domsubtree_modified:
     type: counter
