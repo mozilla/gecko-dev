@@ -1,10 +1,8 @@
 #!/usr/bin/env python
 # lint_ignore=E501
-# ***** BEGIN LICENSE BLOCK *****
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this file,
 # You can obtain one at http://mozilla.org/MPL/2.0/.
-# ***** END LICENSE BLOCK *****
 """ bouncer_check.py
 
 A script to check HTTP statuses of Bouncer products to be shipped.
