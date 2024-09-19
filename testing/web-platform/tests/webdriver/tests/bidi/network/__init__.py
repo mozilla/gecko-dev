@@ -22,6 +22,7 @@ from .. import (
 )
 
 
+
 def assert_bytes_value(bytes_value):
     assert bytes_value["type"] in ["string", "base64"]
     any_string(bytes_value["value"])
@@ -35,28 +36,45 @@ def assert_headers(event_headers, expected_headers):
         assert next(h for h in event_headers if header == h) is not None
 
 
-def assert_timing_info(timing_info):
+def assert_timing_info(timing_info, expected_time_range=None):
+    # First assert time origin, which is reused to assert the following values.
+    time_origin = timing_info.get("timeOrigin")
+    any_number(time_origin)
+
+    def assert_timing(actual):
+        # Check that the timing is a number
+        any_number(actual)
+
+        # If a time range was provided, assert that the time is within the
+        # provided bounds.
+        # Unless timing is 0, which means the timing is not relevant for the
+        # current network event, or is not known yet.
+        if expected_time_range is not None and actual != 0:
+            # Add time_origin to actual to get the absolute time corresponding
+            # to the timing.
+            expected_time_range(actual + time_origin)
+
+    # Assert all other timings.
     recursive_compare(
         {
-            "timeOrigin": any_number,
-            "requestTime": any_number,
-            "redirectStart": any_number,
-            "redirectEnd": any_number,
-            "fetchStart": any_number,
-            "dnsStart": any_number,
-            "dnsEnd": any_number,
-            "connectStart": any_number,
-            "connectEnd": any_number,
-            "tlsStart": any_number,
-            "requestStart": any_number,
-            "responseStart": any_number,
-            "responseEnd": any_number,
+            "requestTime": assert_timing,
+            "redirectStart": assert_timing,
+            "redirectEnd": assert_timing,
+            "fetchStart": assert_timing,
+            "dnsStart": assert_timing,
+            "dnsEnd": assert_timing,
+            "connectStart": assert_timing,
+            "connectEnd": assert_timing,
+            "tlsStart": assert_timing,
+            "requestStart": assert_timing,
+            "responseStart": assert_timing,
+            "responseEnd": assert_timing,
         },
         timing_info,
     )
 
 
-def assert_request_data(request_data, expected_request):
+def assert_request_data(request_data, expected_request, expected_time_range):
     recursive_compare(
         {
             "bodySize": any_int_or_null,
@@ -70,8 +88,6 @@ def assert_request_data(request_data, expected_request):
         },
         request_data,
     )
-
-    assert_timing_info(request_data["timings"])
 
     for cookie in request_data["cookies"]:
         assert_bytes_value(cookie["value"])
@@ -92,6 +108,8 @@ def assert_request_data(request_data, expected_request):
         # Remove headers before using recursive_compare, see comment for cookies
         del expected_request["headers"]
 
+    assert_timing_info(request_data["timings"], expected_time_range)
+
     recursive_compare(expected_request, request_data)
 
 
@@ -103,6 +121,7 @@ def assert_base_parameters(
     navigation=None,
     redirect_count=None,
     expected_request=None,
+    expected_time_range=None,
 ):
     recursive_compare(
         {
@@ -139,9 +158,9 @@ def assert_base_parameters(
     if redirect_count is not None:
         assert event["redirectCount"] == redirect_count
 
-    # Assert request data
+    # Assert request data (expected_time_range is optional)
     if expected_request is not None:
-        assert_request_data(event["request"], expected_request)
+        assert_request_data(event["request"], expected_request, expected_time_range)
 
 
 def assert_before_request_sent_event(
@@ -152,6 +171,7 @@ def assert_before_request_sent_event(
     navigation=None,
     redirect_count=None,
     expected_request=None,
+    expected_time_range=None,
 ):
     # Assert initiator
     assert isinstance(event["initiator"], dict)
@@ -166,6 +186,7 @@ def assert_before_request_sent_event(
         navigation=navigation,
         redirect_count=redirect_count,
         expected_request=expected_request,
+        expected_time_range=expected_time_range,
     )
 
 
@@ -178,6 +199,7 @@ def assert_fetch_error_event(
     navigation=None,
     redirect_count=None,
     expected_request=None,
+    expected_time_range=None,
 ):
     # Assert errorText
     assert isinstance(event["errorText"], str)
@@ -194,6 +216,7 @@ def assert_fetch_error_event(
         navigation=navigation,
         redirect_count=redirect_count,
         expected_request=expected_request,
+        expected_time_range=expected_time_range,
     )
 
 
@@ -244,6 +267,7 @@ def assert_response_event(
     redirect_count=None,
     expected_request=None,
     expected_response=None,
+    expected_time_range=None,
 ):
     # Assert response data
     any_dict(event["response"])
@@ -259,6 +283,7 @@ def assert_response_event(
         navigation=navigation,
         redirect_count=redirect_count,
         expected_request=expected_request,
+        expected_time_range=expected_time_range,
     )
 
 
