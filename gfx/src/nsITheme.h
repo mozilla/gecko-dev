@@ -158,8 +158,8 @@ class nsITheme : public nsISupports {
    * Get the preferred content-box size of a checkbox / radio button, in app
    * units.  Historically 9px.
    */
-  virtual nscoord GetCheckboxRadioPrefSize() {
-    return mozilla::CSSPixel::ToAppUnits(9);
+  virtual mozilla::CSSCoord GetCheckboxRadioPrefSize() {
+    return mozilla::CSSCoord(9.0f);
   }
 
   /**

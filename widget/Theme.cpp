@@ -188,18 +188,15 @@ void Theme::LookAndFeelChanged() {
   }
 }
 
-auto Theme::GetDPIRatio(nsPresContext* aPc,
-                        StyleAppearance aAppearance) -> DPIRatio {
-  // Widgets react to zoom, except scrollbars.
-  if (IsWidgetScrollbarPart(aAppearance)) {
-    return GetScrollbarDrawing().GetDPIRatioForScrollbarPart(aPc);
-  }
-  return DPIRatio(float(AppUnitsPerCSSPixel()) / aPc->AppUnitsPerDevPixel());
-}
-
 auto Theme::GetDPIRatio(nsIFrame* aFrame,
                         StyleAppearance aAppearance) -> DPIRatio {
-  return GetDPIRatio(aFrame->PresContext(), aAppearance);
+  // Widgets react to zoom, except scrollbars.
+  nsPresContext* pc = aFrame->PresContext();
+  if (IsWidgetScrollbarPart(aAppearance)) {
+    return GetScrollbarDrawing().GetDPIRatioForScrollbarPart(pc);
+  }
+  return DPIRatio(aFrame->Style()->EffectiveZoom().Zoom(
+      float(AppUnitsPerCSSPixel()) / pc->AppUnitsPerDevPixel()));
 }
 
 // Checkbox and radio need to preserve aspect-ratio for compat. We also snap the
@@ -1540,9 +1537,7 @@ LayoutDeviceIntCoord Theme::GetScrollbarSize(const nsPresContext* aPresContext,
   return GetScrollbarDrawing().GetScrollbarSize(aPresContext, aWidth, aOverlay);
 }
 
-nscoord Theme::GetCheckboxRadioPrefSize() {
-  return CSSPixel::ToAppUnits(kCheckboxRadioSize);
-}
+CSSCoord Theme::GetCheckboxRadioPrefSize() { return kCheckboxRadioSize; }
 
 /* static */
 UniquePtr<ScrollbarDrawing> Theme::ScrollbarStyle() {

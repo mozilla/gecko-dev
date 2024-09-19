@@ -93,14 +93,13 @@ class Theme : protected nsNativeTheme, public nsITheme {
   LayoutDeviceIntCoord GetScrollbarSize(const nsPresContext*,
                                         StyleScrollbarWidth, Overlay) final;
 
-  nscoord GetCheckboxRadioPrefSize() override;
+  CSSCoord GetCheckboxRadioPrefSize() override;
 
   static UniquePtr<ScrollbarDrawing> ScrollbarStyle();
 
  protected:
   virtual ~Theme() = default;
 
-  DPIRatio GetDPIRatio(nsPresContext*, StyleAppearance);
   DPIRatio GetDPIRatio(nsIFrame*, StyleAppearance);
 
   std::tuple<sRGBColor, sRGBColor, sRGBColor> ComputeCheckboxColors(
