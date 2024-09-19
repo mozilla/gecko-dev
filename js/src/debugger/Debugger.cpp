@@ -12,6 +12,7 @@
 #include "mozilla/HashTable.h"         // for HashSet<>::Range, HashMapEntry
 #include "mozilla/Maybe.h"             // for Maybe, Nothing, Some
 #include "mozilla/ScopeExit.h"         // for MakeScopeExit, ScopeExit
+#include "mozilla/Sprintf.h"           // for SprintfLiteral
 #include "mozilla/ThreadLocal.h"       // for ThreadLocal
 #include "mozilla/TimeStamp.h"         // for TimeStamp
 #include "mozilla/UniquePtr.h"         // for UniquePtr
@@ -5423,53 +5424,10 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
     }
     if (startProperty.isObject()) {
       Rooted<JSObject*> startObject(cx, &startProperty.toObject());
-      RootedValue startLineProp(cx);
-      if (!GetProperty(cx, startObject, startObject, cx->names().line,
-                       &startLineProp)) {
-        return false;
-      }
-      if (!startLineProp.isNumber()) {
-        JS_ReportErrorNumberASCII(
-            cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
-            "query object's 'start.line' property", "not a number");
-        return false;
-      }
-      double doubleLine = startLineProp.toNumber();
-      uint32_t uintLine = (uint32_t)doubleLine;
-      if (doubleLine <= 0 || uintLine != doubleLine) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_DEBUG_BAD_LINE);
+      if (!parseLineColumnObject(startObject, "start", line, columnStart)) {
         return false;
       }
       hasLine = true;
-      line = uintLine;
-
-      RootedValue startColumnProp(cx);
-      if (!GetProperty(cx, startObject, startObject, cx->names().column,
-                       &startColumnProp)) {
-        return false;
-      }
-      if (!startColumnProp.isUndefined()) {
-        if (!startColumnProp.isNumber()) {
-          JS_ReportErrorNumberASCII(
-              cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
-              "query object's 'start.column' property", "not a number");
-          return false;
-        }
-        double doubleColumn = startColumnProp.toNumber();
-        uint32_t uintColumn = (uint32_t)doubleColumn;
-        if (doubleColumn <= 0 || uintColumn != doubleColumn) {
-          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                    JSMSG_BAD_COLUMN_NUMBER);
-          return false;
-        }
-        if (uintColumn > JS::LimitedColumnNumberOneOrigin::Limit) {
-          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                    JSMSG_BAD_COLUMN_NUMBER);
-          return false;
-        }
-        columnStart.emplace(JS::LimitedColumnNumberOneOrigin(uintColumn));
-      }
     } else if (!startProperty.isUndefined()) {
       JS_ReportErrorNumberASCII(
           cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
@@ -5484,51 +5442,8 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
     }
     if (endProperty.isObject()) {
       Rooted<JSObject*> endObject(cx, &endProperty.toObject());
-      RootedValue endLineProp(cx);
-      if (!GetProperty(cx, endObject, endObject, cx->names().line,
-                       &endLineProp)) {
+      if (!parseLineColumnObject(endObject, "end", lineEnd, columnEnd)) {
         return false;
-      }
-      if (!endLineProp.isNumber()) {
-        JS_ReportErrorNumberASCII(
-            cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
-            "query object's 'end.line' property", "not a number");
-        return false;
-      }
-      double doubleLine = endLineProp.toNumber();
-      uint32_t uintLine = (uint32_t)doubleLine;
-      if (doubleLine <= 0 || uintLine != doubleLine) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_DEBUG_BAD_LINE);
-        return false;
-      }
-      lineEnd = uintLine;
-
-      RootedValue endColumnProp(cx);
-      if (!GetProperty(cx, endObject, endObject, cx->names().column,
-                       &endColumnProp)) {
-        return false;
-      }
-      if (!endColumnProp.isUndefined()) {
-        if (!endColumnProp.isNumber()) {
-          JS_ReportErrorNumberASCII(
-              cx, GetErrorMessage, nullptr, JSMSG_UNEXPECTED_TYPE,
-              "query object's 'end.column' property", "not a number");
-          return false;
-        }
-        double doubleColumn = endColumnProp.toNumber();
-        uint32_t uintColumn = (uint32_t)doubleColumn;
-        if (doubleColumn <= 0 || uintColumn != doubleColumn) {
-          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                    JSMSG_BAD_COLUMN_NUMBER);
-          return false;
-        }
-        if (uintColumn > JS::LimitedColumnNumberOneOrigin::Limit) {
-          JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                    JSMSG_BAD_COLUMN_NUMBER);
-          return false;
-        }
-        columnEnd.emplace(JS::LimitedColumnNumberOneOrigin(uintColumn));
       }
     } else if (!endProperty.isUndefined()) {
       JS_ReportErrorNumberASCII(
@@ -5835,6 +5750,72 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
       }
     }
 
+    return true;
+  }
+
+  template <size_t N>
+  bool parseLineColumnObject(
+      Handle<JSObject*> obj, const char (&propName)[N], uint32_t& lineOut,
+      Maybe<JS::LimitedColumnNumberOneOrigin>& columnOut) {
+    RootedValue lineProp(cx);
+    if (!GetProperty(cx, obj, obj, cx->names().line, &lineProp)) {
+      return false;
+    }
+    if (!lineProp.isNumber()) {
+      static const char propMessageFormat[] =
+          "query object's '%s.line' property";
+      char propMessage[N - 1 /* propName's terminating null */
+                       + sizeof(propMessageFormat) - 2 /* '%s' is replaced */];
+      DebugOnly<size_t> checkLen =
+          SprintfLiteral(propMessage, propMessageFormat, propName);
+      MOZ_ASSERT(checkLen == sizeof(propMessage) - 1 /* terminating null */);
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_UNEXPECTED_TYPE, propMessage,
+                                "not a number");
+      return false;
+    }
+    double doubleLine = lineProp.toNumber();
+    uint32_t uintLine = (uint32_t)doubleLine;
+    if (doubleLine <= 0 || uintLine != doubleLine) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                JSMSG_DEBUG_BAD_LINE);
+      return false;
+    }
+    lineOut = uintLine;
+
+    RootedValue columnProp(cx);
+    if (!GetProperty(cx, obj, obj, cx->names().column, &columnProp)) {
+      return false;
+    }
+    if (!columnProp.isUndefined()) {
+      if (!columnProp.isNumber()) {
+        static const char propMessageFormat[] =
+            "query object's '%s.column' property";
+        char propMessage[N - 1 /* propName's terminating null */
+                         + sizeof(propMessageFormat) -
+                         2 /* '%s' is replaced */];
+        DebugOnly<size_t> checkLen =
+            SprintfLiteral(propMessage, propMessageFormat, propName);
+        MOZ_ASSERT(checkLen == sizeof(propMessage) - 1 /* terminating null */);
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_UNEXPECTED_TYPE, propMessage,
+                                  "not a number");
+        return false;
+      }
+      double doubleColumn = columnProp.toNumber();
+      uint32_t uintColumn = (uint32_t)doubleColumn;
+      if (doubleColumn <= 0 || uintColumn != doubleColumn) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_BAD_COLUMN_NUMBER);
+        return false;
+      }
+      if (uintColumn > JS::LimitedColumnNumberOneOrigin::Limit) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_BAD_COLUMN_NUMBER);
+        return false;
+      }
+      columnOut.emplace(JS::LimitedColumnNumberOneOrigin(uintColumn));
+    }
     return true;
   }
 
