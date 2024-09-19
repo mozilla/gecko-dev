@@ -404,6 +404,18 @@ rtc_source_set("media_stream_track_proxy") {
   ]
 }
 
+rtc_library("payload_type_picker") {
+  sources = [
+    "payload_type_picker.cc",
+    "payload_type_picker.h",
+  ]
+  deps = [
+    "../api:rtc_error",
+    "../media:codec",
+    "../rtc_base:strong_alias",
+  ]
+}
+
 rtc_source_set("peer_connection_factory_proxy") {
   visibility = [ ":*" ]
   sources = [ "peer_connection_factory_proxy.h" ]
@@ -1080,6 +1092,7 @@ rtc_source_set("peer_connection") {
     ":ice_server_parsing",
     ":jsep_transport_controller",
     ":legacy_stats_collector",
+    ":payload_type_picker",
     ":peer_connection_internal",
     ":peer_connection_message_handler",
     ":rtc_stats_collector",
@@ -1963,6 +1976,7 @@ if (rtc_include_tests && !build_with_chromium) {
       "jsep_transport_controller_unittest.cc",
       "jsep_transport_unittest.cc",
       "media_session_unittest.cc",
+      "payload_type_picker_unittest.cc",
       "rtcp_mux_filter_unittest.cc",
       "rtp_transport_unittest.cc",
       "sctp_transport_unittest.cc",
@@ -1992,6 +2006,7 @@ if (rtc_include_tests && !build_with_chromium) {
       ":libjingle_peerconnection",
       ":media_protocol_names",
       ":media_session",
+      ":payload_type_picker",
       ":pc_test_utils",
       ":rtc_pc",
       ":rtcp_mux_filter",
