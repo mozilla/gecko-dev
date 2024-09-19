@@ -18,7 +18,6 @@ support-files = [
 ]
 
 ["browser_policies_getActivePolicies.js"]
-skip-if = ["os != 'mac'"]
 
 ["browser_policies_notice_in_aboutpreferences.js"]
 

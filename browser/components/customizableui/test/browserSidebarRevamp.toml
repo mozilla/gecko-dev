@@ -12,7 +12,6 @@ prefs = [
 
 ["browser_914138_widget_API_overflowable_toolbar.js"]
 tags = "overflowable-toolbar"
-skip-if = ["os == 'linux'"]
 
 ["browser_proton_toolbar_hide_toolbarbuttons.js"]
 

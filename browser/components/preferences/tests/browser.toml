@@ -29,10 +29,7 @@ run-if = ["updater"]
 ["browser_basic_rebuild_fonts_test.js"]
 
 ["browser_browser_languages_subdialog.js"]
-skip-if = [
-  "tsan",
-  "!debug && os == 'win'", # Bug 1518370
-]
+skip-if = ["tsan"]
 
 ["browser_bug410900.js"]
 
@@ -45,9 +42,6 @@ skip-if = [
 ["browser_bug1020245_openPreferences_to_paneContent.js"]
 
 ["browser_bug1184989_prevent_scrolling_when_preferences_flipped.js"]
-skip-if = [
-  "os == 'mac'", # Bug 1664576
-]
 support-files = ["browser_bug1184989_prevent_scrolling_when_preferences_flipped.xhtml"]
 
 ["browser_bug1547020_lockedDownloadDir.js"]
@@ -81,7 +75,6 @@ run-if = ["os == 'win'"]
 ["browser_containers_name_input.js"]
 
 ["browser_contentblocking.js"]
-skip-if = ["socketprocess_networking"]
 
 ["browser_contentblocking_categories.js"]
 
@@ -107,10 +100,6 @@ fail-if = ["a11y_checks"] # Bug 1854636 clicked treechildren#engineChildren may 
 ["browser_experimental_features_filter.js"]
 
 ["browser_experimental_features_hidden_when_not_public.js"]
-skip-if = [
-  "os == 'mac' && debug", # Bug 1723854
-  "os == 'linux' && os_version == '18.04' && debug", # Bug 1723854
-]
 
 ["browser_experimental_features_resetall.js"]
 

@@ -87,7 +87,6 @@ skip-if = ["verify"]
 ["browser_favicon_userContextId.js"]
 
 ["browser_firstPartyIsolation.js"]
-skip-if = ["debug"] #Bug 1345346
 
 ["browser_firstPartyIsolation_aboutPages.js"]
 
@@ -110,10 +109,6 @@ skip-if = ["debug"] #Bug 1345346
 ["browser_postMessage.js"]
 
 ["browser_sanitize.js"]
-skip-if = [
-  "os == 'win'", #Bug 1544810
-  "os == 'linux' && bits == 64", #Bug 1544810
-]
 
 ["browser_sharedworker.js"]
 

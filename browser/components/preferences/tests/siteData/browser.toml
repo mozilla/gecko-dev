@@ -15,10 +15,7 @@ support-files = [
 ["browser_siteData.js"]
 
 ["browser_siteData2.js"]
-skip-if = [
-  "win11_2009 && (!debug && !asan)", # Bug 1797751
-  "apple_catalina && debug", # Bug 1775910
-]
+skip-if = ["apple_catalina && debug"] # Bug 1775910
 
 ["browser_siteData3.js"]
 

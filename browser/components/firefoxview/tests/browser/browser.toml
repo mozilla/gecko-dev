@@ -21,9 +21,7 @@ prefs = [
 ["browser_firefoxview_paused.js"]
 
 ["browser_firefoxview_search_telemetry.js"]
-skip-if = [
-   "os == 'linux' && os_version == '18.04' && !debug", # Bug 1880113
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && tsan"] # Bug 1880113
 
 ["browser_firefoxview_tab.js"]
 
@@ -45,7 +43,6 @@ skip-if = ["verify"] # Bug 1886017
 ["browser_opentabs_recency.js"]
 skip-if = [
   "os == 'mac'",
-  "os == 'linux'"
 ] # macos times out, see bug 1857293, Bug 1875877 - frequent fails on linux.
 
 ["browser_opentabs_search.js"]

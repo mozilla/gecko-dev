@@ -55,7 +55,6 @@ run-if = [
   "os == 'win'", #  import is only available on Windows and macOS
   "os == 'mac'", #  import is only available on Windows and macOS
 ]
-skip-if = ["os == 'mac' && !debug"]  # bug 1775753
 
 ["browser_openImportCSV.js"]
 

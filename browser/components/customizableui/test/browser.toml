@@ -19,7 +19,6 @@ prefs = [
 
 ["browser_1087303_button_fullscreen.js"]
 tags = "fullscreen"
-skip-if = ["os == 'mac'"]
 
 ["browser_1087303_button_preferences.js"]
 
@@ -49,7 +48,6 @@ skip-if = ["os == 'mac' && debug"]
 ["browser_873501_handle_specials.js"]
 
 ["browser_876926_customize_mode_wrapping.js"]
-skip-if = ["os == 'linux' && !debug"] # Bug 1682752
 
 ["browser_876944_customize_mode_create_destroy.js"]
 
@@ -144,7 +142,7 @@ support-files = ["dummy_history_item.html"]
 ["browser_947914_button_zoomOut.js"]
 
 ["browser_947914_button_zoomReset.js"]
-skip-if = ["os == 'linux' && debug"] # Intermittent failures
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64' && debug && socketprocess_networking"]
 
 ["browser_947987_removable_default.js"]
 

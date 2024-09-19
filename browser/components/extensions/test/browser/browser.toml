@@ -74,13 +74,8 @@ disabled = "bug 1438663 # same focus issue as Bug 1438663"
 
 ["browser_ext_browserAction_context.js"]
 https_first_disabled = true
-skip-if = [
-  "os == 'linux' && os_version == '18.04' && debug", # Bug 1504096
-  "os == 'linux' && os_version == '18.04' && socketprocess_networking",
-]
 
 ["browser_ext_browserAction_contextMenu.js"]
-skip-if = ["os == 'linux' && os_version == '18.04'"] # bug 1369197
 
 ["browser_ext_browserAction_disabled.js"]
 
@@ -101,18 +96,12 @@ skip-if = ["os == 'linux' && os_version == '18.04'"] # bug 1369197
 ["browser_ext_browserAction_popup_port.js"]
 
 ["browser_ext_browserAction_popup_preload.js"]
-skip-if = [
-  "os == 'win' && !debug",
-  "verify && debug && os == 'mac'", # bug 1352668
-]
 
 ["browser_ext_browserAction_popup_preload_smoketest.js"]
-skip-if = ["debug"] # Bug 1746047
 
 ["browser_ext_browserAction_popup_resize.js"]
 
 ["browser_ext_browserAction_popup_resize_bottom.js"]
-skip-if = ["debug"] # Bug 1522164
 
 ["browser_ext_browserAction_simple.js"]
 
@@ -144,7 +133,6 @@ skip-if = [
 ["browser_ext_commands_onChanged.js"]
 
 ["browser_ext_commands_onCommand.js"]
-skip-if = ["debug"] # bug 1553577
 
 ["browser_ext_commands_update.js"]
 
@@ -170,6 +158,7 @@ https_first_disabled = true
 
 ["browser_ext_contentscript_sender_url.js"]
 skip-if = ["debug"] # The nature of the reduced STR test triggers an unrelated debug assertion in DOM IPC code, see bug 1736590.
+tags = "bleedover"
 
 ["browser_ext_contextMenus.js"]
 support-files = [ "!/browser/components/places/tests/browser/head.js"]
@@ -192,6 +181,7 @@ https_first_disabled = true
 
 ["browser_ext_contextMenus_targetUrlPatterns.js"]
 skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+tags = "bleedover"
 
 ["browser_ext_contextMenus_uninstall.js"]
 
@@ -250,6 +240,7 @@ skip-if = [
 skip-if = [
   "apple_silicon && !fission", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
 ]
+tags = "bleedover"
 
 ["browser_ext_lastError.js"]
 
@@ -277,7 +268,6 @@ https_first_disabled = true
 ["browser_ext_menus_incognito.js"]
 
 ["browser_ext_menus_refresh.js"]
-skip-if = ["a11y_checks"] # Bug 1858041 and 1835079 for causing intermittent crashes
 
 ["browser_ext_menus_replace_menu.js"]
 
@@ -292,11 +282,13 @@ https_first_disabled = true
 
 ["browser_ext_menus_targetElement_extension.js"]
 skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+tags = "bleedover"
 
 ["browser_ext_menus_targetElement_shadow.js"]
 
 ["browser_ext_menus_viewType.js"]
 skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+tags = "bleedover"
 
 ["browser_ext_menus_visible.js"]
 
@@ -378,7 +370,6 @@ https_first_disabled = true
 
 ["browser_ext_popup_select.js"]
 run-if = ["os == 'win'"] # disabled on macos/linux in bug 1379508 due to frequent failures; see browser_ext_popup_select_in_oopif.js instead
-skip-if = ["debug"] # FIXME: re-enable on debug build (bug 1442822)
 
 ["browser_ext_popup_select_in_oopif.js"]
 skip-if = ["os == 'linux' && swgl && fission && tsan"] # high frequency intermittent
@@ -439,7 +430,6 @@ https_first_disabled = true
 
 ["browser_ext_sessions_window_tab_value.js"]
 https_first_disabled = true
-skip-if = ["debug"] # Bug 1394984 disable debug builds on all platforms
 
 ["browser_ext_settings_overrides_default_search.js"]
 
@@ -453,6 +443,7 @@ skip-if = ["debug"] # Bug 1394984 disable debug builds on all platforms
 
 ["browser_ext_sidebarAction_contextMenu.js"]
 skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+tags = "bleedover"
 
 ["browser_ext_sidebarAction_httpAuth.js"]
 support-files = ["authenticate.sjs"]
@@ -472,11 +463,6 @@ skip-if = ["true"] # Bug 1575369
 
 ["browser_ext_slow_script.js"]
 https_first_disabled = true
-skip-if = [
-  "debug",
-  "asan",
-  "tsan" # Bug 1874317
-]
 
 ["browser_ext_tab_runtimeConnect.js"]
 
@@ -502,11 +488,6 @@ https_first_disabled = true
 
 ["browser_ext_tabs_discard_reversed.js"]
 https_first_disabled = true
-skip-if = [
-  "apple_silicon", # Bug 1722607
-  "apple_catalina", # Bug 1722607
-  "os == 'linux' && os_version == '18.04' && debug", #Bug 1722607
-]
 
 ["browser_ext_tabs_discarded.js"]
 https_first_disabled = true
@@ -565,7 +546,6 @@ https_first_disabled = true
 ["browser_ext_tabs_move_discarded.js"]
 
 ["browser_ext_tabs_move_window.js"]
-skip-if = ["win10_2009 && debug"] # Bug 1730374
 
 ["browser_ext_tabs_move_window_multiple.js"]
 
@@ -695,7 +675,6 @@ https_first_disabled = true
 skip-if = [
   "apple_catalina",
   "apple_silicon",
-  "os == 'linux' && os_version == '18.04' && debug", # Fails when windows are randomly opened in fullscreen mode, Bug 1638027
 ]
 
 ["browser_ext_windows_update.js"]
@@ -714,7 +693,6 @@ tags = "fullscreen"
 ["browser_unified_extensions_accessibility.js"]
 
 ["browser_unified_extensions_context_menu.js"]
-skip-if = ["true"]  #Bug 1800712
 
 ["browser_unified_extensions_cui.js"]
 
