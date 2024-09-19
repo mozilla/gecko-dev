@@ -4,7 +4,8 @@
 
 use darling::{FromDeriveInput, FromField, FromVariant};
 use proc_macro2::{Span, TokenStream};
-use quote::TokenStreamExt;
+use quote::{quote, TokenStreamExt};
+use syn::parse_quote;
 use syn::{self, AngleBracketedGenericArguments, AssocType, DeriveInput, Field};
 use syn::{GenericArgument, GenericParam, Ident, Path};
 use syn::{PathArguments, PathSegment, QSelf, Type, TypeArray, TypeGroup};
