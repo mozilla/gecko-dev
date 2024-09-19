@@ -65,6 +65,7 @@ using mozilla::Abs;
 using mozilla::AsciiAlphanumericToNumber;
 using mozilla::IsAsciiAlphanumeric;
 using mozilla::IsAsciiDigit;
+using mozilla::MaxNumberValue;
 using mozilla::Maybe;
 using mozilla::MinNumberValue;
 using mozilla::NegativeInfinity;
@@ -1447,7 +1448,7 @@ static const JSPropertySpec number_static_properties[] = {
                  JSPROP_READONLY | JSPROP_PERMANENT),
     JS_DOUBLE_PS("NEGATIVE_INFINITY", mozilla::NegativeInfinity<double>(),
                  JSPROP_READONLY | JSPROP_PERMANENT),
-    JS_DOUBLE_PS("MAX_VALUE", 1.7976931348623157E+308,
+    JS_DOUBLE_PS("MAX_VALUE", MaxNumberValue<double>(),
                  JSPROP_READONLY | JSPROP_PERMANENT),
     JS_DOUBLE_PS("MIN_VALUE", MinNumberValue<double>(),
                  JSPROP_READONLY | JSPROP_PERMANENT),
