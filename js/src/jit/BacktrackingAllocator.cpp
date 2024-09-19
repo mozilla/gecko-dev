@@ -711,11 +711,6 @@ static inline bool SortBefore(LiveRange::BundleLink* a,
   return rangea->from() < rangeb->from();
 }
 
-static inline bool SortBefore(LiveRange::RegisterLink* a,
-                              LiveRange::RegisterLink* b) {
-  return LiveRange::get(a)->from() <= LiveRange::get(b)->from();
-}
-
 template <typename T>
 static inline void InsertSortedList(InlineForwardList<T>& list, T* value) {
   if (list.empty()) {
@@ -965,15 +960,17 @@ void LiveBundle::removeAllRangesFromVirtualRegisters() {
 
 bool VirtualRegister::addInitialRange(TempAllocator& alloc, CodePosition from,
                                       CodePosition to) {
+  MOZ_ASSERT(rangesSorted_, "ranges stay sorted during live range building");
+
   MOZ_ASSERT(from < to);
-  MOZ_ASSERT_IF(hasRanges(), from < firstRange()->to());
+  MOZ_ASSERT_IF(hasRanges(), from < ranges_.back()->to());
 
   // Mark [from,to) as a live range for this register during the initial
   // liveness analysis, coalescing with any existing overlapping ranges.
 
   LiveRange* merged = nullptr;
-  for (LiveRange::RegisterLinkIterator iter(rangesBegin()); iter;) {
-    LiveRange* existing = LiveRange::get(*iter);
+  for (RangeIterator iter(*this); iter; iter++) {
+    LiveRange* existing = *iter;
 
     MOZ_ASSERT(from < existing->to());
 
@@ -996,7 +993,6 @@ bool VirtualRegister::addInitialRange(TempAllocator& alloc, CodePosition from,
 
       // Continue searching to see if any other old ranges can be
       // coalesced with the new merged range.
-      iter++;
       continue;
     }
 
@@ -1010,30 +1006,50 @@ bool VirtualRegister::addInitialRange(TempAllocator& alloc, CodePosition from,
     existing->tryToMoveDefAndUsesInto(merged);
     MOZ_ASSERT(!existing->hasUses());
 
-    ranges_.removeAndIncrement(iter);
+    removeRange(iter);
   }
 
   if (!merged) {
     // The new range does not overlap any existing range for the vreg.
-    MOZ_ASSERT_IF(hasRanges(), to < firstRange()->from());
+    MOZ_ASSERT_IF(hasRanges(), to < ranges_.back()->from());
 
     LiveRange* range = LiveRange::FallibleNew(alloc, this, from, to);
     if (!range) {
       return false;
     }
 
-    ranges_.pushFront(&range->registerLink);
+    if (!ranges_.append(range)) {
+      return false;
+    }
   }
+
+  MOZ_ASSERT(rangesSorted_, "ranges are still sorted");
+
+#ifdef DEBUG
+  // Check the last few ranges don't overlap and are in the correct order.
+  size_t len = ranges_.length();
+  static constexpr size_t MaxIterations = 4;
+  size_t start = len > MaxIterations ? (len - MaxIterations) : 1;
+
+  for (size_t i = start; i < len; i++) {
+    LiveRange* range = ranges_[i];
+    LiveRange* prev = ranges_[i - 1];
+    MOZ_ASSERT(range->from() < range->to());
+    MOZ_ASSERT(range->to() < prev->from());
+  }
+#endif
 
   return true;
 }
 
 void VirtualRegister::addInitialUse(UsePosition* use) {
-  LiveRange::get(*rangesBegin())->addUse(use);
+  MOZ_ASSERT(rangesSorted_, "ranges stay sorted during live range building");
+  ranges_.back()->addUse(use);
 }
 
 void VirtualRegister::setInitialDefinition(CodePosition from) {
-  LiveRange* first = LiveRange::get(*rangesBegin());
+  MOZ_ASSERT(rangesSorted_, "ranges stay sorted during live range building");
+  LiveRange* first = ranges_.back();
   MOZ_ASSERT(from >= first->from());
   first->setFrom(from);
   first->setHasDefinition();
@@ -1041,9 +1057,10 @@ void VirtualRegister::setInitialDefinition(CodePosition from) {
 
 LiveRange* VirtualRegister::rangeFor(CodePosition pos,
                                      bool preferRegister /* = false */) const {
+  size_t len = ranges_.length();
   LiveRange* found = nullptr;
-  for (LiveRange::RegisterLinkIterator iter = rangesBegin(); iter; iter++) {
-    LiveRange* range = LiveRange::get(*iter);
+  for (size_t i = 0; i < len; i++) {
+    LiveRange* range = ranges_[i];
     if (range->covers(pos)) {
       if (!preferRegister || range->bundle()->allocation().isRegister()) {
         return range;
@@ -1056,30 +1073,92 @@ LiveRange* VirtualRegister::rangeFor(CodePosition pos,
   return found;
 }
 
-void VirtualRegister::addRange(LiveRange* range) {
-  InsertSortedList(ranges_, &range->registerLink);
+void VirtualRegister::sortRanges() {
+  MOZ_ASSERT(!rangesSorted_);
+  MOZ_ASSERT(activeRangeIterators_ == 0,
+             "shouldn't sort while there are active iterators");
+
+  // Sort ranges by start position in descending order.
+  auto compareRange = [](LiveRange* a, LiveRange* b) -> bool {
+    return a->from() > b->from();
+  };
+  std::sort(ranges_.begin(), ranges_.end(), compareRange);
+
+  rangesSorted_ = true;
 }
 
-void VirtualRegister::removeRange(LiveRange* range) {
-  for (LiveRange::RegisterLinkIterator iter = rangesBegin(); iter; iter++) {
-    LiveRange* existing = LiveRange::get(*iter);
-    if (existing == range) {
-      ranges_.removeAt(iter);
-      return;
-    }
+#ifdef DEBUG
+void VirtualRegister::assertRangesSorted() {
+  MOZ_ASSERT(rangesSorted_);
+
+  // Assert the last N ranges in the vector are sorted correctly. We don't check
+  // the whole vector to not slow down debug builds too much.
+
+  size_t len = ranges_.length();
+  static constexpr size_t MaxIterations = 4;
+  size_t start = len > MaxIterations ? (len - MaxIterations) : 1;
+
+  for (size_t i = start; i < len; i++) {
+    LiveRange* prev = ranges_[i - 1];
+    LiveRange* range = ranges_[i];
+    MOZ_ASSERT(range->from() <= prev->from());
+
+    // If two ranges have the same |from| position, neither must be defining.
+    // This ensures the defining range, if any, always comes first after
+    // sorting.
+    MOZ_ASSERT_IF(range->from() == prev->from(),
+                  !range->hasDefinition() && !prev->hasDefinition());
   }
-  MOZ_CRASH();
+}
+#endif
+
+bool VirtualRegister::addRange(LiveRange* range) {
+  bool sorted = ranges_.empty() ||
+                (rangesSorted_ && ranges_.back()->from() >= range->from());
+  if (!ranges_.append(range)) {
+    return false;
+  }
+  rangesSorted_ = sorted;
+  return true;
+}
+
+void VirtualRegister::removeRange(RangeIterator& iter) {
+  size_t index = iter.index();
+  MOZ_ASSERT(index < ranges_.length());
+
+  // Optimization for removing the last item or second-to-last item. These cases
+  // are very common and don't make the vector unsorted.
+  if (index == ranges_.length() - 1) {
+    ranges_.popBack();
+    return;
+  }
+  if (index == ranges_.length() - 2) {
+    ranges_[index] = ranges_.popCopy();
+    return;
+  }
+
+  ranges_[index] = ranges_.popCopy();
+  rangesSorted_ = false;
+}
+
+void VirtualRegister::removeLastRange(LiveRange* range) {
+  MOZ_ASSERT(rangesSorted_);
+  RangeIterator iter(*this, /* index = */ 0);
+  MOZ_ASSERT(*iter == range);
+  removeRange(iter);
 }
 
 void VirtualRegister::removeRangesForBundle(LiveBundle* bundle) {
-  for (LiveRange::RegisterLinkIterator iter(rangesBegin()); iter;) {
-    LiveRange* range = LiveRange::get(*iter);
-    if (range->bundle() == bundle) {
-      ranges_.removeAndIncrement(iter);
-    } else {
-      iter++;
-    }
-  }
+  auto bundleMatches = [bundle](LiveRange* range) {
+    return range->bundle() == bundle;
+  };
+  ranges_.eraseIf(bundleMatches);
+}
+
+template <typename Pred>
+void VirtualRegister::removeRangesIf(Pred&& pred) {
+  ensureRangesSorted();
+  ranges_.eraseIf([&](LiveRange* range) { return pred(ranges_, range); });
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -2046,9 +2125,13 @@ bool BacktrackingAllocator::tryMergeReusedRegister(VirtualRegister& def,
                    inputOf(def.ins()).bits());
 
   LiveBundle* firstBundle = inputRange->bundle();
-  input.removeRange(inputRange);
-  input.addRange(preRange);
-  input.addRange(postRange);
+  input.removeLastRange(inputRange);
+  if (!input.addRange(preRange)) {
+    return false;
+  }
+  if (!input.addRange(postRange)) {
+    return false;
+  }
 
   firstBundle->removeRange(inputRange);
   firstBundle->addRange(preRange);
@@ -2250,7 +2333,9 @@ bool BacktrackingAllocator::updateVirtualRegisterListsThenRequeueBundles(
     for (LiveRange::BundleLinkIterator iter = newBundle->rangesBegin(); iter;
          iter++) {
       LiveRange* range = LiveRange::get(*iter);
-      range->vreg().addRange(range);
+      if (!range->vreg().addRange(range)) {
+        return false;
+      }
     }
   }
 
@@ -3703,25 +3788,24 @@ bool BacktrackingAllocator::moveAtEdge(LBlock* predecessor, LBlock* successor,
 
 // Helper for ::createMoveGroupsFromLiveRangeTransitions
 void BacktrackingAllocator::removeDeadRanges(VirtualRegister& reg) {
-  auto isDeadRange = [&](LiveRange* range) {
+  auto isDeadRange = [&](VirtualRegister::RangeVector& ranges,
+                         LiveRange* range) {
     // Check for direct uses of this range.
     if (range->hasUses() || range->hasDefinition()) {
       return false;
     }
 
+    // Check if there are later ranges for this vreg. The first item in the list
+    // must have the highest start position so we compare against that one.
     CodePosition start = range->from();
-    LNode* ins = insData[start];
-    if (start == entryOf(ins->block())) {
+    CodePosition maxFrom = ranges[0]->from();
+    if (maxFrom > start) {
       return false;
     }
 
-    // Check if there are later ranges for this vreg.
-    LiveRange::RegisterLinkIterator iter = reg.rangesBegin(range);
-    for (iter++; iter; iter++) {
-      LiveRange* laterRange = LiveRange::get(*iter);
-      if (laterRange->from() > range->from()) {
-        return false;
-      }
+    LNode* ins = insData[start];
+    if (start == entryOf(ins->block())) {
+      return false;
     }
 
     // Check if this range ends at a loop backedge.
@@ -3739,14 +3823,7 @@ void BacktrackingAllocator::removeDeadRanges(VirtualRegister& reg) {
     return true;
   };
 
-  for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;) {
-    LiveRange* range = LiveRange::get(*iter);
-    if (isDeadRange(range)) {
-      reg.removeRangeAndIncrement(iter);
-    } else {
-      iter++;
-    }
-  }
+  reg.removeRangesIf(isDeadRange);
 }
 
 bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
