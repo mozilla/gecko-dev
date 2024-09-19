@@ -748,6 +748,7 @@ WEBIDL_FILES = [
     "MediaStreamError.webidl",
     "MediaStreamTrack.webidl",
     "MediaStreamTrackAudioSourceNode.webidl",
+    "MediaTrackCapabilities.webidl",
     "MediaTrackSettings.webidl",
     "MediaTrackSupportedConstraints.webidl",
     "MerchantValidationEvent.webidl",

@@ -109,7 +109,8 @@ interface MediaStreamTrack : EventTarget {
                 attribute EventHandler          onended;
     MediaStreamTrack       clone ();
     undefined              stop ();
-//  MediaTrackCapabilities getCapabilities ();
+    [NeedsCallerType]
+    MediaTrackCapabilities getCapabilities ();
     MediaTrackConstraints  getConstraints ();
     [NeedsCallerType]
     MediaTrackSettings     getSettings ();

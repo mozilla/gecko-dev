@@ -308,6 +308,9 @@ void MediaStreamTrack::Stop() {
   NotifyEnded();
 }
 
+void MediaStreamTrack::GetCapabilities(dom::MediaTrackCapabilities& aResult,
+                                       CallerType aCallerType) {}
+
 void MediaStreamTrack::GetConstraints(dom::MediaTrackConstraints& aResult) {
   aResult = mConstraints;
 }
