@@ -465,7 +465,10 @@
     }
     XCTAssertNotNil(targetCodec);
 
-    [tranceiver setCodecPreferences:@[ targetCodec ]];
+    NSError *error = nil;
+    BOOL result = [tranceiver setCodecPreferences:@[ targetCodec ] error:&error];
+    XCTAssertTrue(result);
+    XCTAssertNil(error);
 
     @autoreleasepool {
       dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
