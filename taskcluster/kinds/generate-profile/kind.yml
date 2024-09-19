@@ -342,7 +342,7 @@ tasks:
             product: firefox
             job-name: macosx64-aarch64-profile
         treeherder:
-            platform: macosx1100-64-shippable/opt
+            platform: osx-aarch64-shippable/opt
         worker-type: b-osx-arm64
         worker:
             chain-of-trust: true
