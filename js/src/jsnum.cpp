@@ -646,7 +646,7 @@ static bool num_parseInt(JSContext* cx, unsigned argc, Value* vp) {
   return NumberParseInt(cx, inputString, radix, args.rval());
 }
 
-static const JSFunctionSpec number_functions[] = {
+static constexpr JSFunctionSpec number_functions[] = {
     JS_SELF_HOSTED_FN("isNaN", "Global_isNaN", 1, JSPROP_RESOLVING),
     JS_SELF_HOSTED_FN("isFinite", "Global_isFinite", 1, JSPROP_RESOLVING),
     JS_FS_END,
@@ -1416,7 +1416,7 @@ static bool num_toPrecision(JSContext* cx, unsigned argc, Value* vp) {
   });
 }
 
-static const JSFunctionSpec number_methods[] = {
+static constexpr JSFunctionSpec number_methods[] = {
     JS_FN("toSource", num_toSource, 0, 0),
     JS_INLINABLE_FN("toString", num_toString, 1, 0, NumberToString),
 #if JS_HAS_INTL_API
@@ -1435,7 +1435,7 @@ bool js::IsInteger(double d) {
   return std::isfinite(d) && JS::ToInteger(d) == d;
 }
 
-static const JSFunctionSpec number_static_methods[] = {
+static constexpr JSFunctionSpec number_static_methods[] = {
     JS_SELF_HOSTED_FN("isFinite", "Number_isFinite", 1, 0),
     JS_SELF_HOSTED_FN("isInteger", "Number_isInteger", 1, 0),
     JS_SELF_HOSTED_FN("isNaN", "Number_isNaN", 1, 0),
@@ -1443,7 +1443,7 @@ static const JSFunctionSpec number_static_methods[] = {
     JS_FS_END,
 };
 
-static const JSPropertySpec number_static_properties[] = {
+static constexpr JSPropertySpec number_static_properties[] = {
     JS_DOUBLE_PS("POSITIVE_INFINITY", mozilla::PositiveInfinity<double>(),
                  JSPROP_READONLY | JSPROP_PERMANENT),
     JS_DOUBLE_PS("NEGATIVE_INFINITY", mozilla::NegativeInfinity<double>(),
