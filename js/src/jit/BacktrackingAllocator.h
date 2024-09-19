@@ -813,7 +813,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
   [[nodiscard]] bool moveAtEdge(LBlock* predecessor, LBlock* successor,
                                 LiveRange* from, LiveRange* to,
                                 LDefinition::Type type);
-  [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool deadRange(LiveRange* range);
+  void removeDeadRanges(VirtualRegister& reg);
   [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool
   createMoveGroupsFromLiveRangeTransitions();
   size_t findFirstNonCallSafepoint(CodePosition from);

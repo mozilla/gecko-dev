@@ -3687,42 +3687,51 @@ bool BacktrackingAllocator::moveAtEdge(LBlock* predecessor, LBlock* successor,
 }
 
 // Helper for ::createMoveGroupsFromLiveRangeTransitions
-bool BacktrackingAllocator::deadRange(LiveRange* range) {
-  // Check for direct uses of this range.
-  if (range->hasUses() || range->hasDefinition()) {
-    return false;
-  }
-
-  CodePosition start = range->from();
-  LNode* ins = insData[start];
-  if (start == entryOf(ins->block())) {
-    return false;
-  }
-
-  VirtualRegister& reg = range->vreg();
-
-  // Check if there are later ranges for this vreg.
-  LiveRange::RegisterLinkIterator iter = reg.rangesBegin(range);
-  for (iter++; iter; iter++) {
-    LiveRange* laterRange = LiveRange::get(*iter);
-    if (laterRange->from() > range->from()) {
+void BacktrackingAllocator::removeDeadRanges(VirtualRegister& reg) {
+  auto isDeadRange = [&](LiveRange* range) {
+    // Check for direct uses of this range.
+    if (range->hasUses() || range->hasDefinition()) {
       return false;
     }
-  }
 
-  // Check if this range ends at a loop backedge.
-  LNode* last = insData[range->to().previous()];
-  if (last->isGoto() &&
-      last->toGoto()->target()->id() < last->block()->mir()->id()) {
-    return false;
-  }
+    CodePosition start = range->from();
+    LNode* ins = insData[start];
+    if (start == entryOf(ins->block())) {
+      return false;
+    }
 
-  // Check if there are phis which this vreg flows to.
-  if (reg.usedByPhi()) {
-    return false;
-  }
+    // Check if there are later ranges for this vreg.
+    LiveRange::RegisterLinkIterator iter = reg.rangesBegin(range);
+    for (iter++; iter; iter++) {
+      LiveRange* laterRange = LiveRange::get(*iter);
+      if (laterRange->from() > range->from()) {
+        return false;
+      }
+    }
 
-  return true;
+    // Check if this range ends at a loop backedge.
+    LNode* last = insData[range->to().previous()];
+    if (last->isGoto() &&
+        last->toGoto()->target()->id() < last->block()->mir()->id()) {
+      return false;
+    }
+
+    // Check if there are phis which this vreg flows to.
+    if (reg.usedByPhi()) {
+      return false;
+    }
+
+    return true;
+  };
+
+  for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;) {
+    LiveRange* range = LiveRange::get(*iter);
+    if (isDeadRange(range)) {
+      reg.removeRangeAndIncrement(iter);
+    } else {
+      iter++;
+    }
+  }
 }
 
 bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
@@ -3743,7 +3752,11 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       return false;
     }
 
-    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;) {
+    // Remove ranges which will never be used.
+    removeDeadRanges(reg);
+
+    for (LiveRange::RegisterLinkIterator iter = reg.rangesBegin(); iter;
+         iter++) {
       LiveRange* range = LiveRange::get(*iter);
 
       if (mir->shouldCancel(
@@ -3751,16 +3764,9 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
         return false;
       }
 
-      // Remove ranges which will never be used.
-      if (deadRange(range)) {
-        reg.removeRangeAndIncrement(iter);
-        continue;
-      }
-
       // The range which defines the register does not have a predecessor
       // to add moves from.
       if (range->hasDefinition()) {
-        iter++;
         continue;
       }
 
@@ -3769,7 +3775,6 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       CodePosition start = range->from();
       LNode* ins = insData[start];
       if (start == entryOf(ins->block())) {
-        iter++;
         continue;
       }
 
@@ -3787,7 +3792,6 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
         }
       }
       if (skip) {
-        iter++;
         continue;
       }
 
@@ -3812,8 +3816,6 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
           return false;
         }
       }
-
-      iter++;
     }
   }
 
