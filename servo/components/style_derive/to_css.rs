@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use darling::util::Override;
-use derive_common::cg;
+use crate::cg;
 use proc_macro2::{Span, TokenStream};
 use quote::{ToTokens, TokenStreamExt};
 use syn::{self, Data, Ident, Path, WhereClause};

@@ -6,7 +6,6 @@
 
 #[macro_use]
 extern crate darling;
-extern crate derive_common;
 extern crate proc_macro;
 extern crate proc_macro2;
 #[macro_use]
@@ -17,6 +16,7 @@ extern crate synstructure;
 
 use proc_macro::TokenStream;
 
+mod cg;
 mod animate;
 mod compute_squared_distance;
 mod parse;

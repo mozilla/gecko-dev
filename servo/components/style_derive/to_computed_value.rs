@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use derive_common::cg;
+use crate::cg;
 use proc_macro2::TokenStream;
 use syn::{DeriveInput, Ident, Path};
 use synstructure::{BindStyle, BindingInfo};

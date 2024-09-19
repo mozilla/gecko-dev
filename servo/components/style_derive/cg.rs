@@ -32,7 +32,7 @@ use synstructure::{self, BindStyle, BindingInfo, VariantAst, VariantInfo};
 /// ```
 ///
 /// This needs to run before adding other bounds to the type parameters.
-pub fn propagate_clauses_to_output_type(
+pub(crate) fn propagate_clauses_to_output_type(
     where_clause: &mut Option<syn::WhereClause>,
     generics: &syn::Generics,
     trait_path: &Path,
@@ -79,21 +79,21 @@ pub fn propagate_clauses_to_output_type(
     }
 }
 
-pub fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePredicate) {
+pub(crate) fn add_predicate(where_clause: &mut Option<syn::WhereClause>, pred: WherePredicate) {
     where_clause
         .get_or_insert(parse_quote!(where))
         .predicates
         .push(pred);
 }
 
-pub fn fmap_match<F>(input: &DeriveInput, bind_style: BindStyle, f: F) -> TokenStream
+pub(crate) fn fmap_match<F>(input: &DeriveInput, bind_style: BindStyle, f: F) -> TokenStream
 where
     F: FnMut(&BindingInfo) -> TokenStream,
 {
     fmap2_match(input, bind_style, f, |_| None)
 }
 
-pub fn fmap2_match<F, G>(
+pub(crate) fn fmap2_match<F, G>(
     input: &DeriveInput,
     bind_style: BindStyle,
     mut f: F,
@@ -128,7 +128,11 @@ where
     })
 }
 
-pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: &Ident) -> Path {
+pub(crate) fn fmap_trait_output(
+    input: &DeriveInput,
+    trait_path: &Path,
+    trait_output: &Ident,
+) -> Path {
     let segment = PathSegment {
         ident: input.ident.clone(),
         arguments: PathArguments::AngleBracketed(AngleBracketedGenericArguments {
@@ -158,7 +162,12 @@ pub fn fmap_trait_output(input: &DeriveInput, trait_path: &Path, trait_output: &
     segment.into()
 }
 
-pub fn map_type_params<F>(ty: &Type, params: &[&TypeParam], self_type: &Path, f: &mut F) -> Type
+pub(crate) fn map_type_params<F>(
+    ty: &Type,
+    params: &[&TypeParam],
+    self_type: &Path,
+    f: &mut F,
+) -> Type
 where
     F: FnMut(&Ident) -> Type,
 {
@@ -289,7 +298,7 @@ fn path_to_ident(path: &Path) -> Option<&Ident> {
     }
 }
 
-pub fn parse_field_attrs<A>(field: &Field) -> A
+pub(crate) fn parse_field_attrs<A>(field: &Field) -> A
 where
     A: FromField,
 {
@@ -299,7 +308,7 @@ where
     }
 }
 
-pub fn parse_input_attrs<A>(input: &DeriveInput) -> A
+pub(crate) fn parse_input_attrs<A>(input: &DeriveInput) -> A
 where
     A: FromDeriveInput,
 {
@@ -309,7 +318,7 @@ where
     }
 }
 
-pub fn parse_variant_attrs_from_ast<A>(variant: &VariantAst) -> A
+pub(crate) fn parse_variant_attrs_from_ast<A>(variant: &VariantAst) -> A
 where
     A: FromVariant,
 {
@@ -322,7 +331,7 @@ where
     parse_variant_attrs(&v)
 }
 
-pub fn parse_variant_attrs<A>(variant: &Variant) -> A
+pub(crate) fn parse_variant_attrs<A>(variant: &Variant) -> A
 where
     A: FromVariant,
 {
@@ -332,7 +341,7 @@ where
     }
 }
 
-pub fn ref_pattern<'a>(
+pub(crate) fn ref_pattern<'a>(
     variant: &'a VariantInfo,
     prefix: &str,
 ) -> (TokenStream, Vec<BindingInfo<'a>>) {
@@ -344,7 +353,10 @@ pub fn ref_pattern<'a>(
     (v.pat(), v.bindings().to_vec())
 }
 
-pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (TokenStream, Vec<BindingInfo<'a>>) {
+pub(crate) fn value<'a>(
+    variant: &'a VariantInfo,
+    prefix: &str,
+) -> (TokenStream, Vec<BindingInfo<'a>>) {
     let mut v = variant.clone();
     v.bindings_mut().iter_mut().for_each(|b| {
         b.binding = Ident::new(&format!("{}_{}", b.binding, prefix), Span::call_site())
@@ -357,7 +369,7 @@ pub fn value<'a>(variant: &'a VariantInfo, prefix: &str) -> (TokenStream, Vec<Bi
 ///
 /// If the first Camel segment is "Moz", "Webkit", or "Servo", the result string
 /// is prepended with "-".
-pub fn to_css_identifier(mut camel_case: &str) -> String {
+pub(crate) fn to_css_identifier(mut camel_case: &str) -> String {
     camel_case = camel_case.trim_end_matches('_');
     let mut first = true;
     let mut result = String::with_capacity(camel_case.len());
@@ -378,7 +390,7 @@ pub fn to_css_identifier(mut camel_case: &str) -> String {
 }
 
 /// Transforms foo-bar to FOO_BAR.
-pub fn to_scream_case(css_case: &str) -> String {
+pub(crate) fn to_scream_case(css_case: &str) -> String {
     css_case.to_uppercase().replace('-', "_")
 }
 

@@ -4,7 +4,7 @@
 
 use crate::parse::ParseVariantAttrs;
 use crate::to_css::{CssFieldAttrs, CssInputAttrs, CssVariantAttrs};
-use derive_common::cg;
+use crate::cg;
 use proc_macro2::TokenStream;
 use quote::TokenStreamExt;
 use syn::{Data, DeriveInput, Fields, Ident, Type};
