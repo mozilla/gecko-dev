@@ -1254,8 +1254,23 @@ export class DiscoveryStreamFeed {
   }
 
   async clearSpocs() {
-    const endpoint =
-      this.store.getState().Prefs.values[PREF_SPOCS_CLEAR_ENDPOINT];
+    const state = this.store.getState();
+    let endpoint = state.Prefs.values[PREF_SPOCS_CLEAR_ENDPOINT];
+
+    const unifiedAdsEnabled = state.Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+
+    let body = {
+      pocket_id: this._impressionId,
+    };
+
+    if (unifiedAdsEnabled) {
+      const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
+      endpoint = `${endpointBaseUrl}v1/ads`;
+      body = {
+        context_id: lazy.contextId,
+      };
+    }
+
     if (!endpoint) {
       return;
     }
@@ -1265,9 +1280,7 @@ export class DiscoveryStreamFeed {
     await this.fetchFromEndpoint(endpoint, {
       method: "DELETE",
       headers,
-      body: JSON.stringify({
-        pocket_id: this._impressionId,
-      }),
+      body: JSON.stringify(body),
     });
   }
 
@@ -2089,7 +2102,7 @@ export class DiscoveryStreamFeed {
         if (
           !(
             (this.showSponsoredStories ||
-              (this.showTopSites && this.showSponsoredTopSites)) &&
+              (this.showTopsites && this.showSponsoredTopsites)) &&
             (this.showSponsoredTopsites ||
               (this.showStories && this.showSponsoredStories))
           )
