@@ -11,7 +11,9 @@ const TEST_URI = `
       container-type: inline-size;
 
       @media screen {
-        container-name: main;
+        & { /* TODO: Remove & wrapper after bug 1919853 */
+          container-name: main;
+        }
 
         & h1 {
           border-color: gold;

@@ -23,7 +23,9 @@ const TEST_URI = `
         color: tomato;
 
         @container (0px < width) {
-          background: gold;
+          & { /* TODO: Remove & wrapper after bug 1919853 */
+            background: gold;
+          }
         }
       }
     }

@@ -24,7 +24,9 @@ const TEST_URI = `
       transition: all 1s;
 
       @starting-style {
-        color: gold;
+        & { /* TODO: Remove & wrapper rule after bug 1919853 */
+          color: gold;
+        }
       }
     }
 
@@ -95,11 +97,13 @@ const TEST_URI = `
       outline-offset: 10px;
 
       @starting-style {
-        --empty-start: ;
-        background-color: goldenrod;
-        padding-top: 3px;
-        margin-top: 3px;
-        outline-color: goldenrod;
+        & { /* TODO: Remove & wrapper rule after bug 1919853 */
+          --empty-start: ;
+          background-color: goldenrod;
+          padding-top: 3px;
+          margin-top: 3px;
+          outline-color: goldenrod;
+        }
       }
     }
   </style>
