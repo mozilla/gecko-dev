@@ -5401,15 +5401,10 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
                                   "'line' property");
         return false;
       }
-      double doubleLine = lineProperty.toNumber();
-      uint32_t uintLine = (uint32_t)doubleLine;
-      if (doubleLine <= 0 || uintLine != doubleLine) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_DEBUG_BAD_LINE);
+      if (!parsePositiveInteger(lineProperty, line, JSMSG_DEBUG_BAD_LINE)) {
         return false;
       }
       hasLine = true;
-      line = uintLine;
       lineEnd = line;
     } else {
       JS_ReportErrorNumberASCII(
@@ -5785,14 +5780,9 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
                                 "not a number");
       return false;
     }
-    double doubleLine = lineProp.toNumber();
-    uint32_t uintLine = (uint32_t)doubleLine;
-    if (doubleLine <= 0 || uintLine != doubleLine) {
-      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                JSMSG_DEBUG_BAD_LINE);
+    if (!parsePositiveInteger(lineProp, lineOut, JSMSG_DEBUG_BAD_LINE)) {
       return false;
     }
-    lineOut = uintLine;
 
     RootedValue columnProp(cx);
     if (!GetProperty(cx, obj, obj, cx->names().column, &columnProp)) {
@@ -5813,11 +5803,9 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
                                   "not a number");
         return false;
       }
-      double doubleColumn = columnProp.toNumber();
-      uint32_t uintColumn = (uint32_t)doubleColumn;
-      if (doubleColumn <= 0 || uintColumn != doubleColumn) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_BAD_COLUMN_NUMBER);
+      uint32_t uintColumn = 0;
+      if (!parsePositiveInteger(columnProp, uintColumn,
+                                JSMSG_BAD_COLUMN_NUMBER)) {
         return false;
       }
       if (uintColumn > JS::LimitedColumnNumberOneOrigin::Limit) {
@@ -5827,6 +5815,18 @@ class MOZ_STACK_CLASS Debugger::ScriptQuery : public Debugger::QueryBase {
       }
       columnOut.emplace(JS::LimitedColumnNumberOneOrigin(uintColumn));
     }
+    return true;
+  }
+
+  bool parsePositiveInteger(Handle<Value> numberProp, uint32_t& result,
+                            JSErrNum errorNumber) {
+    double doubleVal = numberProp.toNumber();
+    uint32_t uintVal = (uint32_t)doubleVal;
+    if (doubleVal <= 0 || uintVal != doubleVal) {
+      JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr, errorNumber);
+      return false;
+    }
+    result = uintVal;
     return true;
   }
 
