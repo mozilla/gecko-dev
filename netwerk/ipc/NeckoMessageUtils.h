@@ -15,6 +15,7 @@
 #include "nsExceptionHandler.h"
 #include "nsIDNSService.h"
 #include "nsIHttpChannel.h"
+#include "nsIClassOfService.h"
 #include "nsITRRSkipReason.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -152,6 +153,13 @@ struct ParamTraits<nsIDNSService::ResolverMode>
           nsIDNSService::ResolverMode,
           nsIDNSService::ResolverMode::MODE_NATIVEONLY,
           nsIDNSService::ResolverMode::MODE_TRROFF> {};
+
+template <>
+struct ParamTraits<nsIClassOfService::FetchPriority>
+    : public ContiguousEnumSerializerInclusive<
+          nsIClassOfService::FetchPriority,
+          nsIClassOfService::FETCHPRIORITY_UNSET,
+          nsIClassOfService::FETCHPRIORITY_HIGH> {};
 
 }  // namespace IPC
 
