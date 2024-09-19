@@ -11,6 +11,7 @@
 #ifndef API_UNITS_TIME_DELTA_H_
 #define API_UNITS_TIME_DELTA_H_
 
+#include <cstdint>
 #include <cstdlib>
 #include <string>
 #include <type_traits>

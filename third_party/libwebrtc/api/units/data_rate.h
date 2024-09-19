@@ -11,6 +11,7 @@
 #ifndef API_UNITS_DATA_RATE_H_
 #define API_UNITS_DATA_RATE_H_
 
+#include <cstdint>
 #include <limits>
 #include <string>
 #include <type_traits>

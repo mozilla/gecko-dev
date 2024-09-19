@@ -104,6 +104,7 @@ if (rtc_include_tests) {
       ":frequency",
       ":time_delta",
       ":timestamp",
+      "../../rtc_base:checks",
       "../../rtc_base:logging",
       "../../test:test_support",
     ]
