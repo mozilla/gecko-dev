@@ -1924,8 +1924,7 @@ bool SnapshotIterator::tryRead(Value* result) {
   return false;
 }
 
-int64_t SnapshotIterator::readInt64() {
-  RValueAllocation alloc = readAllocation();
+int64_t SnapshotIterator::allocationInt64(const RValueAllocation& alloc) {
   MOZ_ASSERT(allocationReadable(alloc));
 
   auto fromParts = [](uint32_t hi, uint32_t lo) {
@@ -1973,33 +1972,39 @@ int64_t SnapshotIterator::readInt64() {
   MOZ_CRASH("invalid int64 allocation");
 }
 
-JS::BigInt* SnapshotIterator::readBigInt(JSContext* cx) {
-  RValueAllocation alloc = readAllocation();
+intptr_t SnapshotIterator::allocationIntPtr(const RValueAllocation& alloc) {
   MOZ_ASSERT(allocationReadable(alloc));
   switch (alloc.mode()) {
     case RValueAllocation::INTPTR_CST: {
 #if !defined(JS_64BIT)
       int32_t cst = ionScript_->getConstant(alloc.index()).toInt32();
-      auto val = static_cast<intptr_t>(cst);
+      return static_cast<intptr_t>(cst);
 #else
       uint32_t lo = ionScript_->getConstant(alloc.index()).toInt32();
       uint32_t hi = ionScript_->getConstant(alloc.index2()).toInt32();
-      auto val = static_cast<intptr_t>((static_cast<uint64_t>(hi) << 32) | lo);
+      return static_cast<intptr_t>((static_cast<uint64_t>(hi) << 32) | lo);
 #endif
-      return JS::BigInt::createFromIntPtr(cx, val);
     }
-    case RValueAllocation::INTPTR_REG: {
-      auto val = static_cast<intptr_t>(fromRegister(alloc.reg()));
-      return JS::BigInt::createFromIntPtr(cx, val);
-    }
-    case RValueAllocation::INTPTR_STACK: {
-      auto val = static_cast<intptr_t>(fromStack(alloc.stackOffset()));
-      return JS::BigInt::createFromIntPtr(cx, val);
-    }
+    case RValueAllocation::INTPTR_REG:
+      return static_cast<intptr_t>(fromRegister(alloc.reg()));
+    case RValueAllocation::INTPTR_STACK:
+      return static_cast<intptr_t>(fromStack(alloc.stackOffset()));
     default:
       break;
   }
-  return allocationValue(alloc).toBigInt();
+  MOZ_CRASH("invalid intptr allocation");
+}
+
+JS::BigInt* SnapshotIterator::readBigInt(JSContext* cx) {
+  RValueAllocation alloc = readAllocation();
+  switch (alloc.mode()) {
+    case RValueAllocation::INTPTR_CST:
+    case RValueAllocation::INTPTR_REG:
+    case RValueAllocation::INTPTR_STACK:
+      return JS::BigInt::createFromIntPtr(cx, allocationIntPtr(alloc));
+    default:
+      return allocationValue(alloc).toBigInt();
+  }
 }
 
 void SnapshotIterator::writeAllocationValuePayload(
