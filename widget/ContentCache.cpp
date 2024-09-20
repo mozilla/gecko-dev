@@ -16,6 +16,7 @@
 #include "mozilla/IMEStateManager.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Logging.h"
+#include "mozilla/MiscEvents.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TextComposition.h"
 #include "mozilla/dom/BrowserParent.h"
@@ -1419,6 +1420,28 @@ void ContentCacheInParent::OnSelectionEvent(
   mPendingSetSelectionEventNeedingAck++;
 }
 
+void ContentCacheInParent::OnContentCommandEvent(
+    const WidgetContentCommandEvent& aContentCommandEvent) {
+  MOZ_LOG(sContentCacheLog, LogLevel::Info,
+          ("0x%p OnContentCommandEvent(aEvent={ "
+           "mMessage=%s, mString=\"%s\", mSelection={ mReplaceSrcString=\"%s\" "
+           "mOffset=%u, mPreventSetSelection=%s }, mOnlyEnabledCheck=%s })",
+           this, ToChar(aContentCommandEvent.mMessage),
+           ToString(aContentCommandEvent.mString).c_str(),
+           ToString(aContentCommandEvent.mSelection.mReplaceSrcString).c_str(),
+           aContentCommandEvent.mSelection.mOffset,
+           GetBoolName(aContentCommandEvent.mSelection.mPreventSetSelection),
+           GetBoolName(aContentCommandEvent.mOnlyEnabledCheck)));
+
+  MOZ_ASSERT(!aContentCommandEvent.mOnlyEnabledCheck);
+
+#if MOZ_DIAGNOSTIC_ASSERT_ENABLED && !defined(FUZZING_SNAPSHOT)
+  mDispatchedEventMessages.AppendElement(aContentCommandEvent.mMessage);
+#endif  // MOZ_DIAGNOSTIC_ASSERT_ENABLED
+
+  mPendingContentCommandEventNeedingAck++;
+}
+
 void ContentCacheInParent::OnEventNeedingAckHandled(nsIWidget* aWidget,
                                                     EventMessage aMessage,
                                                     uint32_t aCompositionId) {
@@ -1587,6 +1610,21 @@ void ContentCacheInParent::OnEventNeedingAckHandled(nsIWidget* aWidget,
 #endif  // #if MOZ_DIAGNOSTIC_ASSERT_ENABLED
     } else {
       mPendingSetSelectionEventNeedingAck--;
+    }
+  } else if (aMessage >= eContentCommandEventFirst &&
+             aMessage <= eContentCommandEventLast) {
+    if (NS_WARN_IF(!mPendingContentCommandEventNeedingAck)) {
+#if MOZ_DIAGNOSTIC_ASSERT_ENABLED && !defined(FUZZING_SNAPSHOT)
+      nsAutoCString info(
+          "\nThere is no pending content command events but received from the "
+          "remote child\n\n");
+      AppendEventMessageLog(info);
+      CrashReporter::AppendAppNotesToCrashReport(info);
+      MOZ_DIAGNOSTIC_ASSERT(
+          false, "No pending event message but received unexpected event");
+#endif  // #if MOZ_DIAGNOSTIC_ASSERT_ENABLED
+    } else {
+      mPendingContentCommandEventNeedingAck--;
     }
   }
 
