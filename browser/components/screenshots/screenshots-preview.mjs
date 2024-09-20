@@ -92,19 +92,12 @@ class ScreenshotsPreview extends MozLitElement {
   handleClick(event) {
     switch (event.target.id) {
       case "retry":
-        lazy.ScreenshotsUtils.scheduleRetry(
-          this.openerBrowser,
-          "preview_retry"
-        );
+        lazy.ScreenshotsUtils.scheduleRetry(this.openerBrowser, "PreviewRetry");
         this.close();
         break;
       case "cancel":
         this.close();
-        lazy.ScreenshotsUtils.recordTelemetryEvent(
-          "canceled",
-          "preview_cancel",
-          {}
-        );
+        lazy.ScreenshotsUtils.recordTelemetryEvent("canceledPreviewCancel");
         break;
       case "copy":
         this.saveToClipboard();
@@ -188,7 +181,7 @@ class ScreenshotsPreview extends MozLitElement {
       null,
       imageSrc,
       this.openerBrowser,
-      { object: "preview_download" }
+      "PreviewDownload"
     );
 
     if (downloadSucceeded) {
@@ -205,9 +198,11 @@ class ScreenshotsPreview extends MozLitElement {
 
     // Wait for the image to be loaded before we copy it
     let imageSrc = await this.imageLoadedPromise();
-    await lazy.ScreenshotsUtils.copyScreenshot(imageSrc, this.openerBrowser, {
-      object: "preview_copy",
-    });
+    await lazy.ScreenshotsUtils.copyScreenshot(
+      imageSrc,
+      this.openerBrowser,
+      "PreviewCopy"
+    );
     this.close();
   }
 

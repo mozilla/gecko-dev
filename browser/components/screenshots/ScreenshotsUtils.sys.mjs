@@ -221,7 +221,7 @@ export var ScreenshotsUtils = {
         // The chromeEventHandler in the child actor will handle events that
         // don't match this
         if (event.target.parentElement === this.panelForBrowser(browser)) {
-          this.cancel(browser, "escape");
+          this.cancel(browser, "Escape");
         }
         break;
       case "ArrowLeft":
@@ -263,7 +263,7 @@ export var ScreenshotsUtils = {
         "Screenshots:RemoveEventListeners"
       );
     } else {
-      this.cancel(oldBrowser, "navigation");
+      this.cancel(oldBrowser, "Navigation");
     }
   },
 
@@ -296,7 +296,7 @@ export var ScreenshotsUtils = {
   handleTabSelect(event) {
     let previousTab = event.detail.previousTab;
     if (this.getUIPhase(previousTab.linkedBrowser) === UIPhases.INITIAL) {
-      this.cancel(previousTab.linkedBrowser, "navigation");
+      this.cancel(previousTab.linkedBrowser, "Navigation");
     }
   },
 
@@ -430,7 +430,11 @@ export var ScreenshotsUtils = {
         type
       );
     } else {
-      Services.obs.notifyObservers(null, "menuitem-screenshot-extension", type);
+      Services.obs.notifyObservers(
+        null,
+        "menuitem-screenshot-extension",
+        type.toLowerCase()
+      );
     }
   },
 
@@ -505,7 +509,7 @@ export var ScreenshotsUtils = {
    * @param browser The current browser.
    */
   cancel(browser, reason) {
-    this.recordTelemetryEvent("canceled", reason, {});
+    this.recordTelemetryEvent("canceled" + reason);
     this.exit(browser);
   },
 
@@ -799,7 +803,7 @@ export var ScreenshotsUtils = {
   async showPanelAndOverlay(browser, data) {
     let actor = this.getActor(browser);
     actor.sendAsyncMessage("Screenshots:ShowOverlay");
-    this.recordTelemetryEvent("started", data, {});
+    this.recordTelemetryEvent("started" + data);
     this.openPanel(browser);
   },
 
@@ -982,7 +986,7 @@ export var ScreenshotsUtils = {
           { id: "screenshots-too-large-error-details" },
         ]);
       this.showAlertMessage(errorTitle.value, errorMessage.value);
-      this.recordTelemetryEvent("failed", "screenshot_too_large", null);
+      this.recordTelemetryEvent("failedScreenshotTooLarge");
     }
   },
 
@@ -1003,7 +1007,7 @@ export var ScreenshotsUtils = {
 
     let rect;
     let lastUsedMethod;
-    if (type === "full_page") {
+    if (type === "FullPage") {
       rect = await this.fetchFullPageBounds(browser);
       lastUsedMethod = "fullpage";
     } else {
@@ -1028,7 +1032,7 @@ export var ScreenshotsUtils = {
       lastUsedMethod
     );
     this.methodsUsed[lastUsedMethod] += 1;
-    this.recordTelemetryEvent("selected", type, {});
+    this.recordTelemetryEvent("selected" + type);
 
     if (Cu.isInAutomation) {
       Services.obs.notifyObservers(null, "screenshots-preview-ready");
@@ -1124,9 +1128,7 @@ export var ScreenshotsUtils = {
     let canvas = await this.createCanvas(region, browser);
     let url = canvas.toDataURL();
 
-    await this.copyScreenshot(url, browser, {
-      object: "overlay_copy",
-    });
+    await this.copyScreenshot(url, browser, "OverlayCopy");
   },
 
   /**
@@ -1134,9 +1136,9 @@ export var ScreenshotsUtils = {
    * This is called from the preview dialog
    * @param dataUrl The image data
    * @param browser The current browser
-   * @param data Telemetry data
+   * @param eventName For telemetry
    */
-  async copyScreenshot(dataUrl, browser, data) {
+  async copyScreenshot(dataUrl, browser, eventName) {
     // Guard against missing image data.
     if (!dataUrl) {
       return;
@@ -1188,7 +1190,7 @@ export var ScreenshotsUtils = {
     let extra = await this.getActor(browser).sendQuery(
       "Screenshots:GetMethodsUsed"
     );
-    this.recordTelemetryEvent("copy", data.object, {
+    this.recordTelemetryEvent("copy" + eventName, {
       ...extra,
       ...this.methodsUsed,
     });
@@ -1207,9 +1209,7 @@ export var ScreenshotsUtils = {
     let canvas = await this.createCanvas(region, browser);
     let dataUrl = canvas.toDataURL();
 
-    await this.downloadScreenshot(title, dataUrl, browser, {
-      object: "overlay_download",
-    });
+    await this.downloadScreenshot(title, dataUrl, browser, "OverlayDownload");
   },
 
   /**
@@ -1218,10 +1218,10 @@ export var ScreenshotsUtils = {
    * @param title The title of the current page or null and getFilename will get the title
    * @param dataUrl The image data
    * @param browser The current browser
-   * @param data Telemetry data
+   * @param eventName For telemetry
    * @returns true if the download succeeds, otherwise false
    */
-  async downloadScreenshot(title, dataUrl, browser, data) {
+  async downloadScreenshot(title, dataUrl, browser, eventName) {
     // Guard against missing image data.
     if (!dataUrl) {
       return false;
@@ -1266,7 +1266,7 @@ export var ScreenshotsUtils = {
     let extra = await this.getActor(browser).sendQuery(
       "Screenshots:GetMethodsUsed"
     );
-    this.recordTelemetryEvent("download", data.object, {
+    this.recordTelemetryEvent("download" + eventName, {
       ...extra,
       ...this.methodsUsed,
     });
@@ -1280,12 +1280,7 @@ export var ScreenshotsUtils = {
     return true;
   },
 
-  recordTelemetryEvent(type, object, args) {
-    if (args) {
-      for (let key of Object.keys(args)) {
-        args[key] = args[key].toString();
-      }
-    }
-    Services.telemetry.recordEvent("screenshots", type, object, null, args);
+  recordTelemetryEvent(name, args) {
+    Glean.screenshots[name].record(args);
   },
 };

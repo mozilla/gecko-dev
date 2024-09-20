@@ -212,7 +212,7 @@ document.addEventListener(
             OpenBrowserWindow({ private: true });
             break;
           case "Browser:Screenshot":
-            ScreenshotsUtils.notify(window, "shortcut");
+            ScreenshotsUtils.notify(window, "Shortcut");
             break;
           // TODO: <observes>
           // "History:UndoCloseTab": function () {

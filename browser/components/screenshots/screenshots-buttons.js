@@ -44,12 +44,12 @@
 
       let visibleButton = shadowRoot.getElementById("visible-page");
       visibleButton.onclick = function () {
-        ScreenshotsUtils.takeScreenshot(gBrowser.selectedBrowser, "visible");
+        ScreenshotsUtils.takeScreenshot(gBrowser.selectedBrowser, "Visible");
       };
 
       let fullpageButton = shadowRoot.getElementById("full-page");
       fullpageButton.onclick = function () {
-        ScreenshotsUtils.takeScreenshot(gBrowser.selectedBrowser, "full_page");
+        ScreenshotsUtils.takeScreenshot(gBrowser.selectedBrowser, "FullPage");
       };
     }
 

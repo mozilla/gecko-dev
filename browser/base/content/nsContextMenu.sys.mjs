@@ -1572,7 +1572,7 @@ export class nsContextMenu {
       Services.obs.notifyObservers(
         this.window,
         "menuitem-screenshot",
-        "context_menu"
+        "ContextMenu"
       );
     } else {
       Services.obs.notifyObservers(

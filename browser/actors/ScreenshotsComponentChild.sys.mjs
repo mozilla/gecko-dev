@@ -115,7 +115,7 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
 
     switch (event.type) {
       case "beforeunload":
-        this.requestCancelScreenshot("navigation");
+        this.requestCancelScreenshot("Navigation");
         break;
       case "resize":
         if (!this.#resizeTask && this.overlay?.initialized) {
@@ -148,8 +148,8 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
         break;
       }
       case "Screenshots:RecordEvent": {
-        let { eventName, reason, args } = event.detail;
-        this.recordTelemetryEvent(eventName, reason, args);
+        let { eventName, args } = event.detail;
+        Glean.screenshots[eventName].record(args);
         break;
       }
       case "Screenshots:ShowPanel":
@@ -423,9 +423,5 @@ export class ScreenshotsComponentChild extends JSWindowActorChild {
       devicePixelRatio,
     };
     return rect;
-  }
-
-  recordTelemetryEvent(type, object, args = {}) {
-    Services.telemetry.recordEvent("screenshots", type, object, null, args);
   }
 }

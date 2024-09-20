@@ -1,0 +1,387 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Screenshots'
+
+screenshots:
+  download_overlay_download:
+    type: event
+    description: >
+      Recorded when a user downloads a screenshot from the overlay or the
+      preview.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.download#overlay_download.
+    bugs: &screenshots_download_bugs
+      - https://bugzil.la/1801019
+    data_reviews: &screenshots_download_data_reviews
+      - https://bugzil.la/1801019
+    notification_emails: &screenshots_download_emails
+      - screenshots-dev@mozilla.org
+    expires: never
+    extra_keys: &screenshots_download_extra
+      fullpage:
+        description: >
+          Number of times a full page was selected
+        type: string
+      visible:
+        description: >
+          Number of times a visible page was selected
+        type: string
+      element:
+        description: >
+          Number of times an element was selected
+        type: string
+      region:
+        description: >
+          Number of times a region was selected
+        type: string
+      move:
+        description: >
+          Number of times a region was moved
+        type: string
+      resize:
+        description: >
+          Number of times a region was resized
+        type: string
+    telemetry_mirror: Screenshots_Download_OverlayDownload
+
+  download_preview_download:
+    type: event
+    description: >
+      Recorded when a user downloads a screenshot from the overlay or the
+      preview.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.download#preview_download.
+    bugs: *screenshots_download_bugs
+    data_reviews: *screenshots_download_data_reviews
+    notification_emails: *screenshots_download_emails
+    expires: never
+    extra_keys: *screenshots_download_extra
+    telemetry_mirror: Screenshots_Download_PreviewDownload
+
+  copy_overlay_copy:
+    type: event
+    description: >
+      Recorded when a user copies a screenshot from the overlay or the
+      preview.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.copy#overlay_copy.
+    bugs: &screenshots_copy_bugs
+      - https://bugzil.la/1801019
+    data_reviews: &screenshots_copy_data_reviews
+      - https://bugzil.la/1801019
+    notification_emails: &screenshots_copy_emails
+      - screenshots-dev@mozilla.org
+    expires: never
+    extra_keys: &screenshots_copy_extra
+      fullpage:
+        description: >
+          Number of times a full page was selected
+        type: string
+      visible:
+        description: >
+          Number of times a visible page was selected
+        type: string
+      element:
+        description: >
+          Number of times an element was selected
+        type: string
+      region:
+        description: >
+          Number of times a region was selected
+        type: string
+      move:
+        description: >
+          Number of times a region was moved
+        type: string
+      resize:
+        description: >
+          Number of times a region was resized
+        type: string
+    telemetry_mirror: Screenshots_Copy_OverlayCopy
+
+  copy_preview_copy:
+    type: event
+    description: >
+      Recorded when a user copies a screenshot from the overlay or the
+      preview.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.copy#preview_copy.
+    bugs: *screenshots_copy_bugs
+    data_reviews: *screenshots_copy_data_reviews
+    notification_emails: *screenshots_copy_emails
+    expires: never
+    extra_keys: *screenshots_copy_extra
+    telemetry_mirror: Screenshots_Copy_PreviewCopy
+
+  selected_element:
+    type: event
+    description: >
+      Recorded when a user selects a region by hand, selects an element,
+      selects the save visible, or selects save full page. Note that this
+      is recorded independent of whether or not the screenshot is saved.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.selected#element.
+    bugs: &screenshots_selected_bugs
+      - https://bugzil.la/1801019
+    data_reviews: &screenshots_selected_data_reviews
+      - https://bugzil.la/1801019
+    notification_emails: &screenshots_selected_emails
+      - screenshots-dev@mozilla.org
+    expires: never
+    telemetry_mirror: Screenshots_Selected_Element
+
+  selected_region_selection:
+    type: event
+    description: >
+      Recorded when a user selects a region by hand, selects an element,
+      selects the save visible, or selects save full page. Note that this
+      is recorded independent of whether or not the screenshot is saved.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.selected#region_selection.
+    bugs: *screenshots_selected_bugs
+    data_reviews: *screenshots_selected_data_reviews
+    notification_emails: *screenshots_selected_emails
+    expires: never
+    telemetry_mirror: Screenshots_Selected_RegionSelection
+
+  selected_visible:
+    type: event
+    description: >
+      Recorded when a user selects a region by hand, selects an element,
+      selects the save visible, or selects save full page. Note that this
+      is recorded independent of whether or not the screenshot is saved.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.selected#visible.
+    bugs: *screenshots_selected_bugs
+    data_reviews: *screenshots_selected_data_reviews
+    notification_emails: *screenshots_selected_emails
+    expires: never
+    telemetry_mirror: Screenshots_Selected_Visible
+
+  selected_full_page:
+    type: event
+    description: >
+      Recorded when a user selects a region by hand, selects an element,
+      selects the save visible, or selects save full page. Note that this
+      is recorded independent of whether or not the screenshot is saved.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.selected#full_page.
+    bugs: *screenshots_selected_bugs
+    data_reviews: *screenshots_selected_data_reviews
+    notification_emails: *screenshots_selected_emails
+    expires: never
+    telemetry_mirror: Screenshots_Selected_FullPage
+
+  started_toolbar_button:
+    type: event
+    description: >
+      Recorded when a user opens the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.started#toolbar_button.
+    bugs: &screenshots_started_bugs
+      - https://bugzil.la/1801019
+    data_reviews: &screenshots_started_data_reviews
+      - https://bugzil.la/1801019
+    notification_emails: &screenshots_started_emails
+      - screenshots-dev@mozilla.org
+    expires: never
+    telemetry_mirror: Screenshots_Started_ToolbarButton
+
+  started_shortcut:
+    type: event
+    description: >
+      Recorded when a user opens the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.started#shortcut.
+    bugs: *screenshots_started_bugs
+    data_reviews: *screenshots_started_data_reviews
+    notification_emails: *screenshots_started_emails
+    expires: never
+    telemetry_mirror: Screenshots_Started_Shortcut
+
+  started_context_menu:
+    type: event
+    description: >
+      Recorded when a user opens the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.started#context_menu.
+    bugs: *screenshots_started_bugs
+    data_reviews: *screenshots_started_data_reviews
+    notification_emails: *screenshots_started_emails
+    expires: never
+    telemetry_mirror: Screenshots_Started_ContextMenu
+
+  started_quick_actions:
+    type: event
+    description: >
+      Recorded when a user opens the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.started#quick_actions.
+    bugs: *screenshots_started_bugs
+    data_reviews: *screenshots_started_data_reviews
+    notification_emails: *screenshots_started_emails
+    expires: never
+    telemetry_mirror: Screenshots_Started_QuickActions
+
+  started_preview_retry:
+    type: event
+    description: >
+      Recorded when a user opens the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.started#preview_retry.
+    bugs: *screenshots_started_bugs
+    data_reviews: *screenshots_started_data_reviews
+    notification_emails: *screenshots_started_emails
+    expires: never
+    telemetry_mirror: Screenshots_Started_PreviewRetry
+
+  started_overlay_retry:
+    type: event
+    description: >
+      Recorded when a user opens the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.started#overlay_retry.
+    bugs: *screenshots_started_bugs
+    data_reviews: *screenshots_started_data_reviews
+    notification_emails: *screenshots_started_emails
+    expires: never
+    telemetry_mirror: Screenshots_Started_OverlayRetry
+
+  canceled_toolbar_button:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#toolbar_button.
+    bugs: &screenshots_canceled_bugs
+      - https://bugzil.la/1801019
+    data_reviews: &screenshots_canceled_data_reviews
+      - https://bugzil.la/1801019
+    notification_emails: &screenshots_canceled_emails
+      - screenshots-dev@mozilla.org
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_ToolbarButton
+
+  canceled_shortcut:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#shortcut.
+    bugs: *screenshots_canceled_bugs
+    data_reviews: *screenshots_canceled_data_reviews
+    notification_emails: *screenshots_canceled_emails
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_Shortcut
+
+  canceled_context_menu:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#context_menu.
+    bugs: *screenshots_canceled_bugs
+    data_reviews: *screenshots_canceled_data_reviews
+    notification_emails: *screenshots_canceled_emails
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_ContextMenu
+
+  canceled_quick_actions:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#quick_actions.
+    bugs: *screenshots_canceled_bugs
+    data_reviews: *screenshots_canceled_data_reviews
+    notification_emails: *screenshots_canceled_emails
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_QuickActions
+
+  canceled_preview_cancel:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#preview_cancel.
+    bugs: *screenshots_canceled_bugs
+    data_reviews: *screenshots_canceled_data_reviews
+    notification_emails: *screenshots_canceled_emails
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_PreviewCancel
+
+  canceled_overlay_cancel:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#overlay_cancel.
+    bugs: *screenshots_canceled_bugs
+    data_reviews: *screenshots_canceled_data_reviews
+    notification_emails: *screenshots_canceled_emails
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_OverlayCancel
+
+  canceled_escape:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#escape.
+    bugs: *screenshots_canceled_bugs
+    data_reviews: *screenshots_canceled_data_reviews
+    notification_emails: *screenshots_canceled_emails
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_Escape
+
+  canceled_navigation:
+    type: event
+    description: >
+      Recorded when a user closes the screenshots ui. The screenshots ui
+      is closed after copying/downloading but we do not record that as
+      canceling the screenshots ui.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.canceled#navigation.
+    bugs: *screenshots_canceled_bugs
+    data_reviews: *screenshots_canceled_data_reviews
+    notification_emails: *screenshots_canceled_emails
+    expires: never
+    telemetry_mirror: Screenshots_Canceled_Navigation
+
+  failed_screenshot_too_large:
+    type: event
+    description: >
+      Recorded when a screenshot is too big to capture and we have to crop
+      the screenshot.
+      This event was generated to correspond to the Legacy Telemetry event
+      screenshots.failed#screenshot_too_large.
+    bugs:
+      - https://bugzil.la/1801019
+    data_reviews:
+      - https://bugzil.la/1801019
+    notification_emails:
+      - screenshots-dev@mozilla.org
+    expires: never
+    telemetry_mirror: Screenshots_Failed_ScreenshotTooLarge

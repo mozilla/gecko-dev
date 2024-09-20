@@ -559,7 +559,7 @@ if (!lazy.screenshotsDisabled) {
         Services.obs.notifyObservers(
           aEvent.currentTarget.ownerGlobal,
           "menuitem-screenshot",
-          "toolbar_button"
+          "ToolbarButton"
         );
       } else {
         Services.obs.notifyObservers(

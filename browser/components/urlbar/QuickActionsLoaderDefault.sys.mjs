@@ -203,7 +203,7 @@ const DEFAULT_ACTIONS = {
         Services.obs.notifyObservers(
           lazy.BrowserWindowTracker.getTopWindow(),
           "menuitem-screenshot",
-          "quick_actions"
+          "QuickActions"
         );
       } else {
         Services.obs.notifyObservers(

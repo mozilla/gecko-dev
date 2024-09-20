@@ -409,7 +409,7 @@ export class ScreenshotsOverlay {
   maybeCancelScreenshots() {
     if (this.#state === STATES.CROSSHAIRS) {
       this.#dispatchEvent("Screenshots:Close", {
-        reason: "overlay_cancel",
+        reason: "OverlayCancel",
       });
     } else {
       this.#setState(STATES.CROSSHAIRS);
@@ -1167,8 +1167,7 @@ export class ScreenshotsOverlay {
   #setState(newState, options = {}) {
     if (this.#state === STATES.SELECTED && newState === STATES.CROSSHAIRS) {
       this.#dispatchEvent("Screenshots:RecordEvent", {
-        eventName: "started",
-        reason: "overlay_retry",
+        eventName: "startedOverlayRetry",
       });
     }
     if (newState !== this.#state) {
@@ -1500,8 +1499,7 @@ export class ScreenshotsOverlay {
       this.selectionRegion.dimensions = this.hoverElementRegion.dimensions;
       this.#setState(STATES.SELECTED, options);
       this.#dispatchEvent("Screenshots:RecordEvent", {
-        eventName: "selected",
-        reason: "element",
+        eventName: "selectedElement",
       });
       this.#methodsUsed.element += 1;
     } else {
@@ -1552,8 +1550,7 @@ export class ScreenshotsOverlay {
           REGION_CHANGE_THRESHOLD)
     ) {
       this.#dispatchEvent("Screenshots:RecordEvent", {
-        eventName: "selected",
-        reason: "region_selection",
+        eventName: "selectedRegionSelection",
       });
     }
     this.#previousDimensions = { width, height };
