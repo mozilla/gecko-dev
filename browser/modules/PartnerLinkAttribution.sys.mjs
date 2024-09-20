@@ -23,7 +23,7 @@ export var PartnerLinkAttribution = {
    * @param {string} targetURL
    *   The URL we are routing through the anonmyzing proxy.
    * @param {string} source
-   *   The source of the anonmized request, e.g. "urlbar".
+   *   The source of the anonmized request ("newtab" or "urlbar").
    * @param {string} [campaignID]
    *   The campaign ID for attribution. This should be a valid path on the
    *   anonymizing proxy. For example, if `campaignID` was `foo`, we'd send an
@@ -33,20 +33,19 @@ export var PartnerLinkAttribution = {
   async makeRequest({ targetURL, source, campaignID }) {
     let partner = targetURL.match(/^https?:\/\/(?:www.)?([^.]*)/)[1];
 
-    function record(method, objectString) {
-      recordTelemetryEvent({
-        method,
-        objectString,
-        value: partner,
-      });
+    Services.telemetry.setEventRecordingEnabled("partner_link", true);
+    let extra = { value: partner };
+    if (source == "newtab") {
+      Glean.partnerLink.clickNewtab.record(extra);
+    } else if (source == "urlbar") {
+      Glean.partnerLink.clickUrlbar.record(extra);
     }
-    record("click", source);
 
     let attributionUrl = Services.prefs.getStringPref(
       "browser.partnerlink.attributionURL"
     );
     if (!attributionUrl) {
-      record("attribution", "abort");
+      Glean.partnerLink.attributionAbort.record(extra);
       return;
     }
 
@@ -58,7 +57,11 @@ export var PartnerLinkAttribution = {
     }
     attributionUrl = attributionUrl + campaignID;
     let result = await sendRequest(attributionUrl, source, targetURL);
-    record("attribution", result ? "success" : "failure");
+    if (result) {
+      Glean.partnerLink.attributionSuccess.record(extra);
+    } else {
+      Glean.partnerLink.attributionFailure.record(extra);
+    }
   },
 };
 
@@ -69,9 +72,4 @@ async function sendRequest(attributionUrl, source, targetURL) {
   request.headers.set("X-Target-URL", targetURL);
   const response = await fetch(request);
   return response.ok;
-}
-
-function recordTelemetryEvent({ method, objectString, value }) {
-  Services.telemetry.setEventRecordingEnabled("partner_link", true);
-  Services.telemetry.recordEvent("partner_link", method, objectString, value);
 }

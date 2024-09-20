@@ -517,3 +517,98 @@ installation:
     telemetry_mirror: Installation_FirstSeen_Msix
     no_lint:
       - COMMON_PREFIX
+
+partner_link:
+  click_newtab:
+    type: event
+    description: >
+      This is recorded when clicking a partner link. The value is the
+      partner.
+      This event was generated to correspond to the Legacy Telemetry event
+      partner_link.click#newtab.
+    bugs: &partner_link_click_bugs
+      - https://bugzil.la/1637217
+      - https://bugzil.la/1644442
+      - https://bugzil.la/1643426
+    data_reviews: &partner_link_click_data_reviews
+      - https://bugzil.la/1637217
+      - https://bugzil.la/1644442
+      - https://bugzil.la/1643426
+    notification_emails: &partner_link_click_emails
+      - dao@mozilla.com
+    expires: never
+    extra_keys: &partner_link_click_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Partner_link_Click_Newtab
+
+  click_urlbar:
+    type: event
+    description: >
+      This is recorded when clicking a partner link. The value is the
+      partner.
+      This event was generated to correspond to the Legacy Telemetry event
+      partner_link.click#urlbar.
+    bugs: *partner_link_click_bugs
+    data_reviews: *partner_link_click_data_reviews
+    notification_emails: *partner_link_click_emails
+    expires: never
+    extra_keys: *partner_link_click_extra
+    telemetry_mirror: Partner_link_Click_Urlbar
+
+  attribution_success:
+    type: event
+    description: >
+      This is recorded when sending an attribution request for a partner
+      link. The value is the partner.
+      This event was generated to correspond to the Legacy Telemetry event
+      partner_link.attribution#success.
+    bugs: &partner_link_attribution_bugs
+      - https://bugzil.la/1637217
+      - https://bugzil.la/1644442
+      - https://bugzil.la/1643426
+    data_reviews: &partner_link_attribution_data_reviews
+      - https://bugzil.la/1637217
+      - https://bugzil.la/1644442
+      - https://bugzil.la/1643426
+    notification_emails: &partner_link_attribution_emails
+      - dao@mozilla.com
+    expires: never
+    extra_keys: &partner_link_attribution_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Partner_link_Attribution_Success
+
+  attribution_failure:
+    type: event
+    description: >
+      This is recorded when sending an attribution request for a partner
+      link. The value is the partner.
+      This event was generated to correspond to the Legacy Telemetry event
+      partner_link.attribution#failure.
+    bugs: *partner_link_attribution_bugs
+    data_reviews: *partner_link_attribution_data_reviews
+    notification_emails: *partner_link_attribution_emails
+    expires: never
+    extra_keys: *partner_link_attribution_extra
+    telemetry_mirror: Partner_link_Attribution_Failure
+
+  attribution_abort:
+    type: event
+    description: >
+      This is recorded when sending an attribution request for a partner
+      link. The value is the partner.
+      This event was generated to correspond to the Legacy Telemetry event
+      partner_link.attribution#abort.
+    bugs: *partner_link_attribution_bugs
+    data_reviews: *partner_link_attribution_data_reviews
+    notification_emails: *partner_link_attribution_emails
+    expires: never
+    extra_keys: *partner_link_attribution_extra
+    telemetry_mirror: Partner_link_Attribution_Abort
