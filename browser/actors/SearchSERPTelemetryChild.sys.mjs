@@ -1151,7 +1151,7 @@ class DomainExtractor {
       }
 
       let elements = document.querySelectorAll(extractorInfo.selectors);
-      if (!elements) {
+      if (!elements.length) {
         continue;
       }
 
