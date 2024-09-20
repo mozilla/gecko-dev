@@ -30,6 +30,7 @@
 
 using namespace js;
 using namespace js::jit;
+using namespace js::jitspew::detail;
 
 class IonSpewer {
  private:
@@ -64,11 +65,12 @@ class IonSpewer {
 // IonSpewer singleton.
 static IonSpewer ionspewer;
 
-static bool LoggingChecked = false;
+bool jitspew::detail::LoggingChecked = false;
 static_assert(JitSpew_Terminator <= 64,
               "Increase the size of the LoggingBits global.");
-static uint64_t LoggingBits = 0;
-static mozilla::Atomic<uint32_t, mozilla::Relaxed> filteredOutCompilations(0);
+uint64_t jitspew::detail::LoggingBits = 0;
+mozilla::Atomic<uint32_t, mozilla::Relaxed>
+    jitspew::detail::filteredOutCompilations(0);
 
 static const char* const ChannelNames[] = {
 #  define JITSPEW_CHANNEL(name) #name,
@@ -634,12 +636,6 @@ void jit::JitSpewHeader(JitSpewChannel channel) {
   for (size_t i = ChannelIndentLevel[channel]; i != 0; i--) {
     out.put("  ");
   }
-}
-
-bool jit::JitSpewEnabled(JitSpewChannel channel) {
-  MOZ_ASSERT(LoggingChecked);
-  return (LoggingBits & (uint64_t(1) << uint32_t(channel))) &&
-         !filteredOutCompilations;
 }
 
 void jit::EnableChannel(JitSpewChannel channel) {
