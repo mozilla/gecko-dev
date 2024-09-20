@@ -86,8 +86,8 @@ std::vector<std::string> Tokenize(const std::string& aString) {
   return std::vector<std::string>(it, end);
 }
 
-static const std::string TruncateRecordId = "truncate-record-id";
-static const std::string TruncateRecordData = "I will soon be truncated";
+static const char TruncateRecordId[] = "truncate-record-id";
+static const char TruncateRecordData[] = "I will soon be truncated";
 
 template <class Continuation>
 class WriteRecordSuccessTask {
@@ -225,7 +225,7 @@ class VerifyAndOverwriteContinuation : public ReadContinuation {
   const std::string mTestID;
 };
 
-static const std::string OpenAgainRecordId = "open-again-record-id";
+static const char OpenAgainRecordId[] = "open-again-record-id";
 
 class OpenedSecondTimeContinuation : public OpenContinuation {
  public:
@@ -390,7 +390,6 @@ class ReportReadRecordContinuation : public ReadContinuation {
 enum ShutdownMode { ShutdownNormal, ShutdownTimeout, ShutdownStoreToken };
 
 static ShutdownMode sShutdownMode = ShutdownNormal;
-static std::string sShutdownToken;
 
 void FakeDecryptor::UpdateSession(uint32_t aPromiseId, const char* aSessionId,
                                   uint32_t aSessionIdLength,
@@ -421,8 +420,7 @@ void FakeDecryptor::UpdateSession(uint32_t aPromiseId, const char* aSessionId,
       sShutdownMode = ShutdownTimeout;
     } else if (mode == "token") {
       sShutdownMode = ShutdownStoreToken;
-      sShutdownToken = tokens[2];
-      Message("shutdown-token received " + sShutdownToken);
+      Message("shutdown-token received " + tokens[2]);
     }
   } else if (task == "retrieve-shutdown-token") {
     ReadRecord(FakeDecryptor::sInstance->mHost, "shutdown-token",
