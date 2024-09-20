@@ -90,13 +90,6 @@ class DefaultBrowserToolbarInteractorTest {
     }
 
     @Test
-    fun onShoppingCfrActionClicked() {
-        interactor.onShoppingCfrActionClicked()
-
-        verify { browserToolbarController.handleShoppingCfrActionClick() }
-    }
-
-    @Test
     fun onTranslationsButtonClicked() {
         interactor.onTranslationsButtonClicked()
 

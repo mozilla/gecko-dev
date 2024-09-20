@@ -148,8 +148,6 @@ class DefaultToolbarIntegration(
         toolbar = toolbar,
         isPrivate = isPrivate,
         customTabId = customTabId,
-        onShoppingCfrActionClicked = interactor::onShoppingCfrActionClicked,
-        onShoppingCfrDisplayed = interactor::onShoppingCfrDisplayed,
     )
 
     init {

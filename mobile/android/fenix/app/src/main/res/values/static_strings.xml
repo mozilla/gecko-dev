@@ -161,11 +161,11 @@
     <!-- The homepage nav toolbar CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_title">Homepage Navigation Toolbar</string>
     <!-- The homepage nav toolbar CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_description">Displayed when the user is on the homepage and sees the new navigation bar for the first time. Note that this CFR must be displayed in order for the Homepage Intro or the Homepage Sync CFR to be shown.</string>
+    <string name="debug_drawer_cfr_tools_homepage_nav_toolbar_description">Displayed when the user is on the homepage and sees the new navigation bar for the first time. Note that this CFR must be displayed in order for the Homepage Sync CFR to be shown.</string>
     <!-- The homepage sync CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_homepage_sync_title">Homepage Sync</string>
     <!-- The homepage sync CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_homepage_sync_description">Displayed the first time visiting the homepage after signing-in and the Homepage Navigation Toolbar CFR has been shown. Note that if this CFR is shown, then the Homepage Intro CFR will be disabled.</string>
+    <string name="debug_drawer_cfr_tools_homepage_sync_description">Displayed the first time visiting the homepage after signing-in and the Homepage Navigation Toolbar CFR has been shown.</string>
     <!-- The wallpaper selector CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_wallpaper_selector_title">Wallpaper Selector</string>
     <!-- The wallpaper selector CFR description in CFR Tools -->

@@ -86,13 +86,11 @@ class ReviewQualityCheckStoreTest {
     @Test
     fun `GIVEN the user has not opted in the feature WHEN the user opts in THEN state should display opted in UI`() =
         runTest {
-            var cfrConditionUpdated = false
             val tested = ReviewQualityCheckStore(
                 middleware = provideReviewQualityCheckMiddleware(
                     reviewQualityCheckPreferences = FakeReviewQualityCheckPreferences(
                         isEnabled = false,
                         isProductRecommendationsEnabled = false,
-                        updateCFRCallback = { cfrConditionUpdated = true },
                     ),
                 ),
             )
@@ -108,7 +106,6 @@ class ReviewQualityCheckStoreTest {
                 productVendor = ProductVendor.BEST_BUY,
             )
             assertEquals(expected, tested.state)
-            assertEquals(true, cfrConditionUpdated)
         }
 
     @Test

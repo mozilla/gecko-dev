@@ -9,7 +9,6 @@ import org.mozilla.fenix.shopping.middleware.ReviewQualityCheckPreferences
 class FakeReviewQualityCheckPreferences(
     private val isEnabled: Boolean = false,
     private val isProductRecommendationsEnabled: Boolean? = false,
-    private val updateCFRCallback: () -> Unit = { },
 ) : ReviewQualityCheckPreferences {
     override suspend fun enabled(): Boolean = isEnabled
 
@@ -19,9 +18,5 @@ class FakeReviewQualityCheckPreferences(
     }
 
     override suspend fun setProductRecommendationsEnabled(isEnabled: Boolean) {
-    }
-
-    override suspend fun updateCFRCondition(time: Long) {
-        updateCFRCallback()
     }
 }
