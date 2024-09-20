@@ -651,15 +651,9 @@ AboutReader.prototype = {
           target.attributes.getNamedItem(`data-telemetry-id`)?.value;
 
         if (clickTelemetryId && !blurTelemetryIds.has(clickTelemetryId)) {
-          Services.telemetry.recordEvent(
-            "readermode",
-            "button",
-            "click",
-            null,
-            {
-              label: clickTelemetryId,
-            }
-          );
+          Glean.readermode.buttonClick.record({
+            label: clickTelemetryId,
+          });
         }
 
         if (target.classList.contains("dropdown-toggle")) {
@@ -673,15 +667,9 @@ AboutReader.prototype = {
             target.attributes.getNamedItem(`data-telemetry-id`)?.value;
 
           if (blurTelemetryId && blurTelemetryIds.has(blurTelemetryId)) {
-            Services.telemetry.recordEvent(
-              "readermode",
-              "button",
-              "click",
-              null,
-              {
-                label: blurTelemetryId,
-              }
-            );
+            Glean.readermode.buttonClick.record({
+              label: blurTelemetryId,
+            });
           }
         }
         break;
