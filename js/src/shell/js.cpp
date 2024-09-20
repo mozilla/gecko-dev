@@ -409,7 +409,8 @@ void ParseLoggerOptions() {
   // Done this way rather than just using strcasestr because Windows doesn't
   // have strcasestr as part of its base C library.
   size_t len = strlen(mixedCaseOpts);
-  mozilla::UniqueFreePtr<char[]> logOpts(static_cast<char*>(calloc(len, 1)));
+  mozilla::UniqueFreePtr<char[]> logOpts(
+      static_cast<char*>(calloc(len + 1, 1)));
   if (!logOpts) {
     return;
   }
@@ -422,7 +423,7 @@ void ParseLoggerOptions() {
       // Lowercase the logger name for strstr
       size_t len = strlen(logger->name);
       mozilla::UniqueFreePtr<char[]> lowerName(
-          static_cast<char*>(calloc(len, 1)));
+          static_cast<char*>(calloc(len + 1, 1)));
       ToLower(logger->name, lowerName.get(), len);
 
       if (char* needle = strstr(logOpts.get(), lowerName.get())) {
