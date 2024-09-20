@@ -19,7 +19,6 @@
 
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/TelemetryComms.h"
 #include "mozilla/UniquePtrExtensions.h"
 
 using namespace mozilla::gfx;
@@ -677,9 +676,10 @@ class Dav1dDecoder final : AVIFDecoderInterface {
       // Uncomment once bug 1691156 is fixed
       // mozilla::Telemetry::SetEventRecordingEnabled("avif"_ns, true);
 
-      mozilla::Telemetry::RecordEvent(
-          mozilla::Telemetry::EventID::Avif_Dav1dGetPicture_ReturnValue,
-          Some(nsPrintfCString("%d", r)), Nothing());
+      mozilla::glean::avif::Dav1dGetPictureReturnValueExtra extra = {
+          .value = Some(nsPrintfCString("%d", r)),
+      };
+      mozilla::glean::avif::dav1d_get_picture_return_value.Record(Some(extra));
     }
 
     return r;

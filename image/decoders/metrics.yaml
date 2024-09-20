@@ -438,3 +438,25 @@ avif:
     notification_emails:
       - media-alerts@mozilla.com
     expires: never
+
+  dav1d_get_picture_return_value:
+    type: event
+    description: >
+      Return value from dav1d_get_picture
+      This event was generated to correspond to the Legacy Telemetry event
+      avif.dav1d_get_picture#return_value.
+    bugs:
+      - https://bugzil.la/1690406
+    data_reviews:
+      - https://bugzil.la/1690406
+    notification_emails:
+      - media-alerts@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The `Dav1dResult` returned from `dav1d_get_picture(...)`.
+        type: string
+    telemetry_mirror: Avif_Dav1dGetPicture_ReturnValue
