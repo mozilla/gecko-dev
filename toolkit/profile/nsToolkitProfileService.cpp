@@ -80,23 +80,19 @@ struct KeyValue {
   nsCString value;
 };
 
-static bool GetStrings(const char* aString, const char* aValue,
-                       void* aClosure) {
-  nsTArray<UniquePtr<KeyValue>>* array =
-      static_cast<nsTArray<UniquePtr<KeyValue>>*>(aClosure);
-  array->AppendElement(MakeUnique<KeyValue>(aString, aValue));
-
-  return true;
-}
-
 /**
  * Returns an array of the strings inside a section of an ini file.
  */
 nsTArray<UniquePtr<KeyValue>> GetSectionStrings(nsINIParser* aParser,
                                                 const char* aSection) {
-  nsTArray<UniquePtr<KeyValue>> result;
-  aParser->GetStrings(aSection, &GetStrings, &result);
-  return result;
+  nsTArray<UniquePtr<KeyValue>> strings;
+  aParser->GetStrings(
+      aSection, [&strings](const char* aString, const char* aValue) {
+        strings.AppendElement(MakeUnique<KeyValue>(aString, aValue));
+        return true;
+      });
+
+  return strings;
 }
 
 void RemoveProfileRecursion(const nsCOMPtr<nsIFile>& aDirectoryOrFile,
@@ -955,33 +951,6 @@ nsToolkitProfileService::GetIsListOutdated(bool* aResult) {
   return NS_OK;
 }
 
-struct ImportInstallsClosure {
-  nsINIParser* backupData;
-  nsINIParser* profileDB;
-};
-
-static bool ImportInstalls(const char* aSection, void* aClosure) {
-  ImportInstallsClosure* closure =
-      static_cast<ImportInstallsClosure*>(aClosure);
-
-  nsTArray<UniquePtr<KeyValue>> strings =
-      GetSectionStrings(closure->backupData, aSection);
-  if (strings.IsEmpty()) {
-    return true;
-  }
-
-  nsCString newSection(INSTALL_PREFIX);
-  newSection.Append(aSection);
-  nsCString buffer;
-
-  for (uint32_t i = 0; i < strings.Length(); i++) {
-    closure->profileDB->SetString(newSection.get(), strings[i]->key.get(),
-                                  strings[i]->value.get());
-  }
-
-  return true;
-}
-
 nsresult nsToolkitProfileService::Init() {
   NS_ASSERTION(gDirServiceProvider, "No dirserviceprovider!");
   nsresult rv;
@@ -1031,8 +1000,24 @@ nsresult nsToolkitProfileService::Init() {
 
       if (NS_SUCCEEDED(installDB.Init(mInstallDBFile))) {
         // There is install data to import.
-        ImportInstallsClosure closure = {&installDB, &mProfileDB};
-        installDB.GetSections(&ImportInstalls, &closure);
+        installDB.GetSections([installDB = &installDB,
+                               profileDB = &mProfileDB](const char* aSection) {
+          nsTArray<UniquePtr<KeyValue>> strings =
+              GetSectionStrings(installDB, aSection);
+          if (strings.IsEmpty()) {
+            return true;
+          }
+
+          nsCString newSection(INSTALL_PREFIX);
+          newSection.Append(aSection);
+
+          for (uint32_t i = 0; i < strings.Length(); i++) {
+            profileDB->SetString(newSection.get(), strings[i]->key.get(),
+                                 strings[i]->value.get());
+          }
+
+          return true;
+        });
       }
 
       rv = mProfileDB.SetString("General", "Version", PROFILE_DB_VERSION);
@@ -2251,32 +2236,21 @@ bool nsToolkitProfileService::UseLegacyProfiles() {
   return legacyProfiles;
 }
 
-struct FindInstallsClosure {
-  nsINIParser* installData;
-  nsTArray<nsCString>* installs;
-};
-
-static bool FindInstalls(const char* aSection, void* aClosure) {
-  FindInstallsClosure* closure = static_cast<FindInstallsClosure*>(aClosure);
-
-  // Check if the section starts with "Install"
-  if (strncmp(aSection, INSTALL_PREFIX, INSTALL_PREFIX_LENGTH) != 0) {
-    return true;
-  }
-
-  nsCString install(aSection);
-  closure->installs->AppendElement(install);
-
-  return true;
-}
-
 nsTArray<nsCString> nsToolkitProfileService::GetKnownInstalls() {
-  nsTArray<nsCString> result;
-  FindInstallsClosure closure = {&mProfileDB, &result};
+  nsTArray<nsCString> installs;
 
-  mProfileDB.GetSections(&FindInstalls, &closure);
+  mProfileDB.GetSections([&installs](const char* aSection) {
+    // Check if the section starts with "Install"
+    if (strncmp(aSection, INSTALL_PREFIX, INSTALL_PREFIX_LENGTH) != 0) {
+      return true;
+    }
 
-  return result;
+    installs.AppendElement(aSection);
+
+    return true;
+  });
+
+  return installs;
 }
 
 nsresult nsToolkitProfileService::CreateTimesInternal(nsIFile* aProfileDir) {

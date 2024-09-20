@@ -51,17 +51,15 @@ bool nsINIParserImpl::ContainsNull(const nsACString& aStr) {
   return aStr.CountChar('\0') > 0;
 }
 
-static bool SectionCB(const char* aSection, void* aClosure) {
-  nsTArray<nsCString>* strings = static_cast<nsTArray<nsCString>*>(aClosure);
-  strings->AppendElement()->Assign(aSection);
-  return true;
-}
-
 NS_IMETHODIMP
 nsINIParserImpl::GetSections(nsIUTF8StringEnumerator** aResult) {
   nsTArray<nsCString>* strings = new nsTArray<nsCString>;
 
-  nsresult rv = mParser.GetSections(SectionCB, strings);
+  nsresult rv = mParser.GetSections([&strings](const char* aSection) {
+    strings->AppendElement()->Assign(aSection);
+    return true;
+  });
+
   if (NS_SUCCEEDED(rv)) {
     rv = NS_NewAdoptingUTF8StringEnumerator(aResult, strings);
   }
@@ -71,12 +69,6 @@ nsINIParserImpl::GetSections(nsIUTF8StringEnumerator** aResult) {
   }
 
   return rv;
-}
-
-static bool KeyCB(const char* aKey, const char* aValue, void* aClosure) {
-  nsTArray<nsCString>* strings = static_cast<nsTArray<nsCString>*>(aClosure);
-  strings->AppendElement()->Assign(aKey);
-  return true;
 }
 
 NS_IMETHODIMP
@@ -89,7 +81,12 @@ nsINIParserImpl::GetKeys(const nsACString& aSection,
   nsTArray<nsCString>* strings = new nsTArray<nsCString>;
 
   nsresult rv =
-      mParser.GetStrings(PromiseFlatCString(aSection).get(), KeyCB, strings);
+      mParser.GetStrings(PromiseFlatCString(aSection).get(),
+                         [&strings](const char* aKey, const char* aValue) {
+                           strings->AppendElement()->Assign(aKey);
+                           return true;
+                         });
+
   if (NS_SUCCEEDED(rv)) {
     rv = NS_NewAdoptingUTF8StringEnumerator(aResult, strings);
   }

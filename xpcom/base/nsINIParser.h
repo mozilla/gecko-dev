@@ -37,29 +37,23 @@ class nsINIParser {
   nsresult InitFromString(const nsCString& aStr);
 
   /**
-   * Callback for GetSections
-   * @return false to stop enumeration, or true to continue.
-   */
-  typedef bool (*INISectionCallback)(const char* aSection, void* aClosure);
-
-  /**
    * Enumerate the sections within the INI file.
+   *
+   * The callback takes the section name as an argument, and can can return
+   * false to stop enumeration.
    */
-  nsresult GetSections(INISectionCallback aCB, void* aClosure);
+  nsresult GetSections(std::function<bool(const char*)>&& aCallback);
 
   /**
-   * Callback for GetStrings
-   * @return false to stop enumeration, or true to continue
+   * Enumerate the strings within a section. If the section does not exist, this
+   * function will silently return.
+   *
+   * The callback takes the key and value strings as arguments, and can return
+   * false to stop enumeration.
    */
-  typedef bool (*INIStringCallback)(const char* aString, const char* aValue,
-                                    void* aClosure);
-
-  /**
-   * Enumerate the strings within a section. If the section does
-   * not exist, this function will silently return.
-   */
-  nsresult GetStrings(const char* aSection, INIStringCallback aCB,
-                      void* aClosure);
+  nsresult GetStrings(
+      const char* aSection,
+      std::function<bool(const char*, const char*)>&& aCallback);
 
   /**
    * Get the value of the specified key in the specified section
