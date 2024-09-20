@@ -861,7 +861,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
                                          Requirement hint, bool* success,
                                          bool* pfixed,
                                          LiveBundleVector& conflicting);
-  [[nodiscard]] bool processBundle(MIRGenerator* mir, LiveBundle* bundle);
+  [[nodiscard]] bool processBundle(const MIRGenerator* mir, LiveBundle* bundle);
   [[nodiscard]] bool spill(LiveBundle* bundle);
   [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool
   tryAllocatingRegistersForSpillBundles();

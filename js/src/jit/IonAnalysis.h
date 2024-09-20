@@ -32,7 +32,8 @@ class MIRGenerator;
 class MIRGraph;
 class MTest;
 
-[[nodiscard]] bool PruneUnusedBranches(MIRGenerator* mir, MIRGraph& graph);
+[[nodiscard]] bool PruneUnusedBranches(const MIRGenerator* mir,
+                                       MIRGraph& graph);
 
 [[nodiscard]] bool FoldTests(MIRGraph& graph);
 
@@ -40,13 +41,14 @@ class MTest;
 
 [[nodiscard]] bool SplitCriticalEdges(MIRGraph& graph);
 
-[[nodiscard]] bool OptimizeIteratorIndices(MIRGenerator* mir, MIRGraph& graph);
+[[nodiscard]] bool OptimizeIteratorIndices(const MIRGenerator* mir,
+                                           MIRGraph& graph);
 
 bool IsUint32Type(const MDefinition* def);
 
 enum Observability { ConservativeObservability, AggressiveObservability };
 
-[[nodiscard]] bool EliminatePhis(MIRGenerator* mir, MIRGraph& graph,
+[[nodiscard]] bool EliminatePhis(const MIRGenerator* mir, MIRGraph& graph,
                                  Observability observe);
 
 size_t MarkLoopBlocks(MIRGraph& graph, MBasicBlock* header, bool* canOsr);
@@ -55,25 +57,28 @@ void UnmarkLoopBlocks(MIRGraph& graph, MBasicBlock* header);
 
 [[nodiscard]] bool MakeLoopsContiguous(MIRGraph& graph);
 
-[[nodiscard]] bool EliminateTriviallyDeadResumePointOperands(MIRGenerator* mir,
-                                                             MIRGraph& graph);
+[[nodiscard]] bool EliminateTriviallyDeadResumePointOperands(
+    const MIRGenerator* mir, MIRGraph& graph);
 
-[[nodiscard]] bool EliminateDeadResumePointOperands(MIRGenerator* mir,
+[[nodiscard]] bool EliminateDeadResumePointOperands(const MIRGenerator* mir,
                                                     MIRGraph& graph);
 
-[[nodiscard]] bool EliminateDeadCode(MIRGenerator* mir, MIRGraph& graph);
+[[nodiscard]] bool EliminateDeadCode(const MIRGenerator* mir, MIRGraph& graph);
 
-[[nodiscard]] bool FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph);
+[[nodiscard]] bool FoldLoadsWithUnbox(const MIRGenerator* mir, MIRGraph& graph);
 
-[[nodiscard]] bool ApplyTypeInformation(MIRGenerator* mir, MIRGraph& graph);
+[[nodiscard]] bool ApplyTypeInformation(const MIRGenerator* mir,
+                                        MIRGraph& graph);
 
 void RenumberBlocks(MIRGraph& graph);
 
-[[nodiscard]] bool AccountForCFGChanges(MIRGenerator* mir, MIRGraph& graph,
+[[nodiscard]] bool AccountForCFGChanges(const MIRGenerator* mir,
+                                        MIRGraph& graph,
                                         bool updateAliasAnalysis,
                                         bool underValueNumberer = false);
 
-[[nodiscard]] bool RemoveUnmarkedBlocks(MIRGenerator* mir, MIRGraph& graph,
+[[nodiscard]] bool RemoveUnmarkedBlocks(const MIRGenerator* mir,
+                                        MIRGraph& graph,
                                         uint32_t numMarkedBlocks);
 
 void ClearDominatorTree(MIRGraph& graph);

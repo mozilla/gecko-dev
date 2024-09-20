@@ -107,15 +107,15 @@ class RangeAnalysis {
   void replaceDominatedUsesWith(MDefinition* orig, MDefinition* dom,
                                 MBasicBlock* block);
 
- protected:
-  MIRGenerator* mir;
+  const MIRGenerator* mir;
   MIRGraph& graph_;
   Vector<MBinaryBitwiseInstruction*, 16, SystemAllocPolicy> bitops;
 
   TempAllocator& alloc() const;
 
  public:
-  RangeAnalysis(MIRGenerator* mir, MIRGraph& graph) : mir(mir), graph_(graph) {}
+  RangeAnalysis(const MIRGenerator* mir, MIRGraph& graph)
+      : mir(mir), graph_(graph) {}
   [[nodiscard]] bool addBetaNodes();
   [[nodiscard]] bool analyze();
   [[nodiscard]] bool addRangeAssertions();

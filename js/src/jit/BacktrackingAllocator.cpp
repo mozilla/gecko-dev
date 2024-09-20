@@ -3523,7 +3523,7 @@ bool BacktrackingAllocator::tryAllocateNonFixed(LiveBundle* bundle,
   return true;
 }
 
-bool BacktrackingAllocator::processBundle(MIRGenerator* mir,
+bool BacktrackingAllocator::processBundle(const MIRGenerator* mir,
                                           LiveBundle* bundle) {
   JitSpewIfEnabled(JitSpew_RegAlloc,
                    "Allocating %s [priority %zu] [weight %zu]",

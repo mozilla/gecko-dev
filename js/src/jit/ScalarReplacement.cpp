@@ -26,14 +26,14 @@ class EmulateStateOf {
  private:
   using BlockState = typename MemoryView::BlockState;
 
-  MIRGenerator* mir_;
+  const MIRGenerator* mir_;
   MIRGraph& graph_;
 
   // Block state at the entrance of all basic blocks.
   Vector<BlockState*, 8, SystemAllocPolicy> states_;
 
  public:
-  EmulateStateOf(MIRGenerator* mir, MIRGraph& graph)
+  EmulateStateOf(const MIRGenerator* mir, MIRGraph& graph)
       : mir_(mir), graph_(graph) {}
 
   bool run(MemoryView& view);
@@ -1783,7 +1783,7 @@ static inline bool IsOptimizableArgumentsInstruction(MInstruction* ins) {
 
 class ArgumentsReplacer : public MDefinitionVisitorDefaultNoop {
  private:
-  MIRGenerator* mir_;
+  const MIRGenerator* mir_;
   MIRGraph& graph_;
   MInstruction* args_;
 
@@ -1815,7 +1815,8 @@ class ArgumentsReplacer : public MDefinitionVisitorDefaultNoop {
   bool oom() const { return oom_; }
 
  public:
-  ArgumentsReplacer(MIRGenerator* mir, MIRGraph& graph, MInstruction* args)
+  ArgumentsReplacer(const MIRGenerator* mir, MIRGraph& graph,
+                    MInstruction* args)
       : mir_(mir), graph_(graph), args_(args) {
     MOZ_ASSERT(IsOptimizableArgumentsInstruction(args_));
   }
@@ -2551,7 +2552,7 @@ static inline bool IsOptimizableRestInstruction(MInstruction* ins) {
 
 class RestReplacer : public MDefinitionVisitorDefaultNoop {
  private:
-  MIRGenerator* mir_;
+  const MIRGenerator* mir_;
   MIRGraph& graph_;
   MInstruction* rest_;
 
@@ -2577,7 +2578,7 @@ class RestReplacer : public MDefinitionVisitorDefaultNoop {
   bool escapes(MElements* ins);
 
  public:
-  RestReplacer(MIRGenerator* mir, MIRGraph& graph, MInstruction* rest)
+  RestReplacer(const MIRGenerator* mir, MIRGraph& graph, MInstruction* rest)
       : mir_(mir), graph_(graph), rest_(rest) {
     MOZ_ASSERT(IsOptimizableRestInstruction(rest_));
   }
@@ -3012,7 +3013,7 @@ void RestReplacer::visitConstructArray(MConstructArray* ins) {
   discardInstruction(ins, elements);
 }
 
-bool ScalarReplacement(MIRGenerator* mir, MIRGraph& graph) {
+bool ScalarReplacement(const MIRGenerator* mir, MIRGraph& graph) {
   JitSpew(JitSpew_Escape, "Begin (ScalarReplacement)");
 
   EmulateStateOf<ObjectMemoryView> replaceObject(mir, graph);

@@ -29,7 +29,7 @@ using MPhiUseIteratorStack =
 
 // Look for Phi uses with a depth-first search. If any uses are found the stack
 // of MPhi instructions is returned in the |worklist| argument.
-[[nodiscard]] static bool DepthFirstSearchUse(MIRGenerator* mir,
+[[nodiscard]] static bool DepthFirstSearchUse(const MIRGenerator* mir,
                                               MPhiUseIteratorStack& worklist,
                                               MPhi* phi) {
   // Push a Phi and the next use to iterate over in the worklist.
@@ -133,7 +133,7 @@ using MPhiUseIteratorStack =
 }
 
 [[nodiscard]] static bool FlagPhiInputsAsImplicitlyUsed(
-    MIRGenerator* mir, MBasicBlock* block, MBasicBlock* succ,
+    const MIRGenerator* mir, MBasicBlock* block, MBasicBlock* succ,
     MPhiUseIteratorStack& worklist) {
   // When removing an edge between 2 blocks, we might remove the ability of
   // later phases to figure out that the uses of a Phi should be considered as
@@ -267,7 +267,8 @@ static MInstructionIterator FindFirstInstructionAfterBail(MBasicBlock* block) {
 // Given an iterator pointing to the first removed instruction, mark
 // the operands of each removed instruction as having implicit uses.
 [[nodiscard]] static bool FlagOperandsAsImplicitlyUsedAfter(
-    MIRGenerator* mir, MBasicBlock* block, MInstructionIterator firstRemoved) {
+    const MIRGenerator* mir, MBasicBlock* block,
+    MInstructionIterator firstRemoved) {
   MOZ_ASSERT(firstRemoved->block() == block);
 
   const CompileInfo& info = block->info();
@@ -313,7 +314,7 @@ static MInstructionIterator FindFirstInstructionAfterBail(MBasicBlock* block) {
   return true;
 }
 
-[[nodiscard]] static bool FlagEntryResumePointOperands(MIRGenerator* mir,
+[[nodiscard]] static bool FlagEntryResumePointOperands(const MIRGenerator* mir,
                                                        MBasicBlock* block) {
   // Flag observable operands of the entry resume point as having implicit uses.
   MResumePoint* rp = block->entryResumePoint();
@@ -335,8 +336,8 @@ static MInstructionIterator FindFirstInstructionAfterBail(MBasicBlock* block) {
   return true;
 }
 
-[[nodiscard]] static bool FlagAllOperandsAsImplicitlyUsed(MIRGenerator* mir,
-                                                          MBasicBlock* block) {
+[[nodiscard]] static bool FlagAllOperandsAsImplicitlyUsed(
+    const MIRGenerator* mir, MBasicBlock* block) {
   return FlagEntryResumePointOperands(mir, block) &&
          FlagOperandsAsImplicitlyUsedAfter(mir, block, block->begin());
 }
@@ -345,7 +346,7 @@ static MInstructionIterator FindFirstInstructionAfterBail(MBasicBlock* block) {
 // unconditional bailout. We trim any instructions in those blocks
 // after the first unconditional bailout, and remove any blocks that
 // are only reachable through bailing blocks.
-bool jit::PruneUnusedBranches(MIRGenerator* mir, MIRGraph& graph) {
+bool jit::PruneUnusedBranches(const MIRGenerator* mir, MIRGraph& graph) {
   JitSpew(JitSpew_Prune, "Begin");
 
   // Pruning is guided by unconditional bailouts. Wasm does not have bailouts.
@@ -1385,7 +1386,7 @@ static void EliminateTriviallyDeadResumePointOperands(MIRGraph& graph,
 // will not artificially extend the lifetimes of any SSA values. This could
 // otherwise occur if the new resume point captured a value which is created
 // between the old and new resume point and is dead at the new resume point.
-bool jit::EliminateTriviallyDeadResumePointOperands(MIRGenerator* mir,
+bool jit::EliminateTriviallyDeadResumePointOperands(const MIRGenerator* mir,
                                                     MIRGraph& graph) {
   for (auto* block : graph) {
     if (MResumePoint* rp = block->entryResumePoint()) {
@@ -1408,7 +1409,8 @@ bool jit::EliminateTriviallyDeadResumePointOperands(MIRGenerator* mir,
 // will not artificially extend the lifetimes of any SSA values. This could
 // otherwise occur if the new resume point captured a value which is created
 // between the old and new resume point and is dead at the new resume point.
-bool jit::EliminateDeadResumePointOperands(MIRGenerator* mir, MIRGraph& graph) {
+bool jit::EliminateDeadResumePointOperands(const MIRGenerator* mir,
+                                           MIRGraph& graph) {
   // If we are compiling try blocks, locals and arguments may be observable
   // from catch or finally blocks (which Ion does not compile). For now just
   // disable the pass in this case.
@@ -1620,7 +1622,7 @@ bool js::jit::IsDiscardableAllowEffectful(const MDefinition* def) {
 // Instructions are useless if they are unused and have no side effects.
 // This pass eliminates useless instructions.
 // The graph itself is unchanged.
-bool jit::EliminateDeadCode(MIRGenerator* mir, MIRGraph& graph) {
+bool jit::EliminateDeadCode(const MIRGenerator* mir, MIRGraph& graph) {
   // Traverse in postorder so that we hit uses before definitions.
   // Traverse instruction list backwards for the same reason.
   for (PostorderIterator block = graph.poBegin(); block != graph.poEnd();
@@ -1695,7 +1697,7 @@ static inline MDefinition* IsPhiRedundant(MPhi* phi) {
   return first;
 }
 
-bool jit::EliminatePhis(MIRGenerator* mir, MIRGraph& graph,
+bool jit::EliminatePhis(const MIRGenerator* mir, MIRGraph& graph,
                         Observability observe) {
   // Eliminates redundant or unobservable phis from the graph.  A
   // redundant phi is something like b = phi(a, a) or b = phi(a, b),
@@ -1830,7 +1832,7 @@ namespace {
 // conversion operations.
 //
 class TypeAnalyzer {
-  MIRGenerator* mir;
+  const MIRGenerator* mir;
   MIRGraph& graph;
   Vector<MPhi*, 0, SystemAllocPolicy> phiWorklist_;
 
@@ -1875,7 +1877,8 @@ class TypeAnalyzer {
   MIRType guessPhiType(MPhi* phi) const;
 
  public:
-  TypeAnalyzer(MIRGenerator* mir, MIRGraph& graph) : mir(mir), graph(graph) {}
+  TypeAnalyzer(const MIRGenerator* mir, MIRGraph& graph)
+      : mir(mir), graph(graph) {}
 
   bool analyze();
 };
@@ -1933,7 +1936,7 @@ bool TypeAnalyzer::shouldSpecializeOsrPhis() const {
   //
   //     * TypeAnalyzer::replaceRedundantPhi: adds a type guard for values that
   //       can't be unboxed (null/undefined/magic Values).
-  if (!mir->graph().osrBlock()) {
+  if (!graph.osrBlock()) {
     return false;
   }
 
@@ -2925,7 +2928,7 @@ bool TypeAnalyzer::analyze() {
   return true;
 }
 
-bool jit::ApplyTypeInformation(MIRGenerator* mir, MIRGraph& graph) {
+bool jit::ApplyTypeInformation(const MIRGenerator* mir, MIRGraph& graph) {
   TypeAnalyzer analyzer(mir, graph);
 
   if (!analyzer.analyze()) {
@@ -2945,7 +2948,7 @@ void jit::RenumberBlocks(MIRGraph& graph) {
 
 // A utility for code which adds/deletes blocks. Renumber the remaining blocks,
 // recompute dominators, and optionally recompute AliasAnalysis dependencies.
-bool jit::AccountForCFGChanges(MIRGenerator* mir, MIRGraph& graph,
+bool jit::AccountForCFGChanges(const MIRGenerator* mir, MIRGraph& graph,
                                bool updateAliasAnalysis,
                                bool underValueNumberer) {
   // Renumber the blocks and clear out the old dominator info.
@@ -2974,7 +2977,7 @@ bool jit::AccountForCFGChanges(MIRGenerator* mir, MIRGraph& graph,
 
 // Remove all blocks not marked with isMarked(). Unmark all remaining blocks.
 // Alias analysis dependencies may be invalid after calling this function.
-bool jit::RemoveUnmarkedBlocks(MIRGenerator* mir, MIRGraph& graph,
+bool jit::RemoveUnmarkedBlocks(const MIRGenerator* mir, MIRGraph& graph,
                                uint32_t numMarkedBlocks) {
   if (numMarkedBlocks == graph.numBlocks()) {
     // If all blocks are marked, no blocks need removal. Just clear the
@@ -4892,7 +4895,7 @@ void jit::UnmarkLoopBlocks(MIRGraph& graph, MBasicBlock* header) {
 #endif
 }
 
-bool jit::FoldLoadsWithUnbox(MIRGenerator* mir, MIRGraph& graph) {
+bool jit::FoldLoadsWithUnbox(const MIRGenerator* mir, MIRGraph& graph) {
   // This pass folds MLoadFixedSlot, MLoadDynamicSlot, MLoadElement instructions
   // followed by MUnbox into a single instruction. For LoadElement this allows
   // us to fuse the hole check with the type check for the unbox.
@@ -5103,7 +5106,7 @@ static MDefinition* SkipUnbox(MDefinition* ins) {
   return ins;
 }
 
-bool jit::OptimizeIteratorIndices(MIRGenerator* mir, MIRGraph& graph) {
+bool jit::OptimizeIteratorIndices(const MIRGenerator* mir, MIRGraph& graph) {
   bool changed = false;
 
   for (ReversePostorderIterator blockIter = graph.rpoBegin();

@@ -109,7 +109,7 @@ class MIRGenerator final {
   }
 
   // Whether the main thread is trying to cancel this build.
-  bool shouldCancel(const char* why) { return cancelBuild_; }
+  bool shouldCancel(const char* why) const { return cancelBuild_; }
   void cancel() { cancelBuild_ = true; }
 
   bool compilingWasm() const { return outerInfo_->compilingWasm(); }
