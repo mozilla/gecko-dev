@@ -103,6 +103,14 @@ add_task(async function () {
     "The raw data must be shown correctly"
   );
 
+  // Uncheck the toggle with the keyboard so we test Bug 1917296
+  ok(rawDataToggle.checked, "Raw toggle is checked");
+  wait = waitForDOM(document, "#messages-view .data-label");
+  rawDataToggle.focus();
+  EventUtils.synthesizeKey("VK_SPACE", {}, rawDataToggle.ownerGlobal);
+  await wait;
+  ok(!rawDataToggle.checked, "Raw toggle is unchecked");
+
   // Close WS connection
   await SpecialPowers.spawn(tab.linkedBrowser, [], async () => {
     await content.wrappedJSObject.closeConnection();

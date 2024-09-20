@@ -218,8 +218,12 @@ async function testRequestWithFormattedView(
   rawDataToggle = document.querySelector(
     "#request-panel .raw-data-toggle-input .devtools-checkbox-toggle"
   );
-  clickElement(rawDataToggle, monitor);
+
+  // Use keyboard to uncheck the toggle so we test Bug 1917296
+  rawDataToggle.focus();
+  EventUtils.synthesizeKey("VK_SPACE", {}, rawDataToggle.ownerGlobal);
   await waitForContent;
+  ok(!rawDataToggle.checked, "Raw toggle is unchecked");
 }
 
 async function testRequestWithOnlyRawDataView(

@@ -451,6 +451,10 @@ class HeadersPanel extends Component {
             // stop the header click event
             event.stopPropagation();
           },
+          onKeyDown: event => {
+            // stop the header keydown event
+            event.stopPropagation();
+          },
         },
         span({ className: "headers-summary-label" }, RAW_HEADERS),
         span(
