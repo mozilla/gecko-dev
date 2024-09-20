@@ -1117,6 +1117,10 @@ function getFrameDepth(frame) {
     let depth = 0;
     let f = frame;
     while ((f = f.older)) {
+      if (f.depth) {
+        depth = depth + f.depth + 1;
+        break;
+      }
       depth++;
     }
     frame.depth = depth;
