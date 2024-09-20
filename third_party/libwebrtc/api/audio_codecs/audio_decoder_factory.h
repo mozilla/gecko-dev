@@ -60,10 +60,14 @@ class AudioDecoderFactory : public RefCountInterface {
       const Environment& env,
       const SdpAudioFormat& format,
       absl::optional<AudioCodecPairId> codec_pair_id) {
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
     return MakeAudioDecoder(format, codec_pair_id);
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
   }
 };
 

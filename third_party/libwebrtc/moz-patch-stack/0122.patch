@@ -1,0 +1,29 @@
+From: Michael Froman <mfroman@mozilla.com>
+Date: Thu, 19 Sep 2024 20:27:00 -0500
+Subject: Bug 1918268 - (fix-e0fe4200eb) upstream added pragma clang statements
+ that need to be wrapped
+
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/bc593cd2eaf8b31b72e9ec7cb6ff8527097a7041
+---
+ api/audio_codecs/audio_decoder_factory.h | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/api/audio_codecs/audio_decoder_factory.h b/api/audio_codecs/audio_decoder_factory.h
+index 282d4d9992..4a157959f0 100644
+--- a/api/audio_codecs/audio_decoder_factory.h
++++ b/api/audio_codecs/audio_decoder_factory.h
+@@ -60,10 +60,14 @@ class AudioDecoderFactory : public RefCountInterface {
+       const Environment& env,
+       const SdpAudioFormat& format,
+       absl::optional<AudioCodecPairId> codec_pair_id) {
++#if defined(__clang__)
+ #pragma clang diagnostic push
+ #pragma clang diagnostic ignored "-Wdeprecated-declarations"
++#endif
+     return MakeAudioDecoder(format, codec_pair_id);
++#if defined(__clang__)
+ #pragma clang diagnostic pop
++#endif
+   }
+ };
+ 
