@@ -2,34 +2,26 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 ---
-ort-wasm-1.14.0:
-    description: Onnx runtime wasm 1.14.0
+ort-training.wasm:
+    description: Onnx runtime wasm training SIMD and threaded 1.20.0-dev.20240827-1d059b8702
     fetch:
         type: static-url
-        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm.wasm
-        sha256: bbdcb6b3c7d294577d806077630460be4e13ca35a345acb5e81188e9649fa74a
-        size: 9223228
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240827-1d059b8702/dist/ort-training-wasm-simd-threaded.wasm
+        sha256: 7eb4ae0c65323064f8e4bf28916a3c4c1836e88ac3b5e29cad51a0737f96487e
+        size: 11861991
 
-ort-wasm-simd-1.14.0:
-    description: Onnx runtime wasm SIMD 1.14.0
+ort.jsep.wasm:
+    description: Onnx runtime wasm SIMD, threaded and JSEP 1.20.0-dev.20240827-1d059b8702
     fetch:
         type: static-url
-        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm-simd.wasm
-        sha256: 9bd07bababc65f53d061f457233eeae501be7ceb8a2adb9eef52d87fe776d865
-        size: 10014674
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240827-1d059b8702/dist/ort-wasm-simd-threaded.jsep.wasm
+        sha256: c4547919f496dc3f566d3ca5889d1ac4aa3bde58e73799935431d63a30889245
+        size: 21513127
 
-ort-wasm-simd-th-1.14.0:
-    description: Onnx runtime wasm SIMD and threaded 1.14.0
+ort.wasm:
+    description: Onnx runtime wasm SIMD and threaded 1.20.0-dev.20240827-1d059b8702
     fetch:
         type: static-url
-        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm-simd-threaded.wasm
-        sha256: ac23f2f3cbd519a65a0796f7c79eb34ead4c1f6f31eb06e14ed8a9579d697ef6
-        size: 9960821
-
-ort-wasm-th-1.14.0:
-    description: Onnx runtime wasm threaded 1.14.0
-    fetch:
-        type: static-url
-        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.14.0/dist/ort-wasm-threaded.wasm
-        sha256: 2ee2f715093aaacc0344bfb1610313eb49a3474e8afde5e4635f30ddfc7615c8
-        size: 9149637
+        url: https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.0-dev.20240827-1d059b8702/dist/ort-wasm-simd-threaded.wasm
+        sha256: 23f9328b96edfd86238773f0ffe8ccf6d2e15b8932ff9863963973b48b97eb2b
+        size: 11105821
