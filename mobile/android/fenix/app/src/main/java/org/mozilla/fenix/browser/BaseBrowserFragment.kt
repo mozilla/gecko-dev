@@ -212,7 +212,7 @@ import org.mozilla.fenix.ext.tabClosedUndoMessage
 import org.mozilla.fenix.ext.updateMicrosurveyPromptForConfigurationChange
 import org.mozilla.fenix.home.HomeScreenViewModel
 import org.mozilla.fenix.home.SharedViewModel
-import org.mozilla.fenix.library.bookmarks.BookmarksSharedViewModel
+import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
 import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessagingFeature
 import org.mozilla.fenix.microsurvey.ui.MicrosurveyRequestPrompt
@@ -326,7 +326,6 @@ abstract class BaseBrowserFragment :
 
     internal val sharedViewModel: SharedViewModel by activityViewModels()
     private val homeViewModel: HomeScreenViewModel by activityViewModels()
-    private val bookmarksSharedViewModel: BookmarksSharedViewModel by activityViewModels()
 
     private var currentStartDownloadDialog: StartDownloadDialog? = null
 
@@ -2244,8 +2243,22 @@ abstract class BaseBrowserFragment :
         } else {
             // Save bookmark, then go to edit fragment
             try {
+                val parentNode = Result.runCatching {
+                    val parentGuid = bookmarksStorage
+                        .getRecentBookmarks(1)
+                        .firstOrNull()
+                        ?.parentGuid
+                        ?: BookmarkRoot.Mobile.id
+
+                    bookmarksStorage.getBookmark(parentGuid)!!
+                }.getOrElse {
+                    // this should be a temporary hack until the menu redesign is completed
+                    // see MenuDialogMiddleware for the updated version
+                    throw PlacesApiException.UrlParseFailed(reason = "no parent node")
+                }
+
                 val guid = bookmarksStorage.addItem(
-                    bookmarksSharedViewModel.selectedFolder?.guid ?: BookmarkRoot.Mobile.id,
+                    parentNode.guid,
                     url = sessionUrl,
                     title = sessionTitle,
                     position = null,
@@ -2258,7 +2271,12 @@ abstract class BaseBrowserFragment :
                             view = binding.dynamicSnackbarContainer,
                             duration = FenixSnackbar.LENGTH_LONG,
                         )
-                            .setText(getString(R.string.bookmark_saved_snackbar))
+                            .setText(
+                                getString(
+                                    R.string.bookmark_saved_in_folder_snackbar,
+                                    friendlyRootTitle(requireContext(), parentNode),
+                                ),
+                            )
                             .setAction(getString(R.string.edit_bookmark_snackbar_action)) {
                                 MetricsUtils.recordBookmarkMetrics(
                                     MetricsUtils.BookmarkAction.EDIT,
