@@ -1452,17 +1452,16 @@ void XPCJSContext::AfterProcessTask(uint32_t aNewRecursionDepth) {
         Telemetry::SetEventRecordingEnabled("slow_script_warning"_ns, true);
       }
 
-      auto uriType = mExecutedChromeScript ? "browser"_ns : "content"_ns;
       // Use AppendFloat to avoid printf-type APIs using locale-specific
       // decimal separators, when we definitely want a `.`.
       nsCString durationStr;
       durationStr.AppendFloat(hangDuration);
-      auto extra = Some<nsTArray<Telemetry::EventExtraEntry>>(
-          {Telemetry::EventExtraEntry{"hang_duration"_ns, durationStr},
-           Telemetry::EventExtraEntry{"uri_type"_ns, uriType}});
-      Telemetry::RecordEvent(
-          Telemetry::EventID::Slow_script_warning_Shown_Browser, Nothing(),
-          extra);
+
+      glean::slow_script_warning::ShownBrowserExtra extra = {
+          .hangDuration = Some(durationStr),
+          .uriType = Some(mExecutedChromeScript ? "browser"_ns : "content"_ns),
+      };
+      glean::slow_script_warning::shown_browser.Record(Some(extra));
     }
   }
 

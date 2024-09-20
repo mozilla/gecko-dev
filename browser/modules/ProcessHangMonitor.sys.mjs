@@ -385,20 +385,14 @@ export var ProcessHangMonitor = {
       // use. :-(
       let hangDuration =
         report.hangDuration + Cu.now() - info.lastReportFromChild;
-      Services.telemetry.recordEvent(
-        "slow_script_warning",
-        "shown",
-        "content",
-        null,
-        {
-          end_reason: endReason,
-          hang_duration: "" + hangDuration,
-          n_tab_deselect: "" + info.deselectCount,
-          uri_type,
-          uptime,
-          wait_count: "" + info.waitCount,
-        }
-      );
+      Glean.slowScriptWarning.shownContent.record({
+        end_reason: endReason,
+        hang_duration: hangDuration,
+        n_tab_deselect: info.deselectCount,
+        uri_type,
+        uptime,
+        wait_count: info.waitCount,
+      });
     } catch (ex) {
       console.error(ex);
     }

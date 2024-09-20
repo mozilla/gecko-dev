@@ -126,6 +126,7 @@ add_setup(async function () {
  * stop in response to a script hang.
  */
 add_task(async function terminateScriptTest() {
+  Services.fog.testResetFOG();
   let promise = promiseNotificationShown(window, "process-hang");
   let hangReport = new TestHangReport();
   Services.obs.notifyObservers(hangReport, "process-hang-report");
@@ -145,6 +146,10 @@ add_task(async function terminateScriptTest() {
     TEST_ACTION_TERMSCRIPT,
     "Clicking 'Stop' should have terminated the script."
   );
+  const events = Glean.slowScriptWarning.shownContent.testGetValue();
+  is(events.length, 1, "Recorded the correct number of events.");
+  is(events[0].extra.end_reason, "user-aborted", "User aborted.");
+  Assert.greater(Number(events[0].extra.uptime), 0, "Had some uptime.");
 });
 
 /**
@@ -152,6 +157,7 @@ add_task(async function terminateScriptTest() {
  * and the browser frees up from a script hang on its own.
  */
 add_task(async function waitForScriptTest() {
+  Services.fog.testResetFOG();
   let hangReport = new TestHangReport();
   let promise = promiseNotificationShown(window, "process-hang");
   Services.obs.notifyObservers(hangReport, "process-hang-report");
@@ -180,6 +186,10 @@ add_task(async function waitForScriptTest() {
         TEST_ACTION_CANCELLED,
         "Hang report should have been cancelled."
       );
+      const events = Glean.slowScriptWarning.shownContent.testGetValue();
+      is(events.length, 1, "Recorded the correct number of events.");
+      is(events[0].extra.end_reason, "cleared", "Correct end reason.");
+      is(events[0].extra.wait_count, "1", "Waited once.");
     }
   });
 
@@ -209,6 +219,7 @@ add_task(async function waitForScriptTest() {
  * process stops sending hang notifications.
  */
 add_task(async function hangGoesAwayTest() {
+  Services.fog.testResetFOG();
   await pushPrefs(["browser.hangNotification.expiration", 1000]);
 
   let hangReport = new TestHangReport();
@@ -220,6 +231,11 @@ add_task(async function hangGoesAwayTest() {
   let action = await hangReport.promise;
   is(action, TEST_ACTION_CANCELLED, "Hang report should have been cancelled.");
 
+  const events = Glean.slowScriptWarning.shownContent.testGetValue();
+  is(events.length, 1, "Recorded the correct number of events.");
+  is(events[0].extra.end_reason, "cleared", "Correct end reason.");
+  is(events[0].extra.wait_count, "0", "Didn't wait.");
+
   await popPrefs();
 });
 
@@ -228,6 +244,7 @@ add_task(async function hangGoesAwayTest() {
  * be terminated appropriately.
  */
 add_task(async function terminateAtShutdown() {
+  Services.fog.testResetFOG();
   let pausedHang = new TestHangReport(SLOW_SCRIPT);
   Services.obs.notifyObservers(pausedHang, "process-hang-report");
   ProcessHangMonitor.waitLonger(window);
@@ -273,6 +290,29 @@ add_task(async function terminateAtShutdown() {
     "On shutdown, should have terminated script for add-on hang."
   );
 
+  let events = Glean.slowScriptWarning.shownContent.testGetValue();
+  Services.fog.testResetFOG(); // Clear already-checked events.
+  is(events.length, 3, "Recorded one event per hang.");
+  Assert.deepEqual(
+    events.map(e => e.extra.end_reason),
+    [
+      "quit-application-granted",
+      "quit-application-granted",
+      "quit-application-granted",
+    ],
+    "Hangs all ended due to shutdown."
+  );
+  is(
+    events.filter(e => e.extra.uri_type == "extension").length,
+    1,
+    "Had one extension hang."
+  );
+  is(
+    events.filter(e => e.extra.wait_count == "1").length,
+    1,
+    "Had one paused hang."
+  );
+
   // ProcessHangMonitor should now be in the "shutting down" state,
   // meaning that any further hangs should be handled immediately
   // without user interaction.
@@ -297,6 +337,19 @@ add_task(async function terminateAtShutdown() {
     "On shutdown, should have terminated script for add-on hang."
   );
 
+  events = Glean.slowScriptWarning.shownContent.testGetValue();
+  is(events.length, 2, "Two more events.");
+  Assert.deepEqual(
+    events.map(e => e.extra.end_reason),
+    ["shutdown-in-progress", "shutdown-in-progress"],
+    "Hangs ended due to in-progress shutdown."
+  );
+  is(
+    events.filter(e => e.extra.uri_type == "extension").length,
+    1,
+    "One more extension hang."
+  );
+
   ProcessHangMonitor._shuttingDown = false;
 });
 
@@ -306,6 +359,7 @@ add_task(async function terminateAtShutdown() {
  * automatically.
  */
 add_task(async function terminateNoWindows() {
+  Services.fog.testResetFOG();
   let testWin = await BrowserTestUtils.openNewBrowserWindow();
 
   let pausedHang = new TestHangReport(
@@ -361,6 +415,20 @@ add_task(async function terminateNoWindows() {
     "With no open windows, should have terminated script for add-on hang."
   );
 
+  let events = Glean.slowScriptWarning.shownContent.testGetValue();
+  Services.fog.testResetFOG(); // Clear already-checked events.
+  is(events.length, 3, "Recorded one event per hang.");
+  is(
+    events.filter(e => e.extra.end_reason == "no-windows-left").length,
+    2,
+    "Had two hangs ended because there were no windows left."
+  );
+  is(
+    events.filter(e => e.extra.end_reason == "window-closed").length,
+    1,
+    "Had one hang ended because the window was closed."
+  );
+
   // ProcessHangMonitor should notice we're in the "no windows" state,
   // so any further hangs should be handled immediately without user
   // interaction.
@@ -385,6 +453,19 @@ add_task(async function terminateNoWindows() {
     "With no open windows, should have terminated script for add-on hang."
   );
 
+  events = Glean.slowScriptWarning.shownContent.testGetValue();
+  is(events.length, 2, "Two more events.");
+  Assert.deepEqual(
+    events.map(e => e.extra.end_reason),
+    ["no-windows-left", "no-windows-left"],
+    "Hangs ended due to no windows left."
+  );
+  is(
+    events.filter(e => e.extra.uri_type == "extension").length,
+    1,
+    "One more extension hang."
+  );
+
   document.documentElement.setAttribute("windowtype", "navigator:browser");
 });
 
@@ -396,6 +477,7 @@ add_task(async function terminateNoWindows() {
  * belongs to.
  */
 add_task(async function terminateClosedWindow() {
+  Services.fog.testResetFOG();
   let testWin = await BrowserTestUtils.openNewBrowserWindow();
   let testBrowser = testWin.gBrowser.selectedBrowser;
 
@@ -435,6 +517,24 @@ add_task(async function terminateClosedWindow() {
     TEST_ACTION_TERMSCRIPT,
     "When closing window, should have terminated script for add-on hang."
   );
+
+  const events = Glean.slowScriptWarning.shownContent.testGetValue();
+  is(events.length, 3, "Recorded one event per hang.");
+  Assert.deepEqual(
+    events.map(e => e.extra.end_reason),
+    ["window-closed", "window-closed", "window-closed"],
+    "Hangs ended due to windows closed."
+  );
+  is(
+    events.filter(e => e.extra.uri_type == "extension").length,
+    1,
+    "Had one extension hang."
+  );
+  is(
+    events.filter(e => e.extra.wait_count == "1").length,
+    1,
+    "Had one paused hang."
+  );
 });
 
 /**
@@ -442,6 +542,7 @@ add_task(async function terminateClosedWindow() {
  * try to talk to the hung child
  */
 add_task(async function permitUnload() {
+  Services.fog.testResetFOG();
   let testWin = await BrowserTestUtils.openNewBrowserWindow();
   let testTab = testWin.gBrowser.selectedTab;
 
@@ -482,4 +583,12 @@ add_task(async function permitUnload() {
   );
 
   await BrowserTestUtils.closeWindow(testWin);
+
+  const events = Glean.slowScriptWarning.shownContent.testGetValue();
+  is(events.length, 1, "Recorded one event for the hang.");
+  is(
+    events[0].extra.end_reason,
+    "window-closed",
+    "The hang was dismissed on window close."
+  );
 });

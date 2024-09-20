@@ -183,3 +183,74 @@ javascript.gc:
       - dev-telemetry-gc-alerts@mozilla.org
       - jcoppeard@mozilla.com
     expires: never
+
+slow_script_warning:
+  shown_browser:
+    type: event
+    description: >
+      Recorded when a slow script hang is resolved.
+      This event was generated to correspond to the Legacy Telemetry event
+      slow_script_warning.shown#browser.
+    bugs: &slow_script_warning_shown_bugs
+      - https://bugzil.la/1652613
+      - https://bugzil.la/1667245
+      - https://bugzil.la/1672572
+    data_reviews: &slow_script_warning_shown_data_reviews
+      - https://bugzil.la/1652613
+      - https://bugzil.la/1667245
+      - https://bugzil.la/1672572
+    notification_emails: &slow_script_warning_shown_emails
+      - dothayer@mozilla.com
+      - esmyth@mozilla.com
+      - gkruitbosch@mozilla.com
+      - perf-telemetry-alerts@mozilla.com
+    expires: never
+    extra_keys:
+      hang_duration:
+        description: >
+          How long we believe the hang continued (ms).
+        type: string
+      uri_type:
+        description: >
+          The kind of script URL that hung.
+        type: string
+    telemetry_mirror: Slow_script_warning_Shown_Browser
+
+  shown_content:
+    type: event
+    description: >
+      Recorded when a slow script hang is resolved.
+      This event was generated to correspond to the Legacy Telemetry event
+      slow_script_warning.shown#content.
+    bugs: *slow_script_warning_shown_bugs
+    data_reviews: *slow_script_warning_shown_data_reviews
+    notification_emails: *slow_script_warning_shown_emails
+    expires: never
+    extra_keys:
+      end_reason:
+        description: >
+          Why the warning was hidden (user action, the process becoming responsive again, the browser quitting, etc.)
+        type: string
+      wait_count:
+        description: >
+          How many times the user elected to wait.
+        type: quantity
+      hang_duration:
+        description: >
+          How long we believe the hang continued (ms).
+        type: string
+      n_tab_deselect:
+        description: >
+          How many times the user switched away from a tab affected by this hang.
+        type: quantity
+      uri_type:
+        description: >
+          The kind of script URL that hung.
+        type: string
+      uptime:
+        description: >
+          How long the notification was up (ms).
+        type: string
+    telemetry_mirror: Slow_script_warning_Shown_Content
+    no_lint:
+      - COMMON_PREFIX
