@@ -712,13 +712,15 @@ class MIRGraph {
 
   MBasicBlock* entryBlock() { return *blocks_.begin(); }
   MBasicBlockIterator begin() { return blocks_.begin(); }
-  MBasicBlockIterator begin(MBasicBlock* at) { return blocks_.begin(at); }
+  MBasicBlockIterator begin(const MBasicBlock* at) { return blocks_.begin(at); }
   MBasicBlockIterator end() { return blocks_.end(); }
   PostorderIterator poBegin() { return blocks_.rbegin(); }
-  PostorderIterator poBegin(MBasicBlock* at) { return blocks_.rbegin(at); }
+  PostorderIterator poBegin(const MBasicBlock* at) {
+    return blocks_.rbegin(at);
+  }
   PostorderIterator poEnd() { return blocks_.rend(); }
   ReversePostorderIterator rpoBegin() { return blocks_.begin(); }
-  ReversePostorderIterator rpoBegin(MBasicBlock* at) {
+  ReversePostorderIterator rpoBegin(const MBasicBlock* at) {
     return blocks_.begin(at);
   }
   ReversePostorderIterator rpoEnd() { return blocks_.end(); }

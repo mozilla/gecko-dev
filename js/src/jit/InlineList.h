@@ -263,10 +263,10 @@ class InlineList : protected InlineListNode<T> {
 
  public:
   iterator begin() const { return iterator(static_cast<Node*>(this->next)); }
-  iterator begin(Node* t) const { return iterator(t); }
+  iterator begin(const Node* t) const { return iterator(t); }
   iterator end() const { return iterator(this); }
   reverse_iterator rbegin() const { return reverse_iterator(this->prev); }
-  reverse_iterator rbegin(Node* t) const { return reverse_iterator(t); }
+  reverse_iterator rbegin(const Node* t) const { return reverse_iterator(t); }
   reverse_iterator rend() const { return reverse_iterator(this); }
   void pushFront(Node* t) { insertAfter(this, t); }
   void pushFrontUnchecked(Node* t) { insertAfterUnchecked(this, t); }
