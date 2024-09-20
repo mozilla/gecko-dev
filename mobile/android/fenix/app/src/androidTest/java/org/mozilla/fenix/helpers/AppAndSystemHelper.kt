@@ -55,6 +55,7 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestAssetHelper.waitingTimeShort
 import org.mozilla.fenix.helpers.TestHelper.appContext
 import org.mozilla.fenix.helpers.TestHelper.mDevice
+import org.mozilla.fenix.helpers.TestHelper.packageName
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.helpers.idlingresource.NetworkConnectionIdlingResource
 import org.mozilla.fenix.ui.robots.BrowserRobot
@@ -559,6 +560,9 @@ object AppAndSystemHelper {
             waitingTime,
         )
         Log.i(TAG, "putAppToBackground: Waited for the app to be gone for $waitingTime ms.")
+        Log.i(TAG, "putAppToBackground: Trying to press device home button")
+        mDevice.pressHome()
+        Log.i(TAG, "putAppToBackground: Pressed the device home button")
     }
 
     /**
@@ -568,10 +572,16 @@ object AppAndSystemHelper {
      * The index of the most recent opened app will always have index 2, meaning that the previously opened app will have index 1.
      */
     fun bringAppToForeground() {
+        Log.i(TAG, "bringAppToForeground: Trying to press the device Recent apps button.")
+        mDevice.pressRecentApps()
+        Log.i(TAG, "bringAppToForeground: Pressed the device Recent apps button.")
         Log.i(TAG, "bringAppToForeground: Trying to select the app from the recent apps tray and wait for $waitingTime ms for a new window")
         mDevice.findObject(UiSelector().index(2).packageName(PIXEL_LAUNCHER))
             .clickAndWaitForNewWindow(waitingTimeShort)
         Log.i(TAG, "bringAppToForeground: Selected the app from the recent apps tray.")
+        Log.i(TAG, "bringAppToForeground: Waiting for $waitingTime ms for $packageName window to be updated")
+        mDevice.waitForWindowUpdate(packageName, waitingTime)
+        Log.i(TAG, "bringAppToForeground: Waited for $waitingTime ms for $packageName window to be updated")
     }
 
     fun verifyKeyboardVisibility(isExpectedToBeVisible: Boolean = true) {
