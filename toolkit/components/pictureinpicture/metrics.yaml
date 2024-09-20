@@ -1,0 +1,75 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Picture-in-Picture'
+
+pictureinpicture.settings:
+  enable_settings:
+    type: event
+    description: >
+      Recorded when Picture-in-Picture is enabled.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.settings.enable#settings.
+    bugs:
+      - https://bugzil.la/1639774
+    data_reviews:
+      - https://bugzil.la/1639774
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: PictureinpictureSettings_Enable_Settings
+
+  enable_autotrigger_settings:
+    type: event
+    description: >
+      Recorded when the Picture-in-Picture auto-trigger is enabled.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.settings.enable_autotrigger#settings.
+    bugs:
+      - https://bugzil.la/1647800
+      - https://bugzil.la/1910505
+    data_reviews:
+      - https://bugzil.la/1647800
+      - https://bugzil.la/1910505
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: PictureinpictureSettings_EnableAutotrigger_Settings
+
+  disable_player:
+    type: event
+    description: >
+      Recorded with "settings" object when Picture-in-Picture is disabled
+      via settings Recorded with "player" object when Picture-in-Picture
+      is disabled via PiP context menu
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.settings.disable#player.
+    bugs: &pictureinpicture_settings_disable_bugs
+      - https://bugzil.la/1639774
+    data_reviews: &pictureinpicture_settings_disable_data_reviews
+      - https://bugzil.la/1639774
+    notification_emails: &pictureinpicture_settings_disable_emails
+      - mconley@mozilla.com
+    expires: never
+    telemetry_mirror: PictureinpictureSettings_Disable_Player
+
+  disable_settings:
+    type: event
+    description: >
+      Recorded with "settings" object when Picture-in-Picture is disabled
+      via settings Recorded with "player" object when Picture-in-Picture
+      is disabled via PiP context menu
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.settings.disable#settings.
+    bugs: *pictureinpicture_settings_disable_bugs
+    data_reviews: *pictureinpicture_settings_disable_data_reviews
+    notification_emails: *pictureinpicture_settings_disable_emails
+    expires: never
+    telemetry_mirror: PictureinpictureSettings_Disable_Settings

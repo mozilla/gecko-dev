@@ -80,6 +80,7 @@ firefox_desktop_metrics = [
     "toolkit/components/contentrelevancy/metrics.yaml",
     "toolkit/components/crashes/metrics.yaml",
     "toolkit/components/nimbus/metrics.yaml",
+    "toolkit/components/pictureinpicture/metrics.yaml",
     "toolkit/components/places/metrics.yaml",
     "toolkit/components/search/metrics.yaml",
     "toolkit/components/shopping/metrics.yaml",

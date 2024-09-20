@@ -536,11 +536,7 @@ export let BrowserUsageTelemetry = {
             break;
           case "media.videocontrols.picture-in-picture.enable-when-switching-tabs.enabled":
             if (Services.prefs.getBoolPref(data)) {
-              Services.telemetry.recordEvent(
-                "pictureinpicture.settings",
-                "enable_autotrigger",
-                "settings"
-              );
+              Glean.pictureinpictureSettings.enableAutotriggerSettings.record();
             }
             break;
         }

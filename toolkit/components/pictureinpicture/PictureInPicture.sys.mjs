@@ -1493,11 +1493,7 @@ export var PictureInPicture = {
 
   hideToggle() {
     Services.prefs.setBoolPref(TOGGLE_ENABLED_PREF, false);
-    Services.telemetry.recordEvent(
-      "pictureinpicture.settings",
-      "disable",
-      "player"
-    );
+    Glean.pictureinpictureSettings.disablePlayer.record();
   },
 
   /**

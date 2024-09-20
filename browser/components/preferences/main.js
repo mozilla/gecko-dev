@@ -337,11 +337,7 @@ var gMainPane = {
         "command",
         function (event) {
           if (!event.target.checked) {
-            Services.telemetry.recordEvent(
-              "pictureinpicture.settings",
-              "disable",
-              "settings"
-            );
+            Glean.pictureinpictureSettings.disableSettings.record();
           }
         }
       );

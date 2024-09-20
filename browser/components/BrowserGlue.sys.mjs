@@ -5236,11 +5236,7 @@ BrowserGlue.prototype = {
       // Record events when preferences change
       if (topic === "nsPref:changed") {
         if (enabled) {
-          Services.telemetry.recordEvent(
-            "pictureinpicture.settings",
-            "enable",
-            "settings"
-          );
+          Glean.pictureinpictureSettings.enableSettings.record();
         }
       }
     };
