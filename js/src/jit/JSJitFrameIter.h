@@ -498,6 +498,10 @@ class SnapshotIterator {
 
   Value read() { return allocationValue(readAllocation()); }
 
+  // Like |read()| but also supports Int64 allocations, which are returned as
+  // BigInt values.
+  bool readMaybeUnpackedBigInt(JSContext* cx, MutableHandle<Value> result);
+
   int32_t readInt32() {
     Value val = read();
     MOZ_RELEASE_ASSERT(val.isInt32());
@@ -557,7 +561,11 @@ class SnapshotIterator {
 
   bool tryRead(Value* result);
 
-  int64_t readInt64();
+ private:
+  int64_t allocationInt64(const RValueAllocation& alloc);
+
+ public:
+  int64_t readInt64() { return allocationInt64(readAllocation()); }
 
   void traceAllocation(JSTracer* trc);
 

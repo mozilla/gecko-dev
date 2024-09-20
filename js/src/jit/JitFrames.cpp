@@ -1914,8 +1914,37 @@ bool SnapshotIterator::tryRead(Value* result) {
   return false;
 }
 
-int64_t SnapshotIterator::readInt64() {
+bool SnapshotIterator::readMaybeUnpackedBigInt(JSContext* cx,
+                                               MutableHandle<Value> result) {
   RValueAllocation alloc = readAllocation();
+  MOZ_ASSERT(allocationReadable(alloc));
+
+  switch (alloc.mode()) {
+    case RValueAllocation::INT64_CST:
+#if defined(JS_NUNBOX32)
+    case RValueAllocation::INT64_REG_REG:
+    case RValueAllocation::INT64_REG_STACK:
+    case RValueAllocation::INT64_STACK_REG:
+    case RValueAllocation::INT64_STACK_STACK:
+#elif defined(JS_PUNBOX64)
+    case RValueAllocation::INT64_REG:
+    case RValueAllocation::INT64_STACK:
+#endif
+    {
+      auto* bigInt = JS::BigInt::createFromInt64(cx, allocationInt64(alloc));
+      if (!bigInt) {
+        return false;
+      }
+      result.setBigInt(bigInt);
+      return true;
+    }
+    default:
+      result.set(allocationValue(alloc));
+      return true;
+  }
+}
+
+int64_t SnapshotIterator::allocationInt64(const RValueAllocation& alloc) {
   MOZ_ASSERT(allocationReadable(alloc));
 
   auto fromParts = [](uint32_t hi, uint32_t lo) {

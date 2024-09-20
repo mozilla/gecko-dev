@@ -481,12 +481,13 @@ bool MNot::writeRecoverData(CompactBufferWriter& writer) const {
 RNot::RNot(CompactBufferReader& reader) {}
 
 bool RNot::recover(JSContext* cx, SnapshotIterator& iter) const {
-  RootedValue v(cx, iter.read());
-  RootedValue result(cx);
+  Rooted<Value> value(cx);
+  if (!iter.readMaybeUnpackedBigInt(cx, &value)) {
+    return false;
+  }
 
-  result.setBoolean(!ToBoolean(v));
-
-  iter.storeInstructionResult(result);
+  bool result = !ToBoolean(value);
+  iter.storeInstructionResult(BooleanValue(result));
   return true;
 }
 
