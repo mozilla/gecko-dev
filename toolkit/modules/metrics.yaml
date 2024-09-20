@@ -103,3 +103,46 @@ first_startup:
     expires: never
     send_in_pings:
       - first-startup
+
+service_request:
+  bypass_proxy_info:
+    type: event
+    description: >
+      This event is recorded by a small set of services when a proxy
+      failure causes a service to re-request with a proxy bypass.  It
+      records some basic information such as the type of proxy
+      configuration, and the source of the proxy configuration.  The value
+      of the event is the name of the service that triggers the event
+      (e.g. telemetry, remote-settings).
+      This event was generated to correspond to the Legacy Telemetry event
+      service_request.bypass#proxy_info.
+    bugs:
+      - https://bugzil.la/1732792
+      - https://bugzil.la/1732793
+      - https://bugzil.la/1733481
+      - https://bugzil.la/1733994
+      - https://bugzil.la/1732388
+    data_reviews:
+      - https://bugzil.la/1732792
+      - https://bugzil.la/1732793
+      - https://bugzil.la/1733481
+      - https://bugzil.la/1733994
+      - https://bugzil.la/1732388
+    notification_emails:
+      - scaraveo@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      source:
+        description: >
+          the source of the proxy configuration.  e.g. policy, prefs or extension_id
+        type: string
+      type:
+        description: >
+          the type for the proxy configuration source.  e.g. api or string version of nsIProtocolProxyService.proxyConfigType
+        type: string
+    telemetry_mirror: Service_request_Bypass_ProxyInfo
