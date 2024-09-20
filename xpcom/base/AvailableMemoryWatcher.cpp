@@ -13,6 +13,7 @@
 #include "mozilla/Services.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/Telemetry.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsExceptionHandler.h"
 #include "nsMemoryPressure.h"
 #include "nsXULAppAPI.h"
@@ -163,12 +164,12 @@ void nsAvailableMemoryWatcherBase::UpdateLowMemoryTimeStamp() {
 void nsAvailableMemoryWatcherBase::RecordTelemetryEventOnHighMemory(
     const MutexAutoLock&) {
   Telemetry::SetEventRecordingEnabled("memory_watcher"_ns, true);
-  Telemetry::RecordEvent(
-      Telemetry::EventID::Memory_watcher_OnHighMemory_Stats,
-      Some(nsPrintfCString(
-          "%u,%u,%f", mNumOfTabUnloading, mNumOfMemoryPressure,
-          (TimeStamp::NowLoRes() - mLowMemoryStart).ToSeconds())),
-      Nothing());
+  glean::memory_watcher::on_high_memory_stats.Record(
+      Some(glean::memory_watcher::OnHighMemoryStatsExtra{
+          Some(nsPrintfCString(
+              "%u,%u,%f", mNumOfTabUnloading, mNumOfMemoryPressure,
+              (TimeStamp::NowLoRes() - mLowMemoryStart).ToSeconds())),
+      }));
   mNumOfTabUnloading = mNumOfMemoryPressure = 0;
   mLowMemoryStart = TimeStamp();
 }

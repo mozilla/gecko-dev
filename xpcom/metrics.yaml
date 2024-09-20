@@ -28,3 +28,30 @@ timer_thread:
     notification_emails:
       - jlink@mozilla.com
     expires: never
+
+memory_watcher:
+  on_high_memory_stats:
+    type: event
+    description: >
+      This event is recorded when the memory situation is no longer low.
+      The "stats" object consists of three numbers comma-delimited: 1) how
+      many times a tab was unloaded 2) how many memory-pressure events
+      were dispatched 3) how long we were in the low-memory situation in
+      seconds
+      This event was generated to correspond to the Legacy Telemetry event
+      memory_watcher.on_high_memory#stats.
+    bugs:
+      - https://bugzil.la/1715858
+    data_reviews:
+      - https://bugzil.la/1715858
+    notification_emails:
+      - tkikuchi@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The stringified, comma-separated stats.
+        type: string
+    telemetry_mirror: Memory_watcher_OnHighMemory_Stats
