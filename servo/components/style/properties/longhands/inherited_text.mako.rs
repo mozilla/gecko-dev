@@ -177,9 +177,9 @@ ${helpers.predefined_type(
 ${helpers.predefined_type(
     "text-emphasis-position",
     "TextEmphasisPosition",
-    "computed::TextEmphasisPosition::OVER",
+    "computed::TextEmphasisPosition::AUTO",
     engines="gecko",
-    initial_specified_value="specified::TextEmphasisPosition::OVER",
+    initial_specified_value="specified::TextEmphasisPosition::AUTO",
     animation_type="discrete",
     spec="https://drafts.csswg.org/css-text-decor/#propdef-text-emphasis-position",
     affects="layout",

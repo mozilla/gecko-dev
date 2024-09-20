@@ -1015,7 +1015,8 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleText {
   inline bool WhiteSpaceCanWrap(const nsIFrame* aContextFrame) const;
   inline bool WordCanWrap(const nsIFrame* aContextFrame) const;
 
-  mozilla::LogicalSide TextEmphasisSide(mozilla::WritingMode aWM) const;
+  mozilla::LogicalSide TextEmphasisSide(mozilla::WritingMode aWM,
+                                        const nsAtom* aLanguage) const;
 };
 
 struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleVisibility {

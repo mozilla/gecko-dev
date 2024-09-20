@@ -1644,7 +1644,8 @@ void nsLineLayout::AdjustLeadings(nsIFrame* spanFrame, PerSpanData* psd,
   }
   if (aStyleText->HasEffectiveTextEmphasis()) {
     nscoord bsize = GetBSizeOfEmphasisMarks(spanFrame, aInflation);
-    LogicalSide side = aStyleText->TextEmphasisSide(mRootSpan->mWritingMode);
+    LogicalSide side = aStyleText->TextEmphasisSide(
+        mRootSpan->mWritingMode, spanFrame->StyleFont()->mLanguage);
     if (side == LogicalSide::BStart) {
       requiredStartLeading += bsize;
     } else {
@@ -2272,7 +2273,8 @@ void nsLineLayout::VerticalAlignFrames(PerSpanData* psd) {
               blockEnd = descent;
               delta = emphasisHeight;
             }
-            LogicalSide side = mStyleText->TextEmphasisSide(lineWM);
+            LogicalSide side = mStyleText->TextEmphasisSide(
+                lineWM, spanFrame->StyleFont()->mLanguage);
             if (side == LogicalSide::BStart) {
               blockStart -= delta;
             } else {

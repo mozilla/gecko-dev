@@ -692,6 +692,7 @@ impl Parse for TextEmphasisStyle {
 )]
 #[repr(C)]
 #[css(bitflags(
+    single = "auto",
     mixed = "over,under,left,right",
     validate_mixed = "Self::validate_and_simplify"
 ))]
@@ -700,23 +701,27 @@ impl Parse for TextEmphasisStyle {
 pub struct TextEmphasisPosition(u8);
 bitflags! {
     impl TextEmphasisPosition: u8 {
-        /// Draws marks to the right of the text in vertical writing mode.
-        const OVER = 1 << 0;
+        /// Automatically choose mark position based on language.
+        const AUTO = 1 << 0;
+        /// Draw marks over the text in horizontal writing mode.
+        const OVER = 1 << 1;
         /// Draw marks under the text in horizontal writing mode.
-        const UNDER = 1 << 1;
+        const UNDER = 1 << 2;
         /// Draw marks to the left of the text in vertical writing mode.
-        const LEFT = 1 << 2;
-        /// Draws marks to the right of the text in vertical writing mode.
-        const RIGHT = 1 << 3;
+        const LEFT = 1 << 3;
+        /// Draw marks to the right of the text in vertical writing mode.
+        const RIGHT = 1 << 4;
     }
 }
 
 impl TextEmphasisPosition {
     fn validate_and_simplify(&mut self) -> bool {
+        // Require one but not both of 'over' and 'under'.
         if self.intersects(Self::OVER) == self.intersects(Self::UNDER) {
             return false;
         }
 
+        // If 'left' is present, 'right' must be absent.
         if self.intersects(Self::LEFT) {
             return !self.intersects(Self::RIGHT);
         }

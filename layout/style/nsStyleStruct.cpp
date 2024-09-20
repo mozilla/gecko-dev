@@ -2818,6 +2818,7 @@ nsStyleText::nsStyleText(const Document& aDocument)
           StaticPrefs::layout_css_control_characters_visible()
               ? StyleMozControlCharacterVisibility::Visible
               : StyleMozControlCharacterVisibility::Hidden),
+      mTextEmphasisPosition(StyleTextEmphasisPosition::AUTO),
       mTextRendering(StyleTextRendering::Auto),
       mTextEmphasisColor(StyleColor::CurrentColor()),
       mWebkitTextFillColor(StyleColor::CurrentColor()),
@@ -2831,11 +2832,6 @@ nsStyleText::nsStyleText(const Document& aDocument)
       mWebkitTextStrokeWidth(0),
       mTextEmphasisStyle(StyleTextEmphasisStyle::None()) {
   MOZ_COUNT_CTOR(nsStyleText);
-  RefPtr<nsAtom> language = aDocument.GetContentLanguageAsAtomForStyle();
-  mTextEmphasisPosition =
-      language && nsStyleUtil::MatchesLanguagePrefix(language, u"zh")
-          ? StyleTextEmphasisPosition::UNDER
-          : StyleTextEmphasisPosition::OVER;
 }
 
 nsStyleText::nsStyleText(const nsStyleText& aSource)
@@ -2962,18 +2958,32 @@ nsChangeHint nsStyleText::CalcDifference(const nsStyleText& aNewData) const {
   return nsChangeHint(0);
 }
 
-LogicalSide nsStyleText::TextEmphasisSide(WritingMode aWM) const {
-  bool noLeftBit = !(mTextEmphasisPosition & StyleTextEmphasisPosition::LEFT);
-  DebugOnly<bool> noRightBit =
-      !(mTextEmphasisPosition & StyleTextEmphasisPosition::RIGHT);
-  bool noOverBit = !(mTextEmphasisPosition & StyleTextEmphasisPosition::OVER);
-  DebugOnly<bool> noUnderBit =
-      !(mTextEmphasisPosition & StyleTextEmphasisPosition::UNDER);
+LogicalSide nsStyleText::TextEmphasisSide(WritingMode aWM,
+                                          const nsAtom* aLanguage) const {
+  mozilla::Side side;
+  if (mTextEmphasisPosition & StyleTextEmphasisPosition::AUTO) {
+    // 'auto' resolves to 'under right' for Chinese, 'over right' otherwise.
+    if (aWM.IsVertical()) {
+      side = eSideRight;
+    } else {
+      if (nsStyleUtil::MatchesLanguagePrefix(aLanguage, u"zh")) {
+        side = eSideBottom;
+      } else {
+        side = eSideTop;
+      }
+    }
+  } else {
+    if (aWM.IsVertical()) {
+      side = mTextEmphasisPosition & StyleTextEmphasisPosition::LEFT
+                 ? eSideLeft
+                 : eSideRight;
+    } else {
+      side = mTextEmphasisPosition & StyleTextEmphasisPosition::OVER
+                 ? eSideTop
+                 : eSideBottom;
+    }
+  }
 
-  MOZ_ASSERT((noOverBit != noUnderBit) &&
-             ((noLeftBit != noRightBit) || noRightBit));
-  mozilla::Side side = aWM.IsVertical() ? (noLeftBit ? eSideRight : eSideLeft)
-                                        : (noOverBit ? eSideBottom : eSideTop);
   LogicalSide result = aWM.LogicalSideForPhysicalSide(side);
   MOZ_ASSERT(IsBlock(result));
   return result;
