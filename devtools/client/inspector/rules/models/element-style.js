@@ -569,6 +569,8 @@ class ElementStyle {
         continue;
       }
 
+      const isNestedDeclarations = rule.domRule.isNestedDeclarations;
+
       // Style rules must be considered only when they have selectors that match the node.
       // When renaming a selector, the unmatched rule lingers in the Rule view, but it no
       // longer matches the node. This strict check avoids accidentally causing
@@ -589,7 +591,8 @@ class ElementStyle {
       const isElementStyle = rule.domRule.type === ELEMENT_STYLE;
 
       const filterCondition =
-        pseudo === "" ? isStyleRule || isElementStyle : isPseudoElementRule;
+        isNestedDeclarations ||
+        (pseudo === "" ? isStyleRule || isElementStyle : isPseudoElementRule);
 
       // Collect all relevant CSS declarations (aka TextProperty instances).
       if (filterCondition) {

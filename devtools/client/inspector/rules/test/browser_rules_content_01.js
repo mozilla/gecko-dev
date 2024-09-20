@@ -23,9 +23,7 @@ const TEST_URI = `
         color: tomato;
 
         @container (0px < width) {
-          & { /* TODO: Remove & wrapper after bug 1919853 */
-            background: gold;
-          }
+          background: gold;
         }
       }
     }
@@ -99,17 +97,7 @@ add_task(async function () {
   info("Check nested rules");
   await selectNode(".foo", inspector);
 
-  assertSelectors(view, 1, [
-    // That's the rule that was created as a result of a
-    // nested container rule (`@container (0px < width) { background: gold}`)
-    // In such case, the rule's selector is only `&`, and it should be displayed as
-    // matching the selected node (`<div class="foo">`).
-    {
-      selector: "&",
-      matches: true,
-      specificity: "(0,1,1)",
-    },
-  ]);
+  assertSelectors(view, 0, []);
 
   assertSelectors(view, 2, [
     {

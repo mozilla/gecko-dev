@@ -71,6 +71,9 @@ class StyleRuleFront extends FrontClassWithSpec(styleRuleSpec) {
   get cssText() {
     return this._form.cssText;
   }
+  get isNestedDeclarations() {
+    return !!this._form.isNestedDeclarations;
+  }
   get authoredText() {
     return typeof this._form.authoredText === "string"
       ? this._form.authoredText

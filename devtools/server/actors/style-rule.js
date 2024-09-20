@@ -382,6 +382,12 @@ class StyleRuleActor extends Actor {
     form.authoredText = this.authoredText;
 
     switch (this.ruleClassName) {
+      case "CSSNestedDeclarations":
+        form.isNestedDeclarations = true;
+        form.selectors = [];
+        form.selectorsSpecificity = [];
+        form.cssText = this.rawStyle.cssText || "";
+        break;
       case "CSSStyleRule":
         form.selectors = [];
         form.selectorsSpecificity = [];
@@ -756,6 +762,7 @@ class StyleRuleActor extends Actor {
     "CSSKeyframesRule",
     "CSSLayerBlockRule",
     "CSSMediaRule",
+    "CSSNestedDeclarations",
     "CSSStyleRule",
     "CSSSupportsRule",
   ]);
@@ -799,6 +806,9 @@ class StyleRuleActor extends Actor {
     }
 
     try {
+      if (this.ruleClassName == "CSSNestedDeclarations") {
+        throw new Error("getRuleText doesn't deal well with bare declarations");
+      }
       const resourceId =
         this.pageStyle.styleSheetsManager.getStyleSheetResourceId(
           this._parentSheet

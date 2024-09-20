@@ -11,9 +11,7 @@ const TEST_URI = `
       container-type: inline-size;
 
       @media screen {
-        & { /* TODO: Remove & wrapper after bug 1919853 */
-          container-name: main;
-        }
+        container-name: main;
 
         & h1 {
           border-color: gold;
@@ -59,7 +57,7 @@ add_task(async function () {
   checkRuleViewContent(view, [
     { selector: "element", ancestorRulesData: null, declarations: [] },
     {
-      selector: `&`,
+      selector: ``,
       // prettier-ignore
       ancestorRulesData: [
         `body {`,
