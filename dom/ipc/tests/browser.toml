@@ -78,7 +78,10 @@ skip-if = ["true"]
 ["browser_very_fission.js"]
 support-files = ["file_dummy.html"]
 run-if = ["os == 'linux'"]
-skip-if = ["asan"] # appears to hang the machine
+skip-if = [
+  "asan", # appears to hang the machine
+  "tsan", # appears to hang the machine
+]
 
 ["browser_wpi_isolate_everything.js"]
 support-files = ["browser_wpi_base.js"]
