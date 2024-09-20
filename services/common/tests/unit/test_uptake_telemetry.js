@@ -6,6 +6,7 @@ const { UptakeTelemetry } = ChromeUtils.importESModule(
 );
 
 const COMPONENT = "remotesettings";
+const GLEAN_COMPONENT = "Remotesettings";
 
 async function withFakeClientID(uuid, f) {
   const { Policy } = ChromeUtils.importESModule(
@@ -26,7 +27,7 @@ add_task(async function test_unknown_status_is_not_reported() {
   const startSnapshot = getUptakeTelemetrySnapshot(COMPONENT, source);
 
   try {
-    await UptakeTelemetry.report(COMPONENT, "unknown-status", { source });
+    await UptakeTelemetry.report(GLEAN_COMPONENT, "unknown-status", { source });
   } catch (e) {}
 
   const endSnapshot = getUptakeTelemetrySnapshot(COMPONENT, source);
@@ -38,7 +39,7 @@ add_task(async function test_age_is_converted_to_string_and_reported() {
   const age = 42;
 
   await withFakeChannel("nightly", async () => {
-    await UptakeTelemetry.report(COMPONENT, status, { source: "s", age });
+    await UptakeTelemetry.report(GLEAN_COMPONENT, status, { source: "s", age });
   });
 
   TelemetryTestUtils.assertEvents([
@@ -60,7 +61,7 @@ add_task(async function test_each_status_can_be_caught_in_snapshot() {
   await withFakeChannel("nightly", async () => {
     for (const status of Object.values(UptakeTelemetry.STATUS)) {
       expectedIncrements[status] = 1;
-      await UptakeTelemetry.report(COMPONENT, status, { source });
+      await UptakeTelemetry.report(GLEAN_COMPONENT, status, { source });
     }
   });
 
@@ -75,9 +76,13 @@ add_task(async function test_events_are_sent_when_hash_is_mod_0() {
   const uuid = "d81bbfad-d741-41f5-a7e6-29f6bde4972a"; // hash % 100 = 0
   await withFakeClientID(uuid, async () => {
     await withFakeChannel("release", async () => {
-      await UptakeTelemetry.report(COMPONENT, UptakeTelemetry.STATUS.SUCCESS, {
-        source,
-      });
+      await UptakeTelemetry.report(
+        GLEAN_COMPONENT,
+        UptakeTelemetry.STATUS.SUCCESS,
+        {
+          source,
+        }
+      );
     });
   });
   const endSnapshot = getUptakeTelemetrySnapshot(COMPONENT, source);
@@ -111,9 +116,13 @@ add_task(async function test_events_are_sent_when_nightly() {
   const uuid = "d81bbfad-d741-41f5-a7e6-29f6bde49721"; // hash % 100 = 1
   await withFakeClientID(uuid, async () => {
     await withFakeChannel("nightly", async () => {
-      await UptakeTelemetry.report(COMPONENT, UptakeTelemetry.STATUS.SUCCESS, {
-        source,
-      });
+      await UptakeTelemetry.report(
+        GLEAN_COMPONENT,
+        UptakeTelemetry.STATUS.SUCCESS,
+        {
+          source,
+        }
+      );
     });
   });
   const endSnapshot = getUptakeTelemetrySnapshot(COMPONENT, source);
