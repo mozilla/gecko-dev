@@ -10,7 +10,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.state.action.DebugAction
 import mozilla.components.browser.state.action.LastAccessAction
 import mozilla.components.browser.state.selector.findTab
@@ -24,7 +23,6 @@ import mozilla.components.browser.storage.sync.Tab
 import mozilla.components.concept.base.profiler.Profiler
 import mozilla.components.concept.engine.mediasession.MediaSession.PlaybackState
 import mozilla.components.concept.engine.prompt.ShareData
-import mozilla.components.concept.storage.BookmarksStorage
 import mozilla.components.feature.accounts.push.CloseTabsUseCases
 import mozilla.components.feature.downloads.ui.DownloadCancelDialogFragment
 import mozilla.components.feature.tabs.TabsUseCases
@@ -43,9 +41,11 @@ import org.mozilla.fenix.collections.show
 import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.TabCollectionStorage
 import org.mozilla.fenix.components.appstate.AppAction
+import org.mozilla.fenix.components.bookmarks.BookmarksUseCase
 import org.mozilla.fenix.ext.DEFAULT_ACTIVE_DAYS
 import org.mozilla.fenix.ext.potentialInactiveTabs
 import org.mozilla.fenix.home.HomeFragment
+import org.mozilla.fenix.library.bookmarks.BookmarksSharedViewModel
 import org.mozilla.fenix.tabstray.browser.InactiveTabsController
 import org.mozilla.fenix.tabstray.browser.TabsTrayFabController
 import org.mozilla.fenix.tabstray.ext.getTabSessionState
@@ -187,7 +187,7 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
  * @param profiler [Profiler] used to add profiler markers.
  * @param navigationInteractor [NavigationInteractor] used to perform navigation actions with side effects.
  * @param tabsUseCases Use case wrapper for interacting with tabs.
- * @param bookmarksStorage Storage layer for retrieving and saving bookmarks.
+ * @param bookmarksUseCase Use case wrapper for interacting with bookmarks.
  * @param closeSyncedTabsUseCases Use cases for closing synced tabs.
  * @param ioDispatcher [CoroutineContext] used for storage operations.
  * @param collectionStorage Storage layer for interacting with collections.
@@ -200,6 +200,7 @@ interface TabsTrayController : SyncedTabsController, InactiveTabsController, Tab
  * @param showBookmarkSnackbar Lambda used to display a snackbar upon saving tabs as bookmarks.
  * @param showCollectionSnackbar Lambda used to display a snackbar upon successfully saving tabs
  * to a collection.
+ * @param bookmarksSharedViewModel [BookmarksSharedViewModel] used to get currently selected bookmark root.
  */
 @Suppress("TooManyFunctions", "LongParameterList")
 class DefaultTabsTrayController(
@@ -214,7 +215,7 @@ class DefaultTabsTrayController(
     private val profiler: Profiler?,
     private val navigationInteractor: NavigationInteractor,
     private val tabsUseCases: TabsUseCases,
-    private val bookmarksStorage: BookmarksStorage,
+    private val bookmarksUseCase: BookmarksUseCase,
     private val closeSyncedTabsUseCases: CloseTabsUseCases,
     private val ioDispatcher: CoroutineContext,
     private val collectionStorage: TabCollectionStorage,
@@ -224,11 +225,12 @@ class DefaultTabsTrayController(
     private val showUndoSnackbarForInactiveTab: (Int) -> Unit,
     private val showUndoSnackbarForSyncedTab: (CloseTabsUseCases.UndoableOperation) -> Unit,
     internal val showCancelledDownloadWarning: (downloadCount: Int, tabId: String?, source: String?) -> Unit,
-    private val showBookmarkSnackbar: (tabSize: Int, parentFolderTitle: String?) -> Unit,
+    private val showBookmarkSnackbar: (tabSize: Int) -> Unit,
     private val showCollectionSnackbar: (
         tabSize: Int,
         isNewCollection: Boolean,
     ) -> Unit,
+    private val bookmarksSharedViewModel: BookmarksSharedViewModel,
 ) : TabsTrayController {
 
     override fun handleNormalTabsFabClick() {
@@ -420,34 +422,20 @@ class DefaultTabsTrayController(
 
         TabsTray.bookmarkSelectedTabs.record(TabsTray.BookmarkSelectedTabsExtra(tabCount = tabs.size))
 
-        // We don't combine the context with lifecycleScope so that our jobs are not cancelled
-        // if we leave the fragment, i.e. we still want the bookmarks to be added if the
-        // tabs tray closes before the job is done.
-        CoroutineScope(ioDispatcher).launch {
-            Result.runCatching {
-                val parentGuid = bookmarksStorage
-                    .getRecentBookmarks(1)
-                    .firstOrNull()
-                    ?.parentGuid
-                    ?: BookmarkRoot.Mobile.id
-
-                val parentNode = bookmarksStorage.getBookmark(parentGuid)
-
-                tabs.forEach { tab ->
-                    bookmarksStorage.addItem(
-                        parentGuid = parentNode!!.guid,
-                        url = tab.content.url,
-                        title = tab.content.title,
-                        position = null,
-                    )
-                }
-                withContext(Dispatchers.Main) {
-                    showBookmarkSnackbar(tabs.size, parentNode?.title)
-                }
-            }.getOrElse {
-                // silently fail
+        tabs.forEach { tab ->
+            // We don't combine the context with lifecycleScope so that our jobs are not cancelled
+            // if we leave the fragment, i.e. we still want the bookmarks to be added if the
+            // tabs tray closes before the job is done.
+            CoroutineScope(ioDispatcher).launch {
+                bookmarksUseCase.addBookmark(
+                    tab.content.url,
+                    tab.content.title,
+                    parentGuid = bookmarksSharedViewModel.selectedFolder?.guid,
+                )
             }
         }
+
+        showBookmarkSnackbar(tabs.size)
 
         tabsTrayStore.dispatch(TabsTrayAction.ExitSelectMode)
     }
