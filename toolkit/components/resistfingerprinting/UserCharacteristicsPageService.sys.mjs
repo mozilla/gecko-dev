@@ -150,8 +150,8 @@ export class UserCharacteristicsPageService {
       )
     );
 
-    // data?.output?.errors is previous errors that happened in usercharacteristics.js
-    const errors = JSON.parse(data?.output?.errors ?? "[]");
+    // data?.output?.jsErrors is previous errors that happened in usercharacteristics.js
+    const errors = JSON.parse(data?.output?.jsErrors ?? "[]");
     for (const [i, [func]] of populateFuncs.entries()) {
       if (results[i].status == "rejected") {
         const error = `${func.name}: ${await stringifyError(
