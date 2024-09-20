@@ -106,10 +106,6 @@ class ToolbarInteractorTest {
             fail()
         }
 
-        override fun setDisplayHorizontalPadding(horizontalPadding: Int) {
-            fail()
-        }
-
         override fun invalidateActions() {
             fail()
         }
