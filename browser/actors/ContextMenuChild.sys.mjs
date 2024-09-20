@@ -117,7 +117,7 @@ export class ContextMenuChild extends JSWindowActorChild {
                   "MozTogglePictureInPicture",
                   {
                     bubbles: true,
-                    detail: { reason: "contextMenu" },
+                    detail: { reason: "ContextMenu" },
                   },
                   this.contentWindow
                 );

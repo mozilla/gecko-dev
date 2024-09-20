@@ -236,18 +236,10 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
       autoFocus,
     });
 
-    Services.telemetry.recordEvent(
-      "pictureinpicture",
-      "opened_method",
-      reason,
-      null,
-      {
-        firstTimeToggle: (!Services.prefs.getBoolPref(
-          TOGGLE_HAS_USED_PREF
-        )).toString(),
-        ...eventExtraKeys,
-      }
-    );
+    Glean.pictureinpicture["openedMethod" + reason].record({
+      firstTimeToggle: !Services.prefs.getBoolPref(TOGGLE_HAS_USED_PREF),
+      ...eventExtraKeys,
+    });
   }
 
   /**
@@ -260,7 +252,7 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
     if (doc) {
       let video = this.findVideoToPiP(doc);
       if (video) {
-        this.togglePictureInPicture({ video, reason: "shortcut" });
+        this.togglePictureInPicture({ video, reason: "Shortcut" });
       }
     }
   }
@@ -297,7 +289,7 @@ export class PictureInPictureLauncherChild extends JSWindowActorChild {
     if (doc) {
       let video = this.findVideoToPiP(doc);
       if (video && PictureInPictureChild.videoIsPlaying(video)) {
-        this.togglePictureInPicture({ video, reason: "autoPip" }, false);
+        this.togglePictureInPicture({ video, reason: "AutoPip" }, false);
       }
     }
   }
@@ -703,7 +695,7 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
         "MozTogglePictureInPicture",
         {
           bubbles: true,
-          detail: { reason: "urlBar", eventExtraKeys },
+          detail: { reason: "UrlBar", eventExtraKeys },
         }
       );
       video.dispatchEvent(pipEvent);
@@ -1114,7 +1106,7 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       "MozTogglePictureInPicture",
       {
         bubbles: true,
-        detail: { reason: "toggle" },
+        detail: { reason: "Toggle" },
       }
     );
     video.dispatchEvent(pipEvent);
@@ -1438,16 +1430,9 @@ export class PictureInPictureToggleChild extends JSWindowActorChild {
       !toggle.hasAttribute("hidden")
     ) {
       const hasUsedPiP = Services.prefs.getBoolPref(TOGGLE_HAS_USED_PREF);
-      let args = {
-        firstTime: (!hasUsedPiP).toString(),
-      };
-      Services.telemetry.recordEvent(
-        "pictureinpicture",
-        "saw_toggle",
-        "toggle",
-        null,
-        args
-      );
+      Glean.pictureinpicture.sawToggleToggle.record({
+        firstTime: !hasUsedPiP,
+      });
       // only record if this is the first time seeing the toggle
       if (!hasUsedPiP) {
         lazy.NimbusFeatures.pictureinpicture.recordExposureEvent();
@@ -1950,7 +1935,7 @@ export class PictureInPictureChild extends JSWindowActorChild {
     switch (event.type) {
       case "MozStopPictureInPicture": {
         if (event.isTrusted && event.target === this.getWeakVideo()) {
-          const reason = event.detail?.reason || "videoElRemove";
+          const reason = event.detail?.reason || "VideoElRemove";
           this.closePictureInPicture({ reason });
         }
         break;
@@ -1958,11 +1943,11 @@ export class PictureInPictureChild extends JSWindowActorChild {
       case "pagehide": {
         // The originating video's content document has unloaded,
         // so close Picture-in-Picture.
-        this.closePictureInPicture({ reason: "pagehide" });
+        this.closePictureInPicture({ reason: "Pagehide" });
         break;
       }
       case "MozDOMFullscreen:Request": {
-        this.closePictureInPicture({ reason: "fullscreen" });
+        this.closePictureInPicture({ reason: "Fullscreen" });
         break;
       }
       case "play": {
@@ -2019,7 +2004,7 @@ export class PictureInPictureChild extends JSWindowActorChild {
         // close Picture-in-Picture.
         this.emptiedTimeout = setTimeout(() => {
           if (!video || !video.src) {
-            this.closePictureInPicture({ reason: "videoElEmptied" });
+            this.closePictureInPicture({ reason: "VideoElEmptied" });
           }
         }, EMPTIED_TIMEOUT_MS);
         break;
@@ -2396,7 +2381,7 @@ export class PictureInPictureChild extends JSWindowActorChild {
       // If the video element has gone away before we've had a chance to set up
       // Picture-in-Picture for it, tell the parent to close the Picture-in-Picture
       // window.
-      await this.closePictureInPicture({ reason: "setupFailure" });
+      await this.closePictureInPicture({ reason: "SetupFailure" });
       return;
     }
 
@@ -2629,7 +2614,7 @@ export class PictureInPictureChild extends JSWindowActorChild {
             return;
           }
           this.pause();
-          this.closePictureInPicture({ reason: "closePlayerShortcut" });
+          this.closePictureInPicture({ reason: "ClosePlayerShortcut" });
           break;
         case "downArrow" /* Volume decrease */:
           if (
@@ -2735,16 +2720,9 @@ export class PictureInPictureChild extends JSWindowActorChild {
 
   set isSubtitlesEnabled(val) {
     if (val) {
-      Services.telemetry.recordEvent(
-        "pictureinpicture",
-        "subtitles_shown",
-        "subtitles",
-        null,
-        {
-          webVTTSubtitles: (!!this.getWeakVideo().textTracks
-            ?.length).toString(),
-        }
-      );
+      Glean.pictureinpicture.subtitlesShownSubtitles.record({
+        webVTTSubtitles: !!this.getWeakVideo().textTracks?.length,
+      });
     } else {
       this.sendAsyncMessage("PictureInPicture:DisableSubtitlesButton");
     }

@@ -478,7 +478,7 @@ export var PictureInPicture = {
     tab.ownerGlobal.focus();
 
     gBrowser.selectedTab = tab;
-    await this.closeSinglePipWindow({ reason: "unpip", actorRef: pipActor });
+    await this.closeSinglePipWindow({ reason: "Unpip", actorRef: pipActor });
   },
 
   /**
@@ -495,11 +495,7 @@ export var PictureInPicture = {
       respectPipDisabled
     );
 
-    Services.telemetry.recordEvent(
-      "pictureinpicture",
-      "disrespect_disable",
-      "urlBar"
-    );
+    Glean.pictureinpicture.disrespectDisableUrlBar.record();
   },
 
   /**
@@ -669,7 +665,7 @@ export var PictureInPicture = {
               )
             );
             if (callout) {
-              eventExtraKeys.callout = "true";
+              eventExtraKeys.callout = true;
             }
           }
         }
@@ -715,13 +711,9 @@ export var PictureInPicture = {
       );
 
       pipPanel.openPopup(anchor, "bottomright topright");
-      Services.telemetry.recordEvent(
-        "pictureinpicture",
-        "opened_method",
-        "urlBar",
-        null,
-        { disableDialog: "true" }
-      );
+      Glean.pictureinpicture.openedMethodUrlBar.record({
+        disableDialog: true,
+      });
     } else {
       pipPanel.hidePopup();
     }
@@ -829,12 +821,7 @@ export var PictureInPicture = {
     }
     this.removePiPBrowserFromWeakMap(this.weakWinToBrowser.get(win));
 
-    Services.telemetry.recordEvent(
-      "pictureinpicture",
-      "closed_method",
-      reason,
-      null
-    );
+    Glean.pictureinpicture["closedMethod" + reason].record();
     await this.closePipWindow(win);
   },
 
@@ -896,22 +883,15 @@ export var PictureInPicture = {
 
     Services.prefs.setBoolPref(TOGGLE_HAS_USED_PREF, true);
 
-    let args = {
-      width: win.innerWidth.toString(),
-      height: win.innerHeight.toString(),
-      screenX: win.screenX.toString(),
-      screenY: win.screenY.toString(),
-      ccEnabled: videoData.ccEnabled.toString(),
-      webVTTSubtitles: videoData.webVTTSubtitles.toString(),
-    };
-
-    Services.telemetry.recordEvent(
-      "pictureinpicture",
-      "create",
-      "player",
-      pipId,
-      args
-    );
+    Glean.pictureinpicture.createPlayer.record({
+      value: pipId,
+      width: win.innerWidth,
+      height: win.innerHeight,
+      screenX: win.screenX,
+      screenY: win.screenY,
+      ccEnabled: videoData.ccEnabled,
+      webVTTSubtitles: videoData.webVTTSubtitles,
+    });
   },
 
   /**

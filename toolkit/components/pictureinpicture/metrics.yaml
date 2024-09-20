@@ -73,3 +73,420 @@ pictureinpicture.settings:
     notification_emails: *pictureinpicture_settings_disable_emails
     expires: never
     telemetry_mirror: PictureinpictureSettings_Disable_Settings
+
+pictureinpicture:
+  create_player:
+    type: event
+    description: >
+      Recorded when the Picture-in-Picture player window is created.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.create#player.
+    bugs:
+      - https://bugzil.la/1560590
+      - https://bugzil.la/1678202
+      - https://bugzil.la/1730039
+      - https://bugzil.la/1756703
+    data_reviews:
+      - https://bugzil.la/1560590
+      - https://bugzil.la/1678202
+      - https://bugzil.la/1730039
+      - https://bugzil.la/1756703
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      width:
+        description: >
+          The width that the window was created at
+        type: quantity
+      height:
+        description: >
+          The height that the window was created at
+        type: quantity
+      screenX:
+        description: >
+          The screen X coordinate that the window was created at
+        type: quantity
+      screenY:
+        description: >
+          The screen Y coordinate that the window was created at
+        type: quantity
+      ccEnabled:
+        description: >
+          Are subtitles enabled for PiP
+        type: boolean
+      webVTTSubtitles:
+        description: >
+          Are the subtitles WebVTT
+        type: boolean
+    telemetry_mirror: Pictureinpicture_Create_Player
+
+  resize_player:
+    type: event
+    description: >
+      Recorded when the Picture-in-Picture player window is resized.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.resize#player.
+    bugs:
+      - https://bugzil.la/1560590
+      - https://bugzil.la/1678202
+      - https://bugzil.la/1730039
+    data_reviews:
+      - https://bugzil.la/1560590
+      - https://bugzil.la/1678202
+      - https://bugzil.la/1730039
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      width:
+        description: >
+          The width that the window was resized to
+        type: quantity
+      height:
+        description: >
+          The height that the window was resize to
+        type: quantity
+    telemetry_mirror: Pictureinpicture_Resize_Player
+
+  saw_toggle_toggle:
+    type: event
+    description: >
+      Recorded when the Picture-in-Picture toggle is shown
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.saw_toggle#toggle.
+    bugs:
+      - https://bugzil.la/1749585
+    data_reviews:
+      - https://bugzil.la/1749585
+    notification_emails:
+      - mconley@mozilla.com
+    expires: never
+    extra_keys:
+      firstTime:
+        description: >
+          If the user has used Picture-in-Picture before
+        type: boolean
+    telemetry_mirror: Pictureinpicture_SawToggle_Toggle
+
+  opened_method_toggle:
+    type: event
+    description: >
+      Records the method for opening the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.opened_method#toggle.
+    bugs: &pictureinpicture_opened_method_bugs
+      - https://bugzil.la/1749585
+      - https://bugzil.la/1834554
+      - https://bugzil.la/1858471
+    data_reviews: &pictureinpicture_opened_method_data_reviews
+      - https://bugzil.la/1749585
+      - https://bugzil.la/1834554
+      - https://bugzil.la/1858471
+    notification_emails: &pictureinpicture_opened_method_emails
+      - mconley@mozilla.com
+    expires: never
+    extra_keys: &pictureinpicture_opened_method_extra
+      firstTimeToggle:
+        description: >
+          If the user has used Picture-in-Picture before
+        type: boolean
+      disableDialog:
+        description: >
+          True when urlbar button opens the disable PiP dialog
+        type: boolean
+      callout:
+        description: >
+          Boolean. True if PiP is being shown for the first time within 48 hours of a feature callout message highlighting the urlbar toggle.
+
+        type: boolean
+    telemetry_mirror: Pictureinpicture_OpenedMethod_Toggle
+
+  opened_method_context_menu:
+    type: event
+    description: >
+      Records the method for opening the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.opened_method#contextMenu.
+    bugs: *pictureinpicture_opened_method_bugs
+    data_reviews: *pictureinpicture_opened_method_data_reviews
+    notification_emails: *pictureinpicture_opened_method_emails
+    expires: never
+    extra_keys: *pictureinpicture_opened_method_extra
+    telemetry_mirror: Pictureinpicture_OpenedMethod_Contextmenu
+
+  opened_method_url_bar:
+    type: event
+    description: >
+      Records the method for opening the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.opened_method#urlBar.
+    bugs: *pictureinpicture_opened_method_bugs
+    data_reviews: *pictureinpicture_opened_method_data_reviews
+    notification_emails: *pictureinpicture_opened_method_emails
+    expires: never
+    extra_keys: *pictureinpicture_opened_method_extra
+    telemetry_mirror: Pictureinpicture_OpenedMethod_Urlbar
+
+  opened_method_shortcut:
+    type: event
+    description: >
+      Records the method for opening the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.opened_method#shortcut.
+    bugs: *pictureinpicture_opened_method_bugs
+    data_reviews: *pictureinpicture_opened_method_data_reviews
+    notification_emails: *pictureinpicture_opened_method_emails
+    expires: never
+    extra_keys: *pictureinpicture_opened_method_extra
+    telemetry_mirror: Pictureinpicture_OpenedMethod_Shortcut
+
+  opened_method_auto_pip:
+    type: event
+    description: >
+      Records the method for opening the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.opened_method#autoPip.
+    bugs: *pictureinpicture_opened_method_bugs
+    data_reviews: *pictureinpicture_opened_method_data_reviews
+    notification_emails: *pictureinpicture_opened_method_emails
+    expires: never
+    extra_keys: *pictureinpicture_opened_method_extra
+    telemetry_mirror: Pictureinpicture_OpenedMethod_Autopip
+
+  closed_method_close_button:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#closeButton.
+    bugs: &pictureinpicture_closed_method_bugs
+      - https://bugzil.la/1756703
+      - https://bugzil.la/1834554
+    data_reviews: &pictureinpicture_closed_method_data_reviews
+      - https://bugzil.la/1756703
+      - https://bugzil.la/1834554
+    notification_emails: &pictureinpicture_closed_method_emails
+      - mconley@mozilla.com
+      - mtigley@mozilla.com
+      - mhowell@mozilla.com
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Closebutton
+
+  closed_method_unpip:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#unpip.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Unpip
+
+  closed_method_pagehide:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#pagehide.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Pagehide
+
+  closed_method_foregrounded:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#foregrounded.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Foregrounded
+
+  closed_method_fullscreen:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#fullscreen.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Fullscreen
+
+  closed_method_setup_failure:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#setupFailure.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Setupfailure
+
+  closed_method_close_player_shortcut:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#closePlayerShortcut.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Closeplayershortcut
+
+  closed_method_context_menu:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#contextMenu.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Contextmenu
+
+  closed_method_video_el_remove:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#videoElRemove.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Videoelremove
+
+  closed_method_video_el_emptied:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#videoElEmptied.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Videoelemptied
+
+  closed_method_url_bar:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#urlBar.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Urlbar
+
+  closed_method_shortcut:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#shortcut.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Shortcut
+
+  closed_method_browser_crash:
+    type: event
+    description: >
+      Records the method for closing the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.closed_method#browserCrash.
+    bugs: *pictureinpicture_closed_method_bugs
+    data_reviews: *pictureinpicture_closed_method_data_reviews
+    notification_emails: *pictureinpicture_closed_method_emails
+    expires: never
+    telemetry_mirror: Pictureinpicture_ClosedMethod_Browsercrash
+
+  subtitles_shown_subtitles:
+    type: event
+    description: >
+      Records if subtitles are shown in the Picture-in-Picture window.
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.subtitles_shown#subtitles.
+    bugs:
+      - https://bugzil.la/1772546
+    data_reviews:
+      - https://bugzil.la/1772546
+    notification_emails:
+      - mconley@mozilla.com
+      - mhowell@mozilla.com
+    expires: never
+    extra_keys:
+      webVTTSubtitles:
+        description: >
+          Will be true or false
+        type: boolean
+    telemetry_mirror: Pictureinpicture_SubtitlesShown_Subtitles
+
+  fullscreen_player:
+    type: event
+    description: >
+      Recorded when the user clicks the fullscreen button
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.fullscreen#player.
+    bugs:
+      - https://bugzil.la/1822395
+    data_reviews:
+      - https://bugzil.la/1822395
+    notification_emails:
+      - mconley@mozilla.com
+      - mhowell@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      enter:
+        description: >
+          true if entering fullscreen, false if exiting fullscreen
+        type: boolean
+    telemetry_mirror: Pictureinpicture_Fullscreen_Player
+
+  disrespect_disable_url_bar:
+    type: event
+    description: >
+      Recorded when the user chooses to enable PiP anyway on a PiP
+      disabled video
+      This event was generated to correspond to the Legacy Telemetry event
+      pictureinpicture.disrespect_disable#urlBar.
+    bugs:
+      - https://bugzil.la/1834554
+    data_reviews:
+      - https://bugzil.la/1834554
+    notification_emails:
+      - mconley@mozilla.com
+      - mhowell@mozilla.com
+    expires: never
+    telemetry_mirror: Pictureinpicture_DisrespectDisable_Urlbar
