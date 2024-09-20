@@ -137,11 +137,11 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=782211
       // Load two frames with the same origin that create notification with the same tag.
       // Both pages should generate notifications with the same name, and thus the second
       // notification should replace the first.
-      let sameDomain = window.open("http://test1.example.org:80/tests/dom/notification/test/mochitest/create_notification.html");
-      let anotherSameDomain = window.open("http://test1.example.org:80/tests/dom/notification/test/mochitest/create_notification.html");
+      let sameDomain = window.open("https://test1.example.org/tests/dom/notification/test/mochitest/create_notification.html");
+      let anotherSameDomain = window.open("https://test1.example.org/tests/dom/notification/test/mochitest/create_notification.html");
       // Load a frame with a different origin that creates a notification with the same tag.
       // The notification name should be different and thus no notifications should be replaced.
-      let crossDomain = window.open("http://test2.example.org:80/tests/dom/notification/test/mochitest/create_notification.html");
+      let crossDomain = window.open("https://test2.example.org/tests/dom/notification/test/mochitest/create_notification.html");
 
       await MockAlertsService.unregistered();
 

@@ -6,8 +6,7 @@ const { PermissionTestUtils } = ChromeUtils.importESModule(
 
 var tab;
 var notificationURL =
-  // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-  "http://example.org/browser/browser/base/content/test/alerts/file_dom_notifications.html";
+  "https://example.org/browser/browser/base/content/test/alerts/file_dom_notifications.html";
 var alertWindowClosed = false;
 var permRemoved = false;
 

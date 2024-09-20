@@ -116,15 +116,13 @@ onnotificationclick = function (e) {
   var promises = [];
 
   var redirect =
-    "http://mochi.test:8888/tests/dom/notification/test/mochitest/redirect.sjs?";
+    "https://example.com/tests/dom/notification/test/mochitest/redirect.sjs?";
   var redirect_xorigin =
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-    "http://example.com/tests/dom/notification/test/mochitest/redirect.sjs?";
+    "https://example.org/tests/dom/notification/test/mochitest/redirect.sjs?";
   var same_origin =
-    "http://mochi.test:8888/tests/dom/notification/test/mochitest/open_window/client.sjs";
+    "https://example.com/tests/dom/notification/test/mochitest/open_window/client.sjs";
   var different_origin =
-    // eslint-disable-next-line @microsoft/sdl/no-insecure-url
-    "http://example.com/tests/dom/notification/test/mochitest/open_window/client.sjs";
+    "https://example.org/tests/dom/notification/test/mochitest/open_window/client.sjs";
 
   promises.push(testForUrl("about:blank", "TypeError", null, results));
   promises.push(testForUrl(different_origin, null, null, results));

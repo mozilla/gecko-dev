@@ -30,6 +30,10 @@ class WorkerNotificationObserver;
 class Promise;
 class StrongWorkerRef;
 
+namespace notification {
+enum class PermissionCheckPurpose : uint8_t;
+}
+
 /*
  * Notifications on workers introduce some lifetime issues. The property we
  * are trying to satisfy is:
@@ -197,6 +201,7 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
   // Initialized on the worker thread, never unset, and always used in
   // a read-only capacity. Used on any thread.
   CheckedUnsafePtr<WorkerPrivate> mWorkerPrivate;
+  bool mWorkerUseRegularPrincipal = false;
 
   // Main thread only.
   WorkerNotificationObserver* mObserver;
@@ -214,13 +219,9 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
   bool AddRefObject();
   void ReleaseObject();
 
-  static NotificationPermission GetPermission(nsIGlobalObject* aGlobal,
-                                              ErrorResult& aRv);
-
-  static NotificationPermission GetPermissionInternal(nsIPrincipal* aPrincipal,
-                                                      ErrorResult& rv);
-
-  static NotificationPermission TestPermission(nsIPrincipal* aPrincipal);
+  static NotificationPermission GetPermission(
+      nsIGlobalObject* aGlobal, notification::PermissionCheckPurpose aPurpose,
+      ErrorResult& aRv);
 
   bool DispatchClickEvent();
 
@@ -252,7 +253,8 @@ class Notification : public DOMEventTargetHelper, public GlobalFreezeObserver {
   void FrozenCallback(nsIGlobalObject* aOwner) override;
 
   static NotificationPermission GetPermissionInternal(
-      nsPIDOMWindowInner* aWindow, ErrorResult& rv);
+      nsPIDOMWindowInner* aWindow,
+      notification::PermissionCheckPurpose aPurpose, ErrorResult& rv);
 
   static nsresult GetOrigin(nsIPrincipal* aPrincipal, nsString& aOrigin);
 

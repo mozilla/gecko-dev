@@ -15,7 +15,7 @@ const RESPONSE = `
 <script class="testbody" type="text/javascript">
 
   window.onload = function() {
-    if (document.domain === "mochi.test") {
+    if (document.domain === "example.com") {
       navigator.serviceWorker.ready.then(function(result) {
         navigator.serviceWorker.onmessage = function(event) {
           if (event.data !== "CLOSE") {
@@ -39,7 +39,7 @@ const RESPONSE = `
       }
 
       var iframe = document.createElement('iframe');
-      iframe.src = "http://mochi.test:8888/tests/dom/notification/test/mochitest/open_window/client.sjs";
+      iframe.src = "https://example.com/tests/dom/notification/test/mochitest/open_window/client.sjs";
       document.body.appendChild(iframe);
     }
   }

@@ -1,12 +1,11 @@
 [DEFAULT]
-
+scheme = "https"
 support-files = [
   "MockAlertsService.js",
   "NotificationTest.js",
 ]
 
 ["test_notification_basics.html"]
-scheme = "https" # requestPermission requires HTTPS
 skip-if = [
   "xorigin", # Bug 1792790
   "os == 'android'", # Bug 1816427, Notification.onshow/close are broken on Android
@@ -14,18 +13,17 @@ skip-if = [
 
 ["test_notification_crossorigin_iframe.html"]
 support-files = ["blank.html"]
-scheme = "https"
-# This test needs to be run on HTTP (not HTTPS).
 
+# This test needs to be run on HTTP (not HTTPS).
 ["test_notification_insecure_context.html"]
 skip-if = [
   "http3",
   "http2",
 ]
+scheme = "http"
 
 ["test_notification_permissions.html"]
 support-files = ["blank.html"]
-scheme = "https"
 
 ["test_notification_serviceworker_constructor_error.html"]
 support-files = ["notification_constructor_error.js"]
