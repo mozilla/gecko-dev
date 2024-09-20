@@ -46,6 +46,7 @@
 #include "mozilla/dom/CSSScopeRule.h"
 #include "mozilla/dom/CSSSupportsRule.h"
 #include "mozilla/dom/CSSStartingStyleRule.h"
+#include "mozilla/dom/CSSStyleRule.h"
 #include "mozilla/dom/FontFaceSet.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementInlines.h"
