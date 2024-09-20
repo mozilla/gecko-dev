@@ -3513,7 +3513,6 @@ installation:
     release_channel_collection: opt-out
     record_in_processes: ["main"]
     products: ["firefox"]
-    operating_systems: ["windows"]
     extra_keys:
       version: The application version installed by the installer (not necessarily the current version)
       build_id: The build ID of the application installed by the installer (not necessarily the current version)

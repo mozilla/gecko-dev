@@ -412,3 +412,108 @@ homepage:
           The identifier of the webextension, if known.
         type: string
     telemetry_mirror: Homepage_Preference_Ignore
+
+installation:
+  first_seen_full:
+    type: event
+    description: >
+      Recorded after the application has been installed or reinstalled,
+      the first time that a profile sees that there was a new
+      installation. This includes information about how the installer was
+      run.
+      This event was generated to correspond to the Legacy Telemetry event
+      installation.first_seen#full.
+    bugs: &installation_first_seen_bugs
+      - https://bugzil.la/1660198
+      - https://bugzil.la/1725295
+      - https://bugzil.la/1743465
+      - https://bugzil.la/1754638
+    data_reviews: &installation_first_seen_data_reviews
+      - https://bugzil.la/1660198
+      - https://bugzil.la/1725295
+      - https://bugzil.la/1743465
+      - https://bugzil.la/1754638
+    notification_emails: &installation_first_seen_emails
+      - application-update-telemetry-alerts@mozilla.com
+      - rtestard@mozilla.com
+    expires: never
+    extra_keys: &installation_first_seen_extra
+      version:
+        description: >
+          The application version installed by the installer (not necessarily the current version)
+        type: string
+      build_id:
+        description: >
+          The build ID of the application installed by the installer (not necessarily the current version)
+        type: string
+      admin_user:
+        description: >
+          Whether the installer is running from an elevated admin user
+        type: string
+      install_existed:
+        description: >
+          Whether there was already an install in this location
+        type: string
+      other_inst:
+        description: >
+          Whether there was already any non-MSIX install on this system
+        type: string
+      other_msix_inst:
+        description: >
+          Whether there was already any MSIX install on this system
+        type: string
+      profdir_existed:
+        description: >
+          Whether the top-level profile directory existed
+        type: string
+      silent:
+        description: >
+          (optional, present if object is "full") Whether this was a silent install
+        type: string
+      from_msi:
+        description: >
+          (optional, present if object is "full") Whether this was an MSI install
+        type: string
+      default_path:
+        description: >
+          (optional, present if object is "full") Whether the default path was used
+        type: string
+    telemetry_mirror: Installation_FirstSeen_Full
+    no_lint:
+      - COMMON_PREFIX
+
+  first_seen_stub:
+    type: event
+    description: >
+      Recorded after the application has been installed or reinstalled,
+      the first time that a profile sees that there was a new
+      installation. This includes information about how the installer was
+      run.
+      This event was generated to correspond to the Legacy Telemetry event
+      installation.first_seen#stub.
+    bugs: *installation_first_seen_bugs
+    data_reviews: *installation_first_seen_data_reviews
+    notification_emails: *installation_first_seen_emails
+    expires: never
+    extra_keys: *installation_first_seen_extra
+    telemetry_mirror: Installation_FirstSeen_Stub
+    no_lint:
+      - COMMON_PREFIX
+
+  first_seen_msix:
+    type: event
+    description: >
+      Recorded after the application has been installed or reinstalled,
+      the first time that a profile sees that there was a new
+      installation. This includes information about how the installer was
+      run.
+      This event was generated to correspond to the Legacy Telemetry event
+      installation.first_seen#msix.
+    bugs: *installation_first_seen_bugs
+    data_reviews: *installation_first_seen_data_reviews
+    notification_emails: *installation_first_seen_emails
+    expires: never
+    extra_keys: *installation_first_seen_extra
+    telemetry_mirror: Installation_FirstSeen_Msix
+    no_lint:
+      - COMMON_PREFIX
