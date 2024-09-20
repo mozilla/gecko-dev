@@ -1846,6 +1846,9 @@ nsresult Selection::SelectFrames(nsPresContext* aPresContext,
     return NS_OK;
   }
 
+  MOZ_DIAGNOSTIC_ASSERT_IF(!aRange.IsPositioned(),
+                           !aRange.MayCrossShadowBoundary());
+
   MOZ_DIAGNOSTIC_ASSERT(aRange.IsPositioned());
 
   const Document* const document = GetDocument();
