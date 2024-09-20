@@ -24,9 +24,9 @@ use rusqlite::OpenFlags;
 use crate::skv::{
     checker::{Checker, CheckerAction, IntoChecker},
     connection::{
-        Connection, ConnectionIncident, ConnectionPath, ConnectionType, ToConnectionIncident,
+        Connection, ConnectionIncident, ConnectionIncidents, ConnectionMaintenanceTask,
+        ConnectionPath, ConnectionType, ToConnectionIncident,
     },
-    maintenance::MaintenanceError,
     schema::{Schema, SchemaError},
 };
 
@@ -57,7 +57,12 @@ impl Store {
     }
 
     /// Gets or opens both connections to the physical database.
-    fn open(&self) -> Result<OpenStoreGuard<'_>, StoreError> {
+    fn open<C>(&self) -> Result<OpenStoreGuard<'_>, StoreError>
+    where
+        for<'a> ConnectionIncidents<'a>: IntoChecker<C>,
+        C: ConnectionMaintenanceTask,
+        C::Error: std::error::Error + Send + Sync + 'static,
+    {
         let guard = {
             // Scope for the locked state.
             let mut state = self.state.lock().unwrap();
@@ -72,7 +77,7 @@ impl Store {
                     }
                     StoreState::Open(store) => {
                         let store = store.clone();
-                        match store.writer.incidents().into_checker() {
+                        match IntoChecker::<C>::into_checker(store.writer.incidents()) {
                             CheckerAction::Skip => {
                                 let guard = OpenStoreGuard::new(store, self.waiter.guard());
                                 Ok(CheckedStore::Healthy(guard))
@@ -108,7 +113,9 @@ impl Store {
                 }
                 UnhealthyStore::Check(writer, checker) => {
                     // Check for database corruption.
-                    let result = writer.maintenance(checker).map_err(StoreError::Maintenance);
+                    let result = writer
+                        .maintenance(checker)
+                        .map_err(|err| StoreError::Maintenance(err.into()));
                     {
                         // Scope for the locked state.
                         let mut state = self.state.lock().unwrap();
@@ -173,12 +180,25 @@ impl Store {
 
     /// Returns the read-write connection to use for queries and updates.
     pub fn writer(&self) -> Result<Writer<'_>, StoreError> {
-        Ok(Writer(self.open()?))
+        Ok(Writer(self.open::<Checker>()?))
     }
 
     /// Returns the read-only connection to use for concurrent reads.
     pub fn reader(&self) -> Result<Reader<'_>, StoreError> {
-        Ok(Reader(self.open()?))
+        Ok(Reader(self.open::<Checker>()?))
+    }
+
+    #[cfg(feature = "gtest")]
+    pub fn check<C>(&self) -> Result<(), StoreError>
+    where
+        for<'a> ConnectionIncidents<'a>: IntoChecker<C>,
+        C: ConnectionMaintenanceTask,
+        C::Error: std::error::Error + Send + Sync + 'static,
+    {
+        // We discard the guard because we only want to advance the
+        // state machine, not return a connection.
+        let _ = self.open::<C>()?;
+        Ok(())
     }
 
     /// Closes both connections to the physical database.
@@ -461,8 +481,8 @@ impl OpenStore {
 }
 
 /// A temporarily out-of-service store.
-enum UnhealthyStore<'a> {
-    Check(Writer<'a>, Checker),
+enum UnhealthyStore<'a, C> {
+    Check(Writer<'a>, C),
     Replace(Arc<OpenStore>),
 }
 
@@ -521,7 +541,7 @@ pub enum StoreError {
     #[error("busy")]
     Busy,
     #[error("maintenance: {0}")]
-    Maintenance(#[from] MaintenanceError),
+    Maintenance(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
     #[error("closed")]
     Closed,
     #[error("corrupt")]

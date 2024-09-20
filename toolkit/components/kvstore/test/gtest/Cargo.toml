@@ -1,0 +1,12 @@
+[package]
+name = "kvstore-gtest"
+version = "0.1.0"
+authors = ["Lina Butler <lina@yakshaving.ninja>"]
+license = "MPL-2.0"
+edition = "2021"
+
+[dependencies]
+kvstore = { path = "../..", features = ["gtest"] }
+moz_task = { path = "../../../../../xpcom/rust/moz_task" }
+rusqlite = "0.31.0"
+tempfile = "3"

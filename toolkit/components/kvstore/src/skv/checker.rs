@@ -35,12 +35,12 @@ impl ConnectionMaintenanceTask for Checker {
 
 /// Determines whether to check an SQLite database for corruption,
 /// and which checks to run.
-pub trait IntoChecker {
-    fn into_checker(self) -> CheckerAction;
+pub trait IntoChecker<C> {
+    fn into_checker(self) -> CheckerAction<C>;
 }
 
-impl IntoChecker for ConnectionIncidents<'_> {
-    fn into_checker(self) -> CheckerAction {
+impl IntoChecker<Checker> for ConnectionIncidents<'_> {
+    fn into_checker(self) -> CheckerAction<Checker> {
         self.map(|incidents| {
             let (penalty, checks) = incidents.iter().fold(
                 (Penalty::default(), Checks::default()),
@@ -65,9 +65,9 @@ impl IntoChecker for ConnectionIncidents<'_> {
 
 /// Whether to skip checking, check, or replace a corrupt SQLite database.
 #[derive(Debug)]
-pub enum CheckerAction {
+pub enum CheckerAction<C> {
     Skip,
-    Check(Checker),
+    Check(C),
     Replace,
 }
 

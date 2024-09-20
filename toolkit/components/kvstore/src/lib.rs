@@ -21,7 +21,7 @@ extern crate xpcom;
 mod error;
 mod fs;
 mod owned_value;
-mod skv;
+pub mod skv;
 mod task;
 
 use atomic_refcell::AtomicRefCell;

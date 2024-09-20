@@ -2260,6 +2260,7 @@ dependencies = [
  "fog-gtest",
  "gecko-fuzz-targets",
  "gkrust-shared",
+ "kvstore-gtest",
  "l10nregistry-ffi-gtest",
  "lmdb-rkv-sys",
  "moz_task-gtest",
@@ -3299,6 +3300,16 @@ dependencies = [
  "thin-vec",
  "thiserror",
  "xpcom",
+]
+
+[[package]]
+name = "kvstore-gtest"
+version = "0.1.0"
+dependencies = [
+ "kvstore",
+ "moz_task",
+ "rusqlite",
+ "tempfile",
 ]
 
 [[package]]
