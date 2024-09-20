@@ -5,8 +5,7 @@
 export var ForgetAboutSite = {
   /**
    * Clear data associated with a base domain. This includes partitioned storage
-   * associated with the domain. If a base domain can not be computed from
-   * aDomainOrHost, data will be cleared by host instead.
+   * associated with the domain.
    *
    * @param {string} aDomainOrHost - Domain or host to clear data for. Will be
    * converted to base domain if needed.
@@ -18,33 +17,15 @@ export var ForgetAboutSite = {
       throw new Error("aDomainOrHost can not be empty.");
     }
 
-    let baseDomain;
-    try {
-      baseDomain = Services.eTLD.getBaseDomainFromHost(aDomainOrHost);
-    } catch (e) {}
-
-    let errorCount;
-    if (baseDomain) {
-      errorCount = await new Promise(resolve => {
-        Services.clearData.deleteDataFromBaseDomain(
-          baseDomain,
-          true /* user request */,
-          Ci.nsIClearDataService.CLEAR_FORGET_ABOUT_SITE,
-          errorCode => resolve(bitCounting(errorCode))
-        );
-      });
-    } else {
-      // If we can't get a valid base domain for aDomainOrHost, fall back to
-      // delete by host.
-      errorCount = await new Promise(resolve => {
-        Services.clearData.deleteDataFromHost(
-          aDomainOrHost,
-          true /* user request */,
-          Ci.nsIClearDataService.CLEAR_FORGET_ABOUT_SITE,
-          errorCode => resolve(bitCounting(errorCode))
-        );
-      });
-    }
+    let schemelessSite = Services.eTLD.getSchemelessSiteFromHost(aDomainOrHost);
+    let errorCount = await new Promise(resolve => {
+      Services.clearData.deleteDataFromSite(
+        schemelessSite,
+        true /* user request */,
+        Ci.nsIClearDataService.CLEAR_FORGET_ABOUT_SITE,
+        errorCode => resolve(bitCounting(errorCode))
+      );
+    });
 
     if (errorCount !== 0) {
       throw new Error(
