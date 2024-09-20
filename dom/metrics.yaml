@@ -526,3 +526,43 @@ javascript.pageload:
       - dpalmeiro@mozilla.com
       - perf-telemetry-alerts@mozilla.com
     expires: never
+
+security:
+  fission_principals:
+    type: event
+    description: >
+      When running with Fission, we received an unexpected principal from
+      the content process. Expected values for this telemetry event are
+      the method names in ContentParent that received the unexpected
+      principal.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.fissionPrincipals#contentParent.
+    bugs:
+      - https://bugzil.la/1687891
+    data_reviews:
+      - https://bugzil.la/1687891
+    notification_emails:
+      - tom@mozilla.com
+      - ckerschb@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      principal_type:
+        description: >
+          The type of principal that was received. Expected values for this field are
+            NullPtr
+            SystemPrincipal
+            ExpandedPrincipal
+            ContentPrincipal
+            Unknown
+
+        type: string
+      scheme:
+        description: >
+          If the principal is a ContentPrincipal, we also collect the scheme
+        type: string
+    telemetry_mirror: Security_Fissionprincipals_Contentparent

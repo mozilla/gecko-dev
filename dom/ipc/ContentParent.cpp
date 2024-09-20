@@ -1217,7 +1217,7 @@ void ContentParent::LogAndAssertFailedPrincipalValidationInfo(
 
   // Send Telemetry
   nsAutoCString principalScheme, principalType, spec;
-  CopyableTArray<EventExtraEntry> extra(2);
+  mozilla::glean::security::FissionPrincipalsExtra extra = {};
 
   if (!aPrincipal) {
     principalType.AssignLiteral("NullPtr");
@@ -1230,21 +1230,18 @@ void ContentParent::LogAndAssertFailedPrincipalValidationInfo(
     aPrincipal->GetSpec(spec);
     aPrincipal->GetScheme(principalScheme);
 
-    extra.AppendElement(EventExtraEntry{"scheme"_ns, principalScheme});
+    extra.scheme = Some(principalScheme);
   } else {
     principalType.AssignLiteral("Unknown");
   }
-
-  extra.AppendElement(EventExtraEntry{"principalType"_ns, principalType});
+  extra.principalType = Some(principalType);
+  extra.value = Some(aMethod);
 
   // Do not send telemetry when chrome-debugging is enabled
   bool isChromeDebuggingEnabled =
       Preferences::GetBool("devtools.chrome.enabled", false);
   if (!isChromeDebuggingEnabled) {
-    Telemetry::EventID eventType =
-        Telemetry::EventID::Security_Fissionprincipals_Contentparent;
-    Telemetry::RecordEvent(eventType, mozilla::Some(aMethod),
-                           mozilla::Some(extra));
+    glean::security::fission_principals.Record(mozilla::Some(extra));
   }
 
   // And log it
