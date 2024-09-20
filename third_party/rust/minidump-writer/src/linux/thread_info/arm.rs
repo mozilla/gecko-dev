@@ -1,5 +1,5 @@
-use super::{CommonThreadInfo, NT_Elf, Pid};
-use crate::{errors::ThreadInfoError, minidump_cpu::RawContextCPU};
+use super::{CommonThreadInfo, NT_Elf};
+use crate::{errors::ThreadInfoError, minidump_cpu::RawContextCPU, Pid};
 use nix::sys::ptrace;
 
 type Result<T> = std::result::Result<T, ThreadInfoError>;

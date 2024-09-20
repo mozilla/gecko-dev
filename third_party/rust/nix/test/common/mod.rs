@@ -37,8 +37,8 @@ cfg_if! {
 #[macro_export]
 macro_rules! require_mount {
     ($name:expr) => {
-        use ::sysctl::{CtlValue, Sysctl};
         use nix::unistd::Uid;
+        use sysctl::{CtlValue, Sysctl};
 
         let ctl = ::sysctl::Ctl::new("vfs.usermount").unwrap();
         if !Uid::current().is_root() && CtlValue::Int(0) == ctl.value().unwrap()
@@ -65,7 +65,7 @@ macro_rules! skip_if_cirrus {
 #[macro_export]
 macro_rules! skip_if_jailed {
     ($name:expr) => {
-        use ::sysctl::{CtlValue, Sysctl};
+        use sysctl::{CtlValue, Sysctl};
 
         let ctl = ::sysctl::Ctl::new("security.jail.jailed").unwrap();
         if let CtlValue::Int(1) = ctl.value().unwrap() {

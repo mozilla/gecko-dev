@@ -12,13 +12,50 @@
 [package]
 edition = "2021"
 name = "minidump-writer"
-version = "0.8.9"
+version = "0.10.1"
 authors = ["Martin Sirringhaus"]
+build = "build.rs"
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Rust rewrite of Breakpad's minidump_writer"
 homepage = "https://github.com/rust-minidump/minidump-writer"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/rust-minidump/minidump-writer"
+
+[lib]
+name = "minidump_writer"
+path = "src/lib.rs"
+
+[[bin]]
+name = "test"
+path = "src/bin/test.rs"
+
+[[example]]
+name = "synthetic"
+path = "examples/synthetic.rs"
+
+[[test]]
+name = "linux_minidump_writer"
+path = "tests/linux_minidump_writer.rs"
+
+[[test]]
+name = "mac_minidump_writer"
+path = "tests/mac_minidump_writer.rs"
+
+[[test]]
+name = "ptrace_dumper"
+path = "tests/ptrace_dumper.rs"
+
+[[test]]
+name = "task_dumper"
+path = "tests/task_dumper.rs"
+
+[[test]]
+name = "windows_minidump_writer"
+path = "tests/windows_minidump_writer.rs"
 
 [dependencies.bitflags]
 version = "2.4"
@@ -39,7 +76,7 @@ version = "0.4"
 version = "0.9"
 
 [dependencies.minidump-common]
-version = "0.21"
+version = "0.22"
 
 [dependencies.scroll]
 version = "0.12"
@@ -61,49 +98,50 @@ features = ["executor"]
 version = "0.9"
 
 [dev-dependencies.minidump]
-version = "0.21"
+version = "0.22"
 
-[target."cfg(any(target_os = \"linux\", target_os = \"android\"))".dependencies.nix]
-version = "0.28"
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies.nix]
+version = "0.29"
 features = [
     "mman",
     "process",
     "ptrace",
     "signal",
+    "uio",
     "user",
 ]
 default-features = false
 
-[target."cfg(any(target_os = \"linux\", target_os = \"android\"))".dependencies.procfs-core]
+[target.'cfg(any(target_os = "linux", target_os = "android"))'.dependencies.procfs-core]
 version = "0.16"
 default-features = false
 
-[target."cfg(target_os = \"macos\")".dependencies.mach2]
+[target.'cfg(target_os = "macos")'.dependencies.mach2]
 version = "0.4"
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.dump_syms]
+[target.'cfg(target_os = "macos")'.dev-dependencies.dump_syms]
 version = "2.2"
 default-features = false
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.minidump-processor]
-version = "0.21"
+[target.'cfg(target_os = "macos")'.dev-dependencies.minidump-processor]
+version = "0.22"
 default-features = false
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.minidump-unwind]
-version = "0.21"
+[target.'cfg(target_os = "macos")'.dev-dependencies.minidump-unwind]
+version = "0.22"
 features = ["debuginfo"]
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.similar-asserts]
+[target.'cfg(target_os = "macos")'.dev-dependencies.similar-asserts]
 version = "1.5"
 
-[target."cfg(target_os = \"macos\")".dev-dependencies.uuid]
+[target.'cfg(target_os = "macos")'.dev-dependencies.uuid]
 version = "1.4"
 
-[target."cfg(target_os = \"windows\")".dependencies.bitflags]
+[target.'cfg(target_os = "windows")'.dependencies.bitflags]
 version = "2.4"
 
 [target."cfg(unix)".dependencies.goblin]
-version = "0.8"
+version = "0.8.2"
 
 [target."cfg(unix)".dependencies.libc]
 version = "0.2"

@@ -148,8 +148,11 @@ bindgen_0_63 = { package = "bindgen", path = "build/rust/bindgen-0.63" }
 # Locally patch bindgen for https://github.com/rust-lang/rust-bindgen/pull/2824
 bindgen = { path = "third_party/rust/bindgen" }
 
-# Patch nix 0.26 to 0.28
+# Patch nix 0.26 to 0.29
 nix = { path = "build/rust/nix" }
+
+# Patch cfg_aliases 0.1 to 0.2
+cfg_aliases = { path = "build/rust/cfg_aliases" }
 
 # Patch indexmap 2.0 to 1.0
 indexmap = { path = "build/rust/indexmap" }

@@ -1,7 +1,6 @@
-use crate::dir_section::FileWriterError;
-use crate::maps_reader::MappingInfo;
-use crate::mem_writer::MemoryWriterError;
-use crate::thread_info::Pid;
+use crate::{
+    dir_section::FileWriterError, maps_reader::MappingInfo, mem_writer::MemoryWriterError, Pid,
+};
 use goblin;
 use nix::errno::Errno;
 use std::ffi::OsString;
@@ -9,20 +8,27 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum InitError {
+    #[error("failed to read auxv")]
+    ReadAuxvFailed(crate::auxv::AuxvError),
     #[error("IO error for file {0}")]
     IOError(String, #[source] std::io::Error),
-    #[error("No auxv entry found for PID {0}")]
-    NoAuxvEntryFound(Pid),
     #[error("crash thread does not reference principal mapping")]
     PrincipalMappingNotReferenced,
     #[error("Failed Android specific late init")]
     AndroidLateInitError(#[from] AndroidError),
     #[error("Failed to read the page size")]
     PageSizeError(#[from] Errno),
+    #[error("Ptrace does not function within the same process")]
+    CannotPtraceSameProcess,
 }
 
 #[derive(Error, Debug)]
 pub enum MapsReaderError {
+    #[error("Couldn't parse as ELF file")]
+    ELFParsingFailed(#[from] goblin::error::Error),
+    #[error("No soname found (filename: {})", .0.to_string_lossy())]
+    NoSoName(OsString, #[source] ModuleReaderError),
+
     // parse_from_line()
     #[error("Map entry malformed: No {0} found")]
     MapEntryMalformed(&'static str),
@@ -40,22 +46,6 @@ pub enum MapsReaderError {
     MmapSanityCheckFailed,
     #[error("Symlink does not match ({0} vs. {1})")]
     SymlinkError(std::path::PathBuf, std::path::PathBuf),
-
-    // fixup_deleted_file()
-    #[error("Couldn't parse as ELF file")]
-    ELFParsingFailed(#[from] goblin::error::Error),
-    #[error("An anonymous mapping has no associated file")]
-    AnonymousMapping,
-    #[error("No soname found (filename: {})", .0.to_string_lossy())]
-    NoSoName(OsString),
-}
-
-#[derive(Debug, Error)]
-pub enum AuxvReaderError {
-    #[error("Invalid auxv format (should not hit EOF before AT_NULL)")]
-    InvalidFormat,
-    #[error("IO Error")]
-    IOError(#[from] std::io::Error),
 }
 
 #[derive(Debug, Error)]
@@ -97,6 +87,16 @@ pub enum AndroidError {
 }
 
 #[derive(Debug, Error)]
+#[error("Copy from process {child} failed (source {src}, offset: {offset}, length: {length})")]
+pub struct CopyFromProcessError {
+    pub child: Pid,
+    pub src: usize,
+    pub offset: usize,
+    pub length: usize,
+    pub source: nix::Error,
+}
+
+#[derive(Debug, Error)]
 pub enum DumperError {
     #[error("Failed to get PAGE_SIZE from system")]
     SysConfError(#[from] nix::Error),
@@ -106,8 +106,8 @@ pub enum DumperError {
     PtraceAttachError(Pid, #[source] nix::Error),
     #[error("nix::ptrace::detach(Pid={0}) failed")]
     PtraceDetachError(Pid, #[source] nix::Error),
-    #[error("Copy from process {0} failed (source {1}, offset: {2}, length: {3})")]
-    CopyFromProcessError(Pid, usize, usize, usize, #[source] nix::Error),
+    #[error(transparent)]
+    CopyFromProcessError(#[from] CopyFromProcessError),
     #[error("Skipped thread {0} due to it being part of the seccomp sandbox's trusted code")]
     DetachSkippedThread(Pid),
     #[error("No threads left to suspend out of {0}")]
@@ -118,8 +118,8 @@ pub enum DumperError {
     TryFromSliceError(#[from] std::array::TryFromSliceError),
     #[error("Couldn't parse as ELF file")]
     ELFParsingFailed(#[from] goblin::error::Error),
-    #[error("No build-id found")]
-    NoBuildIDFound,
+    #[error("Could not read value from module")]
+    ModuleReaderError(#[from] ModuleReaderError),
     #[error("Not safe to open mapping: {}", .0.to_string_lossy())]
     NotSafeToOpenMapping(OsString),
     #[error("Failed integer conversion")]
@@ -250,4 +250,64 @@ pub enum WriterError {
     FileWriterError(#[from] FileWriterError),
     #[error("Failed to get current timestamp when writing header of minidump")]
     SystemTimeError(#[from] std::time::SystemTimeError),
+}
+
+#[derive(Debug, Error)]
+pub enum ModuleReaderError {
+    #[error("failed to read module file ({path}): {error}")]
+    MapFile {
+        path: std::path::PathBuf,
+        #[source]
+        error: std::io::Error,
+    },
+    #[error("failed to read module memory: {length} bytes at {offset}{}: {error}", .start_address.map(|addr| format!(" (start address: {addr})")).unwrap_or_default())]
+    ReadModuleMemory {
+        offset: u64,
+        length: u64,
+        start_address: Option<u64>,
+        #[source]
+        error: nix::Error,
+    },
+    #[error("failed to parse ELF memory: {0}")]
+    Parsing(#[from] goblin::error::Error),
+    #[error("no build id notes in program headers")]
+    NoProgramHeaderNote,
+    #[error("no string table available to locate note sections")]
+    NoStrTab,
+    #[error("no build id note sections")]
+    NoSectionNote,
+    #[error("the ELF data contains no program headers")]
+    NoProgramHeaders,
+    #[error("the ELF data contains no sections")]
+    NoSections,
+    #[error("the ELF data does not have a .text section from which to generate a build id")]
+    NoTextSection,
+    #[error(
+        "failed to calculate build id\n\
+    ... from program headers: {program_headers}\n\
+    ... from sections: {section}\n\
+    ... from the text section: {section}"
+    )]
+    NoBuildId {
+        program_headers: Box<Self>,
+        section: Box<Self>,
+        generated: Box<Self>,
+    },
+    #[error("no dynamic string table section")]
+    NoDynStrSection,
+    #[error("a string in the strtab did not have a terminating nul byte")]
+    StrTabNoNulByte,
+    #[error("no SONAME found in dynamic linking information")]
+    NoSoNameEntry,
+    #[error("no dynamic linking information section")]
+    NoDynamicSection,
+    #[error(
+        "failed to retrieve soname\n\
+    ... from program headers: {program_headers}\n\
+    ... from sections: {section}"
+    )]
+    NoSoName {
+        program_headers: Box<Self>,
+        section: Box<Self>,
+    },
 }

@@ -12,14 +12,23 @@
 [package]
 edition = "2018"
 name = "minidump-common"
-version = "0.21.1"
+version = "0.22.1"
 authors = ["Ted Mielczarek <ted@mielczarek.org>"]
+build = false
+autobins = false
+autoexamples = false
+autotests = false
+autobenches = false
 description = "Some common types for working with minidump files."
 homepage = "https://github.com/rust-minidump/rust-minidump"
 readme = "README.md"
 license = "MIT"
 repository = "https://github.com/rust-minidump/rust-minidump"
 resolver = "2"
+
+[lib]
+name = "minidump_common"
+path = "src/lib.rs"
 
 [dependencies.arbitrary]
 version = "1"

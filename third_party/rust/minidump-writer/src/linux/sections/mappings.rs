@@ -1,5 +1,6 @@
 use super::*;
 use crate::linux::maps_reader::MappingInfo;
+use crate::linux::module_reader::{BuildId, ReadFromModule, SoName};
 
 /// Write information about the mappings in effect. Because we are using the
 /// minidump format, the information about the mappings is pretty limited.
@@ -23,24 +24,53 @@ pub fn write(
         {
             continue;
         }
-        // Note: elf_identifier_for_mapping_index() can manipulate the |mapping.name|.
-        let identifier = dumper
-            .elf_identifier_for_mapping_index(map_idx)
-            .unwrap_or_default();
+        log::debug!("retrieving build id for {:?}", &dumper.mappings[map_idx]);
+        let BuildId(identifier) = dumper
+            .from_process_memory_for_index(map_idx)
+            .or_else(|e| {
+                // If the mapping has an associated name that is a file, try to read the build id
+                // from the file. If there is no note segment with the build id in
+                // the program headers, we can't get to the note section if the section header
+                // table isn't loaded.
+                if let Some(path) = &dumper.mappings[map_idx].name {
+                    let path = std::path::Path::new(&path);
+                    if path.exists() {
+                        log::debug!("failed to get build id from process memory ({e}), attempting to retrieve from {}", path.display());
+                        return BuildId::read_from_file(path)
+                            .map_err(errors::DumperError::ModuleReaderError);
+                    }
+                    log::debug!(
+                        "not attempting to get build id from {}: path does not exist",
+                        path.display()
+                    );
+                }
+                Err(e)
+            })
+            .unwrap_or_else(|e| {
+                log::warn!("failed to get build id for mapping: {e}");
+                BuildId(Vec::new())
+            });
 
         // If the identifier is all 0, its an uninteresting mapping (bmc#1676109)
         if identifier.is_empty() || identifier.iter().all(|&x| x == 0) {
             continue;
         }
 
-        let module = fill_raw_module(buffer, &dumper.mappings[map_idx], &identifier)?;
+        // SONAME should always be accessible through program headers alone, so we don't really
+        // need to fall back to trying to read from the mapping file.
+        let soname = dumper
+            .from_process_memory_for_index(map_idx)
+            .ok()
+            .map(|SoName(n)| n);
+
+        let module = fill_raw_module(buffer, &dumper.mappings[map_idx], &identifier, soname)?;
         modules.push(module);
     }
 
     // Next write all the mappings provided by the caller
     for user in &config.user_mapping_list {
         // GUID was provided by caller.
-        let module = fill_raw_module(buffer, &user.mapping, &user.identifier)?;
+        let module = fill_raw_module(buffer, &user.mapping, &user.identifier, None)?;
         modules.push(module);
     }
 
@@ -63,6 +93,7 @@ fn fill_raw_module(
     buffer: &mut DumpBuf,
     mapping: &MappingInfo,
     identifier: &[u8],
+    soname: Option<String>,
 ) -> Result<MDRawModule, errors::SectionMappingsError> {
     let cv_record = if identifier.is_empty() {
         // Just zeroes
@@ -84,7 +115,7 @@ fn fill_raw_module(
     };
 
     let (file_path, _, so_version) = mapping
-        .get_mapping_effective_path_name_and_version()
+        .get_mapping_effective_path_name_and_version(soname)
         .map_err(|e| errors::SectionMappingsError::GetEffectivePathError(mapping.clone(), e))?;
     let name_header = write_string_to_location(buffer, file_path.to_string_lossy().as_ref())?;
 

@@ -84,7 +84,7 @@ pub fn write_cpu_information(sys_info: &mut MDRawSystemInfo) -> Result<()> {
 
             // special case for vendor_id
             if field == vendor_id_name && !value.is_empty() {
-                vendor_id = value.to_owned();
+                vendor_id = value.into();
             }
         }
     }

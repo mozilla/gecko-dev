@@ -12,6 +12,10 @@
     redundant_semicolons,
     unused_macros,
     unused_macro_rules,
+    // FIXME: temporarily allow dead_code to fix CI:
+    // - https://github.com/rust-lang/libc/issues/3740
+    // - https://github.com/rust-lang/rust/pull/126456
+    dead_code,
 )]
 #![cfg_attr(libc_deny_warnings, deny(warnings))]
 // Attributes needed when building as part of the standard library

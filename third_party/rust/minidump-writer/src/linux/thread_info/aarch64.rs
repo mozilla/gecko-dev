@@ -1,7 +1,8 @@
-use super::{CommonThreadInfo, NT_Elf, Pid};
+use super::{CommonThreadInfo, NT_Elf};
 use crate::{
     errors::ThreadInfoError,
     minidump_cpu::{RawContextCPU, FP_REG_COUNT, GP_REG_COUNT},
+    Pid,
 };
 use nix::sys::ptrace;
 

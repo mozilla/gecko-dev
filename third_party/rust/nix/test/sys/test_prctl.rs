@@ -122,4 +122,38 @@ mod test_prctl {
 
         prctl::set_thp_disable(original).unwrap();
     }
+
+    #[test]
+    fn test_set_vma_anon_name() {
+        use nix::errno::Errno;
+        use nix::sys::mman;
+        use std::num::NonZeroUsize;
+
+        const ONE_K: libc::size_t = 1024;
+        let sz = NonZeroUsize::new(ONE_K).unwrap();
+        let ptr = unsafe {
+            mman::mmap_anonymous(
+                None,
+                sz,
+                mman::ProtFlags::PROT_READ,
+                mman::MapFlags::MAP_SHARED,
+            )
+            .unwrap()
+        };
+        let err = prctl::set_vma_anon_name(
+            ptr,
+            sz,
+            Some(CStr::from_bytes_with_nul(b"[,$\0").unwrap()),
+        )
+        .unwrap_err();
+        assert_eq!(err, Errno::EINVAL);
+        // `CONFIG_ANON_VMA_NAME` kernel config might not be set
+        prctl::set_vma_anon_name(
+            ptr,
+            sz,
+            Some(CStr::from_bytes_with_nul(b"Nix\0").unwrap()),
+        )
+        .unwrap_or_default();
+        prctl::set_vma_anon_name(ptr, sz, None).unwrap_or_default();
+    }
 }

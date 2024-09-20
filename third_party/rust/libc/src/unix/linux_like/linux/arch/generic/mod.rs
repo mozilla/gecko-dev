@@ -218,7 +218,7 @@ cfg_if! {
     // where S stands for size (int, long, struct...)
     // where T stands for type ('f','v','X'...)
     // where N stands for NR (NumbeR)
-    if #[cfg(any(target_arch = "x86", target_arch = "arm"))] {
+    if #[cfg(any(target_arch = "x86", target_arch = "arm", target_arch = "csky"))] {
         pub const FS_IOC_GETFLAGS: ::Ioctl = 0x80046601;
         pub const FS_IOC_SETFLAGS: ::Ioctl = 0x40046602;
         pub const FS_IOC_GETVERSION: ::Ioctl = 0x80047601;

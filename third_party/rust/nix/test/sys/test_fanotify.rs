@@ -1,9 +1,10 @@
 use crate::*;
+use nix::errno::Errno;
 use nix::sys::fanotify::{
     EventFFlags, Fanotify, FanotifyResponse, InitFlags, MarkFlags, MaskFlags,
     Response,
 };
-use std::fs::{read_link, File, OpenOptions};
+use std::fs::{read_link, read_to_string, File, OpenOptions};
 use std::io::ErrorKind;
 use std::io::{Read, Write};
 use std::os::fd::AsRawFd;
@@ -16,6 +17,7 @@ pub fn test_fanotify() {
 
     test_fanotify_notifications();
     test_fanotify_responses();
+    test_fanotify_overflow();
 }
 
 fn test_fanotify_notifications() {
@@ -146,4 +148,72 @@ fn test_fanotify_responses() {
         .unwrap();
 
     file_thread.join().unwrap();
+}
+
+fn test_fanotify_overflow() {
+    let max_events: usize =
+        read_to_string("/proc/sys/fs/fanotify/max_queued_events")
+            .unwrap()
+            .trim()
+            .parse()
+            .unwrap();
+
+    // make sure the kernel is configured with the default value,
+    // just so this test doesn't run forever
+    assert_eq!(max_events, 16384);
+
+    let group = Fanotify::init(
+        InitFlags::FAN_CLASS_NOTIF
+            | InitFlags::FAN_REPORT_TID
+            | InitFlags::FAN_NONBLOCK,
+        EventFFlags::O_RDONLY,
+    )
+    .unwrap();
+    let tempdir = tempfile::tempdir().unwrap();
+    let tempfile = tempdir.path().join("test");
+
+    OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&tempfile)
+        .unwrap();
+
+    group
+        .mark(
+            MarkFlags::FAN_MARK_ADD,
+            MaskFlags::FAN_OPEN,
+            None,
+            Some(&tempfile),
+        )
+        .unwrap();
+
+    thread::scope(|s| {
+        // perform 10 more events to demonstrate some will be dropped
+        for _ in 0..(max_events + 10) {
+            s.spawn(|| {
+                File::open(&tempfile).unwrap();
+            });
+        }
+    });
+
+    // flush the queue until it's empty
+    let mut n = 0;
+    let mut last_event = None;
+    loop {
+        match group.read_events() {
+            Ok(events) => {
+                n += events.len();
+                if let Some(event) = events.last() {
+                    last_event = Some(event.mask());
+                }
+            }
+            Err(e) if e == Errno::EWOULDBLOCK => break,
+            Err(e) => panic!("{e:?}"),
+        }
+    }
+
+    // make sure we read all we expected.
+    // the +1 is for the overflow event.
+    assert_eq!(n, max_events + 1);
+    assert_eq!(last_event, Some(MaskFlags::FAN_Q_OVERFLOW));
 }

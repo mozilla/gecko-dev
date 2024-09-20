@@ -283,6 +283,7 @@ fn test_from_and_into_iterator() {
 #[test]
 #[cfg(not(target_os = "redox"))]
 fn test_sigaction() {
+    let _m = crate::SIGNAL_MTX.lock();
     thread::spawn(|| {
         extern "C" fn test_sigaction_handler(_: libc::c_int) {}
         extern "C" fn test_sigaction_action(
@@ -349,7 +350,7 @@ fn test_sigwait() {
     target_os = "haiku",
     target_os = "hurd",
     target_os = "aix",
-    target_os = "fushsia"
+    target_os = "fuchsia"
 ))]
 #[test]
 fn test_sigsuspend() {
