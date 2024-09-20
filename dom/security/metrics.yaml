@@ -150,3 +150,54 @@ httpsfirst:
       - mjurgens@mozilla.com
       - seceng-telemetry@mozilla.com
     expires: never
+
+security:
+  unexpected_load:
+    type: event
+    description: >
+      Long term want to block all loads from the system principal that
+      cause us to parse non-trivial data. We don't look to break existing
+      functionality and will allow exceptions, for this we are collecting
+      information about unexpected requests triggered by the system
+      principal Our measurement *excludes* acceptable requests. Those are:
+      - annotated using the 'AllowedDeprecatedSystemRequests' loadinfo
+      flag - using a nsContentPolicyType of FETCH, XMLHTTPREQUEST,
+      WEBSOCKET, SAVEAS_DOWNLOAD or IMAGE - with a requested URI object
+      has the flag URI_IS_UI_RESOURCE - if the URL scheme is 'view-source'
+      - if the URL scheme is 'file' and the Content-Type is STYLESHEET or
+      OTHER - if the scheme is 'jar', 'about' or 'moz-extension'
+      This event was generated to correspond to the Legacy Telemetry event
+      security.unexpectedload#systemprincipal.
+    bugs:
+      - https://bugzil.la/1644671
+    data_reviews:
+      - https://bugzil.la/1644671
+    notification_emails:
+      - fbraun@mozilla.com
+      - ckerschb@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The filename's type, see
+          `nsContentSecurityUtils::FilenameToFilenameType(...)`.
+        type: string
+      contenttype:
+        description: >
+          Information about the content-type we expect to receive
+        type: string
+      remotetype:
+        description: >
+          Information about the remoteType in which we triggered the load
+        type: string
+      filedetails:
+        description: >
+          Information about the file that triggered the load
+        type: string
+      redirects:
+        description: >
+          Comma-separated string listing schemes for URLs that we redirected from
+        type: string
+    telemetry_mirror: Security_Unexpectedload_Systemprincipal

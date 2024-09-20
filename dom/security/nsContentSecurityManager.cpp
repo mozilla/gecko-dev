@@ -40,6 +40,7 @@
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/extensions/WebExtensionPolicy.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/Components.h"
 #include "mozilla/ExtensionPolicyService.h"
 #include "mozilla/Logging.h"
@@ -48,7 +49,6 @@
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_security.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/TelemetryComms.h"
 #include "xpcpublic.h"
 #include "nsMimeTypes.h"
 
@@ -839,20 +839,18 @@ void nsContentSecurityManager::MeasureUnexpectedPrivilegedLoads(
           ("- redirects: %s\n\n", loggedRedirects.get()));
 
   // Send Telemetry
-  auto extra = Some<nsTArray<EventExtraEntry>>(
-      {EventExtraEntry{"contenttype"_ns, loggedContentType},
-       EventExtraEntry{"remotetype"_ns, loggedRemoteType},
-       EventExtraEntry{"filedetails"_ns, loggedFileDetails},
-       EventExtraEntry{"redirects"_ns, loggedRedirects}});
-
   if (!sTelemetryEventEnabled.exchange(true)) {
     Telemetry::SetEventRecordingEnabled("security"_ns, true);
   }
 
-  Telemetry::EventID eventType =
-      Telemetry::EventID::Security_Unexpectedload_Systemprincipal;
-  Telemetry::RecordEvent(eventType, mozilla::Some(fileNameTypeAndDetails.first),
-                         extra);
+  glean::security::UnexpectedLoadExtra extra = {
+      .contenttype = Some(loggedContentType),
+      .filedetails = Some(loggedFileDetails),
+      .redirects = Some(loggedRedirects),
+      .remotetype = Some(loggedRemoteType),
+      .value = Some(fileNameTypeAndDetails.first),
+  };
+  glean::security::unexpected_load.Record(Some(extra));
 }
 
 /* static */
