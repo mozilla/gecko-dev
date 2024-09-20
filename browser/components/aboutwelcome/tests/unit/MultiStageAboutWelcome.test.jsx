@@ -505,6 +505,11 @@ describe("MultiStageAboutWelcome module", () => {
                   label: {
                     raw: "test2 label",
                   },
+                  flair: {
+                    text: {
+                      raw: "New!",
+                    },
+                  },
                   action: {
                     type: "SET_PREF",
                     data: {
@@ -572,6 +577,14 @@ describe("MultiStageAboutWelcome module", () => {
         );
         selectOption.simulate("keydown", { key: "Enter" });
         assert.calledOnce(AboutWelcomeUtils.handleUserAction);
+      });
+      it("should render flair", () => {
+        const wrapper = mount(
+          <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
+        );
+        const flair = wrapper.find(".flair");
+        assert.ok(flair.exists());
+        assert.ok(flair.text() === "New!");
       });
     });
 

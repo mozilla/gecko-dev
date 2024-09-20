@@ -1561,7 +1561,8 @@ const SingleSelect = ({
     label = "",
     theme,
     tooltip,
-    type = ""
+    type = "",
+    flair
   }) => {
     const value = id || theme;
     const selected = theme && theme === activeTheme || isSingleSelect && activeSingleSelect === value;
@@ -1586,7 +1587,11 @@ const SingleSelect = ({
       className: `select-item ${type}`,
       title: value,
       onKeyDown: e => handleKeyDown(e)
-    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+    }, flair ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+      text: valOrObj(flair.text)
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", {
+      className: "flair"
+    })) : "", /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
       text: valOrObj(description)
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
       type: "radio",

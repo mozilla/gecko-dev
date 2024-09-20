@@ -63,6 +63,7 @@ export const SingleSelect = ({
               theme,
               tooltip,
               type = "",
+              flair,
             }) => {
               const value = id || theme;
               const selected =
@@ -97,6 +98,13 @@ export const SingleSelect = ({
                     title={value}
                     onKeyDown={e => handleKeyDown(e)}
                   >
+                    {flair ? (
+                      <Localized text={valOrObj(flair.text)}>
+                        <span className="flair"></span>
+                      </Localized>
+                    ) : (
+                      ""
+                    )}
                     <Localized text={valOrObj(description)}>
                       <input
                         type="radio"

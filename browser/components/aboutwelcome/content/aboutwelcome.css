@@ -2223,15 +2223,29 @@ html {
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) {
   flex-direction: row;
   justify-content: flex-start;
+  padding-top: 5px;
 }
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item {
   flex: unset;
+  position: relative;
+  padding-top: 5px;
 }
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:focus-visible {
   outline: none;
 }
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:focus-visible .icon {
   outline: initial;
+}
+.onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item .flair {
+  height: 18px;
+  border-radius: 4px;
+  background-color: #9059FF;
+  color: #FFF;
+  padding: 2px 8px;
+  position: absolute;
+  right: 1px;
+  top: -10px;
+  line-height: 1;
 }
 .onboardingContainer .tiles-single-select-section.wallpaper .select-item, .onboardingContainer .tiles-single-select-section.theme .select-item {
   width: 180px;

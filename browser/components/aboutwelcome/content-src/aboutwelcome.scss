@@ -1524,9 +1524,12 @@ html {
     &.single-select:not(.wallpaper, .theme) {
       flex-direction: row;
       justify-content: flex-start;
+      padding-top: 5px;
 
       .select-item {
         flex: unset;
+        position: relative;
+        padding-top: 5px;
 
         &:focus-visible {
           outline: none;
@@ -1534,6 +1537,18 @@ html {
           .icon {
             outline: initial;
           }
+        }
+
+        .flair {
+          height: 18px;
+          border-radius: 4px;
+          background-color: #9059FF;
+          color: #FFF;
+          padding: 2px 8px;
+          position: absolute;
+          right: 1px;
+          top: -10px;
+          line-height: 1;
         }
       }
     }
