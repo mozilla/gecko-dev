@@ -189,12 +189,7 @@ export let HomePage = {
       console.error(
         `Ignoring homepage setting for ${value} as it is on the ignore list.`
       );
-      Services.telemetry.recordEvent(
-        "homepage",
-        "preference",
-        "ignore",
-        "set_blocked"
-      );
+      Glean.homepage.preferenceIgnore.record({ value: "set_blocked" });
       return false;
     }
     Services.prefs.setStringPref(kPrefName, value);
@@ -298,12 +293,7 @@ export let HomePage = {
         } else {
           this.clear();
         }
-        Services.telemetry.recordEvent(
-          "homepage",
-          "preference",
-          "ignore",
-          "saved_reset"
-        );
+        Glean.homepage.preferenceIgnore.record({ value: "saved_reset" });
       }
     }
   },

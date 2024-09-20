@@ -269,15 +269,10 @@ this.chrome_settings_overrides = class extends ExtensionAPI {
       const ignoreHomePageUrl = await HomePage.shouldIgnore(homepageUrl);
 
       if (ignoreHomePageUrl) {
-        Services.telemetry.recordEvent(
-          "homepage",
-          "preference",
-          "ignore",
-          "set_blocked_extension",
-          {
-            webExtensionId: extension.id,
-          }
-        );
+        Glean.homepage.preferenceIgnore.record({
+          value: "set_blocked_extension",
+          webExtensionId: extension.id,
+        });
       } else {
         await handleHomepageUrl(extension, homepageUrl);
       }
