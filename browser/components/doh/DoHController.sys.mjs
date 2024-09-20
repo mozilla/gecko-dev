@@ -506,14 +506,9 @@ export const DoHController = {
     resultsForTelemetry.filtering = filtering.join(",");
     resultsForTelemetry.enterprise = enterprise.join(",");
     resultsForTelemetry.platform = platform.join(",");
+    resultsForTelemetry.value = decision;
 
-    Services.telemetry.recordEvent(
-      HEURISTICS_TELEMETRY_CATEGORY,
-      "evaluate_v2",
-      "heuristics",
-      decision,
-      resultsForTelemetry
-    );
+    Glean.doh.evaluateV2Heuristics.record(resultsForTelemetry);
   },
 
   async setState(state) {
@@ -542,12 +537,9 @@ export const DoHController = {
         break;
     }
 
-    Services.telemetry.recordEvent(
-      HEURISTICS_TELEMETRY_CATEGORY,
-      "state",
-      state,
-      "null"
-    );
+    Glean.doh["state" + state[0].toUpperCase() + state.slice(1)].record({
+      value: "null",
+    });
 
     let modePref = lazy.Preferences.get(NETWORK_TRR_MODE_PREF);
     if (state == "manuallyDisabled") {
@@ -648,12 +640,9 @@ export const DoHController = {
 
     let setDryRunResultAndRecordTelemetry = trrUri => {
       lazy.Preferences.set(TRR_SELECT_DRY_RUN_RESULT_PREF, trrUri);
-      Services.telemetry.recordEvent(
-        TRRSELECT_TELEMETRY_CATEGORY,
-        "trrselect",
-        "dryrunresult",
-        trrUri.substring(0, 40) // Telemetry payload max length
-      );
+      Glean.securityDohTrrPerformance.trrselectDryrunresult.record({
+        value: trrUri.substring(0, 40), // Telemetry payload max length
+      });
     };
 
     if (lazy.kIsInAutomation) {

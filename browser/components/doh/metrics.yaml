@@ -1,0 +1,281 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Security'
+
+doh:
+  evaluate_v2_heuristics:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.evaluate_v2#heuristics.
+    bugs:
+      - https://bugzil.la/1573840
+      - https://bugzil.la/1631609
+      - https://bugzil.la/1603779
+      - https://bugzil.la/1654714
+    data_reviews:
+      - https://bugzil.la/1573840
+      - https://bugzil.la/1631609
+      - https://bugzil.la/1603779
+      - https://bugzil.la/1654714
+    notification_emails:
+      - nhnt11@mozilla.com
+      - ddamjanovic@mozilla.com
+      - seceng-telemetry@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      canaries:
+        description: >
+          Comma-separated list of canaries that were detected (canary,zscalerCanary)
+        type: string
+      filtering:
+        description: >
+          Comma-separated list of detected parental controls/content filtering (browserParent,google,youtube)
+        type: string
+      enterprise:
+        description: >
+          Comma-separated list of detected enterprise config (policy,modifiedRoots,thirdPartyRoots)
+        type: string
+      steeredProvider:
+        description: >
+          Whether we detected a steering provider
+        type: string
+      evaluateReason:
+        description: >
+          The reason for running heuristics - startup or netchange
+        type: string
+      networkID:
+        description: >
+          An ID representing the network on which heuristics were run, unique to this client
+        type: string
+      captiveState:
+        description: >
+          The Captive Portal Service state - unknown, not_captive, locked, or unlocked
+        type: string
+      platform:
+        description: >
+          Comma-separated list of platform attributes that would cause split-horizon issues (vpn, proxy, nrpt)
+        type: string
+    telemetry_mirror: Doh_EvaluateV2_Heuristics
+
+  state_enabled:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#enabled.
+    bugs: &doh_state_bugs
+      - https://bugzil.la/1573840
+      - https://bugzil.la/1631609
+      - https://bugzil.la/1603779
+    data_reviews: &doh_state_data_reviews
+      - https://bugzil.la/1573840
+      - https://bugzil.la/1631609
+      - https://bugzil.la/1603779
+    notification_emails: &doh_state_emails
+      - nhnt11@mozilla.com
+      - ddamjanovic@mozilla.com
+      - seceng-telemetry@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    extra_keys: &doh_state_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Doh_State_Enabled
+
+  state_disabled:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#disabled.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Disabled
+
+  state_manually_disabled:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#manuallyDisabled.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Manuallydisabled
+
+  state_policy_disabled:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#policyDisabled.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Policydisabled
+
+  state_uninstalled:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#uninstalled.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Uninstalled
+
+  state_uiok:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#UIOk.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Uiok
+
+  state_uidisabled:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#UIDisabled.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Uidisabled
+
+  state_rollback:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#rollback.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Rollback
+
+  state_shutdown:
+    type: event
+    description: >
+      Results of DoH heuristics at startup and after network changes.
+      This event was generated to correspond to the Legacy Telemetry event
+      doh.state#shutdown.
+    bugs: *doh_state_bugs
+    data_reviews: *doh_state_data_reviews
+    notification_emails: *doh_state_emails
+    expires: never
+    extra_keys: *doh_state_extra
+    telemetry_mirror: Doh_State_Shutdown
+
+security.doh.trr_performance:
+  resolved_record:
+    type: event
+    description: >
+      How long it took to resolve a test domain using TRR.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.trrPerformance.resolved#record.
+    bugs:
+      - https://bugzil.la/1613790
+    data_reviews:
+      - https://bugzil.la/1613790
+    notification_emails:
+      - nhnt11@mozilla.com
+      - ddamjanovic@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      domain:
+        description: >
+          The resolved domain.
+        type: string
+      trr:
+        description: >
+          The TRR provider used.
+        type: string
+      time:
+        description: >
+          The network time for the resolution.
+        type: string
+      status:
+        description: >
+          The DNS status code.
+        type: string
+      retryCount:
+        description: >
+          The number of lookup attempts before success.
+        type: string
+      networkUnstable:
+        description: >
+          Whether there was network fluctuation while gathering the results.
+        type: string
+      captivePortal:
+        description: >
+          Whether there a captive portal was detected during the run.
+        type: string
+    telemetry_mirror: SecurityDohTrrperformance_Resolved_Record
+
+  trrselect_dryrunresult:
+    type: event
+    description: >
+      The URL of the DoH provider chosen by the TRR selection dry-run
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.trrPerformance.trrselect#dryrunresult.
+    bugs:
+      - https://bugzil.la/1631822
+    data_reviews:
+      - https://bugzil.la/1631822
+    notification_emails:
+      - nhnt11@mozilla.com
+      - ddamjanovic@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: SecurityDohTrrperformance_Trrselect_Dryrunresult

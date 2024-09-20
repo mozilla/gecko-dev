@@ -206,21 +206,16 @@ export class LookupAggregator {
         return;
       }
 
-      Services.telemetry.recordEvent(
-        "security.doh.trrPerformance",
-        "resolved",
-        "record",
-        "success",
-        {
-          domain,
-          trr,
-          status: status.toString(),
-          time: time.toString(),
-          retryCount: retryCount.toString(),
-          networkUnstable: this.networkUnstable.toString(),
-          captivePortal: this.captivePortal.toString(),
-        }
-      );
+      Glean.securityDohTrrPerformance.resolvedRecord.record({
+        value: "success",
+        domain,
+        trr,
+        status,
+        time,
+        retryCount,
+        networkUnstable: this.networkUnstable,
+        captivePortal: this.captivePortal,
+      });
     }
 
     this.onCompleteCallback();
