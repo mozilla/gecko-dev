@@ -2950,10 +2950,15 @@ static bool CloneForDeadBranches(TempAllocator& alloc,
   return true;
 }
 
+struct ComputedTruncateKind {
+  TruncateKind kind = TruncateKind::NoTruncate;
+  bool shouldClone = false;
+};
+
 // Examine all the users of |candidate| and determine the most aggressive
 // truncate kind that satisfies all of them.
-static TruncateKind ComputeRequestedTruncateKind(const MDefinition* candidate,
-                                                 bool* shouldClone) {
+static ComputedTruncateKind ComputeRequestedTruncateKind(
+    const MDefinition* candidate) {
   bool isCapturedResult =
       false;  // Check if used by a recovered instruction or a resume point.
   bool isObservableResult =
@@ -3022,6 +3027,7 @@ static TruncateKind ComputeRequestedTruncateKind(const MDefinition* candidate,
   // recover instruction, and we have to truncate its result, then we might
   // have to either recover the result during the bailout, or avoid the
   // truncation.
+  bool shouldClone = false;
   if (isCapturedResult && needsConversion && !safeToConvert) {
     // If the result can be recovered from all the resume points (not needed
     // for iterating over the inlined frames), and this instruction can be
@@ -3031,21 +3037,20 @@ static TruncateKind ComputeRequestedTruncateKind(const MDefinition* candidate,
     // range.
     if (!JitOptions.disableRecoverIns && isRecoverableResult &&
         candidate->canRecoverOnBailout()) {
-      *shouldClone = true;
+      shouldClone = true;
     } else {
       kind = std::min(kind, TruncateKind::TruncateAfterBailouts);
     }
   }
 
-  return kind;
+  return {kind, shouldClone};
 }
 
-static TruncateKind ComputeTruncateKind(const MDefinition* candidate,
-                                        bool* shouldClone) {
+static ComputedTruncateKind ComputeTruncateKind(const MDefinition* candidate) {
   // Compare operations might coerce its inputs to int32 if the ranges are
   // correct.  So we do not need to check if all uses are coerced.
   if (candidate->isCompare()) {
-    return TruncateKind::TruncateAfterBailouts;
+    return {TruncateKind::TruncateAfterBailouts};
   }
 
   // Set truncated flag if range analysis ensure that it has no
@@ -3063,11 +3068,11 @@ static TruncateKind ComputeTruncateKind(const MDefinition* candidate,
   }
 
   if (canHaveRoundingErrors) {
-    return TruncateKind::NoTruncate;
+    return {TruncateKind::NoTruncate};
   }
 
   // Ensure all observable uses are truncated.
-  return ComputeRequestedTruncateKind(candidate, shouldClone);
+  return ComputeRequestedTruncateKind(candidate);
 }
 
 static void RemoveTruncatesOnOutput(MDefinition* truncated) {
@@ -3213,8 +3218,7 @@ bool RangeAnalysis::truncate() {
         default:;
       }
 
-      bool shouldClone = false;
-      TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
+      auto [kind, shouldClone] = ComputeTruncateKind(*iter);
 
       // Truncate this instruction if possible.
       if (!canTruncate(*iter, kind) || !iter->canTruncate()) {
@@ -3250,8 +3254,7 @@ bool RangeAnalysis::truncate() {
     }
     for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd());
          iter != end; ++iter) {
-      bool shouldClone = false;
-      TruncateKind kind = ComputeTruncateKind(*iter, &shouldClone);
+      auto [kind, shouldClone] = ComputeTruncateKind(*iter);
 
       // Truncate this phi if possible.
       if (shouldClone || !canTruncate(*iter, kind) || !iter->canTruncate()) {
