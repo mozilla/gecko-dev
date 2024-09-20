@@ -35,7 +35,7 @@
     center;
   background-size: 12px;
   -moz-context-properties: fill;
-  fill: var(--theme-icon-dimmed-color);
+  fill: var(--log-icon-color);
 }
 
 .eager-evaluation-result__text {
