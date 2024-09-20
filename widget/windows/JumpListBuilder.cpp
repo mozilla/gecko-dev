@@ -261,10 +261,12 @@ JumpListBuilder::ObtainAndCacheFaviconAsync(nsIURI* aFaviconURI, JSContext* aCx,
       mozilla::widget::FaviconHelper::IconCacheDir::JumpListCacheDir)
       ->Then(
           GetCurrentSerialEventTarget(), __func__,
-          [promise](nsString aIcoFilePath) {
-            promise->MaybeResolve(aIcoFilePath);
+          [promiseHolder](nsString aIcoFilePath) {
+            promiseHolder.get()->MaybeResolve(aIcoFilePath);
           },
-          [promise](nsresult aResult) { promise->MaybeReject(aResult); });
+          [promiseHolder](nsresult aResult) {
+            promiseHolder.get()->MaybeReject(aResult);
+          });
 
   promise.forget(aPromise);
   return NS_OK;
