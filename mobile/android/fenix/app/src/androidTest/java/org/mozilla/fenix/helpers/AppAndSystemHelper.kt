@@ -681,6 +681,25 @@ object AppAndSystemHelper {
         }
     }
 
+    // Enable or disable the back gesture from the edge of the screen on the device.
+    fun enableOrDisableBackGestureNavigationOnDevice(backGestureNavigationEnabled: Boolean) {
+        if (backGestureNavigationEnabled) {
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Trying to enable the back gesture navigation from the right edge of the screen on the device")
+            mDevice.executeShellCommand("settings put secure back_gesture_inset_scale_right 1")
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Successfully enabled the back gesture navigation from the right edge of the screen on the device")
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Trying to enable the back gesture navigation from the left edge of the screen on the device")
+            mDevice.executeShellCommand("settings put secure back_gesture_inset_scale_left 1")
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Successfully enabled the back gesture navigation from the left edge of the screen on the device on the device")
+        } else {
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Trying to disable the back gesture navigation from the right edge of the screen on the device")
+            mDevice.executeShellCommand("settings put secure back_gesture_inset_scale_right 0")
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Successfully disabled the back gesture navigation from the right edge of the screen on the device")
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Trying to disable the back gesture navigation from the left edge of the screen on the device")
+            mDevice.executeShellCommand("settings put secure back_gesture_inset_scale_left 0")
+            Log.i(TAG, "enableOrDisableBackGestureNavigationOnDevice: Successfully disabled the back gesture navigation from the left edge of the screen on the device on the device")
+        }
+    }
+
     fun isNetworkConnected(): Boolean {
         val connectivityManager =
             appContext.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
