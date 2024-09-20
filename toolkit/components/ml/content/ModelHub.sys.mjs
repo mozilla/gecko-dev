@@ -79,8 +79,8 @@ function allowedHub(urlString) {
     const host = url.hostname;
     const fullPrefix = `${scheme}//${host}`;
 
-    return ALLOWED_HUBS.some(allowedHub => {
-      const [allowedScheme, allowedHost] = allowedHub.split("://");
+    return ALLOWED_HUBS.some(hubName => {
+      const [allowedScheme, allowedHost] = hubName.split("://");
       if (allowedHost === "*") {
         return `${allowedScheme}:` === scheme;
       }
@@ -747,13 +747,28 @@ export class IndexedDBCache {
 
     let deletePromises = [];
     const filesToMaybeDelete = new Set();
-    for (const { taskName, model, revision, file } of tasks) {
-      if (filterFn && !filterFn({ taskName, model, revision, file })) {
+    for (const task of tasks) {
+      if (
+        filterFn &&
+        !filterFn({
+          taskName: task.taskName,
+          model: task.model,
+          revision: task.revision,
+          file: task.file,
+        })
+      ) {
         continue;
       }
-      filesToMaybeDelete.add(JSON.stringify([model, revision, file]));
+      filesToMaybeDelete.add(
+        JSON.stringify([task.model, task.revision, task.file])
+      );
       deletePromises.push(
-        this.#deleteData(this.taskStoreName, [taskName, model, revision, file])
+        this.#deleteData(this.taskStoreName, [
+          task.taskName,
+          task.model,
+          task.revision,
+          task.file,
+        ])
       );
     }
     await Promise.all(deletePromises);
@@ -774,17 +789,25 @@ export class IndexedDBCache {
     const filesToDelete = filesToMaybeDelete.difference(remainingFiles);
 
     for (const key of filesToDelete) {
-      const [model, revision, file] = JSON.parse(key);
+      const [modelValue, revisionValue, fileValue] = JSON.parse(key);
 
       deletePromises.push(
         this.#deleteData(
           this.fileStoreName,
-          this.#generatePrimaryKey({ model, revision, file })
+          this.#generatePrimaryKey({
+            model: modelValue,
+            revision: revisionValue,
+            file: fileValue,
+          })
         )
       );
 
       deletePromises.push(
-        this.#deleteData(this.headersStoreName, [model, revision, file])
+        this.#deleteData(this.headersStoreName, [
+          modelValue,
+          revisionValue,
+          fileValue,
+        ])
       );
     }
 
@@ -818,12 +841,12 @@ export class IndexedDBCache {
 
     const filePromises = [];
 
-    for (const { model, revision } of modelRevisions) {
+    for (const task of modelRevisions) {
       filePromises.push(
         this.#getData({
           storeName: this.headersStoreName,
           indexName: this.#indices.modelRevisionIndex.name,
-          key: [model, revision],
+          key: [task.model, task.revision],
         })
       );
     }
