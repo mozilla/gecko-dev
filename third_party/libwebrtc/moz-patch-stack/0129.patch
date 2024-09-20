@@ -1,0 +1,50 @@
+From: Jan Grulich <jgrulich@redhat.com>
+Date: Tue, 24 Sep 2024 11:20:00 +0000
+Subject: Bug 1920460 - WebRTC backport: PipeWire camera: get max FPS for each
+ format when specified as list r=pehrsons,webrtc-reviewers
+
+In many cases, the framerate can be specified as list of possible values
+and in that case, we would end up with max FPS to be set to 0 as this
+case was not handled.
+
+This is a simple backport of an WebRTC upstream change.
+
+Upstream commit: 3aa47cfd30dc965446cf1405bb062b756a62e6d1
+
+Differential Revision: https://phabricator.services.mozilla.com/D223112
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/90f241650577182dbd08f8c5b96c645cf48ff397
+---
+ modules/video_capture/linux/pipewire_session.cc | 12 ++++++++++--
+ 1 file changed, 10 insertions(+), 2 deletions(-)
+
+diff --git a/modules/video_capture/linux/pipewire_session.cc b/modules/video_capture/linux/pipewire_session.cc
+index d9bc49d521..e5db278ff6 100644
+--- a/modules/video_capture/linux/pipewire_session.cc
++++ b/modules/video_capture/linux/pipewire_session.cc
+@@ -17,6 +17,8 @@
+ #include <spa/param/video/raw.h>
+ #include <spa/pod/parser.h>
+ 
++#include <algorithm>
++
+ #include "common_video/libyuv/include/webrtc_libyuv.h"
+ #include "modules/video_capture/device_info_impl.h"
+ #include "rtc_base/logging.h"
+@@ -152,9 +154,15 @@ void PipeWireNode::OnNodeParam(void* data,
+ 
+       fract = static_cast<spa_fraction*>(SPA_POD_BODY(val));
+ 
+-      if (choice == SPA_CHOICE_None)
++      if (choice == SPA_CHOICE_None) {
+         cap.maxFPS = 1.0 * fract[0].num / fract[0].denom;
+-      else if (choice == SPA_CHOICE_Range && fract[1].num > 0)
++      } else if (choice == SPA_CHOICE_Enum) {
++        for (uint32_t i = 1; i < n_items; i++) {
++          cap.maxFPS = std::max(
++              static_cast<int32_t>(1.0 * fract[i].num / fract[i].denom),
++              cap.maxFPS);
++        }
++      } else if (choice == SPA_CHOICE_Range && fract[1].num > 0)
+         cap.maxFPS = 1.0 * fract[1].num / fract[1].denom;
+     }
+   }
