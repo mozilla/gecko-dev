@@ -352,3 +352,61 @@ intl.ui.browser_language:
     expires: 135
     extra_keys: *intl_ui_browserLanguage_manage_extra
     telemetry_mirror: IntlUiBrowserlanguage_SetFallback_Dialog
+
+aboutpreferences:
+  show_initial:
+    type: event
+    description: >
+      This is recorded when a pane is shown direclty. This happens
+      with or without a hash in the URL. The "general" pane loads
+      without such a hash, when the pane is loaded via the "main"
+      entrypoints in the menu system or with shortcuts.
+      This event was generated to correspond to the Legacy Telemetry event
+      aboutpreferences.show#initial.
+    bugs: &aboutpreferences_show_bugs
+      - https://bugzil.la/1738187
+    data_reviews: &aboutpreferences_show_data_reviews
+      - https://bugzil.la/1738187
+    notification_emails: &aboutpreferences_show_emails
+      - pdahiya@mozilla.com
+      - gijs@mozilla.com
+    expires: never
+    extra_keys: &aboutpreferences_show_extra
+      value:
+        description: >
+          identifier of pane shown.
+        type: string
+    telemetry_mirror: Aboutpreferences_Show_Initial
+    no_lint:
+      - COMMON_PREFIX
+
+  show_click:
+    type: event
+    description: >
+      This is recorded when a pane is shown when user clicks category
+      name inside about:preferences.
+      This event was generated to correspond to the Legacy Telemetry event
+      aboutpreferences.show#click.
+    bugs: *aboutpreferences_show_bugs
+    data_reviews: *aboutpreferences_show_data_reviews
+    notification_emails: *aboutpreferences_show_emails
+    expires: never
+    extra_keys: *aboutpreferences_show_extra
+    telemetry_mirror: Aboutpreferences_Show_Click
+    no_lint:
+      - COMMON_PREFIX
+
+  show_hash:
+    type: event
+    description: >
+      This is recorded when a pane is shown via a hash change in url.
+      This event was generated to correspond to the Legacy Telemetry event
+      aboutpreferences.show#hash.
+    bugs: *aboutpreferences_show_bugs
+    data_reviews: *aboutpreferences_show_data_reviews
+    notification_emails: *aboutpreferences_show_emails
+    expires: never
+    extra_keys: *aboutpreferences_show_extra
+    telemetry_mirror: Aboutpreferences_Show_Hash
+    no_lint:
+      - COMMON_PREFIX
