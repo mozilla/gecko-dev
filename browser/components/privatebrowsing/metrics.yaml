@@ -48,3 +48,63 @@ private_browsing.reset_pbm:
     notification_emails:
       - pbz@mozilla.com
     expires: never
+
+aboutprivatebrowsing:
+  click_info_link:
+    type: event
+    description: >
+      This is recorded when a user clicks a link on the private browsing
+      newtab.
+      This event was generated to correspond to the Legacy Telemetry event
+      aboutprivatebrowsing.click#info_link.
+    bugs: &aboutprivatebrowsing_click_bugs
+      - https://bugzil.la/1709344
+      - https://bugzil.la/1754635
+      - https://bugzil.la/1781973
+      - https://bugzil.la/1811146
+      - https://bugzil.la/1841925
+      - https://bugzil.la/1871197
+    data_reviews: &aboutprivatebrowsing_click_data_reviews
+      - https://bugzil.la/1709344
+      - https://bugzil.la/1754635
+      - https://bugzil.la/1781973
+      - https://bugzil.la/1811146
+      - https://bugzil.la/1841925
+      - https://bugzil.la/1871197
+    notification_emails: &aboutprivatebrowsing_click_emails
+      - pbz@mozilla.com
+      - tihuang@mozilla.com
+    expires: 134
+    no_lint:
+      - COMMON_PREFIX
+    telemetry_mirror: Aboutprivatebrowsing_Click_InfoLink
+
+  click_promo_link:
+    type: event
+    description: >
+      This is recorded when a user clicks a link on the private browsing
+      newtab.
+      This event was generated to correspond to the Legacy Telemetry event
+      aboutprivatebrowsing.click#promo_link.
+    bugs: *aboutprivatebrowsing_click_bugs
+    data_reviews: *aboutprivatebrowsing_click_data_reviews
+    notification_emails: *aboutprivatebrowsing_click_emails
+    expires: 134
+    no_lint:
+      - COMMON_PREFIX
+    telemetry_mirror: Aboutprivatebrowsing_Click_PromoLink
+
+  click_dismiss_button:
+    type: event
+    description: >
+      This is recorded when a user clicks a link on the private browsing
+      newtab.
+      This event was generated to correspond to the Legacy Telemetry event
+      aboutprivatebrowsing.click#dismiss_button.
+    bugs: *aboutprivatebrowsing_click_bugs
+    data_reviews: *aboutprivatebrowsing_click_data_reviews
+    notification_emails: *aboutprivatebrowsing_click_emails
+    expires: 134
+    no_lint:
+      - COMMON_PREFIX
+    telemetry_mirror: Aboutprivatebrowsing_Click_DismissButton

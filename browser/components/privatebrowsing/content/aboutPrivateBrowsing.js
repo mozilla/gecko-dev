@@ -118,7 +118,7 @@ async function renderPromo({
 
       // Record promo click telemetry and set metrics as allow for spotlight
       // modal opened on promo click if user is enrolled in an experiment
-      let isExperiment = window.PrivateBrowsingRecordClick("promo_link");
+      let isExperiment = window.PrivateBrowsingRecordClick("PromoLink");
       const promoButtonData = promoButton?.action?.data;
       if (
         promoButton?.action?.type === "SHOW_SPOTLIGHT" &&
@@ -140,7 +140,7 @@ async function renderPromo({
       type: "BLOCK_MESSAGE_BY_ID",
       data: { id: messageId },
     });
-    window.PrivateBrowsingRecordClick("dismiss_button");
+    window.PrivateBrowsingRecordClick("DismissButton");
     container.remove();
   };
 
@@ -301,7 +301,7 @@ document.addEventListener("DOMContentLoaded", function () {
     RPMGetFormatURLPref("app.support.baseURL") + "private-browsing-myths"
   );
   linkEl.addEventListener("click", () => {
-    window.PrivateBrowsingRecordClick("info_link");
+    window.PrivateBrowsingRecordClick("InfoLink");
   });
 
   // We don't do this setup until now, because we don't want to record any impressions until we're

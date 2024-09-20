@@ -42,7 +42,7 @@ export class AboutPrivateBrowsingChild extends RemotePageChild {
       featureId: "pbNewtab",
     });
     if (experiment) {
-      Services.telemetry.recordEvent("aboutprivatebrowsing", "click", source);
+      Glean.aboutprivatebrowsing["click" + source].record();
     }
     return experiment;
   }
