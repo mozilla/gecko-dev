@@ -1,0 +1,75 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Reader Mode'
+
+readermode:
+  view_on:
+    type: event
+    description: >
+      This is recorded any time Reader Mode is turned on or off.
+      This event was generated to correspond to the Legacy Telemetry event
+      readermode.view#on.
+    bugs: &readermode_view_bugs
+      - https://bugzil.la/1689201
+    data_reviews: &readermode_view_data_reviews
+      - https://bugzil.la/1689201
+    notification_emails: &readermode_view_emails
+      - kirill@getpocket.com
+      - sdowne@getpocket.com
+    expires: never
+    extra_keys: &readermode_view_extra
+      subcategory:
+        description: >
+          The broad event category for this probe. E.g. navigation
+        type: string
+      reader_time:
+        description: >
+          Time spent in Reader Mode session in seconds (whole number)
+        type: string
+      scroll_position:
+        description: >
+          Percentage of window scrolled in Reader Mode (whole number)
+        type: string
+    telemetry_mirror: Readermode_View_On
+
+  view_off:
+    type: event
+    description: >
+      This is recorded any time Reader Mode is turned on or off.
+      This event was generated to correspond to the Legacy Telemetry event
+      readermode.view#off.
+    bugs: *readermode_view_bugs
+    data_reviews: *readermode_view_data_reviews
+    notification_emails: *readermode_view_emails
+    expires: never
+    extra_keys: *readermode_view_extra
+    telemetry_mirror: Readermode_View_Off
+
+  button_click:
+    type: event
+    description: >
+      This is recorded any time a Reader Mode button is clicked.
+      This event was generated to correspond to the Legacy Telemetry event
+      readermode.button#click.
+    bugs:
+      - https://bugzil.la/1693362
+    data_reviews:
+      - https://bugzil.la/1693362
+    notification_emails:
+      - kirill@getpocket.com
+      - sdowne@getpocket.com
+    expires: never
+    extra_keys:
+      label:
+        description: >
+          The type of button clicked.
+        type: string
+    telemetry_mirror: Readermode_Button_Click
