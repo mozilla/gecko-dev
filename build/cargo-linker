@@ -44,7 +44,7 @@ SANITIZERS = {
 
 use_clang_sanitizer = os.environ.get("MOZ_CLANG_NEWER_THAN_RUSTC_LLVM")
 wrap_ld = os.environ["MOZ_CARGO_WRAP_LD"]
-args = split(os.environ["MOZ_CARGO_WRAP_LDFLAGS"])
+args = []
 for arg in sys.argv[1:]:
     if arg in ["-lc++", "-lstdc++"]:
         wrap_ld = os.environ["MOZ_CARGO_WRAP_LD_CXX"]
@@ -60,6 +60,7 @@ for arg in sys.argv[1:]:
             args.append(f"-fsanitize={SANITIZERS[suffix]}")
             continue
     args.append(arg)
+args.extend(split(os.environ["MOZ_CARGO_WRAP_LDFLAGS"]))
 
 wrap_ld = split(wrap_ld)
 os.execvp(wrap_ld[0], wrap_ld + args)
