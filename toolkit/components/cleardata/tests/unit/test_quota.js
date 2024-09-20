@@ -8,7 +8,7 @@
 "use strict";
 
 // The following tests ensure we properly clear (partitioned/unpartitioned)
-// localStorage and indexedDB when using deleteDataFromBaseDomain,
+// localStorage and indexedDB when using deleteDataFromSite,
 // deleteDataFromHost and deleteDataFromPrincipal.
 
 // Skip localStorage tests when using legacy localStorage. The legacy
@@ -137,8 +137,9 @@ async function runTestBaseDomain(storageType) {
 
   // Clear entries of example.net including partitions.
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.net",
+      {},
       false,
       Ci.nsIClearDataService.CLEAR_DOM_QUOTA,
       aResolve

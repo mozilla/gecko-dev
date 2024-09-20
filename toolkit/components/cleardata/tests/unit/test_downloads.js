@@ -265,8 +265,9 @@ add_task(async function test_basedomain_downloads() {
   await list.addView(view);
 
   await new Promise(resolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.net",
+      {},
       true /* user request */,
       Ci.nsIClearDataService.CLEAR_DOWNLOADS,
       value => {

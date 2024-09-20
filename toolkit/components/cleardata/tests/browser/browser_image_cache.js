@@ -159,8 +159,9 @@ add_task(async function test_deleteByBaseDomain() {
   // Clear data for base domain of A.
   info("Clearing cache for base domain " + BASE_DOMAIN_A);
   await new Promise(resolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       BASE_DOMAIN_A,
+      {},
       false,
       Ci.nsIClearDataService.CLEAR_IMAGE_CACHE,
       resolve

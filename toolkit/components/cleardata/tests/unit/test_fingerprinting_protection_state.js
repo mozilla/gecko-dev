@@ -62,13 +62,14 @@ add_task(async function test_clear_fingerprinting_protection_state() {
     "The fingerprinting randomization key is reset properly."
   );
 
-  // Test nsIClearDataService.deleteDataFromBaseDomain
+  // Test nsIClearDataService.deleteDataFromSite
   keyStr = newKeyStr;
 
-  info("Trigger the deleteDataFromBaseDomain");
+  info("Trigger the deleteDataFromSite");
   await new Promise(resolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.com",
+      {},
       true /* user request */,
       Ci.nsIClearDataService.CLEAR_FINGERPRINTING_PROTECTION_STATE,
       _ => {
