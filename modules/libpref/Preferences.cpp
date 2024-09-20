@@ -23,6 +23,7 @@
 #include "mozilla/dom/PContent.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/RemoteType.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/HashTable.h"
 #include "mozilla/Logging.h"
@@ -42,7 +43,6 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/TelemetryEventEnums.h"
 #include "mozilla/Try.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/URLPreloader.h"
@@ -667,9 +667,8 @@ class Pref {
       sPrefTelemetryEventEnabled = true;                                    \
       Telemetry::SetEventRecordingEnabled("security"_ns, true);             \
     }                                                                       \
-    Telemetry::RecordEvent(                                                 \
-        Telemetry::EventID::Security_Prefusage_Contentprocess,              \
-        mozilla::Some(Name()), mozilla::Nothing());                         \
+    glean::security::pref_usage_content_process.Record(                     \
+        Some(glean::security::PrefUsageContentProcessExtra{Some(Name())})); \
     if (sCrashOnBlocklistedPref) {                                          \
       MOZ_CRASH_UNSAFE_PRINTF(                                              \
           "Should not access the preference '%s' in the Content Processes", \
@@ -1182,9 +1181,8 @@ class MOZ_STACK_CLASS PrefWrapper : public PrefWrapperBase {
             Telemetry::SetEventRecordingEnabled("security"_ns, true);
           }
 
-          Telemetry::RecordEvent(
-              Telemetry::EventID::Security_Prefusage_Contentprocess,
-              mozilla::Some(Name()), mozilla::Nothing());
+          glean::security::pref_usage_content_process.Record(Some(
+              glean::security::PrefUsageContentProcessExtra{Some(Name())}));
 
           if (sCrashOnBlocklistedPref) {
             MOZ_CRASH_UNSAFE_PRINTF(
@@ -1210,9 +1208,8 @@ class MOZ_STACK_CLASS PrefWrapper : public PrefWrapperBase {
         Telemetry::SetEventRecordingEnabled("security"_ns, true);
       }
 
-      Telemetry::RecordEvent(
-          Telemetry::EventID::Security_Prefusage_Contentprocess,
-          mozilla::Some(Name()), mozilla::Nothing());
+      glean::security::pref_usage_content_process.Record(
+          Some(glean::security::PrefUsageContentProcessExtra{Some(Name())}));
 
       if (sCrashOnBlocklistedPref) {
         MOZ_CRASH_UNSAFE_PRINTF(
@@ -5425,9 +5422,8 @@ int32_t Preferences::GetType(const char* aPrefName) {
           Telemetry::SetEventRecordingEnabled("security"_ns, true);
         }
 
-        Telemetry::RecordEvent(
-            Telemetry::EventID::Security_Prefusage_Contentprocess,
-            mozilla::Some(aPrefName), mozilla::Nothing());
+        glean::security::pref_usage_content_process.Record(Some(
+            glean::security::PrefUsageContentProcessExtra{Some(aPrefName)}));
 
         if (sCrashOnBlocklistedPref) {
           MOZ_CRASH_UNSAFE_PRINTF(
