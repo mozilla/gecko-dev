@@ -325,7 +325,14 @@
   background-color: var(--tracer-event-color);
   --top-line-height: 2px;
   --left-line-width: 10px;
+
   clip-path: polygon(0% 0%, 100% 0%, 100% var(--top-line-height), var(--left-line-width) var(--top-line-height), var(--left-line-width) 100%, 0px 100%);
+
+  &.size-subpixel {
+    /* Avoid involving clip-path when the item is really small as it requires lots of computation in the rendering engine */
+    clip-path: none;
+  }
+
   width: 30px;
 
   &.mouse {
