@@ -346,17 +346,12 @@ nsAppStartup::Quit(uint32_t aMode, int aExitCode, bool* aUserAllowedQuit) {
     }
 #ifdef XP_MACOSX
     else if (mConsiderQuitStopper == suspiciousCount) {
-      // ... or there is only a hiddenWindow left, and it's useless:
-
       // Failure shouldn't be fatal, but will abort quit attempt:
       if (!appShell) return NS_OK;
-
-      bool usefulHiddenWindow;
-      appShell->GetApplicationProvidedHiddenWindow(&usefulHiddenWindow);
-      nsCOMPtr<nsIAppWindow> hiddenWindow;
-      appShell->GetHiddenWindow(getter_AddRefs(hiddenWindow));
-      // If the remaining windows are useful, we won't quit:
-      if (!hiddenWindow || usefulHiddenWindow) {
+      bool hasHiddenWindow = false;
+      appShell->GetHasHiddenWindow(&hasHiddenWindow);
+      // If there's a hidden window, we won't quit:
+      if (hasHiddenWindow) {
         return NS_OK;
       }
 

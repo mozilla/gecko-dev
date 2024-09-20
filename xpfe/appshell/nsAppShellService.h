@@ -34,8 +34,6 @@ class nsAppShellService final : public nsIAppShellService, public nsIObserver {
  protected:
   ~nsAppShellService();
 
-  void EnsureHiddenWindow();
-
   nsresult JustCreateTopWindow(nsIAppWindow* aParent, nsIURI* aUrl,
                                uint32_t aChromeMask, int32_t aInitialWidth,
                                int32_t aInitialHeight, bool aIsHiddenWindow,
@@ -46,7 +44,6 @@ class nsAppShellService final : public nsIAppShellService, public nsIObserver {
   bool mXPCOMWillShutDown;
   bool mXPCOMShuttingDown;
   uint16_t mModalWindowCount;
-  bool mApplicationProvidedHiddenWindow;
   uint32_t mScreenId;
 };
 

@@ -107,13 +107,15 @@
     // Do tests
 
     function doTests() {
-      // Front end stuff sometimes likes to stuff things in the hidden window(s)
-      // in which case we should repress all accessibles for those.
+      if (Services.appShell.hasHiddenWindow) {
+        // Front end stuff sometimes likes to stuff things in the hidden window(s)
+        // in which case we should repress all accessibles for those.
 
-      // Try to create an accessible for the hidden window's document.
-      let doc = Services.appShell.hiddenDOMWindow.document;
-      let hiddenDocAcc = gAccService.getAccessibleFor(doc);
-      ok(!hiddenDocAcc, "hiddenDOMWindow should not have an accessible.");
+        // Try to create an accessible for the hidden window's document.
+        let doc = Services.appShell.hiddenDOMWindow.document;
+        let hiddenDocAcc = gAccService.getAccessibleFor(doc);
+        ok(!hiddenDocAcc, "hiddenDOMWindow should not have an accessible.");
+      }
 
       const gQueue = new eventQueue();
       gQueue.push(new openWndShutdownDoc("../../events/docload/docload_wnd.html"));

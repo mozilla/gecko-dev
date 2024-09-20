@@ -40,7 +40,7 @@ add_task(async function test_execute() {
     "cached-favicon:http://mozilla.org/made-up-favicon",
     "view-source:http://mozilla.org",
     "chrome://browser/content/browser.xhtml",
-    "resource://gre-resources/hiddenWindow.html",
+    "resource://gre-resources/hiddenWindowMac.xhtml",
     "data:,Hello%2C%20World!",
     "javascript:alert('hello wolrd!');",
     "http://localhost/" + "a".repeat(1984),
