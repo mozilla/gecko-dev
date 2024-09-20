@@ -311,7 +311,12 @@ add_task(async function () {
       "window has the required resolution"
     );
 
-    let { clientHeight, clientWidth } = gBrowser.selectedBrowser;
+    let clientHeight;
+    let clientWidth;
+    await window.promiseDocumentFlushed(() => {
+      clientHeight = gBrowser.selectedBrowser.clientHeight;
+      clientWidth = gBrowser.selectedBrowser.clientWidth;
+    });
 
     extension.sendMessage("check-size");
     let dims = await extension.awaitMessage("dims");
