@@ -1365,11 +1365,7 @@ BrowserGlue.prototype = {
               "launch_on_login",
               true
             );
-            Services.telemetry.recordEvent(
-              "launch_on_login",
-              "last_profile_disable",
-              "startup"
-            );
+            Glean.launchOnLogin.lastProfileDisableStartup.record();
           }
           Services.prefs.setBoolPref(launchOnLoginPref, false);
           // To reduce confusion when running multiple Gecko profiles,
@@ -4754,12 +4750,9 @@ BrowserGlue.prototype = {
 
     // Record why the dialog is showing or not.
     Services.telemetry.setEventRecordingEnabled("upgrade_dialog", true);
-    Services.telemetry.recordEvent(
-      "upgrade_dialog",
-      "trigger",
-      "reason",
-      dialogReason || "satisfied"
-    );
+    Glean.upgradeDialog.triggerReason.record({
+      value: dialogReason || "satisfied",
+    });
 
     // Show the upgrade dialog if allowed and remember the version.
     if (!dialogReason) {

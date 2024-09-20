@@ -114,3 +114,43 @@ sslkeylogging:
     notification_emails:
       - dkeeler@mozilla.com
     expires: never
+
+launch_on_login:
+  last_profile_disable_startup:
+    type: event
+    description: >
+      Recorded when Launch on login is disabled because the start with
+      last profile setting has been disabled.
+      This event was generated to correspond to the Legacy Telemetry event
+      launch_on_login.last_profile_disable#startup.
+    bugs:
+      - https://bugzil.la/1858223
+    data_reviews:
+      - https://bugzil.la/1858223
+    notification_emails:
+      - nalexander@mozilla.com
+    expires: never
+    telemetry_mirror: Launch_on_login_LastProfileDisable_Startup
+
+upgrade_dialog:
+  trigger_reason:
+    type: event
+    description: >
+      Triggering behaviors of the upgrade dialog. Value indicates which
+      condition failed or all satisfied.
+      This event was generated to correspond to the Legacy Telemetry event
+      upgrade_dialog.trigger#reason.
+    bugs:
+      - https://bugzil.la/1697222
+    data_reviews:
+      - https://bugzil.la/1697222
+    notification_emails:
+      - edilee@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Upgrade_dialog_Trigger_Reason
