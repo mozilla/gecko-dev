@@ -4046,7 +4046,7 @@ static const char* kDeprecatedOperations[] = {
     nullptr};
 #undef DEPRECATED_OPERATION
 
-void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
+void ReportDeprecation(nsIGlobalObject* aGlobal, Document* aDoc, nsIURI* aURI,
                        DeprecatedOperations aOperation,
                        const nsACString& aFileName,
                        const Nullable<uint32_t>& aLineNumber,
@@ -4070,8 +4070,8 @@ void ReportDeprecation(nsIGlobalObject* aGlobal, nsIURI* aURI,
   key.AppendASCII("Warning");
 
   nsAutoString msg;
-  rv = nsContentUtils::GetLocalizedString(nsContentUtils::eDOM_PROPERTIES,
-                                          key.get(), msg);
+  rv = nsContentUtils::GetMaybeLocalizedString(nsContentUtils::eDOM_PROPERTIES,
+                                               key.get(), aDoc, msg);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
@@ -4133,7 +4133,7 @@ void MaybeShowDeprecationWarning(const GlobalObject& aGlobal,
 void MaybeReportDeprecation(const GlobalObject& aGlobal,
                             DeprecatedOperations aOperation) {
   nsCOMPtr<nsIURI> uri;
-
+  nsCOMPtr<Document> doc;
   if (NS_IsMainThread()) {
     nsCOMPtr<nsPIDOMWindowInner> window =
         do_QueryInterface(aGlobal.GetAsSupports());
@@ -4141,7 +4141,8 @@ void MaybeReportDeprecation(const GlobalObject& aGlobal,
       return;
     }
 
-    uri = window->GetExtantDoc()->GetDocumentURI();
+    doc = window->GetExtantDoc();
+    uri = doc->GetDocumentURI();
   } else {
     WorkerPrivate* workerPrivate =
         GetWorkerPrivateFromContext(aGlobal.Context());
@@ -4167,8 +4168,8 @@ void MaybeReportDeprecation(const GlobalObject& aGlobal,
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   MOZ_ASSERT(global);
 
-  ReportDeprecation(global, uri, aOperation, location.FileName(), lineNumber,
-                    columnNumber);
+  ReportDeprecation(global, doc, uri, aOperation, location.FileName(),
+                    lineNumber, columnNumber);
 }
 
 }  // anonymous namespace
