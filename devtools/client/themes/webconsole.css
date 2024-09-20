@@ -552,7 +552,9 @@ html #webconsole-notificationbox {
   fill: var(--theme-icon-dimmed-color);
 }
 
-.jsterm-input-container > .CodeMirror-focused {
+/* We don't want to change the color in High Contrast Mode. A proper focus indicator
+   should be added on the input */
+:root:not([forced-colors-active]) .jsterm-input-container > .CodeMirror-focused {
   fill: var(--theme-icon-checked-color);
 }
 
