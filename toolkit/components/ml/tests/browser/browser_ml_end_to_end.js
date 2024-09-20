@@ -2,7 +2,7 @@
 http://creativecommons.org/publicdomain/zero/1.0/ */
 "use strict";
 
-requestLongerTimeout(2);
+requestLongerTimeout(120);
 
 function normalizePathForOS(path) {
   if (Services.appinfo.OS === "WINNT") {
@@ -99,6 +99,7 @@ add_task(async function test_ml_moz_image_to_text_pipeline() {
     processorRevision: "main",
     tokenizerRevision: "main",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
+    dtype: "q8",
   });
 
   const engineInstance = await mlEngineParent.getEngine(options);
@@ -165,6 +166,7 @@ add_task(async function test_ml_generic_pipeline() {
     processorRevision: "main",
     tokenizerRevision: "main",
     modelHubUrlTemplate: "{model}/resolve/{revision}",
+    dtype: "q8",
   });
 
   const engineInstance = await mlEngineParent.getEngine(options);

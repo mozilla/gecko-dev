@@ -59,15 +59,24 @@ export class MLEngineParent extends JSWindowActorParent {
   static engineLocks = new Map();
 
   /**
-   * The following constant controls the major version for wasm downloaded from
-   * Remote Settings. When a breaking change is introduced, Nightly will have these
+   * The following constant controls the major and minor version for onnx wasm downloaded from
+   * Remote Settings.
+   *
+   * In our case, we want to use two distinct ort versions:
+   * - Transformers 2.x needs onnxruntime-web <= 1.19
+   * - Transformers 3.x needs onnxruntime-web > 1.19
+   *
+   * We are using "1.x" for the first one, and "2.x" for the second one.
+   * So when updating the versions in remote setting, make sure you use 2.0+ for 1.20+
+   *
+   * When a breaking change is introduced, Nightly will have these
    * numbers incremented by one, but Beta and Release will still be on the previous
    * version. Remote Settings will ship both versions of the records, and the latest
    * asset released in that version will be used. For instance, with a major version
    * of "1", assets can be downloaded for "1.0", "1.2", "1.3beta", but assets marked
    * as "2.0", "2.1", etc will not be downloaded.
    */
-  static WASM_MAJOR_VERSION = 1;
+  static WASM_MAJOR_VERSION = 2;
 
   /**
    * The modelhub used to retrieve files.

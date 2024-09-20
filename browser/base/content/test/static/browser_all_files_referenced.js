@@ -88,6 +88,9 @@ var gExceptionPaths = [
 
   // CSS file is referenced inside JS in login-form.mjs
   "chrome://global/content/megalist/LoginFormComponent/",
+
+  // The ONNX runtime picks files to run programmaticaly
+  "chrome://global/content/ml/",
 ];
 
 // These are not part of the omni.ja file, so we find them only when running

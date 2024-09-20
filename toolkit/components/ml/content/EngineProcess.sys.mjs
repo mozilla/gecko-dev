@@ -117,6 +117,30 @@ export class PipelineOptions {
   runtimeFilename = null;
 
   /**
+   * Device used for inference
+   *
+   * @type {"gpu" | "wasm"}
+   */
+  device = "wasm";
+
+  /**
+   * Quantization level
+   *
+   * - name : description (onnx file suffix)
+   * - 'fp32': Full precision 32-bit floating point (`''`)
+   * - 'fp16': Half precision 16-bit floating point (`'_fp16'`)
+   * - 'q8': Quantized 8-bit (`'_quantized'`)
+   * - 'int8': Integer 8-bit quantization (`'_int8'`)
+   * - 'uint8': Unsigned integer 8-bit quantization (`'_uint8'`)
+   * - 'q4': Quantized 4-bit (`'_q4'`)
+   * - 'bnb4': Binary/Boolean 4-bit quantization (`'_bnb4'`)
+   * - 'q4f16': 16-bit floating point model with 4-bit block weight quantization (`'_q4f16'`)
+   *
+   * @type {"fp32" | "fp16" | "q8" | "int8" | "uint8" | "q4" | "bnb4" | "q4f16"}
+   */
+  dtype = "fp32";
+
+  /**
    * Create a PipelineOptions instance.
    *
    * @param {object} options - The options for the pipeline. Must include mandatory fields.
@@ -146,6 +170,8 @@ export class PipelineOptions {
       "processorRevision",
       "logLevel",
       "runtimeFilename",
+      "device",
+      "dtype",
     ];
 
     if (options instanceof PipelineOptions) {
@@ -184,6 +210,8 @@ export class PipelineOptions {
       processorRevision: this.processorRevision,
       logLevel: this.logLevel,
       runtimeFilename: this.runtimeFilename,
+      device: this.device,
+      dtype: this.dtype,
     };
   }
 

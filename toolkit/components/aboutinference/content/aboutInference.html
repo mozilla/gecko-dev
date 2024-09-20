@@ -63,16 +63,7 @@
 
             <div>
               <label for="taskName">Task:</label>
-              <select id="taskName">
-                <option value="summarization">Summarization</option>
-                <option value="image-to-text">Image to text</option>
-                <option value="token-classification">
-                  NER (Token Classification)
-                </option>
-                <option value="zero-shot-classification">
-                  Zero Shot Classification
-                </option>
-              </select>
+              <select id="taskName"></select>
             </div>
             <div>
               <label for="modelId">Model id:</label>
@@ -99,6 +90,17 @@
               </span>
 
               <input type="text" id="modelRevision" value="main" />
+            </div>
+            <div>
+              <label for="quantization">Quantization:</label>
+              <select id="dtype"></select>
+            </div>
+            <div>
+              <label for="device">Device:</label>
+              <select id="device">
+                <option value="wasm" selected>cpu</option>
+                <option value="gpu">gpu</option>
+              </select>
             </div>
             <div>
               <label for="inferencePad">Input data:</label>

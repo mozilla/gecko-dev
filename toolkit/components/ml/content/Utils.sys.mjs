@@ -3,77 +3,66 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /**
- * Converts an ArrayBuffer to a Blob URL.
+ * A cached value for the computed WebAssembly (Wasm) filename.
  *
- * @param {ArrayBuffer} buffer - The ArrayBuffer to convert.
- * @returns {string} The Blob URL.
+ * This variable stores the result of the `getRuntimeWasmFilename` function
+ * after it has been determined based on the browser's capabilities.
+ * Caching the filename avoids re-computation on subsequent calls.
+ *
+ * @type {string|null}
  */
-export function arrayBufferToBlobURL(buffer) {
-  let blob = new Blob([buffer], { type: "application/wasm" });
-  return URL.createObjectURL(blob);
-}
-
-/**
- * Validate some simple Wasm that uses a SIMD operation.
- */
-export function detectSimdSupport() {
-  return WebAssembly.validate(
-    new Uint8Array(
-      // ```
-      // ;; Detect SIMD support.
-      // ;; Compile by running: wat2wasm --enable-all simd-detect.wat
-      //
-      // (module
-      //   (func (result v128)
-      //     i32.const 0
-      //     i8x16.splat
-      //     i8x16.popcnt
-      //   )
-      // )
-      // ```
-
-      // prettier-ignore
-      [
-        0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00, 0x01, 0x05, 0x01, 0x60, 0x00,
-        0x01, 0x7b, 0x03, 0x02, 0x01, 0x00, 0x0a, 0x0a, 0x01, 0x08, 0x00, 0x41, 0x00,
-        0xfd, 0x0f, 0xfd, 0x62, 0x0b
-      ]
-    )
-  );
-}
-
 let cachedRuntimeWasmFilename = null;
 
 /**
+ * Retrieves the navigator object from the current active browser window that has a layer manager.
+ *
+ * @returns {Navigator|null} The navigator object if found, otherwise null.
+ */
+function getNavigator() {
+  for (let win of Services.ww.getWindowEnumerator()) {
+    let winUtils = win.windowUtils;
+    try {
+      if (winUtils.layerManagerType == "None" || !winUtils.layerManagerRemote) {
+        continue;
+      }
+      const nav = win.navigator;
+      if (nav) {
+        return nav;
+      }
+    } catch (e) {
+      continue;
+    }
+  }
+  return null;
+}
+
+/**
  * Determines the appropriate WebAssembly (Wasm) filename based on the runtime capabilities of the browser.
- * This function considers both SIMD and multi-threading support.
- * It returns a filename that matches the browser's capabilities, ensuring the most optimized version of the Wasm file is used.
  *
- * The result is cached to avoid re-computation.
+ * Since SIMD is supported by all major JavaScript engines, non-SIMD build is no longer provided.
+ * We also serve the threaded build since we can simply set numThreads to 1 to disable multi-threading.
  *
- * @param {Window|null} browsingContext - The browsing context to use for feature detection.
+ * The filename of the .wasm file can be:
+ *
+ *  - `ort-wasm-simd-threaded.wasm` for default build
+ *  - `ort-wasm-simd-threaded.jsep.wasm` for JSEP build (with WebGPU and WebNN)
+ *
  * @returns {string} The filename of the Wasm file best suited for the current browser's capabilities.
  */
-export function getRuntimeWasmFilename(browsingContext = null) {
+
+export function getRuntimeWasmFilename() {
   if (cachedRuntimeWasmFilename != null) {
     return cachedRuntimeWasmFilename;
   }
 
-  // The cross-origin isolation flag is used to determine if we have multi-threading support.
-  const hasMultiThreadSupport = browsingContext
-    ? browsingContext.crossOriginIsolated
-    : false;
+  const navigator = getNavigator();
 
-  let res;
-  if (detectSimdSupport()) {
-    res = hasMultiThreadSupport
-      ? "ort-wasm-simd-threaded.wasm"
-      : "ort-wasm-simd.wasm";
-  } else {
-    res = hasMultiThreadSupport ? "ort-wasm-threaded.wasm" : "ort-wasm.wasm";
-  }
-  cachedRuntimeWasmFilename = res;
-  return res;
+  // Determine the appropriate filename based on GPU support
+  cachedRuntimeWasmFilename = navigator?.gpu
+    ? "ort-wasm-simd-threaded.jsep.wasm"
+    : "ort-wasm-simd-threaded.wasm";
+
+  return cachedRuntimeWasmFilename;
 }
 
 /**

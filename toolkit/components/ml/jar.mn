@@ -4,16 +4,20 @@
 
 # For the vendored lib, see https://bugzilla.mozilla.org/show_bug.cgi?id=1890946
 toolkit.jar:
-    content/global/ml/EngineProcess.sys.mjs    (content/EngineProcess.sys.mjs)
-    content/global/ml/MLEngine.worker.mjs      (content/MLEngine.worker.mjs)
-    content/global/ml/MLEngine.html            (content/MLEngine.html)
-    content/global/ml/ModelHub.sys.mjs         (content/ModelHub.sys.mjs)
-    content/global/ml/ONNXPipeline.mjs         (content/ONNXPipeline.mjs)
-    content/global/ml/Utils.sys.mjs            (content/Utils.sys.mjs)
-    content/global/ml/ort.js                   (vendor/ort.js)
-    content/global/ml/transformers.js          (vendor/transformers.js)
+    content/global/ml/EngineProcess.sys.mjs     	      (content/EngineProcess.sys.mjs)
+    content/global/ml/MLEngine.worker.mjs       	      (content/MLEngine.worker.mjs)
+    content/global/ml/MLEngine.html             	      (content/MLEngine.html)
+    content/global/ml/ModelHub.sys.mjs          	      (content/ModelHub.sys.mjs)
+    content/global/ml/ONNXPipeline.mjs          	      (content/ONNXPipeline.mjs)
+    content/global/ml/Utils.sys.mjs             	      (content/Utils.sys.mjs)
+    content/global/ml/ort.mjs                   	      (vendor/ort.mjs)
+    content/global/ml/ort.webgpu.mjs            	      (vendor/ort.webgpu.mjs)
+    content/global/ml/ort-wasm-simd-threaded.jsep.mjs 	(vendor/ort-wasm-simd-threaded.jsep.mjs)
+    content/global/ml/ort-wasm-simd-threaded.mjs        (vendor/ort-wasm-simd-threaded.mjs)
+    content/global/ml/transformers.js           	      (vendor/transformers.js)
 #ifdef NIGHTLY_BUILD
-    content/global/ml/HttpInference.sys.mjs    (content/HttpInference.sys.mjs)
-    content/global/ml/ort-dev.js               (vendor/ort-dev.js)
-    content/global/ml/transformers-dev.js      (vendor/transformers-dev.js)
+    content/global/ml/HttpInference.sys.mjs     	(content/HttpInference.sys.mjs)
+    content/global/ml/ort-dev.mjs               	(vendor/ort-dev.mjs)
+    content/global/ml/ort.webgpu-dev.mjs        	(vendor/ort.webgpu-dev.mjs)
+    content/global/ml/transformers-dev.js       	(vendor/transformers-dev.js)
 #endif
