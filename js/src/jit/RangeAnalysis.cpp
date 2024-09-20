@@ -104,7 +104,7 @@ using mozilla::PositiveInfinity;
 // after range analysis is performed. The remaining compiler phases do not ever
 // encounter beta nodes.
 
-static bool IsDominatedUse(MBasicBlock* block, MUse* use) {
+static bool IsDominatedUse(const MBasicBlock* block, const MUse* use) {
   MNode* n = use->consumer();
   bool isPhi = n->isDefinition() && n->toDefinition()->isPhi();
 
@@ -116,7 +116,7 @@ static bool IsDominatedUse(MBasicBlock* block, MUse* use) {
   return block->dominates(n->block());
 }
 
-static inline void SpewRange(MDefinition* def) {
+static inline void SpewRange(const MDefinition* def) {
 #ifdef JS_JITSPEW
   if (JitSpewEnabled(JitSpew_Range) && def->type() != MIRType::None &&
       def->range()) {
@@ -147,7 +147,7 @@ static const char* TruncateKindString(TruncateKind kind) {
   }
 }
 
-static inline void SpewTruncate(MDefinition* def, TruncateKind kind,
+static inline void SpewTruncate(const MDefinition* def, TruncateKind kind,
                                 bool shouldClone) {
   if (JitSpewEnabled(JitSpew_Range)) {
     JitSpewHeader(JitSpew_Range);
@@ -166,9 +166,8 @@ static inline void SpewTruncate(MDefinition* def, TruncateKind kind,
 
 TempAllocator& RangeAnalysis::alloc() const { return graph_.alloc(); }
 
-void RangeAnalysis::replaceDominatedUsesWith(MDefinition* orig,
-                                             MDefinition* dom,
-                                             MBasicBlock* block) {
+static void ReplaceDominatedUsesWith(const MDefinition* orig, MDefinition* dom,
+                                     const MBasicBlock* block) {
   for (MUseIterator i(orig->usesBegin()); i != orig->usesEnd();) {
     MUse* use = *i++;
     if (use->consumer() != dom && IsDominatedUse(block, use)) {
@@ -251,14 +250,14 @@ bool RangeAnalysis::addBetaNodes() {
             alloc(), smaller,
             Range::NewInt32Range(alloc(), JSVAL_INT_MIN, JSVAL_INT_MAX - 1));
         block->insertBefore(*block->begin(), beta);
-        replaceDominatedUsesWith(smaller, beta, block);
+        ReplaceDominatedUsesWith(smaller, beta, block);
         JitSpew(JitSpew_Range, "  Adding beta node for smaller %u",
                 smaller->id());
         beta = MBeta::New(
             alloc(), greater,
             Range::NewInt32Range(alloc(), JSVAL_INT_MIN + 1, JSVAL_INT_MAX));
         block->insertBefore(*block->begin(), beta);
-        replaceDominatedUsesWith(greater, beta, block);
+        ReplaceDominatedUsesWith(greater, beta, block);
         JitSpew(JitSpew_Range, "  Adding beta node for greater %u",
                 greater->id());
       }
@@ -343,7 +342,7 @@ bool RangeAnalysis::addBetaNodes() {
 
     MBeta* beta = MBeta::New(alloc(), val, new (alloc()) Range(comp));
     block->insertBefore(*block->begin(), beta);
-    replaceDominatedUsesWith(val, beta, block);
+    ReplaceDominatedUsesWith(val, beta, block);
   }
 
   return true;
@@ -1922,7 +1921,7 @@ static BranchDirection NegateBranchDirection(BranchDirection dir) {
   return (dir == FALSE_BRANCH) ? TRUE_BRANCH : FALSE_BRANCH;
 }
 
-bool RangeAnalysis::analyzeLoop(MBasicBlock* header) {
+bool RangeAnalysis::analyzeLoop(const MBasicBlock* header) {
   MOZ_ASSERT(header->hasUniqueBackedge());
 
   // Try to compute an upper bound on the number of times the loop backedge
@@ -2057,7 +2056,7 @@ static inline MDefinition* DefinitionOrBetaInputDefinition(MDefinition* ins) {
 }
 
 LoopIterationBound* RangeAnalysis::analyzeLoopIterationCount(
-    MBasicBlock* header, MTest* test, BranchDirection direction) {
+    const MBasicBlock* header, const MTest* test, BranchDirection direction) {
   SimpleLinearSum lhs(nullptr, 0);
   MDefinition* rhs;
   bool lessEqual;
@@ -2185,7 +2184,8 @@ LoopIterationBound* RangeAnalysis::analyzeLoopIterationCount(
   return new (alloc()) LoopIterationBound(test, iterationBound);
 }
 
-void RangeAnalysis::analyzeLoopPhi(LoopIterationBound* loopBound, MPhi* phi) {
+void RangeAnalysis::analyzeLoopPhi(const LoopIterationBound* loopBound,
+                                   MPhi* phi) {
   // Given a bound on the number of backedges taken, compute an upper and
   // lower bound for a phi node that may change by a constant amount each
   // iteration. Unlike for the case when computing the iteration bound
@@ -2268,7 +2268,8 @@ void RangeAnalysis::analyzeLoopPhi(LoopIterationBound* loopBound, MPhi* phi) {
 
 // Whether bound is valid at the specified bounds check instruction in a loop,
 // and may be used to hoist ins.
-static inline bool SymbolicBoundIsValid(MBasicBlock* header, MBoundsCheck* ins,
+static inline bool SymbolicBoundIsValid(const MBasicBlock* header,
+                                        const MBoundsCheck* ins,
                                         const SymbolicBound* bound) {
   if (!bound->loop) {
     return true;
@@ -2283,8 +2284,8 @@ static inline bool SymbolicBoundIsValid(MBasicBlock* header, MBoundsCheck* ins,
   return bb == bound->loop->test->block();
 }
 
-bool RangeAnalysis::tryHoistBoundsCheck(MBasicBlock* header,
-                                        MBoundsCheck* ins) {
+bool RangeAnalysis::tryHoistBoundsCheck(const MBasicBlock* header,
+                                        const MBoundsCheck* ins) {
   // The bounds check's length must be loop invariant or a constant.
   MDefinition* length = DefinitionOrBetaInputDefinition(ins->length());
   if (length->block()->isMarked() && !length->isConstant()) {
@@ -2842,7 +2843,7 @@ TruncateKind MCompare::operandTruncateKind(size_t index) const {
                            : TruncateKind::NoTruncate;
 }
 
-static bool TruncateTest(TempAllocator& alloc, MTest* test) {
+static bool TruncateTest(TempAllocator& alloc, const MTest* test) {
   // If all possible inputs to the test are either int32 or boolean,
   // convert those inputs to int32 so that an int32 test can be performed.
 
@@ -2951,7 +2952,7 @@ static bool CloneForDeadBranches(TempAllocator& alloc,
 
 // Examine all the users of |candidate| and determine the most aggressive
 // truncate kind that satisfies all of them.
-static TruncateKind ComputeRequestedTruncateKind(MDefinition* candidate,
+static TruncateKind ComputeRequestedTruncateKind(const MDefinition* candidate,
                                                  bool* shouldClone) {
   bool isCapturedResult =
       false;  // Check if used by a recovered instruction or a resume point.
@@ -3039,7 +3040,7 @@ static TruncateKind ComputeRequestedTruncateKind(MDefinition* candidate,
   return kind;
 }
 
-static TruncateKind ComputeTruncateKind(MDefinition* candidate,
+static TruncateKind ComputeTruncateKind(const MDefinition* candidate,
                                         bool* shouldClone) {
   // Compare operations might coerce its inputs to int32 if the ranges are
   // correct.  So we do not need to check if all uses are coerced.
@@ -3129,7 +3130,8 @@ void RangeAnalysis::adjustTruncatedInputs(MDefinition* truncated) {
   }
 }
 
-bool RangeAnalysis::canTruncate(MDefinition* def, TruncateKind kind) const {
+bool RangeAnalysis::canTruncate(const MDefinition* def,
+                                TruncateKind kind) const {
   if (kind == TruncateKind::NoTruncate) {
     return false;
   }
@@ -3512,7 +3514,7 @@ void MUrsh::collectRangeInfoPreTrunc() {
   }
 }
 
-static bool DoesMaskMatchRange(int32_t mask, Range& range) {
+static bool DoesMaskMatchRange(int32_t mask, const Range& range) {
   // Check if range is positive, because the bitand operator in `(-3) & 0xff`
   // can't be eliminated.
   if (range.lower() >= 0) {

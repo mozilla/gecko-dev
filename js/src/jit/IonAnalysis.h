@@ -51,9 +51,9 @@ enum Observability { ConservativeObservability, AggressiveObservability };
 [[nodiscard]] bool EliminatePhis(const MIRGenerator* mir, MIRGraph& graph,
                                  Observability observe);
 
-size_t MarkLoopBlocks(MIRGraph& graph, MBasicBlock* header, bool* canOsr);
+size_t MarkLoopBlocks(MIRGraph& graph, const MBasicBlock* header, bool* canOsr);
 
-void UnmarkLoopBlocks(MIRGraph& graph, MBasicBlock* header);
+void UnmarkLoopBlocks(MIRGraph& graph, const MBasicBlock* header);
 
 [[nodiscard]] bool MakeLoopsContiguous(MIRGraph& graph);
 
@@ -127,7 +127,7 @@ SimpleLinearSum ExtractLinearSum(MDefinition* ins,
                                  MathSpace space = MathSpace::Unknown,
                                  int32_t recursionDepth = 0);
 
-[[nodiscard]] bool ExtractLinearInequality(MTest* test,
+[[nodiscard]] bool ExtractLinearInequality(const MTest* test,
                                            BranchDirection direction,
                                            SimpleLinearSum* plhs,
                                            MDefinition** prhs,

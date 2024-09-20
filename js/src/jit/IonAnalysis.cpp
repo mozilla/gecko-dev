@@ -3923,7 +3923,7 @@ SimpleLinearSum jit::ExtractLinearSum(MDefinition* ins, MathSpace space,
 
 // Extract a linear inequality holding when a boolean test goes in the
 // specified direction, of the form 'lhs + lhsN <= rhs' (or >=).
-bool jit::ExtractLinearInequality(MTest* test, BranchDirection direction,
+bool jit::ExtractLinearInequality(const MTest* test, BranchDirection direction,
                                   SimpleLinearSum* plhs, MDefinition** prhs,
                                   bool* plessEqual) {
   if (!test->getOperand(0)->isCompare()) {
@@ -4784,7 +4784,8 @@ MDefinition* jit::ConvertLinearSum(TempAllocator& alloc, MBasicBlock* block,
 // Mark all the blocks that are in the loop with the given header.
 // Returns the number of blocks marked. Set *canOsr to true if the loop is
 // reachable from both the normal entry and the OSR entry.
-size_t jit::MarkLoopBlocks(MIRGraph& graph, MBasicBlock* header, bool* canOsr) {
+size_t jit::MarkLoopBlocks(MIRGraph& graph, const MBasicBlock* header,
+                           bool* canOsr) {
 #ifdef DEBUG
   for (ReversePostorderIterator i = graph.rpoBegin(), e = graph.rpoEnd();
        i != e; ++i) {
@@ -4873,7 +4874,7 @@ size_t jit::MarkLoopBlocks(MIRGraph& graph, MBasicBlock* header, bool* canOsr) {
 }
 
 // Unmark all the blocks that are in the loop with the given header.
-void jit::UnmarkLoopBlocks(MIRGraph& graph, MBasicBlock* header) {
+void jit::UnmarkLoopBlocks(MIRGraph& graph, const MBasicBlock* header) {
   MBasicBlock* backedge = header->backedge();
   for (ReversePostorderIterator i = graph.rpoBegin(header);; ++i) {
     MOZ_ASSERT(i != graph.rpoEnd(),
