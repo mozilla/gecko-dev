@@ -197,7 +197,10 @@ https_first_disabled = true
 ["browser_navigate_home_focuses_addressbar.js"]
 
 ["browser_navigate_through_urls_origin_attributes.js"]
-skip-if = ["verify && os == 'mac'"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify",
+]
 
 ["browser_new_file_whitelisted_http_tab.js"]
 https_first_disabled = true
@@ -207,7 +210,10 @@ support-files = [
 ]
 
 ["browser_new_tab_bookmarks_toolbar_height.js"]
-skip-if = ["!verify && os == 'mac'"] # Bug 1872477
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1872477
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1872477
+]
 support-files = ["file_observe_height_changes.html"]
 
 ["browser_new_tab_in_privilegedabout_process_pref.js"]
@@ -232,7 +238,10 @@ https_first_disabled = true
 ["browser_origin_attrs_in_remote_type.js"]
 
 ["browser_origin_attrs_rel.js"]
-skip-if = ["verify && os == 'mac'"]
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify",
+]
 support-files = ["file_rel_opener_noopener.html"]
 
 ["browser_originalURI.js"]
@@ -257,7 +266,8 @@ support-files = ["file_anchor_elements.html"]
 ["browser_positional_attributes.js"]
 skip-if = [
   "verify && os == 'win'",
-  "verify && os == 'mac'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify",
 ]
 
 ["browser_preloadedBrowser_zoom.js"]

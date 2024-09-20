@@ -95,8 +95,8 @@ skip-if = ["os != 'linux'", "asan", "tsan"]
 
 ["browser_bug435325.js"]
 skip-if = [
-  "apple_catalina && !debug && verify",
-  "apple_silicon && !debug && verify",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug && verify",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug && verify",
 ]
 
 ["browser_bug633691.js"]

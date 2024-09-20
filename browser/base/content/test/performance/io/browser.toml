@@ -29,7 +29,7 @@ environment = [
 
 ["../browser_startup_mainthreadio.js"]
 skip-if = [
-  "apple_silicon", # bug 1707724
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # bug 1707724
   "socketprocess_networking",
   "win11_2009 && bits == 32",
   "os == 'win' && msix", # Bug 1833639

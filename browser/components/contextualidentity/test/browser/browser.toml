@@ -40,7 +40,7 @@ skip-if = ["true"] # Bug 1541885
 ["browser_middleClick.js"]
 skip-if = [
   "verify && debug && os == 'linux'",
-  "apple_silicon", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
 ]
 tags = "bleedover"
 
@@ -76,7 +76,8 @@ support-files = [
 ["browser_usercontextid_tabdrop.js"]
 https_first_disabled = true
 skip-if = [
-  "os == 'mac'", # Intermittent failure - bug 1268276
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Intermittent failure - bug 1268276
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Intermittent failure - bug 1268276
   "os == 'win'", # Intermittent failure - bug 1268276
 ]
 

@@ -44,7 +44,8 @@ prefs = [
 ["browser_aboutSessionRestore.js"]
 skip-if = [
   "verify && debug && os == 'win'",
-  "verify && debug && os == 'mac'",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && verify",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug && verify",
 ]
 
 ["browser_async_duplicate_tab.js"]
@@ -212,7 +213,10 @@ skip-if = ["true"] # Bug 1646894
 ["browser_restoreLastActionCorrectOrder.js"]
 
 ["browser_restoreLastClosedTabOrWindowOrSession.js"]
-skip-if = ["os == 'mac' && opt"] # Bug 1838996
+skip-if = [
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1838996
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt", # Bug 1838996
+]
 
 ["browser_restoreTabContainer.js"]
 
@@ -290,7 +294,8 @@ run-if = ["crashreporter"]
 skip-if = [
   "asan",
   "tsan",
-  "verify && debug && os == 'mac'", # Bug 1435394 disabled on Linux, OSX and Windows
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug && verify",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug && verify",
 ]
 
 ["browser_urlbarSearchMode.js"]

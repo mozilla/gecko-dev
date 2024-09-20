@@ -8,8 +8,8 @@ support-files = ["loadDelayedReply.sjs"]
 
 ["browser_tabdialogbox_content_prompts.js"]
 skip-if = [
-  "apple_silicon && !debug", # Bug 1786514
-  "apple_catalina && !debug", # Bug 1786514
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # Bug 1786514
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", # Bug 1786514
 ]
 support-files = ["test_page.html"]
 

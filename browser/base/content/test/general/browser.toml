@@ -320,7 +320,7 @@ support-files = [
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_invalid_uri_back_forward_manipulation.js"]
-skip-if = ["os == 'mac' && socketprocess_networking"]
+skip-if = ["os == 'mac' && os_version == '10.15' && processor == 'x86_64' && socketprocess_networking"]
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_lastAccessedTab.js"]
@@ -332,11 +332,11 @@ skip-if = ["os == 'windows'"] # Disabled on Windows due to frequent failures (bu
 
 ["browser_middleMouse_noJSPaste.js"]
 https_first_disabled = true
-skip-if = ["apple_silicon && !debug"] # Bug 1724711
+skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"] # Bug 1724711
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_minimize.js"]
-skip-if = ["apple_silicon && !debug"] # Bug 1725756
+skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"] # Bug 1725756
 # DO NOT ADD MORE TESTS HERE. USE A TOPICAL DIRECTORY INSTEAD.
 
 ["browser_modifiedclick_inherit_principal.js"]
