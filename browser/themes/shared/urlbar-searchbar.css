@@ -157,7 +157,7 @@
 
   /* The protocol is visible if there is an RTL domain and we overflow to the left.
      Uses the required-valid trick to check if it contains a value */
-  #urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > .urlbar-input-container > .urlbar-searchmode-and-input-box-container > .urlbar-input-box > &:valid {
+  #urlbar:not([focused])[textoverflow="left"][domaindir="rtl"] > .urlbar-input-container > .urlbar-input-box > &:valid {
     visibility: visible;
   }
 }
