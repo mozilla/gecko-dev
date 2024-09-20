@@ -274,6 +274,7 @@ static bool IsMFCDMAllowedByOrigin(const Maybe<nsCString>& aOrigin) {
   MOZ_ASSERT(prefValue == Filer::eBlockedListEnabled);
   static nsTArray<nsCString> kBlockedOrigins({
       "https://on.orf.at"_ns,
+      "https://www.hulu.com"_ns,
   });
   for (const auto& blockedOrigin : kBlockedOrigins) {
     if (FindInReadable(blockedOrigin, *aOrigin)) {

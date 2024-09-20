@@ -10970,7 +10970,7 @@
 -   name: media.eme.mfcdm.origin-filter.enabled
     type: RelaxedAtomicUint32
 #if defined(NIGHTLY_BUILD)
-    value: 0
+    value: 2
 #else
     value: 1
 #endif
