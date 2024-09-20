@@ -320,13 +320,6 @@ skip-if = [
 ["test_bug1889130.js"]
 skip-if = ["os == 'win'"] # skip because 0.0.0.0 is invalid in windows platform
 
-["test_bug_1918928.js"]
-skip-if = [
-  "socketprocess_networking", # confirmation state isn't passed cross-process
-  "appname == 'thunderbird'", # bug 1760097
-]
-
-
 ["test_cache-control_request.js"]
 
 ["test_cache-entry-id.js"]
