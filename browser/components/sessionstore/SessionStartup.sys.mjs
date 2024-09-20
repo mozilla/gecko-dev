@@ -269,16 +269,10 @@ export var SessionStartup = {
       Services.telemetry
         .getHistogramById("SHUTDOWN_OK")
         .add(!this._previousSessionCrashed);
-      Services.telemetry.recordEvent(
-        "session_restore",
-        "shutdown_success",
-        "session_startup",
-        null,
-        {
-          shutdown_ok: this._previousSessionCrashed.toString(),
-          shutdown_reason: previousSessionCrashedReason,
-        }
-      );
+      Glean.sessionRestore.shutdownSuccessSessionStartup.record({
+        shutdown_ok: this._previousSessionCrashed.toString(),
+        shutdown_reason: previousSessionCrashedReason,
+      });
       lazy.sessionStoreLogger.debug(
         `Previous shutdown ok? ${this._previousSessionCrashed}, reason: ${previousSessionCrashedReason}`
       );

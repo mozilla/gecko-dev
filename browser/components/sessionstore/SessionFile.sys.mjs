@@ -253,18 +253,12 @@ var SessionFileInternal = {
             path,
             ". Wrong format/version: " + JSON.stringify(parsed.version) + "."
           );
-          Services.telemetry.recordEvent(
-            "session_restore",
-            "backup_can_be_loaded",
-            "session_file",
-            null,
-            {
-              can_load: "false",
-              path_key: key,
-              loadfail_reason:
-                "Wrong format/version: " + JSON.stringify(parsed.version) + ".",
-            }
-          );
+          Glean.sessionRestore.backupCanBeLoadedSessionFile.record({
+            can_load: "false",
+            path_key: key,
+            loadfail_reason:
+              "Wrong format/version: " + JSON.stringify(parsed.version) + ".",
+          });
           continue;
         }
         result = {
@@ -273,17 +267,11 @@ var SessionFileInternal = {
           parsed,
           useOldExtension,
         };
-        Services.telemetry.recordEvent(
-          "session_restore",
-          "backup_can_be_loaded",
-          "session_file",
-          null,
-          {
-            can_load: "true",
-            path_key: key,
-            loadfail_reason: "N/A",
-          }
-        );
+        Glean.sessionRestore.backupCanBeLoadedSessionFile.record({
+          can_load: "true",
+          path_key: key,
+          loadfail_reason: "N/A",
+        });
         Services.telemetry
           .getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE")
           .add(false);
@@ -295,17 +283,11 @@ var SessionFileInternal = {
       } catch (ex) {
         if (DOMException.isInstance(ex) && ex.name == "NotFoundError") {
           exists = false;
-          Services.telemetry.recordEvent(
-            "session_restore",
-            "backup_can_be_loaded",
-            "session_file",
-            null,
-            {
-              can_load: "false",
-              path_key: key,
-              loadfail_reason: "File doesn't exist.",
-            }
-          );
+          Glean.sessionRestore.backupCanBeLoadedSessionFile.record({
+            can_load: "false",
+            path_key: key,
+            loadfail_reason: "File doesn't exist.",
+          });
           // A file not existing can be normal and expected.
           lazy.sessionStoreLogger.debug(
             `Can't read session file which doesn't exist: ${key}`
@@ -321,17 +303,11 @@ var SessionFileInternal = {
             ex
           );
           corrupted = true;
-          Services.telemetry.recordEvent(
-            "session_restore",
-            "backup_can_be_loaded",
-            "session_file",
-            null,
-            {
-              can_load: "false",
-              path_key: key,
-              loadfail_reason: ` ${ex.name}: Could not read session file`,
-            }
-          );
+          Glean.sessionRestore.backupCanBeLoadedSessionFile.record({
+            can_load: "false",
+            path_key: key,
+            loadfail_reason: ` ${ex.name}: Could not read session file`,
+          });
         } else if (ex instanceof SyntaxError) {
           lazy.sessionStoreLogger.error(
             "Corrupt session file (invalid JSON found) ",
@@ -340,17 +316,11 @@ var SessionFileInternal = {
           );
           // File is corrupted, try next file
           corrupted = true;
-          Services.telemetry.recordEvent(
-            "session_restore",
-            "backup_can_be_loaded",
-            "session_file",
-            null,
-            {
-              can_load: "false",
-              path_key: key,
-              loadfail_reason: ` ${ex.name}: Corrupt session file (invalid JSON found)`,
-            }
-          );
+          Glean.sessionRestore.backupCanBeLoadedSessionFile.record({
+            can_load: "false",
+            path_key: key,
+            loadfail_reason: ` ${ex.name}: Corrupt session file (invalid JSON found)`,
+          });
         }
       } finally {
         if (exists) {
@@ -358,17 +328,11 @@ var SessionFileInternal = {
           Services.telemetry
             .getHistogramById("FX_SESSION_RESTORE_CORRUPT_FILE")
             .add(corrupted);
-          Services.telemetry.recordEvent(
-            "session_restore",
-            "backup_can_be_loaded",
-            "session_file",
-            null,
-            {
-              can_load: (!corrupted).toString(),
-              path_key: key,
-              loadfail_reason: "N/A",
-            }
-          );
+          Glean.sessionRestore.backupCanBeLoadedSessionFile.record({
+            can_load: (!corrupted).toString(),
+            path_key: key,
+            loadfail_reason: "N/A",
+          });
         }
       }
     }

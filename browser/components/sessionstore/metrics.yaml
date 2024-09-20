@@ -1,0 +1,64 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Session Restore'
+
+session_restore:
+  backup_can_be_loaded_session_file:
+    type: event
+    description: >
+      Recorded when a file is able to be successfully read on startup
+      This event was generated to correspond to the Legacy Telemetry event
+      session_restore.backup_can_be_loaded#session_file.
+    bugs:
+      - https://bugzil.la/1874742
+    data_reviews:
+      - https://bugzil.la/1874742
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    extra_keys:
+      can_load:
+        description: >
+          Whether or not the startup file can be read/loaded
+        type: string
+      path_key:
+        description: >
+          A symbolic name for the backup file, should be one of "clean", "recovery", "recoveryBackup", "cleanBackup", or "upgradeBackup"
+        type: string
+      loadfail_reason:
+        description: >
+          Reason why the file cannot be loaded, N/A if can be loaded
+        type: string
+    telemetry_mirror: Session_restore_BackupCanBeLoaded_SessionFile
+
+  shutdown_success_session_startup:
+    type: event
+    description: >
+      Report shutdown success
+      This event was generated to correspond to the Legacy Telemetry event
+      session_restore.shutdown_success#session_startup.
+    bugs:
+      - https://bugzil.la/1874742
+    data_reviews:
+      - https://bugzil.la/1874742
+    notification_emails:
+      - session-restore-telemetry-alerts@mozilla.com
+    expires: never
+    extra_keys:
+      shutdown_ok:
+        description: >
+          Whether or not the shutdown happened successfully, unsuccessful if previous session crashed
+        type: string
+      shutdown_reason:
+        description: >
+          Reason why shutdown didn't happen successfully, N/A if previous session didn't crashed
+        type: string
+    telemetry_mirror: Session_restore_ShutdownSuccess_SessionStartup
