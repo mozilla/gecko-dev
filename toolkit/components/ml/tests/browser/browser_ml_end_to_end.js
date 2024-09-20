@@ -29,25 +29,49 @@ async function setup({ disabled = false, prefs = [] } = {}) {
     ],
   });
 
-  const artifact_directory = normalizePathForOS(
+  const artifactDirectory = normalizePathForOS(
     `${Services.env.get("MOZ_FETCHES_DIR")}`
   );
 
-  Assert.ok(
-    await IOUtils.exists(artifact_directory),
-    "The artifact directory does not exist. This usually happens when running locally. " +
+  async function pathExists(path) {
+    try {
+      return await IOUtils.exists(path);
+    } catch {
+      return false;
+    }
+  }
+
+  // Stop immediately if this fails.
+  if (!artifactDirectory) {
+    throw new Error(
+      `The wasm artifact directory is not set. This usually happens when running locally. " +
       "Please download all the files from taskcluster/kinds/fetch/onnxruntime-web-fetch.yml. " +
       "Place them in a directory and rerun the test with the environment variable 'MOZ_FETCHES_DIR' " +
-      "set such that all the files are directly inside 'MOZ_FETCHES_DIR'"
-  );
+      "set such that all the files are directly inside 'MOZ_FETCHES_DIR'`
+    );
+  }
+
+  if (!PathUtils.isAbsolute(artifactDirectory)) {
+    throw new Error(
+      "Please provide an absolute path for 'MOZ_FETCHES_DIR and not a relative path"
+    );
+  }
 
   async function download(record) {
+    const recordPath = normalizePathForOS(
+      `${artifactDirectory}/${record.name}`
+    );
+
+    // Stop immediately if this fails.
+    if (!(await pathExists(recordPath))) {
+      throw new Error(`The wasm file <${recordPath}> does not exist. This usually happens when running locally. " +
+        "Please download all the files from taskcluster/kinds/fetch/onnxruntime-web-fetch.yml. " +
+        "Place them in the directory <${artifactDirectory}> " +
+        "such that <${recordPath}> exists.`);
+    }
+
     return {
-      buffer: (
-        await IOUtils.read(
-          normalizePathForOS(`${artifact_directory}/${record.name}`)
-        )
-      ).buffer,
+      buffer: (await IOUtils.read(recordPath)).buffer,
     };
   }
 
