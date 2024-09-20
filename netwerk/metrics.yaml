@@ -1559,3 +1559,62 @@ networking:
       - necko@mozilla.com
       - minden@mozilla.com
     expires: never
+
+network.dns:
+  trr_confirmation_context:
+    type: event
+    description: >
+      This telemetry records the status of the TRR confirmation across.
+      The value of the event is one of:   "ok"   "trying"
+      This event was generated to correspond to the Legacy Telemetry event
+      network.dns.trrConfirmation#context.
+    bugs:
+      - https://bugzil.la/1691408
+      - https://bugzil.la/1694949
+    data_reviews:
+      - https://bugzil.la/1691408
+      - https://bugzil.la/1694949
+    notification_emails:
+      - vgosu@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The `ConfirmationState`.
+        type: quantity
+      trigger:
+        description: >
+          The reason why this confirmation was triggered. Values: [cp-connectivity, pref-change, context-init, retry, failed-lookups]
+        type: string
+      contextReason:
+        description: >
+          The cause of the current confirmation context. Values: [success, pref-change, network-change, shutdown]
+        type: string
+      attemptCount:
+        description: >
+          The number of NS requests that were issued for this confirmation.
+        type: quantity
+      results:
+        description: >
+          String representation of the last 32 confirmation results. Example: nnnnnnttttttttt indicates a number of network (n) failures followed by timeouts (t).
+        type: string
+      failedLookups:
+        description: >
+          When the trigger is failed-lookups, this contains the string representation of the failures that triggered the confirmation.
+        type: string
+      networkID:
+        description: >
+          The network ID for the recorded confirmation attempts
+        type: string
+      captivePortal:
+        description: >
+          One of [unknown, not_captive, unlocked, locked]
+        type: string
+      time:
+        description: >
+          Time from first confirmation attempt to event being recorded
+        type: string
+    telemetry_mirror: NetworkDns_Trrconfirmation_Context
