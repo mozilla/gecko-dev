@@ -116,7 +116,7 @@ tasks:
             type: shippable-with-multi-l10n
         treeherder:
             platform: android-5-0-geckoview-fat-aar-shippable/opt
-            symbol: Bgv
+            symbol: B
         dependencies:
             android-x86-shippable: build-android-x86-shippable/opt
             android-x86_64-shippable: build-android-x86_64-shippable/opt
@@ -153,8 +153,8 @@ tasks:
             job-name: android-geckoview-fat-aar-opt-lite
             type: shippable-with-multi-l10n
         treeherder:
-            platform: android-4-1-geckoview-fat-aar-shippable/opt
-            symbol: Bgvl
+            platform: android-5-0-geckoview-fat-aar-shippable/opt
+            symbol: Bl
         dependencies:
             android-x86-shippable-lite: build-android-x86-shippable-lite/opt
             android-x86_64-shippable-lite: build-android-x86_64-shippable-lite/opt
@@ -185,7 +185,7 @@ tasks:
             job-name: android-geckoview-fat-aar-opt
         treeherder:
             platform: android-5-0-geckoview-fat-aar/opt
-            symbol: Bgv
+            symbol: B
         dependencies:
             android-x86-opt: build-android-x86/opt
             android-x86_64-opt: build-android-x86_64/opt

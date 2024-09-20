@@ -60,7 +60,7 @@ task-defaults:
             - sysroot-wasm32-wasi
 
 android-arm/debug:
-    description: "Android 5.0 Arm Debug"
+    description: "Android Arm Debug"
     index:
         job-name: android-arm-debug
     attributes:
@@ -85,7 +85,7 @@ android-arm/debug:
             - android-gradle-dependencies
 
 android-x86/opt:
-    description: "Android 5.0 x86 Opt"
+    description: "Android x86 Opt"
     index:
         job-name: android-x86-opt
     attributes:
@@ -111,13 +111,13 @@ android-x86/opt:
             - android-gradle-dependencies
 
 android-x86-lite/opt:
-    description: "Android 4.1 x86 Opt"
+    description: "Android x86 Opt Lite"
     index:
         job-name: android-x86-lite-opt
     attributes:
         enable-full-crashsymbols: true
     treeherder:
-        platform: android-4-1-x86/opt
+        platform: android-5-0-x86/opt
         symbol: Bl
     run-on-projects: ['integration']
     worker-type: b-linux-gcp
@@ -137,7 +137,7 @@ android-x86-lite/opt:
             - android-gradle-dependencies-lite
 
 android-x86-shippable/opt:
-    description: "Android 5.0 x86 Shippable"
+    description: "Android x86 Shippable"
     use-pgo: true
     attributes:
         enable-full-crashsymbols: true
@@ -149,7 +149,7 @@ android-x86-shippable/opt:
         type: android-shippable
     treeherder:
         platform: android-5-0-x86-shippable/opt
-        symbol: B
+        symbol: Bpgo(B)
     run-on-projects: ['release']
     worker-type: b-linux-xlarge-gcp
     worker:
@@ -168,7 +168,7 @@ android-x86-shippable/opt:
             - android-gradle-dependencies
 
 android-x86-shippable-lite/opt:
-    description: "Android 4.1 x86 Shippable Lite"
+    description: "Android x86 Shippable Lite"
     use-pgo: android-x86-shippable/opt
     attributes:
         enable-full-crashsymbols: true
@@ -179,14 +179,15 @@ android-x86-shippable-lite/opt:
         job-name: android-x86-lite-opt
         type: android-shippable
     treeherder:
-        platform: android-4-1-x86-shippable-lite/opt
-        symbol: Bl
+        platform: android-5-0-x86-shippable/opt
+        symbol: Bpgo(Bl)
     run-on-projects: ['release']
     worker-type: b-linux-xlarge-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android-x86/releng.manifest"
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
+            PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build, multi-l10n]
         config:
@@ -199,7 +200,7 @@ android-x86-shippable-lite/opt:
             - android-gradle-dependencies-lite
 
 android-arm/opt:
-    description: "Android 5.0 Arm Opt"
+    description: "Android Arm Opt"
     index:
         job-name: android-arm-opt
     attributes:
@@ -225,19 +226,20 @@ android-arm/opt:
             - linux64-sccache
 
 android-arm-lite/opt:
-    description: "Android 4.1 Arm Opt Lite"
+    description: "Android Arm Opt Lite"
     index:
         job-name: android-arm-lite-opt
     attributes:
         enable-full-crashsymbols: true
     treeherder:
-        platform: android-4-1-armv7/opt
+        platform: android-5-0-armv7/opt
         symbol: Bl
     run-on-projects: ['integration']
     worker-type: b-linux-gcp
     worker:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
+            PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build]
         config: ["builds/releng_base_android_64_builds.py"]
@@ -250,7 +252,7 @@ android-arm-lite/opt:
             - android-gradle-dependencies-lite
 
 android-arm-shippable/opt:
-    description: "Android 5.0 Arm Shippable"
+    description: "Android Arm Shippable"
     use-pgo: android-x86-shippable/opt
     attributes:
         enable-full-crashsymbols: true
@@ -281,7 +283,7 @@ android-arm-shippable/opt:
             - android-gradle-dependencies
 
 android-arm-shippable-lite/opt:
-    description: "Android 4.1 Arm Shippable Lite"
+    description: "Android Arm Shippable Lite"
     use-pgo: android-x86-shippable/opt
     attributes:
         enable-full-crashsymbols: true
@@ -292,7 +294,7 @@ android-arm-shippable-lite/opt:
         job-name: android-arm-lite-opt
         type: android-shippable-with-multi-l10n
     treeherder:
-        platform: android-4-1-armv7-shippable-lite/opt
+        platform: android-5-0-armv7-shippable/opt
         symbol: Bpgo(Bl)
     run-on-projects: ['release']
     worker-type: b-linux-xlarge-gcp
@@ -300,6 +302,7 @@ android-arm-shippable-lite/opt:
         env:
             TOOLTOOL_MANIFEST: "mobile/android/config/tooltool-manifests/android/releng.manifest"
             MOZ_AUTOMATION_PACKAGE_TESTS: "1"
+            PERFHERDER_EXTRA_OPTIONS: lite
     run:
         actions: [get-secrets, build, multi-l10n]
         config:
@@ -312,7 +315,7 @@ android-arm-shippable-lite/opt:
             - android-gradle-dependencies-lite
 
 android-aarch64/opt:
-    description: "Android 5.0 AArch64 Opt"
+    description: "Android AArch64 Opt"
     index:
         job-name: android-aarch64-opt
     attributes:
@@ -338,7 +341,7 @@ android-aarch64/opt:
             - android-gradle-dependencies
 
 android-aarch64-lite/opt:
-    description: "Android 5.0 AArch64 Opt Lite"
+    description: "Android AArch64 Opt Lite"
     index:
         job-name: android-aarch64-lite-opt
     attributes:
@@ -364,7 +367,7 @@ android-aarch64-lite/opt:
             - android-gradle-dependencies-lite
 
 android-aarch64/debug:
-    description: "Android 5.0 AArch64 Debug"
+    description: "Android AArch64 Debug"
     index:
         job-name: android-aarch64-debug
     attributes:
@@ -389,7 +392,7 @@ android-aarch64/debug:
             - android-gradle-dependencies
 
 android-aarch64-shippable/opt:
-    description: "Android 5.0 AArch64 Shippable"
+    description: "Android AArch64 Shippable"
     use-pgo: android-aarch64-shippable/opt
     attributes:
         enable-full-crashsymbols: true
@@ -420,7 +423,7 @@ android-aarch64-shippable/opt:
             - android-gradle-dependencies
 
 android-aarch64-shippable-lite/opt:
-    description: "Android 5.0 AArch64 Shippable Lite"
+    description: "Android AArch64 Shippable Lite"
     use-pgo: android-aarch64-shippable/opt
     attributes:
         enable-full-crashsymbols: true
@@ -431,7 +434,7 @@ android-aarch64-shippable-lite/opt:
         job-name: android-aarch64-lite-opt
         type: android-shippable
     treeherder:
-        platform: android-5-0-aarch64-shippable-lite/opt
+        platform: android-5-0-aarch64-shippable/opt
         symbol: Bpgo(Bl)
     run-on-projects: ['release']
     worker-type: b-linux-xlarge-gcp
@@ -452,7 +455,7 @@ android-aarch64-shippable-lite/opt:
             - android-gradle-dependencies-lite
 
 android-x86_64/opt:
-    description: "Android 5.0 x86-64 Opt"
+    description: "Android x86-64 Opt"
     index:
         job-name: android-x86_64-opt
     attributes:
@@ -478,7 +481,7 @@ android-x86_64/opt:
             - android-gradle-dependencies
 
 android-x86_64-lite/opt:
-    description: "Android 5.0 x86-64 Opt Lite"
+    description: "Android x86-64 Opt Lite"
     index:
         job-name: android-x86_64-lite-opt
     attributes:
@@ -530,7 +533,7 @@ android-x86_64-fuzzing/debug:
         skip-unless-expanded: null
 
 android-x86_64-shippable/opt:
-    description: "Android 5.0 x86-64 Shippable"
+    description: "Android x86-64 Shippable"
     use-pgo: true
     attributes:
         enable-full-crashsymbols: true
@@ -542,7 +545,7 @@ android-x86_64-shippable/opt:
         type: android-shippable
     treeherder:
         platform: android-5-0-x86_64-shippable/opt
-        symbol: B
+        symbol: Bpgo(B)
     run-on-projects: ['release']
     worker-type: b-linux-xlarge-gcp
     worker:
@@ -561,7 +564,7 @@ android-x86_64-shippable/opt:
             - android-gradle-dependencies
 
 android-x86_64-shippable-lite/opt:
-    description: "Android 5.0 x86-64 Shippable Lite"
+    description: "Android x86-64 Shippable Lite"
     use-pgo: android-x86_64-shippable/opt
     attributes:
         enable-full-crashsymbols: true
@@ -572,8 +575,8 @@ android-x86_64-shippable-lite/opt:
         job-name: android-x86_64-lite-opt
         type: android-shippable
     treeherder:
-        platform: android-5-0-x86_64-shippable-lite/opt
-        symbol: Bl
+        platform: android-5-0-x86_64-shippable/opt
+        symbol: Bpgo(Bl)
     run-on-projects: ['release']
     worker-type: b-linux-xlarge-gcp
     worker:
@@ -593,7 +596,7 @@ android-x86_64-shippable-lite/opt:
             - android-gradle-dependencies-lite
 
 android-x86_64/debug:
-    description: "Android 5.0 x86-64 Debug"
+    description: "Android x86-64 Debug"
     index:
         job-name: android-x86_64-debug
     attributes:
@@ -618,13 +621,13 @@ android-x86_64/debug:
             - android-gradle-dependencies
 
 android-x86_64/debug-isolated-process:
-    description: "Android 5.0 x86-64 Debug with Isolated Process"
+    description: "Android x86-64 Debug with Isolated Process"
     index:
         job-name: android-x86_64-debug-isolated-process
     attributes:
         enable-full-crashsymbols: true
     treeherder:
-        platform: android-5-0-x86_64/debug-isolated-process
+        platform: android-5-0-x86_64/debug
         symbol: Bip
     worker-type: b-linux-gcp
     worker:

@@ -95,7 +95,7 @@ tasks:
             product: mobile
             job-name: android-x86-profile
         treeherder:
-            platform: android-5-0-x86/pgo
+            platform: android-5-0-x86-shippable/opt
         worker-type: b-linux-kvm-gcp
         worker:
             chain-of-trust: true
@@ -137,7 +137,7 @@ tasks:
             product: mobile
             job-name: android-x86_64-profile
         treeherder:
-            platform: android-5-0-x86_64/pgo
+            platform: android-5-0-x86_64-shippable/opt
         worker-type: b-linux-kvm-gcp
         worker:
             chain-of-trust: true
@@ -179,7 +179,7 @@ tasks:
             product: mobile
             job-name: android-aarch64-profile
         treeherder:
-            platform: android-5-0-aarch64/pgo
+            platform: android-5-0-aarch64-shippable/opt
         worker-type: b-linux-kvm-gcp
         worker:
             chain-of-trust: true

@@ -216,7 +216,7 @@ tasks:
             job-name: instrumented-android-x86
         shipping-product: fennec
         treeherder:
-            platform: android-5-0-x86/pgo
+            platform: android-5-0-x86-shippable/opt
         worker-type: b-linux-xlarge-gcp
         worker:
             docker-image: {in-tree: android-build}
@@ -271,7 +271,7 @@ tasks:
             job-name: instrumented-android-x86_64
         shipping-product: fennec
         treeherder:
-            platform: android-5-0-x86_64/pgo
+            platform: android-5-0-x86_64-shippable/opt
         worker-type: b-linux-xlarge-gcp
         worker:
             docker-image: {in-tree: android-build}
@@ -326,7 +326,7 @@ tasks:
             job-name: instrumented-android-aarch64
         shipping-product: fennec
         treeherder:
-            platform: android-5-0-aarch64/pgo
+            platform: android-5-0-aarch64-shippable/opt
         worker-type: b-linux-xlarge-gcp
         worker:
             docker-image: {in-tree: android-build}
