@@ -265,6 +265,9 @@ class SourcesManager extends EventEmitter {
    *        boxed or not.
    */
   isBlackBoxed(url, line, column) {
+    if (this.blackBoxedSources.size == 0) {
+      return false;
+    }
     if (!this.blackBoxedSources.has(url)) {
       return false;
     }
@@ -281,6 +284,9 @@ class SourcesManager extends EventEmitter {
   }
 
   isFrameBlackBoxed(frame) {
+    if (this.blackBoxedSources.size == 0) {
+      return false;
+    }
     const { url, line, column } = this.getFrameLocation(frame);
     return this.isBlackBoxed(url, line, column);
   }
