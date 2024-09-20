@@ -2959,6 +2959,10 @@ struct ComputedTruncateKind {
 // truncate kind that satisfies all of them.
 static ComputedTruncateKind ComputeRequestedTruncateKind(
     const MDefinition* candidate) {
+  // Don't call this method when truncation isn't supported, because the result
+  // isn't used anyway.
+  MOZ_ASSERT(candidate->canTruncate());
+
   bool isCapturedResult =
       false;  // Check if used by a recovered instruction or a resume point.
   bool isObservableResult =
@@ -3000,7 +3004,7 @@ static ComputedTruncateKind ComputeRequestedTruncateKind(
     }
   }
 
-  // We cannot do full trunction on guarded instructions.
+  // We cannot do full truncation on guarded instructions.
   if (candidate->isGuard() || candidate->isGuardRangeBailouts()) {
     kind = std::min(kind, TruncateKind::TruncateAfterBailouts);
   }
@@ -3047,6 +3051,10 @@ static ComputedTruncateKind ComputeRequestedTruncateKind(
 }
 
 static ComputedTruncateKind ComputeTruncateKind(const MDefinition* candidate) {
+  // Don't call this method when truncation isn't supported, because the result
+  // isn't used anyway.
+  MOZ_ASSERT(candidate->canTruncate());
+
   // Compare operations might coerce its inputs to int32 if the ranges are
   // correct.  So we do not need to check if all uses are coerced.
   if (candidate->isCompare()) {
@@ -3076,7 +3084,7 @@ static ComputedTruncateKind ComputeTruncateKind(const MDefinition* candidate) {
 }
 
 static void RemoveTruncatesOnOutput(MDefinition* truncated) {
-  // Compare returns a boolean so it doen't have any output truncates.
+  // Compare returns a boolean so it doesn't have any output truncates.
   if (truncated->isCompare()) {
     return;
   }
@@ -3137,6 +3145,10 @@ void RangeAnalysis::adjustTruncatedInputs(MDefinition* truncated) {
 
 bool RangeAnalysis::canTruncate(const MDefinition* def,
                                 TruncateKind kind) const {
+  // Don't call this method when truncation isn't supported, because the result
+  // isn't used anyway.
+  MOZ_ASSERT(def->canTruncate());
+
   if (kind == TruncateKind::NoTruncate) {
     return false;
   }
@@ -3218,10 +3230,15 @@ bool RangeAnalysis::truncate() {
         default:;
       }
 
+      // Skip instructions which can't be truncated.
+      if (!iter->canTruncate()) {
+        continue;
+      }
+
       auto [kind, shouldClone] = ComputeTruncateKind(*iter);
 
       // Truncate this instruction if possible.
-      if (!canTruncate(*iter, kind) || !iter->canTruncate()) {
+      if (!canTruncate(*iter, kind)) {
         continue;
       }
 
@@ -3254,10 +3271,15 @@ bool RangeAnalysis::truncate() {
     }
     for (MPhiIterator iter(block->phisBegin()), end(block->phisEnd());
          iter != end; ++iter) {
+      // Skip phis which can't be truncated.
+      if (!iter->canTruncate()) {
+        continue;
+      }
+
       auto [kind, shouldClone] = ComputeTruncateKind(*iter);
 
       // Truncate this phi if possible.
-      if (shouldClone || !canTruncate(*iter, kind) || !iter->canTruncate()) {
+      if (shouldClone || !canTruncate(*iter, kind)) {
         continue;
       }
 
