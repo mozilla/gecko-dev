@@ -49,11 +49,12 @@ tasks.register("updateBuiltInExtensionVersion", Copy) { task ->
 }
 
 dependencies {
+    api project(':support-images')
+
+    implementation project(':browser-state')
     implementation project(':concept-base')
     implementation project(':concept-engine')
     implementation project(':concept-fetch')
-    implementation project(':browser-state')
-    implementation project(':support-images')
     implementation project(':support-ktx')
 
     implementation ComponentsDependencies.androidx_annotation
