@@ -51,3 +51,74 @@ privacy.ui.fpp.click:
         description: The value of the clicked menu item of the menulist.
         type: string
     telemetry_mirror: PrivacyUiFpp_Click_Menu
+
+security.doh.settings:
+  mode_changed_button:
+    type: event
+    description: >
+      User changed the TRR mode in about:preferences#privacy settings
+      Value is id of the clicked button.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.settings.mode_changed#button.
+    bugs:
+      - https://bugzil.la/1829905
+    data_reviews:
+      - https://bugzil.la/1829905
+    notification_emails:
+      - vgosu@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: SecurityDohSettings_ModeChanged_Button
+
+  provider_choice_value:
+    type: event
+    description: >
+      User changed their DoH provider. Recorded value is URL of one of the
+      existing providers or "custom".
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.settings.provider_choice#value.
+    bugs:
+      - https://bugzil.la/1829905
+    data_reviews:
+      - https://bugzil.la/1829905
+    notification_emails:
+      - vgosu@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: SecurityDohSettings_ProviderChoice_Value
+
+  warn_checkbox_checkbox:
+    type: event
+    description: >
+      User clicked the Warn if a third party actively prevents secure DNS
+      checkbox in about:preferences#privacy. Value is true or false,
+      reflecting if box is checked or unchecked.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.settings.warn_checkbox#checkbox.
+    bugs:
+      - https://bugzil.la/1829905
+    data_reviews:
+      - https://bugzil.la/1829905
+    notification_emails:
+      - vgosu@mozilla.com
+      - necko@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: SecurityDohSettings_WarnCheckbox_Checkbox

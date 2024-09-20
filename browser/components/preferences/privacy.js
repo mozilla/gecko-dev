@@ -688,12 +688,9 @@ var gPrivacyPane = {
         customInput.hidden = true;
         Services.prefs.setStringPref("network.trr.uri", menu.value);
       }
-      Services.telemetry.recordEvent(
-        "security.doh.settings",
-        "provider_choice",
-        "value",
-        menu.value
-      );
+      Glean.securityDohSettings.providerChoiceValue.record({
+        value: menu.value,
+      });
 
       // Update other menu too.
       let otherMode = mode == "dohEnabled" ? "dohStrict" : "dohEnabled";
@@ -898,12 +895,9 @@ var gPrivacyPane = {
       ) {
         return;
       }
-      Services.telemetry.recordEvent(
-        "security.doh.settings",
-        "mode_changed",
-        "button",
-        e.target.id
-      );
+      Glean.securityDohSettings.modeChangedButton.record({
+        value: e.target.id,
+      });
     }
 
     setEventListener("dohDefaultRadio", "command", modeButtonPressed);
@@ -912,12 +906,9 @@ var gPrivacyPane = {
     setEventListener("dohOffRadio", "command", modeButtonPressed);
 
     function warnCheckboxClicked(e) {
-      Services.telemetry.recordEvent(
-        "security.doh.settings",
-        "warn_checkbox",
-        "checkbox",
-        `${e.target.checked}`
-      );
+      Glean.securityDohSettings.warnCheckboxCheckbox.record({
+        value: e.target.checked,
+      });
     }
 
     setEventListener("dohWarnCheckbox1", "command", warnCheckboxClicked);
