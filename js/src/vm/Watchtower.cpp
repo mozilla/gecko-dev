@@ -301,7 +301,7 @@ bool Watchtower::watchPropertyRemoveSlow(JSContext* cx,
   }
 
   if (obj->isGenerationCountedGlobal()) {
-    obj->as<GlobalObject>().bumpGenerationCount(cx);
+    obj->as<GlobalObject>().bumpGenerationCount();
   }
 
   if (MOZ_UNLIKELY(obj->hasFuseProperty())) {
@@ -339,7 +339,7 @@ bool Watchtower::watchPropertyChangeSlow(JSContext* cx,
     bool wasAccessor = prop.isAccessorProperty();
     bool isAccessor = flags.isAccessorProperty();
     if (wasAccessor != isAccessor) {
-      obj->as<GlobalObject>().bumpGenerationCount(cx);
+      obj->as<GlobalObject>().bumpGenerationCount();
     }
   }
 

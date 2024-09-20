@@ -1155,7 +1155,10 @@ class GlobalObject : public NativeObject {
   const void* addressOfGenerationCount() const {
     return &data().generationCount;
   }
-  void bumpGenerationCount(JSContext* cx);
+  void bumpGenerationCount() {
+    MOZ_RELEASE_ASSERT(data().generationCount < UINT32_MAX);
+    data().generationCount++;
+  }
 };
 
 /*

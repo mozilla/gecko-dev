@@ -54,8 +54,7 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
       debuggers_(zone_),
       allocatedDuringIncrementalGC_(zone_->isGCMarkingOrSweeping() ||
                                     zone_->isGCFinished()),
-      wasm(runtime_),
-      generationCounterDependentScripts(runtime_) {
+      wasm(runtime_) {
   runtime_->numRealms++;
 }
 

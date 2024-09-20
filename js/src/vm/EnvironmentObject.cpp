@@ -3681,7 +3681,7 @@ static void ReportRuntimeRedeclaration(JSContext* cx,
   if (shadowsExistingProperty && varObj->is<GlobalObject>()) {
     // Shadowing a configurable global property with a new lexical is one
     // of the rare ways to invalidate a GetGName stub.
-    varObj->as<GlobalObject>().bumpGenerationCount(cx);
+    varObj->as<GlobalObject>().bumpGenerationCount();
   }
 
   return true;

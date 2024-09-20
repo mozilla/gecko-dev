@@ -6724,61 +6724,15 @@ bool WarpCacheIRTranspiler::emitCloseIterScriptedResult(ObjOperandId iterId,
   return resumeAfterUnchecked(check);
 }
 
-class GenerationDependency final : public CompilationDependency {
-  Realm* realm = nullptr;
-  const uint32_t* generationAddress = nullptr;
-  const uint32_t expectedGeneration = 0;
-
- public:
-  GenerationDependency(const uint32_t* address, uint32_t expected, Realm* realm)
-      : CompilationDependency(CompilationDependency::Type::GenerationCounter),
-        realm(realm),
-        generationAddress(address),
-        expectedGeneration(expected) {}
-
-  bool operator==(CompilationDependency& dep) override {
-    if (dep.type != type) {
-      return false;
-    }
-
-    GenerationDependency* other = static_cast<GenerationDependency*>(&dep);
-    return other->expectedGeneration == expectedGeneration &&
-           other->generationAddress == generationAddress &&
-           other->realm == realm;
-  }
-
-  bool checkDependency() override {
-    return *generationAddress == expectedGeneration;
-  }
-
-  bool registerDependency(JSContext* cx, HandleScript script) override {
-    auto& dependentScripts = realm->generationCounterDependentScripts;
-
-    Realm::WeakScriptSet::AddPtr p = dependentScripts.lookupForAdd(script);
-    if (!p) {
-      if (!dependentScripts.add(p, script)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  UniquePtr<CompilationDependency> clone() override {
-    return MakeUnique<GenerationDependency>(generationAddress,
-                                            expectedGeneration, realm);
-  }
-};
-
 bool WarpCacheIRTranspiler::emitGuardGlobalGeneration(
-    uint32_t expectedOffset, uint32_t generationAddrOffset,
-    uint32_t realmOffset) {
+    uint32_t expectedOffset, uint32_t generationAddrOffset) {
   uint32_t expected = uint32StubField(expectedOffset);
   const void* generationAddr = rawPointerField(generationAddrOffset);
-  Realm* realm = (Realm*)(rawPointerField(realmOffset));
 
-  GenerationDependency dep(static_cast<const uint32_t*>(generationAddr),
-                           expected, realm);
-  return mirGen().tracker.addDependency(dep);
+  auto guard = MGuardGlobalGeneration::New(alloc(), expected, generationAddr);
+  add(guard);
+
+  return true;
 }
 
 #ifdef FUZZING_JS_FUZZILLI

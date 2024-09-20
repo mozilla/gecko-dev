@@ -17,7 +17,7 @@ struct JSContext;
 namespace js::jit {
 
 struct CompilationDependency {
-  enum class Type { GetIterator, EmulatesUndefined, GenerationCounter, Limit };
+  enum class Type { GetIterator, EmulatesUndefined, Limit };
 
   Type type;
 
