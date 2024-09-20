@@ -1,0 +1,71 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Storage: Quota Manager'
+
+dom.quota.try:
+  error_step:
+    type: event
+    description: >
+      An event recorded on an error of the quota manager or its clients.
+      Since errors are usually propagated up the call chain, all such
+      propagation steps are recorded for an error. This is only active
+      during specific contexts, in particular during storage
+      initialization. No dynamic data is included in the event beyond the
+      error code which will be added through Bug 1670555.
+      This event was generated to correspond to the Legacy Telemetry event
+      dom.quota.try.error#step.
+    bugs:
+      - https://bugzil.la/1665088
+    data_reviews:
+      - https://bugzil.la/1665088
+    notification_emails:
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: never
+    extra_keys:
+      context:
+        description: >
+          The context in which the error occurred, e.g. during a storage initialization.
+          Telemetry events are only emitted for selected contexts.
+        type: string
+      frame_id:
+        description: >
+          Optionally, the frame within stack_id.
+        type: string
+      process_id:
+        description: >
+          Optionally, the process in which the error occured.
+        type: string
+      result:
+        description: >
+          Optionally, the name of the error that occurred.
+        type: string
+      seq:
+        description: >
+          Sequence number.
+        type: quantity
+      severity:
+        description: >
+          One of WARNING or ERROR.
+        type: string
+      source_file:
+        description: >
+          The name of the source code file where the error occurred.
+        type: string
+      source_line:
+        description: >
+          The line within source_file where the error occurred.
+        type: quantity
+      stack_id:
+        description: >
+          Optionally, the stack within process_id.
+        type: string
+    telemetry_mirror: DomQuotaTry_Error_Step
