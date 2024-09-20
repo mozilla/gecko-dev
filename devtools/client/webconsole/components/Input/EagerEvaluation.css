@@ -9,6 +9,14 @@
   line-height: var(--console-output-line-height);
 }
 
+.theme-light .eager-evaluation-result {
+  --log-icon-color: var(--grey-35);
+}
+
+.theme-dark .eager-evaluation-result {
+  --log-icon-color: var(--grey-55);
+}
+
 .eager-evaluation-result__row {
   direction: ltr;
   display: flex;
@@ -27,7 +35,7 @@
     center;
   background-size: 12px;
   -moz-context-properties: fill;
-  fill: var(--theme-icon-dimmed-color);
+  fill: var(--log-icon-color);
 }
 
 .eager-evaluation-result__text {
