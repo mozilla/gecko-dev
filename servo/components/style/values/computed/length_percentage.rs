@@ -518,8 +518,8 @@ impl LengthPercentage {
 
     /// Convert the computed value into used value.
     #[inline]
-    pub fn maybe_to_used_value(&self, container_len: Option<Length>) -> Option<Au> {
-        self.maybe_percentage_relative_to(container_len)
+    pub fn maybe_to_used_value(&self, container_len: Option<Au>) -> Option<Au> {
+        self.maybe_percentage_relative_to(container_len.map(Length::from))
             .map(Au::from)
     }
 
@@ -1120,9 +1120,7 @@ impl NonNegativeLengthPercentage {
     /// Convert the computed value into used value.
     #[inline]
     pub fn maybe_to_used_value(&self, containing_length: Option<Au>) -> Option<Au> {
-        let resolved = self
-            .0
-            .maybe_to_used_value(containing_length.map(|v| v.into()))?;
+        let resolved = self.0.maybe_to_used_value(containing_length)?;
         Some(std::cmp::max(resolved, Au(0)))
     }
 }
