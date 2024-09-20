@@ -284,3 +284,39 @@ nimbus_events:
       - project-nimbus@mozilla.com
     expires: never
     disabled: true
+
+normandy:
+  expose_nimbus_experiment:
+    type: event
+    description: >
+      This records an event at the moment the user is exposed to an
+      experiment treatment. The event is triggered either by the code
+      checking that a certain experiment feature is enabled or when that
+      feature value is used. This is different from enrollment or
+      experiment activation because it registers when a user actually gets
+      exposed to the experiment feature.
+      This event was generated to correspond to the Legacy Telemetry event
+      normandy.expose#nimbus_experiment.
+    bugs:
+      - https://bugzil.la/1675104
+    data_reviews:
+      - https://bugzil.la/1675104
+    notification_emails:
+      - ujet@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The experiment slug.
+        type: string
+      branchSlug:
+        description: >
+          The slug for the branch the user is enrolled in.
+        type: string
+      featureId:
+        description: >
+          The type of experiment variant the user was enrolled into.
+        type: string
+    telemetry_mirror: Normandy_Expose_NimbusExperiment

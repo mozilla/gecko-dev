@@ -6,9 +6,9 @@
 
 #include "mozilla/browser/NimbusFeatures.h"
 #include "mozilla/browser/NimbusFeatureManifest.h"
-#include "mozilla/Telemetry.h"
 #include "mozilla/Try.h"
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "jsapi.h"
 #include "js/JSON.h"
 #include "nsJSUtils.h"
@@ -196,11 +196,12 @@ nsresult NimbusFeatures::RecordExposureEvent(const nsACString& aFeatureId,
     return NS_ERROR_UNEXPECTED;
   }
   Telemetry::SetEventRecordingEnabled("normandy"_ns, true);
-  nsTArray<Telemetry::EventExtraEntry> extra(2);
-  extra.AppendElement(Telemetry::EventExtraEntry{"branchSlug"_ns, branchName});
-  extra.AppendElement(Telemetry::EventExtraEntry{"featureId"_ns, featureName});
-  Telemetry::RecordEvent(Telemetry::EventID::Normandy_Expose_NimbusExperiment,
-                         Some(slugName), Some(std::move(extra)));
+  glean::normandy::expose_nimbus_experiment.Record(
+      Some(glean::normandy::ExposeNimbusExperimentExtra{
+          .branchslug = Some(branchName),
+          .featureid = Some(featureName),
+          .value = Some(slugName),
+      }));
 
   return NS_OK;
 }
