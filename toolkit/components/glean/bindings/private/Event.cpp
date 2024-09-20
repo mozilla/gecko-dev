@@ -31,7 +31,7 @@ void GleanEvent::Record(
   nsTArray<nsCString> extraKeys;
   nsTArray<nsCString> extraValues;
   CopyableTArray<Telemetry::EventExtraEntry> telExtras;
-  nsCString telValue;
+  nsCString telValue(VoidCString());
   for (const auto& entry : aExtra.Value().Entries()) {
     if (entry.mValue.IsVoid()) {
       // Someone passed undefined/null for this value.
@@ -54,7 +54,7 @@ void GleanEvent::Record(
   auto id = EventIdForMetric(mEvent.mId);
   if (id) {
     Telemetry::RecordEvent(id.extract(),
-                           telValue.IsEmpty() ? Nothing() : Some(telValue),
+                           telValue.IsVoid() ? Nothing() : Some(telValue),
                            telExtras.IsEmpty() ? Nothing() : Some(telExtras));
   }
 
