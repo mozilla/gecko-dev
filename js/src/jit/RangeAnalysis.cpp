@@ -2135,7 +2135,6 @@ LoopIterationBound* RangeAnalysis::analyzeLoopIterationCount(
   }
 
   LinearSum iterationBound(alloc());
-  LinearSum currentIteration(alloc());
 
   if (lhsModified.constant == 1 && !lessEqual) {
     // The value of lhs is 'initial(lhs) + iterCount' and this will end
@@ -2161,13 +2160,6 @@ LoopIterationBound* RangeAnalysis::analyzeLoopIterationCount(
     if (!iterationBound.add(lhsConstant)) {
       return nullptr;
     }
-
-    if (!currentIteration.add(lhs.term, 1)) {
-      return nullptr;
-    }
-    if (!currentIteration.add(lhsInitial, -1)) {
-      return nullptr;
-    }
   } else if (lhsModified.constant == -1 && lessEqual) {
     // The value of lhs is 'initial(lhs) - iterCount'. Similar to the above
     // case, an upper bound on the number of backedges executed is:
@@ -2186,19 +2178,11 @@ LoopIterationBound* RangeAnalysis::analyzeLoopIterationCount(
     if (!iterationBound.add(lhs.constant)) {
       return nullptr;
     }
-
-    if (!currentIteration.add(lhsInitial, 1)) {
-      return nullptr;
-    }
-    if (!currentIteration.add(lhs.term, -1)) {
-      return nullptr;
-    }
   } else {
     return nullptr;
   }
 
-  return new (alloc())
-      LoopIterationBound(header, test, iterationBound, currentIteration);
+  return new (alloc()) LoopIterationBound(test, iterationBound);
 }
 
 void RangeAnalysis::analyzeLoopPhi(LoopIterationBound* loopBound, MPhi* phi) {

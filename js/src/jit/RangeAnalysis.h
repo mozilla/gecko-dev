@@ -45,30 +45,19 @@ enum class TruncateKind;
 // loops, this will exclude iterations that executed in the interpreter or in
 // baseline compiled code.
 struct LoopIterationBound : public TempObject {
-  // Loop for which this bound applies.
-  MBasicBlock* header;
-
   // Test from which this bound was derived; after executing exactly 'bound'
   // times this test will exit the loop. Code in the loop body which this
   // test dominates (will include the backedge) will execute at most 'bound'
   // times. Other code in the loop will execute at most '1 + Max(bound, 0)'
   // times.
-  MTest* test;
+  const MTest* test;
 
   // Symbolic bound computed for the number of backedge executions. The terms
   // in this bound are all loop invariant.
   LinearSum boundSum;
 
-  // Linear sum for the number of iterations already executed, at the start
-  // of the loop header. This will use loop invariant terms and header phis.
-  LinearSum currentSum;
-
-  LoopIterationBound(MBasicBlock* header, MTest* test,
-                     const LinearSum& boundSum, const LinearSum& currentSum)
-      : header(header),
-        test(test),
-        boundSum(boundSum),
-        currentSum(currentSum) {}
+  LoopIterationBound(const MTest* test, const LinearSum& boundSum)
+      : test(test), boundSum(boundSum) {}
 };
 
 using LoopIterationBoundVector =
