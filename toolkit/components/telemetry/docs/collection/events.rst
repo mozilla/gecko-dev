@@ -153,42 +153,9 @@ The API
 Public JS API
 -------------
 
-``recordEvent()``
-~~~~~~~~~~~~~~~~~
-
-.. code-block:: js
-
-  Services.telemetry.recordEvent(category, method, object, value, extra);
-
-Record a registered event.
-
-* ``value``: Optional, may be ``null``. A string value, limited to 80 bytes.
-* ``extra``: Optional. An object with string keys & values. Key strings are limited to what was registered. Value strings are limited to 80 bytes.
-
-Throws if the combination of ``category``, ``method`` and ``object`` is unknown.
-Recording an expired event will not throw, but print a warning into the browser console.
-
-.. note::
-
-  Each ``recordEvent`` of a known non-expired combination of ``category``, ``method``, and
-  ``object``, will be :ref:`summarized <events.event-summary>`.
-
-.. warning::
-
-  Event Telemetry recording is designed to be cheap, not free. If you wish to record events in a performance-sensitive piece of code, store the events locally and record them only after the performance-sensitive piece ("hot path") has completed.
-
-Example:
-
-.. code-block:: js
-
-  Services.telemetry.recordEvent("ui", "click", "reload-btn");
-  // event: [543345, "ui", "click", "reload-btn"]
-  Services.telemetry.recordEvent("ui", "search", "search-bar", "google");
-  // event: [89438, "ui", "search", "search-bar", "google"]
-  Services.telemetry.recordEvent("ui", "completion", "search-bar", "yahoo",
-                                 {"querylen": "7", "results": "23"});
-  // event: [982134, "ui", "completion", "search-bar", "yahoo",
-  //           {"qerylen": "7", "results": "23"}]
+Since Firefox 132 (see `bug 1863031 <https://bugzilla.mozilla.org/show_bug.cgi?id=1863031>`__),
+events in Firefox Desktop are
+:doc:`recorded using the Glean API <../../glean/user/glean_for_legacy_events>`.
 
 ``setEventRecordingEnabled()``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -214,49 +181,6 @@ Example:
 
   Even if your event category isn't enabled, counts of events that attempted to be recorded will
   be :ref:`summarized <events.event-summary>`.
-
-.. _registerevents:
-
-``registerEvents()``
-~~~~~~~~~~~~~~~~~~~~
-
-.. code-block:: js
-
-  Services.telemetry.registerEvents(category, eventData);
-
-Register new events from add-ons.
-
-* ``category`` - *(required, string)* The category the events are in.
-* ``eventData`` - *(required, object)* An object of the form ``{eventName1: event1Data, ...}``, where each events data is an object with the entries:
-
-  * ``methods`` - *(required, list of strings)* The valid event methods.
-  * ``objects`` - *(required, list of strings)* The valid event objects.
-  * ``extra_keys`` - *(optional, list of strings)* The valid extra keys for the event.
-  * ``record_on_release`` - *(optional, bool)*
-  * ``expired`` - *(optional, bool)* Whether this event entry is expired. This allows recording it without error, but it will be discarded. Defaults to false.
-
-For events recorded from add-ons, registration happens at runtime. Any new events must first be registered through this function before they can be recorded.
-The registered categories will automatically be enabled for recording, and cannot be disabled.
-If a dynamic event uses the same category as a static event, the category will also be enabled upon registration.
-
-After registration, the events can be recorded through the ``recordEvent()`` function. They will be submitted in event pings like static events are, under the ``dynamic`` process.
-
-New events registered here are subject to the same limitations as the ones registered through ``Events.yaml``, although the naming was in parts updated to recent policy changes.
-
-When add-ons are updated, they may re-register all of their events. In that case, any changes to events that are already registered are ignored. The only exception is expiry; an event that is re-registered with ``expired: true`` will not be recorded anymore.
-
-Example:
-
-.. code-block:: js
-
-  Services.telemetry.registerEvents("myAddon.interaction", {
-    "click": {
-      methods: ["click"],
-      objects: ["red_button", "blue_button"],
-    }
-  });
-  // Now events can be recorded.
-  Services.telemetry.recordEvent("myAddon.interaction", "click", "red_button");
 
 Internal API
 ------------
@@ -333,6 +257,7 @@ Tests involving Event Telemetry often follow this four-step form:
 Version History
 ===============
 
+- Firefox 132: recordEvent|registerEvents deprecation and removal (see `bug 1863031 <https://bugzilla.mozilla.org/show_bug.cgi?id=1863031>`__).
 - Firefox 79:  ``geckoview`` support removed (see `bug 1620395 <https://bugzilla.mozilla.org/show_bug.cgi?id=1620395>`__).
 - Firefox 52: Initial event support (`bug 1302663 <https://bugzilla.mozilla.org/show_bug.cgi?id=1302663>`_).
 - Firefox 53: Event recording disabled by default (`bug 1329139 <https://bugzilla.mozilla.org/show_bug.cgi?id=1329139>`_).
