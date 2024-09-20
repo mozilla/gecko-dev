@@ -7603,13 +7603,7 @@ var FirefoxViewHandler = {
 
       // Record telemetry
       Services.telemetry.setEventRecordingEnabled("firefoxview_next", true);
-      Services.telemetry.recordEvent(
-        "firefoxview_next",
-        "tab_selected",
-        "toolbarbutton",
-        null,
-        {}
-      );
+      Glean.firefoxviewNext.tabSelectedToolbarbutton.record();
 
       if (viewCount < MAX_VIEW_COUNT) {
         Services.prefs.setIntPref(PREF_NAME, viewCount + 1);

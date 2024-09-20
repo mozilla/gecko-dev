@@ -472,15 +472,9 @@ class OpenTabsInViewCard extends ViewPageContent {
       (event.type == "keydown" && event.code == "Space")
     ) {
       event.preventDefault();
-      Services.telemetry.recordEvent(
-        "firefoxview_next",
-        "search_show_all",
-        "showallbutton",
-        null,
-        {
-          section: "opentabs",
-        }
-      );
+      Glean.firefoxviewNext.searchShowAllShowallbutton.record({
+        section: "opentabs",
+      });
       this.showAll = true;
     }
   }
@@ -499,16 +493,10 @@ class OpenTabsInViewCard extends ViewPageContent {
     browserWindow.focus();
     browserWindow.gBrowser.selectedTab = tab;
 
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "open_tab",
-      "tabs",
-      null,
-      {
-        page: this.recentBrowsing ? "recentbrowsing" : "opentabs",
-        window: this.title || "Window 1 (Current)",
-      }
-    );
+    Glean.firefoxviewNext.openTabTabs.record({
+      page: this.recentBrowsing ? "recentbrowsing" : "opentabs",
+      window: this.title || "Window 1 (Current)",
+    });
     if (this.searchQuery) {
       const searchesHistogram = Services.telemetry.getKeyedHistogramById(
         "FIREFOX_VIEW_CUMULATIVE_SEARCHES"
@@ -525,12 +513,7 @@ class OpenTabsInViewCard extends ViewPageContent {
     const tab = event.originalTarget.tabElement;
     tab?.ownerGlobal.gBrowser.removeTab(tab);
 
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "close_open_tab",
-      "tabs",
-      null
-    );
+    Glean.firefoxviewNext.closeOpenTabTabs.record();
   }
 
   viewVisibleCallback() {

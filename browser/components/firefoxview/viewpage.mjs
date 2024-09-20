@@ -95,16 +95,10 @@ export class ViewPageContent extends MozLitElement {
   }
 
   recordContextMenuTelemetry(menuAction, event) {
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "context_menu",
-      "tabs",
-      null,
-      {
-        menu_action: menuAction,
-        data_type: event.target.panel.dataset.tabType,
-      }
-    );
+    Glean.firefoxviewNext.contextMenuTabs.record({
+      menu_action: menuAction,
+      data_type: event.target.panel.dataset.tabType,
+    });
   }
 
   shouldUpdate(changedProperties) {

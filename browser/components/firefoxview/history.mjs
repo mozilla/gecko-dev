@@ -139,13 +139,7 @@ class HistoryInView extends ViewPage {
   onPrimaryAction(e) {
     navigateToLink(e);
     // Record telemetry
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "history",
-      "visits",
-      null,
-      {}
-    );
+    Glean.firefoxviewNext.historyVisits.record();
 
     if (this.controller.searchQuery) {
       const searchesHistogram = Services.telemetry.getKeyedHistogramById(
@@ -168,16 +162,10 @@ class HistoryInView extends ViewPage {
 
   onChangeSortOption(e) {
     this.controller.onChangeSortOption(e);
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "sort_history",
-      "tabs",
-      null,
-      {
-        sort_type: this.controller.sortOption,
-        search_start: this.controller.searchQuery ? "true" : "false",
-      }
-    );
+    Glean.firefoxviewNext.sortHistoryTabs.record({
+      sort_type: this.controller.sortOption,
+      search_start: this.controller.searchQuery ? "true" : "false",
+    });
   }
 
   onSearchQuery(e) {
@@ -189,13 +177,7 @@ class HistoryInView extends ViewPage {
 
   showAllHistory() {
     // Record telemetry
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "show_all_history",
-      "tabs",
-      null,
-      {}
-    );
+    Glean.firefoxviewNext.showAllHistoryTabs.record();
 
     // Open History view in Library window
     this.getWindow().PlacesCommandHook.showPlacesOrganizer("History");

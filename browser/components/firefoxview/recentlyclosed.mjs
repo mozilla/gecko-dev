@@ -220,17 +220,11 @@ class RecentlyClosedTabsInView extends ViewPage {
 
     let now = Date.now();
     let deltaSeconds = (now - tabClosedAt) / 1000;
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "recently_closed",
-      "tabs",
-      null,
-      {
-        position: position.toString(),
-        delta: deltaSeconds.toString(),
-        page: this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
-      }
-    );
+    Glean.firefoxviewNext.recentlyClosedTabs.record({
+      position,
+      delta: deltaSeconds,
+      page: this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
+    });
     if (this.searchQuery) {
       const searchesHistogram = Services.telemetry.getKeyedHistogramById(
         "FIREFOX_VIEW_CUMULATIVE_SEARCHES"
@@ -272,17 +266,11 @@ class RecentlyClosedTabsInView extends ViewPage {
 
     let now = Date.now();
     let deltaSeconds = (now - tabClosedAt) / 1000;
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "dismiss_closed_tab",
-      "tabs",
-      null,
-      {
-        position: position.toString(),
-        delta: deltaSeconds.toString(),
-        page: this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
-      }
-    );
+    Glean.firefoxviewNext.dismissClosedTabTabs.record({
+      position,
+      delta: deltaSeconds,
+      page: this.recentBrowsing ? "recentbrowsing" : "recentlyclosed",
+    });
   }
 
   willUpdate() {
@@ -461,15 +449,9 @@ class RecentlyClosedTabsInView extends ViewPage {
     ) {
       event.preventDefault();
       this.showAll = true;
-      Services.telemetry.recordEvent(
-        "firefoxview_next",
-        "search_show_all",
-        "showallbutton",
-        null,
-        {
-          section: "recentlyclosed",
-        }
-      );
+      Glean.firefoxviewNext.searchShowAllShowallbutton.record({
+        section: "recentlyclosed",
+      });
     }
   }
 }

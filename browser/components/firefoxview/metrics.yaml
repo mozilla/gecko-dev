@@ -1,0 +1,409 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Firefox View'
+
+firefoxview_next:
+  recently_closed_tabs:
+    type: event
+    description: >
+      Recorded when a recently closed tab is clicked
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.recently_closed#tabs.
+    bugs:
+      - https://bugzil.la/1842616
+    data_reviews:
+      - https://bugzil.la/1842616
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      delta:
+        description: >
+          Time since the tab was closed
+        type: string
+      position:
+        description: >
+          The position of the tab in the recently closed tab list (starting at 1)
+        type: quantity
+      page:
+        description: >
+          The short page name where the recently closed tab was clicked
+        type: string
+    telemetry_mirror: Firefoxview_next_RecentlyClosed_Tabs
+
+  dismiss_closed_tab_tabs:
+    type: event
+    description: >
+      Recorded when a recently closed tab is dismissed
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.dismiss_closed_tab#tabs.
+    bugs:
+      - https://bugzil.la/1842616
+    data_reviews:
+      - https://bugzil.la/1842616
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      delta:
+        description: >
+          Time since the tab was closed to when dismissed
+        type: string
+      position:
+        description: >
+          The position of the tab in the recently closed tab list (starting at 1)
+        type: quantity
+      page:
+        description: >
+          The short page name where the recently closed tab was dismissed
+        type: string
+    telemetry_mirror: Firefoxview_next_DismissClosedTab_Tabs
+
+  card_collapsed_card_container:
+    type: event
+    description: >
+      Recorded when a card-container is collapsed on the 'Recent browsing'
+      page
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.card_collapsed#card_container.
+    bugs:
+      - https://bugzil.la/1842616
+    data_reviews:
+      - https://bugzil.la/1842616
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      data_type:
+        description: >
+          The type of data being collapsed in a card on the 'Recent browsing' page
+        type: string
+    telemetry_mirror: Firefoxview_next_CardCollapsed_CardContainer
+
+  card_expanded_card_container:
+    type: event
+    description: >
+      Recorded when a card-container is expanded on the 'Recent browsing'
+      page
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.card_expanded#card_container.
+    bugs:
+      - https://bugzil.la/1842616
+    data_reviews:
+      - https://bugzil.la/1842616
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      data_type:
+        description: >
+          The type of data being expanded in a card on the 'Recent browsing' page
+        type: string
+    telemetry_mirror: Firefoxview_next_CardExpanded_CardContainer
+
+  change_page_navigation:
+    type: event
+    description: >
+      Recorded when the page/view is changed in Firefox View
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.change_page#navigation.
+    bugs:
+      - https://bugzil.la/1842616
+    data_reviews:
+      - https://bugzil.la/1842616
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      page:
+        description: >
+          The short page name that the user is navigating to
+        type: string
+      source:
+        description: >
+          Whether the page was changed via the side navigation vs the 'View all' link on cards on the Recent browsing page
+        type: string
+    telemetry_mirror: Firefoxview_next_ChangePage_Navigation
+
+  context_menu_tabs:
+    type: event
+    description: >
+      Recorded when a context menu selection is made in Firefox View
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.context_menu#tabs.
+    bugs:
+      - https://bugzil.la/1842616
+    data_reviews:
+      - https://bugzil.la/1842616
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      menu_action:
+        description: >
+          The menu action the user has selected for a given tab
+        type: string
+      data_type:
+        description: >
+          The type of data the user has used the context menu for
+        type: string
+    telemetry_mirror: Firefoxview_next_ContextMenu_Tabs
+
+  close_open_tab_tabs:
+    type: event
+    description: >
+      Recorded when a tab is closed via the close button on an open tab
+      row.
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.close_open_tab#tabs.
+    bugs:
+      - https://bugzil.la/1857298
+    data_reviews:
+      - https://bugzil.la/1857298
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    telemetry_mirror: Firefoxview_next_CloseOpenTab_Tabs
+
+  browser_context_menu_tabs:
+    type: event
+    description: >
+      Recorded when a browser context menu selection is made in Firefox
+      View
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.browser_context_menu#tabs.
+    bugs:
+      - https://bugzil.la/1851197
+    data_reviews:
+      - https://bugzil.la/1851197
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      menu_action:
+        description: >
+          The menu action the user has selected for a given tab
+        type: string
+      page:
+        description: >
+          The short page name used as the location hash when selecting the Firefox View tab
+        type: string
+    telemetry_mirror: Firefoxview_next_BrowserContextMenu_Tabs
+
+  entered_firefoxview:
+    type: event
+    description: >
+      Recorded when the Firefox View tab is selected
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.entered#firefoxview.
+    bugs:
+      - https://bugzil.la/1852036
+    data_reviews:
+      - https://bugzil.la/1852036
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      page:
+        description: >
+          The short page name used as the location hash when selecting the Firefox View tab
+        type: string
+    telemetry_mirror: Firefoxview_next_Entered_Firefoxview
+
+  fxa_continue_sync:
+    type: event
+    description: >
+      Recorded when button to sign in or sign up is clicked
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.fxa_continue#sync.
+    bugs:
+      - https://bugzil.la/1833671
+    data_reviews:
+      - https://bugzil.la/1833671
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    telemetry_mirror: Firefoxview_next_FxaContinue_Sync
+
+  fxa_mobile_sync:
+    type: event
+    description: >
+      Recorded when the 'Try Firefox for mobile' button is clicked
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.fxa_mobile#sync.
+    bugs:
+      - https://bugzil.la/1833671
+    data_reviews:
+      - https://bugzil.la/1833671
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      has_devices:
+        description: >
+          True if user has other devices signed into sync
+        type: boolean
+    telemetry_mirror: Firefoxview_next_FxaMobile_Sync
+
+  synced_tabs_tabs:
+    type: event
+    description: >
+      Recorded when a synced tab is clicked
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.synced_tabs#tabs.
+    bugs:
+      - https://bugzil.la/1833671
+    data_reviews:
+      - https://bugzil.la/1833671
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      page:
+        description: >
+          The short page name where the synced tab was clicked
+        type: string
+    telemetry_mirror: Firefoxview_next_SyncedTabs_Tabs
+
+  history_visits:
+    type: event
+    description: >
+      Recorded when a history tab is clicked
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.history#visits.
+    bugs:
+      - https://bugzil.la/1842616
+    data_reviews:
+      - https://bugzil.la/1842616
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    telemetry_mirror: Firefoxview_next_History_Visits
+
+  sort_history_tabs:
+    type: event
+    description: >
+      Recorded when the sort option is changed for History in Firefox View
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.sort_history#tabs.
+    bugs:
+      - https://bugzil.la/1833674
+    data_reviews:
+      - https://bugzil.la/1833674
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      sort_type:
+        description: >
+          The type of sort the user has switched to
+        type: string
+      search_start:
+        description: >
+          Boolean for if the sort by click occured during search activity.
+        type: string
+    telemetry_mirror: Firefoxview_next_SortHistory_Tabs
+
+  show_all_history_tabs:
+    type: event
+    description: >
+      Recorded when the 'Show all history' button is clicked on the
+      History page in Firefox View
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.show_all_history#tabs.
+    bugs:
+      - https://bugzil.la/1833674
+    data_reviews:
+      - https://bugzil.la/1833674
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    telemetry_mirror: Firefoxview_next_ShowAllHistory_Tabs
+
+  open_tab_tabs:
+    type: event
+    description: >
+      Recorded when an open tab is clicked
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.open_tab#tabs.
+    bugs:
+      - https://bugzil.la/1833669
+    data_reviews:
+      - https://bugzil.la/1833669
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      page:
+        description: >
+          The short page name where the open tab was clicked
+        type: string
+      window:
+        description: >
+          The window the open tab belongs to
+        type: string
+    telemetry_mirror: Firefoxview_next_OpenTab_Tabs
+
+  tab_selected_toolbarbutton:
+    type: event
+    description: >
+      Recorded when the Firefox View tab is clicked
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.tab_selected#toolbarbutton.
+    bugs:
+      - https://bugzil.la/1852989
+    data_reviews:
+      - https://bugzil.la/1852989
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    telemetry_mirror: Firefoxview_next_TabSelected_Toolbarbutton
+
+  search_initiated_search:
+    type: event
+    description: >
+      Recorded when search is initiated and from what page.
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.search_initiated#search.
+    bugs:
+      - https://bugzil.la/1869765
+    data_reviews:
+      - https://bugzil.la/1869765
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      page:
+        description: >
+          The short page name used as the location hash when selecting the Firefox View tab.
+        type: string
+    telemetry_mirror: Firefoxview_next_SearchInitiated_Search
+
+  search_show_all_showallbutton:
+    type: event
+    description: >
+      Recorded when the show all button is clicked to show more search
+      results.
+      This event was generated to correspond to the Legacy Telemetry event
+      firefoxview_next.search_show_all#showallbutton.
+    bugs:
+      - https://bugzil.la/1869765
+    data_reviews:
+      - https://bugzil.la/1869765
+    notification_emails:
+      - firefoxview@mozilla.com
+    expires: never
+    extra_keys:
+      section:
+        description: >
+          Section within which show all is clicked.
+        type: string
+    telemetry_mirror: Firefoxview_next_SearchShowAll_Showallbutton

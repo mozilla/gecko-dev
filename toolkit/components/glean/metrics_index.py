@@ -60,6 +60,7 @@ gecko_metrics = [
 # Order is lexicographical, enforced by t/c/glean/tests/pytest/test_yaml_indices.py
 firefox_desktop_metrics = [
     "browser/components/backup/metrics.yaml",
+    "browser/components/firefoxview/metrics.yaml",
     "browser/components/genai/metrics.yaml",
     "browser/components/metrics.yaml",
     "browser/components/migration/metrics.yaml",

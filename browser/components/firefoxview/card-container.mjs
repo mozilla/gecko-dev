@@ -91,15 +91,11 @@ class CardContainer extends MozLitElement {
     }
 
     // Record telemetry
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      this.isExpanded ? "card_expanded" : "card_collapsed",
-      "card_container",
-      null,
-      {
-        data_type: this.shortPageName,
-      }
-    );
+    Glean.firefoxviewNext[
+      `card${this.isExpanded ? "Expanded" : "Collapsed"}CardContainer`
+    ].record({
+      data_type: this.shortPageName,
+    });
   }
 
   viewAllClicked() {

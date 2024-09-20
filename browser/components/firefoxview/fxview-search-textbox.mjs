@@ -99,15 +99,9 @@ export default class FxviewSearchTextbox extends MozLitElement {
       })
     );
     if (!window.IS_STORYBOOK) {
-      Services.telemetry.recordEvent(
-        "firefoxview_next",
-        "search_initiated",
-        "search",
-        null,
-        {
-          page: this.pageName,
-        }
-      );
+      Glean.firefoxviewNext.searchInitiatedSearch.record({
+        page: this.pageName,
+      });
     }
   }
 

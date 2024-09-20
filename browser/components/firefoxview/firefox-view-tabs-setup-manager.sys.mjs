@@ -451,12 +451,6 @@ export const TabsSetupFlowManager = new (class {
       );
       this._noTabsVisibleFromAddedDeviceTimestamp = 0;
       this._deviceAddedResultsNeverSeen = false;
-      Services.telemetry.recordEvent(
-        "firefoxview",
-        "synced_tabs_empty",
-        "since_device_added",
-        Math.round(elapsed / 1000).toString()
-      );
     } else {
       // we are still waiting for some tabs to show...
       this.logger.debug(

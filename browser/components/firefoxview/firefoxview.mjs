@@ -42,16 +42,10 @@ function recordNavigationTelemetry(source, eventTarget) {
     view = eventTarget.shortPageName;
   }
   // Record telemetry
-  Services.telemetry.recordEvent(
-    "firefoxview_next",
-    "change_page",
-    "navigation",
-    null,
-    {
-      page: view,
-      source,
-    }
-  );
+  Glean.firefoxviewNext.changePageNavigation.record({
+    page: view,
+    source,
+  });
 }
 
 async function updateSearchTextboxSize() {
@@ -136,15 +130,9 @@ document.addEventListener("visibilitychange", () => {
 });
 
 function recordEnteredTelemetry() {
-  Services.telemetry.recordEvent(
-    "firefoxview_next",
-    "entered",
-    "firefoxview",
-    null,
-    {
-      page: document.location?.hash?.substring(1) || "recentbrowsing",
-    }
-  );
+  Glean.firefoxviewNext.enteredFirefoxview.record({
+    page: document.location?.hash?.substring(1) || "recentbrowsing",
+  });
 }
 
 document.addEventListener("keydown", e => {
@@ -179,16 +167,10 @@ function onCommand(e) {
   }
   const item =
     e.target.closest("#context-openlinkinusercontext-menu") || e.target;
-  Services.telemetry.recordEvent(
-    "firefoxview_next",
-    "browser_context_menu",
-    "tabs",
-    null,
-    {
-      menu_action: item.id,
-      page: location.hash?.substring(1) || "recentbrowsing",
-    }
-  );
+  Glean.firefoxviewNext.browserContextMenuTabs.record({
+    menu_action: item.id,
+    page: location.hash?.substring(1) || "recentbrowsing",
+  });
 }
 
 function onLocalesChanged() {

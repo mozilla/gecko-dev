@@ -29,22 +29,10 @@ class SyncedTabsInView extends ViewPage {
   controller = new lazy.SyncedTabsController(this, {
     contextMenu: true,
     pairDeviceCallback: () =>
-      Services.telemetry.recordEvent(
-        "firefoxview_next",
-        "fxa_mobile",
-        "sync",
-        null,
-        {
-          has_devices: TabsSetupFlowManager.secondaryDeviceConnected.toString(),
-        }
-      ),
-    signupCallback: () =>
-      Services.telemetry.recordEvent(
-        "firefoxview_next",
-        "fxa_continue",
-        "sync",
-        null
-      ),
+      Glean.firefoxviewNext.fxaMobileSync.record({
+        has_devices: TabsSetupFlowManager.secondaryDeviceConnected,
+      }),
+    signupCallback: () => Glean.firefoxviewNext.fxaContinueSync.record(),
   });
 
   constructor() {
@@ -177,15 +165,9 @@ class SyncedTabsInView extends ViewPage {
   onOpenLink(event) {
     navigateToLink(event);
 
-    Services.telemetry.recordEvent(
-      "firefoxview_next",
-      "synced_tabs",
-      "tabs",
-      null,
-      {
-        page: this.recentBrowsing ? "recentbrowsing" : "syncedtabs",
-      }
-    );
+    Glean.firefoxviewNext.syncedTabsTabs.record({
+      page: this.recentBrowsing ? "recentbrowsing" : "syncedtabs",
+    });
 
     if (this.controller.searchQuery) {
       const searchesHistogram = Services.telemetry.getKeyedHistogramById(
@@ -359,15 +341,9 @@ class SyncedTabsInView extends ViewPage {
     ) {
       event.preventDefault();
       this.showAll = true;
-      Services.telemetry.recordEvent(
-        "firefoxview_next",
-        "search_show_all",
-        "showallbutton",
-        null,
-        {
-          section: "syncedtabs",
-        }
-      );
+      Glean.firefoxviewNext.searchShowAllShowallbutton.record({
+        section: "syncedtabs",
+      });
     }
   }
 
