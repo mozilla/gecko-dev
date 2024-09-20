@@ -328,6 +328,16 @@ def _try_task_config(full_task_graph, parameters, graph_config):
         if "MOZHARNESS_TEST_TAG" in parameters["try_task_config"].get("env", {}):
             matched_tasks = [x for x in matched_tasks if x.endswith("-1")]
 
+    if "MOZHARNESS_TEST_TAG" in parameters["try_task_config"].get("env", {}):
+        if (
+            "os_integration"
+            in parameters["try_task_config"]["env"]["MOZHARNESS_TEST_TAG"]
+        ):
+            # add source tests: mozperftest, mozbase, mozbuild, mozharness, mozlint
+            matched_tasks.extend(
+                [x for x in full_task_graph.graph.nodes if "source-test-python" in x]
+            )
+
     selected_tasks = set(tasks) | set(matched_tasks)
     missing.update(selected_tasks - set(full_task_graph.tasks))
 
