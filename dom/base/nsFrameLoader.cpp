@@ -3425,7 +3425,7 @@ BrowsingContext* nsFrameLoader::GetBrowsingContext() {
       Unused << MaybeCreateDocShell();
     }
   }
-  MOZ_ASSERT(mInitialized);
+  MOZ_ASSERT(mInitialized || mDestroyCalled);
   return GetExtantBrowsingContext();
 }
 
