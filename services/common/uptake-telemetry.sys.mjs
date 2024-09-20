@@ -145,7 +145,7 @@ export class UptakeTelemetry {
   /**
    * Reports the uptake status for the specified source.
    *
-   * @param {string} component     the component reporting the uptake (eg. "normandy").
+   * @param {string} component     the component reporting the uptake (eg. "Normandy").
    * @param {string} status        the uptake status (eg. "network_error")
    * @param {Object} extra         extra values to report
    * @param {string} extra.source  the update source (eg. "recipe-42").
@@ -176,18 +176,8 @@ export class UptakeTelemetry {
     const shouldSendEvent =
       !["release", "esr"].includes(channel) || hash < lazy.gSampleRate;
     if (shouldSendEvent) {
-      // The Event API requires `extra` values to be of type string. Force it!
-      const extraStr = Object.keys(extra).reduce((acc, k) => {
-        acc[k] = extra[k].toString();
-        return acc;
-      }, {});
-      Services.telemetry.recordEvent(
-        TELEMETRY_EVENTS_ID,
-        "uptake",
-        component,
-        status,
-        extraStr
-      );
+      extra.value = status;
+      Glean.uptakeRemotecontentResult["uptake" + component].record(extra);
     }
   }
 }

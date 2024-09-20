@@ -29,7 +29,7 @@ const PREF_SETTINGS_SYNC_HISTORY_ERROR_THRESHOLD =
   "sync_history_error_threshold";
 
 // Telemetry identifiers.
-const TELEMETRY_COMPONENT = "remotesettings";
+const TELEMETRY_COMPONENT = "Remotesettings";
 const TELEMETRY_SOURCE_POLL = "settings-changes-monitoring";
 const TELEMETRY_SOURCE_SYNC = "settings-sync";
 

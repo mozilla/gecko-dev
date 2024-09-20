@@ -4,7 +4,7 @@
 
 import { UptakeTelemetry } from "resource://services-common/uptake-telemetry.sys.mjs";
 
-const COMPONENT = "normandy";
+const COMPONENT = "Normandy";
 
 export var Uptake = {
   // Action uptake
@@ -43,7 +43,7 @@ export var Uptake = {
       );
     }
     await UptakeTelemetry.report(COMPONENT, status, {
-      source: `${COMPONENT}/${source}`,
+      source: `${COMPONENT.toLowerCase()}/${source}`,
     });
   },
 

@@ -22,7 +22,7 @@ ChromeUtils.defineESModuleGetters(lazy, {
   Utils: "resource://services-settings/Utils.sys.mjs",
 });
 
-const TELEMETRY_COMPONENT = "remotesettings";
+const TELEMETRY_COMPONENT = "Remotesettings";
 
 ChromeUtils.defineLazyGetter(lazy, "console", () => lazy.Utils.log);
 

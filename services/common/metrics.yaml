@@ -1,0 +1,93 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Cloud Services :: Firefox: Common'
+
+uptake.remotecontent.result:
+  uptake_remotesettings:
+    type: event
+    description: >
+      Was the remote content successfully pulled? This uptake telemetry
+      allows to monitor the behaviour of our clients when it comes to
+      fetching data from remote servers. This helps defect-detection and
+      allow observation of the proportion of success among clients and
+      sources, the distribution of error causes, and its evolution over
+      time.
+      This event was generated to correspond to the Legacy Telemetry event
+      uptake.remotecontent.result.uptake#remotesettings.
+    bugs: &uptake_remotecontent_result_uptake_bugs
+      - https://bugzil.la/1517469
+      - https://bugzil.la/1617133
+    data_reviews: &uptake_remotecontent_result_uptake_data_reviews
+      - https://bugzil.la/1517469
+      - https://bugzil.la/1617133
+    notification_emails: &uptake_remotecontent_result_uptake_emails
+      - mleplatre@mozilla.com
+      - bens-directs@mozilla.com
+    expires: never
+    extra_keys: &uptake_remotecontent_result_uptake_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      source:
+        description: >
+          A label to distinguish what is being pulled or updated in the component (eg. recipe id, settings collection name, ...).
+
+        type: string
+      trigger:
+        description: >
+          A label to distinguish what triggered the polling/fetching of remote content (eg. "broadcast", "timer", "forced", "manual")
+
+        type: string
+      age:
+        description: >
+          The age of pulled data in seconds (ie. difference between publication time and fetch time).
+
+        type: string
+      duration:
+        description: >
+          The duration of the synchronization process in milliseconds.
+
+        type: string
+      timestamp:
+        description: >
+          The current timestamp, received during synchronization.
+
+        type: string
+      errorName:
+        description: >
+          An optional string with the error name attribute in case of failure.
+
+        type: string
+    telemetry_mirror: UptakeRemotecontentResult_Uptake_Remotesettings
+    no_lint:
+      - COMMON_PREFIX
+
+  uptake_normandy:
+    type: event
+    description: >
+      Was the remote content successfully pulled? This uptake telemetry
+      allows to monitor the behaviour of our clients when it comes to
+      fetching data from remote servers. This helps defect-detection and
+      allow observation of the proportion of success among clients and
+      sources, the distribution of error causes, and its evolution over
+      time.
+      This event was generated to correspond to the Legacy Telemetry event
+      uptake.remotecontent.result.uptake#normandy.
+    bugs: *uptake_remotecontent_result_uptake_bugs
+    data_reviews: *uptake_remotecontent_result_uptake_data_reviews
+    notification_emails: *uptake_remotecontent_result_uptake_emails
+    expires: never
+    extra_keys: *uptake_remotecontent_result_uptake_extra
+    telemetry_mirror: UptakeRemotecontentResult_Uptake_Normandy
+    no_lint:
+      - COMMON_PREFIX
