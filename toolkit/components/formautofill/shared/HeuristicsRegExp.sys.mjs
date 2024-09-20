@@ -77,7 +77,7 @@ export const HeuristicsRegExp = {
         "|(anno|año)" +      // es-ES
         "|jaar",             // nl-NL
       "cc-type":
-        "type" +
+        "(cc|card).*(type)" +
         "|kartenmarke" +     // de-DE
         "|typ.*karty",       // pl-PL
       "cc-csc":
