@@ -331,6 +331,10 @@ void HTMLIFrameElement::SetLazyLoading() {
     return;
   }
 
+  if (!StaticPrefs::dom_iframe_lazy_loading_enabled()) {
+    return;
+  }
+
   // https://html.spec.whatwg.org/multipage/urls-and-fetching.html#will-lazy-load-element-steps
   // "If scripting is disabled for element, then return false."
   Document* doc = OwnerDoc();
