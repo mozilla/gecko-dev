@@ -43,3 +43,48 @@ client_association:
     expires: never
     send_in_pings:
       - fx-accounts
+
+fxa:
+  connect_account:
+    type: event
+    description: >
+      Records when a Firefox Account, or a Firefox Account service, is
+      explicitly connected from the browser via an intentional user action.
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa.connect#account.
+    bugs: &fxa_connect_bugs
+      - https://bugzil.la/1595954
+    data_reviews: &fxa_connect_data_reviews
+      - https://bugzil.la/1595954
+    notification_emails: &fxa_connect_emails
+      - sync-dev@mozilla.org
+    expires: never
+    extra_keys: &fxa_connect_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      fxa:
+        description: >
+          Whether the account itself was connected or disconnected.
+        type: string
+      sync:
+        description: >
+          Whether sync was connected or disconnected.
+        type: string
+    telemetry_mirror: Fxa_Connect_Account
+
+  disconnect_account:
+    type: event
+    description: >
+      Records when a Firefox Account, or a Firefox Account service, is
+      explicitly disconnected from the browser via an intentional user action.
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa.disconnect#account.
+    bugs: *fxa_connect_bugs
+    data_reviews: *fxa_connect_data_reviews
+    notification_emails: *fxa_connect_emails
+    expires: never
+    extra_keys: *fxa_connect_extra
+    telemetry_mirror: Fxa_Disconnect_Account

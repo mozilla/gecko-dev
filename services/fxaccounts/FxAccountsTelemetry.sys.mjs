@@ -112,6 +112,9 @@ export class FxAccountsTelemetry {
   async recordConnection(services, how = null) {
     try {
       let extra = {};
+      if (how) {
+        extra.value = how;
+      }
       // Record that fxa was connected if it isn't currently - it will be soon.
       if (!(await this._fxai.getUserAccountData())) {
         extra.fxa = "true";
@@ -120,7 +123,7 @@ export class FxAccountsTelemetry {
       if (services.includes("sync")) {
         extra.sync = "true";
       }
-      Services.telemetry.recordEvent("fxa", "connect", "account", how, extra);
+      Glean.fxa.connectAccount.record(extra);
     } catch (ex) {
       log.error("Failed to record connection telemetry", ex);
       console.error("Failed to record connection telemetry", ex);
@@ -143,6 +146,9 @@ export class FxAccountsTelemetry {
   async recordDisconnection(service = null, how = null) {
     try {
       let extra = {};
+      if (how) {
+        extra.value = how;
+      }
       if (!service) {
         extra.fxa = "true";
         // We need a way to enumerate all services - but for now we just hard-code
@@ -158,13 +164,7 @@ export class FxAccountsTelemetry {
           `recordDisconnection has invalid value for service: ${service}`
         );
       }
-      Services.telemetry.recordEvent(
-        "fxa",
-        "disconnect",
-        "account",
-        how,
-        extra
-      );
+      Glean.fxa.disconnectAccount.record(extra);
     } catch (ex) {
       log.error("Failed to record disconnection telemetry", ex);
       console.error("Failed to record disconnection telemetry", ex);
