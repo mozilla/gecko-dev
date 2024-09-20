@@ -1,0 +1,306 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Networking: JAR'
+
+zero_byte_load:
+  load_ftl:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#ftl.
+    bugs: &zero_byte_load_load_bugs
+      - https://bugzil.la/1675823
+    data_reviews: &zero_byte_load_load_data_reviews
+      - https://bugzil.la/1675823
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: &zero_byte_load_load_extra
+      sync:
+        description: >
+          Was the load synchronous
+        type: boolean
+      file_name:
+        description: >
+          The name of the file being loaded.
+        type: string
+      status:
+        description: >
+          The channel status code.
+        type: string
+      cancelled:
+        description: >
+          Whether this load has been cancelled.
+        type: boolean
+    telemetry_mirror: Zero_byte_load_Load_Ftl
+    no_lint:
+      - COMMON_PREFIX
+
+  load_dtd:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#dtd.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Dtd
+    no_lint:
+      - COMMON_PREFIX
+
+  load_properties:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#properties.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Properties
+    no_lint:
+      - COMMON_PREFIX
+
+  load_js:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#js.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Js
+    no_lint:
+      - COMMON_PREFIX
+
+  load_xml:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#xml.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Xml
+    no_lint:
+      - COMMON_PREFIX
+
+  load_xhtml:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#xhtml.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Xhtml
+    no_lint:
+      - COMMON_PREFIX
+
+  load_css:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#css.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Css
+    no_lint:
+      - COMMON_PREFIX
+
+  load_json:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#json.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Json
+    no_lint:
+      - COMMON_PREFIX
+
+  load_html:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#html.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Html
+    no_lint:
+      - COMMON_PREFIX
+
+  load_png:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#png.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Png
+    no_lint:
+      - COMMON_PREFIX
+
+  load_svg:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#svg.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Svg
+    no_lint:
+      - COMMON_PREFIX
+
+  load_others:
+    type: event
+    description: >
+      Collection of zero_byte_load events as part of the Yellow Screen of
+      Death analysis. When a file is loaded synchronously, this event gets
+      recorded in nsJARChannel::Open if the content length is zero. For
+      asynchronous loads, this event gets recorded in onStopRequest. Note
+      that when the load has been cancelled, the consumer could already
+      receive some data, so this event also captures non-zero-byte loads.
+      This event was generated to correspond to the Legacy Telemetry event
+      zero_byte_load.load#others.
+    bugs: *zero_byte_load_load_bugs
+    data_reviews: *zero_byte_load_load_data_reviews
+    notification_emails:
+      - zbraniecki@mozilla.com
+      - vchin@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: *zero_byte_load_load_extra
+    telemetry_mirror: Zero_byte_load_Load_Others
+    no_lint:
+      - COMMON_PREFIX
