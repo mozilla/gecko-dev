@@ -59,10 +59,9 @@ pub struct Connection {
 
 impl Connection {
     /// Opens a connection to a physical database at the given path.
-    pub fn new<O, P>(path: &P, type_: ConnectionType) -> Result<Self, O::Error>
+    pub fn new<O>(path: &impl ConnectionPath, type_: ConnectionType) -> Result<Self, O::Error>
     where
         O: ConnectionOpener,
-        P: ConnectionPath,
     {
         let mut conn = rusqlite::Connection::open_with_flags(
             path.as_path(),

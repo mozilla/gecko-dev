@@ -105,11 +105,7 @@ impl<'a> Database<'a> {
         range: impl RangeBounds<Key>,
         options: &GetOptions,
     ) -> Result<Vec<(Key, Value)>, DatabaseError> {
-        let reader = match options.concurrent {
-            true => self.store.reader()?,
-            false => self.store.writer()?,
-        };
-        reader.read(|conn| {
+        let r = |conn: &rusqlite::Connection| {
             let fragment = RangeFragment::new("v.key", &range);
             let mut statement = conn.prepare_cached(&format!(
                 "SELECT
@@ -146,7 +142,11 @@ impl<'a> Database<'a> {
                 })
                 .collect::<rusqlite::Result<Vec<_>>>()?;
             Ok(values)
-        })
+        };
+        match options.concurrent {
+            true => self.store.reader()?.read(r),
+            false => self.store.writer()?.read(r),
+        }
     }
 
     pub fn is_empty(&self) -> Result<bool, DatabaseError> {
@@ -203,11 +203,7 @@ impl<'a> Database<'a> {
         options: &GetOptions,
         f: impl FnOnce(&mut rusqlite::Statement<'_>, &[(&str, &dyn ToSql)]) -> Result<T, DatabaseError>,
     ) -> Result<T, DatabaseError> {
-        let reader = match options.concurrent {
-            true => self.store.reader()?,
-            false => self.store.writer()?,
-        };
-        reader.read(|conn| {
+        let r = |conn: &rusqlite::Connection| {
             let mut statement = conn.prepare_cached(
                 "SELECT
                    json(v.value) AS value
@@ -226,7 +222,11 @@ impl<'a> Database<'a> {
                 ":key": key,
             };
             f(&mut statement, params)
-        })
+        };
+        match options.concurrent {
+            true => self.store.reader()?.read(r),
+            false => self.store.writer()?.read(r),
+        }
     }
 
     fn put_or_delete(&self, puts: &[Put], deletes: &[Delete]) -> Result<(), DatabaseError> {

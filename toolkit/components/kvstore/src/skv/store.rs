@@ -47,27 +47,27 @@ impl Store {
     }
 
     /// Gets or opens both connections to the physical database.
-    fn open(&self) -> Result<OpenStore, StoreError> {
+    fn open(&self) -> Result<OpenStoreGuard<'_>, StoreError> {
         let mut state = self.state.lock().unwrap();
         Ok(match &*state {
             StoreState::Created(path) => {
-                let store = OpenStore::new(path)?;
+                let store = Arc::new(OpenStore::new(path)?);
                 *state = StoreState::Open(store.clone());
-                store
+                OpenStoreGuard::new(store, self.waiter.guard())
             }
-            StoreState::Open(store) => store.clone(),
+            StoreState::Open(store) => OpenStoreGuard::new(store.clone(), self.waiter.guard()),
             StoreState::Closed => Err(StoreError::Closed)?,
         })
     }
 
     /// Returns the read-write connection to use for queries and updates.
-    pub fn writer(&self) -> Result<ConnectionGuard<'_>, StoreError> {
-        Ok(ConnectionGuard::new(self.open()?.writer, &self.waiter))
+    pub fn writer(&self) -> Result<Writer<'_>, StoreError> {
+        Ok(Writer(self.open()?))
     }
 
     /// Returns the read-only connection to use for concurrent reads.
-    pub fn reader(&self) -> Result<ConnectionGuard<'_>, StoreError> {
-        Ok(ConnectionGuard::new(self.open()?.reader, &self.waiter))
+    pub fn reader(&self) -> Result<Reader<'_>, StoreError> {
+        Ok(Reader(self.open()?))
     }
 
     /// Closes both connections to the physical database.
@@ -79,21 +79,18 @@ impl Store {
             StoreState::Open(store) => store,
         };
 
+        // Interrupt concurrent reads; there's no risk of data loss for them.
         store.reader.interrupt();
 
-        // Wait for all pending reads and writes to finish and
-        // release their strong references to the connections.
+        // Wait for all pending operations (reads and writes) to finish and
+        // drop their strong references to the store.
         self.waiter.wait();
 
-        // Invariant: Once all reads and writes have finished,
-        // we should have the last strong reference to each connection.
-        let reader = Arc::into_inner(store.reader).expect("invariant violation");
-        let writer = Arc::into_inner(store.writer).expect("invariant violation");
+        // Invariant: Waiting for all operations to finish should have dropped
+        // all other strong references.
+        let store = Arc::into_inner(store).expect("invariant violation");
 
-        // We can't meaningfully recover from failing to close
-        // either connection, so ignore errors.
-        let _ = reader.into_inner().close();
-        let _ = writer.into_inner().close();
+        store.close();
     }
 }
 
@@ -154,79 +151,116 @@ impl ConnectionPath for StorePath {
     }
 }
 
-pub struct ConnectionGuard<'a> {
-    conn: Arc<Connection>,
-    waiter: &'a OperationWaiter,
+/// A strong reference to an open store.
+struct OpenStoreGuard<'a> {
+    store: Arc<OpenStore>,
+    // Field order is important here: struct fields are dropped in
+    // declaration order, and we want to ensure that the strong reference
+    // to the open store is dropped before the pending operation guard.
+    // Otherwise, the strong reference count will race with the operation count,
+    // and might violate the invariant in `Store::close()`.
+    _guard: OperationGuard<'a>,
 }
 
-impl<'a> ConnectionGuard<'a> {
-    fn new(conn: Arc<Connection>, waiter: &'a OperationWaiter) -> Self {
-        *waiter.count.lock().unwrap() += 1;
-        Self { conn, waiter }
+impl<'a> OpenStoreGuard<'a> {
+    fn new(store: Arc<OpenStore>, guard: OperationGuard<'a>) -> Self {
+        Self {
+            store,
+            _guard: guard,
+        }
     }
 }
 
-impl<'a> Deref for ConnectionGuard<'a> {
+/// A read-write connection to an SQLite database.
+pub struct Writer<'a>(OpenStoreGuard<'a>);
+
+impl<'a> Deref for Writer<'a> {
     type Target = Connection;
 
     fn deref(&self) -> &Self::Target {
-        &self.conn
+        &self.0.store.writer
     }
 }
 
-impl<'a> Drop for ConnectionGuard<'a> {
-    fn drop(&mut self) {
-        let mut count = self.waiter.count.lock().unwrap();
-        *count -= 1;
-        self.waiter.monitor.notify_one();
+/// A read-only connection to an SQLite database.
+pub struct Reader<'a>(OpenStoreGuard<'a>);
+
+impl<'a> Deref for Reader<'a> {
+    type Target = Connection;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0.store.reader
     }
 }
 
 #[derive(Debug)]
 enum StoreState {
     Created(StorePath),
-    Open(OpenStore),
+    Open(Arc<OpenStore>),
     Closed,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 struct OpenStore {
-    writer: Arc<Connection>,
-    reader: Arc<Connection>,
+    writer: Connection,
+    reader: Connection,
 }
 
 impl OpenStore {
     fn new(path: &StorePath) -> Result<Self, StoreError> {
         // Order is important here: the writer must be opened first,
         // so that it can initialize the schema.
-        let writer = Connection::new::<Schema, _>(path, ConnectionType::ReadWrite)?;
-        let reader = Connection::new::<Schema, _>(path, ConnectionType::ReadOnly)?;
-        Ok(Self {
-            writer: Arc::new(writer),
-            reader: Arc::new(reader),
-        })
+        let writer = Connection::new::<Schema>(path, ConnectionType::ReadWrite)?;
+        let reader = Connection::new::<Schema>(path, ConnectionType::ReadOnly)?;
+        Ok(Self { writer, reader })
+    }
+
+    fn close(self) {
+        // We can't meaningfully recover from failing to close
+        // either connection, so ignore errors.
+        let _ = self.reader.into_inner().close();
+        let _ = self.writer.into_inner().close();
     }
 }
 
 #[derive(Debug)]
 struct OperationWaiter {
     count: Mutex<usize>,
-    monitor: Condvar,
+    cvar: Condvar,
 }
 
 impl OperationWaiter {
     fn new() -> Self {
         Self {
             count: Mutex::new(0),
-            monitor: Condvar::new(),
+            cvar: Condvar::new(),
         }
+    }
+
+    /// Increments the pending operation count, and returns a guard
+    /// that decrements the count when dropped.
+    fn guard(&self) -> OperationGuard<'_> {
+        *self.count.lock().unwrap() += 1;
+        OperationGuard(self)
     }
 
     /// Waits for the pending operation count to reach zero.
     fn wait(&self) {
         let mut count = self.count.lock().unwrap();
         while *count > 0 {
-            count = self.monitor.wait(count).unwrap();
+            count = self.cvar.wait(count).unwrap();
+        }
+    }
+}
+
+struct OperationGuard<'a>(&'a OperationWaiter);
+
+impl<'a> Drop for OperationGuard<'a> {
+    fn drop(&mut self) {
+        let mut count = self.0.count.lock().unwrap();
+        *count -= 1;
+        if *count == 0 {
+            self.0.cvar.notify_all();
         }
     }
 }
