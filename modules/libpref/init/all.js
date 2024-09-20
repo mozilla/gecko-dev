@@ -1328,10 +1328,6 @@ pref("network.websocket.timeout.ping.request", 0);
 // event is sent to the javascript websockets application
 pref("network.websocket.timeout.ping.response", 10);
 
-// Defines whether or not to try to negotiate the permessage compression
-// extension with the websocket server.
-pref("network.websocket.extensions.permessage-deflate", true);
-
 // the maximum number of concurrent websocket sessions. By specification there
 // is never more than one handshake oustanding to an individual host at
 // one time.

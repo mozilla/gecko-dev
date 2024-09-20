@@ -5,7 +5,7 @@
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
-<body onload="loadDeflate()">
+<body onload="testDeflate()">
 <a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=792831">Mozilla Bug </a>
 <p id="display"></p>
 <div id="content" style="display: none">
@@ -21,13 +21,11 @@ var sendText = true;
 
 let tests = [
   // enable PMCE
-  [ true, true, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate" ],
-  // disable PMCE
-  [ false, false, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate_disabled" ],
+  [ true, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate" ],
   // server rejects offered PMCE
-  [ true, false, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate_rejected" ],
+  [ false, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate_rejected" ],
   // server returns parameters in the handshake
-  [ true, true, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate_params" ]
+  [ true, "ws://mochi.test:8888/tests/dom/websocket/tests/file_websocket_permessage_deflate_params" ]
 ]
 
 function ab2str(buf) {
@@ -53,10 +51,10 @@ function sendMessage() {
 }
 
 function testDeflate() {
-  ws = new WebSocket(tests[testIdx][2]);
+  ws = new WebSocket(tests[testIdx][1]);
 
   ws.onopen = function() {
-    if (tests[testIdx][1]) {
+    if (tests[testIdx][0]) {
       is(ws.extensions, "permessage-deflate", "permessage-deflate not negotiated!");
     } else {
       is(ws.extensions, "", "permessage-deflate should not be negotiated!");
@@ -90,16 +88,12 @@ function testDeflate() {
       sendText = true;
       testIdx++;
       if (testIdx < tests.length) {
-        loadDeflate();
+        testDeflate();
       } else {
         SimpleTest.finish();
       }
     }
   }
-}
-
-function loadDeflate() {
-  SpecialPowers.pushPrefEnv({"set":[['network.websocket.extensions.permessage-deflate', tests[testIdx][0]]]}, testDeflate);
 }
 
 SimpleTest.waitForExplicitFinish();

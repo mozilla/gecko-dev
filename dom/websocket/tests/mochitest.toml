@@ -9,7 +9,6 @@ support-files = [
   "file_websocket_hello_wsh.py",
   "file_websocket_http_resource.txt",
   "file_websocket_permessage_deflate_wsh.py",
-  "file_websocket_permessage_deflate_disabled_wsh.py",
   "file_websocket_permessage_deflate_rejected_wsh.py",
   "file_websocket_permessage_deflate_params_wsh.py",
   "file_websocket_wsh.py",
