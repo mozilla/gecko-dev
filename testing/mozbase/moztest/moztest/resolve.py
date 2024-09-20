@@ -71,7 +71,6 @@ TEST_SUITES = {
     },
     "marionette": {
         "aliases": ("mn",),
-        "build_flavor": "marionette",
         "mach_command": "marionette-test",
         "kwargs": {"tests": None},
         "task_regex": ["marionette($|.*(-1|[^0-9])$)"],

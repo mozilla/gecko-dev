@@ -205,7 +205,7 @@ def chunk_manifests(suite, platform, chunks, manifests):
     """
     ini_manifests = set([x.replace(".toml", ".ini") for x in manifests])
 
-    if "web-platform-tests" not in suite and "marionette" not in suite:
+    if "web-platform-tests" not in suite:
         runtimes = {
             k: v for k, v in get_runtimes(platform, suite).items() if k in ini_manifests
         }
