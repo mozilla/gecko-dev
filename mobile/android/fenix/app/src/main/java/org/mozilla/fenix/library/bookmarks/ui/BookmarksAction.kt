@@ -36,6 +36,7 @@ internal data class BookmarkLongClicked(val item: BookmarkItem.Bookmark) : Bookm
 internal data object SearchClicked : BookmarksAction
 internal data object AddFolderClicked : BookmarksAction
 internal data object BackClicked : BookmarksAction
+internal data object SignIntoSyncClicked : BookmarksAction
 
 /**
  * Actions specific to the Add Folder screen.

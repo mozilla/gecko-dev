@@ -44,6 +44,7 @@ class BookmarksMiddlewareTest {
 
     private lateinit var bookmarksStorage: BookmarksStorage
     private lateinit var navController: NavController
+    private lateinit var navigateToSignIntoSync: () -> Unit
     private lateinit var exitBookmarks: () -> Unit
     private lateinit var getBrowsingMode: () -> BrowsingMode
     private lateinit var openTab: (String, Boolean) -> Unit
@@ -66,6 +67,7 @@ class BookmarksMiddlewareTest {
     fun setup() {
         bookmarksStorage = mock()
         navController = mock()
+        navigateToSignIntoSync = { }
         exitBookmarks = { }
         getBrowsingMode = { BrowsingMode.Normal }
         openTab = { _, _ -> }
@@ -285,6 +287,19 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen is an empty list and the top-level is loaded WHEN sign into sync is clicked THEN navigate to sign into sync `() = runTestOnMain {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        var navigated = false
+        navigateToSignIntoSync = { navigated = true }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(SignIntoSyncClicked)
+
+        assertTrue(navigated)
+    }
+
+    @Test
     fun `GIVEN current screen is list and a sub-level folder is loaded WHEN back is clicked THEN load the parent level`() = runTestOnMain {
         val tree = generateBookmarkTree()
         val firstFolderNode = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
@@ -306,6 +321,7 @@ class BookmarksMiddlewareTest {
         bookmarksStorage = bookmarksStorage,
         navController = navController,
         exitBookmarks = exitBookmarks,
+        navigateToSignIntoSync = navigateToSignIntoSync,
         resolveFolderTitle = resolveFolderTitle,
         getBrowsingMode = getBrowsingMode,
         openTab = openTab,
