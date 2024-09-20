@@ -358,8 +358,6 @@ NS_EVENT_MESSAGE(eContentCommandLookUpDictionary)
 // scrollable ancestor element can only be scrolled vertically, and horizontal
 // scrolling is requested using this event, no scrolling will occur.
 NS_EVENT_MESSAGE(eContentCommandScroll)
-NS_EVENT_MESSAGE_FIRST_LAST(eContentCommandEvent, eContentCommandCut,
-                            eContentCommandScroll)
 
 // Event to gesture notification
 NS_EVENT_MESSAGE(eGestureNotify)

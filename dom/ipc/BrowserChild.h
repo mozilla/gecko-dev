@@ -400,12 +400,6 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
   mozilla::ipc::IPCResult RecvNormalPrioritySelectionEvent(
       const mozilla::WidgetSelectionEvent& aEvent);
 
-  mozilla::ipc::IPCResult RecvSimpleContentCommandEvent(
-      const mozilla::EventMessage& aMessage);
-
-  mozilla::ipc::IPCResult RecvNormalPrioritySimpleContentCommandEvent(
-      const mozilla::EventMessage& aMessage);
-
   mozilla::ipc::IPCResult RecvInsertText(const nsAString& aStringToInsert);
 
   mozilla::ipc::IPCResult RecvUpdateRemoteStyle(

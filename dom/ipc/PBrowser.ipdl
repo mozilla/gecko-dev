@@ -849,10 +849,6 @@ child:
     [Priority=input] async SelectionEvent(WidgetSelectionEvent event);
     async NormalPrioritySelectionEvent(WidgetSelectionEvent event);
 
-
-    [Priority=input] async SimpleContentCommandEvent(EventMessage message);
-    async NormalPrioritySimpleContentCommandEvent(EventMessage message);
-
     /**
      * Dispatch eContentCommandInsertText event in the remote process.
      */

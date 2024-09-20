@@ -2312,20 +2312,6 @@ mozilla::ipc::IPCResult BrowserChild::RecvNormalPrioritySelectionEvent(
   return RecvSelectionEvent(aEvent);
 }
 
-mozilla::ipc::IPCResult BrowserChild::RecvSimpleContentCommandEvent(
-    const EventMessage& aMessage) {
-  WidgetContentCommandEvent localEvent(true, aMessage, mPuppetWidget);
-  DispatchWidgetEventViaAPZ(localEvent);
-  Unused << SendOnEventNeedingAckHandled(aMessage, 0u);
-  return IPC_OK();
-}
-
-mozilla::ipc::IPCResult
-BrowserChild::RecvNormalPrioritySimpleContentCommandEvent(
-    const EventMessage& aMessage) {
-  return RecvSimpleContentCommandEvent(aMessage);
-}
-
 mozilla::ipc::IPCResult BrowserChild::RecvInsertText(
     const nsAString& aStringToInsert) {
   // Use normal event path to reach focused document.

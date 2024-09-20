@@ -424,13 +424,6 @@ class ContentCacheInParent final : public ContentCache {
   void OnSelectionEvent(const WidgetSelectionEvent& aSelectionEvent);
 
   /**
-   * OnContentCommandEvent() should called before sending a content command
-   * event.
-   */
-  void OnContentCommandEvent(
-      const WidgetContentCommandEvent& aContentCommandEvent);
-
-  /**
    * OnEventNeedingAckHandled() should be called after the child process
    * handles a sent event which needs acknowledging.
    *
@@ -496,8 +489,7 @@ class ContentCacheInParent final : public ContentCache {
   // sent to the remote process, but we've not verified that the remote process
   // finished handling it.
   [[nodiscard]] uint32_t PendingEventsNeedingAck() const {
-    uint32_t ret = mPendingSetSelectionEventNeedingAck +
-                   mPendingContentCommandEventNeedingAck;
+    uint32_t ret = mPendingSetSelectionEventNeedingAck;
     for (const HandlingCompositionData& data : mHandlingCompositions) {
       ret += data.mPendingEventsNeedingAck;
     }
@@ -607,9 +599,6 @@ class ContentCacheInParent final : public ContentCache {
   // process finished handling the events.  Note that eSetSelection may be
   // dispatched without composition.  Therefore, we need to count it with this.
   uint32_t mPendingSetSelectionEventNeedingAck = 0u;
-  // Increased when sending WidgetContentCommandEvent events and decreased when
-  // the remote process finished handling them.
-  uint32_t mPendingContentCommandEventNeedingAck = 0u;
   // mPendingCommitLength is commit string length of the first pending
   // composition.  This is used by relative offset query events when querying
   // new composition start offset.
