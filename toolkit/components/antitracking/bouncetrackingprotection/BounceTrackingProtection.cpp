@@ -1052,8 +1052,14 @@ nsresult BounceTrackingProtection::PurgeBounceTrackersForStateGlobal(
       cb->OnDataDeleted(0);
     } else {
       // TODO: Bug 1842067: Clear by site + OA.
+
+      // nsIClearDataService expects a schemeless site which for IPV6 addresses
+      // includes brackets. Add them if needed.
+      nsAutoCString hostToPurge(host);
+      nsContentUtils::MaybeFixIPv6Host(hostToPurge);
+
       rv = clearDataService->DeleteDataFromSiteAndOriginAttributesPatternString(
-          host, u""_ns, false, TRACKER_PURGE_FLAGS, cb);
+          hostToPurge, u""_ns, false, TRACKER_PURGE_FLAGS, cb);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         clearPromise->Reject(0, __func__);
       }

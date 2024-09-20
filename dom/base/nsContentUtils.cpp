@@ -8087,10 +8087,12 @@ uint64_t nsContentUtils::GetInnerWindowID(nsILoadGroup* aLoadGroup) {
 // static
 void nsContentUtils::MaybeFixIPv6Host(nsACString& aHost) {
   if (aHost.FindChar(':') != -1) {  // Escape IPv6 address
-    MOZ_ASSERT(!aHost.Length() ||
-               (aHost[0] != '[' && aHost[aHost.Length() - 1] != ']'));
-    aHost.Insert('[', 0);
-    aHost.Append(']');
+    MOZ_ASSERT(!aHost.IsEmpty());
+    if (aHost.Length() > 2 && aHost[0] != '[' &&
+        aHost[aHost.Length() - 1] != ']') {
+      aHost.Insert('[', 0);
+      aHost.Append(']');
+    }
   }
 }
 

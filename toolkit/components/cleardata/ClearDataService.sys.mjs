@@ -59,6 +59,18 @@ XPCOMUtils.defineLazyPreferenceGetter(
 );
 
 /**
+ * Adds brackets to a host if it's an IPv6 address.
+ * @param {string} host - Host which may be an IPv6.
+ * @returns {string} bracketed IPv6 or host if host is not an IPv6.
+ */
+function maybeFixupIpv6(host) {
+  if (!host?.includes(":")) {
+    return host;
+  }
+  return `[${host}]`;
+}
+
+/**
  * Test if (host, OriginAttributes) or principal belong to a (schemeless) site.
  * Also considers partitioned storage by inspecting OriginAttributes
  * partitionKey.
@@ -95,6 +107,10 @@ function hasSite(
     );
   }
 
+  // If aSchemelessSite is an IPV6 host it will have brackets. Ensure that the
+  // passed host has brackets too before comparing.
+  host = maybeFixupIpv6(host);
+
   // If passed a host check if it belongs ot the given site.
   // originAttributes is optional. Only check for match if it's passed.
   if (
@@ -112,7 +128,7 @@ function hasSite(
   // If passed a principal check if it belongs to the given site. Also
   // check if the principal's OriginAttributes match our pattern.
   if (
-    principal?.baseDomain == aSchemelessSite &&
+    maybeFixupIpv6(principal?.baseDomain) == aSchemelessSite &&
     ChromeUtils.originAttributesMatchPattern(
       principal.originAttributes,
       aOriginAttributesPattern
@@ -2268,7 +2284,7 @@ ClearDataService.prototype = Object.freeze({
         Services.eTLD.getSchemelessSiteFromHost(aSchemelessSite);
       if (schemelessSiteComputed != aSchemelessSite) {
         throw new Error(
-          "deleteDataFromSite called with invalid aSchemelessSite."
+          `deleteDataFromSite called with invalid aSchemelessSite '${aSchemelessSite}'. Expected site is '${schemelessSiteComputed}'`
         );
       }
     }
