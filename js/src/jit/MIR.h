@@ -613,7 +613,7 @@ class MDefinition : public MNode {
   // Dump any other stuff the node wants to have printed in `extras`.  The
   // added strings are copied, with the `ExtrasCollector` taking ownership of
   // the copies.
-  virtual void getExtras(ExtrasCollector* extras) {}
+  virtual void getExtras(ExtrasCollector* extras) const {}
 #endif
 
   // Also for LICM. Test whether this definition is likely to be a call, which
@@ -1744,11 +1744,11 @@ class MGoto : public MAryControlInstruction<0, 1>, public NoTypePolicy::Data {
 
   static constexpr size_t TargetIndex = 0;
 
-  MBasicBlock* target() { return getSuccessor(TargetIndex); }
+  MBasicBlock* target() const { return getSuccessor(TargetIndex); }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     SprintfLiteral(buf, "Block%u", GetMBasicBlockId(target()));
     extras->add(buf);
@@ -1803,7 +1803,7 @@ class MTest : public MAryControlInstruction<1, 2>, public TestPolicy::Data {
 #endif
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     SprintfLiteral(buf, "true->Block%u false->Block%u",
                    GetMBasicBlockId(ifTrue()), GetMBasicBlockId(ifFalse()));
@@ -2861,7 +2861,7 @@ class MCompare : public MBinaryInstruction, public ComparePolicy::Data {
   }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     const char* ty = nullptr;
     switch (compareType_) {
       case Compare_Undefined:

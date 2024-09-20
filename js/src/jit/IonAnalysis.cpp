@@ -5217,7 +5217,7 @@ bool jit::OptimizeIteratorIndices(const MIRGenerator* mir, MIRGraph& graph) {
   return true;
 }
 
-void jit::DumpMIRDefinition(GenericPrinter& out, MDefinition* def) {
+void jit::DumpMIRDefinition(GenericPrinter& out, const MDefinition* def) {
 #ifdef JS_JITSPEW
   out.printf("%u = %s.", def->id(), StringFromMIRType(def->type()));
   if (def->isConstant()) {

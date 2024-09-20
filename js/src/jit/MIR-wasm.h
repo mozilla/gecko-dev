@@ -120,7 +120,7 @@ class MWasmFloatConstant : public MNullaryInstruction {
   }
 #endif
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     switch (type()) {
       case MIRType::Float32:
@@ -575,7 +575,7 @@ class MWasmBinaryBitwise : public MBinaryInstruction,
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     const char* what = "!!unknown!!";
     switch (subOpcode()) {
       case SubOpcode::And:
@@ -850,7 +850,7 @@ class MWasmLoad
   bool hasMemoryBase() const { return numOperands() > 1; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     SprintfLiteral(buf, "(offs=%lld)", (long long int)access().offset64());
     extras->add(buf);
@@ -897,7 +897,7 @@ class MWasmStore : public MVariadicInstruction, public NoTypePolicy::Data {
   bool hasMemoryBase() const { return numOperands() > 2; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     SprintfLiteral(buf, "(offs=%lld)", (long long int)access().offset64());
     extras->add(buf);
@@ -1219,7 +1219,7 @@ class MWasmLoadInstanceDataField : public MUnaryInstruction,
   AliasType mightAlias(const MDefinition* def) const override;
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[96];
     SprintfLiteral(buf, "(offs=%lld, isConst=%s)",
                    (long long int)instanceDataOffset_,
@@ -1368,7 +1368,7 @@ class MWasmDerivedPointer : public MUnaryInstruction,
   }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     SprintfLiteral(buf, "(offs=%lld)", (long long int)offset_);
     extras->add(buf);
@@ -1449,7 +1449,7 @@ class MWasmStoreRef : public MAryInstruction<3>, public NoTypePolicy::Data {
   WasmPreBarrierKind preBarrierKind() const { return preBarrierKind_; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     SprintfLiteral(buf, "(offs=%lld)", (long long int)offset_);
     extras->add(buf);
@@ -2486,7 +2486,7 @@ class MWasmLoadField : public MUnaryInstruction, public NoTypePolicy::Data {
   }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[96];
     SprintfLiteral(buf, "(offs=%lld, wideningOp=%s)", (long long int)offset_,
                    StringFromMWideningOp(wideningOp_));
@@ -2547,7 +2547,7 @@ class MWasmLoadFieldKA : public MBinaryInstruction, public NoTypePolicy::Data {
   MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[96];
     SprintfLiteral(buf, "(offs=%lld, wideningOp=%s)", (long long int)offset_,
                    StringFromMWideningOp(wideningOp_));
@@ -2603,7 +2603,7 @@ class MWasmLoadElementKA : public MTernaryInstruction,
   MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[96];
     SprintfLiteral(buf, "(wideningOp=%s, scale=%s)",
                    StringFromMWideningOp(wideningOp_), StringFromScale(scale_));
@@ -2666,7 +2666,7 @@ class MWasmStoreFieldKA : public MTernaryInstruction,
   MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[96];
     SprintfLiteral(buf, "(offs=%lld, narrowingOp=%s)", (long long int)offset_,
                    StringFromMNarrowingOp(narrowingOp_));
@@ -2732,7 +2732,7 @@ class MWasmStoreFieldRefKA : public MAryInstruction<4>,
   WasmPreBarrierKind preBarrierKind() const { return preBarrierKind_; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[64];
     SprintfLiteral(buf, "(offs=%lld)", (long long int)offset_);
     extras->add(buf);
@@ -2792,7 +2792,7 @@ class MWasmStoreElementKA : public MQuaternaryInstruction,
   MaybeTrapSiteInfo maybeTrap() const { return maybeTrap_; }
 
 #ifdef JS_JITSPEW
-  void getExtras(ExtrasCollector* extras) override {
+  void getExtras(ExtrasCollector* extras) const override {
     char buf[96];
     SprintfLiteral(buf, "(narrowingOp=%s, scale=%s)",
                    StringFromMNarrowingOp(narrowingOp_),

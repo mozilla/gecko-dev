@@ -192,7 +192,7 @@ bool IsDiscardableAllowEffectful(const MDefinition* def);
 class CompileInfo;
 void DumpMIRExpressions(GenericPrinter& out, MIRGraph& graph,
                         const CompileInfo& info, const char* phase);
-void DumpMIRDefinition(GenericPrinter& out, MDefinition* def);
+void DumpMIRDefinition(GenericPrinter& out, const MDefinition* def);
 
 }  // namespace jit
 }  // namespace js
