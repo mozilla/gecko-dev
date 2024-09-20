@@ -146,3 +146,47 @@ service_request:
           the type for the proxy configuration source.  e.g. api or string version of nsIProtocolProxyService.proxyConfigType
         type: string
     telemetry_mirror: Service_request_Bypass_ProxyInfo
+
+jsonfile:
+  load_logins:
+    type: event
+    description: >
+      Records when JSONFile.sys.mjs consumers are trying to access a
+      missing or corrupt json file. For example, Login Store trying to
+      access logins.json when it has gone missing or corrupt.
+      This event was generated to correspond to the Legacy Telemetry event
+      jsonfile.load#logins.
+    bugs: &jsonfile_load_bugs
+      - https://bugzil.la/1599567
+    data_reviews: &jsonfile_load_data_reviews
+      - https://bugzil.la/1599567
+    notification_emails: &jsonfile_load_emails
+      - prathiksha@mozilla.com
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &jsonfile_load_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Jsonfile_Load_Logins
+    no_lint:
+      - COMMON_PREFIX
+
+  load_autofillprofiles:
+    type: event
+    description: >
+      Records when JSONFile.sys.mjs consumers are trying to access a
+      missing or corrupt json file. For example, Login Store trying to
+      access logins.json when it has gone missing or corrupt.
+      This event was generated to correspond to the Legacy Telemetry event
+      jsonfile.load#autofillprofiles.
+    bugs: *jsonfile_load_bugs
+    data_reviews: *jsonfile_load_data_reviews
+    notification_emails: *jsonfile_load_emails
+    expires: never
+    extra_keys: *jsonfile_load_extra
+    telemetry_mirror: Jsonfile_Load_Autofillprofiles
+    no_lint:
+      - COMMON_PREFIX
