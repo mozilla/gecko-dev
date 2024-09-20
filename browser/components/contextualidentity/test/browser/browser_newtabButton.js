@@ -4,8 +4,7 @@
 // the correct context id is opened
 
 function findPopup(browser = gBrowser) {
-  // We are only interested in the horizontal new tab button for this test, which is second
-  return browser.tabContainer.querySelectorAll(".new-tab-popup")[1];
+  return browser.tabContainer.querySelector(".new-tab-popup");
 }
 
 function findContextPopup() {
