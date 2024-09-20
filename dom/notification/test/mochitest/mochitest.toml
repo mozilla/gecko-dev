@@ -3,6 +3,7 @@ scheme = "https"
 support-files = [
   "MockAlertsService.js",
   "NotificationTest.js",
+  "GleanTest.js",
 ]
 
 ["test_notification_basics.html"]
@@ -12,6 +13,9 @@ skip-if = [
 ]
 
 ["test_notification_crossorigin_iframe.html"]
+support-files = ["blank.html"]
+
+["test_notification_crossorigin_iframe_nested_glean.html"]
 support-files = ["blank.html"]
 
 # This test needs to be run on HTTP (not HTTPS).

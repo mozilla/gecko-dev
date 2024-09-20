@@ -10,9 +10,37 @@
 #include "mozilla/Components.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/NotificationBinding.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "nsIPermissionManager.h"
 
 namespace mozilla::dom::notification {
+
+using GleanLabel = glean::web_notification::ShowOriginLabel;
+
+static void ReportTelemetry(GleanLabel aLabel,
+                            PermissionCheckPurpose aPurpose) {
+  switch (aPurpose) {
+    case PermissionCheckPurpose::PermissionAttribute:
+      glean::web_notification::permission_origin
+          .EnumGet(static_cast<glean::web_notification::PermissionOriginLabel>(
+              aLabel))
+          .Add();
+      return;
+    case PermissionCheckPurpose::PermissionRequest:
+      glean::web_notification::request_permission_origin
+          .EnumGet(static_cast<
+                   glean::web_notification::RequestPermissionOriginLabel>(
+              aLabel))
+          .Add();
+      return;
+    case PermissionCheckPurpose::NotificationShow:
+      glean::web_notification::show_origin.EnumGet(aLabel).Add();
+      return;
+    default:
+      MOZ_CRASH("Unknown permission checker");
+      return;
+  }
+}
 
 bool IsNotificationAllowedFor(nsIPrincipal* aPrincipal) {
   if (aPrincipal->IsSystemPrincipal()) {
@@ -34,6 +62,7 @@ bool IsNotificationForbiddenFor(nsIPrincipal* aPrincipal,
 
   if (!isSecureContext) {
     if (aRequestorDoc) {
+      glean::web_notification::insecure_context_permission_request.Add();
       nsContentUtils::ReportToConsole(
           nsIScriptError::errorFlag, "DOM"_ns, aRequestorDoc,
           nsContentUtils::eDOM_PROPERTIES,
@@ -48,6 +77,7 @@ bool IsNotificationForbiddenFor(nsIPrincipal* aPrincipal,
   if (aEffectiveStoragePrincipal->OriginAttributesRef()
           .mPartitionKey.IsEmpty()) {
     // first party
+    ReportTelemetry(GleanLabel::eFirstParty, aPurpose);
     return false;
   }
   nsString outScheme;
@@ -58,10 +88,12 @@ bool IsNotificationForbiddenFor(nsIPrincipal* aPrincipal,
                                       outPort, outForeignByAncestorContext);
   if (outForeignByAncestorContext) {
     // nested first party
+    ReportTelemetry(GleanLabel::eNestedFirstParty, aPurpose);
     return false;
   }
 
   // third party
+  ReportTelemetry(GleanLabel::eThirdParty, aPurpose);
   if (aRequestorDoc) {
     nsContentUtils::ReportToConsole(
         nsIScriptError::errorFlag, "DOM"_ns, aRequestorDoc,

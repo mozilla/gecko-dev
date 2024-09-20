@@ -3,14 +3,15 @@
 <head>
   <title>Notification Basics</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
-  <script type="text/javascript" src="NotificationTest.js"></script>
+  <script src="NotificationTest.js"></script>
+  <script src="GleanTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
 <p id="display"></p>
 <div id="content" style="display: none"></div>
 <pre id="test"></pre>
-<script type="text/javascript">
+<script>
 
   var info = NotificationTest.info;
   var options;
@@ -18,7 +19,7 @@
   SimpleTest.requestFlakyTimeout("untriaged");
 
   var steps = [
-    function() {
+    async function() {
       info("Test notification spec");
       ok(Notification, "Notification constructor exists");
       ok(Notification.permission, "Notification.permission exists");
@@ -28,6 +29,23 @@
     function() {
       info("Test requestPermission without callback");
       Notification.requestPermission();
+    },
+
+    async function() {
+      info("Test Glean telemetry");
+      await GleanTest.testResetFOG();
+
+      await Notification.requestPermission();
+      const requestCount = await GleanTest.webNotification.requestPermissionOrigin.first_party.testGetValue();
+      is(requestCount, 1, "Notification first party request permission counter should increment once.");
+
+      Notification.permission;
+      const permissionCount = await GleanTest.webNotification.permissionOrigin.first_party.testGetValue();
+      is(permissionCount, 1, "Notification first party request permission counter should increment once.");
+
+      await new Promise(r => new Notification("first party").onerror = r);
+      const showCount = await GleanTest.webNotification.showOrigin.first_party.testGetValue();
+      is(showCount, 1, "Notification first party request permission counter should increment once.");
     },
 
     async function(done) {

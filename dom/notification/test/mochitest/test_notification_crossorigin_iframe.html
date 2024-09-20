@@ -7,6 +7,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
 <head>
   <title>Notification permission in cross-origin iframes</title>
   <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script src="GleanTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
@@ -37,6 +38,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
       ]);
     });
 
+    await GleanTest.testResetFOG();
+
     let checkRequest = async (expectedResponse, msg) => {
       let response = await this.content.Notification.requestPermission();
       Assert.equal(response, expectedResponse, msg);
@@ -46,6 +49,9 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
                               ["denied", "Denied permission in cross-origin iframe"],
                               checkRequest);
 
+    const requestCount = await GleanTest.webNotification.requestPermissionOrigin.third_party.testGetValue();
+    is(requestCount, 1, "Notification third party request permission counter should increment once.");
+
     let checkPermission = async (expectedPermission, msg) => {
       let permission = this.content.Notification.permission;
       Assert.equal(permission, expectedPermission, msg);
@@ -54,6 +60,25 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=1560741
     await SpecialPowers.spawn(iframe,
                               ["denied", "Permission is denied in cross-origin iframe"],
                               checkPermission);
+
+    const permissionCount = await GleanTest.webNotification.permissionOrigin.third_party.testGetValue();
+    is(permissionCount, 1, "Notification third party permission read counter should increment once.");
+
+    let checkConstruct = async (expectedShown, msg) => {
+      const shown = await new Promise(r => {
+        const n = new this.content.Notification("cross origin");
+        n.onshow = () => r(true);
+        n.onerror = () => r(false);
+      });
+      Assert.equal(shown, expectedShown, msg);
+    };
+
+    await SpecialPowers.spawn(iframe,
+                              [false, "Notification constructor should error in cross-origin iframe"],
+                              checkConstruct);
+
+    const showCount = await GleanTest.webNotification.showOrigin.third_party.testGetValue();
+    is(showCount, 1, "Notification third party show attempt counter should increment once.");
 
     await SpecialPowers.pushPrefEnv({"set": [["dom.webnotifications.allowcrossoriginiframe", true]]});
 
