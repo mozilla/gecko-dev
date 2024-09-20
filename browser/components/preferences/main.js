@@ -1791,11 +1791,8 @@ var gMainPane = {
   },
 
   recordBrowserLanguagesTelemetry(method, value = null) {
-    Services.telemetry.recordEvent(
-      "intl.ui.browserLanguage",
-      method,
-      "main",
-      value
+    Glean.intlUiBrowserLanguage[method + "Main"].record(
+      value ? { value } : undefined
     );
   },
 
@@ -1882,7 +1879,7 @@ var gMainPane = {
       (lc, i) => i > 0 && prevLocales.includes(lc)
     );
     if (prevLocales.some((lc, i) => newLocales[i] != lc)) {
-      this.gBrowserLanguagesDialog.recordTelemetry("set_fallback");
+      this.gBrowserLanguagesDialog.recordTelemetry("setFallback");
     }
 
     switch (gMainPane.getLanguageSwitchTransitionType(selected)) {
