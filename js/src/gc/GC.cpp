@@ -637,7 +637,7 @@ const char gc::ZealModeHelpText[] =
 // clang-format on
 
 // The set of zeal modes that yield at specific points in collection.
-static const EnumSet<ZealMode> YieldPointZealModes = {
+static constexpr EnumSet<ZealMode> YieldPointZealModes = {
     ZealMode::YieldBeforeRootMarking,
     ZealMode::YieldBeforeMarking,
     ZealMode::YieldBeforeSweeping,
@@ -649,19 +649,19 @@ static const EnumSet<ZealMode> YieldPointZealModes = {
     ZealMode::YieldWhileGrayMarking};
 
 // The set of zeal modes that control incremental slices.
-static const EnumSet<ZealMode> IncrementalSliceZealModes =
+static constexpr EnumSet<ZealMode> IncrementalSliceZealModes =
     YieldPointZealModes +
     EnumSet<ZealMode>{ZealMode::IncrementalMultipleSlices};
 
 // The set of zeal modes that trigger GC periodically.
-static const EnumSet<ZealMode> PeriodicGCZealModes =
+static constexpr EnumSet<ZealMode> PeriodicGCZealModes =
     IncrementalSliceZealModes + EnumSet<ZealMode>{ZealMode::Alloc,
                                                   ZealMode::GenerationalGC,
                                                   ZealMode::Compact};
 
 // The set of zeal modes that are mutually exclusive. All of these trigger GC
 // except VerifierPre.
-static const EnumSet<ZealMode> ExclusiveZealModes =
+static constexpr EnumSet<ZealMode> ExclusiveZealModes =
     PeriodicGCZealModes + EnumSet<ZealMode>{ZealMode::VerifierPre};
 
 void GCRuntime::setZeal(uint8_t zeal, uint32_t frequency) {
