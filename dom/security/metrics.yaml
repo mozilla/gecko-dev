@@ -304,3 +304,33 @@ security:
     expires: never
     extra_keys: *security_evalUsage_extra
     telemetry_mirror: Security_Evalusage_Parentprocess
+
+  javascript_load_parent_process:
+    type: event
+    description: >
+      The javascript engine requested to load a filename that was not
+      allowed. Expected values, and fileinfo key, are the same possible
+      values as above in 'evalUsage'
+      This event was generated to correspond to the Legacy Telemetry event
+      security.javascriptLoad#parentProcess.
+    bugs:
+      - https://bugzil.la/1582512
+    data_reviews:
+      - https://bugzil.la/1582512
+    notification_emails:
+      - tom@mozilla.com
+      - gijs@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+          The filename's type, see
+          `nsContentSecurityUtils::FilenameToFilenameType(...)`.
+        type: string
+      fileinfo:
+        description: >
+          Information about the filename that was requested to be loaded
+        type: string
+    telemetry_mirror: Security_Javascriptload_Parentprocess

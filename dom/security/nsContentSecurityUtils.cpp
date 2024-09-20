@@ -46,8 +46,6 @@
 #include "mozilla/StaticPrefs_extensions.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Telemetry.h"
-#include "mozilla/TelemetryComms.h"
-#include "mozilla/TelemetryEventEnums.h"
 #include "nsIConsoleService.h"
 #include "nsIStringBundle.h"
 
@@ -1573,27 +1571,18 @@ bool nsContentSecurityUtils::ValidateScriptFilename(JSContext* cx,
   MOZ_LOG(sCSMLog, LogLevel::Error,
           ("ValidateScriptFilename Failed: %s\n", aFilename));
 
-  // Send Telemetry
   FilenameTypeAndDetails fileNameTypeAndDetails =
       FilenameToFilenameType(filename, true);
-
-  Telemetry::EventID eventType =
-      Telemetry::EventID::Security_Javascriptload_Parentprocess;
-
-  mozilla::Maybe<nsTArray<EventExtraEntry>> extra;
-  if (fileNameTypeAndDetails.second.isSome()) {
-    extra = Some<nsTArray<EventExtraEntry>>({EventExtraEntry{
-        "fileinfo"_ns, fileNameTypeAndDetails.second.value()}});
-  } else {
-    extra = Nothing();
-  }
 
   if (!sTelemetryEventEnabled.exchange(true)) {
     sTelemetryEventEnabled = true;
     Telemetry::SetEventRecordingEnabled("security"_ns, true);
   }
-  Telemetry::RecordEvent(eventType, mozilla::Some(fileNameTypeAndDetails.first),
-                         extra);
+  glean::security::JavascriptLoadParentProcessExtra extra = {
+      .fileinfo = fileNameTypeAndDetails.second,
+      .value = Some(fileNameTypeAndDetails.first),
+  };
+  glean::security::javascript_load_parent_process.Record(Some(extra));
 
 #if defined(DEBUG) || defined(FUZZING)
   auto crashString = nsContentSecurityUtils::SmartFormatCrashString(
