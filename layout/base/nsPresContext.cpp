@@ -766,7 +766,7 @@ void nsPresContext::UpdateForcedColors(bool aNotify) {
     //
     // TODO(emilio): We might want to factor in here the lwtheme attribute in
     // the root element and so on.
-#ifdef XP_WINDOWS
+#ifdef XP_WIN
     if (prefs.mUseAccessibilityTheme && prefs.mIsChrome) {
       return StyleForcedColors::Requested;
     }
