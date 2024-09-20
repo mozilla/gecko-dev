@@ -27,6 +27,9 @@
   if (attribute.includes('subgroup')) {
     code += 'enable subgroups;\n';
   }
+  if (attribute.includes('clip_distances')) {
+    code += 'enable clip_distances;\n';
+  }
 
   if (use_struct) {
     // Generate a struct that wraps the entry point IO variable.

@@ -120,7 +120,7 @@ Besides, the shader compilation should always pass regardless of whether the for
     const { format, access, comma } = t.params;
     // bgra8unorm is considered a valid storage format at shader compilation stage
     const isFormatValid =
-      isTextureFormatUsableAsStorageFormat(format, t.isCompatibility) || format === 'bgra8unorm';
+      isTextureFormatUsableAsStorageFormat(format, false) || format === 'bgra8unorm';
     const isAccessValid = kAccessModes.includes(access);
     const wgsl = `@group(0) @binding(0) var tex: texture_storage_2d<${format}, ${access}${comma}>;`;
     t.expectCompileResult(isFormatValid && isAccessValid, wgsl);

@@ -19,6 +19,7 @@ function getPipelineDescriptor(device: GPUDevice, testValue: number): GPURenderP
       module,
       buffers,
     },
+    depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' },
   };
 }
 

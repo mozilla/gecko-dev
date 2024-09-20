@@ -232,6 +232,7 @@ g.test('unsupportedStorageTextureFormats,renderPipeline')
     t.doCreateRenderPipelineTest(async, isValid, {
       layout: 'auto',
       vertex: { module, entryPoint },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' },
     });
   });
 
@@ -305,5 +306,6 @@ g.test('textureLoad_with_depth_textures,renderPipeline')
     t.doCreateRenderPipelineTest(async, isValid, {
       layout: 'auto',
       vertex: { module, entryPoint },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' },
     });
   });

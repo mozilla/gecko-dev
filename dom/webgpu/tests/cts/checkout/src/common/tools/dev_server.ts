@@ -106,10 +106,6 @@ const app = express();
 
 // Send Chrome Origin Trial tokens
 app.use((_req, res, next) => {
-  res.header('Origin-Trial', [
-    // "WebGPU Subgroups Feature" token for http://localhost:8080
-    'AkMLfHisU+Fsbpi9g6tfKSZF4ngpsmjW4Oai360fUvZE2rgSPZDWSWb8ryrliJX5HR/Rw0yig0ir9el2hrnODwcAAABaeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwODAiLCJmZWF0dXJlIjoiV2ViR1BVU3ViZ3JvdXBzRmVhdHVyZXMiLCJleHBpcnkiOjE3Mzk5MjMxOTl9',
-  ]);
   next();
 });
 

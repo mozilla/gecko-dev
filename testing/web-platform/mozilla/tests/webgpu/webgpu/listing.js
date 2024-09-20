@@ -797,15 +797,6 @@ export const listing = [
       "validation",
       "capability_checks",
       "limits",
-      "maxInterStageShaderComponents"
-    ]
-  },
-  {
-    "file": [
-      "api",
-      "validation",
-      "capability_checks",
-      "limits",
       "maxInterStageShaderVariables"
     ]
   },
@@ -3145,6 +3136,26 @@ export const listing = [
       "expression",
       "call",
       "builtin",
+      "subgroupAll"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
+      "subgroupAny"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "execution",
+      "expression",
+      "call",
+      "builtin",
       "subgroupBallot"
     ]
   },
@@ -4065,6 +4076,15 @@ export const listing = [
       "expression",
       "binary",
       "parse"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "validation",
+      "expression",
+      "binary",
+      "short_circuiting_and_or"
     ]
   },
   {
@@ -5319,6 +5339,14 @@ export const listing = [
       "expression",
       "unary",
       "logical_negation"
+    ]
+  },
+  {
+    "file": [
+      "shader",
+      "validation",
+      "extension",
+      "clip_distances"
     ]
   },
   {

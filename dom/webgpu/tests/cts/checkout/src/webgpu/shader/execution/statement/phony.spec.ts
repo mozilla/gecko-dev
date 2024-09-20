@@ -88,6 +88,10 @@ const kTests = {
     src: `_ = put(42i);`,
     values: [42, 0],
   },
+  call_in_subexpr: {
+    src: `_ = put(42i) + 1;`,
+    values: [42, 0],
+  },
   nested_call: {
     src: `_ = put(put(42)+1);`,
     values: [42, 43, 0],

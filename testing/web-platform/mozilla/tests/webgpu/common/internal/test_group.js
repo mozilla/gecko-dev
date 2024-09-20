@@ -620,7 +620,7 @@ class RunCaseSpecific {
             const subcasePrefix = 'subcase: ' + stringifyPublicParams(subParams);
             const subRec = new Proxy(rec, {
               get: (target, k) => {
-                const prop = TestCaseRecorder.prototype[k];
+                const prop = rec[k] ?? TestCaseRecorder.prototype[k];
                 if (typeof prop === 'function') {
                   testHeartbeatCallback();
                   return function (...args) {

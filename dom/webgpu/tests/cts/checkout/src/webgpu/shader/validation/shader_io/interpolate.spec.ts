@@ -9,15 +9,11 @@ import { generateShader } from './util.js';
 export const g = makeTestGroup(ShaderValidationTest);
 
 // List of valid interpolation attributes.
-const kValidCompatInterpolationAttributes = new Set([
+const kValidInterpolationAttributes = new Set([
   '',
-  '@interpolate(flat, either)',
   '@interpolate(perspective)',
   '@interpolate(perspective, center)',
   '@interpolate(perspective, centroid)',
-]);
-const kValidInterpolationAttributes = new Set([
-  ...kValidCompatInterpolationAttributes,
   '@interpolate(flat)',
   '@interpolate(flat, first)',
   '@interpolate(flat, either)',
@@ -83,10 +79,7 @@ g.test('type_and_sampling')
       io: t.params.io,
       use_struct: t.params.use_struct,
     });
-    const validInterpolationAttributes = t.isCompatibility
-      ? kValidCompatInterpolationAttributes
-      : kValidInterpolationAttributes;
-    t.expectCompileResult(validInterpolationAttributes.has(interpolate), code);
+    t.expectCompileResult(kValidInterpolationAttributes.has(interpolate), code);
   });
 
 g.test('require_location')
@@ -140,9 +133,7 @@ g.test('integral_types')
       use_struct: t.params.use_struct,
     });
 
-    const expectSuccess = t.isCompatibility
-      ? t.params.attribute === '@interpolate(flat, either)'
-      : t.params.attribute.startsWith('@interpolate(flat');
+    const expectSuccess = t.params.attribute.startsWith('@interpolate(flat');
     t.expectCompileResult(expectSuccess, code);
   });
 
@@ -160,7 +151,7 @@ g.test('duplicate')
     t.expectCompileResult(t.params.attr === '', code);
   });
 
-const kValidationTests: { [key: string]: { src: string; pass: boolean; compatPass?: boolean } } = {
+const kValidationTests: { [key: string]: { src: string; pass: boolean } } = {
   valid: {
     src: `@interpolate(perspective)`,
     pass: true,
@@ -172,7 +163,6 @@ const kValidationTests: { [key: string]: { src: string; pass: boolean; compatPas
   trailing_comma_one_arg: {
     src: `@interpolate(flat,)`,
     pass: true,
-    compatPass: false,
   },
   trailing_comma_two_arg: {
     src: `@interpolate(perspective, center,)`,
@@ -230,9 +220,6 @@ g.test('interpolation_validation')
     @builtin(position) vec4<f32> {
   return vec4f(0);
 }`;
-    const expectSuccess =
-      kValidationTests[t.params.attr].pass &&
-      (t.isCompatibility ? kValidationTests[t.params.attr].compatPass ?? true : true);
-
+    const expectSuccess = kValidationTests[t.params.attr].pass;
     t.expectCompileResult(expectSuccess, code);
   });

@@ -128,6 +128,7 @@ and check that the APIs only accept matching entryPoint.
         module: t.device.createShaderModule({ code }),
         entryPoint,
       },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' },
     };
     let _success = true;
     if (shaderModuleStage !== 'vertex') {
@@ -258,6 +259,7 @@ an undefined entryPoint is valid if there's an extra shader stage.
         }),
         entryPoint: undefined,
       },
+      depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' },
     };
 
     const success = extraShaderModuleStage !== 'vertex';

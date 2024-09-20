@@ -1,9 +1,12 @@
 /**
 * AUTO-GENERATED - DO NOT EDIT. Source: https://github.com/gpuweb/cts
-**/import { assert, iterRange } from '../../../../../../common/util/util.js';import { Float16Array } from '../../../../../../external/petamoriken/float16/float16.js';
+**/import { assert, iterRange } from '../../../../../../common/util/util.js';import { Float16Array } from '../../../../../../external/petamoriken/float16/float16.js';import { kTextureFormatInfo } from '../../../../../format_info.js';
+import { GPUTest, TextureTestMixin } from '../../../../../gpu_test.js';
 
-import { sparseScalarF16Range, sparseScalarF32Range } from '../../../../../util/math.js';
+import { sparseScalarF16Range, sparseScalarF32Range, align } from '../../../../../util/math.js';
 import { PRNG } from '../../../../../util/prng.js';
+
+export class SubgroupTest extends TextureTestMixin(GPUTest) {}
 
 export const kNumCases = 1000;
 export const kStride = 128;
@@ -300,6 +303,8 @@ fn main(
   t.expectOK(checkAccuracy(metadata, output, [idx1, idx2], [val1, val2], identity, intervalGen));
 }
 
+export const kDataSentinel = 999;
+
 /**
  * Runs compute shader subgroup test
  *
@@ -346,14 +351,14 @@ checkFunction)
 
   const outputUints = outputUintsPerElement * wgThreads;
   const outputBuffer = t.makeBufferWithContents(
-    new Uint32Array([...iterRange(outputUints, (x) => 999)]),
+    new Uint32Array([...iterRange(outputUints, (x) => kDataSentinel)]),
     GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
   );
   t.trackForCleanup(outputBuffer);
 
   const numMetadata = 2 * wgThreads;
   const metadataBuffer = t.makeBufferWithContents(
-    new Uint32Array([...iterRange(numMetadata, (x) => 999)]),
+    new Uint32Array([...iterRange(numMetadata, (x) => kDataSentinel)]),
     GPUBufferUsage.COPY_SRC | GPUBufferUsage.COPY_DST | GPUBufferUsage.STORAGE
   );
 
@@ -414,4 +419,136 @@ checkFunction)
   const output = outputReadback.data;
 
   t.expectOK(checkFunction(metadata, output));
+}
+
+// Minimum size is [3, 3].
+export const kFramebufferSizes = [
+[15, 15],
+[16, 16],
+[17, 17],
+[19, 13],
+[13, 10],
+[111, 3],
+[3, 111],
+[35, 3],
+[3, 35],
+[53, 13],
+[13, 53],
+[3, 3]];
+
+
+/**
+ * Runs a subgroup builtin test for fragment shaders
+ *
+ * This test draws a full screen triangle.
+ * Tests should avoid checking the last row or column to avoid helper
+ * invocations. Underlying APIs do not consistently guarantee whether
+ * helper invocations participate in subgroup operations.
+ * @param t The base test
+ * @param format The framebuffer format
+ * @param fsShader The fragment shader with the following interface:
+ *                 Location 0 output is framebuffer with format
+ *                 Group 0 binding 0 is input data
+ * @param width The framebuffer width
+ * @param height The framebuffer height
+ * @param inputData The input data
+ * @param checker A functor to check the framebuffer values
+ */
+export async function runFragmentTest(
+t,
+format,
+fsShader,
+width,
+height,
+inputData,
+checker)
+{
+  const vsShader = `
+@vertex
+fn vsMain(@builtin(vertex_index) index : u32) -> @builtin(position) vec4f {
+  const vertices = array(
+    vec2(-2, 4), vec2(-2, -4), vec2(2, 0),
+  );
+  return vec4f(vec2f(vertices[index]), 0, 1);
+}`;
+
+  assert(width >= 3, 'Minimum width is 3');
+  assert(height >= 3, 'Minimum height is 3');
+  const pipeline = t.device.createRenderPipeline({
+    layout: 'auto',
+    vertex: {
+      module: t.device.createShaderModule({ code: vsShader })
+    },
+    fragment: {
+      module: t.device.createShaderModule({ code: fsShader }),
+      targets: [{ format }]
+    },
+    primitive: {
+      topology: 'triangle-list'
+    }
+  });
+
+  const { blockWidth, blockHeight, bytesPerBlock } = kTextureFormatInfo[format];
+  assert(bytesPerBlock !== undefined);
+
+  const blocksPerRow = width / blockWidth;
+  const blocksPerColumn = height / blockHeight;
+  // 256 minimum arises from image copy requirements.
+  const bytesPerRow = align(blocksPerRow * (bytesPerBlock ?? 1), 256);
+  const byteLength = bytesPerRow * blocksPerColumn;
+  const uintLength = byteLength / 4;
+
+  const buffer = t.makeBufferWithContents(
+    inputData,
+    GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_DST
+  );
+
+  const bg = t.device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+    {
+      binding: 0,
+      resource: {
+        buffer
+      }
+    }]
+
+  });
+
+  const framebuffer = t.createTextureTracked({
+    size: [width, height],
+    usage:
+    GPUTextureUsage.COPY_SRC |
+    GPUTextureUsage.COPY_DST |
+    GPUTextureUsage.RENDER_ATTACHMENT |
+    GPUTextureUsage.TEXTURE_BINDING,
+    format
+  });
+
+  const encoder = t.device.createCommandEncoder();
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [
+    {
+      view: framebuffer.createView(),
+      loadOp: 'clear',
+      storeOp: 'store'
+    }]
+
+  });
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, bg);
+  pass.draw(3);
+  pass.end();
+  t.queue.submit([encoder.finish()]);
+
+  const copyBuffer = t.copyWholeTextureToNewBufferSimple(framebuffer, 0);
+  const readback = await t.readGPUBufferRangeTyped(copyBuffer, {
+    srcByteOffset: 0,
+    type: Uint32Array,
+    typedLength: uintLength,
+    method: 'copy'
+  });
+  const data = readback.data;
+
+  t.expectOK(checker(data));
 }

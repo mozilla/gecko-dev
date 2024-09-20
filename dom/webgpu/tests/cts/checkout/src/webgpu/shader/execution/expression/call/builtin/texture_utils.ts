@@ -142,6 +142,156 @@ export function skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(
   }
 }
 
+async function queryMipGradientValuesForDevice(t: GPUTest) {
+  const { device } = t;
+  const module = device.createShaderModule({
+    code: `
+      @group(0) @binding(0) var tex: texture_2d<f32>;
+      @group(0) @binding(1) var smp: sampler;
+      @group(0) @binding(2) var<storage, read_write> result: array<f32>;
+
+      @vertex fn vs(@builtin(vertex_index) vNdx: u32) -> @builtin(position) vec4f {
+        let pos = array(
+          vec2f(-1,  3),
+          vec2f( 3, -1),
+          vec2f(-1, -1),
+        );
+        return vec4f(pos[vNdx], 0, 1);
+      }
+      @fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
+        let mipLevel = floor(pos.x) / ${kMipGradientSteps};
+        result[u32(pos.x)] = textureSampleLevel(tex, smp, vec2f(0.5), mipLevel).r;
+        return vec4f(0);
+      }
+    `,
+  });
+
+  const pipeline = device.createRenderPipeline({
+    layout: 'auto',
+    vertex: { module },
+    fragment: { module, targets: [{ format: 'rgba8unorm' }] },
+  });
+
+  const target = t.createTextureTracked({
+    size: [kMipGradientSteps + 1, 1, 1],
+    format: 'rgba8unorm',
+    usage: GPUTextureUsage.RENDER_ATTACHMENT,
+  });
+
+  const texture = t.createTextureTracked({
+    size: [2, 2, 1],
+    format: 'r8unorm',
+    usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
+    mipLevelCount: 2,
+  });
+
+  device.queue.writeTexture(
+    { texture, mipLevel: 1 },
+    new Uint8Array([255]),
+    { bytesPerRow: 1 },
+    [1, 1]
+  );
+
+  const sampler = device.createSampler({
+    minFilter: 'linear',
+    magFilter: 'linear',
+    mipmapFilter: 'linear',
+  });
+
+  const storageBuffer = t.createBufferTracked({
+    size: 4 * (kMipGradientSteps + 1),
+    usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
+  });
+
+  const resultBuffer = t.createBufferTracked({
+    size: storageBuffer.size,
+    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+  });
+
+  const bindGroup = device.createBindGroup({
+    layout: pipeline.getBindGroupLayout(0),
+    entries: [
+      { binding: 0, resource: texture.createView() },
+      { binding: 1, resource: sampler },
+      { binding: 2, resource: { buffer: storageBuffer } },
+    ],
+  });
+
+  const encoder = device.createCommandEncoder();
+  const pass = encoder.beginRenderPass({
+    colorAttachments: [
+      {
+        view: target.createView(),
+        loadOp: 'clear',
+        storeOp: 'store',
+      },
+    ],
+  });
+  pass.setPipeline(pipeline);
+  pass.setBindGroup(0, bindGroup);
+  pass.draw(3);
+  pass.end();
+  encoder.copyBufferToBuffer(storageBuffer, 0, resultBuffer, 0, resultBuffer.size);
+  device.queue.submit([encoder.finish()]);
+
+  await resultBuffer.mapAsync(GPUMapMode.READ);
+  const weights = Array.from(new Float32Array(resultBuffer.getMappedRange()));
+  resultBuffer.unmap();
+
+  texture.destroy();
+  storageBuffer.destroy();
+  resultBuffer.destroy();
+
+  const showWeights = () => weights.map((v, i) => `${i.toString().padStart(2)}: ${v}`).join('\n');
+
+  // Validate the weights
+  assert(weights[0] === 0, `weight 0 expected 0 but was ${weights[0]}\n${showWeights()}`);
+  assert(
+    weights[kMipGradientSteps] === 1,
+    `top weight expected 1 but was ${weights[kMipGradientSteps]}\n${showWeights()}`
+  );
+  assert(
+    Math.abs(weights[kMipGradientSteps / 2] - 0.5) < 0.0001,
+    `middle weight expected approximately 0.5 but was ${
+      weights[kMipGradientSteps / 2]
+    }\n${showWeights()}`
+  );
+
+  // Note: for 16 steps, these are the AMD weights
+  //
+  //                 standard
+  // step  mipLevel    gpu        AMD
+  // ----  --------  --------  ----------
+  //  0:   0         0           0
+  //  1:   0.0625    0.0625      0
+  //  2:   0.125     0.125       0.03125
+  //  3:   0.1875    0.1875      0.109375
+  //  4:   0.25      0.25        0.1875
+  //  5:   0.3125    0.3125      0.265625
+  //  6:   0.375     0.375       0.34375
+  //  7:   0.4375    0.4375      0.421875
+  //  8:   0.5       0.5         0.5
+  //  9:   0.5625    0.5625      0.578125
+  // 10:   0.625     0.625       0.65625
+  // 11:   0.6875    0.6875      0.734375
+  // 12:   0.75      0.75        0.8125
+  // 13:   0.8125    0.8125      0.890625
+  // 14:   0.875     0.875       0.96875
+  // 15:   0.9375    0.9375      1
+  // 16:   1         1           1
+  //
+  // notice step 1 is 0 and step 15 is 1.
+  // so we only check the 1 through 14.
+  for (let i = 1; i < kMipGradientSteps - 1; ++i) {
+    assert(
+      weights[i] < weights[i + 1],
+      `weight[${i}] was not less than < weight[${i + 1}]\n${showWeights()}`
+    );
+  }
+
+  s_deviceToMipGradientValues.set(device, weights);
+}
+
 /**
  * Gets the mip gradient values for the current device.
  * The issue is, different GPUs have different ways of mixing between mip levels.
@@ -158,157 +308,28 @@ export function skipIfTextureFormatNotSupportedNotAvailableOrNotFilterable(
  *
  * There's an assumption that the gradient will be the same for all formats
  * and usages.
+ *
+ * Note: The code below has 2 maps. One device->Promise, the other device->weights
+ * device->weights is meant to be used synchronously by other code so we don't
+ * want to leave initMipGradientValuesForDevice until the weights have been read.
+ * But, multiple subcases will run because this function is async. So, subcase 1
+ * runs, hits this init code, this code waits for the weights. Then, subcase 2
+ * runs and hits this init code. The weights will not be in the device->weights map
+ * yet which is why we have the device->Promise map. This is so subcase 2 waits
+ * for subcase 1's "query the weights" step. Otherwise, all subcases would do the
+ * "get the weights" step separately.
  */
 const kMipGradientSteps = 16;
+const s_deviceToMipGradientValuesPromise = new WeakMap<GPUDevice, Promise<void>>();
 const s_deviceToMipGradientValues = new WeakMap<GPUDevice, number[]>();
 async function initMipGradientValuesForDevice(t: GPUTest) {
   const { device } = t;
-  const weights = s_deviceToMipGradientValues.get(device);
-  if (!weights) {
-    const module = device.createShaderModule({
-      code: `
-        @group(0) @binding(0) var tex: texture_2d<f32>;
-        @group(0) @binding(1) var smp: sampler;
-        @group(0) @binding(2) var<storage, read_write> result: array<f32>;
-
-        @vertex fn vs(@builtin(vertex_index) vNdx: u32) -> @builtin(position) vec4f {
-          let pos = array(
-            vec2f(-1,  3),
-            vec2f( 3, -1),
-            vec2f(-1, -1),
-          );
-          return vec4f(pos[vNdx], 0, 1);
-        }
-        @fragment fn fs(@builtin(position) pos: vec4f) -> @location(0) vec4f {
-          let mipLevel = floor(pos.x) / ${kMipGradientSteps};
-          result[u32(pos.x)] = textureSampleLevel(tex, smp, vec2f(0.5), mipLevel).r;
-          return vec4f(0);
-        }
-      `,
-    });
-
-    const pipeline = device.createRenderPipeline({
-      layout: 'auto',
-      vertex: { module },
-      fragment: { module, targets: [{ format: 'rgba8unorm' }] },
-    });
-
-    const target = t.createTextureTracked({
-      size: [kMipGradientSteps + 1, 1, 1],
-      format: 'rgba8unorm',
-      usage: GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-
-    const texture = t.createTextureTracked({
-      size: [2, 2, 1],
-      format: 'r8unorm',
-      usage: GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.COPY_DST,
-      mipLevelCount: 2,
-    });
-
-    device.queue.writeTexture(
-      { texture, mipLevel: 1 },
-      new Uint8Array([255]),
-      { bytesPerRow: 1 },
-      [1, 1]
-    );
-
-    const sampler = device.createSampler({
-      minFilter: 'linear',
-      magFilter: 'linear',
-      mipmapFilter: 'linear',
-    });
-
-    const storageBuffer = t.createBufferTracked({
-      size: 4 * (kMipGradientSteps + 1),
-      usage: GPUBufferUsage.STORAGE | GPUBufferUsage.COPY_SRC,
-    });
-
-    const resultBuffer = t.createBufferTracked({
-      size: storageBuffer.size,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    });
-
-    const bindGroup = device.createBindGroup({
-      layout: pipeline.getBindGroupLayout(0),
-      entries: [
-        { binding: 0, resource: texture.createView() },
-        { binding: 1, resource: sampler },
-        { binding: 2, resource: { buffer: storageBuffer } },
-      ],
-    });
-
-    const encoder = device.createCommandEncoder();
-    const pass = encoder.beginRenderPass({
-      colorAttachments: [
-        {
-          view: target.createView(),
-          loadOp: 'clear',
-          storeOp: 'store',
-        },
-      ],
-    });
-    pass.setPipeline(pipeline);
-    pass.setBindGroup(0, bindGroup);
-    pass.draw(3);
-    pass.end();
-    encoder.copyBufferToBuffer(storageBuffer, 0, resultBuffer, 0, resultBuffer.size);
-    device.queue.submit([encoder.finish()]);
-
-    await resultBuffer.mapAsync(GPUMapMode.READ);
-    const weights = Array.from(new Float32Array(resultBuffer.getMappedRange()));
-    resultBuffer.unmap();
-
-    texture.destroy();
-    storageBuffer.destroy();
-    resultBuffer.destroy();
-
-    const showWeights = () => weights.map((v, i) => `${i.toString().padStart(2)}: ${v}`).join('\n');
-
-    // Validate the weights
-    assert(weights[0] === 0, `weight 0 expected 0 but was ${weights[0]}\n${showWeights()}`);
-    assert(
-      weights[kMipGradientSteps] === 1,
-      `top weight expected 1 but was ${weights[kMipGradientSteps]}\n${showWeights()}`
-    );
-    assert(
-      Math.abs(weights[kMipGradientSteps / 2] - 0.5) < 0.0001,
-      `middle weight expected approximately 0.5 but was ${
-        weights[kMipGradientSteps / 2]
-      }\n${showWeights()}`
-    );
-
-    // Note: for 16 steps, these are the AMD weights
-    //
-    //                 standard
-    // step  mipLevel    gpu        AMD
-    // ----  --------  --------  ----------
-    //  0:   0         0           0
-    //  1:   0.0625    0.0625      0
-    //  2:   0.125     0.125       0.03125
-    //  3:   0.1875    0.1875      0.109375
-    //  4:   0.25      0.25        0.1875
-    //  5:   0.3125    0.3125      0.265625
-    //  6:   0.375     0.375       0.34375
-    //  7:   0.4375    0.4375      0.421875
-    //  8:   0.5       0.5         0.5
-    //  9:   0.5625    0.5625      0.578125
-    // 10:   0.625     0.625       0.65625
-    // 11:   0.6875    0.6875      0.734375
-    // 12:   0.75      0.75        0.8125
-    // 13:   0.8125    0.8125      0.890625
-    // 14:   0.875     0.875       0.96875
-    // 15:   0.9375    0.9375      1
-    // 16:   1         1           1
-    //
-    // notice step 1 is 0 and step 15 is 1.
-    // so we only check the 1 through 14.
-    for (let i = 1; i < kMipGradientSteps - 1; ++i) {
-      assert(weights[i] < weights[i + 1]);
-    }
-
-    s_deviceToMipGradientValues.set(device, weights);
+  let weightsP = s_deviceToMipGradientValuesPromise.get(device);
+  if (!weightsP) {
+    weightsP = queryMipGradientValuesForDevice(t);
+    s_deviceToMipGradientValuesPromise.set(device, weightsP);
   }
+  return await weightsP;
 }
 
 function getWeightForMipLevel(t: GPUTest, mipLevelCount: number, mipLevel: number) {
@@ -1299,7 +1320,7 @@ export async function checkCallResults<T extends Dimensionality>(
   textureType: string,
   sampler: GPUSamplerDescriptor | undefined,
   calls: TextureCall<T>[],
-  results: PerTexelComponent<number>[]
+  results: Awaited<ReturnType<typeof doTextureCalls<T>>>
 ) {
   const errs: string[] = [];
   const format = texture.texels[0].format;
@@ -1313,7 +1334,7 @@ export async function checkCallResults<T extends Dimensionality>(
 
   for (let callIdx = 0; callIdx < calls.length; callIdx++) {
     const call = calls[callIdx];
-    const gotRGBA = results[callIdx];
+    const gotRGBA = results.results[callIdx];
     const expectRGBA = softwareTextureReadLevel(t, call, texture, sampler, call.mipLevel ?? 0);
 
     // The spec says depth and stencil have implementation defined values for G, B, and A
@@ -1410,47 +1431,48 @@ export async function checkCallResults<T extends Dimensionality>(
 `);
 
       if (sampler) {
-        const expectedSamplePoints = [
-          'expected:',
-          ...(await identifySamplePoints(texture, call, (texels: TexelView[]) => {
-            return Promise.resolve(
-              softwareTextureReadLevel(
-                t,
-                call,
-                {
-                  texels,
-                  descriptor: texture.descriptor,
-                  viewDescriptor: texture.viewDescriptor,
-                },
-                sampler,
-                call.mipLevel ?? 0
-              )
-            );
-          })),
-        ];
-        const gotSamplePoints = [
-          'got:',
-          ...(await identifySamplePoints(texture, call, async (texels: TexelView[]) => {
-            const gpuTexture = createTextureFromTexelViewsLocal(t, texels, texture.descriptor);
-            const result = (
-              await doTextureCalls(t, gpuTexture, texture.viewDescriptor, textureType, sampler, [
-                call,
-              ])
-            )[0];
-            gpuTexture.destroy();
-            return result;
-          })),
-        ];
-        errs.push('  sample points:');
-        errs.push(layoutTwoColumns(expectedSamplePoints, gotSamplePoints).join('\n'));
-        errs.push('', '');
-
-        // This path is slow so if we took it, don't report the other errors. One is enough
-        // to fail the test.
-        break;
+        if (t.rec.debugging) {
+          const expectedSamplePoints = [
+            'expected:',
+            ...(await identifySamplePoints(texture, call, (texels: TexelView[]) => {
+              return Promise.resolve(
+                softwareTextureReadLevel(
+                  t,
+                  call,
+                  {
+                    texels,
+                    descriptor: texture.descriptor,
+                    viewDescriptor: texture.viewDescriptor,
+                  },
+                  sampler,
+                  call.mipLevel ?? 0
+                )
+              );
+            })),
+          ];
+          const gotSamplePoints = [
+            'got:',
+            ...(await identifySamplePoints(texture, call, async (texels: TexelView[]) => {
+              const gpuTexture = createTextureFromTexelViewsLocal(t, texels, texture.descriptor);
+              const result = (await results.run(gpuTexture))[callIdx];
+              gpuTexture.destroy();
+              return result;
+            })),
+          ];
+          errs.push('  sample points:');
+          errs.push(layoutTwoColumns(expectedSamplePoints, gotSamplePoints).join('\n'));
+          errs.push('', '');
+        }
       } // if (sampler)
+
+      // Don't report the other errors. There 50 sample points per subcase and
+      // 50-100 subcases so the log would get enormous if all 50 fail. One
+      // report per subcase is enough.
+      break;
     } // if (bad)
   } // for cellNdx
+
+  results.destroy();
 
   return errs.length > 0 ? new Error(errs.join('\n')) : undefined;
 }
@@ -2327,7 +2349,12 @@ async function identifySamplePoints<T extends Dimensionality>(
       const orderedTexelIndices: number[] = [];
       lines.push('');
       const unSampled = layerEntries ? '' : 'un-sampled';
-      lines.push(`layer: ${layer}${isCube ? ` (${kFaceNames[layer]})` : ''} ${unSampled}`);
+      if (isCube) {
+        const face = kFaceNames[layer % 6];
+        lines.push(`layer: ${layer}, cube-layer: ${(layer / 6) | 0} (${face}) ${unSampled}`);
+      } else {
+        lines.push(`layer: ${unSampled}`);
+      }
 
       if (!layerEntries) {
         continue;
@@ -3295,6 +3322,18 @@ const s_deviceToPipelines = new WeakMap<GPUDevice, Map<string, GPURenderPipeline
  * Calls are "binned" by call parameters. Each bin has its own structure and
  * field in the storage buffer. This allows the calls to be non-homogenous and
  * each have their own data type for coordinates.
+ *
+ * Note: this function returns:
+ *
+ * 'results': an array of results, one for each call.
+ *
+ * 'run': a function that accepts a texture and runs the same class pipeline with
+ *        that texture as input, returning an array of results. This can be used by
+ *        identifySamplePoints to query the mix-weights used. We do this so we're
+ *        using the same shader that generated the original results when querying
+ *        the weights.
+ *
+ * 'destroy': a function that cleans up the buffers used by `run`.
  */
 export async function doTextureCalls<T extends Dimensionality>(
   t: GPUTest,
@@ -3494,7 +3533,7 @@ ${body}
       bindGroupLayouts: [bindGroupLayout],
     });
 
-    pipeline = await t.device.createRenderPipelineAsync({
+    pipeline = t.device.createRenderPipeline({
       layout,
       vertex: { module: shaderModule },
       fragment: {
@@ -3509,75 +3548,88 @@ ${body}
 
   const gpuSampler = sampler ? t.device.createSampler(sampler) : undefined;
 
-  const bindGroup = t.device.createBindGroup({
-    layout: pipeline.getBindGroupLayout(0),
-    entries: [
+  const run = async (gpuTexture: GPUTexture | GPUExternalTexture) => {
+    const bindGroup = t.device.createBindGroup({
+      layout: pipeline!.getBindGroupLayout(0),
+      entries: [
+        {
+          binding: 0,
+          resource:
+            gpuTexture instanceof GPUExternalTexture
+              ? gpuTexture
+              : gpuTexture.createView(viewDescriptor),
+        },
+        ...(sampler ? [{ binding: 1, resource: gpuSampler! }] : []),
+        { binding: 2, resource: { buffer: dataBuffer } },
+      ],
+    });
+
+    const bytesPerRow = align(16 * renderTarget.width, 256);
+    const resultBuffer = t.createBufferTracked({
+      size: renderTarget.height * bytesPerRow,
+      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
+    });
+
+    const encoder = t.device.createCommandEncoder();
+
+    const renderPass = encoder.beginRenderPass({
+      colorAttachments: [
+        {
+          view: renderTarget.createView(),
+          loadOp: 'clear',
+          storeOp: 'store',
+        },
+      ],
+    });
+
+    renderPass.setPipeline(pipeline!);
+    renderPass.setBindGroup(0, bindGroup);
+    renderPass.draw(4);
+    renderPass.end();
+    encoder.copyTextureToBuffer(
+      { texture: renderTarget },
+      { buffer: resultBuffer, bytesPerRow },
+      { width: renderTarget.width, height: renderTarget.height }
+    );
+    t.device.queue.submit([encoder.finish()]);
+
+    await resultBuffer.mapAsync(GPUMapMode.READ);
+
+    const view = TexelView.fromTextureDataByReference(
+      renderTarget.format as EncodableTextureFormat,
+      new Uint8Array(resultBuffer.getMappedRange()),
       {
-        binding: 0,
-        resource:
-          gpuTexture instanceof GPUExternalTexture
-            ? gpuTexture
-            : gpuTexture.createView(viewDescriptor),
-      },
-      ...(sampler ? [{ binding: 1, resource: gpuSampler! }] : []),
-      { binding: 2, resource: { buffer: dataBuffer } },
-    ],
-  });
+        bytesPerRow,
+        rowsPerImage: renderTarget.height,
+        subrectOrigin: [0, 0, 0],
+        subrectSize: [renderTarget.width, renderTarget.height],
+      }
+    );
 
-  const bytesPerRow = align(16 * renderTarget.width, 256);
-  const resultBuffer = t.createBufferTracked({
-    size: renderTarget.height * bytesPerRow,
-    usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-  });
-  const encoder = t.device.createCommandEncoder();
-
-  const renderPass = encoder.beginRenderPass({
-    colorAttachments: [
-      {
-        view: renderTarget.createView(),
-        loadOp: 'clear',
-        storeOp: 'store',
-      },
-    ],
-  });
-
-  renderPass.setPipeline(pipeline);
-  renderPass.setBindGroup(0, bindGroup);
-  renderPass.draw(4);
-  renderPass.end();
-  encoder.copyTextureToBuffer(
-    { texture: renderTarget },
-    { buffer: resultBuffer, bytesPerRow },
-    { width: renderTarget.width, height: renderTarget.height }
-  );
-  t.device.queue.submit([encoder.finish()]);
-
-  await resultBuffer.mapAsync(GPUMapMode.READ);
-
-  const view = TexelView.fromTextureDataByReference(
-    renderTarget.format as EncodableTextureFormat,
-    new Uint8Array(resultBuffer.getMappedRange()),
-    {
-      bytesPerRow,
-      rowsPerImage: renderTarget.height,
-      subrectOrigin: [0, 0, 0],
-      subrectSize: [renderTarget.width, renderTarget.height],
+    let outIdx = 0;
+    const out = new Array<PerTexelComponent<number>>(calls.length);
+    for (const bin of binned) {
+      for (const callIdx of bin) {
+        const x = outIdx % rtWidth;
+        const y = Math.floor(outIdx / rtWidth);
+        out[callIdx] = view.color({ x, y, z: 0 });
+        outIdx++;
+      }
     }
-  );
 
-  let outIdx = 0;
-  const out = new Array<PerTexelComponent<number>>(calls.length);
-  for (const bin of binned) {
-    for (const callIdx of bin) {
-      const x = outIdx % rtWidth;
-      const y = Math.floor(outIdx / rtWidth);
-      out[callIdx] = view.color({ x, y, z: 0 });
-      outIdx++;
-    }
-  }
+    resultBuffer.destroy();
 
-  renderTarget.destroy();
-  resultBuffer.destroy();
+    return out;
+  };
 
-  return out;
+  const results = await run(gpuTexture);
+
+  return {
+    run,
+    results,
+    destroy() {
+      dataBuffer.destroy();
+      renderTarget.destroy();
+    },
+  };
 }

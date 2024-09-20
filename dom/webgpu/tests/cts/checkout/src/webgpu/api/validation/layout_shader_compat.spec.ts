@@ -253,6 +253,7 @@ g.test('pipeline_layout_shader_exact_match')
               code: vertexShader,
             }),
           },
+          depthStencil: { format: 'depth32float', depthWriteEnabled: true, depthCompare: 'always' },
         });
         break;
       }
