@@ -11,6 +11,7 @@ use rkv::{
 use xpcom::interfaces::nsIKeyValueImporter;
 
 use crate::skv::{
+    connection::{ConnectionIncident, ToConnectionIncident},
     key::{Key as SkvKey, KeyError as SkvKeyError},
     store::{Store as SkvStore, StoreError as SkvStoreError},
     value::Value as SkvValue,
@@ -305,4 +306,14 @@ pub enum ImporterError {
     UnsupportedRkvValueType,
     #[error("unnamed database")]
     UnnamedDatabase,
+}
+
+impl ToConnectionIncident for ImporterError {
+    fn to_incident(&self) -> Option<ConnectionIncident> {
+        match self {
+            Self::SkvStore(err) => err.to_incident(),
+            Self::Sqlite(err) => err.to_incident(),
+            _ => None,
+        }
+    }
 }

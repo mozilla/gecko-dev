@@ -3279,6 +3279,7 @@ name = "kvstore"
 version = "0.1.0"
 dependencies = [
  "atomic_refcell",
+ "chrono",
  "crossbeam-utils",
  "cstr",
  "futures",

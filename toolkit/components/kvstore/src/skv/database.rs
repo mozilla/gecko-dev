@@ -9,6 +9,7 @@ use std::{borrow::Borrow, ops::RangeBounds};
 use rusqlite::ToSql;
 
 use crate::skv::{
+    connection::{ConnectionIncident, ToConnectionIncident},
     key::Key,
     sql::RangeFragment,
     store::{Store, StoreError},
@@ -314,4 +315,13 @@ pub enum DatabaseError {
     Store(#[from] StoreError),
     #[error("sqlite: {0}")]
     Sqlite(#[from] rusqlite::Error),
+}
+
+impl ToConnectionIncident for DatabaseError {
+    fn to_incident(&self) -> Option<ConnectionIncident> {
+        match self {
+            Self::Store(err) => err.to_incident(),
+            Self::Sqlite(err) => err.to_incident(),
+        }
+    }
 }
