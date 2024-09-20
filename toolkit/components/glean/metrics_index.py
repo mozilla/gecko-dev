@@ -40,6 +40,7 @@ gecko_metrics = [
     "netwerk/metrics.yaml",
     "netwerk/protocol/http/metrics.yaml",
     "parser/html/metrics.yaml",
+    "parser/htmlparser/metrics.yaml",
     "security/certverifier/metrics.yaml",
     "security/manager/ssl/metrics.yaml",
     "services/common/metrics.yaml",

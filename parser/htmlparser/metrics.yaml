@@ -1,0 +1,64 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: XML'
+
+ysod:
+  shown_ysod:
+    type: event
+    description: >
+      This event is recorded only for Firefox UI documents (chrome).
+      Recorded when a Yellow Screen of Death is shown. The `value` is a
+      url on which the error happened. Yellow Screen of Death happens when
+      XML or XHTML document encounters a parsing error. It is commonly a
+      result of the document being malformed or missing DTD entity.
+      This data should be reviewed periodically for urls that error frequently.
+      This event was generated to correspond to the Legacy Telemetry event
+      ysod.shown#ysod.
+    bugs: &ysod_shown_bugs
+      - https://bugzil.la/1657242
+    data_reviews: &ysod_shown_data_reviews
+      - https://bugzil.la/1657242
+    notification_emails:
+      - gtatum@mozilla.com
+      - nordzilla@mozilla.com
+      - earo@mozilla.com
+      - vchin@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The url of the Firefox UI (chrome) document that showed the YSOD.
+        type: string
+      error_code:
+        description: >
+          Code of the XML Error (See `XML_Error` enum in expat.h for the list of errors where XML_ERROR_NONE is 0).
+        type: quantity
+      location:
+        description: >
+          Location as Row:Column of where the error happened.
+        type: string
+      last_line:
+        description: >
+          The content of the last line that led to the error.
+        type: string
+      last_line_len:
+        description: >
+          The length of the last line that led to the error.
+        type: quantity
+      hidden:
+        description: >
+          The document is hidden.
+        type: boolean
+      destroyed:
+        description: >
+          The container of this document is destroyed.
+        type: string
+    telemetry_mirror: Ysod_Shown_Ysod
