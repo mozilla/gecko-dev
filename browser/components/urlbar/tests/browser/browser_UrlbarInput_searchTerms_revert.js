@@ -116,8 +116,9 @@ add_task(async function revert_when_using_content() {
     "pageshow"
   );
   tab.linkedBrowser.goBack();
+  Assert.ok(gURLBar.focused, "Address bar is focused.");
   await pageShowPromise;
-  assertSearchStringIsInUrlbar(SEARCH_STRING);
+  assertSearchStringIsInUrlbar(SEARCH_STRING, { persistSearchTerms: false });
 
   pageShowPromise = BrowserTestUtils.waitForContentEvent(
     tab.linkedBrowser,
@@ -125,7 +126,10 @@ add_task(async function revert_when_using_content() {
   );
   tab.linkedBrowser.goForward();
   await pageShowPromise;
-  assertSearchStringIsInUrlbar("another search string");
+  Assert.ok(gURLBar.focused, "Address bar is focused.");
+  assertSearchStringIsInUrlbar("another search string", {
+    persistSearchTerms: false,
+  });
 
   BrowserTestUtils.removeTab(tab);
 });

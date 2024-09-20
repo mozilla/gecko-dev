@@ -407,7 +407,7 @@ export class UrlbarInput {
         lazy.UrlbarPrefs.isPersistedSearchTermsEnabled()
       ) {
         this.window.gBrowser.selectedBrowser.searchTerms =
-          lazy.UrlbarSearchTermsPersistence.getSearchTermIfDefaultSerpUri(
+          lazy.UrlbarSearchTermsPersistence.getSearchTerm(
             this.window.gBrowser.selectedBrowser.originalURI,
             uri
           );
@@ -416,7 +416,7 @@ export class UrlbarInput {
 
     let value = this.window.gBrowser.userTypedValue;
     let valid = false;
-    let shouldPersist = false;
+    let showPersistedState = false;
 
     // If `value` is null or if it's an empty string and we're switching tabs
     // or the userTypedValue equals the search terms, set value to either
@@ -434,8 +434,8 @@ export class UrlbarInput {
     ) {
       if (this.window.gBrowser.selectedBrowser.searchTerms) {
         value = this.window.gBrowser.selectedBrowser.searchTerms;
-        if (!this.searchMode) {
-          shouldPersist = true;
+        if (!this.focused) {
+          showPersistedState = true;
         }
         if (!isSameDocument) {
           Services.telemetry.scalarAdd(
@@ -506,7 +506,7 @@ export class UrlbarInput {
 
     this._setValue(value, { allowTrim: true, valueIsTyped: !valid });
     this.toggleAttribute("usertyping", !valid && value);
-    this.toggleAttribute("persistsearchterms", shouldPersist);
+    this.toggleAttribute("persistsearchterms", showPersistedState);
 
     if (this.focused && value != previousUntrimmedValue) {
       if (
@@ -546,10 +546,29 @@ export class UrlbarInput {
     // search mode depends on it.
     this.setPageProxyState(valid ? "valid" : "invalid", dueToTabSwitch);
 
-    // If we're switching tabs, restore the tab's search mode.  Otherwise, if
-    // the URI is valid, exit search mode.  This must happen after setting
-    // proxystate above because search mode depends on it.
-    if (dueToTabSwitch && !valid) {
+    // If search terms are enabled, ensure search mode is accurate on initial
+    // page loads. If we're switching tabs, restore the tab's search mode.
+    // Otherwise, if the URI is valid, exit search mode.  This must happen
+    // after setting proxystate above because search mode depends on it.
+    if (
+      uri &&
+      !isSameDocument &&
+      !dueToTabSwitch &&
+      this.window.gBrowser.selectedBrowser.searchTerms
+    ) {
+      let result = this.#searchModeForUrl(uri.spec);
+      if (
+        result &&
+        !result.isDefaultEngine &&
+        this.searchMode?.name != result.engineName
+      ) {
+        this.searchMode = {
+          engineName: result.engineName,
+          source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+          isPreview: false,
+        };
+      }
+    } else if (dueToTabSwitch && !valid) {
       this.restoreSearchModeState();
     } else if (valid && this.#shouldExitSearchMode(uri)) {
       this.searchMode = null;
@@ -3729,14 +3748,24 @@ export class UrlbarInput {
       this.view.close();
     }
 
-    // If there were search terms shown in the URL bar but the user
-    // didn't modify the userTypedValue, restore the persisted search terms
-    // state.
-    if (
-      this.window.gBrowser.selectedBrowser.searchTerms &&
-      this.window.gBrowser.userTypedValue == null
-    ) {
-      this.toggleAttribute("persistsearchterms", true);
+    // Restore the persisted search terms state
+    if (this.window.gBrowser.selectedBrowser.searchTerms) {
+      let result = this.#searchModeForUrl(this.window.gBrowser.currentURI.spec);
+      if (result) {
+        let userTypedValue = this.window.gBrowser.userTypedValue;
+        let searchTerms = this.window.gBrowser.selectedBrowser.searchTerms;
+        // Only restore the persisted state if the values of searchTerms and
+        // userTypedValue match the same values they would be if a user didn't
+        // modify the values in the address following an initial page load.
+        if (
+          (result.isDefaultEngine && userTypedValue == null) ||
+          (!result.isDefaultEngine &&
+            searchTerms === userTypedValue &&
+            this.searchMode?.engineName === result.engineName)
+        ) {
+          this.toggleAttribute("persistsearchterms", true);
+        }
+      }
     }
 
     // We may have hidden popup notifications, show them again if necessary.
@@ -4600,6 +4629,21 @@ export class UrlbarInput {
         event.keyCode == KeyEvent.DOM_VK_META &&
         this._isKeyDownWithMetaAndLeft)
     );
+  }
+
+  #searchModeForUrl(url) {
+    // If there's no default engine, no engines are available.
+    if (!Services.search.defaultEngine) {
+      return null;
+    }
+    let result = Services.search.parseSubmissionURL(url);
+    if (!result.engine?.isAppProvided) {
+      return null;
+    }
+    return {
+      engineName: result.engine.name,
+      isDefaultEngine: result.engine === Services.search.defaultEngine,
+    };
   }
 }
 

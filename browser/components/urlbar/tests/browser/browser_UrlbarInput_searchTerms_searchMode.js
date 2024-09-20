@@ -18,8 +18,50 @@ add_setup(async function () {
   });
 });
 
+async function searchWithNonDefaultSearchMode(tab) {
+  let engine = Services.search.getEngineByName("MochiSearch");
+  Assert.notEqual(
+    engine.name,
+    Services.search.defaultEngine.name,
+    "Engine is non-default."
+  );
+
+  let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(
+    engine,
+    SEARCH_STRING
+  );
+  let browserLoadedPromise = BrowserTestUtils.browserLoaded(
+    tab.linkedBrowser,
+    false,
+    expectedSearchUrl,
+    true
+  );
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: SEARCH_STRING,
+  });
+  await UrlbarTestUtils.enterSearchMode(window, {
+    engineName: engine.name,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+  });
+  gURLBar.focus();
+  EventUtils.synthesizeKey("KEY_Enter");
+  await browserLoadedPromise;
+
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    userTypedValue: SEARCH_STRING,
+  });
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "MochiSearch",
+    isGeneralPurposeEngine: true,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+    isPreview: false,
+    entry: "other",
+  });
+}
+
 // When a user does a search with search mode, they should
-// not see the search term in the URL bar for that engine.
+// see the search term in the URL bar for that engine.
 add_task(async function non_default_search() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
@@ -48,25 +90,122 @@ add_task(async function non_default_search() {
   EventUtils.synthesizeKey("KEY_Enter");
   await browserLoadedPromise;
 
-  Assert.equal(
-    gURLBar.value,
-    UrlbarTestUtils.trimURL(expectedSearchUrl),
-    `URL should be in URL bar`
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    userTypedValue: SEARCH_STRING,
+  });
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function clear_search_mode_refresh() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+
+  await searchWithNonDefaultSearchMode(tab);
+
+  info("Exit search mode.");
+  await UrlbarTestUtils.exitSearchMode(window, {
+    clickClose: true,
+    waitForSearch: false,
+  });
+  await UrlbarTestUtils.promisePopupClose(window);
+  await UrlbarTestUtils.assertSearchMode(window, null);
+
+  let currentUrl = gBrowser.selectedBrowser.currentURI.spec;
+  info("Reload page.");
+  let promise = BrowserTestUtils.browserLoaded(
+    tab.linkedBrowser,
+    false,
+    currentUrl
   );
-  Assert.equal(
-    gURLBar.getAttribute("pageproxystate"),
-    "valid",
-    "Pageproxystate should be valid"
+  gBrowser.selectedBrowser.reload();
+  await promise;
+
+  await TestUtils.waitForCondition(
+    () => gURLBar.searchMode,
+    "Waiting for search mode."
   );
-  Assert.equal(
-    gBrowser.userTypedValue,
-    null,
-    "There should not be a userTypedValue for a search on a non-default search engine"
+
+  // UserTypedValue is set when the search mode has to be recovered.
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    userTypedValue: SEARCH_STRING,
+  });
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "MochiSearch",
+    isGeneralPurposeEngine: true,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+    isPreview: false,
+    entry: "other",
+  });
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function clear_search_mode_switch_tab() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+
+  await searchWithNonDefaultSearchMode(tab);
+
+  info("Exit search mode.");
+  await UrlbarTestUtils.exitSearchMode(window, {
+    clickClose: true,
+    waitForSearch: false,
+  });
+  await UrlbarTestUtils.promisePopupClose(window);
+  await UrlbarTestUtils.assertSearchMode(window, null);
+
+  let tab2 = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+  await BrowserTestUtils.switchTab(gBrowser, tab);
+
+  // UserTypedValue is set when the search mode has to be recovered.
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    userTypedValue: SEARCH_STRING,
+  });
+  await UrlbarTestUtils.assertSearchMode(window, null);
+
+  BrowserTestUtils.removeTab(tab);
+  BrowserTestUtils.removeTab(tab2);
+});
+
+add_task(async function tabhistory_searchmode() {
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+
+  await searchWithNonDefaultSearchMode(tab);
+
+  let serpUrl = gBrowser.currentURI.spec;
+
+  info("Load a non-SERP URL.");
+  let promise = BrowserTestUtils.browserLoaded(
+    tab.linkedBrowser,
+    false,
+    "https://www.example.ca/",
+    true
   );
-  Assert.equal(
-    gBrowser.selectedBrowser.searchTerms,
-    "",
-    "searchTerms should be empty."
+  BrowserTestUtils.startLoadingURIString(
+    tab.linkedBrowser,
+    "https://www.example.ca"
   );
+  await promise;
+
+  info(`Go back to ${serpUrl}`);
+  promise = BrowserTestUtils.waitForContentEvent(tab.linkedBrowser, "pageshow");
+  gBrowser.goBack();
+  await promise;
+
+  await TestUtils.waitForCondition(
+    () => gURLBar.searchMode,
+    "Waiting for search mode."
+  );
+
+  // UserTypedValue is set when the search mode has to be recovered.
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    userTypedValue: SEARCH_STRING,
+  });
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "MochiSearch",
+    isGeneralPurposeEngine: true,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+    isPreview: false,
+    entry: "other",
+  });
+
   BrowserTestUtils.removeTab(tab);
 });

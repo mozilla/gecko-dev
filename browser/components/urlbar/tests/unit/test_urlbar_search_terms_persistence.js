@@ -276,12 +276,6 @@ add_setup(async function () {
 
 add_task(async function test_parsing_extracted_urls() {
   for (let test of TESTS) {
-    let engine = await Services.search.getEngineByName(test.name);
-    await Services.search.setDefault(
-      engine,
-      Ci.nsISearchService.CHANGE_REASON_UNKNOWN
-    );
-
     for (let { title, currentURI, originalURI, expected } of test.cases) {
       info(`${test.name} - ${title}`);
 
@@ -293,10 +287,7 @@ add_task(async function test_parsing_extracted_urls() {
       }
 
       Assert.equal(
-        UrlbarSearchTermsPersistence.getSearchTermIfDefaultSerpUri(
-          originalURI,
-          currentURI
-        ),
+        UrlbarSearchTermsPersistence.getSearchTerm(originalURI, currentURI),
         expected
       );
     }
