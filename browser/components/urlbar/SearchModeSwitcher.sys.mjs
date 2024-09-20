@@ -31,7 +31,7 @@ export class SearchModeSwitcher {
       "nsIObserver",
       "nsISupportsWeakReference",
     ]);
-    Services.obs.addObserver(this, "browser-search-engine-modified", true);
+
     lazy.UrlbarPrefs.addObserver(this);
 
     this.#popup = input.document.getElementById("searchmode-switcher-popup");
@@ -39,26 +39,10 @@ export class SearchModeSwitcher {
     this.#toolbarbutton = input.document.querySelector(
       "#urlbar-searchmode-switcher"
     );
-    this.#toolbarbutton.addEventListener("mousedown", this);
-    this.#toolbarbutton.addEventListener("keypress", this);
 
-    let closebutton = input.document.querySelector(
-      "#searchmode-switcher-close"
-    );
-    closebutton.addEventListener("mousedown", this);
-    closebutton.addEventListener("keypress", this);
-
-    let prefsbutton = input.document.querySelector(
-      "#searchmode-switcher-popup-search-settings-button"
-    );
-    prefsbutton.addEventListener("mousedown", this);
-    prefsbutton.addEventListener("keypress", this);
-
-    input.window.addEventListener(
-      "MozAfterPaint",
-      () => this.#updateSearchIcon(),
-      { once: true }
-    );
+    if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+      this.#enableObservers();
+    }
   }
 
   /**
@@ -156,7 +140,9 @@ export class SearchModeSwitcher {
    * Called when the value of the searchMode attribute on UrlbarInput is changed.
    */
   onSearchModeChanged() {
-    this.#updateSearchIcon();
+    if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+      this.#updateSearchIcon();
+    }
   }
 
   handleEvent(event) {
@@ -198,9 +184,20 @@ export class SearchModeSwitcher {
    */
   onPrefChanged(pref) {
     switch (pref) {
-      case "keyword.enabled":
-        this.#updateSearchIcon();
+      case "scotchBonnet.enableOverride": {
+        if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+          this.#enableObservers();
+        } else {
+          this.#disableObservers();
+        }
         break;
+      }
+      case "keyword.enabled": {
+        if (lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+          this.#updateSearchIcon();
+        }
+        break;
+      }
     }
   }
 
@@ -390,5 +387,49 @@ export class SearchModeSwitcher {
     }
 
     this.#popup.hidePopup();
+  }
+
+  #enableObservers() {
+    Services.obs.addObserver(this, "browser-search-engine-modified", true);
+
+    this.#toolbarbutton.addEventListener("mousedown", this);
+    this.#toolbarbutton.addEventListener("keypress", this);
+
+    let closebutton = this.#input.document.querySelector(
+      "#searchmode-switcher-close"
+    );
+    closebutton.addEventListener("mousedown", this);
+    closebutton.addEventListener("keypress", this);
+
+    let prefsbutton = this.#input.document.querySelector(
+      "#searchmode-switcher-popup-search-settings-button"
+    );
+    prefsbutton.addEventListener("mousedown", this);
+    prefsbutton.addEventListener("keypress", this);
+
+    this.#input.window.addEventListener(
+      "MozAfterPaint",
+      () => this.#updateSearchIcon(),
+      { once: true }
+    );
+  }
+
+  #disableObservers() {
+    Services.obs.removeObserver(this, "browser-search-engine-modified");
+
+    this.#toolbarbutton.removeEventListener("mousedown", this);
+    this.#toolbarbutton.removeEventListener("keypress", this);
+
+    let closebutton = this.#input.document.querySelector(
+      "#searchmode-switcher-close"
+    );
+    closebutton.removeEventListener("mousedown", this);
+    closebutton.removeEventListener("keypress", this);
+
+    let prefsbutton = this.#input.document.querySelector(
+      "#searchmode-switcher-popup-search-settings-button"
+    );
+    prefsbutton.removeEventListener("mousedown", this);
+    prefsbutton.removeEventListener("keypress", this);
   }
 }

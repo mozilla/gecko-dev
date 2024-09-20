@@ -11,43 +11,6 @@ add_setup(async function setup() {
   });
 });
 
-add_task(async function basic() {
-  info("Open the urlbar and searchmode switcher popup");
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: "",
-  });
-  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
-  Assert.ok(
-    !BrowserTestUtils.isVisible(gURLBar.view.panel),
-    "The UrlbarView is not visible"
-  );
-
-  info("Press on the bing menu button and enter search mode");
-  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
-  popup.querySelector("toolbarbutton[label=Bing]").click();
-  await popupHidden;
-
-  await UrlbarTestUtils.assertSearchMode(window, {
-    engineName: "Bing",
-    entry: "other",
-    source: 3,
-  });
-
-  info("Press the close button and escape search mode");
-  window.document.querySelector("#searchmode-switcher-close").click();
-  await UrlbarTestUtils.assertSearchMode(window, null);
-});
-
-function updateEngine(fun) {
-  let updated = SearchTestUtils.promiseSearchNotification(
-    SearchUtils.MODIFIED_TYPE.CHANGED,
-    SearchUtils.TOPIC_ENGINE_MODIFIED
-  );
-  fun();
-  return updated;
-}
-
 add_task(async function disabled_unified_button() {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
@@ -95,6 +58,43 @@ add_task(async function disabled_unified_button() {
   await UrlbarTestUtils.exitSearchMode(window);
   await SpecialPowers.popPrefEnv();
 });
+
+add_task(async function basic() {
+  info("Open the urlbar and searchmode switcher popup");
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: "",
+  });
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+  Assert.ok(
+    !BrowserTestUtils.isVisible(gURLBar.view.panel),
+    "The UrlbarView is not visible"
+  );
+
+  info("Press on the bing menu button and enter search mode");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton[label=Bing]").click();
+  await popupHidden;
+
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "Bing",
+    entry: "other",
+    source: 3,
+  });
+
+  info("Press the close button and escape search mode");
+  window.document.querySelector("#searchmode-switcher-close").click();
+  await UrlbarTestUtils.assertSearchMode(window, null);
+});
+
+function updateEngine(fun) {
+  let updated = SearchTestUtils.promiseSearchNotification(
+    SearchUtils.MODIFIED_TYPE.CHANGED,
+    SearchUtils.TOPIC_ENGINE_MODIFIED
+  );
+  fun();
+  return updated;
+}
 
 add_task(async function new_window() {
   let oldEngine = Services.search.getEngineByName("Bing");
