@@ -391,7 +391,7 @@ async function createDummyDataForHost(host) {
     "dummy.js";
 
   await SiteDataTestUtils.addToIndexedDB(origin);
-  await SiteDataTestUtils.addServiceWorker({ win: window, path: dummySWURL });
+  await SiteDataTestUtils.addServiceWorker(dummySWURL);
 }
 
 /**

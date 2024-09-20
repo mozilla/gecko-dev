@@ -64,10 +64,7 @@ add_task(() => {
     ["https://test.example.com", "example.com"],
     ["https://test1.test2.example.com", "example.com"],
     ["https://test1.test2.example.co.uk", "example.co.uk"],
-    [
-      "https://test1.test2.example.\u516c\u53f8.\u9999\u6e2f",
-      "example.xn--55qx5d.xn--j6w193g",
-    ],
+    ["https://test1.test2.example.公司.香港", "example.xn--55qx5d.xn--j6w193g"],
   ]) {
     let origin = Services.io.newURI(originString);
     let answer = Services.eTLD.getSchemelessSite(origin);
@@ -75,32 +72,6 @@ add_task(() => {
       answer,
       result,
       `"${originString}" should have schemeless site ${result}, got ${answer}.`
-    );
-  }
-});
-
-add_task(function test_getSchemelessSiteFromHost() {
-  for (let [host, result] of [
-    ["com", "com"],
-    ["test", "test"],
-    ["test.", "test."],
-    ["::1", "[::1]"],
-    ["localhost", "localhost"],
-    ["127.0.0.1", "127.0.0.1"],
-    ["example.com", "example.com"],
-    ["test.example.com", "example.com"],
-    ["test1.test2.example.com", "example.com"],
-    ["test1.test2.example.co.uk", "example.co.uk"],
-    [
-      "test1.test2.example.\u516c\u53f8.\u9999\u6e2f",
-      "example.xn--55qx5d.xn--j6w193g",
-    ],
-  ]) {
-    let answer = Services.eTLD.getSchemelessSiteFromHost(host);
-    Assert.equal(
-      answer,
-      result,
-      `"${host}" should have schemeless site ${result}, got ${answer}.`
     );
   }
 });

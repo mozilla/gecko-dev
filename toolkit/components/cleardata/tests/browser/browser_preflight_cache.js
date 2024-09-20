@@ -67,9 +67,8 @@ async function testDeleteAll(
           }
         );
       } else if (deleteBy == "baseDomain") {
-        Services.clearData.deleteDataFromSite(
+        Services.clearData.deleteDataFromBaseDomain(
           browser.contentPrincipal.baseDomain,
-          {},
           hasUserInput,
           clearDataFlag,
           value => {

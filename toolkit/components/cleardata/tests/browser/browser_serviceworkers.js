@@ -7,22 +7,13 @@ const { SiteDataTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SiteDataTestUtils.sys.mjs"
 );
 
-async function addServiceWorker(
-  origin,
-  topLevelOrigin = null,
-  userContextId = null
-) {
+async function addServiceWorker(origin) {
   let swURL =
     getRootDirectory(gTestPath).replace("chrome://mochitests/content", origin) +
     "worker.js";
 
   let registered = SiteDataTestUtils.promiseServiceWorkerRegistered(swURL);
-  await SiteDataTestUtils.addServiceWorker({
-    win: window,
-    path: swURL,
-    topLevelPath: topLevelOrigin,
-    userContextId,
-  });
+  await SiteDataTestUtils.addServiceWorker(swURL);
   await registered;
 
   ok(true, `${origin} has a service worker`);
@@ -72,7 +63,7 @@ add_task(async function test_deleteFromHost() {
     "test1.example.org has a service worker"
   );
 
-  // Clearing the subdomain should not clear the entire site.
+  // Clearing the subdomain should not clear the base domain.
   unregistered = SiteDataTestUtils.promiseServiceWorkerUnregistered(
     "https://test1.example.org"
   );
@@ -124,21 +115,10 @@ add_task(async function test_deleteFromHost() {
   );
 });
 
-add_task(async function test_deleteFromSite() {
+add_task(async function test_deleteFromBaseDomain() {
   await addServiceWorker("https://example.com");
   await addServiceWorker("https://test1.example.com");
   await addServiceWorker("https://test2.example.com");
-
-  // Both of these partitioned service workers should be removed by
-  // deleteDataFromSite targeting 'example.com'. example.org sw partitioned
-  // under example.com
-  await addServiceWorker(
-    "https://sub1.test1.example.org",
-    "https://example.com"
-  );
-  // example.com sw partitioned under example.org
-  await addServiceWorker("https://www.example.com", "https://example.org");
-
   await addServiceWorker("https://example.org");
 
   let unregistered = SiteDataTestUtils.promiseServiceWorkerUnregistered(
@@ -148,39 +128,20 @@ add_task(async function test_deleteFromSite() {
     "https://test1.example.com"
   );
   let unregisteredSub2 = SiteDataTestUtils.promiseServiceWorkerUnregistered(
-    "https://test2.example.com"
+    "https://test1.example.com"
   );
-  let unregisteredPartitioned1 =
-    SiteDataTestUtils.promiseServiceWorkerUnregistered(
-      "https://sub1.test1.example.org"
-    );
-  let unregisteredPartitioned2 =
-    SiteDataTestUtils.promiseServiceWorkerUnregistered(
-      "https://www.example.com"
-    );
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromSite(
+    Services.clearData.deleteDataFromBaseDomain(
       "example.com",
-      {}, // All OA
       true,
       Ci.nsIClearDataService.CLEAR_DOM_QUOTA,
       value => {
-        Assert.equal(
-          value,
-          0,
-          "Call to nsIClearDataService should not return any errors."
-        );
+        Assert.equal(value, 0);
         aResolve();
       }
     );
   });
-  await Promise.all([
-    unregistered,
-    unregisteredSub1,
-    unregisteredSub2,
-    unregisteredPartitioned1,
-    unregisteredPartitioned2,
-  ]);
+  await Promise.all([unregistered, unregisteredSub1, unregisteredSub2]);
 
   ok(
     !SiteDataTestUtils.hasServiceWorkers("https://example.com"),
@@ -195,15 +156,6 @@ add_task(async function test_deleteFromSite() {
     "test2.example.com has no service worker"
   );
   ok(
-    !SiteDataTestUtils.hasServiceWorkers("https://sub1.test1.example.org"),
-    "sub1.test1.example.org has no service worker"
-  );
-  ok(
-    !SiteDataTestUtils.hasServiceWorkers("https://www.example.com"),
-    "www.example.com has no service worker"
-  );
-
-  ok(
     SiteDataTestUtils.hasServiceWorkers("https://example.org"),
     "example.org has a service worker"
   );
@@ -212,9 +164,8 @@ add_task(async function test_deleteFromSite() {
     "https://example.org"
   );
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromSite(
+    Services.clearData.deleteDataFromBaseDomain(
       "example.org",
-      {},
       true,
       Ci.nsIClearDataService.CLEAR_DOM_QUOTA,
       value => {
@@ -241,84 +192,6 @@ add_task(async function test_deleteFromSite() {
     !SiteDataTestUtils.hasServiceWorkers("https://test2.example.com"),
     "test2.example.com has no service worker"
   );
-  ok(
-    !SiteDataTestUtils.hasServiceWorkers("https://sub1.test1.example.org"),
-    "sub1.test1.example.org has no service worker"
-  );
-  ok(
-    !SiteDataTestUtils.hasServiceWorkers("https://www.example.com"),
-    "www.example.com has no service worker"
-  );
-
-  await SiteDataTestUtils.clear();
-});
-
-add_task(async function test_deleteFromSiteWithPattern() {
-  await addServiceWorker("https://example.com");
-  await addServiceWorker("https://test1.example.com");
-  await addServiceWorker("https://test2.example.com");
-
-  // Both of these partitioned service workers should be removed by
-  // deleteDataFromSite targeting 'example.com'. example.org sw partitioned
-  // under example.com
-  await addServiceWorker(
-    "https://sub1.test1.example.org",
-    "https://example.com"
-  );
-  ok(
-    SiteDataTestUtils.hasServiceWorkers("https://sub1.test1.example.org"),
-    "sub1.test1.example.org initially has a service worker"
-  );
-  // example.com sw partitioned under example.org
-  await addServiceWorker("https://www.example.com", "https://example.org", 3);
-
-  await addServiceWorker("https://example.org");
-
-  let unregisteredSub2 = SiteDataTestUtils.promiseServiceWorkerUnregistered(
-    "https://www.example.com"
-  );
-
-  await new Promise(aResolve => {
-    Services.clearData.deleteDataFromSite(
-      "example.com",
-      { userContextId: 3 }, // Only OA with userContextId == 3
-      true,
-      Ci.nsIClearDataService.CLEAR_DOM_QUOTA,
-      value => {
-        Assert.equal(value, 0);
-        aResolve();
-      }
-    );
-  });
-  await Promise.all([unregisteredSub2]);
-
-  ok(
-    SiteDataTestUtils.hasServiceWorkers("https://example.com"),
-    "example.com has a service worker"
-  );
-  ok(
-    SiteDataTestUtils.hasServiceWorkers("https://test1.example.com"),
-    "test1.example.com has a service worker"
-  );
-  ok(
-    SiteDataTestUtils.hasServiceWorkers("https://test2.example.com"),
-    "test2.example.com has a service worker"
-  );
-  ok(
-    SiteDataTestUtils.hasServiceWorkers("https://sub1.test1.example.org"),
-    "sub1.test1.example.org has a service worker"
-  );
-  ok(
-    !SiteDataTestUtils.hasServiceWorkers("https://www.example.com"),
-    "www.example.com has no service worker"
-  );
-
-  ok(
-    SiteDataTestUtils.hasServiceWorkers("https://example.org"),
-    "example.org has a service worker"
-  );
-
-  await SiteDataTestUtils.clear();
 });
 
 add_task(async function test_deleteFromPrincipal() {
