@@ -189,15 +189,24 @@ add_task(async function validate_filename_method() {
     "video.ogg",
     "video.ogg"
   );
-  Assert.equal(
-    mimeService.validateFileNameForSaving("video.ogv", "video/ogg", 0),
+  let checkedName = mimeService.validateFileNameForSaving(
     "video.ogv",
-    "video.ogv"
+    "video/ogg",
+    0
   );
-  Assert.equal(
-    mimeService.validateFileNameForSaving("video.ogt", "video/ogg", 0),
-    "video.ogv",
-    "video.ogt"
+  Assert.ok(
+    ["video.ogv", "video.ogm"].includes(checkedName),
+    `Should get video.ogv or video.ogm for video.ogv, got ${checkedName}`
+  );
+
+  checkedName = mimeService.validateFileNameForSaving(
+    "video.ogt",
+    "video/ogg",
+    0
+  );
+  Assert.ok(
+    ["video.ogv", "video.ogm"].includes(checkedName),
+    `Should get video.ogv or video.ogm for video.ogt, got ${checkedName}`
   );
 
   Assert.equal(

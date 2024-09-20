@@ -16,7 +16,6 @@ skip-if = [
 ]
 
 ["test_filename_sanitize.js"]
-skip-if = ["os == 'mac'"] # Bug 1817727
 
 ["test_getFromTypeAndExtension.js"]
 skip-if = ["os == 'android'"]
