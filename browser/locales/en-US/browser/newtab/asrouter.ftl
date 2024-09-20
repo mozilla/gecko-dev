@@ -253,3 +253,15 @@ tail-fox-spotlight-title = Keep pesky trackers off your tail
 tail-fox-spotlight-subtitle = Say goodbye to annoying ad trackers and settle into a safer, speedy internet experience.
 tail-fox-spotlight-primary-button = Open my links with { -brand-short-name }
 tail-fox-spotlight-secondary-button = Not now
+
+## Root Certificate Succession Infobar
+
+root-certificate-succession-infobar-january-message = <strong>Older versions of { -brand-short-name } may start to have problems on January 14, 2025.</strong>
+root-certificate-succession-infobar-march-message = <strong>Update to keep using { -brand-short-name } after March 14, 2025.</strong>
+root-certificate-succession-infobar-link = Why do I need to update?
+root-certificate-succession-infobar-primary-button =
+  .label = Update now
+  .accesskey = U
+root-certificate-succession-infobar-secondary-button =
+  .label = Later
+  .accesskey = L
