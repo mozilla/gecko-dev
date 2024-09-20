@@ -55,11 +55,11 @@ import org.mozilla.fenix.helpers.ext.waitNotNull
 class BookmarksRobot {
 
     fun verifyBookmarksMenuView() {
-        Log.i(TAG, "verifyBookmarksMenuView: Waiting for $waitingTime ms for bookmarks view to exist")
+        Log.i(TAG, "verifyBookmarksMenuView: Waiting for $waitingTimeShort ms for bookmarks view to exist")
         mDevice.findObject(
             UiSelector().text("Bookmarks"),
-        ).waitForExists(waitingTime)
-        Log.i(TAG, "verifyBookmarksMenuView: Waited for $waitingTime ms for bookmarks view to exist")
+        ).waitForExists(waitingTimeShort)
+        Log.i(TAG, "verifyBookmarksMenuView: Waited for $waitingTimeShort ms for bookmarks view to exist")
         Log.i(TAG, "verifyBookmarksMenuView: Trying to verify bookmarks view is displayed")
         onView(
             allOf(
@@ -210,34 +210,29 @@ class BookmarksRobot {
     }
 
     fun verifyCurrentFolderTitle(title: String) {
-        Log.i(TAG, "verifyCurrentFolderTitle: Waiting for $waitingTime ms for bookmark with title: $title to exist")
+        Log.i(TAG, "verifyCurrentFolderTitle: Waiting for $waitingTimeShort ms for bookmark with title: $title to exist")
         mDevice.findObject(
             UiSelector().resourceId("$packageName:id/navigationToolbar")
                 .textContains(title),
-        )
-            .waitForExists(waitingTime)
-        Log.i(TAG, "verifyCurrentFolderTitle: Waited for $waitingTime ms for bookmark with title: $title to exist")
+        ).waitForExists(waitingTimeShort)
+        Log.i(TAG, "verifyCurrentFolderTitle: Waited for $waitingTimeShort ms for bookmark with title: $title to exist")
         Log.i(TAG, "verifyCurrentFolderTitle: Trying to verify bookmark with title: $title is displayed")
         onView(
             allOf(
                 withText(title),
                 withParent(withId(R.id.navigationToolbar)),
             ),
-        )
-            .check(matches(isDisplayed()))
+        ).check(matches(isDisplayed()))
         Log.i(TAG, "verifyCurrentFolderTitle: Verified bookmark with title: $title is displayed")
     }
 
     fun waitForBookmarksFolderContentToExist(parentFolderName: String, childFolderName: String) {
-        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waiting for $waitingTime ms for navigation toolbar containing bookmark folder with title: $parentFolderName to exist")
-        mDevice.findObject(
-            UiSelector().resourceId("$packageName:id/navigationToolbar")
-                .textContains(parentFolderName),
-        )
-            .waitForExists(waitingTime)
-        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waited for $waitingTime ms for navigation toolbar containing bookmark folder with title: $parentFolderName to exist")
-
-        mDevice.waitNotNull(Until.findObject(By.text(childFolderName)), waitingTime)
+        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waiting for $waitingTimeShort ms for navigation toolbar containing bookmark folder with title: $parentFolderName to exist")
+        itemWithResIdContainingText("$packageName:id/navigationToolbar", parentFolderName).waitForExists(waitingTimeShort)
+        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waited for $waitingTimeShort ms for navigation toolbar containing bookmark folder with title: $parentFolderName to exist")
+        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waiting for $waitingTimeShort ms for $childFolderName to exist")
+        itemContainingText(childFolderName).waitForExists(waitingTimeShort)
+        Log.i(TAG, "waitForBookmarksFolderContentToExist: Waited for $waitingTimeShort ms for $childFolderName to exist")
     }
 
     fun verifySyncSignInButton() {
@@ -271,10 +266,6 @@ class BookmarksRobot {
     }
 
     fun clickAddFolderButton() {
-        mDevice.waitNotNull(
-            Until.findObject(By.desc("Add folder")),
-            waitingTime,
-        )
         Log.i(TAG, "clickAddFolderButton: Trying to click add bookmarks folder button")
         addFolderButton().click()
         Log.i(TAG, "clickAddFolderButton: Clicked add bookmarks folder button")

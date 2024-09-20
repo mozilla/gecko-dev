@@ -7,7 +7,6 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.test.espresso.Espresso.openActionBarOverflowOrOptionsMenu
 import androidx.test.espresso.Espresso.pressBack
-import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.R
@@ -509,12 +508,10 @@ class BookmarksTest : TestSetup() {
         }.openThreeDotMenu {
         }.openBookmarks {
             createFolder("1")
-            getInstrumentation().waitForIdleSync()
             waitForBookmarksFolderContentToExist("Bookmarks", "1")
             selectFolder("1")
             verifyCurrentFolderTitle("1")
             createFolder("2")
-            getInstrumentation().waitForIdleSync()
             waitForBookmarksFolderContentToExist("1", "2")
             selectFolder("2")
             verifyCurrentFolderTitle("2")
