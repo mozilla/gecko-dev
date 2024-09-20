@@ -56,7 +56,7 @@ export class MigrationWizardChild extends JSWindowActorChild {
         page: MigrationWizardConstants.PAGES.NO_BROWSERS_FOUND,
         hasFileMigrators,
       });
-      this.#sendTelemetryEvent("no_browsers_found");
+      this.#sendTelemetryEvent("noBrowsersFound");
     } else {
       this.setComponentState({
         migrators,
@@ -96,7 +96,7 @@ export class MigrationWizardChild extends JSWindowActorChild {
 
         if (!hasPermissions) {
           if (event.detail.key == "safari") {
-            this.#sendTelemetryEvent("safari_perms");
+            this.#sendTelemetryEvent("safariPerms");
             this.setComponentState({
               page: MigrationWizardConstants.PAGES.SAFARI_PERMISSION,
             });
@@ -147,7 +147,7 @@ export class MigrationWizardChild extends JSWindowActorChild {
         // In theory, the migrator permissions might be requested on any
         // platform - but in practice, this only happens on Linux, so that's
         // why the event is named linux_perms.
-        this.#sendTelemetryEvent("linux_perms", {
+        this.#sendTelemetryEvent("linuxPerms", {
           migrator_key: event.detail.key,
         });
         break;
@@ -260,9 +260,6 @@ export class MigrationWizardChild extends JSWindowActorChild {
       }
     }
 
-    // Event Telemetry extra arguments expect strings for every value, so
-    // now we coerce our "other" count into a string.
-    extraArgs.other = String(extraArgs.other);
     return extraArgs;
   }
 
@@ -284,12 +281,12 @@ export class MigrationWizardChild extends JSWindowActorChild {
    * @returns {object}
    */
   #recordBeginMigrationEvent(migrationDetails) {
-    this.#sendTelemetryEvent("browser_selected", {
+    this.#sendTelemetryEvent("browserSelected", {
       migrator_key: migrationDetails.key,
     });
 
     if (migrationDetails.profile) {
-      this.#sendTelemetryEvent("profile_selected", {
+      this.#sendTelemetryEvent("profileSelected", {
         migrator_key: migrationDetails.key,
       });
     }
@@ -297,10 +294,10 @@ export class MigrationWizardChild extends JSWindowActorChild {
     let extraArgs = this.#constructExtraArgs(migrationDetails);
 
     extraArgs.configured = String(Number(migrationDetails.expandedDetails));
-    this.#sendTelemetryEvent("resources_selected", extraArgs);
+    this.#sendTelemetryEvent("resourcesSelected", extraArgs);
     delete extraArgs.configured;
 
-    this.#sendTelemetryEvent("migration_started", extraArgs);
+    this.#sendTelemetryEvent("migrationStarted", extraArgs);
     return extraArgs;
   }
 
@@ -326,7 +323,7 @@ export class MigrationWizardChild extends JSWindowActorChild {
       ) &&
       !migrationDetails.safariPasswordFilePath
     ) {
-      this.#sendTelemetryEvent("safari_password_file");
+      this.#sendTelemetryEvent("safariPasswordFile");
       this.setComponentState({
         page: MigrationWizardConstants.PAGES.SAFARI_PASSWORD_PERMISSION,
       });
@@ -337,7 +334,7 @@ export class MigrationWizardChild extends JSWindowActorChild {
       migrationDetails,
       extraArgs,
     });
-    this.#sendTelemetryEvent("migration_finished", extraArgs);
+    this.#sendTelemetryEvent("migrationFinished", extraArgs);
 
     this.#wizardEl.dispatchEvent(
       new this.contentWindow.CustomEvent("MigrationWizard:DoneMigration", {

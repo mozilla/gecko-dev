@@ -191,14 +191,8 @@ export class MigrationWizardParent extends JSWindowActorParent {
    * @param {object} args
    *   The data to pass to telemetry when the event is recorded.
    */
-  #recordEvent(type, args = null) {
-    Services.telemetry.recordEvent(
-      "browser.migration",
-      type,
-      "wizard",
-      null,
-      args
-    );
+  #recordEvent(type, args) {
+    Glean.browserMigration[type + "Wizard"].record(args);
   }
 
   /**
