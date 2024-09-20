@@ -145,14 +145,14 @@ trait PrivateMatchMethods: TElement {
                 result |= Self::replace_single_rule_node(
                     context.shared,
                     CascadeLevel::same_tree_author_normal(),
-                    LayerOrder::root(),
+                    LayerOrder::style_attribute(),
                     style_attribute,
                     primary_rules,
                 );
                 result |= Self::replace_single_rule_node(
                     context.shared,
                     CascadeLevel::same_tree_author_important(),
-                    LayerOrder::root(),
+                    LayerOrder::style_attribute(),
                     style_attribute,
                     primary_rules,
                 );

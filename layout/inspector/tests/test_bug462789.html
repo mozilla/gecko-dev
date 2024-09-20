@@ -31,10 +31,10 @@ function do_test() {
   var text = body.firstChild;
 
   try {
-    var res = InspectorUtils.getCSSStyleRules(docElement);
-    is(res.length, 0, "getCSSStyleRules");
-    res = InspectorUtils.getCSSStyleRules(body);
-    is(res.length, 0, "getCSSStyleRules");
+    var res = InspectorUtils.getMatchingCSSRules(docElement);
+    is(res.length, 0, "getMatchingCSSRules");
+    res = InspectorUtils.getMatchingCSSRules(body);
+    is(res.length, 0, "getMatchingCSSRules");
   }
   catch(e) { ok(false, "got an unexpected exception:" + e); }
 

@@ -842,7 +842,7 @@ class PageStyleActor extends Actor {
     // we don't need to retrieve inherited starting style rules
     const includeStartingStyleRules =
       !inherited && DISPLAY_STARTING_STYLE_RULES;
-    const domRules = InspectorUtils.getCSSStyleRules(
+    const domRules = InspectorUtils.getMatchingCSSRules(
       node,
       pseudo,
       CssLogic.hasVisitedState(node),
@@ -857,7 +857,7 @@ class PageStyleActor extends Actor {
 
     const doc = this.inspector.targetActor.window.document;
 
-    // getCSSStyleRules returns ordered from least-specific to
+    // getMatchingCSSRules returns ordered from least-specific to
     // most-specific.
     for (let i = domRules.length - 1; i >= 0; i--) {
       const domRule = domRules[i];

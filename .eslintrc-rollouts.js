@@ -200,7 +200,7 @@ const rollouts = [
       "gfx/layers/layerviewer/layerTreeView.js",
       "intl/uconv/tests/unit/test_charset_conversion.js",
       "js/src/builtin/**",
-      "layout/inspector/tests/test_getCSSStyleRules.html",
+      "layout/inspector/tests/test_getMatchingCSSRules.html",
       "layout/inspector/tests/test_is_valid_css_color.html",
       "layout/style/test/property_database.js",
       "layout/style/test/test_computed_style_grid_with_pseudo.html",

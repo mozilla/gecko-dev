@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Test getCSSStyleRules for pseudo elements</title>
+<title>Test getMatchingCSSRules for pseudo elements</title>
 <script src="/tests/SimpleTest/SimpleTest.js"></script>
 <link rel="stylesheet" href="/tests/SimpleTest/test.css">
 
@@ -52,12 +52,12 @@ const InspectorUtils = SpecialPowers.InspectorUtils;
 function checkPseudoStyleForId(id) {
   let element = document.getElementById(id);
 
-  let beforeRules = InspectorUtils.getCSSStyleRules(element, ":before");
+  let beforeRules = InspectorUtils.getMatchingCSSRules(element, ":before");
   is (beforeRules.length, 1, "Element " + id + ":before has expected number of rules.");
   let beforeDecl = beforeRules[0].style;
   is (beforeDecl.content, '":before"', "Element " + id + ":before has expected style content.");
 
-  let afterRules  = InspectorUtils.getCSSStyleRules(element, ":after");
+  let afterRules  = InspectorUtils.getMatchingCSSRules(element, ":after");
   is (afterRules.length, 1, "Element " + id + ":after has expected number of rules.");
   let afterDecl = afterRules[0].style;
   is (afterDecl.content, '":after"', "Element " + id + ":after has expected style content.");

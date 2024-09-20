@@ -17,7 +17,7 @@ const {
   getCurrentZoom,
 } = require("resource://devtools/shared/layout/utils.js");
 const {
-  getCSSStyleRules,
+  getMatchingCSSRules,
 } = require("resource://devtools/shared/inspector/css-logic.js");
 
 const GEOMETRY_LABEL_SIZE = 6;
@@ -139,13 +139,13 @@ function getDefinedGeometryProperties(node) {
   }
 
   // Get the list of css rules applying to the current node.
-  const cssRules = getCSSStyleRules(node);
+  const cssRules = getMatchingCSSRules(node);
   for (let i = 0; i < cssRules.length; i++) {
     const rule = cssRules[i];
     for (const name of GeoProp.allProps()) {
       const value = rule.style.getPropertyValue(name);
       if (value && value !== "auto") {
-        // getCSSStyleRules returns rules ordered from least to most specific
+        // getMatchingCSSRules returns rules ordered from least to most specific
         // so just override any previous properties we have set.
         props.set(name, {
           cssRule: rule,

@@ -8499,11 +8499,11 @@ void nsIFrame::ListTextRuns(FILE* out, nsTHashSet<const void*>& aSeen) const {
 }
 
 void nsIFrame::ListMatchedRules(FILE* out, const char* aPrefix) const {
-  nsTArray<const StyleLockedStyleRule*> rawRuleList;
-  Servo_ComputedValues_GetStyleRuleList(mComputedStyle, &rawRuleList);
-  for (const StyleLockedStyleRule* rawRule : rawRuleList) {
+  nsTArray<const StyleLockedDeclarationBlock*> rawDecls;
+  Servo_ComputedValues_GetMatchingDeclarations(Style(), &rawDecls);
+  for (const StyleLockedDeclarationBlock* rawRule : rawDecls) {
     nsAutoCString ruleText;
-    Servo_StyleRule_GetCssText(rawRule, &ruleText);
+    Servo_DeclarationBlock_GetCssText(rawRule, &ruleText);
     fprintf_stderr(out, "%s%s\n", aPrefix, ruleText.get());
   }
 }

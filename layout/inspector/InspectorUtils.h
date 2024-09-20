@@ -41,11 +41,11 @@ class InspectorUtils {
   static void GetAllStyleSheets(GlobalObject& aGlobal, Document& aDocument,
                                 bool aDocumentOnly,
                                 nsTArray<RefPtr<StyleSheet>>& aResult);
-  static void GetCSSStyleRules(GlobalObject& aGlobal, Element& aElement,
-                               const nsAString& aPseudo,
-                               bool aIncludeVisitedStyle,
-                               bool aWithStartingStyle,
-                               nsTArray<RefPtr<CSSStyleRule>>& aResult);
+  static void GetMatchingCSSRules(GlobalObject& aGlobal, Element& aElement,
+                                  const nsAString& aPseudo,
+                                  bool aIncludeVisitedStyle,
+                                  bool aWithStartingStyle,
+                                  nsTArray<RefPtr<css::Rule>>& aResult);
 
   /**
    * Get the line number of a rule.

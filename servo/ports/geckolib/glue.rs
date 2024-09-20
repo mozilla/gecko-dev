@@ -4471,9 +4471,9 @@ pub extern "C" fn Servo_ComputedValues_SpecifiesAnimationsOrTransitions(
 }
 
 #[no_mangle]
-pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
+pub extern "C" fn Servo_ComputedValues_GetMatchingDeclarations(
     values: &ComputedValues,
-    rules: &mut nsTArray<*const LockedStyleRule>,
+    rules: &mut nsTArray<*const LockedDeclarationBlock>,
 ) {
     let rule_node = match values.rules {
         Some(ref r) => r,
@@ -4481,11 +4481,6 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
     };
 
     for node in rule_node.self_and_ancestors() {
-        let style_rule = match node.style_source().and_then(|x| x.as_rule()) {
-            Some(rule) => rule,
-            _ => continue,
-        };
-
         // For the rules with any important declaration, we insert them into
         // rule tree twice, one for normal level and another for important
         // level. So, we skip the important one to keep the specificity order of
@@ -4494,7 +4489,9 @@ pub extern "C" fn Servo_ComputedValues_GetStyleRuleList(
             continue;
         }
 
-        rules.push(&*style_rule);
+        let Some(source) = node.style_source() else { continue };
+
+        rules.push(&**source.get());
     }
 }
 
@@ -4526,20 +4523,13 @@ fn dump_properties_and_rules(cv: &ComputedValues, properties: &LonghandIdSet) {
 #[cfg(feature = "gecko_debug")]
 fn dump_rules(cv: &ComputedValues) {
     println_stderr!("  Rules({:?}):", cv.pseudo());
-    let global_style_data = &*GLOBAL_STYLE_DATA;
-    let guard = global_style_data.shared_lock.read();
     if let Some(rules) = cv.rules.as_ref() {
         for rn in rules.self_and_ancestors() {
             if rn.importance().important() {
                 continue;
             }
-            if let Some(d) = rn.style_source().and_then(|s| s.as_declarations()) {
-                println_stderr!("    [DeclarationBlock: {:?}]", d);
-            }
-            if let Some(r) = rn.style_source().and_then(|s| s.as_rule()) {
-                let mut s = nsCString::new();
-                r.read_with(&guard).to_css(&guard, &mut s).unwrap();
-                println_stderr!("    {}", s);
+            if let Some(d) = rn.style_source() {
+                println_stderr!("    {:?}", d.get());
             }
         }
     }

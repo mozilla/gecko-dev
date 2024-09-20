@@ -127,30 +127,33 @@ impl RuleCache {
     /// Walk the rule tree and return a rule node for using as the key
     /// for rule cache.
     ///
-    /// It currently skips a rule node when it is neither from a style
-    /// rule, nor containing any declaration of reset property. We don't
-    /// skip style rule so that we don't need to walk a long way in the
-    /// worst case. Skipping declarations rule nodes should be enough
-    /// to address common cases that rule cache would fail to share
-    /// when using the rule node directly, like preshint, style attrs,
-    /// and animations.
+    /// It currently skips animation / style attribute / preshint rules when they don't contain any
+    /// declaration of a reset property. We don't skip other levels because walking the whole
+    /// parent chain can be expensive.
+    ///
+    /// TODO(emilio): Measure this, this was not super-well measured for performance (this was done
+    /// for memory in bug 1427681)... Walking the rule tree might be worth it if we hit the cache
+    /// enough?
     fn get_rule_node_for_cache<'r>(
         guards: &StylesheetGuards,
         mut rule_node: Option<&'r StrongRuleNode>,
     ) -> Option<&'r StrongRuleNode> {
+        use crate::rule_tree::CascadeLevel;
         while let Some(node) = rule_node {
-            match node.style_source() {
-                Some(s) => match s.as_declarations() {
-                    Some(decls) => {
-                        let cascade_level = node.cascade_level();
-                        let decls = decls.read_with(cascade_level.guard(guards));
-                        if decls.contains_any_reset() {
-                            break;
-                        }
-                    },
-                    None => break,
-                },
-                None => {},
+            let priority = node.cascade_priority();
+            let cascade_level = priority.cascade_level();
+            let should_try_to_skip =
+                cascade_level.is_animation() ||
+                matches!(cascade_level, CascadeLevel::PresHints) ||
+                priority.layer_order().is_style_attribute_layer();
+            if !should_try_to_skip {
+                break;
+            }
+            if let Some(source) = node.style_source() {
+                let decls = source.get().read_with(cascade_level.guard(guards));
+                if decls.contains_any_reset() {
+                    break;
+                }
             }
             rule_node = node.parent();
         }

@@ -10,6 +10,7 @@
 #include "mozilla/dom/CSSImportRule.h"
 #include "mozilla/dom/CSSRuleBinding.h"
 #include "mozilla/dom/CSSStyleRule.h"
+#include "mozilla/dom/CSSNestedDeclarations.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ShadowRoot.h"
@@ -118,9 +119,14 @@ size_t ServoStyleRuleMap::SizeOfIncludingThis(
 
 void ServoStyleRuleMap::FillTableFromRule(css::Rule& aRule) {
   switch (aRule.Type()) {
+    case StyleCssRuleType::NestedDeclarations: {
+      auto& rule = static_cast<CSSNestedDeclarations&>(aRule);
+      mTable.InsertOrUpdate(rule.RawStyle(), &rule);
+      break;
+    }
     case StyleCssRuleType::Style: {
       auto& rule = static_cast<CSSStyleRule&>(aRule);
-      mTable.InsertOrUpdate(rule.Raw(), &rule);
+      mTable.InsertOrUpdate(rule.RawStyle(), &rule);
       [[fallthrough]];
     }
     case StyleCssRuleType::LayerBlock:
@@ -153,7 +159,6 @@ void ServoStyleRuleMap::FillTableFromRule(css::Rule& aRule) {
     case StyleCssRuleType::FontFeatureValues:
     case StyleCssRuleType::FontPaletteValues:
     case StyleCssRuleType::PositionTry:
-    case StyleCssRuleType::NestedDeclarations:
       break;
   }
 }

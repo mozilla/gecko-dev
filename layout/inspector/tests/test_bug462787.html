@@ -23,7 +23,7 @@ const InspectorUtils = SpecialPowers.InspectorUtils;
 
 function do_test() {
   try {
-    InspectorUtils.getCSSStyleRules(null);
+    InspectorUtils.getMatchingCSSRules(null);
     ok(false, "expected an exception"); 
   }
   catch(e) {

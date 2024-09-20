@@ -3239,7 +3239,6 @@ impl CascadeData {
 
     fn add_styles(
         &mut self,
-        style_source: StyleSource,
         selectors: &SelectorList<SelectorImpl>,
         declarations: &Arc<Locked<PropertyDeclarationBlock>>,
         ancestor_selectors: Option<&SelectorList<SelectorImpl>>,
@@ -3270,7 +3269,7 @@ impl CascadeData {
                         .expect("Expected precomputed declarations for the UA level")
                         .get_or_insert_with(pseudo, Vec::new)
                         .push(ApplicableDeclarationBlock::new(
-                            style_source.clone(),
+                            StyleSource::from_declarations(declarations.clone()),
                             self.rules_source_order,
                             CascadeLevel::UANormal,
                             selector.specificity(),
@@ -3294,7 +3293,7 @@ impl CascadeData {
             let rule = Rule::new(
                 selector,
                 hashes,
-                style_source.clone(),
+                StyleSource::from_declarations(declarations.clone()),
                 self.rules_source_order,
                 containing_rule_state.layer_id,
                 containing_rule_state.container_condition_id,
@@ -3428,7 +3427,6 @@ impl CascadeData {
                     let ancestor_selectors = containing_rule_state.ancestor_selector_lists.last();
                     let collect_replaced_selectors = has_nested_rules && ancestor_selectors.is_some();
                     self.add_styles(
-                        StyleSource::from_rule(locked.clone()),
                         &style_rule.selectors,
                         &style_rule.block,
                         ancestor_selectors,
@@ -3467,7 +3465,6 @@ impl CascadeData {
                             NestedDeclarationsContext::Scope => &*IMPLICIT_SCOPE,
                         };
                         self.add_styles(
-                            StyleSource::from_declarations(decls.clone()),
                             selectors,
                             decls,
                             /* ancestor_selectors = */ None,

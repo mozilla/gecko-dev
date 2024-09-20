@@ -14,7 +14,7 @@
 namespace InspectorUtils {
   // documentOnly tells whether user and UA sheets should get included.
   sequence<StyleSheet> getAllStyleSheets(Document document, optional boolean documentOnly = false);
-  sequence<CSSStyleRule> getCSSStyleRules(
+  sequence<CSSRule> getMatchingCSSRules(
     Element element,
     optional [LegacyNullToEmptyString] DOMString pseudo = "",
     optional boolean relevantLinkVisited = false,

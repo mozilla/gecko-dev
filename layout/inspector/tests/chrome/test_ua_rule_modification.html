@@ -5,7 +5,7 @@
 <p></p>
 <script>
 function start() {
-  let rules = InspectorUtils.getCSSStyleRules(document.querySelector("p"));
+  let rules = InspectorUtils.getMatchingCSSRules(document.querySelector("p"));
   ok(rules.length > 0, "Should have found some rules");
   is(rules[0].type, CSSRule.STYLE_RULE, "Should have found a style rule");
 

@@ -116,6 +116,10 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(CSSNestedDeclarations,
   // Keep this in sync with IsCCLeaf.
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
+StyleLockedDeclarationBlock* CSSNestedDeclarations::RawStyle() const {
+  return mDecls.mDecls->Raw();
+}
+
 bool CSSNestedDeclarations::IsCCLeaf() const {
   if (!css::Rule::IsCCLeaf()) {
     return false;

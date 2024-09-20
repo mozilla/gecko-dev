@@ -10,7 +10,7 @@
 <pre id="log">
 <script>
 /**
- * This test checks that getCSSStyleRules returns correct style set in
+ * This test checks that getMatchingCSSRules returns correct style set in
  * various cases. To avoid effects from UA sheets, most of the tests use
  * an element with "unknowntagname".
  */
@@ -22,14 +22,14 @@ let iframe = document.getElementById("test");
 SimpleTest.waitForExplicitFinish();
 
 function* getStyleRules(elem) {
-  let rules = InspectorUtils.getCSSStyleRules(elem);
+  let rules = InspectorUtils.getMatchingCSSRules(elem);
   for (let i = 0; i < rules.length; i++) {
     yield rules[i];
   }
 }
 
 // This will check that value of z-index property declarations in the
-// rules from getCSSStyleRules matches the given content.
+// rules from getMatchingCSSRules matches the given content.
 function checkRules(doc, rulesContent, queryStr = "unknowntagname") {
   let elem = doc.querySelector(queryStr);
   let rules = [...getStyleRules(elem)];
@@ -52,7 +52,7 @@ const tests = [
       checkRules(doc, [1]);
       let link = doc.createElement("link");
       link.rel = "stylesheet";
-      link.href = "getCSSStyleRules-2.css";
+      link.href = "getMatchingCSSRules-2.css";
       let load = new Promise(resolve => { link.onload = resolve; });
       doc.head.appendChild(link);
       await load;
@@ -121,7 +121,7 @@ const tests = [
       checkRules(doc, [3, 5, 4]);
 
       info("Inserting import rule");
-      sheet.insertRule("@import url(getCSSStyleRules-2.css);", 0);
+      sheet.insertRule("@import url(getMatchingCSSRules-2.css);", 0);
       // There is no notification we can get when the associated style
       // sheet gets loaded, so we have to query it.
       while (true) {
@@ -189,7 +189,7 @@ add_task(async function runTests() {
     if (!test.base) {
       test.base = "default";
     }
-    iframe.src = `file_getCSSStyleRules-${test.base}.html`;
+    iframe.src = `file_getMatchingCSSRules-${test.base}.html`;
     await new Promise(resolve => { iframe.onload = resolve; });
     try {
       await test.run(iframe.contentDocument, iframe.contentWindow);

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<title>Test getCSSStyleRules for pseudo elements</title>
+<title>Test getMatchingCSSRules for pseudo elements</title>
 <script src="/tests/SimpleTest/SimpleTest.js"></script>
 <link rel="stylesheet" href="/tests/SimpleTest/test.css">
 
@@ -41,7 +41,7 @@
 
   function checkElementRules(id, text, property) {
     const element = document.getElementById(id);
-    let slottedRules = InspectorUtils.getCSSStyleRules(element);
+    let slottedRules = InspectorUtils.getMatchingCSSRules(element);
     is(slottedRules.length, 1, "Slotted element has expected number of rules.");
 
     let slottedText = slottedRules[0].cssText;

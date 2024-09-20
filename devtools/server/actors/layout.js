@@ -30,7 +30,7 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "getCSSStyleRules",
+  "getMatchingCSSRules",
   "resource://devtools/shared/inspector/css-logic.js",
   true
 );
@@ -205,7 +205,7 @@ class FlexItemActor extends Actor {
     if (isElementNode) {
       for (const name in properties) {
         const values = [];
-        const cssRules = getCSSStyleRules(this.element);
+        const cssRules = getMatchingCSSRules(this.element);
 
         for (const rule of cssRules) {
           // For each rule, go through *all* properties, because there may be several of

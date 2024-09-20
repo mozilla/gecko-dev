@@ -43,7 +43,7 @@
       info(description);
 
       const rules =
-        InspectorUtils.getCSSStyleRules(target, undefined, isVisitedTest);
+        InspectorUtils.getMatchingCSSRules(target, undefined, isVisitedTest);
       ok(getRule(rules, validSelector),
          `Rule of ${validSelector} is in rules`);
       ok(!getRule(rules, invalidSelector),

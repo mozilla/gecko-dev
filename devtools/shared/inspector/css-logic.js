@@ -559,16 +559,16 @@ function getBindingElementAndPseudo(node) {
 exports.getBindingElementAndPseudo = getBindingElementAndPseudo;
 
 /**
- * Returns css style rules for a given a node.
+ * Returns css rules for a given a node.
  * This function can handle ::before or ::after pseudo element as well as
  * normal element.
  */
-function getCSSStyleRules(node) {
+function getMatchingCSSRules(node) {
   const { bindingElement, pseudo } = getBindingElementAndPseudo(node);
-  const rules = InspectorUtils.getCSSStyleRules(bindingElement, pseudo);
+  const rules = InspectorUtils.getMatchingCSSRules(bindingElement, pseudo);
   return rules;
 }
-exports.getCSSStyleRules = getCSSStyleRules;
+exports.getMatchingCSSRules = getMatchingCSSRules;
 
 /**
  * Returns true if the given node has visited state.

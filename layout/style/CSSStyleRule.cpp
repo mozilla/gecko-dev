@@ -181,6 +181,10 @@ void CSSStyleRule::GetCssText(nsACString& aCssText) const {
 
 /* CSSStyleRule implementation */
 
+StyleLockedDeclarationBlock* CSSStyleRule::RawStyle() const {
+  return mDecls.mDecls->Raw();
+}
+
 void CSSStyleRule::GetSelectorText(nsACString& aSelectorText) {
   Servo_StyleRule_GetSelectorText(mRawRule, &aSelectorText);
 }

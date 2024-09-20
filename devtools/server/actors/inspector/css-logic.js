@@ -30,7 +30,7 @@
 const nodeConstants = require("resource://devtools/shared/dom-node-constants.js");
 const {
   getBindingElementAndPseudo,
-  getCSSStyleRules,
+  getMatchingCSSRules,
   hasVisitedState,
   isAgentStylesheet,
   isAuthorStylesheet,
@@ -586,7 +586,7 @@ class CssLogic {
         this.viewedElement === element ? STATUS.MATCHED : STATUS.PARENT_MATCH;
 
       try {
-        domRules = getCSSStyleRules(element);
+        domRules = getMatchingCSSRules(element);
       } catch (ex) {
         console.log("CL__buildMatchedRules error: " + ex);
         continue;
@@ -601,17 +601,13 @@ class CssLogic {
         this._matchedRules.push([rule, status, distance]);
       }
 
-      // getCSSStyleRules can return null with a shadow DOM element.
+      // getMatchingCSSRules can return null with a shadow DOM element.
       if (domRules !== null) {
-        // getCSSStyleRules returns ordered from least-specific to most-specific,
+        // getMatchingCSSRules returns ordered from least-specific to most-specific,
         // but we do want them from most-specific to least specific, so we need to loop
         // through the rules backward.
         for (let i = domRules.length - 1; i >= 0; i--) {
           const domRule = domRules[i];
-          if (!CSSStyleRule.isInstance(domRule)) {
-            continue;
-          }
-
           const sheet = this.getSheet(domRule.parentStyleSheet, -1);
           if (sheet._passId !== this._passId) {
             sheet.index = sheetIndex++;
@@ -1541,7 +1537,7 @@ class CssSelectorInfo {
 
   /**
    * Compare the current CssSelectorInfo instance to another instance.
-   * Since selectorInfos is computed from `InspectorUtils.getCSSStyleRules`,
+   * Since selectorInfos is computed from `InspectorUtils.getMatchingCSSRules`,
    * it's already sorted for regular cases. We only need to handle important values.
    *
    * @param  {CssSelectorInfo} that

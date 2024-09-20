@@ -214,24 +214,24 @@ impl RuleTree {
             current = current.parent().unwrap().clone();
         }
 
+        let cascade_priority = CascadePriority::new(level, layer_order);
+
         // Then remove the one at the level we want to replace, if any.
         //
-        // NOTE: Here we assume that only one rule can be at the level we're
-        // replacing.
+        // NOTE: Here we assume that only one rule can be at the level + priority we're replacing,
+        // which holds because we only use this for HTML style attribute, animations and transition
+        // rules.
         //
-        // This is certainly true for HTML style attribute rules, animations and
-        // transitions, but could not be so for SMIL animations, which we'd need
-        // to special-case (isn't hard, it's just about removing the `if` and
-        // special cases, and replacing them for a `while` loop, avoiding the
-        // optimizations).
-        if current.cascade_priority().cascade_level() == level {
+        // This is certainly true for HTML style attribute rules, animations, transitions, and
+        // SMIL.
+        if current.cascade_priority() == cascade_priority {
             *important_rules_changed |= level.is_important();
 
-            let current_decls = current.style_source().unwrap().as_declarations();
+            let current_decls = current.style_source().unwrap().get();
 
             // If the only rule at the level we're replacing is exactly the
             // same as `pdb`, we're done, and `path` is still valid.
-            if let (Some(ref pdb), Some(ref current_decls)) = (pdb, current_decls) {
+            if let Some(ref pdb) = pdb {
                 // If the only rule at the level we're replacing is exactly the
                 // same as `pdb`, we're done, and `path` is still valid.
                 //
@@ -241,30 +241,27 @@ impl RuleTree {
                 // also equally valid. This is less likely, and would require an
                 // in-place mutation of the source, which is, at best, fiddly,
                 // so let's skip it for now.
-                let is_here_already = ArcBorrow::ptr_eq(pdb, current_decls);
+                let is_here_already = ArcBorrow::ptr_eq(pdb, &current_decls.borrow_arc());
                 if is_here_already {
                     debug!("Picking the fast path in rule replacement");
                     return None;
                 }
             }
 
-            if current_decls.is_some() {
-                current = current.parent().unwrap().clone();
-            }
+            current = current.parent().unwrap().clone();
         }
 
         // Insert the rule if it's relevant at this level in the cascade.
         //
-        // These optimizations are likely to be important, because the levels
-        // where replacements apply (style and animations) tend to trigger
-        // pretty bad styling cases already.
+        // These optimizations are likely to be important, because the levels where replacements
+        // apply (style and animations) tend to trigger pretty bad styling cases already.
         if let Some(pdb) = pdb {
             if level.is_important() {
                 if pdb.read_with(level.guard(guards)).any_important() {
                     current = current.ensure_child(
                         self.root(),
                         StyleSource::from_declarations(pdb.clone_arc()),
-                        CascadePriority::new(level, layer_order),
+                        cascade_priority,
                     );
                     *important_rules_changed = true;
                 }
@@ -273,7 +270,7 @@ impl RuleTree {
                     current = current.ensure_child(
                         self.root(),
                         StyleSource::from_declarations(pdb.clone_arc()),
-                        CascadePriority::new(level, layer_order),
+                        cascade_priority,
                     );
                 }
             }

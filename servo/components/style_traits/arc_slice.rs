@@ -116,13 +116,8 @@ impl<T> ArcSlice<T> {
     /// Creates a value that can be passed via FFI, and forgets this value
     /// altogether.
     #[inline]
-    #[allow(unsafe_code)]
     pub fn forget(self) -> ForgottenArcSlicePtr<T> {
-        let ret = unsafe {
-            ForgottenArcSlicePtr(NonNull::new_unchecked(
-                self.0.raw_ptr() as *const _ as *mut _
-            ))
-        };
+        let ret = ForgottenArcSlicePtr(self.0.raw_ptr().cast());
         mem::forget(self);
         ret
     }
@@ -134,7 +129,7 @@ impl<T> ArcSlice<T> {
         let empty: ArcSlice<_> = EMPTY_ARC_SLICE.clone();
         let ptr = empty.0.raw_ptr();
         std::mem::forget(empty);
-        ptr as *mut _
+        ptr.cast().as_ptr()
     }
 
     /// Returns whether there's only one reference to this ArcSlice.

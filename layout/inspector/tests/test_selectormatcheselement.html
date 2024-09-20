@@ -50,7 +50,7 @@ const InspectorUtils = SpecialPowers.InspectorUtils;
 function do_test() {
   var element = document.querySelector("#foo");
 
-  var elementRules = InspectorUtils.getCSSStyleRules(element);
+  var elementRules = InspectorUtils.getMatchingCSSRules(element);
 
   var multiSelectorRule = elementRules[2];
   is(multiSelectorRule.selectorText, `#foo, #bar, #foo::before`, "Got expected multi-selector rule");
@@ -77,7 +77,7 @@ function do_test() {
   SimpleTest.finish();
 
   function checkPseudo(pseudo) {
-    var rules = InspectorUtils.getCSSStyleRules(element, pseudo);
+    var rules = InspectorUtils.getMatchingCSSRules(element, pseudo);
     var rule = rules[rules.length - 1];
 
     is (rule.selectorMatchesElement(0, element), false,

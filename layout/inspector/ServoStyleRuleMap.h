@@ -7,7 +7,7 @@
 #ifndef mozilla_ServoStyleRuleMap_h
 #define mozilla_ServoStyleRuleMap_h
 
-#include "mozilla/dom/CSSStyleRule.h"
+#include "mozilla/css/Rule.h"
 #include "mozilla/StyleSheet.h"
 
 #include "nsTHashMap.h"
@@ -23,15 +23,15 @@ class Rule;
 namespace dom {
 class ShadowRoot;
 }
-class ServoStyleRuleMap {
+class ServoStyleRuleMap final {
  public:
   ServoStyleRuleMap() = default;
 
   void EnsureTable(ServoStyleSet&);
   void EnsureTable(dom::ShadowRoot&);
 
-  dom::CSSStyleRule* Lookup(const StyleLockedStyleRule* aRawRule) const {
-    return mTable.Get(aRawRule);
+  css::Rule* Lookup(const StyleLockedDeclarationBlock* aDecls) const {
+    return mTable.Get(aDecls);
   }
 
   void SheetAdded(StyleSheet&);
@@ -55,8 +55,8 @@ class ServoStyleRuleMap {
   void FillTableFromRuleList(ServoCSSRuleList&);
   void FillTableFromStyleSheet(StyleSheet&);
 
-  using Hashtable = nsTHashMap<nsPtrHashKey<const StyleLockedStyleRule>,
-                               WeakPtr<dom::CSSStyleRule>>;
+  using Hashtable = nsTHashMap<nsPtrHashKey<const StyleLockedDeclarationBlock>,
+                               WeakPtr<css::Rule>>;
   Hashtable mTable;
 };
 

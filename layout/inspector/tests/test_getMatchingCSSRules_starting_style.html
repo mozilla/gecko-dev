@@ -1,5 +1,5 @@
 <!DOCTYPE HTML>
-<title>Test for InspectorUtils.getCSSStyleRules for starting style</title>
+<title>Test for InspectorUtils.getMatchingCSSRules for starting style</title>
 <script src="/tests/SimpleTest/SimpleTest.js"></script>
 <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
 <style>
@@ -13,9 +13,7 @@
     opacity: 1;
 
     @starting-style {
-      & {
-        opacity: 0;
-      }
+      opacity: 0;
     }
   }
 
@@ -28,14 +26,7 @@
     background-color: tomato;
 
     @starting-style {
-      /*
-       * FIXME(bug 1919853): getCSSStyleRules() doesn't return bare nested
-       * declarations. Once we figure out the right thing to do there,
-       * the wrapping `&{}` can go away.
-       */
-      & {
-        background-color: gold;
-      }
+      background-color: gold;
     }
   }
 </style>
@@ -44,7 +35,7 @@
 <tagnametwo></tagnametwo>
 <script>
 /**
- * This test checks that InspectorUtils.getCSSStyleRules setting
+ * This test checks that InspectorUtils.getMatchingCSSRules setting
  * withStartingStyle:true returns correct style set in various cases.
  * To avoid effects from UA sheets, we use an element with "unknowntagname".
  */
@@ -56,7 +47,7 @@ add_task(async function testBasic() {
 
   const styleSheet = document.styleSheets[1];
   const el = document.querySelector("tagname");
-  let rules = InspectorUtils.getCSSStyleRules(el, "", false, true);
+  let rules = InspectorUtils.getMatchingCSSRules(el, "", false, true);
   is(rules.length, 3, "Expected rules");
 
   is(
@@ -81,7 +72,7 @@ add_task(async function testBasic() {
     "Check that starting style rules are not returned when withStartingStyle " +
     "param is false"
   );
-  rules = InspectorUtils.getCSSStyleRules(el, "", false);
+  rules = InspectorUtils.getMatchingCSSRules(el, "", false);
   is(rules.length, 1, "Expected rules");
 
   is(
@@ -97,7 +88,7 @@ add_task(async function testCombinator() {
 
   const styleSheet = document.styleSheets[1];
   const el = document.querySelector("tagnametwo");
-  const rules = InspectorUtils.getCSSStyleRules(el, "", false, true);
+  const rules = InspectorUtils.getMatchingCSSRules(el, "", false, true);
   is(rules.length, 3, "Got expected rules");
 
   is(

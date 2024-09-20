@@ -13,6 +13,7 @@
 #include "mozilla/dom/DocumentOrShadowRoot.h"
 #include "mozilla/StyleSheet.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/WeakPtr.h"
 #include "nsISupports.h"
 #include "nsWrapperCache.h"
 
@@ -26,7 +27,7 @@ enum class StyleCssRuleType : uint8_t;
 namespace css {
 class GroupRule;
 
-class Rule : public nsISupports, public nsWrapperCache {
+class Rule : public nsISupports, public nsWrapperCache, public SupportsWeakPtr {
  protected:
   Rule(StyleSheet* aSheet, Rule* aParentRule, uint32_t aLineNumber,
        uint32_t aColumnNumber)

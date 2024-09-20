@@ -9,7 +9,6 @@
 
 #include "mozilla/css/GroupRule.h"
 #include "mozilla/ServoBindingTypes.h"
-#include "mozilla/WeakPtr.h"
 
 #include "nsDOMCSSDeclaration.h"
 
@@ -54,7 +53,7 @@ class CSSStyleRuleDeclaration final : public nsDOMCSSDeclaration {
   RefPtr<DeclarationBlock> mDecls;
 };
 
-class CSSStyleRule final : public css::GroupRule, public SupportsWeakPtr {
+class CSSStyleRule final : public css::GroupRule {
  public:
   CSSStyleRule(already_AddRefed<StyleLockedStyleRule> aRawRule,
                StyleSheet* aSheet, css::Rule* aParentRule, uint32_t aLine,
@@ -84,6 +83,7 @@ class CSSStyleRule final : public css::GroupRule, public SupportsWeakPtr {
   nsICSSDeclaration* Style() { return &mDecls; }
 
   StyleLockedStyleRule* Raw() const { return mRawRule; }
+  StyleLockedDeclarationBlock* RawStyle() const;
   void SetRawAfterClone(RefPtr<StyleLockedStyleRule>);
   already_AddRefed<StyleLockedCssRules> GetOrCreateRawRules() final;
 

@@ -21,7 +21,7 @@
     xhr.open('G', '', false)
     xhr.send()
 
-    SpecialPowers.InspectorUtils.getCSSStyleRules(document.documentElement)
+    SpecialPowers.InspectorUtils.getMatchingCSSRules(document.documentElement)
   }
 
   window.addEventListener('load', start)

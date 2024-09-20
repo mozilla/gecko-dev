@@ -22,7 +22,7 @@ const CI = SpecialPowers.Ci;
 const CC = SpecialPowers.Cc;
 const InspectorUtils = SpecialPowers.InspectorUtils;
 
-var rules = InspectorUtils.getCSSStyleRules(document.getElementById("display"));
+var rules = InspectorUtils.getMatchingCSSRules(document.getElementById("display"));
 var firstPRule = rules[rules.length - 2];
 firstPRule.style.removeProperty("color");
 ok(true, "should not crash");

@@ -36,7 +36,7 @@ const {
 } = require("resource://devtools/shared/layout/dom-matrix-2d.js");
 const EventEmitter = require("resource://devtools/shared/event-emitter.js");
 const {
-  getCSSStyleRules,
+  getMatchingCSSRules,
 } = require("resource://devtools/shared/inspector/css-logic.js");
 
 const BASE_MARKER_SIZE = 5;
@@ -2991,7 +2991,7 @@ function getDefinedShapeProperties(node, property) {
     return prop;
   }
 
-  const cssRules = getCSSStyleRules(node);
+  const cssRules = getMatchingCSSRules(node);
   for (let i = 0; i < cssRules.length; i++) {
     const rule = cssRules[i];
     const value = rule.style.getPropertyValue(property);

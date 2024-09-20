@@ -46,19 +46,19 @@ support-files = [
 
 ["test_getCSSPseudoElementNames.html"]
 
-["test_getCSSStyleRules.html"]
+["test_getMatchingCSSRules.html"]
 support-files = [
-  "file_getCSSStyleRules-default.html",
-  "file_getCSSStyleRules-alternate.html",
-  "getCSSStyleRules-1.css",
-  "getCSSStyleRules-2.css",
+  "file_getMatchingCSSRules-default.html",
+  "file_getMatchingCSSRules-alternate.html",
+  "getMatchingCSSRules-1.css",
+  "getMatchingCSSRules-2.css",
 ]
 
-["test_getCSSStyleRules_pseudo.html"]
+["test_getMatchingCSSRules_pseudo.html"]
 
-["test_getCSSStyleRules_slotted.html"]
+["test_getMatchingCSSRules_slotted.html"]
 
-["test_getCSSStyleRules_starting_style.html"]
+["test_getMatchingCSSRules_starting_style.html"]
 
 ["test_getRegisteredCssHighlights.html"]
 

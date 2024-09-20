@@ -250,16 +250,16 @@ static already_AddRefed<const ComputedStyle> GetStartingStyle(
   return styleSet->ResolveStartingStyle(aElement);
 }
 
-static void GetCSSStyleRulesFromComputedValue(
+static void GetCSSRulesFromComputedValues(
     Element& aElement, const ComputedStyle* aComputedStyle,
-    nsTArray<RefPtr<CSSStyleRule>>& aResult) {
+    nsTArray<RefPtr<css::Rule>>& aResult) {
   const PresShell* presShell = aElement.OwnerDoc()->GetPresShell();
   if (!presShell) {
     return;
   }
 
-  AutoTArray<const StyleLockedStyleRule*, 8> rawRuleList;
-  Servo_ComputedValues_GetStyleRuleList(aComputedStyle, &rawRuleList);
+  AutoTArray<const StyleLockedDeclarationBlock*, 8> rawDecls;
+  Servo_ComputedValues_GetMatchingDeclarations(aComputedStyle, &rawDecls);
 
   AutoTArray<ServoStyleRuleMap*, 8> maps;
   {
@@ -295,41 +295,23 @@ static void GetCSSStyleRulesFromComputedValue(
   }
 
   // Find matching rules in the table.
-  for (const StyleLockedStyleRule* rawRule : Reversed(rawRuleList)) {
-    CSSStyleRule* rule = nullptr;
+  for (const StyleLockedDeclarationBlock* rawDecl : Reversed(rawDecls)) {
     for (ServoStyleRuleMap* map : maps) {
-      rule = map->Lookup(rawRule);
-      if (rule) {
+      if (css::Rule* rule = map->Lookup(rawDecl)) {
+        aResult.AppendElement(rule);
         break;
       }
-    }
-    if (rule) {
-      aResult.AppendElement(rule);
-    } else {
-#ifdef DEBUG
-      aElement.Dump();
-      printf_stderr("\n\n----\n\n");
-      aComputedStyle->DumpMatchedRules();
-      nsAutoCString str;
-      Servo_StyleRule_Debug(rawRule, &str);
-      printf_stderr("\n\n----\n\n");
-      printf_stderr("%s\n", str.get());
-      MOZ_CRASH_UNSAFE_PRINTF(
-          "We should be able to map raw rule %p to a rule in one of the %zu "
-          "maps: %s\n",
-          rawRule, maps.Length(), str.get());
-#endif
     }
   }
 }
 
 /* static */
-void InspectorUtils::GetCSSStyleRules(GlobalObject& aGlobalObject,
-                                      Element& aElement,
-                                      const nsAString& aPseudo,
-                                      bool aIncludeVisitedStyle,
-                                      bool aWithStartingStyle,
-                                      nsTArray<RefPtr<CSSStyleRule>>& aResult) {
+void InspectorUtils::GetMatchingCSSRules(GlobalObject& aGlobalObject,
+                                         Element& aElement,
+                                         const nsAString& aPseudo,
+                                         bool aIncludeVisitedStyle,
+                                         bool aWithStartingStyle,
+                                         nsTArray<RefPtr<css::Rule>>& aResult) {
   auto [type, functionalPseudoParameter] =
       nsCSSPseudoElements::ParsePseudoElement(aPseudo,
                                               CSSEnabledState::ForAllContent);
@@ -362,7 +344,7 @@ void InspectorUtils::GetCSSStyleRules(GlobalObject& aGlobalObject,
     }
   }
 
-  GetCSSStyleRulesFromComputedValue(aElement, computedStyle, aResult);
+  GetCSSRulesFromComputedValues(aElement, computedStyle, aResult);
 }
 
 /* static */

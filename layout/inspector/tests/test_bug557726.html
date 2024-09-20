@@ -68,34 +68,34 @@ function getSelectors (rules) {
 var div = document.getElementById("div1");
 
 /* empty or missing pseudo-element argument */
-var selectors = getSelectors(InspectorUtils.getCSSStyleRules(div));
+var selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div));
 is(selectors.length, 1, "psuedo-element argument should be optional");
 is(selectors[0], "#div1", "should only have the non-pseudo element rule");
 
-selectors = getSelectors(InspectorUtils.getCSSStyleRules(div, ""));
+selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div, ""));
 is(selectors.length, 1, "pseudo-element argument can be empty string");
 is(selectors[0], "#div1", "should only have the non pseudo-element rule");
 
 
 /* invalid pseudo-element argument */
-var rules = InspectorUtils.getCSSStyleRules(div, "not a valid pseudo element");
+var rules = InspectorUtils.getMatchingCSSRules(div, "not a valid pseudo element");
 is(rules.length, 0, "invalid pseudo-element returns no rules");
 
 
 /* valid pseudo-element argument */
-selectors = getSelectors(InspectorUtils.getCSSStyleRules(div, ":first-letter"));
+selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div, ":first-letter"));
 is(selectors.length, 1, "pseudo-element argument can be used");
 is(selectors[0], "#div1::first-letter", "should only have the ::first-letter rule");
 
-selectors = getSelectors(InspectorUtils.getCSSStyleRules(div, ":before"));
+selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div, ":before"));
 is(selectors.length, 2, "::before pseudo-element has two matching rules");
 isnot(selectors.indexOf("#div1::after, #div1::before"), -1, "fetched rule for ::before")
 isnot(selectors.indexOf("#div1::before"), -1, "fetched rule for ::before")
 
-selectors = getSelectors(InspectorUtils.getCSSStyleRules(div, ":first-line"));
+selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div, ":first-line"));
 is(selectors.length, 0, "valid pseudo-element but no matching rules");
 
-selectors = getSelectors(InspectorUtils.getCSSStyleRules(div, "::selection"));
+selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div, "::selection"));
 is(selectors.length, 1, "::selection pseudo-element has a matching rule");
 is(selectors[0], "::selection", "fetched rule for ::selection");
 
@@ -105,11 +105,11 @@ range.setEnd(div.firstChild, 20);
 const highlight = new Highlight(range);
 CSS.highlights.set("search", highlight);
 
-selectors = getSelectors(InspectorUtils.getCSSStyleRules(div, "::highlight(search)"));
+selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div, "::highlight(search)"));
 is(selectors.length, 1, "::highlight(search) pseudo-element has a matching rule");
 is(selectors[0], "::highlight(search)", "fetched ::highlight(search) rule");
 
-selectors = getSelectors(InspectorUtils.getCSSStyleRules(div, "::highlight(whatever)"));
+selectors = getSelectors(InspectorUtils.getMatchingCSSRules(div, "::highlight(whatever)"));
 is(selectors.length, 1, "::highlight(whatever) pseudo-element has a matching rule");
 is(selectors[0], "::highlight(whatever)", "fetched ::highlight(whatever) rule");
 

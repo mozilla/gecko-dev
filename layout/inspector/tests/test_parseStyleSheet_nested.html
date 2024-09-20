@@ -33,9 +33,9 @@
         );
 
         is(
-          InspectorUtils.getCSSStyleRules(spanEl).length,
+          InspectorUtils.getMatchingCSSRules(spanEl).length,
           2,
-          "getCSSStyleRules returned 2 rules for .mySpan"
+          "getMatchingCSSRules returned 2 rules for .mySpan"
         );
 
         info("Modify stylesheet using InspectorUtils.parseStyleSheet");
@@ -66,11 +66,11 @@
           "rgb(0, 0, 0)",
           "the color of the span element was properly updated"
         );
-        const rules = InspectorUtils.getCSSStyleRules(spanEl);
+        const rules = InspectorUtils.getMatchingCSSRules(spanEl);
         is(
           rules.length,
           2,
-          "getCSSStyleRules still returned 2 rules for .mySpan after stylesheet was updated"
+          "getMatchingCSSRules still returned 2 rules for .mySpan after stylesheet was updated"
         );
         is(rules[1].style.color, "black", "rule was properly updated");
       });
