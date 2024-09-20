@@ -58,7 +58,7 @@ export var ReaderMode = {
   enterReaderMode(docShell, win) {
     this.enterTime = Date.now();
 
-    Glean.readermode.viewOn.record({
+    Services.telemetry.recordEvent("readermode", "view", "on", null, {
       subcategory: "feature",
     });
 
@@ -99,7 +99,7 @@ export var ReaderMode = {
       ((win.scrollY + win.innerHeight) / win.document.body.clientHeight) * 100
     );
 
-    Glean.readermode.viewOff.record({
+    Services.telemetry.recordEvent("readermode", "view", "off", null, {
       subcategory: "feature",
       reader_time: `${timeSpentInReaderMode}`,
       scroll_position: `${scrollPosition}`,
