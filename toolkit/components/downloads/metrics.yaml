@@ -1,0 +1,37 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: Downloads API'
+
+downloads:
+  added_file_extension:
+    type: event
+    description: >
+      Sent when downloading a new file.
+      This event was generated to correspond to the Legacy Telemetry event
+      downloads.added#fileExtension.
+    bugs:
+      - https://bugzil.la/1627676
+      - https://bugzil.la/1706355
+    data_reviews:
+      - https://bugzil.la/1627676
+      - https://bugzil.la/1706355
+    notification_emails:
+      - rtestard@mozilla.com
+      - emalysz@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          Possible values are in contained in
+          DownloadList::kFileExtensions.
+          All other downloads not in the list are marked as other.
+        type: string
+    telemetry_mirror: Downloads_Added_Fileextension

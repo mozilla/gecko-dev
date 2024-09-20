@@ -132,8 +132,6 @@ const FILE_EXTENSIONS = [
   "zip",
 ];
 
-const TELEMETRY_EVENT_CATEGORY = "downloads";
-
 /**
  * Represents a collection of Download objects that can be viewed and managed by
  * the user interface, and persisted across sessions.
@@ -406,20 +404,7 @@ export class DownloadCombinedList extends DownloadList {
       extension = "other";
     }
 
-    try {
-      Services.telemetry.recordEvent(
-        TELEMETRY_EVENT_CATEGORY,
-        "added",
-        "fileExtension",
-        extension,
-        {}
-      );
-    } catch (ex) {
-      console.error(
-        "DownloadsCommon: error recording telemetry event.",
-        ex.message
-      );
-    }
+    Glean.downloads.addedFileExtension.record({ value: extension });
 
     if (download.source.isPrivate) {
       return this._privateList.add(download);
