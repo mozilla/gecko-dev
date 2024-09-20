@@ -127,8 +127,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Suggérer un mot de passe fort</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Suggérer un mot de passe fort</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Utilisez un mot de passe compliqué</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Utiliser un mot de passe fort : %1$s</string>
@@ -138,7 +136,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protégez vos comptes en utilisant un mot de passe compliqué, généré aléatoirement. Accédez rapidement à vos mots de passe en les enregistrant dans votre compte.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protégez vos comptes en utilisant un mot de passe robuste, généré aléatoirement. Il sera enregistré dans votre compte pour de futures utilisations.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protégez vos comptes en utilisant un mot de passe robuste, généré aléatoirement. Il sera enregistré dans votre compte pour de futures utilisations.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protégez votre compte en utilisant un mot de passe robuste, généré aléatoirement. Il sera enregistré dans votre compte pour de futures utilisations.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Utiliser ce mot de passe</string>
@@ -212,7 +213,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Utiliser %1$s comme fournisseur de connexion</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Se connecter à %1$s avec un compte %2$s est soumis à la <a href="%3$s">politique de confidentialité</a> et aux <a href="%4$s">conditions d’utilisation</a> de ce dernier.]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Se connecter à %1$s avec un compte %2$s est soumis à la <a href="%3$s">politique de confidentialité</a> et aux <a href="%4$s">conditions d’utilisation</a> de ce dernier.]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Continuer</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

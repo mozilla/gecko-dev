@@ -121,9 +121,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Novinka: šípky dozadu a dopredu jediným ťuknutím</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Novinka: šípky dozadu a dopredu jediným ťuknutím</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Vychutnajte si rýchlejšiu navigáciu, ktorú máte vždy na dosah ruky.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Vychutnajte si rýchlejšiu navigáciu, ktorú máte vždy na dosah ruky.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Vyžaduje sa prístup ku fotoaparátu. Prejdite do nastavení Androidu a udeľte aplikácii dané povolenie.</string>
@@ -216,6 +216,10 @@
     <string name="browser_menu_extensions_banner_learn_more">Ďalšie informácie</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Spravovať rozšírenia</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Odporúčané rozšírenia</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Pridať rozšírenie</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Objavte ďalšie rozšírenia</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -312,7 +316,7 @@
     <string name="browser_menu_switch_to_mobile_site">Prepnúť na mobilnú verziu</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Nástroje</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Späť do hlavnej ponuky</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Zobrazenie Čítačka, Preložiť, Tlačiť, Zdieľať, Otvoriť aplikáciu</string>
@@ -413,7 +417,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Zoznámte sa so svojou prispôsobenou domovskou stránkou. Tu sa zobrazia nedávne karty, záložky a výsledky vyhľadávania.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Zoznámte sa so svojou prispôsobenou domovskou stránkou. Tu sa zobrazia nedávne karty, záložky a výsledky vyhľadávania.</string>
 
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Vitajte na osobnejšom internete</string>
@@ -913,6 +917,10 @@
     <string name="preferences_marketing_data">Marketingové údaje</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Zdieľa základné údaje o používaní so spoločnosťou Adjust, našim partnerom pre marketing</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Automaticky odosielať správy o zlyhaní</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Automaticky zdieľa s Mozillou údaje o zlyhaní aplikácie pri jej ďalšom spustení</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Štúdie</string>
     <!-- Summary for studies preferences -->
@@ -1206,6 +1214,15 @@
     <string name="tab_crash_close">Zavrieť kartu</string>
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Obnoviť kartu</string>
+
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s sa musel reštartovať</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Automaticky odosielať správy o zlyhaní</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Zavrieť</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Odoslať správu o zlyhaní</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
@@ -2826,16 +2843,24 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Nepoužívam</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Vo Firefoxe nepoužívam vyhľadávanie</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Nepoužívam synchronizáciu</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Ako ste spokojný so svojou domovskou stránkou Firefoxu?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Pomôžte zlepšiť tlač vo Firefoxe. Zaberie to len sekundu</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Pomôžte zlepšiť vyhľadávanie vo Firefoxe. Trvá to len minútu</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Pomôžte vylepšiť synchronizáciu vo Firefoxe. Trvá to len minútu</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Ako ste spokojný s tlačou vo Firefoxe?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Ako ste spokojný so svojou domovskou stránkou Firefoxu?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Ako ste spokojný s vyhľadávaním vo Firefoxe?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Ako ste spokojný so synchronizáciou vo Firefoxe?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefoxu</string>

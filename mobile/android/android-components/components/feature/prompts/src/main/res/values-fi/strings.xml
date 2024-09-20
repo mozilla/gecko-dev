@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Ehdota vahvaa salasanaa</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Ehdota vahvaa salasanaa</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Käytä vahvaa salasanaa</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Käytä vahvaa salasanaa: %1$s</string>
@@ -129,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Suojaa tilejäsi käyttämällä vahvaa, satunnaisesti luotua salasanaa. Pääset nopeasti käyttämään salasanoja tallentamalla ne tilillesi.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Suojaa tilejäsi käyttämällä vahvaa, satunnaisesti luotua salasanaa. Se tallennetaan tilillesi myöhempää käyttöä varten.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Suojaa tilejäsi käyttämällä vahvaa, satunnaisesti luotua salasanaa. Se tallennetaan tilillesi myöhempää käyttöä varten.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Suojaa tiliäsi käyttämällä vahvaa, satunnaisesti luotua salasanaa. Se tallennetaan tilillesi myöhempää käyttöä varten.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Käytä salasanaa</string>
@@ -203,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Käytä palvelua %1$s kirjautumiseen</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Kirjautuminen palvelun %1$s tilillä %2$s on kyseisen palvelun <a href="%3$s">tietosuojakäytännön</a> ja <a href="%4$s">käyttöehtojen</a> alaista]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Kirjautuminen palvelun %1$s tilillä %2$s on kyseisen palvelun <a href="%3$s">tietosuojakäytännön</a> ja <a href="%4$s">käyttöehtojen</a> alaista]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Jatka</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

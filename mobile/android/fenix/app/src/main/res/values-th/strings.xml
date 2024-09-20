@@ -117,9 +117,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">ใหม่: ปุ่มกลับและไปข้างหน้าแบบแตะครั้งเดียว</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">ใหม่: ปุ่มกลับและไปข้างหน้าแบบแตะครั้งเดียว</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">เพลิดเพลินกับการนำทางที่รวดเร็วยิ่งขึ้นที่อยู่แค่ปลายนิ้วของคุณเสมอ</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">เพลิดเพลินกับการนำทางที่รวดเร็วยิ่งขึ้นที่อยู่แค่ปลายนิ้วของคุณเสมอ</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">จำเป็นต้องมีการเข้าถึงกล้อง ไปที่การตั้งค่า Android แตะสิทธิอนุญาต แล้วแตะอนุญาต</string>
@@ -213,6 +213,10 @@
     <string name="browser_menu_extensions_banner_learn_more">เรียนรู้เพิ่มเติม</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">จัดการส่วนขยาย</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">ส่วนขยายที่แนะนำ</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">เพิ่มส่วนขยาย</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">ค้นพบส่วนขยายเพิ่มเติม</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -301,7 +305,7 @@
     <string name="browser_menu_switch_to_mobile_site">สลับเป็นไซต์มือถือ</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">เครื่องมือ</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">กลับสู่เมนูหลัก</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">มุมมองผู้อ่าน, แปล, พิมพ์, แบ่งปัน, เปิดแอป</string>
@@ -402,7 +406,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">พบกับโฮมเพจส่วนบุคคลของคุณ แท็บล่าสุด ที่คั่นหน้า และผลการค้นหาจะปรากฏที่นี่</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">พบกับโฮมเพจส่วนบุคคลของคุณ แท็บล่าสุด ที่คั่นหน้า และผลการค้นหาจะปรากฏที่นี่</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">ยินดีต้อนรับสู่อินเทอร์เน็ตที่เป็นส่วนตัวมากขึ้น</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -1190,6 +1194,11 @@
     <string name="tab_crash_close">ปิดแท็บ</string>
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">เรียกคืนแท็บ</string>
+
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">ปิด</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">ส่งรายงานข้อผิดพลาด</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->

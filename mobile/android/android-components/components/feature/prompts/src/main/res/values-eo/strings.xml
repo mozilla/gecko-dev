@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protektu viajn kontojn per uzo de forta, hazarde kreita pasvorto. Konservu pasvortojn en via konto por havi rapidan aliron al ili.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protektu viajn kontojn per forta, hazarde kreita pasvorto. Ĝi estos konservita en via konto por estonta uzo.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protektu viajn kontojn per forta, hazarde kreita pasvorto. Ĝi estos konservita en via konto por estonta uzo.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protektu vian konton per forta, hazarde kreita pasvorto. Ĝi estos konservita en via konto por estonta uzo.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Uzi pasvorton</string>
@@ -201,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Uzi %1$s kiel provizanton de legitimilo</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Komenco de seanco en %1$s per konto de %2$s estas regata de ilia <a href="%3$s">politiko pri privateco</a> kaj <a href="%4$s">kondiĉoj de uzo</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Komenco de seanco en %1$s per konto de %2$s estas regata de ilia <a href="%3$s">politiko pri privateco</a> kaj <a href="%4$s">kondiĉoj de uzo</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Daŭrigi</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

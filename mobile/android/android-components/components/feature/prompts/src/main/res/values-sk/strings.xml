@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Navrhnúť silné heslo</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Navrhnúť silné heslo</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Použitie silného hesla</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Použiť silné heslo: %1$s</string>
@@ -131,7 +129,10 @@
 
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Chráňte svoje účty pomocou silného, náhodne generovaného hesla. Uloží sa do vášho účtu, takže ho môžete kedykoľvek použiť.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Chráňte svoje účty pomocou silného, náhodne generovaného hesla. Uloží sa do vášho účtu, takže ho môžete kedykoľvek použiť.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Chráňte svoj účet pomocou silného, náhodne generovaného hesla. Uloží sa do vášho účtu, takže ho môžete kedykoľvek použiť.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Použiť heslo</string>
@@ -205,7 +206,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Použite %1$s ako poskytovateľa prihlásenia</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Na prihlásenie do %1$s pomocou účtu %2$s sa vzťahujú <a href="%3$s">Pravidlá ochrany osobných údajov</a> a <a href="%4$s">Zmluvné podmienky</a> daného účtu]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Na prihlásenie do %1$s pomocou účtu %2$s sa vzťahujú <a href="%3$s">Pravidlá ochrany osobných údajov</a> a <a href="%4$s">Zmluvné podmienky</a> daného účtu]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Pokračovať</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

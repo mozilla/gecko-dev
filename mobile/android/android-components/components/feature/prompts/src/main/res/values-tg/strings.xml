@@ -117,8 +117,6 @@
 
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Пешниҳод кардани ниҳонвожаи боқувват</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Пешниҳод кардани ниҳонвожаи боқувват</string>
 
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Аз ниҳонвожаи қавӣ истифода баред</string>
@@ -130,7 +128,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Ҳисобҳои худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Бо нигоҳ доштани ниҳонвожаҳои худ дар ҳисоби шахсӣ ба онҳо зуд дастрасӣ пайдо намоед.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Ҳисобҳои худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Ниҳонвожаҳо барои истифодаи оянда дар ҳисоби шумо нигоҳ дошта мешаванд.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Ҳисобҳои худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Ниҳонвожаҳо барои истифодаи оянда дар ҳисоби шумо нигоҳ дошта мешаванд.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Ҳисоби худро бо истифода аз ниҳонвожаҳои қавӣ ва ба таври тасодуфӣ эҷодшуда муҳофизат намоед. Ниҳонвожаҳо барои истифодаи оянда дар ҳисоби шумо нигоҳ дошта мешаванд.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Истифода кардани ниҳонвожа</string>
@@ -204,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Истифода бурдани «%1$s» ҳамчун таъминкунандаи воридшавӣ</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Вақте ки шумо ба «%1$s» бо ҳисоби «%2$s» ворид мешавед, <a href="%3$s">Сиёсати махфият</a> ва <a href="%4$s">Шартҳои хизматрасонии</a> марбут ба он татбиқ карда мешавад]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Вақте ки шумо ба «%1$s» бо ҳисоби «%2$s» ворид мешавед, <a href="%3$s">Сиёсати махфият</a> ва <a href="%4$s">Шартҳои хизматрасонии</a> марбут ба он татбиқ карда мешавад]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Идома додан</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

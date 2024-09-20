@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Защитете профилите си, като използвате силна, произволна парола. Получете бърз достъп до паролите си, като ги запазите в профила си.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Защитете профилите си, като използвате силна, произволна парола. Ще бъде запазена в профила ви за бъдеща употреба.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Защитете профилите си, като използвате силна, произволна парола. Ще бъде запазена в профила ви за бъдеща употреба.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Защитете профила си, като използвате силна, произволно генерирана парола. Ще бъде запазен в профила ви за бъдеща употреба.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Използване на парола</string>
@@ -202,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Използвайте %1$s като доставчик на вход</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Входът в профила на %1$s с/ъс %2$s е предмет на тяхната <a href="%3$s">Политика за личните данни</a> и техните <a href="%4$s">Общи условия</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Входът в профила на %1$s с/ъс %2$s е предмет на тяхната <a href="%3$s">Политика за личните данни</a> и техните <a href="%4$s">Общи условия</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Продължаване</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

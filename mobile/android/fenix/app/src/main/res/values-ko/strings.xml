@@ -126,9 +126,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">새로운 기능: 탭 한 번으로 앞뒤로 이동</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">새로운 기능: 탭 한 번으로 앞뒤로 이동</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">손가락 하나만 움직여서 더 빠른게 탐색해 보세요.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">손가락 하나만 움직여서 더 빠른게 탐색해 보세요.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">카메라 액세스가 필요합니다. Android 설정으로 이동하여 권한을 누른 다음 허용을 누르세요.</string>
@@ -221,6 +221,10 @@
     <string name="browser_menu_extensions_banner_learn_more">더 알아보기</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">확장 기능 관리</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">추천 확장 기능</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">확장 기능 추가</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">더 많은 확장  기능 살펴보기</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -315,7 +319,7 @@
     <string name="browser_menu_switch_to_mobile_site">모바일 사이트로 전환</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">도구</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">주 메뉴로 돌아가기</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">리더뷰, 번역, 인쇄, 공유, 앱 열기</string>
@@ -416,7 +420,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">개인화된 홈페이지를 만나보세요. 최근 탭, 북마크 및 검색 결과가 여기에 표시됩니다.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">개인화된 홈페이지를 만나보세요. 최근 탭, 북마크 및 검색 결과가 여기에 표시됩니다.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">나만의 인터넷에 오신 것을 환영합니다</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -917,6 +921,10 @@
     <string name="preferences_marketing_data">마케팅 데이터</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">모바일 마케팅 공급업체인 Adjust와 기본 사용 현황 데이터를 공유</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">자동으로 충돌 보고서 제출</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">충돌 발생 후 시작 시 자동으로 충돌 데이터를 Mozilla와 공유</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">연구</string>
     <!-- Summary for studies preferences -->
@@ -1214,6 +1222,15 @@
     <string name="tab_crash_close">탭 닫기</string>
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">탭 복원</string>
+
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s를 다시 시작해야 함</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">자동으로 충돌 보고서 제출</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">닫기</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">충돌 보고서 보내기</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
@@ -2871,16 +2888,24 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">사용하지 않음</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Firefox에서 검색을 사용하지 않음</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">동기화를 사용하지 않음</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Firefox 홈페이지에 얼마나 만족하시나요?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox에서 더 나은 인쇄를 할 수 있도록 도와주세요. 잠깐이면 됩니다.</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox의 인쇄를 개선할 수 있도록 도와주세요. 잠깐이면 됩니다.</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Firefox의 검색을 개선할 수 있도록 도와주세요. 단 1분밖에 걸리지 않습니다.</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Firefox의 동기화를 개선할 수 있도록 도와주세요. 단 1분밖에 걸리지 않습니다.</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox에서 인쇄하는 데 얼마나 만족하시나요?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Firefox 홈페이지에 얼마나 만족하시나요?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Firefox의 검색 경험에 얼마나 만족하시나요?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Firefox의 동기화 경험에 얼마나 만족하시나요?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox 로고</string>

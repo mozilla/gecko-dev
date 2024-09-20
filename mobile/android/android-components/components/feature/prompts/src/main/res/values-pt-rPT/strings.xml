@@ -128,7 +128,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Proteja as suas contas utilizando uma palavra-passe forte e gerada aleatoriamente. Obtenha acesso rápido às suas palavras-passe, guardando-as na sua conta.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Proteja as suas contas utilizando uma palavra-passe forte e gerada aleatoriamente. Esta será guardada na sua conta para utilização futura.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Proteja as suas contas utilizando uma palavra-passe forte e gerada aleatoriamente. Esta será guardada na sua conta para utilização futura.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Proteja a sua conta utilizando uma palavra-passe forte e gerada aleatoriamente. Este será guardado na sua conta para utilização futura.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Utilizar palavra-passe</string>
@@ -202,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Utilizar %1$s como fornecedor de início de sessão</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Ao iniciar sessão em %1$s com uma conta %2$s está sujeito à sua <a href="%3$s">Política de Privacidade</a> e <a href="%4$s">Termos de Serviço</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Ao iniciar sessão em %1$s com uma conta %2$s está sujeito à sua <a href="%3$s">Política de Privacidade</a> e <a href="%4$s">Termos de Serviço</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Continuar</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Պաշտպանեք ձեր հաշիվները՝ օգտագործելով ուժեղ, պատահականորեն ստեղծված գաղտնաբառ: Արագորեն մատչեք Ձեր գաղտնաբառերը՝ դրանք պահելով ձեր հաշվում:</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Պաշտպանեք ձեր հաշիվները՝ օգտագործելով ուժեղ, պատահականորեն ստեղծված գաղտնաբառ: Այն կպահվի ձեր հաշվում՝ հետագա օգտագործման համար:</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Պաշտպանեք ձեր հաշիվները՝ օգտագործելով ուժեղ, պատահականորեն ստեղծված գաղտնաբառ: Այն կպահվի ձեր հաշվում՝ հետագա օգտագործման համար:</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Պաշտպանեք ձեր հաշիվը՝ օգտագործելով ուժեղ, պատահականորեն ստեղծված գաղտնաբառ: Այն կպահվի ձեր հաշվում՝ հետագա օգտագործման համար:</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Օգտագործել գաղտնաբառը</string>
@@ -201,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Օգտագործեք %1$s որպես մուտքի մատակարար</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[%1$s մուտք գործելը %2$s հաշվով ենթակա է իրենց <a href="%3$s">Գաղտնիության դրույթներին</a> և <a href="%4$s">Ծառայության պայմաններին</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s մուտք գործելը %2$s հաշվով ենթակա է իրենց <a href="%3$s">Գաղտնիության դրույթներին</a> և <a href="%4$s">Ծառայության պայմաններին</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Շարունակել</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -115,9 +115,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Nova: unutuŝaj sagetoj antaŭen kaj malantaŭen</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nova: unutuŝaj sagetoj antaŭen kaj malantaŭen</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Ĝuu pli rapidan retumon, ĉiam ĉemane.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Ĝuu pli rapidan retumon, ĉiam ĉemane.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Aliro al la fimilo postulata. Iru al agordoj de Android, tuŝetu Permesojn kaj poste Permesi.</string>
@@ -209,8 +209,14 @@
     <string name="browser_menu_extensions_banner_learn_more">Pli da informo</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Administri etendaĵojn</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Rekomenditaj etendaĵoj</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Aldoni etendaĵon</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Malkovri pli da etendaĵoj</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Provizore malaktiva</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Informoj pri konto</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -229,6 +235,8 @@
     <string name="browser_menu_add_to_homescreen">Aldoni al hejmekrano</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Aldoni al hejmekrano…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">La aparatoj de Xiami povus peti kromajn permesojn por aldoni ŝparvojojn al la hejmekrano. Bonvolu kontroli viajn agordojn.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Respeguli</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -295,6 +303,8 @@
     <string name="browser_menu_switch_to_mobile_site">Iri al poŝaparata retejo</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Iloj</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
+    <string name="browser_menu_back_button_content_description">Reen al ĉefa menuo</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Lega vido, traduki, presi, dividi, malfermi apon</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -326,6 +336,13 @@
     <!-- Browser menu label for the Delete browsing data on quit feature.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">Fini %1$s</string>
+
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Nova: simpligita menuo</string>
+
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Pli rapide trovu kion vi bezonas, ekzemple privatan reĝimon aŭ paĝajn agojn.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -386,7 +403,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Malkovru vian personecigitan ekan paĝon. Ĵusaj langetoj, legosignoj, kaj serĉaj rezultoj aperos ĉi tie.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Malkovru vian personecigitan ekan paĝon. Ĵusaj langetoj, legosignoj, kaj serĉaj rezultoj aperos ĉi tie.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Bonvenon al pli persona interreto</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -421,12 +438,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Rimarko de Firefox pri privateco</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Rimarko de Firefox pri privateco</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Ni amas teni vin sekura</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Malkovru kial milionoj da personoj amas Firefox</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Malkovru kial milionoj da personoj amas Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Sekura retumo kun pli da elektebloj</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -448,20 +465,20 @@
     <string name="juno_onboarding_sign_in_title_2">Restu protektita dum vi iras tien kaj reen inter aparatoj, danke al ĉifrado</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Komencinte seancon kaj spegulinte, vi estas pli sekura. Firefox ĉifras viajn pasvortojn, legosignojn kaj pli.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Komencinte seancon kaj spegulinte, vi estas pli sekura. Firefox ĉifras viajn pasvortojn, legosignojn kaj pli.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">Dum spegulado Firefox ĉifras viajn pasvortojn, legosignojn kaj pli.</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Dum spegulado Firefox ĉifras viajn pasvortojn, legosignojn kaj pli.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Komenci seancon</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Ne nun</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Sciigoj helpas vin resti sekura kun Firefox</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Sciigoj helpas vin resti sekura kun Firefox</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Sekure sendu langetojn inter viaj aparatoj kaj malkovru aliajn privatecajn trajtojn en Firefox.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Sekure sendu langetojn inter viaj aparatoj kaj malkovru aliajn privatecajn trajtojn en Firefox.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Ŝalti sciigojn</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -469,13 +486,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Provu la komponanton serĉan de Firefox</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Provu la komponanton serĉan de Firefox</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Kun Firefox en via hejmkerano vi havos facilan aliron al retumilo kiu zorgas unue pri via privateco kaj kiu blokas interretejajn spurilojn.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Kun Firefox en via hejmkerano vi havos facilan aliron al retumilo kiu zorgas unue pri via privateco kaj kiu blokas interretejajn spurilojn.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Aldoni komponanton de Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Aldoni komponanton de Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Ne nun</string>
 
@@ -516,9 +533,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Preferoj por la adresa strio</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Adresa strio - Sugestoj de FIrefox</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Adresa strio - Sugestoj de FIrefox</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Pli da informo pri Sugestoj de Firefox</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Pli da informo pri Sugestoj de Firefox</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Taksi en Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -617,8 +634,6 @@
     <string name="toast_override_account_sync_server_done">La agordoj de konto de Mozilla aŭ de spegulado ŝanĝiĝis. Apo finiĝas por apliki la ŝanĝojn…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Konto</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Ilaro</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Loko por la adresa strio</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -785,7 +800,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Novaj etendaĵoj disponeblaj</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Konu pli ol 100+ novajn etendaĵojn, kiuj permesas al vi personecigi Firefox.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Konu pli ol 100+ novajn etendaĵojn, kiuj permesas al vi personecigi Firefox.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Esplori etendaĵoj</string>
@@ -852,7 +867,7 @@
     <string name="fxa_received_tab_channel_name">Ricevitaj langetoj</string>
 
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Sciigoj por langetoj ricevitaj el aliaj aparatoj Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Sciigoj por langetoj ricevitaj el aliaj aparatoj Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Langeto ricevita</string>
     <!-- %s is the device name -->
@@ -884,6 +899,10 @@
     <string name="preferences_marketing_data">Merkatikaj datumoj</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Divido de informoj kun Adjust, nia provizanto de marketiko poŝaparata</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Aŭtomate sendi raportojn pri paneoj</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Aŭtomate dividi kun Mozilla paneajn datumojn je starto post paneo</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studoj</string>
     <!-- Summary for studies preferences -->
@@ -923,8 +942,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Tiri por refreŝigi</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Rulumi por kaŝi la ilaron</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Ŝovi la ilaron flanken por ŝanĝi langetojn</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Ŝovi la ilaron supren por malfermi langetojn</string>
 
@@ -1183,6 +1200,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Restarigi langeton</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s devis restarti</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Aŭtomate sendi raportojn pri paneoj</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Fermi</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Sendi raporton pri paneo</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Ĉu vi certe volas forigi tiun ĉi dosierujon?</string>
@@ -1194,6 +1220,8 @@
     <string name="bookmark_add_folder">Aldoni dosierujon</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Legosigno konservita!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Konservita en “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">REDAKTI</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1228,8 +1256,12 @@
     <string name="bookmark_url_label">RETADRESO</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">DOSIERUJO</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Konservi en</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">NOMO</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Nomo</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Aldoni dosierujon</string>
     <!-- Bookmark select folder screen title -->
@@ -1438,7 +1470,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Konekti alian aparaton</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Por sendi langeton, komencu seancon en Firefox en almenaŭ unu alia aparato.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Por sendi langeton, komencu seancon en Firefox en almenaŭ unu alia aparato.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Mi komprenis</string>
     <!-- Share error message -->
@@ -1477,10 +1509,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox estas kaj rapida kaj privata</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox estas kaj rapida kaj privata</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Igu Firefox via norma retumilo</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Igu Firefox via norma retumilo</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Provu la privatan retumon</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1501,7 +1533,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Bonvolu helpi nin plibonigi Firefox per mallonga enketo.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Bonvolu helpi nin plibonigi Firefox per mallonga enketo.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Respondi enketon</string>
     <!-- Preference for not taking the short survey. -->
@@ -1649,7 +1681,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Skani la kodon</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[En via komputilo malfermu Firefox kaj vizitu <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[En via komputilo malfermu Firefox kaj vizitu <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Preta skani</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1657,7 +1689,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Anstataŭe uzi retpoŝton</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Ĉu vi ne havas konton? <u>Kreu ĝin</u> por speguli Firefox inter aparatoj.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Ĉu vi ne havas konton? <u>Kreu ĝin</u> por speguli Firefox inter aparatoj.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s ne plu spegulos vian konton, sed ĝi ne forigos iun ajn el viaj retumaj datumoj en tiu ĉi aparato.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2192,7 +2224,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Bonvolu aktivigi speguladon de langetoj.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Vi ne havas iun ajn langeton malfermita en viaj aliaj aparatoj.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Vi ne havas iun ajn langeton malfermita en viaj aliaj aparatoj.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Vidi liston de langetoj el viaj aliaj aparatoj.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2262,7 +2294,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Ĉu aŭtomate fermi post unu monato?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox aŭtomate fermos langetojn, kiuj ne estis vizititaj dum la lasta monato.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox aŭtomate fermos langetojn, kiuj ne estis vizititaj dum la lasta monato.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">ŜALTI AŬTOMATAN FERMON</string>
     <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
@@ -2270,7 +2302,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Sugestoj de Firefox</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Sugestoj de Firefox</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Serĉo per Google</string>
@@ -2281,7 +2313,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Ŝanĝi vian norman retumilon</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Aŭtomate malfermi ligilon en retejoj, retpoŝtoj kaj mesaĝoj per Firefox.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Aŭtomate malfermi ligilon en retejoj, retpoŝtoj kaj mesaĝoj per Firefox.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Forigi</string>
@@ -2305,7 +2337,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">Kun teknologio de %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Parto de la familio de Firefox. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Parto de la familio de Firefox. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Pli da informo</string>
 
@@ -2668,8 +2700,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Forigi ĉiujn lingvojn</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Forigi</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Plenumata</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">Plenumata</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2720,8 +2750,6 @@
     <string name="download_language_file_dialog_title">Ĉu elŝuti dum datumŝpara reĝimo (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Ni elŝutas partojn de lingvoj al via staplo por gardi viajn tradukojn privataj.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Ni elŝutas partojn de lingvoj por gardi viajn tradukojn privataj.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Ĉiam elŝuti en datumŝpara regïmo</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2779,16 +2807,12 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Helpu nin plibonigi Firefox. Tio prenos minuton.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Helpu nin plibonigi Firefox. Tio prenos minuton.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Daŭrigi</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Respondi tiun ĉi demandaron</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Bonvolu respondi demandaron</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Rimarko pri privateco</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Rimarko pri privateco</string>
     <!-- The submit button label text -->
@@ -2810,17 +2834,29 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Mi ne uzas ĝin</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Mi ne serĉas per Firefox</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Mi ne uzas speguladon</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Kiel kontentiga estas por vi la hejma ekrano de Firefox?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Kiel kontentiga estas por vi la hejma ekrano de Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Helpu plibonigi la presadon de Firefox. Tio nur prenos momenton.</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Kiel kontentiga estas por vi la presado en Firefox?</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Kiel kontentiga estas por vi la hejma ekrano de Firefox?</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Helpu plibonigi la presadon de Firefox. Tio nur prenos momenton.</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Helpu nin plibonigi Firefox. Tio prenos nur minuton</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Helpu nin plibonigi speguladon en Firefox. Tio prenos nur minuton</string>
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Kiel kontentiga estas por vi la presado en Firefox?</string>
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Kiel kontentiga estas por vi la hejma ekrano de Firefox?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Kiel kontentiga estas por vi la serĉa sperto en Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Kiel kontentiga estas por vi la spegula sperto en Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Emblemo de Firefox</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Emblemo de Firefox</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Emblemo de enketa trajto</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
@@ -2848,10 +2884,17 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Por eliri el la plenekrana reĝimo, trenu el supre kaj uzu la geston por iri malantaŭen</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Por eliri el la plenekrana reĝimo, trenu el supre kaj uzu la geston por iri malantaŭen</string>
 
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Por eliri el la plenekrana reiĝmon, trenu el supre kaj premu la butonon &quot;reen&quot;</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Por eliri el la plenekrana reiĝmon, trenu el supre kaj premu la butonon &quot;reen&quot;</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Trenu el supre kaj uzu la geston malantaŭen por eliri</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Trenu el supre kaj premu la butonon malantaŭen por eliri</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
