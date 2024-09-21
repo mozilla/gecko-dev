@@ -128,7 +128,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Mmesten imiḍanen-ik s useqdec n wawal n uεeddi iǧehden, yettusefrek s wudem kan akka. Kcem s zzerb ɣer wawalen-ik n uεeddi s usekles-nsen deg umiḍan-ik.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Mmesten imiḍanen-ik s useqdec n wawal uffir iǧehden aṭas, yettusirwen kan akka. Ad yettwasekles deg umiḍan-ik i d-iteddun.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Mmesten imiḍanen-ik s useqdec n wawal uffir iǧehden aṭas, yettusirwen kan akka. Ad yettwasekles deg umiḍan-ik i d-iteddun.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Mmesten amiḍan-ik s useqdec n wawal uffir iǧehden aṭas, yettusirwen kan akka. Ad yettwasekles deg umiḍan-ik i d-iteddun.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Seqdec awal n uɛeddi</string>
@@ -202,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Seqdec %1$s am usaǧǧaw n tuqqna</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Tuqqna ɣer %1$s s umiḍan %2$s ad yili ddaw <a href="%3$s">Tsertit tabaḍnit</a> d <a href="%4$s">Tewtilin n useqdec</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Tuqqna ɣer %1$s s umiḍan %2$s ad yili ddaw <a href="%3$s">Tsertit tabaḍnit</a> d <a href="%4$s">Tewtilin n useqdec</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Kemmel</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -117,8 +117,6 @@
 
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Предложить надежный пароль</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Предложить надежный пароль</string>
 
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Используйте надежный пароль</string>
@@ -130,7 +128,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Защитите свои аккаунты с помощью надёжных, сгенерированных случайным образом паролей. Получите быстрый доступ к своим паролям, сохранив их в своем аккаунте.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Защитите свои аккаунты с помощью надежного пароля, сгенерированного случайным образом. Он будет сохранен в вашем аккаунте для использования в будущем.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Защитите свои аккаунты с помощью надежного пароля, сгенерированного случайным образом. Он будет сохранен в вашем аккаунте для использования в будущем.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Защитите свой аккаунт с помощью надежного пароля, сгенерированного случайным образом. Он будет сохранен в вашем аккаунте для использования в будущем.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Использовать пароль</string>
@@ -204,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Использовать %1$s в качестве провайдера входа</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Вход в %1$s с учётной записью %2$s регулируется их <a href="%3$s">Политикой конфиденциальности</a> и <a href="%4$s">Условиями использования</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Вход в %1$s с учётной записью %2$s регулируется их <a href="%3$s">Политикой конфиденциальности</a> и <a href="%4$s">Условиями использования</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Продолжить</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

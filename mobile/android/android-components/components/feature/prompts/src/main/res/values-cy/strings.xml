@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Awgrym o gyfrinair cryf</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Awgrym o gyfrinair cryf</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Defnyddiwch gyfrinair cryf</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Defnyddiwch gyfrinair cryf: %1$s</string>
@@ -130,7 +128,10 @@
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Diogelwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Cewch fynediad cyflym i\'ch cyfrineiriau trwy eu cadw yn eich cyfrif.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Gwarchodwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Bydd yn cael ei gadw yn eich cyfrif i\'w ddefnyddio yn y dyfodol.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Gwarchodwch eich cyfrifon trwy ddefnyddio cyfrinair cryf wedi\'i gynhyrchu ar hap. Bydd yn cael ei gadw yn eich cyfrif i\'w ddefnyddio yn y dyfodol.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Diogelwch eich cyfrif trwy ddefnyddio cyfrinair cryf a gynhyrchir ar hap. Bydd yn cael ei gadw yn eich cyfrif i\'w ddefnyddio yn y dyfodol.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Defnyddiwch gyfrinair</string>
@@ -204,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Defnyddiwch %1$s fel darparwr mewngofnodi</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Mae mewngofnodi i %1$s gyda chyfrif %2$s yn amodol ar eu <a href="%3$s">Polisi Preifatrwydd</a> a <a href="%4$s">Thelerau Gwasanaeth </a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Mae mewngofnodi i %1$s gyda chyfrif %2$s yn amodol ar eu <a href="%3$s">Polisi Preifatrwydd</a> a <a href="%4$s">Thelerau Gwasanaeth </a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Parhau</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -949,7 +949,7 @@
 
 
   <!-- Label for the checkbox to send the tab crash report to Mozilla -->
-    <string name="crash_report_send_crash_label">שליחת דוח קריסה אל Mozilla</string>
+    <string name="crash_report_send_crash_label">שליחת דיווח קריסה אל Mozilla</string>
 
     <!-- Tracking protection bottom sheet -->
 

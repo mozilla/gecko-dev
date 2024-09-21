@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">קבלת הצעה לססמה חזקה</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">קבלת הצעה לססמה חזקה</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">שימוש בססמה חזקה</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">שימוש בססמה חזקה: %1$s</string>
@@ -127,9 +125,12 @@
     <!-- Title for using the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_title">להשתמש בססמה חזקה?</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">כדאי להגן על החשבונות שלך על־ידי שימוש  בססמה חזקה רנדומלית. ניתן לקבל גישה מהירה לססמאות שלך על־ידי שמירתן בחשבון שלך.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">כדאי להגן על החשבונות שלך על־ידי שימוש בססמה חזקה רנדומלית. ניתן לקבל גישה מהירה לססמאות שלך על־ידי שמירתן בחשבון שלך.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">ניתן להגן על החשבונות שלך על־ידי שימוש בססמה חזקה הנוצרת באופן אקראי. הססמה תישמר בחשבון שלך לשימוש עתידי.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ניתן להגן על החשבונות שלך על־ידי שימוש בססמה חזקה הנוצרת באופן אקראי. הססמה תישמר בחשבון שלך לשימוש עתידי.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">ניתן להגן על החשבון שלך על־ידי שימוש בססמה חזקה הנוצרת באופן אקראי. הססמה תישמר בחשבון שלך לשימוש עתידי.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">שימוש בססמה</string>
@@ -203,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">שימוש ב־%1$s כספק התחברות</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[הכניסה ל־%1$s עם חשבון %2$s כפופה ל<a href="%3$s">מדיניות הפרטיות</a> ול<a href="%4$s">תנאי השימוש</a> שלהם]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[הכניסה ל־%1$s עם חשבון %2$s כפופה ל<a href="%3$s">מדיניות הפרטיות</a> ול<a href="%4$s">תנאי השימוש</a> שלהם]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">המשך</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

@@ -128,7 +128,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protexa as súas contas mediante un contrasinal seguro e xerado aleatoriamente. Obteña acceso rápido aos seus contrasinais gardándoos na súa conta.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protexa as súas contas mediante un contrasinal seguro e xerado aleatoriamente. Gardarase na súa conta para o uso futuro.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protexa as súas contas mediante un contrasinal seguro e xerado aleatoriamente. Gardarase na súa conta para o uso futuro.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protexa a súa conta mediante un contrasinal seguro e xerado aleatoriamente. Gardarase na túa conta para uso futuro.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usar contrasinal</string>

@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">ปกป้องบัญชีของคุณโดยใช้รหัสผ่านที่คาดเดายากและสร้างขึ้นแบบสุ่ม เข้าถึงรหัสผ่านของคุณอย่างรวดเร็วโดยบันทึกลงในบัญชีของคุณ</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">ปกป้องบัญชีของคุณด้วยการใช้รหัสผ่านที่แข็งแกร่งซึ่งสร้างขึ้นแบบสุ่ม รหัสผ่านดังกล่าวจะถูกบันทึกไว้ในบัญชีของคุณเพื่อใช้ในอนาคต</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ปกป้องบัญชีของคุณด้วยการใช้รหัสผ่านที่แข็งแกร่งซึ่งสร้างขึ้นแบบสุ่ม รหัสผ่านดังกล่าวจะถูกบันทึกไว้ในบัญชีของคุณเพื่อใช้ในอนาคต</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">ปกป้องบัญชีของคุณด้วยการใช้รหัสผ่านที่แข็งแกร่งซึ่งสร้างขึ้นแบบสุ่ม รหัสผ่านดังกล่าวจะถูกบันทึกไว้ในบัญชีของคุณเพื่อใช้ในอนาคต</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">ใช้รหัสผ่าน</string>

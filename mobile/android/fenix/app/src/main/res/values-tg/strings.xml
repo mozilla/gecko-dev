@@ -120,9 +120,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Нав: ақрабақҳои ба пеш ва ба қафо бо як расиш</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Нав: ақрабақҳои ба пеш ва ба қафо бо як расиш</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Аз паймоиши тезкоре, ки ҳамеша дар зери ангуштони шумо мебошад, баҳра баред.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Аз паймоиши тезкоре, ки ҳамеша дар зери ангуштони шумо мебошад, баҳра баред.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Дастрасии камера лозим аст. Ба «Танзимоти Android» гузаред, ба «Иҷозатҳо» зарба занед, пас ба «Иҷозат додан» зарба занед.</string>
@@ -216,6 +216,10 @@
     <string name="browser_menu_extensions_banner_learn_more">Маълумоти бештар</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Идоракунии васеъшавиҳо</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Васеъшавиҳои тавсияшуда</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Илова кардани васеъшавӣ</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Кашф кардани васеъшавиҳои бештар</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -310,7 +314,7 @@
     <string name="browser_menu_switch_to_mobile_site">Гузариш ба версияи мобилии сомона</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Воситаҳо</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Бозгашт ба менюи асосӣ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Реҷаи хониш, Тарҷума, Чоп, Мубодила, Кушодани барнома</string>
@@ -411,7 +415,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Бо саҳифаи асосии шахсии худ шинос шавед. Варақаҳо, хатбаракҳо ва натиҷаҳои ҷустуҷӯи охирин дар ин ҷо пайдо мешаванд.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Бо саҳифаи асосии шахсии худ шинос шавед. Варақаҳо, хатбаракҳо ва натиҷаҳои ҷустуҷӯи охирин дар ин ҷо пайдо мешаванд.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Хуш омадед ба Интернети хусуситар</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -1201,6 +1205,9 @@
     <string name="tab_crash_close">Пӯшидани варақа</string>
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Барқарор кардани варақа</string>
+
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Пӯшидан</string>
 
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
