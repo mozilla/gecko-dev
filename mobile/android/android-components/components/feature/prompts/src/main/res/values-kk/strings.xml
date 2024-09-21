@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Мықты парольді ұсыну</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Мықты парольді ұсыну</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Қатаң парольді қолдану</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Мықты парольді қолдану: %1$s</string>
@@ -129,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Қатаң, кездейсоқ жасалған парольді пайдалану арқылы тіркелгілеріңізді қорғаңыз. Парольдерді тіргіңізге сақтау арқылы жылдам қол жеткізіңіз.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Өз тіркелгілеріңізді күшті, кездейсоқ жасалған парольді пайдалану арқылы қорғаңыз. Ол болашақта пайдалану үшін тіркелгіңізге сақталады.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Өз тіркелгілеріңізді күшті, кездейсоқ жасалған парольді пайдалану арқылы қорғаңыз. Ол болашақта пайдалану үшін тіркелгіңізге сақталады.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Өз тіркелгіңізді күшті, кездейсоқ жасалған парольді пайдалану арқылы қорғаңыз. Ол болашақта пайдалану үшін тіркелгіңізге сақталады.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Парольді қолдану</string>
@@ -203,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Жүйеге кіру провайдері ретінде %1$s қолдану</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ %2$s тіркелгісімен %1$s ішіне кіру олардың <a href="%3$s">Жекелік саясаты</a> және <a href="%4$s">Қолдану шарттарымен</a> реттеледі]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ %2$s тіркелгісімен %1$s ішіне кіру олардың <a href="%3$s">Жекелік саясаты</a> және <a href="%4$s">Қолдану шарттарымен</a> реттеледі]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Жалғастыру</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

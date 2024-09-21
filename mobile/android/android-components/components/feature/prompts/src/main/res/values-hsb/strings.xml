@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Sylne hesło namjetować</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Sylne hesło namjetować</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Sylne hesło wužiwać</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Sylne hesło wužiwać: %1$s</string>
@@ -129,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Wužiwajće sylne, připadnje generěrowane hesło, zo byšće swoje konta škitał. Dóstańće spěšny přistup k swojim hesłam, hdyž jo w swojim konće składujeće.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Wužiwajće sylne, připadnje generěrowane hesło, zo byšće swoje konta škitał. Budźe so do wašeho konta za přichodne wužiwanje składować.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Wužiwajće sylne, připadnje generěrowane hesło, zo byšće swoje konta škitał. Budźe so do wašeho konta za přichodne wužiwanje składować.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Wužiwajće sylne, připadnje generěrowane hesło, zo byšće swoje konto škitał. Budźe so do wašeho konta za přichodne wužiwanje składować.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Hesło wužiwać</string>
@@ -203,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s jako přizjewjenskeho poskićowarja wužiwać</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Přizjewjenje pola %1$s z kontom %2$s jeho <a href="%3$s">prawidłam priwatnosće</a> a <a href="%4$s">wužiwanskim wuměnjenjam</a> podleži]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Přizjewjenje pola %1$s z kontom %2$s jeho <a href="%3$s">prawidłam priwatnosće</a> a <a href="%4$s">wužiwanskim wuměnjenjam</a> podleži]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Dale</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

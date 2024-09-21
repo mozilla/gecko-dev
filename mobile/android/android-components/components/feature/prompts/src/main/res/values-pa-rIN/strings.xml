@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">ਆਪਣੇ ਖਾਤਿਆਂ ਨੂੰ ਮਜ਼ਬੂਤ, ਰਲਵੇਂ ਮਿਲਵੇਂ ਤਿਆਰ ਕੀਤੇ ਪਾਸਵਰਡ ਨੂੰ ਵਰਤ ਕੇ ਸੁਰੱਖਿਅਤ ਕਰੋ। ਆਪਣੇ ਪਾਸਵਰਡਾਂ ਨੂੰ ਆਪਣੇ ਖਾਤੇ ਵਿੱਚ ਸੰਭਾਲ ਕੇ ਫ਼ੌਰਨ ਲਵੋ।</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">ਮਜ਼ਬੂਤ, ਬੇਤਰਤੀਬੇ ਤਿਆਰ ਕੀਤੇ ਪਾਸਵਰਡ ਨਾਲ ਆਪਣੇ ਖਾਤਿਆਂ ਨੂੰ ਸੁਰੱਖਿਆ ਦਿਓ। ਇਸ ਨੂੰ ਭਵਿੱਖ ਵਿੱਚ ਤੁਹਾਡੇ ਖਾਤੇ ਵਿੱਚ ਸੰਭਾਲਿਆ ਜਾਵੇਗਾ।</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ਮਜ਼ਬੂਤ, ਬੇਤਰਤੀਬੇ ਤਿਆਰ ਕੀਤੇ ਪਾਸਵਰਡ ਨਾਲ ਆਪਣੇ ਖਾਤਿਆਂ ਨੂੰ ਸੁਰੱਖਿਆ ਦਿਓ। ਇਸ ਨੂੰ ਭਵਿੱਖ ਵਿੱਚ ਤੁਹਾਡੇ ਖਾਤੇ ਵਿੱਚ ਸੰਭਾਲਿਆ ਜਾਵੇਗਾ।</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">ਮਜ਼ਬੂਤ, ਬੇਤਰਤੀਬੇ ਤਿਆਰ ਕੀਤੇ ਪਾਸਵਰਡ ਨਾਲ ਆਪਣੇ ਖਾਤਿਆਂ ਨੂੰ ਸੁਰੱਖਿਆ ਦਿਓ। ਇਸ ਨੂੰ ਭਵਿੱਖ ਵਿੱਚ ਤੁਹਾਡੇ ਖਾਤੇ ਵਿੱਚ ਸੰਭਾਲਿਆ ਜਾਵੇਗਾ।</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">ਪਾਸਵਰਡ ਨੂੰ ਵਰਤੋਂ</string>
@@ -202,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s ਨੂੰ ਲਾਗਇਨ ਪੂਰਕ ਵਜੋਂ ਵਰਤੋਂ</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[%1$s ਵਿੱਚ %2$s ਖਾਤੇ ਨਾਲ ਲਾਗਇਨ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ, ਜੋ ਕਿ <a href="%3$s">ਪਰਦੇਦਾਰੀ ਨੀਤੀ</a> ਅਤੇ <a href="%4$s">ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ</a> ਦੇ ਅਧੀਨ ਹੈ।]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ਵਿੱਚ %2$s ਖਾਤੇ ਨਾਲ ਲਾਗਇਨ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ, ਜੋ ਕਿ <a href="%3$s">ਪਰਦੇਦਾਰੀ ਨੀਤੀ</a> ਅਤੇ <a href="%4$s">ਸੇਵਾ ਦੀਆਂ ਸ਼ਰਤਾਂ</a> ਦੇ ਅਧੀਨ ਹੈ।]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">ਜਾਰੀ ਰੱਖੋ</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

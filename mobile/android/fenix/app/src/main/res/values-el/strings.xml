@@ -1304,11 +1304,22 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Προσθήκη νέου φακέλου</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Κλείσιμο σελιδοδεικτών</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Κλείσιμο σελιδοδεικτών</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Αναζήτηση σελιδοδεικτών</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Μενού στοιχείων για «%s»</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Δεν υπάρχει κανένας σελιδοδείκτης ακόμα</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Αποθηκεύστε ιστοσελίδες κατά την περιήγησή σας. Συνδεθείτε για να λάβετε σελιδοδείκτες από άλλες συγχρονισμένες συσκευές.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Σύνδεση για συγχρονισμό</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Αποθηκεύστε ιστοσελίδες κατά την περιήγησή σας. Θα λάβουμε τους σελιδοδείκτες από άλλες συγχρονισμένες συσκευές.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Προσθέστε σελιδοδείκτες καθώς περιηγείστε, ώστε να βρείτε αργότερα τις αγαπημένες σας ιστοσελίδες.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

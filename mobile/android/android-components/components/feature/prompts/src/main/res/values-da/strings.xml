@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Beskyt dine konti ved at bruge en stærk, tilfældigt genereret adgangskode. Få hurtig adgang til dine adgangskoder ved at gemme dem på din konto.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Beskyt dine konti ved at bruge en stærk, tilfældigt genereret adgangskode. Den vil blive gemt på din konto til senere brug.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Beskyt dine konti ved at bruge en stærk, tilfældigt genereret adgangskode. Den vil blive gemt på din konto til senere brug.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Beskyt din konto ved at bruge en stærk, tilfældigt genereret adgangskode. Den vil blive gemt på din konto til senere brug.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Brug adgangskode</string>
@@ -201,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Brug %1$s som login-udbyder</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Indlogning på %1$s med en %2$s-konto er underlagt deres <a href="%3$s">privatlivspolitik</a> og <a href="%4$s">tjenestevilkår</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Indlogning på %1$s med en %2$s-konto er underlagt deres <a href="%3$s">privatlivspolitik</a> og <a href="%4$s">tjenestevilkår</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Fortsæt</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

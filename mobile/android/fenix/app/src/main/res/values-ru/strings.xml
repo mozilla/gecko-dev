@@ -1304,11 +1304,22 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Добавить новую папку</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Закрыть закладки</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Закрыть закладки</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Поиск в закладках</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Элемент меню для %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Закладок ещё нет</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Сохраняйте сайты при просмотре. Совершите вход, чтобы получать закладки с других синхронизированных устройств.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Войти в синхронизацию</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Сохраняйте сайты при просмотре. Мы также будем получать закладки с других синхронизируемых устройств.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Добавляйте закладки при просмотре, чтобы иметь возможность найти свои любимые сайты позже.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

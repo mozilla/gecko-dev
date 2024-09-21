@@ -118,9 +118,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Жаңа: артқа және алға бағдаршалар бір шертумен</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Жаңа: артқа және алға бағдаршалар бір шертумен</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Әрқашан қол астыңызда болатын жылдамырақ шолумен рахат алыңыз.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Әрқашан қол астыңызда болатын жылдамырақ шолумен рахат алыңыз.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Камера рұқсаты керек. Android баптауларына өтіп, Рұқсаттарды ашып, &quot;Рұқсат ету&quot; таңдаңыз.</string>
@@ -213,6 +213,10 @@
     <string name="browser_menu_extensions_banner_learn_more">Көбірек білу</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Кеңейтулерді басқару</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Ұсынылатын кеңейтулер</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Кеңейтуді қосу</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Көбірек кеңейтулерді табу</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -305,7 +309,7 @@
     <string name="browser_menu_switch_to_mobile_site">Мобильді сайтқа ауысу</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Құралдар</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Негізгі мәзірге оралу</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Оқу режимі, Аудару, Баспаға шығару, Бөлісу, Қолданбаны ашу</string>
@@ -405,7 +409,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Жекелендірілген басты бетпен танысыңыз. Мұнда соңғы беттер, бетбелгілер және іздеу нәтижелері көрсетілетін болады.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Жекелендірілген басты бетпен танысыңыз. Мұнда соңғы беттер, бетбелгілер және іздеу нәтижелері көрсетілетін болады.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Жекелігі көбірек интернетке қош келдіңіз</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -897,6 +901,10 @@
     <string name="preferences_marketing_data">Маркетингтік мәліметтер</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Біздің мобильді маркетинг вендоры Adjust-пен негізгі пайдалану деректерін бөліседі</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Құлау хабарламаларын автоматты түрде жіберу</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Құлаулар орын алғаннан кейін іске қосылғанда Mozilla-мен құлау деректерін автоматты түрде бөліседі</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Зерттеулер</string>
     <!-- Summary for studies preferences -->
@@ -1190,6 +1198,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Бетті қалпына келтіру</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s қайта іске қосылуы керек болды</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Құлау хабарламаларын автоматты түрде жіберу</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Жабу</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Құлау жөнінде хабарламаны жіберу</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Бұл буманы өшіруді шынымен қалайсыз ба?</string>
@@ -1270,7 +1287,7 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Жаңа буманы қосу</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Бетбелгілерді жабу</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Бетбелгілерді жабу</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Бетбелгілерден іздеу</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -2812,16 +2829,24 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Мен оны қолданбаймын</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Мен Firefox-та іздеуді пайдаланбаймын</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Мен синхрондауды қолданбаймын</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Firefox басты бетіне қаншалықты көңіліңіз толады?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox-та баспаға шығаруды жақсартуға көмектесіңіз. Бұл бар болғаны секундты алады</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Firefox ішіндегі іздеуді жақсартуға көмектесіңіз. Бұл бар болғаны бір минутты алады</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Firefox ішіндегі синхрондауды жақсартуға көмектесіңіз. Бұл бар болғаны бір минутты алады</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox жүйесінде баспаға шығаруға қаншалықты көңіліңіз толады?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Firefox басты бетіне қаншалықты көңіліңіз толады?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Firefox-тағы іздеу тәжірибесіне қаншалықты көңіліңіз толады?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Firefox-тағы синхрондау тәжірибесіне қаншалықты көңіліңіз толады?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox логотипі</string>

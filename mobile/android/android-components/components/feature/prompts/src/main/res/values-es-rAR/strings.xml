@@ -131,7 +131,7 @@
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protegé tus cuentas usando una contraseña segura generada al azar. Se guardará en tu cuenta para uso futuro.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Proteg tu cuenta usando una contraseña segura generada al azar. Se guardará en tu cuenta para uso futuro.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protegé tu cuenta usando una contraseña segura generada al azar. Se guardará en tu cuenta para uso futuro.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usar contraseña</string>
