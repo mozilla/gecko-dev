@@ -5449,7 +5449,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
     use style::values::generics::font::FontStyle;
     use style::values::specified::{
         table::CaptionSide, BorderStyle, Clear, Display, Float, TextAlign, TextEmphasisPosition,
-        TextTransform,
+        TextTransform, UserModify,
     };
 
     fn get_from_computed<T>(value: u32) -> T
@@ -5464,7 +5464,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetKeywordValue(
     let value = value as u32;
 
     let prop = match_wrap_declared! { long,
-        MozUserModify => longhands::_moz_user_modify::SpecifiedValue::from_gecko_keyword(value),
+        MozUserModify => UserModify::from_u32(value).unwrap(),
         Direction => get_from_computed::<longhands::direction::SpecifiedValue>(value),
         Display => get_from_computed::<Display>(value),
         Float => get_from_computed::<Float>(value),

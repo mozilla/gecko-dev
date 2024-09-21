@@ -78,6 +78,7 @@ pub use self::motion::{OffsetPath, OffsetPosition, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::page::{PageName, PageOrientation, PageSize, PageSizeOrientation, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
+pub use self::position::AnchorFunction;
 pub use self::position::AnchorName;
 pub use self::position::AnchorScope;
 pub use self::position::AspectRatio;
@@ -87,10 +88,9 @@ pub use self::position::PositionTryFallbacks;
 pub use self::position::PositionTryOrder;
 pub use self::position::PositionVisibility;
 pub use self::position::{GridAutoFlow, GridTemplateAreas, Position, PositionOrAuto};
-pub use self::position::{PositionArea, PositionAreaKeyword};
 pub use self::position::{MasonryAutoFlow, MasonryItemOrder, MasonryPlacement};
+pub use self::position::{PositionArea, PositionAreaKeyword};
 pub use self::position::{PositionComponent, ZIndex};
-pub use self::position::AnchorFunction;
 pub use self::ratio::Ratio;
 pub use self::rect::NonNegativeLengthOrNumberRect;
 pub use self::resolution::Resolution;
@@ -111,7 +111,10 @@ pub use self::transform::{Rotate, Scale, Transform};
 pub use self::transform::{TransformBox, TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{BoolInteger, Cursor, UserSelect};
+pub use self::ui::{
+    BoolInteger, Cursor, Inert, MozTheme, PointerEvents, ScrollbarColor, UserFocus, UserInput,
+    UserModify, UserSelect,
+};
 pub use super::generics::grid::GridTemplateComponent as GenericGridTemplateComponent;
 
 pub mod align;

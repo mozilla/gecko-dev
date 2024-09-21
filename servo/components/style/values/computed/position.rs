@@ -8,15 +8,15 @@
 //! [position]: https://drafts.csswg.org/css-backgrounds-3/#position
 
 use crate::values::computed::{Integer, LengthPercentage, NonNegativeNumber, Percentage};
-use crate::values::generics::position::{AspectRatio as GenericAspectRatio, GenericInset};
+use crate::values::generics::position::GenericAnchorFunction;
 use crate::values::generics::position::Position as GenericPosition;
 use crate::values::generics::position::PositionComponent as GenericPositionComponent;
 use crate::values::generics::position::PositionOrAuto as GenericPositionOrAuto;
-use crate::values::generics::position::GenericAnchorFunction;
 use crate::values::generics::position::ZIndex as GenericZIndex;
+use crate::values::generics::position::{AspectRatio as GenericAspectRatio, GenericInset};
 pub use crate::values::specified::position::{
-    AnchorName, AnchorScope, DashedIdentAndOrTryTactic, PositionArea, PositionAreaKeyword,
-    PositionAnchor, PositionTryFallbacks, PositionTryOrder, PositionVisibility,
+    AnchorName, AnchorScope, DashedIdentAndOrTryTactic, PositionAnchor, PositionArea,
+    PositionAreaKeyword, PositionTryFallbacks, PositionTryOrder, PositionVisibility,
 };
 pub use crate::values::specified::position::{GridAutoFlow, GridTemplateAreas, MasonryAutoFlow};
 use crate::Zero;

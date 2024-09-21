@@ -36,9 +36,7 @@ use std::cmp;
 use std::f32;
 use std::ops::{Add, Sub};
 
-pub use self::align::{
-    AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment,
-};
+pub use self::align::{AlignContent, AlignItems, JustifyContent, JustifyItems, SelfAlignment};
 pub use self::align::{AlignSelf, JustifySelf};
 pub use self::angle::Angle;
 pub use self::animation::{
@@ -85,6 +83,7 @@ pub use self::motion::{OffsetPath, OffsetPosition, OffsetRotate};
 pub use self::outline::OutlineStyle;
 pub use self::page::{PageName, PageOrientation, PageSize, PageSizeOrientation, PaperSize};
 pub use self::percentage::{NonNegativePercentage, Percentage};
+pub use self::position::AnchorFunction;
 pub use self::position::AnchorName;
 pub use self::position::AnchorScope;
 pub use self::position::AspectRatio;
@@ -97,7 +96,6 @@ pub use self::position::PositionVisibility;
 pub use self::position::{
     GridAutoFlow, GridTemplateAreas, MasonryAutoFlow, Position, PositionOrAuto, ZIndex,
 };
-pub use self::position::AnchorFunction;
 pub use self::position::{PositionArea, PositionAreaKeyword};
 pub use self::ratio::Ratio;
 pub use self::rect::NonNegativeLengthOrNumberRect;
@@ -116,7 +114,10 @@ pub use self::transform::{Rotate, Scale, Transform, TransformBox, TransformOpera
 pub use self::transform::{TransformOrigin, TransformStyle, Translate};
 #[cfg(feature = "gecko")]
 pub use self::ui::CursorImage;
-pub use self::ui::{BoolInteger, Cursor, UserSelect};
+pub use self::ui::{
+    BoolInteger, Cursor, Inert, MozTheme, PointerEvents, ScrollbarColor, UserFocus, UserInput,
+    UserModify, UserSelect,
+};
 pub use super::specified::TextTransform;
 pub use super::specified::ViewportVariant;
 pub use super::specified::{BorderStyle, TextDecorationLine};

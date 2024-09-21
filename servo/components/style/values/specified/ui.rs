@@ -232,7 +232,6 @@ pub enum CursorKind {
 }
 
 /// The keywords allowed in the -moz-theme property.
-#[allow(missing_docs)]
 #[derive(
     Clone,
     Copy,
@@ -254,4 +253,142 @@ pub enum MozTheme {
     Auto,
     /// Choose the non-native rendering.
     NonNative,
+}
+
+/// The pointer-events property
+/// https://svgwg.org/svg2-draft/interact.html#PointerEventsProperty
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum PointerEvents {
+    Auto,
+    None,
+    #[cfg(feature = "gecko")]
+    Visiblepainted,
+    #[cfg(feature = "gecko")]
+    Visiblefill,
+    #[cfg(feature = "gecko")]
+    Visiblestroke,
+    #[cfg(feature = "gecko")]
+    Visible,
+    #[cfg(feature = "gecko")]
+    Painted,
+    #[cfg(feature = "gecko")]
+    Fill,
+    #[cfg(feature = "gecko")]
+    Stroke,
+    #[cfg(feature = "gecko")]
+    All,
+}
+
+/// Internal property to represent the inert attribute state:
+/// https://html.spec.whatwg.org/multipage/#inert-subtrees
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum Inert {
+    None,
+    Inert,
+}
+
+/// Non-standard user-input property.
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum UserInput {
+    Auto,
+    None,
+}
+
+/// Non-standard -moz-user-modify property.
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum UserModify {
+    ReadOnly,
+    ReadWrite,
+    WriteOnly,
+}
+
+/// Internal -moz-user-focus property.
+/// https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus
+#[allow(missing_docs)]
+#[derive(
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    FromPrimitive,
+    MallocSizeOf,
+    Parse,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToComputedValue,
+    ToCss,
+    ToResolvedValue,
+    ToShmem,
+)]
+#[repr(u8)]
+pub enum UserFocus {
+    Normal,
+    None,
+    Ignore,
 }

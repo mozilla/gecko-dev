@@ -15,61 +15,56 @@ ${helpers.predefined_type(
     affects="paint",
 )}
 
-// NB: `pointer-events: auto` (and use of `pointer-events` in anything that isn't SVG, in fact)
-// is nonstandard, slated for CSS4-UI.
-// TODO(pcwalton): SVG-only values.
-${helpers.single_keyword(
+${helpers.predefined_type(
     "pointer-events",
-    "auto none",
+    "PointerEvents",
+    "specified::PointerEvents::Auto",
     engines="gecko servo",
     animation_type="discrete",
-    extra_gecko_values="visiblepainted visiblefill visiblestroke visible painted fill stroke all",
     spec="https://svgwg.org/svg2-draft/interact.html#PointerEventsProperty",
-    gecko_enum_prefix="StylePointerEvents",
     affects="paint",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "-moz-inert",
-    "none inert",
+    "Inert",
+    "specified::Inert::None",
     engines="gecko",
     gecko_ffi_name="mInert",
-    gecko_enum_prefix="StyleInert",
     animation_type="discrete",
     enabled_in="ua",
     spec="Nonstandard (https://html.spec.whatwg.org/multipage/#inert-subtrees)",
     affects="paint",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "-moz-user-input",
-    "auto none",
+    "UserInput",
+    "specified::UserInput::Auto",
     engines="gecko",
     gecko_ffi_name="mUserInput",
-    gecko_enum_prefix="StyleUserInput",
     animation_type="discrete",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-input)",
     affects="",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "-moz-user-modify",
-    "read-only read-write write-only",
+    "UserModify",
+    "specified::UserModify::ReadOnly",
     engines="gecko",
     gecko_ffi_name="mUserModify",
-    gecko_enum_prefix="StyleUserModify",
-    needs_conversion=True,
     animation_type="discrete",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-modify)",
     affects="",
 )}
 
-${helpers.single_keyword(
+${helpers.predefined_type(
     "-moz-user-focus",
-    "normal none ignore",
+    "UserFocus",
+    "specified::UserFocus::Normal",
     engines="gecko",
     gecko_ffi_name="mUserFocus",
-    gecko_enum_prefix="StyleUserFocus",
     animation_type="discrete",
     spec="Nonstandard (https://developer.mozilla.org/en-US/docs/Web/CSS/-moz-user-focus)",
     enabled_in="chrome",
@@ -109,7 +104,7 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "scrollbar-color",
-    "ui::ScrollbarColor",
+    "ScrollbarColor",
     "Default::default()",
     engines="gecko",
     spec="https://drafts.csswg.org/css-scrollbars-1/#scrollbar-color",
@@ -120,8 +115,8 @@ ${helpers.predefined_type(
 
 ${helpers.predefined_type(
     "-moz-theme",
-    "ui::MozTheme",
-    "specified::ui::MozTheme::Auto",
+    "MozTheme",
+    "specified::MozTheme::Auto",
     engines="gecko",
     enabled_in="chrome",
     animation_type="discrete",
