@@ -228,6 +228,7 @@ navigate.waitForNavigationCompleted = async function waitForNavigationCompleted(
       if (listener.isStarted) {
         listener.stop();
       }
+      listener.destroy();
     });
 
     await callback();

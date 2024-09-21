@@ -121,10 +121,14 @@ export async function waitForInitialNavigationCompleted(
     );
   }
 
-  return {
+  const result = {
     currentURI: listener.currentURI,
     targetURI: listener.targetURI,
   };
+
+  listener.destroy();
+
+  return result;
 }
 
 /**

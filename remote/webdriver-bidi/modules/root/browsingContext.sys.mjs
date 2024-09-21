@@ -1624,6 +1624,7 @@ class BrowsingContextModule extends RootBiDiModule {
       if (listener.isStarted) {
         listener.stop();
       }
+      listener.destroy();
 
       if (wait === WaitCondition.Interactive) {
         await this.messageHandler.eventsDispatcher.off(
