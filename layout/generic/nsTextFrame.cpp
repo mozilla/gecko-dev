@@ -4823,10 +4823,9 @@ static bool IsUnderlineRight(const ComputedStyle& aStyle) {
   if (!langAtom) {
     return false;
   }
-  nsDependentAtomString langStr(langAtom);
-  return (StringBeginsWith(langStr, u"ja"_ns) ||
-          StringBeginsWith(langStr, u"ko"_ns)) &&
-         (langStr.Length() == 2 || langStr[2] == '-');
+  return nsStyleUtil::MatchesLanguagePrefix(langAtom, u"ja") ||
+         nsStyleUtil::MatchesLanguagePrefix(langAtom, u"ko") ||
+         nsStyleUtil::MatchesLanguagePrefix(langAtom, u"mn");
 }
 
 void nsTextFrame::GetTextDecorations(
