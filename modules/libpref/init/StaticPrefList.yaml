@@ -5048,12 +5048,6 @@
   value: false
   mirror: always
 
-# <iframe loading="lazy">
-- name: dom.iframe_lazy_loading.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # Whether allowing using <tab> to move focus to root elements
 - name: dom.disable_tab_focus_to_root_element
   type: bool

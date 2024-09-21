@@ -33,7 +33,7 @@ interface HTMLIFrameElement : HTMLElement {
            attribute DOMString height;
   [CEReactions, SetterThrows, Pure]
            attribute DOMString referrerPolicy;
-  [CEReactions, SetterThrows, Pure, Pref="dom.iframe-lazy-loading.enabled"]
+  [CEReactions, SetterThrows, Pure]
            attribute DOMString loading;
   [NeedsSubjectPrincipal]
   readonly attribute Document? contentDocument;
