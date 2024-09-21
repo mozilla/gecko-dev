@@ -3346,10 +3346,6 @@ BrowserGlue.prototype = {
         Services.search.runBackgroundChecks();
       },
 
-      function reportInstallationTelemetry() {
-        lazy.BrowserUsageTelemetry.reportInstallationTelemetry();
-      },
-
       function trustObjectTelemetry() {
         let certdb = Cc["@mozilla.org/security/x509certdb;1"].getService(
           Ci.nsIX509CertDB
@@ -3358,6 +3354,12 @@ BrowserGlue.prototype = {
         certdb.countTrustObjects();
       },
     ];
+
+    if (AppConstants.platform == "win") {
+      idleTasks.push(function reportInstallationTelemetry() {
+        lazy.BrowserUsageTelemetry.reportInstallationTelemetry();
+      });
+    }
 
     for (let task of idleTasks) {
       ChromeUtils.idleDispatch(async () => {
