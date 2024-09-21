@@ -57,16 +57,16 @@ callout-pdfjs-draw-button = Got it!
 
 ## Firefox View Discoverability Strings
 
-fx-view-discoverability-title =  Didn’t mean to close that tab?
+fx-view-discoverability-title = Didn’t mean to close that tab?
 fx-view-discoverability-subtitle = Find and reopen it quickly here. We keep a history of your recently closed tabs for you.
-fx-view-discoverability-primary-button-label =  Open { -brand-product-name } View
+fx-view-discoverability-primary-button-label = Open { -firefoxview-brand-name }
 fx-view-discoverability-secondary-button-label = Dismiss
 
 ## Split Dismiss Button Labels
 
 # Blocks the message from showing again
-split-dismiss-button-dont-show-option-label =  Don’t show this recommendation again
+split-dismiss-button-dont-show-option-label = Don’t show this recommendation again
 # Dismisses message and reduces frequency of message
-split-dismiss-button-show-fewer-option-label =  Show fewer recommendations
+split-dismiss-button-show-fewer-option-label = Show fewer recommendations
 # Opens about:preferences#general-cfrfeatures
 split-dismiss-button-manage-settings-option-label = Manage settings
