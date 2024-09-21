@@ -6,13 +6,24 @@ profile-window-title = { -brand-short-name } - Choose User Profile
 profile-window-heading = Choose a { -brand-short-name } profile
 profile-window-body = Keep your work and personal browsing, including things like passwords and bookmarks, totally separate. Or create profiles for everyone who uses this device.
 profile-window-checkbox-label =
-  .label = Show this when { -brand-short-name } opens
+    .label = Show this when { -brand-short-name } opens
 profile-window-create-profile = Create a profile
+
 # Variables
 #   $number (number) - The number of the profile
 default-profile-name = Profile { $number }
 
 edit-profile-page-title = Edit profile
+edit-profile-page-header = Edit your profile
+edit-profile-page-profile-name-label = Profile name
+edit-profile-page-theme-header = Theme
+edit-profile-page-explore-themes = Explore more themes
+edit-profile-page-avatar-header = Avatar
+edit-profile-page-delete-button =
+    .label = Delete
+
+edit-profile-page-no-name = Name this profile to help you find it later. Rename it any time.
+edit-profile-page-duplicate-name = Profile name already in use. Try a new name.
 
 
 appmenu-manage-profiles =

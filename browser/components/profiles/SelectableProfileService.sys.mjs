@@ -336,12 +336,16 @@ class SelectableProfileServiceClass {
    * Launch a new Firefox instance using the given selectable profile.
    *
    * @param {SelectableProfile} aProfile The profile to launch
+   * @param {string} url A url to open in launched profile
    */
-  launchInstance(aProfile) {
+  launchInstance(aProfile, url) {
     let process = this.getExecutableProcess();
     let args = ["--profile", aProfile.path];
     if (Services.appinfo.OS === "Darwin") {
       args.unshift("-foreground");
+    }
+    if (url) {
+      args.push("-url", url);
     }
     process.runw(false, args, args.length);
   }
@@ -540,7 +544,7 @@ class SelectableProfileServiceClass {
     };
 
     let profile = await this.createProfile(newProfile);
-    this.launchInstance(profile, true);
+    this.launchInstance(profile);
   }
 
   /**
@@ -657,7 +661,7 @@ class SelectableProfileServiceClass {
     return (
       await this.#connection.executeCached("SELECT * FROM Profiles;")
     ).map(row => {
-      return new SelectableProfile(row);
+      return new SelectableProfile(row, this);
     });
   }
 
@@ -675,7 +679,7 @@ class SelectableProfileServiceClass {
       })
     )[0];
 
-    return row ? new SelectableProfile(row) : null;
+    return row ? new SelectableProfile(row, this) : null;
   }
 
   /**
@@ -695,7 +699,7 @@ class SelectableProfileServiceClass {
       )
     )[0];
 
-    return row ? new SelectableProfile(row) : null;
+    return row ? new SelectableProfile(row, this) : null;
   }
 
   /**
@@ -715,7 +719,7 @@ class SelectableProfileServiceClass {
       )
     )[0];
 
-    return row ? new SelectableProfile(row) : null;
+    return row ? new SelectableProfile(row, this) : null;
   }
 
   // Shared Prefs management

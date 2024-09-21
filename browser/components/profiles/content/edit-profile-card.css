@@ -1,3 +1,92 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+edit-profile-card {
+  display: block;
+  max-width: 80%;
+  margin-top: calc(2 * var(--space-xxlarge));
+}
+
+#edit-profile-card {
+  display: flex;
+  gap: var(--space-xxlarge);
+  margin: var(--space-xxlarge);
+  padding: var(--space-xxlarge);
+}
+
+#profile-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-medium);
+}
+
+#profile-name-area {
+  display: flex;
+  flex-direction: column;
+}
+
+#profile-name {
+  width: fit-content;
+
+  &:invalid {
+    border-color: var(--button-background-color-destructive);
+  }
+}
+
+#error {
+  display: inline-flex;
+  gap: var(--space-xsmall);
+  padding: var(--space-xsmall);
+  color: var(--button-background-color-destructive);
+
+  &[hidden] {
+    display: none;
+  }
+
+  > #error-icon {
+    -moz-context-properties: fill, stroke;
+    fill: currentColor;
+    stroke: currentColor;
+  }
+}
+
+#themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xlarge);
+
+  /* TODO: bug 1886005 will implement the theme cards */
+  > moz-card {
+    flex: 1 0 18%;
+    width: 120px;
+    height: 78px;
+  }
+}
+
+#avatars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xlarge);
+
+  /* TODO: bug 1886007 will implement the avatars */
+  > .avatar {
+    width: 40px;
+    height: 40px;
+    border: 1px solid;
+    border-radius: 20px;
+  }
+}

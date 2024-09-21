@@ -174,6 +174,7 @@ export let RemotePageAccessManager = {
     },
     "about:editprofile": {
       RPMSendQuery: ["Profiles:GetEditProfileContent"],
+      RPMSendAsyncMessage: ["Profiles:UpdateProfileName"],
     },
     "about:protections": {
       RPMSendAsyncMessage: [

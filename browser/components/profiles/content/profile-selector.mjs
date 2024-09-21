@@ -61,8 +61,8 @@ export class ProfileSelector extends MozLitElement {
   async handleEvent(event) {
     switch (event.type) {
       case "LaunchProfile": {
-        let profile = event.detail;
-        this.selectableProfileService.launchInstance(profile);
+        let { profile, url } = event.detail;
+        this.selectableProfileService.launchInstance(profile, url);
         window.close();
         break;
       }

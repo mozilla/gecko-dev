@@ -34,12 +34,12 @@ export class ProfileCard extends MozLitElement {
     this.backgroundImage.style.stroke = themeFg;
   }
 
-  launchProfile() {
+  launchProfile(url) {
     this.dispatchEvent(
       new CustomEvent("LaunchProfile", {
         bubbles: true,
         composed: true,
-        detail: this.profile,
+        detail: { profile: this.profile, url },
       })
     );
   }
@@ -60,6 +60,7 @@ export class ProfileCard extends MozLitElement {
 
   handleEditClick(event) {
     event.stopPropagation();
+    this.launchProfile("about:editprofile");
   }
 
   handleDeleteClick(event) {

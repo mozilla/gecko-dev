@@ -7,6 +7,8 @@ prefs = [
   "browser.profiles.enabled=true",
 ]
 
+["browser_edit_profile_test.js"]
+
 ["browser_update_profile_on_window_switch.js"]
 
 ["browser_test_profile_selector.js"]

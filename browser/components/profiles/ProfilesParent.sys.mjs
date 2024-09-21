@@ -5,16 +5,22 @@
 import { SelectableProfileService } from "resource:///modules/profiles/SelectableProfileService.sys.mjs";
 
 export class ProfilesParent extends JSWindowActorParent {
-  actorCreated() {
-    // init() just in case
-    SelectableProfileService.init();
-  }
-
   async receiveMessage(message) {
     switch (message.name) {
       case "Profiles:GetEditProfileContent": {
+        // Make sure SelectableProfileService is initialized
+        await SelectableProfileService.init();
         let currentProfile = SelectableProfileService.currentProfile;
-        return currentProfile.toObject();
+        let profiles = await SelectableProfileService.getAllProfiles();
+        return {
+          currentProfile: currentProfile.toObject(),
+          profiles: profiles.map(p => p.toObject()),
+        };
+      }
+      case "Profiles:UpdateProfileName": {
+        let profileObj = message.data;
+        SelectableProfileService.currentProfile.name = profileObj.name;
+        break;
       }
     }
     return null;

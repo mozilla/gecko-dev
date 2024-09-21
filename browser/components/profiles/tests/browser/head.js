@@ -75,6 +75,31 @@ function makeFakeProfileDirs() {
   return appD.path;
 }
 
+function updateProfD(profileDir) {
+  let profD = profileDir.clone();
+
+  let provider = {
+    getFile(prop, persistent) {
+      persistent.value = true;
+      if (prop === "ProfD") {
+        return profD.clone();
+      }
+
+      throw Components.Exception("", Cr.NS_ERROR_FAILURE);
+    },
+
+    QueryInterface: ChromeUtils.generateQI(["nsIDirectoryServiceProvider"]),
+  };
+
+  // Register the new provider.
+  Services.dirsvc.registerProvider(provider);
+
+  // And undefine the old one.
+  try {
+    Services.dirsvc.undefine("ProfD");
+  } catch (ex) {}
+}
+
 async function setupMockDB() {
   makeFakeProfileDirs();
 
@@ -86,7 +111,7 @@ async function setupMockDB() {
     `${storeID}.sqlite`
   );
 
-  // re-initialize because we update the dirsvc
+  // re-initialize because we updated the dirsvc
   await SelectableProfileService.uninit();
   await SelectableProfileService.init();
 
@@ -97,6 +122,8 @@ async function setupMockDB() {
     themeFg: "redFG",
     themeBg: "blueBG",
   });
+
+  updateProfD(await profile.rootDir);
 
   return profile;
 }
