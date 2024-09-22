@@ -1,7 +1,7 @@
 //! Tests for the `select!` macro.
 
 #![forbid(unsafe_code)] // select! is safe.
-#![allow(clippy::drop_copy, clippy::match_single_binding)]
+#![allow(clippy::match_single_binding)]
 
 use std::any::Any;
 use std::cell::Cell;
@@ -9,7 +9,7 @@ use std::ops::Deref;
 use std::thread;
 use std::time::{Duration, Instant};
 
-use crossbeam_channel::{after, bounded, never, select, tick, unbounded};
+use crossbeam_channel::{after, bounded, never, select, select_biased, tick, unbounded};
 use crossbeam_channel::{Receiver, RecvError, SendError, Sender, TryRecvError};
 use crossbeam_utils::thread::scope;
 
@@ -943,7 +943,122 @@ fn fairness_send() {
     assert!(hits.iter().all(|x| *x >= COUNT / 4));
 }
 
-#[allow(clippy::or_fun_call)] // This is intentional.
+#[test]
+fn unfairness() {
+    #[cfg(miri)]
+    const COUNT: usize = 100;
+    #[cfg(not(miri))]
+    const COUNT: usize = 10_000;
+
+    let (s1, r1) = unbounded::<()>();
+    let (s2, r2) = unbounded::<()>();
+    let (s3, r3) = unbounded::<()>();
+
+    for _ in 0..COUNT {
+        s1.send(()).unwrap();
+        s2.send(()).unwrap();
+    }
+    s3.send(()).unwrap();
+
+    let mut hits = [0usize; 3];
+    for _ in 0..COUNT {
+        select_biased! {
+            recv(r1) -> _ => hits[0] += 1,
+            recv(r2) -> _ => hits[1] += 1,
+            recv(r3) -> _ => hits[2] += 1,
+        }
+    }
+    assert_eq!(hits, [COUNT, 0, 0]);
+
+    for _ in 0..COUNT {
+        select_biased! {
+            recv(r1) -> _ => hits[0] += 1,
+            recv(r2) -> _ => hits[1] += 1,
+            recv(r3) -> _ => hits[2] += 1,
+        }
+    }
+    assert_eq!(hits, [COUNT, COUNT, 0]);
+}
+
+#[test]
+fn unfairness_timeout() {
+    #[cfg(miri)]
+    const COUNT: usize = 100;
+    #[cfg(not(miri))]
+    const COUNT: usize = 10_000;
+
+    let (s1, r1) = unbounded::<()>();
+    let (s2, r2) = unbounded::<()>();
+    let (s3, r3) = unbounded::<()>();
+
+    for _ in 0..COUNT {
+        s1.send(()).unwrap();
+        s2.send(()).unwrap();
+    }
+    s3.send(()).unwrap();
+
+    let mut hits = [0usize; 3];
+    for _ in 0..COUNT {
+        select_biased! {
+            recv(r1) -> _ => hits[0] += 1,
+            recv(r2) -> _ => hits[1] += 1,
+            recv(r3) -> _ => hits[2] += 1,
+            default(ms(1000)) => unreachable!(),
+        }
+    }
+    assert_eq!(hits, [COUNT, 0, 0]);
+
+    for _ in 0..COUNT {
+        select_biased! {
+            recv(r1) -> _ => hits[0] += 1,
+            recv(r2) -> _ => hits[1] += 1,
+            recv(r3) -> _ => hits[2] += 1,
+            default(ms(1000)) => unreachable!(),
+        }
+    }
+    assert_eq!(hits, [COUNT, COUNT, 0]);
+}
+
+#[test]
+fn unfairness_try() {
+    #[cfg(miri)]
+    const COUNT: usize = 100;
+    #[cfg(not(miri))]
+    const COUNT: usize = 10_000;
+
+    let (s1, r1) = unbounded::<()>();
+    let (s2, r2) = unbounded::<()>();
+    let (s3, r3) = unbounded::<()>();
+
+    for _ in 0..COUNT {
+        s1.send(()).unwrap();
+        s2.send(()).unwrap();
+    }
+    s3.send(()).unwrap();
+
+    let mut hits = [0usize; 3];
+    for _ in 0..COUNT {
+        select_biased! {
+            recv(r1) -> _ => hits[0] += 1,
+            recv(r2) -> _ => hits[1] += 1,
+            recv(r3) -> _ => hits[2] += 1,
+            default() => unreachable!(),
+        }
+    }
+    assert_eq!(hits, [COUNT, 0, 0]);
+
+    for _ in 0..COUNT {
+        select_biased! {
+            recv(r1) -> _ => hits[0] += 1,
+            recv(r2) -> _ => hits[1] += 1,
+            recv(r3) -> _ => hits[2] += 1,
+            default() => unreachable!(),
+        }
+    }
+    assert_eq!(hits, [COUNT, COUNT, 0]);
+}
+
+#[allow(clippy::or_fun_call, clippy::unnecessary_literal_unwrap)] // This is intentional.
 #[test]
 fn references() {
     let (s, r) = unbounded::<i32>();
@@ -1212,32 +1327,32 @@ fn result_types() {
     let (_, r) = bounded::<i32>(0);
 
     select! {
-        recv(r) -> res => drop::<Result<i32, RecvError>>(res),
+        recv(r) -> res => { let _: Result<i32, RecvError> = res; },
     }
     select! {
-        recv(r) -> res => drop::<Result<i32, RecvError>>(res),
+        recv(r) -> res =>  { let _: Result<i32, RecvError> = res; },
         default => {}
     }
     select! {
-        recv(r) -> res => drop::<Result<i32, RecvError>>(res),
+        recv(r) -> res =>  { let _: Result<i32, RecvError> = res; },
         default(ms(0)) => {}
     }
 
     select! {
-        send(s, 0) -> res => drop::<Result<(), SendError<i32>>>(res),
+        send(s, 0) -> res => { let _: Result<(), SendError<i32>> = res; },
     }
     select! {
-        send(s, 0) -> res => drop::<Result<(), SendError<i32>>>(res),
+        send(s, 0) -> res =>  { let _: Result<(), SendError<i32>> = res; },
         default => {}
     }
     select! {
-        send(s, 0) -> res => drop::<Result<(), SendError<i32>>>(res),
+        send(s, 0) -> res =>  { let _: Result<(), SendError<i32>> = res; },
         default(ms(0)) => {}
     }
 
     select! {
-        send(s, 0) -> res => drop::<Result<(), SendError<i32>>>(res),
-        recv(r) -> res => drop::<Result<i32, RecvError>>(res),
+        send(s, 0) -> res =>  { let _: Result<(), SendError<i32>> = res; },
+        recv(r) -> res => { let _: Result<i32, RecvError> = res; },
     }
 }
 

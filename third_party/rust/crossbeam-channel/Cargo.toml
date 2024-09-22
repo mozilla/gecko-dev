@@ -10,10 +10,10 @@
 # See Cargo.toml.orig for the original contents.
 
 [package]
-edition = "2018"
-rust-version = "1.38"
+edition = "2021"
+rust-version = "1.60"
 name = "crossbeam-channel"
-version = "0.5.6"
+version = "0.5.13"
 description = "Multi-producer multi-consumer channels for message passing"
 homepage = "https://github.com/crossbeam-rs/crossbeam/tree/master/crossbeam-channel"
 readme = "README.md"
@@ -32,12 +32,8 @@ categories = [
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/crossbeam-rs/crossbeam"
 
-[dependencies.cfg-if]
-version = "1"
-
 [dependencies.crossbeam-utils]
-version = "0.8"
-optional = true
+version = "0.8.18"
 default-features = false
 
 [dev-dependencies.num_cpus]
@@ -52,3 +48,7 @@ version = "0.3"
 [features]
 default = ["std"]
 std = ["crossbeam-utils/std"]
+
+[lints.rust.unexpected_cfgs]
+level = "warn"
+priority = 0

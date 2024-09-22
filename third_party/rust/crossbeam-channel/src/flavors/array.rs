@@ -8,8 +8,9 @@
 //!   - <http://www.1024cores.net/home/lock-free-algorithms/queues/bounded-mpmc-queue>
 //!   - <https://docs.google.com/document/d/1yIAYmbvL3JxOKOjuCyon7JhW4cSv1wy5hC0ApeGMV9s/pub>
 
+use std::boxed::Box;
 use std::cell::UnsafeCell;
-use std::mem::MaybeUninit;
+use std::mem::{self, MaybeUninit};
 use std::ptr;
 use std::sync::atomic::{self, AtomicUsize, Ordering};
 use std::time::Instant;
@@ -242,7 +243,7 @@ impl<T> Channel<T> {
             let slot = unsafe { self.buffer.get_unchecked(index) };
             let stamp = slot.stamp.load(Ordering::Acquire);
 
-            // If the the stamp is ahead of the head by 1, we may attempt to pop.
+            // If the stamp is ahead of the head by 1, we may attempt to pop.
             if head + 1 == stamp {
                 let new = if index + 1 < self.cap {
                     // Same lap, incremented index.
@@ -520,37 +521,38 @@ impl<T> Channel<T> {
 
 impl<T> Drop for Channel<T> {
     fn drop(&mut self) {
-        // Get the index of the head.
-        let head = *self.head.get_mut();
-        let tail = *self.tail.get_mut();
+        if mem::needs_drop::<T>() {
+            // Get the index of the head.
+            let head = *self.head.get_mut();
+            let tail = *self.tail.get_mut();
 
-        let hix = head & (self.mark_bit - 1);
-        let tix = tail & (self.mark_bit - 1);
+            let hix = head & (self.mark_bit - 1);
+            let tix = tail & (self.mark_bit - 1);
 
-        let len = if hix < tix {
-            tix - hix
-        } else if hix > tix {
-            self.cap - hix + tix
-        } else if (tail & !self.mark_bit) == head {
-            0
-        } else {
-            self.cap
-        };
-
-        // Loop over all slots that hold a message and drop them.
-        for i in 0..len {
-            // Compute the index of the next slot holding a message.
-            let index = if hix + i < self.cap {
-                hix + i
+            let len = if hix < tix {
+                tix - hix
+            } else if hix > tix {
+                self.cap - hix + tix
+            } else if (tail & !self.mark_bit) == head {
+                0
             } else {
-                hix + i - self.cap
+                self.cap
             };
 
-            unsafe {
-                debug_assert!(index < self.buffer.len());
-                let slot = self.buffer.get_unchecked_mut(index);
-                let msg = &mut *slot.msg.get();
-                msg.as_mut_ptr().drop_in_place();
+            // Loop over all slots that hold a message and drop them.
+            for i in 0..len {
+                // Compute the index of the next slot holding a message.
+                let index = if hix + i < self.cap {
+                    hix + i
+                } else {
+                    hix + i - self.cap
+                };
+
+                unsafe {
+                    debug_assert!(index < self.buffer.len());
+                    let slot = self.buffer.get_unchecked_mut(index);
+                    (*slot.msg.get()).assume_init_drop();
+                }
             }
         }
     }

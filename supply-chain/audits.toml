@@ -1191,6 +1191,11 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.5.4 -> 0.5.6"
 
+[[audits.crossbeam-channel]]
+who = "Glenn Watson <git@intuitionlibrary.com>"
+criteria = "safe-to-deploy"
+delta = "0.5.12 -> 0.5.13"
+
 [[audits.crossbeam-deque]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
@@ -2326,22 +2331,10 @@ who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.2.3 -> 0.3.0"
 
-[[audits.gpu-descriptor]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
-criteria = "safe-to-deploy"
-delta = "0.3.0 -> 0.3.0@git:7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d"
-importable = false
-
 [[audits.gpu-descriptor-types]]
 who = "Erich Gubler <erichdongubler@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.1.1 -> 0.2.0"
-
-[[audits.gpu-descriptor-types]]
-who = "Erich Gubler <erichdongubler@gmail.com>"
-criteria = "safe-to-deploy"
-delta = "0.2.0 -> 0.2.0@git:7b71a4e47c81903ad75e2c53deb5ab1310f6ff4d"
-importable = false
 
 [[audits.guid_win]]
 who = "Bobby Holley <bobbyholley@gmail.com>"

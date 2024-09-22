@@ -12,8 +12,8 @@ pub(crate) fn shuffle<T>(v: &mut [T]) {
         return;
     }
 
-    thread_local! {
-        static RNG: Cell<Wrapping<u32>> = Cell::new(Wrapping(1_406_868_647));
+    std::thread_local! {
+        static RNG: Cell<Wrapping<u32>> = const { Cell::new(Wrapping(1_406_868_647)) };
     }
 
     let _ = RNG.try_with(|rng| {
@@ -54,13 +54,5 @@ pub(crate) fn sleep_until(deadline: Option<Instant>) {
                 thread::sleep(d - now);
             }
         }
-    }
-}
-
-// https://github.com/crossbeam-rs/crossbeam/issues/795
-pub(crate) fn convert_timeout_to_deadline(timeout: Duration) -> Instant {
-    match Instant::now().checked_add(timeout) {
-        Some(deadline) => deadline,
-        None => Instant::now() + Duration::from_secs(86400 * 365 * 30),
     }
 }

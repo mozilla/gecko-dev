@@ -1,7 +1,5 @@
 //! Tests for channel readiness using the `Select` struct.
 
-#![allow(clippy::drop_copy)]
-
 use std::any::Any;
 use std::cell::Cell;
 use std::thread;
@@ -229,6 +227,7 @@ fn default_when_disconnected() {
 }
 
 #[test]
+#[cfg_attr(miri, ignore)] // this test makes timing assumptions, but Miri is so slow it violates them
 fn default_only() {
     let start = Instant::now();
 
