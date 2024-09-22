@@ -131,7 +131,7 @@
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Proteja as suas contas utilizando uma palavra-passe forte e gerada aleatoriamente. Esta será guardada na sua conta para utilização futura.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Proteja a sua conta utilizando uma palavra-passe forte e gerada aleatoriamente. Este será guardado na sua conta para utilização futura.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Proteja a sua conta utilizando uma palavra-passe forte e gerada aleatoriamente. Esta será guardada na sua conta para utilização futura.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Utilizar palavra-passe</string>

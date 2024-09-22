@@ -1325,12 +1325,24 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Adder un nove plica</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Clauder marcapaginas</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Clauder marcapaginas</string>
 
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Cercar in marcapaginas</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Menu de elementos pro %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Nulle marcapaginas acora</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Salva le sitos durante le navigation. Accede pro acquirer le marcapaginas ab altere apparatos synchronisate.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Accede pro synchronisar</string>
+
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Salva le sitos durante le navigation. Nos alsi acquirera marcapaginas ab altere apparatos synchronisate.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Adde marcapaginas dum tu naviga pro trovar tu sitos preferite plus tarde.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

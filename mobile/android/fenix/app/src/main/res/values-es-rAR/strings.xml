@@ -1319,15 +1319,15 @@
     <string name="bookmark_item_menu_button_content_description">Menú ítem para %s</string>
 
     <!-- Title for the bookmark list empty state-->
-    <string name="bookmark_empty_list_title">No hay marcadores aún</string>
+    <string name="bookmark_empty_list_title">Todavía no hay marcadores</string>
     <!-- Description for the bookmark list empty state when you're not signed into sync. -->
-    <string name="bookmark_empty_list_guest_description">Guarda sitios mientras navegas. Inicia sesión para obtener marcadores de otros dispositivos sincronizados.</string>
+    <string name="bookmark_empty_list_guest_description">Guarda sitios mientras se navega. Iniciá sesión para traer marcadores de otros dispositivos sincronizados.</string>
     <!-- Text for the button to navigate to sync authentication -->
-    <string name="bookmark_empty_list_guest_cta">Ingresar a Sync</string>
+    <string name="bookmark_empty_list_guest_cta">Iniciá sesión para sincronizar</string>
     <!-- Description for the bookmark list empty state when you're signed into sync. -->
-    <string name="bookmark_empty_list_authenticated_description">Guarda sitios mientras navegas. También capturaremos marcadores de otros dispositivos sincronizados.</string>
+    <string name="bookmark_empty_list_authenticated_description">Guarda sitios mientras se navega. También traeremos marcadores de otros dispositivos sincronizados.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
-    <string name="bookmark_empty_list_folder_description">Agregue marcadores mientras navega para poder encontrar sus sitios favoritos más tarde.</string>
+    <string name="bookmark_empty_list_folder_description">Agregá marcadores al navegar para poder encontrar tus sitios favoritos más tarde.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

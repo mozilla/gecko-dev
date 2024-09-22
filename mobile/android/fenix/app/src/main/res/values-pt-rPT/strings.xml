@@ -243,7 +243,7 @@
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Adicionar ao ecrã inicial…</string>
     <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
-    <string name="browser_menu_add_to_homescreen_xiaomi">Os dispositivos XML podem precisar de permissões extra para adicionar atalhos ao ecrã inicial. Por favor, verifique as suas definições.</string>
+    <string name="browser_menu_add_to_homescreen_xiaomi">Os dispositivos Xiaomi podem necessitar de permissões adicionais para adicionar atalhos ao ecrã principal. Verifique as suas definições.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Ressincronizar</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -909,7 +909,7 @@
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">Submeter relatórios de falha automaticamente</string>
     <!-- Preference switch description for automatically submitting crash reports -->
-    <string name="preferences_automatically_submit_crashes_description">Partilha dados de falha automaticamente no arranque com a Mozilla após a ocorrência de falhas</string>
+    <string name="preferences_automatically_submit_crashes_description">Após ocorrerem falhas, partilha automaticamente dados sobre as mesmas com a Mozilla ao iniciar</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Estudos</string>
     <!-- Summary for studies preferences -->
@@ -2859,9 +2859,9 @@
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Qual o seu grau de satisfação com a sua página inicial do Firefox?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Quão satisfeito(a) está com a experiência de pesquisa no Firefox?</string>
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Qual o seu grau de satisfação com a experiência de pesquisa no Firefox?</string>
     <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Quão satisfeito(a) está com a experiência de sincronização no Firefox?</string>
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Qual o seu grau de satisfação com a experiência de sincronização no Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logótipo do Firefox</string>
@@ -2901,7 +2901,7 @@
     <string name="exit_fullscreen_with_gesture_short">Arraste do topo e utilize o gesto de retroceder para sair</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
     <!-- Localisation note: this text should be as short as possible, max 68 chars -->
-    <string name="exit_fullscreen_with_back_button_short">Arraste de cima e pressione para trás para sair</string>
+    <string name="exit_fullscreen_with_back_button_short">Arraste do topo e pressione para trás para sair</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

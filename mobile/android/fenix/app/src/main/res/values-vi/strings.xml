@@ -1287,11 +1287,22 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Thêm một thư mục mới</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Đóng dấu trang</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Đóng dấu trang</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Tìm kiếm dấu trang</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Mục menu cho %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Chưa có dấu trang nào</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Lưu các trang web khi bạn duyệt. Đăng nhập để lấy dấu trang từ các thiết bị được đồng bộ hóa khác.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Đăng nhập để đồng bộ hóa</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Lưu các trang web khi bạn duyệt. Chúng tôi cũng sẽ lấy dấu trang từ các thiết bị được đồng bộ hóa khác cho bạn.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Thêm dấu trang khi bạn duyệt để bạn có thể tìm thấy các trang web yêu thích của mình sau này.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

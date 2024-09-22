@@ -456,7 +456,7 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox 개인정보처리방침</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox 개인정보 보호정책</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">우리는 사용자를 안전하게 지키는 것을 좋아합니다</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
@@ -474,7 +474,7 @@
     <string name="juno_onboarding_default_browser_description_nimbus_2" moz:RemovedIn="124" tools:ignore="UnusedResources">당사의 비영리 지원 브라우저는 회사가 웹에서 비밀리에 사용자를 추적하는 것을 방지하는 데 도움이 됩니다.\n\n개인정보처리방침에서 더 알아보세요.</string>
     <!-- Text for the link to the privacy notice webpage for set as firefox default browser screen.
     This is part of the string with the key "juno_onboarding_default_browser_description". -->
-    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">개인정보처리방침</string>
+    <string name="juno_onboarding_default_browser_description_link_text" moz:RemovedIn="124" tools:ignore="UnusedResources">개인정보 보호정책</string>
     <!-- Text for the button to set firefox as default browser on the device -->
     <string name="juno_onboarding_default_browser_positive_button" tools:ignore="UnusedResources">기본 브라우저로 설정</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -1888,7 +1888,7 @@
     <!-- About page link text to list of past crashes (like about:crashes on desktop) -->
     <string name="about_crashes">충돌</string>
     <!-- About page link text to open privacy notice link -->
-    <string name="about_privacy_notice">개인정보처리방침</string>
+    <string name="about_privacy_notice">개인정보 보호정책</string>
 
     <!-- About page link text to open know your rights link -->
     <string name="about_know_your_rights">권리 읽기</string>
@@ -2527,7 +2527,7 @@
     <!-- Caption text to be displayed in review quality check contextual onboarding card above the opt-in button. First parameter is Firefox app name, third parameter is the Fakespot product name. Second & fourth are for clickable texts defined in review_quality_check_contextual_onboarding_privacy_policy_3 and review_quality_check_contextual_onboarding_terms_use. -->
     <string name="review_quality_check_contextual_onboarding_caption_4">“사용해보기”를 선택하면 %1$s의 %2$s와 %3$s의 %4$s에 동의하게 됩니다.</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot privacy notice. -->
-    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">개인 정보 보호 정책</string>
+    <string name="review_quality_check_contextual_onboarding_privacy_policy_3">개인정보 보호정책</string>
     <!-- Clickable text from the review quality check contextual onboarding card that links to Fakespot terms of use. -->
     <string name="review_quality_check_contextual_onboarding_terms_use">사용 약관</string>
     <!-- Text for opt-in button from the review quality check contextual onboarding card. -->
@@ -2876,7 +2876,7 @@
     <!-- The survey header -->
     <string name="micro_survey_survey_header_2">설문 조사를 완료해 주세요</string>
     <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice_2">개인정보처리방침</string>
+    <string name="micro_survey_privacy_notice_2">개인정보 보호정책</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">보내기</string>
 
