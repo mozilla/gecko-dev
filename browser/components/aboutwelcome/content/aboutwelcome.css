@@ -2784,6 +2784,8 @@ html {
   transition-delay: 0.8s;
 }
 .onboardingContainer .dialog-initial .tiles-single-select-section,
+.onboardingContainer .dialog-initial .inline-image,
+.onboardingContainer .dialog-initial .link-paragraph,
 .onboardingContainer .dialog-initial .multi-select-container,
 .onboardingContainer .dialog-initial migration-wizard {
   transition-delay: 0.9s;
@@ -2798,6 +2800,8 @@ html {
   transition-delay: 1s;
 }
 .onboardingContainer .screen:not(.dialog-initial) .tiles-single-select-section,
+.onboardingContainer .screen:not(.dialog-initial) .inline-image,
+.onboardingContainer .screen:not(.dialog-initial) .link-paragraph,
 .onboardingContainer .screen:not(.dialog-initial) .multi-select-container {
   transition-delay: 0.2s;
 }
@@ -2857,6 +2861,8 @@ html {
 .onboardingContainer.transition-in .screen .welcome-text,
 .onboardingContainer.transition-in .screen .multi-select-container,
 .onboardingContainer.transition-in .screen .tiles-single-select-section,
+.onboardingContainer.transition-in .screen .link-paragraph,
+.onboardingContainer.transition-in .screen .inline-image,
 .onboardingContainer.transition-in .screen .primary,
 .onboardingContainer.transition-in .screen .checkbox-container:not(.multi-select-item),
 .onboardingContainer.transition-in .screen .secondary,
@@ -2887,6 +2893,8 @@ html {
   transition-delay: 0.1s;
 }
 .onboardingContainer.transition-out .screen:not(.dialog-last) .tiles-single-select-section,
+.onboardingContainer.transition-out .screen:not(.dialog-last) .inline-image,
+.onboardingContainer.transition-out .screen:not(.dialog-last) .link-paragraph,
 .onboardingContainer.transition-out .screen:not(.dialog-last) migration-wizard {
   opacity: 0;
   translate: 0 var(--translate);
@@ -2915,6 +2923,10 @@ html {
   opacity: 0;
   translate: 0 calc(2 * var(--translate));
   transition-delay: 0.4s;
+}
+.onboardingContainer .inline-image,
+.onboardingContainer .link-paragraph {
+  transition: var(--transition);
 }
 .onboardingContainer migration-wizard {
   width: unset;

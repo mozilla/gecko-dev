@@ -39,6 +39,8 @@ support-files = [
 
 ["browser_sma_open_protection_report.js"]
 
+["browser_sma_open_sidebar.js"]
+
 ["browser_sma_open_spotlight_dialog.js"]
 
 ["browser_sma_open_url.js"]

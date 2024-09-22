@@ -33,6 +33,11 @@ Opens the Firefox View pseudo-tab.
 
 Opens a new private browsing window.
 
+### `OPEN_SIDEBAR`
+
+* args: `string` id of the pane to open, e.g., viewHistorySidebar
+
+Opens a sidebar pane.
 
 ### `OPEN_URL`
 

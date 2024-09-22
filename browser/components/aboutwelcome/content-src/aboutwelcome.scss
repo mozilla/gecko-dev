@@ -2198,6 +2198,8 @@ html {
     }
 
     .tiles-single-select-section,
+    .inline-image,
+    .link-paragraph,
     .multi-select-container,
     migration-wizard {
       transition-delay: 0.9s;
@@ -2217,6 +2219,8 @@ html {
   // Delays for transitioning-in of intermediate screens
   .screen:not(.dialog-initial) {
     .tiles-single-select-section,
+    .inline-image,
+    .link-paragraph,
     .multi-select-container
      {
       transition-delay: 0.2s;
@@ -2295,6 +2299,8 @@ html {
       .welcome-text,
       .multi-select-container,
       .tiles-single-select-section,
+      .link-paragraph,
+      .inline-image,
       .primary,
       .checkbox-container:not(.multi-select-item),
       .secondary,
@@ -2338,6 +2344,8 @@ html {
       // content that is nested between inner main content and navigation CTAs
       // requires an additional 0.1s transition to avoid overlap
       .tiles-single-select-section,
+      .inline-image,
+      .link-paragraph,
       migration-wizard {
         opacity: 0;
         translate: 0 var(--translate);
@@ -2374,6 +2382,11 @@ html {
         transition-delay: 0.4s;
       }
     }
+  }
+
+  .inline-image,
+  .link-paragraph {
+    transition: var(--transition);
   }
 
   migration-wizard {

@@ -484,6 +484,9 @@ export const SpecialMessageActions = {
         // Forcefully open about:privatebrowsing
         window.OpenBrowserWindow({ private: true });
         break;
+      case "OPEN_SIDEBAR":
+        window.SidebarController.show(action.data);
+        break;
       case "OPEN_URL":
         window.openLinkIn(
           Services.urlFormatter.formatURL(action.data.args),

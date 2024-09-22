@@ -211,6 +211,22 @@
           "type": "object",
           "properties": {
             "data": {
+              "type": "string",
+              "description": "Id of the pane to open, e.g., viewHistorySidebar"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["OPEN_SIDEBAR"]
+            }
+          },
+          "required": ["data", "type"],
+          "additionalProperties": false,
+          "description": "Opens a sidebar pane"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "data": {
               "type": "object",
               "properties": {
                 "args": {
