@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Foreslå sterkt passord</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Foreslå sterkt passord</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Bruk sterkt passord</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Bruk sterkt passord: %1$s</string>
@@ -129,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Beskytt kontoene dine ved å bruke et sterkt, tilfeldig generert passord. Få rask tilgang til passordene dine ved å lagre dem på kontoen din.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Beskytt dine kontoer ved å bruke et sterkt, tilfeldig generert passord. Den blir lagret på kontoen din for fremtidig bruk.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Beskytt dine kontoer ved å bruke et sterkt, tilfeldig generert passord. Den blir lagret på kontoen din for fremtidig bruk.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Beskytt kontoen din ved å bruke et sterkt, tilfeldig generert passord. Den blir lagret på kontoen din for fremtidig bruk.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Bruk passord</string>
@@ -203,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Bruk %1$s som innloggingsleverandør</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[ Å logge på %1$s med en %2$s-konto er underlagt deres <a href="%3$s">personvernbestemmelser</a> og <a href="%4$s">tjenestevilkår</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[ Å logge på %1$s med en %2$s-konto er underlagt deres <a href="%3$s">personvernbestemmelser</a> og <a href="%4$s">tjenestevilkår</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Fortsett</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

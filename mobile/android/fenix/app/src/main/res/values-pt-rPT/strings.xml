@@ -1294,11 +1294,22 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Adicionar uma nova pasta</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Fechar marcadores</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Fechar marcadores</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Pesquisar marcadores</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Item de Menu para %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Ainda sem marcadores</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Guarde sites enquanto navega. Inicie sessão para obter os marcadores de outros dispositivos sincronizados.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Iniciar sessão para sincronizar</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Guarde sites enquanto navega. Também iremos obter marcadores de outros dispositivos sincronizados.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Adicione marcadores enquanto navega para que possa encontrar os seus sites favoritos mais tarde.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

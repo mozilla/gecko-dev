@@ -118,8 +118,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Mócne gronidło naraźiś</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">Mócne gronidło naraźiś</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">Mócne gronidło wužywaś</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Mócne gronidło wužywaś: %1$s</string>
@@ -131,7 +129,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Wužywajśo mócne, pśipadnje generěrowane gronidło, aby swóje konta šćitał. Dostańśo malsny pśistup k swójim gronidłam, gaž jo w swójom konśe składujośo.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Wužywajśo mócne, pśipadnje generěrowane gronidło, aby swóje konta šćitał. Buźo se do wašogo konta za pśichodne wužywanje składowaś.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Wužywajśo mócne, pśipadnje generěrowane gronidło, aby swóje konta šćitał. Buźo se do wašogo konta za pśichodne wužywanje składowaś.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Wužywajśo mócne, pśipadnje generěrowane gronidło, aby swójo konto šćitał. Buźo se do wašogo konta za pśichodne wužywanje składowaś.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Gronidło wužywaś</string>
@@ -205,7 +206,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">%1$s ako pśizjawjeńskego póbitowarja wužywaś</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Pśizjawjenje pla %1$s z kontom %2$s jogo <a href="%3$s">pšawidłam priwatnosći</a> a <a href="%4$s">wužywańskim wuměnjenjam</a> pódlažy]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Pśizjawjenje pla %1$s z kontom %2$s jogo <a href="%3$s">pšawidłam priwatnosći</a> a <a href="%4$s">wužywańskim wuměnjenjam</a> pódlažy]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Dalej</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

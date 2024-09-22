@@ -119,9 +119,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Nyt: Pile til at gå frem og tilbage med et enkelt tryk</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nyt: Pile til at gå frem og tilbage med et enkelt tryk</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Nyd hurtigere navigation, der altid er lige ved hånden.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Nyd hurtigere navigation, der altid er lige ved hånden.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Adgang til kamera er nødvendig. Gå til Indstillinger i Android, tryk på Tilladelser, og tryk så på Tillad.</string>
@@ -215,6 +215,10 @@
     <string name="browser_menu_extensions_banner_learn_more">Læs mere</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Håndter udvidelser</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Anbefalede udvidelser</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Tilføj udvidelse</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Opdag flere udvidelser</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -237,6 +241,8 @@
     <string name="browser_menu_add_to_homescreen">Føj til startskærm</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Føj til startskærm…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Xiaomi-enheder kan have brug for ekstra tilladelser for at tilføje genveje til startskærmen. Kontroller dine indstillinger.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Synkroniser igen</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -305,7 +311,7 @@
     <string name="browser_menu_switch_to_mobile_site">Skift til mobiludgaven</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Funktioner</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Tilbage til hovedmenuen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Læsevisning, Oversæt, Udskriv, Del, Åbn app</string>
@@ -406,7 +412,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Mød din tilpassede startside. Seneste faneblade, bogmærker og søgeresultater vises her.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Mød din tilpassede startside. Seneste faneblade, bogmærker og søgeresultater vises her.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Velkommen til et mere personligt internet</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -575,13 +581,9 @@
     <!-- Text for cancel button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
     <string name="cookie_banner_handling_details_site_is_not_supported_cancel_button">Annuller</string>
     <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Send anmodning</string>
-    <!-- Text for request support button indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_3">Spørg om at tilføje websted</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_request_support_button_2">Send anmodning</string>
     <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Anmod om understøttelse af dette websted?</string>
-    <!-- Text for title indicating that cookie banner reduction is not supported for the current site, this is shown as part of the cookie banner details view. The first parameter is the application name -->
-    <string name="cookie_banner_handling_details_site_is_not_supported_title_3">Bed %1$s om automatisk at afvise cookies</string>
+    <string name="cookie_banner_handling_details_site_is_not_supported_title_2">Anmod om understøttelse af dette websted?</string>
     <!-- Label for the snackBar, after the user reports with success a website where cookie banner reducer did not work -->
     <string name="cookie_banner_handling_report_site_snack_bar_text_2">Anmodning sendt</string>
     <!-- Text for indicating cookie banner handling is on this site, this is shown as part of the protections panel with the tracking protection toggle -->
@@ -589,19 +591,15 @@
     <!-- Text for indicating that a request for unsupported site was sent to Nimbus (it's a Mozilla library for experiments), this is shown as part of the protections panel with the tracking protection toggle -->
     <string name="reduce_cookie_banner_unsupported_site_request_submitted_2">Anmodning om understøttelse sendt</string>
     <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site" moz:RemovedIn="130" tools:ignore="UnusedResources">Webstedet understøttes ikke i øjeblikket</string>
-    <!-- Text for indicating cookie banner handling is currently not supported for this site, this is shown as part of the protections panel with the tracking protection toggle -->
-    <string name="reduce_cookie_banner_unsupported_site_1">Websted ikke understøttet</string>
+    <string name="reduce_cookie_banner_unsupported_site">Webstedet understøttes ikke i øjeblikket</string>
     <!-- Title text for a detail explanation indicating cookie banner handling is on this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_on_for_site_1">Slå blokering af cookie-bannere til for %1$s?</string>
 
     <!-- Title text for a detail explanation indicating cookie banner handling is off this site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is a shortened URL of the current site-->
     <string name="reduce_cookie_banner_details_panel_title_off_for_site_1">Slå blokering af cookie-bannere fra for %1$s?</string>
     <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2" moz:RemovedIn="130" tools:ignore="UnusedResources">%1$s kan ikke afvise cookie-anmodninger automatisk på dette websted. Du kan sende en anmodning om understøttelse af dette websted i fremtiden.</string>
+    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_2">%1$s kan ikke afvise cookie-anmodninger automatisk på dette websted. Du kan sende en anmodning om understøttelse af dette websted i fremtiden.</string>
 
-    <!-- Title text for a detail explanation indicating cookie banner reducer didn't work for the current site, this is shown as part of the cookie banner panel in the toolbar.-->
-    <string name="reduce_cookie_banner_details_panel_title_unsupported_site_request_3">Vi kan ikke automatisk afvise pop op-beskeder om cookies på dette websted lige nu.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is off for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
     <string name="reduce_cookie_banner_details_panel_description_off_for_site_1">Slå funktionen fra - og %1$s vil rydde cookies og genindlæse webstedet. Dette kan logge dig ud eller tømme indkøbskurve.</string>
     <!-- Long text for a detail explanation indicating what will happen if cookie banner handling is on for a site, this is shown as part of the cookie banner panel in the toolbar. The first parameter is the application name -->
@@ -904,6 +902,10 @@
     <string name="preferences_marketing_data">Markedsføringsdata</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Deler grundlæggende data for anvendelse med Adjust, vores samarbejdspartner inden for markedsføring.</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Indsend automatisk fejlrapporter</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Deler automatisk data om nedbrud med Mozilla ved opstart efter et nedbrud</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Undersøgelser</string>
     <!-- Summary for studies preferences -->
@@ -1196,6 +1198,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Gendan faneblad</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s blev nødt til at genstarte</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Send automatisk fejlrapporter</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Luk</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Send fejlrapport</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Er du sikker på, at du vil slette denne mappe?</string>
@@ -1242,8 +1253,12 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">MAPPE</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Gem i</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">NAVN</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Navn</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Tilføj mappe</string>
     <!-- Bookmark select folder screen title -->
@@ -1272,7 +1287,7 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Tilføj en ny mappe</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Luk bogmærker</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Luk bogmærker</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Søg i bogmærker</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -2804,14 +2819,26 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Jeg bruger den ikke</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Jeg bruger ikke søgefunktionen i Firefox</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Jeg bruger ikke synkroniseringsfunktionen</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Hvor tilfreds er du med din startside i Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Hjælp med at gøre udskrivning i Firefox bedre. Det tager kun et øjeblik</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Hjælp os med at gøre søgefunktionen i Firefox bedre. Det tager bare et minut</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Hjælp os med at gøre synkroniseringsfunktionen i Firefox bedre. Det tager bare et minut</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Hvor tilfreds er du med udskrivning i Firefox?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Hvor tilfreds er du med din startside i Firefox?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Hvor tilfreds er du med søgefunktionen i Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Hvor tilfreds er du med synkroniseringsfunktionen i Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox-logo</string>

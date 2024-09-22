@@ -118,7 +118,7 @@
     <string name="navbar_navigation_buttons_cfr_message">Trykk og hold pilene for å hoppe mellom sidene i denne fanens historikk.</string>
 
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Gled deg over raskere navigering som alltid er tilgjengelig.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Gled deg over raskere navigering som alltid er tilgjengelig.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Kameratilgang er nødvendig. Gå til Android-innstillinger, trykk på tillatelser, og trykk på tillat.</string>
@@ -212,6 +212,10 @@
     <string name="browser_menu_extensions_banner_learn_more">Les mer</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Behandle utvidelser</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Anbefalte utvidelser</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Legg til utvidelse</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Oppdag flere utvidelser</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -303,7 +307,7 @@
     <string name="browser_menu_switch_to_mobile_site">Bytt til mobilutgaven</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Verktøy</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Tilbake til hovedmenyen</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Lesevisning, oversett, skriv ut, del, åpne app</string>
@@ -402,7 +406,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Møt din personlige hjemmeside. Nylige faner, bokmerker og søkeresultater vises her.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Møt din personlige hjemmeside. Nylige faner, bokmerker og søkeresultater vises her.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Velkommen til et mer personlig internett</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -894,6 +898,8 @@
     <string name="preferences_marketing_data">Markedsføringsdata</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Deler grunnleggende bruksdata med Adjust, vår mobile markedsføringsleverandør</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Send inn krasjrapporter automatisk</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Undersøkelse</string>
     <!-- Summary for studies preferences -->
@@ -1189,6 +1195,11 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Gjenopprett fane</string>
 
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Lukk</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Send krasjrapport</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Er du sikker på at du vil slette denne mappen?</string>
@@ -1270,7 +1281,7 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Legg til en ny mappe</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Lukk bokmerker</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Lukk bokmerker</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Søk i bokmerker</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->

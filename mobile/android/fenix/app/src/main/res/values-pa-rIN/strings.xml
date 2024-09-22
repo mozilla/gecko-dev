@@ -124,9 +124,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">ਨਵਾਂ: ਇੱਕ ਛੋਹ ਨਾਲ ਅੱਗੇ ਅਤੇ ਪਿੱਛੇ ਲੈ ਜਾਣ ਵਾਲੇ ਤੀਰ</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">ਨਵਾਂ: ਇੱਕ ਛੋਹ ਨਾਲ ਅੱਗੇ ਅਤੇ ਪਿੱਛੇ ਲੈ ਜਾਣ ਵਾਲੇ ਤੀਰ</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">ਫ਼ੌਰੀ ਨੇਵੀਗੇਸ਼ਨ, ਜੋ ਹਮੇਸ਼ਾਂ ਤੁਹਾਡੀ ਪਹੁੰਚ ਵੱਚ ਹੁੰਦੀ ਹੈ, ਦਾ ਆਨੰਦ ਮਾਣੋ।</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ਫ਼ੌਰੀ ਨੇਵੀਗੇਸ਼ਨ, ਜੋ ਹਮੇਸ਼ਾਂ ਤੁਹਾਡੀ ਪਹੁੰਚ ਵੱਚ ਹੁੰਦੀ ਹੈ, ਦਾ ਆਨੰਦ ਮਾਣੋ।</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">ਕੈਮਰੇ ਲਈ ਪਹੁੰਚ ਚਾਹੀਦੀ ਹੈ। Android ਸੈਟਿੰਗਾਂ ਉੱਤੇ ਜਾਓ, ਇਜਾਜ਼ਤਾਂ ਨੂੰ
@@ -220,6 +220,10 @@
     <string name="browser_menu_extensions_banner_learn_more">ਹੋਰ ਜਾਣੋ</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">ਇਕਸਟੈਨਸ਼ਨਾਂ ਦਾ ਇੰਤਜ਼ਾਮ</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">ਸਿਫਾਰਸ਼ੀ ਇਕਸਟੈਨਸ਼ਨਾਂ</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">ਇਕਸਟੈਨਸ਼ਨ ਨੂੰ ਜੋੜੋ</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">ਹੋਰ ਇਕਸਟੈਨਸ਼ਨਾਂ ਲੱਭੋ</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -314,7 +318,7 @@
     <string name="browser_menu_switch_to_mobile_site">ਮੋਬਾਈਲ ਸਾਈਟ ਲਈ ਸਵਿੱਚ ਕਰੋ</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">ਟੂਲ</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">ਮੁੱਖ ਮੇਨੂ ਉੱਤੇ ਵਾਪਸ ਜਾਓ</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">ਰੀਡਰ ਝਲਕ, ਉਲੱਥਾ, ਛਾਪਣਾ, ਸ਼ੇਅਰ ਕਰਨਾ ,ਐਪ ਖੋਲ੍ਹਣਾ</string>
@@ -416,7 +420,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">ਤੁਹਾਡੇ ਆਪਣੇ ਬਣਾਏ ਮੁੱਖ-ਸਫ਼ੇ ਨੂੰ ਸਮਝੋ। ਸੱਜਰੀਆਂ ਟੈਬਾਂ, ਬੁੱਕਮਾਰਕ ਅਤੇ ਖੋਜ ਨਤੀਜੇ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ।</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">ਤੁਹਾਡੇ ਆਪਣੇ ਬਣਾਏ ਮੁੱਖ-ਸਫ਼ੇ ਨੂੰ ਸਮਝੋ। ਸੱਜਰੀਆਂ ਟੈਬਾਂ, ਬੁੱਕਮਾਰਕ ਅਤੇ ਖੋਜ ਨਤੀਜੇ ਇੱਥੇ ਦਿਖਾਈ ਦੇਣਗੇ।</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">ਵੱਧ ਨਿੱਜੀ ਇੰਟਰਨੈੱਟ ਲਈ ਜੀ ਆਇਆਂ ਨੂੰ</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -915,6 +919,10 @@
     <string name="preferences_marketing_data">ਮਾਰਕੀਟਿੰਗ ਡਾਟਾ</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">ਕੁਝ ਅਨੁਕੂਲ ਬਣਾ ਕੇ ਮੁੱਢਲਾ ਵਰਤੋਂ ਡਾਟਾ ਸਾਡੇ ਮੋਬਾਈਲ ਮਾਰਕੀਟਿੰਗ ਵੇਂਡਰ ਨਾਲ ਸਾਂਝਾ ਕਰਦਾ ਹੈ</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">ਕਰੈਸ਼ ਰਿਪੋਰਟeਂ ਆਪਣੇ-ਆਪ ਭੇਜੋ</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">ਕਰੈਸ਼ ਹੋਣ ਦੇ ਬਾਅਦ ਸ਼ੁਰੂ ਹੋਣ ਦੇ ਬਾਅਦ ਕਰੈਸ਼ ਰਿਪੋਰਟ ਆਪਣੇ-ਆਪ Mozilla ਨੂੰ ਭੇਜੋ</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">ਅਧਿਐਨ</string>
     <!-- Summary for studies preferences -->
@@ -1213,6 +1221,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">ਟੈਬ ਬਹਾਲ ਕਰੋ</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s ਨੂੰ ਮੁੜ ਚਾਲੂ ਕਰਨਾ ਪਿਆ</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">ਕਰੈਸ਼ ਰਿਪੋਰਟਾਂ ਨੂੰ ਆਪਣੇ-ਆਪ ਭੇਜੋ</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">ਬੰਦ ਕਰੋ</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">ਕਰੈਸ਼ ਰਿਪੋਰਟ ਭੇਜੋ</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">ਕੀ ਤੁਸੀਂ ਇਹ ਫੋਲਡਰ ਨੂੰ ਹਟਾਉਣਾ ਚਾਹੁੰਦੇ ਹੋ?</string>
@@ -1293,7 +1310,7 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">ਨਵਾਂ ਫੋਲਡਰ ਜੋੜੋ</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">ਬੁੱਕਮਾਰਕ ਨੂੰ ਬੰਦ ਕਰੋ</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">ਬੁੱਕਮਾਰਕ ਨੂੰ ਬੰਦ ਕਰੋ</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">ਬੁੱਕਮਾਰਕ ਖੋਜੋ</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
@@ -2836,16 +2853,24 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">ਮੈ ਇਸ ਨੂੰ ਨਹੀਂ ਵਰਤਦਾ/ਵਰਤਦੀ ਹਾਂ</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">ਮੈਂ Firefox ਉੱਤੇ ਖੋਜ ਨੂੰ ਨਹੀਂ ਵਰਤਦਾ/ਵਰਤਦੀ ਹੈ</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">ਮੈ ਸਿੰਕ ਨੂੰ ਨਹੀਂ ਵਰਤਦਾ/ਵਰਤਦੀ ਹਾਂ</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Firefox ਮੁੱਖ-ਸਫ਼ੇ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਕੁ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">ਮਦਦ Firefox ਵਿੱਚ ਪਰਿੰਟ ਕਰਨ ਨੂੰ ਬੇਤਹਰ ਬਣਾਉਂਦੀ ਹੈ। ਇਸ ਨੂੰ ਸਿਰਫ਼ ਸਕਿੰਟ ਹੀ ਲੱਗੇਗਾ</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Firefox ਵਿੱਚ ਖੋਜ ਨੂੰ ਬੇਹਤਰ ਬਣਾਉਣ ਲਈ ਮਦਦ ਕਰੋ। ਇਸ ਨੂੰ ਮਿੰਟ ਕੁ ਹੀ ਲੱਗੇਗਾ।</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Firefox ਵਿੱਚ ਲਿੰਕ ਨੂੰ ਬੇਹਤਰ ਬਣਾਉਣ ਲਈ ਮਦਦ ਕਰੋ। ਇਸ ਨੂੰ ਮਿੰਟ ਕੁ ਹੀ ਲੱਗੇਗਾ।</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Firefox ਵਿੱਚ ਪਰਿੰਟ ਕਰਨ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Firefox ਮੁੱਖ-ਸਫ਼ੇ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਕੁ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Firefox ਵਿੱਚ ਖੋਜ ਤਜਰਬੇ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Firefox ਵਿੱਚ ਸਿੰਕ ਤਜਰਬੇ ਨਾਲ ਤੁਸੀਂ ਕਿੰਨੇ ਸੰਤੁਸ਼ਟ ਹੋ?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox ਲੋਗੋ</string>

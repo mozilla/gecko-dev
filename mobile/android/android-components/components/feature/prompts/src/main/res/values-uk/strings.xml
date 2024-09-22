@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Захистіть свої облікові записи за допомогою надійного, випадково згенерованого пароля. Отримайте швидкий доступ до своїх паролів, зберігши їх у своєму обліковому записі.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Захистіть свої облікові записи за допомогою надійного, випадково згенерованого пароля. Його буде збережено у вашому обліковому записі для подальшого використання.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Захистіть свої облікові записи за допомогою надійного, випадково згенерованого пароля. Його буде збережено у вашому обліковому записі для подальшого використання.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Захистіть свій обліковий запис за допомогою надійного, випадково згенерованого пароля. Його буде збережено у вашому обліковому записі для подальшого використання.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Використати пароль</string>
