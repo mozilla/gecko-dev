@@ -4,8 +4,6 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
-import androidx.annotation.VisibleForTesting
-import androidx.annotation.VisibleForTesting.Companion.PRIVATE
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -13,7 +11,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mozilla.appservices.places.BookmarkRoot
-import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
@@ -50,7 +47,6 @@ internal class BookmarksMiddleware(
 
     private val scope = CoroutineScope(ioDispatcher)
 
-    @Suppress("LongMethod", "ComplexMethod")
     override fun invoke(
         context: MiddlewareContext<BookmarksState, BookmarksAction>,
         next: (BookmarksAction) -> Unit,
@@ -71,7 +67,6 @@ internal class BookmarksMiddleware(
             )
             AddFolderClicked -> navController.navigate(BookmarksDestinations.ADD_FOLDER)
             SignIntoSyncClicked -> navigateToSignIntoSync()
-            is EditBookmarkClicked -> navController.navigate(BookmarksDestinations.EDIT_BOOKMARK)
             BackClicked -> {
                 when {
                     // non-list screen cases need to come first, since we presume if all subscreen
@@ -84,18 +79,6 @@ internal class BookmarksMiddleware(
                                 bookmarksStorage.addFolder(
                                     parentGuid = preReductionState.folderGuid,
                                     title = newFolderTitle,
-                                )
-                            }
-                            context.store.tryDispatchLoadFor(preReductionState.folderGuid)
-                        }
-                    }
-                    preReductionState.bookmarksEditBookmarkState != null -> {
-                        navController.popBackStack()
-                        scope.launch(ioDispatcher) {
-                            preReductionState.createBookmarkInfo()?.also {
-                                bookmarksStorage.updateNode(
-                                    guid = preReductionState.bookmarksEditBookmarkState.bookmark.guid,
-                                    info = it,
                                 )
                             }
                             context.store.tryDispatchLoadFor(preReductionState.folderGuid)
@@ -119,22 +102,9 @@ internal class BookmarksMiddleware(
                     }
                 }
             }
-            EditBookmarkAction.FolderClicked -> { /* Navigate to folder picker */ }
-            EditBookmarkAction.DeleteClicked -> {
-                // Bug 1919949 — Add undo snackbar to delete action.
-                navController.popBackStack()
-                scope.launch(ioDispatcher) {
-                    preReductionState.bookmarksEditBookmarkState?.also {
-                        bookmarksStorage.deleteNode(it.bookmark.guid)
-                    }
-                    context.store.tryDispatchLoadFor(preReductionState.folderGuid)
-                }
-            }
             AddFolderAction.ParentFolderClicked -> {
                 // TODO this will navigate to the select folder screen
             }
-            is EditBookmarkAction.TitleChanged,
-            is EditBookmarkAction.URLChanged,
             is BookmarkLongClicked,
             is FolderLongClicked,
             is BookmarksLoaded,
@@ -178,14 +148,4 @@ internal class BookmarksMiddleware(
 
     private fun NavController.previousDestinationWasHome(): Boolean =
         previousBackStackEntry?.destination?.id == R.id.homeFragment
-}
-
-@VisibleForTesting(otherwise = PRIVATE)
-internal fun BookmarksState.createBookmarkInfo() = bookmarksEditBookmarkState?.let { state ->
-    BookmarkInfo(
-        parentGuid = state.folder.guid,
-        position = bookmarkItems.indexOfFirst { it.guid == state.bookmark.guid }.toUInt(),
-        title = state.bookmark.title,
-        url = state.bookmark.url,
-    )
 }

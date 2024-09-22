@@ -20,12 +20,6 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     } else {
         state
     }
-    is EditBookmarkClicked -> state.copy(
-        bookmarksEditBookmarkState = BookmarksEditBookmarkState(
-            bookmark = action.bookmark,
-            folder = BookmarkItem.Folder(title = state.folderTitle, guid = state.folderGuid),
-        ),
-    )
     is BookmarkClicked -> if (state.selectedItems.isNotEmpty()) {
         state.toggleSelectionOf(action.item)
     } else {
@@ -36,23 +30,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
             folderBeingAddedTitle = action.updatedText,
         ),
     )
-    is EditBookmarkAction.TitleChanged -> state.copy(
-        bookmarksEditBookmarkState = state.bookmarksEditBookmarkState?.let {
-            it.copy(
-                bookmark = it.bookmark.copy(title = action.title),
-            )
-        },
-    )
-    is EditBookmarkAction.URLChanged -> state.copy(
-        bookmarksEditBookmarkState = state.bookmarksEditBookmarkState?.let {
-            it.copy(
-                bookmark = it.bookmark.copy(url = action.url),
-            )
-        },
-    )
-    EditBookmarkAction.DeleteClicked -> state.copy(bookmarksEditBookmarkState = null)
     BackClicked -> state.respondToBackClick()
-    EditBookmarkAction.FolderClicked,
     AddFolderAction.ParentFolderClicked,
     SearchClicked,
     AddFolderClicked,
@@ -70,6 +48,5 @@ private fun BookmarksState.toggleSelectionOf(item: BookmarkItem): BookmarksState
 
 private fun BookmarksState.respondToBackClick(): BookmarksState = when {
     bookmarksAddFolderState != null -> copy(bookmarksAddFolderState = null)
-    bookmarksEditBookmarkState != null -> copy(bookmarksEditBookmarkState = null)
     else -> this
 }
