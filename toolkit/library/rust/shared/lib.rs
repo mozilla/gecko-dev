@@ -46,7 +46,6 @@ extern crate processtools;
 #[cfg(feature = "gecko_profiler")]
 extern crate profiler_helper;
 extern crate rsdparsa_capi;
-extern crate signature_cache;
 extern crate static_prefs;
 extern crate storage;
 extern crate webrender_bindings;

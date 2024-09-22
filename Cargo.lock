@@ -2358,7 +2358,6 @@ dependencies = [
  "rure",
  "rusqlite",
  "rust_minidump_writer_linux",
- "signature_cache",
  "static_prefs",
  "storage",
  "unic-langid",
@@ -5463,13 +5462,6 @@ name = "shlex"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "43b2853a4d09f215c24cc5489c992ce46052d359b5109343cbafbf26bc62f8a3"
-
-[[package]]
-name = "signature_cache"
-version = "0.1.0"
-dependencies = [
- "hashlink",
-]
 
 [[package]]
 name = "siphasher"

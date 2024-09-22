@@ -8,17 +8,11 @@
 
 #include "CTObjectsExtractor.h"
 #include "CTSerialization.h"
-#include "mozilla/StaticPrefs_security.h"
 
 namespace mozilla {
 namespace ct {
 
 using namespace mozilla::pkix;
-
-MultiLogCTVerifier::MultiLogCTVerifier()
-    : mSignatureCache(signature_cache_new(
-                          StaticPrefs::security_pki_sct_signature_cache_size()),
-                      signature_cache_free) {}
 
 void MultiLogCTVerifier::AddLog(CTLogVerifier&& log) {
   mLogs.push_back(std::move(log));
@@ -155,7 +149,7 @@ Result MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
     return Success;
   }
 
-  Result rv = matchingLog->Verify(expectedEntry, sct, mSignatureCache.get());
+  Result rv = matchingLog->Verify(expectedEntry, sct);
   if (rv != Success) {
     if (rv == Result::ERROR_BAD_SIGNATURE) {
       result.sctsWithInvalidSignatures++;

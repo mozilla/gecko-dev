@@ -20,18 +20,17 @@
 #include "mozilla/Casting.h"
 #include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/Logging.h"
-#include "mozilla/StaticPrefs_security.h"
+#include "nsNSSComponent.h"
 #include "mozilla/SyncRunnable.h"
+#include "nsPromiseFlatString.h"
+#include "nsServiceManagerUtils.h"
+#include "pk11pub.h"
 #include "mozpkix/pkix.h"
 #include "mozpkix/pkixcheck.h"
 #include "mozpkix/pkixnss.h"
 #include "mozpkix/pkixutil.h"
-#include "nsNSSComponent.h"
-#include "nsNetCID.h"
-#include "nsPromiseFlatString.h"
-#include "nsServiceManagerUtils.h"
-#include "pk11pub.h"
 #include "secmod.h"
+#include "nsNetCID.h"
 
 using namespace mozilla::ct;
 using namespace mozilla::pkix;
@@ -69,11 +68,7 @@ CertVerifier::CertVerifier(OcspDownloadConfig odc, OcspStrictConfig osc,
       mCertShortLifetimeInDays(certShortLifetimeInDays),
       mNetscapeStepUpPolicy(netscapeStepUpPolicy),
       mCTMode(ctMode),
-      mCRLiteMode(crliteMode),
-      mSignatureCache(
-          signature_cache_new(
-              StaticPrefs::security_pki_cert_signature_cache_size()),
-          signature_cache_free) {
+      mCRLiteMode(crliteMode) {
   LoadKnownCTLogs();
   mThirdPartyCerts = thirdPartyCerts.Clone();
   for (const auto& root : mThirdPartyCerts) {
@@ -464,12 +459,12 @@ Result CertVerifier::VerifyCert(
       // XXX: We don't really have a trust bit for SSL client authentication so
       // just use trustEmail as it is the closest alternative.
       NSSCertDBTrustDomain trustDomain(
-          trustEmail, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
-          pinArg, mOCSPTimeoutSoft, mOCSPTimeoutHard, mCertShortLifetimeInDays,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          NetscapeStepUpPolicy::NeverMatch, mCRLiteMode, originAttributes,
-          mThirdPartyRootInputs, mThirdPartyIntermediateInputs,
-          extraCertificates, builtChain, nullptr, nullptr);
+          trustEmail, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, NetscapeStepUpPolicy::NeverMatch,
+          mCRLiteMode, originAttributes, mThirdPartyRootInputs,
+          mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
+          nullptr);
       rv = BuildCertChain(
           trustDomain, certDER, time, EndEntityOrCA::MustBeEndEntity,
           KeyUsage::digitalSignature, KeyPurposeId::id_kp_clientAuth,
@@ -497,12 +492,12 @@ Result CertVerifier::VerifyCert(
       rv = Result::ERROR_UNKNOWN_ERROR;
       for (const auto& evPolicy : evPolicies) {
         NSSCertDBTrustDomain trustDomain(
-            trustSSL, evOCSPFetching, mOCSPCache, mSignatureCache.get(), pinArg,
-            mOCSPTimeoutSoft, mOCSPTimeoutHard, mCertShortLifetimeInDays,
-            MIN_RSA_BITS, ValidityCheckingMode::CheckForEV,
-            mNetscapeStepUpPolicy, mCRLiteMode, originAttributes,
-            mThirdPartyRootInputs, mThirdPartyIntermediateInputs,
-            extraCertificates, builtChain, pinningTelemetryInfo, hostname);
+            trustSSL, evOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
+            mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS,
+            ValidityCheckingMode::CheckForEV, mNetscapeStepUpPolicy,
+            mCRLiteMode, originAttributes, mThirdPartyRootInputs,
+            mThirdPartyIntermediateInputs, extraCertificates, builtChain,
+            pinningTelemetryInfo, hostname);
         rv = BuildCertChainForOneKeyUsage(
             trustDomain, certDER, time,
             KeyUsage::digitalSignature,  // (EC)DHE
@@ -559,9 +554,8 @@ Result CertVerifier::VerifyCert(
         }
 
         NSSCertDBTrustDomain trustDomain(
-            trustSSL, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
-            pinArg, mOCSPTimeoutSoft, mOCSPTimeoutHard,
-            mCertShortLifetimeInDays, keySizeOptions[i],
+            trustSSL, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
+            mOCSPTimeoutHard, mCertShortLifetimeInDays, keySizeOptions[i],
             ValidityCheckingMode::CheckingOff, mNetscapeStepUpPolicy,
             mCRLiteMode, originAttributes, mThirdPartyRootInputs,
             mThirdPartyIntermediateInputs, extraCertificates, builtChain,
@@ -614,12 +608,12 @@ Result CertVerifier::VerifyCert(
 
     case certificateUsageSSLCA: {
       NSSCertDBTrustDomain trustDomain(
-          trustSSL, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
-          pinArg, mOCSPTimeoutSoft, mOCSPTimeoutHard, mCertShortLifetimeInDays,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          mNetscapeStepUpPolicy, mCRLiteMode, originAttributes,
-          mThirdPartyRootInputs, mThirdPartyIntermediateInputs,
-          extraCertificates, builtChain, nullptr, nullptr);
+          trustSSL, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, mNetscapeStepUpPolicy, mCRLiteMode,
+          originAttributes, mThirdPartyRootInputs,
+          mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
+          nullptr);
       rv = BuildCertChain(trustDomain, certDER, time, EndEntityOrCA::MustBeCA,
                           KeyUsage::keyCertSign, KeyPurposeId::id_kp_serverAuth,
                           CertPolicyId::anyPolicy, stapledOCSPResponse);
@@ -632,12 +626,12 @@ Result CertVerifier::VerifyCert(
 
     case certificateUsageEmailSigner: {
       NSSCertDBTrustDomain trustDomain(
-          trustEmail, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
-          pinArg, mOCSPTimeoutSoft, mOCSPTimeoutHard, mCertShortLifetimeInDays,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          NetscapeStepUpPolicy::NeverMatch, mCRLiteMode, originAttributes,
-          mThirdPartyRootInputs, mThirdPartyIntermediateInputs,
-          extraCertificates, builtChain, nullptr, nullptr);
+          trustEmail, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, NetscapeStepUpPolicy::NeverMatch,
+          mCRLiteMode, originAttributes, mThirdPartyRootInputs,
+          mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
+          nullptr);
       rv = BuildCertChain(
           trustDomain, certDER, time, EndEntityOrCA::MustBeEndEntity,
           KeyUsage::digitalSignature, KeyPurposeId::id_kp_emailProtection,
@@ -660,12 +654,12 @@ Result CertVerifier::VerifyCert(
       // usage it is trying to verify for, and base its algorithm choices
       // based on the result of the verification(s).
       NSSCertDBTrustDomain trustDomain(
-          trustEmail, defaultOCSPFetching, mOCSPCache, mSignatureCache.get(),
-          pinArg, mOCSPTimeoutSoft, mOCSPTimeoutHard, mCertShortLifetimeInDays,
-          MIN_RSA_BITS_WEAK, ValidityCheckingMode::CheckingOff,
-          NetscapeStepUpPolicy::NeverMatch, mCRLiteMode, originAttributes,
-          mThirdPartyRootInputs, mThirdPartyIntermediateInputs,
-          extraCertificates, builtChain, nullptr, nullptr);
+          trustEmail, defaultOCSPFetching, mOCSPCache, pinArg, mOCSPTimeoutSoft,
+          mOCSPTimeoutHard, mCertShortLifetimeInDays, MIN_RSA_BITS_WEAK,
+          ValidityCheckingMode::CheckingOff, NetscapeStepUpPolicy::NeverMatch,
+          mCRLiteMode, originAttributes, mThirdPartyRootInputs,
+          mThirdPartyIntermediateInputs, extraCertificates, builtChain, nullptr,
+          nullptr);
       rv = BuildCertChain(trustDomain, certDER, time,
                           EndEntityOrCA::MustBeEndEntity,
                           KeyUsage::keyEncipherment,  // RSA
@@ -871,111 +865,6 @@ Result CertVerifier::VerifySSLServerCert(
   }
 
   return Success;
-}
-
-// Take the (data, signature, subjectPublicKeyInfo, publicKeyAlgorithm,
-// digestAlgorithm) tuple that defines a signature and derive a hash that
-// uniquely identifies it. This is done by prefixing each variable-length
-// component (data, signature, and subjectPublicKeyInfo) with
-// sizeof(pkix::Input::size_type) bytes (currently 2) indicating the length of
-// that component and concatenating them together, followed by one byte for the
-// digestAlgorithm. The concatenation is then hashed with sha512.
-// It should be computationally infeasible to find two distinct sets of inputs
-// that have the same sha512 hash (and if it were possible, then it would be
-// possible to break the signature scheme itself).
-void HashSignatureParams(pkix::Input data, pkix::Input signature,
-                         pkix::Input subjectPublicKeyInfo,
-                         pkix::der::PublicKeyAlgorithm publicKeyAlgorithm,
-                         pkix::DigestAlgorithm digestAlgorithm,
-                         /*out*/ Maybe<nsTArray<uint8_t>>& sha512Hash) {
-  sha512Hash.reset();
-  Digest digest;
-  if (NS_FAILED(digest.Begin(SEC_OID_SHA512))) {
-    return;
-  }
-  pkix::Input::size_type dataLength = data.GetLength();
-  if (NS_FAILED(digest.Update(reinterpret_cast<const uint8_t*>(&dataLength),
-                              sizeof(dataLength)))) {
-    return;
-  }
-  if (NS_FAILED(digest.Update(data.UnsafeGetData(), dataLength))) {
-    return;
-  }
-  pkix::Input::size_type signatureLength = signature.GetLength();
-  if (NS_FAILED(
-          digest.Update(reinterpret_cast<const uint8_t*>(&signatureLength),
-                        sizeof(signatureLength)))) {
-    return;
-  }
-  if (NS_FAILED(digest.Update(signature.UnsafeGetData(), signatureLength))) {
-    return;
-  }
-  pkix::Input::size_type spkiLength = subjectPublicKeyInfo.GetLength();
-  if (NS_FAILED(digest.Update(reinterpret_cast<const uint8_t*>(&spkiLength),
-                              sizeof(spkiLength)))) {
-    return;
-  }
-  if (NS_FAILED(
-          digest.Update(subjectPublicKeyInfo.UnsafeGetData(), spkiLength))) {
-    return;
-  }
-  if (NS_FAILED(
-          digest.Update(reinterpret_cast<const uint8_t*>(&publicKeyAlgorithm),
-                        sizeof(publicKeyAlgorithm)))) {
-    return;
-  }
-  if (NS_FAILED(
-          digest.Update(reinterpret_cast<const uint8_t*>(&digestAlgorithm),
-                        sizeof(digestAlgorithm)))) {
-    return;
-  }
-  nsTArray<uint8_t> result;
-  if (NS_FAILED(digest.End(result))) {
-    return;
-  }
-  sha512Hash.emplace(std::move(result));
-}
-
-Result VerifySignedDataWithCache(
-    der::PublicKeyAlgorithm publicKeyAlg,
-    mozilla::glean::impl::DenominatorMetric telemetryDenominator,
-    mozilla::glean::impl::NumeratorMetric telemetryNumerator, Input data,
-    DigestAlgorithm digestAlgorithm, Input signature,
-    Input subjectPublicKeyInfo, SignatureCache* signatureCache, void* pinArg) {
-  telemetryDenominator.Add(1);
-  Maybe<nsTArray<uint8_t>> sha512Hash;
-  HashSignatureParams(data, signature, subjectPublicKeyInfo, publicKeyAlg,
-                      digestAlgorithm, sha512Hash);
-  // If hashing the signature parameters succeeded, see if this signature is in
-  // the signature cache.
-  if (sha512Hash.isSome() &&
-      signature_cache_get(signatureCache, sha512Hash.ref().Elements())) {
-    telemetryNumerator.AddToNumerator(1);
-    return Success;
-  }
-  Result result;
-  switch (publicKeyAlg) {
-    case der::PublicKeyAlgorithm::ECDSA:
-      result = VerifyECDSASignedDataNSS(data, digestAlgorithm, signature,
-                                        subjectPublicKeyInfo, pinArg);
-      break;
-    case der::PublicKeyAlgorithm::RSA_PKCS1:
-      result = VerifyRSAPKCS1SignedDataNSS(data, digestAlgorithm, signature,
-                                           subjectPublicKeyInfo, pinArg);
-      break;
-    case der::PublicKeyAlgorithm::RSA_PSS:
-      result = VerifyRSAPSSSignedDataNSS(data, digestAlgorithm, signature,
-                                         subjectPublicKeyInfo, pinArg);
-      break;
-    default:
-      MOZ_ASSERT_UNREACHABLE("unhandled public key algorithm");
-      return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-  // Add this signature to the signature cache.
-  if (sha512Hash.isSome() && result == Success) {
-    signature_cache_insert(signatureCache, sha512Hash.ref().Elements());
-  }
-  return result;
 }
 
 }  // namespace psm

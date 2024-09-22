@@ -9,7 +9,6 @@
 #include <stdint.h>
 
 #include "CTSerialization.h"
-#include "CertVerifier.h"
 #include "hasht.h"
 #include "mozpkix/pkixnss.h"
 #include "mozpkix/pkixutil.h"
@@ -161,9 +160,8 @@ Result CTLogVerifier::Init(Input subjectPublicKeyInfo) {
 }
 
 Result CTLogVerifier::Verify(const LogEntry& entry,
-                             const SignedCertificateTimestamp& sct,
-                             SignatureCache* signatureCache) {
-  if (mKeyId.empty() || sct.logId != mKeyId || !signatureCache) {
+                             const SignedCertificateTimestamp& sct) {
+  if (mKeyId.empty() || sct.logId != mKeyId) {
     return Result::FATAL_ERROR_INVALID_ARGS;
   }
   if (!SignatureParametersMatch(sct.signature)) {
@@ -198,8 +196,7 @@ Result CTLogVerifier::Verify(const LogEntry& entry,
   if (rv != Success) {
     return rv;
   }
-  return VerifySignature(serializedData, sct.signature.signatureData,
-                         signatureCache);
+  return VerifySignature(serializedData, sct.signature.signatureData);
 }
 
 bool CTLogVerifier::SignatureParametersMatch(const DigitallySigned& signature) {
@@ -207,8 +204,37 @@ bool CTLogVerifier::SignatureParametersMatch(const DigitallySigned& signature) {
       DigitallySigned::HashAlgorithm::SHA256, mSignatureAlgorithm);
 }
 
-Result CTLogVerifier::VerifySignature(Input data, Input signature,
-                                      SignatureCache* signatureCache) {
+static Result FasterVerifyECDSASignedDataNSS(Input data, Input signature,
+                                             UniqueSECKEYPublicKey& pubkey) {
+  assert(pubkey);
+  if (!pubkey) {
+    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  }
+  // The signature is encoded as a DER SEQUENCE of two INTEGERs. PK11_Verify
+  // expects the signature as only the two integers r and s (so no encoding -
+  // just two series of bytes each half as long as SECKEY_SignatureLen(pubkey)).
+  // DSAU_DecodeDerSigToLen converts from the former format to the latter.
+  SECItem derSignatureSECItem(UnsafeMapInputToSECItem(signature));
+  size_t signatureLen = SECKEY_SignatureLen(pubkey.get());
+  if (signatureLen == 0) {
+    return MapPRErrorCodeToResult(PR_GetError());
+  }
+  UniqueSECItem signatureSECItem(
+      DSAU_DecodeDerSigToLen(&derSignatureSECItem, signatureLen));
+  if (!signatureSECItem) {
+    return MapPRErrorCodeToResult(PR_GetError());
+  }
+  SECItem dataSECItem(UnsafeMapInputToSECItem(data));
+  SECStatus srv =
+      PK11_VerifyWithMechanism(pubkey.get(), CKM_ECDSA_SHA256, nullptr,
+                               signatureSECItem.get(), &dataSECItem, nullptr);
+  if (srv != SECSuccess) {
+    return MapPRErrorCodeToResult(PR_GetError());
+  }
+  return Success;
+}
+
+Result CTLogVerifier::VerifySignature(Input data, Input signature) {
   Input spki;
   Result rv = BufferToInput(mSubjectPublicKeyInfo, spki);
   if (rv != Success) {
@@ -217,18 +243,11 @@ Result CTLogVerifier::VerifySignature(Input data, Input signature,
 
   switch (mSignatureAlgorithm) {
     case DigitallySigned::SignatureAlgorithm::RSA:
-      rv = psm::VerifySignedDataWithCache(
-          der::PublicKeyAlgorithm::RSA_PKCS1,
-          mozilla::glean::sct_signature_cache::total,
-          mozilla::glean::sct_signature_cache::hits, data,
-          DigestAlgorithm::sha256, signature, spki, signatureCache, nullptr);
+      rv = VerifyRSAPKCS1SignedDataNSS(data, DigestAlgorithm::sha256, signature,
+                                       spki, nullptr);
       break;
     case DigitallySigned::SignatureAlgorithm::ECDSA:
-      rv = psm::VerifySignedDataWithCache(
-          der::PublicKeyAlgorithm::ECDSA,
-          mozilla::glean::sct_signature_cache::total,
-          mozilla::glean::sct_signature_cache::hits, data,
-          DigestAlgorithm::sha256, signature, spki, signatureCache, nullptr);
+      rv = FasterVerifyECDSASignedDataNSS(data, signature, mPublicECKey);
       break;
     // We do not expect new values added to this enum any time soon,
     // so just listing all the available ones seems to be the easiest way
@@ -251,8 +270,7 @@ Result CTLogVerifier::VerifySignature(Input data, Input signature,
 }
 
 Result CTLogVerifier::VerifySignature(const Buffer& data,
-                                      const Buffer& signature,
-                                      SignatureCache* signatureCache) {
+                                      const Buffer& signature) {
   Input dataInput;
   Result rv = BufferToInput(data, dataInput);
   if (rv != Success) {
@@ -263,7 +281,7 @@ Result CTLogVerifier::VerifySignature(const Buffer& data,
   if (rv != Success) {
     return rv;
   }
-  return VerifySignature(dataInput, signatureInput, signatureCache);
+  return VerifySignature(dataInput, signatureInput);
 }
 
 }  // namespace ct

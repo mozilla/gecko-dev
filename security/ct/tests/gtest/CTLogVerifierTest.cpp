@@ -7,7 +7,6 @@
 #include "CTLogVerifier.h"
 #include "CTTestUtils.h"
 #include "nss.h"
-#include "signature_cache_ffi.h"
 
 #include "gtest/gtest.h"
 
@@ -24,18 +23,12 @@ class CTLogVerifierTest : public ::testing::Test {
       abort();
     }
 
-    mSignatureCache = signature_cache_new(1);
-
     ASSERT_EQ(Success, mLog.Init(InputForBuffer(GetTestPublicKey())));
     ASSERT_EQ(GetTestPublicKeyId(), mLog.keyId());
   }
 
-  void TearDown() override { signature_cache_free(mSignatureCache); }
-
  protected:
   CTLogVerifier mLog = CTLogVerifier(-1, CTLogState::Admissible, 0);
-  // For some reason, the templating makes it impossible to use UniquePtr here.
-  SignatureCache* mSignatureCache;
 };
 
 TEST_F(CTLogVerifierTest, VerifiesCertSCT) {
@@ -45,7 +38,7 @@ TEST_F(CTLogVerifierTest, VerifiesCertSCT) {
   SignedCertificateTimestamp certSct;
   GetX509CertSCT(certSct);
 
-  EXPECT_EQ(Success, mLog.Verify(certEntry, certSct, mSignatureCache));
+  EXPECT_EQ(Success, mLog.Verify(certEntry, certSct));
 }
 
 TEST_F(CTLogVerifierTest, VerifiesPrecertSCT) {
@@ -55,7 +48,7 @@ TEST_F(CTLogVerifierTest, VerifiesPrecertSCT) {
   SignedCertificateTimestamp precertSct;
   GetPrecertSCT(precertSct);
 
-  EXPECT_EQ(Success, mLog.Verify(precertEntry, precertSct, mSignatureCache));
+  EXPECT_EQ(Success, mLog.Verify(precertEntry, precertSct));
 }
 
 TEST_F(CTLogVerifierTest, FailsInvalidTimestamp) {
@@ -68,8 +61,7 @@ TEST_F(CTLogVerifierTest, FailsInvalidTimestamp) {
   // Mangle the timestamp, so that it should fail signature validation.
   certSct.timestamp = 0;
 
-  EXPECT_EQ(pkix::Result::ERROR_BAD_SIGNATURE,
-            mLog.Verify(certEntry, certSct, mSignatureCache));
+  EXPECT_EQ(pkix::Result::ERROR_BAD_SIGNATURE, mLog.Verify(certEntry, certSct));
 }
 
 TEST_F(CTLogVerifierTest, FailsInvalidSignature) {
@@ -81,8 +73,7 @@ TEST_F(CTLogVerifierTest, FailsInvalidSignature) {
   SignedCertificateTimestamp certSct;
   GetX509CertSCT(certSct);
   certSct.signature.signatureData[20] ^= '\xFF';
-  EXPECT_EQ(pkix::Result::ERROR_BAD_SIGNATURE,
-            mLog.Verify(certEntry, certSct, mSignatureCache));
+  EXPECT_EQ(pkix::Result::ERROR_BAD_SIGNATURE, mLog.Verify(certEntry, certSct));
 
   // Mangle the encoding of the signature, making the underlying implementation
   // return ERROR_BAD_DER. We still expect the verifier to return
@@ -91,7 +82,7 @@ TEST_F(CTLogVerifierTest, FailsInvalidSignature) {
   GetX509CertSCT(certSct2);
   certSct2.signature.signatureData[0] ^= '\xFF';
   EXPECT_EQ(pkix::Result::ERROR_BAD_SIGNATURE,
-            mLog.Verify(certEntry, certSct2, mSignatureCache));
+            mLog.Verify(certEntry, certSct2));
 }
 
 TEST_F(CTLogVerifierTest, FailsInvalidLogID) {
@@ -106,7 +97,7 @@ TEST_F(CTLogVerifierTest, FailsInvalidLogID) {
   certSct.logId.push_back('\x0');
 
   EXPECT_EQ(pkix::Result::FATAL_ERROR_INVALID_ARGS,
-            mLog.Verify(certEntry, certSct, mSignatureCache));
+            mLog.Verify(certEntry, certSct));
 }
 
 // Test that excess data after the public key is rejected.

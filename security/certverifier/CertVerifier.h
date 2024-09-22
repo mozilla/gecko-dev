@@ -17,11 +17,8 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/UniquePtr.h"
-#include "mozilla/glean/GleanMetrics.h"
-#include "mozpkix/pkixder.h"
-#include "mozpkix/pkixtypes.h"
 #include "nsString.h"
-#include "signature_cache_ffi.h"
+#include "mozpkix/pkixtypes.h"
 #include "sslt.h"
 
 #if defined(_MSC_VER)
@@ -267,13 +264,6 @@ class CertVerifier {
   // so we must allocate dynamically.
   UniquePtr<mozilla::ct::MultiLogCTVerifier> mCTVerifier;
 
-  // If many connections are made to a site using a particular certificate,
-  // this cache will speed up verifications after the first one by saving the
-  // results of signature verification.
-  // This will also be beneficial in situations where different sites use
-  // different certificates that happen to be issued by the same intermediate.
-  UniquePtr<SignatureCache, decltype(&signature_cache_free)> mSignatureCache;
-
   void LoadKnownCTLogs();
   mozilla::pkix::Result VerifyCertificateTransparencyPolicy(
       NSSCertDBTrustDomain& trustDomain,
@@ -286,18 +276,6 @@ mozilla::pkix::Result IsCertBuiltInRoot(pkix::Input certInput, bool& result);
 mozilla::pkix::Result CertListContainsExpectedKeys(const CERTCertList* certList,
                                                    const char* hostname,
                                                    mozilla::pkix::Time time);
-
-// Verify signed data, making use of the given SignatureCache. That is, if the
-// (data, digestAlgorithm, signature, subjectPublicKeyInfo) tuple has already
-// been verified and is in the cache, this skips the work of verifying the
-// signature (which is slow) and returns the already-known result.
-mozilla::pkix::Result VerifySignedDataWithCache(
-    mozilla::pkix::der::PublicKeyAlgorithm publicKeyAlg,
-    mozilla::glean::impl::DenominatorMetric telemetryDenominator,
-    mozilla::glean::impl::NumeratorMetric telemetryNumerator,
-    mozilla::pkix::Input data, mozilla::pkix::DigestAlgorithm digestAlgorithm,
-    mozilla::pkix::Input signature, mozilla::pkix::Input subjectPublicKeyInfo,
-    SignatureCache* signatureCache, void* pinArg);
 
 }  // namespace psm
 }  // namespace mozilla
