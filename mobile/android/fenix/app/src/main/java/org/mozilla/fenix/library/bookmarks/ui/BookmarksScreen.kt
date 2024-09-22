@@ -9,15 +9,18 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,9 +34,14 @@ import androidx.compose.material.TextField
 import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -45,12 +53,14 @@ import androidx.navigation.compose.rememberNavController
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.FloatingActionButton
 import org.mozilla.fenix.compose.list.IconListItem
 import org.mozilla.fenix.compose.list.SelectableFaviconListItem
 import org.mozilla.fenix.compose.list.SelectableIconListItem
 import org.mozilla.fenix.theme.FirefoxTheme
+import mozilla.components.ui.icons.R as iconsR
 
 /**
  * The UI host for the Bookmarks list screen and related subscreens.
@@ -73,12 +83,16 @@ internal fun BookmarksScreen(buildStore: (NavHostController) -> BookmarksStore) 
         composable(route = BookmarksDestinations.ADD_FOLDER) {
             AddFolderScreen(store = store)
         }
+        composable(route = BookmarksDestinations.EDIT_BOOKMARK) {
+            EditBookmarkScreen(store = store)
+        }
     }
 }
 
 internal object BookmarksDestinations {
     const val LIST = "list"
     const val ADD_FOLDER = "add folder"
+    const val EDIT_BOOKMARK = "edit bookmark"
 }
 
 /**
@@ -337,6 +351,210 @@ private fun AddFolderTopBar(onBackClick: () -> Unit) {
 }
 
 @Composable
+private fun EditBookmarkScreen(
+    store: BookmarksStore,
+) {
+    val state by store.observeAsState(store.state.bookmarksEditBookmarkState) { it.bookmarksEditBookmarkState }
+
+    LaunchedEffect(Unit) {
+        // If we somehow get to this screen without a `bookmarksEditBookmarkState`
+        // we'll want to navigate them back.
+        if (state == null) {
+            store.dispatch(BackClicked)
+        }
+    }
+
+    val bookmark = state?.bookmark ?: return
+    val folder = state?.folder ?: return
+
+    Scaffold(
+        topBar = {
+            EditBookmarkTopBar(
+                onBackClick = { store.dispatch(BackClicked) },
+                onDeleteClicked = { store.dispatch(EditBookmarkAction.DeleteClicked) },
+            )
+        },
+        backgroundColor = FirefoxTheme.colors.layer1,
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(horizontal = 16.dp),
+        ) {
+            BookmarkEditor(
+                bookmarkItem = bookmark,
+                onTitleChanged = { store.dispatch(EditBookmarkAction.TitleChanged(it)) },
+                onURLChanged = { store.dispatch(EditBookmarkAction.URLChanged(it)) },
+            )
+            Spacer(Modifier.height(24.dp))
+            FolderInfo(
+                folderTitle = folder.title,
+                onFolderClicked = { store.dispatch(EditBookmarkAction.FolderClicked) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun BookmarkEditor(
+    bookmarkItem: BookmarkItem.Bookmark,
+    onTitleChanged: (String) -> Unit,
+    onURLChanged: (String) -> Unit,
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Favicon(url = bookmarkItem.previewImageUrl, size = 64.dp)
+
+        Column {
+            ClearableTextField(
+                value = bookmarkItem.title,
+                onValueChange = onTitleChanged,
+            )
+            ClearableTextField(
+                value = bookmarkItem.url,
+                onValueChange = onURLChanged,
+            )
+        }
+    }
+}
+
+@Composable
+private fun FolderInfo(
+    folderTitle: String,
+    onFolderClicked: () -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Text(
+            text = "Save In",
+            color = FirefoxTheme.colors.textPrimary,
+            style = FirefoxTheme.typography.body2,
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .height(40.dp)
+                .fillMaxWidth()
+                .clickable { onFolderClicked() },
+        ) {
+            Icon(
+                painter = painterResource(id = iconsR.drawable.mozac_ic_folder_24),
+                contentDescription = "",
+                tint = FirefoxTheme.colors.textPrimary,
+            )
+            Text(
+                text = folderTitle,
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.body2,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ClearableTextField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var isFocused by remember { mutableStateOf(false) }
+
+    TextField(
+        value = value,
+        onValueChange = onValueChange,
+        singleLine = true,
+        trailingIcon = {
+            if (isFocused && value.isNotEmpty()) {
+                IconButton(onClick = { onValueChange("") }) {
+                    Icon(
+                        painter = painterResource(id = iconsR.drawable.mozac_ic_cross_circle_fill_20),
+                        contentDescription = null,
+                        tint = FirefoxTheme.colors.textPrimary,
+                    )
+                }
+            }
+        },
+        modifier = modifier
+            .onFocusChanged { isFocused = it.isFocused }
+            .padding(0.dp)
+            .paddingFromBaseline(0.dp),
+        colors = TextFieldDefaults.textFieldColors(
+            backgroundColor = FirefoxTheme.colors.layer1,
+            textColor = FirefoxTheme.colors.textPrimary,
+            unfocusedIndicatorColor = FirefoxTheme.colors.textPrimary,
+        ),
+    )
+}
+
+@Composable
+private fun EditBookmarkTopBar(
+    onBackClick: () -> Unit,
+    onDeleteClicked: () -> Unit,
+) {
+    TopAppBar(
+        backgroundColor = FirefoxTheme.colors.layer1,
+        title = {
+            Text(
+                text = stringResource(R.string.edit_bookmark_fragment_title),
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.headline6,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_back_24),
+                    contentDescription = stringResource(R.string.bookmark_navigate_back_button_content_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        },
+        actions = {
+            IconButton(onClick = onDeleteClicked) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_delete_24),
+                    contentDescription = stringResource(R.string.bookmark_add_new_folder_button_content_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        },
+    )
+}
+
+@Composable
+@FlexibleWindowLightDarkPreview
+@Suppress("MagicNumber")
+private fun EditBookmarkScreenPreview() {
+    val store = BookmarksStore(
+        initialState = BookmarksState(
+            bookmarkItems = listOf(),
+            selectedItems = listOf(),
+            folderTitle = "Bookmarks",
+            folderGuid = BookmarkRoot.Mobile.id,
+            bookmarksAddFolderState = null,
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = BookmarkItem.Bookmark(
+                    url = "https://www.whoevenmakeswebaddressesthislonglikeseriously1.com",
+                    title = "this is a very long bookmark title that should overflow 1",
+                    previewImageUrl = "",
+                    guid = "1",
+                ),
+                folder = BookmarkItem.Folder("folder 1", guid = "1"),
+            ),
+        ),
+    )
+
+    FirefoxTheme {
+        Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
+            EditBookmarkScreen(store = store)
+        }
+    }
+}
+
+@Composable
 @FlexibleWindowLightDarkPreview
 @Suppress("MagicNumber")
 private fun BookmarksScreenPreview() {
@@ -361,6 +579,7 @@ private fun BookmarksScreenPreview() {
                 folderTitle = "Bookmarks",
                 folderGuid = BookmarkRoot.Mobile.id,
                 bookmarksAddFolderState = null,
+                bookmarksEditBookmarkState = null,
                 isSignedIntoSync = false,
             ),
         )
@@ -385,6 +604,7 @@ private fun EmptyBookmarksScreenPreview() {
                 folderGuid = BookmarkRoot.Mobile.id,
                 bookmarksAddFolderState = null,
                 isSignedIntoSync = false,
+                bookmarksEditBookmarkState = null,
             ),
         )
     }
@@ -405,6 +625,7 @@ private fun AddFolderPreview() {
             selectedItems = listOf(),
             folderTitle = "Bookmarks",
             folderGuid = BookmarkRoot.Mobile.id,
+            bookmarksEditBookmarkState = null,
             bookmarksAddFolderState = BookmarksAddFolderState(
                 folderBeingAddedTitle = "Edit me!",
             ),
