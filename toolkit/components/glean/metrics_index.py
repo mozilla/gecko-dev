@@ -42,6 +42,7 @@ gecko_metrics = [
     "parser/html/metrics.yaml",
     "parser/htmlparser/metrics.yaml",
     "security/certverifier/metrics.yaml",
+    "security/ct/metrics.yaml",
     "security/manager/ssl/metrics.yaml",
     "services/common/metrics.yaml",
     "toolkit/components/antitracking/bouncetrackingprotection/metrics.yaml",
