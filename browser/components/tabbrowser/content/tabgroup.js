@@ -9,7 +9,9 @@
 {
   class MozTabbrowserTabGroup extends MozXULElement {
     static markup = `
-      <label class="tab-group-label" crop="end"/>
+      <box class="tab-group-label-container" align="center" pack="center">
+        <label class="tab-group-label" crop="end"/>
+      </box>
       <html:slot/>
       `;
 
