@@ -1782,7 +1782,7 @@ export class ExtensionData {
       modules: null,
       // Whether to treat all origin permissions (including content scripts)
       // from the manifestas as optional, and enable users to control them.
-      originControls: this.manifestVersion >= 3,
+      originControls: this.manifestVersion >= 3 && this.type === "extension",
       originPermissions,
       permissions,
       schemaURLs: null,

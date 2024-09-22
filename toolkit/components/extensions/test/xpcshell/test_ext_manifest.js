@@ -548,3 +548,32 @@ add_task(async function test_gecko_bss_unrecognized_property() {
 
   await extension.unload();
 });
+
+add_task(async function test_load_mv3_theme() {
+  const BACKGROUND =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0" +
+    "DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==";
+  const theme = ExtensionTestUtils.loadExtension({
+    manifest: {
+      manifest_version: 3,
+      theme: {},
+    },
+    useAddonManager: "temporary",
+    files: {
+      "bg.png": BACKGROUND,
+    },
+  });
+  // This test would hang if there were errors during install.
+  await theme.startup();
+  Assert.equal(
+    theme.extension.state,
+    "Startup: Complete",
+    "Expect theme to have reached the startup completed state"
+  );
+  info("Verify image assets packaged in the theme can be fetched");
+  // This is expected to reject if the WebExtensionPolicy instance
+  // for this theme has been left in a disabled state (policy.active
+  // set to false).
+  await fetch(theme.extension.baseURI.resolve("bg.png"));
+  await theme.unload();
+});
