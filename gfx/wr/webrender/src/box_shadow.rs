@@ -405,8 +405,7 @@ impl<'a> SceneBuilder<'a> {
             // box-shadow support will be added to this path as a follow up.
             if is_root_coord_system &&
                clip_mode == BoxShadowClipMode::Outset &&
-               blur_radius < 32.0 &&
-               false {
+               blur_radius < 32.0 {
                 // Make sure corners don't overlap.
                 ensure_no_corner_overlap(&mut shadow_radius, shadow_rect.size());
 
@@ -446,7 +445,7 @@ impl<'a> SceneBuilder<'a> {
 
                 let inner_shadow_rect = shadow_rect.inflate(-sig3, -sig3);
                 let outer_shadow_rect = shadow_rect.inflate( sig3,  sig3);
-                let inner_shadow_rect = extract_inner_rect_k(&inner_shadow_rect, &shadow_radius, 0.5).unwrap_or(LayoutRect::zero());
+                let inner_shadow_rect = extract_inner_rect_k(&inner_shadow_rect, &shadow_radius, 1.0).unwrap_or(LayoutRect::zero());
 
                 let prim = BoxShadow {
                     color: color.into(),
@@ -579,5 +578,106 @@ fn adjust_radius_for_box_shadow(border_radius: f32, spread_amount: f32) -> f32 {
         (border_radius + spread_amount).max(0.0)
     } else {
         0.0
+    }
+}
+
+pub struct BoxShadowSegment {
+    pub color: ColorF,
+    pub blur_radius: f32,
+    pub clip: ClipDataHandle,
+    pub pattern_rect: LayoutRect,
+}
+
+impl PatternBuilder for BoxShadowSegment {
+    fn build(
+        &self,
+        _sub_rect: Option<DeviceRect>,
+        ctx: &crate::pattern::PatternBuilderContext,
+        state: &mut crate::pattern::PatternBuilderState,
+    ) -> Pattern {
+        let raster_spatial_node_index = ctx.spatial_tree.root_reference_frame_index();
+
+        let task_size = self.pattern_rect.size().cast_unit().to_i32();
+        let content_origin = self.pattern_rect.min.cast_unit();
+        let scale_factor = DevicePixelScale::new(1.0);
+        let uv_rect_kind = UvRectKind::Rect;
+
+        let blur_radius = self.blur_radius * scale_factor.0;
+        let clips_range = state.clip_store.push_clip_instance(self.clip);
+        let color_pattern = Pattern::color(self.color);
+
+        let pattern_prim_address_f = quad::write_prim_blocks(
+            &mut state.frame_gpu_data.f32,
+            self.pattern_rect,
+            self.pattern_rect,
+            color_pattern.base_color,
+            color_pattern.texture_input.task_id,
+            &[],
+            ScaleOffset::identity(),
+        );
+
+        let pattern_task_id = state.rg_builder.add().init(RenderTask::new_dynamic(
+            task_size,
+            RenderTaskKind::Prim(PrimTask {
+                pattern: color_pattern.kind,
+                pattern_input: color_pattern.shader_input,
+                raster_spatial_node_index,
+                device_pixel_scale: DevicePixelScale::new(1.0),
+                content_origin,
+                prim_address_f: pattern_prim_address_f,
+                transform_id: TransformPaletteId::IDENTITY,
+                edge_flags: EdgeAaSegmentMask::empty(),
+                quad_flags: QuadFlags::APPLY_RENDER_TASK_CLIP | QuadFlags::IGNORE_DEVICE_PIXEL_SCALE,
+                prim_needs_scissor_rect: false,
+                texture_input: color_pattern.texture_input.task_id,
+            }),
+        ));
+
+        let masks = MaskSubPass {
+            clip_node_range: clips_range,
+            prim_spatial_node_index: raster_spatial_node_index,
+            prim_address_f: pattern_prim_address_f,
+        };
+
+        let task = state.rg_builder.get_task_mut(pattern_task_id);
+        task.add_sub_pass(SubPass::Masks { masks });
+
+        let blur_task_v = state.rg_builder.add().init(RenderTask::new_dynamic(
+            task_size,
+            RenderTaskKind::VerticalBlur(BlurTask {
+                blur_std_deviation: blur_radius,
+                target_kind: RenderTargetKind::Color,
+                blur_region: task_size,
+            }),
+        ));
+        state.rg_builder.add_dependency(blur_task_v, pattern_task_id);
+
+        let blur_task_h = state.rg_builder.add().init(RenderTask::new_dynamic(
+            task_size,
+            RenderTaskKind::HorizontalBlur(BlurTask {
+                blur_std_deviation: blur_radius,
+                target_kind: RenderTargetKind::Color,
+                blur_region: task_size,
+            }),
+        ).with_uv_rect_kind(uv_rect_kind));
+        state.rg_builder.add_dependency(blur_task_h, blur_task_v);
+
+        Pattern::texture(
+            blur_task_h,
+            self.color,
+        )
+    }
+
+    fn get_base_color(
+        &self,
+        _ctx: &crate::pattern::PatternBuilderContext,
+    ) -> ColorF {
+        self.color
+    }
+
+    fn use_shared_pattern(
+        &self,
+    ) -> bool {
+        false
     }
 }
