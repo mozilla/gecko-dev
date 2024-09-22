@@ -12374,7 +12374,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - mozilla-beta
       * - **browsertime-pageload-benchmark-firefox-tp6-bench**
         - ❌
-        - ❌
+        - ✅
         - ❌
         - ❌
 
@@ -12470,7 +12470,7 @@ Browsertime tests that use a custom pageload test script. These use the pageload
         - mozilla-beta
       * - **browsertime-pageload-benchmark-firefox-tp6-bench**
         - ❌
-        - ❌
+        - ✅
         - ❌
         - ❌
 

@@ -859,8 +859,12 @@ browsertime-pageload-benchmark:
     mozharness:
         extra-options:
             - --browser-cycles=5
-    run-on-projects: []
-    tier: 2
+    run-on-projects:
+        by-test-platform:
+            windows.*-32.*: []
+            (linux|windows.*-64).*shippable.*: [autoland]
+            default: []
+    tier: 3
     treeherder-symbol: Btime(tp6-bench)
 
 browsertime-video-playback-latency:
