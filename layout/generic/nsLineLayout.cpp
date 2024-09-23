@@ -660,8 +660,8 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
   if ((pos->ISizeDependsOnContainer(aWM) && !pos->ISize(aWM).IsAuto()) ||
       pos->MaxISizeDependsOnContainer(aWM) ||
       pos->MinISizeDependsOnContainer(aWM) ||
-      pos->mOffset.GetIStart(aWM).HasPercent() ||
-      pos->mOffset.GetIEnd(aWM).HasPercent()) {
+      pos->GetInset(LogicalSide::IStart, aWM).HasPercent() ||
+      pos->GetInset(LogicalSide::IEnd, aWM).HasPercent()) {
     return true;
   }
 

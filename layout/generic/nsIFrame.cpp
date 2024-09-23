@@ -1234,7 +1234,7 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
       const nsStylePosition* pos = StylePosition();
       const nsStylePosition* oldPos = aOldComputedStyle->StylePosition();
       if (!needAnchorSuppression &&
-          (oldPos->mOffset != pos->mOffset || oldPos->mWidth != pos->mWidth ||
+          (!oldPos->InsetEquals(*pos) || oldPos->mWidth != pos->mWidth ||
            oldPos->mMinWidth != pos->mMinWidth ||
            oldPos->mMaxWidth != pos->mMaxWidth ||
            oldPos->mHeight != pos->mHeight ||

@@ -8279,9 +8279,12 @@ nscoord nsGridContainerFrame::MasonryLayout(GridReflowInput& aState,
         // we include it to be placed after the last grid item with the same
         // grid-axis start track.
         // XXXmats this is all a bit experimental at this point, pending a spec
+        const auto masonrySide = masonryAxis == LogicalAxis::Inline
+                                     ? LogicalSide::IStart
+                                     : LogicalSide::BStart;
         if (masonryStart == 0 ||
             (masonryStart == kAutoLine && item->mFrame->StylePosition()
-                                              ->mOffset.Start(masonryAxis, wm)
+                                              ->GetInset(masonrySide, wm)
                                               .IsAuto())) {
           sortedItems.AppendElement(item);
         } else {

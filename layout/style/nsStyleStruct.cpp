@@ -1305,7 +1305,7 @@ nsChangeHint nsStylePosition::CalcDifference(
   // Don't try to handle changes between types efficiently; at least for
   // changing into/out of `auto`, we will hardly ever be able to avoid a reflow.
   // TODO(dshin, Bug 1917695): Re-evaulate this for `anchor()`.
-  if (mOffset != aNewData.mOffset) {
+  if (!InsetEquals(aNewData)) {
     if (IsEqualInsetType(mOffset, aNewData.mOffset)) {
       hint |=
           nsChangeHint_RecomputePosition | nsChangeHint_UpdateParentOverflow;
@@ -1353,6 +1353,8 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
   }
   return {StyleAlignFlags::NORMAL};
 }
+
+const StyleInset nsStylePosition::kAutoInset = StyleInset::Auto();
 
 // --------------------
 // nsStyleTable

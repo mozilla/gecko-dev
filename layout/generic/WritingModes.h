@@ -2110,6 +2110,11 @@ inline const mozilla::StyleMaxSize& nsStylePosition::MaxSize(
   return aAxis == mozilla::LogicalAxis::Inline ? MaxISize(aWM) : MaxBSize(aWM);
 }
 
+inline const mozilla::StyleInset& nsStylePosition::GetInset(
+    mozilla::LogicalSide aSide, mozilla::WritingMode aWM) const {
+  return GetInset(aWM.PhysicalSide(aSide));
+}
+
 inline bool nsStylePosition::ISizeDependsOnContainer(WritingMode aWM) const {
   const auto& iSize = ISize(aWM);
   return iSize.IsAuto() || ISizeCoordDependsOnContainer(iSize);

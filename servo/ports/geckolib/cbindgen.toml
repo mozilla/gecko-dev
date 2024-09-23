@@ -1136,6 +1136,7 @@ renaming_overrides_prefixing = true
   inline bool HasPercent() const;
   inline bool ConvertsToLength() const;
   inline bool HasLengthAndPercentage() const;
+  inline bool IsAnchorPositioningFunction() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
   inline float ToPercentage() const;

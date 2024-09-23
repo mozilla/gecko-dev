@@ -3747,9 +3747,9 @@ bool PresShell::ScrollFrameIntoView(
     }
     // If we're targetting a sticky element, make sure not to apply
     // scroll-padding on the direction we're stuck.
-    const auto& offsets = aFrame->StylePosition()->mOffset;
+    const auto* stylePosition = aFrame->StylePosition();
     for (auto side : AllPhysicalSides()) {
-      if (offsets.Get(side).IsAuto()) {
+      if (stylePosition->GetInset(side).IsAuto()) {
         continue;
       }
       // See if this axis is stuck.

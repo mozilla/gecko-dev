@@ -683,10 +683,10 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   // Returns whether we need to compute an hypothetical position if we were
   // absolutely positioned.
   bool NeedsHypotheticalPositionIfAbsPos() const {
-    return (mOffset.Get(mozilla::eSideRight).IsAuto() &&
-            mOffset.Get(mozilla::eSideLeft).IsAuto()) ||
-           (mOffset.Get(mozilla::eSideTop).IsAuto() &&
-            mOffset.Get(mozilla::eSideBottom).IsAuto());
+    return (GetInset(mozilla::eSideRight).IsAuto() &&
+            GetInset(mozilla::eSideLeft).IsAuto()) ||
+           (GetInset(mozilla::eSideTop).IsAuto() &&
+            GetInset(mozilla::eSideBottom).IsAuto());
   }
 
   const mozilla::StyleContainIntrinsicSize& ContainIntrinsicBSize(
@@ -793,6 +793,32 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   inline bool BSizeDependsOnContainer(WritingMode) const;
   inline bool MinBSizeDependsOnContainer(WritingMode) const;
   inline bool MaxBSizeDependsOnContainer(WritingMode) const;
+
+  // TODO(dshin): The following functions are used as shims to deal
+  // anchor positioning functions as if it's `auto`, before the computation
+  // is implemented.
+  static const mozilla::StyleInset kAutoInset;
+  const mozilla::StyleInset& GetInset(mozilla::Side aSide) const {
+    const auto& result = mOffset.Get(aSide);
+    if (MOZ_UNLIKELY(result.IsAnchorPositioningFunction())) {
+      return kAutoInset;
+    }
+    return result;
+  }
+
+  bool InsetEquals(const nsStylePosition& aOther) const {
+    for (const auto side : mozilla::AllPhysicalSides()) {
+      if (GetInset(side) != aOther.GetInset(side)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // As with other logical-coordinate accessors, definitions for these
+  // are found in WritingModes.h.
+  inline const mozilla::StyleInset& GetInset(mozilla::LogicalSide aSide,
+                                             WritingMode) const;
 
  private:
   template <typename SizeOrMaxSize>
