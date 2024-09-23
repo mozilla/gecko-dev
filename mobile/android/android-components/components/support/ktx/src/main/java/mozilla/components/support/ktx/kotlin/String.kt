@@ -324,7 +324,9 @@ private fun String.replaceEscapedCharacters(): String {
 }
 
 /**
- * Replaces continuous spaces with a single space.
+ * Replaces continuous spaces with a single space. Here `\s` matches the ASCII whitespace
+ * characters and `\p{Z}` matches Unicode whitespace characters. For more information, refer to
+ * [Unicode Space Separator Category Docs](https://www.compart.com/en/unicode/category/Zs).
  */
 private fun String.replaceContinuousSpaces(): String {
     val escapedCharactersRegex = "[\\p{Z}\\s]+".toRegex()
