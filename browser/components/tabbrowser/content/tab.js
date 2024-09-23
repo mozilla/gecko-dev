@@ -13,6 +13,7 @@
         <vbox class="tab-background">
           <hbox class="tab-context-line"/>
           <hbox class="tab-loading-burst" flex="1"/>
+          <hbox class="tab-group-line"/>
         </vbox>
         <hbox class="tab-content" align="center">
           <stack class="tab-icon-stack">

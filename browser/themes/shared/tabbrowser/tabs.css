@@ -666,13 +666,14 @@
 /* Tab Groups */
 
 tab-group {
-  border-bottom: 2px solid var(--tab-group-color);
-  &[collapsed] {
-    border-bottom: 0;
-  }
-
   /* Provide some space between tab groups or between tab groups and adjacent tabs */
   margin-inline: var(--tab-overflow-clip-margin);
+
+  .tab-group-line {
+    background-color: var(--tab-group-color);
+    height: 2px;
+    margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) -2px;
+  }
 
   &[collapsed] > .tabbrowser-tab {
     min-width: 0;
@@ -682,7 +683,7 @@ tab-group {
   }
 }
 
-tab-group > .tab-group-label-container {
+.tab-group-label-container {
   /* Provide some space between tab group label and the first tab in the tab group */
   margin-inline-end: var(--tab-overflow-clip-margin);
 }
