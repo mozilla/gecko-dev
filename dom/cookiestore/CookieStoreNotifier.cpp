@@ -193,14 +193,10 @@ CookieStoreNotifier::Observe(nsISupports* aSubject, const char* aTopic,
 
   bool deletedEvent = action == nsICookieNotification::COOKIE_DELETED;
 
-  if (mEventTarget->IsOnCurrentThread()) {
-    DispatchEvent(item, deletedEvent);
-  } else {
-    mEventTarget->Dispatch(NS_NewRunnableFunction(
-        __func__, [self = RefPtr(this), item, deletedEvent] {
-          self->DispatchEvent(item, deletedEvent);
-        }));
-  }
+  mEventTarget->Dispatch(NS_NewRunnableFunction(
+      __func__, [self = RefPtr(this), item, deletedEvent] {
+        self->DispatchEvent(item, deletedEvent);
+      }));
 
   return NS_OK;
 }
