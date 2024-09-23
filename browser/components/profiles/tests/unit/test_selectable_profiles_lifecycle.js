@@ -14,7 +14,7 @@ add_task(
 
     await SelectableProfileService.init();
 
-    let profiles = await SelectableProfileService.getProfiles();
+    let profiles = await SelectableProfileService.getAllProfiles();
 
     Assert.ok(!profiles.length, "No selectable profiles exist yet");
 
@@ -49,7 +49,7 @@ add_task(
       `Profile local dir was successfully created at ${profileLocalPath}`
     );
 
-    profiles = await SelectableProfileService.getProfiles();
+    profiles = await SelectableProfileService.getAllProfiles();
 
     Assert.equal(profiles.length, 1, "One selectable profile exists");
 
@@ -105,7 +105,7 @@ add_task(
       "Profile local dir was successfully removed"
     );
 
-    profiles = await SelectableProfileService.getProfiles();
+    profiles = await SelectableProfileService.getAllProfiles();
 
     Assert.ok(!profiles.length, "No selectable profiles exist yet");
 

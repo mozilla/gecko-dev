@@ -25,6 +25,24 @@ edit-profile-page-delete-button =
 edit-profile-page-no-name = Name this profile to help you find it later. Rename it any time.
 edit-profile-page-duplicate-name = Profile name already in use. Try a new name.
 
+# Variables
+#   $profilename (String) - The name of the profile.
+delete-profile-page-title = Delete { $profilename } profile
+
+# Variables
+#   $profilename (String) - The name of the profile.
+delete-profile-header = Delete { $profilename } profile?
+delete-profile-description = { -brand-short-name } will permanently delete the following data from this device:
+delete-profile-windows = Open windows
+delete-profile-tabs = Open tabs
+delete-profile-bookmarks = Bookmarks
+delete-profile-history = History (visited pages, cookies, site data)
+delete-profile-autofill = Autofill data (addresses, payment methods)
+delete-profile-logins = Passwords
+
+# Button labels
+delete-profile-cancel = Cancel
+delete-profile-confirm = Delete
 
 appmenu-manage-profiles =
     .label = Manage profiles

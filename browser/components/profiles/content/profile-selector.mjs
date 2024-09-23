@@ -39,6 +39,7 @@ export class ProfileSelector extends MozLitElement {
 
     document.addEventListener("LaunchProfile", this);
     document.addEventListener("CreateProfile", this);
+    document.addEventListener("DeleteProfile", this);
 
     this.selectableProfileService = SelectableProfileService;
 
@@ -69,6 +70,15 @@ export class ProfileSelector extends MozLitElement {
       case "CreateProfile": {
         await this.selectableProfileService.createNewProfile();
         this.profiles = await this.selectableProfileService.getAllProfiles();
+        break;
+      }
+      case "DeleteProfile": {
+        let profile = event.detail;
+        this.selectableProfileService.launchInstance(
+          profile,
+          "about:deleteprofile"
+        );
+        window.close();
         break;
       }
     }

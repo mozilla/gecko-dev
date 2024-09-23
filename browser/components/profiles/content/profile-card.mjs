@@ -65,6 +65,13 @@ export class ProfileCard extends MozLitElement {
 
   handleDeleteClick(event) {
     event.stopPropagation();
+    this.dispatchEvent(
+      new CustomEvent("DeleteProfile", {
+        bubbles: true,
+        composed: true,
+        detail: this.profile,
+      })
+    );
   }
 
   render() {

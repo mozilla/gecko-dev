@@ -172,9 +172,16 @@ export let RemotePageAccessManager = {
       RPMIsWindowPrivate: ["*"],
       RPMGetBoolPref: ["browser.privatebrowsing.felt-privacy-v1"],
     },
+    "about:deleteprofile": {
+      RPMSendQuery: ["Profiles:GetDeleteProfileContent"],
+      RPMSendAsyncMessage: ["Profiles:CancelDelete", "Profiles:DeleteProfile"],
+    },
     "about:editprofile": {
       RPMSendQuery: ["Profiles:GetEditProfileContent"],
-      RPMSendAsyncMessage: ["Profiles:UpdateProfileName"],
+      RPMSendAsyncMessage: [
+        "Profiles:UpdateProfileName",
+        "Profiles:OpenDeletePage",
+      ],
     },
     "about:protections": {
       RPMSendAsyncMessage: [

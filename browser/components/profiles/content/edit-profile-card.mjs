@@ -132,6 +132,10 @@ export class EditProfileCard extends MozLitElement {
     return avatars.map(s => html`<div class="avatar">${s}</div>`);
   }
 
+  onDeleteClick() {
+    RPMSendAsyncMessage("Profiles:OpenDeletePage");
+  }
+
   render() {
     if (!this.profile) {
       return null;
@@ -163,6 +167,7 @@ export class EditProfileCard extends MozLitElement {
             <moz-button-group>
               <moz-button
                 data-l10n-id="edit-profile-page-delete-button"
+                @click=${this.onDeleteClick}
                 type="destructive"
               ></moz-button>
             </moz-button-group>

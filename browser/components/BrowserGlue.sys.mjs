@@ -765,7 +765,7 @@ let JSWINDOWACTORS = {
         DOMDocElementInserted: { wantUntrusted: true },
       },
     },
-    matches: ["about:editprofile"],
+    matches: ["about:editprofile", "about:deleteprofile"],
     enablePreference: "browser.profiles.enabled",
   },
 

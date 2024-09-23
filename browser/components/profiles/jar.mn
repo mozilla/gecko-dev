@@ -3,6 +3,9 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
+    content/browser/profiles/delete-profile-card.css (content/delete-profile-card.css)
+    content/browser/profiles/delete-profile-card.mjs (content/delete-profile-card.mjs)
+    content/browser/profiles/delete-profile.html    (content/delete-profile.html)
     content/browser/profiles/edit-profile-card.css (content/edit-profile-card.css)
     content/browser/profiles/edit-profile-card.mjs (content/edit-profile-card.mjs)
     content/browser/profiles/edit-profile.html    (content/edit-profile.html)
