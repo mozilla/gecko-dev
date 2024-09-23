@@ -38,8 +38,12 @@ window.onload = function() {
     ok(!cssProperties.isKnown("--foo bar"),
       "A CSS variable with spaces fails");
 
+    const marginProps = ["auto", "inherit", "initial", "unset", "revert", "revert-layer"];
+    if(SpecialPowers.getBoolPref("layout.css.anchor-positioning.enabled")) {
+      marginProps.push("anchor-size");
+    }
     is(toSortedString(cssProperties.getValues("margin")),
-       toSortedString(["auto", "inherit", "initial", "unset", "revert", "revert-layer"]),
+       toSortedString(marginProps),
        "Can get values for the CSS margin.");
     is(cssProperties.getValues("foobar").length, 0,
       "Unknown values return an empty array.");

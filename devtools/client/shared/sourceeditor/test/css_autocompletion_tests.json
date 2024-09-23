@@ -8,6 +8,7 @@
     "    ch    # The column location of the cursor",
     "  ],",
     "  suggestions # Array of expected results",
+    "  pref-suggestions # Optional array of additional pref-enabled suggestions: [pref, suggestion]",
     "]"
   ],
   "tests": [
@@ -59,7 +60,8 @@
     ],
     [
       [21, 9],
-      ["auto", "inherit", "initial", "revert", "revert-layer", "unset"]
+      ["auto", "inherit", "initial", "revert", "revert-layer", "unset"],
+      [["layout.css.anchor-positioning.enabled", "anchor-size"]]
     ],
     [
       [25, 26],

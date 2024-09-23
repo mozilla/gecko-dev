@@ -110,8 +110,22 @@ async function checkStateAndMoveOn() {
     return;
   }
 
-  const [lineCh, expectedSuggestions] = tests[index];
+  const [lineCh, baseExpectedSuggestions, prefSuggestions] = tests[index];
   const [line, ch] = lineCh;
+
+  let expectedSuggestions;
+  if (prefSuggestions) {
+    const additional = [];
+    for (const [pref, property] of prefSuggestions) {
+      if (SpecialPowers.getBoolPref(pref)) {
+        additional.push(property);
+      }
+    }
+    expectedSuggestions = baseExpectedSuggestions.concat(additional);
+    expectedSuggestions.sort();
+  } else {
+    expectedSuggestions = baseExpectedSuggestions;
+  }
 
   ++index;
   await SpecialPowers.spawn(

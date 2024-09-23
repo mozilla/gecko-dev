@@ -133,6 +133,11 @@ function do_test() {
   var prop = "margin";
   var values = InspectorUtils.getCSSValuesForProperty(prop);
   var expected = [ "initial", "unset", "auto", "inherit", "revert", "revert-layer" ];
+
+  if(SpecialPowers.getBoolPref("layout.css.anchor-positioning.enabled")) {
+    expected.push("anchor-size");
+  }
+
   ok(testValues(values, expected), "property margin's values.");
 
   var prop = "inset";
@@ -140,10 +145,56 @@ function do_test() {
   var expected = [ "initial", "unset", "auto", "inherit", "revert", "revert-layer" ];
 
   if(SpecialPowers.getBoolPref("layout.css.anchor-positioning.enabled")) {
-    expected.push("anchor");
+    expected.push(...["anchor", "anchor-size"]);
   }
 
   ok(testValues(values, expected), "property inset's values.");
+
+  var prop = "width";
+  var values = InspectorUtils.getCSSValuesForProperty(prop);
+  var expected = [
+    "-moz-available",
+    "-webkit-fill-available",
+    "auto",
+    "fit-content",
+    "inherit",
+    "initial",
+    "max-content",
+    "min-content",
+    "revert",
+    "revert-layer",
+    "stretch",
+    "unset",
+  ];
+
+  if(SpecialPowers.getBoolPref("layout.css.anchor-positioning.enabled")) {
+    expected.push("anchor-size");
+  }
+
+  ok(testValues(values, expected), "property width's values.");
+
+  var prop = "max-width";
+  var values = InspectorUtils.getCSSValuesForProperty(prop);
+  var expected = [
+    "-moz-available",
+    "-webkit-fill-available",
+    "none",
+    "fit-content",
+    "inherit",
+    "initial",
+    "max-content",
+    "min-content",
+    "revert",
+    "revert-layer",
+    "stretch",
+    "unset",
+  ];
+
+  if(SpecialPowers.getBoolPref("layout.css.anchor-positioning.enabled")) {
+    expected.push("anchor-size");
+  }
+
+  ok(testValues(values, expected), "property max-width's values.");
 
   // Test property with "normal"
   var prop = "font-style";
