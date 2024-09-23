@@ -782,7 +782,7 @@ BounceTrackingProtection::EnsureRemoteExceptionListService() {
   // Create the service instance.
   nsresult rv;
   mRemoteExceptionList =
-      do_CreateInstance(NS_NSIBTPEXCEPTIONLISTSERVICE_CONTRACTID, &rv);
+      do_GetService(NS_NSIBTPEXCEPTIONLISTSERVICE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, GenericPromise::CreateAndReject(rv, __func__));
 
   // Call the init method and get the Promise. It resolves once the allow-list
