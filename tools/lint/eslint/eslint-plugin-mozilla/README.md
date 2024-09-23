@@ -2,8 +2,13 @@
 
 A collection of rules that help enforce JavaScript coding standard in the Mozilla project.
 
-These are primarily developed and used within the Firefox build system ([mozilla-central](https://hg.mozilla.org/mozilla-central/)), but are made available for other
-related projects to use as well.
+These are primarily developed and used within the Firefox build system ([mozilla-central](https://hg.mozilla.org/mozilla-central/)), but are made available for other related projects to use as well.
+
+## Notes
+
+If you use prettier in your setup, you may need to extend from eslint-config-prettier
+to ensure that any rules that conflict with prettier are disabled.
+See [here for more information](https://github.com/prettier/eslint-config-prettier?tab=readme-ov-file#installation).
 
 ## Installation
 

@@ -37,11 +37,7 @@ module.exports = {
 
   // The prettier configuration here comes from eslint-config-prettier and
   // turns off all of ESLint's rules related to formatting.
-  extends: [
-    "eslint:recommended",
-    "prettier",
-    "plugin:json/recommended-with-comments",
-  ],
+  extends: ["eslint:recommended"],
 
   overrides: [
     {
@@ -136,7 +132,7 @@ module.exports = {
   },
 
   // When adding items to this file please check for effects on sub-directories.
-  plugins: ["html", "json", "no-unsanitized"],
+  plugins: ["no-unsanitized"],
 
   // When adding items to this file please check for effects on all of toolkit
   // and browser
