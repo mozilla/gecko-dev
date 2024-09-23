@@ -10,9 +10,16 @@
         <item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen</item>
         <item name="windowSplashScreenBackground">@color/fx_mobile_layer_color_1</item>
         <item name="postSplashScreenTheme">@style/NormalTheme</item>
+        <!-- Temporarily opt out of edge to edge enforcement.
+        To be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1916695-->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
     </style>
 
     <style name="NormalThemeBase" parent="Theme.MaterialComponents.DayNight.NoActionBar.Bridge">
+        <!-- Temporarily opt out of edge to edge enforcement.
+        To be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1916695-->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+
         <!-- Android system styling -->
         <item name="searchViewStyle">@style/SearchViewStyle</item>
         <item name="autoCompleteTextViewStyle">@style/AutoCompleteTextViewStyle</item>
@@ -209,6 +216,10 @@
     <style name="DialogStyleNormal" parent="DialogStyleLight"/>
 
     <style name="PrivateThemeBase" parent="Theme.MaterialComponents.NoActionBar.Bridge">
+        <!-- Temporarily opt out of edge to edge enforcement.
+        To be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1916695-->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
+
         <!-- Android system styling -->
         <item name="searchViewStyle">@style/SearchViewStyle</item>
         <item name="autoCompleteTextViewStyle">@style/AutoCompleteTextViewStyle</item>
