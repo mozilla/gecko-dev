@@ -1571,8 +1571,6 @@ class XPCShellTests(object):
             "fission"
         ] or not prefs.get("fission.disableSessionHistoryInParent", False)
 
-        self.mozInfo["serviceworker_e10s"] = True
-
         self.mozInfo["verify"] = options.get("verify", False)
 
         self.mozInfo["socketprocess_networking"] = prefs.get(

@@ -32,7 +32,7 @@ support-files = [
 ["browser_antitracking_subiframes.js"]
 
 ["browser_devtools_serviceworker_interception.js"]
-skip-if = ["serviceworker_e10s"]
+skip-if = ["true"]
 
 ["browser_download.js"]
 

@@ -40,7 +40,7 @@ run-sequentially = "This will delete all existing push subscriptions."
 ["test_observer_data.js"]
 
 ["test_observer_remoting.js"]
-skip-if = ["serviceworker_e10s"]
+skip-if = ["true"]
 
 ["test_permissions.js"]
 run-sequentially = "This will delete all existing push subscriptions."

@@ -3395,7 +3395,6 @@ toolbar#nav-bar {
                 #
                 # Currently for automation, the pref defaults to true (but can be
                 # overridden with --setpref).
-                "serviceworker_e10s": True,
                 "sessionHistoryInParent": not options.disable_fission
                 or not self.extraPrefs.get(
                     "fission.disableSessionHistoryInParent",
@@ -3772,11 +3771,6 @@ toolbar#nav-bar {
                 self.log.info(
                     "runtests.py | Running with cross-origin iframes: {}".format(
                         mozinfo.info.get("xorigin", False)
-                    )
-                )
-                self.log.info(
-                    "runtests.py | Running with serviceworker_e10s: {}".format(
-                        mozinfo.info.get("serviceworker_e10s", False)
                     )
                 )
                 self.log.info(

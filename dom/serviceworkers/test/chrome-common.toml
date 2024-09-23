@@ -19,7 +19,7 @@ support-files = [
 ["test_privateBrowsing.html"]
 
 ["test_serviceworkerinfo.xhtml"]
-skip-if = ["serviceworker_e10s"] # nsIWorkerDebugger attribute not implemented
+skip-if = ["true"] # nsIWorkerDebugger attribute not implemented
 
 ["test_serviceworkermanager.xhtml"]
 

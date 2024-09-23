@@ -20,7 +20,7 @@ scheme = "https"
 
 ["test_error_reporting.html"]
 skip-if = [
-  "serviceworker_e10s",
+  "true",
   "os == 'android'",
 ]
 
@@ -59,11 +59,11 @@ scheme = "https"
 
 ["test_serviceworker_lifetime.html"]
 skip-if = [
-  "serviceworker_e10s",
+  "true",
   "os == 'android'",
   "os == 'win'", # Bug 1373346
-  "os =='linux' && bits == 64", # Bug 1578374
-  "os =='mac'", # Bug 1578333
+  "os == 'linux' && bits == 64", # Bug 1578374
+  "os == 'mac'", # Bug 1578333
 ]
 
 ["test_subscription_change.html"]

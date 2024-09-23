@@ -246,7 +246,7 @@ skip-if = [
 ["test_enabled_pref.html"]
 
 ["test_error_reporting.html"]
-skip-if = ["serviceworker_e10s"]
+skip-if = ["true"]
 
 ["test_escapedSlashes.html"]
 skip-if = [
@@ -265,7 +265,7 @@ skip-if = ["debug"] # Bug 1262224
 skip-if = ["debug"] # Bug 1262224
 
 ["test_fetch_integrity.html"]
-skip-if = ["serviceworker_e10s"]
+skip-if = ["true"]
 support-files = [
   "console_monitor.js",
 ]
@@ -340,7 +340,7 @@ skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1749068
 ["test_nofetch_handler.html"]
 
 ["test_not_intercept_plugin.html"]
-skip-if = ["serviceworker_e10s"] # leaks InterceptedHttpChannel and others things
+skip-if = ["true"] # leaks InterceptedHttpChannel and others things
 
 ["test_offline_localhost_fetch.html"]
 skip-if = ["os == 'android'"]
@@ -400,11 +400,11 @@ skip-if = [
 
 ["test_script_loader_intercepted_js_cache.html"]
 disabled = "https://bugzilla.mozilla.org/show_bug.cgi?id=1853173"
-skip-if = ["serviceworker_e10s"]
+skip-if = ["true"]
 
 ["test_self_update_worker.html"]
 skip-if = [
-  "serviceworker_e10s",
+  "true",
   "os == 'android'",
 ]
 
@@ -442,7 +442,7 @@ support-files = [
 ["test_unresolved_fetch_interception.html"]
 skip-if = [
   "verify",
-  "serviceworker_e10s",
+  "true",
 ]
 
 ["test_workerUnregister.html"]

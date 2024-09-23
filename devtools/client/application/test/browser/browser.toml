@@ -32,7 +32,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "debug",  # Bug 1559591
   "asan",   # Bug 1575578
-  "!serviceworker_e10s", # Bug 1588154
 ]
 
 ["browser_application_panel_list-domain-workers.js"]
@@ -87,7 +86,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "asan",   # Bug 1559487
   "debug",  # Bug 1559591
-  "!serviceworker_e10s",
   "tsan", # Bug 1608640
 ]
 
@@ -103,7 +101,6 @@ https_first_disabled = true
 skip-if = [
   "asan",   # Bug 1559487
   "debug",  # Bug 1559591
-  "!serviceworker_e10s", # Bug 1608640
   "os == 'linux' && bits == 64 && !debug", # Bug 1654354
 ]
 
@@ -116,7 +113,6 @@ skip-if = [
   "ccov",
   "asan",   # Bug 1559487
   "debug",  # Bug 1559591
-  "!serviceworker_e10s", # Bug 1608640
   "tsan",   # Bug 1654468
 ]
 
@@ -125,7 +121,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "asan",   # Bug 1559487
   "debug",  # Bug 1559591
-  "!serviceworker_e10s", # Bug 1608640
 ]
 
 ["browser_application_panel_unregister-worker.js"]
@@ -138,7 +133,6 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "debug",  # Bug 1559591
   "asan",   # Bug 1575578
-  "!serviceworker_e10s", # Bug 1588154
 ]
 
 ["browser_application_panel_worker-states.js"]
@@ -146,5 +140,4 @@ fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and
 skip-if = [
   "asan",   # Bug 1559487
   "debug",  # Bug 1559591
-  "!serviceworker_e10s", # Bug 1608640
 ]
