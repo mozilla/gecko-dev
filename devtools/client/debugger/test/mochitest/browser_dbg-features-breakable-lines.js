@@ -78,7 +78,7 @@ add_task(async function testBreakableLinesOverReloads() {
   // When EFT is disabled, iframe.html is a regular source and the right content is displayed
   if (isEveryFrameTargetEnabled()) {
     is(
-      getCM(dbg).getValue(),
+      getEditorContent(dbg),
       `Error: Incorrect contents fetched, please reload.`
     );
   }

@@ -3090,6 +3090,15 @@ class Editor extends EventEmitter {
     }
   }
 
+  // Used only in tests
+  getEditorContent() {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      return cm.state.doc.toString();
+    }
+    return cm.getValue();
+  }
+
   isSearchStateReady() {
     const cm = editors.get(this);
     if (this.config.cm6) {

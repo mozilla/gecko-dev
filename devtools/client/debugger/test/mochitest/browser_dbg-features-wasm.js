@@ -48,7 +48,7 @@ add_task(async function () {
   await dbg.actions.selectLocation(createLocation({ source }), {
     keepContext: false,
   });
-  is(getCM(dbg).getValue(), `Please refresh to debug this module`);
+  is(getEditorContent(dbg), `Please refresh to debug this module`);
 
   info("Reload and assert that WASM files are then debuggable");
   await reload(dbg, "doc-wasm-sourcemaps.html", "fib.wasm", "fib.c");

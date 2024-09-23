@@ -60,7 +60,7 @@ add_task(async function () {
     "Select the `test.js` script for the tree"
   );
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     testSourceContent,
     "The test.js is the original source content"
   );
@@ -101,7 +101,7 @@ add_task(async function () {
 
   assertPausedAtSourceAndLine(dbg, findSource(dbg, "test.js").id, 2);
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     testOverrideSourceContent,
     "The test.js is the overridden source content"
   );
@@ -123,7 +123,7 @@ add_task(async function () {
   await waitForSelectedSource(dbg, "test.js");
 
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     testSourceContent,
     "The test.js is the original source content"
   );

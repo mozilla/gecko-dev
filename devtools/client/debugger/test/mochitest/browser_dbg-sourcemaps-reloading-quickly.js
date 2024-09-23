@@ -22,7 +22,7 @@ add_task(async function () {
   await waitForLoadedSource(dbg, "entry.js");
 
   ok(
-    getCM(dbg).getValue().includes("window.keepMeAlive"),
+    getEditorContent(dbg).includes("window.keepMeAlive"),
     "Original source text loaded correctly"
   );
 });

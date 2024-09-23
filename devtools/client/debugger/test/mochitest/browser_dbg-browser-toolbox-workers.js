@@ -45,6 +45,7 @@ add_task(async function () {
     findSource,
     selectSource,
     assertTextContentOnLine,
+    getEditorContent,
   });
 
   await addTab(`${EXAMPLE_URL}doc-all-workers.html`);

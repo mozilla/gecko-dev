@@ -93,7 +93,7 @@ add_task(async function () {
     "There is no warning about source-map but rather one about original scopes"
   );
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     `Error while fetching an original source: request failed with status 404\nSource URL: ${EXAMPLE_URL}map-with-failed-original-request.original.js`
   );
 

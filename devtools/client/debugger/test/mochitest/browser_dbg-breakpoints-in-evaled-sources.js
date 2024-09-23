@@ -45,7 +45,7 @@ add_task(async function () {
   await waitForPaused(dbg);
 
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     EVALED_SOURCE_TEXT,
     "The debugger is showing the evaled source"
   );

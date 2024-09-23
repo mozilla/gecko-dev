@@ -157,7 +157,7 @@ add_task(async function testSourceTextContent() {
     "Select `new-function.js`"
   );
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     `function anonymous(\n) {\n${NEW_FUNCTION_CONTENT}\n}`
   );
 
@@ -167,7 +167,7 @@ add_task(async function testSourceTextContent() {
     noFissionNoEFT ? 7 : 6,
     "Select `normal-script.js`"
   );
-  is(getCM(dbg).getValue(), `console.log("normal script")`);
+  is(getEditorContent(dbg), `console.log("normal script")`);
 
   await selectSourceFromSourceTree(
     dbg,
@@ -175,7 +175,7 @@ add_task(async function testSourceTextContent() {
     noFissionNoEFT ? 9 : 8,
     "Select `slow-loading-script.js`"
   );
-  is(getCM(dbg).getValue(), `console.log("slow loading script")`);
+  is(getEditorContent(dbg), `console.log("slow loading script")`);
 
   await selectSourceFromSourceTree(
     dbg,
@@ -183,7 +183,7 @@ add_task(async function testSourceTextContent() {
     noFissionNoEFT ? 4 : 3,
     "Select `index.html`"
   );
-  is(getCM(dbg).getValue(), INDEX_PAGE_CONTENT);
+  is(getEditorContent(dbg), INDEX_PAGE_CONTENT);
 
   await selectSourceFromSourceTree(
     dbg,
@@ -191,7 +191,7 @@ add_task(async function testSourceTextContent() {
     noFissionNoEFT ? 5 : 4,
     "Select `named-eval.js`"
   );
-  is(getCM(dbg).getValue(), NAMED_EVAL_CONTENT);
+  is(getEditorContent(dbg), NAMED_EVAL_CONTENT);
 
   await selectSourceFromSourceTree(
     dbg,
@@ -201,7 +201,7 @@ add_task(async function testSourceTextContent() {
   );
 
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     `console.log("same url #1")`,
     "We get an arbitrary content for same-url, the first loaded one"
   );
@@ -250,7 +250,7 @@ add_task(async function testSourceTextContent() {
     );
 
     is(
-      getCM(dbg).getValue(),
+      getEditorContent(dbg),
       `console.log("same url #3")`,
       "We get the expected content for same-url.js in the iframe"
     );
@@ -310,7 +310,7 @@ add_task(async function testSourceTextContent() {
   );
 
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     `console.log("same url #4")`,
     "We get the expected content for same-url.js worker"
   );
@@ -326,7 +326,7 @@ add_task(async function testSourceTextContent() {
   );
 
   await selectSource(dbg, "iframe.html");
-  is(getCM(dbg).getValue(), IFRAME_CONTENT);
+  is(getEditorContent(dbg), IFRAME_CONTENT);
 
   ok(
     !sourceExists(dbg, "http-error-script.js"),
@@ -344,7 +344,7 @@ add_task(async function testSourceTextContent() {
   let newFunctionSource = sources[0];
   // We acknowledge the function header as well as the new line in the first argument
   assertPausedAtSourceAndLine(dbg, newFunctionSource.id, 4, 0);
-  is(getCM(dbg).getValue(), "function anonymous(a\n,b1\n) {\ndebugger;\n}");
+  is(getEditorContent(dbg), "function anonymous(a\n,b1\n) {\ndebugger;\n}");
   await resume(dbg);
 
   info(
@@ -358,7 +358,7 @@ add_task(async function testSourceTextContent() {
   newFunctionSource = sources[0];
   // We acknowledge the function header as well as the new line in the first argument
   assertPausedAtSourceAndLine(dbg, newFunctionSource.id, 4, 0);
-  is(getCM(dbg).getValue(), "function anonymous(a\n,b2\n) {\ndebugger;\n}");
+  is(getEditorContent(dbg), "function anonymous(a\n,b2\n) {\ndebugger;\n}");
   await resume(dbg);
 
   // As we are loading the page while the debugger is already opened,
@@ -447,10 +447,10 @@ add_task(async function testGarbageCollectedSourceTextContent() {
   // is the one that actually runs in the page!
   // We should be displaying `console.log("garbaged script 1")`,
   // but instead, a new HTTP request is dispatched and we get a new content.
-  is(getCM(dbg).getValue(), `console.log("garbaged script 2")`);
+  is(getEditorContent(dbg), `console.log("garbaged script 2")`);
 
   await selectSource(dbg, "garbaged-collected.html");
-  is(getCM(dbg).getValue(), GARBAGED_PAGE_CONTENT);
+  is(getEditorContent(dbg), GARBAGED_PAGE_CONTENT);
 
   is(
     loadCounts["/garbaged-collected.html"],
@@ -510,7 +510,7 @@ add_task(async function testFailingHtmlSource() {
   });
 
   ok(
-    getCM(dbg).getValue().includes("Could not load the source"),
+    getEditorContent(dbg).includes("Could not load the source"),
     "Display failure error"
   );
 });
@@ -551,7 +551,7 @@ add_task(async function testLoadingHtmlSource() {
 
   const onSelected = selectSource(dbg, "slow-loading-page.html");
   await waitFor(
-    () => getCM(dbg).getValue() == DEBUGGER_L10N.getStr("loadingText"),
+    () => getEditorContent(dbg) == DEBUGGER_L10N.getStr("loadingText"),
     "Wait for the source to be displayed as loading"
   );
 
@@ -561,7 +561,7 @@ add_task(async function testLoadingHtmlSource() {
     "Wait for the html page to be queried a second time"
   );
   is(
-    getCM(dbg).getValue(),
+    getEditorContent(dbg),
     DEBUGGER_L10N.getStr("loadingText"),
     "The source is still loading until we release the network request"
   );
@@ -577,5 +577,5 @@ add_task(async function testLoadingHtmlSource() {
   // XXX Bug 1758458 - the source content is wrong.
   // We should be seeing the whole HTML page content,
   // whereas we only see the inline source text content.
-  is(getCM(dbg).getValue(), `console.log("slow-loading-page:first-load");`);
+  is(getEditorContent(dbg), `console.log("slow-loading-page:first-load");`);
 });

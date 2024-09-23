@@ -31,7 +31,7 @@ add_task(async function () {
     !selectedSource.url,
     "The selected source is the console evaluation and doesn't have a URL"
   );
-  is(getCM(dbg).getValue(), "debugger");
+  is(getEditorContent(dbg), "debugger");
   assertPausedAtSourceAndLine(dbg, selectedSource.id, 1);
 
   await resume(dbg);
