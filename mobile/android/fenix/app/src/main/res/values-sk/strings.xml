@@ -1304,11 +1304,22 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Pridať nový priečinok</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Zavrieť záložky</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Zavrieť záložky</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Hľadať v záložkách</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Ponuka položiek pre %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Zatiaľ žiadne záložky</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Ukladajte si stránky počas prehliadania. Alebo sa prihláste sa a získajte záložky z iných synchronizovaných zariadení.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Prihlásiť sa a synchronizovať</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Ukladajte si stránky počas prehliadania. Vezmeme aj záložky z iných synchronizovaných zariadení.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Počas prehliadania si pridávajte záložky, aby ste neskôr jednoducho našli svoje obľúbené stránky.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

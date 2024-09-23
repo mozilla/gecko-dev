@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Wyszukaj w Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Wyszukaj w Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Wyszukaj w Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Wyszukaj w Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Wyszukaj w Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Wyszukaj w Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Wyszukaj w Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Wyszukaj w Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s daje większą kontrolę.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s daje większą kontrolę.</p>
 <p>Jako prywatna przeglądarka umożliwia:
   <ul>
     <li>wyszukiwanie i przeglądanie prosto z aplikacji</li>
@@ -609,9 +609,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Usuń historię przeglądania</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Zamknij inne karty</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Pobierz Firefoksa</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Pobierz Firefoksa</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -623,23 +626,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s jest dostępny na warunkach licencji <a href="%2$s">MPL (Mozilla Public License)</a> i innych licencji open source.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s jest dostępny na warunkach licencji <a href="%2$s">MPL (Mozilla Public License)</a> i innych licencji open source.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Nie otrzymujesz żadnych praw ani licencji do znaków towarowych Mozilla Foundation i innych podmiotów, w tym do nazw i logotypów Mozilla, Firefox i %1$s. <a href="%2$s">Tutaj</a> znajduje się więcej informacji na ten temat.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Nie otrzymujesz żadnych praw ani licencji do znaków towarowych Mozilla Foundation i innych podmiotów, w tym do nazw i logotypów Mozilla, Firefox i %1$s. <a href="%2$s">Tutaj</a> znajduje się więcej informacji na ten temat.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Dodatkowy kod źródłowy programu %1$s jest dostępny na warunkach innych <a href="%2$s">licencji</a> wolnego oprogramowania i open source.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Dodatkowy kod źródłowy programu %1$s jest dostępny na warunkach innych <a href="%2$s">licencji</a> wolnego oprogramowania i open source.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s używa także list blokowania dostarczanych przez Disconnect, Inc. jako oddzielny i niezależny produkt dostępny na warunkach licencji <a href="%2$s">GPLv3 (GNU General Public License v3)</a>, opisany <a href="%3$s">tutaj</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s używa także list blokowania dostarczanych przez Disconnect, Inc. jako oddzielny i niezależny produkt dostępny na warunkach licencji <a href="%2$s">GPLv3 (GNU General Public License v3)</a>, opisany <a href="%3$s">tutaj</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Nazwa użytkownika</string>
@@ -830,7 +833,7 @@
     <string name="preference_studies">Badania</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox może od czasu do czasu instalować i przeprowadzać badania.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox może od czasu do czasu instalować i przeprowadzać badania.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Więcej informacji</string>
@@ -1034,7 +1037,7 @@
 
      <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s próbuje używać połączenia HTTPS, kiedy tylko jest to możliwe, aby zwiększyć bezpieczeństwo.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s próbuje używać połączenia HTTPS, kiedy tylko jest to możliwe, aby zwiększyć bezpieczeństwo.
      <a href="%2$s">Więcej informacji</a> <br/><br/>
      Można to zmienić w Ustawienia → Prywatność i bezpieczeństwo → Bezpieczeństwo.]]></string>
 

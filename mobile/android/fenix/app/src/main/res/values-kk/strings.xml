@@ -1293,6 +1293,18 @@
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">%s үшін элемент мәзірі</string>
 
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Бетбелгілер әлі жоқ</string>
+
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Шолу кезінде сайттарды сақтаңыз. Басқа синхрондалған құрылғылардан бетбелгілерді алу үшін жүйеге кіріңіз.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Синхрондау ішіне кіру</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Шолу кезінде сайттарды сақтаңыз. Басқа синхрондалған құрылғылардан да бетбелгілерді аламыз.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Таңдаулы сайттарды кейінірек табу үшін шолу кезінде бетбелгілерді қосыңыз.</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Баптауларға өту</string>

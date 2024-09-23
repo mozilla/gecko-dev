@@ -901,6 +901,8 @@
     <string name="preferences_marketing_data">ข้อมูลการตลาด</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">แบ่งปันข้อมูลการใช้งานพื้นฐานกับ Adjust ผู้จำหน่ายการตลาดมือถือของเรา</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">การศึกษา</string>
     <!-- Summary for studies preferences -->
@@ -1195,6 +1197,8 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">เรียกคืนแท็บ</string>
 
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">ปิด</string>
     <!-- Unsubmitted crash dialog positive button to submit crash report -->
@@ -1280,11 +1284,16 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">เพิ่มโฟลเดอร์ใหม่</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">ปิดที่คั่นหน้า</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">ปิดที่คั่นหน้า</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">ค้นหาที่คั่นหน้า</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">เมนูรายการสำหรับ %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">ไม่มีที่คั่นหน้า</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">ลงชื่อเข้าใช้เพื่อซิงค์</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2818,14 +2827,26 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">ฉันไม่ได้ใช้มัน</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">ฉันไม่ใช้การค้นหาบน Firefox</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">ฉันไม่ใช้การซิงค์</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">คุณพึงพอใจกับหน้าแรกของ Firefox มากน้อยเพียงใด?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">ช่วยเราทำให้ระบบการพิมพ์ใน Firefox ดีขึ้น โดยสละเวลาเพียงนาทีเดียว</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">ช่วยทำให้การค้นหาใน Firefox ดีขึ้น โดยสละเวลาเพียงนาทีเดียว</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">ช่วยทำให้ซิงค์ใน Firefox ดีขึ้น โดยสละเวลาเพียงนาทีเดียว</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">คุณพึงพอใจกับระบบการพิมพ์ใน Firefox มากน้อยเพียงใด?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">คุณพึงพอใจกับหน้าแรกของ Firefox มากน้อยเพียงใด?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">คุณพอใจกับการค้นหาใน Firefox มากแค่ไหน?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">คุณพอใจกับการซิงค์ใน Firefox มากแค่ไหน?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">โลโก้ Firefox</string>

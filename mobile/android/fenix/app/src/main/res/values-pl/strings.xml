@@ -118,9 +118,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">Nowość: strzałki do przechodzenia do poprzedniej i następnej strony dostępne jednym stuknięciem</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Nowość: strzałki do przechodzenia do poprzedniej i następnej strony dostępne jednym stuknięciem</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Ciesz się szybszą nawigacją, którą zawsze masz pod ręką.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Ciesz się szybszą nawigacją, którą zawsze masz pod ręką.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Wymagany jest dostęp do aparatu. Przejdź do ustawień Androida, stuknij „Uprawnienia” i stuknij „Zezwól”.</string>
@@ -212,8 +212,14 @@
     <string name="browser_menu_extensions_banner_learn_more">Więcej informacji</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Zarządzaj rozszerzeniami</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Polecane rozszerzenia</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Dodaj rozszerzenie</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Odkryj więcej rozszerzeń</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Tymczasowo wyłączone</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Informacje o koncie</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -232,6 +238,8 @@
     <string name="browser_menu_add_to_homescreen">Dodaj do ekranu głównego</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Dodaj do ekranu głównego…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Urządzenia Xiaomi mogą wymagać dodatkowych uprawnień, aby móc dodawać skróty do ekranu głównego. Sprawdź swoje ustawienia.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Synchronizuj ponownie</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -301,6 +309,8 @@
     <string name="browser_menu_switch_to_mobile_site">Wersja na telefon</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Narzędzia</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
+    <string name="browser_menu_back_button_content_description">Wróć do menu głównego</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Widok poprawionej czytelności, przetłumacz, drukuj, udostępnij, otwórz aplikację</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
@@ -333,6 +343,13 @@
     <!-- Browser menu label for the Delete browsing data on quit feature.
         The first parameter is the name of the app defined in app_name (for example: Fenix). -->
     <string name="browser_menu_delete_browsing_data_on_quit">Zakończ program %1$s</string>
+
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Nowość: uproszczone menu</string>
+
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Szybciej znajduj to, czego potrzebujesz — od trybu prywatnego po opcje zachowywania.</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -394,7 +411,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Poznaj swoją spersonalizowaną stronę startową. Tutaj będą wyświetlane ostatnie karty, zakładki i wyniki wyszukiwania.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Poznaj swoją spersonalizowaną stronę startową. Tutaj będą wyświetlane ostatnie karty, zakładki i wyniki wyszukiwania.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Witamy w bardziej spersonalizowanym Internecie</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -429,12 +446,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Zasady ochrony prywatności Firefoksa</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Zasady ochrony prywatności Firefoksa</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Uwielbiamy zapewniać Ci bezpieczeństwo</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Dowiedz się, dlaczego miliony kochają Firefoksa</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Dowiedz się, dlaczego miliony kochają Firefoksa</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Bezpieczne przeglądanie i większy wybór</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -456,10 +473,10 @@
     <string name="juno_onboarding_sign_in_title_2">Nie trać szyfrowania podczas przełączania się między urządzeniami</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="UnusedResources">Zalogowanie i zsynchronizowanie zwiększa Twoje bezpieczeństwo. Firefox szyfruje hasła, zakładki i nie tylko.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Zalogowanie i zsynchronizowanie zwiększa Twoje bezpieczeństwo. Firefox szyfruje hasła, zakładki i nie tylko.</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_3">Firefox szyfruje Twoje hasła, zakładki i inne dane podczas synchronizacji.</string>
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox szyfruje Twoje hasła, zakładki i inne dane podczas synchronizacji.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Zaloguj się</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -467,10 +484,10 @@
 
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Powiadomienia pomogą Ci zachować bezpieczeństwo z Firefoksem</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Powiadomienia pomogą Ci zachować bezpieczeństwo z Firefoksem</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Bezpiecznie przesyłaj karty między urządzeniami i odkrywaj inne funkcje chroniące prywatność w Firefoksie.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Bezpiecznie przesyłaj karty między urządzeniami i odkrywaj inne funkcje chroniące prywatność w Firefoksie.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Włącz powiadomienia</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -478,13 +495,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Wypróbuj widżet wyszukiwania Firefoksa</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Wypróbuj widżet wyszukiwania Firefoksa</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Dzięki Firefoksowi na ekranie głównym będziesz mieć łatwy dostęp do przeglądarki dbającej o prywatność, która blokuje elementy śledzące między witrynami.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Dzięki Firefoksowi na ekranie głównym będziesz mieć łatwy dostęp do przeglądarki dbającej o prywatność, która blokuje elementy śledzące między witrynami.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Dodaj widżet Firefoksa</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Dodaj widżet Firefoksa</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Nie teraz</string>
 
@@ -525,9 +542,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Preferencje paska adresu</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Pasek adresu – podpowiedzi Firefoksa</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Pasek adresu – podpowiedzi Firefoksa</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Więcej informacji o podpowiedziach Firefoksa</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Więcej informacji o podpowiedziach Firefoksa</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Oceń w Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -623,8 +640,6 @@
     <string name="toast_override_account_sync_server_done">Zmieniono serwer kont Mozilli/synchronizacji. Wyłączanie aplikacji, aby zastosować zmiany…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Konto</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Pasek narzędzi</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Położenie paska adresu</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -792,7 +807,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Dostępne są nowe rozszerzenia</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Wypróbuj ponad 100 nowych rozszerzeń, dzięki którym możesz dostosować Firefoksa do swoich potrzeb.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Wypróbuj ponad 100 nowych rozszerzeń, dzięki którym możesz dostosować Firefoksa do swoich potrzeb.</string>
 
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Przeglądaj rozszerzenia</string>
@@ -860,7 +875,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Odebrane karty</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Powiadomienia o kartach odebranych z innych urządzeń z Firefoksem.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Powiadomienia o kartach odebranych z innych urządzeń z Firefoksem.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Odebrano kartę</string>
     <!-- %s is the device name -->
@@ -892,6 +907,10 @@
     <string name="preferences_marketing_data">Dane marketingowe</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Udostępnia podstawowe dane o użyciu firmie Adjust, naszemu dostawcy marketingu mobilnego.</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Automatyczne przesyłanie zgłoszeń awarii</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Po wystąpieniu awarii automatycznie udostępnia Mozilli dane o awarii podczas uruchamiania aplikacji</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Badania</string>
     <!-- Summary for studies preferences -->
@@ -930,8 +949,6 @@
     <string name="preference_gestures_website_pull_to_refresh">Pociągnięcie w dół odświeża</string>
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Przewinięcie ukrywa pasek narzędzi</string>
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Przeciągnięcie paska narzędzi w bok przełącza karty</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Przeciągnięcie paska narzędzi do góry wyświetla otwarte karty</string>
 
@@ -1189,6 +1206,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Przywróć kartę</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s musiał zostać ponownie uruchomiony</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Automatyczne wysyłanie zgłoszeń awarii</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Zamknij</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Wyślij zgłoszenie awarii</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Czy na pewno usunąć ten folder?</string>
@@ -1200,6 +1226,8 @@
     <string name="bookmark_add_folder">Dodaj folder</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Dodano zakładkę</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Zachowano w „%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">Edytuj</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1233,8 +1261,12 @@
     <string name="bookmark_url_label">Adres</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">Folder</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Zachowaj w</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">Nazwa</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Nazwa</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Dodaj folder</string>
     <!-- Bookmark select folder screen title -->
@@ -1263,11 +1295,23 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Dodaj nowy folder</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Zamknij zakładki</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Zamknij zakładki</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Szukaj w zakładkach</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Menu elementów „%s”</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Nie ma jeszcze zakładek</string>
+
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Zachowuj witryny podczas przeglądania. Zaloguj się, aby pobrać zakładki z innych synchronizowanych urządzeń.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Zaloguj się do synchronizacji</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Zachowuj witryny podczas przeglądania. Pobierzemy też zakładki z innych synchronizowanych urządzeń.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Dodawaj zakładki w trakcie przeglądania, aby później łatwo znaleźć ulubione witryny.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1441,7 +1485,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Połącz inne urządzenie</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Aby wysłać kartę, zaloguj się w Firefoksie na co najmniej jednym innym urządzeniu.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Aby wysłać kartę, zaloguj się w Firefoksie na co najmniej jednym innym urządzeniu.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">OK</string>
 
@@ -1481,10 +1525,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox jest szybki i prywatny</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox jest szybki i prywatny</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Ustaw Firefoksa jako domyślną przeglądarkę</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Ustaw Firefoksa jako domyślną przeglądarkę</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Wypróbuj tryb prywatny</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1505,7 +1549,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Pomóż ulepszyć Firefoksa, wypełniając krótką ankietę.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Pomóż ulepszyć Firefoksa, wypełniając krótką ankietę.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Wypełnij ankietę</string>
     <!-- Preference for not taking the short survey. -->
@@ -1653,7 +1697,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Zeskanuj kod</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Otwórz Firefoksa na komputerze i wejdź na stronę <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Otwórz Firefoksa na komputerze i wejdź na stronę <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Gotowy do skanowania</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1661,7 +1705,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Użyj adresu e-mail</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Nie masz konta? <u>Utwórz je</u>, aby synchronizować Firefoksa między urządzeniami.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Nie masz konta? <u>Utwórz je</u>, aby synchronizować Firefoksa między urządzeniami.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s zatrzyma synchronizację z tym kontem, ale nie usunie danych przeglądania na tym urządzeniu.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -2192,7 +2236,7 @@
     <string name="synced_tabs_enable_tab_syncing">Włącz synchronizację kart.</string>
 
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Brak otwartych kart w Firefoksach na innych urządzeniach.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Brak otwartych kart w Firefoksach na innych urządzeniach.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Wyświetl listę kart z innych urządzeń.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2260,7 +2304,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Zamykać automatycznie po miesiącu?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox może zamykać karty, których nie odwiedzono w ciągu ostatniego miesiąca.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox może zamykać karty, których nie odwiedzono w ciągu ostatniego miesiąca.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">Włącz automatyczne zamykanie</string>
     <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
@@ -2268,7 +2312,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Podpowiedzi Firefoksa</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Podpowiedzi Firefoksa</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Szukaj w Google</string>
@@ -2279,7 +2323,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Przełącz domyślną przeglądarkę</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Ustaw automatyczne otwieranie odnośników z witryn, wiadomości e-mail i SMS-ów w Firefoksie.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Ustaw automatyczne otwieranie odnośników z witryn, wiadomości e-mail i SMS-ów w Firefoksie.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Usuń</string>
@@ -2303,7 +2347,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">Dostarczane przez %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Część rodziny Firefoksa. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Część rodziny Firefoksa. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Więcej informacji</string>
 
@@ -2507,8 +2551,6 @@
     <string name="download_language_all_languages_item_preference_to_delete">Usuń wszystkie języki</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Usuń</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">W trakcie</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
     <string name="download_languages_item_content_description_delete_in_progress_state">W trakcie</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
@@ -2559,8 +2601,6 @@
     <string name="download_language_file_dialog_title">Na pewno pobrać w trybie oszczędzania danych (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Pobieramy częściowe języki do pamięci podręcznej urządzenia, aby zachować prywatność tłumaczeń.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Pobieramy częściowe języki, aby zachować prywatność tłumaczeń.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Pobieraj także w trybie oszczędzania danych</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2618,16 +2658,12 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Pomóż nam ulepszyć Firefoksa. To zajmie tylko minutkę.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Pomóż nam ulepszyć Firefoksa. To zajmie tylko minutkę.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Kontynuuj</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Wypełnij tę ankietę</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Prosimy o wypełnienie ankiety</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Zasady ochrony prywatności</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Zasady ochrony prywatności</string>
     <!-- The submit button label text -->
@@ -2649,18 +2685,30 @@
     <string name="likert_scale_option_5" tools:ignore="UnusedResources">Bardzo niezadowolony</string>
 
     <!-- Option for likert scale -->
-    <string name="likert_scale_option_6" tools:ignore="UnusedResources">Nie używam jej</string>
+    <string name="likert_scale_option_6" tools:ignore="UnusedResources">Nie używam</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Nie korzystam z wyszukiwania w Firefoksie</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Nie korzystam z synchronizacji</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources" moz:removedIn="130">Jak określisz swoje zadowolenie ze strony startowej Firefoksa?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Jak określisz swoje zadowolenie ze strony startowej Firefoksa?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Pomóż ulepszyć drukowanie w Firefoksie. To zajmie tylko chwilkę</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Jak określisz swoje zadowolenie z drukowania w Firefoksie?</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_homepage_title" tools:ignore="UnusedResources">Jak określisz swoje zadowolenie ze strony startowej Firefoksa?</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Pomóż ulepszyć drukowanie w Firefoksie. To zajmie tylko chwilkę</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Pomóż ulepszyć wyszukiwanie w Firefoksie. To zajmie tylko minutkę</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Pomóż ulepszyć synchronizację w Firefoksie. To zajmie tylko minutkę</string>
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Jak określisz swoje zadowolenie z drukowania w Firefoksie?</string>
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Jak określisz swoje zadowolenie ze strony startowej Firefoksa?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Jak określisz swoje zadowolenie z wyszukiwania w Firefoksie?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Jak określisz swoje zadowolenie z synchronizacji w Firefoksie?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
-    <string name="microsurvey_app_icon_content_description">Logo Firefoksa</string>
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefoksa</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Ikona funkcji ankiety</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
@@ -2688,9 +2736,16 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Aby wyłączyć tryb pełnoekranowy, przeciągnij od góry i użyj gestu Wstecz</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Aby wyłączyć tryb pełnoekranowy, przeciągnij od góry i użyj gestu Wstecz</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Aby wyłączyć tryb pełnoekranowy, przeciągnij od góry i naciśnij Wstecz</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Aby wyłączyć tryb pełnoekranowy, przeciągnij od góry i naciśnij Wstecz</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Przeciągnij od góry i użyj gestu Wstecz, aby wyjść</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Przeciągnij od góry i naciśnij Wstecz, aby wyjść</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

@@ -120,8 +120,6 @@
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">كۈچلۈك ئىم تەۋسىيە قىلىنىدۇ</string>
     <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password" moz:removedIn="128" tools:ignore="UnusedResources">كۈچلۈك ئىم تەۋسىيە قىلىنىدۇ</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_2">كۈچلۈك ئىم ئىشلىتىش</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">كۈچلۈك ئىم ئىشلىتىش: %1$s</string>
@@ -133,7 +131,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">كۈچلۈك، ئىختىيارى ھاسىل قىلىنغان ئىم ئارقىلىق ھېساباتىڭىزنى قوغداڭ. ئىمنى ھېساباتىڭىزغا ساقلاپ تېز زىيارەت قىلىڭ.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">ئىختىيارى ھاسىللانغان كۈچلۈك ئىم ئارقىلىق ھېساباتىڭىزنى قوغداڭ. ئۇ كەلگۈسىدە ئىشلىتىش ئۈچۈن ھېساباتىڭىزدا ساقلىنىدۇ.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">ئىختىيارى ھاسىللانغان كۈچلۈك ئىم ئارقىلىق ھېساباتىڭىزنى قوغداڭ. ئۇ كەلگۈسىدە ئىشلىتىش ئۈچۈن ھېساباتىڭىزدا ساقلىنىدۇ.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">ئىختىيارى ھاسىللانغان كۈچلۈك ئىم ئارقىلىق ھېساباتىڭىزنى قوغداڭ. ئۇ كەلگۈسىدە ئىشلىتىش ئۈچۈن ھېساباتىڭىزدا ساقلىنىدۇ.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">ئىم ئىشلىتىش</string>
@@ -208,7 +209,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">تىزىمغا كىرىشنى تەمىنلىگۈچىگە %1$s نى ئىشلىتىدۇ</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[بىر %2$s ھېساباتىدا %1$s غا تىزىمغا كىرىشتە ئۇلارنىڭ <a href="%3$s">شەخسىيەت تۈزۈمى</a> ۋە <a href="%4$s">مۇلازىمەت ماددىلىرى</a>غا بويسۇنىدۇ]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[بىر %2$s ھېساباتىدا %1$s غا تىزىمغا كىرىشتە ئۇلارنىڭ <a href="%3$s">شەخسىيەت تۈزۈمى</a> ۋە <a href="%4$s">مۇلازىمەت ماددىلىرى</a>غا بويسۇنىدۇ]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">داۋاملاشتۇر</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

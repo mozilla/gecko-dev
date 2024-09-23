@@ -909,6 +909,10 @@
     <string name="preferences_marketing_data">Маркетингові дані</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Надсилати основні дані про використання до нашого постачальника мобільного маркетингу Adjust</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Автоматично надсилати звіти про збої</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Автоматично надсилати звіти про збої до Mozilla під час наступного запуску</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Дослідження</string>
     <!-- Summary for studies preferences -->
@@ -1204,6 +1208,8 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Відновити вкладку</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s довелося перезапустити</string>
     <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
     <string name="unsubmitted_crash_dialog_checkbox_label">Автоматично надсилати звіти про збої</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
@@ -1299,6 +1305,17 @@
 
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Елемент меню для %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Немає закладок</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Зберігайте сайти під час перегляду. Увійдіть, щоб отримати закладки з інших синхронізованих пристроїв.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Увійти до синхронізації</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Зберігайте сайти під час перегляду. Ви також побачите закладки з інших синхронізованих пристроїв.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Додавайте закладки для сайтів під час перегляду, щоб потім легко їх знайти.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2849,6 +2866,8 @@
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Як ви оцінюєте домівку Firefox?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Як ви оцінюєте взаємодію з пошуком у Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Як ви оцінюєте роботу синхронізації у Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Логотип Firefox</string>

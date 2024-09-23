@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Vyhledat ve Focusu</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Vyhledat ve Focusu</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Vyhledat v Klaru</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Vyhledat v Klaru</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Vyhledat v betaverzi Focusu</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Vyhledat v betaverzi Focusu</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Vyhledat ve Focusu Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Vyhledat ve Focusu Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s vám dává kontrolu.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s vám dává kontrolu.</p>
 <p>Používejte ho jako soukromý prohlížeč:
   <ul>
     <li>Vyhledávejte a prohlížejte přímo v aplikaci</li>
@@ -606,9 +606,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Vymazat historii prohlížení</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Zavřít ostatní panely</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Stáhnout Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Stáhnout Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -620,23 +623,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s vám je zpřístupněn za podmínek <a href="%2$s">Mozilla Public License</a> a jiných open source licencí.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s vám je zpřístupněn za podmínek <a href="%2$s">Mozilla Public License</a> a jiných open source licencí.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Nejsou vám však podstoupena žádná práva ani licence k ochranným známkám Mozilla Foundation či dalších stran, a to zejména k logům a názvům Mozilla, Firefox nebo %1$s. Podrobnější informace o ochranných známkách jsou dostupné <a href="%2$s">zde</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Nejsou vám však podstoupena žádná práva ani licence k ochranným známkám Mozilla Foundation či dalších stran, a to zejména k logům a názvům Mozilla, Firefox nebo %1$s. Podrobnější informace o ochranných známkách jsou dostupné <a href="%2$s">zde</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Další zdrojové kódy pro %1$s jsou dostupné pod dalšími různými <a href="%2$s">licencemi</a> svobodného softwaru.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Další zdrojové kódy pro %1$s jsou dostupné pod dalšími různými <a href="%2$s">licencemi</a> svobodného softwaru.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s také používá seznamy společnosti Disconnect, Inc. poskytnuté jako samostatná a nezávislá díla pod licencí <a href="%2$s">GNU General Public License v3</a> a dostupné <a href="%3$s">zde</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s také používá seznamy společnosti Disconnect, Inc. poskytnuté jako samostatná a nezávislá díla pod licencí <a href="%2$s">GNU General Public License v3</a> a dostupné <a href="%3$s">zde</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Uživatelské jméno</string>
@@ -827,7 +830,7 @@
     <string name="preference_studies">Studie</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox může čas od času instalovat a spouštět studie.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox může čas od času instalovat a spouštět studie.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Zjistit více</string>
@@ -1032,7 +1035,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s se pro větší bezpečnost pokouší používat zabezpečené připojení skrze protokol HTTPS vždy, kdy je to možné.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s se pro větší bezpečnost pokouší používat zabezpečené připojení skrze protokol HTTPS vždy, kdy je to možné.
 <a href="%2$s">Dozvědět se více</a><br/><br/>
 Toto nastavení můžete změnit v části Nastavení -> Soukromí a zabezpečení > Zabezpečení.]]></string>
 
