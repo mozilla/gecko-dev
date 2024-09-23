@@ -78,7 +78,7 @@ object Versions {
         const val paging = "3.3.2"
         const val palette = "1.0.0"
         const val preferences = "1.2.1"
-        const val profileinstaller = "1.3.1"
+        const val profileinstaller = "1.4.0"
         const val recyclerview = "1.3.2"
         const val room = "2.6.1"
         const val savedstate = "1.2.1"
