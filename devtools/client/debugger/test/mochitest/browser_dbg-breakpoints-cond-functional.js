@@ -69,7 +69,7 @@ async function setConditionalBreakpoint(dbg, index, condition) {
   // Make this work with either add or edit menu items
   const { addConditionItem, editConditionItem } = selectors;
   const selector = `${addConditionItem},${editConditionItem}`;
-  rightClickElement(dbg, "gutter", index);
+  rightClickElement(dbg, "gutterElement", index);
   await waitForContextMenu(dbg);
   selectContextMenuItem(dbg, selector);
   const dispatched = waitForDispatch(dbg.store, "SET_BREAKPOINT");

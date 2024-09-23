@@ -29,7 +29,7 @@ add_task(async function () {
   await assertConditionBreakpoint(dbg, 5);
 
   info("Hit 'Enter' when the cursor is in the conditional statement");
-  rightClickElement(dbg, "gutter", 5);
+  rightClickElement(dbg, "gutterElement", 5);
   await waitForContextMenu(dbg);
   selectContextMenuItem(dbg, `${selectors.editConditionItem}`);
   await waitForConditionalPanelFocus(dbg);
@@ -41,7 +41,7 @@ add_task(async function () {
   is(bp.options.condition, "12", "Hit 'Enter' doesn't add a new line");
 
   info("Hit 'Shift+Enter' when the cursor is in the conditional statement");
-  rightClickElement(dbg, "gutter", 5);
+  rightClickElement(dbg, "gutterElement", 5);
   await waitForContextMenu(dbg);
   selectContextMenuItem(dbg, `${selectors.editConditionItem}`);
   await waitForConditionalPanelFocus(dbg);
@@ -58,14 +58,14 @@ add_task(async function () {
   bp = findBreakpoint(dbg, "simple2.js", 5);
   is(bp.options.condition, "1\n2", "Hit 'Shift+Enter' adds a new line");
 
-  clickElement(dbg, "gutter", 5);
+  clickElement(dbg, "gutterElement", 5);
   await waitForDispatch(dbg.store, "REMOVE_BREAKPOINT");
   bp = findBreakpoint(dbg, "simple2.js", 5);
   is(bp, undefined, "breakpoint was removed");
   await assertNoBreakpoint(dbg, 5);
 
   info("Adding a condition to a breakpoint");
-  clickElement(dbg, "gutter", 5);
+  clickElement(dbg, "gutterElement", 5);
   await waitForDispatch(dbg.store, "SET_BREAKPOINT");
   await setConditionalBreakpoint(dbg, 5, "1");
   await waitForCondition(dbg, 1);
@@ -103,7 +103,7 @@ add_task(async function () {
   bp = findBreakpoint(dbg, "simple2.js", 5);
   is(bp.options.logValue, "44", "breakpoint condition removed");
 
-  await altClickElement(dbg, "gutter", 6);
+  await altClickElement(dbg, "gutterElement", 6);
   bp = await waitForBreakpoint(dbg, "simple2.js", 6);
   is(bp.options.logValue, "displayName", "logPoint has default value");
 
@@ -132,7 +132,7 @@ async function setConditionalBreakpoint(dbg, index, condition) {
   // Make this work with either add or edit menu items
   const { addConditionItem, editConditionItem } = selectors;
   const selector = `${addConditionItem},${editConditionItem}`;
-  rightClickElement(dbg, "gutter", index);
+  rightClickElement(dbg, "gutterElement", index);
   await waitForContextMenu(dbg);
   selectContextMenuItem(dbg, selector);
   typeInPanel(dbg, condition);

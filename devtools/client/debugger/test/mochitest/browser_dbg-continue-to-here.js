@@ -39,7 +39,7 @@ add_task(async function () {
 });
 
 async function continueToLine(dbg, line) {
-  rightClickElement(dbg, "gutter", line);
+  rightClickElement(dbg, "gutterElement", line);
   await waitForContextMenu(dbg);
   selectContextMenuItem(dbg, selectors.editorContextMenu.continueToHere);
   await waitForDispatch(dbg.store, "RESUME");

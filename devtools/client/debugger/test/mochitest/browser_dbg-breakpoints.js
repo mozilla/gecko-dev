@@ -66,7 +66,7 @@ add_task(async function () {
   await cleanupBreakpoints(dbg);
 
   // Test creation of disabled breakpoint with shift-click
-  await shiftClickElement(dbg, "gutter", 3);
+  await shiftClickElement(dbg, "gutterElement", 3);
   await waitForBreakpoint(dbg, "simple2.js", 3);
 
   const bp = findBreakpoint(dbg, "simple2.js", 3);
@@ -95,8 +95,8 @@ async function enableBreakpoint(dbg, index) {
 }
 
 async function cleanupBreakpoints(dbg) {
-  clickElement(dbg, "gutter", 3);
-  clickElement(dbg, "gutter", 5);
+  clickElement(dbg, "gutterElement", 3);
+  clickElement(dbg, "gutterElement", 5);
   await waitForBreakpointRemoved(dbg, "simple2.js", 3);
   await waitForBreakpointRemoved(dbg, "simple2.js", 5);
 }

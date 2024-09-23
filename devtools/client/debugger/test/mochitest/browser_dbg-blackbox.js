@@ -81,7 +81,7 @@ add_task(async function testBlackBoxOnReload() {
   assertNotPaused(dbg);
 
   info("Ignoring line 2 using the gutter context menu");
-  await openContextMenuInDebugger(dbg, "gutter", 2);
+  await openContextMenuInDebugger(dbg, "gutterElement", 2);
   await selectBlackBoxContextMenuItem(dbg, "blackbox-line");
 
   info("Ignoring line 7 to 9 using the editor context menu");
@@ -137,7 +137,7 @@ add_task(async function testBlackBoxOnToolboxRestart() {
   await onReloaded;
 
   info("Ignoring line 2 using the gutter context menu");
-  await openContextMenuInDebugger(dbg, "gutter", 2);
+  await openContextMenuInDebugger(dbg, "gutterElement", 2);
   await selectBlackBoxContextMenuItem(dbg, "blackbox-line");
 
   await reloadBrowser();
@@ -388,7 +388,7 @@ async function testBlackBoxMultipleLines(dbg, source) {
 
 async function testBlackBoxSingleLine(dbg, source) {
   info("Black box line 2 of funcA() with the debugger statement");
-  await openContextMenuInDebugger(dbg, "gutter", 2);
+  await openContextMenuInDebugger(dbg, "gutterElement", 2);
   await selectBlackBoxContextMenuItem(dbg, "blackbox-line");
 
   await assertEditorBlackBoxBoxContextMenuItems(dbg, {
@@ -417,7 +417,7 @@ async function testBlackBoxSingleLine(dbg, source) {
   });
 
   info("Black box line 4 of funcC() with the debugger statement");
-  await openContextMenuInDebugger(dbg, "gutter", 4);
+  await openContextMenuInDebugger(dbg, "gutterElement", 4);
   await selectBlackBoxContextMenuItem(dbg, "blackbox-line");
 
   info("Assert that the ignored line 4 is styled correctly");
@@ -507,7 +507,7 @@ async function assertGutterBlackBoxBoxContextMenuItems(dbg, testFixtures) {
     );
     const popup = await openContextMenuInDebugger(
       dbg,
-      "gutter",
+      "gutterElement",
       blackboxedLine
     );
     // When the whole source is blackboxed the the gutter visually shows `ignore line`
@@ -532,7 +532,7 @@ async function assertGutterBlackBoxBoxContextMenuItems(dbg, testFixtures) {
     );
     const popup = await openContextMenuInDebugger(
       dbg,
-      "gutter",
+      "gutterElement",
       nonBlackBoxedLine
     );
     const item = contextMenuItems.ignoreLine;

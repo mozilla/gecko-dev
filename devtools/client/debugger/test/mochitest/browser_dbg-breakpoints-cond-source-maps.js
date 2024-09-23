@@ -28,7 +28,7 @@ add_task(async function () {
 
 async function setLogPoint(dbg, index) {
   const gutterEl = await getEditorLineGutter(dbg, index);
-  rightClickEl(dbg, gutterEl);
+  rightClickEl(dbg, gutterEl.firstChild);
   await waitForContextMenu(dbg);
   selectContextMenuItem(
     dbg,

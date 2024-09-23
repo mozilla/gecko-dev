@@ -55,7 +55,7 @@ add_task(async function testGutterBreakpointsInIgnoredSource() {
   await waitForDispatch(dbg.store, "SET_BREAKPOINT");
 
   info("Assert that the `Enable breakpoint` context menu item is disabled");
-  const popup = await openContextMenuInDebugger(dbg, "gutter", 4);
+  const popup = await openContextMenuInDebugger(dbg, "gutterElement", 4);
   await assertContextMenuItemDisabled(
     dbg,
     "#node-menu-enable-breakpoint",
@@ -100,7 +100,7 @@ add_task(async function testGutterBreakpointsForSourceWithIgnoredLines() {
   await waitForDispatch(dbg.store, "SET_BREAKPOINT");
 
   info("Assert that the `Disable breakpoint` context menu item is enabled");
-  const popup = await openContextMenuInDebugger(dbg, "gutter", 4);
+  const popup = await openContextMenuInDebugger(dbg, "gutterElement", 4);
   await assertContextMenuItemDisabled(
     dbg,
     "#node-menu-disable-breakpoint",
@@ -122,7 +122,7 @@ add_task(async function testGutterBreakpointsForSourceWithIgnoredLines() {
   await waitForDispatch(dbg.store, "SET_BREAKPOINT");
 
   info("Assert that the `Enable breakpoint` context menu item is disabled");
-  const popup2 = await openContextMenuInDebugger(dbg, "gutter", 19);
+  const popup2 = await openContextMenuInDebugger(dbg, "gutterElement", 19);
   await assertContextMenuItemDisabled(
     dbg,
     "#node-menu-enable-breakpoint",

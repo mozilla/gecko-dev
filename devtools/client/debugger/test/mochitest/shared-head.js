@@ -423,6 +423,20 @@ function _assertDebugLine(dbg, line, column) {
   }
   info(`Paused on line ${line}`);
 }
+/**
+ * Asserts the log point set
+ */
+async function assertEditorLogpoint(dbg, line, { hasLog = false } = {}) {
+  const el = await getEditorLineGutter(dbg, line);
+  const hasLogClass = isCm6Enabled
+    ? !!el.querySelector(".has-log")
+    : el.classList.contains("has-log");
+  Assert.strictEqual(
+    hasLogClass,
+    hasLog,
+    `Breakpoint log ${hasLog ? "exists" : "does not exist"} on line ${line}`
+  );
+}
 
 /**
  * Make sure the debugger is paused at a certain source ID and line.
@@ -463,7 +477,7 @@ function assertPausedAtSourceAndLine(
   }
   _assertDebugLine(dbg, pauseLine, pauseColumn);
 
-  ok(isVisibleInEditor(dbg, getCM(dbg).display.gutters), "gutter is visible");
+  ok(isVisibleInEditor(dbg, findElement(dbg, "gutters")), "gutter is visible");
 
   const frames = dbg.selectors.getCurrentThreadFrames();
   const selectedSource = dbg.selectors.getSelectedSource();
@@ -1498,12 +1512,13 @@ function isVisible(outerEl, innerEl) {
   return visible;
 }
 
+/**
+ * Get the element in the editor gutter at the specified line
+ * @param {Object} dbg
+ * @param {Number} line
+ * @returns
+ */
 async function getEditorLineGutter(dbg, line) {
-  const lineEl = await getEditorLineEl(dbg, line);
-  return lineEl.firstChild;
-}
-
-async function getEditorLineEl(dbg, line) {
   let el = await codeMirrorGutterElement(dbg, line);
   while (el && !el.matches(".CodeMirror-code > div")) {
     el = el.parentElement;
@@ -1619,7 +1634,7 @@ function assertTextContentOnLine(dbg, line, expectedTextContent) {
  * @static
  */
 async function assertNoBreakpoint(dbg, line) {
-  const el = await getEditorLineEl(dbg, line);
+  const el = await getEditorLineGutter(dbg, line);
 
   const exists = !!el.querySelector(".new-breakpoint");
   ok(!exists, `Breakpoint doesn't exists on line ${line}`);
@@ -1635,7 +1650,7 @@ async function assertNoBreakpoint(dbg, line) {
  * @static
  */
 async function assertBreakpoint(dbg, line) {
-  const el = await getEditorLineEl(dbg, line);
+  const el = await getEditorLineGutter(dbg, line);
 
   const exists = !!el.querySelector(".new-breakpoint");
   ok(exists, `Breakpoint exists on line ${line}`);
@@ -1661,7 +1676,7 @@ async function assertBreakpoint(dbg, line) {
  * @static
  */
 async function assertConditionBreakpoint(dbg, line) {
-  const el = await getEditorLineEl(dbg, line);
+  const el = await getEditorLineGutter(dbg, line);
 
   const exists = !!el.querySelector(".new-breakpoint");
   ok(exists, `Breakpoint exists on line ${line}`);
@@ -1687,7 +1702,7 @@ async function assertConditionBreakpoint(dbg, line) {
  * @static
  */
 async function assertLogBreakpoint(dbg, line) {
-  const el = await getEditorLineEl(dbg, line);
+  const el = await getEditorLineGutter(dbg, line);
 
   const exists = !!el.querySelector(".new-breakpoint");
   ok(exists, `Breakpoint exists on line ${line}`);
@@ -1751,7 +1766,12 @@ const selectors = {
   mapScopesCheckbox: ".map-scopes-header input",
   frame: i => `.frames [role="list"] [role="listitem"]:nth-child(${i})`,
   frames: '.frames [role="list"] [role="listitem"]',
-  gutter: i => `.CodeMirror-code *:nth-child(${i}) .CodeMirror-linenumber`,
+  // This is used to trigger events (click etc) on the gutter
+  gutterElement: i =>
+    isCm6Enabled
+      ? `.cm-gutter.cm-lineNumbers .cm-gutterElement:nth-child(${i + 1})`
+      : `.CodeMirror-code *:nth-child(${i}) .CodeMirror-linenumber`,
+  gutters: isCm6Enabled ? `.cm-gutters` : `.CodeMirror-gutters`,
   line: i => `.CodeMirror-code div:nth-child(${i}) .CodeMirror-line`,
   addConditionItem:
     "#node-menu-add-condition, #node-menu-add-conditional-breakpoint",
@@ -2982,7 +3002,7 @@ async function clickOnSourceMapMenuItem(dbg, className) {
 }
 
 async function setLogPoint(dbg, index, value) {
-  rightClickElement(dbg, "gutter", index);
+  rightClickElement(dbg, "gutterElement", index);
   await waitForContextMenu(dbg);
   selectContextMenuItem(
     dbg,

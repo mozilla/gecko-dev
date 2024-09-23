@@ -12,7 +12,7 @@ add_task(async function () {
   await waitForSelectedSource(dbg, "pause-points.js");
 
   info("Disable the first debugger statement on line 12 by gutter menu");
-  rightClickElement(dbg, "gutter", 12);
+  rightClickElement(dbg, "gutterElement", 12);
   await waitForContextMenu(dbg);
   selectContextMenuItem(
     dbg,
@@ -28,7 +28,7 @@ add_task(async function () {
   );
 
   info("Enable the previously disabled debugger statement by gutter menu");
-  rightClickElement(dbg, "gutter", 12);
+  rightClickElement(dbg, "gutterElement", 12);
   await waitForContextMenu(dbg);
   selectContextMenuItem(
     dbg,

@@ -159,30 +159,3 @@ add_task(async function () {
     logPointExpr: "`c is ${c}`",
   });
 });
-
-async function setLogPoint(dbg, index, expression) {
-  rightClickElement(dbg, "gutter", index);
-  await waitForContextMenu(dbg);
-  selectContextMenuItem(
-    dbg,
-    `${selectors.addLogItem},${selectors.editLogItem}`
-  );
-  const onBreakpointSet = waitForDispatch(dbg.store, "SET_BREAKPOINT");
-  await typeInPanel(dbg, expression);
-  await onBreakpointSet;
-}
-
-function getLineEl(dbg, line) {
-  const lines = dbg.win.document.querySelectorAll(".CodeMirror-code > div");
-  return lines[line - 1];
-}
-
-function assertEditorLogpoint(dbg, line, { hasLog = false } = {}) {
-  const hasLogClass = getLineEl(dbg, line).classList.contains("has-log");
-
-  Assert.strictEqual(
-    hasLogClass,
-    hasLog,
-    `Breakpoint log ${hasLog ? "exists" : "does not exist"} on line ${line}`
-  );
-}
