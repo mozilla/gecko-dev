@@ -60,6 +60,7 @@ SimpleTest.waitForExplicitFinish();
   is(window.getComputedStyle($("ce_none")).getPropertyValue("-moz-user-modify"),
       "read-write",
       "parent contenteditable is true, contenteditable is none; user-modify should be read-write");
+  SimpleTest.finish();
 }())
 </script>
 </pre>
