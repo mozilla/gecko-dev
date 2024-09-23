@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<script>
+  function ok(v, msg) {
+    window.parent.postMessage({status: "ok", result: !!v, message: msg}, "*");
+  }
+
+  function done(reg) {
+    ok(reg.active, "The active worker should be available.");
+    window.parent.postMessage({status: "registrationdone"}, "*");
+  }
+
+  navigator.serviceWorker.ready.then(reg => {
+    done(reg);
+  });
+  navigator.serviceWorker.register("sw.js", {scope: "."});
+</script>

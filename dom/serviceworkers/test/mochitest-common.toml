@@ -208,6 +208,10 @@ support-files = [
   "onmessageerror_worker.js",
   "pref/fetch_nonexistent_file.html",
   "pref/intercept_nonexistent_file_sw.js",
+  "offline_fetch/register.html",
+  "offline_fetch/index.html",
+  "offline_fetch/unregister.html",
+  "offline_fetch/sw.js",
 ]
 
 ["test_abrupt_completion.html"]
@@ -337,6 +341,9 @@ skip-if = ["os == 'linux' && bits == 64 && debug"] # Bug 1749068
 
 ["test_not_intercept_plugin.html"]
 skip-if = ["serviceworker_e10s"] # leaks InterceptedHttpChannel and others things
+
+["test_offline_localhost_fetch.html"]
+skip-if = ["os == 'android'"]
 
 ["test_onmessageerror.html"]
 skip-if = ["xorigin"] # Bug 1792790

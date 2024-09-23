@@ -297,6 +297,18 @@ RefPtr<FetchServicePromises> FetchService::FetchInstance::Fetch() {
   return mPromises;
 }
 
+bool FetchService::FetchInstance::IsLocalHostFetch() const {
+  if (!mPrincipal) {
+    return false;
+  }
+  bool res;
+  nsresult rv = mPrincipal->GetIsLoopbackHost(&res);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return false;
+  }
+  return res;
+}
+
 void FetchService::FetchInstance::Cancel() {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
@@ -778,12 +790,15 @@ NS_IMETHODIMP FetchService::Observe(nsISupports* aSubject, const char* aTopic,
     mOffline = false;
   } else {
     mOffline = true;
-    // Network is offline, cancel running fetchs.
-    for (auto it = mFetchInstanceTable.begin(), end = mFetchInstanceTable.end();
-         it != end; ++it) {
-      it->GetData()->Cancel();
-    }
-    mFetchInstanceTable.Clear();
+    // Network is offline, cancel the running fetch that is not to local server.
+    mFetchInstanceTable.RemoveIf([](auto& entry) {
+      bool res = entry.Data()->IsLocalHostFetch();
+      if (res) {
+        return false;
+      }
+      entry.Data()->Cancel();
+      return true;
+    });
   }
   return NS_OK;
 }
@@ -795,11 +810,6 @@ RefPtr<FetchServicePromises> FetchService::Fetch(FetchArgs&& aArgs) {
   FETCH_LOG(("FetchService::Fetch (%s)", aArgs.is<NavigationPreloadArgs>()
                                              ? "NavigationPreload"
                                              : "WorkerFetch"));
-  if (mOffline) {
-    FETCH_LOG(("FetchService::Fetch network offline"));
-    return NetworkErrorResponse(NS_ERROR_OFFLINE, aArgs);
-  }
-
   // Create FetchInstance
   RefPtr<FetchInstance> fetch = MakeRefPtr<FetchInstance>();
 
@@ -808,6 +818,11 @@ RefPtr<FetchServicePromises> FetchService::Fetch(FetchArgs&& aArgs) {
   nsresult rv = fetch->Initialize(std::move(aArgs));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return NetworkErrorResponse(rv, fetch->Args());
+  }
+
+  if (mOffline && !fetch->IsLocalHostFetch()) {
+    FETCH_LOG(("FetchService::Fetch network offline"));
+    return NetworkErrorResponse(NS_ERROR_OFFLINE, fetch->Args());
   }
 
   // Call FetchInstance::Fetch() to start an asynchronous fetching.
