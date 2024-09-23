@@ -4939,11 +4939,6 @@
   value: 30000    # 30 seconds
   mirror: always
 
-- name: dom.worker.use_medium_high_event_queue
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 # Enables the dispatching of console log events from worker threads to the
 # main-thread.
 - name: dom.worker.console.dispatch_events_to_main_thread
