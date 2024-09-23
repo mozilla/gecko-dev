@@ -1237,7 +1237,8 @@ class HTMLMediaElement : public nsGenericHTMLElement,
   /**
    * Dispatches an error event to a child source element.
    */
-  void DispatchAsyncSourceError(nsIContent* aSourceElement);
+  void DispatchAsyncSourceError(nsIContent* aSourceElement,
+                                const nsACString& aErrorDetails);
 
   /**
    * Resets the media element for an error condition as per aErrorCode.

@@ -132,6 +132,44 @@ struct CDMResolvedMarker : public BaseMarkerType<CDMResolvedMarker> {
   }
 };
 
+struct LoadErrorMarker : public BaseMarkerType<LoadErrorMarker> {
+  static constexpr const char* Name = "HTMLMediaElement:Error";
+  static constexpr const char* Description =
+      "A marker shows the detail of the load error";
+
+  using MS = MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"errorMessage", MS::InputType::CString, "Error Message",
+       MS::Format::String},
+  };
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable};
+  static constexpr const char* ChartLabel = "{marker.data.name}";
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   const ProfilerString8View& aErrorMsg) {
+    StreamJSONMarkerDataImpl(aWriter, aErrorMsg);
+  }
+};
+
+struct ErrorMarker : public BaseMarkerType<ErrorMarker> {
+  static constexpr const char* Name = "HTMLMediaElement:Error";
+  static constexpr const char* Description =
+      "A marker shows the detail of the error";
+
+  using MS = MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"errorMessage", MS::InputType::String, "Error Message",
+       MS::Format::String},
+  };
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable};
+  static constexpr const char* ChartLabel = "{marker.data.name}";
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   const ProfilerString16View& aErrorMsg) {
+    StreamJSONMarkerDataImpl(aWriter, aErrorMsg);
+  }
+};
+
 // This marker is for HTMLVideoElement
 struct RenderVideoMarker : public BaseMarkerType<RenderVideoMarker> {
   static constexpr const char* Name = "HTMLMediaElement:RenderVideo";
