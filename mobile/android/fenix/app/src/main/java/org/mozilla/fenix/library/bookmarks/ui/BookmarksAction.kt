@@ -37,6 +37,7 @@ internal data object SearchClicked : BookmarksAction
 internal data object AddFolderClicked : BookmarksAction
 internal data object BackClicked : BookmarksAction
 internal data object SignIntoSyncClicked : BookmarksAction
+internal data class EditBookmarkClicked(val bookmark: BookmarkItem.Bookmark) : BookmarksAction
 
 /**
  * Actions specific to the Add Folder screen.
@@ -44,4 +45,11 @@ internal data object SignIntoSyncClicked : BookmarksAction
 internal sealed class AddFolderAction {
     data class TitleChanged(val updatedText: String) : BookmarksAction
     data object ParentFolderClicked : BookmarksAction
+}
+
+internal sealed class EditBookmarkAction {
+    data class TitleChanged(val title: String) : BookmarksAction
+    data class URLChanged(val url: String) : BookmarksAction
+    data object FolderClicked : BookmarksAction
+    data object DeleteClicked : BookmarksAction
 }

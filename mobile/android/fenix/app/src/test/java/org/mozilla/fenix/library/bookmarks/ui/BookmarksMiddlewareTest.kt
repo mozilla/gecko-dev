@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
@@ -271,6 +272,34 @@ class BookmarksMiddlewareTest {
         verify(bookmarksStorage, never()).addFolder(parentGuid = store.state.folderGuid, title = "")
         verify(navController).popBackStack()
         assertNull(store.state.bookmarksAddFolderState)
+    }
+
+    @Test
+    fun `GIVEN current screen is edit bookmark WHEN back is clicked THEN navigate back, save the bookmark, and load the updated tree`() = runTest {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+        val newBookmarkTitle = "my awesome bookmark"
+
+        val bookmark = store.state.bookmarkItems.first { it is BookmarkItem.Bookmark } as BookmarkItem.Bookmark
+        store.dispatch(EditBookmarkClicked(bookmark = bookmark))
+        store.dispatch(EditBookmarkAction.TitleChanged(title = newBookmarkTitle))
+
+        assertNotNull(store.state.bookmarksEditBookmarkState)
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage).updateNode(
+            guid = "item guid 0",
+            info = BookmarkInfo(
+                parentGuid = BookmarkRoot.Mobile.id,
+                position = 5u,
+                title = "my awesome bookmark",
+                url = "item url 0",
+            ),
+        )
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+        verify(navController).popBackStack()
+        assertNull(store.state.bookmarksEditBookmarkState)
     }
 
     @Test
