@@ -12,16 +12,12 @@ add_task(async function () {
 
   await selectSource(dbg, "simple2.js");
 
-  await waitForElementWithSelector(dbg, ".CodeMirror");
+  await waitForElement(dbg, "codeMirror");
 
   info("Focus on the editor");
-  findElementWithSelector(dbg, ".CodeMirror").focus();
+  findElement(dbg, "codeMirror").focus();
 
-  is(
-    findElementWithSelector(dbg, ".CodeMirror"),
-    doc.activeElement,
-    "Editor is focused"
-  );
+  is(findElement(dbg, "codeMirror"), doc.activeElement, "Editor is focused");
 
   info(
     "Press shift + tab to navigate out of the editor to the previous tab element"
@@ -38,7 +34,7 @@ add_task(async function () {
   pressKey(dbg, "Tab");
 
   is(
-    findElementWithSelector(dbg, ".CodeMirror"),
+    findElement(dbg, "codeMirror"),
     doc.activeElement,
     "Editor is focused again"
   );

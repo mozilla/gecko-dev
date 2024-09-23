@@ -1710,7 +1710,6 @@ function assertBreakpointSnippet(dbg, index, expectedSnippet) {
 }
 
 const selectors = {
-  callStackHeader: ".call-stack-pane ._header .header-label",
   callStackBody: ".call-stack-pane .pane",
   domMutationItem: ".dom-mutation-list li",
   expressionNode: i =>
@@ -1718,8 +1717,6 @@ const selectors = {
   expressionValue: i =>
     // eslint-disable-next-line max-len
     `.expressions-list .expression-container:nth-child(${i}) .object-delimiter + *`,
-  expressionClose: i =>
-    `.expressions-list .expression-container:nth-child(${i}) .close`,
   expressionInput: ".watch-expressions-pane input.input-expression",
   expressionNodes: ".expressions-list .tree-node",
   expressionPlus: ".watch-expressions-pane button.plus",
@@ -1763,8 +1760,6 @@ const selectors = {
   addLogItem: "#node-menu-add-log-point",
   editLogItem: "#node-menu-edit-log-point",
   disableItem: "#node-menu-disable-breakpoint",
-  menuitem: i => `menupopup menuitem:nth-child(${i})`,
-  pauseOnExceptions: ".pause-exceptions",
   breakpoint: ".CodeMirror-code > .new-breakpoint",
   highlightLine: ".CodeMirror-code > .highlight-line",
   debugLine: ".new-debug-line",
@@ -1779,18 +1774,12 @@ const selectors = {
   stepIn: ".stepIn.active",
   prettyPrintButton: ".source-footer .prettyPrint",
   mappedSourceLink: ".source-footer .mapped-source",
-  sourcesFooter: ".sources-panel .source-footer",
   sourceMapFooterButton: ".debugger-source-map-button",
-  editorFooter: ".editor-pane .source-footer",
   sourceNode: i => `.sources-list .tree-node:nth-child(${i}) .node`,
   sourceNodes: ".sources-list .tree-node",
   sourceTreeThreads: '.sources-list .tree-node[aria-level="1"]',
-  sourceTreeThreadsNodes:
-    '.sources-list .tree-node[aria-level="1"] > .node > span:nth-child(1)',
   sourceTreeFiles: ".sources-list .tree-node[data-expandable=false]",
   threadSourceTree: i => `.threads-list .sources-pane:nth-child(${i})`,
-  threadSourceTreeSourceNode: (i, j) =>
-    `${selectors.threadSourceTree(i)} .tree-node:nth-child(${j}) .node`,
   sourceDirectoryLabel: i => `.sources-list .tree-node:nth-child(${i}) .label`,
   resultItems: ".result-list .result-item",
   resultItemName: (name, i) =>
@@ -1830,8 +1819,6 @@ const selectors = {
   inlinePreviewOpenInspector: ".inline-preview-value button.open-inspector",
   watchpointsSubmenu: "#node-menu-watchpoints",
   addGetWatchpoint: "#node-menu-add-get-watchpoint",
-  addSetWatchpoint: "#node-menu-add-set-watchpoint",
-  removeWatchpoint: "#node-menu-remove-watchpoint",
   logEventsCheckbox: ".events-header input",
   previewPopupInvokeGetterButton: ".preview-popup .invoke-getter",
   previewPopupObjectNumber: ".preview-popup .objectBox-number",
@@ -2767,11 +2754,11 @@ async function assertDebuggerIsHighlightedAndPaused(toolbox) {
 async function addExpression(dbg, input) {
   info("Adding an expression");
 
-  const plusIcon = findElementWithSelector(dbg, selectors.expressionPlus);
+  const plusIcon = findElement(dbg, "expressionPlus");
   if (plusIcon) {
     plusIcon.click();
   }
-  findElementWithSelector(dbg, selectors.expressionInput).focus();
+  findElement(dbg, "expressionInput").focus();
   type(dbg, input);
   const evaluated = waitForDispatch(dbg.store, "EVALUATE_EXPRESSION");
   const clearAutocomplete = waitForDispatch(dbg.store, "CLEAR_AUTOCOMPLETE");
