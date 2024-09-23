@@ -123,7 +123,7 @@ class FxSuggestSuggestionProvider(
             }
             AwesomeBar.Suggestion(
                 provider = this@FxSuggestSuggestionProvider,
-                icon = details.icon?.toUByteArray()?.asByteArray()?.toBitmap(),
+                icon = details.icon?.toBitmap(),
                 title = details.title,
                 description = if (details.isSponsored) {
                     resources.getString(R.string.sponsored_suggestion_description)
@@ -147,7 +147,7 @@ internal data class SuggestionDetails(
     val url: String,
     val fullKeyword: String,
     val isSponsored: Boolean,
-    val icon: List<UByte>?,
+    val icon: ByteArray?,
     val clickInfo: FxSuggestInteractionInfo? = null,
     val impressionInfo: FxSuggestInteractionInfo? = null,
 )
