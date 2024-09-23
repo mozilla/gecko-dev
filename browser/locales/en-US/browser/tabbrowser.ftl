@@ -177,3 +177,17 @@ tabbrowser-manager-unmute-tab =
   .tooltiptext = Unmute tab
 tabbrowser-manager-close-tab =
   .tooltiptext = Close tab
+
+## Tab Groups
+
+tab-group-editor-title-create = Create tab group
+tab-group-editor-title-edit = Manage tab group
+tab-group-editor-name-label = Name
+tab-group-editor-name-field =
+  .placeholder = Example: Shopping
+tab-group-editor-cancel =
+  .label = Cancel
+  .accesskey = C
+tab-group-editor-create =
+  .label = Create
+  .accesskey = r

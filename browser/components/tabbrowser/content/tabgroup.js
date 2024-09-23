@@ -16,6 +16,7 @@
       `;
 
     #labelElement;
+    #colorCode;
 
     constructor() {
       super();
@@ -79,11 +80,23 @@
     }
 
     get color() {
-      return this.style.getPropertyValue("--tab-group-color");
+      return this.#colorCode;
     }
 
-    set color(val) {
-      this.style.setProperty("--tab-group-color", val);
+    set color(code) {
+      this.#colorCode = code;
+      this.style.setProperty(
+        "--tab-group-color",
+        `var(--tab-group-color-${code})`
+      );
+      this.style.setProperty(
+        "--tab-group-color-invert",
+        `var(--tab-group-color-${code}-invert)`
+      );
+      this.style.setProperty(
+        "--tab-group-color-pale",
+        `var(--tab-group-color-${code}-pale)`
+      );
     }
 
     get id() {
