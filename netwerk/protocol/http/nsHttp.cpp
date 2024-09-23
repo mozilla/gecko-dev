@@ -37,10 +37,6 @@ namespace net {
 
 extern const char kProxyType_SOCKS[];
 
-const uint32_t kHttp3VersionCount = 5;
-const nsCString kHttp3Versions[] = {"h3-29"_ns, "h3-30"_ns, "h3-31"_ns,
-                                    "h3-32"_ns, "h3"_ns};
-
 // https://datatracker.ietf.org/doc/html/draft-ietf-webtrans-http3/#section-4.3
 constexpr uint64_t kWebTransportErrorCodeStart = 0x52e4a40fa8db;
 constexpr uint64_t kWebTransportErrorCodeEnd = 0x52e4a40fa9e2;
@@ -986,7 +982,7 @@ nsresult HttpProxyResponseToErrorCode(uint32_t aStatusCode) {
 }
 
 SupportedAlpnRank H3VersionToRank(const nsACString& aVersion) {
-  for (uint32_t i = 0; i < kHttp3VersionCount; i++) {
+  for (uint32_t i = 0; i < std::size(kHttp3Versions); i++) {
     if (aVersion.Equals(kHttp3Versions[i])) {
       return static_cast<SupportedAlpnRank>(
           static_cast<uint32_t>(SupportedAlpnRank::HTTP_3_DRAFT_29) + i);

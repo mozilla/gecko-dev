@@ -2708,8 +2708,8 @@ bool nsHttpHandler::IsHttp3VersionSupported(const nsACString& version) {
       version.EqualsLiteral("h3")) {
     return false;
   }
-  for (uint32_t i = 0; i < kHttp3VersionCount; i++) {
-    if (version.Equals(kHttp3Versions[i])) {
+  for (const auto& Http3Version : kHttp3Versions) {
+    if (version.Equals(Http3Version)) {
       return true;
     }
   }
@@ -2729,8 +2729,8 @@ bool nsHttpHandler::IsHttp3SupportedByServer(
     return false;
   }
 
-  for (uint32_t i = 0; i < kHttp3VersionCount; i++) {
-    nsAutoCString value(kHttp3Versions[i]);
+  for (const auto& Http3Version : kHttp3Versions) {
+    nsAutoCString value(Http3Version);
     value.Append("="_ns);
     if (strstr(altSvc.get(), value.get())) {
       return true;

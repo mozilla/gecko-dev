@@ -83,8 +83,8 @@ inline bool IsHttp3(SupportedAlpnRank aRank) {
   return aRank >= SupportedAlpnRank::HTTP_3_DRAFT_29;
 }
 
-extern const uint32_t kHttp3VersionCount;
-extern const nsCString kHttp3Versions[];
+constexpr nsLiteralCString kHttp3Versions[] = {"h3-29"_ns, "h3-30"_ns,
+                                               "h3-31"_ns, "h3-32"_ns, "h3"_ns};
 
 //-----------------------------------------------------------------------------
 // http connection capabilities
