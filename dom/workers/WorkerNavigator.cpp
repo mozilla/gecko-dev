@@ -83,7 +83,10 @@ void WorkerNavigator::Invalidate() {
 
   mWebGpu = nullptr;
 
-  mLocks = nullptr;
+  if (mLocks) {
+    mLocks->Shutdown();
+    mLocks = nullptr;
+  }
 }
 
 JSObject* WorkerNavigator::WrapObject(JSContext* aCx,

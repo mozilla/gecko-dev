@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<script>
+  document.addEventListener('DOMContentLoaded', async () => {
+    new Worker('1908240.js', {}).postMessage([], [])
+    setTimeout('self.close()', 200)
+  })
+</script>

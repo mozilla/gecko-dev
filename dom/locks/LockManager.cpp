@@ -87,6 +87,9 @@ already_AddRefed<LockManager> LockManager::Create(nsIGlobalObject& aGlobal) {
           manager->Shutdown();
           manager->mWorkerRef = nullptr;
         });
+    // Do not handle the WeakWorkerRef creation fail here.
+    // Suppose WorkerNavigator::Invalidate() should call LockManager::Shutdown()
+    // before set WorkerNavigator::mLocks as nullptr.
   }
 
   return manager.forget();
