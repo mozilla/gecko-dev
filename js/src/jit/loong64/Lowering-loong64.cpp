@@ -363,19 +363,35 @@ void LIRGeneratorLOONG64::lowerPowOfTwoI(MPow* mir) {
 }
 
 void LIRGeneratorLOONG64::lowerBigIntPtrLsh(MBigIntPtrLsh* ins) {
-  MOZ_CRASH("NYI");
+  auto* lir = new (alloc()) LBigIntPtrLsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
 }
 
 void LIRGeneratorLOONG64::lowerBigIntPtrRsh(MBigIntPtrRsh* ins) {
-  MOZ_CRASH("NYI");
+  auto* lir = new (alloc()) LBigIntPtrRsh(
+      useRegister(ins->lhs()), useRegister(ins->rhs()), temp(), temp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
 }
 
 void LIRGeneratorLOONG64::lowerBigIntPtrDiv(MBigIntPtrDiv* ins) {
-  MOZ_CRASH("NYI");
+  auto* lir = new (alloc())
+      LBigIntPtrDiv(useRegister(ins->lhs()), useRegister(ins->rhs()),
+                    LDefinition::BogusTemp(), LDefinition::BogusTemp());
+  assignSnapshot(lir, ins->bailoutKind());
+  define(lir, ins);
 }
 
 void LIRGeneratorLOONG64::lowerBigIntPtrMod(MBigIntPtrMod* ins) {
-  MOZ_CRASH("NYI");
+  auto* lir = new (alloc())
+      LBigIntPtrMod(useRegister(ins->lhs()), useRegister(ins->rhs()), temp(),
+                    LDefinition::BogusTemp());
+  if (ins->canBeDivideByZero()) {
+    assignSnapshot(lir, ins->bailoutKind());
+  }
+  define(lir, ins);
 }
 
 void LIRGeneratorLOONG64::lowerTruncateDToInt32(MTruncateToInt32* ins) {
