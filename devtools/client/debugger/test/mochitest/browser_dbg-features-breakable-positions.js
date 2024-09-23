@@ -167,7 +167,7 @@ async function assertBreakablePositions(
 ) {
   await selectSource(dbg, file);
   is(
-    getCM(dbg).lineCount(),
+    getLineCount(dbg),
     numberOfLines,
     `We show the expected number of lines in CodeMirror for ${file}`
   );

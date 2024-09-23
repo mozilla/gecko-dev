@@ -2143,6 +2143,11 @@ function getCMEditor(dbg) {
   return dbg.win.codemirrorEditor;
 }
 
+// Gets the number of lines in the editor
+function getLineCount(dbg) {
+  return getCMEditor(dbg).getLineCount();
+}
+
 // Gets the current codeMirror instance for CM5 tests
 function getCM(dbg) {
   const el = dbg.win.document.querySelector(".CodeMirror");

@@ -3090,6 +3090,15 @@ class Editor extends EventEmitter {
     }
   }
 
+  // Used only in tests
+  getLineCount() {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      return cm.state.doc.lines;
+    }
+    return cm.lineCount();
+  }
+
   /**
    * Extends an instance of the Editor object with additional
    * functions. Each function will be called with context as

@@ -231,7 +231,7 @@ async function assertBreakableLines(
 ) {
   await selectSource(dbg, source);
   is(
-    getCM(dbg).lineCount(),
+    getLineCount(dbg),
     numberOfLines,
     `We show the expected number of lines in CodeMirror for ${source}`
   );
