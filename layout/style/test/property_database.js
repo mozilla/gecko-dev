@@ -3980,14 +3980,6 @@ var gCSSProperties = {
     other_values: ["none"],
     invalid_values: [],
   },
-  "-moz-user-modify": {
-    domProp: "MozUserModify",
-    inherited: true,
-    type: CSS_TYPE_LONGHAND,
-    initial_values: ["read-only"],
-    other_values: ["read-write", "write-only"],
-    invalid_values: [],
-  },
   "-moz-user-select": {
     domProp: "MozUserSelect",
     inherited: false,
@@ -11981,6 +11973,19 @@ function get_computed_value(cs, property) {
       );
     }
   }
+}
+
+if (IsCSSPropertyPrefEnabled("layout.css.moz-user-modify.enabled")) {
+  Object.assign(gCSSProperties, {
+    "-moz-user-modify": {
+      domProp: "MozUserModify",
+      inherited: true,
+      type: CSS_TYPE_LONGHAND,
+      initial_values: ["read-only"],
+      other_values: ["read-write", "write-only"],
+      invalid_values: [],
+    },
+  });
 }
 
 gCSSProperties.rotate = {
