@@ -83,6 +83,7 @@ async function prepareTest(searchBarValue = "test") {
   await SimpleTest.promiseFocus();
 
   if (document.activeElement == searchBar) {
+    info("Search bar is already focused.");
     return;
   }
 
@@ -90,6 +91,7 @@ async function prepareTest(searchBarValue = "test") {
   gURLBar.focus();
   searchBar.focus();
   await focusPromise;
+  info("Search bar is now focused.");
 }
 
 add_setup(async function () {
@@ -215,10 +217,9 @@ add_task(async function testAltGrReturnEmpty() {
 add_task(async function testShiftAltReturnEmpty() {
   await prepareTest("");
 
-  let newTabPromise = BrowserTestUtils.waitForNewTab(gBrowser, SEARCH_FORM);
-  EventUtils.synthesizeKey("KEY_Enter", { shiftKey: true, altKey: true });
-  await newTabPromise;
-  await BrowserTestUtils.browserLoaded(gBrowser.selectedBrowser);
+  await BrowserTestUtils.openNewForegroundTab(gBrowser, () => {
+    EventUtils.synthesizeKey("KEY_Enter", { shiftKey: true, altKey: true });
+  });
 
   is(gBrowser.tabs.length, preTabNo + 1, "Shift+Alt+Return key added new tab");
   is(
