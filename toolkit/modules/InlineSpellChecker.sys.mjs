@@ -471,11 +471,6 @@ export var SpellCheckHelper = {
     );
   },
 
-  // Returns the computed style attribute for the given element.
-  getComputedStyle(aElem, aProp) {
-    return aElem.ownerGlobal.getComputedStyle(aElem).getPropertyValue(aProp);
-  },
-
   isEditable(element, window) {
     var flags = 0;
     if (window.HTMLInputElement.isInstance(element)) {
@@ -519,7 +514,7 @@ export var SpellCheckHelper = {
           var editingSession = win.docShell.editingSession;
           if (
             editingSession.windowIsEditable(win) &&
-            this.getComputedStyle(element, "-moz-user-modify") == "read-write"
+            element.matches(":read-write")
           ) {
             isSpellcheckable = true;
           }
