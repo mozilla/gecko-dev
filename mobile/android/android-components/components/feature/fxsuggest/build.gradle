@@ -41,10 +41,6 @@ android {
     namespace 'mozilla.components.feature.fxsuggest'
 }
 
-tasks.withType(KotlinCompile).configureEach {
-    kotlinOptions.freeCompilerArgs += '-opt-in=kotlin.ExperimentalUnsignedTypes'
-}
-
 dependencies {
     api ComponentsDependencies.mozilla_remote_settings
 
