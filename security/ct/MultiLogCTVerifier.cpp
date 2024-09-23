@@ -8,25 +8,32 @@
 
 #include "CTObjectsExtractor.h"
 #include "CTSerialization.h"
+#include "mozilla/StaticPrefs_security.h"
 
 namespace mozilla {
 namespace ct {
 
 using namespace mozilla::pkix;
 
+MultiLogCTVerifier::MultiLogCTVerifier()
+    : mSignatureCache(signature_cache_new(
+                          StaticPrefs::security_pki_sct_signature_cache_size()),
+                      signature_cache_free) {}
+
 void MultiLogCTVerifier::AddLog(CTLogVerifier&& log) {
   mLogs.push_back(std::move(log));
 }
 
-Result MultiLogCTVerifier::Verify(Input cert, Input issuerSubjectPublicKeyInfo,
-                                  Input sctListFromCert,
-                                  Input sctListFromOCSPResponse,
-                                  Input sctListFromTLSExtension, Time time,
-                                  CTVerifyResult& result) {
+pkix::Result MultiLogCTVerifier::Verify(Input cert,
+                                        Input issuerSubjectPublicKeyInfo,
+                                        Input sctListFromCert,
+                                        Input sctListFromOCSPResponse,
+                                        Input sctListFromTLSExtension,
+                                        Time time, CTVerifyResult& result) {
   assert(cert.GetLength() > 0);
   result.Reset();
 
-  Result rv;
+  pkix::Result rv;
 
   // Verify embedded SCTs
   if (issuerSubjectPublicKeyInfo.GetLength() > 0 &&
@@ -72,7 +79,7 @@ void DecodeSCTs(Input encodedSctList,
   decodedSCTs.clear();
 
   Reader listReader;
-  Result rv = DecodeSCTList(encodedSctList, listReader);
+  pkix::Result rv = DecodeSCTList(encodedSctList, listReader);
   if (rv != Success) {
     decodingErrors++;
     return;
@@ -97,14 +104,14 @@ void DecodeSCTs(Input encodedSctList,
   }
 }
 
-Result MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
-                                      const LogEntry& expectedEntry,
-                                      SCTOrigin origin, Time time,
-                                      CTVerifyResult& result) {
+pkix::Result MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
+                                            const LogEntry& expectedEntry,
+                                            SCTOrigin origin, Time time,
+                                            CTVerifyResult& result) {
   std::vector<SignedCertificateTimestamp> decodedSCTs;
   DecodeSCTs(encodedSctList, decodedSCTs, result.decodingErrors);
   for (auto sct : decodedSCTs) {
-    Result rv =
+    pkix::Result rv =
         VerifySingleSCT(std::move(sct), expectedEntry, origin, time, result);
     if (rv != Success) {
       return rv;
@@ -113,10 +120,9 @@ Result MultiLogCTVerifier::VerifySCTs(Input encodedSctList,
   return Success;
 }
 
-Result MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
-                                           const LogEntry& expectedEntry,
-                                           SCTOrigin origin, Time time,
-                                           CTVerifyResult& result) {
+pkix::Result MultiLogCTVerifier::VerifySingleSCT(
+    SignedCertificateTimestamp&& sct, const LogEntry& expectedEntry,
+    SCTOrigin origin, Time time, CTVerifyResult& result) {
   switch (origin) {
     case SCTOrigin::Embedded:
       result.embeddedSCTs++;
@@ -149,9 +155,10 @@ Result MultiLogCTVerifier::VerifySingleSCT(SignedCertificateTimestamp&& sct,
     return Success;
   }
 
-  Result rv = matchingLog->Verify(expectedEntry, sct);
+  pkix::Result rv =
+      matchingLog->Verify(expectedEntry, sct, mSignatureCache.get());
   if (rv != Success) {
-    if (rv == Result::ERROR_BAD_SIGNATURE) {
+    if (rv == pkix::Result::ERROR_BAD_SIGNATURE) {
       result.sctsWithInvalidSignatures++;
       return Success;
     }

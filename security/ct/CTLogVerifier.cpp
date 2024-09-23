@@ -9,14 +9,16 @@
 #include <stdint.h>
 
 #include "CTSerialization.h"
+#include "CertVerifier.h"
 #include "hasht.h"
+#include "mozpkix/Result.h"
 #include "mozpkix/pkixnss.h"
 #include "mozpkix/pkixutil.h"
 
+using namespace mozilla::pkix;
+
 namespace mozilla {
 namespace ct {
-
-using namespace mozilla::pkix;
 
 // A TrustDomain used to extract the SCT log signature parameters
 // given its subjectPublicKeyInfo.
@@ -29,75 +31,80 @@ class SignatureParamsTrustDomain final : public TrustDomain {
   SignatureParamsTrustDomain()
       : mSignatureAlgorithm(DigitallySigned::SignatureAlgorithm::Anonymous) {}
 
-  Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input,
-                      TrustLevel&) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result GetCertTrust(EndEntityOrCA, const CertPolicyId&, Input,
+                            TrustLevel&) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result FindIssuer(Input, IssuerChecker&, Time) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result FindIssuer(Input, IssuerChecker&, Time) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
-                         const Input*, const Input*, const Input*) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result CheckRevocation(EndEntityOrCA, const CertID&, Time, Duration,
+                               const Input*, const Input*,
+                               const Input*) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result IsChainValid(const DERArray&, Time, const CertPolicyId&) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result IsChainValid(const DERArray&, Time,
+                            const CertPolicyId&) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result DigestBuf(Input, DigestAlgorithm, uint8_t*, size_t) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result DigestBuf(Input, DigestAlgorithm, uint8_t*, size_t) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result CheckSignatureDigestAlgorithm(DigestAlgorithm, EndEntityOrCA,
-                                       Time) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result CheckSignatureDigestAlgorithm(DigestAlgorithm, EndEntityOrCA,
+                                             Time) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result CheckECDSACurveIsAcceptable(EndEntityOrCA, NamedCurve curve) override {
+  pkix::Result CheckECDSACurveIsAcceptable(EndEntityOrCA,
+                                           NamedCurve curve) override {
     assert(mSignatureAlgorithm ==
            DigitallySigned::SignatureAlgorithm::Anonymous);
     if (curve != NamedCurve::secp256r1) {
-      return Result::ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
+      return pkix::Result::ERROR_UNSUPPORTED_ELLIPTIC_CURVE;
     }
     mSignatureAlgorithm = DigitallySigned::SignatureAlgorithm::ECDSA;
     return Success;
   }
 
-  Result VerifyECDSASignedData(Input, DigestAlgorithm, Input, Input) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result VerifyECDSASignedData(Input, DigestAlgorithm, Input,
+                                     Input) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result CheckRSAPublicKeyModulusSizeInBits(
+  pkix::Result CheckRSAPublicKeyModulusSizeInBits(
       EndEntityOrCA, unsigned int modulusSizeInBits) override {
     assert(mSignatureAlgorithm ==
            DigitallySigned::SignatureAlgorithm::Anonymous);
     // Require RSA keys of at least 2048 bits. See RFC 6962, Section 2.1.4.
     if (modulusSizeInBits < 2048) {
-      return Result::ERROR_INADEQUATE_KEY_SIZE;
+      return pkix::Result::ERROR_INADEQUATE_KEY_SIZE;
     }
     mSignatureAlgorithm = DigitallySigned::SignatureAlgorithm::RSA;
     return Success;
   }
 
-  Result VerifyRSAPKCS1SignedData(Input, DigestAlgorithm, Input,
-                                  Input) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result VerifyRSAPKCS1SignedData(Input, DigestAlgorithm, Input,
+                                        Input) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result VerifyRSAPSSSignedData(Input, DigestAlgorithm, Input, Input) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result VerifyRSAPSSSignedData(Input, DigestAlgorithm, Input,
+                                      Input) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result CheckValidityIsAcceptable(Time, Time, EndEntityOrCA,
-                                   KeyPurposeId) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result CheckValidityIsAcceptable(Time, Time, EndEntityOrCA,
+                                         KeyPurposeId) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
-  Result NetscapeStepUpMatchesServerAuth(Time, bool&) override {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
+  pkix::Result NetscapeStepUpMatchesServerAuth(Time, bool&) override {
+    return pkix::Result::FATAL_ERROR_LIBRARY_FAILURE;
   }
 
   void NoteAuxiliaryExtension(AuxiliaryExtension, Input) override {}
@@ -112,10 +119,10 @@ CTLogVerifier::CTLogVerifier(CTLogOperatorId operatorId, CTLogState state,
       mState(state),
       mTimestamp(timestamp) {}
 
-Result CTLogVerifier::Init(Input subjectPublicKeyInfo) {
+pkix::Result CTLogVerifier::Init(Input subjectPublicKeyInfo) {
   SignatureParamsTrustDomain trustDomain;
-  Result rv = CheckSubjectPublicKeyInfo(subjectPublicKeyInfo, trustDomain,
-                                        EndEntityOrCA::MustBeEndEntity);
+  pkix::Result rv = CheckSubjectPublicKeyInfo(subjectPublicKeyInfo, trustDomain,
+                                              EndEntityOrCA::MustBeEndEntity);
   if (rv != Success) {
     return rv;
   }
@@ -159,17 +166,18 @@ Result CTLogVerifier::Init(Input subjectPublicKeyInfo) {
   return Success;
 }
 
-Result CTLogVerifier::Verify(const LogEntry& entry,
-                             const SignedCertificateTimestamp& sct) {
-  if (mKeyId.empty() || sct.logId != mKeyId) {
-    return Result::FATAL_ERROR_INVALID_ARGS;
+pkix::Result CTLogVerifier::Verify(const LogEntry& entry,
+                                   const SignedCertificateTimestamp& sct,
+                                   SignatureCache* signatureCache) {
+  if (mKeyId.empty() || sct.logId != mKeyId || !signatureCache) {
+    return pkix::Result::FATAL_ERROR_INVALID_ARGS;
   }
   if (!SignatureParametersMatch(sct.signature)) {
-    return Result::FATAL_ERROR_INVALID_ARGS;
+    return pkix::Result::FATAL_ERROR_INVALID_ARGS;
   }
 
   Buffer serializedLogEntry;
-  Result rv = EncodeLogEntry(entry, serializedLogEntry);
+  pkix::Result rv = EncodeLogEntry(entry, serializedLogEntry);
   if (rv != Success) {
     return rv;
   }
@@ -196,7 +204,8 @@ Result CTLogVerifier::Verify(const LogEntry& entry,
   if (rv != Success) {
     return rv;
   }
-  return VerifySignature(serializedData, sct.signature.signatureData);
+  return VerifySignature(serializedData, sct.signature.signatureData,
+                         signatureCache);
 }
 
 bool CTLogVerifier::SignatureParametersMatch(const DigitallySigned& signature) {
@@ -204,50 +213,28 @@ bool CTLogVerifier::SignatureParametersMatch(const DigitallySigned& signature) {
       DigitallySigned::HashAlgorithm::SHA256, mSignatureAlgorithm);
 }
 
-static Result FasterVerifyECDSASignedDataNSS(Input data, Input signature,
-                                             UniqueSECKEYPublicKey& pubkey) {
-  assert(pubkey);
-  if (!pubkey) {
-    return Result::FATAL_ERROR_LIBRARY_FAILURE;
-  }
-  // The signature is encoded as a DER SEQUENCE of two INTEGERs. PK11_Verify
-  // expects the signature as only the two integers r and s (so no encoding -
-  // just two series of bytes each half as long as SECKEY_SignatureLen(pubkey)).
-  // DSAU_DecodeDerSigToLen converts from the former format to the latter.
-  SECItem derSignatureSECItem(UnsafeMapInputToSECItem(signature));
-  size_t signatureLen = SECKEY_SignatureLen(pubkey.get());
-  if (signatureLen == 0) {
-    return MapPRErrorCodeToResult(PR_GetError());
-  }
-  UniqueSECItem signatureSECItem(
-      DSAU_DecodeDerSigToLen(&derSignatureSECItem, signatureLen));
-  if (!signatureSECItem) {
-    return MapPRErrorCodeToResult(PR_GetError());
-  }
-  SECItem dataSECItem(UnsafeMapInputToSECItem(data));
-  SECStatus srv =
-      PK11_VerifyWithMechanism(pubkey.get(), CKM_ECDSA_SHA256, nullptr,
-                               signatureSECItem.get(), &dataSECItem, nullptr);
-  if (srv != SECSuccess) {
-    return MapPRErrorCodeToResult(PR_GetError());
-  }
-  return Success;
-}
-
-Result CTLogVerifier::VerifySignature(Input data, Input signature) {
+pkix::Result CTLogVerifier::VerifySignature(Input data, Input signature,
+                                            SignatureCache* signatureCache) {
   Input spki;
-  Result rv = BufferToInput(mSubjectPublicKeyInfo, spki);
+  pkix::Result rv = BufferToInput(mSubjectPublicKeyInfo, spki);
   if (rv != Success) {
     return rv;
   }
 
   switch (mSignatureAlgorithm) {
     case DigitallySigned::SignatureAlgorithm::RSA:
-      rv = VerifyRSAPKCS1SignedDataNSS(data, DigestAlgorithm::sha256, signature,
-                                       spki, nullptr);
+      rv = psm::VerifySignedDataWithCache(
+          der::PublicKeyAlgorithm::RSA_PKCS1,
+          mozilla::glean::sct_signature_cache::total,
+          mozilla::glean::sct_signature_cache::hits, data,
+          DigestAlgorithm::sha256, signature, spki, signatureCache, nullptr);
       break;
     case DigitallySigned::SignatureAlgorithm::ECDSA:
-      rv = FasterVerifyECDSASignedDataNSS(data, signature, mPublicECKey);
+      rv = psm::VerifySignedDataWithCache(
+          der::PublicKeyAlgorithm::ECDSA,
+          mozilla::glean::sct_signature_cache::total,
+          mozilla::glean::sct_signature_cache::hits, data,
+          DigestAlgorithm::sha256, signature, spki, signatureCache, nullptr);
       break;
     // We do not expect new values added to this enum any time soon,
     // so just listing all the available ones seems to be the easiest way
@@ -257,22 +244,23 @@ Result CTLogVerifier::VerifySignature(Input data, Input signature) {
     case DigitallySigned::SignatureAlgorithm::DSA:
     default:
       assert(false);
-      return Result::FATAL_ERROR_INVALID_ARGS;
+      return pkix::Result::FATAL_ERROR_INVALID_ARGS;
   }
   if (rv != Success) {
     if (IsFatalError(rv)) {
       return rv;
     }
     // If the error is non-fatal, we assume the signature was invalid.
-    return Result::ERROR_BAD_SIGNATURE;
+    return pkix::Result::ERROR_BAD_SIGNATURE;
   }
   return Success;
 }
 
-Result CTLogVerifier::VerifySignature(const Buffer& data,
-                                      const Buffer& signature) {
+pkix::Result CTLogVerifier::VerifySignature(const Buffer& data,
+                                            const Buffer& signature,
+                                            SignatureCache* signatureCache) {
   Input dataInput;
-  Result rv = BufferToInput(data, dataInput);
+  pkix::Result rv = BufferToInput(data, dataInput);
   if (rv != Success) {
     return rv;
   }
@@ -281,7 +269,7 @@ Result CTLogVerifier::VerifySignature(const Buffer& data,
   if (rv != Success) {
     return rv;
   }
-  return VerifySignature(dataInput, signatureInput);
+  return VerifySignature(dataInput, signatureInput, signatureCache);
 }
 
 }  // namespace ct

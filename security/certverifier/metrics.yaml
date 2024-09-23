@@ -98,3 +98,28 @@ cert_verifier:
       - jschanck@mozilla.com
     expires: 144
     unit: trust objects
+
+cert_signature_cache:
+  hits:
+    type: rate
+    description: >
+      How often a certificate signature to be verified is in the cache already.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918279
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918279
+    notification_emails:
+      - dkeeler@mozilla.com
+    expires: never
+    denominator_metric: cert_signature_cache.total
+  total:
+    type: counter
+    description: >
+      How many certificate signature verifications are performed.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918279
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1918279
+    notification_emails:
+      - dkeeler@mozilla.com
+    expires: never

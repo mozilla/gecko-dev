@@ -68,7 +68,7 @@ namespace psm {
 
 NSSCertDBTrustDomain::NSSCertDBTrustDomain(
     SECTrustType certDBTrustType, OCSPFetching ocspFetching,
-    OCSPCache& ocspCache,
+    OCSPCache& ocspCache, SignatureCache* signatureCache,
     /*optional but shouldn't be*/ void* pinArg, TimeDuration ocspTimeoutSoft,
     TimeDuration ocspTimeoutHard, uint32_t certShortLifetimeInDays,
     unsigned int minRSABits, ValidityCheckingMode validityCheckingMode,
@@ -83,6 +83,7 @@ NSSCertDBTrustDomain::NSSCertDBTrustDomain(
     : mCertDBTrustType(certDBTrustType),
       mOCSPFetching(ocspFetching),
       mOCSPCache(ocspCache),
+      mSignatureCache(signatureCache),
       mPinArg(pinArg),
       mOCSPTimeoutSoft(ocspTimeoutSoft),
       mOCSPTimeoutHard(ocspTimeoutHard),
@@ -1470,15 +1471,21 @@ Result NSSCertDBTrustDomain::CheckRSAPublicKeyModulusSizeInBits(
 Result NSSCertDBTrustDomain::VerifyRSAPKCS1SignedData(
     Input data, DigestAlgorithm digestAlgorithm, Input signature,
     Input subjectPublicKeyInfo) {
-  return VerifyRSAPKCS1SignedDataNSS(data, digestAlgorithm, signature,
-                                     subjectPublicKeyInfo, mPinArg);
+  return VerifySignedDataWithCache(
+      der::PublicKeyAlgorithm::RSA_PKCS1,
+      mozilla::glean::cert_signature_cache::total,
+      mozilla::glean::cert_signature_cache::hits, data, digestAlgorithm,
+      signature, subjectPublicKeyInfo, mSignatureCache, mPinArg);
 }
 
 Result NSSCertDBTrustDomain::VerifyRSAPSSSignedData(
     Input data, DigestAlgorithm digestAlgorithm, Input signature,
     Input subjectPublicKeyInfo) {
-  return VerifyRSAPSSSignedDataNSS(data, digestAlgorithm, signature,
-                                   subjectPublicKeyInfo, mPinArg);
+  return VerifySignedDataWithCache(
+      der::PublicKeyAlgorithm::RSA_PSS,
+      mozilla::glean::cert_signature_cache::total,
+      mozilla::glean::cert_signature_cache::hits, data, digestAlgorithm,
+      signature, subjectPublicKeyInfo, mSignatureCache, mPinArg);
 }
 
 Result NSSCertDBTrustDomain::CheckECDSACurveIsAcceptable(
@@ -1496,8 +1503,11 @@ Result NSSCertDBTrustDomain::CheckECDSACurveIsAcceptable(
 Result NSSCertDBTrustDomain::VerifyECDSASignedData(
     Input data, DigestAlgorithm digestAlgorithm, Input signature,
     Input subjectPublicKeyInfo) {
-  return VerifyECDSASignedDataNSS(data, digestAlgorithm, signature,
-                                  subjectPublicKeyInfo, mPinArg);
+  return VerifySignedDataWithCache(
+      der::PublicKeyAlgorithm::ECDSA,
+      mozilla::glean::cert_signature_cache::total,
+      mozilla::glean::cert_signature_cache::hits, data, digestAlgorithm,
+      signature, subjectPublicKeyInfo, mSignatureCache, mPinArg);
 }
 
 Result NSSCertDBTrustDomain::CheckValidityIsAcceptable(

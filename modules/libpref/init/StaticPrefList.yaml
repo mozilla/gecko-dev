@@ -15544,6 +15544,24 @@
   value: true
   mirror: always
 
+# The number of entries in the certificate signature cache.
+# A higher number increases memory usage, but should increase the cache hit rate.
+# Each entry is approximately 64 bytes, and the maximum number of entries is 65535.
+- name: security.pki.cert_signature_cache_size
+  type: RelaxedAtomicUint32
+  value: 128
+  mirror: always
+
+# The number of entries in the SCT signature cache.
+# A higher number increases memory usage, but should increase the cache hit rate.
+# Each entry is approximately 64 bytes, and the maximum number of entries is 65535.
+# There will be 2-3 SCTs per certificate, so this probably needs to be 2-3x
+# security.pki.cert_signature_cache_size to achieve similar hit rates.
+- name: security.pki.sct_signature_cache_size
+  type: RelaxedAtomicUint32
+  value: 256
+  mirror: always
+
 - name: security.tls.version.min
   type: RelaxedAtomicUint32
   value: 3
