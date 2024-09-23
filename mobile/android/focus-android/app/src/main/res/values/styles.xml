@@ -2,11 +2,14 @@
 <!-- This Source Code Form is subject to the terms of the Mozilla Public
    - License, v. 2.0. If a copy of the MPL was not distributed with this
    - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar.Bridge">
         <item name="colorPrimary">@color/colorPrimary</item>
         <!-- This is the default color for activated controls(buttons) -->
         <item name="colorAccent">@color/accentBright</item>
+        <!-- Temporarily opt out of edge to edge enforcement.
+         To be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1915087-->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
 
         <item name="android:windowAnimationStyle">@style/WindowAnimationTransition</item>
         <item name="android:windowContentTransitions">true</item>
@@ -35,6 +38,9 @@
         <item name="windowSplashScreenBackground">@color/splash_screen_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_screen</item>
         <item name="postSplashScreenTheme">@style/AppTheme</item>
+        <!-- Temporarily opt out of edge to edge enforcement.
+         To be removed in https://bugzilla.mozilla.org/show_bug.cgi?id=1915087-->
+        <item name="android:windowOptOutEdgeToEdgeEnforcement" tools:targetApi="35">true</item>
     </style>
 
     <!-- Fade animation for theme switching -->
