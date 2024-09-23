@@ -86,8 +86,11 @@ class nsMediaEventRunner : public nsIRunnable, public nsINamed {
 
  protected:
   virtual ~nsMediaEventRunner() = default;
-  bool IsCancelled();
+  bool IsCancelled() const;
   nsresult DispatchEvent(const nsAString& aName);
+
+  virtual void ReportProfilerMarker();
+  uint64_t GetElementDurationMs() const;
 
   RefPtr<HTMLMediaElement> mElement;
   nsString mName;
@@ -181,6 +184,7 @@ class nsTimeupdateRunner : public nsMediaEventRunner {
   NS_IMETHOD Run() override;
 
  private:
+  void ReportProfilerMarker() override;
   bool ShouldDispatchTimeupdate() const;
   bool mIsMandatory;
 };
