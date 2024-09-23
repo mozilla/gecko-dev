@@ -170,6 +170,30 @@ struct ErrorMarker : public BaseMarkerType<ErrorMarker> {
   }
 };
 
+struct LoadSourceMarker : public BaseMarkerType<LoadSourceMarker> {
+  static constexpr const char* Name = "HTMLMediaElement:LoadSource";
+  static constexpr const char* Description =
+      "A marker shows the detail of the source a media element trying to load";
+
+  using MS = MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"src", MS::InputType::String, "Source URL", MS::Format::String},
+      // Below attributes would only be set if the source if a source element
+      {"type", MS::InputType::CString, "Type", MS::Format::String},
+      {"media", MS::InputType::CString, "Media", MS::Format::String},
+  };
+
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable};
+  static constexpr const char* ChartLabel = "{marker.data.name}";
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   const ProfilerString16View& aSrc,
+                                   const ProfilerString16View& aType,
+                                   const ProfilerString16View& aMedia) {
+    StreamJSONMarkerDataImpl(aWriter, aSrc, aType, aMedia);
+  }
+};
+
 // This marker is for HTMLVideoElement
 struct RenderVideoMarker : public BaseMarkerType<RenderVideoMarker> {
   static constexpr const char* Name = "HTMLMediaElement:RenderVideo";
