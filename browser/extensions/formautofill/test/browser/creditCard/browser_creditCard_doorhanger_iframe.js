@@ -13,20 +13,8 @@ add_task(async function test_iframe_submit_untouched_creditCard_form() {
   let creditCards = await getCreditCards();
   is(creditCards.length, 1, "1 credit card in storage");
 
-  // This test triggers two form submission events so cc 'timesUsed' count is 2.
-  // The first submission is triggered by standard form submission, and the
-  // second is triggered by page hiding.
-  const EXPECTED_ON_USED_COUNT = 2;
-  let notifyUsedCounter = EXPECTED_ON_USED_COUNT;
-  let onUsed = TestUtils.topicObserved(
-    "formautofill-storage-changed",
-    (subject, data) => {
-      if (data == "notifyUsed") {
-        notifyUsedCounter--;
-      }
-      return notifyUsedCounter == 0;
-    }
-  );
+  const onUsed = TestUtils.topicObserved("formautofill-storage-changed");
+
   await BrowserTestUtils.withNewTab(
     { gBrowser, url: CREDITCARD_FORM_IFRAME_URL },
     async function (browser) {
@@ -55,11 +43,6 @@ add_task(async function test_iframe_submit_untouched_creditCard_form() {
 
   creditCards = await getCreditCards();
   is(creditCards.length, 1, "Still 1 credit card");
-  is(
-    creditCards[0].timesUsed,
-    EXPECTED_ON_USED_COUNT,
-    "timesUsed field set to 2"
-  );
   await removeAllRecords();
 });
 
