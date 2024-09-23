@@ -39,8 +39,6 @@ class HTMLVideoElement final : public HTMLMediaElement {
 
   using HTMLMediaElement::GetPaused;
 
-  HTMLVideoElement* AsHTMLVideoElement() override { return this; };
-
   void Invalidate(ImageSizeChanged aImageSizeChanged,
                   const Maybe<nsIntSize>& aNewIntrinsicSize,
                   ForceInvalidate aForceInvalidate) override;

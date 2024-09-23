@@ -170,8 +170,6 @@ class MediaKeys final : public nsIObserver,
   // notified of such requests.
   constexpr static const char* kMediaKeysRequestTopic = "mediakeys-request";
 
-  nsCString GetMediaKeySystemConfigurationString() const;
-
  private:
   // Instantiate CDMProxy instance.
   // It could be MediaDrmCDMProxy (Widevine on Fennec) or ChromiumCDMProxy (the

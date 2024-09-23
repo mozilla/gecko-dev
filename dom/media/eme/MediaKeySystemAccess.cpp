@@ -1175,29 +1175,26 @@ void MediaKeySystemAccess::NotifyObservers(nsPIDOMWindowInner* aWindow,
 }
 
 static nsCString ToCString(const nsString& aString) {
-  nsCString str("\"");
+  nsCString str("'");
   str.Append(NS_ConvertUTF16toUTF8(aString));
-  str.AppendLiteral("\"");
+  str.AppendLiteral("'");
   return str;
 }
 
 static nsCString ToCString(const MediaKeysRequirement aValue) {
-  nsCString str("\"");
+  nsCString str("'");
   str.AppendASCII(GetEnumString(aValue));
-  str.AppendLiteral("\"");
+  str.AppendLiteral("'");
   return str;
 }
 
 static nsCString ToCString(const MediaKeySystemMediaCapability& aValue) {
   nsCString str;
-  str.AppendLiteral("{\"contentType\":\"");
-  // Escape any quotes in the content type
-  nsString escapedContentType(aValue.mContentType);
-  escapedContentType.ReplaceSubstring(u"\"", u"\\\"");
-  str.Append(NS_ConvertUTF16toUTF8(escapedContentType));
-  str.AppendLiteral("\",\"robustness\":");
+  str.AppendLiteral("{contentType=");
+  str.Append(ToCString(aValue.mContentType));
+  str.AppendLiteral(", robustness=");
   str.Append(ToCString(aValue.mRobustness));
-  str.AppendLiteral(",\"encryptionScheme\":");
+  str.AppendLiteral(", encryptionScheme=");
   str.Append(ToCString(aValue.mEncryptionScheme));
   str.AppendLiteral("}");
   return str;
@@ -1255,25 +1252,25 @@ nsCString ToCString(
 nsCString MediaKeySystemAccess::ToCString(
     const MediaKeySystemConfiguration& aConfig) {
   nsCString str;
-  str.AppendLiteral("{\"label\":");
+  str.AppendLiteral("{label=");
   str.Append(mozilla::dom::ToCString(aConfig.mLabel));
 
-  str.AppendLiteral(",\"initDataTypes\":");
+  str.AppendLiteral(", initDataTypes=");
   str.Append(mozilla::dom::ToCString(aConfig.mInitDataTypes));
 
-  str.AppendLiteral(",\"audioCapabilities\":");
+  str.AppendLiteral(", audioCapabilities=");
   str.Append(mozilla::dom::ToCString(aConfig.mAudioCapabilities));
 
-  str.AppendLiteral(",\"videoCapabilities\":");
+  str.AppendLiteral(", videoCapabilities=");
   str.Append(mozilla::dom::ToCString(aConfig.mVideoCapabilities));
 
-  str.AppendLiteral(",\"distinctiveIdentifier\":");
+  str.AppendLiteral(", distinctiveIdentifier=");
   str.Append(mozilla::dom::ToCString(aConfig.mDistinctiveIdentifier));
 
-  str.AppendLiteral(",\"persistentState\":");
+  str.AppendLiteral(", persistentState=");
   str.Append(mozilla::dom::ToCString(aConfig.mPersistentState));
 
-  str.AppendLiteral(",\"sessionTypes\":");
+  str.AppendLiteral(", sessionTypes=");
   str.Append(mozilla::dom::ToCString(aConfig.mSessionTypes));
 
   str.AppendLiteral("}");

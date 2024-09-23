@@ -847,8 +847,4 @@ void MediaKeys::ResolvePromiseWithKeyStatus(PromiseId aId,
   promise->MaybeResolve(aMediaKeyStatus);
 }
 
-nsCString MediaKeys::GetMediaKeySystemConfigurationString() const {
-  return MediaKeySystemAccess::ToCString(mConfig);
-}
-
 }  // namespace mozilla::dom
