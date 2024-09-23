@@ -850,6 +850,8 @@ run-sequentially = "node server exceptions dont replay well"
 
 ["test_inhibit_caching.js"]
 
+["test_internal_redirect.js"]
+
 ["test_ioservice.js"]
 
 ["test_large_port.js"]
