@@ -112,6 +112,12 @@ sidebar-menu-history-header =
 sidebar-menu-syncedtabs-header =
   .heading = Tabs from other devices
 
+## Titles for sidebar menu panels.
+
+sidebar-customize-title = Customize sidebar
+sidebar-history-title = History
+sidebar-syncedtabs-title = Tabs from other devices
+
 ## Context for closing synced tabs when hovering over the items
 
 # Context for hovering over the close tab button that will
