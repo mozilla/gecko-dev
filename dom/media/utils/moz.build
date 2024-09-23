@@ -8,6 +8,7 @@ with Files("test/**"):
 
 EXPORTS += [
     "MediaElementEventRunners.h",
+    "MediaProfilerMarkers.h",
     "PerformanceRecorder.h",
     "TelemetryProbesReporter.h",
 ]
