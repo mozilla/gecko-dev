@@ -61,6 +61,8 @@ class TestConfigure(unittest.TestCase):
                     NegativeOptionValue(),
                     NegativeOptionValue(),
                     NegativeOptionValue(),
+                    NegativeOptionValue(),
+                    NegativeOptionValue(),
                     PositiveOptionValue(),
                 ),
                 "SIMPLE": NegativeOptionValue(),
@@ -91,7 +93,12 @@ class TestConfigure(unittest.TestCase):
             "    --enable-values[=V,...]   Enable values V\n"
             "    --enable-others=V,...     Enable other values V\n"
             "    --enable-triplet=V,V,V    Enable triplet V\n"
-            "    --enable-choices={a,b,c}  Enable choices\n"
+            "    --enable-choices[={a,b,c},...]\n"
+            "                              Enable choices\n"
+            "    --enable-optional-choices[={a,b,c}]\n"
+            "                              Enable optional choices\n"
+            "    --enable-multiple-choices={a,b,c},...\n"
+            "                              Enable multiple choices\n"
             "    --without-thing           Build without thing\n"
             "    --with-stuff              Build with stuff\n"
             "    --option                  Option\n"
@@ -135,7 +142,12 @@ class TestConfigure(unittest.TestCase):
             "    --enable-values[=V,...]   Enable values V\n"
             "    --enable-others=V,...     Enable other values V\n"
             "    --enable-triplet=V,V,V    Enable triplet V\n"
-            "    --enable-choices={a,b,c}  Enable choices\n"
+            "    --enable-choices[={a,b,c},...]\n"
+            "                              Enable choices\n"
+            "    --enable-optional-choices[={a,b,c}]\n"
+            "                              Enable optional choices\n"
+            "    --enable-multiple-choices={a,b,c},...\n"
+            "                              Enable multiple choices\n"
             "    --without-thing           Build without thing\n"
             "    --with-stuff              Build with stuff\n"
             "    --option                  Option\n"

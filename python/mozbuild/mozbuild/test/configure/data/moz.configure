@@ -22,6 +22,18 @@ set_config("TRIPLET", depends("--enable-triplet")(lambda x: x and x[0]))
 
 # Optional values from a set of choices
 option("--enable-choices", nargs="*", choices=("a", "b", "c"), help="Enable choices")
+option(
+    "--enable-optional-choices",
+    nargs="?",
+    choices=("a", "b", "c"),
+    help="Enable optional choices",
+)
+option(
+    "--enable-multiple-choices",
+    nargs="+",
+    choices=("a", "b", "c"),
+    help="Enable multiple choices",
+)
 
 # Everything supported in the Option class is supported in option(). Assume
 # the tests of the Option class are extensive about this.
@@ -187,6 +199,8 @@ option("--disable-foo", nargs="*", choices=("x", "y"), help="{Enable|Disable} Fo
     with_env4,
     "--option",
     "--enable-choices",
+    "--enable-multiple-choices",
+    "--enable-optional-choices",
     "--with-other-default",
     "--disable-foo",
 )

@@ -62,7 +62,14 @@ class HelpFormatter(object):
                     else:
                         opt += "=" + ",".join([f"{option.metavar}"] * option.nargs)
                 if option.choices:
-                    opt += "={%s}" % ",".join(option.choices)
+                    if option.nargs == "?":
+                        opt += "[={%s}]" % ",".join(option.choices)
+                    elif option.nargs == "*":
+                        opt += "[={%s},...]" % ",".join(option.choices)
+                    elif option.nargs == "+":
+                        opt += "={%s},..." % ",".join(option.choices)
+                    else:
+                        opt += "={%s}" % ",".join(option.choices)
                 help = self.format_help(option)
                 if len(option.default):
                     if help:
