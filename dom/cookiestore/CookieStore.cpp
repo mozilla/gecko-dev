@@ -283,6 +283,11 @@ already_AddRefed<Promise> CookieStore::Get(const nsAString& aName,
 
 already_AddRefed<Promise> CookieStore::Get(
     const CookieStoreGetOptions& aOptions, ErrorResult& aRv) {
+  if (!aOptions.mName.WasPassed() && !aOptions.mUrl.WasPassed()) {
+    aRv.ThrowTypeError("CookieStoreGetOptions must not be empty");
+    return nullptr;
+  }
+
   return GetInternal(aOptions, true, aRv);
 }
 
