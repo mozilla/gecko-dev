@@ -101,15 +101,9 @@ TEST(TestHttpResponseHead, bug1687903)
 {
   nsHttpResponseHead head;
 
-  bool usingStrictParsing = false;
   nsCOMPtr<nsIPrefBranch> prefs = do_GetService(NS_PREFSERVICE_CONTRACTID);
-  if (prefs) {
-    prefs->GetBoolPref("network.http.strict_response_status_line_parsing",
-                       &usingStrictParsing);
-  }
 
-  nsresult expectation =
-      usingStrictParsing ? NS_ERROR_PARSING_HTTP_STATUS_LINE : NS_OK;
+  nsresult expectation = NS_ERROR_PARSING_HTTP_STATUS_LINE;
 
   ASSERT_EQ(expectation, head.ParseStatusLine("HTTP/1.1 "_ns));
   ASSERT_EQ(expectation, head.ParseStatusLine("HTTP/1.1 BLAH"_ns));
