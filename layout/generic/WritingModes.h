@@ -2076,26 +2076,26 @@ inline AspectRatio AspectRatio::ConvertToWritingMode(
 // Definitions of inline methods for nsStylePosition, declared in
 // nsStyleStruct.h but not defined there because they need WritingMode.
 inline const mozilla::StyleSize& nsStylePosition::ISize(WritingMode aWM) const {
-  return aWM.IsVertical() ? mHeight : mWidth;
+  return aWM.IsVertical() ? GetHeight() : GetWidth();
 }
 inline const mozilla::StyleSize& nsStylePosition::MinISize(
     WritingMode aWM) const {
-  return aWM.IsVertical() ? mMinHeight : mMinWidth;
+  return aWM.IsVertical() ? GetMinHeight() : GetMinWidth();
 }
 inline const mozilla::StyleMaxSize& nsStylePosition::MaxISize(
     WritingMode aWM) const {
-  return aWM.IsVertical() ? mMaxHeight : mMaxWidth;
+  return aWM.IsVertical() ? GetMaxHeight() : GetMaxWidth();
 }
 inline const mozilla::StyleSize& nsStylePosition::BSize(WritingMode aWM) const {
-  return aWM.IsVertical() ? mWidth : mHeight;
+  return aWM.IsVertical() ? GetWidth() : GetHeight();
 }
 inline const mozilla::StyleSize& nsStylePosition::MinBSize(
     WritingMode aWM) const {
-  return aWM.IsVertical() ? mMinWidth : mMinHeight;
+  return aWM.IsVertical() ? GetMinWidth() : GetMinHeight();
 }
 inline const mozilla::StyleMaxSize& nsStylePosition::MaxBSize(
     WritingMode aWM) const {
-  return aWM.IsVertical() ? mMaxWidth : mMaxHeight;
+  return aWM.IsVertical() ? GetMaxWidth() : GetMaxHeight();
 }
 inline const mozilla::StyleSize& nsStylePosition::Size(
     mozilla::LogicalAxis aAxis, WritingMode aWM) const {

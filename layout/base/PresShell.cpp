@@ -11781,17 +11781,17 @@ PresShell::WindowSizeConstraints PresShell::GetWindowSizeConstraints() {
     return {minSize, maxSize};
   }
   const auto* pos = rootFrame->StylePosition();
-  if (pos->mMinWidth.ConvertsToLength()) {
-    minSize.width = pos->mMinWidth.ToLength();
+  if (pos->GetMinWidth().ConvertsToLength()) {
+    minSize.width = pos->GetMinWidth().ToLength();
   }
-  if (pos->mMinHeight.ConvertsToLength()) {
-    minSize.height = pos->mMinHeight.ToLength();
+  if (pos->GetMinHeight().ConvertsToLength()) {
+    minSize.height = pos->GetMinHeight().ToLength();
   }
-  if (pos->mMaxWidth.ConvertsToLength()) {
-    maxSize.width = pos->mMaxWidth.ToLength();
+  if (pos->GetMaxWidth().ConvertsToLength()) {
+    maxSize.width = pos->GetMaxWidth().ToLength();
   }
-  if (pos->mMaxHeight.ConvertsToLength()) {
-    maxSize.height = pos->mMaxHeight.ToLength();
+  if (pos->GetMaxHeight().ConvertsToLength()) {
+    maxSize.height = pos->GetMaxHeight().ToLength();
   }
   return {minSize, maxSize};
 }

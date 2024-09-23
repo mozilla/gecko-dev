@@ -2014,8 +2014,10 @@ impl Size {
         parse_size_non_length!(Size, input, "auto" => Auto);
         parse_fit_content_function!(Size, input, context, allow_quirks);
 
-        let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
-        Ok(GenericSize::LengthPercentage(length))
+        if let Ok(length) = input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks)) {
+            return Ok(GenericSize::LengthPercentage(length));
+        }
+        Ok(Self::AnchorSizeFunction(Box::new(GenericAnchorSizeFunction::parse(context, input)?)))
     }
 
     /// Returns `0%`.
@@ -2047,8 +2049,10 @@ impl MaxSize {
         parse_size_non_length!(MaxSize, input, "none" => None);
         parse_fit_content_function!(MaxSize, input, context, allow_quirks);
 
-        let length = NonNegativeLengthPercentage::parse_quirky(context, input, allow_quirks)?;
-        Ok(GenericMaxSize::LengthPercentage(length))
+        if let Ok(length) = input.try_parse(|i| NonNegativeLengthPercentage::parse_quirky(context, i, allow_quirks)) {
+            return Ok(GenericMaxSize::LengthPercentage(length));
+        }
+        Ok(Self::AnchorSizeFunction(Box::new(GenericAnchorSizeFunction::parse(context, input)?)))
     }
 }
 

@@ -171,6 +171,7 @@ static CellISizeInfo GetISizeInfo(gfxContext* aRenderingContext,
         // TODO: Bug 1708310: Make sure fit-content() work properly in table.
       case StyleSize::Tag::Auto:
       case StyleSize::Tag::LengthPercentage:
+      case StyleSize::Tag::AnchorSizeFunction:
         break;
     }
   }

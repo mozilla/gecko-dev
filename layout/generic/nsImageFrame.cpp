@@ -324,8 +324,8 @@ static bool HaveSpecifiedSize(const nsStylePosition* aStylePosition) {
   // check the width and height values in the reflow input's style struct
   // - if width and height are specified as either coord or percentage, then
   //   the size of the image frame is constrained
-  return aStylePosition->mWidth.IsLengthPercentage() &&
-         aStylePosition->mHeight.IsLengthPercentage();
+  return aStylePosition->GetWidth().IsLengthPercentage() &&
+         aStylePosition->GetHeight().IsLengthPercentage();
 }
 
 template <typename SizeOrMaxSize>
@@ -362,8 +362,8 @@ static bool SizeDependsOnIntrinsicSize(const ReflowInput& aReflowInput) {
   // don't need to check them.
   //
   // Flex item's min-[width|height]:auto resolution depends on intrinsic size.
-  return !position.mHeight.ConvertsToLength() ||
-         !position.mWidth.ConvertsToLength() ||
+  return !position.GetHeight().ConvertsToLength() ||
+         !position.GetWidth().ConvertsToLength() ||
          DependsOnIntrinsicSize(position.MinISize(wm)) ||
          DependsOnIntrinsicSize(position.MaxISize(wm)) ||
          aReflowInput.mFrame->IsFlexItem();
@@ -2840,7 +2840,7 @@ static bool IsInAutoWidthTableCellForQuirk(nsIFrame* aFrame) {
   if (ancestor->Style()->GetPseudoType() == PseudoStyleType::cellContent) {
     // Assume direct parent is a table cell frame.
     nsIFrame* grandAncestor = static_cast<nsIFrame*>(ancestor->GetParent());
-    return grandAncestor && grandAncestor->StylePosition()->mWidth.IsAuto();
+    return grandAncestor && grandAncestor->StylePosition()->GetWidth().IsAuto();
   }
   return false;
 }

@@ -1821,7 +1821,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetHeight() {
                               adjustedValues.TopBottom());
   }
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-  SetValueToSize(val, StylePosition()->mHeight);
+  SetValueToSize(val, StylePosition()->GetHeight());
   return val.forget();
 }
 
@@ -1833,19 +1833,19 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetWidth() {
                               adjustedValues.LeftRight());
   }
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-  SetValueToSize(val, StylePosition()->mWidth);
+  SetValueToSize(val, StylePosition()->GetWidth());
   return val.forget();
 }
 
 already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMaxHeight() {
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-  SetValueToMaxSize(val, StylePosition()->mMaxHeight);
+  SetValueToMaxSize(val, StylePosition()->GetMaxHeight());
   return val.forget();
 }
 
 already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMaxWidth() {
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-  SetValueToMaxSize(val, StylePosition()->mMaxWidth);
+  SetValueToMaxSize(val, StylePosition()->GetMaxWidth());
   return val.forget();
 }
 
@@ -1868,7 +1868,7 @@ bool nsComputedDOMStyle::ShouldHonorMinSizeAutoInAxis(PhysicalAxis aAxis) {
 
 already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMinHeight() {
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-  StyleSize minHeight = StylePosition()->mMinHeight;
+  StyleSize minHeight = StylePosition()->GetMinHeight();
 
   if (minHeight.IsAuto() &&
       !ShouldHonorMinSizeAutoInAxis(PhysicalAxis::Vertical)) {
@@ -1882,7 +1882,7 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMinHeight() {
 already_AddRefed<CSSValue> nsComputedDOMStyle::DoGetMinWidth() {
   auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
 
-  StyleSize minWidth = StylePosition()->mMinWidth;
+  StyleSize minWidth = StylePosition()->GetMinWidth();
 
   if (minWidth.IsAuto() &&
       !ShouldHonorMinSizeAutoInAxis(PhysicalAxis::Horizontal)) {

@@ -251,8 +251,8 @@ bool SVGRectElement::IsLengthChangedViaCSS(const ComputedStyle& aNewStyle,
   const auto& newPosition = *aNewStyle.StylePosition();
   const auto& oldPosition = *aOldStyle.StylePosition();
   return newSVGReset.mX != oldSVGReset.mX || newSVGReset.mY != oldSVGReset.mY ||
-         newPosition.mWidth != oldPosition.mWidth ||
-         newPosition.mHeight != oldPosition.mHeight ||
+         newPosition.GetWidth() != oldPosition.GetWidth() ||
+         newPosition.GetHeight() != oldPosition.GetHeight() ||
          newSVGReset.mRx != oldSVGReset.mRx ||
          newSVGReset.mRy != oldSVGReset.mRy;
 }

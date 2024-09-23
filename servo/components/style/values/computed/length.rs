@@ -212,7 +212,8 @@ impl Size {
             Self::MozAvailable |
             Self::WebkitFillAvailable |
             Self::Stretch |
-            Self::FitContentFunction(_) => false,
+            Self::FitContentFunction(_) |
+            Self::AnchorSizeFunction(_) => false,
         }
     }
 }

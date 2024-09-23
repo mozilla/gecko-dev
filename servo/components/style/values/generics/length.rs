@@ -139,13 +139,11 @@ impl<LengthPercentage: Parse> Parse for LengthPercentageOrAuto<LengthPercentage>
 #[allow(missing_docs)]
 #[derive(
     Animate,
-    Clone,
     ComputeSquaredDistance,
-    Copy,
+    Clone,
     Debug,
     MallocSizeOf,
     PartialEq,
-    SpecifiedValueInfo,
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
@@ -177,6 +175,27 @@ pub enum GenericSize<LengthPercent> {
     #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),
+    AnchorSizeFunction(
+        #[animation(field_bound)]
+        #[distance(field_bound)]
+        Box<GenericAnchorSizeFunction<LengthPercent>>
+    ),
+}
+
+impl<LengthPercent> SpecifiedValueInfo for GenericSize<LengthPercent>
+where
+LengthPercent: SpecifiedValueInfo
+{
+    fn collect_completion_keywords(f: style_traits::KeywordsCollectFn) {
+        LengthPercent::collect_completion_keywords(f);
+        f(&["auto", "stretch", "fit-content"]);
+        if cfg!(feature = "gecko") {
+            f(&["max-content", "min-content", "-moz-available", "-webkit-fill-available"]);
+        }
+        if static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            f(&["anchor-size"]);
+        }
+    }
 }
 
 pub use self::GenericSize as Size;
@@ -201,11 +220,9 @@ impl<LengthPercentage> Size<LengthPercentage> {
     Animate,
     Clone,
     ComputeSquaredDistance,
-    Copy,
     Debug,
     MallocSizeOf,
     PartialEq,
-    SpecifiedValueInfo,
     ToAnimatedValue,
     ToAnimatedZero,
     ToComputedValue,
@@ -237,6 +254,27 @@ pub enum GenericMaxSize<LengthPercent> {
     #[animation(error)]
     #[css(function = "fit-content")]
     FitContentFunction(LengthPercent),
+    AnchorSizeFunction(
+        #[animation(field_bound)]
+        #[distance(field_bound)]
+        Box<GenericAnchorSizeFunction<LengthPercent>>
+    ),
+}
+
+impl<LP> SpecifiedValueInfo for GenericMaxSize<LP>
+where
+    LP: SpecifiedValueInfo
+{
+    fn collect_completion_keywords(f: style_traits::KeywordsCollectFn) {
+        LP::collect_completion_keywords(f);
+        f(&["none", "stretch", "fit-content"]);
+        if cfg!(feature = "gecko") {
+            f(&["max-content", "min-content", "-moz-available", "-webkit-fill-available"]);
+        }
+        if static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            f(&["anchor-size"]);
+        }
+    }
 }
 
 pub use self::GenericMaxSize as MaxSize;

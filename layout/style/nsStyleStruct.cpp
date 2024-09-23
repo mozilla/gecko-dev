@@ -1260,12 +1260,12 @@ nsChangeHint nsStylePosition::CalcDifference(
     hint |= nsChangeHint_NeedReflow;
   }
 
-  bool widthChanged = mWidth != aNewData.mWidth ||
-                      mMinWidth != aNewData.mMinWidth ||
-                      mMaxWidth != aNewData.mMaxWidth;
-  bool heightChanged = mHeight != aNewData.mHeight ||
-                       mMinHeight != aNewData.mMinHeight ||
-                       mMaxHeight != aNewData.mMaxHeight;
+  bool widthChanged = GetWidth() != aNewData.GetWidth() ||
+                      GetMinWidth() != aNewData.GetMinWidth() ||
+                      GetMaxWidth() != aNewData.GetMaxWidth();
+  bool heightChanged = GetHeight() != aNewData.GetHeight() ||
+                       GetMinHeight() != aNewData.GetMinHeight() ||
+                       GetMaxHeight() != aNewData.GetMaxHeight();
 
   if (widthChanged || heightChanged) {
     // It doesn't matter whether we're looking at the old or new visibility
@@ -1358,6 +1358,8 @@ StyleJustifySelf nsStylePosition::UsedJustifySelf(
 }
 
 const StyleInset nsStylePosition::kAutoInset = StyleInset::Auto();
+const StyleSize nsStylePosition::kAutoSize = StyleSize::Auto();
+const StyleMaxSize nsStylePosition::kNoneMaxSize = StyleMaxSize::None();
 
 // --------------------
 // nsStyleTable

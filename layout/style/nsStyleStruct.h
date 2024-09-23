@@ -846,6 +846,53 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStylePosition {
   inline const mozilla::StyleInset& GetInset(mozilla::LogicalSide aSide,
                                              WritingMode) const;
 
+  // TODO(dshin): These size getters can be removed when anchor
+  // size is actually calculated.
+  static const StyleSize kAutoSize;
+  static const StyleMaxSize kNoneMaxSize;
+
+  const StyleSize& GetWidth() const {
+    if (MOZ_UNLIKELY(mWidth.IsAnchorSizeFunction())) {
+      return kAutoSize;
+    }
+    return mWidth;
+  }
+
+  const StyleSize& GetHeight() const {
+    if (MOZ_UNLIKELY(mHeight.IsAnchorSizeFunction())) {
+      return kAutoSize;
+    }
+    return mHeight;
+  }
+
+  const StyleSize& GetMinWidth() const {
+    if (MOZ_UNLIKELY(mMinWidth.IsAnchorSizeFunction())) {
+      return kAutoSize;
+    }
+    return mMinWidth;
+  }
+
+  const StyleSize& GetMinHeight() const {
+    if (MOZ_UNLIKELY(mMinHeight.IsAnchorSizeFunction())) {
+      return kAutoSize;
+    }
+    return mMinHeight;
+  }
+
+  const StyleMaxSize& GetMaxWidth() const {
+    if (MOZ_UNLIKELY(mMaxWidth.IsAnchorSizeFunction())) {
+      return kNoneMaxSize;
+    }
+    return mMaxWidth;
+  }
+
+  const StyleMaxSize& GetMaxHeight() const {
+    if (MOZ_UNLIKELY(mMaxHeight.IsAnchorSizeFunction())) {
+      return kNoneMaxSize;
+    }
+    return mMaxHeight;
+  }
+
  private:
   template <typename SizeOrMaxSize>
   static bool ISizeCoordDependsOnContainer(const SizeOrMaxSize& aCoord) {

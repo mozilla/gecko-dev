@@ -4555,22 +4555,22 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   const bool isInlineAxis = aAxis == ourInlineAxis;
 
   StyleSize styleMinISize =
-      horizontalAxis ? stylePos->mMinWidth : stylePos->mMinHeight;
+      horizontalAxis ? stylePos->GetMinWidth() : stylePos->GetMinHeight();
   StyleSize styleISize = [&]() {
     if (aFlags & MIN_INTRINSIC_ISIZE) {
       return styleMinISize;
     }
     const Maybe<StyleSize>& styleISizeOverride =
         isInlineAxis ? aSizeOverrides.mStyleISize : aSizeOverrides.mStyleBSize;
-    return styleISizeOverride
-               ? *styleISizeOverride
-               : (horizontalAxis ? stylePos->mWidth : stylePos->mHeight);
+    return styleISizeOverride ? *styleISizeOverride
+                              : (horizontalAxis ? stylePos->GetWidth()
+                                                : stylePos->GetHeight());
   }();
   MOZ_ASSERT(!(aFlags & MIN_INTRINSIC_ISIZE) || styleISize.IsAuto() ||
                  nsIFrame::ToExtremumLength(styleISize),
              "should only use MIN_INTRINSIC_ISIZE for intrinsic values");
   StyleMaxSize styleMaxISize =
-      horizontalAxis ? stylePos->mMaxWidth : stylePos->mMaxHeight;
+      horizontalAxis ? stylePos->GetMaxWidth() : stylePos->GetMaxHeight();
 
   auto ResetIfKeywords = [](StyleSize& aSize, StyleSize& aMinSize,
                             StyleMaxSize& aMaxSize) {
@@ -4627,11 +4627,11 @@ nscoord nsLayoutUtils::IntrinsicForAxis(
   StyleSize styleBSize =
       styleBSizeOverride
           ? *styleBSizeOverride
-          : (horizontalAxis ? stylePos->mHeight : stylePos->mWidth);
+          : (horizontalAxis ? stylePos->GetHeight() : stylePos->GetWidth());
   StyleSize styleMinBSize =
-      horizontalAxis ? stylePos->mMinHeight : stylePos->mMinWidth;
+      horizontalAxis ? stylePos->GetMinHeight() : stylePos->GetMinWidth();
   StyleMaxSize styleMaxBSize =
-      horizontalAxis ? stylePos->mMaxHeight : stylePos->mMaxWidth;
+      horizontalAxis ? stylePos->GetMaxHeight() : stylePos->GetMaxWidth();
 
   // According to the spec, max-content and min-content should behave as the
   // property's initial values in block axis.
@@ -4926,11 +4926,11 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
 
   // Note: this method is only meant for grid/flex items.
   const nsStylePosition* const stylePos = aFrame->StylePosition();
-  StyleSize size = aAxis == PhysicalAxis::Horizontal ? stylePos->mMinWidth
-                                                     : stylePos->mMinHeight;
+  StyleSize size = aAxis == PhysicalAxis::Horizontal ? stylePos->GetMinWidth()
+                                                     : stylePos->GetMinHeight();
   StyleMaxSize maxSize = aAxis == PhysicalAxis::Horizontal
-                             ? stylePos->mMaxWidth
-                             : stylePos->mMaxHeight;
+                             ? stylePos->GetMaxWidth()
+                             : stylePos->GetMaxHeight();
   auto childWM = aFrame->GetWritingMode();
   PhysicalAxis ourInlineAxis = childWM.PhysicalAxis(LogicalAxis::Inline);
   // According to the spec, max-content and min-content should behave as the
@@ -4954,8 +4954,8 @@ nscoord nsLayoutUtils::MinSizeContributionForAxis(
       // zero.
       fixedMinSize.emplace(0);
     } else {
-      size = aAxis == PhysicalAxis::Horizontal ? stylePos->mWidth
-                                               : stylePos->mHeight;
+      size = aAxis == PhysicalAxis::Horizontal ? stylePos->GetWidth()
+                                               : stylePos->GetHeight();
       // This is same as above: keywords should behaves as property's initial
       // values in block axis.
       if (aAxis != ourInlineAxis && size.BehavesLikeInitialValueOnBlockAxis()) {

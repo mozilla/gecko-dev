@@ -2127,12 +2127,12 @@ LogicalSize ReflowInput::ComputeContainingBlockRectangle(
     if (!wm.IsVertical() && NS_UNCONSTRAINEDSIZE == cbSize.BSize(wm)) {
       if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
           !aContainingBlockRI->mFrame->IsFlexOrGridItem() &&
-          (IsQuirky(mStylePosition->mHeight) ||
+          (IsQuirky(mStylePosition->GetHeight()) ||
            (mFrame->IsTableWrapperFrame() &&
             IsQuirky(mFrame->PrincipalChildList()
                          .FirstChild()
                          ->StylePosition()
-                         ->mHeight)))) {
+                         ->GetHeight())))) {
         cbSize.BSize(wm) = CalcQuirkContainingBlockHeight(aContainingBlockRI);
       }
     }

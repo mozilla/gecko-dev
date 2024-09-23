@@ -1234,12 +1234,13 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
       const nsStylePosition* pos = StylePosition();
       const nsStylePosition* oldPos = aOldComputedStyle->StylePosition();
       if (!needAnchorSuppression &&
-          (!oldPos->InsetEquals(*pos) || oldPos->mWidth != pos->mWidth ||
-           oldPos->mMinWidth != pos->mMinWidth ||
-           oldPos->mMaxWidth != pos->mMaxWidth ||
-           oldPos->mHeight != pos->mHeight ||
-           oldPos->mMinHeight != pos->mMinHeight ||
-           oldPos->mMaxHeight != pos->mMaxHeight ||
+          (!oldPos->InsetEquals(*pos) ||
+           oldPos->GetWidth() != pos->GetWidth() ||
+           oldPos->GetMinWidth() != pos->GetMinWidth() ||
+           oldPos->GetMaxWidth() != pos->GetMaxWidth() ||
+           oldPos->GetHeight() != pos->GetHeight() ||
+           oldPos->GetMinHeight() != pos->GetMinHeight() ||
+           oldPos->GetMaxHeight() != pos->GetMaxHeight() ||
            oldDisp->mPosition != disp->mPosition ||
            oldDisp->mTransform != disp->mTransform)) {
         needAnchorSuppression = true;
@@ -2459,14 +2460,15 @@ bool nsIFrame::CanBeDynamicReflowRoot() const {
   // FIXME: For display:block, we should probably optimize inline-size: auto.
   // FIXME: Other flex and grid cases?
   const auto& pos = *StylePosition();
-  const auto& width = pos.mWidth;
-  const auto& height = pos.mHeight;
+  const auto& width = pos.GetWidth();
+  const auto& height = pos.GetHeight();
   if (!width.IsLengthPercentage() || width.HasPercent() ||
       !height.IsLengthPercentage() || height.HasPercent() ||
-      IsIntrinsicKeyword(pos.mMinWidth) || IsIntrinsicKeyword(pos.mMaxWidth) ||
-      IsIntrinsicKeyword(pos.mMinHeight) ||
-      IsIntrinsicKeyword(pos.mMaxHeight) ||
-      ((pos.mMinWidth.IsAuto() || pos.mMinHeight.IsAuto()) &&
+      IsIntrinsicKeyword(pos.GetMinWidth()) ||
+      IsIntrinsicKeyword(pos.GetMaxWidth()) ||
+      IsIntrinsicKeyword(pos.GetMinHeight()) ||
+      IsIntrinsicKeyword(pos.GetMaxHeight()) ||
+      ((pos.GetMinWidth().IsAuto() || pos.GetMinHeight().IsAuto()) &&
        IsFlexOrGridItem())) {
     return false;
   }
