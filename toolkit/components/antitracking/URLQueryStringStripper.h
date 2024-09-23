@@ -55,6 +55,12 @@ class URLQueryStringStripper final : public nsIObserver,
   nsresult StripForCopyOrShareInternal(nsIURI* aURI, nsIURI** strippedURI,
                                        int& aStripCount, bool aStripNestedURIs);
 
+  // Recursive helper function to check if there are any query
+  // parameters that can be stripped. The function terminates as
+  // soon as one is found
+  nsresult CanStripForCopyOrShareInternal(nsIURI* aURI, bool* aCanStrip,
+                                          bool aStripNestedURIs);
+
   nsTHashSet<nsCString> mList;
   nsTHashSet<nsCString> mAllowList;
   nsCOMPtr<nsIURLQueryStrippingListService> mListService;

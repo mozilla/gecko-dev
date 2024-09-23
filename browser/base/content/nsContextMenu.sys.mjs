@@ -65,6 +65,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "STRIP_ON_SHARE_CAN_DISABLE",
+  "privacy.query_stripping.strip_on_share.canDisable",
+  false
+);
+
 XPCOMUtils.defineLazyServiceGetter(
   lazy,
   "QueryStringStripper",
@@ -1039,6 +1046,11 @@ export class nsContextMenu {
         !this.onMozExtLink &&
         !this.isSecureAboutPage()
     );
+
+    let canNotStrip =
+      lazy.STRIP_ON_SHARE_CAN_DISABLE && !this.#canStripParams();
+
+    this.setItemAttr("context-stripOnShareLink", "disabled", canNotStrip);
 
     let copyLinkSeparator = this.document.getElementById(
       "context-sep-copylink"
@@ -2352,13 +2364,30 @@ export class nsContextMenu {
         this.linkURI
       );
     } catch (e) {
-      console.warn(`stripForCopyOrShare: ${e.message}`);
+      console.warn(`getStrippedLink: ${e.message}`);
       return this.linkURI;
     }
 
     // If nothing can be stripped, we return the original URI
     // so the feature can still be used.
     return strippedLinkURI ?? this.linkURI;
+  }
+
+  /**
+   * Checks if there is a query parameter that can be stripped
+   * @returns {Boolean}
+   *
+   */
+  #canStripParams() {
+    if (!this.linkURI) {
+      return false;
+    }
+    try {
+      return lazy.QueryStringStripper.canStripForShare(this.linkURI);
+    } catch (e) {
+      console.warn("canStripForShare failed!", e);
+      return false;
+    }
   }
 
   /**

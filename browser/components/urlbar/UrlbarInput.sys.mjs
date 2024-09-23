@@ -60,6 +60,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "STRIP_ON_SHARE_CAN_DISABLE",
+  "privacy.query_stripping.strip_on_share.canDisable",
+  false
+);
+
 const DEFAULT_FORM_HISTORY_NAME = "searchbar-history";
 const SEARCH_BUTTON_CLASS = "urlbar-search-button";
 
@@ -3340,6 +3347,26 @@ export class UrlbarInput {
   }
 
   /**
+   * Checks if there is a query parameter that can be stripped
+   *
+   * @returns {true|false}
+   */
+  #canStrip() {
+    let copyString = this._getSelectedValueForClipboard();
+    if (!copyString) {
+      return false;
+    }
+    // throws if the selected string is not a valid URI
+    try {
+      let uri = Services.io.newURI(copyString);
+      return lazy.QueryStringStripper.canStripForShare(uri);
+    } catch (e) {
+      console.warn("canStrip failed!", e);
+      return false;
+    }
+  }
+
+  /**
    * Restores the untrimmed value in the urlbar.
    *
    * @param {object} [options]
@@ -3469,7 +3496,15 @@ export class UrlbarInput {
         stripOnShare.setAttribute("hidden", true);
         return;
       }
-      stripOnShare.setAttribute("hidden", false);
+      if (lazy.STRIP_ON_SHARE_CAN_DISABLE) {
+        if (!this.#canStrip()) {
+          stripOnShare.removeAttribute("hidden");
+          stripOnShare.setAttribute("disabled", true);
+          return;
+        }
+      }
+      stripOnShare.removeAttribute("hidden");
+      stripOnShare.removeAttribute("disabled");
     });
   }
 

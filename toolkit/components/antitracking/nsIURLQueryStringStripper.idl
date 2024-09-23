@@ -30,6 +30,11 @@ interface nsIURLQueryStringStripper : nsISupports {
   // Thorws NS_ERROR_NOT_AVAILABLE if the feature is disabled.
   [must_use] nsIURI stripForCopyOrShare(in nsIURI aURI);
 
+  // Checks if there is any query parameter that can be stripped
+  // using Strip on share. Returns false if no query parameter that
+  // can be stripped
+  boolean canStripForShare(in nsIURI aURI);
+
   // Test-only method to get the current strip list.
   ACString testGetStripList();
 };

@@ -10,7 +10,10 @@ const TEST_URL =
 
 add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
-    set: [["privacy.query_stripping.strip_list", "stripParam"]],
+    set: [
+      ["privacy.query_stripping.strip_list", "stripParam"],
+      ["privacy.query_stripping.strip_on_share.canDisable", false],
+    ],
   });
 
   // Get the list service so we can wait for it to be fully initialized before running tests.

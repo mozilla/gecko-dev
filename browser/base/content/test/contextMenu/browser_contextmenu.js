@@ -74,6 +74,7 @@ add_setup(async function () {
       ["browser.search.separatePrivateDefault.ui.enabled", true],
       ["extensions.screenshots.disabled", false],
       ["layout.forms.reveal-password-context-menu.enabled", true],
+      ["privacy.query_stripping.strip_on_share.canDisable", false],
     ],
   });
 });

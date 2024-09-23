@@ -14,6 +14,7 @@ add_setup(async function () {
     set: [
       ["privacy.query_stripping.strip_on_share.enabled", true],
       ["privacy.query_stripping.enabled", false],
+      ["privacy.query_stripping.strip_on_share.canDisable", false],
     ],
   });
 

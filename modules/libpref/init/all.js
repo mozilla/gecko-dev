@@ -4181,3 +4181,6 @@ pref("privacy.query_stripping.strip_on_share.enableTestMode", false);
   pref("toolkit.backgroundtasks.tests.geckoPrefsInherited", 17);
   pref("toolkit.backgroundtasks.tests.geckoPrefsOverriden", 18);
 #endif
+
+// To disable the Strip on Share context menu option if nothing can be stripped
+pref("privacy.query_stripping.strip_on_share.canDisable", true);

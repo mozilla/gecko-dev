@@ -115,6 +115,16 @@ URLQueryStringStripper::StripForCopyOrShare(nsIURI* aURI,
 }
 
 NS_IMETHODIMP
+URLQueryStringStripper::CanStripForShare(nsIURI* aURI, bool* aCanStrip) {
+  NS_ENSURE_ARG_POINTER(aURI);
+  NS_ENSURE_ARG_POINTER(aCanStrip);
+
+  *aCanStrip = false;
+
+  return CanStripForCopyOrShareInternal(aURI, aCanStrip, true);
+}
+
+NS_IMETHODIMP
 URLQueryStringStripper::Strip(nsIURI* aURI, bool aIsPBM, nsIURI** aOutput,
                               uint32_t* aStripCount) {
   NS_ENSURE_ARG_POINTER(aURI);
@@ -481,4 +491,89 @@ nsresult URLQueryStringStripper::StripForCopyOrShareInternal(
   return NS_MutateURI(aURI).SetQuery(newQuery).Finalize(strippedURI);
 }
 
+nsresult URLQueryStringStripper::CanStripForCopyOrShareInternal(
+    nsIURI* aURI, bool* aCanStrip, bool aStripNestedURIs) {
+  *aCanStrip = false;
+
+  nsAutoCString query;
+  nsresult rv = aURI->GetQuery(query);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  // TODO(Bug 1919551): deduplicate code with StripForCopyOrShare
+  // We don't need to do anything if there is no query string.
+  if (query.IsEmpty()) {
+    return NS_OK;
+  }
+
+  nsAutoCString host;
+  rv = aURI->GetHost(host);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  URLParams params;
+
+  URLParams::Parse(query, false, [&](nsCString&& name, nsCString&& value) {
+    nsAutoCString lowerCaseName;
+    ToLowerCase(name, lowerCaseName);
+
+    // Look through the global rules.
+    dom::StripRule globalRule;
+    bool keyExists = mStripOnShareMap.Get("*"_ns, &globalRule);
+    // There should always be a global rule.
+    MOZ_ASSERT(keyExists);
+
+    // Look through the global rules.
+    for (const auto& param : globalRule.mQueryParams) {
+      if (param == lowerCaseName) {
+        *aCanStrip = true;
+        return false;
+      }
+    }
+
+    // Check for site specific rules.
+    dom::StripRule siteSpecificRule;
+    keyExists = mStripOnShareMap.Get(host, &siteSpecificRule);
+    if (keyExists) {
+      for (const auto& param : siteSpecificRule.mQueryParams) {
+        if (param == lowerCaseName) {
+          *aCanStrip = true;
+          return false;
+        }
+      }
+    }
+
+    // Also strip URIs nested in query params.
+    // The aStripNestedURIs flag is used to ensure we only go
+    // one level deep. Stripping highly nested URIs is not supported.
+    if (aStripNestedURIs) {
+      // Ignore errors when trying to strip potential nested URLs. It is
+      // expected to fail on non-URLs.
+      nsresult nestedRv;
+
+      nsAutoCString decodeValue;
+      URLParams::DecodeString(value, decodeValue);
+
+      nsCOMPtr<nsIURI> nestedURI;
+      nestedRv = NS_NewURI(getter_AddRefs(nestedURI), decodeValue);
+
+      if (NS_FAILED(nestedRv)) {
+        return true;
+      }
+
+      nestedRv = CanStripForCopyOrShareInternal(nestedURI, aCanStrip, false);
+      if (NS_FAILED(nestedRv)) {
+        return true;
+      }
+
+      // If we found a query param to strip skip iterating over the remaining
+      // ones (we return greedily).
+      if (*aCanStrip) {
+        return false;
+      }
+    }
+
+    return true;
+  });
+
+  return rv;
+}
 }  // namespace mozilla
