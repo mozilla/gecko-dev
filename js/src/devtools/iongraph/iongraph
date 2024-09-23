@@ -346,6 +346,10 @@ def parsenums(numstr):
     return [int(x) for x in numstr.split(',')]
 
 
+def parsenames(namestr):
+    return namestr and namestr.split(',')
+
+
 def validate(args):
     if not shutil.which('dot'):
         sys.stderr.write("ERROR: graphviz (dot) is not installed\n")
@@ -372,12 +376,15 @@ def gen(args):
     sys.stderr.write("generating graphviz...\n")
 
     funcnums = parsenums(args.funcnum)
+    funcnames = parsenames(args.funcname)
     passnums = parsenums(args.passnum)
     with tempfile.TemporaryDirectory() as tmpdir:
         for i in range(0, len(ion['functions'])):
             func = ion['functions'][i]
 
             if funcnums and i not in funcnums:
+                continue
+            if funcnames and func['name'] not in funcnames:
                 continue
 
             gtl = buildOnlyFinalPass(func) if args.final else buildGraphs(func)
@@ -450,6 +457,7 @@ def add_main_arguments(parser):
     parser.add_argument('-o', '--outdir', help='The directory in which to store the output file(s).',
                                           default='.')
     parser.add_argument('-f', '--funcnum', help='Only operate on the specified function(s), by index. Multiple functions can be separated by commas, e.g. `1,5,234`.')
+    parser.add_argument('-n', '--funcname', help='Only operate on the specified function(s), by name. Multiple functions can be separated by commas, e.g. `foo,bar,baz`.')
     parser.add_argument('-p', '--passnum', help='Only operate on the specified pass(es), by index. Multiple passes can be separated by commas, e.g. `1,5,234`.')
     parser.add_argument('--format', help='The output file format (pdf by default). `pdf` will merge all the graphs for each function into a single PDF; all other formats will produce a single file per graph.',
                                     choices=['gv', 'pdf', 'pdfs', 'png', 'svg'], default='pdf')
