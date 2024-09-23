@@ -1316,6 +1316,17 @@
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">%s ਲਈ ਆਈਟਮ ਮੇਨੂ</string>
 
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">ਹਾਲੇ ਕੋਈ ਬੁੱਕਮਾਰਕ ਨਹੀਂ</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">ਜਦ ਤੁਸੀਂ ਬਰਾਊਜ਼ ਕਰੋ ਤਾਂ ਸਾਈਟਾਂ ਨੂੰ ਸੰਭਾਲੋ। ਹੋਰ ਸਿੰਕ ਕੀਤੇ ਡਿਵਾਈਸਾਂ ਤੋਂ ਬੁੱਕਮਾਰਕ ਲੈਣ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ।</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">ਸਿੰਕ ਲਈ ਸਾਈਨ ਇਨ ਕਰੋ</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">ਜਦੋਂ ਤੁਸੀਂ ਬਰਾਊਜ਼ ਕਰੋ ਤਾਂ ਸਾਈਟਾਂ ਨੂੰ ਸੰਭਾਲੋ। ਅਸੀਂ ਹੋਰ ਸਿੰਕ ਕੀਤੇ ਡਿਵਾਈਸਾਂ ਤੋਂ ਬੁੱਕਮਾਰਕ ਵੀ ਲਵਾਂਗੇ।</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">ਜਦ ਤੁਸੀਂ ਬਰਾਊਜ਼ ਕਰੋਂ ਤਾਂ ਬੁੱਕਮਾਰਕਾਂ ਨੂੰ ਜੋੜੋ ਤਾਂ ਕਿ ਆਪਣੀਆਂ ਮਨਪਸੰਦ ਸਾਈਟਾਂ ਨੂੰ ਬਾਅਦ ਵਿੱਚ ਲੱਭ ਸਕੋ।</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">ਸੈਟਿੰਗਾਂ ‘ਤੇ ਜਾਓ</string>

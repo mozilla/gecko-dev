@@ -352,7 +352,7 @@
     <string name="preference_mozilla_telemetry_summary2">Mozilla는 %1$s 이용에 더 나은 서비스를 제공하고 향상시키는 데 오직 필요한 정보만을 수집합니다.</string>
 
     <!-- In-app link (in settings) to Focus privacy notice. -->
-    <string name="preference_privacy_notice">개인 정보 보호 정책</string>
+    <string name="preference_privacy_notice">개인정보 보호정책</string>
 
     <!-- In-app link (in settings) to Focus licensing information. -->
     <string name="preference_licensing_info">라이선스 정보</string>

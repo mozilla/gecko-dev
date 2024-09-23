@@ -918,6 +918,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="preferences_marketing_data">Isefka n uzenzi</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Ibeṭṭu isefka n useqdec azadur akked Adjust, amsenzi-nneɣ n ssuq  n uziraz</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Azen s wudem awurman ineqqisen n truẓi</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Ibeṭṭu isefka yerrẓen s wudem awurman lawan n usenker akked Mozilla send taruẓi</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studies</string>
     <!-- Summary for studies preferences -->
@@ -1219,6 +1223,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
     <string name="unsubmitted_crash_dialog_title">%s ilaq ad yales tanekra</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Azen s wudem awurman ineqqisen n truẓi</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
     <string name="unsubmitted_crash_dialog_negative_button">Mdel</string>
     <!-- Unsubmitted crash dialog positive button to submit crash report -->
@@ -1305,11 +1311,23 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Rnu akaram amaynut</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Mdel ticraḍ n yisebtar</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Mdel ticraḍ n yisebtar</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Nadi ticraḍ n yisebtar</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Umuɣ n yiferdisen i %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Ulac ticṛaḍ n isebtar akka tura</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Sekles ismal mi ara tettinigeḍ. Qqen akken ad d-tawiḍ ticraḍ n yisebtar seg yibenkan yemtawan.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Kcem akken ad yemtawi</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Sekles ismal mi ara tettinigeḍ. Nettawi-d daɣen ticraḍ n yisebtar seg yibenkan yemtawan.</string>
+
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Rnu ticraḍ n yisebtar mi ara tettinigeḍ akken ad tafeḍ ismal i tḥemmleḍ ticki.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2810,6 +2828,8 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="debug_drawer_tab_tools_tab_creation_tool_text_field_label">Amḍan n waccaren ara yettwarnan</string>
     <!-- The error message of the text field in the tab creation tool when the text field is empty -->
     <string name="debug_drawer_tab_tools_tab_quantity_empty_error">Urti n uḍris d ilem</string>
+    <!-- The error message of the text field in the tab creation tool when the text field has characters other than digits -->
+    <string name="debug_drawer_tab_tools_tab_quantity_non_digits_error">Ttxil-k sekcem imḍanen ummiden ufriren</string>
     <!-- The error message of the text field in the tab creation tool when the text field is a zero -->
     <string name="debug_drawer_tab_tools_tab_quantity_non_zero_error">Ttxil-k sekcem amḍan nnig ilem</string>
     <!-- The error message of the text field in the tab creation tool when the text field is a
@@ -2864,12 +2884,18 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Tumreḍ s usebtar-ik agejdan n Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Ɛawen-aɣ ad nesnerni asiggez deg Firefox. Aya ad yeṭṭef cwiṭ kan n wakud</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Ԑawen-aɣ ad nerr anadi deg Firefox igerrez ugar. Aya ad yeṭṭef cwiṭ n wakud.</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Ԑawen-aɣ ad nerr amtawi deg Firefox igerrez ugar. Aya ad yeṭṭef cwiṭ n wakud.</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Tumreḍ s usiggez deg Firefox?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Tumreḍ s usebtar-ik agejdan n Firefox?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Tumreḍ s unadi ɣef Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Tumreḍ s umtawi deg Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Alugu Firefox</string>

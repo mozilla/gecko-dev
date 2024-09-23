@@ -1303,12 +1303,23 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Lisää uusi kansio</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Sulje kirjanmerkit</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Sulje kirjanmerkit</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Etsi kirjanmerkeistä</string>
 
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Valikkokohde %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Ei kirjanmerkkejä vielä</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Tallenna sivustoja selatessasi. Kirjaudu sisään saadaksesi kirjanmerkkejä muista synkronoiduista laitteista.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Kirjaudu synkronoidaksesi</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Tallenna sivustoja selatessasi. Noudamme kirjanmerkit myös muista synkronoiduista laitteista.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Lisää kirjanmerkkejä selatessasi, jotta löydät suosikkisivustosi myöhemmin.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

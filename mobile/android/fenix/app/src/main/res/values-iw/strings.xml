@@ -1293,11 +1293,22 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">הוספת תיקייה חדשה</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">סגירת סימניות</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">סגירת סימניות</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">חיפוש בסימניות</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">תפריט הפריט עבור %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">אין סימניות עדיין</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">ניתן לשמור אתרים תוך כדי גלישה. באפשרותך גם להתחבר כדי לקבל סימניות ממכשירים מסונכרנים אחרים.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">כניסה כדי לסנכרן</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">ניתן לשמור אתרים תוך כדי גלישה. אנחנו גם נקבל סימניות ממכשירים מסונכרנים אחרים.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">ניתן להוסיף סימניות תוך כדי גלישה כדי שיהיה באפשרותך למצוא את האתרים המועדפים עליך מאוחר יותר.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

@@ -123,23 +123,23 @@
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
          Focus is hard coded since we can't use variables in this context.
          Do not translate or transliterate Focus.-->
-    <string name="text_selection_search_action_focus">Paluruh di Focus</string>
+    <string name="text_selection_search_action_focus" tools:ignore="BrandUsage">Paluruh di Focus</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
              Klar is hard coded since we can't use variables in this context.
              Do not translate or transliterate Klar.-->
-    <string name="text_selection_search_action_klar">Paluruh di Klar</string>
+    <string name="text_selection_search_action_klar" tools:ignore="BrandUsage">Paluruh di Klar</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
             Focus Beta is hard coded since we can't use variables in this context.
             Do not translate or transliterate Focus Beta.-->
-    <string name="text_selection_search_action_focus_beta">Paluruh di Focus Beta</string>
+    <string name="text_selection_search_action_focus_beta" tools:ignore="BrandUsage">Paluruh di Focus Beta</string>
     <!-- This is the label of an action we offer when the user selects text in other third-party apps.
           Focus Nightly is hard coded since we can't use variables in this context.
           Do not translate or transliterate Focus Nightly.-->
-    <string name="text_selection_search_action_focus_nightly">Paluruh di Focus Nightly</string>
+    <string name="text_selection_search_action_focus_nightly" tools:ignore="BrandUsage">Paluruh di Focus Nightly</string>
 
     <!-- Content of about focus. Argument 1 is the app name (Firefox Focus/Firefox Klar/etc).
          Argument 2 is the url for the learn-more link. -->
-    <string name="about_content"><![CDATA[<p>%1$s méré anjeun kadali.</p>
+    <string name="about_content" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[<p>%1$s méré anjeun kadali.</p>
 <p>Paké pikeun panyungsi nyamuni:
   <ul>
     <li>Maluruh jeung nyungsi langsung dina aplikasina</li>
@@ -606,9 +606,12 @@
     <!-- Label for a button in the "tabs tray" to erase the browsing history (closes all tabs and removes associated data). -->
     <string name="tabs_tray_action_erase">Pupus jujutan langlangan</string>
 
+    <!-- Label for the option in the Focus "tabs tray" to clos the other tabs except the current tab. -->
+    <string name="tabs_tray_action_erase_other">Tutup tab séjén</string>
+
     <!-- If the user decides to open the current page in another browser and if Firefox is not installed then we show this
       item in the list of browsers. Clicking it will open the app store installed on the device (usually that's Google Play). -->
-    <string name="download_firefox">Undeur Firefox</string>
+    <string name="download_firefox" tools:ignore="BrandUsage">Undeur Firefox</string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)-->
@@ -620,23 +623,23 @@
   <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the MPL (e.g. https://www.mozilla.org/en-US/MPL/) -->
-    <string name="your_rights_content2"><![CDATA[%1$s disanggakeun dina katangtuan <a href="%2$s">Lisénsi Publik Mozilla</a> jeung lisénsi sumber nembrak lianna.]]></string>
+    <string name="your_rights_content2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s disanggakeun dina katangtuan <a href="%2$s">Lisénsi Publik Mozilla</a> jeung lisénsi sumber nembrak lianna.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the trademark policy (e.g. https://www.mozilla.org/foundation/trademarks/policy/) -->
-    <string name="your_rights_content3"><![CDATA[Anjeun teu dibéré idin atawa lisénsi nanaon kana mérek dagang Mozilla Foundation atawa pihak mana ogé, kaasup ngaran atawa logo Mozilla, Firefox, atawa %1$s. Embaran leuwih lengkep bisa dibaca <a href="%2$s">di dieu</a>.]]></string>
+    <string name="your_rights_content3" tools:ignore="BrandUsage,IncorrectStraightDoubleQuote"><![CDATA[Anjeun teu dibéré idin atawa lisénsi nanaon kana mérek dagang Mozilla Foundation atawa pihak mana ogé, kaasup ngaran atawa logo Mozilla, Firefox, atawa %1$s. Embaran leuwih lengkep bisa dibaca <a href="%2$s">di dieu</a>.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the list of licenses used by the dependencies.-->
-    <string name="your_rights_content4"><![CDATA[Kodeu sumber lianna pikeun %1$s nyampak dina rupa-rupa <a href="%2$s">lisénsi</a> bébas jeung sumber nembrak séjénna.]]></string>
+    <string name="your_rights_content4" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Kodeu sumber lianna pikeun %1$s nyampak dina rupa-rupa <a href="%2$s">lisénsi</a> bébas jeung sumber nembrak séjénna.]]></string>
 
     <!-- Text shown in the "Your rights" screen.
     %1$s will be replaced with the name of the app (e.g. Firefox Focus)
     %2$s will be replaced with a URL linking to the GPL
     %3$s will be replaced with a URL linking to the tracking protection wiki page (e.g. https://wiki.mozilla.org/Security/Tracking_protection#Lists) -->
-    <string name="your_rights_content5"><![CDATA[%1$s ogé maké daptar peungpeukan nu disayagakeun ku Disconnect, Inc. minangka karya anu misah jeung indepénden dina <a href="%2$s">GNU General Public License v3</a>, sarta sayaga<a href="%3$s">di dieu</a>.]]></string>
+    <string name="your_rights_content5" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s ogé maké daptar peungpeukan nu disayagakeun ku Disconnect, Inc. minangka karya anu misah jeung indepénden dina <a href="%2$s">GNU General Public License v3</a>, sarta sayaga<a href="%3$s">di dieu</a>.]]></string>
 
     <!-- Text shown in prompts for GeckoView -->
     <string name="gv_prompt_username_hint">Sandiasma</string>
@@ -827,7 +830,7 @@
     <string name="preference_studies">Studi</string>
 
     <!-- Preference for studies summary-->
-    <string name="preference_studies_summary">Firefox bisa masang jeung ngajalankeun studi iraha baé.</string>
+    <string name="preference_studies_summary" tools:ignore="BrandUsage">Firefox bisa masang jeung ngajalankeun studi iraha baé.</string>
 
     <!-- Learn more link for studies, links to an article for more information about studies. -->
     <string name="studies_learn_more">Lenyepan</string>
@@ -923,7 +926,7 @@
     <string name="open_new_tab_snackbar">Gilir</string>
 
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Asup ka mode layar pinuh</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Asup ka mode layar pinuh</string>
 
     <!-- Preference for switching to a new tab immediately after opening -->
     <string name="preference_open_new_tab">Geuwat gilir ka tutumbu di tab anyar</string>
@@ -1033,7 +1036,7 @@
 
     <!-- The text of the error page for websites that do not support HTTPS when HTTPS-Only is turned on. %1$s will get replaced with the name of the app (e.g. "Firefox Focus").
         Contains a button that will redirect the user to Privacy & Security Screen-->
-    <string name="errorpage_httpsonly_message2"><![CDATA[%1$s nyobaan maké sambungan HTTPS sabisana pikeun kaamanan.
+    <string name="errorpage_httpsonly_message2" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[%1$s nyobaan maké sambungan HTTPS sabisana pikeun kaamanan.
      <a href="%2$s">Lenyepan</a> <br/><br/>
      Robah ieu setélan dina Setélan > Pripasi &amp; Kaamanan > Kaamanan.]]></string>
 
@@ -1112,4 +1115,10 @@
     <!-- This is te text of the snackbar that appears after the search widget was added successfully
     to the home screen. -->
     <string name="promote_search_widget_snackbar_message">Wijet ditambahkeun kana layar tepas</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung maké géstur balik</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung ketok balik deui</string>
 </resources>

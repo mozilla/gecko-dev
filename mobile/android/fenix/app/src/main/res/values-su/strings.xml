@@ -103,6 +103,22 @@
     <string name="erase_action_cfr_message">Toél di dieu pikeun mitembeyan rintakan nyamuni. Hapus jujutan, réréméh anjeun — sagalana.</string>
 
 
+    <!-- Toolbar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_title">Kotéktak leuwih gancang ku navigasi anyar</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">Papan ieu bakal ngagulung nalika disorolokkeun ku anjeun pikeun nambahan widang panyungsian.</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
+    <string name="navbar_cfr_message_2">Dina situs wéb, papan ieu ngagulung nalika anjeun nyorolokkeun ka handap pikeun nambahan widang panyungsian.</string>
+    <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
+    <string name="navbar_navigation_buttons_cfr_message">Ketok jeung tahan panah pikeun luncat antara kaca dina jujutan tab ieu.</string>
+
+    <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">Anyar: ketok-sakali panah mundur jeung maju</string>
+    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Rasakeun navigasi anu leuwih gancang nu salawasna aya dina raramo anjeun.</string>
+
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Butuh aksés kaméra. Buka setélan Android, toél idin, laju toél idinan.</string>
     <!-- Text for the positive action button to go to Android Settings to grant permissions. -->
@@ -185,10 +201,24 @@
 
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Éksténsi</string>
+    <!-- Browser menu banner header text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_header">Jieun %s anjeun sorangan</string>
+    <!-- Browser menu banner body text for extensions onboarding.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_extensions_banner_onboarding_body">Pangémboh ngaronjatkeun panyungsian anjeun, ti ngarobah pidangan jeung kamampuh %s nepi ka ngaronjatkeun privasi jeung kaamanan.</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Lenyepan</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Atur émbohan</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Pangémboh anu disarankeun</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Tambahan pangémboh</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Singraykeun émbohan leuwih loba</string>
+    <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
+    <string name="browser_menu_extensions_disabled_description">Dipareuman heula samentara</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Iber akun</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -207,6 +237,8 @@
     <string name="browser_menu_add_to_homescreen">Tambahkeun ka layar Tepas</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">Tambahkeun ka layar Tepas…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">Parabot Xiaomi mungkin perlu idin tambahan pikeun nambahan panarabas kana layar utama. Mangga pariksa setélan anjeun.</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Singkronkeun deui</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -242,6 +274,8 @@
 
     <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
     <string name="browser_menu_customize_reader_view">Robah panémbong pamaca</string>
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view_2">Robah Panémbong Pamaca</string>
     <!-- Browser menu label for adding a bookmark -->
     <string name="browser_menu_add">Tambah</string>
     <!-- Browser menu label for editing a bookmark -->
@@ -268,12 +302,22 @@
     <string name="browser_menu_new_in_firefox">Anyar dina %1$s</string>
     <!-- Browser menu label that toggles the request for the desktop site of the currently visited page -->
     <string name="browser_menu_switch_to_desktop_site">Pindah kana situs desktop</string>
+    <!-- Browser menu label that toggles the request for the mobile site of the currently visited page -->
+    <string name="browser_menu_switch_to_mobile_site">Pindah ka situs mobile</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Parabot</string>
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
+    <string name="browser_menu_back_button_content_description">Balik deui ka ménu utama</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description_with_translate">Pintonan Pamaca, Tarjamah, Citak, Bagikeun, Buka aplikasia</string>
+    <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
+    <string name="browser_menu_tools_description">Pintonan Pamaca, Citak, Bagikeun, Buka aplikasi</string>
     <!-- Browser menu label that navigates to the save sub-menu, which contains various save related menu items such as
          bookmarking a page, saving to collection, shortcut or as a PDF, and adding to home screen -->
     <string name="browser_menu_save">Teundeun</string>
 
+    <!-- Browser menu description that describes the various save related menu items inside of the save sub-menu -->
+    <string name="browser_menu_save_description">Tambahan tetengger, Panarabas, Imah, Koléksi, PDF </string>
     <!-- Browser menu label that bookmarks the currently visited page -->
     <string name="browser_menu_bookmark_this_page">Markahkeun ieu kaca</string>
     <!-- Browser menu label that navigates to the edit bookmark screen for the current bookmarked page -->
@@ -292,6 +336,18 @@
     <string name="browser_menu_translated_to">Ditarjamahkeun kana %1$s</string>
     <!-- Browser menu label for the print feature -->
     <string name="browser_menu_print">Citak…</string>
+
+    <!-- Browser menu label for the Delete browsing data on quit feature.
+        The first parameter is the name of the app defined in app_name (for example: Fenix). -->
+    <string name="browser_menu_delete_browsing_data_on_quit">Eureun %1$s
+</string>
+
+    <!-- Menu "contextual feature recommendation" (CFR) -->
+    <!-- Text for the title in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_title">Anyar: ménu nu diutamakeun</string>
+    <!-- Text for the message in the contextual feature recommendation popup promoting the menu feature. -->
+    <string name="menu_cfr_body">Manggihkeun kabutuhan anjeun leuwih ganjang, ti panyungsian privat nepi ka nyimpen.
+</string>
 
     <!-- Extensions management fragment -->
     <!-- Text displayed when there are no extensions to be shown -->
@@ -354,7 +410,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Nepangkeun kaca tepas pribadi anjeun. Tab mutahir, markah, jeung hasil maluruh bakal némbongan di dieu.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Nepangkeun kaca tepas pribadi anjeun. Tab mutahir, markah, jeung hasil maluruh bakal némbongan di dieu.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Wilujeng sumping di internét anu leuwih pribadi</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -390,12 +446,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Iber pripasi Firefox</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Iber pripasi Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Urang resep ngajaga anjeun sangkan aman</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Téang iber naha mangyuta jalma resep Firefox</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Téang iber naha mangyuta jalma resep Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Panyungsian aman jeung réa pilihan
 </string>
@@ -419,17 +475,20 @@
     <string name="juno_onboarding_sign_in_title_2">Tetep énkripsi nalika anjeun luncat antara alat</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Sabot anjeun asup jeung nyingkronkeun, anjeun téh leuwih aman. Firefox ngaénkripsi sandi anjeun, tetengger, jeung réa-réa deui.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Sabot anjeun asup jeung nyingkronkeun, anjeun téh leuwih aman. Firefox ngaénkripsi sandi anjeun, tetengger, jeung réa-réa deui.</string>
+    <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
+     Note: The word "Firefox" should NOT be translated -->
+    <string name="juno_onboarding_sign_in_description_3" tools:ignore="BrandUsage">Firefox ngaénkripsi sandikecap anjeun, tetengger, jeung réa-réa deui nalika anjeun nyingkronkeun.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Asup</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Moal waka</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Iber mantuan anjeun tetep aman jeung Firefox</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Iber mantuan anjeun tetep aman jeung Firefox</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Kirim tab kalawan aman antara parabot anjeun jeung téangan fitur privasi séjénna dina Firefox.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Kirim tab kalawan aman antara parabot anjeun jeung téangan fitur privasi séjénna dina Firefox.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Hurungkeun iber</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -437,13 +496,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Coba wijet pamaluruhan Firefox</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Coba wijet pamaluruhan Firefox</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Ku ayana Firefox dina layar tepas, anjeun boga jalan ka panyungsi anu ngutamakeun pripasi anu meungpeuk palacak meuntas loka.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Ku ayana Firefox dina layar tepas, anjeun boga jalan ka panyungsi anu ngutamakeun pripasi anu meungpeuk palacak meuntas loka.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Tambahkeun wijet Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Tambahkeun wijet Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Moal waka</string>
 
@@ -484,9 +543,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Préperénsi palang alamat</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Palang alamat - Firefox Suggest</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Palang alamat - Firefox Suggest</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Leuwih teleb ngeunaan Firefox Suggest</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Leuwih teleb ngeunaan Firefox Suggest</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Peunteun dina Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -582,8 +641,6 @@
     <string name="toast_override_account_sync_server_done">Akun Mozilla/Server Sync dirobah. Ngaluarkeun aplikasi pikeun nerapkeun parobahan…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Akun</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Tulbar</string>
     <!-- Preference for changing where the AddressBar is positioned -->
     <string name="preferences_toolbar_2">Tempat papan alamat</string>
     <!-- Preference for changing default theme to dark or light mode -->
@@ -755,7 +812,7 @@
     <!-- Title of the Nimbus message for extension general availability-->
     <string name="addon_ga_message_title_2" tools:ignore="UnusedResources">Aya add-on anyar yeuh</string>
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Pariksa 100+ pangémboh anyar anu ngamungkinkeun anjeun ngajadikeun Firefox sorangan.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Pariksa 100+ pangémboh anyar anu ngamungkinkeun anjeun ngajadikeun Firefox sorangan.</string>
     <!-- Button text of the Nimbus message for extensions general availability. -->
     <string name="addon_ga_message_button_2" tools:ignore="UnusedResources">Paluruh pangémboh</string>
 
@@ -821,7 +878,7 @@
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Tab nu katampa</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Iber pikeun tab anu katampa ti séjén piranti Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Iber pikeun tab anu katampa ti séjén piranti Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Tab Katampa</string>
     <!-- %s is the device name -->
@@ -854,6 +911,10 @@
     <string name="preferences_marketing_data">Data pamasaran</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">Bagikeun data pamakéan dasar ka Adjust, péndor pamasaran ider kami</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Kirimkeun laporan kagagalan kalawan otomatis</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">Bagikeun data kagagalan kalawan otomatis nalika ngamimitian ku Mozilla sanggeus lumangsungna kagagalan</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studi</string>
     <!-- Summary for studies preferences -->
@@ -894,8 +955,6 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Gorolongkeun pikeun nyumputkeun tulbar</string>
 
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Gilerkeun tulbar ka gigir pikeun pindah tab</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Gilerkeun tulbar ka luhur pikeun muka tab</string>
 
@@ -1088,7 +1147,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Ngaran koléksi</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Ganti ngaran</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Ganti ngaran</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Piceun</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1151,6 +1210,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Malikkeun tab</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s kudu dimimitian deui</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Kirimkeun laporan kagagalan kalawan otomatis</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Tutup</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Kirim laporan kagagalan</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Yakin anjeun rék mupus ieu folder?</string>
@@ -1162,6 +1230,8 @@
     <string name="bookmark_add_folder">Tambah map</string>
     <!-- Snackbar title shown after a bookmark has been created. -->
     <string name="bookmark_saved_snackbar">Markah diteundeun!</string>
+    <!-- Snackbar title that confirms a bookmark was saved into a folder. Parameter will be replaced by the name of the folder the bookmark was saved into. -->
+    <string name="bookmark_saved_in_folder_snackbar">Disimpen dina &quot;%s&quot;</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">ÉDIT</string>
     <!-- Bookmark overflow menu edit button -->
@@ -1195,8 +1265,12 @@
     <string name="bookmark_url_label">URL</string>
     <!-- Bookmark FOLDER editing field label -->
     <string name="bookmark_folder_label">MAP</string>
+    <!-- Text indicating which folder a bookmark or folder will be saved in -->
+    <string name="bookmark_save_in_label">Simpen dina</string>
     <!-- Bookmark NAME editing field label -->
     <string name="bookmark_name_label">NGARAN</string>
+    <!-- Label for a text input field for a bookmark or folder name -->
+    <string name="bookmark_name_label_normal_case">Ngaran</string>
     <!-- Bookmark add folder screen title -->
     <string name="bookmark_add_folder_fragment_label">Tambah map</string>
     <!-- Bookmark select folder screen title -->
@@ -1220,6 +1294,28 @@
 
     <!-- Text for the button to search all bookmarks -->
     <string name="bookmark_search">Asupkeun istilah pamaluruhan</string>
+
+    <!-- Content description for the bookmark navigation bar back button -->
+    <string name="bookmark_navigate_back_button_content_description">Mundur</string>
+    <!-- Content description for the bookmark list new folder navigation bar button -->
+    <string name="bookmark_add_new_folder_button_content_description">Tambahkeun map anyar</string>
+    <!-- Content description for the bookmark navigation bar close button -->
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Tutup tetengger</string>
+    <!-- Content description for bookmark search floating action button -->
+    <string name="bookmark_search_button_content_description">Paluruh tetengger</string>
+    <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
+    <string name="bookmark_item_menu_button_content_description">Menu item pikeun %s</string>
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Can aya tetengger</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Simpen situs nalika anjeun nyungsi. Asup log pikeun mindahkeun téténggér tina alat séjén anu disingkronkeun.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Asup log pikeun nyingkronkeun</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Simpen situs nalika anjeun nyungsi. Urang ogé bakal mindahkeun tetengger tina alat séjén anu disingkronkeun.</string>
+
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Tambahan tetengger nalika anjeun nyungsi jadi anjeun bisa manggihan situs anu dipikaresep engké deui.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -1394,7 +1490,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Sambungkeun parangkat séjén</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Pikeun ngirim tab, asup ka Firefox sahanteuna sakali di piranti nu séjén.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Pikeun ngirim tab, asup ka Firefox sahanteuna sakali di piranti nu séjén.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Ngarti</string>
     <!-- Share error message -->
@@ -1434,10 +1530,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox gancang jeung rikip</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox gancang jeung rikip</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Jadikeun Firefox panyungsi baku</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Jadikeun Firefox panyungsi baku</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Cobaan nyungsi nyamuni</string>
     <!-- Text shown in the notification that pops up to re-engage the user.
@@ -1458,7 +1554,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Bantuan Firefox sangkan leuwih hadé ku miluan surpéy pondok.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Bantuan Firefox sangkan leuwih hadé ku miluan surpéy pondok.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Eusi Surpéy</string>
     <!-- Preference for not taking the short survey. -->
@@ -1473,6 +1569,8 @@
     <string name="snackbar_tab_closed">Tab ditutup</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Tab ditutup</string>
+    <!-- Text shown in snackbar when user closes multiple inactive tabs. %1$s will be replaced with the number of tabs closed. -->
+    <string name="snackbar_num_tabs_closed">Tab diutup: %1$s</string>
     <!-- Text shown in snackbar when user bookmarks a list of tabs -->
     <string name="snackbar_message_bookmarks_saved">Markah diteundeun!</string>
     <!-- Text shown in snackbar when user adds a site to shortcuts -->
@@ -1608,7 +1706,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Pinday sandi</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Dina komputer anjeun buka Firefox terus buka <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Dina komputer anjeun buka Firefox terus buka <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Siap mindai</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1616,7 +1714,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Maké surél wéh</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[Teu boga akun? <u>Jieun</u> pikeun nyingkronkeun Firefox dina sakabéh parabot.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[Teu boga akun? <u>Jieun</u> pikeun nyingkronkeun Firefox dina sakabéh parabot.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s bakal eureun nyingkronkeun jeung akun anjeun, ngan moal mupus sakur data langlangan anjeun dina ieu parangkat.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1681,6 +1779,8 @@
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Gurandil kripto</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Sidik ramo</string>
+    <!-- Preference for enhanced tracking protection for the custom protection settings -->
+    <string name="preference_enhanced_tracking_protection_custom_known_fingerprinters">Sidik ramo nu dipiwanoh</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Wincikan</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1709,6 +1809,8 @@
     <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Sidik ramo</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Ngeureunan data idéntifikasi unik paranti anjeun anu bisa dipaké pikeun tujuan ngalacak.</string>
+    <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_description">Ngeureunan data idéntifikasi unik paranti anjeun anu bisa dipaké pikeun tujuan ngalacak.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Kontén palacak</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1735,6 +1837,12 @@
     <!-- Description of redirect tracker cookies that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_redirect_trackers_description">Meresihan réréméh anu diatur ku alihan ka raramatloka palacak anu dipikawanoh.</string>
 
+    <!-- Preference for fingerprinting protection for the custom protection settings -->
+    <string name="etp_suspected_fingerprinters_title">Sidik ramo anu dicurigaan</string>
+    <!-- Description of fingerprinters that can be blocked by fingerprinting protection -->
+    <string name="etp_suspected_fingerprinters_description">Hurungkeun panyalindung sidik ramo pikeun nulak sidik ramo anu dicurigaan </string>
+    <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
+    <string name="etp_known_fingerprinters_title">Sidik ramo nu dipiwanoh</string>
     <!-- Description of the SmartBlock Enhanced Tracking Protection feature. The * symbol is intentionally hardcoded here,
          as we use it on the UI to indicate which trackers have been partially unblocked.  -->
     <string name="preference_etp_smartblock_description">Sababaraha palacak anu ditandaan di handap sawaréh geus teu dipeungpeuk di ieu kaca kusabab geus aya interaksi jeung anjeun *.</string>
@@ -2143,7 +2251,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Mangga hurungkeun singkronan tab.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Anjeun teu miboga tab anu muka dina Firefox di séjén paranti anjeun.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Anjeun teu miboga tab anu muka dina Firefox di séjén paranti anjeun.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Témbongkeun béréndélan tab ti séjén paranti anjeun.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2171,8 +2279,10 @@
     <string name="top_sites_rename_dialog_title">Ngaran</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Ngaran takulan</string>
+    <!-- Hint for editing URL of a shortcut. -->
+    <string name="shortcut_url_hint">Panarabas URL</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">Heug</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">Heug</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Bolay</string>
 
@@ -2182,6 +2292,18 @@
     <string name="top_sites_menu_sponsor_privacy">Sponsor kami &amp; privasi anjeun</string>
     <!-- Label text displayed for a sponsored top site. -->
     <string name="top_sites_sponsored_label">Disponsoran</string>
+
+    <!-- Text for the menu item to edit a top site. -->
+    <string name="top_sites_edit_top_site">Ropéa
+</string>
+    <!-- Text for the dialog title to edit a top site. -->
+    <string name="top_sites_edit_dialog_title">Ropéa panarabas</string>
+    <!-- Button caption to confirm the edit of the top site. -->
+    <string name="top_sites_edit_dialog_save">Teundeun</string>
+    <!-- Error message when the user entered an invalid URL -->
+    <string name="top_sites_edit_dialog_url_error">Asupkeun URL anu sah</string>
+    <!-- Label for the URL edit field in the edit top site dialog. -->
+    <string name="top_sites_edit_dialog_url_title">URL</string>
 
     <!-- Inactive tabs in the tabs tray -->
     <!-- Title text displayed in the tabs tray when a tab has been unused for 14 days. -->
@@ -2198,7 +2320,7 @@
     <!-- The header text of the auto-close message when the user is asked if they want to turn on the auto-closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">Oto-tutup sanggeus sabulan?</string>
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox bisa nutup tab anu ku anjeun teu dibuka leuwih ti sabulan.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox bisa nutup tab anu ku anjeun teu dibuka leuwih ti sabulan.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">HURUNGKEUN OTO-TUTUP</string>
 
@@ -2207,7 +2329,7 @@
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Firefox Suggest</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
 
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Pamaluruhan Google</string>
@@ -2218,7 +2340,7 @@
     <!-- Default browser card title -->
     <string name="default_browser_experiment_card_title">Alihkeun panyungsi baku anjeun</string>
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Setél tutumbu ti raramatloka, surélék, jeung surat pikeun muka otomatis dina Firefox.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Setél tutumbu ti raramatloka, surélék, jeung surat pikeun muka otomatis dina Firefox.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Piceun</string>
@@ -2242,7 +2364,7 @@
     <!-- Title of an app feature. Smaller than a heading. The first parameter is product name Pocket -->
     <string name="pocket_stories_feature_title_2">Dijalankeun ku %s.</string>
     <!-- Caption for describing a certain feature. The placeholder is for a clickable text (eg: Learn more) which will load an url in a new tab when clicked.  -->
-    <string name="pocket_stories_feature_caption">Bagéan ti kulawarga Firefox. %s</string>
+    <string name="pocket_stories_feature_caption" tools:ignore="BrandUsage">Bagéan ti kulawarga Firefox. %s</string>
     <!-- Clickable text for opening an external link for more information about Pocket. -->
     <string name="pocket_stories_feature_learn_more">Lenyepan</string>
 
@@ -2390,7 +2512,7 @@
     <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Buka pamariksa ténjoan</string>
 
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
 
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Buka pamariksa ténjoan</string>
@@ -2579,7 +2701,9 @@
 
     <!-- Download languages preference screen -->
     <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference">Undeur Basa-basa</string>
+    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Undeur Basa-basa</string>
+    <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
+    <string name="download_languages_translations_toolbar_title_preference">Undeur basa-basa</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
     <string name="download_languages_header_preference">Undeur basa lengkep pikeun tarjamahan anu leuwih gancang jeung narjamahkeun offline. %1$s</string>
     <!-- Clickable text from the screen header that links to a website. -->
@@ -2601,8 +2725,12 @@
     <string name="download_language_all_languages_item_preference_to_delete">Pupus sakabéh basa</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was downloaded, the user can now delete it. -->
     <string name="download_languages_item_content_description_downloaded_state">Pupus</string>
-    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress. -->
-    <string name="download_languages_item_content_description_in_progress_state" moz:removedIn="129" tools:ignore="UnusedResources">Keur prosés</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, deleting is in progress. -->
+    <string name="download_languages_item_content_description_delete_in_progress_state">Keur prosés</string>
+    <!-- Content description (not visible, for screen readers etc.): For a language list item, downloading is in progress.
+    The first parameter is the language name, for example, "Spanish".
+    The second parameter is the language file size, for example, "(3.91 KB)". -->
+    <string name="download_languages_item_content_description_download_in_progress_state">Eureun ngundeur %1$s (%2$s)</string>
     <!-- Content description (not visible, for screen readers etc.): For a language list item that was not downloaded. -->
     <string name="download_languages_item_content_description_not_downloaded_state">Undeur</string>
 
@@ -2632,6 +2760,14 @@
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Bolay</string>
 
+    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
+    The first parameter is the name of the language, for example, "Spanish". -->
+    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Bolaykeun %1$s ngundeur?</string>
+    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
+    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Enya</string>
+    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
+    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Ulah</string>
+
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
     a translation without the necessary language files downloaded first when Android's data saver mode is enabled and the user is not using WiFi.
@@ -2639,8 +2775,6 @@
     <string name="download_language_file_dialog_title">Unduh sabot dina modeu irit data (%1$s)?</string>
     <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation. -->
     <string name="download_language_file_dialog_message_all_languages">Kami ngundeur sebagian basa kana cache anjeun pikeun ngajaga tarjamahan pribadi.</string>
-    <!-- Additional information for the data saving mode warning dialog used by the translations feature. This text explains the reason a download is required for a translation without mentioning the cache. -->
-    <string name="download_language_file_dialog_message_all_languages_no_cache" moz:removedIn="129" tools:ignore="UnusedResources">Kami ngundeur sawaréh basa kana cache anjeun pikeun ngajaga tarjamahan pribadi.</string>
     <!-- Checkbox label text on the data saving mode warning dialog used by the translations feature. This checkbox allows users to ignore the data usage warnings. -->
     <string name="download_language_file_dialog_checkbox_text">Salawasna unduh dina modeu irit data</string>
     <!-- Button text on the data saving mode warning dialog used by the translations feature to allow users to confirm they wish to continue and download the language file. -->
@@ -2698,22 +2832,16 @@
     <!-- Microsurvey -->
     <!-- Prompt view -->
     <!-- The microsurvey prompt title. Note: The word "Firefox" should NOT be translated -->
-    <string name="micro_survey_prompt_title" tools:ignore="UnusedResources">Bantuan urang ngoméan Firebox sangkan leuwih hadé. Cukup ngan samenit baé.</string>
+    <string name="micro_survey_prompt_title" tools:ignore="BrandUsage,UnusedResources">Bantuan urang ngoméan Firebox sangkan leuwih hadé. Cukup ngan samenit baé.</string>
     <!-- The continue button label -->
     <string name="micro_survey_continue_button_label" tools:ignore="UnusedResources">Tuluykeun</string>
     <!-- Survey view -->
     <!-- The survey header -->
-    <string name="micro_survey_survey_header" moz:removedIn="129" tools:ignore="UnusedResources">Lengkepan survéy ieu</string>
-    <!-- The survey header -->
     <string name="micro_survey_survey_header_2">Prak lengkepan survéy</string>
-    <!-- The privacy notice link -->
-    <string name="micro_survey_privacy_notice" moz:removedIn="129" tools:ignore="UnusedResources">Wawar Privasi</string>
     <!-- The privacy notice link -->
     <string name="micro_survey_privacy_notice_2">Wawar privasi</string>
     <!-- The submit button label text -->
     <string name="micro_survey_submit_button_label">Kirimkeun</string>
-    <!-- The close button label text -->
-    <string name="micro_survey_close_button_label" moz:removedIn="128" tools:ignore="UnusedResources">Tutup</string>
     <!-- The survey completion header -->
     <string name="micro_survey_survey_header_confirmation" tools:ignore="UnusedResources">Survéy cacap</string>
     <!-- The survey completion confirmation text -->
@@ -2732,12 +2860,31 @@
 
     <!-- Option for likert scale -->
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">Kuring teu maké éta</string>
+    <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
+    <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">Kuring teu maké panyungsi dina Firefox</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">Kuring teu maké singkronisasi</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="UnusedResources">Kumaha kasugemaan anjeun kana kaca utama Firefox?</string>
+    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Kumaha kasugemaan anjeun kana kaca utama Firefox?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_printing_title" tools:ignore="UnusedResources">Bantuan sangkan Firefox bisa nyitak leuwih hadé. Ngan perlu sakolépat</string>
-    <!-- Text shown in prompt for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_survey_printing_title" tools:ignore="UnusedResources">Sakumaha puasna anjeun kana panyitakan dina Firefox?</string>
+    <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan Firefox bisa nyitak leuwih hadé. Ngan perlu sakolépat</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan panyungsi Firefox leuwih hadé. Ngan perlu samenit baé. </string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Bantuan sangkan singkronisasi Firefox leuwih hadé. Ngan perlu samenit baé</string>
+    <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Sakumaha puasna anjeun kana panyitakan dina Firefox?</string>
+    <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Kumaha kasugemaan anjeun kana kaca utama Firefox?</string>
+    <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Sakumaha puasna anjeun kana pangalaman panyungsian dina Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Sakumaha puasna anjeun kana pangalaman singkronisasi dina Firefox?</string>
+    <!-- Accessibility -->
+    <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
+    <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Logo Firefox</string>
+    <!-- Content description for the survey feature icon. -->
+    <string name="microsurvey_feature_icon_content_description">Ikon fitur survéy</string>
     <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
     <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Buka survéy</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
@@ -2755,4 +2902,26 @@
     <!-- Content description for delete button where parameter will be the username of the login -->
     <string name="debug_drawer_logins_delete_login_button_content_description">Pupus asup log maké ngaran pamaké %s</string>
 
-    </resources>
+    <!-- Debug drawer "contextual feature recommendation" (CFR) tools -->
+    <!-- The title of the CFR Tools feature in the Debug Drawer -->
+    <string name="debug_drawer_cfr_tools_title">Pakakas CFR </string>
+    <!-- The title of the reset CFR section in CFR Tools -->
+    <string name="debug_drawer_cfr_tools_reset_cfr_title">Atur deui CFRs</string>
+
+    <!-- Messages explaining how to exit fullscreen mode -->
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung maké géstur balik</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pikeun kaluar tina layar pinuh, séréd ti luhur jeung ketok balik deui</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Séred ti luhur &amp; gunakeun géstur balik pikeun kaluar</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Séred ti luhur &amp; pencét mundur pikeun kaluar</string>
+
+    <!-- Beta Label Component !-->
+    <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->
+    <string name="beta_feature">BETA</string>
+</resources>

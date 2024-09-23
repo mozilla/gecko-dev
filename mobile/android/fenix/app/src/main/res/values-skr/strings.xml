@@ -1303,12 +1303,24 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">نواں فولڈر شامل کرو</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">نشانیاں بند کرو</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">نشانیاں بند کرو</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">نشانیاں ڳولو</string>
 
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">%s کیتے آئٹم مینیو</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">اڄݨ کوئی نشانیاں کائنی</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">براؤز کرݨ ویلے سائٹاں محفوظ کرو۔ ٻیاں ہم وقت تھیاں ڈیوائساں کنوں نشانیاں گھنݨ کیتے سائن ان تھیوو۔</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">ہم وقت کرݨ کیتے سائن ان تھیوو</string>
+
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">براؤز کرݨ ویلے سائٹاں محفوظ کرو۔ اساں ٻیاں ہم وقت تھیاں ڈیوائساں کنوں نشانیاں وی پکڑ گھنسوں ۔</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">ڄݙݨ تساں براؤز کرو تاں نشانیاں شامل کرو تاکہ تساں بعد وچ آپݨیاں پسند دیاں سائٹاں لبھ سڳو۔</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

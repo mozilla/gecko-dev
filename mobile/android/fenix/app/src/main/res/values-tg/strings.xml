@@ -1308,6 +1308,18 @@
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Унсури меню барои «%s»</string>
 
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">То ҳол ягон хатбарак нест</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Сомонаҳоро ҳангоми тамошо нигоҳ доред. Барои ба даст овардани хатбаракҳо аз дастгоҳҳои ҳамоҳангшудаи дигар, ба ҳисоби худ ворид шавед.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Барои ҳамоҳангсозӣ ворид шавед</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Сомонаҳоро ҳангоми тамошо нигоҳ доред. Мо, инчунин, аз дастгоҳҳои ҳамоҳангшудаи дигар хатбаракҳоро ба даст меорем. </string>
+
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Ҳангоми тамошо, хатбаракҳоро илова кунед, то тавонед сомонаҳои дӯстдоштаи худро дар оянда пайдо кунед.</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Гузариш ба Танзимот</string>
