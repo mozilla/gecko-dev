@@ -12,6 +12,7 @@ enum class EngineReleaseChannel {
     NIGHTLY,
     BETA,
     RELEASE,
+    DEFAULT, // The update channel is "default" for non-shippable builds.
 }
 
 /**
@@ -96,6 +97,7 @@ data class EngineVersion(
                 "nightly" -> EngineReleaseChannel.NIGHTLY
                 "beta" -> EngineReleaseChannel.BETA
                 "release" -> EngineReleaseChannel.RELEASE
+                "default" -> EngineReleaseChannel.DEFAULT
                 else -> EngineReleaseChannel.UNKNOWN
             }
 

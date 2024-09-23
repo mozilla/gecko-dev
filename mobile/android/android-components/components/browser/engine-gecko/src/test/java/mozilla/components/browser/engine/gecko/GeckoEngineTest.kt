@@ -33,6 +33,7 @@ import mozilla.components.concept.engine.translate.ModelManagementOptions
 import mozilla.components.concept.engine.translate.ModelOperation
 import mozilla.components.concept.engine.translate.ModelState
 import mozilla.components.concept.engine.translate.OperationLevel
+import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.engine.webextension.InstallationMethod
 import mozilla.components.concept.engine.webextension.WebExtension
@@ -2408,6 +2409,7 @@ class GeckoEngineTest {
 
         assertTrue(version.major >= 69)
         assertTrue(version.isAtLeast(69, 0, 0))
+        assertTrue(version.releaseChannel != EngineReleaseChannel.UNKNOWN)
     }
 
     @Test
