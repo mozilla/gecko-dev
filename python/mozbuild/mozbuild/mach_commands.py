@@ -1235,7 +1235,11 @@ def install(command_context, **kwargs):
         )
 
         ret = (
-            verify_android_device(command_context, install=InstallIntent.YES, **kwargs)
+            verify_android_device(
+                command_context,
+                install=InstallIntent.YES,
+                **kwargs,
+            )
             == 0
         )
     else:
@@ -1551,17 +1555,14 @@ def _run_android(
     from mozrunner.devices.android_device import (
         InstallIntent,
         _get_device,
+        metadata_for_app,
         verify_android_device,
     )
     from six.moves import shlex_quote
 
-    if app == "org.mozilla.geckoview_example":
-        activity_name = "org.mozilla.geckoview_example.GeckoViewActivity"
-    elif app == "org.mozilla.geckoview.test_runner":
-        activity_name = "org.mozilla.geckoview.test_runner.TestRunnerActivity"
-    elif "fennec" in app or "firefox" in app:
-        activity_name = "org.mozilla.gecko.BrowserApp"
-    else:
+    metadata = metadata_for_app(app)
+
+    if not metadata.activity_name:
         raise RuntimeError("Application not recognized: {}".format(app))
 
     # If we want to debug an existing process, we implicitly do not want
@@ -1572,7 +1573,7 @@ def _run_android(
     # `verify_android_device` respects `DEVICE_SERIAL` if it is set and sets it otherwise.
     verify_android_device(
         command_context,
-        app=app,
+        app=metadata.package_name,
         aab=aab,
         debugger=debug,
         install=InstallIntent.NO if no_install else InstallIntent.YES,
@@ -1591,10 +1592,10 @@ def _run_android(
             command_context.log(
                 logging.INFO,
                 "run",
-                {"app": app},
+                {"app": metadata.package_name},
                 "Setting {app} as the device debug app",
             )
-            device.shell("am set-debug-app -w --persistent %s" % app)
+            device.shell("am set-debug-app -w --persistent %s" % metadata.package_name)
     else:
         # Make sure that the app doesn't block waiting for jdb
         device.shell("am clear-debug-app")
@@ -1607,7 +1608,9 @@ def _run_android(
                 # Always /data/local/tmp, rather than `device.test_root`, because
                 # GeckoView only takes its configuration file from /data/local/tmp,
                 # and we want to follow suit.
-                target_profile = "/data/local/tmp/{}-profile".format(app)
+                target_profile = "/data/local/tmp/{}-profile".format(
+                    metadata.package_name
+                )
                 device.rm(target_profile, recursive=True, force=True)
                 device.push(host_profile, target_profile)
                 command_context.log(
@@ -1650,23 +1653,26 @@ def _run_android(
             command_context.log(
                 logging.INFO,
                 "run",
-                {"app": app},
+                {"app": metadata.package_name},
                 "Stopping {app} to ensure clean restart.",
             )
-            device.stop_application(app)
+            device.stop_application(metadata.package_name)
 
         # We'd prefer to log the actual `am start ...` command, but it's not trivial
         # to wire the device's logger to mach's logger.
         command_context.log(
             logging.INFO,
             "run",
-            {"app": app, "activity_name": activity_name},
+            {
+                "app": metadata.package_name,
+                "activity_name": metadata.activity_name,
+            },
             "Starting {app}/{activity_name}.",
         )
 
         device.launch_application(
-            app_name=app,
-            activity_name=activity_name,
+            app_name=metadata.package_name,
+            activity_name=metadata.activity_name,
             intent=intent,
             extras=extras,
             url=url,
@@ -1679,7 +1685,9 @@ def _run_android(
 
     from mozrunner.devices.android_device import run_lldb_server
 
-    socket_file = run_lldb_server(app, command_context.substs, device_serial)
+    socket_file = run_lldb_server(
+        metadata.package_name, command_context.substs, device_serial
+    )
     if not socket_file:
         command_context.log(
             logging.ERROR,
@@ -1719,14 +1727,14 @@ def _run_android(
         proc_list = [
             proc[:-1]
             for proc in device.get_process_list()
-            if _is_geckoview_process(proc[1], app)
+            if _is_geckoview_process(proc[1], metadata.package_name)
         ]
 
         if not proc_list:
             command_context.log(
                 logging.ERROR,
                 "run",
-                {"app": app},
+                {"app": metadata.package_name},
                 "No existing {app} processes found",
             )
             return 1
@@ -1752,7 +1760,7 @@ def _run_android(
     else:
         # We're not using an existing process, so there should only be our
         # parent process at this time.
-        pids = device.pidof(app_name=app)
+        pids = device.pidof(app_name=metadata.package_name)
         if len(pids) != 1:
             command_context.log(
                 logging.ERROR,

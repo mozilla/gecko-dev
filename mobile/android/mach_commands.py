@@ -286,6 +286,28 @@ def android_install_geckoview_example(command_context, args):
     return 0
 
 
+@SubCommand("android", "install-fenix", """Install fenix """)
+@CommandArgument("args", nargs=argparse.REMAINDER)
+def android_install_fenix(command_context, args):
+    gradle(
+        command_context,
+        ["fenix:installFenixDebug"] + args,
+        verbose=True,
+    )
+    return 0
+
+
+@SubCommand("android", "install-focus", """Install focus """)
+@CommandArgument("args", nargs=argparse.REMAINDER)
+def android_install_focus(command_context, args):
+    gradle(
+        command_context,
+        ["focus-android:installFocusDebug"] + args,
+        verbose=True,
+    )
+    return 0
+
+
 @SubCommand(
     "android", "install-geckoview-test_runner", """Install geckoview.test_runner """
 )
@@ -534,6 +556,7 @@ def gradle(command_context, args, verbose=False):
         gradle_flags += ["--console=plain"]
 
     env = os.environ.copy()
+
     env.update(
         {
             "GRADLE_OPTS": "-Dfile.encoding=utf-8",
