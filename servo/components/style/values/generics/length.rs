@@ -5,10 +5,16 @@
 //! Generic types for CSS values related to length.
 
 use crate::parser::{Parse, ParserContext};
+use crate::values::generics::Optional;
+use crate::values::DashedIdent;
 #[cfg(feature = "gecko")]
 use crate::Zero;
 use cssparser::Parser;
+use std::fmt::Write;
+use style_traits::CssWriter;
 use style_traits::ParseError;
+use style_traits::StyleParseErrorKind;
+use style_traits::ToCss;
 
 /// A `<length-percentage> | auto` value.
 #[allow(missing_docs)]
@@ -320,4 +326,143 @@ impl<LengthPercent> LengthPercentageOrNormal<LengthPercent> {
     pub fn normal() -> Self {
         LengthPercentageOrNormal::Normal
     }
+}
+
+/// Anchor size function used by sizing, margin and inset properties.
+/// This resolves to the size of the anchor at computed time.
+///
+/// https://drafts.csswg.org/css-anchor-position-1/#funcdef-anchor-size
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    SpecifiedValueInfo,
+    ToShmem,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+)]
+#[repr(C)]
+pub struct GenericAnchorSizeFunction<LengthPercentage> {
+    /// Anchor name of the element to anchor to.
+    /// If omitted (i.e. empty), selects the implicit anchor element.
+    #[animation(constant)]
+    pub target_element: DashedIdent,
+    /// Size of the positioned element, expressed in that of the anchor element.
+    /// If omitted, defaults to the axis of the property the function is used in.
+    pub size: AnchorSizeKeyword,
+    /// Value to use in case the anchor function is invalid.
+    pub fallback: Optional<LengthPercentage>,
+}
+
+impl<LengthPercentage> ToCss for GenericAnchorSizeFunction<LengthPercentage>
+where
+    LengthPercentage: ToCss,
+{
+    fn to_css<W>(&self, dest: &mut CssWriter<W>) -> std::fmt::Result
+    where
+        W: Write,
+    {
+        dest.write_str("anchor-size(")?;
+        let mut previous_entry_printed = false;
+        if !self.target_element.is_empty() {
+            previous_entry_printed = true;
+            self.target_element.to_css(dest)?;
+        }
+        if self.size != AnchorSizeKeyword::None {
+            if previous_entry_printed {
+                dest.write_str(" ")?;
+            }
+            previous_entry_printed = true;
+            self.size.to_css(dest)?;
+        }
+        if let Some(f) = self.fallback.as_ref() {
+            if previous_entry_printed {
+                dest.write_str(", ")?;
+            }
+            f.to_css(dest)?;
+        }
+        dest.write_str(")")
+    }
+}
+
+impl<LengthPercentage> Parse for GenericAnchorSizeFunction<LengthPercentage>
+where
+    LengthPercentage: Parse,
+{
+    fn parse<'i, 't>(
+        context: &ParserContext,
+        input: &mut Parser<'i, 't>,
+    ) -> Result<Self, ParseError<'i>> {
+        if !static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            return Err(input.new_custom_error(StyleParseErrorKind::UnspecifiedError));
+        }
+        input.expect_function_matching("anchor-size")?;
+        input.parse_nested_block(|i| {
+            let mut target_element = i
+                .try_parse(|i| DashedIdent::parse(context, i))
+                .unwrap_or(DashedIdent::empty());
+            let size = i.try_parse(AnchorSizeKeyword::parse).unwrap_or(AnchorSizeKeyword::None);
+            if target_element.is_empty() {
+                target_element = i
+                    .try_parse(|i| DashedIdent::parse(context, i))
+                    .unwrap_or(DashedIdent::empty());
+            }
+            let previous_parsed = !target_element.is_empty() || size != AnchorSizeKeyword::None;
+            let fallback = i
+                .try_parse(|i| {
+                    if previous_parsed {
+                        i.expect_comma()?;
+                    }
+                    LengthPercentage::parse(context, i)
+                })
+                .ok();
+            Ok(GenericAnchorSizeFunction {
+                target_element,
+                size: size.into(),
+                fallback: fallback.into(),
+            })
+        })
+    }
+}
+
+/// Keyword values for the anchor size function.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Copy,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    Parse,
+    SpecifiedValueInfo,
+    ToCss,
+    ToShmem,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+)]
+#[repr(u8)]
+pub enum AnchorSizeKeyword {
+    /// Magic value for nothing.
+    #[css(skip)]
+    None,
+    /// Width of the anchor element.
+    Width,
+    /// Height of the anchor element.
+    Height,
+    /// Block size of the anchor element.
+    Block,
+    /// Inline size of the anchor element.
+    Inline,
+    /// Same as `Block`, resolved against the positioned element's writing mode.
+    SelfBlock,
+    /// Same as `Inline`, resolved against the positioned element's writing mode.
+    SelfInline,
 }

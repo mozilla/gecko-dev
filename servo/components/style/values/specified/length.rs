@@ -15,7 +15,8 @@ use crate::parser::{Parse, ParserContext};
 use crate::values::computed::{self, CSSPixelLength, Context};
 use crate::values::generics::length as generics;
 use crate::values::generics::length::{
-    GenericLengthOrNumber, GenericLengthPercentageOrNormal, GenericMaxSize, GenericSize,
+    GenericAnchorSizeFunction, GenericLengthOrNumber, GenericLengthPercentageOrNormal,
+    GenericMaxSize, GenericSize,
 };
 use crate::values::generics::NonNegative;
 use crate::values::specified::calc::{self, CalcNode};
@@ -2053,3 +2054,6 @@ impl MaxSize {
 
 /// A specified non-negative `<length>` | `<number>`.
 pub type NonNegativeLengthOrNumber = GenericLengthOrNumber<NonNegativeLength, NonNegativeNumber>;
+
+/// A specified value for `anchor-size` function.
+pub type AnchorSizeFunction = GenericAnchorSizeFunction<LengthPercentage>;
