@@ -1030,6 +1030,14 @@ const nsTArray<GfxDriverInfo>& GfxInfo::GetGfxDriverInfo() {
         nsIGfxInfo::FEATURE_DMABUF, nsIGfxInfo::FEATURE_BLOCKED_DEVICE,
         DRIVER_LESS_THAN, V(545, 23, 6, 0), "FEATURE_FAILURE_BUG_1788573", "");
 
+    // Disabled due to high volume crash tracked in bug 1913778. It appears that
+    // only this version of the driver is affected.
+    APPEND_TO_DRIVER_BLOCKLIST_EXT(
+        OperatingSystem::Linux, ScreenSizeStatus::All, BatteryStatus::All,
+        WindowProtocol::All, DriverVendor::MesaRadeonsi, DeviceFamily::AtiAll,
+        nsIGfxInfo::FEATURE_DMABUF, nsIGfxInfo::FEATURE_BLOCKED_DRIVER_VERSION,
+        DRIVER_EQUAL, V(24, 1, 3, 0), "FEATURE_FAILURE_BUG_1913778", "");
+
     ////////////////////////////////////
     // FEATURE_DMABUF_SURFACE_EXPORT
     // Disabled on all Mesa drivers due to various issue, among them:

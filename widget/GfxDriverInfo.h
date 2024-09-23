@@ -232,6 +232,7 @@ enum DriverVendor : uint8_t {
   MesaSWUnknown,
   // AMD
   MesaR600,
+  MesaRadeonsi,
   // Nouveau: Open-source nvidia
   MesaNouveau,
   // A generic ID to be provided when we can't determine the DRI driver on Mesa.
