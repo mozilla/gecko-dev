@@ -745,7 +745,7 @@ class BookmarksTest : TestSetup() {
         }.enterURLAndEnterToBrowser(defaultWebPage.url) {
         }.openThreeDotMenu {
         }.bookmarkPage {
-            verifySnackBarText("Bookmark saved!")
+            verifySnackBarText("Saved in “Bookmarks”")
         }.openThreeDotMenu {
             verifyEditBookmarkButton()
         }.openBookmarks {
