@@ -49,9 +49,10 @@ import org.mozilla.fenix.theme.FirefoxTheme
  * @param menuItems List of items to be displayed in the menu.
  * @param showMenu Whether or not the menu is currently displayed to the user.
  * @param cornerShape Shape to apply to the corners of the dropdown.
- * @param onDismissRequest Invoked when user dismisses the menu or on orientation changes.
  * @param modifier Modifier to be applied to the menu.
+ * @param canShowCheckItems Whether the user can check items on the dropdown menu.
  * @param offset Offset to be added to the position of the menu.
+ * @param onDismissRequest Invoked when user dismisses the menu or on orientation changes.
  */
 @Suppress("LongMethod")
 @Composable
@@ -59,9 +60,10 @@ private fun Menu(
     menuItems: List<MenuItem>,
     showMenu: Boolean,
     cornerShape: RoundedCornerShape,
-    onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    canShowCheckItems: Boolean = false,
     offset: DpOffset = DpOffset.Zero,
+    onDismissRequest: () -> Unit,
 ) {
     DisposableEffect(LocalConfiguration.current.orientation) {
         onDispose { onDismissRequest() }
@@ -115,7 +117,7 @@ private fun Menu(
                         item.onClick()
                     },
                 ) {
-                    if (hasCheckedItems) {
+                    if (hasCheckedItems || canShowCheckItems) {
                         if (item.isChecked) {
                             selectedItemIndex = index
                             Icon(
@@ -155,25 +157,28 @@ private fun Menu(
  *
  * @param menuItems List of items to be displayed in the menu.
  * @param showMenu Whether or not the menu is currently displayed to the user.
- * @param onDismissRequest Invoked when user dismisses the menu or on orientation changes.
  * @param modifier Modifier to be applied to the menu.
+ * @param canShowCheckItems Whether the user can check items on the dropdown menu.
  * @param offset Offset to be added to the position of the menu.
+ * @param onDismissRequest Invoked when user dismisses the menu or on orientation changes.
  */
 @Composable
 fun ContextualMenu(
     menuItems: List<MenuItem>,
     showMenu: Boolean,
-    onDismissRequest: () -> Unit,
     modifier: Modifier = Modifier,
+    canShowCheckItems: Boolean = false,
     offset: DpOffset = DpOffset.Zero,
+    onDismissRequest: () -> Unit,
 ) {
     Menu(
         menuItems = menuItems,
         showMenu = showMenu,
-        cornerShape = RoundedCornerShape(size = 5.dp),
-        onDismissRequest = onDismissRequest,
         modifier = modifier,
+        canShowCheckItems = canShowCheckItems,
+        cornerShape = RoundedCornerShape(size = 5.dp),
         offset = offset,
+        onDismissRequest = onDismissRequest,
     )
 }
 
