@@ -38,7 +38,7 @@ class SimpleFileManager final : public FileInfoManager<SimpleFileManager>,
   // SimpleFileManager functions that are used by SimpleFileInfo
 
   [[nodiscard]] nsresult AsyncDeleteFile(const int64_t aFileId) {
-    MOZ_RELEASE_ASSERT(!mFileInfos.Contains(aFileId));
+    MOZ_RELEASE_ASSERT(!ContainsFileInfo(aFileId));
 
     if (mStats) {
       ++mStats->mAsyncDeleteFileCalls;
@@ -48,7 +48,7 @@ class SimpleFileManager final : public FileInfoManager<SimpleFileManager>,
   }
 
   [[nodiscard]] nsresult SyncDeleteFile(const int64_t aFileId) {
-    MOZ_RELEASE_ASSERT(!mFileInfos.Contains(aFileId));
+    MOZ_RELEASE_ASSERT(!ContainsFileInfo(aFileId));
 
     if (mStats) {
       ++mStats->mSyncDeleteFileCalls;
@@ -64,16 +64,13 @@ class SimpleFileManager final : public FileInfoManager<SimpleFileManager>,
     for (const auto id : kDBOnlyFileInfoIds) {
       // Copied from within DatabaseFileManager::Init.
 
-      mFileInfos.InsertOrUpdate(
-          id, MakeNotNull<SimpleFileInfo*>(FileInfoManagerGuard{},
-                                           SafeRefPtrFromThis(), id,
-                                           static_cast<nsrefcnt>(1)));
-
-      mLastFileId = std::max(id, mLastFileId);
+      MOZ_RELEASE_ASSERT(CreateFileInfo(Some(id), static_cast<nsrefcnt>(1)));
     }
   }
 
-  static MutexType& Mutex() { return sMutex; }
+  static MutexType& MutexInstance() MOZ_RETURN_CAPABILITY(sMutex) {
+    return sMutex;
+  }
 
   static constexpr auto kDBOnlyFileInfoIds =
       std::array<int64_t, 3>{{10, 20, 30}};

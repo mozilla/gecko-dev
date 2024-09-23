@@ -46,27 +46,43 @@ class FileInfoManager : public FileInfoManagerBase {
   using AutoLockType = mozilla::detail::BaseAutoLock<MutexType&>;
 
   [[nodiscard]] SafeRefPtr<FileInfoType> GetFileInfo(int64_t aId) const {
-    return AcquireFileInfo([this, aId] { return mFileInfos.MaybeGet(aId); });
+    return AcquireFileInfo([this, aId]() MOZ_REQUIRES(Mutex()) {
+      return mFileInfos.MaybeGet(aId);
+    });
   }
 
-  [[nodiscard]] SafeRefPtr<FileInfoType> CreateFileInfo() {
-    return AcquireFileInfo([this] {
-      const int64_t id = ++mLastFileId;
+  bool ContainsFileInfo(int64_t aFileId) {
+    AutoLockType lock(Mutex());
+    return mFileInfos.Contains(aFileId);
+  }
+
+  [[nodiscard]] SafeRefPtr<FileInfoType> CreateFileInfo(
+      const Maybe<int64_t>& aMaybeId = Nothing(),
+      const nsrefcnt aDBRefCnt = 0) {
+    return AcquireFileInfo([this, &aMaybeId,
+                            &aDBRefCnt]() MOZ_REQUIRES(Mutex()) {
+      const int64_t id = aMaybeId.isSome() ? *aMaybeId : ++mLastFileId;
 
       auto fileInfo =
           MakeNotNull<FileInfoType*>(FileInfoManagerGuard{},
                                      SafeRefPtr{static_cast<FileManager*>(this),
                                                 AcquireStrongRefFromRawPtr{}},
-                                     id);
+                                     id, aDBRefCnt);
 
       mFileInfos.InsertOrUpdate(id, fileInfo);
+
+      if (aMaybeId.isSome()) {
+        mLastFileId = std::max(id, mLastFileId);
+      }
+
       return Some(fileInfo);
     });
   }
 
-  void RemoveFileInfo(const int64_t aId, const AutoLockType& aFileMutexLock) {
+  void RemoveFileInfo(const int64_t aId, const AutoLockType& aFileMutexLock)
+      MOZ_REQUIRES(Mutex()) {
 #ifdef DEBUG
-    aFileMutexLock.AssertOwns(FileManager::Mutex());
+    aFileMutexLock.AssertOwns(Mutex());
 #endif
     mFileInfos.Remove(aId);
   }
@@ -74,7 +90,7 @@ class FileInfoManager : public FileInfoManagerBase {
   // After calling this method, callers should not call any more methods on this
   // class.
   virtual nsresult Invalidate() {
-    AutoLockType lock(FileManager::Mutex());
+    AutoLockType lock(Mutex());
 
     FileInfoManagerBase::Invalidate();
 
@@ -92,6 +108,8 @@ class FileInfoManager : public FileInfoManagerBase {
     FileInfoManagerGuard() = default;
   };
 
+  static MutexType& Mutex() { return FileManager::MutexInstance(); }
+
  private:
   // Runs the given aFileInfoTableOp operation, which must return a FileInfo*,
   // under the FileManager lock, acquires a strong reference to the returned
@@ -107,7 +125,7 @@ class FileInfoManager : public FileInfoManagerBase {
     // We cannot simply change this to SafeRefPtr<FileInfo>, because
     // FileInfo::AddRef also acquires the FileManager::Mutex.
     auto fileInfo = [&aFileInfoTableOp]() -> RefPtr<FileInfoType> {
-      AutoLockType lock(FileManager::Mutex());
+      AutoLockType lock(Mutex());
 
       const auto maybeFileInfo = aFileInfoTableOp();
       if (maybeFileInfo) {
@@ -122,17 +140,19 @@ class FileInfoManager : public FileInfoManagerBase {
     return SafeRefPtr{std::move(fileInfo)};
   }
 
+  // Access to the following private fields must be protected by
+  // FileManager::Mutex() which is now enforced by MOZ_GUARDED_BY annotations.
+  nsTHashMap<nsUint64HashKey, NotNull<FileInfoType*>> mFileInfos
+      MOZ_GUARDED_BY(Mutex());
+
+  int64_t mLastFileId MOZ_GUARDED_BY(Mutex()) = 0;
+
  protected:
 #ifdef DEBUG
   ~FileInfoManager() { MOZ_ASSERT(mFileInfos.IsEmpty()); }
 #else
   ~FileInfoManager() = default;
 #endif
-
-  // Access to the following fields must be protected by
-  // FileManager::Mutex()
-  int64_t mLastFileId = 0;
-  nsTHashMap<nsUint64HashKey, NotNull<FileInfoType*>> mFileInfos;
 };
 
 }  // namespace mozilla::dom::indexedDB

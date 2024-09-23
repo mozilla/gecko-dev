@@ -6725,7 +6725,7 @@ RefPtr<mozilla::dom::quota::Client> CreateQuotaClient() {
 
 nsresult DatabaseFileManager::AsyncDeleteFile(int64_t aFileId) {
   AssertIsOnBackgroundThread();
-  MOZ_ASSERT(!mFileInfos.Contains(aFileId));
+  MOZ_ASSERT(!ContainsFileInfo(aFileId));
 
   QuotaClient* quotaClient = QuotaClient::GetInstance();
   if (quotaClient) {
@@ -11703,12 +11703,8 @@ nsresult DatabaseFileManager::Init(nsIFile* aDirectory,
         // be 0, but the dbRefCnt is non-zero, which will keep the
         // DatabaseFileInfo object alive.
         MOZ_ASSERT(dbRefCnt > 0);
-        mFileInfos.InsertOrUpdate(
-            id, MakeNotNull<DatabaseFileInfo*>(
-                    FileInfoManagerGuard{}, SafeRefPtrFromThis(), id,
-                    static_cast<nsrefcnt>(dbRefCnt)));
-
-        mLastFileId = std::max(id, mLastFileId);
+        DebugOnly ok = static_cast<bool>(CreateFileInfo(Some(id), dbRefCnt));
+        MOZ_ASSERT(ok);
 
         return Ok{};
       }));
@@ -11971,7 +11967,7 @@ Result<FileUsageType, nsresult> DatabaseFileManager::GetUsage(
 }
 
 nsresult DatabaseFileManager::SyncDeleteFile(const int64_t aId) {
-  MOZ_ASSERT(!mFileInfos.Contains(aId));
+  MOZ_ASSERT(!ContainsFileInfo(aId));
 
   if (!this->AssertValid()) {
     return NS_ERROR_UNEXPECTED;
