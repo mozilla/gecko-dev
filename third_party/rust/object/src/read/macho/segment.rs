@@ -8,14 +8,14 @@ use crate::read::{self, ObjectSegment, ReadError, ReadRef, Result, SegmentFlags}
 
 use super::{LoadCommandData, MachHeader, MachOFile, Section};
 
-/// An iterator for the segments in a [`MachOFile32`](super::MachOFile32).
+/// An iterator over the segments of a `MachOFile32`.
 pub type MachOSegmentIterator32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSegmentIterator<'data, 'file, macho::MachHeader32<Endian>, R>;
-/// An iterator for the segments in a [`MachOFile64`](super::MachOFile64).
+/// An iterator over the segments of a `MachOFile64`.
 pub type MachOSegmentIterator64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSegmentIterator<'data, 'file, macho::MachHeader64<Endian>, R>;
 
-/// An iterator for the segments in a [`MachOFile`].
+/// An iterator over the segments of a `MachOFile`.
 #[derive(Debug)]
 pub struct MachOSegmentIterator<'data, 'file, Mach, R = &'data [u8]>
 where
@@ -41,16 +41,14 @@ where
     }
 }
 
-/// A segment in a [`MachOFile32`](super::MachOFile32).
+/// A segment of a `MachOFile32`.
 pub type MachOSegment32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSegment<'data, 'file, macho::MachHeader32<Endian>, R>;
-/// A segment in a [`MachOFile64`](super::MachOFile64).
+/// A segment of a `MachOFile64`.
 pub type MachOSegment64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSegment<'data, 'file, macho::MachHeader64<Endian>, R>;
 
-/// A segment in a [`MachOFile`].
-///
-/// Most functionality is provided by the [`ObjectSegment`] trait implementation.
+/// A segment of a `MachOFile`.
 #[derive(Debug)]
 pub struct MachOSegment<'data, 'file, Mach, R = &'data [u8]>
 where
@@ -66,20 +64,10 @@ where
     Mach: MachHeader,
     R: ReadRef<'data>,
 {
-    /// Get the Mach-O file containing this segment.
-    pub fn macho_file(&self) -> &'file MachOFile<'data, Mach, R> {
-        self.file
-    }
-
-    /// Get the raw Mach-O segment structure.
-    pub fn macho_segment(&self) -> &'data Mach::Segment {
-        self.internal.segment
-    }
-
     fn bytes(&self) -> Result<&'data [u8]> {
         self.internal
             .segment
-            .data(self.file.endian, self.internal.data)
+            .data(self.file.endian, self.file.data)
             .read_error("Invalid Mach-O segment size or offset")
     }
 }
@@ -159,15 +147,11 @@ where
 
 #[derive(Debug, Clone, Copy)]
 pub(super) struct MachOSegmentInternal<'data, Mach: MachHeader, R: ReadRef<'data>> {
-    pub segment: &'data Mach::Segment,
-    /// The data for the file that contains the segment data.
-    ///
-    /// This is required for dyld caches, where this may be a different subcache
-    /// from the file containing the Mach-O load commands.
     pub data: R,
+    pub segment: &'data Mach::Segment,
 }
 
-/// A trait for generic access to [`macho::SegmentCommand32`] and [`macho::SegmentCommand64`].
+/// A trait for generic access to `SegmentCommand32` and `SegmentCommand64`.
 #[allow(missing_docs)]
 pub trait Segment: Debug + Pod {
     type Word: Into<u64>;

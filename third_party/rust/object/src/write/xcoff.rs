@@ -5,7 +5,7 @@ use crate::write::string::*;
 use crate::write::util::*;
 use crate::write::*;
 
-use crate::xcoff;
+use crate::{xcoff, AddressSize};
 
 #[derive(Default, Clone, Copy)]
 struct SectionOffsets {
@@ -66,50 +66,13 @@ impl<'a> Object<'a> {
         }
     }
 
-    pub(crate) fn xcoff_translate_relocation(&mut self, reloc: &mut Relocation) -> Result<()> {
-        let (kind, _encoding, size) = if let RelocationFlags::Generic {
-            kind,
-            encoding,
-            size,
-        } = reloc.flags
-        {
-            (kind, encoding, size)
-        } else {
-            return Ok(());
+    pub(crate) fn xcoff_fixup_relocation(&mut self, mut relocation: &mut Relocation) -> i64 {
+        let constant = match relocation.kind {
+            RelocationKind::Relative => relocation.addend + 4,
+            _ => relocation.addend,
         };
-
-        let r_rtype = match kind {
-            RelocationKind::Absolute => xcoff::R_POS,
-            RelocationKind::Relative => xcoff::R_REL,
-            RelocationKind::Got => xcoff::R_TOC,
-            _ => {
-                return Err(Error(format!("unimplemented relocation {:?}", reloc)));
-            }
-        };
-        let r_rsize = size - 1;
-        reloc.flags = RelocationFlags::Xcoff { r_rtype, r_rsize };
-        Ok(())
-    }
-
-    pub(crate) fn xcoff_adjust_addend(&mut self, relocation: &mut Relocation) -> Result<bool> {
-        let r_rtype = if let RelocationFlags::Xcoff { r_rtype, .. } = relocation.flags {
-            r_rtype
-        } else {
-            return Err(Error(format!("invalid relocation flags {:?}", relocation)));
-        };
-        if r_rtype == xcoff::R_REL {
-            relocation.addend += 4;
-        }
-        Ok(true)
-    }
-
-    pub(crate) fn xcoff_relocation_size(&self, reloc: &Relocation) -> Result<u8> {
-        let r_rsize = if let RelocationFlags::Xcoff { r_rsize, .. } = reloc.flags {
-            r_rsize
-        } else {
-            return Err(Error(format!("unexpected relocation {:?}", reloc)));
-        };
-        Ok(r_rsize + 1)
+        relocation.addend -= constant;
+        constant
     }
 
     pub(crate) fn xcoff_write(&self, buffer: &mut dyn WritableBuffer) -> Result<()> {
@@ -194,6 +157,7 @@ impl<'a> Object<'a> {
                 n_sclass
             } else {
                 match symbol.kind {
+                    SymbolKind::Null => xcoff::C_NULL,
                     SymbolKind::File => xcoff::C_FILE,
                     SymbolKind::Text | SymbolKind::Data | SymbolKind::Tls => {
                         if symbol.is_local() {
@@ -313,7 +277,7 @@ impl<'a> Object<'a> {
                     SectionKind::Tls => xcoff::STYP_TDATA,
                     SectionKind::UninitializedTls => xcoff::STYP_TBSS,
                     SectionKind::OtherString => xcoff::STYP_INFO,
-                    SectionKind::Debug | SectionKind::DebugString => xcoff::STYP_DEBUG,
+                    SectionKind::Debug => xcoff::STYP_DEBUG,
                     SectionKind::Other | SectionKind::Metadata => 0,
                     SectionKind::Note
                     | SectionKind::Linker
@@ -382,26 +346,30 @@ impl<'a> Object<'a> {
             if !section.relocations.is_empty() {
                 debug_assert_eq!(section_offsets[index].reloc_offset, buffer.len());
                 for reloc in &section.relocations {
-                    let (r_rtype, r_rsize) =
-                        if let RelocationFlags::Xcoff { r_rtype, r_rsize } = reloc.flags {
-                            (r_rtype, r_rsize)
-                        } else {
-                            return Err(Error("invalid relocation flags".into()));
-                        };
+                    let rtype = match reloc.kind {
+                        RelocationKind::Absolute => xcoff::R_POS,
+                        RelocationKind::Relative => xcoff::R_REL,
+                        RelocationKind::Got => xcoff::R_TOC,
+                        RelocationKind::Xcoff(x) => x,
+                        _ => {
+                            return Err(Error(format!("unimplemented relocation {:?}", reloc)));
+                        }
+                    };
                     if is_64 {
                         let xcoff_rel = xcoff::Rel64 {
                             r_vaddr: U64::new(BE, reloc.offset),
                             r_symndx: U32::new(BE, symbol_offsets[reloc.symbol.0].index as u32),
-                            r_rsize,
-                            r_rtype,
+                            // Specifies the bit length of the relocatable reference minus one.
+                            r_rsize: (reloc.size - 1),
+                            r_rtype: rtype,
                         };
                         buffer.write(&xcoff_rel);
                     } else {
                         let xcoff_rel = xcoff::Rel32 {
                             r_vaddr: U32::new(BE, reloc.offset as u32),
                             r_symndx: U32::new(BE, symbol_offsets[reloc.symbol.0].index as u32),
-                            r_rsize,
-                            r_rtype,
+                            r_rsize: (reloc.size - 1),
+                            r_rtype: rtype,
                         };
                         buffer.write(&xcoff_rel);
                     }

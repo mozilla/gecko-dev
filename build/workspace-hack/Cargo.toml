@@ -20,7 +20,7 @@ arrayvec = { version = "0.7", features = ["serde"], optional = true }
 bitflags = { version = "2", features = ["serde", "std"], optional = true }
 bytes = { version = "1", optional = true }
 chrono = { version = "0.4", features = ["serde"], optional = true }
-clap = { version = "4", default-features = false, features = ["cargo", "derive", "error-context", "help", "std", "string", "usage", "wrap_help"], optional = true }
+clap = { version = "4", default-features = false, features = ["cargo", "derive", "error-context", "help", "string", "usage", "wrap_help"], optional = true }
 crossbeam-utils = { version = "0.8", optional = true }
 dist-bin = { path = "../rust/dist-bin", optional = true }
 env_logger = { version = "0.10", default-features = false, features = ["color"], optional = true }
@@ -31,7 +31,6 @@ fnv = { version = "1", optional = true }
 futures = { version = "0.3", features = ["futures-executor"], optional = true }
 futures-channel = { version = "0.3", features = ["sink"], optional = true }
 futures-core = { version = "0.3", optional = true }
-futures-executor = { version = "0.3", features = ["thread-pool"], optional = true }
 futures-sink = { version = "0.3", optional = true }
 futures-util = { version = "0.3", features = ["channel", "io", "sink"], optional = true }
 getrandom = { version = "0.2", default-features = false, features = ["std"], optional = true }
@@ -203,9 +202,6 @@ features = [
     "Win32_Networking",
     "Win32_Networking_WinSock",
     "Win32_Security",
-    "Win32_Security_Cryptography",
-    "Win32_Security_Cryptography_Catalog",
-    "Win32_Security_WinTrust",
     "Win32_Storage_FileSystem",
     "Win32_System_Com",
     "Win32_System_Diagnostics_Debug",
@@ -239,7 +235,6 @@ gkrust-gtest = ["gkrust"]
 http3server = ["dep:arrayvec", "dep:bindgen", "dep:bitflags", "dep:bytes", "dep:chrono", "dep:clap", "dep:dist-bin", "dep:env_logger", "dep:fnv", "dep:futures", "dep:futures-channel", "dep:futures-core", "dep:futures-sink", "dep:futures-util", "dep:getrandom", "dep:hashbrown", "dep:hex", "dep:hyper", "dep:icu_locid", "dep:icu_properties", "dep:indexmap", "dep:itertools", "dep:log", "dep:memchr", "dep:mio", "dep:nom", "dep:num-integer", "dep:num-traits", "dep:once_cell", "dep:regex", "dep:semver", "dep:serde_json", "dep:smallvec", "dep:stable_deref_trait", "dep:strsim", "dep:time", "dep:time-macros", "dep:tinystr", "dep:tokio", "dep:tokio-util", "dep:toml", "dep:tracing", "dep:unicode-bidi", "dep:url", "dep:windows-sys", "dep:yoke", "dep:zerofrom", "dep:zerovec"]
 ipcclientcerts-static = ["dep:bindgen", "dep:bitflags", "dep:itertools", "dep:memchr", "dep:nom", "dep:regex"]
 jsrust = ["dep:arrayvec", "dep:cc", "dep:env_logger", "dep:getrandom", "dep:hashbrown", "dep:icu_locid", "dep:icu_properties", "dep:indexmap", "dep:log", "dep:memchr", "dep:num-traits", "dep:once_cell", "dep:semver", "dep:smallvec", "dep:stable_deref_trait", "dep:tinystr", "dep:unicode-bidi", "dep:url", "dep:yoke", "dep:zerofrom", "dep:zerovec"]
-minidump-analyzer = ["dep:clap", "dep:env_logger", "dep:futures-executor", "dep:futures-util", "dep:log", "dep:serde_json", "dep:windows-sys"]
 mozwer_s = ["dep:getrandom", "dep:hashbrown", "dep:indexmap", "dep:log", "dep:once_cell", "dep:scroll", "dep:serde_json", "dep:uuid", "dep:windows-sys"]
 nmhproxy = ["dep:bitflags", "dep:hashbrown", "dep:icu_locid", "dep:icu_properties", "dep:indexmap", "dep:once_cell", "dep:serde_json", "dep:smallvec", "dep:stable_deref_trait", "dep:tinystr", "dep:unicode-bidi", "dep:url", "dep:windows-sys", "dep:yoke", "dep:zerofrom", "dep:zerovec"]
 osclientcerts-static = ["dep:bindgen", "dep:bitflags", "dep:core-foundation-sys", "dep:env_logger", "dep:itertools", "dep:log", "dep:memchr", "dep:nom", "dep:regex"]

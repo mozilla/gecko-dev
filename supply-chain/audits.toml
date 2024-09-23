@@ -28,22 +28,6 @@ start = "2022-08-04"
 end = "2024-03-09"
 notes = "Though the code is safe to run and deploy, the code for processing HTTP/1.1 messages (the `read-http` feature, specifically) is not suited for deployment in real applications, either clients or servers.  Some features necessary for live deployment are not implemented, such as the proper handling of some types of response (e.g., a response to a HEAD request).  Software that processes HTTP/1.1 messages requires a large number of compatibility tweaks if it is to be deployed interoperably.  This feature only exists to support basic validation tools and is unlikely to be widely compatible."
 
-[[wildcard-audits.breakpad-symbols]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 72814 # Gabriele Svelto (gabrielesvelto)
-start = "2022-11-30"
-end = "2025-02-28"
-notes = "This crate is written and maintained by mozilla employees."
-
-[[wildcard-audits.cachemap2]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 106639 # Alex Franchuk (afranchuk)
-start = "2023-03-21"
-end = "2025-02-28"
-notes = "This crate is written and solely maintained by a mozilla employee."
-
 [[wildcard-audits.cexpr]]
 who = "Emilio Cobos Álvarez <emilio@crisal.io>"
 criteria = "safe-to-deploy"
@@ -201,14 +185,6 @@ start = "2019-03-14"
 end = "2025-04-25"
 notes = "I wrote most of the commits in the euclid reprository and review every change that is not produced by me."
 
-[[wildcard-audits.framehop]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 20227 # Markus Stange (mstange)
-start = "2022-03-12"
-end = "2025-02-28"
-notes = "This crate is written and solely maintained by a mozilla employee."
-
 [[wildcard-audits.freetype]]
 who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
@@ -291,14 +267,6 @@ end = "2023-05-04"
 renew = false
 notes = "I've reviewed every source contribution that was neither authored nor reviewed by Mozilla."
 
-[[wildcard-audits.macho-unwind-info]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 20227 # Markus Stange (mstange)
-start = "2022-01-31"
-end = "2025-02-28"
-notes = "This crate is written and solely maintained by a mozilla employee."
-
 [[wildcard-audits.marionette]]
 who = "Henrik Skupin <mail@hskupin.info>"
 criteria = "safe-to-run"
@@ -307,27 +275,11 @@ start = "2020-11-03"
 end = "2025-01-31"
 notes = "Maintained by the DevTools team at Mozilla and has no unsafe code."
 
-[[wildcard-audits.minidump]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 72814 # Gabriele Svelto (gabrielesvelto)
-start = "2022-11-30"
-end = "2025-02-28"
-notes = "This crate is written and maintained by mozilla employees."
-
 [[wildcard-audits.minidump-common]]
 who = "Alex Franchuk <afranchuk@mozilla.com>"
 criteria = "safe-to-deploy"
 user-id = 72814 # Gabriele Svelto (gabrielesvelto)
 start = "2022-11-30"
-end = "2025-02-28"
-notes = "This crate is written and maintained by mozilla employees."
-
-[[wildcard-audits.minidump-unwind]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 72814 # Gabriele Svelto (gabrielesvelto)
-start = "2023-05-17"
 end = "2025-02-28"
 notes = "This crate is written and maintained by mozilla employees."
 
@@ -378,14 +330,6 @@ user-id = 128763 # Martin Thomson (martinthomson)
 start = "2022-08-04"
 end = "2024-03-09"
 notes = "This code contains two cryptographic back ends.  No unsafe code is contained if the Rust `hpke` crate is used (the `rust-hpke` feature).  Using NSS (the `nss` feature) involves extensive use of bindings to the native code provided by NSS.  This interface uses wrappers that attempt to add safety to a fundamentally very dangerous library, but those wrappers have only been validated for use following the needs of this crate."
-
-[[wildcard-audits.pe-unwind-info]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-user-id = 106639 # Alex Franchuk (afranchuk)
-start = "2023-07-25"
-end = "2025-02-28"
-notes = "This crate is written and solely maintained by a mozilla employee."
 
 [[wildcard-audits.qcms]]
 who = "Jeff Muizelaar <jmuizelaar@mozilla.com>"
@@ -746,12 +690,6 @@ who = "Henri Sivonen <hsivonen@hsivonen.fi>"
 criteria = "safe-to-deploy"
 version = "0.3.0"
 
-[[audits.arrayvec]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.7.2 -> 0.7.6"
-notes = "Manually verified new unsafe pointer arithmetic."
-
 [[audits.ash]]
 who = "Jim Blandy <jimb@red-bean.com>"
 criteria = "safe-to-deploy"
@@ -1083,12 +1021,6 @@ notes = "I, Henri Sivonen, wrote this crate for Gecko even though it is publishe
 who = "Bobby Holley <bobbyholley@gmail.com>"
 criteria = "safe-to-deploy"
 delta = "0.1.2 -> 0.1.2@git:ed8a4c6f900a90d4dbc1d64b856e61490a1c3570"
-
-[[audits.circular]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.3.0"
-notes = "No dependencies. Unsafe code is necessary to provide functionality and was manually verified to be correct."
 
 [[audits.clang-sys]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -2312,15 +2244,6 @@ who = "Simon Friedberger <simon@mozilla.com>"
 criteria = "safe-to-deploy"
 delta = "0.2.10 -> 0.2.11"
 
-[[audits.gimli]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.30.0"
-notes = """
-Unsafe code blocks are sound. Minimal dependencies used. No use of
-side-effectful std functions.
-"""
-
 [[audits.gleam]]
 who = "Jamie Nicol <jnicol@mozilla.com>"
 criteria = "safe-to-deploy"
@@ -3393,12 +3316,6 @@ delta = "0.28.4 -> 0.30.0"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.30.0 -> 0.30.3"
-
-[[audits.object]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-delta = "0.33.0 -> 0.36.4"
-notes = "Hardly any new unsafe code, no new dependencies nor side-effectful std functions. Plenty of new tests."
 
 [[audits.once_cell]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -4624,16 +4541,6 @@ criteria = "safe-to-run"
 delta = "0.3.1 -> 0.3.2"
 
 [[audits.tracing]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.1.37"
-notes = """
-There's only one unsafe impl, and its purpose is to ensure correct behavior by
-creating a non-Send marker type (it has nothing to do with soundness). All
-dependencies make sense, and no side-effectful std functions are used.
-"""
-
-[[audits.tracing]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
 delta = "0.1.35 -> 0.1.36"
@@ -4642,12 +4549,6 @@ delta = "0.1.35 -> 0.1.36"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
 delta = "0.1.36 -> 0.1.37"
-
-[[audits.tracing-attributes]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.1.24"
-notes = "No unsafe code, macros extensively tested and produce reasonable code."
 
 [[audits.tracing-attributes]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"
@@ -4663,16 +4564,6 @@ delta = "0.1.22 -> 0.1.23"
 who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-run"
 delta = "0.1.23 -> 0.1.24"
-
-[[audits.tracing-core]]
-who = "Alex Franchuk <afranchuk@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.1.30"
-notes = """
-Most unsafe code is in implementing non-std sync primitives. Unsafe impls are
-logically correct and justified in comments, and unsafe code is sound and
-justified in comments.
-"""
 
 [[audits.tracing-core]]
 who = "Mike Hommey <mh+mozilla@glandium.org>"

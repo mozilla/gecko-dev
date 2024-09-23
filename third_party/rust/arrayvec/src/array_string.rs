@@ -1,12 +1,10 @@
-use std::borrow::{Borrow, BorrowMut};
+use std::borrow::Borrow;
 use std::cmp;
 use std::convert::TryFrom;
 use std::fmt;
 use std::hash::{Hash, Hasher};
 use std::mem::MaybeUninit;
 use std::ops::{Deref, DerefMut};
-#[cfg(feature="std")]
-use std::path::Path;
 use std::ptr;
 use std::slice;
 use std::str;
@@ -33,11 +31,10 @@ use serde::{Serialize, Deserialize, Serializer, Deserializer};
 /// The string is a contiguous value that you can store directly on the stack
 /// if needed.
 #[derive(Copy)]
-#[repr(C)]
 pub struct ArrayString<const CAP: usize> {
     // the `len` first elements of the array are initialized
-    len: LenUint,
     xs: [MaybeUninit<u8>; CAP],
+    len: LenUint,
 }
 
 impl<const CAP: usize> Default for ArrayString<CAP>
@@ -204,7 +201,6 @@ impl<const CAP: usize> ArrayString<CAP>
     ///
     /// assert_eq!(&string[..], "ab");
     /// ```
-    #[track_caller]
     pub fn push(&mut self, c: char) {
         self.try_push(c).unwrap();
     }
@@ -256,7 +252,6 @@ impl<const CAP: usize> ArrayString<CAP>
     ///
     /// assert_eq!(&string[..], "ad");
     /// ```
-    #[track_caller]
     pub fn push_str(&mut self, s: &str) {
         self.try_push_str(s).unwrap()
     }
@@ -376,12 +371,10 @@ impl<const CAP: usize> ArrayString<CAP>
 
         let next = idx + ch.len_utf8();
         let len = self.len();
-        let ptr = self.as_mut_ptr();
         unsafe {
-            ptr::copy(
-                ptr.add(next),
-                ptr.add(idx),
-                len - next);
+            ptr::copy(self.as_ptr().add(next),
+                      self.as_mut_ptr().add(idx),
+                      len - next);
             self.set_len(len - (next - idx));
         }
         ch
@@ -417,13 +410,11 @@ impl<const CAP: usize> ArrayString<CAP>
         self
     }
 
-    /// Return a raw pointer to the string's buffer.
-    pub fn as_ptr(&self) -> *const u8 {
+    fn as_ptr(&self) -> *const u8 {
         self.xs.as_ptr() as *const u8
     }
 
-    /// Return a raw mutable pointer to the string's buffer.
-    pub fn as_mut_ptr(&mut self) -> *mut u8 {
+    fn as_mut_ptr(&mut self) -> *mut u8 {
         self.xs.as_mut_ptr() as *mut u8
     }
 }
@@ -488,11 +479,6 @@ impl<const CAP: usize> Borrow<str> for ArrayString<CAP>
     fn borrow(&self) -> &str { self }
 }
 
-impl<const CAP: usize> BorrowMut<str> for ArrayString<CAP>
-{
-    fn borrow_mut(&mut self) -> &mut str { self }
-}
-
 impl<const CAP: usize> AsRef<str> for ArrayString<CAP>
 {
     fn as_ref(&self) -> &str { self }
@@ -501,13 +487,6 @@ impl<const CAP: usize> AsRef<str> for ArrayString<CAP>
 impl<const CAP: usize> fmt::Debug for ArrayString<CAP>
 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result { (**self).fmt(f) }
-}
-
-#[cfg(feature="std")]
-impl<const CAP: usize> AsRef<Path> for ArrayString<CAP> {
-    fn as_ref(&self) -> &Path {
-        self.as_str().as_ref()
-    }
 }
 
 impl<const CAP: usize> fmt::Display for ArrayString<CAP>
@@ -637,37 +616,6 @@ impl<'de, const CAP: usize> Deserialize<'de> for ArrayString<CAP>
     }
 }
 
-#[cfg(feature = "borsh")]
-/// Requires crate feature `"borsh"`
-impl<const CAP: usize> borsh::BorshSerialize for ArrayString<CAP> {
-    fn serialize<W: borsh::io::Write>(&self, writer: &mut W) -> borsh::io::Result<()> {
-        <str as borsh::BorshSerialize>::serialize(&*self, writer)
-    }
-}
-
-#[cfg(feature = "borsh")]
-/// Requires crate feature `"borsh"`
-impl<const CAP: usize> borsh::BorshDeserialize for ArrayString<CAP> {
-    fn deserialize_reader<R: borsh::io::Read>(reader: &mut R) -> borsh::io::Result<Self> {
-        let len = <u32 as borsh::BorshDeserialize>::deserialize_reader(reader)? as usize;
-        if len > CAP {
-            return Err(borsh::io::Error::new(
-                borsh::io::ErrorKind::InvalidData,
-                format!("Expected a string no more than {} bytes long", CAP),
-            ))
-        }
-
-        let mut buf = [0u8; CAP];
-        let buf = &mut buf[..len];
-        reader.read_exact(buf)?;
-
-        let s = str::from_utf8(&buf).map_err(|err| {
-            borsh::io::Error::new(borsh::io::ErrorKind::InvalidData, err.to_string())
-        })?;
-        Ok(Self::from(s).unwrap())
-    }
-}
-
 impl<'a, const CAP: usize> TryFrom<&'a str> for ArrayString<CAP>
 {
     type Error = CapacityError<&'a str>;
@@ -688,29 +636,5 @@ impl<'a, const CAP: usize> TryFrom<fmt::Arguments<'a>> for ArrayString<CAP>
         let mut v = Self::new();
         v.write_fmt(f).map_err(|e| CapacityError::new(e))?;
         Ok(v)
-    }
-}
-
-#[cfg(feature = "zeroize")]
-/// "Best efforts" zeroing of the `ArrayString`'s buffer when the `zeroize` feature is enabled.
-///
-/// The length is set to 0, and the buffer is dropped and zeroized.
-/// Cannot ensure that previous moves of the `ArrayString` did not leave values on the stack.
-///
-/// ```
-/// use arrayvec::ArrayString;
-/// use zeroize::Zeroize;
-/// let mut string = ArrayString::<6>::from("foobar").unwrap();
-/// string.zeroize();
-/// assert_eq!(string.len(), 0);
-/// unsafe { string.set_len(string.capacity()) };
-/// assert_eq!(&*string, "\0\0\0\0\0\0");
-/// ```
-impl<const CAP: usize> zeroize::Zeroize for ArrayString<CAP> {
-    fn zeroize(&mut self) {
-        // There are no elements to drop
-        self.clear();
-        // Zeroize the backing array.
-        self.xs.zeroize();
     }
 }

@@ -8,51 +8,60 @@
 //!
 //! Raw structs are defined for: [ELF](elf), [Mach-O](macho), [PE/COFF](pe),
 //! [XCOFF](xcoff), [archive].
-//! Types and traits for zerocopy support are defined in the [`pod`] and [`endian`] modules.
+//! Types and traits for zerocopy support are defined in [pod] and [endian].
 //!
 //! ## Unified read API
 //!
-//! The [`read`] module provides a unified read API using the [`read::Object`] trait.
-//! There is an implementation of this trait for [`read::File`], which allows reading any
-//! file format, as well as implementations for each file format.
+//! The [read::Object] trait defines the unified interface. This trait is implemented
+//! by [read::File], which allows reading any file format, as well as implementations
+//! for each file format: [ELF](read::elf::ElfFile), [Mach-O](read::macho::MachOFile),
+//! [COFF](read::coff::CoffFile), [PE](read::pe::PeFile), [Wasm](read::wasm::WasmFile),
+//! [XCOFF](read::xcoff::XcoffFile).
 //!
 //! ## Low level read API
 //!
-//! The [`read#modules`] submodules define helpers that operate on the raw structs.
-//! These can be used instead of the unified API, or in conjunction with it to access
-//! details that are not available via the unified API.
+//! In addition to the unified read API, the various `read` modules define helpers that
+//! operate on the raw structs. These also provide traits that abstract over the differences
+//! between 32-bit and 64-bit versions of the file format.
 //!
 //! ## Unified write API
 //!
-//! The [`mod@write`] module provides a unified write API for relocatable object files
-//! using [`write::Object`]. This does not support writing executable files.
+//! [write::Object] allows building a COFF/ELF/Mach-O/XCOFF relocatable object file and
+//! then writing it out.
 //!
-//! ## Low level write API
+//! ## Low level executable writers
 //!
-//! The [`mod@write#modules`] submodules define helpers for writing the raw structs.
+//! [write::elf::Writer] and [write::pe::Writer] allow writing executable files.
 //!
-//! ## Build API
+//! ## Example for unified read API
+//!  ```no_run
+//! # #[cfg(feature = "read")]
+//! use object::{Object, ObjectSection};
+//! use std::error::Error;
+//! use std::fs;
 //!
-//! The [`mod@build`] submodules define helpers for building object files, either from
-//! scratch or by modifying existing files.
-//!
-//! ## Shared definitions
-//!
-//! The crate provides a number of definitions that are used by both the read and write
-//! APIs. These are defined at the top level module, but none of these are the main entry
-//! points of the crate.
+//! /// Reads a file and displays the content of the ".boot" section.
+//! fn main() -> Result<(), Box<dyn Error>> {
+//! # #[cfg(all(feature = "read", feature = "std"))] {
+//!   let bin_data = fs::read("./multiboot2-binary.elf")?;
+//!   let obj_file = object::File::parse(&*bin_data)?;
+//!   if let Some(section) = obj_file.section_by_name(".boot") {
+//!     println!("{:#x?}", section.data()?);
+//!   } else {
+//!     eprintln!("section not available");
+//!   }
+//! # }
+//!   Ok(())
+//! }
+//! ```
 
 #![deny(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![no_std]
 #![warn(rust_2018_idioms)]
 // Style.
-#![allow(clippy::collapsible_else_if)]
 #![allow(clippy::collapsible_if)]
-#![allow(clippy::collapsible_match)]
 #![allow(clippy::comparison_chain)]
-#![allow(clippy::field_reassign_with_default)]
-#![allow(clippy::manual_flatten)]
 #![allow(clippy::match_like_matches_macro)]
 #![allow(clippy::single_match)]
 #![allow(clippy::type_complexity)]
@@ -60,6 +69,8 @@
 #![allow(clippy::should_implement_trait)]
 // Unit errors are converted to other types by callers.
 #![allow(clippy::result_unit_err)]
+// Worse readability sometimes.
+#![allow(clippy::collapsible_else_if)]
 
 #[cfg(feature = "cargo-all")]
 compile_error!("'--all-features' is not supported; use '--features all' instead");
@@ -92,9 +103,6 @@ pub use read::*;
 
 #[cfg(feature = "write_core")]
 pub mod write;
-
-#[cfg(feature = "build_core")]
-pub mod build;
 
 #[cfg(feature = "archive")]
 pub mod archive;

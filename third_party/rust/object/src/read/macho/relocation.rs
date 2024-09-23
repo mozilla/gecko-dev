@@ -3,20 +3,20 @@ use core::{fmt, slice};
 use crate::endian::Endianness;
 use crate::macho;
 use crate::read::{
-    ReadRef, Relocation, RelocationEncoding, RelocationFlags, RelocationKind, RelocationTarget,
-    SectionIndex, SymbolIndex,
+    ReadRef, Relocation, RelocationEncoding, RelocationKind, RelocationTarget, SectionIndex,
+    SymbolIndex,
 };
 
 use super::{MachHeader, MachOFile};
 
-/// An iterator for the relocations in a [`MachOSection32`](super::MachOSection32).
+/// An iterator over the relocations in a `MachOSection32`.
 pub type MachORelocationIterator32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachORelocationIterator<'data, 'file, macho::MachHeader32<Endian>, R>;
-/// An iterator for the relocations in a [`MachOSection64`](super::MachOSection64).
+/// An iterator over the relocations in a `MachOSection64`.
 pub type MachORelocationIterator64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachORelocationIterator<'data, 'file, macho::MachHeader64<Endian>, R>;
 
-/// An iterator for the relocations in a [`MachOSection`](super::MachOSection).
+/// An iterator over the relocations in a `MachOSection`.
 pub struct MachORelocationIterator<'data, 'file, Mach, R = &'data [u8]>
 where
     Mach: MachHeader,
@@ -34,7 +34,6 @@ where
     type Item = (u64, Relocation);
 
     fn next(&mut self) -> Option<Self::Item> {
-        let mut paired_addend = 0;
         loop {
             let reloc = self.relocations.next()?;
             let endian = self.file.endian;
@@ -45,32 +44,30 @@ where
                 continue;
             }
             let reloc = reloc.info(self.file.endian);
-            let flags = RelocationFlags::MachO {
-                r_type: reloc.r_type,
-                r_pcrel: reloc.r_pcrel,
-                r_length: reloc.r_length,
-            };
             let mut encoding = RelocationEncoding::Generic;
             let kind = match cputype {
                 macho::CPU_TYPE_ARM => match (reloc.r_type, reloc.r_pcrel) {
                     (macho::ARM_RELOC_VANILLA, false) => RelocationKind::Absolute,
-                    _ => RelocationKind::Unknown,
+                    _ => RelocationKind::MachO {
+                        value: reloc.r_type,
+                        relative: reloc.r_pcrel,
+                    },
                 },
                 macho::CPU_TYPE_ARM64 | macho::CPU_TYPE_ARM64_32 => {
                     match (reloc.r_type, reloc.r_pcrel) {
                         (macho::ARM64_RELOC_UNSIGNED, false) => RelocationKind::Absolute,
-                        (macho::ARM64_RELOC_ADDEND, _) => {
-                            paired_addend = i64::from(reloc.r_symbolnum)
-                                .wrapping_shl(64 - 24)
-                                .wrapping_shr(64 - 24);
-                            continue;
-                        }
-                        _ => RelocationKind::Unknown,
+                        _ => RelocationKind::MachO {
+                            value: reloc.r_type,
+                            relative: reloc.r_pcrel,
+                        },
                     }
                 }
                 macho::CPU_TYPE_X86 => match (reloc.r_type, reloc.r_pcrel) {
                     (macho::GENERIC_RELOC_VANILLA, false) => RelocationKind::Absolute,
-                    _ => RelocationKind::Unknown,
+                    _ => RelocationKind::MachO {
+                        value: reloc.r_type,
+                        relative: reloc.r_pcrel,
+                    },
                 },
                 macho::CPU_TYPE_X86_64 => match (reloc.r_type, reloc.r_pcrel) {
                     (macho::X86_64_RELOC_UNSIGNED, false) => RelocationKind::Absolute,
@@ -87,9 +84,15 @@ where
                         encoding = RelocationEncoding::X86RipRelativeMovq;
                         RelocationKind::GotRelative
                     }
-                    _ => RelocationKind::Unknown,
+                    _ => RelocationKind::MachO {
+                        value: reloc.r_type,
+                        relative: reloc.r_pcrel,
+                    },
                 },
-                _ => RelocationKind::Unknown,
+                _ => RelocationKind::MachO {
+                    value: reloc.r_type,
+                    relative: reloc.r_pcrel,
+                },
             };
             let size = 8 << reloc.r_length;
             let target = if reloc.r_extern {
@@ -97,31 +100,7 @@ where
             } else {
                 RelocationTarget::Section(SectionIndex(reloc.r_symbolnum as usize))
             };
-            let implicit_addend = paired_addend == 0;
-            let mut addend = paired_addend;
-            if reloc.r_pcrel {
-                // For PC relative relocations on some architectures, the
-                // addend does not include the offset required due to the
-                // PC being different from the place of the relocation.
-                // This differs from other file formats, so adjust the
-                // addend here to account for this.
-                match cputype {
-                    macho::CPU_TYPE_X86 => {
-                        addend -= 1 << reloc.r_length;
-                    }
-                    macho::CPU_TYPE_X86_64 => {
-                        addend -= 1 << reloc.r_length;
-                        match reloc.r_type {
-                            macho::X86_64_RELOC_SIGNED_1 => addend -= 1,
-                            macho::X86_64_RELOC_SIGNED_2 => addend -= 2,
-                            macho::X86_64_RELOC_SIGNED_4 => addend -= 4,
-                            _ => {}
-                        }
-                    }
-                    // TODO: maybe missing support for some architectures and relocations
-                    _ => {}
-                }
-            }
+            let addend = if reloc.r_pcrel { -4 } else { 0 };
             return Some((
                 reloc.r_address as u64,
                 Relocation {
@@ -130,8 +109,7 @@ where
                     size,
                     target,
                     addend,
-                    implicit_addend,
-                    flags,
+                    implicit_addend: true,
                 },
             ));
         }

@@ -11,10 +11,6 @@
 //!   - Optional
 //!   - Enable serialization for ArrayVec and ArrayString using serde 1.x
 //!
-//! - `zeroize`
-//!   - Optional
-//!   - Implement `Zeroize` for ArrayVec and ArrayString
-//!
 //! ## Rust Version
 //!
 //! This version of arrayvec requires Rust 1.51 or later.

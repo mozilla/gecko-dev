@@ -44,7 +44,6 @@ patch_file5="$(pwd)/taskcluster/scripts/misc/mingw-widl.patch"
 patch_file6="$(pwd)/taskcluster/scripts/misc/mingw-dispatchqueue.patch"
 patch_file10="$(pwd)/taskcluster/scripts/misc/mingw-ts_sd.patch"
 patch_file11="$(pwd)/taskcluster/scripts/misc/mingw-composition.patch"
-patch_file12="$(pwd)/taskcluster/scripts/misc/mingw-wintrust.patch"
 
 prepare() {
   pushd $MOZ_FETCHES_DIR/mingw-w64
@@ -55,7 +54,6 @@ prepare() {
   patch -p1 <$patch_file6
   patch -p1 <$patch_file10
   patch -p1 <$patch_file11
-  patch -p1 <$patch_file12
   popd
 }
 

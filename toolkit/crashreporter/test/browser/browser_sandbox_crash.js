@@ -48,8 +48,9 @@ if (AppConstants.platform == "linux") {
           { crashType: "CRASH_SYSCALL" }
         );
 
-        Assert.ok(
-          annotations.StackTraces.crash_info.type.startsWith("SIGSYS"),
+        Assert.equal(
+          annotations.StackTraces.crash_info.type,
+          "SIGSYS",
           "The crash type is SIGSYS"
         );
 
