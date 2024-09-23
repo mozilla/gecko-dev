@@ -71,7 +71,11 @@ class EditLoginFragment : Fragment(R.layout.fragment_edit_login), MenuProvider {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        startForResult = registerForActivityResult { setSecureContentVisibility(true) }
+        startForResult = registerForActivityResult {
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate =
+                false
+            setSecureContentVisibility(true)
+        }
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {

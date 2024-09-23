@@ -81,7 +81,11 @@ class LoginDetailFragment : SecureFragment(R.layout.fragment_login_detail), Menu
         val view = inflater.inflate(R.layout.fragment_login_detail, container, false)
         _binding = FragmentLoginDetailBinding.bind(view)
 
-        startForResult = registerForActivityResult { setSecureContentVisibility(true) }
+        startForResult = registerForActivityResult {
+            BiometricAuthenticationManager.biometricAuthenticationNeededInfo.shouldAuthenticate =
+                false
+            setSecureContentVisibility(true)
+        }
 
         savedLoginsStore =
             StoreProvider.get(findNavController().getBackStackEntry(R.id.savedLogins)) {
