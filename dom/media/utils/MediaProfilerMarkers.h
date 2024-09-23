@@ -20,14 +20,20 @@ struct TimeUpdateMarker : public BaseMarkerType<TimeUpdateMarker> {
        MS::Format::Milliseconds},
       {"mediaDurationMs", MS::InputType::Uint64, "Media Duration (Ms)",
        MS::Format::Milliseconds},
+      {"paintedFrames", MS::InputType::Uint32, "Painted Frames",
+       MS::Format::Integer},  // optional, zero for audio
   };
   static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
                                                MS::Location::MarkerTable};
   static constexpr const char* ChartLabel = "{marker.data.name}";
   static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
-                                   uint64_t aCurrentTime, uint64_t aDuration) {
+                                   uint64_t aCurrentTime, uint64_t aDuration,
+                                   uint32_t aPaintedFrames) {
     aWriter.IntProperty("currentTimeMs", aCurrentTime);
     aWriter.IntProperty("mediaDurationMs", aDuration);
+    if (aPaintedFrames != 0) {
+      aWriter.IntProperty("paintedFrames", aPaintedFrames);
+    }
   }
 };
 
@@ -123,6 +129,26 @@ struct CDMResolvedMarker : public BaseMarkerType<CDMResolvedMarker> {
                                    const ProfilerString16View& aKeySystem,
                                    const ProfilerString8View& aConfiguration) {
     StreamJSONMarkerDataImpl(aWriter, aKeySystem, aConfiguration);
+  }
+};
+
+// This marker is for HTMLVideoElement
+struct RenderVideoMarker : public BaseMarkerType<RenderVideoMarker> {
+  static constexpr const char* Name = "HTMLMediaElement:RenderVideo";
+  static constexpr const char* Description =
+      "A marker shows how many video frames has been painted";
+
+  using MS = MarkerSchema;
+  static constexpr MS::PayloadField PayloadFields[] = {
+      {"paintedFrames", MS::InputType::Uint64, "Painted Frames",
+       MS::Format::Integer},
+  };
+  static constexpr MS::Location Locations[] = {MS::Location::MarkerChart,
+                                               MS::Location::MarkerTable};
+  static constexpr const char* ChartLabel = "{marker.data.name}";
+  static void StreamJSONMarkerData(baseprofiler::SpliceableJSONWriter& aWriter,
+                                   uint64_t aPaintedFrames) {
+    aWriter.IntProperty("paintedFrames", aPaintedFrames);
   }
 };
 
