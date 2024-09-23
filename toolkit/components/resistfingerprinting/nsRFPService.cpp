@@ -1357,16 +1357,15 @@ Maybe<nsTArray<uint8_t>> nsRFPService::GenerateKey(nsIChannel* aChannel) {
 
 // static
 Maybe<nsTArray<uint8_t>> nsRFPService::GenerateKeyForServiceWorker(
-    nsIURI* aURI, bool aForeignByAncestorContext) {
+    nsIURI* aFirstPartyURI, nsIPrincipal* aPrincipal,
+    bool aForeignByAncestorContext) {
   MOZ_ASSERT(XRE_IsParentProcess());
-  MOZ_ASSERT(aURI);
+  MOZ_ASSERT(aFirstPartyURI);
 
   RefPtr<nsRFPService> service = GetOrCreate();
 
-  RefPtr<nsIPrincipal> principal =
-      BasePrincipal::CreateContentPrincipal(aURI->GetSpecOrDefault());
-  OriginAttributes attrs = principal->OriginAttributesRef();
-  attrs.SetPartitionKey(aURI, aForeignByAncestorContext);
+  OriginAttributes attrs = aPrincipal->OriginAttributesRef();
+  attrs.SetPartitionKey(aFirstPartyURI, aForeignByAncestorContext);
 
   nsAutoCString oaSuffix;
   attrs.CreateSuffix(oaSuffix);

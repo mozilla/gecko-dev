@@ -330,7 +330,8 @@ class nsRFPService final : public nsIObserver, public nsIRFPService {
   // the session key is not available due to the randomization is disabled.
   static Maybe<nsTArray<uint8_t>> GenerateKey(nsIChannel* aChannel);
   static Maybe<nsTArray<uint8_t>> GenerateKeyForServiceWorker(
-      nsIURI* aURI, bool aForeignByAncestorContext);
+      nsIURI* aFirstPartyURI, nsIPrincipal* aPrincipal,
+      bool aForeignByAncestorContext);
 
   // The method to add random noises to the image data based on the random key
   // of the given cookieJarSettings.

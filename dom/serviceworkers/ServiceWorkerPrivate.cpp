@@ -637,7 +637,7 @@ nsresult ServiceWorkerPrivate::Initialize() {
 
   if (shouldResistFingerprinting && NS_SUCCEEDED(rv) && firstPartyURI) {
     auto rfpKey = nsRFPService::GenerateKeyForServiceWorker(
-        firstPartyURI, foreignByAncestorContext);
+        firstPartyURI, principal, foreignByAncestorContext);
     if (rfpKey.isSome()) {
       net::CookieJarSettings::Cast(cookieJarSettings)
           ->SetFingerprintingRandomizationKey(rfpKey.ref());
