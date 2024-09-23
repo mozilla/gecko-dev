@@ -34,7 +34,7 @@ add_task(async function () {
     "toggle conditional panel with shortcut: cursor on line 32, no breakpoints"
   );
   // codemirror editor offset: cursorPosition will be line + 1, column + 1
-  getCM(dbg).setCursor({ line: 31, ch: 1 });
+  setEditorCursorAt(dbg, 31, 1);
   pressKey(dbg, "toggleCondPanel");
 
   await waitForConditionalPanelFocus(dbg);
@@ -49,7 +49,7 @@ add_task(async function () {
 
   info("add active column breakpoint on line 32 and set cursorPosition");
   await enableFirstBreakpoint(dbg);
-  getCM(dbg).setCursor({ line: 31, ch: 1 });
+  setEditorCursorAt(dbg, 31, 1);
   info(
     "toggle conditional panel with shortcut and add condition to first breakpoint"
   );
@@ -63,7 +63,7 @@ add_task(async function () {
   );
 
   info("set cursor at second breakpoint position and activate breakpoint");
-  getCM(dbg).setCursor({ line: 31, ch: 25 });
+  setEditorCursorAt(dbg, 31, 25);
 
   await enableSecondBreakpoint(dbg);
   info(
@@ -81,7 +81,7 @@ add_task(async function () {
   info(
     "set cursor position near first breakpoint, toggle conditional panel and edit breakpoint"
   );
-  getCM(dbg).setCursor({ line: 31, ch: 7 });
+  setEditorCursorAt(dbg, 31, 7);
   info("toggle conditional panel and edit condition using shortcut");
   setConditionalBreakpointWithKeyboardShortcut(dbg, "2");
   ok(
@@ -95,7 +95,7 @@ add_task(async function () {
   info(
     "set cursor position near second breakpoint, toggle conditional panel and edit breakpoint"
   );
-  getCM(dbg).setCursor({ line: 31, ch: 21 });
+  setEditorCursorAt(dbg, 31, 21);
   info("toggle conditional panel and edit condition using shortcut");
   setConditionalBreakpointWithKeyboardShortcut(dbg, "3");
   ok(
@@ -108,7 +108,7 @@ add_task(async function () {
 
   info("toggle log panel with shortcut: cursor on line 33");
 
-  getCM(dbg).setCursor({ line: 33, ch: 1 });
+  setEditorCursorAt(dbg, 33, 1);
   setLogBreakpointWithKeyboardShortcut(dbg, "3");
   ok(
     !!waitForLog(dbg, "3"),
@@ -131,7 +131,7 @@ async function waitForConditionalPanelFocus(dbg) {
 
 // from browser_dbg-breakpoints-columns.js
 async function enableFirstBreakpoint(dbg) {
-  getCM(dbg).setCursor({ line: 32, ch: 0 });
+  setEditorCursorAt(dbg, 32, 0);
   await addBreakpoint(dbg, "long.js", 32);
   const bpMarkers = await waitForAllElements(dbg, "columnBreakpoints");
 

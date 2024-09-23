@@ -2163,6 +2163,17 @@ function getEditorContent(dbg) {
   return getCMEditor(dbg).getEditorContent();
 }
 
+/**
+ * Set the cursor  at a specific location in the editor
+ * @param {*} dbg
+ * @param {Number} line
+ * @param {Number} column
+ * @returns
+ */
+function setEditorCursorAt(dbg, line, column) {
+  return getCMEditor(dbg).setCursorAt(line, column);
+}
+
 // Gets the current codeMirror instance for CM5 tests
 function getCM(dbg) {
   const el = dbg.win.document.querySelector(".CodeMirror");
