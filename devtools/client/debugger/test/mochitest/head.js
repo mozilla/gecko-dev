@@ -257,14 +257,6 @@ function getRange(start, end) {
 }
 
 /**
- * Wait for CodeMirror to start searching
- */
-function waitForSearchState(dbg) {
-  const cm = getCM(dbg);
-  return waitFor(() => cm.state.search);
-}
-
-/**
  * Get the currently selected line number displayed in the editor's footer.
  */
 function assertCursorPosition(dbg, expectedLine, expectedColumn, message) {

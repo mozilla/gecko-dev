@@ -2148,6 +2148,13 @@ function getLineCount(dbg) {
   return getCMEditor(dbg).getLineCount();
 }
 
+/**
+ * Wait for CodeMirror to start searching
+ */
+function waitForSearchState(dbg) {
+  return waitFor(() => getCMEditor(dbg).isSearchStateReady());
+}
+
 // Gets the current codeMirror instance for CM5 tests
 function getCM(dbg) {
   const el = dbg.win.document.querySelector(".CodeMirror");

@@ -3090,6 +3090,14 @@ class Editor extends EventEmitter {
     }
   }
 
+  isSearchStateReady() {
+    const cm = editors.get(this);
+    if (this.config.cm6) {
+      return !!this.searchState.cursors;
+    }
+    return !!cm.state.search;
+  }
+
   // Used only in tests
   getLineCount() {
     const cm = editors.get(this);
