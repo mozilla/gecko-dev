@@ -57,7 +57,7 @@ object Versions {
         const val appcompat = "1.7.0"
         const val arch = "2.2.0"
         const val autofill = "1.1.0"
-        const val benchmark = "1.3.0"
+        const val benchmark = "1.3.1"
         const val biometric = "1.1.0"
         const val browser = "1.8.0"
         const val cardview = "1.0.0"
