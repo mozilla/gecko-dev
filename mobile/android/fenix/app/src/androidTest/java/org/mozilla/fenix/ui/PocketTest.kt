@@ -1,7 +1,6 @@
 package org.mozilla.fenix.ui
 
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
-import androidx.test.filters.SdkSuppress
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -44,7 +43,6 @@ class PocketTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2252509
-    @SdkSuppress(maxSdkVersion = 30)
     @Test
     fun verifyPocketSectionTest() {
         runWithCondition(isNetworkConnected()) {
