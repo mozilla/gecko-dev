@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.ui.robots
 
+import android.os.Build
 import android.util.Log
 import androidx.test.espresso.Espresso.onView
 import androidx.test.espresso.assertion.ViewAssertions.matches
@@ -230,20 +231,33 @@ class SettingsSubMenuSitePermissionsCommonRobot {
     }
 
     fun verifySystemGrantedPermission(permissionCategory: String) {
-        assertUIObjectExists(
-            itemWithClassName("android.widget.RelativeLayout")
-                .getChild(
-                    UiSelector()
-                        .resourceId("android:id/title")
-                        .textContains(permissionCategory),
-                ),
-            itemWithClassName("android.widget.RelativeLayout")
-                .getChild(
-                    UiSelector()
-                        .resourceId("android:id/summary")
-                        .textContains("Only while app is in use"),
-                ),
-        )
+        // The summary of the permission will be displayed in the app system settings
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.R) {
+            assertUIObjectExists(
+                itemWithClassName("android.widget.RelativeLayout")
+                    .getChild(
+                        UiSelector()
+                            .resourceId("android:id/title")
+                            .textContains(permissionCategory),
+                    ),
+                itemWithClassName("android.widget.RelativeLayout")
+                    .getChild(
+                        UiSelector()
+                            .resourceId("android:id/summary")
+                            .textContains("Only while app is in use"),
+                    ),
+            )
+        } else {
+            // The summary of the permission will be not be displayed in the app system settings
+            assertUIObjectExists(
+                itemWithClassName("android.widget.RelativeLayout")
+                    .getChild(
+                        UiSelector()
+                            .resourceId("android:id/title")
+                            .textContains(permissionCategory),
+                    ),
+            )
+        }
     }
 
     fun verifyNotificationToolbar() =

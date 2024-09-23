@@ -71,7 +71,7 @@ class SettingsSitePermissionsTest : TestSetup() {
     // Verifies that you can go to System settings and change app's permissions from inside the app
     @SmokeTest
     @Test
-    @SdkSuppress(minSdkVersion = 29, maxSdkVersion = 30)
+    @SdkSuppress(minSdkVersion = 29)
     fun systemBlockedPermissionsRedirectToSystemAppSettingsTest() {
         homeScreen {
         }.openThreeDotMenu {
