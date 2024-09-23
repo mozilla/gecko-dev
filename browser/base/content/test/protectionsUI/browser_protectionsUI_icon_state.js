@@ -19,19 +19,15 @@ const TRACKING_PAGE =
 const COOKIE_PAGE =
   // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://tracking.example.org/browser/browser/base/content/test/protectionsUI/cookiePage.html";
-const DTSCBN_PREF = "dom.testing.sync-content-blocking-notifications";
 
 registerCleanupFunction(function () {
   UrlClassifierTestUtils.cleanupTestTrackers();
   Services.prefs.clearUserPref(TP_PREF);
   Services.prefs.clearUserPref(TP_PB_PREF);
   Services.prefs.clearUserPref(NCB_PREF);
-  Services.prefs.clearUserPref(DTSCBN_PREF);
 });
 
 async function testTrackingProtectionIconState(tabbrowser) {
-  Services.prefs.setBoolPref(DTSCBN_PREF, true);
-
   info("Load a test page not containing tracking elements");
   let benignTab = await BrowserTestUtils.openNewForegroundTab(
     tabbrowser,

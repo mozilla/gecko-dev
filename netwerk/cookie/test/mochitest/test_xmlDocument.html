@@ -14,7 +14,6 @@ SpecialPowers.pushPrefEnv({set: [
   ["dom.storage_access.enabled", true],
   ["dom.storage_access.prompt.testing", true],
   ["dom.storage_access.prompt.testing.allow", true],
-  ["dom.testing.sync-content-blocking-notifications", true],
   ["network.cookie.cookieBehavior", 0],
 ]}).then(_ => {
   return new Promise(resolve => {

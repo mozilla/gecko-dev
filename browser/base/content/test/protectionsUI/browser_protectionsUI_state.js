@@ -19,7 +19,6 @@ const TP_PB_PREF = "privacy.trackingprotection.pbmode.enabled";
 const APS_PREF =
   "privacy.partition.always_partition_third_party_non_cookie_storage";
 const TPC_PREF = "network.cookie.cookieBehavior";
-const DTSCBN_PREF = "dom.testing.sync-content-blocking-notifications";
 const BENIGN_PAGE =
   // eslint-disable-next-line @microsoft/sdl/no-insecure-url
   "http://tracking.example.org/browser/browser/base/content/test/protectionsUI/benignPage.html";
@@ -45,7 +44,6 @@ registerCleanupFunction(function () {
   Services.prefs.clearUserPref(TP_PREF);
   Services.prefs.clearUserPref(TP_PB_PREF);
   Services.prefs.clearUserPref(TPC_PREF);
-  Services.prefs.clearUserPref(DTSCBN_PREF);
 });
 
 function notFound(id) {
@@ -280,8 +278,6 @@ add_task(async function testNormalBrowsing() {
   await SpecialPowers.pushPrefEnv({ set: [[APS_PREF, false]] });
 
   await UrlClassifierTestUtils.addTestTrackers();
-
-  Services.prefs.setBoolPref(DTSCBN_PREF, true);
 
   tabbrowser = gBrowser;
   let tab = (tabbrowser.selectedTab = BrowserTestUtils.addTab(tabbrowser));

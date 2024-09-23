@@ -7,7 +7,6 @@ skip-if = [
 prefs = [
   "dom.storage_access.prompt.testing=true", # Disable the Storage Access API prompts for all of the tests in this directory
   "dom.storage_access.prompt.testing.allow=true",
-  "dom.testing.sync-content-blocking-notifications=true",
   "dom.storage_access.frame_only=true", # Enable frame-only Storage Access API for all of the tests in this directory
   "privacy.restrict3rdpartystorage.heuristic.window_open=true", # Enable the window.open() heuristics globally in this directory
   "privacy.restrict3rdpartystorage.heuristic.opened_window_after_interaction=true",

@@ -4320,11 +4320,6 @@
   value: false
   mirror: always
 
-- name: dom.testing.sync-content-blocking-notifications
-  type: bool
-  value: false
-  mirror: always
-
 # To enable TestUtils interface on WPT
 - name: dom.testing.testutils.enabled
   type: RelaxedAtomicBool
