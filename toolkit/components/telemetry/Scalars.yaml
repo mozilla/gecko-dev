@@ -6879,6 +6879,74 @@ urlbar.picked:
       record_in_processes:
         - main
 
+    restrict_keyword_actions:
+      bug_numbers:
+        - 1917992
+      description: >
+        Counts how many times this restrict actions result was picked at a given
+        index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search-telemetry@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    restrict_keyword_bookmarks:
+      bug_numbers:
+        - 1917992
+      description: >
+        Counts how many times this restrict bookmarks result was picked at a
+        given index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search-telemetry@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    restrict_keyword_history:
+      bug_numbers:
+        - 1917992
+      description: >
+        Counts how many times this restrict history result was picked at a given
+        index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search-telemetry@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
+    restrict_keyword_tabs:
+      bug_numbers:
+        - 1917992
+      description: >
+        Counts how many times this restrict tabs result was picked at a given
+        index.
+      expires: never
+      kind: uint
+      keyed: true
+      notification_emails:
+        - fx-search-telemetry@mozilla.com
+      release_channel_collection: opt-out
+      products:
+        - 'firefox'
+      record_in_processes:
+        - main
+
     searchengine:
       bug_numbers:
         - 1671508

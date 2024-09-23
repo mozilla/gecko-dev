@@ -278,6 +278,38 @@ async function doSuggestedIndexTest({ trigger, assert }) {
   await SpecialPowers.popPrefEnv();
 }
 
+async function doRestrictKeywordsTest({ trigger, assert }) {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.searchRestrictKeywords.featureGate", true]],
+  });
+
+  await doTest(async () => {
+    await openPopup("@");
+
+    let totalResults = await UrlbarTestUtils.getResultCount(window);
+    let restrictSymbols = Object.values(UrlbarTokenizer.RESTRICT);
+
+    for (let i = 0; i < totalResults; i++) {
+      let details = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
+      let symbol = details.result.payload.keyword;
+      let keyword = details.result.payload.l10nRestrictKeyword?.toLowerCase();
+
+      if (restrictSymbols.includes(symbol)) {
+        let rowToSelect = await UrlbarTestUtils.waitForAutocompleteResultAt(
+          window,
+          i
+        );
+
+        await trigger(rowToSelect, keyword);
+        await openPopup("@");
+      }
+    }
+    await assert();
+  });
+
+  await SpecialPowers.popPrefEnv();
+}
+
 /**
  * Creates a search engine that returns tail suggestions and sets it as the
  * default engine.

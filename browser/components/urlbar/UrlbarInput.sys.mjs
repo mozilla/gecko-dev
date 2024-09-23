@@ -1328,6 +1328,15 @@ export class UrlbarInput {
       }
       case lazy.UrlbarUtils.RESULT_TYPE.RESTRICT: {
         this.handleRevert();
+        this.controller.engagementEvent.record(event, {
+          result,
+          element,
+          searchString: this._lastSearchString,
+          selType: this.controller.engagementEvent.typeFromElement(
+            result,
+            element
+          ),
+        });
         this.maybeConfirmSearchModeFromResult({
           result,
           checkValue: false,

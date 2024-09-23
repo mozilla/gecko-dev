@@ -190,6 +190,24 @@ add_task(async function general() {
   });
 });
 
+add_task(async function restrict_keywords() {
+  let telemetry = {
+    groups:
+      "general,general,general,general,general,general,restrict_keyword," +
+      "restrict_keyword,restrict_keyword,restrict_keyword",
+    results:
+      "search_engine,search_engine,search_engine,search_engine,search_engine," +
+      "search_engine,restrict_keyword_bookmarks,restrict_keyword_tabs," +
+      "restrict_keyword_history,restrict_keyword_actions",
+    n_results: 10,
+  };
+  await doRestrictKeywordsTest({
+    trigger: () => doBlur(),
+    assert: () =>
+      assertAbandonmentTelemetry([telemetry, telemetry, telemetry, telemetry]),
+  });
+});
+
 add_task(async function suggest() {
   await doSuggestTest({
     trigger: () => doBlur(),

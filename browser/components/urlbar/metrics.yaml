@@ -84,9 +84,10 @@ urlbar:
           group names are: `heuristic`, `adaptive_history`, `search_history`,
           `search_suggest`, `search_suggest_rich`, `trending_search`,
           `trending_search_rich`, `top_pick`, `top_site`, `remote_tab`,
-          `addon`, `general`, `suggest`, `about_page` and `suggested_index`. If
-          the group did not fall into any of these, this will be `unknown` and
-          a bug should be filed to investigate it.
+          `addon`, `general`, `suggest`, `about_page`, `suggested_index`, and
+          `restrict_keyword`.
+          If the group did not fall into any of these,
+          this will be `unknown` and a bug should be filed to investigate it.
         type: string
       results:
         description: >
@@ -116,6 +117,10 @@ urlbar:
           `merino_wikipedia`,
           `recent_search`,
           `remote_tab`,
+          `restrict_keyword_actions`,
+          `restrict_keyword_bookmarks`,
+          `restrict_keyword_history`,
+          `restrict_keyword_tabs`,
           `rs_adm_nonsponsored`,
           `rs_adm_sponsored`,
           `rs_amo`,
@@ -162,10 +167,12 @@ urlbar:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800414
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1805717
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1842247
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917992
     data_reviews:
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1800414#c2
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1805717#c4
       - https://bugzilla.mozilla.org/show_bug.cgi?id=1842247#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917992
     data_sensitivity:
       - interaction
     notification_emails:
@@ -260,6 +267,10 @@ urlbar:
           `merino_wikipedia`,
           `recent_search`,
           `remote_tab`,
+          `restrict_keyword_actions`,
+          `restrict_keyword_bookmarks`,
+          `restrict_keyword_history`,
+          `restrict_keyword_tabs`,
           `rs_adm_nonsponsored`,
           `rs_adm_sponsored`,
           `rs_amo`,
@@ -346,11 +357,12 @@ urlbar:
           group names are: `heuristic`, `adaptive_history`, `search_history`,
           `search_suggest`, `search_suggest_rich`, `trending_search`,
           `trending_search_rich`, `top_pick`, `top_site`, `recent_search`,
-          `remote_tab`, `addon`, `general`, `suggest`, `about_page` and
-          `suggested_index`. If the group did not fall into any of these, this
-          will be `unknown` and a bug should be filed to investigate it. If
-          engagement_type is `drop_go` or `paste_go`, this will be empty string
-          because no results are shown.
+          `remote_tab`, `addon`, `general`, `suggest`, `about_page`,
+          `suggested_index`, and `restrict_keyword`.
+          If the group did not fall into any of these, this will be `unknown`
+          and a bug should be filed to investigate it. If engagement_type is
+          `drop_go` or `paste_go`, this  will be empty string because no results
+          are shown.
         type: string
       results:
         description: >
@@ -379,6 +391,10 @@ urlbar:
           `merino_wikipedia`,
           `recent_search`,
           `remote_tab`,
+          `restrict_keyword_actions`,
+          `restrict_keyword_bookmarks`,
+          `restrict_keyword_history`,
+          `restrict_keyword_tabs`,
           `rs_adm_nonsponsored`,
           `rs_adm_sponsored`,
           `rs_amo`,

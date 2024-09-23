@@ -23,10 +23,11 @@ async function getRestrictKeywordResult(window, restrictToken) {
     value: "@",
   });
 
-  let result;
+  let restrictResult;
+  let resultIndex;
   let resultCount = await UrlbarTestUtils.getResultCount(window);
 
-  for (let index = 0; !result && index < resultCount; index++) {
+  for (let index = 0; !restrictResult && index < resultCount; index++) {
     let details = await UrlbarTestUtils.getDetailsOfResultAt(window, index);
 
     if (details.result.payload.keyword == restrictToken) {
@@ -36,11 +37,15 @@ async function getRestrictKeywordResult(window, restrictToken) {
         "The result's title is set correctly."
       );
 
-      result = await UrlbarTestUtils.waitForAutocompleteResultAt(window, index);
+      restrictResult = await UrlbarTestUtils.waitForAutocompleteResultAt(
+        window,
+        index
+      );
+      resultIndex = index;
     }
   }
 
-  return result;
+  return { restrictResult, resultIndex };
 }
 
 async function exitSearchModeAndClosePanel() {
@@ -51,7 +56,11 @@ async function exitSearchModeAndClosePanel() {
 }
 
 async function assertRestrictKeywordResult(window, restrictToken) {
-  let restrictResult = await getRestrictKeywordResult(window, restrictToken);
+  Services.telemetry.clearScalars();
+  let { restrictResult, resultIndex } = await getRestrictKeywordResult(
+    window,
+    restrictToken
+  );
 
   let searchPromise = UrlbarTestUtils.promiseSearchComplete(window);
   EventUtils.synthesizeMouseAtCenter(restrictResult, {});
@@ -64,6 +73,16 @@ async function assertRestrictKeywordResult(window, restrictToken) {
     ...searchMode,
     entry: "keywordoffer",
   });
+
+  const scalars = TelemetryTestUtils.getProcessScalars("parent", true, true);
+  let category =
+    restrictResult.result.payload.l10nRestrictKeyword.toLowerCase();
+  TelemetryTestUtils.assertKeyedScalar(
+    scalars,
+    `urlbar.picked.restrict_keyword_${category}`,
+    resultIndex,
+    1
+  );
 
   await exitSearchModeAndClosePanel();
 }
