@@ -2149,6 +2149,14 @@ function getCM(dbg) {
   return el.CodeMirror;
 }
 
+// Gets the mode used for the file
+function getEditorFileMode(dbg) {
+  if (isCm6Enabled) {
+    return dbg.win.document.querySelector(".cm-content").dataset.language;
+  }
+  return getCM(dbg).getOption("mode").name;
+}
+
 function getCoordsFromPosition(cm, { line, ch }) {
   return cm.charCoords({ line: ~~line, ch: ~~ch });
 }
