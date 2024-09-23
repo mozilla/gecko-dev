@@ -2280,7 +2280,11 @@ HttpBaseChannel::RedirectTo(nsIURI* targetURI) {
   // This would break the nsIStreamListener contract.
   NS_ENSURE_FALSE(LoadOnStartRequestCalled(), NS_ERROR_NOT_AVAILABLE);
 
-  mAPIRedirectToURI = targetURI;
+  // The first parameter is the URI we would like to redirect to
+  // The second parameter should default to false if normal redirect
+  mAPIRedirectTo =
+      Some(mozilla::MakeCompactPair(nsCOMPtr<nsIURI>(targetURI), false));
+
   // Only Web Extensions are allowed to redirect a channel to a data:
   // URI. To avoid any bypasses after the channel was flagged by
   // the WebRequst API, we are dropping the flag here.
@@ -2291,6 +2295,15 @@ HttpBaseChannel::RedirectTo(nsIURI* targetURI) {
   if (!mResponseHead) {
     mResponseHead.reset(new nsHttpResponseHead());
   }
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+HttpBaseChannel::InternalRedirectTo(nsIURI* targetURI) {
+  LOG(("HttpBaseChannel::InternalRedirectTo [this=%p]", this));
+  RedirectTo(targetURI);
+  MOZ_ASSERT(mAPIRedirectTo, "How did this happen?");
+  mAPIRedirectTo->second() = true;
   return NS_OK;
 }
 
@@ -3933,8 +3946,11 @@ HttpBaseChannel::SetTlsFlags(uint32_t aTlsFlags) {
 
 NS_IMETHODIMP
 HttpBaseChannel::GetApiRedirectToURI(nsIURI** aResult) {
+  if (!mAPIRedirectTo) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
   NS_ENSURE_ARG_POINTER(aResult);
-  *aResult = do_AddRef(mAPIRedirectToURI).take();
+  *aResult = do_AddRef(mAPIRedirectTo->first()).take();
   return NS_OK;
 }
 

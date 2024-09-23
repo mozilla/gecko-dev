@@ -607,7 +607,7 @@ nsresult nsHttpChannel::OnBeforeConnect() {
 
   // Check to see if we should redirect this channel elsewhere by
   // nsIHttpChannel.redirectTo API request
-  if (mAPIRedirectToURI) {
+  if (mAPIRedirectTo) {
     return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
   }
 
@@ -1087,6 +1087,21 @@ nsresult nsHttpChannel::HandleOverrideResponse() {
 
 nsresult nsHttpChannel::Connect() {
   LOG(("nsHttpChannel::Connect [this=%p]\n", this));
+
+  if (mAPIRedirectTo) {
+    LOG(("nsHttpChannel::Connect [internal=%d]\n", mAPIRedirectTo->second()));
+
+    nsresult rv = StartRedirectChannelToURI(
+        mAPIRedirectTo->first(),
+        mAPIRedirectTo->second() ? nsIChannelEventSink::REDIRECT_PERMANENT |
+                                       nsIChannelEventSink::REDIRECT_INTERNAL
+                                 : nsIChannelEventSink::REDIRECT_PERMANENT);
+    mAPIRedirectTo = Nothing();
+    if (NS_SUCCEEDED(rv)) {
+      return NS_OK;
+    }
+    return NS_ERROR_FAILURE;
+  }
 
   // If mOverrideResponse is set, bypass the rest of the connection and reply
   // immediately with a response built using the data from mOverrideResponse.
@@ -2761,14 +2776,16 @@ nsresult nsHttpChannel::ContinueProcessResponse2(nsresult rv) {
     return CallOnStartRequest();
   }
 
-  if (mAPIRedirectToURI && !mCanceled) {
+  if (mAPIRedirectTo && !mCanceled) {
     MOZ_ASSERT(!LoadOnStartRequestCalled());
-    nsCOMPtr<nsIURI> redirectTo;
-    mAPIRedirectToURI.swap(redirectTo);
 
     PushRedirectAsyncFunc(&nsHttpChannel::ContinueProcessResponse3);
-    rv = StartRedirectChannelToURI(redirectTo,
-                                   nsIChannelEventSink::REDIRECT_TEMPORARY);
+    rv = StartRedirectChannelToURI(
+        mAPIRedirectTo->first(),
+        mAPIRedirectTo->second() ? nsIChannelEventSink::REDIRECT_TEMPORARY |
+                                       nsIChannelEventSink::REDIRECT_INTERNAL
+                                 : nsIChannelEventSink::REDIRECT_TEMPORARY);
+    mAPIRedirectTo = Nothing();
     if (NS_SUCCEEDED(rv)) {
       return NS_OK;
     }
@@ -3321,7 +3338,8 @@ nsresult nsHttpChannel::StartRedirectChannelToHttps() {
 
 void nsHttpChannel::HandleAsyncAPIRedirect() {
   MOZ_ASSERT(!mCallOnResume, "How did that happen?");
-  MOZ_ASSERT(mAPIRedirectToURI, "How did that happen?");
+  MOZ_ASSERT(mAPIRedirectTo, "How did that happen?");
+  MOZ_ASSERT(mAPIRedirectTo->first(), "How did that happen?");
 
   if (mSuspendCount) {
     LOG(("Waiting until resume to do async API redirect [this=%p]\n", this));
@@ -3333,7 +3351,10 @@ void nsHttpChannel::HandleAsyncAPIRedirect() {
   }
 
   nsresult rv = StartRedirectChannelToURI(
-      mAPIRedirectToURI, nsIChannelEventSink::REDIRECT_PERMANENT);
+      mAPIRedirectTo->first(), mAPIRedirectTo->second()
+                                   ? nsIChannelEventSink::REDIRECT_PERMANENT |
+                                         nsIChannelEventSink::REDIRECT_INTERNAL
+                                   : nsIChannelEventSink::REDIRECT_PERMANENT);
   if (NS_FAILED(rv)) {
     rv = ContinueAsyncRedirectChannelToURI(rv);
     if (NS_FAILED(rv)) {
@@ -3539,9 +3560,9 @@ nsresult nsHttpChannel::StartRedirectChannelToURI(nsIURI* upgradedURI,
 nsresult nsHttpChannel::ContinueAsyncRedirectChannelToURI(nsresult rv) {
   LOG(("nsHttpChannel::ContinueAsyncRedirectChannelToURI [this=%p]", this));
 
-  // Since we handle mAPIRedirectToURI also after on-examine-response handler
+  // Since we handle mAPIRedirectTo uri also after on-examine-response handler
   // rather drop it here to avoid any redirect loops, even just hypothetical.
-  mAPIRedirectToURI = nullptr;
+  mAPIRedirectTo = Nothing();
 
   if (NS_SUCCEEDED(rv)) {
     rv = OpenRedirectChannel(rv);
@@ -6271,7 +6292,7 @@ nsHttpChannel::CancelByURLClassifier(nsresult aErrorCode) {
 
   // Check to see if we should redirect this channel elsewhere by
   // nsIHttpChannel.redirectTo API request
-  if (mAPIRedirectToURI) {
+  if (mAPIRedirectTo) {
     StoreChannelClassifierCancellationPending(1);
     return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
   }
@@ -6294,7 +6315,7 @@ void nsHttpChannel::ContinueCancellingByURLClassifier(nsresult aErrorCode) {
 
   // Check to see if we should redirect this channel elsewhere by
   // nsIHttpChannel.redirectTo API request
-  if (mAPIRedirectToURI) {
+  if (mAPIRedirectTo) {
     Unused << AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
     return;
   }
@@ -7926,19 +7947,19 @@ nsresult nsHttpChannel::ContinueOnStartRequest1(nsresult result) {
 
   // before we start any content load, check for redirectTo being called
   // this code is executed mainly before we start load from the cache
-  if (mAPIRedirectToURI && !mCanceled) {
+  if (mAPIRedirectTo && !mCanceled) {
     nsAutoCString redirectToSpec;
-    mAPIRedirectToURI->GetAsciiSpec(redirectToSpec);
+    mAPIRedirectTo->first()->GetAsciiSpec(redirectToSpec);
     LOG(("  redirectTo called with uri=%s", redirectToSpec.BeginReading()));
 
     MOZ_ASSERT(!LoadOnStartRequestCalled());
-
-    nsCOMPtr<nsIURI> redirectTo;
-    mAPIRedirectToURI.swap(redirectTo);
-
     PushRedirectAsyncFunc(&nsHttpChannel::ContinueOnStartRequest2);
-    rv = StartRedirectChannelToURI(redirectTo,
-                                   nsIChannelEventSink::REDIRECT_TEMPORARY);
+    rv = StartRedirectChannelToURI(
+        mAPIRedirectTo->first(),
+        mAPIRedirectTo->second() ? nsIChannelEventSink::REDIRECT_TEMPORARY |
+                                       nsIChannelEventSink::REDIRECT_INTERNAL
+                                 : nsIChannelEventSink::REDIRECT_TEMPORARY);
+    mAPIRedirectTo = Nothing();
     if (NS_SUCCEEDED(rv)) {
       return NS_OK;
     }

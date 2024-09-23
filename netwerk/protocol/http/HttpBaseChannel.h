@@ -13,8 +13,10 @@
 #include "OpaqueResponseUtils.h"
 #include "mozilla/AtomicBitfields.h"
 #include "mozilla/Atomics.h"
+#include "mozilla/CompactPair.h"
 #include "mozilla/dom/DOMTypes.h"
 #include "mozilla/DataMutex.h"
+#include <mozilla/Maybe.h>
 #include "mozilla/net/DNS.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/net/NeckoCommon.h"
@@ -227,6 +229,7 @@ class HttpBaseChannel : public nsHashPropertyBag,
   NS_IMETHOD GetResponseStatusText(nsACString& aValue) override;
   NS_IMETHOD GetRequestSucceeded(bool* aValue) override;
   NS_IMETHOD RedirectTo(nsIURI* newURI) override;
+  NS_IMETHOD InternalRedirectTo(nsIURI* newURI) override;
   NS_IMETHOD UpgradeToSecure() override;
   NS_IMETHOD GetRequestObserversCalled(bool* aCalled) override;
   NS_IMETHOD SetRequestObserversCalled(bool aCalled) override;
@@ -714,7 +717,10 @@ class HttpBaseChannel : public nsHashPropertyBag,
   nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
   nsCOMPtr<nsIProgressEventSink> mProgressSink;
   nsCOMPtr<nsIReferrerInfo> mReferrerInfo;
-  nsCOMPtr<nsIURI> mAPIRedirectToURI;
+  // The first parameter is the URI we would like to redirect to
+  // The second parameter should be true if internal redirect otherwise false
+  // mAPIRedirectTo is Nothing if and only if the URI is null.
+  mozilla::Maybe<mozilla::CompactPair<nsCOMPtr<nsIURI>, bool>> mAPIRedirectTo;
   nsCOMPtr<nsIURI> mProxyURI;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMPtr<nsIURI> mTopWindowURI;

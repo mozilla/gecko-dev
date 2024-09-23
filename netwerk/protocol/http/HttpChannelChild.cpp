@@ -2377,7 +2377,9 @@ nsresult HttpChannelChild::ContinueAsyncOpen() {
   openArgs.uri() = mURI;
   openArgs.original() = mOriginalURI;
   openArgs.doc() = mDocumentURI;
-  openArgs.apiRedirectTo() = mAPIRedirectToURI;
+  if (mAPIRedirectTo) {
+    openArgs.apiRedirectTo() = mAPIRedirectTo->first();
+  }
   openArgs.loadFlags() = mLoadFlags;
   openArgs.requestHeaders() = mClientSetRequestHeaders;
   mRequestHead.Method(openArgs.requestMethod());
@@ -2580,6 +2582,11 @@ HttpChannelChild::SetEmptyRequestHeader(const nsACString& aHeader) {
 NS_IMETHODIMP
 HttpChannelChild::RedirectTo(nsIURI* newURI) {
   // disabled until/unless addons run in child or something else needs this
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+HttpChannelChild::InternalRedirectTo(nsIURI* newURI) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 

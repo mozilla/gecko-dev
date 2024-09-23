@@ -539,6 +539,14 @@ interface nsIHttpChannelInternal : nsISupports
 
     readonly attribute nsresult lastTransportStatus;
 
+
+    /**
+     * Same as redirectTo in nsIHttpChannel, but handles internal redirect
+     * so that we add REDIRECT_INTERNAL to the flag.
+     */
+    [must_use] void internalRedirectTo(in nsIURI aTargetURI);
+
+
     /**
      * For testing purposes only.
      */
