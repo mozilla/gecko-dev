@@ -7021,6 +7021,7 @@ impl PicturePrimitive {
     ) {
         fn draw_debug_border(
             local_rect: &PictureRect,
+            thickness: i32,
             pic_to_world_mapper: &SpaceMapper<PicturePixel, WorldPixel>,
             global_device_pixel_scale: DevicePixelScale,
             color: ColorF,
@@ -7030,6 +7031,7 @@ impl PicturePrimitive {
                 let device_rect = world_rect * global_device_pixel_scale;
                 scratch.push_debug_rect(
                     device_rect,
+                    thickness,
                     color,
                     ColorF::TRANSPARENT,
                 );    
@@ -7079,6 +7081,7 @@ impl PicturePrimitive {
                         if let Some(rect) = rect {
                             draw_debug_border(
                                 &rect,
+                                1,
                                 &map_pic_to_world,
                                 frame_context.global_device_pixel_scale,
                                 ColorF::new(0.0, 1.0, 0.0, 0.2),
@@ -7089,7 +7092,7 @@ impl PicturePrimitive {
                 }
             } else {
                 // Non-tiled picture
-                layer_color = ColorF::new(1.0, 0.0, 0.0, 0.8);
+                layer_color = ColorF::new(1.0, 0.0, 0.0, 0.5);
             }
 
             // Draw a rectangle for the whole picture.
@@ -7099,6 +7102,7 @@ impl PicturePrimitive {
 
             draw_debug_border(
                 &pic_rect,
+                3,
                 &map_pic_to_world,
                 frame_context.global_device_pixel_scale,
                 layer_color,
@@ -7409,6 +7413,7 @@ impl TileNode {
                     let inner_color = outer_color.scale_alpha(0.5);
                     scratch.push_debug_rect(
                         device_rect.inflate(-3.0, -3.0),
+                        1,
                         outer_color,
                         inner_color
                     );

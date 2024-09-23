@@ -16,6 +16,7 @@ pub enum DebugItem {
         outer_color: ColorF,
         inner_color: ColorF,
         rect: DeviceRect,
+        thickness: i32,
     },
 }
 

@@ -4960,20 +4960,26 @@ impl Renderer {
 
         for item in items {
             match item {
-                DebugItem::Rect { rect, outer_color, inner_color } => {
-                    debug_renderer.add_quad(
-                        rect.min.x,
-                        rect.min.y,
-                        rect.max.x,
-                        rect.max.y,
-                        (*inner_color).into(),
-                        (*inner_color).into(),
-                    );
+                DebugItem::Rect { rect, outer_color, inner_color, thickness } => {
+                    if inner_color.a > 0.001 {
+                        let rect = rect.inflate(-thickness as f32, -thickness as f32);
+                        debug_renderer.add_quad(
+                            rect.min.x,
+                            rect.min.y,
+                            rect.max.x,
+                            rect.max.y,
+                            (*inner_color).into(),
+                            (*inner_color).into(),
+                        );    
+                    }
 
-                    debug_renderer.add_rect(
-                        &rect.to_i32(),
-                        (*outer_color).into(),
-                    );
+                    if outer_color.a > 0.001 {
+                        debug_renderer.add_rect(
+                            &rect.to_i32(),
+                            *thickness,
+                            (*outer_color).into(),
+                        );
+                    }
                 }
                 DebugItem::Text { ref msg, position, color } => {
                     debug_renderer.add_text(
@@ -5059,6 +5065,7 @@ impl Renderer {
 
         debug_renderer.add_rect(
             &target_rect.inflate(1, 1),
+            1,
             debug_colors::RED.into(),
         );
 

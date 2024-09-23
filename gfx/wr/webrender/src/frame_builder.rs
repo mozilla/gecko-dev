@@ -844,7 +844,7 @@ impl FrameBuilder {
                     world_rect.min + WorldVector2D::new(STROKE_WIDTH, STROKE_WIDTH),
                     world_rect.max - WorldVector2D::new(STROKE_WIDTH, STROKE_WIDTH)
                 );
-                scratch.push_debug_rect(interior_world_rect * DevicePixelScale::new(1.0), border, fill_color);
+                scratch.push_debug_rect(interior_world_rect * DevicePixelScale::new(1.0), 1, border, fill_color);
               }
 
               Some(())

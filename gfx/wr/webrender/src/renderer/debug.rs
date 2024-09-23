@@ -285,13 +285,23 @@ impl DebugRenderer {
     }
 
 
-    pub fn add_rect(&mut self, rect: &DeviceIntRect, color: ColorU) {
+    pub fn add_rect(&mut self, rect: &DeviceIntRect, thickness: i32, color: ColorU) {
         let p0 = rect.min;
         let p1 = rect.max;
-        self.add_line(p0.x, p0.y, color, p1.x, p0.y, color);
-        self.add_line(p1.x, p0.y, color, p1.x, p1.y, color);
-        self.add_line(p1.x, p1.y, color, p0.x, p1.y, color);
-        self.add_line(p0.x, p1.y, color, p0.x, p0.y, color);
+        if thickness > 1 && rect.width() > thickness * 2 && rect.height() > thickness * 2 {
+            let w = thickness as f32;
+            let p0 = p0.to_f32();
+            let p1 = p1.to_f32();
+            self.add_quad(p0.x, p0.y, p1.x, p0.y + w, color, color);
+            self.add_quad(p1.x - w, p0.y + w, p1.x, p1.y - w, color, color);
+            self.add_quad(p0.x, p1.y - w, p1.x, p1.y, color, color);
+            self.add_quad(p0.x, p0.y + w, p0.x + w, p1.y - w, color, color);
+        } else {
+            self.add_line(p0.x, p0.y, color, p1.x, p0.y, color);
+            self.add_line(p1.x, p0.y, color, p1.x, p1.y, color);
+            self.add_line(p1.x, p1.y, color, p0.x, p1.y, color);
+            self.add_line(p0.x, p1.y, color, p0.x, p0.y, color);    
+        }
     }
 
     pub fn render(
