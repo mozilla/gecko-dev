@@ -11,30 +11,38 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.IconListItem
+import org.mozilla.fenix.compose.list.ImageListItem
 import org.mozilla.fenix.compose.list.TextListItem
 import org.mozilla.fenix.theme.FirefoxTheme
 
 private val MENU_ITEM_HEIGHT_WITHOUT_DESC = 52.dp
 
 private val MENU_ITEM_HEIGHT_WITH_DESC = 56.dp
+
+private val ROUNDED_CORNER_SHAPE = RoundedCornerShape(4.dp)
 
 /**
  * An [IconListItem] wrapper for menu items in a [MenuGroup] with an optional icon at the end.
@@ -134,6 +142,64 @@ internal fun MenuTextItem(
 }
 
 /**
+ * A Web extension menu item used to display an image with a title and a badge.
+ *
+ * @param label The label in the list item.
+ * @param iconPainter [Painter] used to display an [Icon] before the list item.
+ * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
+ * be clickable.
+ * @param badgeText WebExtension badge text.
+ * @param badgeTextColor WebExtension badge text color.
+ * @param badgeBackgroundColor WebExtension badge background color.
+ * @param modifier [Modifier] to be applied to the layout.
+ * @param onClick Called when the user clicks on the item.
+ */
+@Composable
+internal fun WebExtensionMenuItem(
+    label: String,
+    iconPainter: Painter,
+    enabled: Boolean?,
+    badgeText: String?,
+    badgeTextColor: Int?,
+    badgeBackgroundColor: Int?,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+) {
+    ImageListItem(
+        label = label,
+        iconPainter = iconPainter,
+        enabled = enabled == true,
+        modifier = modifier,
+        onClick = onClick,
+        afterListAction = {
+            if (badgeText.isNullOrEmpty()) {
+                return@ImageListItem
+            }
+
+            Column(
+                modifier = Modifier
+                    .background(
+                        color = badgeBackgroundColor?.let { Color(it) }
+                            ?: FirefoxTheme.colors.layer2,
+                        shape = ROUNDED_CORNER_SHAPE,
+                    )
+                    .clip(shape = ROUNDED_CORNER_SHAPE)
+                    .padding(8.dp),
+            ) {
+                Text(
+                    text = badgeText,
+                    color = badgeTextColor?.let { Color(it) }
+                        ?: Color.White,
+                    overflow = TextOverflow.Ellipsis,
+                    style = FirefoxTheme.typography.subtitle1,
+                    maxLines = 1,
+                )
+            }
+        },
+    )
+}
+
+/**
  * Enum containing all the supported state for the menu item.
  */
 enum class MenuItemState {
@@ -183,6 +249,27 @@ private fun getIconTint(state: MenuItemState): Color {
         MenuItemState.ACTIVE -> FirefoxTheme.colors.iconAccentViolet
         MenuItemState.WARNING -> FirefoxTheme.colors.iconCritical
         else -> FirefoxTheme.colors.iconSecondary
+    }
+}
+
+@LightDarkPreview
+@Composable
+private fun WebExtensionMenuItemPreview() {
+    FirefoxTheme {
+        Column(
+            modifier = Modifier
+                .background(color = FirefoxTheme.colors.layer2),
+        ) {
+            WebExtensionMenuItem(
+                label = "label",
+                iconPainter = painterResource(R.drawable.googleg_standard_color_18),
+                enabled = true,
+                badgeText = "badgeText",
+                badgeTextColor = Color.Black.toArgb(),
+                badgeBackgroundColor = Color.Gray.toArgb(),
+                onClick = {},
+            )
+        }
     }
 }
 

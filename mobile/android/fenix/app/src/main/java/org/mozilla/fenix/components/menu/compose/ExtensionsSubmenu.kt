@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.compose
 
+import android.graphics.BitmapFactory
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,6 +16,11 @@ import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -27,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import mozilla.components.feature.addons.Addon
 import org.mozilla.fenix.R
 import org.mozilla.fenix.components.menu.compose.header.SubmenuHeader
+import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.compose.Divider
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.list.TextListItem
@@ -39,6 +46,7 @@ internal const val EXTENSIONS_MENU_ROUTE = "extensions_menu"
 @Composable
 internal fun ExtensionsSubmenu(
     recommendedAddons: List<Addon>,
+    webExtensionMenuItems: List<WebExtensionMenuItem>,
     showExtensionsOnboarding: Boolean,
     addonInstallationInProgress: Addon?,
     onBackButtonClick: () -> Unit,
@@ -70,6 +78,26 @@ internal fun ExtensionsSubmenu(
                 linkText = stringResource(R.string.browser_menu_extensions_banner_learn_more),
                 onClick = onExtensionsLearnMoreClick,
             )
+        }
+
+        if (webExtensionMenuItems.isNotEmpty()) {
+            MenuGroup {
+                for (webExtensionMenuItem in webExtensionMenuItems) {
+                    WebExtensionMenuItem(
+                        label = webExtensionMenuItem.label,
+                        iconPainter = if (webExtensionMenuItem.icon != null) {
+                            BitmapPainter(image = webExtensionMenuItem.icon.asImageBitmap())
+                        } else {
+                            painterResource(R.drawable.mozac_ic_web_extension_default_icon)
+                        },
+                        enabled = webExtensionMenuItem.enabled,
+                        badgeText = webExtensionMenuItem.badgeText,
+                        badgeTextColor = webExtensionMenuItem.badgeTextColor,
+                        badgeBackgroundColor = webExtensionMenuItem.badgeBackgroundColor,
+                        onClick = webExtensionMenuItem.onClick,
+                    )
+                }
+            }
         }
 
         MenuGroup {
@@ -176,6 +204,21 @@ private fun ExtensionsSubmenuPreview() {
                     translatableDescription = mapOf(Addon.DEFAULT_LOCALE to "description"),
                     translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
                 ),
+                webExtensionMenuItems = listOf(
+                    WebExtensionMenuItem(
+                        label = "label",
+                        enabled = true,
+                        icon = BitmapFactory.decodeResource(
+                            LocalContext.current.resources,
+                            R.drawable.googleg_standard_color_18,
+                        ),
+                        badgeText = "1",
+                        badgeTextColor = Color.White.toArgb(),
+                        badgeBackgroundColor = Color.Gray.toArgb(),
+                        onClick = {
+                        },
+                    ),
+                ),
                 onBackButtonClick = {},
                 onExtensionsLearnMoreClick = {},
                 onManageExtensionsMenuClick = {},
@@ -207,6 +250,21 @@ private fun ExtensionsSubmenuPrivatePreview() {
                         translatableName = mapOf(Addon.DEFAULT_LOCALE to "name"),
                         translatableDescription = mapOf(Addon.DEFAULT_LOCALE to "description"),
                         translatableSummary = mapOf(Addon.DEFAULT_LOCALE to "summary"),
+                    ),
+                ),
+                webExtensionMenuItems = listOf(
+                    WebExtensionMenuItem(
+                        label = "label",
+                        enabled = true,
+                        icon = BitmapFactory.decodeResource(
+                            LocalContext.current.resources,
+                            R.drawable.googleg_standard_color_18,
+                        ),
+                        badgeText = "1",
+                        badgeTextColor = Color.White.toArgb(),
+                        badgeBackgroundColor = Color.Gray.toArgb(),
+                        onClick = {
+                        },
                     ),
                 ),
                 showExtensionsOnboarding = true,

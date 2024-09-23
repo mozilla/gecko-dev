@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.components.menu.store
 
+import android.graphics.Bitmap
 import mozilla.components.browser.state.state.TabSessionState
 import mozilla.components.feature.addons.Addon
 import mozilla.components.lib.state.State
@@ -43,10 +44,12 @@ data class BrowserMenuState(
  *
  * @property recommendedAddons A list of recommended [Addon]s to suggest.
  * @property addonInstallationInProgress The [Addon] that is currently being installed.
+ * @property webExtensionMenuItems A list of [WebExtensionMenuItem]s to be shown in the menu.
  */
 data class ExtensionMenuState(
     val recommendedAddons: List<Addon> = emptyList(),
     val addonInstallationInProgress: Addon? = null,
+    val webExtensionMenuItems: List<WebExtensionMenuItem> = emptyList(),
 )
 
 /**
@@ -58,4 +61,25 @@ data class ExtensionMenuState(
 data class BookmarkState(
     val guid: String? = null,
     val isBookmarked: Boolean = false,
+)
+
+/**
+ * Value type that represents the web extension menu item.
+ *
+ * @property label The label of the web extension menu item.
+ * @property enabled Indicates if web extension menu item should be enabled or disabled.
+ * @property icon The icon that should be shown in the menu.
+ * @property badgeText Menu item badge text.
+ * @property badgeTextColor Menu item badge text color.
+ * @property badgeBackgroundColor Menu item badge background color.
+ * @property onClick A callback to be executed when the web extension menu item is clicked.
+ */
+data class WebExtensionMenuItem(
+    val label: String,
+    val enabled: Boolean?,
+    val icon: Bitmap?,
+    val badgeText: String?,
+    val badgeTextColor: Int?,
+    val badgeBackgroundColor: Int?,
+    val onClick: () -> Unit,
 )

@@ -102,6 +102,15 @@ sealed class MenuAction : Action {
     ) : MenuAction()
 
     /**
+     * [MenuAction] dispatched when web extension items list is updated.
+     *
+     * @property webExtensionMenuItems The list of [WebExtensionMenuItem] to be shown in the menu.
+     */
+    data class UpdateWebExtensionMenuItems(
+        val webExtensionMenuItems: List<WebExtensionMenuItem>,
+    ) : MenuAction()
+
+    /**
      * [MenuAction] dispatched when an addon is to be installed.
      *
      * @property addon The [Addon] to install.

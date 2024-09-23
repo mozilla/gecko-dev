@@ -37,6 +37,7 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.concept.engine.translate.TranslationSupport
 import mozilla.components.concept.engine.translate.findLanguage
 import mozilla.components.lib.state.ext.observeAsState
+import mozilla.components.support.base.feature.ViewBoundFeatureWrapper
 import mozilla.components.support.ktx.android.util.dpToPx
 import mozilla.components.support.ktx.android.view.setNavigationBarColorCompat
 import mozilla.telemetry.glean.private.NoExtras
@@ -91,6 +92,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
     private val args by navArgs<MenuDialogFragmentArgs>()
     private val browsingModeManager get() = (activity as HomeActivity).browsingModeManager
+    private val webExtensionsMenuBinding = ViewBoundFeatureWrapper<WebExtensionsMenuBinding>()
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         Events.toolbarMenuVisible.record(NoExtras())
@@ -242,6 +244,18 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val isDesktopMode by store.observeAsState(initialValue = false) { state ->
                         state.isDesktopMode
                     }
+
+                    webExtensionsMenuBinding.set(
+                        feature = WebExtensionsMenuBinding(
+                            browserStore = browserStore,
+                            menuStore = store,
+                            iconSize = 24.dpToPx(requireContext().resources.displayMetrics),
+                            onDismiss = { this@MenuDialogFragment.dismiss() },
+                        ),
+                        owner = this@MenuDialogFragment,
+                        view = this,
+                    )
+
                     val recommendedAddons by store.observeAsState(initialValue = emptyList()) { state ->
                         state.extensionMenuState.recommendedAddons
                     }
@@ -258,6 +272,10 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                     val addonInstallationInProgress by store.observeAsState(initialValue = null) { state ->
                         state.extensionMenuState.addonInstallationInProgress
+                    }
+
+                    val webExtensionMenuItems by store.observeAsState(initialValue = emptyList()) { state ->
+                        state.extensionMenuState.webExtensionMenuItems
                     }
 
                     NavHost(
@@ -542,6 +560,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 recommendedAddons = recommendedAddons,
                                 addonInstallationInProgress = addonInstallationInProgress,
                                 showExtensionsOnboarding = recommendedAddons.isNotEmpty(),
+                                webExtensionMenuItems = webExtensionMenuItems,
                                 onBackButtonClick = {
                                     store.dispatch(MenuAction.Navigate.Back)
                                 },

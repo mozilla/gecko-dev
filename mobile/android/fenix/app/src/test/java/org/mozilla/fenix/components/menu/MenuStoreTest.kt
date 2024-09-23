@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.components.menu
 
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.test.runTest
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
@@ -22,6 +24,7 @@ import org.mozilla.fenix.components.menu.store.ExtensionMenuState
 import org.mozilla.fenix.components.menu.store.MenuAction
 import org.mozilla.fenix.components.menu.store.MenuState
 import org.mozilla.fenix.components.menu.store.MenuStore
+import org.mozilla.fenix.components.menu.store.WebExtensionMenuItem
 import org.mozilla.fenix.components.menu.store.copyWithBrowserMenuState
 import org.mozilla.fenix.components.menu.store.copyWithExtensionMenuState
 
@@ -318,5 +321,30 @@ class MenuStoreTest {
 
             assertEquals(null, store.state.extensionMenuState.addonInstallationInProgress)
             assertEquals(2, store.state.extensionMenuState.recommendedAddons.size)
+        }
+
+    @Test
+    fun `WHEN update web extension menu items is dispatched THEN extension state is updated`() =
+        runTest {
+            val initialState = MenuState()
+            val store = MenuStore(initialState = initialState)
+            val webExtensionMenuItemList = listOf(
+                WebExtensionMenuItem(
+                    label = "label",
+                    enabled = true,
+                    icon = null,
+                    badgeText = "1",
+                    badgeTextColor = Color.White.toArgb(),
+                    badgeBackgroundColor = Color.Gray.toArgb(),
+                    onClick = {
+                    },
+                ),
+            )
+            store.dispatch(MenuAction.UpdateWebExtensionMenuItems(webExtensionMenuItemList)).join()
+
+            assertEquals(
+                store.state.extensionMenuState.webExtensionMenuItems,
+                webExtensionMenuItemList,
+            )
         }
 }

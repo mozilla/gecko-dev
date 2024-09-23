@@ -63,6 +63,44 @@ private val DIVIDER_VERTICAL_PADDING = 6.dp
 private const val TOAST_LENGTH = Toast.LENGTH_SHORT
 
 /**
+ * List item used to display a image with optional Composable for adding UI to the end of the list item.
+ *
+ * @param label The label in the list item.
+ * @param iconPainter [Painter] used to display an [Icon] at the beginning of the list item.
+ * @param enabled Controls the enabled state of the list item. When `false`, the list item will not
+ * be clickable.
+ * @param modifier [Modifier] to be applied to the layout.
+ * @param onClick Called when the user clicks on the item.
+ * @param afterListAction Optional Composable for adding UI to the end of the list item.
+ */
+@Composable
+fun ImageListItem(
+    label: String,
+    iconPainter: Painter,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    afterListAction: @Composable RowScope.() -> Unit = {},
+) {
+    ListItem(
+        label = label,
+        modifier = modifier,
+        enabled = enabled,
+        onClick = onClick,
+        beforeListAction = {
+            Image(
+                painter = iconPainter,
+                contentDescription = null,
+                modifier = Modifier.size(ICON_SIZE),
+            )
+
+            Spacer(modifier = Modifier.width(16.dp))
+        },
+        afterListAction = afterListAction,
+    )
+}
+
+/**
  * List item used to display a label with an optional description text and an optional
  * [IconButton] or [Icon] at the end.
  *
@@ -912,6 +950,29 @@ private fun FaviconListItemPreview() {
                 description = "Description text",
                 faviconPainter = painterResource(id = R.drawable.mozac_ic_collection_24),
                 onClick = { Toast.makeText(context, "list item click", TOAST_LENGTH).show() },
+            )
+        }
+    }
+}
+
+@Composable
+@LightDarkPreview
+private fun ImageListItemPreview() {
+    FirefoxTheme {
+        Column(Modifier.background(FirefoxTheme.colors.layer1)) {
+            ImageListItem(
+                label = "label",
+                iconPainter = painterResource(R.drawable.googleg_standard_color_18),
+                enabled = true,
+                onClick = {},
+                afterListAction = {
+                    Text(
+                        text = "afterListItemText",
+                        color = Color.White,
+                        style = FirefoxTheme.typography.subtitle1,
+                        maxLines = 1,
+                    )
+                },
             )
         }
     }

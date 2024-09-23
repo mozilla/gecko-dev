@@ -223,6 +223,7 @@ class MenuTelemetryMiddleware(
             is MenuAction.UpdateBookmarkState,
             is MenuAction.UpdateExtensionState,
             is MenuAction.UpdatePinnedState,
+            is MenuAction.UpdateWebExtensionMenuItems,
             is MenuAction.InstallAddonFailed,
             is MenuAction.InstallAddonSuccess,
             is MenuAction.UpdateInstallAddonInProgress,
