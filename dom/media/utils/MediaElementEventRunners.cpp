@@ -171,8 +171,8 @@ NS_IMETHODIMP nsSourceErrorEventRunner::Run() {
             ("%p Dispatching simple event source error", mElement.get()));
   if (profiler_is_collecting_markers()) {
     profiler_add_marker(nsPrintfCString("%p:sourceerror", mElement.get()),
-                      geckoprofiler::category::MEDIA_PLAYBACK, {},
-                      ErrorMarker{}, mErrorDetails);
+                        geckoprofiler::category::MEDIA_PLAYBACK, {},
+                        ErrorMarker{}, mErrorDetails);
   }
   return nsContentUtils::DispatchTrustedEvent(mElement->OwnerDoc(), mSource,
                                               u"error"_ns, CanBubble::eNo,
