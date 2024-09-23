@@ -359,6 +359,8 @@ pub const IMAGE_FILE_MACHINE_AMD64: u16 = 0x8664;
 pub const IMAGE_FILE_MACHINE_M32R: u16 = 0x9041;
 /// ARM64 Little-Endian
 pub const IMAGE_FILE_MACHINE_ARM64: u16 = 0xAA64;
+/// ARM64EC ("Emulation Compatible")
+pub const IMAGE_FILE_MACHINE_ARM64EC: u16 = 0xA641;
 pub const IMAGE_FILE_MACHINE_CEE: u16 = 0xC0EE;
 /// RISCV32
 pub const IMAGE_FILE_MACHINE_RISCV32: u16 = 0x5032;
@@ -366,6 +368,10 @@ pub const IMAGE_FILE_MACHINE_RISCV32: u16 = 0x5032;
 pub const IMAGE_FILE_MACHINE_RISCV64: u16 = 0x5064;
 /// RISCV128
 pub const IMAGE_FILE_MACHINE_RISCV128: u16 = 0x5128;
+/// ARM64X (Mixed ARM64 and ARM64EC)
+pub const IMAGE_FILE_MACHINE_ARM64X: u16 = 0xA64E;
+/// CHPE x86 ("Compiled Hybrid Portable Executable")
+pub const IMAGE_FILE_MACHINE_CHPE_X86: u16 = 0x3A64;
 
 //
 // Directory format.

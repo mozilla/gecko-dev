@@ -1,12 +1,16 @@
 use core::fmt::Debug;
 use core::mem;
 
+use crate::endian::{LittleEndian as LE, U16Bytes};
+use crate::pe;
+use crate::pod::Pod;
 use crate::read::{Bytes, ReadError, Result};
-use crate::{pe, LittleEndian as LE, Pod, U16Bytes};
 
 use super::ImageNtHeaders;
 
 /// Information for parsing a PE import table.
+///
+/// Returned by [`DataDirectories::import_table`](super::DataDirectories::import_table).
 #[derive(Debug, Clone)]
 pub struct ImportTable<'data> {
     section_data: Bytes<'data>,
@@ -38,7 +42,7 @@ impl<'data> ImportTable<'data> {
         let mut data = self.section_data;
         data.skip(offset as usize)
             .read_error("Invalid PE import descriptor address")?;
-        Ok(ImportDescriptorIterator { data })
+        Ok(ImportDescriptorIterator { data, null: false })
     }
 
     /// Return a library name given its address.
@@ -97,6 +101,7 @@ impl<'data> ImportTable<'data> {
 #[derive(Debug, Clone)]
 pub struct ImportDescriptorIterator<'data> {
     data: Bytes<'data>,
+    null: bool,
 }
 
 impl<'data> ImportDescriptorIterator<'data> {
@@ -104,15 +109,35 @@ impl<'data> ImportDescriptorIterator<'data> {
     ///
     /// Returns `Ok(None)` when a null descriptor is found.
     pub fn next(&mut self) -> Result<Option<&'data pe::ImageImportDescriptor>> {
-        let import_desc = self
+        if self.null {
+            return Ok(None);
+        }
+        let result = self
             .data
             .read::<pe::ImageImportDescriptor>()
-            .read_error("Missing PE null import descriptor")?;
-        if import_desc.is_null() {
-            Ok(None)
-        } else {
-            Ok(Some(import_desc))
+            .read_error("Missing PE null import descriptor");
+        match result {
+            Ok(import_desc) => {
+                if import_desc.is_null() {
+                    self.null = true;
+                    Ok(None)
+                } else {
+                    Ok(Some(import_desc))
+                }
+            }
+            Err(e) => {
+                self.null = true;
+                Err(e)
+            }
         }
+    }
+}
+
+impl<'data> Iterator for ImportDescriptorIterator<'data> {
+    type Item = Result<&'data pe::ImageImportDescriptor>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next().transpose()
     }
 }
 
@@ -218,6 +243,9 @@ impl ImageThunkData for pe::ImageThunkData32 {
 }
 
 /// Information for parsing a PE delay-load import table.
+///
+/// Returned by
+/// [`DataDirectories::delay_load_import_table`](super::DataDirectories::delay_load_import_table).
 #[derive(Debug, Clone)]
 pub struct DelayLoadImportTable<'data> {
     section_data: Bytes<'data>,
@@ -249,7 +277,7 @@ impl<'data> DelayLoadImportTable<'data> {
         let mut data = self.section_data;
         data.skip(offset as usize)
             .read_error("Invalid PE delay-load import descriptor address")?;
-        Ok(DelayLoadDescriptorIterator { data })
+        Ok(DelayLoadDescriptorIterator { data, null: false })
     }
 
     /// Return a library name given its address.
@@ -312,6 +340,7 @@ impl<'data> DelayLoadImportTable<'data> {
 #[derive(Debug, Clone)]
 pub struct DelayLoadDescriptorIterator<'data> {
     data: Bytes<'data>,
+    null: bool,
 }
 
 impl<'data> DelayLoadDescriptorIterator<'data> {
@@ -319,14 +348,34 @@ impl<'data> DelayLoadDescriptorIterator<'data> {
     ///
     /// Returns `Ok(None)` when a null descriptor is found.
     pub fn next(&mut self) -> Result<Option<&'data pe::ImageDelayloadDescriptor>> {
-        let import_desc = self
+        if self.null {
+            return Ok(None);
+        }
+        let result = self
             .data
             .read::<pe::ImageDelayloadDescriptor>()
-            .read_error("Missing PE null delay-load import descriptor")?;
-        if import_desc.is_null() {
-            Ok(None)
-        } else {
-            Ok(Some(import_desc))
+            .read_error("Missing PE null delay-load import descriptor");
+        match result {
+            Ok(import_desc) => {
+                if import_desc.is_null() {
+                    self.null = true;
+                    Ok(None)
+                } else {
+                    Ok(Some(import_desc))
+                }
+            }
+            Err(e) => {
+                self.null = true;
+                Err(e)
+            }
         }
+    }
+}
+
+impl<'data> Iterator for DelayLoadDescriptorIterator<'data> {
+    type Item = Result<&'data pe::ImageDelayloadDescriptor>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next().transpose()
     }
 }

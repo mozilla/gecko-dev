@@ -11,7 +11,14 @@ For reading files, it provides multiple levels of support:
 * a higher level unified API for accessing common features of object files, such
   as sections and symbols ([example](crates/examples/src/objdump.rs))
 
-Supported file formats: ELF, Mach-O, Windows PE/COFF, Wasm, XCOFF, and Unix archive.
+Supported file formats for reading: ELF, Mach-O, Windows PE/COFF, Wasm, XCOFF, and Unix archive.
+
+For writing files, it provides:
+
+* low level writers for ELF, PE, and COFF
+* higher level builder for ELF ([example](crates/rewrite/src))
+* a unified API for writing relocatable object files (ELF, Mach-O, COFF, XCOFF)
+  ([example](crates/examples/src/bin/simple_write.rs))
 
 ## Example for unified read API
 ```rust
@@ -19,16 +26,14 @@ use object::{Object, ObjectSection};
 use std::error::Error;
 use std::fs;
 
-/// Reads a file and displays the content of the ".boot" section.
+/// Reads a file and displays the name of each section.
 fn main() -> Result<(), Box<dyn Error>> {
-  let bin_data = fs::read("./multiboot2-binary.elf")?;
-  let obj_file = object::File::parse(&*bin_data)?;
-  if let Some(section) = obj_file.section_by_name(".boot") {
-    println!("{:#x?}", section.data()?);
-  } else {
-    eprintln!("section not available");
-  }
-  Ok(())
+    let binary_data = fs::read("path/to/binary")?;
+    let file = object::File::parse(&*binary_data)?;
+    for section in file.sections() {
+        println!("{}", section.name()?);
+    }
+    Ok(())
 }
 ```
 
@@ -37,10 +42,7 @@ See [`crates/examples`](crates/examples) for more examples.
 ## Minimum Supported Rust Version (MSRV)
 
 Changes to MSRV are considered breaking changes. We are conservative about changing the MSRV,
-but sometimes are required to due to dependencies. The MSRV is:
-
-  * 1.60.0 for the `read` feature and its dependencies.
-  * 1.65.0 for other features.
+but sometimes are required to due to dependencies. The MSRV is 1.65.0.
 
 ## License
 

@@ -3,13 +3,19 @@
 //! These are used by some Windows linkers as a more compact way to describe
 //! dynamically imported symbols.
 
-use crate::read::{Architecture, Error, ReadError, ReadRef, Result};
-use crate::{pe, ByteString, Bytes, LittleEndian as LE};
+use crate::endian::LittleEndian as LE;
+use crate::pe;
+use crate::read::{
+    Architecture, ByteString, Bytes, Error, ReadError, ReadRef, Result, SubArchitecture,
+};
 
 /// A Windows short form description of a symbol to import.
 ///
 /// Used in Windows import libraries to provide a mapping from
 /// a symbol name to a DLL export. This is not an object file.
+///
+/// This is a file that starts with [`pe::ImportObjectHeader`], and corresponds
+/// to [`crate::FileKind::CoffImport`].
 #[derive(Debug, Clone)]
 pub struct ImportFile<'data> {
     header: &'data pe::ImportObjectHeader,
@@ -64,10 +70,18 @@ impl<'data> ImportFile<'data> {
     pub fn architecture(&self) -> Architecture {
         match self.header.machine.get(LE) {
             pe::IMAGE_FILE_MACHINE_ARMNT => Architecture::Arm,
-            pe::IMAGE_FILE_MACHINE_ARM64 => Architecture::Aarch64,
+            pe::IMAGE_FILE_MACHINE_ARM64 | pe::IMAGE_FILE_MACHINE_ARM64EC => Architecture::Aarch64,
             pe::IMAGE_FILE_MACHINE_I386 => Architecture::I386,
             pe::IMAGE_FILE_MACHINE_AMD64 => Architecture::X86_64,
             _ => Architecture::Unknown,
+        }
+    }
+
+    /// Get the sub machine type, if available.
+    pub fn sub_architecture(&self) -> Option<SubArchitecture> {
+        match self.header.machine.get(LE) {
+            pe::IMAGE_FILE_MACHINE_ARM64EC => Some(SubArchitecture::Arm64EC),
+            _ => None,
         }
     }
 
@@ -181,7 +195,7 @@ impl pe::ImportObjectHeader {
     }
 }
 
-/// The data following `ImportObjectHeader`.
+/// The data following [`pe::ImportObjectHeader`].
 #[derive(Debug, Clone)]
 pub struct ImportObjectData<'data> {
     symbol: ByteString<'data>,
