@@ -811,7 +811,7 @@ IMPL_LENGTHPERCENTAGE_FORWARDS(StyleInset)
 
 template <>
 inline bool StyleInset::IsAnchorPositioningFunction() const {
-  return IsAnchorFunction();
+  return IsAnchorFunction() || IsAnchorSizeFunction();
 }
 
 #undef IMPL_LENGTHPERCENTAGE_FORWARDS

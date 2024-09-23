@@ -1761,8 +1761,12 @@ impl Inset {
         if input.try_parse(|i| i.expect_ident_matching("auto")).is_ok() {
             return Ok(Self::Auto);
         }
-        let inner = AnchorFunction::parse(context, input)?;
-        Ok(Self::AnchorFunction(Box::new(inner)))
+        if let Ok(inner) = input.try_parse(|i| AnchorFunction::parse(context, i)) {
+            return Ok(Self::AnchorFunction(Box::new(inner)));
+        }
+        Ok(Self::AnchorSizeFunction(Box::new(
+            specified::AnchorSizeFunction::parse(context, input)?,
+        )))
     }
 }
 

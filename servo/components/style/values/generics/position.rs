@@ -12,6 +12,7 @@ use style_traits::SpecifiedValueInfo;
 use style_traits::ToCss;
 
 use crate::values::animated::ToAnimatedZero;
+use crate::values::generics::length::GenericAnchorSizeFunction;
 use crate::values::generics::ratio::Ratio;
 use crate::values::generics::Optional;
 use crate::values::DashedIdent;
@@ -284,6 +285,14 @@ pub enum GenericInset<P, LP> {
         #[distance(field_bound)]
         Box<GenericAnchorFunction<P, LP>>,
     ),
+    /// Inset defined by the size of the anchor element.
+    ///
+    /// <https://drafts.csswg.org/css-anchor-position-1/#anchor-pos>
+    AnchorSizeFunction(
+        #[animation(field_bound)]
+        #[distance(field_bound)]
+        Box<GenericAnchorSizeFunction<LP>>,
+    ),
 }
 
 impl<P, LP> SpecifiedValueInfo for GenericInset<P, LP>
@@ -294,7 +303,7 @@ where
         LP::collect_completion_keywords(f);
         f(&["auto"]);
         if static_prefs::pref!("layout.css.anchor-positioning.enabled") {
-            f(&["anchor"]);
+            f(&["anchor", "anchor-size"]);
         }
     }
 }

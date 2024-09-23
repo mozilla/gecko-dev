@@ -324,6 +324,7 @@ include = [
   "ViewTransitionName",
   "Inset",
   "AnchorFunction",
+  "AnchorSizeFunction",
 ]
 item_types = ["enums", "structs", "unions", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
