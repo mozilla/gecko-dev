@@ -2182,10 +2182,7 @@ function getCM(dbg) {
 
 // Gets the mode used for the file
 function getEditorFileMode(dbg) {
-  if (isCm6Enabled) {
-    return dbg.win.document.querySelector(".cm-content").dataset.language;
-  }
-  return getCM(dbg).getOption("mode").name;
+  return getCMEditor(dbg).getEditorFileMode();
 }
 
 function getCoordsFromPosition(cm, { line, ch }) {
