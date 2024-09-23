@@ -7,13 +7,13 @@ Many of those span multiple projects (branches) instead of riding the trains.
 Global Settings
 ---------------
 
-The data behind configuration of all of these resources is kept in the `ci-configuration`_ repository.
+The data behind configuration of all of these resources is kept in the `fxci-config`_ repository.
 The files in this repository are intended to be self-documenting, but one of particular interest is ``projects.yml``, which describes the needs of each project.
 
 Configuration Implementation
 ----------------------------
 
-Translation of `ci-configuration`_ to Taskcluster resources, and updating those resources, is handled by `ci-admin`_.
+Translation of `fxci-config`_ to Taskcluster resources, and updating those resources, is handled by `ci-admin`_.
 This is a small Python application with commands to generate the expected configuration, compare the expected to actual configuration, and apply the expected configuration.
 Only the ``apply`` subcommand requires elevated privileges.
 
@@ -22,14 +22,11 @@ This tool automatically annotates all managed resources with "DO NOT EDIT", warn
 Changing Configuration
 ----------------------
 
-To change Taskcluster configuration, make patches to `ci-configuration`_ or (if necessary) `ci-admin`_, using the Firefox Build System :: Task Configuration Bugzilla component.
-Part of the landing process is for someone with administrative scopes to apply the resulting configuration.
+To change Taskcluster configuration, make patches to `fxci-config`_, using the Firefox Build System :: Task Configuration Bugzilla component.
+The resulting configuration is applied upon landing.
 
-You can test your patches with something like this, assuming ``.`` is a checkout of the `ci-configuration`_ repository containing your changes:
+See also the `releng documentation`_.
 
-.. code-block: shell
-
-  ci-admin diff --ci-configuration-directory .
-
-.. _ci-configuration: https://hg.mozilla.org/ci/ci-configuration/file
-.. _ci-admin: https://hg.mozilla.org/ci/ci-admin/file
+.. _fxci-config: https://github.com/mozilla-releng/fxci-config
+.. _ci-admin: https://github.com/mozilla-releng/fxci-config/tree/main/src/ciadmin
+.. _releng documentation: https://docs.mozilla-releng.net/en/latest/how-to/taskcluster/ci_admin.html

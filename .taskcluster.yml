@@ -1,6 +1,6 @@
 # yamllint disable rule:line-length
 # This file is rendered via JSON-e by
-# - hg-push - https://hg.mozilla.org/ci/ci-admin/file/default/build-decision/src/build_decision/hg_push.py
+# - hg-push - https://github.com/mozilla-releng/fxci-config/blob/main/build-decision/src/build_decision/hg_push.py
 #   {
 #     tasks_for: 'hg-push',
 #     push: {owner, comment, pushlog_id, pushdate},
@@ -10,7 +10,7 @@
 #     ownTaskId: // taskId of the task that will be created
 #   }
 #
-# - cron tasks - https://hg.mozilla.org/ci/ci-admin/file/default/build-decision/src/build_decision/cron/decision.py
+# - cron tasks - https://github.com/mozilla-releng/fxci-config/blob/main/build-decision/src/build_decision/cron/decision.py
 #   {
 #     tasks_for: 'cron',
 #     push: {revision, pushlog_id, pushdate, owner}
@@ -22,8 +22,8 @@
 #
 # - action tasks - See:
 #   * taskcluster/gecko_taskgraph/actions/registry.py,
-#   * https://docs.taskcluster.net/docs/manual/using/actions/spec
-#   * ci-admin:ciadmin/generate/in_tree_actions.py
+#   * https://docs.taskcluster.net/docs/manual/design/conventions/actions/spec
+#   * https://github.com/mozilla-releng/fxci-config/blob/main/src/ciadmin/generate/in_tree_actions.py
 #
 #   The registry generates the hookPayload that appears in actions.json, and
 #   contains data from the decision task as well as JSON-e code to combine that

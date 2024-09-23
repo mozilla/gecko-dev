@@ -11,7 +11,7 @@ In the root of the Gecko directory, you will find `.cron.yml`.  This defines
 the periodic tasks ("cron jobs") run for Gecko.  Each specifies a name, what to
 do, and some parameters to determine when the cron job should occur.
 
-See `the schema <https://hg.mozilla.org/ci/ci-configuration/file/tip/build-decision/src/build_decision/cron/schema.yml>`_
+See `the schema <https://github.com/mozilla-releng/fxci-config/blob/main/build-decision/src/build_decision/cron/schema.yml>`_
 for details on the format and meaning of this file.
 
 How It Works
@@ -21,8 +21,7 @@ The `TaskCluster Hooks Service <https://firefox-ci-tc.services.mozilla.com/hooks
 has a hook configured for each repository supporting periodic task graphs.  The
 hook runs every 15 minutes, and the resulting task is referred to as a "cron task".
 That cron task runs the `build-decision
-<https://hg.mozilla.org/ci/ci-admin/file/default/build-decision>`_ image in a
-checkout of the Gecko source tree.
+<https://github.com/mozilla-releng/fxci-config/tree/main/build-decision>`_ image.
 
 The task reads ``.cron.yml``, then consults the current time (actually the time
 the cron task was created, rounded down to the nearest 15 minutes) and creates

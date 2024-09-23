@@ -14,7 +14,7 @@ The second part is the `Firefox CI`_ instance of Taskcluster. This is the
 Taskcluster deployment responsible for running most of Mozilla's CI needs. This
 component is comprised of a Kubernetes cluster to run the Taskcluster services
 (maintained by SRE Services), some customizations to support Taskcluster
-on ``hg.mozilla.org`` and access control in the `ci-configuration`_ repo
+on ``hg.mozilla.org`` and access control in the `fxci-config`_ repo
 (maintained by Release Engineering).
 
 The third part is `Taskgraph`_. Taskgraph is a Python library that can generate
@@ -32,7 +32,7 @@ documentation.
 
    Today the version of Taskgraph under ``taskcluster/gecko_taskgraph`` depends
    on the standalone version, which is vendored under
-   ``third_party/python/taskcluster-taskgraph``. There is still a lot of
+   ``third_party/python/taskcluster_taskgraph``. There is still a lot of
    duplication between these places, but ``gecko_taskgraph`` is slowly being
    re-written to consume standalone Taskgraph.
 
@@ -60,7 +60,7 @@ becoming a task-graph expert, check out the :doc:`how-to section <howto/index>`.
 .. _continuous integration: https://en.wikipedia.org/wiki/Continuous_integration
 .. _Taskcluster: https://taskcluster.net/
 .. _Firefox CI: https://firefox-ci-tc.services.mozilla.com/
-.. _ci-configuration: https://hg.mozilla.org/ci/ci-configuration/
+.. _fxci-config: https://github.com/mozilla-releng/fxci-config
 .. _Taskgraph: https://github.com/taskcluster/taskgraph
 .. _DAG: https://en.wikipedia.org/wiki/Directed_acyclic_graph
 .. _Taskgraph's documentation: https://taskcluster-taskgraph.readthedocs.io/en/latest/
