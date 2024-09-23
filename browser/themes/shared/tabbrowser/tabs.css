@@ -48,38 +48,6 @@
   &[lwtheme] {
     --tab-selected-outline-color: var(--lwt-tab-line-color, currentColor);
   }
-
-  /* TAB GROUP COLORS
-   * tab-group-color-* is used for expanded groups in light mode and collapsed groups in dark mode
-   * tab-group-color-*-invert is used for expanded groups in dark mode
-   * tab-group-color-*-pale is used for collapsed groups in light mode */
-  --tab-group-color-blue: #0069CC;
-  --tab-group-color-blue-invert: #52A9FE;
-  --tab-group-color-blue-pale: #F2F9FF;
-  --tab-group-color-purple: #8C39BC;
-  --tab-group-color-purple-invert: #C188EA;
-  --tab-group-color-purple-pale: #FBF6FF;
-  --tab-group-color-cyan: #007B7C;
-  --tab-group-color-cyan-invert: #4AB6C7;
-  --tab-group-color-cyan-pale: #EFFBFC;
-  --tab-group-color-orange: #B14200;
-  --tab-group-color-orange-invert: #EE8545;
-  --tab-group-color-orange-pale: #FFF6F1;
-  --tab-group-color-yellow: #955C00;
-  --tab-group-color-yellow-invert: #F5AE39;
-  --tab-group-color-yellow-pale: #FCF8EF;
-  --tab-group-color-pink: #BB1562;
-  --tab-group-color-pink-invert: #E17CC2;
-  --tab-group-color-pink-pale: #FFF5FB;
-  --tab-group-color-green: #477A00;
-  --tab-group-color-green-invert: #6EBB5D;
-  --tab-group-color-green-pale: #F4FBF2;
-  --tab-group-color-red: #C21725;
-  --tab-group-color-red-invert: #F47B74;
-  --tab-group-color-red-pale: #FFF5F5;
-  --tab-group-color-gray: #5E6A77;
-  --tab-group-color-gray-invert: #99A6B4;
-  --tab-group-color-gray-pale: #F2F9FF;
 }
 
 #tabbrowser-tabs {
@@ -736,76 +704,18 @@ tab-group {
   min-width: 2em;
   max-width: 10em;
   padding: 0 4px;
-  color: light-dark(var(--tab-group-color-pale), var(--color-gray-100));
-  background-color: light-dark(var(--tab-group-color), var(--tab-group-color-invert));
-  margin: auto 0;
+
+  background-color: var(--tab-group-color);
+  /* TODO: pick the right text color depending on group color */
+  color: white;
 
   tab-group[collapsed] > .tab-group-label-container > & {
-    background-color: light-dark(var(--tab-group-color-pale), var(--tab-group-color));
-    color: light-dark(var(--tab-group-color), var(--tab-group-color-pale));
-    outline: 1px solid light-dark(var(--tab-group-color), var(--tab-group-color-pale));
+    /* TODO: choose actual color values from the spec instead of generating on the fly */
+    background-color: color-mix(in srgb, var(--tab-group-color) 30%, white);
+    color: var(--tab-group-color);
+    outline: 1px solid var(--tab-group-color);
   }
 }
-
-.tab-group-editor-panel {
-  --panel-width: 20em;
-  --panel-padding: var(--space-large);
-  --panel-separator-margin: var(--panel-separator-margin-vertical) 0;
-  font: menu;
-
-  .panel-header {
-    min-height: auto;
-  }
-
-  toolbarseparator {
-    margin-top: var(--space-medium);
-  }
-
-  .panel-body {
-    padding-block: var(--space-medium);
-  }
-
-  .tab-group-editor-name {
-    display: flex;
-    flex-direction: column;
-    > label {
-      margin-inline: 0;
-      margin-bottom: var(--space-small);
-    }
-    > input[type="text"] {
-      padding: var(--space-medium);
-    }
-  }
-
-  .tab-group-editor-swatches {
-    display: flex;
-    flex-flow: row nowrap;
-    justify-content: space-between;
-  }
-
-  input[name="tab-group-color"] {
-    width: 0;
-    height: 0;
-    opacity: 0;
-    margin: 0;
-    position: absolute;
-
-    &:checked + .tab-group-editor-swatch {
-      outline: var(--focus-outline);
-      outline-offset: var(--focus-outline-offset);
-    }
-  }
-
-  .tab-group-editor-swatch {
-    display: block;
-    width: 16px;
-    height: 16px;
-    border-radius: 20%;
-    background-color: light-dark(var(--tabgroup-swatch-color), var(--tabgroup-swatch-color-invert));
-  }
-}
-
-
 
 /* Tab Overflow */
 

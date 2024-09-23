@@ -143,7 +143,6 @@
       window.addEventListener("framefocusrequested", this);
       window.addEventListener("activate", this);
       window.addEventListener("deactivate", this);
-      window.addEventListener("TabGroupCreate", this);
 
       this.tabContainer.init();
       this._setupInitialBrowserAndTab();
@@ -345,11 +344,6 @@
 
     get tabGroups() {
       return this.tabContainer.allGroups;
-    },
-
-    get tabGroupMenu() {
-      delete this.tabGroupMenu;
-      return (this.tabGroupMenu = document.getElementById("tab-group-editor"));
     },
 
     get tabbox() {
@@ -6151,9 +6145,6 @@
             this.selectedBrowser.preserveLayers(inactive);
             this.selectedBrowser.docShellIsActive = !inactive;
           }
-          break;
-        case "TabGroupCreate":
-          this.tabGroupMenu.openCreateModal(aEvent.target);
           break;
         case "activate":
         // Intentional fallthrough
