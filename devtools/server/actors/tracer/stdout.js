@@ -50,11 +50,6 @@ class StdoutTracingListener {
     return true;
   }
 
-  onTracingInfiniteLoop() {
-    // Delegate to JavaScriptTracer to log to stdout
-    return true;
-  }
-
   /**
    * Called by JavaScriptTracer class when a new mutation happened on any DOM Element.
    *

@@ -124,31 +124,6 @@ class ResourcesTracingListener {
     return false;
   }
 
-  onTracingInfiniteLoop() {
-    const consoleMessageWatcher = getResourceWatcher(
-      this.targetActor,
-      TYPES.CONSOLE_MESSAGE
-    );
-    if (!consoleMessageWatcher) {
-      return true;
-    }
-
-    const message =
-      "Looks like an infinite recursion? We stopped the JavaScript tracer, but code may still be running! " +
-      `(This is configurable via ${lazy.JSTracer.MAX_DEPTH_PREF} preference)`;
-    consoleMessageWatcher.emitMessages([
-      {
-        arguments: [message],
-        styles: [],
-        level: "jstracer",
-        chromeContext: false,
-        timeStamp: ChromeUtils.dateNow(),
-      },
-    ]);
-
-    return false;
-  }
-
   /**
    * Called by JavaScriptTracer class when a new mutation happened on any DOM Element.
    *

@@ -51,10 +51,6 @@ const isWorker =
   globalThis.isWorker ||
   globalThis.constructor.name == "WorkerDebuggerGlobalScope";
 
-// The following preference controls the depth limit which, when hit,
-// will automatically stop the tracer and declare the current stack as an infinite loop.
-const MAX_DEPTH_PREF = "devtools.debugger.javascript-tracing-max-depth";
-
 // This module can be loaded from the worker thread, where we can't use ChromeUtils.
 // So implement custom lazy getters (without XPCOMUtils ESM) from here.
 // Worker codepath in DevTools will pass a custom Debugger instance.
@@ -225,9 +221,6 @@ class JavaScriptTracer {
     this.traceFunctionReturn = !!options.traceFunctionReturn;
     this.useNativeTracing = !!options.useNativeTracing;
     this.maxDepth = options.maxDepth;
-    this.infiniteLoopDepthLimit = isWorker
-      ? 200
-      : Services.prefs.getIntPref(MAX_DEPTH_PREF, 200);
     this.maxRecords = options.maxRecords;
     this.records = 0;
     if ("pauseOnStep" in options) {
@@ -643,25 +636,6 @@ class JavaScriptTracer {
   }
 
   /**
-   * Notify DevTools and/or the user via stdout that tracing
-   * stopped because of an infinite loop.
-   */
-  notifyInfiniteLoop() {
-    let shouldLogToStdout = listeners.size == 0;
-    for (const listener of listeners) {
-      if (typeof listener.onTracingInfiniteLoop == "function") {
-        shouldLogToStdout |= listener.onTracingInfiniteLoop();
-      }
-    }
-    if (shouldLogToStdout) {
-      this.loggingMethod(
-        this.prefix +
-          `Looks like an infinite recursion? We stopped the JavaScript tracer, but code may still be running!\n(This is configurable via ${MAX_DEPTH_PREF} preference)\n`
-      );
-    }
-  }
-
-  /**
    * Called by the Debugger API (this.dbg) when a new frame is executed.
    *
    * @param {Debugger.Frame} frame
@@ -707,13 +681,6 @@ class JavaScriptTracer {
           return;
         }
         this.records++;
-      }
-
-      // Consider that beyond some depth, we are running an infinite recursive loop and stop the tracer.
-      if (depth == this.infiniteLoopDepthLimit) {
-        this.notifyInfiniteLoop();
-        this.stopTracing("infinite-loop");
-        return;
       }
 
       const frameId = this.frameId++;
@@ -1082,9 +1049,6 @@ function maybeGetNativeTrace() {
  *   Where state is a boolean to indicate if tracing has just been enabled of disabled.
  *   It may be immediatelly called if a tracer is already active.
  *
- * - onTracingInfiniteLoop()
- *   Called when the tracer stopped because of an infinite loop.
- *
  * - onTracingFrame({ frame, depth, formatedDisplayName, prefix })
  *   Called each time we enter a new JS frame.
  *   - frame is a Debugger.Frame object
@@ -1183,5 +1147,4 @@ export const JSTracer = {
   removeTracingListener,
   NEXT_INTERACTION_MESSAGE,
   DOM_MUTATIONS,
-  MAX_DEPTH_PREF,
 };

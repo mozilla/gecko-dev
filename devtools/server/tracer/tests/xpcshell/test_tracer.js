@@ -565,16 +565,10 @@ add_task(async function testTracingAllGlobals() {
 });
 
 add_task(async function testTracingInfiniteLoop() {
-  // Set a very low infinite loop threshold for the test
-  Services.prefs.setIntPref(
-    "devtools.debugger.javascript-tracing-max-depth",
-    5
-  );
-
-  // Test the automatic stop of tracer when hitting the infinite loop detection
+  // Test that the tracer handles infinite loops
   const sandbox = Cu.Sandbox("https://example.com");
   Cu.evalInSandbox(
-    `function foo(i=0) { if (i < 10) bar(i); } function bar(i) { foo(i+1) };`,
+    `function foo() { bar(); }; function bar() { foo() };`,
     sandbox
   );
 
@@ -591,28 +585,23 @@ add_task(async function testTracingInfiniteLoop() {
   });
 
   info("Call some code");
-  sandbox.foo();
+  try {
+    sandbox.foo();
+    Assert.fail("Should have thrown error because of infinite loop");
+  } catch (e) {
+    Assert.equal(e.message, "too much recursion");
+  }
 
-  Assert.equal(logs.length, 8);
+  Assert.greater(logs.length, 1000);
   Assert.equal(logs[0], "Start tracing JavaScript\n");
 
-  // This will stop logging trace after 5 nested calls:
+  // This will stop logging trace once spidermonkey stopped the execution
   Assert.stringContains(logs[1], "λ foo");
   Assert.stringContains(logs[2], "λ bar");
   Assert.stringContains(logs[3], "λ foo");
   Assert.stringContains(logs[4], "λ bar");
   Assert.stringContains(logs[5], "λ foo");
 
-  Assert.stringContains(logs[6], "Looks like an infinite recursion");
-  Assert.stringContains(
-    logs[7],
-    "Stop tracing JavaScript (reason: infinite-loop)"
-  );
-
   info("Stop tracing");
   JSTracer.stopTracing();
-
-  Services.prefs.clearUserPref(
-    "devtools.debugger.javascript-tracing-max-depth"
-  );
-}); //.only();
+});

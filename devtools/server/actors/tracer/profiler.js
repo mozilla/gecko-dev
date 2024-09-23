@@ -370,11 +370,6 @@ class ProfilerTracingListener {
     return false;
   }
 
-  onTracingInfiniteLoop() {
-    this.traceActor.stopTracing();
-    return true;
-  }
-
   /**
    * Called by JavaScriptTracer class when a new mutation happened on any DOM Element.
    *
