@@ -15,7 +15,10 @@ support-files = [
 ["browser_siteData.js"]
 
 ["browser_siteData2.js"]
-skip-if = ["apple_catalina && debug"] # Bug 1775910
+skip-if = [
+  "apple_catalina && debug", # Bug 1775910
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt", # bug 1775910 - high frequency intermittent
+]
 
 ["browser_siteData3.js"]
 
