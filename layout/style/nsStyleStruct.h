@@ -368,7 +368,7 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
     }
 
     for (const auto side : mozilla::AllPhysicalSides()) {
-      aMargin.Side(side) = mMargin.Get(side).AsLengthPercentage().ToLength();
+      aMargin.Side(side) = GetMargin(side).AsLengthPercentage().ToLength();
     }
     return true;
   }
@@ -386,7 +386,33 @@ struct MOZ_NEEDS_MEMMOVABLE_MEMBERS nsStyleMargin {
   inline bool HasInlineAxisAuto(mozilla::WritingMode aWM) const;
   inline bool HasAuto(mozilla::LogicalAxis, mozilla::WritingMode) const;
 
-  mozilla::StyleRect<mozilla::LengthPercentageOrAuto> mMargin;
+  // TODO(dshin): The following functions are used as shims to deal
+  // anchor size functions as if it's zero, before the computation
+  // is implemented.
+  static const mozilla::StyleMargin kZeroMargin;
+  const mozilla::StyleMargin& GetMargin(mozilla::Side aSide) const {
+    const auto& result = mMargin.Get(aSide);
+    if (MOZ_UNLIKELY(result.IsAnchorSizeFunction())) {
+      return kZeroMargin;
+    }
+    return result;
+  }
+
+  bool MarginEquals(const nsStyleMargin& aOther) const {
+    for (const auto side : mozilla::AllPhysicalSides()) {
+      if (GetMargin(side) != aOther.GetMargin(side)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // As with other logical-coordinate accessors, definitions for these
+  // are found in WritingModes.h.
+  inline const mozilla::StyleMargin& GetMargin(mozilla::LogicalSide aSide,
+                                               mozilla::WritingMode aWM) const;
+
+  mozilla::StyleRect<mozilla::StyleMargin> mMargin;
   mozilla::StyleRect<mozilla::StyleLength> mScrollMargin;
   // TODO: Add support for overflow-clip-margin: <visual-box> and maybe
   // per-axis/side clipping, see https://github.com/w3c/csswg-drafts/issues/7245

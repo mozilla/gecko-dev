@@ -11,10 +11,10 @@ use crate::values::DashedIdent;
 use crate::Zero;
 use cssparser::Parser;
 use std::fmt::Write;
-use style_traits::CssWriter;
 use style_traits::ParseError;
 use style_traits::StyleParseErrorKind;
 use style_traits::ToCss;
+use style_traits::{CssWriter, SpecifiedValueInfo};
 
 /// A `<length-percentage> | auto` value.
 #[allow(missing_docs)]
@@ -465,4 +465,65 @@ pub enum AnchorSizeKeyword {
     SelfBlock,
     /// Same as `Inline`, resolved against the positioned element's writing mode.
     SelfInline,
+}
+
+/// Specified type for `margin` properties, which allows
+/// the use of the `anchor-size()` function.
+#[derive(
+    Animate,
+    Clone,
+    ComputeSquaredDistance,
+    Debug,
+    MallocSizeOf,
+    PartialEq,
+    ToCss,
+    ToShmem,
+    ToAnimatedValue,
+    ToAnimatedZero,
+    ToComputedValue,
+    ToResolvedValue,
+)]
+#[repr(C)]
+pub enum GenericMargin<LP> {
+    /// A `<length-percentage>` value.
+    LengthPercentage(LP),
+    /// An `auto` value.
+    Auto,
+    /// Margin size defined by the anchor element.
+    ///
+    /// https://drafts.csswg.org/css-anchor-position-1/#funcdef-anchor-size
+    AnchorSizeFunction(
+        #[animation(field_bound)]
+        #[distance(field_bound)]
+        Box<GenericAnchorSizeFunction<LP>>,
+    ),
+}
+
+impl<LP> SpecifiedValueInfo for GenericMargin<LP>
+where
+    LP: SpecifiedValueInfo,
+{
+    fn collect_completion_keywords(f: style_traits::KeywordsCollectFn) {
+        LP::collect_completion_keywords(f);
+        f(&["auto"]);
+        if static_prefs::pref!("layout.css.anchor-positioning.enabled") {
+            f(&["anchor-size"]);
+        }
+    }
+}
+
+impl<LP> Zero for GenericMargin<LP>
+where
+    LP: Zero,
+{
+    fn is_zero(&self) -> bool {
+        match self {
+            Self::LengthPercentage(l) => l.is_zero(),
+            Self::Auto | Self::AnchorSizeFunction(_) => false,
+        }
+    }
+
+    fn zero() -> Self {
+        Self::LengthPercentage(LP::zero())
+    }
 }

@@ -77,8 +77,8 @@ void nsInlineFrame::InvalidateFrameWithRect(const nsRect& aRect,
                                             aRebuildDisplayItems);
 }
 
-static inline bool IsMarginZero(const LengthPercentageOrAuto& aLength) {
-  return aLength.IsAuto() ||
+static inline bool IsMarginZero(const StyleMargin& aLength) {
+  return !aLength.IsLengthPercentage() ||
          nsLayoutUtils::IsMarginZero(aLength.AsLengthPercentage());
 }
 
@@ -103,7 +103,7 @@ bool nsInlineFrame::IsSelfEmpty() {
   auto HaveSide = [&](mozilla::Side aSide) -> bool {
     return border->GetComputedBorderWidth(aSide) != 0 ||
            !nsLayoutUtils::IsPaddingZero(padding->mPadding.Get(aSide)) ||
-           !IsMarginZero(margin->mMargin.Get(aSide));
+           !IsMarginZero(margin->GetMargin(aSide));
   };
   // Initially set up haveStart and haveEnd in terms of visual (LTR/TTB)
   // coordinates; we'll exchange them later if bidi-RTL is in effect to

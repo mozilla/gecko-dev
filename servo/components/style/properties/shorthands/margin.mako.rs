@@ -8,7 +8,7 @@
 ${helpers.four_sides_shorthand(
     "margin",
     "margin-%s",
-    "specified::LengthPercentageOrAuto::parse",
+    "specified::Margin::parse",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-box/#propdef-margin",
     rule_types_allowed=DEFAULT_RULES_AND_PAGE | POSITION_TRY_RULE,
@@ -19,7 +19,7 @@ ${helpers.two_properties_shorthand(
     "margin-block",
     "margin-block-start",
     "margin-block-end",
-    "specified::LengthPercentageOrAuto::parse",
+    "specified::Margin::parse",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-logical/#propdef-margin-block",
     rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY
@@ -29,7 +29,7 @@ ${helpers.two_properties_shorthand(
     "margin-inline",
     "margin-inline-start",
     "margin-inline-end",
-    "specified::LengthPercentageOrAuto::parse",
+    "specified::Margin::parse",
     engines="gecko servo",
     spec="https://drafts.csswg.org/css-logical/#propdef-margin-inline",
     rule_types_allowed=DEFAULT_RULES_AND_POSITION_TRY

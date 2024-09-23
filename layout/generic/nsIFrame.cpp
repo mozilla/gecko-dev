@@ -1210,7 +1210,7 @@ void nsIFrame::DidSetComputedStyle(ComputedStyle* aOldComputedStyle) {
     bool needAnchorSuppression = false;
 
     const nsStyleMargin* oldMargin = aOldComputedStyle->StyleMargin();
-    if (oldMargin->mMargin != StyleMargin()->mMargin) {
+    if (!oldMargin->MarginEquals(*StyleMargin())) {
       needAnchorSuppression = true;
     }
 
@@ -6179,9 +6179,9 @@ void nsIFrame::InlinePrefISizeData::ForceBreak(StyleClear aClearType) {
   mLineIsEmpty = true;
 }
 
-static nscoord ResolveMargin(const LengthPercentageOrAuto& aStyle,
+static nscoord ResolveMargin(const StyleMargin& aStyle,
                              nscoord aPercentageBasis) {
-  if (aStyle.IsAuto()) {
+  if (!aStyle.IsLengthPercentage()) {
     return nscoord(0);
   }
   return nsLayoutUtils::ResolveToLength<false>(aStyle.AsLengthPercentage(),
@@ -6197,14 +6197,18 @@ static nsIFrame::IntrinsicSizeOffsetData IntrinsicSizeOffsets(
     nsIFrame* aFrame, nscoord aPercentageBasis, bool aForISize) {
   nsIFrame::IntrinsicSizeOffsetData result;
   WritingMode wm = aFrame->GetWritingMode();
-  const auto& margin = aFrame->StyleMargin()->mMargin;
   bool verticalAxis = aForISize == wm.IsVertical();
+  const auto* styleMargin = aFrame->StyleMargin();
   if (verticalAxis) {
-    result.margin += ResolveMargin(margin.Get(eSideTop), aPercentageBasis);
-    result.margin += ResolveMargin(margin.Get(eSideBottom), aPercentageBasis);
+    result.margin +=
+        ResolveMargin(styleMargin->GetMargin(eSideTop), aPercentageBasis);
+    result.margin +=
+        ResolveMargin(styleMargin->GetMargin(eSideBottom), aPercentageBasis);
   } else {
-    result.margin += ResolveMargin(margin.Get(eSideLeft), aPercentageBasis);
-    result.margin += ResolveMargin(margin.Get(eSideRight), aPercentageBasis);
+    result.margin +=
+        ResolveMargin(styleMargin->GetMargin(eSideLeft), aPercentageBasis);
+    result.margin +=
+        ResolveMargin(styleMargin->GetMargin(eSideRight), aPercentageBasis);
   }
 
   const auto& padding = aFrame->StylePadding()->mPadding;

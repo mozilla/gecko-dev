@@ -282,7 +282,7 @@ void nsAbsoluteContainingBlock::Reflow(nsContainerFrame* aDelegatingFrame,
 static inline bool IsFixedPaddingSize(const LengthPercentage& aCoord) {
   return aCoord.ConvertsToLength();
 }
-static inline bool IsFixedMarginSize(const LengthPercentageOrAuto& aCoord) {
+static inline bool IsFixedMarginSize(const StyleMargin& aCoord) {
   return aCoord.ConvertsToLength();
 }
 static inline bool IsFixedOffset(const StyleInset& aInset) {
@@ -323,8 +323,8 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     // See if f's position might have changed. If we're RTL then the
     // rules are slightly different. We'll assume percentage or auto
     // margins will always induce a dependency on the size
-    if (!IsFixedMarginSize(margin->mMargin.GetIStart(wm)) ||
-        !IsFixedMarginSize(margin->mMargin.GetIEnd(wm))) {
+    if (!IsFixedMarginSize(margin->GetMargin(LogicalSide::IStart, wm)) ||
+        !IsFixedMarginSize(margin->GetMargin(LogicalSide::IEnd, wm))) {
       return true;
     }
   }
@@ -350,8 +350,8 @@ bool nsAbsoluteContainingBlock::FrameDependsOnContainer(nsIFrame* f,
     }
 
     // See if f's position might have changed.
-    if (!IsFixedMarginSize(margin->mMargin.GetBStart(wm)) ||
-        !IsFixedMarginSize(margin->mMargin.GetBEnd(wm))) {
+    if (!IsFixedMarginSize(margin->GetMargin(LogicalSide::BStart, wm)) ||
+        !IsFixedMarginSize(margin->GetMargin(LogicalSide::BEnd, wm))) {
       return true;
     }
   }
@@ -680,13 +680,15 @@ void nsAbsoluteContainingBlock::ResolveAutoMarginsAfterLayout(
   if (wm.IsOrthogonalTo(outerWM)) {
     ReflowInput::ComputeAbsPosInlineAutoMargin(
         availMarginSpace, outerWM,
-        styleMargin->mMargin.GetIStart(outerWM).IsAuto(),
-        styleMargin->mMargin.GetIEnd(outerWM).IsAuto(), aMargin, aOffsets);
+        styleMargin->GetMargin(LogicalSide::IStart, outerWM).IsAuto(),
+        styleMargin->GetMargin(LogicalSide::IEnd, outerWM).IsAuto(), aMargin,
+        aOffsets);
   } else {
     ReflowInput::ComputeAbsPosBlockAutoMargin(
         availMarginSpace, outerWM,
-        styleMargin->mMargin.GetBStart(outerWM).IsAuto(),
-        styleMargin->mMargin.GetBEnd(outerWM).IsAuto(), aMargin, aOffsets);
+        styleMargin->GetMargin(LogicalSide::BStart, outerWM).IsAuto(),
+        styleMargin->GetMargin(LogicalSide::BEnd, outerWM).IsAuto(), aMargin,
+        aOffsets);
   }
 
   aKidReflowInput.SetComputedLogicalMargin(outerWM, aMargin);

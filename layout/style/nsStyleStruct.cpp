@@ -309,9 +309,12 @@ static StyleRect<T> StyleRectWithAllSides(const T& aSide) {
   return {aSide, aSide, aSide, aSide};
 }
 
+const StyleMargin nsStyleMargin::kZeroMargin =
+    StyleMargin::LengthPercentage(StyleLengthPercentage::Zero());
+
 nsStyleMargin::nsStyleMargin()
     : mMargin(StyleRectWithAllSides(
-          LengthPercentageOrAuto::LengthPercentage(LengthPercentage::Zero()))),
+          StyleMargin::LengthPercentage(LengthPercentage::Zero()))),
       mScrollMargin(StyleRectWithAllSides(StyleLength{0.})),
       mOverflowClipMargin(StyleLength::Zero()) {
   MOZ_COUNT_CTOR(nsStyleMargin);
@@ -328,7 +331,7 @@ nsChangeHint nsStyleMargin::CalcDifference(
     const nsStyleMargin& aNewData) const {
   nsChangeHint hint = nsChangeHint(0);
 
-  if (mMargin != aNewData.mMargin) {
+  if (!MarginEquals(aNewData)) {
     // Margin differences can't affect descendant intrinsic sizes and
     // don't need to force children to reflow.
     hint |= nsChangeHint_NeedReflow | nsChangeHint_ReflowChangesSizeOrPosition |

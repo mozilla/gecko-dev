@@ -985,7 +985,7 @@ bool nsComputedDOMStyle::NeedsToFlushLayout(nsCSSPropertyID aPropID) const {
       // NOTE(emilio): This is dubious, but matches other browsers.
       // See https://github.com/w3c/csswg-drafts/issues/2328
       Side side = SideForPaddingOrMarginOrInsetProperty(aPropID);
-      return !style->StyleMargin()->mMargin.Get(side).ConvertsToLength();
+      return !style->StyleMargin()->GetMargin(side).ConvertsToLength();
     }
     default:
       return false;
@@ -2088,10 +2088,10 @@ already_AddRefed<CSSValue> nsComputedDOMStyle::GetBorderWidthFor(
 }
 
 already_AddRefed<CSSValue> nsComputedDOMStyle::GetMarginFor(Side aSide) {
-  const auto& margin = StyleMargin()->mMargin.Get(aSide);
+  const auto& margin = StyleMargin()->GetMargin(aSide);
   if (!mInnerFrame || margin.ConvertsToLength()) {
     auto val = MakeRefPtr<nsROCSSPrimitiveValue>();
-    SetValueToLengthPercentageOrAuto(val, margin, false);
+    SetValueToMargin(val, margin);
     return val.forget();
   }
   AssertFlushedPendingReflows();
@@ -2188,12 +2188,22 @@ void nsComputedDOMStyle::SetValueToLengthPercentageOrAuto(
 void nsComputedDOMStyle::SetValueToInset(nsROCSSPrimitiveValue* aValue,
                                          const mozilla::StyleInset& aInset) {
   // This function isn't used for absolutely positioned insets, so just assume
-  // `anchor()` is `auto`.
+  // `anchor()` or `anchor-size()` is `auto`.
   if (!aInset.IsLengthPercentage()) {
     aValue->SetString("auto");
     return;
   }
   SetValueToLengthPercentage(aValue, aInset.AsLengthPercentage(), false);
+}
+
+void nsComputedDOMStyle::SetValueToMargin(nsROCSSPrimitiveValue* aValue,
+                                          const mozilla::StyleMargin& aMargin) {
+  // May have to compute `anchor-size()` value here.
+  if (!aMargin.IsLengthPercentage()) {
+    aValue->SetString("auto");
+    return;
+  }
+  SetValueToLengthPercentage(aValue, aMargin.AsLengthPercentage(), false);
 }
 
 void nsComputedDOMStyle::SetValueToLengthPercentage(

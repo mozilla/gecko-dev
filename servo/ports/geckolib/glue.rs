@@ -5588,7 +5588,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(
 ) {
     use style::properties::longhands::border_spacing::SpecifiedValue as BorderSpacing;
     use style::properties::PropertyDeclaration;
-    use style::values::generics::length::{LengthPercentageOrAuto, Size};
+    use style::values::generics::length::{GenericMargin, Size};
     use style::values::generics::NonNegative;
     use style::values::specified::length::{
         LengthPercentage, NonNegativeLength, NonNegativeLengthPercentage,
@@ -5598,7 +5598,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(
     let long = get_longhand_from_id!(property);
     let nocalc = NoCalcLength::from_px(value);
     let lp = LengthPercentage::Length(nocalc);
-    let lp_or_auto = LengthPercentageOrAuto::LengthPercentage(lp.clone());
+    let margin = GenericMargin::LengthPercentage(lp.clone());
     let prop = match_wrap_declared! { long,
         Height => Size::LengthPercentage(NonNegative(lp)),
         Width => Size::LengthPercentage(NonNegative(lp)),
@@ -5606,10 +5606,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetPixelValue(
         BorderRightWidth => BorderSideWidth::from_px(value),
         BorderBottomWidth => BorderSideWidth::from_px(value),
         BorderLeftWidth => BorderSideWidth::from_px(value),
-        MarginTop => lp_or_auto,
-        MarginRight => lp_or_auto,
-        MarginBottom => lp_or_auto,
-        MarginLeft => lp_or_auto,
+        MarginTop => margin,
+        MarginRight => margin,
+        MarginBottom => margin,
+        MarginLeft => margin,
         PaddingTop => NonNegative(lp),
         PaddingRight => NonNegative(lp),
         PaddingBottom => NonNegative(lp),
@@ -5827,7 +5827,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(
 ) {
     use style::properties::PropertyDeclaration;
     use style::values::computed::Percentage;
-    use style::values::generics::length::{LengthPercentageOrAuto, Size};
+    use style::values::generics::length::{GenericMargin, LengthPercentageOrAuto, Size};
     use style::values::generics::NonNegative;
     use style::values::specified::length::LengthPercentage;
     use style::values::specified::FontSize;
@@ -5835,7 +5835,7 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(
     let long = get_longhand_from_id!(property);
     let pc = Percentage(value);
     let lp = LengthPercentage::Percentage(pc);
-    let lp_or_auto = LengthPercentageOrAuto::LengthPercentage(lp.clone());
+    let margin = GenericMargin::LengthPercentage(lp.clone());
 
     let prop = match_wrap_declared! { long,
         Height => Size::LengthPercentage(NonNegative(lp)),
@@ -5847,10 +5847,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetPercentValue(
         R =>  NonNegative(lp),
         Rx => LengthPercentageOrAuto::LengthPercentage(NonNegative(lp)),
         Ry => LengthPercentageOrAuto::LengthPercentage(NonNegative(lp)),
-        MarginTop => lp_or_auto,
-        MarginRight => lp_or_auto,
-        MarginBottom => lp_or_auto,
-        MarginLeft => lp_or_auto,
+        MarginTop => margin,
+        MarginRight => margin,
+        MarginBottom => margin,
+        MarginLeft => margin,
         FontSize => FontSize::Length(LengthPercentage::Percentage(pc)),
     };
     write_locked_arc(declarations, |decls: &mut PropertyDeclarationBlock| {
@@ -5864,10 +5864,10 @@ pub extern "C" fn Servo_DeclarationBlock_SetAutoValue(
     property: nsCSSPropertyID,
 ) {
     use style::properties::PropertyDeclaration;
-    use style::values::generics::length::{LengthPercentageOrAuto, Size};
+    use style::values::generics::length::{GenericMargin, Size};
 
     let long = get_longhand_from_id!(property);
-    let auto = LengthPercentageOrAuto::Auto;
+    let auto = GenericMargin::Auto;
 
     let prop = match_wrap_declared! { long,
         Height => Size::auto(),

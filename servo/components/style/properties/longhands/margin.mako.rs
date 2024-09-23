@@ -13,8 +13,8 @@
     %>
     ${helpers.predefined_type(
         "margin-%s" % side[0],
-        "LengthPercentageOrAuto",
-        "computed::LengthPercentageOrAuto::zero()",
+        "Margin",
+        "computed::Margin::zero()",
         engines="gecko servo",
         aliases=maybe_moz_logical_alias(engine, side, "-moz-margin-%s"),
         allow_quirks="No" if side[1] else "Yes",

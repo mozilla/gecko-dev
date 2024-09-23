@@ -61,7 +61,6 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
   const auto endSide = GetOppositeSide(startSide);
   const nscoord marginEnd = margin.Side(endSide, wm);
 
-  const auto& styleMargin = aRI.mStyleMargin->mMargin;
   bool hasAutoMarginStart;
   bool hasAutoMarginEnd;
   if (aFlags & AlignJustifyFlags::IgnoreAutoMargins) {
@@ -69,11 +68,15 @@ nscoord CSSAlignUtils::AlignJustifySelf(const StyleAlignFlags& aAlignment,
     // don't need to do anything special to avoid expanding them.)
     hasAutoMarginStart = hasAutoMarginEnd = false;
   } else if (aAxis == LogicalAxis::Block) {
-    hasAutoMarginStart = styleMargin.GetBStart(wm).IsAuto();
-    hasAutoMarginEnd = styleMargin.GetBEnd(wm).IsAuto();
+    hasAutoMarginStart =
+        aRI.mStyleMargin->GetMargin(LogicalSide::BStart, wm).IsAuto();
+    hasAutoMarginEnd =
+        aRI.mStyleMargin->GetMargin(LogicalSide::BEnd, wm).IsAuto();
   } else { /* aAxis == LogicalAxis::Inline */
-    hasAutoMarginStart = styleMargin.GetIStart(wm).IsAuto();
-    hasAutoMarginEnd = styleMargin.GetIEnd(wm).IsAuto();
+    hasAutoMarginStart =
+        aRI.mStyleMargin->GetMargin(LogicalSide::IStart, wm).IsAuto();
+    hasAutoMarginEnd =
+        aRI.mStyleMargin->GetMargin(LogicalSide::IEnd, wm).IsAuto();
   }
 
   // https://drafts.csswg.org/css-align-3/#overflow-values

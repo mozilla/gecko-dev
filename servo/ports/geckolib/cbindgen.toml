@@ -325,6 +325,7 @@ include = [
   "Inset",
   "AnchorFunction",
   "AnchorSizeFunction",
+  "Margin",
 ]
 item_types = ["enums", "structs", "unions", "typedefs", "functions", "constants"]
 renaming_overrides_prefixing = true
@@ -1138,6 +1139,15 @@ renaming_overrides_prefixing = true
   inline bool ConvertsToLength() const;
   inline bool HasLengthAndPercentage() const;
   inline bool IsAnchorPositioningFunction() const;
+  inline nscoord ToLength() const;
+  inline bool ConvertsToPercentage() const;
+  inline float ToPercentage() const;
+"""
+
+"GenericMargin" = """
+  inline bool HasPercent() const;
+  inline bool ConvertsToLength() const;
+  inline bool HasLengthAndPercentage() const;
   inline nscoord ToLength() const;
   inline bool ConvertsToPercentage() const;
   inline float ToPercentage() const;

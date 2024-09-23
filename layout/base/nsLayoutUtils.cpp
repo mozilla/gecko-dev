@@ -3414,11 +3414,11 @@ struct BoxToRect : public nsLayoutUtils::BoxCallback {
       } else if (mFlags.contains(nsLayoutUtils::GetAllInFlowRectsFlag::
                                      UseMarginBoxWithAutoResolvedAsZero)) {
         r = aFrame->GetRectRelativeToSelf();
-        const auto& styleMargin = aFrame->StyleMargin()->mMargin;
         nsMargin usedMargin =
             aFrame->GetUsedMargin().ApplySkipSides(aFrame->GetSkipSides());
+        const auto* styleMargin = aFrame->StyleMargin();
         for (const Side side : AllPhysicalSides()) {
-          if (styleMargin.Get(side).IsAuto()) {
+          if (styleMargin->GetMargin(side).IsAuto()) {
             usedMargin.Side(side) = 0;
           }
         }

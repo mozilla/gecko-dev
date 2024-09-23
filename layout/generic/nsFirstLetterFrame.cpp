@@ -170,14 +170,13 @@ bool nsFirstLetterFrame::UseTightBounds() const {
   }
 
   const auto wm = GetWritingMode();
-  const auto& margin = StyleMargin()->mMargin;
-  const auto& bStart = margin.GetBStart(wm);
+  const auto& bStart = StyleMargin()->GetMargin(LogicalSide::BStart, wm);
   // Currently, we only check for margins with negative *length* values;
   // negative percentages seem unlikely to be used/useful in this context.
   if (bStart.ConvertsToLength() && bStart.ToLength() < 0) {
     return false;
   }
-  const auto& bEnd = margin.GetBEnd(wm);
+  const auto& bEnd = StyleMargin()->GetMargin(LogicalSide::BEnd, wm);
   if (bEnd.ConvertsToLength() && bEnd.ToLength() < 0) {
     return false;
   }

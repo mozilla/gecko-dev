@@ -633,6 +633,7 @@ cbindgen-types = [
     { gecko = "StyleInitialLetter", servo = "crate::values::computed::text::InitialLetter" },
     { gecko = "StylePointerEvents", servo = "crate::values::computed::ui::PointerEvents" },
     { gecko = "StyleInert", servo = "crate::values::computed::ui::Inert" },
+    { gecko = "StyleMargin", servo = "crate::values::computed::length::Margin" },
 ]
 
 mapped-generic-types = [

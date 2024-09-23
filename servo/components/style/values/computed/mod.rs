@@ -74,7 +74,7 @@ pub use self::font::{MathDepth, MozScriptMinSize, MozScriptSizeMultiplier, XLang
 pub use self::image::{Gradient, Image, ImageRendering, LineDirection};
 pub use self::length::{AnchorSizeFunction, CSSPixelLength, NonNegativeLength};
 pub use self::length::{Length, LengthOrNumber, LengthPercentage, NonNegativeLengthOrNumber};
-pub use self::length::{LengthOrAuto, LengthPercentageOrAuto, MaxSize, Size};
+pub use self::length::{LengthOrAuto, LengthPercentageOrAuto, MaxSize, Margin, Size};
 pub use self::length::{NonNegativeLengthPercentage, NonNegativeLengthPercentageOrAuto};
 #[cfg(feature = "gecko")]
 pub use self::list::ListStyleType;

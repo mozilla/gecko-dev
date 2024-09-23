@@ -566,3 +566,6 @@ pub type MaxSize = GenericMaxSize<NonNegativeLengthPercentage>;
 
 /// A computed value for `anchor-size` runction.
 pub type AnchorSizeFunction = GenericAnchorSizeFunction<LengthPercentage>;
+
+/// A computed type for `margin` properties.
+pub type Margin = generics::GenericMargin<LengthPercentage>;

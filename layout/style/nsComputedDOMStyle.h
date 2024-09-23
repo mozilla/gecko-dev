@@ -297,6 +297,8 @@ class nsComputedDOMStyle final : public nsDOMCSSDeclaration,
                                         bool aClampNegativeCalc);
   void SetValueToInset(nsROCSSPrimitiveValue* aValue,
                        const mozilla::StyleInset&);
+  void SetValueToMargin(nsROCSSPrimitiveValue* aValue,
+                        const mozilla::StyleMargin&);
 
   void SetValueToLengthPercentage(nsROCSSPrimitiveValue* aValue,
                                   const LengthPercentage&,

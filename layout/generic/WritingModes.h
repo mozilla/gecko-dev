@@ -2154,16 +2154,24 @@ inline bool nsStylePosition::MaxBSizeDependsOnContainer(WritingMode aWM) const {
 }
 
 inline bool nsStyleMargin::HasBlockAxisAuto(mozilla::WritingMode aWM) const {
-  return mMargin.GetBStart(aWM).IsAuto() || mMargin.GetBEnd(aWM).IsAuto();
+  return GetMargin(mozilla::LogicalSide::BStart, aWM).IsAuto() ||
+         GetMargin(mozilla::LogicalSide::BEnd, aWM).IsAuto();
 }
 
 inline bool nsStyleMargin::HasInlineAxisAuto(mozilla::WritingMode aWM) const {
-  return mMargin.GetIStart(aWM).IsAuto() || mMargin.GetIEnd(aWM).IsAuto();
+  return GetMargin(mozilla::LogicalSide::IStart, aWM).IsAuto() ||
+         GetMargin(mozilla::LogicalSide::IEnd, aWM).IsAuto();
 }
+
 inline bool nsStyleMargin::HasAuto(mozilla::LogicalAxis aAxis,
                                    mozilla::WritingMode aWM) const {
   return aAxis == mozilla::LogicalAxis::Inline ? HasInlineAxisAuto(aWM)
                                                : HasBlockAxisAuto(aWM);
+}
+
+inline const mozilla::StyleMargin& nsStyleMargin::GetMargin(
+    mozilla::LogicalSide aSide, mozilla::WritingMode aWM) const {
+  return GetMargin(aWM.PhysicalSide(aSide));
 }
 
 inline mozilla::StyleAlignFlags nsStylePosition::UsedSelfAlignment(

@@ -629,6 +629,15 @@ static bool HasPercentageUnitSide(const StyleRect<T>& aSides) {
   return aSides.Any([](const auto& aLength) { return aLength.HasPercent(); });
 }
 
+static bool HasPercentageUnitMargin(const nsStyleMargin& aStyleMargin) {
+  for (const auto side : AllPhysicalSides()) {
+    if (aStyleMargin.GetMargin(side).HasPercent()) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
   MOZ_ASSERT(aFrame, "null frame is not allowed");
 
@@ -644,7 +653,7 @@ static bool IsPercentageAware(const nsIFrame* aFrame, WritingMode aWM) {
   // quite rarely.
 
   const nsStyleMargin* margin = aFrame->StyleMargin();
-  if (HasPercentageUnitSide(margin->mMargin)) {
+  if (HasPercentageUnitMargin(*margin)) {
     return true;
   }
 
