@@ -233,19 +233,6 @@ def taskgraph_decision(command_context, **options):
 
 @SubCommand(
     "taskgraph",
-    "cron",
-    description="Provide a pointer to the new `.cron.yml` handler.",
-)
-def taskgraph_cron(command_context, **options):
-    print(
-        'Handling of ".cron.yml" files has move to '
-        "https://hg.mozilla.org/ci/ci-admin/file/default/build-decision."
-    )
-    sys.exit(1)
-
-
-@SubCommand(
-    "taskgraph",
     "action-callback",
     description="Run action callback used by action tasks",
     parser=partial(get_taskgraph_command_parser, "action-callback"),
