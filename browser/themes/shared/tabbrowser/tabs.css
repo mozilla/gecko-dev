@@ -526,7 +526,7 @@
   list-style-image: url(chrome://global/skin/icons/close-12.svg);
 
   &[pinned],
-  #tabbrowser-tabs[closebuttons="activetab"][orient="horizontal"] > #tabbrowser-arrowscrollbox > .tabbrowser-tab > .tab-stack > .tab-content > &:not([selected]) {
+  #tabbrowser-tabs[closebuttons="activetab"][orient="horizontal"] &:not([selected]) {
     display: none;
   }
 }
@@ -542,7 +542,7 @@
     }
 
     .tabbrowser-tab[visuallyselected]:not([labelendaligned]):hover,
-    &:not([closebuttons=activetab]) > #tabbrowser-arrowscrollbox > .tabbrowser-tab:not([visuallyselected], [labelendaligned]):hover {
+    &:not([closebuttons="activetab"]) .tabbrowser-tab:not([visuallyselected], [labelendaligned]):hover {
       --tab-label-mask-size: 2em;
     }
   }
