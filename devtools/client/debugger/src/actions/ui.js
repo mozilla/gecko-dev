@@ -19,6 +19,7 @@ import { toggleBreakpoints } from "./breakpoints/index";
 import { copyToTheClipboard } from "../utils/clipboard";
 import { isFulfilled } from "../utils/async-value";
 import { primaryPaneTabs } from "../constants";
+import { features } from "../utils/prefs";
 
 export function setPrimaryPaneTab(tabName) {
   return { type: "SET_PRIMARY_PANE_TAB", tabName };
@@ -194,7 +195,7 @@ export function closeConditionalPanel() {
 }
 
 export function updateViewport() {
-  const editor = getEditor();
+  const editor = getEditor(features.codemirrorNext);
   return {
     type: "SET_VIEWPORT",
     viewport: editor.getLocationsInViewport(),

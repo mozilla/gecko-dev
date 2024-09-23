@@ -780,7 +780,6 @@ class Editor extends EventEmitter {
     });
 
     cm.isDocumentLoadComplete = false;
-    this.#ownerDoc.sourceEditor = { editor: this, cm };
     editors.set(this, cm);
 
     // For now, we only need to pipe the blur event

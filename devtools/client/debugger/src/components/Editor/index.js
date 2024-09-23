@@ -77,6 +77,8 @@ import {
   resizeBreakpointGutter,
 } from "../../utils/ui";
 
+import flags from "devtools/shared/flags";
+
 const { debounce } = require("resource://devtools/shared/debounce.js");
 const classnames = require("resource://devtools/client/shared/classnames.js");
 
@@ -211,8 +213,9 @@ class Editor extends PureComponent {
     editor._initShortcuts = () => {};
 
     const node = ReactDOM.findDOMNode(this);
+    const mountEl = node.querySelector(".editor-mount");
     if (node instanceof HTMLElement) {
-      editor.appendToLocalElement(node.querySelector(".editor-mount"));
+      editor.appendToLocalElement(mountEl);
     }
 
     if (!features.codemirrorNext) {
@@ -273,6 +276,10 @@ class Editor extends PureComponent {
       });
     }
     this.setState({ editor });
+    // Used for tests
+    if (flags.testing) {
+      window.codemirrorEditor = editor;
+    }
     return editor;
   }
 

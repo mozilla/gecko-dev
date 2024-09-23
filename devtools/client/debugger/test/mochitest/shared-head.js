@@ -65,6 +65,10 @@ const DEBUGGER_L10N = new LocalizationHelper(
   "devtools/client/locales/debugger.properties"
 );
 
+const isCm6Enabled = Services.prefs.getBoolPref(
+  "devtools.debugger.features.codemirror-next"
+);
+
 /**
  * Waits for `predicate()` to be true. `state` is the redux app state.
  *
@@ -2123,6 +2127,16 @@ function rightClickObjectInspectorNode(dbg, node) {
   );
 }
 
+/*******************************************
+ * Utilities for handling codemirror
+ ******************************************/
+
+// Gets the current source editor for CM6 tests
+function getCMEditor(dbg) {
+  return dbg.win.codemirrorEditor;
+}
+
+// Gets the current codeMirror instance for CM5 tests
 function getCM(dbg) {
   const el = dbg.win.document.querySelector(".CodeMirror");
   return el.CodeMirror;
