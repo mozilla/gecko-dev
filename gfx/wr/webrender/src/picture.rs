@@ -5154,6 +5154,17 @@ impl PicturePrimitive {
         self.primary_render_task_id = None;
         self.secondary_render_task_id = None;
 
+        let dbg_flags = DebugFlags::PICTURE_CACHING_DBG | DebugFlags::PICTURE_BORDERS;
+        if frame_context.debug_flags.intersects(dbg_flags) {
+            self.draw_debug_overlay(
+                parent_surface_index,
+                frame_state,
+                frame_context,
+                tile_caches,
+                scratch,
+            );
+        }
+
         if !self.is_visible(frame_context.spatial_tree) {
             return None;
         }
@@ -5298,37 +5309,6 @@ impl PicturePrimitive {
                         }
 
                         at_least_one_tile_visible = true;
-
-                        if frame_context.debug_flags.contains(DebugFlags::PICTURE_CACHING_DBG) {
-                            tile.root.draw_debug_rects(
-                                &map_pic_to_world,
-                                tile.is_opaque,
-                                tile.current_descriptor.local_valid_rect,
-                                scratch,
-                                frame_context.global_device_pixel_scale,
-                            );
-
-                            let label_offset = DeviceVector2D::new(
-                                20.0 + sub_slice_index as f32 * 20.0,
-                                30.0 + sub_slice_index as f32 * 20.0,
-                            );
-                            let tile_device_rect = tile.world_tile_rect * frame_context.global_device_pixel_scale;
-                            if tile_device_rect.height() >= label_offset.y {
-                                let surface = tile.surface.as_ref().expect("no tile surface set!");
-
-                                scratch.push_debug_string(
-                                    tile_device_rect.min + label_offset,
-                                    debug_colors::RED,
-                                    format!("{:?}: s={} is_opaque={} surface={} sub={}",
-                                            tile.id,
-                                            tile_cache.slice,
-                                            tile.is_opaque,
-                                            surface.kind(),
-                                            sub_slice_index,
-                                    ),
-                                );
-                            }
-                        }
 
                         if let TileSurface::Texture { descriptor, .. } = tile.surface.as_mut().unwrap() {
                             match descriptor {
@@ -7029,6 +7009,148 @@ impl PicturePrimitive {
 
         true
     }
+
+    #[cold]
+    fn draw_debug_overlay(
+        &self,
+        parent_surface_index: Option<SurfaceIndex>,
+        frame_state: &FrameBuildingState,
+        frame_context: &FrameBuildingContext,
+        tile_caches: &FastHashMap<SliceId, Box<TileCacheInstance>>,
+        scratch: &mut PrimitiveScratchBuffer,
+    ) {
+        fn draw_debug_border(
+            local_rect: &PictureRect,
+            pic_to_world_mapper: &SpaceMapper<PicturePixel, WorldPixel>,
+            global_device_pixel_scale: DevicePixelScale,
+            color: ColorF,
+            scratch: &mut PrimitiveScratchBuffer,
+        ) {
+            if let Some(world_rect) = pic_to_world_mapper.map(&local_rect) {
+                let device_rect = world_rect * global_device_pixel_scale;
+                scratch.push_debug_rect(
+                    device_rect,
+                    color,
+                    ColorF::TRANSPARENT,
+                );    
+            }
+        }
+
+        let flags = frame_context.debug_flags;
+        let draw_borders = flags.contains(DebugFlags::PICTURE_BORDERS);
+        let draw_tile_dbg = flags.contains(DebugFlags::PICTURE_CACHING_DBG);
+
+        let surface_index = match &self.raster_config {
+            Some(raster_config) => raster_config.surface_index,
+            None => parent_surface_index.expect("bug: no parent"),
+        };
+        let surface_spatial_node_index = frame_state
+            .surfaces[surface_index.0]
+            .surface_spatial_node_index;
+
+        let map_pic_to_world = SpaceMapper::new_with_target(
+            frame_context.root_spatial_node_index,
+            surface_spatial_node_index,
+            frame_context.global_screen_world_rect,
+            frame_context.spatial_tree,
+        );
+
+        let Some(raster_config) = &self.raster_config else {
+            return;
+        };
+
+        if draw_borders {
+            let layer_color;
+            if let PictureCompositeMode::TileCache { slice_id } = &raster_config.composite_mode {
+                // Tiled picture;
+                layer_color = ColorF::new(0.0, 1.0, 0.0, 0.8);
+
+                let Some(tile_cache) = tile_caches.get(&slice_id) else {
+                    return;
+                };
+
+                // Draw a rectangle for each tile.
+                for (_, sub_slice) in tile_cache.sub_slices.iter().enumerate() {
+                    for tile in sub_slice.tiles.values() {
+                        if !tile.is_visible {
+                            continue;
+                        }
+                        let rect = tile.local_tile_rect.intersection(&tile_cache.local_rect);
+                        if let Some(rect) = rect {
+                            draw_debug_border(
+                                &rect,
+                                &map_pic_to_world,
+                                frame_context.global_device_pixel_scale,
+                                ColorF::new(0.0, 1.0, 0.0, 0.2),
+                                scratch,
+                            );
+                        }
+                    }
+                }
+            } else {
+                // Non-tiled picture
+                layer_color = ColorF::new(1.0, 0.0, 0.0, 0.8);
+            }
+
+            // Draw a rectangle for the whole picture.
+            let pic_rect = frame_state
+                .surfaces[raster_config.surface_index.0]
+                .unclipped_local_rect;
+
+            draw_debug_border(
+                &pic_rect,
+                &map_pic_to_world,
+                frame_context.global_device_pixel_scale,
+                layer_color,
+                scratch,
+            );
+        }
+
+        if draw_tile_dbg && self.is_visible(frame_context.spatial_tree) {
+            if let PictureCompositeMode::TileCache { slice_id } = &raster_config.composite_mode {
+                let Some(tile_cache) = tile_caches.get(&slice_id) else {
+                    return;
+                };
+                for (sub_slice_index, sub_slice) in tile_cache.sub_slices.iter().enumerate() {
+                    for tile in sub_slice.tiles.values() {
+                        if !tile.is_visible {
+                            continue;
+                        }
+                        tile.root.draw_debug_rects(
+                            &map_pic_to_world,
+                            tile.is_opaque,
+                            tile.current_descriptor.local_valid_rect,
+                            scratch,
+                            frame_context.global_device_pixel_scale,
+                        );
+
+                        let label_offset = DeviceVector2D::new(
+                            20.0 + sub_slice_index as f32 * 20.0,
+                            30.0 + sub_slice_index as f32 * 20.0,
+                        );
+                        let tile_device_rect = tile.world_tile_rect
+                            * frame_context.global_device_pixel_scale;
+
+                        if tile_device_rect.height() >= label_offset.y {
+                            let surface = tile.surface.as_ref().expect("no tile surface set!");
+
+                            scratch.push_debug_string(
+                                tile_device_rect.min + label_offset,
+                                debug_colors::RED,
+                                format!("{:?}: s={} is_opaque={} surface={} sub={}",
+                                        tile.id,
+                                        tile_cache.slice,
+                                        tile.is_opaque,
+                                        surface.kind(),
+                                        sub_slice_index,
+                                ),
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 fn get_transform_key(
@@ -7305,7 +7427,7 @@ impl TileNode {
             }
         }
     }
-
+ 
     /// Calculate the four child rects for a given node
     fn get_child_rects(
         rect: &PictureBox2D,

@@ -733,6 +733,8 @@ bitflags! {
         const RESTRICT_BLOB_SIZE        = 1 << 28;
         /// Enable surface promotion logging.
         const SURFACE_PROMOTION_LOGGING = 1 << 29;
+        /// Show picture caching debug overlay
+        const PICTURE_BORDERS       = 1 << 30;
     }
 }
 
