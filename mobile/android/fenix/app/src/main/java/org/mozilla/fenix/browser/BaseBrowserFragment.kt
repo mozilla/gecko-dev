@@ -1447,16 +1447,14 @@ abstract class BaseBrowserFragment :
                         topToolbarHeight = topToolbarHeight,
                     )
             } else {
-                val toolbarHeight = if (customTabSessionId == null && context.isTabStripEnabled()) {
-                    resources.getDimensionPixelSize(R.dimen.browser_toolbar_height) +
-                        resources.getDimensionPixelSize(R.dimen.tab_strip_height)
-                } else {
-                    resources.getDimensionPixelSize(R.dimen.browser_toolbar_height)
-                }
-
                 val toolbarPosition = when (context.settings().toolbarPosition) {
                     ToolbarPosition.BOTTOM -> OldToolbarPosition.BOTTOM
                     ToolbarPosition.TOP -> OldToolbarPosition.TOP
+                }
+
+                val toolbarHeight = when (toolbarPosition) {
+                    OldToolbarPosition.BOTTOM -> bottomToolbarHeight
+                    OldToolbarPosition.TOP -> topToolbarHeight
                 }
                 (getSwipeRefreshLayout().layoutParams as CoordinatorLayout.LayoutParams).behavior =
                     OldEngineViewClippingBehavior(
