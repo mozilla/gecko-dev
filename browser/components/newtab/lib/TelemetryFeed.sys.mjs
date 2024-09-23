@@ -672,7 +672,7 @@ export class TelemetryFeed {
     Glean.topSites.position.set(legacyTelemetryPosition);
     Glean.topSites.source.set(source);
     Glean.topSites.tileId.set(tile_id);
-    if (data.reporting_url && unifiedAdsEnabled) {
+    if (data.reporting_url && !unifiedAdsEnabled) {
       Glean.topSites.reportingUrl.set(data.reporting_url);
     }
     Glean.topSites.advertiser.set(advertiser_name);
