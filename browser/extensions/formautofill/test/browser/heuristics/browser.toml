@@ -16,7 +16,7 @@ support-files = [
 ["browser_basic.js"]
 
 ["browser_capture_name.js"]
-skip-if = ["apple_silicon && !debug"]
+skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"]
 
 ["browser_cc_exp.js"]
 

@@ -118,7 +118,8 @@ tags = "audiochannel"
 ["browser_delay_autoplay_silentAudioTrack_media.js"]
 tags = "audiochannel"
 skip-if = [
-  "os == 'mac'", # Bug 1524746
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1524746
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1524746
   "os == 'linux' && !debug", # Bug 1524746
 ]
 
@@ -156,7 +157,8 @@ support-files = [
   "gizmo.mp4",
   "gizmo-noaudio.webm",
 ]
-skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+tags = "bleedover"
 
 ["browser_media_wakelock_PIP.js"]
 support-files = [

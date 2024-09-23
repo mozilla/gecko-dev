@@ -104,8 +104,8 @@ support-files = ["file_pdf_binary_octet_stream.pdf"]
 
 ["browser_open_internal_choice_persistence.js"]
 skip-if = [
-   "apple_silicon", #bug 1752482
-   "os == 'mac' && os_version == '10.15'", #Bug 1776017
+   "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", #bug 1752482
+   "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", #Bug 1776017
 ]
 support-files = [
   "file_pdf_application_pdf.pdf",

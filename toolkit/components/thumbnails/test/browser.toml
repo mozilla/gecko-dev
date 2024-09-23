@@ -21,9 +21,8 @@ support-files = [
 
 ["browser_thumbnails_bg_crash_during_capture.js"]
 run-if = ["crashreporter"]
-skip-if = [
-  "apple_silicon",
-] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+tags = "bleedover"
 
 ["browser_thumbnails_bg_crash_while_idle.js"]
 run-if = ["crashreporter"]

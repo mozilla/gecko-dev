@@ -7,8 +7,8 @@ support-files = ["head.js"]
 
 ["browser_destroy_callbacks.js"]
 skip-if = [
-  "apple_catalina && !debug", #Bug 1604538
-  "apple_silicon && !debug", #Bug 1604538
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug", #Bug 1604538
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", #Bug 1604538
 ]
 
 ["browser_event_listener.js"]

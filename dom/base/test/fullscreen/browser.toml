@@ -40,7 +40,8 @@ support-files = [
 
 ["browser_fullscreen-newtab.js"]
 skip-if = [
-  "os == 'mac'", # Bug 1494843
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1494843
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1494843
   "os == 'linux' && bits == 64 && os_version == '18.04'",  # Bug 1601460
 ]
 
@@ -50,12 +51,12 @@ skip-if = [
 
 ["browser_fullscreen-tab-close-race.js"]
 skip-if = [
-  "apple_silicon && !debug", # Bug 1877642
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # Bug 1877642
 ]
 
 ["browser_fullscreen-tab-close.js"]
 skip-if = [
-  "apple_silicon && !debug", # Bug 1809365
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # Bug 1809365
 ]
 
 ["browser_fullscreen-window-open-race.js"]

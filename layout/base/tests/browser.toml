@@ -19,7 +19,8 @@ support-files = ["helper_bug1701027-2.html"]
 
 ["browser_bug1757410.js"]
 run-if = [
-  "os == 'mac' && debug",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && debug",
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && debug",
   "os == 'win' && processor == 'x86_64' && debug"
 ]
 
@@ -45,14 +46,16 @@ support-files = [
 
 ["browser_select_popup_position_in_out_of_process_iframe.js"]
 skip-if = [
-  "verify && (os == 'mac')", # bug 1627874
-  "apple_silicon", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && verify", # bug 1627874
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && verify", # bug 1627874
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
   "os == 'linux' && socketprocess_networking && fission && !debug",
 ] # high frequency intermittent
 support-files = [
   "!/gfx/layers/apz/test/mochitest/apz_test_native_event_utils.js",
   "!/browser/base/content/test/forms/head.js"
 ]
+tags = "bleedover"
 
 ["browser_stylesheet_change_events.js"]
 support-files = [

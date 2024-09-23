@@ -21,13 +21,12 @@ support-files = [
 ]
 
 ["browser_encrypted_play_time_telemetry.js"]
-skip-if = ["apple_silicon"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64'"] # Disabled due to bleedover with other tests when run in regular suites; passes in "failures" jobs
+tags = "bleedover"
 
 ["browser_glean_first_frame_loaded_time.js"]
 tags = "os_integration"
-skip-if = [
-  "os == 'mac' && os_version == '14.40'",  # Bug 1909908
-]
+skip-if = ["os == 'mac' && os_version == '14.40'"]  # Bug 1909908
 
 ["browser_tab_visibility_and_play_time.js"]
 
