@@ -885,8 +885,8 @@ void AlphaBoxBlur::BoxBlur_C(uint8_t* aData, int32_t aLeftLobe,
  *   http://www.w3.org/TR/SVG11/filters.html#feGaussianBlurElement
  *   https://bugzilla.mozilla.org/show_bug.cgi?id=590039#c19
  */
-static const Float GAUSSIAN_SCALE_FACTOR =
-    Float((3 * sqrt(2 * M_PI) / 4) * 1.5);
+constexpr double sqrt_2_PI = 0x1.40d931ff62705p+1;  // sqrt is not constexpr
+static constexpr Float GAUSSIAN_SCALE_FACTOR = Float((3 * sqrt_2_PI / 4) * 1.5);
 
 IntSize AlphaBoxBlur::CalculateBlurRadius(const Point& aStd) {
   IntSize size(
