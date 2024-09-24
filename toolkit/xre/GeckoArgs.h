@@ -138,6 +138,9 @@ void CommandLineArg<UniqueFileHandle>::PutCommon(const char* aName,
 #  pragma GCC diagnostic ignored "-Wunused-variable"
 #endif
 
+static CommandLineArg<uint64_t> sParentPid{"-parentPid", "parentpid"};
+static CommandLineArg<const char*> sInitialChannelID{"-initialChannelId",
+                                                     "initialchannelid"};
 static CommandLineArg<const char*> sParentBuildID{"-parentBuildID",
                                                   "parentbuildid"};
 static CommandLineArg<const char*> sAppDir{"-appDir", "appdir"};
