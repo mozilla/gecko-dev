@@ -209,8 +209,6 @@ async def test_cached_revalidate(
     )
 
 
-
-
 @pytest.mark.asyncio
 async def test_page_with_cached_link_stylesheet(
     bidi_session,
@@ -406,13 +404,21 @@ async def test_page_with_cached_duplicated_stylesheets(
         expected_request={"method": "GET", "url": page_with_cached_css},
         expected_response={"url": page_with_cached_css, "fromCache": False},
     )
+
+    link_css_event = next(
+        e for e in events if cached_link_css_url == e["request"]["url"]
+    )
     assert_response_event(
-        events[1],
+        link_css_event,
         expected_request={"method": "GET", "url": cached_link_css_url},
         expected_response={"url": cached_link_css_url, "fromCache": False},
     )
+
+    import_css_event = next(
+        e for e in events if cached_import_css_url == e["request"]["url"]
+    )
     assert_response_event(
-        events[2],
+        import_css_event,
         expected_request={"method": "GET", "url": cached_import_css_url},
         expected_response={"url": cached_import_css_url, "fromCache": False},
     )
@@ -425,18 +431,27 @@ async def test_page_with_cached_duplicated_stylesheets(
     await wait.until(lambda _: len(events) >= 6)
     assert len(events) == 6
 
+    # Assert only cached events after reload.
+    cached_events = events[3:]
+
     assert_response_event(
-        events[3],
+        cached_events[0],
         expected_request={"method": "GET", "url": page_with_cached_css},
         expected_response={"url": page_with_cached_css, "fromCache": False},
     )
+    cached_link_css_event = next(
+        e for e in cached_events if cached_link_css_url == e["request"]["url"]
+    )
     assert_response_event(
-        events[4],
+        cached_link_css_event,
         expected_request={"method": "GET", "url": cached_link_css_url},
         expected_response={"url": cached_link_css_url, "fromCache": True},
     )
+    cached_import_css_event = next(
+        e for e in cached_events if cached_import_css_url == e["request"]["url"]
+    )
     assert_response_event(
-        events[5],
+        cached_import_css_event,
         expected_request={"method": "GET", "url": cached_import_css_url},
         expected_response={"url": cached_import_css_url, "fromCache": True},
     )

@@ -331,6 +331,22 @@ def get_cached_url(content_type, response):
     return f"/webdriver/tests/support/http_handlers/cached.py?{query_string}"
 
 
+def get_cached_url(content_type, response):
+    """
+    Build a URL for a resource which will be fully cached.
+
+    :param content_type: Response content type eg "text/css".
+    :param response: Response body>
+
+    :return: Relative URL as a string, typically should be used with the
+        `url` fixture.
+    """
+    # `nocache` is not used in cached.py, it is here to bypass the browser cache
+    # from previous tests accessing the same URL.
+    query_string = f"status=200&contenttype={content_type}&response={response}&nocache={random.random()}"
+    return f"/webdriver/tests/support/http_handlers/cached.py?{query_string}"
+
+
 # Array of status and status text expected to be available in network events
 HTTP_STATUS_AND_STATUS_TEXT = [
     (101, "Switching Protocols"),
@@ -387,6 +403,9 @@ PAGE_REDIRECT_HTTP_EQUIV = (
 )
 PAGE_REDIRECTED_HTML = "/webdriver/tests/bidi/network/support/redirected.html"
 PAGE_SERVICEWORKER_HTML = "/webdriver/tests/bidi/network/support/serviceworker.html"
+
+STYLESHEET_GREY_BACKGROUND = urllib.parse.quote_plus("html, body { background-color: #ccc; }")
+STYLESHEET_RED_COLOR = urllib.parse.quote_plus("html, body { color: red; }")
 
 STYLESHEET_GREY_BACKGROUND = urllib.parse.quote_plus("html, body { background-color: #ccc; }")
 STYLESHEET_RED_COLOR = urllib.parse.quote_plus("html, body { color: red; }")
