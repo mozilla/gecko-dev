@@ -547,6 +547,7 @@ private fun EditBookmarkScreenPreview() {
                 ),
                 folder = BookmarkItem.Folder("folder 1", guid = "1"),
             ),
+            bookmarksSelectFolderState = null,
         ),
     )
 
@@ -583,9 +584,10 @@ private fun BookmarksScreenPreview() {
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
                 ),
+                isSignedIntoSync = false,
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
-                isSignedIntoSync = false,
+                bookmarksSelectFolderState = null,
             ),
         )
     }
@@ -609,9 +611,10 @@ private fun EmptyBookmarksScreenPreview() {
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
                 ),
-                bookmarksAddFolderState = null,
                 isSignedIntoSync = false,
+                bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
+                bookmarksSelectFolderState = null,
             ),
         )
     }
@@ -634,11 +637,12 @@ private fun AddFolderPreview() {
                 guid = BookmarkRoot.Mobile.id,
                 title = "Bookmarks",
             ),
+            isSignedIntoSync = false,
             bookmarksEditBookmarkState = null,
             bookmarksAddFolderState = BookmarksAddFolderState(
                 folderBeingAddedTitle = "Edit me!",
             ),
-            isSignedIntoSync = false,
+            bookmarksSelectFolderState = null,
         ),
     )
     FirefoxTheme {

@@ -15,6 +15,7 @@ import mozilla.components.lib.state.State
  * @property isSignedIntoSync State representing if the user is currently signed into sync.
  * @property bookmarksAddFolderState State representing the add folder subscreen, if visible.
  * @property bookmarksEditBookmarkState State representing the edit bookmark subscreen, if visible.
+ * @property bookmarksSelectFolderState State representing the select folder subscreen, if visible.
  */
 internal data class BookmarksState(
     val bookmarkItems: List<BookmarkItem>,
@@ -23,6 +24,7 @@ internal data class BookmarksState(
     val isSignedIntoSync: Boolean,
     val bookmarksAddFolderState: BookmarksAddFolderState?,
     val bookmarksEditBookmarkState: BookmarksEditBookmarkState?,
+    val bookmarksSelectFolderState: BookmarksSelectFolderState?,
 ) : State {
     companion object {
         val default: BookmarksState = BookmarksState(
@@ -32,6 +34,7 @@ internal data class BookmarksState(
             isSignedIntoSync = false,
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = null,
+            bookmarksSelectFolderState = null,
         )
     }
 }
@@ -43,4 +46,21 @@ internal data class BookmarksEditBookmarkState(
 
 internal data class BookmarksAddFolderState(
     val folderBeingAddedTitle: String,
+)
+
+internal data class SelectFolderItem(
+    val indentation: Int,
+    val folder: BookmarkItem.Folder,
+) {
+    val guid: String
+        get() = folder.guid
+
+    val title: String
+        get() = folder.title
+}
+
+internal data class BookmarksSelectFolderState(
+    val selectionGuid: String? = null,
+    val addFolderSelectionGuid: String? = null,
+    val folders: List<SelectFolderItem> = listOf(),
 )
