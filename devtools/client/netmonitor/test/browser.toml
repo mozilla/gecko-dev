@@ -68,6 +68,7 @@ support-files = [
   "html_sse-test-page.html",
   "html_ws-sse-test-page.html",
   "html_image-cache.html",
+  "html_stylesheet-cache.html",
   "js_worker-test.js",
   "js_worker-test2.js",
   "js_websocket-worker-test.js",
@@ -90,6 +91,7 @@ support-files = [
   "sjs_timings-test-server.sjs",
   "sjs_truncate-test-server.sjs",
   "test-image.png",
+  "test-stylesheet.css",
   "ostrich-regular.ttf",
   "ostrich-black.ttf",
   "service-workers/status-codes.html",
@@ -494,6 +496,8 @@ skip-if = ["true"] # Bug 1373558
 ["browser_net_status-codes.js"]
 
 ["browser_net_streaming-response.js"]
+
+["browser_net_stylesheet_cache.js"]
 
 ["browser_net_tabbar_focus.js"]
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled

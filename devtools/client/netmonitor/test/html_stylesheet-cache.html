@@ -1,0 +1,12 @@
+<html>
+<head>
+<!--
+    Loading the same file multiple times within the same document should not
+    generate multiple fetch, and there should be only one request shown in the
+    network monitor.
+  -->
+<link rel="stylesheet" href="test-stylesheet.css">
+<link rel="stylesheet" href="test-stylesheet.css">
+<link rel="stylesheet" href="test-stylesheet.css">
+</head>
+</html>
