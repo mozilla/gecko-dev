@@ -3,69 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 /**
- * A cached value for the computed WebAssembly (Wasm) filename.
- *
- * This variable stores the result of the `getRuntimeWasmFilename` function
- * after it has been determined based on the browser's capabilities.
- * Caching the filename avoids re-computation on subsequent calls.
- *
- * @type {string|null}
- */
-let cachedRuntimeWasmFilename = null;
-
-/**
- * Retrieves the navigator object from the current active browser window that has a layer manager.
- *
- * @returns {Navigator|null} The navigator object if found, otherwise null.
- */
-function getNavigator() {
-  for (let win of Services.ww.getWindowEnumerator()) {
-    let winUtils = win.windowUtils;
-    try {
-      if (winUtils.layerManagerType == "None" || !winUtils.layerManagerRemote) {
-        continue;
-      }
-      const nav = win.navigator;
-      if (nav) {
-        return nav;
-      }
-    } catch (e) {
-      continue;
-    }
-  }
-  return null;
-}
-
-/**
- * Determines the appropriate WebAssembly (Wasm) filename based on the runtime capabilities of the browser.
- *
- * Since SIMD is supported by all major JavaScript engines, non-SIMD build is no longer provided.
- * We also serve the threaded build since we can simply set numThreads to 1 to disable multi-threading.
- *
- * The filename of the .wasm file can be:
- *
- *  - `ort-wasm-simd-threaded.wasm` for default build
- *  - `ort-wasm-simd-threaded.jsep.wasm` for JSEP build (with WebGPU and WebNN)
- *
- * @returns {string} The filename of the Wasm file best suited for the current browser's capabilities.
- */
-
-export function getRuntimeWasmFilename() {
-  if (cachedRuntimeWasmFilename != null) {
-    return cachedRuntimeWasmFilename;
-  }
-
-  const navigator = getNavigator();
-
-  // Determine the appropriate filename based on GPU support
-  cachedRuntimeWasmFilename = navigator?.gpu
-    ? "ort-wasm-simd-threaded.jsep.wasm"
-    : "ort-wasm-simd-threaded.wasm";
-
-  return cachedRuntimeWasmFilename;
-}
-
-/**
  * Enumeration for the progress status text.
  */
 export const ProgressStatusText = Object.freeze({

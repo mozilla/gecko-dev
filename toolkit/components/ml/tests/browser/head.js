@@ -16,10 +16,6 @@ const { ModelHub, IndexedDBCache } = ChromeUtils.importESModule(
   "chrome://global/content/ml/ModelHub.sys.mjs"
 );
 
-const { getRuntimeWasmFilename } = ChromeUtils.importESModule(
-  "chrome://global/content/ml/Utils.sys.mjs"
-);
-
 const { createEngine, PipelineOptions } = ChromeUtils.importESModule(
   "chrome://global/content/ml/EngineProcess.sys.mjs"
 );
@@ -34,7 +30,7 @@ Services.scriptloader.loadSubScript(
 function getDefaultWasmRecords() {
   return [
     {
-      name: getRuntimeWasmFilename(),
+      name: MLEngineParent.WASM_FILENAME,
       version: MLEngineParent.WASM_MAJOR_VERSION + ".0",
     },
   ];

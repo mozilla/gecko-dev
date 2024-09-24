@@ -23,7 +23,6 @@ ChromeUtils.defineLazyGetter(lazy, "console", () => {
 });
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  getRuntimeWasmFilename: "chrome://global/content/ml/Utils.sys.mjs",
   EngineProcess: "chrome://global/content/ml/EngineProcess.sys.mjs",
   RemoteSettings: "resource://services-settings/remote-settings.sys.mjs",
   TranslationsParent: "resource://gre/actors/TranslationsParent.sys.mjs",
@@ -77,6 +76,14 @@ export class MLEngineParent extends JSWindowActorParent {
    * as "2.0", "2.1", etc will not be downloaded.
    */
   static WASM_MAJOR_VERSION = 2;
+
+  /**
+   * This wasm file supports CPU, WebGPU and WebNN.
+   *
+   * Since SIMD is supported by all major JavaScript engines, non-SIMD build is no longer provided.
+   * We also serve the threaded build since we can simply set numThreads to 1 to disable multi-threading.
+   */
+  static WASM_FILENAME = "ort-wasm-simd-threaded.jsep.wasm";
 
   /**
    * The modelhub used to retrieve files.
@@ -330,13 +337,11 @@ export class MLEngineParent extends JSWindowActorParent {
    * @param {RemoteSettingsClient} client
    */
   static async #getWasmArrayRecord(client) {
-    const wasmFilename = lazy.getRuntimeWasmFilename(this.browsingContext);
-
     /** @type {WasmRecord[]} */
     const wasmRecords = await lazy.TranslationsParent.getMaxVersionRecords(
       client,
       {
-        filters: { name: wasmFilename },
+        filters: { name: MLEngineParent.WASM_FILENAME },
         majorVersion: MLEngineParent.WASM_MAJOR_VERSION,
       }
     );
@@ -379,7 +384,7 @@ export class MLEngineParent extends JSWindowActorParent {
     // if the task name is not in our settings, we just set the onnx runtime filename.
     if (records.length === 0) {
       return {
-        runtimeFilename: lazy.getRuntimeWasmFilename(this.browsingContext),
+        runtimeFilename: MLEngineParent.WASM_FILENAME,
       };
     }
     const options = records[0];
@@ -390,7 +395,7 @@ export class MLEngineParent extends JSWindowActorParent {
       tokenizerId: options.tokenizerId,
       processorRevision: options.processorRevision,
       processorId: options.processorId,
-      runtimeFilename: lazy.getRuntimeWasmFilename(this.browsingContext),
+      runtimeFilename: MLEngineParent.WASM_FILENAME,
     };
   }
 
