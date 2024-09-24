@@ -558,22 +558,21 @@ export class UrlbarInput {
     // Otherwise, if the URI is valid, exit search mode.  This must happen
     // after setting proxystate above because search mode depends on it.
     if (
-      uri &&
+      this.window.gBrowser.selectedBrowser.searchTerms &&
       !isSameDocument &&
-      !dueToTabSwitch &&
-      this.window.gBrowser.selectedBrowser.searchTerms
+      !dueToTabSwitch
     ) {
-      let result = this.#searchModeForUrl(uri.spec);
-      if (
-        result &&
-        !result.isDefaultEngine &&
-        this.searchMode?.name != result.engineName
-      ) {
-        this.searchMode = {
-          engineName: result.engineName,
-          source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
-          isPreview: false,
-        };
+      let result = this.#searchModeForUrl(uri?.spec);
+      if (result && this.searchMode?.name != result.engineName) {
+        if (result.isDefaultEngine) {
+          this.searchMode = null;
+        } else {
+          this.searchMode = {
+            engineName: result.engineName,
+            source: lazy.UrlbarUtils.RESULT_SOURCE.SEARCH,
+            isPreview: false,
+          };
+        }
       }
     } else if (dueToTabSwitch && !valid) {
       this.restoreSearchModeState();

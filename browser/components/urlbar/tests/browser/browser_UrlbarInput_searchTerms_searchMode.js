@@ -58,41 +58,15 @@ async function searchWithNonDefaultSearchMode(tab) {
     isPreview: false,
     entry: "other",
   });
+
+  return { expectedSearchUrl };
 }
 
 // When a user does a search with search mode, they should
 // see the search term in the URL bar for that engine.
 add_task(async function non_default_search() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
-
-  let engine = Services.search.getEngineByName("MochiSearch");
-
-  let [expectedSearchUrl] = UrlbarUtils.getSearchQueryUrl(
-    engine,
-    SEARCH_STRING
-  );
-  let browserLoadedPromise = BrowserTestUtils.browserLoaded(
-    tab.linkedBrowser,
-    false,
-    expectedSearchUrl,
-    true
-  );
-
-  await UrlbarTestUtils.promiseAutocompleteResultPopup({
-    window,
-    value: SEARCH_STRING,
-  });
-  await UrlbarTestUtils.enterSearchMode(window, {
-    engineName: engine.name,
-    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
-  });
-  gURLBar.focus();
-  EventUtils.synthesizeKey("KEY_Enter");
-  await browserLoadedPromise;
-
-  assertSearchStringIsInUrlbar(SEARCH_STRING, {
-    userTypedValue: SEARCH_STRING,
-  });
+  await searchWithNonDefaultSearchMode(tab);
   BrowserTestUtils.removeTab(tab);
 });
 
@@ -165,12 +139,10 @@ add_task(async function clear_search_mode_switch_tab() {
   BrowserTestUtils.removeTab(tab2);
 });
 
-add_task(async function tabhistory_searchmode() {
+add_task(async function tabhistory_searchmode_non_default() {
   let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
 
-  await searchWithNonDefaultSearchMode(tab);
-
-  let serpUrl = gBrowser.currentURI.spec;
+  let { expectedSearchUrl } = await searchWithNonDefaultSearchMode(tab);
 
   info("Load a non-SERP URL.");
   let promise = BrowserTestUtils.browserLoaded(
@@ -185,7 +157,7 @@ add_task(async function tabhistory_searchmode() {
   );
   await promise;
 
-  info(`Go back to ${serpUrl}`);
+  info(`Go back to ${expectedSearchUrl}`);
   promise = BrowserTestUtils.waitForContentEvent(tab.linkedBrowser, "pageshow");
   gBrowser.goBack();
   await promise;
@@ -195,6 +167,55 @@ add_task(async function tabhistory_searchmode() {
     "Waiting for search mode."
   );
 
+  // UserTypedValue is set when the search mode has to be recovered.
+  assertSearchStringIsInUrlbar(SEARCH_STRING, {
+    userTypedValue: SEARCH_STRING,
+  });
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName: "MochiSearch",
+    isGeneralPurposeEngine: true,
+    source: UrlbarUtils.RESULT_SOURCE.SEARCH,
+    isPreview: false,
+    entry: "other",
+  });
+
+  BrowserTestUtils.removeTab(tab);
+});
+
+add_task(async function tabhistory_searchmode_default_engine() {
+  info("Load a search with a default search provider.");
+  let { tab, expectedSearchUrl: defaultSearchUrl } = await searchWithTab(
+    SEARCH_STRING
+  );
+
+  info("Load a search with a non-default search provider.");
+  let { expectedSearchUrl: searchModeUrl } =
+    await searchWithNonDefaultSearchMode(tab);
+
+  info(`Go back to ${defaultSearchUrl}`);
+  let promise = BrowserTestUtils.waitForContentEvent(
+    tab.linkedBrowser,
+    "pageshow"
+  );
+  gBrowser.goBack();
+  await promise;
+
+  await TestUtils.waitForCondition(
+    () => !gURLBar.searchMode,
+    "Waiting for search mode to be absent."
+  );
+  assertSearchStringIsInUrlbar(SEARCH_STRING);
+  await UrlbarTestUtils.assertSearchMode(window, null);
+
+  info(`Go forward to ${searchModeUrl}`);
+  promise = BrowserTestUtils.waitForContentEvent(tab.linkedBrowser, "pageshow");
+  gBrowser.goForward();
+  await promise;
+
+  await TestUtils.waitForCondition(
+    () => gURLBar.searchMode,
+    "Waiting for search mode."
+  );
   // UserTypedValue is set when the search mode has to be recovered.
   assertSearchStringIsInUrlbar(SEARCH_STRING, {
     userTypedValue: SEARCH_STRING,
