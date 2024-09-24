@@ -536,6 +536,7 @@ export var SiteDataManager = {
               Services.eTLD.getSchemelessSiteFromHost(domainOrHost);
             clearData.deleteDataFromSite(
               schemelessSite,
+              {},
               true,
               Ci.nsIClearDataService.CLEAR_COOKIES_AND_SITE_DATA,
               resolve

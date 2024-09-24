@@ -352,10 +352,11 @@ add_task(async function test_baseDomain_cookies_subdomain() {
   Services.cookies.removeAll();
   setTestCookies();
 
-  // Clear cookies of test.example.net including partitions.
+  // Clear cookies of example.net including partitions.
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromBaseDomain(
-      "test.example.net",
+    Services.clearData.deleteDataFromSite(
+      "example.net",
+      {},
       false,
       Ci.nsIClearDataService.CLEAR_COOKIES,
       aResolve
