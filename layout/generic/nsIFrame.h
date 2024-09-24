@@ -113,7 +113,10 @@ class nsILineIterator;
 class gfxSkipChars;
 class gfxSkipCharsIterator;
 class gfxContext;
-class nsLineList_iterator;
+class nsLineLink;
+template <typename Link, bool>
+class GenericLineListIterator;
+using LineListIterator = GenericLineListIterator<nsLineLink, false>;
 class nsAbsoluteContainingBlock;
 class nsContainerFrame;
 class nsPlaceholderFrame;
@@ -2673,7 +2676,7 @@ class nsIFrame : public nsQueryFrame {
   struct InlineIntrinsicISizeData {
     // The line. This may be null if the inlines are not associated with
     // a block or if we just don't know the line.
-    const nsLineList_iterator* mLine = nullptr;
+    const LineListIterator* mLine = nullptr;
 
     // The line container. Private, to ensure we always use SetLineContainer
     // to update it.

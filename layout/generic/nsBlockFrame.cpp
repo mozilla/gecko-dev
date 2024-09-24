@@ -743,9 +743,9 @@ bool nsBlockFrame::IsFloatContainingBlock() const { return true; }
  */
 static bool RemoveFirstLine(nsLineList& aFromLines, nsFrameList& aFromFrames,
                             nsLineBox** aOutLine, nsFrameList* aOutFrames) {
-  nsLineList_iterator removedLine = aFromLines.begin();
+  LineListIterator removedLine = aFromLines.begin();
   *aOutLine = removedLine;
-  nsLineList_iterator next = aFromLines.erase(removedLine);
+  LineListIterator next = aFromLines.erase(removedLine);
   bool isLastLine = next == aFromLines.end();
   nsIFrame* firstFrameInNextLine = isLastLine ? nullptr : next->mFirstChild;
   *aOutFrames = aFromFrames.TakeFramesBefore(firstFrameInNextLine);

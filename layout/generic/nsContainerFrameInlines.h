@@ -65,7 +65,7 @@ void nsContainerFrame::DoInlineIntrinsicISize(ISizeData* aData,
     aData->mCurrentLine += clonePBM;
   }
 
-  const nsLineList_iterator* savedLine = aData->mLine;
+  const LineListIterator* savedLine = aData->mLine;
   nsIFrame* const savedLineContainer = aData->LineContainer();
 
   nsContainerFrame* lastInFlow;
