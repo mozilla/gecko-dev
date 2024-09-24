@@ -434,6 +434,34 @@ const char* GetMetricIdentifier(metric_entry_t entry) {
   return &gMetricStringTable[offset];
 }
 
+// WARNING: This WILL break if the definition of a `metric_entry_t` changes.
+// This needs to be updated whenever the lookup macros in
+// GleanJSMetricsLookup.cpp change (i.e. at the top of this file).
+//
+// Looking up a metric name involved indexing into the `gMetricStringTable` with
+// a valid `metric_entry_t` index. A metric_id (32-bit int) is contained as a
+// subset of the bits within a `metric_entry_t`, so we enumerate over the list
+// of possible indicies, given in `sMetricNameByLookupEntries`. This is a little
+// brittle, as how a `metric_entry_t` encodes a metric_id is an implementation
+// detail that we shouldn't heavily rely on. However, if profiles start failing,
+// or giving nonsensical names, it's probably this relationship that needs to be
+// fixed.
+/**
+ * Look up the string identifier of a metric by its 32-bit id.
+ * Returns nullptr if we couldn't find a matching identifier for the id.
+ */
+extern "C" const char* FOG_GetMetricIdentifier(
+    uint32_t metric_id) {
+  for (metric_entry_t entry : sMetricByNameLookupEntries) {
+    if (static_cast<uint32_t>(GLEAN_METRIC_ID(entry >> GLEAN_INDEX_BITS)) == metric_id) {
+      return GetMetricIdentifier(entry);
+    }
+  }
+
+  // We didn't find our metric_id in the list of metric entries.
+  return nullptr;
+}
+
 /**
  * Check that the found entry is pointing to the right key
  * and return it.

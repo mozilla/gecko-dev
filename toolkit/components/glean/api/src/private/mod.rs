@@ -82,3 +82,63 @@ impl From<u32> for MetricId {
         Self(id)
     }
 }
+
+// We only access the methods here when we're building with Gecko, as that's
+// when we have access to the profiler. We don't need alternative (i.e.
+// non-gecko) implementations, as any imports from this sub-module are also
+// gated with the same #[cfg(feature...)]
+#[cfg(feature = "with_gecko")]
+pub(crate) mod profiler_utils {
+    #[derive(Debug)]
+    pub(crate) enum LookupError {
+        NullPointer,
+        Utf8ParseError(std::str::Utf8Error),
+    }
+
+    impl LookupError {
+        pub fn as_str(self) -> &'static str {
+            match self {
+                LookupError::NullPointer => "id not found",
+                LookupError::Utf8ParseError(_) => "utf8 parse error",
+            }
+        }
+    }
+
+    impl std::fmt::Display for LookupError {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                LookupError::NullPointer => write!(f, "id not found"),
+                LookupError::Utf8ParseError(p) => write!(f, "utf8 parse error: {}", p),
+            }
+        }
+    }
+
+    pub(crate) fn lookup_canonical_metric_name(
+        id: &super::MetricId,
+    ) -> Result<&'static str, LookupError> {
+        #[allow(unused)]
+        use std::ffi::{c_char, CStr};
+        extern "C" {
+            fn FOG_GetMetricIdentifier(id: u32) -> *const c_char;
+        }
+        // SAFETY: We check to make sure that the returned pointer is not null
+        // before trying to construct a string from it. As the string array that
+        // `FOG_GetMetricIdentifier` references is statically defined and allocated,
+        // we know that any strings will be guaranteed to have a null terminator,
+        // and will have the same lifetime as the program, meaning we're safe to
+        // return a static lifetime, knowing that they won't be changed "underneath"
+        // us. Additionally, we surface any errors from parsing the string as utf8.
+        unsafe {
+            let raw_name_ptr = FOG_GetMetricIdentifier(id.0);
+            if raw_name_ptr.is_null() {
+                Err(LookupError::NullPointer)
+            } else {
+                let name = CStr::from_ptr(raw_name_ptr).to_str();
+                match name {
+                    Ok(s) => Ok(s),
+                    Err(ut8err) => Err(LookupError::Utf8ParseError(ut8err)),
+                }
+            }
+        }
+    }
+}
