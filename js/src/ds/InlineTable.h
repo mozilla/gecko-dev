@@ -18,37 +18,8 @@ namespace js {
 
 namespace detail {
 
-// The InlineTable below needs an abstract way of testing keys for
-// tombstone values, and to set a key in an entry to a tombstone.
-// This is provided by the KeyPolicy generic type argument, which
-// has a default implementation for pointers provided below.
-
-// A default implementation of a KeyPolicy for some types (only pointer
-// types for now).
-//
-// The `KeyPolicy` type parameter informs an InlineTable of how to
-// check for tombstone values and to set tombstone values within
-// the domain of key (entry).
-//
-// A `KeyPolicy` for some key type `K` must provide two static methods:
-//   static bool isTombstone(const K& key);
-//   static void setToTombstone(K& key);
-template <typename K>
-class DefaultKeyPolicy;
-
-template <typename T>
-class DefaultKeyPolicy<T*> {
-  DefaultKeyPolicy() = delete;
-  DefaultKeyPolicy(const T*&) = delete;
-
- public:
-  static bool isTombstone(T* const& ptr) { return ptr == nullptr; }
-  static void setToTombstone(T*& ptr) { ptr = nullptr; }
-};
-
 template <typename InlineEntry, typename Entry, typename Table,
-          typename HashPolicy, typename AllocPolicy, typename KeyPolicy,
-          size_t InlineEntries>
+          typename HashPolicy, typename AllocPolicy, size_t InlineEntries>
 class InlineTable : private AllocPolicy {
  private:
   using TablePtr = typename Table::Ptr;
@@ -56,18 +27,9 @@ class InlineTable : private AllocPolicy {
   using TableRange = typename Table::Range;
   using Lookup = typename HashPolicy::Lookup;
 
-  size_t inlNext_;
   size_t inlCount_;
   InlineEntry inl_[InlineEntries];
   Table table_;
-
-#ifdef DEBUG
-  template <typename Key>
-  static bool keyNonZero(const Key& key) {
-    // Zero as tombstone means zero keys are invalid.
-    return !!key;
-  }
-#endif
 
   InlineEntry* inlineStart() {
     MOZ_ASSERT(!usingTable());
@@ -81,30 +43,30 @@ class InlineTable : private AllocPolicy {
 
   InlineEntry* inlineEnd() {
     MOZ_ASSERT(!usingTable());
-    return inl_ + inlNext_;
+    return inl_ + inlCount_;
   }
 
   const InlineEntry* inlineEnd() const {
     MOZ_ASSERT(!usingTable());
-    return inl_ + inlNext_;
+    return inl_ + inlCount_;
   }
 
-  bool usingTable() const { return inlNext_ > InlineEntries; }
+  bool usingTable() const { return inlCount_ > InlineEntries; }
 
   [[nodiscard]] bool switchToTable() {
-    MOZ_ASSERT(inlNext_ == InlineEntries);
+    MOZ_ASSERT(inlCount_ == InlineEntries);
 
     table_.clearAndCompact();
 
     InlineEntry* end = inlineEnd();
     for (InlineEntry* it = inlineStart(); it != end; ++it) {
-      if (it->key && !it->moveTo(table_)) {
+      if (!it->moveTo(table_)) {
         return false;
       }
     }
 
-    inlNext_ = InlineEntries + 1;
     MOZ_ASSERT(table_.count() == inlCount_);
+    inlCount_ = InlineEntries + 1;
     MOZ_ASSERT(usingTable());
     return true;
   }
@@ -113,7 +75,7 @@ class InlineTable : private AllocPolicy {
   static const size_t SizeOfInlineEntries = sizeof(InlineEntry) * InlineEntries;
 
   explicit InlineTable(AllocPolicy a = AllocPolicy())
-      : AllocPolicy(std::move(a)), inlNext_(0), inlCount_(0), table_(a) {}
+      : AllocPolicy(std::move(a)), inlCount_(0), table_(a) {}
 
   class Ptr {
     friend class InlineTable;
@@ -204,22 +166,17 @@ class InlineTable : private AllocPolicy {
 
   bool empty() const { return usingTable() ? table_.empty() : !inlCount_; }
 
-  void clear() {
-    inlNext_ = 0;
-    inlCount_ = 0;
-  }
+  void clear() { inlCount_ = 0; }
 
   MOZ_ALWAYS_INLINE
   Ptr lookup(const Lookup& l) {
-    MOZ_ASSERT(keyNonZero(l));
-
     if (usingTable()) {
       return Ptr(table_.lookup(l));
     }
 
     InlineEntry* end = inlineEnd();
     for (InlineEntry* it = inlineStart(); it != end; ++it) {
-      if (it->key && HashPolicy::match(it->key, l)) {
+      if (HashPolicy::match(it->key, l)) {
         return Ptr(it);
       }
     }
@@ -229,15 +186,13 @@ class InlineTable : private AllocPolicy {
 
   MOZ_ALWAYS_INLINE
   AddPtr lookupForAdd(const Lookup& l) {
-    MOZ_ASSERT(keyNonZero(l));
-
     if (usingTable()) {
       return AddPtr(table_.lookupForAdd(l));
     }
 
     InlineEntry* end = inlineEnd();
     for (InlineEntry* it = inlineStart(); it != end; ++it) {
-      if (it->key && HashPolicy::match(it->key, l)) {
+      if (HashPolicy::match(it->key, l)) {
         return AddPtr(it, true);
       }
     }
@@ -252,7 +207,6 @@ class InlineTable : private AllocPolicy {
   [[nodiscard]] MOZ_ALWAYS_INLINE bool add(AddPtr& p, KeyInput&& key,
                                            Args&&... args) {
     MOZ_ASSERT(!p);
-    MOZ_ASSERT(keyNonZero(key));
 
     if (p.isInlinePtr_) {
       InlineEntry* addPtr = p.inlAddPtr_;
@@ -276,7 +230,6 @@ class InlineTable : private AllocPolicy {
 
       addPtr->update(std::forward<KeyInput>(key), std::forward<Args>(args)...);
       ++inlCount_;
-      ++inlNext_;
       return true;
     }
 
@@ -288,8 +241,12 @@ class InlineTable : private AllocPolicy {
     MOZ_ASSERT(p);
     if (p.isInlinePtr_) {
       MOZ_ASSERT(inlCount_ > 0);
-      MOZ_ASSERT(!KeyPolicy::isTombstone(p.inlPtr_->key));
-      KeyPolicy::setToTombstone(p.inlPtr_->key);
+      InlineEntry* last = inlineStart() + (inlCount_ - 1);
+      MOZ_ASSERT(p.inlPtr_ <= last);
+      if (p.inlPtr_ != last) {
+        // Removing an entry that's not the last one. Move the last entry.
+        *p.inlPtr_ = std::move(*last);
+      }
       --inlCount_;
       return;
     }
@@ -324,13 +281,11 @@ class InlineTable : private AllocPolicy {
           cur_(const_cast<InlineEntry*>(begin)),
           end_(const_cast<InlineEntry*>(end)),
           isInline_(true) {
-      advancePastNulls(cur_);
       MOZ_ASSERT(isInlineRange());
     }
 
     bool assertInlineRangeInvariants() const {
       MOZ_ASSERT(uintptr_t(cur_) <= uintptr_t(end_));
-      MOZ_ASSERT_IF(cur_ != end_, !KeyPolicy::isTombstone(cur_->key));
       return true;
     }
 
@@ -339,18 +294,9 @@ class InlineTable : private AllocPolicy {
       return isInline_;
     }
 
-    void advancePastNulls(InlineEntry* begin) {
-      InlineEntry* newCur = begin;
-      while (newCur < end_ && KeyPolicy::isTombstone(newCur->key)) {
-        ++newCur;
-      }
-      MOZ_ASSERT(uintptr_t(newCur) <= uintptr_t(end_));
-      cur_ = newCur;
-    }
-
     void bumpCurPtr() {
       MOZ_ASSERT(isInlineRange());
-      advancePastNulls(cur_ + 1);
+      cur_++;
     }
 
    public:
@@ -386,14 +332,12 @@ class InlineTable : private AllocPolicy {
 
 // A map with InlineEntries number of entries kept inline in an array.
 //
-// The Key type must be zeroable as zeros are used as tombstone keys.
 // The Value type must have a default constructor.
 //
 // The API is very much like HashMap's.
 template <typename Key, typename Value, size_t InlineEntries,
           typename HashPolicy = DefaultHasher<Key>,
-          typename AllocPolicy = TempAllocPolicy,
-          typename KeyPolicy = detail::DefaultKeyPolicy<Key>>
+          typename AllocPolicy = TempAllocPolicy>
 class InlineMap {
   using Map = HashMap<Key, Value, HashPolicy, AllocPolicy>;
 
@@ -445,7 +389,7 @@ class InlineMap {
   };
 
   using Impl = detail::InlineTable<InlineEntry, Entry, Map, HashPolicy,
-                                   AllocPolicy, KeyPolicy, InlineEntries>;
+                                   AllocPolicy, InlineEntries>;
 
   Impl impl_;
 
@@ -503,14 +447,12 @@ class InlineMap {
 
 // A set with InlineEntries number of entries kept inline in an array.
 //
-// The T type must be zeroable as zeros are used as tombstone keys.
 // The T type must have a default constructor.
 //
-// The API is very much like HashMap's.
+// The API is very much like HashSet's.
 template <typename T, size_t InlineEntries,
           typename HashPolicy = DefaultHasher<T>,
-          typename AllocPolicy = TempAllocPolicy,
-          typename KeyPolicy = detail::DefaultKeyPolicy<T>>
+          typename AllocPolicy = TempAllocPolicy>
 class InlineSet {
   using Set = HashSet<T, HashPolicy, AllocPolicy>;
 
@@ -550,7 +492,7 @@ class InlineSet {
   };
 
   using Impl = detail::InlineTable<InlineEntry, Entry, Set, HashPolicy,
-                                   AllocPolicy, KeyPolicy, InlineEntries>;
+                                   AllocPolicy, InlineEntries>;
 
   Impl impl_;
 
