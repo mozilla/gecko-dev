@@ -78,10 +78,10 @@ import org.mozilla.fenix.theme.Theme
 
 private val minTabStripItemWidth = 160.dp
 private val maxTabStripItemWidth = 280.dp
+private val tabItemHeight = 40.dp
 private val tabStripIconSize = 24.dp
 private val spaceBetweenTabs = 4.dp
 private val tabStripStartPadding = 8.dp
-private val addTabIconSize = 20.dp
 private val titleFadeWidth = 16.dp
 
 /**
@@ -160,7 +160,6 @@ private fun TabStripContent(
         IconButton(onClick = onAddTabClick) {
             Icon(
                 painter = painterResource(R.drawable.mozac_ic_plus_24),
-                modifier = Modifier.size(addTabIconSize),
                 tint = FirefoxTheme.colors.iconPrimary,
                 contentDescription = stringResource(R.string.add_tab),
             )
@@ -292,7 +291,7 @@ private fun TabItem(
     val closeTabLabel = stringResource(R.string.close_tab)
 
     TabStripCard(
-        modifier = modifier.fillMaxSize(),
+        modifier = modifier.height(tabItemHeight),
         backgroundColor = backgroundColor,
         elevation = if (state.isSelected) {
             selectedTabStripCardElevation
@@ -366,7 +365,11 @@ private fun TabItem(
             ) {
                 Icon(
                     painter = painterResource(R.drawable.mozac_ic_cross_20),
-                    tint = FirefoxTheme.colors.iconPrimary,
+                    tint = if (state.isSelected) {
+                        FirefoxTheme.colors.iconPrimary
+                    } else {
+                        FirefoxTheme.colors.iconSecondary
+                    },
                     contentDescription = stringResource(
                         id = R.string.close_tab_title,
                         state.title,
