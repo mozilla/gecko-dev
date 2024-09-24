@@ -36,7 +36,7 @@ class FetchParent final : public PFetchParent {
 
   mozilla::ipc::IPCResult RecvFetchOp(FetchOpArgs&& aArgs);
 
-  mozilla::ipc::IPCResult RecvAbortFetchOp();
+  mozilla::ipc::IPCResult RecvAbortFetchOp(bool aForceAbort);
 
   FetchParent();
 

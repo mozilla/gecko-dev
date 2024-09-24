@@ -412,7 +412,7 @@ void FetchChild::RunAbortAlgorithm() {
     return;
   }
   if (mWorkerRef || mIsKeepAliveRequest) {
-    Unused << SendAbortFetchOp();
+    Unused << SendAbortFetchOp(true);
   }
 }
 
@@ -427,7 +427,7 @@ void FetchChild::DoFetchOp(const FetchOpArgs& aArgs) {
   }
   if (mSignalImpl) {
     if (mSignalImpl->Aborted()) {
-      Unused << SendAbortFetchOp();
+      Unused << SendAbortFetchOp(true);
       return;
     }
     Follow(mSignalImpl);
@@ -436,6 +436,10 @@ void FetchChild::DoFetchOp(const FetchOpArgs& aArgs) {
 }
 
 void FetchChild::Shutdown() {
+  // This is invoked for worker fetch requests only.
+  // We need to modify this to be invoked for main-thread fetch requests as
+  // well. Typically during global teardown. See Bug 1901082
+
   FETCH_LOG(("FetchChild::Shutdown [%p]", this));
   if (mIsShutdown) {
     return;
@@ -451,22 +455,7 @@ void FetchChild::Shutdown() {
   Unfollow();
   mSignalImpl = nullptr;
   mCSPEventListener = nullptr;
-  // TODO
-  // For workers we need to skip aborting the fetch requests if keepalive is set
-  // This is just a quick fix for Worker.
-  // Usually, we want FetchChild to get destroyed while FetchParent calls
-  // Senddelete(). When Worker shutdown, FetchChild must call
-  // FetchChild::SendAbortFetchOp() to parent, and let FetchParent decide if
-  // canceling the underlying fetch() or not. But currently, we have no good way
-  // to distinguish whether the abort is intent by script or by Worker/Window
-  // shutdown. So, we provide a quick fix here, which makes
-  // FetchChild/FetchParent live a bit longer, but corresponding resources are
-  // released in FetchChild::Shutdown(), so this quick fix should not cause any
-  // leaking.
-  // And we will fix it in Bug 1901082
-  if (!mIsKeepAliveRequest) {
-    Unused << SendAbortFetchOp();
-  }
+  SendAbortFetchOp(false);
 
   mWorkerRef = nullptr;
 }
@@ -475,10 +464,8 @@ void FetchChild::ActorDestroy(ActorDestroyReason aReason) {
   FETCH_LOG(("FetchChild::ActorDestroy [%p]", this));
   // for keepalive request decrement the pending keepalive count
   if (mIsKeepAliveRequest) {
-    // we only support keepalive for main thread fetch requests
-    // See Bug 1901759
-    // For workers we need to dispatch a runnable to the main thread for
-    // updating the loadgroup
+    // For workers we do not have limit per load group rather we have limit
+    // per request
     if (NS_IsMainThread()) {
       MOZ_ASSERT(mPromise->GetGlobalObject());
       nsCOMPtr<nsILoadGroup> loadGroup =
