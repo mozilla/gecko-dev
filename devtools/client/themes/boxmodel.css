@@ -18,6 +18,19 @@
 
   --content-box-color: light-dark(#CFF0FB, #407AA4);
   --content-box-border-color: light-dark(#54A9FF, #00B8FF);
+
+  --box-border-width: 1px;
+
+  &[forced-colors-active] {
+    --margin-box-color: Canvas;
+
+    --border-box-color: CanvasText;
+    --border-box-text-color: Canvas;
+
+    --padding-box-color: Canvas;
+
+    --box-border-width: 2px;
+  }
 }
 
 .boxmodel-container {
@@ -81,13 +94,13 @@
 
 .boxmodel-contents {
   height: 18px;
-  outline: dashed 1px var(--content-box-border-color);
+  outline: dashed var(--box-border-width) var(--content-box-border-color);
 }
 
 .boxmodel-margins {
   border-width: 22px;
   border-style: solid;
-  outline: dashed 1px var(--margin-box-border-color);
+  outline: dashed var(--box-border-width) var(--margin-box-border-color);
 }
 
 .boxmodel-borders {
@@ -343,7 +356,6 @@
   border-bottom-color: hsl(0, 0%, 50%);
 }
 
-.boxmodel-editable:focus,
 .boxmodel-editable:active {
   border: 1px solid var(--blue-50);
   outline: none;
@@ -365,11 +377,20 @@
   background-color: var(--content-box-border-color);
 }
 
-.boxmodel-editable[data-box="margin"]:hover,
-.boxmodel-editable[data-box="padding"]:hover,
-.boxmodel-editable[data-box="border"]:hover,
-.boxmodel-editable[data-box="content"]:hover {
+.boxmodel-editable[data-box]:hover {
   border-radius: 3px;
+}
+
+:root[forced-colors-active] .boxmodel-editable[data-box] {
+  background-color: ButtonFace;
+  color: ButtonText;
+  border-style: solid;
+  border-color: ButtonText;
+
+  &:hover:not(:active) {
+    background-color: SelectedItem;
+    color: SelectedItemText;
+  }
 }
 
 .boxmodel-size > span {
