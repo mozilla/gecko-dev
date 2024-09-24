@@ -95,5 +95,25 @@
   "handelsblatt": {
     "queryParams": ["share"],
     "topLevelSites": ["www.handelsblatt.com"]
+  },
+  "shopee": {
+    "queryParams": ["sp_atk", "xptdk"],
+    "topLevelSites": [
+      "shopee.co.id",
+      "shopee.tw",
+      "shopee.vn",
+      "shopee.co.vn",
+      "shopee.ph",
+      "shopee.com.my",
+      "shopee.sg",
+      "shopee.com.br",
+      "shopee.com.mx",
+      "shopee.com.co",
+      "shopee.cl"
+    ]
+  },
+  "tokopedia": {
+    "queryParams": ["extParam"],
+    "topLevelSites": ["www.tokopedia.com"]
   }
 }
