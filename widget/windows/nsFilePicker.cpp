@@ -642,14 +642,18 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir) {
   // options
   {
     FILEOPENDIALOGOPTIONS fos = 0;
-    fos |= FOS_SHAREAWARE | FOS_OVERWRITEPROMPT | FOS_FORCEFILESYSTEM;
+
+    // FOS_OVERWRITEPROMPT: always confirm on overwrite in Save dialogs
+    // FOS_FORCEFILESYSTEM: provide only filesystem-objects, not more exotic
+    //    entities like libraries
+    fos |= FOS_OVERWRITEPROMPT | FOS_FORCEFILESYSTEM;
 
     // Handle add to recent docs settings
     if (IsPrivacyModeEnabled() || !mAddToRecentDocs) {
       fos |= FOS_DONTADDTORECENT;
     }
 
-    // mode specific
+    // mode specification
     switch (mMode) {
       case modeOpen:
         fos |= FOS_FILEMUSTEXIST;
