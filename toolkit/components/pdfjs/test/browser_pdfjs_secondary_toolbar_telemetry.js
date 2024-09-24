@@ -39,7 +39,7 @@ add_task(async function test() {
 
       info("Clicking on the secondary toolbar button...");
       await SpecialPowers.spawn(browser, [], () => {
-        content.document.querySelector("#secondaryToolbarToggleButton").click();
+        content.document.querySelector("#secondaryToolbarToggle").click();
       });
 
       await BrowserTestUtils.waitForCondition(async () =>

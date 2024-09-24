@@ -105,6 +105,16 @@ const CursorTool = {
   ZOOM: 2
 };
 const AutoPrintRegExp = /\bprint\s*\(/;
+class OutputScale {
+  constructor() {
+    const pixelRatio = window.devicePixelRatio || 1;
+    this.sx = pixelRatio;
+    this.sy = pixelRatio;
+  }
+  get scaled() {
+    return this.sx !== 1 || this.sy !== 1;
+  }
+}
 function scrollIntoView(element, spot, scrollMatches = false) {
   let parent = element.offsetParent;
   if (!parent) {
@@ -1243,7 +1253,6 @@ const {
   noContextMenu,
   normalizeUnicode,
   OPS,
-  OutputScale,
   PasswordResponses,
   PDFDataRangeTransport,
   PDFDateString,
@@ -2066,7 +2075,7 @@ class NewAltTextManager {
   #eventBus;
   #firstTime = false;
   #guessedAltText;
-  #hasAI = null;
+  #hasAI = false;
   #isEditing = null;
   #imagePreview;
   #imageData;
@@ -2330,31 +2339,21 @@ class NewAltTextManager {
     } = editor.altTextData);
     this.#textarea.value = this.#previousAltText ?? "";
     const AI_MAX_IMAGE_DIMENSION = 224;
-    const MAX_PREVIEW_DIMENSION = 180;
-    let canvas, width, height;
+    let canvas;
     if (mlManager) {
       ({
         canvas,
-        width,
-        height,
         imageData: this.#imageData
-      } = editor.copyCanvas(AI_MAX_IMAGE_DIMENSION, MAX_PREVIEW_DIMENSION, true));
+      } = editor.copyCanvas(AI_MAX_IMAGE_DIMENSION, true));
       if (hasAI) {
         this.#toggleGuessAltText(await isAltTextEnabledPromise, true);
       }
     } else {
       ({
-        canvas,
-        width,
-        height
-      } = editor.copyCanvas(AI_MAX_IMAGE_DIMENSION, MAX_PREVIEW_DIMENSION, false));
+        canvas
+      } = editor.copyCanvas(AI_MAX_IMAGE_DIMENSION, false));
     }
     canvas.setAttribute("role", "presentation");
-    const {
-      style
-    } = canvas;
-    style.width = `${width}px`;
-    style.height = `${height}px`;
     this.#imagePreview.append(canvas);
     this.#toggleNotNow();
     this.#toggleAI(hasAI);
@@ -3966,8 +3965,7 @@ function normalize(text) {
     const toNormalizeWithNFKC = getNormalizeWithNFKC();
     const CJK = "(?:\\p{Ideographic}|[\u3040-\u30FF])";
     const HKDiacritics = "(?:\u3099|\u309A)";
-    const CompoundWord = "\\p{Ll}-\\n\\p{Lu}";
-    const regexp = `([${replace}])|([${toNormalizeWithNFKC}])|(${HKDiacritics}\\n)|(\\p{M}+(?:-\\n)?)|(${CompoundWord})|(\\S-\\n)|(${CJK}\\n)|(\\n)`;
+    const regexp = `([${replace}])|([${toNormalizeWithNFKC}])|(${HKDiacritics}\\n)|(\\p{M}+(?:-\\n)?)|(\\S-\\n)|(${CJK}\\n)|(\\n)`;
     if (syllablePositions.length === 0) {
       normalizationRegex = noSyllablesRegExp = new RegExp(regexp + "|(\\u0000)", "gum");
     } else {
@@ -3986,7 +3984,7 @@ function normalize(text) {
   let shiftOrigin = 0;
   let eol = 0;
   let hasDiacritics = false;
-  normalized = normalized.replace(normalizationRegex, (match, p1, p2, p3, p4, p5, p6, p7, p8, p9, i) => {
+  normalized = normalized.replace(normalizationRegex, (match, p1, p2, p3, p4, p5, p6, p7, p8, i) => {
     i -= shiftOrigin;
     if (p1) {
       const replacement = CHARACTERS_TO_NORMALIZE[p1];
@@ -4049,28 +4047,21 @@ function normalize(text) {
       return p4;
     }
     if (p5) {
-      positions.push([i - shift + 3, 1 + shift]);
-      shift += 1;
-      shiftOrigin += 1;
-      eol += 1;
-      return p5.replace("\n", "");
-    }
-    if (p6) {
-      const len = p6.length - 2;
+      const len = p5.length - 2;
       positions.push([i - shift + len, 1 + shift]);
       shift += 1;
       shiftOrigin += 1;
       eol += 1;
-      return p6.slice(0, -2);
+      return p5.slice(0, -2);
     }
-    if (p7) {
-      const len = p7.length - 1;
+    if (p6) {
+      const len = p6.length - 1;
       positions.push([i - shift + len, shift]);
       shiftOrigin += 1;
       eol += 1;
-      return p7.slice(0, -1);
+      return p6.slice(0, -1);
     }
-    if (p8) {
+    if (p7) {
       positions.push([i - shift + 1, shift - 1]);
       shift -= 1;
       shiftOrigin += 1;
@@ -4086,7 +4077,7 @@ function normalize(text) {
       shift -= newCharLen;
       shiftOrigin += newCharLen;
     }
-    return p9;
+    return p8;
   });
   positions.push([normalized.length, shift]);
   return [normalized, positions, hasDiacritics];
@@ -4648,9 +4639,8 @@ class PDFFindController {
 
 const MATCHES_COUNT_LIMIT = 1000;
 class PDFFindBar {
-  #mainContainer;
   #resizeObserver = new ResizeObserver(this.#resizeObserverCallback.bind(this));
-  constructor(options, mainContainer, eventBus) {
+  constructor(options, eventBus) {
     this.opened = false;
     this.bar = options.bar;
     this.toggleButton = options.toggleButton;
@@ -4664,7 +4654,6 @@ class PDFFindBar {
     this.findPreviousButton = options.findPreviousButton;
     this.findNextButton = options.findNextButton;
     this.eventBus = eventBus;
-    this.#mainContainer = mainContainer;
     this.toggleButton.addEventListener("click", () => {
       this.toggle();
     });
@@ -4771,7 +4760,7 @@ class PDFFindBar {
   }
   open() {
     if (!this.opened) {
-      this.#resizeObserver.observe(this.#mainContainer);
+      this.#resizeObserver.observe(this.bar.parentNode);
       this.#resizeObserver.observe(this.bar);
       this.opened = true;
       toggleExpandedBtn(this.toggleButton, true, this.bar);
@@ -4797,7 +4786,7 @@ class PDFFindBar {
       this.open();
     }
   }
-  #resizeObserverCallback() {
+  #resizeObserverCallback(entries) {
     const {
       bar
     } = this;
@@ -9373,7 +9362,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.7.10";
+    const viewerVersion = "4.6.137";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -9807,9 +9796,6 @@ class PDFViewer {
         scale: scale * PixelsPerInch.PDF_TO_CSS_UNITS
       });
       viewer.style.setProperty("--scale-factor", viewport.scale);
-      if (pageColors?.background) {
-        viewer.style.setProperty("--page-bg-color", pageColors.background);
-      }
       if (pageColors?.foreground === "CanvasText" || pageColors?.background === "Canvas") {
         viewer.style.setProperty("--hcm-highlight-filter", pdfDocument.filterFactory.addHighlightHCMFilter("highlight", "CanvasText", "Canvas", "HighlightText", "Highlight"));
         viewer.style.setProperty("--hcm-highlight-selected-filter", pdfDocument.filterFactory.addHighlightHCMFilter("highlight_selected", "CanvasText", "Canvas", "HighlightText", "ButtonText"));
@@ -11355,10 +11341,10 @@ class Toolbar {
       editorStampButton,
       editorStampParamsToolbar
     } = this.#opts;
-    toggleExpandedBtn(editorFreeTextButton, mode === AnnotationEditorType.FREETEXT, editorFreeTextParamsToolbar);
-    toggleExpandedBtn(editorHighlightButton, mode === AnnotationEditorType.HIGHLIGHT, editorHighlightParamsToolbar);
-    toggleExpandedBtn(editorInkButton, mode === AnnotationEditorType.INK, editorInkParamsToolbar);
-    toggleExpandedBtn(editorStampButton, mode === AnnotationEditorType.STAMP, editorStampParamsToolbar);
+    toggleCheckedBtn(editorFreeTextButton, mode === AnnotationEditorType.FREETEXT, editorFreeTextParamsToolbar);
+    toggleCheckedBtn(editorHighlightButton, mode === AnnotationEditorType.HIGHLIGHT, editorHighlightParamsToolbar);
+    toggleCheckedBtn(editorInkButton, mode === AnnotationEditorType.INK, editorInkParamsToolbar);
+    toggleCheckedBtn(editorStampButton, mode === AnnotationEditorType.STAMP, editorStampParamsToolbar);
     const isDisable = mode === AnnotationEditorType.DISABLE;
     editorFreeTextButton.disabled = isDisable;
     editorHighlightButton.disabled = isDisable;
@@ -11789,7 +11775,7 @@ const PDFViewerApplication = {
       pdfLinkService.setHistory(this.pdfHistory);
     }
     if (!this.supportsIntegratedFind && appConfig.findBar) {
-      this.findBar = new PDFFindBar(appConfig.findBar, appConfig.principalContainer, eventBus);
+      this.findBar = new PDFFindBar(appConfig.findBar, eventBus);
     }
     if (appConfig.annotationEditorParams) {
       if (annotationEditorMode !== AnnotationEditorType.DISABLE) {
@@ -13552,8 +13538,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.7.10";
-const pdfjsBuild = "cc63941b6";
+const pdfjsVersion = "4.6.137";
+const pdfjsBuild = "5b4c2fe1a";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;
@@ -13561,7 +13547,6 @@ window.PDFViewerApplicationOptions = AppOptions;
 function getViewerConfiguration() {
   return {
     appContainer: document.body,
-    principalContainer: document.getElementById("mainContainer"),
     mainContainer: document.getElementById("viewerContainer"),
     viewerContainer: document.getElementById("viewer"),
     toolbar: {
@@ -13572,23 +13557,23 @@ function getViewerConfiguration() {
       customScaleOption: document.getElementById("customScaleOption"),
       previous: document.getElementById("previous"),
       next: document.getElementById("next"),
-      zoomIn: document.getElementById("zoomInButton"),
-      zoomOut: document.getElementById("zoomOutButton"),
-      print: document.getElementById("printButton"),
-      editorFreeTextButton: document.getElementById("editorFreeTextButton"),
+      zoomIn: document.getElementById("zoomIn"),
+      zoomOut: document.getElementById("zoomOut"),
+      print: document.getElementById("print"),
+      editorFreeTextButton: document.getElementById("editorFreeText"),
       editorFreeTextParamsToolbar: document.getElementById("editorFreeTextParamsToolbar"),
-      editorHighlightButton: document.getElementById("editorHighlightButton"),
+      editorHighlightButton: document.getElementById("editorHighlight"),
       editorHighlightParamsToolbar: document.getElementById("editorHighlightParamsToolbar"),
       editorHighlightColorPicker: document.getElementById("editorHighlightColorPicker"),
-      editorInkButton: document.getElementById("editorInkButton"),
+      editorInkButton: document.getElementById("editorInk"),
       editorInkParamsToolbar: document.getElementById("editorInkParamsToolbar"),
-      editorStampButton: document.getElementById("editorStampButton"),
+      editorStampButton: document.getElementById("editorStamp"),
       editorStampParamsToolbar: document.getElementById("editorStampParamsToolbar"),
-      download: document.getElementById("downloadButton")
+      download: document.getElementById("download")
     },
     secondaryToolbar: {
       toolbar: document.getElementById("secondaryToolbar"),
-      toggleButton: document.getElementById("secondaryToolbarToggleButton"),
+      toggleButton: document.getElementById("secondaryToolbarToggle"),
       presentationModeButton: document.getElementById("presentationMode"),
       openFileButton: null,
       printButton: document.getElementById("secondaryPrint"),
@@ -13614,7 +13599,7 @@ function getViewerConfiguration() {
     sidebar: {
       outerContainer: document.getElementById("outerContainer"),
       sidebarContainer: document.getElementById("sidebarContainer"),
-      toggleButton: document.getElementById("sidebarToggleButton"),
+      toggleButton: document.getElementById("sidebarToggle"),
       resizer: document.getElementById("sidebarResizer"),
       thumbnailButton: document.getElementById("viewThumbnail"),
       outlineButton: document.getElementById("viewOutline"),
@@ -13628,7 +13613,7 @@ function getViewerConfiguration() {
     },
     findBar: {
       bar: document.getElementById("findbar"),
-      toggleButton: document.getElementById("viewFindButton"),
+      toggleButton: document.getElementById("viewFind"),
       findField: document.getElementById("findInput"),
       highlightAllCheckbox: document.getElementById("findHighlightAll"),
       caseSensitiveCheckbox: document.getElementById("findMatchCase"),
@@ -13636,8 +13621,8 @@ function getViewerConfiguration() {
       entireWordCheckbox: document.getElementById("findEntireWord"),
       findMsg: document.getElementById("findMsg"),
       findResultsCount: document.getElementById("findResultsCount"),
-      findPreviousButton: document.getElementById("findPreviousButton"),
-      findNextButton: document.getElementById("findNextButton")
+      findPreviousButton: document.getElementById("findPrevious"),
+      findNextButton: document.getElementById("findNext")
     },
     passwordOverlay: {
       dialog: document.getElementById("passwordDialog"),

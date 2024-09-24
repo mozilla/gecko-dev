@@ -58,7 +58,7 @@ add_task(async function test_filename_nonpdf_extension() {
 
       info("Clicking on the download button...");
       await SpecialPowers.spawn(newTab.linkedBrowser, [], () => {
-        content.document.getElementById("downloadButton").click();
+        content.document.getElementById("download").click();
       });
       info("Waiting for a filename to be picked from the file picker");
       let defaultName = await filepickerNamePromise;

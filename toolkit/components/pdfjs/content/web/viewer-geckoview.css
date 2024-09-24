@@ -140,10 +140,9 @@
 
     .dialogSeparator{
       width:100%;
-      height:0;
+      height:1px;
       margin-block:4px;
-      border-top:1px solid var(--separator-color);
-      border-bottom:none;
+      background-color:var(--separator-color);
     }
 
     .dialogButtonsGroup{
@@ -1233,7 +1232,6 @@
 
 .pdfViewer{
   --scale-factor:1;
-  --page-bg-color:unset;
 
   padding-bottom:var(--pdfViewer-padding-bottom);
 
@@ -1287,7 +1285,7 @@
   overflow:visible;
   border:var(--page-border);
   background-clip:content-box;
-  background-color:var(--page-bg-color, rgb(255 255 255));
+  background-color:rgb(255 255 255);
 }
 
 .pdfViewer .dummyPage{
@@ -1620,10 +1618,9 @@ dialog .toolbarField{
 dialog .separator{
   display:block;
   margin:4px 0;
-  height:0;
+  height:1px;
   width:100%;
-  border-top:1px solid var(--separator-color);
-  border-bottom:none;
+  background-color:var(--separator-color);
 }
 
 dialog .buttonRow{

@@ -9,7 +9,7 @@ const TESTROOT = "http://example.com/browser/" + RELATIVE_DIR;
 const TESTS = [
   {
     action: {
-      selector: "#zoomInButton",
+      selector: "button#zoomIn",
       event: "click",
     },
     expectedZoom: 1, // 1 - zoom in
@@ -18,7 +18,7 @@ const TESTS = [
 
   {
     action: {
-      selector: "#zoomOutButton",
+      selector: "button#zoomOut",
       event: "click",
     },
     expectedZoom: -1, // -1 - zoom out
