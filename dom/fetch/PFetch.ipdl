@@ -34,7 +34,7 @@ protocol PFetch {
   parent:
     async FetchOp(FetchOpArgs aArgs);
 
-    async AbortFetchOp();
+    async AbortFetchOp(bool aForceAbort);
 
   child:
     async OnResponseAvailableInternal(ParentToChildInternalResponse aResponse);
