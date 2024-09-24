@@ -222,7 +222,11 @@ private fun SelectFolderScreen(
         topBar = {
             SelectFolderTopBar(
                 onBackClick = { store.dispatch(BackClicked) },
-                onNewFolderClick = { },
+                onNewFolderClick = if (state?.showNewFolderButton == true) {
+                    { store.dispatch(AddFolderClicked) }
+                } else {
+                    null
+                },
             )
         },
         backgroundColor = FirefoxTheme.colors.layer1,
