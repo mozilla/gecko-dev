@@ -143,7 +143,10 @@ export class TelemetryFeed {
     const unifiedAdsEnabled = this._prefs.get(PREF_UNIFIED_ADS_ENABLED);
 
     // Check PREF_UPLOAD_ENABLED if data reporting is allowed
-    const uploadEnabled = Services.prefs.getBoolPref(PREF_UPLOAD_ENABLED);
+    const uploadEnabled = Services.prefs.getBoolPref(
+      PREF_UPLOAD_ENABLED,
+      false
+    );
 
     return unifiedAdsEnabled && uploadEnabled;
   }

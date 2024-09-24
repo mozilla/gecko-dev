@@ -94,6 +94,7 @@ const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
 const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
 const PREF_UNIFIED_ADS_PLACEMENTS = "discoverystream.placements.tiles";
 const PREF_UNIFIED_ADS_COUNTS = "discoverystream.placements.tiles.counts";
+const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
 
 // Search experiment stuff
 const FILTER_DEFAULT_SEARCH_PREF = "improvesearch.noDefaultSearchTile";
@@ -465,6 +466,7 @@ export class ContileIntegration {
 
       const formattedData = {
         id: tile.block_key,
+        block_key: tile.block_key,
         name: tile.name,
         url: tile.url,
         click_url: tile.callbacks.click,
@@ -509,6 +511,11 @@ export class ContileIntegration {
 
         const endpointBaseUrl = state.Prefs.values[PREF_UNIFIED_ADS_ENDPOINT];
 
+        let blockedSponsors =
+          this._topSitesFeed.store.getState().Prefs.values[
+            PREF_UNIFIED_ADS_BLOCKED_LIST
+          ];
+
         // Overwrite URL to Unified Ads endpoint
         const fetchUrl = `${endpointBaseUrl}v1/ads`;
 
@@ -533,7 +540,7 @@ export class ContileIntegration {
               placement,
               count: countsArray[index],
             })),
-            blocks: [],
+            blocks: blockedSponsors.split(","),
           }),
         });
       } else {
@@ -819,6 +826,7 @@ export class TopSitesFeed {
           sponsored_impression_url: site.impression_url,
           sponsored_tile_id: site.id,
           partner: SPONSORED_TILE_PARTNER_AMP,
+          block_key: site.id,
         };
         if (site.image_url && site.image_size >= MIN_FAVICON_SIZE) {
           // Only use the image from Contile if it's hi-res, otherwise, fallback
@@ -884,12 +892,14 @@ export class TopSitesFeed {
           sponsored_tile_id,
           sponsored_impression_url,
           sponsored_click_url,
+          block_key,
         } = siteData;
         link = {
           sponsored_position,
           sponsored_tile_id,
           sponsored_impression_url,
           sponsored_click_url,
+          block_key,
           show_sponsored_label: link.hostname !== "yandex",
           ...link,
         };

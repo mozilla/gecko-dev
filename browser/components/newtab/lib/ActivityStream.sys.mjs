@@ -251,6 +251,14 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
+    "unifiedAds.blockedAds",
+    {
+      title:
+        "CSV list of blocked (dismissed) MARS ads. This payload is sent back every time new ads are fetched.",
+      value: "",
+    },
+  ],
+  [
     "system.showWeather",
     {
       title: "system.showWeather",

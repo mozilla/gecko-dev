@@ -42,6 +42,7 @@ export const LinkMenuOptions = {
         advertiser_name: (site.label || site.hostname).toLocaleLowerCase(),
         position: site.sponsored_position,
         tile_id: site.sponsored_tile_id,
+        block_key: site.block_key,
       },
     }),
     userEvent: "TOPSITE_SPONSOR_INFO",
@@ -96,6 +97,7 @@ export const LinkMenuOptions = {
         // pocket_id is only for pocket stories being in highlights, and then dismissed.
         pocket_id: site.pocket_id,
         tile_id: site.tile_id,
+        ...(site.block_key ? { block_key: site.block_key } : {}),
         recommendation_id: site.recommendation_id,
         scheduled_corpus_item_id: site.scheduled_corpus_item_id,
         received_rank: site.received_rank,

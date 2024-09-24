@@ -42,6 +42,12 @@ const PLACES_LINKS_CHANGED_DELAY_TIME = 1000; // time in ms to delay timer for p
 // blocked sponsors.
 const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
 
+const PREF_UNIFIED_ADS_ENABLED =
+  "browser.newtabpage.activity-stream.unifiedAds.enabled";
+
+const PREF_UNIFIED_ADS_BLOCKED_LIST =
+  "browser.newtabpage.activity-stream.unifiedAds.blockedAds";
+
 /**
  * PlacesObserver - observes events from PlacesUtils.observers
  */
@@ -487,7 +493,48 @@ export class PlacesFeed {
     );
   }
 
+  /**
+   * Add the block key (uuid) of the given urls to the blocked ads pref
+   * to send back to the ads service when requesting new topsite ads
+   * from the unified ads service
+   *
+   * @param {array} block_key
+   *   An array of the (string) keys
+   */
+  addToUnifiedAdsBlockedAdsList(keysArray) {
+    const blockedAdsPref = Services.prefs.getStringPref(
+      PREF_UNIFIED_ADS_BLOCKED_LIST,
+      ""
+    );
+
+    let blockedAdsArray;
+
+    if (blockedAdsPref === "") {
+      // Set new IDs as prev blocked array
+      blockedAdsArray = keysArray;
+    } else {
+      // Convert prev blocked csv list to array
+      blockedAdsArray = blockedAdsPref
+        .split(",")
+        .map(s => s.trim())
+        .filter(item => item);
+      // Add new IDs to prev blocked array
+      blockedAdsArray = blockedAdsArray.concat(keysArray);
+    }
+
+    // Save generated array as a CSV string
+    Services.prefs.setStringPref(
+      PREF_UNIFIED_ADS_BLOCKED_LIST,
+      blockedAdsArray.join(",")
+    );
+  }
+
   onAction(action) {
+    const unifiedAdsEnabled = Services.prefs.getBoolPref(
+      PREF_UNIFIED_ADS_ENABLED,
+      false
+    );
+
     switch (action.type) {
       case at.INIT:
         // Briefly avoid loading services for observing for better startup timing
@@ -507,15 +554,25 @@ export class PlacesFeed {
       case at.BLOCK_URL: {
         if (action.data) {
           let sponsoredTopSites = [];
+          let sponsoredBlockKeys = [];
           action.data.forEach(site => {
-            const { url, pocket_id, isSponsoredTopSite } = site;
+            const { url, pocket_id, isSponsoredTopSite, block_key } = site;
             lazy.NewTabUtils.activityStreamLinks.blockURL({ url, pocket_id });
+
             if (isSponsoredTopSite) {
               sponsoredTopSites.push({ url });
+
+              // Add block keys if available
+              if (unifiedAdsEnabled) {
+                sponsoredBlockKeys.push(block_key);
+              }
             }
           });
           if (sponsoredTopSites.length) {
             this.addToBlockedTopSitesSponsors(sponsoredTopSites);
+          }
+          if (sponsoredBlockKeys.length) {
+            this.addToUnifiedAdsBlockedAdsList(sponsoredBlockKeys);
           }
         }
         break;

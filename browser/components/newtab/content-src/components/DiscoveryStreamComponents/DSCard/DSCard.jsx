@@ -722,6 +722,7 @@ export class _DSCard extends React.PureComponent {
               isRecentSave={isRecentSave}
               recommendation_id={this.props.recommendation_id}
               tile_id={this.props.id}
+              block_key={this.props.id}
               scheduled_corpus_item_id={this.props.scheduled_corpus_item_id}
               recommended_at={this.props.recommended_at}
               received_rank={this.props.received_rank}

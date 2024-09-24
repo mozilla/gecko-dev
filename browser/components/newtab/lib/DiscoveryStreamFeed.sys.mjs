@@ -77,6 +77,7 @@ const PREF_REGION_BASIC_LAYOUT = "discoverystream.region-basic-layout";
 const PREF_USER_TOPSTORIES = "feeds.section.topstories";
 const PREF_SYSTEM_TOPSTORIES = "feeds.system.topstories";
 const PREF_SYSTEM_TOPSITES = "feeds.system.topsites";
+const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
 const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
 const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
 const PREF_USER_TOPSITES = "feeds.topsites";
@@ -993,6 +994,7 @@ export class DiscoveryStreamFeed {
         items: spocs.map(spoc => ({
           id: spoc.caps.cap_key,
           flight_id: spoc.block_key,
+          block_key: spoc.block_key,
           shim: spoc.callbacks,
           caps: {
             flight: {
@@ -1118,13 +1120,16 @@ export class DiscoveryStreamFeed {
             .filter(item => item)
             .map(item => parseInt(item, 10));
 
+          const blockedSponsors =
+            this.store.getState().Prefs.values[PREF_UNIFIED_ADS_BLOCKED_LIST];
+
           body = {
             context_id: lazy.contextId,
             placements: placementsArray.map((placement, index) => ({
               placement,
               count: countsArray[index],
             })),
-            blocks: [],
+            blocks: blockedSponsors.split(","),
           };
         }
 
@@ -1959,10 +1964,34 @@ export class DiscoveryStreamFeed {
   }
 
   recordBlockFlightId(flightId) {
+    const unifiedAdsEnabled =
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+
     const flights = this.readDataPref(PREF_FLIGHT_BLOCKS);
     if (!flights[flightId]) {
       flights[flightId] = 1;
       this.writeDataPref(PREF_FLIGHT_BLOCKS, flights);
+
+      if (unifiedAdsEnabled) {
+        let blockList =
+          this.store.getState().Prefs.values[PREF_UNIFIED_ADS_BLOCKED_LIST];
+
+        let blockedAdsArray = [];
+
+        // If prev ads have been blocked, convert CSV string to array
+        if (blockList !== "") {
+          blockedAdsArray = blockList
+            .split(",")
+            .map(s => s.trim())
+            .filter(item => item);
+        }
+
+        blockedAdsArray.push(flightId);
+
+        this.store.dispatch(
+          ac.SetPref(PREF_UNIFIED_ADS_BLOCKED_LIST, blockedAdsArray.join(","))
+        );
+      }
     }
   }
 
