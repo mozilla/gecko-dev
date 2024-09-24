@@ -421,11 +421,6 @@ GeckoChildProcessHost::GeckoChildProcessHost(GeckoProcessType aProcessType,
     mLaunchOptions->env_map["__GL_SHADER_DISK_CACHE"] = "0";
   }
 #endif
-#if defined(MOZ_ENABLE_FORKSERVER)
-  if (aProcessType != GeckoProcessType_ForkServer && ForkServiceChild::Get()) {
-    mLaunchOptions->use_forkserver = true;
-  }
-#endif
 }
 
 GeckoChildProcessHost::~GeckoChildProcessHost() {
@@ -1343,10 +1338,20 @@ RefPtr<ProcessHandlePromise> AndroidProcessLauncher::DoLaunch() {
 #ifdef XP_UNIX
 RefPtr<ProcessHandlePromise> PosixProcessLauncher::DoLaunch() {
   ProcessHandle handle = 0;
-  Result<Ok, LaunchError> aError =
-      base::LaunchApp(mChildArgs.mArgs, std::move(*mLaunchOptions), &handle);
-  if (aError.isErr()) {
-    return ProcessHandlePromise::CreateAndReject(aError.unwrapErr(), __func__);
+  Result<Ok, LaunchError> result = Err(LaunchError{"Launch not attempted"});
+#  ifdef MOZ_ENABLE_FORKSERVER
+  if (mProcessType != GeckoProcessType_ForkServer && ForkServiceChild::Get()) {
+    result = ForkServiceChild::Get()->SendForkNewSubprocess(
+        std::move(mChildArgs), std::move(*mLaunchOptions), &handle);
+  } else
+#  endif
+  {
+    result =
+        base::LaunchApp(mChildArgs.mArgs, std::move(*mLaunchOptions), &handle);
+  }
+
+  if (result.isErr()) {
+    return ProcessHandlePromise::CreateAndReject(result.unwrapErr(), __func__);
   }
   return ProcessHandlePromise::CreateAndResolve(handle, __func__);
 }
