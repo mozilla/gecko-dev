@@ -357,6 +357,16 @@ def handle_lull_schedule(config, tests):
         yield test
 
 
+@transforms.add
+def apply_raptor_device_optimization(config, tests):
+    # Bug 1919389
+    # For now, only change the back stop optimization strategy for A55 devices
+    for test in tests:
+        if test["test-platform"].startswith("android-hw-a55"):
+            test["optimization"] = {"skip-unless-backstop": None}
+        yield test
+
+
 @task_transforms.add
 def add_scopes_and_proxy(config, tasks):
     for task in tasks:
