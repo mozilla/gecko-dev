@@ -23,6 +23,7 @@
 #include "jit/BranchHinting.h"
 #include "jit/CodeGenerator.h"
 #include "jit/CompileInfo.h"
+#include "jit/DominatorTree.h"
 #include "jit/EdgeCaseAnalysis.h"
 #include "jit/EffectiveAddressAnalysis.h"
 #include "jit/ExecutableAllocator.h"

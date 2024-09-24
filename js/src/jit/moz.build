@@ -35,6 +35,7 @@ UNIFIED_SOURCES += [
     "CodeGenerator.cpp",
     "CompileWrappers.cpp",
     "Disassemble.cpp",
+    "DominatorTree.cpp",
     "EdgeCaseAnalysis.cpp",
     "EffectiveAddressAnalysis.cpp",
     "ExecutableAllocator.cpp",

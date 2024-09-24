@@ -81,10 +81,6 @@ void RenumberBlocks(MIRGraph& graph);
                                         MIRGraph& graph,
                                         uint32_t numMarkedBlocks);
 
-void ClearDominatorTree(MIRGraph& graph);
-
-[[nodiscard]] bool BuildDominatorTree(MIRGraph& graph);
-
 [[nodiscard]] bool BuildPhiReverseMapping(MIRGraph& graph);
 
 void AssertBasicGraphCoherency(MIRGraph& graph, bool force = false);
