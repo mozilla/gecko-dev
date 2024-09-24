@@ -63,8 +63,10 @@ mochitest-plain:
         - http2
         - geckoview-fission-isolate-high-value
         - geckoview-no-fission-ship
+        - os-integration
     run-on-projects:
         by-variant:
+            os-integration: []  # this variant only runs as a cron task
             conditioned_profile:
                 by-test-platform:
                     .*(asan|ccov|wayland).*: []
@@ -126,14 +128,17 @@ mochitest-plain:
                     android.*: built-projects
                     default: built-projects
     chunks:
-        by-test-platform:
-            android.*/debug: 10
-            linux.*/debug: 16
-            linux.*64-tsan-qr/opt: 20
-            .*(asan|ccov).*: 10
-            linux.*/opt: 8
-            windows.*/debug: 8
-            default: 5
+        by-variant:
+            os-integration: dynamic
+            default:
+                by-test-platform:
+                    android.*/debug: 10
+                    linux.*/debug: 16
+                    linux.*64-tsan-qr/opt: 20
+                    .*(asan|ccov).*: 10
+                    linux.*/opt: 8
+                    windows.*/debug: 8
+                    default: 5
     tier:
         by-variant:
             no-fission:
