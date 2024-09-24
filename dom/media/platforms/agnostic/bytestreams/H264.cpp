@@ -510,9 +510,9 @@ class SPSNALIterator {
   return rbsp.forget();
 }
 
-static int32_t ConditionDimension(float aValue) {
+static int32_t ConditionDimension(double aValue) {
   // This will exclude NaNs and too-big values.
-  if (aValue > 1.0 && aValue <= float(INT32_MAX) / 2) {
+  if (aValue > 1.0 && aValue <= double(INT32_MAX) / 2) {
     return int32_t(aValue);
   }
   return 0;
@@ -678,13 +678,13 @@ bool H264::DecodeSPS(const mozilla::MediaByteBuffer* aSPS, SPSData& aDest) {
   if (aDest.sample_ratio > 1.0) {
     // Increase the intrinsic width
     aDest.display_width = ConditionDimension(
-        AssertedCast<float>(aDest.pic_width) * aDest.sample_ratio);
+        AssertedCast<double>(aDest.pic_width) * aDest.sample_ratio);
     aDest.display_height = aDest.pic_height;
   } else {
     // Increase the intrinsic height
     aDest.display_width = aDest.pic_width;
     aDest.display_height = ConditionDimension(
-        AssertedCast<float>(aDest.pic_height) / aDest.sample_ratio);
+        AssertedCast<double>(aDest.pic_height) / aDest.sample_ratio);
   }
 
   aDest.valid = true;
