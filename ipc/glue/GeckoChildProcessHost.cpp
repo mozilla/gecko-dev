@@ -1378,18 +1378,6 @@ RefPtr<ProcessHandlePromise> IosProcessLauncher::DoLaunch() {
   xpc_dictionary_set_value(bootstrapMessage.get(), "environ",
                            environDict.get());
 
-  // XXX: this processing depends entirely on the internals of
-  // ContentParent::LaunchSubprocess()
-  // GeckoChildProcessHost::PerformAsyncLaunch(), and the order in
-  // which they append to fds_to_remap. There must be a better way to do it.
-  // See bug 1440207.
-  int prefsFd = mLaunchOptions->fds_to_remap[0].first;
-  int prefMapFd = mLaunchOptions->fds_to_remap[1].first;
-  int ipcFd = mLaunchOptions->fds_to_remap[2].first;
-  xpc_dictionary_set_fd(bootstrapMessage.get(), "prefs", prefsFd);
-  xpc_dictionary_set_fd(bootstrapMessage.get(), "prefmap", prefMapFd);
-  xpc_dictionary_set_fd(bootstrapMessage.get(), "channel", ipcFd);
-
   // Setup stdout and stderr to inherit.
   xpc_dictionary_set_fd(bootstrapMessage.get(), "stdout", STDOUT_FILENO);
   xpc_dictionary_set_fd(bootstrapMessage.get(), "stderr", STDERR_FILENO);
@@ -1401,6 +1389,14 @@ RefPtr<ProcessHandlePromise> IosProcessLauncher::DoLaunch() {
   }
   MOZ_ASSERT(xpc_array_get_count(argsArray.get()) == mChildArgs.mArgs.size());
   xpc_dictionary_set_value(bootstrapMessage.get(), "argv", argsArray.get());
+
+  DarwinObjectPtr<xpc_object_t> fdsArray =
+      AdoptDarwinObject(xpc_array_create_empty());
+  for (auto& file : mChildArgs.mFiles) {
+    xpc_array_set_fd(bootstrapMessage.get(), XPC_ARRAY_APPEND, file.get());
+  }
+  MOZ_ASSERT(xpc_array_get_count(fdsArray.get()) == mChildArgs.mFiles.size());
+  xpc_dictionary_set_value(bootstrapMessage.get(), "fds", fdsArray.get());
 
   auto promise = MakeRefPtr<ProcessHandlePromise::Private>(__func__);
   ExtensionKitProcess::StartProcess(kind, [self = RefPtr{this}, promise,
