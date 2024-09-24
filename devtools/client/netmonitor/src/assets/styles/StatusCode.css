@@ -12,6 +12,11 @@
   font-family: var(--monospace-font-family);
   /* prevent status code from having full line height width from .request-list-item */
   line-height: normal;
+
+  :root[forced-colors-active] &[data-code] {
+    border: 1px solid currentColor;
+    background: transparent;
+  }
 }
 
 .status-code[data-code^="1"] {
