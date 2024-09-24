@@ -867,6 +867,7 @@ RefPtr<ShutdownPromise> AppleVTEncoder::Shutdown() {
 }
 
 RefPtr<ShutdownPromise> AppleVTEncoder::ProcessShutdown() {
+  AssertOnTaskQueue();
   if (mSession) {
     VTCompressionSessionInvalidate(mSession);
     CFRelease(mSession);
