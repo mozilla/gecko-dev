@@ -62,8 +62,8 @@ class FullScreenIntegration(
         fullScreenNotification: FullScreenNotification =
             FullScreenNotificationToast(
                 activity,
-                activity.resources.getString(R.string.exit_fullscreen_with_gesture),
-                activity.resources.getString(R.string.exit_fullscreen_with_back_button),
+                activity.resources.getString(R.string.exit_fullscreen_with_gesture_short),
+                activity.resources.getString(R.string.exit_fullscreen_with_back_button_short),
                 GestureNavUtils,
             ),
     ) {
