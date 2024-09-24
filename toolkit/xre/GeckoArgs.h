@@ -170,6 +170,14 @@ static CommandLineArg<const char*> sPluginPath{"-pluginPath", "pluginpath"};
 static CommandLineArg<bool> sPluginNativeEvent{"-pluginNativeEvent",
                                                "pluginnativeevent"};
 
+#if defined(XP_WIN) || defined(MOZ_WIDGET_COCOA)
+static CommandLineArg<const char*> sCrashReporter{"-crashReporter",
+                                                  "crashreporter"};
+#elif defined(XP_UNIX)
+static CommandLineArg<UniqueFileHandle> sCrashReporter{"-crashReporter",
+                                                       "crashreporter"};
+#endif
+
 #if defined(XP_WIN)
 #  if defined(MOZ_SANDBOX)
 static CommandLineArg<bool> sWin32kLockedDown{"-win32kLockedDown",

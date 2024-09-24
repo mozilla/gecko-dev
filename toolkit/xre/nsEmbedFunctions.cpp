@@ -238,17 +238,6 @@ int GetDebugChildPauseTime() {
 #endif
 }
 
-static bool IsCrashReporterEnabled(const char* aArg) {
-  // on windows and mac, |aArg| is the named pipe on which the server is
-  // listening for requests, or "-" if crash reporting is disabled.
-#if defined(XP_MACOSX) || defined(XP_WIN)
-  return 0 != strcmp("-", aArg);
-#else
-  // on POSIX, |aArg| is "true" if crash reporting is enabled, false otherwise
-  return 0 != strcmp("false", aArg);
-#endif
-}
-
 }  // namespace
 
 nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
@@ -381,12 +370,10 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 
   bool exceptionHandlerIsSet = false;
   if (!CrashReporter::IsDummy()) {
-    if (aArgc < 1) return NS_ERROR_FAILURE;
-    const char* const crashReporterArg = aArgv[--aArgc];
-
-    if (IsCrashReporterEnabled(crashReporterArg)) {
-      exceptionHandlerIsSet =
-          CrashReporter::SetRemoteExceptionHandler(crashReporterArg);
+    auto crashReporterArg = geckoargs::sCrashReporter.Get(aArgc, aArgv);
+    if (crashReporterArg) {
+      exceptionHandlerIsSet = CrashReporter::SetRemoteExceptionHandler(
+          std::move(*crashReporterArg));
       MOZ_ASSERT(exceptionHandlerIsSet,
                  "Should have been able to set remote exception handler");
 
