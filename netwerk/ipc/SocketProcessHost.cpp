@@ -76,7 +76,8 @@ bool SocketProcessHost::Launch() {
   prefSerializer.AddSharedPrefCmdLineArgs(*this, extraArgs);
 
   mLaunchPhase = LaunchPhase::Waiting;
-  if (!GeckoChildProcessHost::LaunchAndWaitForProcessHandle(std::move(extraArgs))) {
+  if (!GeckoChildProcessHost::LaunchAndWaitForProcessHandle(
+          std::move(extraArgs))) {
     mLaunchPhase = LaunchPhase::Complete;
     return false;
   }
