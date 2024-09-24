@@ -1,8 +1,8 @@
 // |jit-test| skip-if: !wasmGcEnabled() || !wasmExperimentalCompilePipelineEnabled(); test-also=-P wasm_experimental_compile_pipeline;
 
-// Needs to be at least 2220 in order for test functions to tier up.
+// Needs to be at least 13500 in order for test functions to tier up.
 // See Instance::computeInitialHotnessCounter.
-const tierUpThreshold = 2250;
+const tierUpThreshold = 14000;
 
 let {importFunc} = wasmEvalText(`
   (module (func (export "importFunc") (result i32) i32.const 2))
@@ -61,7 +61,9 @@ for ([funcToInline, funcToInlineExpected] of testFuncs) {
   }
   // Give the off-thread Ion compilation a chance to catch up.  This is really
   // a kludge in that we currently have no reliable way in JS to wait for all
-  // requested tier-ups to complete.
+  // requested tier-ups to complete.  Better would be to put the sleep and
+  // assertEq inside an exponential backoff loop and have that as a "library"
+  // function.
   sleep(0.05);
   assertEq(wasmFunctionTier(test), "optimized");
 

@@ -47,9 +47,9 @@ class LazyTieringHeuristics {
   // this table, each value differs from its neighbour by a factor of 3, giving
   // a dynamic range in the table of 3 ^ 6 == 729, hence a wide selection of
   // tier-up aggressiveness.
-  static constexpr float scale_[7] = {4050.0, 1350.0, 450.0,
-                                      150.0,  // default
-                                      50.0,   16.67,  5.56};
+  static constexpr float scale_[7] = {27.0,  9.0,   3.0,
+                                      1.0,  // default
+                                      0.333, 0.111, 0.037};
 
  public:
   LazyTieringHeuristics() {
@@ -70,12 +70,24 @@ class LazyTieringHeuristics {
 
   int32_t estimateIonCompilationCost(uint32_t bodyLength) const {
     if (MOZ_LIKELY(MIN_LEVEL < level_ && level_ < MAX_LEVEL)) {
-      // The common case, including the default setting (5).  Use `<scale> *
-      // (bodyLength ^ 1.5)` as a proxy for Ion compilation cost, and at least
-      // 10.  This is a temporary heuristic which may be improved in future.
-      float thresholdF = float(bodyLength);
-      thresholdF = thresholdF * sqrtf(thresholdF);
+      // The estimated cost, in X86_64 insns, for Ion compilation:
+      // 30k up-front cost + 4k per bytecode byte.
+      //
+      // This is derived from measurements of an optimized build of Ion
+      // compiling about 99000 functions.  Each estimate is pretty bad, but
+      // averaged over a number of functions it's often within 20% of correct.
+      // However, this is with no inlining; that causes a much wider variance
+      // of costs.  This will need to be revisited at some point.
+      float thresholdF = 30000.0 + 4000.0 * float(bodyLength);
+
+      // Rescale to step-down work units, so that the default `level_` setting
+      // (5) gives pretty good results.
+      thresholdF *= 0.25;
+
+      // Rescale again to take into account `level_`.
       thresholdF *= scale_[level_ - (MIN_LEVEL + 1)];
+
+      // Clamp and convert.
       thresholdF = std::max<float>(thresholdF, 10.0);   // at least 10
       thresholdF = std::min<float>(thresholdF, 2.0e9);  // at most 2 billion
       int32_t thresholdI = int32_t(thresholdF);
