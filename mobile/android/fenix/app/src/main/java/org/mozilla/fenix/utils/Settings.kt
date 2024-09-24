@@ -2199,8 +2199,9 @@ class Settings(private val appContext: Context) : PreferencesHolder {
     /**
      * Indicates whether or not we should use the new bookmarks UI.
      */
-    val useNewBookmarks by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_use_new_bookmarks_ui),
-        default = false,
+    val useNewBookmarks by lazyFeatureFlagPreference(
+        key = appContext.getPreferenceKey(R.string.pref_key_use_new_bookmarks_ui),
+        default = { FxNimbus.features.bookmarks.value().newComposeUi },
+        featureFlag = true,
     )
 }

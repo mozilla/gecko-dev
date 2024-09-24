@@ -565,6 +565,14 @@ features:
         type: Int
         default: 0
 
+  bookmarks:
+    description: Feature for Bookmarks
+    variables:
+      new-compose-ui:
+        description: if true, enable new compose based UI
+        type: Boolean
+        default: false
+
 types:
   objects: {}
 
