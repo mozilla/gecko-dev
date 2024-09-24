@@ -52,8 +52,6 @@ skip-if = [
 
 ["test_autofill_ios_library.js"]
 
-["test_collectFormFields.js"]
-
 ["test_createRecords.js"]
 
 ["test_creditCardRecords.js"]
@@ -73,8 +71,6 @@ skip-if = [
 ["test_getCategoriesFromFieldNames.js"]
 
 ["test_getCreditCardLogo.js"]
-
-["test_getFormInputDetails.js"]
 
 ["test_getInfo.js"]
 

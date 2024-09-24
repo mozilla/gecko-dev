@@ -4,13 +4,6 @@
 
 "use strict";
 
-var FormAutofillHandler;
-add_task(async function () {
-  ({ FormAutofillHandler } = ChromeUtils.importESModule(
-    "resource://gre/modules/shared/FormAutofillHandler.sys.mjs"
-  ));
-});
-
 const DEFAULT_ADDRESS_RECORD = {
   guid: "123",
   "street-address": "2 Harrison St\nline2\nline3",
@@ -1271,7 +1264,11 @@ for (let testcase of TESTCASES) {
     let formLike = FormLikeFactory.createFromForm(form);
     let handler = new FormAutofillHandler(formLike);
 
-    handler.collectFormFields();
+    const fieldDetails = FormAutofillHandler.collectFormFields(handler.form);
+
+    // TODO: This test should be a browser test instead
+    FormAutofillHeuristics.parseAndUpdateFieldNamesParent(fieldDetails);
+    handler.setIdentifiedFieldDetails(fieldDetails);
 
     let adaptedRecords = handler.getAdaptedProfiles(testcase.profileData);
     Assert.deepEqual(adaptedRecords, testcase.expectedResult);

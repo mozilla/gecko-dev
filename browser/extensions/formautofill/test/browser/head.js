@@ -1496,6 +1496,7 @@ async function add_heuristic_tests(
             element.focus();
           });
         });
+
         await BrowserTestUtils.synthesizeKey("VK_ESCAPE", {}, context);
       }
 

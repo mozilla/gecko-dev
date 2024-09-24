@@ -16,6 +16,9 @@ var { FormLikeFactory } = ChromeUtils.importESModule(
 var { FormAutofillHandler } = ChromeUtils.importESModule(
   "resource://gre/modules/shared/FormAutofillHandler.sys.mjs"
 );
+var { FormAutofillHeuristics } = ChromeUtils.importESModule(
+  "resource://gre/modules/shared/FormAutofillHeuristics.sys.mjs"
+);
 var { AddonTestUtils, MockAsyncShutdown } = ChromeUtils.importESModule(
   "resource://testing-common/AddonTestUtils.sys.mjs"
 );
@@ -256,7 +259,7 @@ function verifySectionFieldDetails(sections, expectedSectionsInfo) {
   });
 }
 
-var FormAutofillHeuristics, LabelUtils;
+var LabelUtils;
 var AddressMetaDataLoader, FormAutofillUtils;
 
 function autofillFieldSelector(doc) {
