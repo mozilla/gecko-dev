@@ -619,12 +619,14 @@ const ImageCacheCleaner = {
     imageCache.removeEntriesFromPrincipalInAllProcesses(aPrincipal);
   },
 
-  async deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
+  async deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
     let imageCache = Cc["@mozilla.org/image/tools;1"]
       .getService(Ci.imgITools)
       .getImgCacheForDocument(null);
-    imageCache.removeEntriesFromBaseDomainInAllProcesses(aSchemelessSite);
+    imageCache.removeEntriesFromSiteInAllProcesses(
+      aSchemelessSite,
+      aOriginAttributesPattern
+    );
   },
 
   deleteAll() {
