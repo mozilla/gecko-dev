@@ -283,5 +283,7 @@
     /* We don't want dimmed colors in high Contrast Mode, use the same colors as non-dimmed icons */
     --theme-icon-dimmed-color: var(--theme-icon-color);
     --theme-icon-disabled-color: GrayText;
+    --theme-icon-error-color: ButtonText;
+    --theme-icon-warning-color: ButtonText;
   }
 }

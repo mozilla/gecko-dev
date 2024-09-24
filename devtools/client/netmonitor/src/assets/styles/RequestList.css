@@ -33,16 +33,43 @@
 }
 
 .requests-list-slow-button {
-  width: 12px;
-  height: 12px;
+  width: 22px;
   position: absolute;
   right: 0;
-  transform: translateY(-50%);
-  top: 50%;
+  inset-block: 0;
   cursor: pointer;
+    /* The slow icon is absolutely positioned and can can overlap the column text.
+       This background gradient is added on its left side so the icon
+       has a solid background and the text slowly fades before the icon. */
   background-image: linear-gradient(to right,transparent, var(--theme-body-background) 43%);
-  padding-inline-end: 30px;
-  padding-inline-start: 5px;
+  padding-inline: 5px 30px;
+
+  &::before {
+    content: "";
+    width: 12px;
+    height: 100%;
+    display: inline-block;
+    background-image: url(chrome://devtools/content/netmonitor/src/assets/icons/turtle.svg);
+    background-repeat: no-repeat;
+    background-position: right center;
+    padding-inline-end: 14px;
+    fill: var(--theme-icon-dimmed-color);
+    -moz-context-properties: fill;
+  }
+
+  :root[forced-colors-active] & {
+    /* In High Contrast Mode, the background gradient is removed, so the icon would
+       overlap the text underneath, making it unreadable.
+       To fix this, we set a plain solid color on the icon in HCM, which also needed
+       some dimensions tweaks to make it look nice. */
+    background-color: Canvas;
+    padding-inline: 5px;
+
+    &::before {
+      color: CanvasText;
+      padding: 0;
+    }
+  }
 }
 
 .request-list-item:not(.selected).odd .requests-list-slow-button {
@@ -56,19 +83,13 @@
 
 .request-list-item.selected .requests-list-slow-button {
   background-image: linear-gradient(to right,transparent, var(--theme-selection-background) 43%);
-}
 
-.requests-list-slow-button::before {
-  content: "";
-  width: 12px;
-  height: 16px;
-  display: inline-block;
-  background-image: url(chrome://devtools/content/netmonitor/src/assets/icons/turtle.svg);
-  background-repeat: no-repeat;
-  background-position-x: right;
-  padding-inline-end: 14px;
-  fill: var(--grey-40);
-  -moz-context-properties: fill;
+  :root[forced-colors-active] & {
+    background-color: var(--theme-selection-background);
+    &::before {
+      color: var(--theme-selection-color);
+    }
+  }
 }
 
 .request-list-item.selected .requests-list-slow-button::before {
