@@ -68,6 +68,7 @@ support-files = [
   "html_sse-test-page.html",
   "html_ws-sse-test-page.html",
   "html_image-cache.html",
+  "html_script-cache.html",
   "html_stylesheet-cache.html",
   "js_worker-test.js",
   "js_worker-test2.js",
@@ -88,6 +89,7 @@ support-files = [
   "sjs_sorting-test-server.sjs",
   "sjs_sse-test-server.sjs",
   "sjs_status-codes-test-server.sjs",
+  "sjs_test-script.sjs",
   "sjs_timings-test-server.sjs",
   "sjs_truncate-test-server.sjs",
   "test-image.png",
@@ -429,6 +431,8 @@ skip-if = ["os == 'linux' && os_version == '18.04' && !debug && a11y_checks"] # 
 fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_net_save_response_as.js"]
+
+["browser_net_script_cache.js"]
 
 ["browser_net_search-results.js"]
 skip-if = ["os == 'linux' && os_version == '18.04' && a11y_checks"]  # Bug 1721160

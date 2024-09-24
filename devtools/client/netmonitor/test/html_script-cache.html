@@ -1,0 +1,12 @@
+<html>
+<head>
+<!--
+    Loading the same file multiple times within the same document should
+    generate multiple fetch, even when the script cache is used, and there
+    should be 3 requests shown in the network monitor.
+  -->
+<script src="sjs_test-script.sjs"></script>
+<script src="sjs_test-script.sjs"></script>
+<script src="sjs_test-script.sjs"></script>
+</head>
+</html>
