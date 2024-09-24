@@ -901,6 +901,7 @@ package org.mozilla.geckoview {
     method public int getTrustedRecusiveResolverMode();
     method public boolean getUseMaxScreenDepth();
     method @NonNull public int getUserCharacteristicPingCurrentVersion();
+    method @Nullable public Integer getWebContentIsolationStrategy();
     method public boolean getWebFontsEnabled();
     method public boolean getWebManifestEnabled();
     method @NonNull public GeckoRuntimeSettings setAboutConfigEnabled(boolean);
@@ -934,6 +935,7 @@ package org.mozilla.geckoview {
     method @NonNull public GeckoRuntimeSettings setTrustedRecursiveResolverMode(int);
     method @NonNull public GeckoRuntimeSettings setTrustedRecursiveResolverUri(@NonNull String);
     method @NonNull public GeckoRuntimeSettings setUserCharacteristicPingCurrentVersion(int);
+    method @NonNull public GeckoRuntimeSettings setWebContentIsolationStrategy(@NonNull Integer);
     method @NonNull public GeckoRuntimeSettings setWebFontsEnabled(boolean);
     method @NonNull public GeckoRuntimeSettings setWebManifestEnabled(boolean);
     field public static final int ALLOW_ALL = 0;
@@ -943,6 +945,9 @@ package org.mozilla.geckoview {
     field public static final Parcelable.Creator<GeckoRuntimeSettings> CREATOR;
     field public static final int HTTPS_ONLY = 2;
     field public static final int HTTPS_ONLY_PRIVATE = 1;
+    field public static final int STRATEGY_ISOLATE_EVERYTHING = 1;
+    field public static final int STRATEGY_ISOLATE_HIGH_VALUE = 2;
+    field public static final int STRATEGY_ISOLATE_NOTHING = 0;
     field public static final int TRR_MODE_DISABLED = 5;
     field public static final int TRR_MODE_FIRST = 2;
     field public static final int TRR_MODE_OFF = 0;
@@ -1001,6 +1006,9 @@ package org.mozilla.geckoview {
   }
 
   @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoRuntimeSettings.TrustedRecursiveResolverMode {
+  }
+
+  @Retention(value=RetentionPolicy.SOURCE) public static interface GeckoRuntimeSettings.WebContentIsolationStrategy {
   }
 
   public class GeckoSession {

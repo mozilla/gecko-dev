@@ -16,6 +16,7 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.geckoview.BuildConfig
 import org.mozilla.geckoview.GeckoResult
+import org.mozilla.geckoview.GeckoRuntimeSettings
 import org.mozilla.geckoview.GeckoSession
 import org.mozilla.geckoview.GeckoSession.NavigationDelegate
 import org.mozilla.geckoview.GeckoSession.ProgressDelegate
@@ -215,6 +216,31 @@ class RuntimeSettingsTest : BaseSessionTest() {
             "GeckoRuntimeSettings remains turned off",
             settings.fontInflationEnabled,
             `is`(false),
+        )
+    }
+
+    @Test
+    fun webContentIsolationStrategy() {
+        val geckoRuntimeSettings = sessionRule.runtime.settings
+
+        // Set isolation strategy
+        geckoRuntimeSettings.setWebContentIsolationStrategy(GeckoRuntimeSettings.STRATEGY_ISOLATE_NOTHING)
+
+        // Check isolation strategy with GeckoView
+        assertThat(
+            "WebContentIsolationStrategy was set to isolate nothing.",
+            geckoRuntimeSettings.webContentIsolationStrategy,
+            equalTo(GeckoRuntimeSettings.STRATEGY_ISOLATE_NOTHING),
+        )
+
+        // Check isolation strategy with Gecko
+        val geckoPreference =
+            (sessionRule.getPrefs("fission.webContentIsolationStrategy").get(0)) as Int
+
+        assertThat(
+            "WebContentIsolationStrategy pref value should be isolate nothing.",
+            geckoPreference,
+            equalTo(GeckoRuntimeSettings.STRATEGY_ISOLATE_NOTHING),
         )
     }
 

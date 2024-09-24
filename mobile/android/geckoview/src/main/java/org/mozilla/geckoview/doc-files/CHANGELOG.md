@@ -15,9 +15,13 @@ exclude: true
 
 ## v132
 -Added [`getDisableShip`][132.1] to get the setting for Session History in Parent (SHIP)) and [`disableShip`][132.2] to set the status of SHIP on the `GeckoRuntimeSettings` builder.
+- Added [`setWebContentIsolationStrategy`][132.3] and [`getWebContentIsolationStrategy`][132.4]
+and defined the strategies.
 
 [132.1]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getDisableShip()
 [132.2]: {{javadoc_uri}}/GeckoRuntimeSettings.Builder.html#disableShip(boolean)
+[132.3]: {{javadoc_uri}}/GeckoRuntimeSettings.html#setWebContentIsolationStrategy(int)
+[132.4]: {{javadoc_uri}}/GeckoRuntimeSettings.html#getWebContentIsolationStrategy()
 
 ## v131
 - Added [`GeckoDisplay.windowInsetsChanged`][131.1].
@@ -1611,4 +1615,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: af9caf1462fa1547e3c9f85105c89b930673fa7d
+[api-version]: 334ebba2a6323037711ce1f4473110c25f3ad897

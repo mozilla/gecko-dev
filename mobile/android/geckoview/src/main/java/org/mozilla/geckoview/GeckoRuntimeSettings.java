@@ -616,6 +616,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
   /* package */ final Pref<Boolean> mAboutConfig = new Pref<>("general.aboutConfig.enable", false);
   /* package */ final Pref<Boolean> mForceUserScalable =
       new Pref<>("browser.ui.zoom.force-user-scalable", false);
+  /* package */ final PrefWithoutDefault<Integer> mWebContentIsolationStrategy =
+      new PrefWithoutDefault<>("fission.webContentIsolationStrategy");
   /* package */ final Pref<Boolean> mAutofillLogins =
       new Pref<Boolean>("signon.autofillForms", true);
   /* package */ final Pref<Boolean> mAutomaticallyOfferPopup =
@@ -1480,6 +1482,59 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
    */
   public @NonNull GeckoRuntimeSettings setAboutConfigEnabled(final boolean flag) {
     mAboutConfig.commit(flag);
+    return this;
+  }
+
+  /** See the `WebContentIsolationStrategy` enum in `ProcessIsolation.cpp`. */
+  @Retention(RetentionPolicy.SOURCE)
+  @IntDef({STRATEGY_ISOLATE_NOTHING, STRATEGY_ISOLATE_EVERYTHING, STRATEGY_ISOLATE_HIGH_VALUE})
+  public @interface WebContentIsolationStrategy {};
+
+  /**
+   * All web content is loaded into a shared `web` content process. This is similar to the
+   * non-Fission behaviour, however remote subframes may still be used for sites with special
+   * isolation behaviour, such as extension or mozillaweb content processes.
+   */
+  public static final int STRATEGY_ISOLATE_NOTHING = 0;
+
+  /**
+   * Web content is always isolated into its own `webIsolated` content process based on site-origin,
+   * and will only load in a shared `web` content process if site-origin could not be determined.
+   */
+  public static final int STRATEGY_ISOLATE_EVERYTHING = 1;
+
+  /**
+   * Only isolates web content loaded by sites which are considered "high value". A site is
+   * considered "high value" if it has been granted a `highValue*` permission by the permission
+   * manager, which is done in response to certain actions.
+   */
+  public static final int STRATEGY_ISOLATE_HIGH_VALUE = 2;
+
+  /**
+   * Get the strategy used to control how sites are isolated into separate processes when Fission is
+   * enabled. This pref has no effect if Fission is disabled.
+   *
+   * <p>Setting should conform to {@link WebContentIsolationStrategy}, but is not automatically
+   * mapped.
+   *
+   * @return The web content isolation strategy.
+   */
+  public @Nullable Integer getWebContentIsolationStrategy() {
+    return mWebContentIsolationStrategy.get();
+  }
+
+  /**
+   * Set the strategy used to control how sites are isolated into separate processes when Fission is
+   * enabled. This pref has no effect if Fission is disabled.
+   *
+   * <p>Setting must conform to {@link WebContentIsolationStrategy} options.
+   *
+   * @param strategy The specified strategy defined by {@link WebContentIsolationStrategy}.
+   * @return This GeckoRuntimeSettings instance.
+   */
+  public @NonNull GeckoRuntimeSettings setWebContentIsolationStrategy(
+      final @NonNull @WebContentIsolationStrategy Integer strategy) {
+    mWebContentIsolationStrategy.commit(strategy);
     return this;
   }
 
