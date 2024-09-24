@@ -205,7 +205,10 @@ bool GetContextAttributes(CookieStore* aCookieStore, bool* aThirdPartyContext,
 
   if (NS_IsMainThread()) {
     nsCOMPtr<nsPIDOMWindowInner> window = aCookieStore->GetOwnerWindow();
-    MOZ_ASSERT(window);
+    if (NS_WARN_IF(!window)) {
+      aPromise->MaybeReject(NS_ERROR_DOM_SECURITY_ERR);
+      return false;
+    }
 
     ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
     if (thirdPartyUtil) {
