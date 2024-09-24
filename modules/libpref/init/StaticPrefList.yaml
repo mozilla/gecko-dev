@@ -2425,6 +2425,12 @@
   value: false
   mirror: always
 
+# Enable/disable contenteditable="plaintext-only".
+- name: dom.element.contenteditable.plaintext-only.enabled
+  type: bool
+  value: false
+  mirror: always
+
 - name: dom.element.transform-getters.enabled
   type: bool
   value: false

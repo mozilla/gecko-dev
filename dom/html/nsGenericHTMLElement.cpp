@@ -20,6 +20,8 @@
 #include "mozilla/TextEditor.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/StaticPrefs_accessibility.h"
+#include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/FormData.h"
 #include "nscore.h"
@@ -477,9 +479,9 @@ bool nsGenericHTMLElement::InNavQuirksMode(Document* aDoc) {
 
 void nsGenericHTMLElement::UpdateEditableState(bool aNotify) {
   // XXX Should we do this only when in a document?
-  ContentEditableTristate value = GetContentEditableValue();
-  if (value != eInherit) {
-    SetEditableFlag(!!value);
+  ContentEditableState state = GetContentEditableState();
+  if (state != ContentEditableState::Inherit) {
+    SetEditableFlag(IsEditableState(state));
     UpdateReadOnlyState(aNotify);
     return;
   }
@@ -502,7 +504,7 @@ nsresult nsGenericHTMLElement::BindToTree(BindContext& aContext,
     }
   }
 
-  if (HasFlag(NODE_IS_EDITABLE) && GetContentEditableValue() == eTrue &&
+  if (HasFlag(NODE_IS_EDITABLE) && IsEditableState(GetContentEditableState()) &&
       IsInComposedDoc()) {
     aContext.OwnerDoc().ChangeContentEditableCount(this, +1);
   }
@@ -546,7 +548,7 @@ void nsGenericHTMLElement::UnbindFromTree(UnbindContext& aContext) {
 
   RemoveFromNameTable();
 
-  if (GetContentEditableValue() == eTrue) {
+  if (IsEditableState(GetContentEditableState())) {
     if (Document* doc = GetComposedDoc()) {
       doc->ChangeContentEditableCount(this, -1);
     }
@@ -827,13 +829,21 @@ void nsGenericHTMLElement::AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
       }
       SetDirectionalityOnDescendants(this, dir, aNotify);
     } else if (aName == nsGkAtoms::contenteditable) {
+      auto IsEditableExceptInherit = [](const nsAttrValue* aValue) {
+        if (!aValue) {
+          return false;
+        }
+        return aValue->Equals(EmptyString(), eCaseMatters) ||
+               aValue->Equals(u"true"_ns, eIgnoreCase) ||
+               (StaticPrefs::
+                    dom_element_contenteditable_plaintext_only_enabled() &&
+                aValue->Equals(u"plaintext-only"_ns, eIgnoreCase));
+      };
       int32_t editableCountDelta = 0;
-      if (aOldValue && (aOldValue->Equals(u"true"_ns, eIgnoreCase) ||
-                        aOldValue->Equals(u""_ns, eIgnoreCase))) {
+      if (IsEditableExceptInherit(aOldValue)) {
         editableCountDelta = -1;
       }
-      if (aValue && (aValue->Equals(u"true"_ns, eIgnoreCase) ||
-                     aValue->Equals(u""_ns, eIgnoreCase))) {
+      if (IsEditableExceptInherit(aValue)) {
         ++editableCountDelta;
       }
       ChangeEditableState(editableCountDelta);
@@ -1313,8 +1323,11 @@ void nsGenericHTMLElement::MapCommonAttributesIntoExceptHidden(
   if (!aBuilder.PropertyIsSet(eCSSProperty__moz_user_modify)) {
     const nsAttrValue* value = aBuilder.GetAttr(nsGkAtoms::contenteditable);
     if (value) {
+      // FIXME: plaintext-only should be mapped to read-write-plaintext-only
       if (value->Equals(nsGkAtoms::_empty, eCaseMatters) ||
-          value->Equals(nsGkAtoms::_true, eIgnoreCase)) {
+          value->Equals(nsGkAtoms::_true, eIgnoreCase) ||
+          (StaticPrefs::dom_element_contenteditable_plaintext_only_enabled() &&
+           value->Equals(nsGkAtoms::plaintextOnly, eIgnoreCase))) {
         aBuilder.SetKeywordValue(eCSSProperty__moz_user_modify,
                                  StyleUserModify::ReadWrite);
       } else if (value->Equals(nsGkAtoms::_false, eIgnoreCase)) {
@@ -1703,6 +1716,16 @@ const nsAttrValue* nsGenericHTMLElement::GetURIAttr(nsAtom* aAttr,
   nsContentUtils::NewURIWithDocumentCharset(aURI, attr->GetStringValue(),
                                             OwnerDoc(), baseURI);
   return attr;
+}
+
+bool nsGenericHTMLElement::IsContentEditable() const {
+  for (const auto* element : InclusiveAncestorsOfType<nsGenericHTMLElement>()) {
+    const ContentEditableState state = element->GetContentEditableState();
+    if (state != ContentEditableState::Inherit) {
+      return IsEditableState(state);
+    }
+  }
+  return false;
 }
 
 bool nsGenericHTMLElement::IsLabelable() const {

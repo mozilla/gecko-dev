@@ -1014,6 +1014,7 @@ STATIC_ATOMS = [
     Atom("pinned", "pinned"),
     Atom("placeholder", "placeholder"),
     Atom("plaintext", "plaintext"),
+    Atom("plaintextOnly", "plaintext-only"),
     Atom("playbackrate", "playbackrate"),
     Atom("pointSize", "point-size"),
     Atom("poly", "poly"),

@@ -215,6 +215,13 @@ class EventChainVisitor;
 class EventListenerManager;
 class EventStateManager;
 
+enum class ContentEditableState {
+  Inherit,
+  False,
+  True,
+  PlainTextOnly,
+};
+
 namespace dom {
 
 struct CustomElementDefinition;
@@ -323,6 +330,11 @@ class Element : public FragmentOrElement {
     return State().HasAtLeastOneOfStates(ElementState::DISABLED |
                                          ElementState::READONLY);
   }
+
+  /**
+   * Return true if this element has contenteditable="plaintext-only".
+   */
+  [[nodiscard]] inline bool IsContentEditablePlainTextOnly() const;
 
   virtual int32_t TabIndexDefault() { return -1; }
 

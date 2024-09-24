@@ -52,6 +52,7 @@ using nsGenericHTMLElementBase = nsStyledElement;
  */
 class nsGenericHTMLElement : public nsGenericHTMLElementBase {
  public:
+  using ContentEditableState = mozilla::ContentEditableState;
   using Element::Focus;
   using Element::SetTabIndex;
   using InvokeAction = mozilla::dom::InvokeAction;
@@ -118,14 +119,20 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
     SetHTMLAttr(nsGkAtoms::draggable, aDraggable ? u"true"_ns : u"false"_ns,
                 aError);
   }
-  void GetContentEditable(nsString& aContentEditable) {
-    ContentEditableTristate value = GetContentEditableValue();
-    if (value == eTrue) {
-      aContentEditable.AssignLiteral("true");
-    } else if (value == eFalse) {
-      aContentEditable.AssignLiteral("false");
-    } else {
-      aContentEditable.AssignLiteral("inherit");
+  void GetContentEditable(nsString& aContentEditable) const {
+    switch (GetContentEditableState()) {
+      case ContentEditableState::True:
+        aContentEditable.AssignLiteral("true");
+        return;
+      case ContentEditableState::False:
+        aContentEditable.AssignLiteral("false");
+        return;
+      case ContentEditableState::PlainTextOnly:
+        aContentEditable.AssignLiteral("plaintext-only");
+        return;
+      case ContentEditableState::Inherit:
+        aContentEditable.AssignLiteral("inherit");
+        return;
     }
   }
   void SetContentEditable(const nsAString& aContentEditable,
@@ -136,21 +143,46 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
       SetHTMLAttr(nsGkAtoms::contenteditable, u"true"_ns, aError);
     } else if (aContentEditable.LowerCaseEqualsLiteral("false")) {
       SetHTMLAttr(nsGkAtoms::contenteditable, u"false"_ns, aError);
+    } else if (mozilla::StaticPrefs::
+                   dom_element_contenteditable_plaintext_only_enabled() &&
+               aContentEditable.LowerCaseEqualsLiteral("plaintext-only")) {
+      SetHTMLAttr(nsGkAtoms::contenteditable, u"plaintext-only"_ns, aError);
     } else {
       aError.Throw(NS_ERROR_DOM_SYNTAX_ERR);
     }
   }
-  bool IsContentEditable() {
-    for (nsIContent* node = this; node; node = node->GetParent()) {
-      nsGenericHTMLElement* element = FromNode(node);
-      if (element) {
-        ContentEditableTristate value = element->GetContentEditableValue();
-        if (value != eInherit) {
-          return value == eTrue;
-        }
+
+  [[nodiscard]] bool IsContentEditable() const;
+
+  /**
+   * Returns ContentEditableState::True if the element has a contentEditable
+   * attribute and its value is "true" or an empty string. Returns
+   * ContentEditableState::False if the *element has a contentEditable attribute
+   * and its value is "false". Returns ContentEditableState::PlainTextOnly if
+   * the element has a contentEditable attribute and its value is
+   * "plaintext-only". Otherwise returns ContentEditableState::Inherit.
+   */
+  [[nodiscard]] ContentEditableState GetContentEditableState() const {
+    if (!MayHaveContentEditableAttr()) {
+      return ContentEditableState::Inherit;
+    }
+
+    if (const nsAttrValue* value =
+            mAttrs.GetAttr(nsGkAtoms::contenteditable, kNameSpaceID_None)) {
+      if (value->Equals(nsGkAtoms::_false, eIgnoreCase)) {
+        return ContentEditableState::False;
+      }
+      if (value->Equals(nsGkAtoms::_true, eIgnoreCase) ||
+          value->Equals(nsGkAtoms::_empty, eCaseMatters)) {
+        return ContentEditableState::True;
+      }
+      if (mozilla::StaticPrefs::
+              dom_element_contenteditable_plaintext_only_enabled() &&
+          value->Equals(nsGkAtoms::plaintextOnly, eIgnoreCase)) {
+        return ContentEditableState::PlainTextOnly;
       }
     }
-    return false;
+    return ContentEditableState::Inherit;
   }
 
   mozilla::dom::PopoverAttributeState GetPopoverAttributeState() const;
@@ -918,24 +950,12 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
    */
   static void SyncEditorsOnSubtree(nsIContent* content);
 
-  enum ContentEditableTristate { eInherit = -1, eFalse = 0, eTrue = 1 };
-
-  /**
-   * Returns eTrue if the element has a contentEditable attribute and its value
-   * is "true" or an empty string. Returns eFalse if the element has a
-   * contentEditable attribute and its value is "false". Otherwise returns
-   * eInherit.
-   */
-  ContentEditableTristate GetContentEditableValue() const {
-    static const Element::AttrValuesArray values[] = {
-        nsGkAtoms::_false, nsGkAtoms::_true, nsGkAtoms::_empty, nullptr};
-
-    if (!MayHaveContentEditableAttr()) return eInherit;
-
-    int32_t value = FindAttrValueIn(
-        kNameSpaceID_None, nsGkAtoms::contenteditable, values, eIgnoreCase);
-
-    return value > 0 ? eTrue : (value == 0 ? eFalse : eInherit);
+  [[nodiscard]] inline static bool IsEditableState(
+      ContentEditableState aState) {
+    return aState == ContentEditableState::True ||
+           (mozilla::StaticPrefs::
+                dom_element_contenteditable_plaintext_only_enabled() &&
+            aState == ContentEditableState::PlainTextOnly);
   }
 
   // Used by A, AREA, LINK, and STYLE.
