@@ -119,11 +119,7 @@ where
     }
 
     // https://drafts.csswg.org/css-display/#unbox-mathml
-    //
-    // We always treat XUL as display: none. We don't use display:
-    // contents in XUL anyway, so should be fine to be consistent with
-    // MathML unless there's a use case for it.
-    if element.is_mathml_element() || element.is_xul_element() {
+    if element.is_mathml_element() {
         return true;
     }
 
