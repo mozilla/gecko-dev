@@ -18,6 +18,8 @@
   --tab-shadow-max-size: 6px;
   --tab-block-margin: 4px;
   --tab-icon-end-margin: 5.5px;
+  --tab-icon-overlay-fill: light-dark(black, white);
+  --tab-icon-overlay-stroke: light-dark(white, black);
   --tab-loading-fill: #0A84FF;
   --tab-hover-background-color: color-mix(in srgb, currentColor 11%, transparent);
   --tab-selected-textcolor: var(--toolbar-color);
@@ -435,17 +437,13 @@
     }
 
     &:is([soundplaying], [muted], [activemedia-blocked]) {
-      background-color: var(--tab-icon-overlay-stroke, light-dark(white, black));
+      background-color: var(--tab-icon-overlay-stroke);
       background-position: center;
       background-repeat: no-repeat;
-      border: 0.5px solid var(--border-color-interactive);
+      border: 0.5px solid var(--tab-icon-overlay-fill);
       border-radius: 10px;
       -moz-context-properties: fill;
-      fill: var(--tab-icon-overlay-fill, light-dark(black, white));
-
-      &:hover {
-        border-color: var(--tab-icon-overlay-fill, light-dark(black, white));
-      }
+      fill: var(--tab-icon-overlay-fill);
     }
   }
 

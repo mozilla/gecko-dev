@@ -50,9 +50,7 @@
       "button_primary_color": "rgb(43, 42, 51)",
       "input_background": "#42414D",
       "input_color": "rgb(251,251,254)",
-      "urlbar_popup_separator": "rgb(82,82,94)",
-      "tab_icon_overlay_stroke": "rgb(28,27,34)",
-      "tab_icon_overlay_fill": "rgb(251,251,254)"
+      "urlbar_popup_separator": "rgb(82,82,94)"
     },
     "properties": {
       "panel_hover": "color-mix(in srgb, currentColor 9%, transparent)",
@@ -74,9 +72,7 @@
       "button_primary_color": "--button-primary-color",
       "input_background": "--input-bgcolor",
       "input_color": "--input-color",
-      "urlbar_popup_separator": "--urlbarView-separator-color",
-      "tab_icon_overlay_stroke": "--tab-icon-overlay-stroke",
-      "tab_icon_overlay_fill": "--tab-icon-overlay-fill"
+      "urlbar_popup_separator": "--urlbarView-separator-color"
     },
     "properties": {
       "panel_hover": "--panel-item-hover-bgcolor",
