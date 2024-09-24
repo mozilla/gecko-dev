@@ -86,6 +86,9 @@ internal fun BookmarksScreen(buildStore: (NavHostController) -> BookmarksStore) 
         composable(route = BookmarksDestinations.EDIT_BOOKMARK) {
             EditBookmarkScreen(store = store)
         }
+        composable(route = BookmarksDestinations.SELECT_FOLDER) {
+            SelectFolderScreen(store = store)
+        }
     }
 }
 
@@ -93,11 +96,9 @@ internal object BookmarksDestinations {
     const val LIST = "list"
     const val ADD_FOLDER = "add folder"
     const val EDIT_BOOKMARK = "edit bookmark"
+    const val SELECT_FOLDER = "select folder"
 }
 
-/**
- * The Bookmarks list screen.
- */
 @Suppress("LongParameterList")
 @Composable
 private fun BookmarksList(
@@ -199,6 +200,81 @@ private fun BookmarksListTopBar(
                     contentDescription = stringResource(R.string.bookmark_add_new_folder_button_content_description),
                     tint = FirefoxTheme.colors.iconPrimary,
                 )
+            }
+        },
+    )
+}
+
+/**
+ * The Bookmarks list screen.
+ */
+@Composable
+private fun SelectFolderScreen(
+    store: BookmarksStore,
+) {
+    val state by store.observeAsState(store.state.bookmarksSelectFolderState) { it.bookmarksSelectFolderState }
+
+    Scaffold(
+        topBar = {
+            SelectFolderTopBar(
+                onBackClick = { store.dispatch(BackClicked) },
+                onNewFolderClick = { },
+            )
+        },
+        backgroundColor = FirefoxTheme.colors.layer1,
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .padding(paddingValues)
+                .padding(vertical = 16.dp),
+        ) {
+            items(state?.folders ?: listOf()) { folder ->
+                SelectableIconListItem(
+                    label = folder.title,
+                    isSelected = folder.guid == state?.addFolderSelectionGuid,
+                    onClick = { },
+                    beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                    modifier = Modifier.padding(start = (40 * folder.indentation).dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectFolderTopBar(
+    onBackClick: () -> Unit,
+    onNewFolderClick: (() -> Unit)?,
+) {
+    TopAppBar(
+        backgroundColor = FirefoxTheme.colors.layer1,
+        title = {
+            Text(
+                text = stringResource(R.string.bookmark_select_folder_fragment_label),
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.headline6,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_back_24),
+                    contentDescription = stringResource(R.string.bookmark_navigate_back_button_content_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        },
+        actions = {
+            if (onNewFolderClick != null) {
+                IconButton(onClick = onNewFolderClick) {
+                    Icon(
+                        painter = painterResource(R.drawable.mozac_ic_folder_add_24),
+                        contentDescription = stringResource(
+                            R.string.bookmark_add_new_folder_button_content_description,
+                        ),
+                        tint = FirefoxTheme.colors.iconPrimary,
+                    )
+                }
             }
         },
     )
@@ -526,7 +602,6 @@ private fun EditBookmarkTopBar(
 
 @Composable
 @FlexibleWindowLightDarkPreview
-@Suppress("MagicNumber")
 private fun EditBookmarkScreenPreview() {
     val store = BookmarksStore(
         initialState = BookmarksState(
@@ -648,6 +723,46 @@ private fun AddFolderPreview() {
     FirefoxTheme {
         Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
             AddFolderScreen(store)
+        }
+    }
+}
+
+@FlexibleWindowLightDarkPreview
+@Composable
+@Suppress("MagicNumber")
+private fun SelectFolderPreview() {
+    val store = BookmarksStore(
+        initialState = BookmarksState(
+            bookmarkItems = listOf(),
+            selectedItems = listOf(),
+            currentFolder = BookmarkItem.Folder(
+                guid = BookmarkRoot.Mobile.id,
+                title = "Bookmarks",
+            ),
+            isSignedIntoSync = false,
+            bookmarksEditBookmarkState = null,
+            bookmarksAddFolderState = BookmarksAddFolderState(
+                folderBeingAddedTitle = "Edit me!",
+            ),
+            bookmarksSelectFolderState = BookmarksSelectFolderState(
+                selectionGuid = null,
+                addFolderSelectionGuid = "guid1",
+                folders = listOf(
+                    SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
+                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0")),
+                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
+                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
+                    SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0")),
+                    SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid1")),
+                    SelectFolderItem(3, BookmarkItem.Folder("Nested Three", "guid0")),
+                    SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0")),
+                ),
+            ),
+        ),
+    )
+    FirefoxTheme {
+        Box(modifier = Modifier.background(color = FirefoxTheme.colors.layer1)) {
+            SelectFolderScreen(store)
         }
     }
 }
