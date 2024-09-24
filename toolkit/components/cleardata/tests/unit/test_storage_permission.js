@@ -201,8 +201,9 @@ add_task(async function test_removing_storage_permission_from_base_domainl() {
   );
 
   await new Promise(aResolve => {
-    Services.clearData.deleteDataFromBaseDomain(
+    Services.clearData.deleteDataFromSite(
       "example.net",
+      {},
       true /* user request */,
       Ci.nsIClearDataService.CLEAR_STORAGE_ACCESS,
       value => {
