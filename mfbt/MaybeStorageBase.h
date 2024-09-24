@@ -31,7 +31,7 @@ struct MaybeStorageBase<T, false> {
   using NonConstT = std::remove_const_t<T>;
 
   union Union {
-    Union() {}
+    constexpr Union() : empty{} {}
     explicit Union(const T& aVal) : val{aVal} {}
     template <typename U,
               typename = std::enable_if_t<std::is_move_constructible_v<U>>>
@@ -42,11 +42,12 @@ struct MaybeStorageBase<T, false> {
 
     ~Union() {}
 
+    char empty;
     NonConstT val;
   } mStorage;
 
  public:
-  MaybeStorageBase() = default;
+  constexpr MaybeStorageBase() = default;
   explicit MaybeStorageBase(const T& aVal) : mStorage{aVal} {}
   explicit MaybeStorageBase(T&& aVal) : mStorage{std::move(aVal)} {}
   template <typename... Args>

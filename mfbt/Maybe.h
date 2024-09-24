@@ -249,7 +249,7 @@ struct MaybeStorage<T, false> : MaybeStorageBase<T> {
  protected:
   char mIsSome = false;  // not bool -- guarantees minimal space consumption
 
-  MaybeStorage() = default;
+  constexpr MaybeStorage() = default;
   explicit MaybeStorage(const T& aVal)
       : MaybeStorageBase<T>{aVal}, mIsSome{true} {}
   explicit MaybeStorage(T&& aVal)
