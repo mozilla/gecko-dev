@@ -212,7 +212,7 @@ class BookmarksMiddlewareTest {
         )
         store.dispatch(FolderClicked(BookmarkItem.Folder(folderNode.title!!, folderNode.guid)))
 
-        assertEquals(folderNode.title, store.state.folderTitle)
+        assertEquals(folderNode.title, store.state.currentFolder.title)
         assertEquals(5, store.state.bookmarkItems.size)
     }
 
@@ -250,7 +250,7 @@ class BookmarksMiddlewareTest {
 
         store.dispatch(BackClicked)
 
-        verify(bookmarksStorage).addFolder(store.state.folderGuid, title = newFolderTitle)
+        verify(bookmarksStorage).addFolder(store.state.currentFolder.guid, title = newFolderTitle)
         verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
         verify(navController).popBackStack()
         assertNull(store.state.bookmarksAddFolderState)
@@ -269,7 +269,7 @@ class BookmarksMiddlewareTest {
         store.dispatch(BackClicked)
         this.advanceUntilIdle()
 
-        verify(bookmarksStorage, never()).addFolder(parentGuid = store.state.folderGuid, title = "")
+        verify(bookmarksStorage, never()).addFolder(parentGuid = store.state.currentFolder.guid, title = "")
         verify(navController).popBackStack()
         assertNull(store.state.bookmarksAddFolderState)
     }
@@ -339,10 +339,11 @@ class BookmarksMiddlewareTest {
         val store = middleware.makeStore()
 
         store.dispatch(FolderClicked(BookmarkItem.Folder(title = firstFolderNode.title!!, guid = firstFolderNode.guid)))
-        assertEquals(firstFolderNode.guid, store.state.folderGuid)
+
+        assertEquals(firstFolderNode.guid, store.state.currentFolder.guid)
         store.dispatch(BackClicked)
 
-        assertEquals(BookmarkRoot.Mobile.id, store.state.folderGuid)
+        assertEquals(BookmarkRoot.Mobile.id, store.state.currentFolder.guid)
         assertEquals(tree.children!!.size, store.state.bookmarkItems.size)
     }
 

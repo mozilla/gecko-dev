@@ -11,8 +11,7 @@ import mozilla.components.lib.state.State
  *
  * @property bookmarkItems Bookmark items to be displayed in the current list screen.
  * @property selectedItems The bookmark items that are currently selected by the user for bulk actions.
- * @property folderTitle The title of currently selected folder whose children items are being displayed.
- * @property folderGuid The unique GUID representing the currently selected folder in storage.
+ * @property currentFolder the [BookmarkItem.Folder] that is currently being displayed.
  * @property isSignedIntoSync State representing if the user is currently signed into sync.
  * @property bookmarksAddFolderState State representing the add folder subscreen, if visible.
  * @property bookmarksEditBookmarkState State representing the edit bookmark subscreen, if visible.
@@ -20,8 +19,7 @@ import mozilla.components.lib.state.State
 internal data class BookmarksState(
     val bookmarkItems: List<BookmarkItem>,
     val selectedItems: List<BookmarkItem>,
-    val folderTitle: String,
-    val folderGuid: String,
+    val currentFolder: BookmarkItem.Folder,
     val isSignedIntoSync: Boolean,
     val bookmarksAddFolderState: BookmarksAddFolderState?,
     val bookmarksEditBookmarkState: BookmarksEditBookmarkState?,
@@ -30,8 +28,7 @@ internal data class BookmarksState(
         val default: BookmarksState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
-            folderTitle = "",
-            folderGuid = "",
+            currentFolder = BookmarkItem.Folder("", ""),
             isSignedIntoSync = false,
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = null,

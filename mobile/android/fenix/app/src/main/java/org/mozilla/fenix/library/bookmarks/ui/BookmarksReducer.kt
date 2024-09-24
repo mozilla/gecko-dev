@@ -9,9 +9,8 @@ package org.mozilla.fenix.library.bookmarks.ui
  */
 internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = when (action) {
     is BookmarksLoaded -> state.copy(
-        folderTitle = action.folderTitle,
+        currentFolder = action.folder,
         bookmarkItems = action.bookmarkItems,
-        folderGuid = action.folderGuid,
     )
     is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
     is FolderLongClicked -> state.toggleSelectionOf(action.item)
@@ -23,7 +22,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     is EditBookmarkClicked -> state.copy(
         bookmarksEditBookmarkState = BookmarksEditBookmarkState(
             bookmark = action.bookmark,
-            folder = BookmarkItem.Folder(title = state.folderTitle, guid = state.folderGuid),
+            folder = BookmarkItem.Folder(title = state.currentFolder.title, guid = state.currentFolder.guid),
         ),
     )
     is BookmarkClicked -> if (state.selectedItems.isNotEmpty()) {

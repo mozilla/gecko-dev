@@ -9,7 +9,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-class BookmarksReducerKtTest {
+class BookmarksReducerTest {
     @Test
     fun `WHEN store initializes THEN no changes to state`() {
         val state = BookmarksState.default
@@ -23,21 +23,21 @@ class BookmarksReducerKtTest {
         val items = List(5) {
             BookmarkItem.Folder("$it", "guid$it")
         }
-        val newTitle = "bookmarks"
-        val newGuid = "guid"
+        val newFolder = BookmarkItem.Folder(
+            guid = "guid",
+            title = "Bookmarks",
+        )
 
         val result = bookmarksReducer(
             state,
             BookmarksLoaded(
-                folderTitle = newTitle,
-                folderGuid = newGuid,
+                folder = newFolder,
                 bookmarkItems = items,
             ),
         )
 
         val expected = state.copy(
-            folderTitle = newTitle,
-            folderGuid = newGuid,
+            currentFolder = newFolder,
             bookmarkItems = items,
         )
         assertEquals(expected, result)

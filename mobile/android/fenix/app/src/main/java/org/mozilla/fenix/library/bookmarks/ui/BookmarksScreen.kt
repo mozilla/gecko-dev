@@ -114,7 +114,7 @@ private fun BookmarksList(
         },
         topBar = {
             BookmarksListTopBar(
-                folderTitle = state.folderTitle,
+                folderTitle = state.currentFolder.title,
                 onBackClick = { store.dispatch(BackClicked) },
                 onNewFolderClick = { store.dispatch(AddFolderClicked) },
             )
@@ -213,7 +213,7 @@ private sealed class EmptyListState {
 private fun BookmarksState.emptyListState(): EmptyListState? {
     return when {
         bookmarkItems.isNotEmpty() -> null
-        folderGuid != BookmarkRoot.Mobile.id -> EmptyListState.Folder
+        currentFolder.guid != BookmarkRoot.Mobile.id -> EmptyListState.Folder
         isSignedIntoSync -> EmptyListState.Authenticated
         !isSignedIntoSync -> EmptyListState.NotAuthenticated
         else -> null
@@ -319,7 +319,7 @@ private fun AddFolderScreen(
             )
 
             IconListItem(
-                label = state.folderTitle,
+                label = state.currentFolder.title,
                 beforeIconPainter = painterResource(R.drawable.ic_folder_icon),
                 onClick = { store.dispatch(AddFolderAction.ParentFolderClicked) },
             )
@@ -532,8 +532,10 @@ private fun EditBookmarkScreenPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
-            folderTitle = "Bookmarks",
-            folderGuid = BookmarkRoot.Mobile.id,
+            currentFolder = BookmarkItem.Folder(
+                guid = BookmarkRoot.Mobile.id,
+                title = "Bookmarks",
+            ),
             isSignedIntoSync = true,
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = BookmarksEditBookmarkState(
@@ -577,8 +579,10 @@ private fun BookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = bookmarkItems,
                 selectedItems = listOf(),
-                folderTitle = "Bookmarks",
-                folderGuid = BookmarkRoot.Mobile.id,
+                currentFolder = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
                 isSignedIntoSync = false,
@@ -601,8 +605,10 @@ private fun EmptyBookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = listOf(),
                 selectedItems = listOf(),
-                folderTitle = "Bookmarks",
-                folderGuid = BookmarkRoot.Mobile.id,
+                currentFolder = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
                 bookmarksAddFolderState = null,
                 isSignedIntoSync = false,
                 bookmarksEditBookmarkState = null,
@@ -624,8 +630,10 @@ private fun AddFolderPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
-            folderTitle = "Bookmarks",
-            folderGuid = BookmarkRoot.Mobile.id,
+            currentFolder = BookmarkItem.Folder(
+                guid = BookmarkRoot.Mobile.id,
+                title = "Bookmarks",
+            ),
             bookmarksEditBookmarkState = null,
             bookmarksAddFolderState = BookmarksAddFolderState(
                 folderBeingAddedTitle = "Edit me!",

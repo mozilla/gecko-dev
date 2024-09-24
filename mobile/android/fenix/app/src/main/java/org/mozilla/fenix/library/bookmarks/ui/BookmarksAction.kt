@@ -19,13 +19,11 @@ internal data object Init : BookmarksAction
 /**
  * Bookmarks have been loaded from the storage layer.
  *
- * @property folderTitle The title of the bookmark folder that contains the loaded items.
- * @property folderGuid The unique GUID representing folder in storage that contains the items.
+ * @property folder The loaded [BookmarkItem.Folder]
  * @property bookmarkItems The bookmark items loaded, transformed into a displayable type.
  */
 internal data class BookmarksLoaded(
-    val folderTitle: String,
-    val folderGuid: String,
+    val folder: BookmarkItem.Folder,
     val bookmarkItems: List<BookmarkItem>,
 ) : BookmarksAction
 
