@@ -340,3 +340,65 @@ onboarding-new-user-survey-familiarity-based-option-1 = I’m brand new
 onboarding-new-user-survey-familiarity-based-option-2 = I’ve used it some
 onboarding-new-user-survey-familiarity-based-option-3 = I’m very familiar with it
 onboarding-new-user-survey-familiarity-based-option-4 = I used it in the past, but it’s been a while
+
+## UI strings for the sidebar and vertical tabs
+
+# New users
+
+# Setup screen for vertical tabs
+onboarding-new-tabs-title = Tell us where you’d like your tabs
+
+# Setup screen for vertical tabs - "Switch it up" refers to switching between horizontal and vertical tabs.
+onboarding-new-tabs-subtitle = Switch it up whenever you want in the sidebar settings.
+
+# Text underneath an image used for selecting browser tabs to appear on the side of the browser.
+onboarding-new-vertical-tabs-label = Tabs on the side
+
+# Text underneath an image used for selecting browser tabs to appear at the top of the browser.
+onboarding-new-horizontal-tabs-label = Tabs on the top
+
+# Existing users
+
+# Setup screen for vertical tabs for existing users
+onboarding-existing-tabs-title = Vertical tabs are here
+
+# Setup screen for vertical tabs for existing users
+onboarding-existing-tabs-title2 = Introducing vertical tabs
+
+# Setup screen for vertical tabs for existing users - "Switch it up" refers to switching between horizontal and vertical tabs.
+onboarding-existing-tabs-subtitle = Try your tabs on the side. Switch it up whenever you want in the sidebar settings.
+
+# Text underneath an image used for selecting browser tabs to appear on the side of the browser.
+onboarding-existing-vertical-tabs-label = Try vertical tabs
+onboarding-flair-text = New!
+
+# Text underneath an image used for selecting browser tabs to appear at the top of the browser.
+onboarding-existing-horizontal-tabs-label = Keep horizontal tabs
+
+# All users - Initial setup card
+
+# Tooltip displayed on hover for vertical tabs image
+onboarding-vertical-tabs-tooltip =
+    .title = A browser window displaying tabs along the side of the screen as a part of the { -brand-shorter-name } sidebar.
+
+# Description for vertical tabs image
+onboarding-vertical-tabs-description =
+    .aria-description = A browser window displaying tabs along the side of the screen as a part of the { -brand-shorter-name } sidebar.
+
+# Tooltip displayed on hover for horizontal tabs image
+onboarding-horizontal-tabs-tooltip =
+    .title = A browser window displaying tabs along the top.
+
+# Description for horizontal tabs image
+onboarding-horizontal-tabs-description =
+    .aria-description = A browser window displaying tabs along the top.
+
+# Existing users - additional setup card
+
+# Additional setup card for setting up aichatbot in the sidebar
+onboarding-genai-sidebar-title = Try an AI chatbot in the sidebar
+
+# Setup card for setting up AI chatbot in the sidebar; "Providers" refers to AI chatbot providers (e.g. OpenAI, etc). "Switch anytime" refers to allowing the user to switch to a different chatbot.
+onboarding-genai-sidebar-subtitle = Summarize web content, brainstorm ideas, draft messages — all as you browse. Choose from multiple providers. Switch anytime.
+onboarding-genai-sidebar-primary-button = Choose a chatbot
+onboarding-genai-sidebar-secondary-button = Start browsing
