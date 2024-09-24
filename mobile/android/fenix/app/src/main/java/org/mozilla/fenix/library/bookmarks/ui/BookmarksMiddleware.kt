@@ -131,7 +131,7 @@ internal class BookmarksMiddleware(
                 }
             }
             AddFolderAction.ParentFolderClicked -> {
-                // TODO this will navigate to the select folder screen
+                navController.navigate(BookmarksDestinations.SELECT_FOLDER)
             }
             SelectFolderAction.ViewAppeared -> context.store.loadFolders(BookmarkRoot.Mobile.id)
             is EditBookmarkAction.TitleChanged,

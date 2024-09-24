@@ -194,6 +194,23 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN we are on the add folder screen WHEN parent folder is clicked THEN initialize the select folder state`() {
+        val state = BookmarksState.default.copy(
+            bookmarksAddFolderState = BookmarksAddFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
+                folderBeingAddedTitle = "",
+            ),
+        )
+
+        val result = bookmarksReducer(state, AddFolderAction.ParentFolderClicked)
+
+        assertEquals(BookmarkRoot.Mobile.id, result.bookmarksSelectFolderState?.addFolderSelectionGuid)
+    }
+
+    @Test
     fun `GIVEN there is no substate screen present WHEN back is clicked THEN state is unchanged`() {
         val state = BookmarksState.default
 
