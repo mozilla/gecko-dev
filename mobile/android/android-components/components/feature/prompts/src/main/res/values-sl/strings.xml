@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Zaščitite svoje račune z močnimi, naključno ustvarjenimi gesli. Za hiter dostop si jih shranite v račun.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Zaščitite svoje račune z uporabo močnih, naključno ustvarjenih gesel. Shranjena bodo v vaš račun za nadaljnjo uporabo.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Zaščitite svoje račune z uporabo močnih, naključno ustvarjenih gesel. Shranjena bodo v vaš račun za nadaljnjo uporabo.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Zaščitite svoje račun z uporabo močnih, naključno ustvarjenih gesel. Shranjena bodo v vaš račun za nadaljnjo uporabo.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Uporabi geslo</string>
@@ -201,7 +204,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Uporabi %1$s kot ponudnika prijave</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Pri prijavi v %1$s z računom %2$s veljajo njihovi <a href="%4$s">pogoji uporabe</a> in <a href="%3$s">pravilnik o zasebnosti</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Pri prijavi v %1$s z računom %2$s veljajo njihovi <a href="%4$s">pogoji uporabe</a> in <a href="%3$s">pravilnik o zasebnosti</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Nadaljuj</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->

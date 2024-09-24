@@ -1306,11 +1306,16 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Ajouter un dossier</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Fermer les marque-pages</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Fermer les marque-pages</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Rechercher dans les marque-pages</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Menu du marque-page %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Aucun marque-page pour l’instant</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Se connecter pour synchroniser</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
