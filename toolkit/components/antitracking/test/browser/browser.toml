@@ -8,7 +8,6 @@ prefs = [
   "dom.storage_access.prompt.testing=true", # Disable the Storage Access API prompts for all of the tests in this directory
   "dom.storage_access.prompt.testing.allow=true",
   "dom.storage_access.frame_only=true", # Enable frame-only Storage Access API for all of the tests in this directory
-  "privacy.restrict3rdpartystorage.heuristic.window_open=true", # Enable the window.open() heuristics globally in this directory
   "privacy.restrict3rdpartystorage.heuristic.opened_window_after_interaction=true",
   "network.cookie.sameSite.laxByDefault=false", # Bug 1617611: Fix all the tests broken by "cookies SameSite=lax by default"
   "dom.security.https_first=false", # Disable https-first because of explicit http/https testing
