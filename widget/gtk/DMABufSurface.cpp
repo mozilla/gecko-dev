@@ -536,6 +536,42 @@ bool DMABufSurfaceRGBA::Create(mozilla::gl::GLContext* aGLContext,
   return true;
 }
 
+bool DMABufSurfaceRGBA::Create(
+    mozilla::UniqueFileHandle&& aFd,
+    const mozilla::webgpu::ffi::WGPUDMABufInfo& aDMABufInfo, int aWidth,
+    int aHeight) {
+  LOGDMABUF(("DMABufSurfaceRGBA::Create() UID %d size %d x %d\n", mUID, mWidth,
+             mHeight));
+
+  mWidth = aWidth;
+  mHeight = aHeight;
+  mBufferModifiers[0] = aDMABufInfo.modifier;
+  mGmbFormat = GetDMABufDevice()->GetGbmFormat(true);
+  mDrmFormats[0] = mGmbFormat->mFormat;
+  mBufferPlaneCount = aDMABufInfo.plane_count;
+
+  ipc::FileDescriptor fd = ipc::FileDescriptor(std::move(aFd));
+
+  for (uint32_t i = 0; i < aDMABufInfo.plane_count; i++) {
+    auto clonedFd = fd.ClonePlatformHandle();
+
+    mDmabufFds[i] = clonedFd.release();
+    mStrides[i] = aDMABufInfo.strides[i];
+    mOffsets[i] = aDMABufInfo.offsets[i];
+  }
+
+  if (mDmabufFds[0] < 0) {
+    LOGDMABUF(
+        ("  ExportDMABUFImageMESA failed, mDmabufFds[0] is invalid, quit"));
+    return false;
+  }
+
+  LOGDMABUF(("  imported size %d x %d format %x planes %d modifiers %" PRIx64,
+             mWidth, mHeight, mDrmFormats[0], mBufferPlaneCount,
+             mBufferModifiers[0]));
+  return true;
+}
+
 bool DMABufSurfaceRGBA::ImportSurfaceDescriptor(
     const SurfaceDescriptor& aDesc) {
   const SurfaceDescriptorDMABuf& desc = aDesc.get_SurfaceDescriptorDMABuf();
@@ -977,6 +1013,17 @@ already_AddRefed<DMABufSurface> DMABufSurfaceRGBA::CreateDMABufSurface(
     int aHeight) {
   RefPtr<DMABufSurfaceRGBA> surf = new DMABufSurfaceRGBA();
   if (!surf->Create(aGLContext, aEGLImage, aWidth, aHeight)) {
+    return nullptr;
+  }
+  return surf.forget();
+}
+
+already_AddRefed<DMABufSurface> DMABufSurfaceRGBA::CreateDMABufSurface(
+    mozilla::UniqueFileHandle&& aFd,
+    const mozilla::webgpu::ffi::WGPUDMABufInfo& aDMABufInfo, int aWidth,
+    int aHeight) {
+  RefPtr<DMABufSurfaceRGBA> surf = new DMABufSurfaceRGBA();
+  if (!surf->Create(std::move(aFd), aDMABufInfo, aWidth, aHeight)) {
     return nullptr;
   }
   return surf.forget();

@@ -215,6 +215,22 @@ pub unsafe extern "C" fn wgpu_server_instance_request_adapter(
     }
 }
 
+#[allow(unreachable_code)]
+#[allow(unused_variables)]
+fn support_use_external_texture_in_swap_chain(
+    global: &Global,
+    self_id: id::AdapterId,
+    backend: wgt::Backend,
+    is_hardware: bool,
+) -> bool {
+    #[cfg(target_os = "windows")]
+    {
+        return backend == wgt::Backend::Dx12 && is_hardware;
+    }
+
+    false
+}
+
 #[no_mangle]
 pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
     global: &Global,
@@ -247,11 +263,8 @@ pub unsafe extern "C" fn wgpu_server_adapter_pack_info(
                 );
             }
 
-            let support_use_external_texture_in_swap_chain = if cfg!(target_os = "windows") {
-                backend == wgt::Backend::Dx12 && is_hardware
-            } else {
-                false
-            };
+            let support_use_external_texture_in_swap_chain =
+                support_use_external_texture_in_swap_chain(global, id, backend, is_hardware);
 
             let info = AdapterInformation {
                 id,
@@ -629,6 +642,90 @@ pub extern "C" fn wgpu_server_get_device_fence_handle(
     ptr::null_mut()
 }
 
+#[derive(Debug)]
+#[repr(C)]
+pub struct DMABufInfo {
+    pub is_valid: bool,
+    pub modifier: u64,
+    pub plane_count: u32,
+    pub offsets: [u64; 3],
+    pub strides: [u64; 3],
+}
+
+#[derive(Debug)]
+pub struct VkImageHandle {
+    //pub image: vk::Image,
+    //pub memory: vk::DeviceMemory,
+    pub memory_size: u64,
+    pub memory_type_index: u32,
+    pub modifier: u64,
+    //pub layouts: Vec<vk::SubresourceLayout>,
+}
+
+impl VkImageHandle {
+    pub fn new(
+        //image: vk::Image,
+        //memory: vk::DeviceMemory,
+        memory_size: u64,
+        memory_type_index: u32,
+        modifier: u64,
+        //layouts: Vec<vk::SubresourceLayout>,
+    ) -> VkImageHandle {
+        VkImageHandle {
+            //image,
+            //memory,
+            memory_size,
+            memory_type_index,
+            modifier,
+            //layouts,
+        }
+    }
+}
+
+#[no_mangle]
+#[allow(unused_variables)]
+#[cfg(target_os = "linux")]
+pub extern "C" fn wgpu_vkimage_create_with_dma_buf(
+    global: &Global,
+    device_id: id::DeviceId,
+    width: u32,
+    height: u32,
+    out_memory_size: *mut u64,
+) -> *mut VkImageHandle {
+    return ptr::null_mut();
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn wgpu_vkimage_delete(handle: *mut VkImageHandle) {
+    let _ = Box::from_raw(handle);
+}
+
+#[no_mangle]
+#[allow(unused_variables)]
+#[cfg(target_os = "linux")]
+pub extern "C" fn wgpu_vkimage_get_file_descriptor(
+    global: &Global,
+    device_id: id::DeviceId,
+    handle: &VkImageHandle,
+) -> i32 {
+    -1
+}
+
+#[no_mangle]
+#[allow(unused_variables)]
+pub extern "C" fn wgpu_vkimage_get_dma_buf_info(handle: &VkImageHandle) -> DMABufInfo {
+    let offsets: [u64; 3] = [0; 3];
+    let strides: [u64; 3] = [0; 3];
+
+    DMABufInfo {
+        is_valid: false,
+        modifier: 0,
+        plane_count: 0,
+        offsets,
+        strides,
+    }
+}
+
 extern "C" {
     #[allow(dead_code)]
     fn wgpu_server_use_external_texture_for_swap_chain(
@@ -651,6 +748,14 @@ extern "C" {
         param: *mut c_void,
         id: id::TextureId,
     ) -> *mut c_void;
+    #[allow(improper_ctypes)]
+    #[allow(dead_code)]
+    fn wgpu_server_get_vk_image_handle(
+        param: *mut c_void,
+        texture_id: id::TextureId,
+    ) -> *mut VkImageHandle;
+    #[allow(dead_code)]
+    fn wgpu_server_get_dma_buf_fd(param: *mut c_void, id: id::TextureId) -> i32;
 }
 
 impl Global {

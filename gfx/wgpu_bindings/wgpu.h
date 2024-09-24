@@ -58,6 +58,14 @@ class DefaultDelete<webgpu::ffi::WGPUGlobal> {
   }
 };
 
+template <>
+class DefaultDelete<webgpu::ffi::WGPUVkImageHandle> {
+ public:
+  void operator()(webgpu::ffi::WGPUVkImageHandle* aPtr) const {
+    webgpu::ffi::wgpu_vkimage_delete(aPtr);
+  }
+};
+
 }  // namespace mozilla
 
 #endif  // WGPU_h

@@ -24,6 +24,10 @@
 #  include "mozilla/gfx/DeviceManagerDx.h"
 #endif
 
+#if MOZ_WIDGET_GTK
+#  include "mozilla/webgpu/ExternalTextureDMABuf.h"
+#endif
+
 namespace mozilla::webgpu {
 
 const uint64_t POLL_TIME_MS = 100;
@@ -71,6 +75,51 @@ extern void* wgpu_server_get_external_texture_handle(void* aParam,
   MOZ_ASSERT_UNREACHABLE("unexpected to be called");
 #endif
   return sharedHandle;
+}
+
+extern int32_t wgpu_server_get_dma_buf_fd(void* aParam, WGPUTextureId aId) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  auto texture = parent->GetExternalTexture(aId);
+  if (!texture) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return -1;
+  }
+
+#ifdef MOZ_WIDGET_GTK
+  auto* textureDMABuf = texture->AsExternalTextureDMABuf();
+  if (!textureDMABuf) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return -1;
+  }
+  auto fd = textureDMABuf->CloneDmaBufFd();
+  // fd should be closed by the caller.
+  return fd.release();
+#else
+  MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+  return -1;
+#endif
+}
+
+extern WGPUVkImageHandle* wgpu_server_get_vk_image_handle(void* aParam,
+                                                          WGPUTextureId aId) {
+  auto* parent = static_cast<WebGPUParent*>(aParam);
+
+  auto texture = parent->GetExternalTexture(aId);
+  if (!texture) {
+    MOZ_ASSERT_UNREACHABLE("unexpected to be called");
+    return nullptr;
+  }
+
+#if defined(MOZ_WIDGET_GTK)
+  auto* textureDMABuf = texture->AsExternalTextureDMABuf();
+  if (!textureDMABuf) {
+    return nullptr;
+  }
+  return textureDMABuf->GetHandle();
+#else
+  return nullptr;
+#endif
 }
 
 }  // namespace ffi
@@ -1526,8 +1575,8 @@ std::shared_ptr<ExternalTexture> WebGPUParent::CreateExternalTexture(
   MOZ_RELEASE_ASSERT(mExternalTextures.find(aTextureId) ==
                      mExternalTextures.end());
 
-  UniquePtr<ExternalTexture> texture =
-      ExternalTexture::Create(aWidth, aHeight, aFormat, aUsage);
+  UniquePtr<ExternalTexture> texture = ExternalTexture::Create(
+      mContext.get(), aDeviceId, aWidth, aHeight, aFormat, aUsage);
   if (!texture) {
     return nullptr;
   }

@@ -15,6 +15,7 @@
 #include "nsISupportsImpl.h"
 #include "mozilla/gfx/Types.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/webgpu/ffi/wgpu.h"
 
 typedef void* EGLImageKHR;
 typedef void* EGLSyncKHR;
@@ -44,6 +45,11 @@ class SurfaceDescriptorDMABuf;
 namespace gl {
 class GLContext;
 }
+namespace webgpu {
+namespace ffi {
+struct WGPUDMABufInfo;
+}
+}  // namespace webgpu
 }  // namespace mozilla
 
 typedef enum {
@@ -228,6 +234,11 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
       mozilla::gl::GLContext* aGLContext, const EGLImageKHR aEGLImage,
       int aWidth, int aHeight);
 
+  static already_AddRefed<DMABufSurface> CreateDMABufSurface(
+      mozilla::UniqueFileHandle&& aFd,
+      const mozilla::webgpu::ffi::WGPUDMABufInfo& aDMABufInfo, int aWidth,
+      int aHeight);
+
   bool Serialize(mozilla::layers::SurfaceDescriptor& aOutDescriptor) override;
 
   DMABufSurfaceRGBA* GetAsDMABufSurfaceRGBA() override { return this; }
@@ -283,6 +294,9 @@ class DMABufSurfaceRGBA final : public DMABufSurface {
   bool Create(int aWidth, int aHeight, int aDMABufSurfaceFlags);
   bool Create(const mozilla::layers::SurfaceDescriptor& aDesc) override;
   bool Create(mozilla::gl::GLContext* aGLContext, const EGLImageKHR aEGLImage,
+              int aWidth, int aHeight);
+  bool Create(mozilla::UniqueFileHandle&& aFd,
+              const mozilla::webgpu::ffi::WGPUDMABufInfo& aDMABufInfo,
               int aWidth, int aHeight);
 
   bool ImportSurfaceDescriptor(const mozilla::layers::SurfaceDescriptor& aDesc);

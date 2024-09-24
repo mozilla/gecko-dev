@@ -78,6 +78,14 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows":
         "ExternalTextureD3D11.cpp",
     ]
 
+if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
+    EXPORTS.mozilla.webgpu += [
+        "ExternalTextureDMABuf.h",
+    ]
+    UNIFIED_SOURCES += [
+        "ExternalTextureDMABuf.cpp",
+    ]
+
 if CONFIG["CC_TYPE"] in ("clang", "clang-cl"):
     CXXFLAGS += ["-Werror=implicit-int-conversion", "-Wno-shorten-64-to-32"]
     CXXFLAGS += ["-Werror=switch"]
