@@ -74,8 +74,7 @@ class BootstrapImpl final : public Bootstrap {
     ::GeckoStart(aEnv, argv, argc, aAppData, xpcshell, outFilePath);
   }
 
-  virtual void XRE_SetAndroidChildFds(
-      JNIEnv* aEnv, const XRE_AndroidChildFds& aFds) override {
+  virtual void XRE_SetAndroidChildFds(JNIEnv* aEnv, jintArray aFds) override {
     ::XRE_SetAndroidChildFds(aEnv, aFds);
   }
 

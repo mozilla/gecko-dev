@@ -184,12 +184,14 @@ const char* XRE_ChildProcessTypeToAnnotation(GeckoProcessType aProcessType) {
 }
 
 #if defined(MOZ_WIDGET_ANDROID)
-void XRE_SetAndroidChildFds(JNIEnv* env, const XRE_AndroidChildFds& fds) {
+void XRE_SetAndroidChildFds(JNIEnv* env, jintArray jfds) {
   mozilla::jni::SetGeckoThreadEnv(env);
-  mozilla::ipc::SetPrefsFd(fds.mPrefsFd);
-  mozilla::ipc::SetPrefMapFd(fds.mPrefMapFd);
-  IPC::Channel::SetClientChannelFd(fds.mIpcFd);
-  CrashReporter::SetNotificationPipeForChild(fds.mCrashFd);
+
+  // Copy passed file handles from the JNI environment into geckoargs.
+  jsize size = env->GetArrayLength(jfds);
+  jint* fds = env->GetIntArrayElements(jfds, nullptr);
+  geckoargs::SetPassedFileHandles(Span(fds, size));
+  env->ReleaseIntArrayElements(jfds, fds, JNI_ABORT);
 }
 #endif  // defined(MOZ_WIDGET_ANDROID)
 

@@ -331,8 +331,7 @@ class AndroidProcessLauncher : public PosixProcessLauncher {
  protected:
   virtual RefPtr<ProcessHandlePromise> DoLaunch() override;
   RefPtr<ProcessHandlePromise> LaunchAndroidService(
-      const GeckoProcessType aType, const std::vector<std::string>& argv,
-      const base::file_handle_mapping_vector& fds_to_remap);
+      const GeckoProcessType aType, const geckoargs::ChildProcessArgs& args);
 };
 typedef AndroidProcessLauncher ProcessLauncher;
 // NB: Technically Android is linux (i.e. XP_LINUX is defined), but we want
@@ -1337,8 +1336,7 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
 
 #if defined(MOZ_WIDGET_ANDROID)
 RefPtr<ProcessHandlePromise> AndroidProcessLauncher::DoLaunch() {
-  return LaunchAndroidService(mProcessType, mChildArgs.mArgs,
-                              mLaunchOptions->fds_to_remap);
+  return LaunchAndroidService(mProcessType, mChildArgs);
 }
 #endif  // MOZ_WIDGET_ANDROID
 
@@ -1804,35 +1802,25 @@ RefPtr<ProcessHandlePromise> GeckoChildProcessHost::WhenProcessHandleReady() {
 
 #ifdef MOZ_WIDGET_ANDROID
 RefPtr<ProcessHandlePromise> AndroidProcessLauncher::LaunchAndroidService(
-    const GeckoProcessType aType, const std::vector<std::string>& argv,
-    const base::file_handle_mapping_vector& fds_to_remap) {
-  MOZ_RELEASE_ASSERT((2 <= fds_to_remap.size()) && (fds_to_remap.size() <= 5));
+    const GeckoProcessType aType, const geckoargs::ChildProcessArgs& args) {
   JNIEnv* const env = mozilla::jni::GetEnvForThread();
   MOZ_ASSERT(env);
 
-  const int argvSize = argv.size();
+  const size_t argvSize = args.mArgs.size();
   jni::ObjectArray::LocalRef jargs =
       jni::ObjectArray::New<jni::String>(argvSize);
-  for (int ix = 0; ix < argvSize; ix++) {
-    jargs->SetElement(ix, jni::StringParam(argv[ix].c_str(), env));
+  for (size_t ix = 0; ix < argvSize; ix++) {
+    jargs->SetElement(ix, jni::StringParam(args.mArgs[ix].c_str(), env));
   }
 
-  // XXX: this processing depends entirely on the internals of
-  // ContentParent::LaunchSubprocess()
-  // GeckoChildProcessHost::PerformAsyncLaunch(), and the order in
-  // which they append to fds_to_remap. There must be a better way to do it.
-  // See bug 1440207.
-  int32_t prefsFd = fds_to_remap[0].first;
-  int32_t prefMapFd = fds_to_remap[1].first;
-  int32_t ipcFd = fds_to_remap[2].first;
-  int32_t crashFd = -1;
-  if (fds_to_remap.size() == 4) {
-    crashFd = fds_to_remap[3].first;
+  std::vector<int> fds(args.mFiles.size());
+  for (size_t ix = 0; ix < fds.size(); ix++) {
+    fds[ix] = args.mFiles[ix].get();
   }
+  jni::IntArray::LocalRef jfds = jni::IntArray::New(fds.data(), fds.size());
 
   auto type = java::GeckoProcessType::FromInt(aType);
-  auto genericResult = java::GeckoProcessManager::Start(
-      type, jargs, prefsFd, prefMapFd, ipcFd, crashFd);
+  auto genericResult = java::GeckoProcessManager::Start(type, jargs, jfds);
   auto typedResult = java::GeckoResult::LocalRef(std::move(genericResult));
   return ProcessHandlePromise::FromGeckoResult(typedResult);
 }
