@@ -670,7 +670,7 @@ tab-group {
   .tab-group-line {
     background-color: var(--tab-group-color);
     height: 2px;
-    margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) -2px;
+    margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) calc(-1 * var(--tab-block-margin));
   }
 
   &[collapsed] > .tabbrowser-tab {
@@ -683,7 +683,16 @@ tab-group {
 
 .tab-group-label-container {
   /* Provide some space between tab group label and the first tab in the tab group */
-  margin-inline-end: var(--tab-overflow-clip-margin);
+  padding-inline-end: var(--tab-overflow-clip-margin);
+  position: relative;
+
+  tab-group:not([collapsed]) > &::after {
+    content: "";
+    background-color: var(--tab-group-color);
+    height: 2px;
+    position: absolute;
+    inset: auto 0 0;
+  }
 }
 
 .tab-group-label {
