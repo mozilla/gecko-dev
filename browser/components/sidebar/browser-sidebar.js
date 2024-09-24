@@ -966,7 +966,7 @@ var SidebarController = {
     }
   },
 
-  async handleToolbarButtonClick() {
+  handleToolbarButtonClick() {
     switch (this.sidebarRevampVisibility) {
       case "always-show":
         if (this._animationEnabled && !window.gReduceMotion) {
@@ -985,13 +985,14 @@ var SidebarController = {
           this.toggleExpanded(true);
         }
         this.sidebarContainer.hidden = !isHidden;
+        this.updateToolbarButton();
         break;
       }
     }
   },
 
   /**
-   * Update `checked` state of the toolbar button.
+   * Update `checked` state and tooltip text of the toolbar button.
    */
   updateToolbarButton() {
     if (!this.sidebarRevampEnabled || !this.toolbarButton) {
@@ -1002,10 +1003,16 @@ var SidebarController = {
       case "always-show":
         // Toolbar button controls expanded state.
         this.toolbarButton.checked = this.sidebarMain.expanded;
+        this.toolbarButton.dataset.l10nId = this.toolbarButton.checked
+          ? "sidebar-toolbar-collapse-sidebar"
+          : "sidebar-toolbar-expand-sidebar";
         break;
       case "hide-sidebar":
         // Toolbar button controls hidden state.
         this.toolbarButton.checked = !this.sidebarContainer.hidden;
+        this.toolbarButton.dataset.l10nId = this.toolbarButton.checked
+          ? "sidebar-toolbar-hide-sidebar"
+          : "sidebar-toolbar-show-sidebar";
         break;
     }
   },
@@ -1630,7 +1637,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,
   "sidebarRevampVisibility",
   "sidebar.visibility",
-  "always-show"
+  "always-show",
+  () => {
+    if (!SidebarController.uninitializing) {
+      SidebarController.updateToolbarButton();
+    }
+  }
 );
 XPCOMUtils.defineLazyPreferenceGetter(
   SidebarController,

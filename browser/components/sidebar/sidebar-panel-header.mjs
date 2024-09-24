@@ -32,6 +32,7 @@ export class SidebarPanelHeader extends MozLitElement {
       <h4 class="text-truncated-ellipsis">${this.heading}</h4>
       <moz-button
         class="header-close-button"
+        data-l10n-id="sidebar-panel-header-close-button"
         @click=${this.closeSidebarPanel}
         view=${this.view}
         size="default"
