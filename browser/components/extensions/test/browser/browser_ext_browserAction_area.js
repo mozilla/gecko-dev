@@ -127,7 +127,10 @@ add_task(async function testPolicyOverridesBrowserActionToMenuPanel() {
 
 add_task(async function testBrowserActionWithVerticalTabs() {
   await SpecialPowers.pushPrefEnv({
-    set: [["sidebar.verticalTabs", true]],
+    set: [
+      ["sidebar.verticalTabs", true],
+      ["sidebar.revamp", true],
+    ],
   });
 
   await testInArea("tabstrip", CustomizableUI.AREA_ADDONS);
