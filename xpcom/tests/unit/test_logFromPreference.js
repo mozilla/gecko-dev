@@ -13,6 +13,10 @@ add_task(async () => {
   const threads = ["GeckoMain"];
   const features = ["nostacksampling"];
   await Services.profiler.StartProfiler(entries, interval, features, threads);
+  // We need to pause the profiler here, otherwise we get crashes.
+  // This seems to be a combination of json streaming + markers from Rust.
+  // See Bug 1920704 for more details.
+  await Services.profiler.Pause();
   const profileData = await Services.profiler.getProfileDataAsync();
   await Services.profiler.StopProfiler();
   const { markers, stringTable } = profileData.threads[0];
