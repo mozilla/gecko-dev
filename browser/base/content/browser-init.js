@@ -927,6 +927,10 @@ var gBrowserInit = {
       gGfxUtils.init();
     });
 
+    scheduleIdleTask(() => {
+      gProfiles.init();
+    });
+
     // This should always go last, since the idle tasks (except for the ones with
     // timeouts) should execute in order. Note that this observer notification is
     // not guaranteed to fire, since the window could close before we get here.
@@ -936,10 +940,6 @@ var gBrowserInit = {
         window,
         "browser-idle-startup-tasks-finished"
       );
-    });
-
-    scheduleIdleTask(() => {
-      gProfiles.init();
     });
   },
 
