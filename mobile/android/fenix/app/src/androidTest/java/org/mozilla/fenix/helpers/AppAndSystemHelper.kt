@@ -7,6 +7,7 @@ package org.mozilla.fenix.helpers
 
 import android.Manifest
 import android.app.ActivityManager
+import android.app.LocaleManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -17,6 +18,7 @@ import android.net.NetworkCapabilities
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
+import android.os.LocaleList
 import android.os.storage.StorageManager
 import android.os.storage.StorageVolume
 import android.provider.Settings
@@ -39,12 +41,15 @@ import kotlinx.coroutines.runBlocking
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.browser.storage.sync.PlacesBookmarksStorage
 import mozilla.components.browser.storage.sync.PlacesHistoryStorage
+import mozilla.components.support.locale.LocaleManager.resetToSystemDefault
+import mozilla.components.support.locale.LocaleManager.setNewLocale
 import org.junit.Assert
 import org.junit.Assert.assertEquals
 import org.mozilla.fenix.Config
 import org.mozilla.fenix.HomeActivity
 import org.mozilla.fenix.components.PermissionStorage
 import org.mozilla.fenix.customtabs.ExternalAppBrowserActivity
+import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.helpers.Constants.PackageName.PIXEL_LAUNCHER
 import org.mozilla.fenix.helpers.Constants.PackageName.YOUTUBE_APP
 import org.mozilla.fenix.helpers.Constants.TAG
@@ -495,28 +500,36 @@ object AppAndSystemHelper {
      */
     fun runWithSystemLocaleChanged(locale: Locale, testRule: ActivityTestRule<HomeActivity>, testBlock: () -> Unit) {
         val defaultLocale = Locale.getDefault()
+        Log.i(TAG, "runWithSystemLocaleChanged: Storing the default locale $defaultLocale.")
 
         try {
             Log.i(TAG, "runWithSystemLocaleChanged: Trying to set the locale.")
             setSystemLocale(locale)
+            // We need to recreate the activity to apply the new locale
+            Log.i(TAG, "runWithSystemLocaleChanged: Recreating the activity to apply the new locale.")
+            ThreadUtils.runOnUiThread { testRule.activity.recreate() }
             Log.i(TAG, "runWithSystemLocaleChanged: Running the test block.")
             testBlock()
-            ThreadUtils.runOnUiThread { testRule.activity.recreate() }
             Log.i(TAG, "runWithSystemLocaleChanged: Test block finished.")
         } catch (e: Exception) {
             Log.i(TAG, "runWithSystemLocaleChanged: The test block has thrown an exception.${e.message}")
             e.printStackTrace()
+            throw e
         } finally {
-            Log.i(TAG, "runWithSystemLocaleChanged: Trying to reset the locale to default.")
+            Log.i(TAG, "runWithSystemLocaleChanged final block: Trying to reset the locale to default $defaultLocale.")
             setSystemLocale(defaultLocale)
+            // We need to recreate the activity to apply the new locale
+            Log.i(TAG, "runWithSystemLocaleChanged final block: Recreating the activity to apply the new locale.")
+            ThreadUtils.runOnUiThread { testRule.activity.recreate() }
+            Log.i(TAG, "runWithSystemLocaleChanged final block: Locale set back to default $defaultLocale.")
         }
     }
 
     /**
-     * Changes the default language of the entire device, not just the app.
+     * Changes the default language of the system, not just the app.
      * We can only use this if we're running on a debug build, otherwise it will change the permission manifests in release builds.
      */
-    fun setSystemLocale(locale: Locale) {
+    private fun setSystemLocale(locale: Locale) {
         if (Config.channel.isDebug) {
             /* Sets permission to change device language */
             Log.i(
@@ -529,26 +542,68 @@ object AppAndSystemHelper {
                 )
                 requestPermissions()
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                Log.i(
+                    TAG,
+                    "setSystemLocale: Trying to change system locale to $locale on API ${Build.VERSION.SDK_INT}.",
+                )
+
+                val localeManager = appContext.getSystemService(Context.LOCALE_SERVICE) as LocaleManager
+                localeManager.applicationLocales = LocaleList(locale)
+            } else {
+                Log.i(
+                    TAG,
+                    "setSystemLocale: Trying to change system locale to $locale on API ${Build.VERSION.SDK_INT}.",
+                )
+                val activityManagerNative = Class.forName("android.app.ActivityManagerNative")
+                val am = activityManagerNative.getMethod("getDefault", *arrayOfNulls(0))
+                    .invoke(activityManagerNative, *arrayOfNulls(0))
+                val config =
+                    InstrumentationRegistry.getInstrumentation().context.resources.configuration
+                config.javaClass.getDeclaredField("locale")[config] = locale
+                config.javaClass.getDeclaredField("userSetLocale").setBoolean(config, true)
+                am.javaClass.getMethod(
+                    "updateConfiguration",
+                    Configuration::class.java,
+                ).invoke(am, config)
+            }
             Log.i(
                 TAG,
-                "setSystemLocale: Received permission to change system locale to $locale.",
+                "setSystemLocale: Changed system locale to $locale.",
             )
-            val activityManagerNative = Class.forName("android.app.ActivityManagerNative")
-            val am = activityManagerNative.getMethod("getDefault", *arrayOfNulls(0))
-                .invoke(activityManagerNative, *arrayOfNulls(0))
-            val config =
-                InstrumentationRegistry.getInstrumentation().context.resources.configuration
-            config.javaClass.getDeclaredField("locale")[config] = locale
-            config.javaClass.getDeclaredField("userSetLocale").setBoolean(config, true)
-            am.javaClass.getMethod(
-                "updateConfiguration",
-                Configuration::class.java,
-            ).invoke(am, config)
         }
-        Log.i(
-            TAG,
-            "setSystemLocale: Changed system locale to $locale.",
-        )
+    }
+
+    /**
+     * Changes the app language, different then the system default.
+     * Runs the test in its testBlock.
+     * Cleans up and sets the system locale after it's done.
+     */
+    fun runWithAppLocaleChanged(locale: Locale, testRule: ActivityTestRule<HomeActivity>, testBlock: () -> Unit) {
+        val localeUseCases = appContext.components.useCases.localeUseCases
+        val defaultLocale = Locale.getDefault()
+        Log.i(TAG, "runWithSystemLocaleChanged: Storing the system default locale $defaultLocale.")
+
+        try {
+            Log.i(TAG, "runWithAppLocaleChanged: Trying to set the locale to $locale.")
+            setNewLocale(appContext, localeUseCases, locale)
+            // We need to recreate the activity to apply the new locale
+            Log.i(TAG, "runWithAppLocaleChanged: Recreating the activity to apply the new locale.")
+            ThreadUtils.runOnUiThread { testRule.activity.recreate() }
+            Log.i(TAG, "runWithAppLocaleChanged: Running the test block.")
+            testBlock()
+            Log.i(TAG, "runWithAppLocaleChanged: Test block finished.")
+        } catch (e: Exception) {
+            Log.i(TAG, "runWithAppLocaleChanged: The test block has thrown an exception.${e.message}")
+            e.printStackTrace()
+            throw e
+        } finally {
+            Log.i(TAG, "runWithAppLocaleChanged final block: Trying to reset the locale to system default $defaultLocale.")
+            resetToSystemDefault(appContext, appContext.components.useCases.localeUseCases)
+            Log.i(TAG, "runWithAppLocaleChanged finally block: Recreating the activity to apply the new locale.")
+            ThreadUtils.runOnUiThread { testRule.activity.recreate() }
+            Log.i(TAG, "runWithAppLocaleChanged final block: Locale reset to system default $defaultLocale.")
+        }
     }
 
     fun putAppToBackground() {

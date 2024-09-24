@@ -20,7 +20,6 @@ import org.mozilla.fenix.helpers.Constants.TAG
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.nimbus.Translations
 import org.mozilla.fenix.ui.robots.notificationShade
-import java.util.Locale
 
 /**
  * Standard Test setup and tear down methods to run before each test.
@@ -63,11 +62,6 @@ open class TestSetup {
         Log.i(TAG, "TestSetup: Disabled the translations prompt")
 
         runBlocking {
-            // Reset locale to EN-US if needed.
-            // Because of https://bugzilla.mozilla.org/show_bug.cgi?id=1812183, some items might not be updated.
-            if (Locale.getDefault() != Locale.US) {
-                AppAndSystemHelper.setSystemLocale(Locale.US)
-            }
             // Check and clear the downloads folder, in case the tearDown method is not executed.
             // This will only work in case of a RetryTestRule execution.
             AppAndSystemHelper.clearDownloadsFolder()
@@ -108,12 +102,6 @@ open class TestSetup {
     open fun tearDown() {
         Log.i(TAG, "TestSetup: Starting the @After tearDown methods.")
         runBlocking {
-            // Reset locale to EN-US if needed.
-            // This method is only here temporarily, to set the language before a new activity is started.
-            // TODO: When https://bugzilla.mozilla.org/show_bug.cgi?id=1812183 is fixed, it should be removed.
-            if (Locale.getDefault() != Locale.US) {
-                AppAndSystemHelper.setSystemLocale(Locale.US)
-            }
             // Clear the downloads folder after each test even if the test fails.
             AppAndSystemHelper.clearDownloadsFolder()
         }
