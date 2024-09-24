@@ -4131,12 +4131,6 @@
   value: true
   mirror: always
 
-# Is support for modules (new Worker(..., {type: "module"})) enabled for workers?
-- name: dom.workers.modules.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 - name: dom.workers.throttling.enabled
   type: RelaxedAtomicBool
   value: false

@@ -25,9 +25,6 @@ Ensure that the script loader doesn't fail if requests are terminated early.
 SimpleTest.waitForExplicitFinish();
 
 async function onLoad() {
-  await SpecialPowers.pushPrefEnv(
-      { set: [["dom.workers.modules.enabled", true ]] });
-
   const workers = [
     new Worker("dynamicImport_worker.js", {type: "classic"}),
     new Worker("dynamicImport_worker.js", {type: "module"})

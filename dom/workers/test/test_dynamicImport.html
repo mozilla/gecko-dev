@@ -26,8 +26,6 @@ done by dynamic import
 SimpleTest.waitForExplicitFinish();
 
 async function onLoad() {
-  await SpecialPowers.pushPrefEnv(
-      { set: [["dom.workers.modules.enabled", true ]] });
 
   const workers = [
     new Worker("dynamicImport_worker.js", {type: "classic"}),

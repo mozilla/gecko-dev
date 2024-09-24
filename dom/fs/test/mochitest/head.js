@@ -69,7 +69,6 @@ add_setup(async function () {
   const optionalPrefsToSet = [
     ["dom.fs.enabled", true],
     ["dom.fs.writable_file_stream.enabled", true],
-    ["dom.workers.modules.enabled", true],
   ];
 
   await setStoragePrefs(optionalPrefsToSet);
