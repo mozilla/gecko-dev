@@ -11,6 +11,9 @@ permalink: /changelog/
 * **support-ktx**:
     * ⚠️ `Int.dpToPx` will round the values to the nearest integer, instead of always rounding down. [Bug 1912988](https://bugzilla.mozilla.org/show_bug.cgi?id=1912988)
 
+* **support-utils**
+  * Added a `ColorUtils.calculateAlphaFromPercentage()` helper function to calculate the alpha value based on opacity. [Bug 1906795](https://bugzilla.mozilla.org/show_bug.cgi?id=1906795)
+
 * **lib-crash**
   * Adds `CrashReporter.hasUnsentCrashReports()` method, allowing the caller to find out if there is unsent crashes. [Bug 1904974](https://bugzilla.mozilla.org/show_bug.cgi?id=1904974)
   * Adds `CrashReporter.unsentCrashReports()` method, allowing the caller to fetch all unsent crashes. [Bug 1904974](https://bugzilla.mozilla.org/show_bug.cgi?id=1904974)

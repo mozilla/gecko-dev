@@ -57,4 +57,16 @@ object ColorUtils {
         // humans perceive color.
         return (0.299 * red + 0.587 * green + 0.114 * blue).toInt()
     }
+
+    /**
+     * Calculates the alpha value corresponding to the given opacity percentage.
+     *
+     * @param opacity The desired opacity percentage (0 to 100).
+     * @return The alpha value (0 to 255) to be used in a color with the specified opacity.
+     */
+    @JvmStatic
+    @SuppressWarnings("MagicNumber")
+    fun calculateAlphaFromPercentage(opacity: Int): Int {
+        return (opacity * 255 / 100).coerceIn(0, 255)
+    }
 }

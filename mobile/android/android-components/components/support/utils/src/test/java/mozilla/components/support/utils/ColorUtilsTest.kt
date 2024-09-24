@@ -6,6 +6,7 @@ package mozilla.components.support.utils
 
 import android.graphics.Color
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import mozilla.components.support.utils.ColorUtils.calculateAlphaFromPercentage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -51,5 +52,30 @@ class ColorUtilsTest {
         assertFalse(ColorUtils.isDark(Color.CYAN))
         assertFalse(ColorUtils.isDark(Color.WHITE))
         assertFalse(ColorUtils.isDark(Color.TRANSPARENT))
+    }
+
+    @Test
+    fun `GIVEN a number in the range of 0 to 100 WHEN calculateAlphaFromPercentage is called THEN alpha value in the range of 0 to 255 is returned`() {
+        for (i in 0..100) {
+            val result = calculateAlphaFromPercentage(i)
+            val expectedResult = i * 255 / 100
+            assertEquals(expectedResult, result)
+        }
+    }
+
+    @Test
+    fun `GIVEN opacity is less than zero WHEN calculateAlphaFromPercentage is called THEN alpha value in zero`() {
+        for (i in -1..-100) {
+            val result = calculateAlphaFromPercentage(i)
+            assertEquals(0, result)
+        }
+    }
+
+    @Test
+    fun `GIVEN opacity is more than 100 WHEN calculateAlphaFromPercentage is called THEN alpha value in at max value`() {
+        for (i in 256..355) {
+            val result = calculateAlphaFromPercentage(i)
+            assertEquals(255, result)
+        }
     }
 }
