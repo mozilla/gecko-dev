@@ -194,4 +194,39 @@
     <string name="debug_drawer_cfr_tools_open_in_app_title">Open in App</string>
     <!-- The open in app CFR description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_open_in_app_description">Displayed when the user has the “Open links in apps” setting set to “Never”, and it is the user’s first time visiting a website that can be opened in an installed native app.</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the logging section in Glean debug tools -->
+    <string name="glean_debug_tools_logging_title">Logging</string>
+    <!-- The label of the log pings to console switch in Glean debug tools -->
+    <string name="glean_debug_tools_log_pings_to_console">Log pings to console</string>
+    <!-- The title of the debug view section in Glean debug tools -->
+    <string name="glean_debug_tools_debug_view_title">Debug View</string>
+    <!-- The debug view tag text placeholder in Glean debug tools -->
+    <string name="glean_debug_tools_debug_view_tag_placeholder">Enter the debug view tag here</string>
+    <!-- The debug view tag error message in Glean debug tools. The first parameter is the maximum
+        number of characters that can be in the debug view tag -->
+    <string name="glean_debug_tools_debug_view_tag_error">Exceeded the maximum number of characters (%1$s)</string>
+    <!-- The open debug view for a certain debug view tag button text in Glean debug tools. The
+        first parameter is the debug view tag. -->
+    <string name="glean_debug_tools_open_debug_view_debug_view_tag">Open recent pings for “%1$s” in debug view (in default browser)</string>
+    <!-- The copy debug view link for a certain debug view tag button text in Glean debug tools. The
+        first parameter is the debug view tag. -->
+    <string name="glean_debug_tools_copy_debug_view_link_debug_view_tag">Copy debug view link for recent pings for “%1$s” </string>
+    <!-- The open debug view button text in Glean debug tools -->
+    <string name="glean_debug_tools_open_debug_view">Open debug view (in default browser)</string>
+    <!-- The copy debug view link button text in Glean debug tools -->
+    <string name="glean_debug_tools_copy_debug_view_link">Copy debug view link</string>
+    <!-- The send pending event pings button text in Glean debug tools -->
+    <string name="glean_debug_tools_send_pending_event_pings_button_text">Send pending event pings</string>
+    <!-- The send baseline event pings button text in Glean debug tools -->
+    <string name="glean_debug_tools_send_baseline_pings_button_text">Send baseline pings</string>
+    <!-- The send metrics event pings button text in Glean debug tools -->
+    <string name="glean_debug_tools_send_metrics_pings_button_text">Send metrics pings</string>
+    <!-- The send pending event pings toast message -->
+    <string name="glean_debug_tools_send_pending_event_ping_toast_message">Sent pending event ping</string>
+    <!-- The send baseline pings toast message -->
+    <string name="glean_debug_tools_send_baseline_ping_toast_message">Sent baseline ping</string>
+    <!-- The send metrics pings toast message -->
+    <string name="glean_debug_tools_send_metrics_ping_toast_message">Sent metrics ping</string>
 </resources>

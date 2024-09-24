@@ -10,6 +10,8 @@ import mozilla.components.browser.state.state.BrowserState
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.storage.LoginsStorage
 import org.mozilla.fenix.R
+import org.mozilla.fenix.debugsettings.gleandebugtools.GleanDebugToolsStore
+import org.mozilla.fenix.debugsettings.gleandebugtools.ui.GleanDebugToolsScreen
 import org.mozilla.fenix.debugsettings.logins.LoginsTools
 import org.mozilla.fenix.debugsettings.store.DebugDrawerAction
 import org.mozilla.fenix.debugsettings.store.DebugDrawerStore
@@ -39,6 +41,10 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
         route = "cfr_tools",
         title = R.string.debug_drawer_cfr_tools_title,
     ),
+    GleanDebugTools(
+        route = "glean_debug_tools",
+        title = R.string.glean_debug_tools_title,
+    ),
     ;
 
     companion object {
@@ -46,12 +52,14 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
          * Transforms the values of [DebugDrawerRoute] into a list of [DebugDrawerDestination]s.
          *
          * @param debugDrawerStore [DebugDrawerStore] used to dispatch navigation actions.
+         * @param gleanDebugToolsStore [GleanDebugToolsStore] used to dispatch glean debug tools actions.
          * @param browserStore [BrowserStore] used to access [BrowserState].
          * @param loginsStorage [LoginsStorage] used to access logins for [LoginsScreen].
          * @param inactiveTabsEnabled Whether the inactive tabs feature is enabled.
          */
         fun generateDebugDrawerDestinations(
             debugDrawerStore: DebugDrawerStore,
+            gleanDebugToolsStore: GleanDebugToolsStore,
             browserStore: BrowserStore,
             loginsStorage: LoginsStorage,
             inactiveTabsEnabled: Boolean,
@@ -90,6 +98,15 @@ enum class DebugDrawerRoute(val route: String, @StringRes val title: Int) {
                         }
                         content = {
                             CfrToolsScreen()
+                        }
+                    }
+
+                    GleanDebugTools -> {
+                        onClick = {
+                            debugDrawerStore.dispatch(DebugDrawerAction.NavigateTo.GleanDebugTools)
+                        }
+                        content = {
+                            GleanDebugToolsScreen(gleanDebugToolsStore = gleanDebugToolsStore)
                         }
                     }
                 }

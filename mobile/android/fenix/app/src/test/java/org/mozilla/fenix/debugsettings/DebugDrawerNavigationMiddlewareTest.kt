@@ -69,6 +69,13 @@ class DebugDrawerNavigationMiddlewareTest {
     }
 
     @Test
+    fun `WHEN the glean debug tools screen is the next destination THEN the glean debug tools screen is navigated to`() {
+        store.dispatch(DebugDrawerAction.NavigateTo.GleanDebugTools).joinBlocking()
+
+        verify { navController.navigate(DebugDrawerRoute.GleanDebugTools.route) }
+    }
+
+    @Test
     fun `WHEN the back button is pressed THEN the drawer should go back one screen`() {
         store.dispatch(DebugDrawerAction.OnBackPressed).joinBlocking()
 
