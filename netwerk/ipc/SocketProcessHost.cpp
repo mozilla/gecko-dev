@@ -65,7 +65,7 @@ bool SocketProcessHost::Launch() {
   MOZ_ASSERT(!mSocketProcessParent);
   MOZ_ASSERT(NS_IsMainThread());
 
-  std::vector<std::string> extraArgs;
+  geckoargs::ChildProcessArgs extraArgs;
   ProcessChild::AddPlatformBuildID(extraArgs);
 
   SharedPreferenceSerializer prefSerializer;
@@ -76,7 +76,7 @@ bool SocketProcessHost::Launch() {
   prefSerializer.AddSharedPrefCmdLineArgs(*this, extraArgs);
 
   mLaunchPhase = LaunchPhase::Waiting;
-  if (!GeckoChildProcessHost::LaunchAndWaitForProcessHandle(extraArgs)) {
+  if (!GeckoChildProcessHost::LaunchAndWaitForProcessHandle(std::move(extraArgs))) {
     mLaunchPhase = LaunchPhase::Complete;
     return false;
   }

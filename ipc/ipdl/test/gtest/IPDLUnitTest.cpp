@@ -45,7 +45,7 @@ already_AddRefed<IPDLUnitTestParent> IPDLUnitTestParent::CreateCrossProcess() {
   parent->mSubprocess =
       new ipc::GeckoChildProcessHost(GeckoProcessType_IPDLUnitTest);
 
-  std::vector<std::string> extraArgs;
+  geckoargs::ChildProcessArgs extraArgs;
 
   auto prefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>();
   if (!prefSerializer->SerializeToSharedMemory(GeckoProcessType_IPDLUnitTest,
@@ -56,7 +56,7 @@ already_AddRefed<IPDLUnitTestParent> IPDLUnitTestParent::CreateCrossProcess() {
   }
   prefSerializer->AddSharedPrefCmdLineArgs(*parent->mSubprocess, extraArgs);
 
-  if (!parent->mSubprocess->SyncLaunch(extraArgs)) {
+  if (!parent->mSubprocess->SyncLaunch(std::move(extraArgs))) {
     ADD_FAILURE() << "Subprocess launch failed";
     return nullptr;
   }

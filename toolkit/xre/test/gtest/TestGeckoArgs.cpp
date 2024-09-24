@@ -63,12 +63,12 @@ TEST(GeckoArgs, const_char_ptr)
     EXPECT_TRUE(CheckArgv(argv, expArgv));
   }
   {
-    std::vector<std::string> extraArgs;
-    EXPECT_EQ(extraArgs.size(), 0U);
+    geckoargs::ChildProcessArgs extraArgs;
+    EXPECT_EQ(extraArgs.mArgs.size(), 0U);
     kCharParam.Put("ParamValue", extraArgs);
-    EXPECT_EQ(extraArgs.size(), 2U);
-    EXPECT_EQ(extraArgs[0], "-charParam");
-    EXPECT_EQ(extraArgs[1], "ParamValue");
+    EXPECT_EQ(extraArgs.mArgs.size(), 2U);
+    EXPECT_EQ(extraArgs.mArgs[0], "-charParam");
+    EXPECT_EQ(extraArgs.mArgs[1], "ParamValue");
   }
   { EXPECT_EQ(kCharParam.Name(), "-charParam"); }
 }
@@ -125,12 +125,12 @@ TEST(GeckoArgs, uint64)
     EXPECT_TRUE(CheckArgv(argv, expArgv));
   }
   {
-    std::vector<std::string> extraArgs;
-    EXPECT_EQ(extraArgs.size(), 0U);
+    geckoargs::ChildProcessArgs extraArgs;
+    EXPECT_EQ(extraArgs.mArgs.size(), 0U);
     kUint64Param.Put(1234, extraArgs);
-    EXPECT_EQ(extraArgs.size(), 2U);
-    EXPECT_EQ(extraArgs[0], "-Uint64Param");
-    EXPECT_EQ(extraArgs[1], "1234");
+    EXPECT_EQ(extraArgs.mArgs.size(), 2U);
+    EXPECT_EQ(extraArgs.mArgs[0], "-Uint64Param");
+    EXPECT_EQ(extraArgs.mArgs[1], "1234");
   }
   { EXPECT_EQ(kUint64Param.Name(), "-Uint64Param"); }
 }
@@ -163,17 +163,17 @@ TEST(GeckoArgs, bool)
     EXPECT_TRUE(CheckArgv(argv, expArgv));
   }
   {
-    std::vector<std::string> extraArgs;
-    EXPECT_EQ(extraArgs.size(), 0U);
+    geckoargs::ChildProcessArgs extraArgs;
+    EXPECT_EQ(extraArgs.mArgs.size(), 0U);
     kFlag.Put(true, extraArgs);
-    EXPECT_EQ(extraArgs.size(), 1U);
-    EXPECT_EQ(extraArgs[0], "-Flag");
+    EXPECT_EQ(extraArgs.mArgs.size(), 1U);
+    EXPECT_EQ(extraArgs.mArgs[0], "-Flag");
   }
   {
-    std::vector<std::string> extraArgs;
-    EXPECT_EQ(extraArgs.size(), 0U);
+    geckoargs::ChildProcessArgs extraArgs;
+    EXPECT_EQ(extraArgs.mArgs.size(), 0U);
     kFlag.Put(false, extraArgs);
-    EXPECT_EQ(extraArgs.size(), 0U);
+    EXPECT_EQ(extraArgs.mArgs.size(), 0U);
   }
   { EXPECT_EQ(kFlag.Name(), "-Flag"); }
 }

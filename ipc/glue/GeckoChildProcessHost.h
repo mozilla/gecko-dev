@@ -13,6 +13,7 @@
 #include "chrome/common/ipc_message.h"
 #include "mojo/core/ports/port_ref.h"
 
+#include "mozilla/GeckoArgs.h"
 #include "mozilla/ipc/Endpoint.h"
 #include "mozilla/ipc/FileDescriptor.h"
 #include "mozilla/ipc/NodeChannel.h"
@@ -95,7 +96,8 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
   // Does not block.  The IPC channel may not be initialized yet, and
   // the child process may or may not have been created when this
   // method returns.
-  bool AsyncLaunch(StringVector aExtraOpts = StringVector());
+  bool AsyncLaunch(
+      geckoargs::ChildProcessArgs aExtraOpts = geckoargs::ChildProcessArgs{});
 
   virtual bool WaitUntilConnected(int32_t aTimeoutMs = 0);
 
@@ -111,14 +113,16 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
   // executable image can be loaded.  On win32, we do know that when
   // we return.  But we don't know if dynamic linking succeeded on
   // either platform.
-  bool LaunchAndWaitForProcessHandle(StringVector aExtraOpts = StringVector());
+  bool LaunchAndWaitForProcessHandle(
+      geckoargs::ChildProcessArgs aExtraOpts = geckoargs::ChildProcessArgs());
   bool WaitForProcessHandle();
 
   // Block until the child process has been created and it connects to
   // the IPC channel, meaning it's fully initialized.  (Or until an
   // error occurs.)
-  bool SyncLaunch(StringVector aExtraOpts = StringVector(),
-                  int32_t timeoutMs = 0);
+  bool SyncLaunch(
+      geckoargs::ChildProcessArgs aExtraOpts = geckoargs::ChildProcessArgs(),
+      int32_t timeoutMs = 0);
 
   virtual void OnChannelConnected(base::ProcessId peer_pid);
 
@@ -163,17 +167,6 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
 
 #ifdef XP_DARWIN
   task_t GetChildTask();
-#endif
-
-#ifdef XP_WIN
-
-  void AddHandleToShare(HANDLE aHandle) {
-    mLaunchOptions->handles_to_inherit.push_back(aHandle);
-  }
-#else
-  void AddFdToRemap(int aSrcFd, int aDstFd) {
-    mLaunchOptions->fds_to_remap.push_back(std::make_pair(aSrcFd, aDstFd));
-  }
 #endif
 
 #ifdef ALLOW_GECKO_CHILD_PROCESS_ARCH

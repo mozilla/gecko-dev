@@ -265,13 +265,13 @@ bool GPUProcessManager::LaunchGPUProcess() {
   mProcessAttemptLastTime = TimeStamp::Now();
   mProcessStable = false;
 
-  std::vector<std::string> extraArgs;
+  geckoargs::ChildProcessArgs extraArgs;
   ipc::ProcessChild::AddPlatformBuildID(extraArgs);
 
   // The subprocess is launched asynchronously, so we wait for a callback to
   // acquire the IPDL actor.
   mProcess = new GPUProcessHost(this);
-  if (!mProcess->Launch(extraArgs)) {
+  if (!mProcess->Launch(std::move(extraArgs))) {
     DisableGPUProcess("Failed to launch GPU process");
   }
 

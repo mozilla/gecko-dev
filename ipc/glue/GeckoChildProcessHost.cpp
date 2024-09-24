@@ -156,10 +156,10 @@ static inline nsISerialEventTarget* IOThread() {
 class BaseProcessLauncher {
  public:
   BaseProcessLauncher(GeckoChildProcessHost* aHost,
-                      std::vector<std::string>&& aExtraOpts)
+                      geckoargs::ChildProcessArgs&& aExtraOpts)
       : mProcessType(aHost->mProcessType),
         mLaunchOptions(std::move(aHost->mLaunchOptions)),
-        mExtraOpts(std::move(aExtraOpts))
+        mChildArgs(std::move(aExtraOpts))
 #ifdef XP_WIN
         ,
         mGroupId(aHost->mGroupId)
@@ -233,7 +233,7 @@ class BaseProcessLauncher {
 #ifdef ALLOW_GECKO_CHILD_PROCESS_ARCH
   uint32_t mLaunchArch = base::PROCESS_ARCH_INVALID;
 #endif
-  std::vector<std::string> mExtraOpts;
+  geckoargs::ChildProcessArgs mChildArgs;
 #ifdef XP_WIN
   nsString mGroupId;
 #endif
@@ -264,7 +264,7 @@ class BaseProcessLauncher {
 class WindowsProcessLauncher : public BaseProcessLauncher {
  public:
   WindowsProcessLauncher(GeckoChildProcessHost* aHost,
-                         std::vector<std::string>&& aExtraOpts)
+                         geckoargs::ChildProcessArgs&& aExtraOpts)
       : BaseProcessLauncher(aHost, std::move(aExtraOpts)),
         mCachedNtdllThunk(GetCachedNtDllThunk()) {}
 
@@ -287,7 +287,7 @@ typedef WindowsProcessLauncher ProcessLauncher;
 class PosixProcessLauncher : public BaseProcessLauncher {
  public:
   PosixProcessLauncher(GeckoChildProcessHost* aHost,
-                       std::vector<std::string>&& aExtraOpts)
+                       geckoargs::ChildProcessArgs&& aExtraOpts)
       : BaseProcessLauncher(aHost, std::move(aExtraOpts)),
         mProfileDir(aHost->mProfileDir),
         mChannelDstFd(IPC::Channel::GetClientChannelHandle()) {}
@@ -298,7 +298,6 @@ class PosixProcessLauncher : public BaseProcessLauncher {
 
   nsCOMPtr<nsIFile> mProfileDir;
 
-  std::vector<std::string> mChildArgv;
   int mChannelDstFd;
 };
 
@@ -306,7 +305,7 @@ class PosixProcessLauncher : public BaseProcessLauncher {
 class MacProcessLauncher : public PosixProcessLauncher {
  public:
   MacProcessLauncher(GeckoChildProcessHost* aHost,
-                     std::vector<std::string>&& aExtraOpts)
+                     geckoargs::ChildProcessArgs&& aExtraOpts)
       : PosixProcessLauncher(aHost, std::move(aExtraOpts)),
         // Put a random number into the channel name, so that
         // a compromised renderer can't pretend being the child
@@ -332,7 +331,7 @@ typedef MacProcessLauncher ProcessLauncher;
 class AndroidProcessLauncher : public PosixProcessLauncher {
  public:
   AndroidProcessLauncher(GeckoChildProcessHost* aHost,
-                         std::vector<std::string>&& aExtraOpts)
+                         geckoargs::ChildProcessArgs&& aExtraOpts)
       : PosixProcessLauncher(aHost, std::move(aExtraOpts)) {}
 
  protected:
@@ -350,7 +349,7 @@ typedef AndroidProcessLauncher ProcessLauncher;
 class LinuxProcessLauncher : public PosixProcessLauncher {
  public:
   LinuxProcessLauncher(GeckoChildProcessHost* aHost,
-                       std::vector<std::string>&& aExtraOpts)
+                       geckoargs::ChildProcessArgs&& aExtraOpts)
       : PosixProcessLauncher(aHost, std::move(aExtraOpts)) {}
 
  protected:
@@ -361,7 +360,7 @@ typedef LinuxProcessLauncher ProcessLauncher;
 class IosProcessLauncher : public PosixProcessLauncher {
  public:
   IosProcessLauncher(GeckoChildProcessHost* aHost,
-                     std::vector<std::string>&& aExtraOpts)
+                     geckoargs::ChildProcessArgs&& aExtraOpts)
       : PosixProcessLauncher(aHost, std::move(aExtraOpts)) {}
 
  protected:
@@ -711,7 +710,7 @@ void GeckoChildProcessHost::InitWindowsGroupID() {
 }
 #endif
 
-bool GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts,
+bool GeckoChildProcessHost::SyncLaunch(geckoargs::ChildProcessArgs aExtraOpts,
                                        int aTimeoutMs) {
   if (!AsyncLaunch(std::move(aExtraOpts))) {
     return false;
@@ -726,11 +725,13 @@ bool GeckoChildProcessHost::SyncLaunch(std::vector<std::string> aExtraOpts,
 // invokes GeckoChildProcessHost from non-main-threads, and therefore we cannot
 // rely on having access to mainthread-only services (like the directory
 // service) from this code if we're launching that type of process.
-bool GeckoChildProcessHost::AsyncLaunch(std::vector<std::string> aExtraOpts) {
+bool GeckoChildProcessHost::AsyncLaunch(
+    geckoargs::ChildProcessArgs aExtraOpts) {
   PrepareLaunch();
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
-  if (IsMacSandboxLaunchEnabled() && !AppendMacSandboxParams(aExtraOpts)) {
+  if (IsMacSandboxLaunchEnabled() &&
+      !AppendMacSandboxParams(aExtraOpts.mArgs)) {
     return false;
   }
 #endif
@@ -899,7 +900,7 @@ bool GeckoChildProcessHost::WaitForProcessHandle() {
 }
 
 bool GeckoChildProcessHost::LaunchAndWaitForProcessHandle(
-    StringVector aExtraOpts) {
+    geckoargs::ChildProcessArgs aExtraOpts) {
   if (!AsyncLaunch(std::move(aExtraOpts))) {
     return false;
   }
@@ -1046,8 +1047,8 @@ void
 #if defined(XP_WIN)
 AddAppDirToCommandLine(CommandLine& aCmdLine, nsIFile* aAppDir)
 #else
-AddAppDirToCommandLine(std::vector<std::string>& aCmdLine, nsIFile* aAppDir,
-    nsIFile* aProfileDir)
+AddAppDirToCommandLine(geckoargs::ChildProcessArgs& aCmdLine,
+                       nsIFile* aAppDir, nsIFile* aProfileDir)
 #endif
 {
   // Content processes need access to application resources, so pass
@@ -1083,9 +1084,9 @@ AddAppDirToCommandLine(std::vector<std::string>& aCmdLine, nsIFile* aAppDir,
 }
 
 #if defined(XP_WIN) && (defined(MOZ_SANDBOX) || defined(_ARM64_))
-static bool Contains(const std::vector<std::string>& aExtraOpts,
+static bool Contains(const geckoargs::ChildProcessArgs& aExtraOpts,
                      const char* aValue) {
-  return std::any_of(aExtraOpts.begin(), aExtraOpts.end(),
+  return std::any_of(aExtraOpts.mArgs.begin(), aExtraOpts.mArgs.end(),
                      [&](const std::string arg) {
                        return arg.find(aValue) != std::string::npos;
                      });
@@ -1262,13 +1263,15 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
   // no need for kProcessChannelID, the child process inherits the
   // other end of the socketpair() from us
 
-  mChildArgv.push_back(exePath.value());
-
+  // Make sure the executable path is present at the start of our argument list.
+  // If we're using BinPathType::Self, also add the `-contentproc` argument.
   if (pathType == BinPathType::Self) {
-    mChildArgv.push_back("-contentproc");
+    std::string args[]{exePath.value(), "-contentproc"};
+    mChildArgs.mArgs.insert(mChildArgs.mArgs.begin(), std::begin(args),
+                            std::end(args));
+  } else {
+    mChildArgs.mArgs.insert(mChildArgs.mArgs.begin(), exePath.value());
   }
-
-  mChildArgv.insert(mChildArgv.end(), mExtraOpts.begin(), mExtraOpts.end());
 
   if ((mProcessType == GeckoProcessType_Content ||
        mProcessType == GeckoProcessType_ForkServer) &&
@@ -1278,26 +1281,26 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
     nsAutoCString path;
     nsCOMPtr<nsIFile> greFile = Omnijar::GetPath(Omnijar::GRE);
     if (greFile && NS_SUCCEEDED(greFile->GetNativePath(path))) {
-      geckoargs::sGREOmni.Put(path.get(), mChildArgv);
+      geckoargs::sGREOmni.Put(path.get(), mChildArgs);
     }
     nsCOMPtr<nsIFile> appFile = Omnijar::GetPath(Omnijar::APP);
     if (appFile && NS_SUCCEEDED(appFile->GetNativePath(path))) {
-      geckoargs::sAppOmni.Put(path.get(), mChildArgv);
+      geckoargs::sAppOmni.Put(path.get(), mChildArgs);
     }
   }
 
   if (mProcessType != GeckoProcessType_GMPlugin) {
     // Add the application directory path (-appdir path)
 #  ifdef XP_MACOSX
-    AddAppDirToCommandLine(mChildArgv, mAppDir, mProfileDir);
+    AddAppDirToCommandLine(mChildArgs, mAppDir, mProfileDir);
 #  else
-    AddAppDirToCommandLine(mChildArgv, mAppDir, nullptr);
+    AddAppDirToCommandLine(mChildArgs, mAppDir, nullptr);
 #  endif
   }
 
-  mChildArgv.push_back(mInitialChannelIdString);
+  mChildArgs.mArgs.push_back(mInitialChannelIdString);
 
-  mChildArgv.push_back(mPidString);
+  mChildArgs.mArgs.push_back(mPidString);
 
   if (!CrashReporter::IsDummy()) {
 #  if defined(MOZ_WIDGET_COCOA)
@@ -1313,10 +1316,10 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
       mLaunchOptions->fds_to_remap.push_back(
           std::pair<int, int>(childCrashFd, childCrashRemapFd));
       // "true" == crash reporting enabled
-      mChildArgv.push_back("true");
+      mChildArgs.mArgs.push_back("true");
     } else {
       // "false" == crash reporting disabled
-      mChildArgv.push_back("false");
+      mChildArgs.mArgs.push_back("false");
     }
 #  endif
   }
@@ -1332,19 +1335,21 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
                           << mach_error_string(kr);
       return Err(LaunchError("bootstrap_check_in", kr));
     }
-    mChildArgv.push_back(thisMac->mMachConnectionName.c_str());
+    mChildArgs.mArgs.push_back(thisMac->mMachConnectionName.c_str());
   }
 #  endif  // MOZ_WIDGET_COCOA
 
-  mChildArgv.push_back(mChildIDString);
-  mChildArgv.push_back(ChildProcessType());
+  mChildArgs.mArgs.push_back(mChildIDString);
+
+  mChildArgs.mArgs.push_back(ChildProcessType());
+
   return Ok();
 }
 #endif  // XP_UNIX
 
 #if defined(MOZ_WIDGET_ANDROID)
 RefPtr<ProcessHandlePromise> AndroidProcessLauncher::DoLaunch() {
-  return LaunchAndroidService(mProcessType, mChildArgv,
+  return LaunchAndroidService(mProcessType, mChildArgs.mArgs,
                               mLaunchOptions->fds_to_remap);
 }
 #endif  // MOZ_WIDGET_ANDROID
@@ -1353,7 +1358,7 @@ RefPtr<ProcessHandlePromise> AndroidProcessLauncher::DoLaunch() {
 RefPtr<ProcessHandlePromise> PosixProcessLauncher::DoLaunch() {
   ProcessHandle handle = 0;
   Result<Ok, LaunchError> aError =
-      base::LaunchApp(mChildArgv, std::move(*mLaunchOptions), &handle);
+      base::LaunchApp(mChildArgs.mArgs, std::move(*mLaunchOptions), &handle);
   if (aError.isErr()) {
     return ProcessHandlePromise::CreateAndReject(aError.unwrapErr(), __func__);
   }
@@ -1405,10 +1410,10 @@ RefPtr<ProcessHandlePromise> IosProcessLauncher::DoLaunch() {
 
   DarwinObjectPtr<xpc_object_t> argsArray =
       AdoptDarwinObject(xpc_array_create_empty());
-  for (auto& argv : mChildArgv) {
+  for (auto& argv : mChildArgs.mArgs) {
     xpc_array_set_string(argsArray.get(), XPC_ARRAY_APPEND, argv.c_str());
   }
-  MOZ_ASSERT(xpc_array_get_count(argsArray.get()) == mChildArgv.size());
+  MOZ_ASSERT(xpc_array_get_count(argsArray.get()) == mChildArgs.mArgs.size());
   xpc_dictionary_set_value(bootstrapMessage.get(), "argv", argsArray.get());
 
   auto promise = MakeRefPtr<ProcessHandlePromise::Private>(__func__);
@@ -1557,7 +1562,7 @@ Result<Ok, LaunchError> WindowsProcessLauncher::DoSetup() {
 
 #  if defined(MOZ_SANDBOX) || defined(_ARM64_)
   const bool isGMP = mProcessType == GeckoProcessType_GMPlugin;
-  const bool isWidevine = isGMP && Contains(mExtraOpts, "gmp-widevinecdm");
+  const bool isWidevine = isGMP && Contains(mChildArgs, "gmp-widevinecdm");
 #    if defined(_ARM64_)
   bool useRemoteSandboxBroker = false;
   if (mLaunchArch & (base::PROCESS_ARCH_I386 | base::PROCESS_ARCH_X86_64)) {

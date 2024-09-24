@@ -50,7 +50,7 @@ bool VRProcessParent::Launch() {
 
   mLaunchPhase = LaunchPhase::Waiting;
 
-  std::vector<std::string> extraArgs;
+  geckoargs::ChildProcessArgs extraArgs;
   ProcessChild::AddPlatformBuildID(extraArgs);
 
   mPrefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>();
@@ -60,7 +60,7 @@ bool VRProcessParent::Launch() {
   }
   mPrefSerializer->AddSharedPrefCmdLineArgs(*this, extraArgs);
 
-  if (!GeckoChildProcessHost::AsyncLaunch(extraArgs)) {
+  if (!GeckoChildProcessHost::AsyncLaunch(std::move(extraArgs))) {
     mLaunchPhase = LaunchPhase::Complete;
     mPrefSerializer = nullptr;
     return false;
