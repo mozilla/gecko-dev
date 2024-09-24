@@ -8,6 +8,7 @@
 #define ds_InlineTable_h
 
 #include "mozilla/Maybe.h"
+#include "mozilla/Variant.h"
 
 #include <utility>
 
@@ -27,46 +28,62 @@ class InlineTable : private AllocPolicy {
   using TableRange = typename Table::Range;
   using Lookup = typename HashPolicy::Lookup;
 
-  size_t inlCount_;
-  InlineEntry inl_[InlineEntries];
-  Table table_;
+  struct InlineArray {
+    size_t inlCount = 0;
+    InlineEntry inl[InlineEntries];
+  };
+  mozilla::Variant<InlineArray, Table> data_{InlineArray()};
+
+#ifndef DEBUG
+  // If this assertion fails, you should probably increase InlineEntries because
+  // an extra inline entry could likely be added "for free".
+  static_assert(sizeof(InlineArray) + sizeof(InlineEntry) >= sizeof(Table),
+                "Space for additional inline elements in InlineTable?");
+#endif
+
+  InlineArray& inlineArray() { return data_.template as<InlineArray>(); }
+  const InlineArray& inlineArray() const {
+    return data_.template as<InlineArray>();
+  }
+  Table& table() { return data_.template as<Table>(); }
+  const Table& table() const { return data_.template as<Table>(); }
 
   InlineEntry* inlineStart() {
     MOZ_ASSERT(!usingTable());
-    return inl_;
+    return inlineArray().inl;
   }
 
   const InlineEntry* inlineStart() const {
     MOZ_ASSERT(!usingTable());
-    return inl_;
+    return inlineArray().inl;
   }
 
   InlineEntry* inlineEnd() {
     MOZ_ASSERT(!usingTable());
-    return inl_ + inlCount_;
+    return inlineArray().inl + inlineArray().inlCount;
   }
 
   const InlineEntry* inlineEnd() const {
     MOZ_ASSERT(!usingTable());
-    return inl_ + inlCount_;
+    return inlineArray().inl + inlineArray().inlCount;
   }
 
-  bool usingTable() const { return inlCount_ > InlineEntries; }
+  bool usingTable() const { return data_.template is<Table>(); }
 
   [[nodiscard]] bool switchToTable() {
-    MOZ_ASSERT(inlCount_ == InlineEntries);
+    MOZ_ASSERT(inlineArray().inlCount == InlineEntries);
 
-    table_.clearAndCompact();
+    Table table(*static_cast<AllocPolicy*>(this));
 
-    InlineEntry* end = inlineEnd();
+    InlineEntry* end = inlineStart() + InlineEntries;
     for (InlineEntry* it = inlineStart(); it != end; ++it) {
-      if (!it->moveTo(table_)) {
+      if (!it->moveTo(table)) {
         return false;
       }
     }
 
-    MOZ_ASSERT(table_.count() == inlCount_);
-    inlCount_ = InlineEntries + 1;
+    MOZ_ASSERT(table.count() == InlineEntries);
+    data_.template emplace<Table>(std::move(table));
     MOZ_ASSERT(usingTable());
     return true;
   }
@@ -75,7 +92,7 @@ class InlineTable : private AllocPolicy {
   static const size_t SizeOfInlineEntries = sizeof(InlineEntry) * InlineEntries;
 
   explicit InlineTable(AllocPolicy a = AllocPolicy())
-      : AllocPolicy(std::move(a)), inlCount_(0), table_(a) {}
+      : AllocPolicy(std::move(a)) {}
 
   class Ptr {
     friend class InlineTable;
@@ -162,16 +179,20 @@ class InlineTable : private AllocPolicy {
     }
   };
 
-  size_t count() const { return usingTable() ? table_.count() : inlCount_; }
+  size_t count() const {
+    return usingTable() ? table().count() : inlineArray().inlCount;
+  }
 
-  bool empty() const { return usingTable() ? table_.empty() : !inlCount_; }
+  bool empty() const {
+    return usingTable() ? table().empty() : !inlineArray().inlCount;
+  }
 
-  void clear() { inlCount_ = 0; }
+  void clear() { data_.template emplace<InlineArray>(); }
 
   MOZ_ALWAYS_INLINE
   Ptr lookup(const Lookup& l) {
     if (usingTable()) {
-      return Ptr(table_.lookup(l));
+      return Ptr(table().lookup(l));
     }
 
     InlineEntry* end = inlineEnd();
@@ -187,7 +208,7 @@ class InlineTable : private AllocPolicy {
   MOZ_ALWAYS_INLINE
   AddPtr lookupForAdd(const Lookup& l) {
     if (usingTable()) {
-      return AddPtr(table_.lookupForAdd(l));
+      return AddPtr(table().lookupForAdd(l));
     }
 
     InlineEntry* end = inlineEnd();
@@ -217,8 +238,8 @@ class InlineTable : private AllocPolicy {
         if (!switchToTable()) {
           return false;
         }
-        return table_.putNew(std::forward<KeyInput>(key),
-                             std::forward<Args>(args)...);
+        return table().putNew(std::forward<KeyInput>(key),
+                              std::forward<Args>(args)...);
       }
 
       MOZ_ASSERT(!p.found());
@@ -229,29 +250,30 @@ class InlineTable : private AllocPolicy {
       }
 
       addPtr->update(std::forward<KeyInput>(key), std::forward<Args>(args)...);
-      ++inlCount_;
+      inlineArray().inlCount++;
       return true;
     }
 
-    return table_.add(p.tableAddPtr_, std::forward<KeyInput>(key),
-                      std::forward<Args>(args)...);
+    return table().add(p.tableAddPtr_, std::forward<KeyInput>(key),
+                       std::forward<Args>(args)...);
   }
 
   void remove(Ptr& p) {
     MOZ_ASSERT(p);
     if (p.isInlinePtr_) {
-      MOZ_ASSERT(inlCount_ > 0);
-      InlineEntry* last = inlineStart() + (inlCount_ - 1);
+      InlineArray& arr = inlineArray();
+      MOZ_ASSERT(arr.inlCount > 0);
+      InlineEntry* last = &arr.inl[arr.inlCount - 1];
       MOZ_ASSERT(p.inlPtr_ <= last);
       if (p.inlPtr_ != last) {
         // Removing an entry that's not the last one. Move the last entry.
         *p.inlPtr_ = std::move(*last);
       }
-      --inlCount_;
+      arr.inlCount--;
       return;
     }
     MOZ_ASSERT(usingTable());
-    table_.remove(p.tablePtr_);
+    table().remove(p.tablePtr_);
   }
 
   void remove(const Lookup& l) {
@@ -323,7 +345,7 @@ class InlineTable : private AllocPolicy {
   };
 
   Range all() const {
-    return usingTable() ? Range(table_.all())
+    return usingTable() ? Range(table().all())
                         : Range(inlineStart(), inlineEnd());
   }
 };
