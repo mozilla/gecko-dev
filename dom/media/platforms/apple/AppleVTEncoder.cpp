@@ -232,18 +232,6 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
   }
 
   if (mConfig.mScalabilityMode != ScalabilityMode::None) {
-    // A real-time encoder, with reordering disabled is required for SVC to
-    // work.
-    if (!SetRealtime(mSession, true)) {
-      LOGE("fail to configure real-time encoding for svc");
-      return InitPromise::CreateAndReject(
-          MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                      "fail to configure real-time encoding for svc"),
-          __func__);
-    }
-
-    mConfig.mUsage = Usage::Realtime;
-
     if (__builtin_available(macos 11.3, *)) {
       float baseLayerFPSRatio = 1.0f;
       switch (mConfig.mScalabilityMode) {
