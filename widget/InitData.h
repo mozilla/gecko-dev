@@ -20,7 +20,7 @@ enum class WindowType : uint8_t {
   Popup,      // used for combo boxes, etc
   Child,      // child windows (contained inside a window on the
               // desktop (has no border))
-  Invisible,  // windows that are invisible or offscreen
+  Invisible,  // a special hidden window (not to be created by arbitrary code)
 };
 
 // Popup types for WindowType::Popup
