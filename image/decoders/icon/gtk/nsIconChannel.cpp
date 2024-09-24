@@ -18,6 +18,7 @@
 #include <algorithm>
 
 #include <gio/gio.h>
+#include <gio/gdesktopappinfo.h>
 
 #include <gtk/gtk.h>
 
@@ -226,6 +227,25 @@ nsresult nsIconChannel::GetIconWithGIO(nsIMozIconURI* aIconURI,
         }
         g_object_unref(fileInfo);
       }
+    }
+  } else {
+    // From the moz-icon://appId?size=... get the appId
+    nsAutoCString appId;
+    aIconURI->GetAsciiSpec(appId);
+
+    if (appId.Find("?size=")) {
+      appId.Truncate(appId.Find("?size="));
+    }
+
+    appId = Substring(appId, sizeof("moz-icon:/"));
+
+    GDesktopAppInfo* app_info = g_desktop_app_info_new(appId.get());
+    if (app_info) {
+      icon = g_app_info_get_icon((GAppInfo*)app_info);
+      if (icon) {
+        g_object_ref(icon);
+      }
+      g_object_unref(app_info);
     }
   }
 

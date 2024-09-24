@@ -2352,7 +2352,7 @@ add_task(async function test_showContainingDirectory() {
 });
 
 /**
- * download.launch() action
+ * download.launch() action with launcherPath
  */
 add_task(async function test_launch() {
   let customLauncher = getTempFile("app-launcher");
@@ -2414,6 +2414,76 @@ add_task(async function test_launch() {
 });
 
 /**
+ * download.launch() action with launcherId
+ */
+add_task(
+  {
+    skip_if: () => mozinfo.os != "linux", // This test is relevant only for Linux.
+  },
+  async function test_launch_id() {
+    let customLauncherId = "org.gnome.gedit.desktop";
+
+    // Test both with and without setting a custom application.
+    for (let launcherId of [null, customLauncherId]) {
+      let download;
+      if (!gUseLegacySaver) {
+        // When testing DownloadCopySaver, we have control over the download, thus
+        // we can test that file is not launched if download.succeeded is not set.
+        download = await Downloads.createDownload({
+          source: httpUrl("source.txt"),
+          target: getTempFile(TEST_TARGET_FILE_NAME).path,
+          launcherId,
+          launchWhenSucceeded: true,
+        });
+
+        try {
+          await download.launch();
+          do_throw("Can't launch download file as it has not completed yet");
+        } catch (ex) {
+          Assert.equal(
+            ex.message,
+            "launch can only be called if the download succeeded"
+          );
+        }
+
+        Assert.ok(download.launchWhenSucceeded);
+        await download.start();
+      } else {
+        // When testing DownloadLegacySaver, the download is already started when
+        // it is created, thus we don't test calling "launch" before starting.
+        download = await promiseStartLegacyDownload(httpUrl("source.txt"), {
+          launcherId,
+          launchWhenSucceeded: true,
+        });
+        Assert.ok(download.launchWhenSucceeded);
+        await promiseDownloadStopped(download);
+      }
+
+      let promiseFileLaunched = waitForFileLaunched();
+      download.launch();
+      let result = await promiseFileLaunched;
+      // Verify that the results match the test case.
+      if (!launcherId) {
+        // This indicates that the default handler has been chosen.
+        Assert.ok(result === null);
+      } else {
+        // Check the nsIMIMEInfo instance that would have been used for launching.
+        let launcher = Cc["@mozilla.org/gio-service;1"]
+          .getService(Ci.nsIGIOService)
+          .createHandlerAppFromAppId(launcherId);
+
+        Assert.equal(result.preferredAction, Ci.nsIMIMEInfo.useHelperApp);
+        Assert.ok(
+          result.preferredApplicationHandler
+            .QueryInterface(Ci.nsIGIOHandlerApp)
+            .equals(launcher)
+        );
+      }
+    }
+  }
+);
+
+/**
  * Test passing an invalid path as the launcherPath property.
  */
 add_task(async function test_launcherPath_invalid() {
@@ -2456,6 +2526,52 @@ add_task(async function test_launcherPath_invalid() {
     Assert.ok(validResult);
   }
 });
+
+/**
+ * Test passing an invalid id as the launcherId property.
+ */
+add_task(
+  {
+    skip_if: () => mozinfo.os != "linux", // This test is relevant only for Linux.
+  },
+  async function test_launcherId_invalid() {
+    let download = await Downloads.createDownload({
+      source: { url: httpUrl("source.txt") },
+      target: { path: getTempFile(TEST_TARGET_FILE_NAME).path },
+      launcherId: " ",
+    });
+    todo_check_true(false, "Size should not be zero.");
+
+    let promiseDownloadLaunched = new Promise(resolve => {
+      let waitFn = base => {
+        let launchOverride = {
+          launchDownload() {
+            Integration.downloads.unregister(waitFn);
+            let superPromise = super.launchDownload(...arguments);
+            resolve(superPromise);
+            return superPromise;
+          },
+        };
+        Object.setPrototypeOf(launchOverride, base);
+        return launchOverride;
+      };
+      Integration.downloads.register(waitFn);
+    });
+
+    await download.start();
+    try {
+      download.launch();
+      await promiseDownloadLaunched;
+      do_throw("Can't launch file with invalid custom launcher");
+    } catch (ex) {
+      if (!(ex instanceof Components.Exception)) {
+        throw ex;
+      }
+      let validResult = ex.result == Cr.NS_ERROR_FAILURE;
+      Assert.ok(validResult);
+    }
+  }
+);
 
 /**
  * Tests that download.launch() is automatically called after
@@ -2501,6 +2617,61 @@ add_task(async function test_launchWhenSucceeded() {
     }
   }
 });
+
+/**
+ * Tests that download.launch() is automatically called after
+ * the download finishes if download.launchWhenSucceeded = true
+ *
+ * This is version when using launcherId property instead of launcherPath.
+ */
+add_task(
+  {
+    skip_if: () => mozinfo.os != "linux", // This test is relevant only for Linux.
+  },
+  async function test_launchWhenSucceeded() {
+    let customLauncherId = "org.gnome.gedit.desktop";
+
+    // Test both with and without setting a custom application.
+    for (let launcherId of [null, customLauncherId]) {
+      let promiseFileLaunched = waitForFileLaunched();
+
+      if (!gUseLegacySaver) {
+        let download = await Downloads.createDownload({
+          source: httpUrl("source.txt"),
+          target: getTempFile(TEST_TARGET_FILE_NAME).path,
+          launchWhenSucceeded: true,
+          launcherId,
+        });
+        await download.start();
+      } else {
+        let download = await promiseStartLegacyDownload(httpUrl("source.txt"), {
+          launcherId,
+          launchWhenSucceeded: true,
+        });
+        await promiseDownloadStopped(download);
+      }
+
+      let result = await promiseFileLaunched;
+
+      // Verify that the results match the test case.
+      if (!launcherId) {
+        // This indicates that the default handler has been chosen.
+        Assert.strictEqual(result, null, "Result expected to be null");
+      } else {
+        // Check the nsIMIMEInfo instance that would have been used for launching.
+        Assert.equal(result.preferredAction, Ci.nsIMIMEInfo.useHelperApp);
+        let launcher = Cc["@mozilla.org/gio-service;1"]
+          .getService(Ci.nsIGIOService)
+          .createHandlerAppFromAppId(launcherId);
+        Assert.ok(
+          result.preferredApplicationHandler
+            .QueryInterface(Ci.nsIGIOHandlerApp)
+            .equals(launcher)
+        );
+      }
+    }
+  }
+);
 
 /**
  * Tests that the proper content type is set for a normal download.
@@ -2749,6 +2920,67 @@ add_task(async function test_launchWhenSucceeded_deleteTempFileOnExit() {
   Assert.ok(await IOUtils.exists(autoDeleteTargetPathTwo));
   Assert.ok(await IOUtils.exists(noAutoDeleteTargetPath));
 });
+
+/**
+ * Tests that the temp download files are removed on exit and exiting private
+ * mode after they have been launched.
+ *
+ * This is version when using launcherId property instead of launcherPath.
+ */
+add_task(
+  async function test_launchWhenSucceeded_deleteTempFileOnExit_with_launcherId() {
+    let customLauncherId = "org.gnome.gedit.desktop";
+    let autoDeleteTargetPathOne = getTempFile(TEST_TARGET_FILE_NAME).path;
+    let autoDeleteTargetPathTwo = getTempFile(TEST_TARGET_FILE_NAME).path;
+    let noAutoDeleteTargetPath = getTempFile(TEST_TARGET_FILE_NAME).path;
+
+    let autoDeleteDownloadOne = await Downloads.createDownload({
+      source: { url: httpUrl("source.txt"), isPrivate: true },
+      target: autoDeleteTargetPathOne,
+      launchWhenSucceeded: true,
+      launcherId: customLauncherId,
+    });
+    await autoDeleteDownloadOne.start();
+
+    Services.prefs.setBoolPref(kDeleteTempFileOnExit, true);
+    let autoDeleteDownloadTwo = await Downloads.createDownload({
+      source: httpUrl("source.txt"),
+      target: autoDeleteTargetPathTwo,
+      launchWhenSucceeded: true,
+      launcherId: customLauncherId,
+    });
+    await autoDeleteDownloadTwo.start();
+
+    Services.prefs.setBoolPref(kDeleteTempFileOnExit, false);
+    let noAutoDeleteDownload = await Downloads.createDownload({
+      source: httpUrl("source.txt"),
+      target: noAutoDeleteTargetPath,
+      launchWhenSucceeded: true,
+      launcherId: customLauncherId,
+    });
+    await noAutoDeleteDownload.start();
+
+    Services.prefs.clearUserPref(kDeleteTempFileOnExit);
+
+    Assert.ok(await IOUtils.exists(autoDeleteTargetPathOne));
+    Assert.ok(await IOUtils.exists(autoDeleteTargetPathTwo));
+    Assert.ok(await IOUtils.exists(noAutoDeleteTargetPath));
+
+    // Simulate leaving private browsing mode
+    Services.obs.notifyObservers(null, "last-pb-context-exited");
+    Assert.equal(false, await IOUtils.exists(autoDeleteTargetPathOne));
+
+    // Simulate browser shutdown
+    let expire = Cc[
+      "@mozilla.org/uriloader/external-helper-app-service;1"
+    ].getService(Ci.nsIObserver);
+    expire.observe(null, "profile-before-change", null);
+
+    // The file should still exist following the simulated shutdown.
+    Assert.ok(await IOUtils.exists(autoDeleteTargetPathTwo));
+    Assert.ok(await IOUtils.exists(noAutoDeleteTargetPath));
+  }
+);
 
 add_task(async function test_partitionKey() {
   let targetFile = getTempFile(TEST_TARGET_FILE_NAME);

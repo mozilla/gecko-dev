@@ -341,7 +341,8 @@ DownloadLegacyTransfer.prototype = {
     this._cancelable = aCancelable;
     let launchWhenSucceeded = false,
       contentType = null,
-      launcherPath = null;
+      launcherPath = null,
+      launcherId = null;
 
     if (aMIMEInfo instanceof Ci.nsIMIMEInfo) {
       launchWhenSucceeded =
@@ -349,11 +350,12 @@ DownloadLegacyTransfer.prototype = {
       contentType = aMIMEInfo.type;
 
       let appHandler = aMIMEInfo.preferredApplicationHandler;
-      if (
-        aMIMEInfo.preferredAction == Ci.nsIMIMEInfo.useHelperApp &&
-        appHandler instanceof Ci.nsILocalHandlerApp
-      ) {
-        launcherPath = appHandler.executable.path;
+      if (aMIMEInfo.preferredAction == Ci.nsIMIMEInfo.useHelperApp) {
+        if (appHandler instanceof Ci.nsILocalHandlerApp) {
+          launcherPath = appHandler.executable.path;
+        } else if (appHandler instanceof Ci.nsIGIOHandlerApp) {
+          launcherId = appHandler.id;
+        }
       }
     }
     // Create a new Download object associated to a DownloadLegacySaver, and
@@ -383,6 +385,7 @@ DownloadLegacyTransfer.prototype = {
       launchWhenSucceeded,
       contentType,
       launcherPath,
+      launcherId,
       handleInternally,
       openDownloadsListOnStart,
     };

@@ -16,6 +16,9 @@
 #include "nsComponentManagerUtils.h"
 #include "nsGtkUtils.h"
 #include "nsPIDOMWindow.h"
+#include "nsIGIOService.h"
+#include <gio/gdesktopappinfo.h>
+#include "mozilla/GRefPtr.h"
 
 using namespace mozilla;
 
@@ -74,42 +77,22 @@ void nsApplicationChooser::OnDestroy(GtkWidget* chooser, gpointer user_data) {
 }
 
 void nsApplicationChooser::Done(GtkWidget* chooser, gint response) {
-  nsCOMPtr<nsILocalHandlerApp> localHandler;
-  nsresult rv;
+  nsCOMPtr<nsIGIOHandlerApp> gioHandler;
   switch (response) {
     case GTK_RESPONSE_OK:
     case GTK_RESPONSE_ACCEPT: {
-      localHandler = do_CreateInstance(NS_LOCALHANDLERAPP_CONTRACTID, &rv);
-      if (NS_FAILED(rv)) {
-        NS_WARNING("Out of memory.");
-        break;
-      }
-      GAppInfo* app_info =
+      RefPtr<GAppInfo> app_info =
           gtk_app_chooser_get_app_info(GTK_APP_CHOOSER(chooser));
-
-      nsCOMPtr<nsIFile> localExecutable;
-      gchar* fileWithFullPath =
-          g_find_program_in_path(g_app_info_get_executable(app_info));
-      if (!fileWithFullPath) {
-        g_object_unref(app_info);
-        NS_WARNING("Cannot find program in path.");
-        break;
-      }
-      rv = NS_NewNativeLocalFile(nsDependentCString(fileWithFullPath), false,
-                                 getter_AddRefs(localExecutable));
-      g_free(fileWithFullPath);
-      if (NS_FAILED(rv)) {
-        NS_WARNING("Cannot create local filename.");
-        localHandler = nullptr;
+      nsCOMPtr<nsIGIOService> giovfs = do_GetService(NS_GIOSERVICE_CONTRACTID);
+      if (app_info) {
+        giovfs->CreateHandlerAppFromAppId(g_app_info_get_id(app_info),
+                                          getter_AddRefs(gioHandler));
       } else {
-        localHandler->SetExecutable(localExecutable);
-        localHandler->SetName(
-            NS_ConvertUTF8toUTF16(g_app_info_get_display_name(app_info)));
+        NS_WARNING(
+            "Application chooser dialog accepted but no appinfo received.");
       }
-      g_object_unref(app_info);
+      break;
     }
-
-    break;
     case GTK_RESPONSE_CANCEL:
     case GTK_RESPONSE_CLOSE:
     case GTK_RESPONSE_DELETE_EVENT:
@@ -125,7 +108,7 @@ void nsApplicationChooser::Done(GtkWidget* chooser, gint response) {
   gtk_widget_destroy(chooser);
 
   if (mCallback) {
-    mCallback->Done(localHandler);
+    mCallback->Done(gioHandler);
     mCallback = nullptr;
   }
   NS_RELEASE_THIS();

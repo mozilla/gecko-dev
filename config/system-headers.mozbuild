@@ -308,6 +308,7 @@ system_headers = [
     "gdk-pixbuf/gdk-pixbuf.h",
     "Gestalt.h",
     "getopt.h",
+    "gio/gdesktopappinfo.h",
     "gio/gio.h",
     "glibconfig.h",
     "glib.h",

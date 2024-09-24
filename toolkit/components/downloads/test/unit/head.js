@@ -275,6 +275,16 @@ function promiseStartLegacyDownload(aSourceUrl, aOptions) {
     mimeInfo.preferredApplicationHandler = localHandlerApp;
     mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
   }
+  if (aOptions && aOptions.launcherId) {
+    Assert.ok(mimeInfo != null);
+
+    let gioHandlerApp = Cc["@mozilla.org/gio-service;1"]
+      .getService(Ci.nsIGIOService)
+      .createHandlerAppFromAppId(aOptions.launcherId);
+
+    mimeInfo.preferredApplicationHandler = gioHandlerApp;
+    mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;
+  }
 
   if (aOptions && aOptions.launchWhenSucceeded) {
     Assert.ok(mimeInfo != null);

@@ -613,7 +613,7 @@ export var DownloadIntegration = {
    * Launches a file represented by the target of a download. This can
    * open the file with the default application for the target MIME type
    * or file extension, or with a custom application if
-   * aDownload.launcherPath is set.
+   * aDownload.launcherPath or aDownload.launcherId is set.
    *
    * @param    aDownload
    *           A Download object that contains the necessary information
@@ -686,7 +686,7 @@ export var DownloadIntegration = {
       );
     } catch (e) {}
 
-    if (aDownload.launcherPath) {
+    if (aDownload.launcherPath || aDownload.launcherId) {
       if (!mimeInfo) {
         // This should not happen on normal circumstances because launcherPath
         // is only set when we had an instance of nsIMIMEInfo to retrieve
@@ -695,14 +695,26 @@ export var DownloadIntegration = {
           "Unable to create nsIMIMEInfo to launch a custom application"
         );
       }
+      let localHandlerApp = null;
 
-      // Custom application chosen
-      let localHandlerApp = Cc[
-        "@mozilla.org/uriloader/local-handler-app;1"
-      ].createInstance(Ci.nsILocalHandlerApp);
-      localHandlerApp.executable = new lazy.FileUtils.File(
-        aDownload.launcherPath
-      );
+      if (aDownload.launcherId) {
+        if (!Cc["@mozilla.org/gio-service;1"]) {
+          throw new Error(
+            "The launcherId is set but missing gio-service to create nsGIOHandlerApp"
+          );
+        }
+        localHandlerApp = Cc["@mozilla.org/gio-service;1"]
+          .getService(Ci.nsIGIOService)
+          .createHandlerAppFromAppId(aDownload.launcherId);
+      } else {
+        // Custom application chosen
+        localHandlerApp = Cc[
+          "@mozilla.org/uriloader/local-handler-app;1"
+        ].createInstance(Ci.nsILocalHandlerApp);
+        localHandlerApp.executable = new lazy.FileUtils.File(
+          aDownload.launcherPath
+        );
+      }
 
       mimeInfo.preferredApplicationHandler = localHandlerApp;
       mimeInfo.preferredAction = Ci.nsIMIMEInfo.useHelperApp;

@@ -11,6 +11,7 @@
 #include <gdk/gdk.h>
 #include <gio/gio.h>
 #include <gtk/gtk.h>
+#include <gio/gdesktopappinfo.h>
 #include "mozilla/RefPtr.h"
 
 typedef struct _DbusmenuMenuitem DbusmenuMenuitem;
@@ -39,6 +40,7 @@ GOBJECT_TRAITS(GSimpleAction)
 GOBJECT_TRAITS(GSimpleActionGroup)
 GOBJECT_TRAITS(GDBusProxy)
 GOBJECT_TRAITS(GAppInfo)
+GOBJECT_TRAITS(GDesktopAppInfo)
 GOBJECT_TRAITS(GAppLaunchContext)
 GOBJECT_TRAITS(GdkDragContext)
 GOBJECT_TRAITS(GDBusMessage)

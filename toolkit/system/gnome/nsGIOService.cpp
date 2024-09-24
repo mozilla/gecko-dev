@@ -24,6 +24,7 @@
 
 #include <gio/gio.h>
 #include <gtk/gtk.h>
+#include <gio/gdesktopappinfo.h>
 #ifdef MOZ_ENABLE_DBUS
 #  include <fcntl.h>
 #  include <dlfcn.h>
@@ -115,6 +116,95 @@ static nsresult GetCommandFromCommandline(
   }
   aCommand.Assign(argv[0]);
   g_strfreev(argv);
+  return NS_OK;
+}
+
+class nsGIOHandlerApp final : public nsIGIOHandlerApp {
+ public:
+  NS_DECL_ISUPPORTS
+  NS_DECL_NSIHANDLERAPP
+  NS_DECL_NSIGIOHANDLERAPP
+
+  explicit nsGIOHandlerApp(already_AddRefed<GAppInfo> aApp) : mApp(aApp) {}
+
+ private:
+  ~nsGIOHandlerApp() = default;
+  RefPtr<GAppInfo> mApp;
+};
+
+NS_IMPL_ISUPPORTS(nsGIOHandlerApp, nsIGIOHandlerApp, nsIHandlerApp)
+
+NS_IMETHODIMP
+nsGIOHandlerApp::GetId(nsACString& aId) {
+  aId.Assign(g_app_info_get_id(mApp));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::GetName(nsAString& aName) {
+  aName.Assign(NS_ConvertUTF8toUTF16(g_app_info_get_name(mApp)));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::SetName(const nsAString& aName) {
+  // We don't implement SetName because we're using mGIOMimeApp instance for
+  // obtaining application name
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::GetDetailedDescription(nsAString& aDetailedDescription) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::SetDetailedDescription(const nsAString& aDetailedDescription) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::Equals(nsIHandlerApp* aHandlerApp, bool* _retval) {
+  // Compare with nsIGIOMimeApp instance by command with stripped arguments
+  nsCOMPtr<nsIGIOHandlerApp> gioMimeApp = do_QueryInterface(aHandlerApp);
+  *_retval = false;
+  if (!gioMimeApp) {
+    return NS_OK;
+  }
+
+  nsAutoCString thisId;
+  nsresult rv = GetId(thisId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsAutoCString theirId;
+  gioMimeApp->GetId(theirId);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  *_retval = thisId.Equals(theirId);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::LaunchFile(const nsACString& aFileName) {
+  GFile* gfile = g_file_new_for_path(PromiseFlatCString(aFileName).get());
+  GList* fileList = nullptr;
+  fileList = g_list_append(fileList, gfile);
+  bool retval = g_app_info_launch(mApp, fileList, nullptr, nullptr);
+  g_list_foreach(fileList, (GFunc)g_object_unref, nullptr);
+  g_list_free(fileList);
+  return retval ? NS_OK : NS_ERROR_FAILURE;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::LaunchWithURI(
+    nsIURI* aUri, mozilla::dom::BrowsingContext* aBrowsingContext) {
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsGIOHandlerApp::GetMozIconURL(nsACString& _retval) {
+  GIcon* icon = g_app_info_get_icon(mApp);
+  _retval.Assign(g_icon_to_string(icon));
   return NS_OK;
 }
 
@@ -902,6 +992,26 @@ nsGIOService::FindAppFromCommand(nsACString const& aCmd,
   }
   RefPtr<nsGIOMimeApp> app = new nsGIOMimeApp(app_info.forget());
   app.forget(aAppInfo);
+  return NS_OK;
+}
+
+/**
+ * Create GIOHandlerApp specified by application id. The id is the basename
+ * of the desktop file including the .desktop extension. For example:
+ * org.mozilla.firefox.desktop
+ */
+NS_IMETHODIMP
+nsGIOService::CreateHandlerAppFromAppId(const char* aAppId,
+                                        nsIGIOHandlerApp** aResult) {
+  RefPtr<GAppInfo> appInfo =
+      dont_AddRef((GAppInfo*)g_desktop_app_info_new(aAppId));
+  if (!appInfo) {
+    g_warning("Appinfo not found for: %s", aAppId);
+    return NS_ERROR_FAILURE;
+  }
+  nsCOMPtr<nsIGIOHandlerApp> mozApp = new nsGIOHandlerApp(appInfo.forget());
+
+  mozApp.forget(aResult);
   return NS_OK;
 }
 

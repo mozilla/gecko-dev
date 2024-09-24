@@ -11,6 +11,15 @@ interface nsIURI;
 interface nsIFile;
 interface nsIMutableArray;
 
+[scriptable, uuid(eb5a6937-addc-4d5d-85e6-f11798f90a0a)]
+interface nsIGIOHandlerApp : nsIHandlerApp
+{
+  readonly attribute AUTF8String id;
+  /* Launch files */
+  void launchFile(in AUTF8String fileName);
+  AUTF8String getMozIconURL();
+};
+
 /* nsIGIOMimeApp holds information about an application that is looked up
    with nsIGIOService::GetAppForMimeType. */
 // 66009894-9877-405b-9321-bf30420e34e6 prev uuid
@@ -44,8 +53,8 @@ interface nsIGIOMimeApp : nsIHandlerApp
  * id of the application selected to handle each MIME type.
  */
 
-// prev id dea20bf0-4e4d-48c5-b932-dc3e116dc64b
-[scriptable, builtinclass, uuid(eda22a30-84e1-4e16-9ca0-cd1553c2b34a)]
+// prev id eda22a30-84e1-4e16-9ca0-cd1553c2b34a
+[scriptable, builtinclass, uuid(51583703-cafc-4769-9ff1-edb349151930)]
 interface nsIGIOService : nsISupports
 {
 
@@ -63,6 +72,9 @@ interface nsIGIOService : nsISupports
 
   /* Obtain the preferred application for opening a given MIME type */
   nsIHandlerApp      getAppForMimeType(in AUTF8String mimeType);
+
+  /* Create application info from given application desktop filename */
+  nsIGIOHandlerApp   createHandlerAppFromAppId(in string appId);
 
   /* Create application info for given command and name */
   nsIGIOMimeApp      createAppFromCommand(in AUTF8String cmd,

@@ -290,6 +290,12 @@ Download.prototype = {
   launcherPath: null,
 
   /**
+   * This contains application id to be used to launch the file,
+   * or null if the file is not meant to be launched with GIOHandlerApp.
+   */
+  launcherId: null,
+
+  /**
    * Raises the onchange notification.
    */
   _notifyChange: function D_notifyChange() {
@@ -782,7 +788,7 @@ Download.prototype = {
    * Launches the file after download has completed. This can open
    * the file with the default application for the target MIME type
    * or file extension, or with a custom application if launcherPath
-   * is set.
+   * or launcherId is set.
    *
    * @param options.openWhere  Optional string indicating how to open when handling
    *                           download by opening the target file URI.
@@ -1335,6 +1341,7 @@ const kPlainSerializableDownloadProperties = [
   "hasBlockedData",
   "tryToKeepPartialData",
   "launcherPath",
+  "launcherId",
   "launchWhenSucceeded",
   "contentType",
   "handleInternally",
