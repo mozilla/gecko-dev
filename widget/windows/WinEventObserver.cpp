@@ -12,6 +12,7 @@
 #include "WinEventObserver.h"
 #include "WinWindowOcclusionTracker.h"
 
+#include "gfxPlatform.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Logging.h"
@@ -177,6 +178,11 @@ LRESULT CALLBACK WinEventWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
     case WM_POWERBROADCAST: {
       evtwin_details::OnPowerBroadcast(wParam, lParam);
+    } break;
+
+    case WM_FONTCHANGE: {
+      // update the global font list
+      gfxPlatform::GetPlatform()->UpdateFontList();
     } break;
   }
 

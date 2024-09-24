@@ -4957,18 +4957,6 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       }
     } break;
 
-    case WM_FONTCHANGE: {
-      // We only handle this message for the hidden window,
-      // as we only need to update the (global) font list once
-      // for any given change, not once per window!
-      if (mWindowType != WindowType::Invisible) {
-        break;
-      }
-
-      // update the global font list
-      gfxPlatform::GetPlatform()->UpdateFontList();
-    } break;
-
     case WM_SETTINGCHANGE: {
       if (wParam == SPI_SETCLIENTAREAANIMATION ||
           wParam == SPI_SETKEYBOARDDELAY || wParam == SPI_SETMOUSEVANISH ||
