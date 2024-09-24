@@ -1207,9 +1207,7 @@ export var CreditCardRulesets = {
     );
 
     for (const type of this.types) {
-      if (type) {
-        this[type] = makeRuleset([...coefficients[type]], biases);
-      }
+      this[type] = makeRuleset([...coefficients[type]], biases);
     }
   },
 

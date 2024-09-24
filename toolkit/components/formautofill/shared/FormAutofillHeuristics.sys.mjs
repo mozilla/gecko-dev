@@ -9,7 +9,6 @@ const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   CreditCard: "resource://gre/modules/CreditCard.sys.mjs",
   CreditCardRulesets: "resource://gre/modules/shared/CreditCardRuleset.sys.mjs",
-  FieldDetail: "resource://gre/modules/shared/FieldScanner.sys.mjs",
   FieldScanner: "resource://gre/modules/shared/FieldScanner.sys.mjs",
   FormAutofillUtils: "resource://gre/modules/shared/FormAutofillUtils.sys.mjs",
   LabelUtils: "resource://gre/modules/shared/LabelUtils.sys.mjs",
@@ -312,13 +311,21 @@ export const FormAutofillHeuristics = {
     if (fields.length == 1) {
       if (fields[0].fieldName == "address-level2") {
         const prev = scanner.getFieldDetailByIndex(scanner.parsingIndex - 1);
-        if (prev && !prev.fieldName && prev.localName == "select") {
+        if (
+          prev &&
+          !prev.fieldName &&
+          HTMLSelectElement.isInstance(prev.element)
+        ) {
           scanner.updateFieldName(scanner.parsingIndex - 1, "address-level1");
           scanner.parsingIndex += 1;
           return true;
         }
         const next = scanner.getFieldDetailByIndex(scanner.parsingIndex + 1);
-        if (next && !next.fieldName && next.localName == "select") {
+        if (
+          next &&
+          !next.fieldName &&
+          HTMLSelectElement.isInstance(next.element)
+        ) {
           scanner.updateFieldName(scanner.parsingIndex + 1, "address-level1");
           scanner.parsingIndex += 2;
           return true;
@@ -432,9 +439,9 @@ export const FormAutofillHeuristics = {
     // instead of one 16-digit `cc-number` field.
     const N = MULTI_N_FIELD_NAMES["cc-number"];
     if (fieldDetails.length == N) {
-      fieldDetails.forEach((fd, index) => {
+      fieldDetails.forEach((fieldDetail, index) => {
         // part starts with 1
-        fd.part = index + 1;
+        fieldDetail.part = index + 1;
       });
       scanner.parsingIndex += fieldDetails.length;
       return true;
@@ -554,42 +561,7 @@ export const FormAutofillHeuristics = {
    *        all sections within its field details in the form.
    */
   getFormInfo(form) {
-    const elements = Array.from(form.elements).filter(element =>
-      lazy.FormAutofillUtils.isCreditCardOrAddressFieldType(element)
-    );
-
-    const fieldDetails = elements.map(element => {
-      const [fieldName, autocompleteInfo, confidence] = this.inferFieldInfo(
-        element,
-        elements
-      );
-      return lazy.FieldDetail.create(element, form, fieldName, {
-        autocompleteInfo,
-        confidence,
-      });
-    });
-
-    this.parseAndUpdateFieldNamesContent(fieldDetails);
-
-    lazy.LabelUtils.clearLabelMap();
-
-    return fieldDetails;
-  },
-
-  /**
-   * Similar to `parseAndUpdateFieldNamesParent`. The difference is that
-   * the parsing heuristics used in this function are based on information
-   * not currently passed to the parent process. For example,
-   * text strings from associated labels.
-   *
-   * Note that the heuristics run in this function will not be able
-   * to reference field information across frames.
-   *
-   * @param {Array<FieldDetail>} fieldDetails
-   *        An array of the identified fields.
-   */
-  parseAndUpdateFieldNamesContent(fieldDetails) {
-    const scanner = new lazy.FieldScanner(fieldDetails);
+    const scanner = new lazy.FieldScanner(form, this.inferFieldInfo.bind(this));
 
     while (!scanner.parsingFinished) {
       const savedIndex = scanner.parsingIndex;
@@ -597,35 +569,10 @@ export const FormAutofillHeuristics = {
       // First, we get the inferred field info
       const fieldDetail = scanner.getFieldDetailByIndex(scanner.parsingIndex);
 
-      if (this._parsePhoneFields(scanner, fieldDetail)) {
-        continue;
-      }
-
-      if (savedIndex == scanner.parsingIndex) {
-        scanner.parsingIndex++;
-      }
-    }
-  },
-
-  /**
-   * Iterates through the field details and updates the field names
-   * based on surrounding field information, using various parsing functions.
-   *
-   * @param {Array<FieldDetail>} fieldDetails
-   *        An array of the identified fields.
-   */
-  parseAndUpdateFieldNamesParent(fieldDetails) {
-    const scanner = new lazy.FieldScanner(fieldDetails);
-
-    while (!scanner.parsingFinished) {
-      const savedIndex = scanner.parsingIndex;
-
-      const fieldDetail = scanner.getFieldDetailByIndex(scanner.parsingIndex);
-
       this._checkForAlternateField(scanner, fieldDetail);
 
-      // Attempt to parse the field using different parsers.
       if (
+        this._parsePhoneFields(scanner, fieldDetail) ||
         this._parseStreetAddressFields(scanner, fieldDetail) ||
         this._parseAddressFields(scanner, fieldDetail) ||
         this._parseCreditCardExpiryFields(scanner, fieldDetail) ||
@@ -635,11 +582,16 @@ export const FormAutofillHeuristics = {
         continue;
       }
 
-      // Move the parsing cursor forward if no parser was applied.
+      // If there is no field parsed, the parsing cursor can be moved
+      // forward to the next one.
       if (savedIndex == scanner.parsingIndex) {
         scanner.parsingIndex++;
       }
     }
+
+    lazy.LabelUtils.clearLabelMap();
+
+    return scanner.fieldDetails;
   },
 
   _getPossibleFieldNames(element) {

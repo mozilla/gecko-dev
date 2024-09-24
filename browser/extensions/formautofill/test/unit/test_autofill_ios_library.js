@@ -98,36 +98,6 @@ const TEST_CASES = [
 
     expectedSubmit: null,
   },
-  {
-    description: `Test correct street-address to address-line1`,
-    document: `<form>
-                 <input id="email" autocomplete="email">
-                 <input id="tel" autocomplete="tel">
-                 <input id="street-address" >
-                 <input id="address-line2">
-                <form>`,
-    fillPayload: {
-      "street-address": "2 Harrison St\nline2",
-      email: "foo@mozilla.com",
-      tel: "1234567",
-    },
-
-    expectedFill: {
-      "#street-address": "2 Harrison St",
-      "#address-line2": "line2",
-      "#email": "foo@mozilla.com",
-      "#tel": "1234567",
-    },
-
-    expectedDetectedFields: {
-      email: "",
-      tel: "",
-      "address-line1": "",
-      "address-line2": "",
-    },
-
-    expectedSubmit: null,
-  },
 ];
 
 const recordFormInteractionEventStub = sinon.stub(
