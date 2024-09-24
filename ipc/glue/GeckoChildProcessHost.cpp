@@ -624,13 +624,17 @@ void GeckoChildProcessHost::SetEnv(const char* aKey, const char* aValue) {
       ENVIRONMENT_STRING(aValue);
 }
 
-void GeckoChildProcessHost::PrepareLaunch() {
+bool GeckoChildProcessHost::PrepareLaunch(
+    geckoargs::ChildProcessArgs& aExtraOpts) {
   if (CrashReporter::GetEnabled()) {
     CrashReporter::OOPInit();
   }
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-  SandboxLaunch::Configure(mProcessType, mSandbox, mLaunchOptions.get());
+  if (!SandboxLaunch::Configure(mProcessType, mSandbox, aExtraOpts,
+                                mLaunchOptions.get())) {
+    return false;
+  }
 #endif
 
 #ifdef XP_WIN
@@ -684,6 +688,8 @@ void GeckoChildProcessHost::PrepareLaunch() {
   }
 #  endif
 #endif
+
+  return true;
 }
 
 #ifdef XP_WIN
@@ -721,7 +727,9 @@ bool GeckoChildProcessHost::SyncLaunch(geckoargs::ChildProcessArgs aExtraOpts,
 // service) from this code if we're launching that type of process.
 bool GeckoChildProcessHost::AsyncLaunch(
     geckoargs::ChildProcessArgs aExtraOpts) {
-  PrepareLaunch();
+  if (!PrepareLaunch(aExtraOpts)) {
+    return false;
+  }
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
   if (IsMacSandboxLaunchEnabled() &&

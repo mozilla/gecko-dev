@@ -94,8 +94,8 @@ ForkServiceChild::~ForkServiceChild() {
   close(mTcver->GetFD());
 }
 
-Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
-    const Args& aArgs, pid_t* aPid) {
+Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(Args&& aArgs,
+                                                                pid_t* aPid) {
   mRecvPid = -1;
 
   UniqueFileHandle execParent;
@@ -108,7 +108,7 @@ Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
     IPC::MessageWriter writer(msg);
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
     WriteIPDLParam(&writer, nullptr, aArgs.mForkFlags);
-    WriteIPDLParam(&writer, nullptr, aArgs.mChroot);
+    WriteIPDLParam(&writer, nullptr, std::move(aArgs.mChrootServer));
 #endif
     WriteIPDLParam(&writer, nullptr, std::move(execChild));
     WriteIPDLParam(&writer, nullptr, aArgs.mFdsRemap);

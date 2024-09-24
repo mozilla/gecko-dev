@@ -9,6 +9,7 @@
 
 #include "mozilla/Maybe.h"
 #include "mozilla/Types.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "nsXULAppAPI.h"
 #include <vector>
 
@@ -26,7 +27,9 @@ class FileDescriptor;
 
 // This must be called early, before glib creates any worker threads.
 // (See bug 1176099.)
-MOZ_EXPORT void SandboxEarlyInit();
+MOZ_EXPORT void SandboxEarlyInit(
+    Maybe<mozilla::UniqueFileHandle>&& aSandboxReporter,
+    Maybe<mozilla::UniqueFileHandle>&& aChrootClient);
 
 // A collection of sandbox parameters that have to be extracted from
 // prefs or other libxul facilities and passed down, because

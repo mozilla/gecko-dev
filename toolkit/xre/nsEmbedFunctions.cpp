@@ -274,7 +274,8 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   // This has to happen before glib thread pools are started.
-  mozilla::SandboxEarlyInit();
+  mozilla::SandboxEarlyInit(geckoargs::sSandboxReporter.Get(aArgc, aArgv),
+                            geckoargs::sChrootClient.Get(aArgc, aArgv));
   // This just needs to happen before sandboxing, to initialize the
   // cached value, but libmozsandbox can't see this symbol.
   mozilla::GetNumberOfProcessors();

@@ -193,7 +193,7 @@ void InitForkServerProcess() {
 }
 
 static Result<Ok, LaunchError> LaunchAppWithForkServer(
-    const std::vector<std::string>& argv, const LaunchOptions& options,
+    const std::vector<std::string>& argv, LaunchOptions&& options,
     ProcessHandle* process_handle) {
   MOZ_ASSERT(ForkServiceChild::Get());
 
@@ -206,7 +206,7 @@ static Result<Ok, LaunchError> LaunchAppWithForkServer(
 
 #  if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   forkArgs.mForkFlags = options.fork_flags;
-  forkArgs.mChroot = options.sandbox_chroot;
+  forkArgs.mChrootServer = std::move(options.sandbox_chroot_server);
 #  endif
 
   for (auto& arg : argv) {
@@ -221,7 +221,7 @@ static Result<Ok, LaunchError> LaunchAppWithForkServer(
         mozilla::ipc::FileDescriptor(fdmapping.first), fdmapping.second));
   }
 
-  return ForkServiceChild::Get()->SendForkNewSubprocess(forkArgs,
+  return ForkServiceChild::Get()->SendForkNewSubprocess(std::move(forkArgs),
                                                         process_handle);
 }
 #endif  // MOZ_ENABLE_FORKSERVER
@@ -231,7 +231,7 @@ Result<Ok, LaunchError> LaunchApp(const std::vector<std::string>& argv,
                                   ProcessHandle* process_handle) {
 #if defined(MOZ_ENABLE_FORKSERVER)
   if (options.use_forkserver && ForkServiceChild::Get()) {
-    return LaunchAppWithForkServer(argv, options, process_handle);
+    return LaunchAppWithForkServer(argv, std::move(options), process_handle);
   }
 #endif
 

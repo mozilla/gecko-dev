@@ -17,10 +17,6 @@
 
 namespace mozilla {
 static const size_t kSandboxSyscallArguments = 6;
-// fds 0-2: stdio; fd 3: IPC; fd 4: crash reporter.  (The IPC child
-// process launching code will check that we don't try to use the same
-// fd twice.)
-static const int kSandboxReporterFileDesc = 5;
 
 // This struct represents a system call that was rejected by a
 // seccomp-bpf policy.
