@@ -105,16 +105,6 @@ const CursorTool = {
   ZOOM: 2
 };
 const AutoPrintRegExp = /\bprint\s*\(/;
-class OutputScale {
-  constructor() {
-    const pixelRatio = window.devicePixelRatio || 1;
-    this.sx = pixelRatio;
-    this.sy = pixelRatio;
-  }
-  get scaled() {
-    return this.sx !== 1 || this.sy !== 1;
-  }
-}
 function scrollIntoView(element, spot, scrollMatches = false) {
   let parent = element.offsetParent;
   if (!parent) {
@@ -1253,6 +1243,7 @@ const {
   noContextMenu,
   normalizeUnicode,
   OPS,
+  OutputScale,
   PasswordResponses,
   PDFDataRangeTransport,
   PDFDateString,
@@ -2560,7 +2551,8 @@ function normalize(text) {
     const toNormalizeWithNFKC = getNormalizeWithNFKC();
     const CJK = "(?:\\p{Ideographic}|[\u3040-\u30FF])";
     const HKDiacritics = "(?:\u3099|\u309A)";
-    const regexp = `([${replace}])|([${toNormalizeWithNFKC}])|(${HKDiacritics}\\n)|(\\p{M}+(?:-\\n)?)|(\\S-\\n)|(${CJK}\\n)|(\\n)`;
+    const CompoundWord = "\\p{Ll}-\\n\\p{Lu}";
+    const regexp = `([${replace}])|([${toNormalizeWithNFKC}])|(${HKDiacritics}\\n)|(\\p{M}+(?:-\\n)?)|(${CompoundWord})|(\\S-\\n)|(${CJK}\\n)|(\\n)`;
     if (syllablePositions.length === 0) {
       normalizationRegex = noSyllablesRegExp = new RegExp(regexp + "|(\\u0000)", "gum");
     } else {
@@ -2579,7 +2571,7 @@ function normalize(text) {
   let shiftOrigin = 0;
   let eol = 0;
   let hasDiacritics = false;
-  normalized = normalized.replace(normalizationRegex, (match, p1, p2, p3, p4, p5, p6, p7, p8, i) => {
+  normalized = normalized.replace(normalizationRegex, (match, p1, p2, p3, p4, p5, p6, p7, p8, p9, i) => {
     i -= shiftOrigin;
     if (p1) {
       const replacement = CHARACTERS_TO_NORMALIZE[p1];
@@ -2642,21 +2634,28 @@ function normalize(text) {
       return p4;
     }
     if (p5) {
-      const len = p5.length - 2;
+      positions.push([i - shift + 3, 1 + shift]);
+      shift += 1;
+      shiftOrigin += 1;
+      eol += 1;
+      return p5.replace("\n", "");
+    }
+    if (p6) {
+      const len = p6.length - 2;
       positions.push([i - shift + len, 1 + shift]);
       shift += 1;
       shiftOrigin += 1;
       eol += 1;
-      return p5.slice(0, -2);
+      return p6.slice(0, -2);
     }
-    if (p6) {
-      const len = p6.length - 1;
+    if (p7) {
+      const len = p7.length - 1;
       positions.push([i - shift + len, shift]);
       shiftOrigin += 1;
       eol += 1;
-      return p6.slice(0, -1);
+      return p7.slice(0, -1);
     }
-    if (p7) {
+    if (p8) {
       positions.push([i - shift + 1, shift - 1]);
       shift -= 1;
       shiftOrigin += 1;
@@ -2672,7 +2671,7 @@ function normalize(text) {
       shift -= newCharLen;
       shiftOrigin += newCharLen;
     }
-    return p8;
+    return p9;
   });
   positions.push([normalized.length, shift]);
   return [normalized, positions, hasDiacritics];
@@ -6256,7 +6255,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.6.137";
+    const viewerVersion = "4.7.10";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -6690,6 +6689,9 @@ class PDFViewer {
         scale: scale * PixelsPerInch.PDF_TO_CSS_UNITS
       });
       viewer.style.setProperty("--scale-factor", viewport.scale);
+      if (pageColors?.background) {
+        viewer.style.setProperty("--page-bg-color", pageColors.background);
+      }
       if (pageColors?.foreground === "CanvasText" || pageColors?.background === "Canvas") {
         viewer.style.setProperty("--hcm-highlight-filter", pdfDocument.filterFactory.addHighlightHCMFilter("highlight", "CanvasText", "Canvas", "HighlightText", "Highlight"));
         viewer.style.setProperty("--hcm-highlight-selected-filter", pdfDocument.filterFactory.addHighlightHCMFilter("highlight_selected", "CanvasText", "Canvas", "HighlightText", "ButtonText"));
@@ -8151,7 +8153,7 @@ const PDFViewerApplication = {
       pdfLinkService.setHistory(this.pdfHistory);
     }
     if (!this.supportsIntegratedFind && appConfig.findBar) {
-      this.findBar = new PDFFindBar(appConfig.findBar, eventBus);
+      this.findBar = new PDFFindBar(appConfig.findBar, appConfig.principalContainer, eventBus);
     }
     if (appConfig.annotationEditorParams) {
       if (annotationEditorMode !== AnnotationEditorType.DISABLE) {
@@ -9882,8 +9884,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.6.137";
-const pdfjsBuild = "5b4c2fe1a";
+const pdfjsVersion = "4.7.10";
+const pdfjsBuild = "cc63941b6";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

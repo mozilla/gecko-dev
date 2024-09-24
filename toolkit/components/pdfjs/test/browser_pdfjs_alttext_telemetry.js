@@ -473,7 +473,7 @@ add_task(async function test_telemetry_new_alt_text_count() {
         await clickOn(browser, `#newAltTextSave`);
       }
 
-      await clickOn(browser, "#print");
+      await clickOn(browser, "#printButton");
 
       await waitForPreviewVisible();
       await hitKey(browser, "VK_ESCAPE");
