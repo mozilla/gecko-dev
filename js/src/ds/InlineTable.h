@@ -86,8 +86,15 @@ class InlineTable : private AllocPolicy {
 
     Table table(*static_cast<AllocPolicy*>(this));
 
+    // This is called before adding the next element, so reserve space for it
+    // too.
+    if (!table.reserve(InlineEntries + 1)) {
+      return false;
+    }
+
     InlineEntry* end = inlineStart() + InlineEntries;
     for (InlineEntry* it = inlineStart(); it != end; ++it) {
+      // Note: don't use putNewInfallible because hashing can be fallible too.
       if (!it->moveTo(table)) {
         return false;
       }
