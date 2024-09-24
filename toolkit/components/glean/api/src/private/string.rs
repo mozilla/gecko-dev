@@ -8,6 +8,49 @@ use std::sync::Arc;
 use super::{CommonMetricData, MetricId};
 use crate::ipc::need_ipc;
 
+#[cfg(feature = "with_gecko")]
+use super::profiler_utils::{lookup_canonical_metric_name, LookupError};
+
+#[cfg(feature = "with_gecko")]
+use gecko_profiler::gecko_profiler_category;
+
+#[cfg(feature = "with_gecko")]
+#[derive(serde::Serialize, serde::Deserialize, Debug)]
+struct StringMetricMarker {
+    id: MetricId,
+    val: String,
+}
+
+#[cfg(feature = "with_gecko")]
+impl gecko_profiler::ProfilerMarker for StringMetricMarker {
+    fn marker_type_name() -> &'static str {
+        "StringMetric"
+    }
+
+    fn marker_type_display() -> gecko_profiler::MarkerSchema {
+        use gecko_profiler::schema::*;
+        let mut schema = MarkerSchema::new(&[Location::MarkerChart, Location::MarkerTable]);
+        schema.set_tooltip_label("{marker.data.id} {marker.data.val}");
+        schema.set_table_label("{marker.name} - {marker.data.id}: {marker.data.val}");
+        schema.add_key_label_format_searchable(
+            "id",
+            "Metric",
+            Format::String,
+            Searchable::Searchable,
+        );
+        schema.add_key_label_format("val", "Value", Format::String);
+        schema
+    }
+
+    fn stream_json_marker_data(&self, json_writer: &mut gecko_profiler::JSONWriter) {
+        json_writer.string_property(
+            "id",
+            lookup_canonical_metric_name(&self.id).unwrap_or_else(LookupError::as_str),
+        );
+        json_writer.string_property("val", self.val.as_str());
+    }
+}
+
 /// A string metric.
 ///
 /// Record an Unicode string value with arbitrary content.
@@ -39,7 +82,10 @@ use crate::ipc::need_ipc;
 /// ```
 #[derive(Clone)]
 pub enum StringMetric {
-    Parent(Arc<glean::private::StringMetric>),
+    Parent {
+        id: MetricId,
+        inner: Arc<glean::private::StringMetric>,
+    },
     Child(StringMetricIpc),
 }
 #[derive(Clone, Debug)]
@@ -47,18 +93,21 @@ pub struct StringMetricIpc;
 
 impl StringMetric {
     /// Create a new string metric.
-    pub fn new(_id: MetricId, meta: CommonMetricData) -> Self {
+    pub fn new(id: MetricId, meta: CommonMetricData) -> Self {
         if need_ipc() {
             StringMetric::Child(StringMetricIpc)
         } else {
-            StringMetric::Parent(Arc::new(glean::private::StringMetric::new(meta)))
+            StringMetric::Parent {
+                id,
+                inner: Arc::new(glean::private::StringMetric::new(meta)),
+            }
         }
     }
 
     #[cfg(test)]
     pub(crate) fn child_metric(&self) -> Self {
         match self {
-            StringMetric::Parent(_) => StringMetric::Child(StringMetricIpc),
+            StringMetric::Parent { .. } => StringMetric::Child(StringMetricIpc),
             StringMetric::Child(_) => panic!("Can't get a child metric from a child metric"),
         }
     }
@@ -77,8 +126,20 @@ impl glean::traits::String for StringMetric {
     /// Truncates the value if it is longer than `MAX_STRING_LENGTH` bytes and logs an error.
     pub fn set<S: Into<std::string::String>>(&self, value: S) {
         match self {
-            StringMetric::Parent(p) => {
-                p.set(value.into());
+            #[allow(unused)]
+            StringMetric::Parent { id, inner } => {
+                let value = value.into();
+                #[cfg(feature = "with_gecko")]
+                gecko_profiler::add_marker(
+                    "String::set",
+                    gecko_profiler_category!(Telemetry),
+                    Default::default(),
+                    StringMetricMarker {
+                        id: *id,
+                        val: value.clone(),
+                    },
+                );
+                inner.set(value);
             }
             StringMetric::Child(_) => {
                 log::error!("Unable to set string metric in non-main process. This operation will be ignored.");
@@ -106,7 +167,7 @@ impl glean::traits::String for StringMetric {
     ) -> Option<std::string::String> {
         let ping_name = ping_name.into().map(|s| s.to_string());
         match self {
-            StringMetric::Parent(p) => p.test_get_value(ping_name),
+            StringMetric::Parent { id: _, inner } => inner.test_get_value(ping_name),
             StringMetric::Child(_) => {
                 panic!("Cannot get test value for string metric in non-main process!")
             }
@@ -128,7 +189,7 @@ impl glean::traits::String for StringMetric {
     /// The number of errors reported.
     pub fn test_get_num_recorded_errors(&self, error: glean::ErrorType) -> i32 {
         match self {
-            StringMetric::Parent(p) => p.test_get_num_recorded_errors(error),
+            StringMetric::Parent { id: _, inner } => inner.test_get_num_recorded_errors(error),
             StringMetric::Child(_) => panic!(
                 "Cannot get the number of recorded errors for string metric in non-main process!"
             ),
