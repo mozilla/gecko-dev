@@ -234,8 +234,7 @@ Result CertVerifier::VerifyCertificateTransparencyPolicy(
   if (ctInfo) {
     ctInfo->Reset();
   }
-  if (mCTMode == CertificateTransparencyMode::Disabled ||
-      !trustDomain.GetIsBuiltChainRootBuiltInRoot()) {
+  if (mCTMode == CertificateTransparencyMode::Disabled) {
     return Success;
   }
   if (time > TimeFromEpochInSeconds(kCTExpirationTime / PR_USEC_PER_SEC)) {
