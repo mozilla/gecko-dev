@@ -788,18 +788,25 @@ export const PREFS_CONFIG = new Map([
     },
   ],
   [
-    "discoverystream.contextualContent.topics",
+    "discoverystream.contextualContent.feeds",
     {
       title: "CSV list of possible topics for the contextual content feed",
-      value: "",
+      value: "need_to_know",
     },
   ],
   [
-    "discoverystream.contextualContent.detailedView",
+    "discoverystream.contextualContent.selectedFeed",
     {
       title:
-        "Controls if cards in contextual content feed display meta information and images",
-      value: false,
+        "currently selected feed (one of discoverystream.contextualContent.feeds) to display in listfeed",
+      value: "need_to_know",
+    },
+  ],
+  [
+    "discoverystream.contextualContent.listFeedTitle",
+    {
+      title: "Title for currently selected feed",
+      value: "",
     },
   ],
   [

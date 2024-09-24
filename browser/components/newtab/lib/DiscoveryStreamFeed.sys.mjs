@@ -100,6 +100,13 @@ const PREF_TOPIC_SELECTION_PREVIOUS_SELECTED =
 const PREF_SPOCS_CACHE_TIMEOUT = "discoverystream.spocs.cacheTimeout";
 const PREF_SPOCS_STARTUP_CACHE_ENABLED =
   "discoverystream.spocs.startupCache.enabled";
+const PREF_CONTEXTUAL_CONTENT_ENABLED =
+  "discoverystream.contextualContent.enabled";
+const PREF_CONTEXTUAL_CONTENT_FEEDS = "discoverystream.contextualContent.feeds";
+const PREF_CONTEXTUAL_CONTENT_SELECTED_FEED =
+  "discoverystream.contextualContent.selectedFeed";
+const PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE =
+  "discoverystream.contextualContent.listFeedTitle";
 
 let getHardcodedLayout;
 
@@ -879,6 +886,7 @@ export class DiscoveryStreamFeed {
       const { data: recommendations } = this.filterBlocked(
         feed.data.recommendations
       );
+
       return {
         ...feed,
         data: {
@@ -1528,6 +1536,7 @@ export class DiscoveryStreamFeed {
 
   async getComponentFeed(feedUrl, isStartup) {
     const cachedData = (await this.cache.get()) || {};
+    let contextualContentFeeds;
     const { feeds } = cachedData;
 
     let feed = feeds ? feeds[feedUrl] : null;
@@ -1551,6 +1560,15 @@ export class DiscoveryStreamFeed {
           PREF_MERINO_FEED_EXPERIMENT
         );
 
+        // Should we pass the feed param to the merino request
+        const contextualContentEnabled =
+          this.store.getState().Prefs.values[PREF_CONTEXTUAL_CONTENT_ENABLED];
+        contextualContentFeeds = this.store
+          .getState()
+          .Prefs.values[PREF_CONTEXTUAL_CONTENT_FEEDS]?.split(",")
+          .map(t => t.trim())
+          .filter(item => item);
+
         headers.append("content-type", "application/json");
         options = {
           method: "POST",
@@ -1560,6 +1578,9 @@ export class DiscoveryStreamFeed {
             locale: this.locale,
             region: this.region,
             topics,
+            ...(contextualContentEnabled
+              ? { feeds: contextualContentFeeds || [] }
+              : {}),
           }),
         };
       } else if (this.isBff) {
@@ -1591,6 +1612,41 @@ export class DiscoveryStreamFeed {
             received_rank: item.receivedRank,
             recommended_at: feedResponse.recommendedAt,
           }));
+          if (feedResponse.feeds && contextualContentFeeds?.length) {
+            contextualContentFeeds.forEach(feedName => {
+              feedResponse.feeds[feedName]?.recommendations.forEach(item =>
+                recommendations.push({
+                  id: item.tileId,
+                  scheduled_corpus_item_id: item.scheduledCorpusItemId,
+                  url: item.url,
+                  title: item.title,
+                  topic: item.topic,
+                  excerpt: item.excerpt,
+                  publisher: item.publisher,
+                  raw_image_src: item.imageUrl,
+                  received_rank: item.receivedRank,
+                  recommended_at: feedResponse.recommendedAt,
+                  // property to determine if rec is used in ListFeed or not
+                  feedName,
+                })
+              );
+            });
+            const selectedFeed =
+              this.store.getState().Prefs.values[
+                PREF_CONTEXTUAL_CONTENT_SELECTED_FEED
+              ];
+            const prevTitle =
+              this.store.getState().Prefs.values[
+                PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE
+              ];
+            const feedTitle = feedResponse.feeds[selectedFeed].title;
+
+            if (feedTitle && feedTitle !== prevTitle) {
+              this.store.dispatch(
+                ac.SetPref(PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE, feedTitle)
+              );
+            }
+          }
         } else if (this.isBff) {
           recommendations = feedResponse.data.map(item => ({
             id: item.tileId,
@@ -2023,6 +2079,7 @@ export class DiscoveryStreamFeed {
       case PREF_LAYOUT_EXPERIMENT_B:
       case PREF_SPOC_POSITIONS:
       case PREF_UNIFIED_ADS_ENABLED:
+      case PREF_CONTEXTUAL_CONTENT_ENABLED:
         // This is a config reset directly related to Discovery Stream pref.
         this.configReset();
         break;

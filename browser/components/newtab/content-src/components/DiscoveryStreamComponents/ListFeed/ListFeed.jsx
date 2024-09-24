@@ -3,11 +3,16 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 import React from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { DSCard } from "../DSCard/DSCard";
+const PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE =
+  "discoverystream.contextualContent.listFeedTitle";
 
 function ListFeed({ type, firstVisibleTimestamp, recs }) {
   const dispatch = useDispatch();
+  const listFeedTitle = useSelector(state => state.Prefs.values)[
+    PREF_CONTEXTUAL_CONTENT_LISTFEED_TITLE
+  ];
   // Todo: need to remove ads while using default recommendations, remove this line once API has been updated.
   const listFeedRecs = recs.filter(rec => !rec.flight_id).slice(0, 5);
   const { length: listLength } = listFeedRecs;
@@ -22,7 +27,7 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
       <div className="list-feed-inner-wrapper">
         <h1 className="list-feed-title" id="list-feed-title">
           <span className="icon icon-trending"></span>
-          Popular
+          {listFeedTitle}
         </h1>
         <div
           className="list-feed-content"

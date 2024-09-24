@@ -954,20 +954,20 @@ newtabContextualContent:
         pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.region-content-config
       description: >-
         A comma-separated list of regions that get contextual content by default.
-    contextualContentTopics:
+    contextualContentFeeds:
       type: string
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.topics
+        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.feeds
       description: >-
-        CSV list of possible topics for the contextual content feed
-    contextualContentDetailedView:
-      type: boolean
+        CSV list of possible feeds for the contextual content feed
+    contextualContentSelectedFeed:
+      type: string
       setPref:
         branch: user
-        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.detailedView
+        pref: browser.newtabpage.activity-stream.discoverystream.contextualContent.selectedFeed
       description: >-
-        Controls if cards in contextual content feed display meta information and images
+        currently selected feed to display in the Contextual Content component
 
 pocketNewtab:
   description: The Pocket section in newtab
