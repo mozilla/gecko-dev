@@ -887,7 +887,7 @@ tab-group {
   .tab-background {
     border-radius: var(--border-radius-medium);
 
-    &:not([selected], [multiselected]) {
+    .tabbrowser-tab:not(:hover) > .tab-stack > &:not([selected], [multiselected]) {
       background-color: color-mix(in srgb, currentColor 7%, transparent);
     }
   }
