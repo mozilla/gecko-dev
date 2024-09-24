@@ -34,6 +34,7 @@
 #include "MediaError.h"
 #include "MediaManager.h"
 #include "MediaMetadataManager.h"
+#include "MediaProfilerMarkers.h"
 #include "MediaResource.h"
 #include "MediaShutdownManager.h"
 #include "MediaSourceDecoder.h"
@@ -7056,6 +7057,15 @@ void HTMLMediaElement::MakeAssociationWithCDMResolved() {
   // 5.6 Resolve promise.
   mSetMediaKeysDOMPromise->MaybeResolveWithUndefined();
   mSetMediaKeysDOMPromise = nullptr;
+
+  if (profiler_is_collecting_markers()) {
+    nsString keySystem;
+    mMediaKeys->GetKeySystem(keySystem);
+    profiler_add_marker(nsPrintfCString("%p:mozcdmresolved", this),
+                        geckoprofiler::category::MEDIA_PLAYBACK, {},
+                        CDMResolvedMarker{}, keySystem,
+                        mMediaKeys->GetMediaKeySystemConfigurationString());
+  }
 }
 
 bool HTMLMediaElement::TryMakeAssociationWithCDM(CDMProxy* aProxy) {
@@ -7221,6 +7231,10 @@ void HTMLMediaElement::DispatchEncrypted(const nsTArray<uint8_t>& aInitData,
   RefPtr<AsyncEventDispatcher> asyncDispatcher =
       new AsyncEventDispatcher(this, event.forget());
   asyncDispatcher->PostDOMEvent();
+  if (profiler_is_collecting_markers()) {
+    nsPrintfCString markerName{"%p:encrypted", this};
+    PROFILER_MARKER_UNTYPED(markerName, MEDIA_PLAYBACK);
+  }
 }
 
 bool HTMLMediaElement::IsEventAttributeNameInternal(nsAtom* aName) {
