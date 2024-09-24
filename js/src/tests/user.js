@@ -31,5 +31,3 @@ user_pref("javascript.options.weakrefs", true);
 user_pref("javascript.options.experimental.weakrefs.expose_cleanupSome", true);
 user_pref("javascript.options.experimental.iterator_helpers", true);
 user_pref("javascript.options.experimental.import_attributes", true);
-user_pref("javascript.options.experimental.import_attributes.assert_syntax", true);
-

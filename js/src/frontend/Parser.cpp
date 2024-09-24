@@ -5363,8 +5363,7 @@ GeneralParser<ParseHandler, Unit>::importDeclaration() {
   MOZ_TRY_VAR(importAttributeList,
               handler_.newList(ParseNodeKind::ImportAttributeList, pos()));
 
-  if (tt == TokenKind::With ||
-      (tt == TokenKind::Assert && options().importAttributesAssertSyntax())) {
+  if (tt == TokenKind::With) {
     tokenStream.consumeKnownToken(tt, TokenStream::SlashIsRegExp);
 
     if (!withClause(importAttributeList)) {
@@ -5738,8 +5737,7 @@ GeneralParser<ParseHandler, Unit>::exportFrom(uint32_t begin, Node specList) {
   ListNodeType importAttributeList;
   MOZ_TRY_VAR(importAttributeList,
               handler_.newList(ParseNodeKind::ImportAttributeList, pos()));
-  if (tt == TokenKind::With ||
-      (tt == TokenKind::Assert && options().importAttributesAssertSyntax())) {
+  if (tt == TokenKind::With) {
     tokenStream.consumeKnownToken(tt, TokenStream::SlashIsRegExp);
 
     if (!withClause(importAttributeList)) {

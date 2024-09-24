@@ -124,20 +124,12 @@ class JS_PUBLIC_API PrefableCompileOptions {
  public:
   PrefableCompileOptions()
       : importAttributes_(false),
-        importAttributesAssertSyntax_(false),
         sourcePragmas_(true),
         throwOnAsmJSValidationFailure_(false) {}
 
   bool importAttributes() const { return importAttributes_; }
   PrefableCompileOptions& setImportAttributes(bool enabled) {
     importAttributes_ = enabled;
-    return *this;
-  }
-  bool importAttributesAssertSyntax() const {
-    return importAttributesAssertSyntax_;
-  }
-  PrefableCompileOptions& setImportAttributesAssertSyntax(bool enabled) {
-    importAttributesAssertSyntax_ = enabled;
     return *this;
   }
 
@@ -176,7 +168,6 @@ class JS_PUBLIC_API PrefableCompileOptions {
   void dumpWith(Printer& print) const {
 #  define PrintFields_(Name) print(#Name, Name)
     PrintFields_(importAttributes_);
-    PrintFields_(importAttributesAssertSyntax_);
     PrintFields_(sourcePragmas_);
     PrintFields_(throwOnAsmJSValidationFailure_);
 #  undef PrintFields_
@@ -204,7 +195,6 @@ class JS_PUBLIC_API PrefableCompileOptions {
  private:
   // ==== Syntax-related options. ====
   bool importAttributes_ : 1;
-  bool importAttributesAssertSyntax_ : 1;
 
   // The context has specified that source pragmas should be parsed.
   bool sourcePragmas_ : 1;
@@ -390,9 +380,6 @@ class JS_PUBLIC_API TransitiveCompileOptions {
   }
 
   bool importAttributes() const { return prefableOptions_.importAttributes(); }
-  bool importAttributesAssertSyntax() const {
-    return prefableOptions_.importAttributesAssertSyntax();
-  }
   bool sourcePragmas() const { return prefableOptions_.sourcePragmas(); }
   bool throwOnAsmJSValidationFailure() const {
     return prefableOptions_.throwOnAsmJSValidationFailure();

@@ -841,7 +841,6 @@ bool shell::enableAsyncStacks = false;
 bool shell::enableAsyncStackCaptureDebuggeeOnly = false;
 bool shell::enableToSource = false;
 bool shell::enableImportAttributes = false;
-bool shell::enableImportAttributesAssertSyntax = false;
 #ifdef JS_GC_ZEAL
 uint32_t shell::gZealBits = 0;
 uint32_t shell::gZealFrequency = 0;
@@ -12358,8 +12357,6 @@ bool InitOptionParser(OptionParser& op) {
       !op.addBoolOption('\0', "enable-regexp-escape", "Enable RegExp.escape") ||
       !op.addBoolOption('\0', "enable-top-level-await",
                         "Enable top-level await") ||
-      !op.addBoolOption('\0', "enable-import-assertions",
-                        "Enable import attributes with old assert syntax") ||
       !op.addBoolOption('\0', "enable-import-attributes",
                         "Enable import attributes") ||
       !op.addBoolOption('\0', "disable-destructuring-fuse",
@@ -12986,16 +12983,12 @@ bool SetContextOptions(JSContext* cx, const OptionParser& op) {
   enableAsyncStackCaptureDebuggeeOnly =
       op.getBoolOption("async-stacks-capture-debuggee-only");
   enableToSource = !op.getBoolOption("disable-tosource");
-  enableImportAttributesAssertSyntax =
-      op.getBoolOption("enable-import-assertions");
-  enableImportAttributes = op.getBoolOption("enable-import-attributes") ||
-                           enableImportAttributesAssertSyntax;
+  enableImportAttributes = op.getBoolOption("enable-import-attributes");
   JS::ContextOptionsRef(cx)
       .setSourcePragmas(enableSourcePragmas)
       .setAsyncStack(enableAsyncStacks)
       .setAsyncStackCaptureDebuggeeOnly(enableAsyncStackCaptureDebuggeeOnly)
-      .setImportAttributes(enableImportAttributes)
-      .setImportAttributesAssertSyntax(enableImportAttributesAssertSyntax);
+      .setImportAttributes(enableImportAttributes);
 
   if (const char* str = op.getStringOption("shared-memory")) {
     if (strcmp(str, "off") == 0) {
