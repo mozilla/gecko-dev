@@ -37,7 +37,7 @@ MOZ_CAN_RUN_SCRIPT bool CloseWatcherManager::ProcessCloseRequest() {
   }
   auto i = mGroups.Length() - 1;
   auto group = mGroups.ElementAt(i).Clone();
-  for (const RefPtr<CloseWatcher> watcher : group.BackwardRange()) {
+  for (RefPtr<CloseWatcher> watcher : group.BackwardRange()) {
     processedACloseWatcher = true;
     // TODO:(keithamus): https://github.com/whatwg/html/issues/10240 ?
     if (!watcher->RequestToClose()) {
