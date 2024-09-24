@@ -272,7 +272,6 @@ RefPtr<FetchChild> FetchChild::CreateForMainThread(
     RefPtr<FetchObserver> aObserver) {
   RefPtr<FetchChild> actor = MakeRefPtr<FetchChild>(
       std::move(aPromise), std::move(aSignalImpl), std::move(aObserver));
-  actor->mIsKeepAliveRequest = true;
   FETCH_LOG(("FetchChild::CreateForMainThread actor[%p]", actor.get()));
 
   return actor;
@@ -421,6 +420,7 @@ void FetchChild::DoFetchOp(const FetchOpArgs& aArgs) {
   FETCH_LOG(("FetchChild::DoFetchOp [%p]", this));
   // we need to store this for keepalive request
   // as we need to update the load group during actor termination
+  mIsKeepAliveRequest = aArgs.request().keepalive();
   if (mIsKeepAliveRequest) {
     mKeepaliveRequestSize =
         aArgs.request().bodySize() > 0 ? aArgs.request().bodySize() : 0;
@@ -479,14 +479,14 @@ void FetchChild::ActorDestroy(ActorDestroyReason aReason) {
     // See Bug 1901759
     // For workers we need to dispatch a runnable to the main thread for
     // updating the loadgroup
-
-    MOZ_ASSERT(NS_IsMainThread());
-    MOZ_ASSERT(mPromise->GetGlobalObject());
-    nsCOMPtr<nsILoadGroup> loadGroup =
-        FetchUtil::GetLoadGroupFromGlobal(mPromise->GetGlobalObject());
-    if (loadGroup) {
-      FetchUtil::DecrementPendingKeepaliveRequestSize(loadGroup,
-                                                      mKeepaliveRequestSize);
+    if (NS_IsMainThread()) {
+      MOZ_ASSERT(mPromise->GetGlobalObject());
+      nsCOMPtr<nsILoadGroup> loadGroup =
+          FetchUtil::GetLoadGroupFromGlobal(mPromise->GetGlobalObject());
+      if (loadGroup) {
+        FetchUtil::DecrementPendingKeepaliveRequestSize(loadGroup,
+                                                        mKeepaliveRequestSize);
+      }
     }
   }
   mPromise = nullptr;
