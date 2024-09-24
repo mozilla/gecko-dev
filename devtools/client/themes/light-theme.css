@@ -217,14 +217,6 @@ body {
   border-left: solid 1px black;
 }
 
-.cm-s-mozilla.CodeMirror-focused .CodeMirror-selected { /* selected text (focused) */
-  background: rgb(185, 215, 253);
-}
-
-.cm-s-mozilla .CodeMirror-selected { /* selected text (unfocused) */
-  background: rgb(210, 210, 210);
-}
-
 .cm-s-mozilla .CodeMirror-activeline-background { /* selected color with alpha */
   background: rgba(185, 215, 253, .35);
 }

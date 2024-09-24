@@ -309,7 +309,7 @@
   outline: 1px solid var(--theme-contrast-border);
   border-radius: 2px;
   /* Override cm6 inline */
-  background-color: transparent !important; 
+  background-color: transparent !important;
 }
 
 .cm-non-printable-char {
@@ -330,6 +330,37 @@
   text-underline-offset: 3px;
 }
 
+.cm-s-mozilla.CodeMirror-focused .CodeMirror-selected { /* selected text (focused) */
+  background: var(--theme-text-selection-background);
+}
+
+.cm-s-mozilla .CodeMirror-selected { /* selected text (unfocused) */
+  background: var(--theme-text-selection-unfocused-background);
+}
+
+/* cm5 High Contrast Mode override */
+:root[forced-colors-active] {
+  .CodeMirror-selectedtext {
+    /* Set the color on the actual span elements */
+    color: var(--theme-text-selection-color);
+    /* We also need to set the background color to avoid the backplating and keep it readable  */
+    background-color: var(--theme-text-selection-background);
+
+    /* Set the background for the "active match" (i.e. when double clicking a word) */
+    &.cm-matchhighlight {
+      forced-color-adjust: auto;
+      background-color: var(--theme-text-selection-background) !important;
+      color: var(--theme-text-selection-color);
+    }
+  }
+
+  /* Matching brackets */
+  div.CodeMirror span.CodeMirror-matchingbracket {
+    background-color: Mark;
+    color: MarkText;
+  }
+}
+
 /****************************************/
 /***** CodeMirror 6 specific styles *****/
 /****************************************/
@@ -339,7 +370,23 @@
   height: 100%;
 }
 .cm-editor .cm-selectionBackground {
-  background: var(--theme-selection-background) !important;
+  background: var(--theme-text-selection-background) !important;
+}
+
+.cm-editor .cm-content ::selection {
+  /* We don't want forced colors on selection so we can adjust the colors as we want.
+     This especially helps for the unfocused selected text */
+  forced-color-adjust: none;
+}
+
+.cm-editor .cm-line ::selection {
+  color: inherit;
+}
+
+:root[forced-colors-active] .cm-editor .cm-line ::selection,
+:root[forced-colors-active] .cm-editor .cm-line::selection {
+  background-color: var(--theme-text-selection-background) !important;
+  color: var(--theme-text-selection-color) !important;
 }
 
 .cm6-dt-foldgutter__toggle-button {
@@ -385,6 +432,11 @@
   /* Applying the same color that was set in cm5. Set the color on the parent so the
      underline set on the parent has the correct color */
   color: #0b0;
+
+  :root[forced-colors-active] & {
+    background: Mark;
+    color: MarkText;
+  }
 
   .tok-punctuation {
     color: currentColor;

@@ -173,6 +173,10 @@
   --theme-selection-focus-background: light-dark(var(--toolbarbutton-hover-background), var(--grey-60));
   --theme-selection-color: #ffffff;
 
+  /* Text Selection/Highlight */
+  --theme-text-selection-background: light-dark(rgb(185, 215, 253), #353b48);
+  --theme-text-selection-unfocused-background: light-dark(rgb(210, 210, 210), var(--theme-text-selection-background));
+
   /* Border color that splits the toolbars/panels/headers. */
   --theme-splitter-color: light-dark(var(--grey-25), var(--grey-70));
   --theme-emphasized-splitter-color: light-dark(var(--grey-30), var(--grey-60));
@@ -275,6 +279,9 @@
   &[forced-colors-active] {
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
+    --theme-text-selection-background: Highlight;
+    --theme-text-selection-color: HighlightText;
+    --theme-text-selection-unfocused-background: Highlight;
     --theme-body-color: CanvasText;
     --theme-focus-outline-color: CanvasText;
     --theme-focus-textinput-outline-color: SelectedItem;

@@ -247,6 +247,11 @@ class Editor extends EventEmitter {
         el.append(doc.createTextNode(`\\u${char.codePointAt(0).toString(16)}`));
         return el;
       },
+      // In CodeMirror 5, adds a `CodeMirror-selectedtext` class on selected text that
+      // can be used to set the selected text color, which isn't possible by default.
+      // This is especially useful for High Contrast Mode where we do need to adjust the
+      // selection text color
+      styleSelectedText: true,
     };
 
     // Additional shortcuts.

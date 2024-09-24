@@ -40,6 +40,7 @@ module.exports = (env, argv) => {
       "./codemirror/addon/fold/foldgutter.js",
       "./codemirror/addon/runmode/runmode.js",
       "./codemirror/addon/display/placeholder.js",
+      "./codemirror/addon/selection/mark-selection.js",
       "./codemirror/lib/codemirror.js",
     ],
     optimization: {
