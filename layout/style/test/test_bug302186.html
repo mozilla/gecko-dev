@@ -5,13 +5,8 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=302186
 -->
 <head>
   <title>Test for Bug 302186</title>
-  <script type="text/javascript" src="/MochiKit/Base.js"></script>
-  <script type="text/javascript" src="/MochiKit/DOM.js"></script>
-  <script type="text/javascript" src="/MochiKit/Style.js"></script>
-  <script type="text/javascript" src="/MochiKit/Color.js"></script>
-  <script src="/tests/SimpleTest/SimpleTest.js"></script>        
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
-
 <style>
 
 
@@ -312,110 +307,110 @@ input { display: none }
 SimpleTest.waitForExplicitFinish();
 
 function idColor(anId) {
- var color = Color.fromComputedStyle(anId, "color");
- return color.toRGBString();
+ var elem = document.getElementById(anId);
+ return getComputedStyle(elem).color;
 }
 
-is(idColor("s1a"),"rgb(0,128,0)", "CSS static-default 1a");
-is(idColor("s1b"),"rgb(0,128,0)", "CSS static-default 1b");
-is(idColor("s2a"),"rgb(0,128,0)", "CSS static-default 2a");
-is(idColor("s2b"),"rgb(0,128,0)", "CSS static-default 2b");
-is(idColor("s3a"),"rgb(0,128,0)", "CSS static-default 3a");
-is(idColor("s3b"),"rgb(0,128,0)", "CSS static-default 3b");
-is(idColor("s4a"),"rgb(0,128,0)", "CSS static-default 4a");
-is(idColor("s4b"),"rgb(0,128,0)", "CSS static-default 4b");
-is(idColor("s5a"),"rgb(0,128,0)", "CSS static-default 5a");
-is(idColor("s5b"),"rgb(0,128,0)", "CSS static-default 5b");
+is(idColor("s1a"),"rgb(0, 128, 0)", "CSS static-default 1a");
+is(idColor("s1b"),"rgb(0, 128, 0)", "CSS static-default 1b");
+is(idColor("s2a"),"rgb(0, 128, 0)", "CSS static-default 2a");
+is(idColor("s2b"),"rgb(0, 128, 0)", "CSS static-default 2b");
+is(idColor("s3a"),"rgb(0, 128, 0)", "CSS static-default 3a");
+is(idColor("s3b"),"rgb(0, 128, 0)", "CSS static-default 3b");
+is(idColor("s4a"),"rgb(0, 128, 0)", "CSS static-default 4a");
+is(idColor("s4b"),"rgb(0, 128, 0)", "CSS static-default 4b");
+is(idColor("s5a"),"rgb(0, 128, 0)", "CSS static-default 5a");
+is(idColor("s5b"),"rgb(0, 128, 0)", "CSS static-default 5b");
 
 function dynamicDefault1() {
   $('foo1').removeAttribute("type");
-  is(idColor("1a"),"rgb(0,128,0)", "CSS dynamic-default 1a");
-  is(idColor("1b"),"rgb(0,128,0)", "CSS dynamic-default 1b");
+  is(idColor("1a"),"rgb(0, 128, 0)", "CSS dynamic-default 1a");
+  is(idColor("1b"),"rgb(0, 128, 0)", "CSS dynamic-default 1b");
 }
 
 function dynamicDefault2() {
   $('foo2').setAttribute("type", "button");
-  is(idColor("2a"),"rgb(0,128,0)", "CSS dynamic-default 2a");
-  is(idColor("2b"),"rgb(0,128,0)", "CSS dynamic-default 2b");
+  is(idColor("2a"),"rgb(0, 128, 0)", "CSS dynamic-default 2a");
+  is(idColor("2b"),"rgb(0, 128, 0)", "CSS dynamic-default 2b");
 }
 
 function dynamicDefault3() {
   $('foo3').removeAttribute("type");
   $('bar3').setAttribute("type", "checkbox");
-  is(idColor("3a"),"rgb(0,128,0)", "CSS dynamic-default 3a");
-  is(idColor("3b"),"rgb(0,128,0)", "CSS dynamic-default 3b");
+  is(idColor("3a"),"rgb(0, 128, 0)", "CSS dynamic-default 3a");
+  is(idColor("3b"),"rgb(0, 128, 0)", "CSS dynamic-default 3b");
 }
 
 function dynamicDefault4() {
   $('foo4').removeAttribute("type");
   $('bar4').setAttribute("type", "radio");
-  is(idColor("4a"),"rgb(0,128,0)", "CSS dynamic-default 4a");
-  is(idColor("4b"),"rgb(0,128,0)", "CSS dynamic-default 4b");
+  is(idColor("4a"),"rgb(0, 128, 0)", "CSS dynamic-default 4a");
+  is(idColor("4b"),"rgb(0, 128, 0)", "CSS dynamic-default 4b");
 }
 
 function dynamicDefault5() {
   $('foo5').setAttribute("type", "submit")
-  is(idColor("5"),"rgb(0,128,0)", "CSS dynamic-default 5");
+  is(idColor("5"),"rgb(0, 128, 0)", "CSS dynamic-default 5");
 }
 
 function dynamicDefault6() {
   var but = document.createElement("input");
   but.setAttribute("type", "submit");
   $('div6').insertBefore(but, $('div6').firstChild);
-  is(idColor("6a"),"rgb(0,128,0)", "CSS dynamic-default 6a");
-  is(idColor("6b"),"rgb(0,128,0)", "CSS dynamic-default 6b");
+  is(idColor("6a"),"rgb(0, 128, 0)", "CSS dynamic-default 6a");
+  is(idColor("6b"),"rgb(0, 128, 0)", "CSS dynamic-default 6b");
 }
 
 function dynamicDefault7() {
   var but = document.createElement("input");
   but.setAttribute("type", "submit");
   $('div7').insertBefore(but, $('div7').firstChild);
-  is(idColor("7a"),"rgb(0,128,0)", "CSS dynamic-default 7a");
-  is(idColor("7b"),"rgb(0,128,0)", "CSS dynamic-default 7b");
+  is(idColor("7a"),"rgb(0, 128, 0)", "CSS dynamic-default 7a");
+  is(idColor("7b"),"rgb(0, 128, 0)", "CSS dynamic-default 7b");
 }
 
 function dynamicDefault8() {
   var but = document.createElement("input");
   but.setAttribute("type", "image");
   $('div8').insertBefore(but, $('div8').firstChild);
-  is(idColor("8a"),"rgb(0,128,0)", "CSS dynamic-default 8a");
-  is(idColor("8b"),"rgb(0,128,0)", "CSS dynamic-default 8b");
+  is(idColor("8a"),"rgb(0, 128, 0)", "CSS dynamic-default 8a");
+  is(idColor("8b"),"rgb(0, 128, 0)", "CSS dynamic-default 8b");
 }
 
 function dynamicDefault9() {
   var but = document.createElement("input");
   but.setAttribute("type", "image");
   $('div9').insertBefore(but, $('div9').firstChild);
-  is(idColor("9a"),"rgb(0,128,0)", "CSS dynamic-default 9a");
-  is(idColor("9b"),"rgb(0,128,0)", "CSS dynamic-default 9b");
+  is(idColor("9a"),"rgb(0, 128, 0)", "CSS dynamic-default 9a");
+  is(idColor("9b"),"rgb(0, 128, 0)", "CSS dynamic-default 9b");
 }
 
 function dynamicDefault10() {
   var inputs = $('div10').getElementsByTagName("input");
   $('div10').removeChild(inputs[0]);
-  is(idColor("10a"),"rgb(0,128,0)", "CSS dynamic-default 10a");
-  is(idColor("10b"),"rgb(0,128,0)", "CSS dynamic-default 10b");
+  is(idColor("10a"),"rgb(0, 128, 0)", "CSS dynamic-default 10a");
+  is(idColor("10b"),"rgb(0, 128, 0)", "CSS dynamic-default 10b");
 }
 
 function dynamicDefault11() {
   var inputs = $('div11').getElementsByTagName("input");
   $('div11').removeChild(inputs[0]);
-  is(idColor("11a"),"rgb(0,128,0)", "CSS dynamic-default 11a");
-  is(idColor("11b"),"rgb(0,128,0)", "CSS dynamic-default 11b");
+  is(idColor("11a"),"rgb(0, 128, 0)", "CSS dynamic-default 11a");
+  is(idColor("11b"),"rgb(0, 128, 0)", "CSS dynamic-default 11b");
 }
 
 function dynamicDefault12() {
   var inputs = $('div12').getElementsByTagName("input");
   $('div12').removeChild(inputs[0]);
-  is(idColor("12a"),"rgb(0,128,0)", "CSS dynamic-default 12a");
-  is(idColor("12b"),"rgb(0,128,0)", "CSS dynamic-default 12b");
+  is(idColor("12a"),"rgb(0, 128, 0)", "CSS dynamic-default 12a");
+  is(idColor("12b"),"rgb(0, 128, 0)", "CSS dynamic-default 12b");
 }
 
 function dynamicDefault13() {
   var inputs = $('div13').getElementsByTagName("input");
   $('div13').removeChild(inputs[0]);
-  is(idColor("13a"),"rgb(0,128,0)", "CSS dynamic-default 13a");
-  is(idColor("13b"),"rgb(0,128,0)", "CSS dynamic-default 13b");
+  is(idColor("13a"),"rgb(0, 128, 0)", "CSS dynamic-default 13a");
+  is(idColor("13b"),"rgb(0, 128, 0)", "CSS dynamic-default 13b");
 }
 
 function dynamicDefault14() {
@@ -427,8 +422,8 @@ function dynamicDefault14() {
   var secondElement = div2.removeChild(inputs[0]);
   div1.insertBefore(secondElement, div1.firstChild);
   div2.insertBefore(firstElement, div2.firstChild);
-  is(idColor("14a"),"rgb(0,128,0)", "CSS dynamic-default 14a");
-  is(idColor("14b"),"rgb(0,128,0)", "CSS dynamic-default 14b");
+  is(idColor("14a"),"rgb(0, 128, 0)", "CSS dynamic-default 14a");
+  is(idColor("14b"),"rgb(0, 128, 0)", "CSS dynamic-default 14b");
 }
 
 function dynamicDefault15() {
@@ -440,26 +435,26 @@ function dynamicDefault15() {
   var secondElement = div2.removeChild(inputs[0]);
   div1.insertBefore(secondElement, div1.firstChild);
   div2.insertBefore(firstElement, div2.firstChild);
-  is(idColor("15a"),"rgb(0,128,0)", "CSS dynamic-default 15a");
-  is(idColor("15b"),"rgb(0,128,0)", "CSS dynamic-default 15b");
+  is(idColor("15a"),"rgb(0, 128, 0)", "CSS dynamic-default 15a");
+  is(idColor("15b"),"rgb(0, 128, 0)", "CSS dynamic-default 15b");
 }
 
 function dynamicDefault16() {
   $("foo16").setAttribute("type", "button");
-  is(idColor("16a"),"rgb(0,128,0)", "CSS dynamic-default 16a");
-  is(idColor("16b"),"rgb(0,128,0)", "CSS dynamic-default 16b");
+  is(idColor("16a"),"rgb(0, 128, 0)", "CSS dynamic-default 16a");
+  is(idColor("16b"),"rgb(0, 128, 0)", "CSS dynamic-default 16b");
 }
 
 function dynamicDefault17() {
   $("foo17").setAttribute("type", "submit");
-  is(idColor("17a"),"rgb(0,128,0)", "CSS dynamic-default 17a");
-  is(idColor("17b"),"rgb(0,128,0)", "CSS dynamic-default 17b");
+  is(idColor("17a"),"rgb(0, 128, 0)", "CSS dynamic-default 17a");
+  is(idColor("17b"),"rgb(0, 128, 0)", "CSS dynamic-default 17b");
 }
 
 function dynamicDefault18() {
   $("foo18").setAttribute("type", "submit");
-  is(idColor("18a"),"rgb(0,128,0)", "CSS dynamic-default 18a");
-  is(idColor("18b"),"rgb(0,128,0)", "CSS dynamic-default 18b");
+  is(idColor("18a"),"rgb(0, 128, 0)", "CSS dynamic-default 18a");
+  is(idColor("18b"),"rgb(0, 128, 0)", "CSS dynamic-default 18b");
 }
 
 function dynamicDefault19() {
@@ -467,7 +462,7 @@ function dynamicDefault19() {
   newSubmit.setAttribute("type", "submit");
   var div1 = document.getElementById("div19");
   div1.insertBefore(newSubmit, div1.firstChild);
-  is(idColor("19a"),"rgb(0,128,0)", "CSS dynamic-default 19a");
+  is(idColor("19a"),"rgb(0, 128, 0)", "CSS dynamic-default 19a");
 }
 
 function dynamicDefault20() {
@@ -475,7 +470,7 @@ function dynamicDefault20() {
   newSubmit.setAttribute("type", "image");
   var div1 = document.getElementById("div20");
   div1.insertBefore(newSubmit, div1.firstChild);
-  is(idColor("20a"),"rgb(0,128,0)", "CSS dynamic-default 20a");
+  is(idColor("20a"),"rgb(0, 128, 0)", "CSS dynamic-default 20a");
 }
 
 addLoadEvent(dynamicDefault1);
