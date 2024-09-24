@@ -17,6 +17,8 @@
 #include <spa/param/video/raw.h>
 #include <spa/pod/parser.h>
 
+#include <algorithm>
+
 #include "common_video/libyuv/include/webrtc_libyuv.h"
 #include "modules/video_capture/device_info_impl.h"
 #include "rtc_base/logging.h"
@@ -152,9 +154,15 @@ void PipeWireNode::OnNodeParam(void* data,
 
       fract = static_cast<spa_fraction*>(SPA_POD_BODY(val));
 
-      if (choice == SPA_CHOICE_None)
+      if (choice == SPA_CHOICE_None) {
         cap.maxFPS = 1.0 * fract[0].num / fract[0].denom;
-      else if (choice == SPA_CHOICE_Range && fract[1].num > 0)
+      } else if (choice == SPA_CHOICE_Enum) {
+        for (uint32_t i = 1; i < n_items; i++) {
+          cap.maxFPS = std::max(
+              static_cast<int32_t>(1.0 * fract[i].num / fract[i].denom),
+              cap.maxFPS);
+        }
+      } else if (choice == SPA_CHOICE_Range && fract[1].num > 0)
         cap.maxFPS = 1.0 * fract[1].num / fract[1].denom;
     }
   }
