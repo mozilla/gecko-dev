@@ -82,7 +82,15 @@ private fun BookmarksState.toggleSelectionOf(item: BookmarkItem): BookmarksState
         copy(selectedItems = selectedItems + item)
     }
 
+private fun BookmarksSelectFolderState.respondToBackClick(): BookmarksSelectFolderState? = when {
+    selectionGuid != null && addFolderSelectionGuid != null -> copy(addFolderSelectionGuid = null)
+    else -> null
+}
+
 private fun BookmarksState.respondToBackClick(): BookmarksState = when {
+    bookmarksSelectFolderState != null -> copy(
+        bookmarksSelectFolderState = bookmarksSelectFolderState.respondToBackClick(),
+    )
     bookmarksAddFolderState != null -> copy(bookmarksAddFolderState = null)
     bookmarksEditBookmarkState != null -> copy(bookmarksEditBookmarkState = null)
     else -> this

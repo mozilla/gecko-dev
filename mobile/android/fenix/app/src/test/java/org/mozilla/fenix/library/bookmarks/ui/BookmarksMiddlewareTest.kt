@@ -372,6 +372,19 @@ class BookmarksMiddlewareTest {
         assertEquals(6, store.state.bookmarksSelectFolderState?.folders?.count())
     }
 
+    @Test
+    fun `GIVEN current screen select folder WHEN back is clicked THEN pop the backstack`() = runTestOnMain {
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+            ),
+        )
+
+        store.dispatch(BackClicked)
+        verify(navController).popBackStack()
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         navController = navController,

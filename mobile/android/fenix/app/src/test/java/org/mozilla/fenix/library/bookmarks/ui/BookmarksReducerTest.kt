@@ -220,6 +220,41 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN we are on the select folder screen WHEN back is clicked THEN the select folder state is removed`() {
+        val state = BookmarksState.default.copy(
+            bookmarksSelectFolderState = BookmarksSelectFolderState(),
+        )
+
+        val result = bookmarksReducer(state, BackClicked)
+
+        val expected = state.copy(
+            bookmarksSelectFolderState = null,
+        )
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN we are on the select folder screen while editing a bookmark and creating a folder WHEN back is clicked THEN just the select folder guid is removed`() {
+        val state = BookmarksState.default.copy(
+            bookmarksSelectFolderState = BookmarksSelectFolderState(
+                selectionGuid = "abc",
+                addFolderSelectionGuid = "123",
+            ),
+        )
+
+        val result = bookmarksReducer(state, BackClicked)
+
+        val expected = state.copy(
+            bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
+                addFolderSelectionGuid = null,
+            ),
+        )
+
+        assertEquals(expected, result)
+    }
+
+    @Test
     fun `GIVEN we are on the select folder screen WHEN folders are loaded THEN attach loaded folders on the select screen state`() {
         val state = BookmarksState.default.copy(
             bookmarksSelectFolderState = BookmarksSelectFolderState(),
