@@ -42,6 +42,8 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "resource://gre/modules/shared/FormAutofillSection.sys.mjs",
   FormAutofillCreditCardSection:
     "resource://gre/modules/shared/FormAutofillSection.sys.mjs",
+  FormAutofillHeuristics:
+    "resource://gre/modules/shared/FormAutofillHeuristics.sys.mjs",
   FormAutofillSection:
     "resource://gre/modules/shared/FormAutofillSection.sys.mjs",
   FormAutofillPreferences:
@@ -479,15 +481,36 @@ export class FormAutofillParent extends JSWindowActorParent {
       fieldsIncludeIframe
     );
 
-    // At this point we have identified all the fields that are under the same root element.
-    // We can run section classification heuristic now.
+    // Now we have collected all the fields for the form, run parsing heuristics
+    // to update the field name based on surrounding fields.
+    lazy.FormAutofillHeuristics.parseAndUpdateFieldNamesParent(fieldDetails);
+
+    // At this point we have identified all the fields that are under the same
+    // root element. We can run section classification heuristic now.
     const sections = lazy.FormAutofillSection.classifySections(fieldDetails);
     this.sectionsByRootId.set(rootElementId, sections);
 
-    // `onFieldsDetected` is not called when a form is detected, but also called
-    // when the elements in a form are changed. When the elements in a form are
-    // changed, we treat the "updated" section as a new detected section.
+    // Note that 'onFieldsDetected' is not only called when a form is detected,
+    // but also called when the elements in a form are changed. When the elements
+    // in a form are changed, we treat the "updated" section as a new detected section.
     sections.forEach(section => section.onDetected());
+
+    // Inform all the child actors of the updated 'fieldDetails'
+    const detailsByBC =
+      lazy.FormAutofillSection.groupFieldDetailsByBrowsingContext(fieldDetails);
+    for (const [bcId, fds] of Object.entries(detailsByBC)) {
+      try {
+        const actor = FormAutofillParent.getActor(BrowsingContext.get(bcId));
+        await actor.sendQuery("FormAutofill:onFieldsDetectedComplete", {
+          fds,
+        });
+      } catch (e) {
+        console.error(
+          "There was an error sending 'onFieldsDetectedComplete' msg",
+          e.message
+        );
+      }
+    }
 
     // This is for testing purpose only which sends a notification to indicate that the
     // form has been identified, and ready to open popup.
