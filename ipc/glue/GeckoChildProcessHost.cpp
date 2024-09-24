@@ -1699,6 +1699,11 @@ Result<Ok, LaunchError> WindowsProcessLauncher::DoSetup() {
   // Process type
   mCmdLine->AppendLooseValue(UTF8ToWide(ChildProcessType()));
 
+  // Add any files which need to be transferred to handles_to_inherit.
+  for (auto& file : mChildArgs.mFiles) {
+    mLaunchOptions->handles_to_inherit.push_back(file.get());
+  }
+
 #  ifdef MOZ_SANDBOX
   if (mUseSandbox) {
     // Mark the handles to inherit as inheritable.
