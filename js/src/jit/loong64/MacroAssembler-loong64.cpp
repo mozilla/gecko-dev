@@ -3311,12 +3311,39 @@ void MacroAssembler::enterFakeExitFrameForWasm(Register cxreg, Register scratch,
 
 CodeOffset MacroAssembler::sub32FromMemAndBranchIfNegativeWithPatch(
     Address address, Label* label) {
-  MOZ_CRASH("needs to be implemented on this platform");
+  ScratchRegisterScope scratch(asMasm());
+  MOZ_ASSERT(scratch != address.base);
+  ma_ld_w(scratch, address);
+  // LoongArch doesn't have subtraction instr that support immediate operand,
+  // and use 'addi.w rd, rj, -imm' instead to achieve same function.
+  // 128 is arbitrary, but makes `*address` count upwards, which may help
+  // to identify cases where the subsequent ::patch..() call was forgotten.
+  as_addi_w(scratch, scratch, 128);
+  // Points immediately after the insn to patch
+  CodeOffset patchPoint = CodeOffset(currentOffset());
+  ma_st_w(scratch, address);
+  ma_b(scratch, Register(scratch), label, Assembler::Signed);
+  return patchPoint;
 }
 
 void MacroAssembler::patchSub32FromMemAndBranchIfNegative(CodeOffset offset,
                                                           Imm32 imm) {
-  MOZ_CRASH("needs to be implemented on this platform");
+  int32_t val = imm.value;
+  // Patching it to zero would make the insn pointless
+  MOZ_RELEASE_ASSERT(val >= 1 && val <= 127);
+  Instruction* instrPtr =
+      (Instruction*)m_buffer.getInst(BufferOffset(offset.offset() - 4));
+  // LoongArch doesn't have subtraction instr that support immediate operand,
+  // and use 'addi.w rd, rj, -imm' instead to achieve same function.
+  // 31   27   23 21   9  4
+  // |    |    |  |    |  |
+  // 0000 0010 10 si12 rj rd = addi.w rd, rj, #si12
+  InstImm* inst = (InstImm*)instrPtr;
+  MOZ_ASSERT(inst->extractBitField(31, 22) == ((uint32_t)op_addi_w >> 22));
+
+  *inst = InstImm(op_addi_w, (int32_t)(-val & 0xfff),
+                  Register::FromCode(inst->extractRJ()),
+                  Register::FromCode(inst->extractRD()), 12);
 }
 
 // TODO(loong64): widenInt32 should be nop?
