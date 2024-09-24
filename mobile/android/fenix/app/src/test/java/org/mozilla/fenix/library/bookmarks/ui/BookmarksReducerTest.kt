@@ -164,6 +164,32 @@ class BookmarksReducerTest {
         assertEquals(BookmarksState.default, result)
     }
 
+    @Test
+    fun `GIVEN we are on the select folder screen WHEN folders are loaded THEN attach loaded folders on the select screen state`() {
+        val state = BookmarksState.default.copy(
+            bookmarksSelectFolderState = BookmarksSelectFolderState(),
+        )
+
+        val folders = listOf(
+            SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
+            SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0")),
+            SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
+            SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
+            SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0")),
+            SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid1")),
+            SelectFolderItem(3, BookmarkItem.Folder("Nested Three", "guid0")),
+            SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0")),
+        )
+
+        val result = bookmarksReducer(state, SelectFolderAction.FoldersLoaded(folders))
+
+        val expected = state.copy(
+            bookmarksSelectFolderState = BookmarksSelectFolderState(folders = folders),
+        )
+
+        assertEquals(expected, result)
+    }
+
     private fun generateBookmark(
         num: Int = 0,
         url: String = "url",

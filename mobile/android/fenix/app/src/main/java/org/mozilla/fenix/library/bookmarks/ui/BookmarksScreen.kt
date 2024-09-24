@@ -214,6 +214,10 @@ private fun SelectFolderScreen(
 ) {
     val state by store.observeAsState(store.state.bookmarksSelectFolderState) { it.bookmarksSelectFolderState }
 
+    LaunchedEffect(Unit) {
+        store.dispatch(SelectFolderAction.ViewAppeared)
+    }
+
     Scaffold(
         topBar = {
             SelectFolderTopBar(

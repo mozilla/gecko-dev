@@ -49,8 +49,14 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
             )
         },
     )
+    is SelectFolderAction.FoldersLoaded -> state.copy(
+        bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
+            folders = action.folders,
+        ),
+    )
     EditBookmarkAction.DeleteClicked -> state.copy(bookmarksEditBookmarkState = null)
     BackClicked -> state.respondToBackClick()
+    SelectFolderAction.ViewAppeared,
     EditBookmarkAction.FolderClicked,
     AddFolderAction.ParentFolderClicked,
     SearchClicked,

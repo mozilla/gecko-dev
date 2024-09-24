@@ -347,6 +347,21 @@ class BookmarksMiddlewareTest {
         assertEquals(tree.children!!.size, store.state.bookmarkItems.size)
     }
 
+    @Test
+    fun `GIVEN bookmarks in storage WHEN select folder sub screen view is loaded THEN load folders into sub screen state`() = runTestOnMain {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = true)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+            ),
+        )
+
+        store.dispatch(SelectFolderAction.ViewAppeared)
+
+        assertEquals(6, store.state.bookmarksSelectFolderState?.folders?.count())
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         navController = navController,

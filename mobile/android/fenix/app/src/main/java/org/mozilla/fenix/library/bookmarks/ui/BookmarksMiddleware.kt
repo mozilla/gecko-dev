@@ -133,15 +133,25 @@ internal class BookmarksMiddleware(
             AddFolderAction.ParentFolderClicked -> {
                 // TODO this will navigate to the select folder screen
             }
+            SelectFolderAction.ViewAppeared -> context.store.loadFolders(BookmarkRoot.Mobile.id)
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarkLongClicked,
             is FolderLongClicked,
             is BookmarksLoaded,
             is AddFolderAction.TitleChanged,
+            is SelectFolderAction.FoldersLoaded,
             -> Unit
         }
     }
+
+    private fun Store<BookmarksState, BookmarksAction>.loadFolders(guid: String) =
+        scope.launch {
+            bookmarksStorage.getTree(guid, recursive = true)?.let { rootNode ->
+                val folders = collectFolders(rootNode)
+                dispatch(SelectFolderAction.FoldersLoaded(folders))
+            }
+        }
 
     private fun Store<BookmarksState, BookmarksAction>.tryDispatchLoadFor(guid: String) =
         scope.launch {
@@ -180,6 +190,30 @@ internal class BookmarksMiddleware(
 
     private fun NavController.previousDestinationWasHome(): Boolean =
         previousBackStackEntry?.destination?.id == R.id.homeFragment
+
+    private fun collectFolders(
+        node: BookmarkNode,
+        indentation: Int = 0,
+        folders: MutableList<SelectFolderItem> = mutableListOf(),
+    ): List<SelectFolderItem> {
+        if (node.type == BookmarkNodeType.FOLDER) {
+            folders.add(
+                SelectFolderItem(
+                    indentation = indentation,
+                    folder = BookmarkItem.Folder(
+                        guid = node.guid,
+                        title = resolveFolderTitle(node),
+                    ),
+                ),
+            )
+
+            node.children?.forEach { child ->
+                folders.addAll(collectFolders(child, indentation + 1))
+            }
+        }
+
+        return folders
+    }
 }
 
 @VisibleForTesting(otherwise = PRIVATE)
