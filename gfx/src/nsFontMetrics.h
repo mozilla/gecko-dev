@@ -59,6 +59,9 @@ class nsFontMetrics final {
   struct MOZ_STACK_CLASS Params {
     nsAtom* language = nullptr;
     bool explicitLanguage = false;
+#ifdef XP_WIN
+    bool allowForceGDIClassic = true;
+#endif
     FontOrientation orientation = eHorizontal;
     gfxUserFontSet* userFontSet = nullptr;
     gfxTextPerfMetrics* textPerf = nullptr;
@@ -246,6 +249,10 @@ class nsFontMetrics final {
 
   int32_t AppUnitsPerDevPixel() const { return mP2A; }
 
+#ifdef XP_WIN
+  bool AllowForceGDIClassic() const { return mAllowForceGDIClassic; }
+#endif
+
  private:
   // Private destructor, to discourage deletion outside of Release():
   ~nsFontMetrics();
@@ -267,6 +274,10 @@ class nsFontMetrics final {
   // used to tailor effects like case-conversion) or is an inferred/default
   // value.
   const bool mExplicitLanguage;
+
+#ifdef XP_WIN
+  const bool mAllowForceGDIClassic = true;
+#endif
 
   // These fields may be set by clients to control the behavior of methods
   // like GetWidth and DrawString according to the writing mode, direction
