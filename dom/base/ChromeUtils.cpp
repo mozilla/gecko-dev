@@ -1361,12 +1361,14 @@ void ChromeUtils::ClearRecentJSDevError(GlobalObject&) {
 
 void ChromeUtils::ClearStyleSheetCacheByPrincipal(GlobalObject&,
                                                   nsIPrincipal* aForPrincipal) {
-  SharedStyleSheetCache::Clear(aForPrincipal);
+  SharedStyleSheetCache::Clear(Some(aForPrincipal));
 }
 
-void ChromeUtils::ClearStyleSheetCacheByBaseDomain(
-    GlobalObject&, const nsACString& aBaseDomain) {
-  SharedStyleSheetCache::Clear(nullptr, &aBaseDomain);
+void ChromeUtils::ClearStyleSheetCacheBySite(
+    GlobalObject&, const nsACString& aSchemelessSite,
+    const dom::OriginAttributesPatternDictionary& aPattern) {
+  SharedStyleSheetCache::Clear(Nothing(), Some(nsCString(aSchemelessSite)),
+                               Some(OriginAttributesPattern(aPattern)));
 }
 
 void ChromeUtils::ClearStyleSheetCache(GlobalObject&) {
@@ -1375,12 +1377,14 @@ void ChromeUtils::ClearStyleSheetCache(GlobalObject&) {
 
 void ChromeUtils::ClearScriptCacheByPrincipal(GlobalObject&,
                                               nsIPrincipal* aForPrincipal) {
-  SharedScriptCache::Clear(aForPrincipal);
+  SharedScriptCache::Clear(Some(aForPrincipal));
 }
 
-void ChromeUtils::ClearScriptCacheByBaseDomain(GlobalObject&,
-                                               const nsACString& aBaseDomain) {
-  SharedScriptCache::Clear(nullptr, &aBaseDomain);
+void ChromeUtils::ClearScriptCacheBySite(
+    GlobalObject&, const nsACString& aSchemelessSite,
+    const dom::OriginAttributesPatternDictionary& aPattern) {
+  SharedScriptCache::Clear(Nothing(), Some(nsCString(aSchemelessSite)),
+                           Some(aPattern));
 }
 
 void ChromeUtils::ClearScriptCache(GlobalObject&) {
