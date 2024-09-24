@@ -144,6 +144,7 @@ internal class BookmarksMiddleware(
             is BookmarksLoaded,
             is AddFolderAction.TitleChanged,
             is SelectFolderAction.FoldersLoaded,
+            is SelectFolderAction.ItemClicked,
             -> Unit
         }
     }

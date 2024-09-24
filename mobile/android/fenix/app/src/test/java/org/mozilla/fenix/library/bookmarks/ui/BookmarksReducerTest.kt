@@ -280,6 +280,81 @@ class BookmarksReducerTest {
         assertEquals(expected, result)
     }
 
+    @Test
+    fun `GIVEN we are on the select folder screen with a selection guid WHEN a folder is clicked THEN update the selection`() {
+        val state = BookmarksState.default.copy(
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = generateBookmark(),
+                folder = BookmarkItem.Folder("Bookmarks", "guid0"),
+            ),
+            bookmarksSelectFolderState = BookmarksSelectFolderState(
+                selectionGuid = "guid0",
+                folders = listOf(
+                    SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
+                    SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0")),
+                ),
+            ),
+        )
+
+        val result = bookmarksReducer(
+            state = state,
+            action = SelectFolderAction.ItemClicked(
+                folder = SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0")),
+            ),
+        )
+
+        val expected = state.copy(
+            bookmarksEditBookmarkState = state.bookmarksEditBookmarkState?.copy(
+                folder = BookmarkItem.Folder("Nested 0", "guid0"),
+            ),
+            bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
+                selectionGuid = "guid0",
+            ),
+        )
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN we are on the select folder screen with a selection and an add folder guid WHEN a folder is clicked THEN update the add folder selection`() {
+        val state = BookmarksState.default.copy(
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = generateBookmark(),
+                folder = BookmarkItem.Folder("Bookmarks", "0"),
+            ),
+            bookmarksAddFolderState = BookmarksAddFolderState(
+                parent = BookmarkItem.Folder("Bookmarks", "0"),
+                folderBeingAddedTitle = "",
+            ),
+            bookmarksSelectFolderState = BookmarksSelectFolderState(
+                selectionGuid = "0",
+                addFolderSelectionGuid = "0",
+                folders = listOf(
+                    SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "0")),
+                    SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "1")),
+                ),
+            ),
+        )
+
+        val result = bookmarksReducer(
+            state = state,
+            action = SelectFolderAction.ItemClicked(
+                folder = SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "1")),
+            ),
+        )
+
+        val expected = state.copy(
+            bookmarksAddFolderState = state.bookmarksAddFolderState?.copy(
+                parent = BookmarkItem.Folder("Nested 0", "1"),
+            ),
+            bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
+                addFolderSelectionGuid = "1",
+            ),
+        )
+
+        assertEquals(expected, result)
+    }
+
     private fun generateBookmark(
         num: Int = 0,
         url: String = "url",

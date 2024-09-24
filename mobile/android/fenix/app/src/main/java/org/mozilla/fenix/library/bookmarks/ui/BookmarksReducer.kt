@@ -60,6 +60,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
             folderBeingAddedTitle = "",
         ),
     )
+    is SelectFolderAction.ItemClicked -> state.updateSelectedFolder(action.folder)
     EditBookmarkAction.DeleteClicked -> state.copy(bookmarksEditBookmarkState = null)
     BackClicked -> state.respondToBackClick()
     AddFolderAction.ParentFolderClicked -> state.copy(
@@ -73,6 +74,22 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     SignIntoSyncClicked,
     Init,
     -> state
+}
+
+private fun BookmarksState.updateSelectedFolder(folder: SelectFolderItem): BookmarksState = when {
+    bookmarksSelectFolderState?.addFolderSelectionGuid != null -> {
+        copy(
+            bookmarksAddFolderState = bookmarksAddFolderState?.copy(parent = folder.folder),
+            bookmarksSelectFolderState = bookmarksSelectFolderState.copy(addFolderSelectionGuid = folder.guid),
+        )
+    }
+    bookmarksSelectFolderState?.selectionGuid != null -> {
+        copy(
+            bookmarksEditBookmarkState = bookmarksEditBookmarkState?.copy(folder = folder.folder),
+            bookmarksSelectFolderState = bookmarksSelectFolderState.copy(selectionGuid = folder.guid),
+        )
+    }
+    else -> this
 }
 
 private fun BookmarksState.toggleSelectionOf(item: BookmarkItem): BookmarksState =

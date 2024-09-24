@@ -55,4 +55,5 @@ internal sealed class EditBookmarkAction {
 internal sealed class SelectFolderAction {
     data object ViewAppeared : BookmarksAction
     data class FoldersLoaded(val folders: List<SelectFolderItem>) : BookmarksAction
+    data class ItemClicked(val folder: SelectFolderItem) : BookmarksAction
 }

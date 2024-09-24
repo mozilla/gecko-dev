@@ -236,7 +236,7 @@ private fun SelectFolderScreen(
                 SelectableIconListItem(
                     label = folder.title,
                     isSelected = folder.guid == state?.addFolderSelectionGuid,
-                    onClick = { },
+                    onClick = { store.dispatch(SelectFolderAction.ItemClicked(folder)) },
                     beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
                     modifier = Modifier.padding(start = (40 * folder.indentation).dp),
                 )
