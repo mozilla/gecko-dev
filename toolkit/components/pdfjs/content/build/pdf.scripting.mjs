@@ -3506,7 +3506,12 @@ class Util extends PDFObject {
       if (cConvChar === "f") {
         decPart = nPrecision !== undefined ? Math.abs(arg - intPart).toFixed(nPrecision) : Math.abs(arg - intPart).toString();
         if (decPart.length > 2) {
-          decPart = `${decimalSep}${decPart.substring(2)}`;
+          if (/^1\.0+$/.test(decPart)) {
+            intPart += Math.sign(arg);
+            decPart = `${decimalSep}${decPart.split(".")[1]}`;
+          } else {
+            decPart = `${decimalSep}${decPart.substring(2)}`;
+          }
         } else {
           if (decPart === "1") {
             intPart += Math.sign(arg);
@@ -4025,8 +4030,8 @@ function initSandbox(params) {
 
 ;// CONCATENATED MODULE: ./src/pdf.scripting.js
 
-const pdfjsVersion = "4.6.137";
-const pdfjsBuild = "5b4c2fe1a";
+const pdfjsVersion = "4.7.10";
+const pdfjsBuild = "cc63941b6";
 globalThis.pdfjsScripting = {
   initSandbox: initSandbox
 };
