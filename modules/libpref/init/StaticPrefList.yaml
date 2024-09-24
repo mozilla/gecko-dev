@@ -4121,12 +4121,6 @@
   value: true
   mirror: always
 
-# ReadableStream.from(asyncIterable)
-- name: dom.streams.from.enabled
-  type: RelaxedAtomicBool
-  value: true
-  mirror: always
-
 - name: dom.workers.pFetch.enabled
   type: RelaxedAtomicBool
   value: true

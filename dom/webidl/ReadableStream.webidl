@@ -12,7 +12,7 @@ interface ReadableStream {
   [Throws]
   constructor(optional object underlyingSource, optional QueuingStrategy strategy = {});
 
-  [Pref="dom.streams.from.enabled", Throws]
+  [Throws]
   static ReadableStream from(any asyncIterable);
 
   readonly attribute boolean locked;
