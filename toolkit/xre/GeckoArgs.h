@@ -148,6 +148,8 @@ static CommandLineArg<const char*> sGREOmni{"-greomni", "greomni"};
 static CommandLineArg<const char*> sAppOmni{"-appomni", "appomni"};
 static CommandLineArg<const char*> sProfile{"-profile", "profile"};
 
+static CommandLineArg<UniqueFileHandle> sIPCHandle{"-ipcHandle", "ipchandle"};
+
 static CommandLineArg<UniqueFileHandle> sJsInitHandle{"-jsInitHandle",
                                                       "jsinithandle"};
 static CommandLineArg<uint64_t> sJsInitLen{"-jsInitLen", "jsinitlen"};

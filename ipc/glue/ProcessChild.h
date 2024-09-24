@@ -27,7 +27,8 @@ class ProcessChild : public ChildProcess {
   typedef base::ProcessId ProcessId;
 
  public:
-  explicit ProcessChild(ProcessId aParentPid, const nsID& aMessageChannelId);
+  explicit ProcessChild(IPC::Channel::ChannelHandle aClientChannel,
+                        ProcessId aParentPid, const nsID& aMessageChannelId);
 
   ProcessChild(const ProcessChild&) = delete;
   ProcessChild& operator=(const ProcessChild&) = delete;

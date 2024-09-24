@@ -254,7 +254,6 @@ class BaseProcessLauncher {
   char mChildIDString[32];
 
   // Set during launch.
-  IPC::Channel::ChannelHandle mClientChannelHandle;
   nsCOMPtr<nsIFile> mAppDir;
 };
 
@@ -287,16 +286,13 @@ class PosixProcessLauncher : public BaseProcessLauncher {
   PosixProcessLauncher(GeckoChildProcessHost* aHost,
                        geckoargs::ChildProcessArgs&& aExtraOpts)
       : BaseProcessLauncher(aHost, std::move(aExtraOpts)),
-        mProfileDir(aHost->mProfileDir),
-        mChannelDstFd(IPC::Channel::GetClientChannelHandle()) {}
+        mProfileDir(aHost->mProfileDir) {}
 
  protected:
   virtual Result<Ok, LaunchError> DoSetup() override;
   virtual RefPtr<ProcessHandlePromise> DoLaunch() override;
 
   nsCOMPtr<nsIFile> mProfileDir;
-
-  int mChannelDstFd;
 };
 
 #  if defined(XP_MACOSX)
@@ -1173,11 +1169,11 @@ void BaseProcessLauncher::MapChildLogging() {
 }
 
 Result<Ok, LaunchError> BaseProcessLauncher::DoFinishLaunch() {
-  // We're in the parent and the child was launched. Close the child channel
-  // handle in the parent as soon as possible, which will allow the parent to
-  // detect when the child closes its handle (either due to normal exit or due
-  // to crash).
-  mClientChannelHandle = nullptr;
+  // We're in the parent and the child was launched. Clean up any FDs which were
+  // transferred to the child in the parent as soon as possible, which will
+  // allow the parent to detect when the child closes its handle (either due to
+  // normal exit or due to crash).
+  mChildArgs.mFiles.clear();
 
   return Ok();
 }
@@ -1262,22 +1258,6 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
 
   FilePath exePath;
   BinPathType pathType = GetPathToBinary(exePath, mProcessType);
-
-  // remap the IPC socket fd to a well-known int, as the OS does for
-  // STDOUT_FILENO, for example
-  // The fork server doesn't use IPC::Channel, so can skip this step.
-  if (mProcessType != GeckoProcessType_ForkServer) {
-#  if !defined(MOZ_WIDGET_ANDROID) && !defined(MOZ_WIDGET_UIKIT)
-    // On Android/iOS, mChannelDstFd is initialised to -1 and the launching
-    // code uses only the first of each pair.
-    MOZ_ASSERT(mChannelDstFd >= 0);
-#  endif
-    mLaunchOptions->fds_to_remap.push_back(
-        std::pair<int, int>(mClientChannelHandle.get(), mChannelDstFd));
-  }
-
-  // no need for kProcessChannelID, the child process inherits the
-  // other end of the socketpair() from us
 
   // Make sure the executable path is present at the start of our argument list.
   // If we're using BinPathType::Self, also add the `-contentproc` argument.
@@ -1587,16 +1567,8 @@ Result<Ok, LaunchError> WindowsProcessLauncher::DoSetup() {
   }
 #  endif  // HAS_DLL_BLOCKLIST
 
-  // Inherit the initial client channel handle into the child process.
-  std::wstring processChannelID =
-      std::to_wstring(uint32_t(uintptr_t(mClientChannelHandle.get())));
-  mLaunchOptions->handles_to_inherit.push_back(mClientChannelHandle.get());
-  mCmdLine->AppendSwitchWithValue(switches::kProcessChannelID,
-                                  processChannelID);
-
-  for (std::vector<std::string>::iterator it = mExtraOpts.begin();
-       it != mExtraOpts.end(); ++it) {
-    mCmdLine->AppendLooseValue(UTF8ToWide(*it));
+  for (const std::string& arg : mChildArgs.mArgs) {
+    mCmdLine->AppendLooseValue(UTF8ToWide(arg));
   }
 
 #  if defined(MOZ_SANDBOX)
@@ -1937,11 +1909,13 @@ RefPtr<ProcessLaunchPromise> BaseProcessLauncher::Launch(
   // initializing it.
   if (mProcessType != GeckoProcessType_ForkServer) {
     IPC::Channel::ChannelHandle serverHandle;
-    if (!IPC::Channel::CreateRawPipe(&serverHandle, &mClientChannelHandle)) {
+    IPC::Channel::ChannelHandle clientHandle;
+    if (!IPC::Channel::CreateRawPipe(&serverHandle, &clientHandle)) {
       return ProcessLaunchPromise::CreateAndReject(LaunchError("CreateRawPipe"),
                                                    __func__);
     }
     aHost->InitializeChannel(std::move(serverHandle));
+    geckoargs::sIPCHandle.Put(std::move(clientHandle), mChildArgs);
   }
 
   return InvokeAsync(mLaunchThread, this, __func__,

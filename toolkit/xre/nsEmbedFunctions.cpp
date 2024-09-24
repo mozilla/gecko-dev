@@ -151,7 +151,7 @@ using mozilla::ipc::TestShellParent;
 namespace mozilla::_ipdltest {
 // Set in IPDLUnitTest.cpp when running gtests.
 UniquePtr<mozilla::ipc::ProcessChild> (*gMakeIPDLUnitTestProcessChild)(
-    base::ProcessId, const nsID&) = nullptr;
+    IPC::Channel::ChannelHandle, base::ProcessId, const nsID&) = nullptr;
 }  // namespace mozilla::_ipdltest
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
@@ -454,7 +454,9 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   Maybe<base::ProcessId> parentPID = geckoargs::sParentPid.Get(aArgc, aArgv);
   Maybe<const char*> initialChannelIdString =
       geckoargs::sInitialChannelID.Get(aArgc, aArgv);
-  if (NS_WARN_IF(!parentPID || !initialChannelIdString)) {
+  Maybe<IPC::Channel::ChannelHandle> clientChannel =
+      geckoargs::sIPCHandle.Get(aArgc, aArgv);
+  if (NS_WARN_IF(!parentPID || !initialChannelIdString || !clientChannel)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -529,50 +531,52 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 
         case GeckoProcessType_Content:
           ioInterposerGuard.Init();
-          process = MakeUnique<ContentProcess>(*parentPID, messageChannelId);
+          process = MakeUnique<ContentProcess>(std::move(*clientChannel),
+                                               *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_IPDLUnitTest:
           MOZ_RELEASE_ASSERT(mozilla::_ipdltest::gMakeIPDLUnitTestProcessChild,
                              "xul-gtest not loaded!");
           process = mozilla::_ipdltest::gMakeIPDLUnitTestProcessChild(
-              *parentPID, messageChannelId);
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_GMPlugin:
-          process =
-              MakeUnique<gmp::GMPProcessChild>(*parentPID, messageChannelId);
+          process = MakeUnique<gmp::GMPProcessChild>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_GPU:
-          process =
-              MakeUnique<gfx::GPUProcessImpl>(*parentPID, messageChannelId);
+          process = MakeUnique<gfx::GPUProcessImpl>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_VR:
-          process =
-              MakeUnique<gfx::VRProcessChild>(*parentPID, messageChannelId);
+          process = MakeUnique<gfx::VRProcessChild>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_RDD:
-          process = MakeUnique<RDDProcessImpl>(*parentPID, messageChannelId);
+          process = MakeUnique<RDDProcessImpl>(std::move(*clientChannel),
+                                               *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_Socket:
           ioInterposerGuard.Init();
-          process =
-              MakeUnique<net::SocketProcessImpl>(*parentPID, messageChannelId);
+          process = MakeUnique<net::SocketProcessImpl>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_Utility:
-          process =
-              MakeUnique<ipc::UtilityProcessImpl>(*parentPID, messageChannelId);
+          process = MakeUnique<ipc::UtilityProcessImpl>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
         case GeckoProcessType_RemoteSandboxBroker:
           process = MakeUnique<RemoteSandboxBrokerProcessChild>(
-              *parentPID, messageChannelId);
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 #endif
 

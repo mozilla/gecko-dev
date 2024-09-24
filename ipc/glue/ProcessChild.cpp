@@ -33,8 +33,9 @@ nsCString ProcessChild::gIPCShutdownStateAnnotation;
 
 static Atomic<bool> sExpectingShutdown(false);
 
-ProcessChild::ProcessChild(ProcessId aParentPid, const nsID& aMessageChannelId)
-    : ChildProcess(new IOThreadChild(aParentPid)),
+ProcessChild::ProcessChild(IPC::Channel::ChannelHandle aClientChannel,
+                           ProcessId aParentPid, const nsID& aMessageChannelId)
+    : ChildProcess(new IOThreadChild(std::move(aClientChannel), aParentPid)),
       mUILoop(MessageLoop::current()),
       mParentPid(aParentPid),
       mMessageChannelId(aMessageChannelId) {
