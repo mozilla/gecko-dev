@@ -7,9 +7,9 @@ use crate::macho;
 use crate::pod::Pod;
 use crate::read::util::StringTable;
 use crate::read::{
-    self, ObjectMap, ObjectMapEntry, ObjectSymbol, ObjectSymbolTable, ReadError, ReadRef, Result,
-    SectionIndex, SectionKind, SymbolFlags, SymbolIndex, SymbolKind, SymbolMap, SymbolMapEntry,
-    SymbolScope, SymbolSection,
+    self, ObjectMap, ObjectMapEntry, ObjectMapFile, ObjectSymbol, ObjectSymbolTable, ReadError,
+    ReadRef, Result, SectionIndex, SectionKind, SymbolFlags, SymbolIndex, SymbolKind, SymbolMap,
+    SymbolMapEntry, SymbolScope, SymbolSection,
 };
 
 use super::{MachHeader, MachOFile};
@@ -17,6 +17,8 @@ use super::{MachHeader, MachOFile};
 /// A table of symbol entries in a Mach-O file.
 ///
 /// Also includes the string table used for the symbol names.
+///
+/// Returned by [`macho::SymtabCommand::symbols`].
 #[derive(Debug, Clone, Copy)]
 pub struct SymbolTable<'data, Mach: MachHeader, R = &'data [u8]>
 where
@@ -66,9 +68,9 @@ impl<'data, Mach: MachHeader, R: ReadRef<'data>> SymbolTable<'data, Mach, R> {
     }
 
     /// Return the symbol at the given index.
-    pub fn symbol(&self, index: usize) -> Result<&'data Mach::Nlist> {
+    pub fn symbol(&self, index: SymbolIndex) -> Result<&'data Mach::Nlist> {
         self.symbols
-            .get(index)
+            .get(index.0)
             .read_error("Invalid Mach-O symbol index")
     }
 
@@ -113,7 +115,20 @@ impl<'data, Mach: MachHeader, R: ReadRef<'data>> SymbolTable<'data, Mach, R> {
                     if let Ok(name) = nlist.name(endian, self.strings) {
                         if !name.is_empty() {
                             object = Some(objects.len());
-                            objects.push(name);
+                            // `N_OSO` symbol names can be either `/path/to/object.o`
+                            // or `/path/to/archive.a(object.o)`.
+                            let (path, member) = name
+                                .split_last()
+                                .and_then(|(last, head)| {
+                                    if *last != b')' {
+                                        return None;
+                                    }
+                                    let index = head.iter().position(|&x| x == b'(')?;
+                                    let (archive, rest) = head.split_at(index);
+                                    Some((archive, Some(&rest[1..])))
+                                })
+                                .unwrap_or((name, None));
+                            objects.push(ObjectMapFile::new(path, member));
                         }
                     }
                 }
@@ -143,14 +158,14 @@ impl<'data, Mach: MachHeader, R: ReadRef<'data>> SymbolTable<'data, Mach, R> {
     }
 }
 
-/// An iterator over the symbols of a `MachOFile32`.
+/// A symbol table in a [`MachOFile32`](super::MachOFile32).
 pub type MachOSymbolTable32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSymbolTable<'data, 'file, macho::MachHeader32<Endian>, R>;
-/// An iterator over the symbols of a `MachOFile64`.
+/// A symbol table in a [`MachOFile64`](super::MachOFile64).
 pub type MachOSymbolTable64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSymbolTable<'data, 'file, macho::MachHeader64<Endian>, R>;
 
-/// A symbol table of a `MachOFile`.
+/// A symbol table in a [`MachOFile`].
 #[derive(Debug, Clone, Copy)]
 pub struct MachOSymbolTable<'data, 'file, Mach, R = &'data [u8]>
 where
@@ -176,33 +191,50 @@ where
     type SymbolIterator = MachOSymbolIterator<'data, 'file, Mach, R>;
 
     fn symbols(&self) -> Self::SymbolIterator {
-        MachOSymbolIterator {
-            file: self.file,
-            index: 0,
-        }
+        MachOSymbolIterator::new(self.file)
     }
 
     fn symbol_by_index(&self, index: SymbolIndex) -> Result<Self::Symbol> {
-        let nlist = self.file.symbols.symbol(index.0)?;
+        let nlist = self.file.symbols.symbol(index)?;
         MachOSymbol::new(self.file, index, nlist).read_error("Unsupported Mach-O symbol index")
     }
 }
 
-/// An iterator over the symbols of a `MachOFile32`.
+/// An iterator for the symbols in a [`MachOFile32`](super::MachOFile32).
 pub type MachOSymbolIterator32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSymbolIterator<'data, 'file, macho::MachHeader32<Endian>, R>;
-/// An iterator over the symbols of a `MachOFile64`.
+/// An iterator for the symbols in a [`MachOFile64`](super::MachOFile64).
 pub type MachOSymbolIterator64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSymbolIterator<'data, 'file, macho::MachHeader64<Endian>, R>;
 
-/// An iterator over the symbols of a `MachOFile`.
+/// An iterator for the symbols in a [`MachOFile`].
 pub struct MachOSymbolIterator<'data, 'file, Mach, R = &'data [u8]>
 where
     Mach: MachHeader,
     R: ReadRef<'data>,
 {
-    pub(super) file: &'file MachOFile<'data, Mach, R>,
-    pub(super) index: usize,
+    file: &'file MachOFile<'data, Mach, R>,
+    index: SymbolIndex,
+}
+
+impl<'data, 'file, Mach, R> MachOSymbolIterator<'data, 'file, Mach, R>
+where
+    Mach: MachHeader,
+    R: ReadRef<'data>,
+{
+    pub(super) fn new(file: &'file MachOFile<'data, Mach, R>) -> Self {
+        MachOSymbolIterator {
+            file,
+            index: SymbolIndex(0),
+        }
+    }
+
+    pub(super) fn empty(file: &'file MachOFile<'data, Mach, R>) -> Self {
+        MachOSymbolIterator {
+            file,
+            index: SymbolIndex(file.symbols.len()),
+        }
+    }
 }
 
 impl<'data, 'file, Mach, R> fmt::Debug for MachOSymbolIterator<'data, 'file, Mach, R>
@@ -225,23 +257,25 @@ where
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let index = self.index;
-            let nlist = self.file.symbols.symbols.get(index)?;
-            self.index += 1;
-            if let Some(symbol) = MachOSymbol::new(self.file, SymbolIndex(index), nlist) {
+            let nlist = self.file.symbols.symbols.get(index.0)?;
+            self.index.0 += 1;
+            if let Some(symbol) = MachOSymbol::new(self.file, index, nlist) {
                 return Some(symbol);
             }
         }
     }
 }
 
-/// A symbol of a `MachOFile32`.
+/// A symbol in a [`MachOFile32`](super::MachOFile32).
 pub type MachOSymbol32<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSymbol<'data, 'file, macho::MachHeader32<Endian>, R>;
-/// A symbol of a `MachOFile64`.
+/// A symbol in a [`MachOFile64`](super::MachOFile64).
 pub type MachOSymbol64<'data, 'file, Endian = Endianness, R = &'data [u8]> =
     MachOSymbol<'data, 'file, macho::MachHeader64<Endian>, R>;
 
-/// A symbol of a `MachOFile`.
+/// A symbol in a [`MachOFile`].
+///
+/// Most functionality is provided by the [`ObjectSymbol`] trait implementation.
 #[derive(Debug, Clone, Copy)]
 pub struct MachOSymbol<'data, 'file, Mach, R = &'data [u8]>
 where
@@ -267,6 +301,16 @@ where
             return None;
         }
         Some(MachOSymbol { file, index, nlist })
+    }
+
+    /// Get the Mach-O file containing this symbol.
+    pub fn macho_file(&self) -> &'file MachOFile<'data, Mach, R> {
+        self.file
+    }
+
+    /// Get the raw Mach-O symbol structure.
+    pub fn macho_symbol(&self) -> &'data Mach::Nlist {
+        self.nlist
     }
 }
 
@@ -394,7 +438,7 @@ where
     }
 }
 
-/// A trait for generic access to `Nlist32` and `Nlist64`.
+/// A trait for generic access to [`macho::Nlist32`] and [`macho::Nlist64`].
 #[allow(missing_docs)]
 pub trait Nlist: Debug + Pod {
     type Word: Into<u64>;
@@ -432,7 +476,7 @@ pub trait Nlist: Debug + Pod {
     /// Return true if the symbol is a definition of a function or data object.
     fn is_definition(&self) -> bool {
         let n_type = self.n_type();
-        n_type & macho::N_STAB == 0 && n_type & macho::N_TYPE != macho::N_UNDF
+        n_type & macho::N_STAB == 0 && n_type & macho::N_TYPE == macho::N_SECT
     }
 
     /// Return the library ordinal.

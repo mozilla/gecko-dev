@@ -7,7 +7,7 @@ use crate::pod::Pod;
 use crate::read::macho::{MachHeader, SymbolTable};
 use crate::read::{Bytes, Error, ReadError, ReadRef, Result, StringTable};
 
-/// An iterator over the load commands of a `MachHeader`.
+/// An iterator for the load commands from a [`MachHeader`].
 #[derive(Debug, Default, Clone, Copy)]
 pub struct LoadCommandIterator<'data, E: Endian> {
     endian: E,
@@ -29,6 +29,17 @@ impl<'data, E: Endian> LoadCommandIterator<'data, E> {
         if self.ncmds == 0 {
             return Ok(None);
         }
+
+        let result = self.parse().map(Some);
+        if result.is_err() {
+            self.ncmds = 0;
+        } else {
+            self.ncmds -= 1;
+        }
+        result
+    }
+
+    fn parse(&mut self) -> Result<LoadCommandData<'data, E>> {
         let header = self
             .data
             .read_at::<macho::LoadCommand<E>>(0)
@@ -42,16 +53,23 @@ impl<'data, E: Endian> LoadCommandIterator<'data, E> {
             .data
             .read_bytes(cmdsize)
             .read_error("Invalid Mach-O load command size")?;
-        self.ncmds -= 1;
-        Ok(Some(LoadCommandData {
+        Ok(LoadCommandData {
             cmd,
             data,
             marker: Default::default(),
-        }))
+        })
     }
 }
 
-/// The data for a `LoadCommand`.
+impl<'data, E: Endian> Iterator for LoadCommandIterator<'data, E> {
+    type Item = Result<LoadCommandData<'data, E>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next().transpose()
+    }
+}
+
+/// The data for a [`macho::LoadCommand`].
 #[derive(Debug, Clone, Copy)]
 pub struct LoadCommandData<'data, E: Endian> {
     cmd: u32,
@@ -61,14 +79,14 @@ pub struct LoadCommandData<'data, E: Endian> {
 }
 
 impl<'data, E: Endian> LoadCommandData<'data, E> {
-    /// Return the `cmd` field of the `LoadCommand`.
+    /// Return the `cmd` field of the [`macho::LoadCommand`].
     ///
     /// This is one of the `LC_` constants.
     pub fn cmd(&self) -> u32 {
         self.cmd
     }
 
-    /// Return the `cmdsize` field of the `LoadCommand`.
+    /// Return the `cmdsize` field of the [`macho::LoadCommand`].
     pub fn cmdsize(&self) -> u32 {
         self.data.len() as u32
     }
@@ -81,7 +99,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
             .read_error("Invalid Mach-O command size")
     }
 
-    /// Raw bytes of this LoadCommand structure.
+    /// Raw bytes of this [`macho::LoadCommand`] structure.
     pub fn raw_data(&self) -> &'data [u8] {
         self.data.0
     }
@@ -163,7 +181,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         })
     }
 
-    /// Try to parse this command as a `SegmentCommand32`.
+    /// Try to parse this command as a [`macho::SegmentCommand32`].
     ///
     /// Returns the segment command and the data containing the sections.
     pub fn segment_32(self) -> Result<Option<(&'data macho::SegmentCommand32<E>, &'data [u8])>> {
@@ -176,7 +194,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         }
     }
 
-    /// Try to parse this command as a `SymtabCommand`.
+    /// Try to parse this command as a [`macho::SymtabCommand`].
     ///
     /// Returns the segment command and the data containing the sections.
     pub fn symtab(self) -> Result<Option<&'data macho::SymtabCommand<E>>> {
@@ -187,7 +205,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         }
     }
 
-    /// Try to parse this command as a `DysymtabCommand`.
+    /// Try to parse this command as a [`macho::DysymtabCommand`].
     pub fn dysymtab(self) -> Result<Option<&'data macho::DysymtabCommand<E>>> {
         if self.cmd == macho::LC_DYSYMTAB {
             Some(self.data()).transpose()
@@ -196,7 +214,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         }
     }
 
-    /// Try to parse this command as a `DylibCommand`.
+    /// Try to parse this command as a [`macho::DylibCommand`].
     pub fn dylib(self) -> Result<Option<&'data macho::DylibCommand<E>>> {
         if self.cmd == macho::LC_LOAD_DYLIB
             || self.cmd == macho::LC_LOAD_WEAK_DYLIB
@@ -210,7 +228,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         }
     }
 
-    /// Try to parse this command as a `UuidCommand`.
+    /// Try to parse this command as a [`macho::UuidCommand`].
     pub fn uuid(self) -> Result<Option<&'data macho::UuidCommand<E>>> {
         if self.cmd == macho::LC_UUID {
             Some(self.data()).transpose()
@@ -219,7 +237,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         }
     }
 
-    /// Try to parse this command as a `SegmentCommand64`.
+    /// Try to parse this command as a [`macho::SegmentCommand64`].
     pub fn segment_64(self) -> Result<Option<(&'data macho::SegmentCommand64<E>, &'data [u8])>> {
         if self.cmd == macho::LC_SEGMENT_64 {
             let mut data = self.data;
@@ -230,7 +248,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         }
     }
 
-    /// Try to parse this command as a `DyldInfoCommand`.
+    /// Try to parse this command as a [`macho::DyldInfoCommand`].
     pub fn dyld_info(self) -> Result<Option<&'data macho::DyldInfoCommand<E>>> {
         if self.cmd == macho::LC_DYLD_INFO || self.cmd == macho::LC_DYLD_INFO_ONLY {
             Some(self.data()).transpose()
@@ -239,7 +257,7 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
         }
     }
 
-    /// Try to parse this command as an `EntryPointCommand`.
+    /// Try to parse this command as an [`macho::EntryPointCommand`].
     pub fn entry_point(self) -> Result<Option<&'data macho::EntryPointCommand<E>>> {
         if self.cmd == macho::LC_MAIN {
             Some(self.data()).transpose()
@@ -247,9 +265,18 @@ impl<'data, E: Endian> LoadCommandData<'data, E> {
             Ok(None)
         }
     }
+
+    /// Try to parse this command as a [`macho::BuildVersionCommand`].
+    pub fn build_version(self) -> Result<Option<&'data macho::BuildVersionCommand<E>>> {
+        if self.cmd == macho::LC_BUILD_VERSION {
+            Some(self.data()).transpose()
+        } else {
+            Ok(None)
+        }
+    }
 }
 
-/// A `LoadCommand` that has been interpreted according to its `cmd` field.
+/// A [`macho::LoadCommand`] that has been interpreted according to its `cmd` field.
 #[derive(Debug, Clone, Copy)]
 #[non_exhaustive]
 pub enum LoadCommandVariant<'data, E: Endian> {
@@ -363,11 +390,15 @@ mod tests {
 
     #[test]
     fn cmd_size_invalid() {
-        let mut commands = LoadCommandIterator::new(LittleEndian, &[0; 8], 10);
+        #[repr(align(16))]
+        struct Align<const N: usize>([u8; N]);
+        let mut commands = LoadCommandIterator::new(LittleEndian, &Align([0; 8]).0, 10);
         assert!(commands.next().is_err());
-        let mut commands = LoadCommandIterator::new(LittleEndian, &[0, 0, 0, 0, 7, 0, 0, 0, 0], 10);
+        let mut commands =
+            LoadCommandIterator::new(LittleEndian, &Align([0, 0, 0, 0, 7, 0, 0, 0, 0]).0, 10);
         assert!(commands.next().is_err());
-        let mut commands = LoadCommandIterator::new(LittleEndian, &[0, 0, 0, 0, 8, 0, 0, 0, 0], 10);
+        let mut commands =
+            LoadCommandIterator::new(LittleEndian, &Align([0, 0, 0, 0, 8, 0, 0, 0, 0]).0, 10);
         assert!(commands.next().is_ok());
     }
 }

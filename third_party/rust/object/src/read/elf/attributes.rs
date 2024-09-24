@@ -10,7 +10,10 @@ use super::FileHeader;
 ///
 /// This may be a GNU attributes section, or an architecture specific attributes section.
 ///
-/// An attributes section contains a series of subsections.
+/// An attributes section contains a series of [`AttributesSubsection`].
+///
+/// Returned by [`SectionHeader::attributes`](super::SectionHeader::attributes)
+/// and [`SectionHeader::gnu_attributes`](super::SectionHeader::gnu_attributes).
 #[derive(Debug, Clone)]
 pub struct AttributesSection<'data, Elf: FileHeader> {
     endian: Elf::Endian,
@@ -24,9 +27,8 @@ impl<'data, Elf: FileHeader> AttributesSection<'data, Elf> {
         let mut data = Bytes(data);
 
         // Skip the version field that is one byte long.
-        let version = *data
-            .read::<u8>()
-            .read_error("Invalid ELF attributes section offset or size")?;
+        // If the section is empty then the version doesn't matter.
+        let version = data.read::<u8>().cloned().unwrap_or(b'A');
 
         Ok(AttributesSection {
             endian,
@@ -54,7 +56,7 @@ impl<'data, Elf: FileHeader> AttributesSection<'data, Elf> {
     }
 }
 
-/// An iterator over the subsections in an ELF attributes section.
+/// An iterator for the subsections in an [`AttributesSection`].
 #[derive(Debug, Clone)]
 pub struct AttributesSubsectionIterator<'data, Elf: FileHeader> {
     endian: Elf::Endian,
@@ -68,14 +70,14 @@ impl<'data, Elf: FileHeader> AttributesSubsectionIterator<'data, Elf> {
             return Ok(None);
         }
 
-        let result = self.parse();
+        let result = self.parse().map(Some);
         if result.is_err() {
             self.data = Bytes(&[]);
         }
         result
     }
 
-    fn parse(&mut self) -> Result<Option<AttributesSubsection<'data, Elf>>> {
+    fn parse(&mut self) -> Result<AttributesSubsection<'data, Elf>> {
         // First read the subsection length.
         let mut data = self.data;
         let length = data
@@ -92,22 +94,32 @@ impl<'data, Elf: FileHeader> AttributesSubsectionIterator<'data, Elf> {
         data.skip(4)
             .read_error("Invalid ELF attributes subsection length")?;
 
+        // TODO: errors here should not prevent reading the next subsection.
         let vendor = data
             .read_string()
             .read_error("Invalid ELF attributes vendor")?;
 
-        Ok(Some(AttributesSubsection {
+        Ok(AttributesSubsection {
             endian: self.endian,
             length,
             vendor,
             data,
-        }))
+        })
     }
 }
 
-/// A subsection in an ELF attributes section.
+impl<'data, Elf: FileHeader> Iterator for AttributesSubsectionIterator<'data, Elf> {
+    type Item = Result<AttributesSubsection<'data, Elf>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next().transpose()
+    }
+}
+
+/// A subsection in an [`AttributesSection`].
 ///
-/// A subsection is identified by a vendor name.  It contains a series of sub-subsections.
+/// A subsection is identified by a vendor name.  It contains a series of
+/// [`AttributesSubsubsection`].
 #[derive(Debug, Clone)]
 pub struct AttributesSubsection<'data, Elf: FileHeader> {
     endian: Elf::Endian,
@@ -136,7 +148,7 @@ impl<'data, Elf: FileHeader> AttributesSubsection<'data, Elf> {
     }
 }
 
-/// An iterator over the sub-subsections in an ELF attributes section.
+/// An iterator for the sub-subsections in an [`AttributesSubsection`].
 #[derive(Debug, Clone)]
 pub struct AttributesSubsubsectionIterator<'data, Elf: FileHeader> {
     endian: Elf::Endian,
@@ -150,14 +162,14 @@ impl<'data, Elf: FileHeader> AttributesSubsubsectionIterator<'data, Elf> {
             return Ok(None);
         }
 
-        let result = self.parse();
+        let result = self.parse().map(Some);
         if result.is_err() {
             self.data = Bytes(&[]);
         }
         result
     }
 
-    fn parse(&mut self) -> Result<Option<AttributesSubsubsection<'data>>> {
+    fn parse(&mut self) -> Result<AttributesSubsubsection<'data>> {
         // The format of a sub-section looks like this:
         //
         // <file-tag> <size> <attribute>*
@@ -181,6 +193,7 @@ impl<'data, Elf: FileHeader> AttributesSubsubsectionIterator<'data, Elf> {
         data.skip(1 + 4)
             .read_error("Invalid ELF attributes sub-subsection length")?;
 
+        // TODO: errors here should not prevent reading the next sub-subsection.
         let indices = if tag == elf::Tag_Section || tag == elf::Tag_Symbol {
             data.read_string()
                 .map(Bytes)
@@ -191,16 +204,24 @@ impl<'data, Elf: FileHeader> AttributesSubsubsectionIterator<'data, Elf> {
             return Err(Error("Unimplemented ELF attributes sub-subsection tag"));
         };
 
-        Ok(Some(AttributesSubsubsection {
+        Ok(AttributesSubsubsection {
             tag,
             length,
             indices,
             data,
-        }))
+        })
     }
 }
 
-/// A sub-subsection in an ELF attributes section.
+impl<'data, Elf: FileHeader> Iterator for AttributesSubsubsectionIterator<'data, Elf> {
+    type Item = Result<AttributesSubsubsection<'data>>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next().transpose()
+    }
+}
+
+/// A sub-subsection in an [`AttributesSubsection`].
 ///
 /// A sub-subsection is identified by a tag.  It contains an optional series of indices,
 /// followed by a series of attributes.
@@ -248,7 +269,7 @@ impl<'data> AttributesSubsubsection<'data> {
     }
 }
 
-/// An iterator over the indices in a sub-subsection in an ELF attributes section.
+/// An iterator over the indices in an [`AttributesSubsubsection`].
 #[derive(Debug, Clone)]
 pub struct AttributeIndexIterator<'data> {
     data: Bytes<'data>,
@@ -260,6 +281,15 @@ impl<'data> AttributeIndexIterator<'data> {
         if self.data.is_empty() {
             return Ok(None);
         }
+
+        let result = self.parse().map(Some);
+        if result.is_err() {
+            self.data = Bytes(&[]);
+        }
+        result
+    }
+
+    fn parse(&mut self) -> Result<u32> {
         let err = "Invalid ELF attribute index";
         self.data
             .read_uleb128()
@@ -267,11 +297,18 @@ impl<'data> AttributeIndexIterator<'data> {
             .try_into()
             .map_err(|_| ())
             .read_error(err)
-            .map(Some)
     }
 }
 
-/// A parser for the attributes in a sub-subsection in an ELF attributes section.
+impl<'data> Iterator for AttributeIndexIterator<'data> {
+    type Item = Result<u32>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next().transpose()
+    }
+}
+
+/// A parser for the attributes in an [`AttributesSubsubsection`].
 ///
 /// The parser relies on the caller to know the format of the data for each attribute tag.
 #[derive(Debug, Clone)]

@@ -1,8 +1,9 @@
 use alloc::vec::Vec;
 use core::slice;
 
-use crate::read::{Error, File, ReadError, ReadRef, Result};
-use crate::{macho, Architecture, Endian, Endianness};
+use crate::endian::{Endian, Endianness};
+use crate::macho;
+use crate::read::{Architecture, Error, File, ReadError, ReadRef, Result};
 
 /// A parsed representation of the dyld shared cache.
 #[derive(Debug)]
@@ -30,8 +31,25 @@ where
     mappings: &'data [macho::DyldCacheMappingInfo<E>],
 }
 
-// This is the offset of the images_across_all_subcaches_count field.
-const MIN_HEADER_SIZE_SUBCACHES: u32 = 0x1c4;
+/// A slice of structs describing each subcache. The struct gained
+/// an additional field (the file suffix) in dyld-1042.1 (macOS 13 / iOS 16),
+/// so this is an enum of the two possible slice types.
+#[derive(Debug, Clone, Copy)]
+#[non_exhaustive]
+pub enum DyldSubCacheSlice<'data, E: Endian> {
+    /// V1, used between dyld-940 and dyld-1042.1.
+    V1(&'data [macho::DyldSubCacheEntryV1<E>]),
+    /// V2, used since dyld-1042.1.
+    V2(&'data [macho::DyldSubCacheEntryV2<E>]),
+}
+
+// This is the offset of the end of the images_across_all_subcaches_count field.
+const MIN_HEADER_SIZE_SUBCACHES_V1: u32 = 0x1c8;
+
+// This is the offset of the end of the cacheSubType field.
+// This field comes right after the images_across_all_subcaches_count field,
+// and we don't currently have it in our definition of the DyldCacheHeader type.
+const MIN_HEADER_SIZE_SUBCACHES_V2: u32 = 0x1d0;
 
 impl<'data, E, R> DyldCache<'data, E, R>
 where
@@ -39,19 +57,24 @@ where
     R: ReadRef<'data>,
 {
     /// Parse the raw dyld shared cache data.
+    ///
     /// For shared caches from macOS 12 / iOS 15 and above, the subcache files need to be
-    /// supplied as well, in the correct order, with the .symbols subcache last (if present).
-    /// For example, data would be the data for dyld_shared_cache_x86_64,
-    /// and subcache_data would be the data for [dyld_shared_cache_x86_64.1, dyld_shared_cache_x86_64.2, ...]
+    /// supplied as well, in the correct order, with the `.symbols` subcache last (if present).
+    /// For example, `data` would be the data for `dyld_shared_cache_x86_64`,
+    /// and `subcache_data` would be the data for `[dyld_shared_cache_x86_64.1, dyld_shared_cache_x86_64.2, ...]`.
     pub fn parse(data: R, subcache_data: &[R]) -> Result<Self> {
         let header = macho::DyldCacheHeader::parse(data)?;
         let (arch, endian) = header.parse_magic()?;
         let mappings = header.mappings(endian, data)?;
 
         let symbols_subcache_uuid = header.symbols_subcache_uuid(endian);
-        let subcaches_info = header.subcaches(endian, data)?.unwrap_or(&[]);
-
-        if subcache_data.len() != subcaches_info.len() + symbols_subcache_uuid.is_some() as usize {
+        let subcaches_info = header.subcaches(endian, data)?;
+        let subcaches_count = match subcaches_info {
+            Some(DyldSubCacheSlice::V1(subcaches)) => subcaches.len(),
+            Some(DyldSubCacheSlice::V2(subcaches)) => subcaches.len(),
+            None => 0,
+        };
+        if subcache_data.len() != subcaches_count + symbols_subcache_uuid.is_some() as usize {
             return Err(Error("Incorrect number of SubCaches"));
         }
 
@@ -64,15 +87,22 @@ where
                 (None, subcache_data)
             };
 
-        // Read the regular SubCaches (.1, .2, ...), if present.
+        // Read the regular SubCaches, if present.
         let mut subcaches = Vec::new();
-        for (&data, info) in subcache_data.iter().zip(subcaches_info.iter()) {
-            let sc_header = macho::DyldCacheHeader::<E>::parse(data)?;
-            if sc_header.uuid != info.uuid {
-                return Err(Error("Unexpected SubCache UUID"));
+        if let Some(subcaches_info) = subcaches_info {
+            let (v1, v2) = match subcaches_info {
+                DyldSubCacheSlice::V1(s) => (s, &[][..]),
+                DyldSubCacheSlice::V2(s) => (&[][..], s),
+            };
+            let uuids = v1.iter().map(|e| &e.uuid).chain(v2.iter().map(|e| &e.uuid));
+            for (&data, uuid) in subcache_data.iter().zip(uuids) {
+                let sc_header = macho::DyldCacheHeader::<E>::parse(data)?;
+                if &sc_header.uuid != uuid {
+                    return Err(Error("Unexpected SubCache UUID"));
+                }
+                let mappings = sc_header.mappings(endian, data)?;
+                subcaches.push(DyldSubCache { data, mappings });
             }
-            let mappings = sc_header.mappings(endian, data)?;
-            subcaches.push(DyldSubCache { data, mappings });
         }
 
         // Read the .symbols SubCache, if present.
@@ -253,19 +283,30 @@ impl<E: Endian> macho::DyldCacheHeader<E> {
     }
 
     /// Return the information about subcaches, if present.
+    ///
+    /// Returns `None` for dyld caches produced before dyld-940 (macOS 12).
     pub fn subcaches<'data, R: ReadRef<'data>>(
         &self,
         endian: E,
         data: R,
-    ) -> Result<Option<&'data [macho::DyldSubCacheInfo<E>]>> {
-        if self.mapping_offset.get(endian) >= MIN_HEADER_SIZE_SUBCACHES {
+    ) -> Result<Option<DyldSubCacheSlice<'data, E>>> {
+        let header_size = self.mapping_offset.get(endian);
+        if header_size >= MIN_HEADER_SIZE_SUBCACHES_V2 {
             let subcaches = data
-                .read_slice_at::<macho::DyldSubCacheInfo<E>>(
+                .read_slice_at::<macho::DyldSubCacheEntryV2<E>>(
                     self.subcaches_offset.get(endian).into(),
                     self.subcaches_count.get(endian) as usize,
                 )
                 .read_error("Invalid dyld subcaches size or alignment")?;
-            Ok(Some(subcaches))
+            Ok(Some(DyldSubCacheSlice::V2(subcaches)))
+        } else if header_size >= MIN_HEADER_SIZE_SUBCACHES_V1 {
+            let subcaches = data
+                .read_slice_at::<macho::DyldSubCacheEntryV1<E>>(
+                    self.subcaches_offset.get(endian).into(),
+                    self.subcaches_count.get(endian) as usize,
+                )
+                .read_error("Invalid dyld subcaches size or alignment")?;
+            Ok(Some(DyldSubCacheSlice::V1(subcaches)))
         } else {
             Ok(None)
         }
@@ -273,7 +314,7 @@ impl<E: Endian> macho::DyldCacheHeader<E> {
 
     /// Return the UUID for the .symbols subcache, if present.
     pub fn symbols_subcache_uuid(&self, endian: E) -> Option<[u8; 16]> {
-        if self.mapping_offset.get(endian) >= MIN_HEADER_SIZE_SUBCACHES {
+        if self.mapping_offset.get(endian) >= MIN_HEADER_SIZE_SUBCACHES_V1 {
             let uuid = self.symbols_subcache_uuid;
             if uuid != [0; 16] {
                 return Some(uuid);
@@ -288,7 +329,7 @@ impl<E: Endian> macho::DyldCacheHeader<E> {
         endian: E,
         data: R,
     ) -> Result<&'data [macho::DyldCacheImageInfo<E>]> {
-        if self.mapping_offset.get(endian) >= MIN_HEADER_SIZE_SUBCACHES {
+        if self.mapping_offset.get(endian) >= MIN_HEADER_SIZE_SUBCACHES_V1 {
             data.read_slice_at::<macho::DyldCacheImageInfo<E>>(
                 self.images_across_all_subcaches_offset.get(endian).into(),
                 self.images_across_all_subcaches_count.get(endian) as usize,

@@ -2,6 +2,8 @@ use alloc::fmt;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
 
+#[allow(unused_imports)] // Unused for Wasm
+use crate::endian::Endianness;
 #[cfg(feature = "coff")]
 use crate::read::coff;
 #[cfg(feature = "elf")]
@@ -17,12 +19,10 @@ use crate::read::xcoff;
 use crate::read::{
     self, Architecture, BinaryFormat, CodeView, ComdatKind, CompressedData, CompressedFileRange,
     Error, Export, FileFlags, FileKind, Import, Object, ObjectComdat, ObjectKind, ObjectMap,
-    ObjectSection, ObjectSegment, ObjectSymbol, ObjectSymbolTable, ReadRef, Relocation, Result,
-    SectionFlags, SectionIndex, SectionKind, SegmentFlags, SymbolFlags, SymbolIndex, SymbolKind,
-    SymbolMap, SymbolMapName, SymbolScope, SymbolSection,
+    ObjectSection, ObjectSegment, ObjectSymbol, ObjectSymbolTable, ReadRef, Relocation,
+    RelocationMap, Result, SectionFlags, SectionIndex, SectionKind, SegmentFlags, SubArchitecture,
+    SymbolFlags, SymbolIndex, SymbolKind, SymbolMap, SymbolMapName, SymbolScope, SymbolSection,
 };
-#[allow(unused_imports)]
-use crate::{AddressSize, Endian, Endianness};
 
 /// Evaluate an expression on the contents of a file format enum.
 ///
@@ -204,9 +204,9 @@ macro_rules! next_inner {
     };
 }
 
-/// An object file.
+/// An object file that can be any supported file format.
 ///
-/// Most functionality is provided by the `Object` trait implementation.
+/// Most functionality is provided by the [`Object`] trait implementation.
 #[derive(Debug)]
 #[non_exhaustive]
 #[allow(missing_docs)]
@@ -268,14 +268,14 @@ impl<'data, R: ReadRef<'data>> File<'data, R> {
 
     /// Parse a Mach-O image from the dyld shared cache.
     #[cfg(feature = "macho")]
-    pub fn parse_dyld_cache_image<'cache, E: Endian>(
+    pub fn parse_dyld_cache_image<'cache, E: crate::Endian>(
         image: &macho::DyldCacheImage<'data, 'cache, E, R>,
     ) -> Result<Self> {
         Ok(match image.cache.architecture().address_size() {
-            Some(AddressSize::U64) => {
+            Some(read::AddressSize::U64) => {
                 File::MachO64(macho::MachOFile64::parse_dyld_cache_image(image)?)
             }
-            Some(AddressSize::U32) => {
+            Some(read::AddressSize::U32) => {
                 File::MachO32(macho::MachOFile32::parse_dyld_cache_image(image)?)
             }
             _ => return Err(Error("Unsupported file format")),
@@ -303,24 +303,27 @@ impl<'data, R: ReadRef<'data>> File<'data, R> {
 
 impl<'data, R: ReadRef<'data>> read::private::Sealed for File<'data, R> {}
 
-impl<'data, 'file, R> Object<'data, 'file> for File<'data, R>
+impl<'data, R> Object<'data> for File<'data, R>
 where
-    'data: 'file,
-    R: 'file + ReadRef<'data>,
+    R: ReadRef<'data>,
 {
-    type Segment = Segment<'data, 'file, R>;
-    type SegmentIterator = SegmentIterator<'data, 'file, R>;
-    type Section = Section<'data, 'file, R>;
-    type SectionIterator = SectionIterator<'data, 'file, R>;
-    type Comdat = Comdat<'data, 'file, R>;
-    type ComdatIterator = ComdatIterator<'data, 'file, R>;
-    type Symbol = Symbol<'data, 'file, R>;
-    type SymbolIterator = SymbolIterator<'data, 'file, R>;
-    type SymbolTable = SymbolTable<'data, 'file, R>;
-    type DynamicRelocationIterator = DynamicRelocationIterator<'data, 'file, R>;
+    type Segment<'file> = Segment<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type SegmentIterator<'file> = SegmentIterator<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type Section<'file> = Section<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type SectionIterator<'file> = SectionIterator<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type Comdat<'file> = Comdat<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type ComdatIterator<'file> = ComdatIterator<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type Symbol<'file> = Symbol<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type SymbolIterator<'file> = SymbolIterator<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type SymbolTable<'file> = SymbolTable<'data, 'file, R> where Self: 'file, 'data: 'file;
+    type DynamicRelocationIterator<'file> = DynamicRelocationIterator<'data, 'file, R> where Self: 'file, 'data: 'file;
 
     fn architecture(&self) -> Architecture {
         with_inner!(self, File, |x| x.architecture())
+    }
+
+    fn sub_architecture(&self) -> Option<SubArchitecture> {
+        with_inner!(self, File, |x| x.sub_architecture())
     }
 
     fn is_little_endian(&self) -> bool {
@@ -335,43 +338,46 @@ where
         with_inner!(self, File, |x| x.kind())
     }
 
-    fn segments(&'file self) -> SegmentIterator<'data, 'file, R> {
+    fn segments(&self) -> SegmentIterator<'data, '_, R> {
         SegmentIterator {
             inner: map_inner!(self, File, SegmentIteratorInternal, |x| x.segments()),
         }
     }
 
-    fn section_by_name_bytes(&'file self, section_name: &[u8]) -> Option<Section<'data, 'file, R>> {
+    fn section_by_name_bytes<'file>(
+        &'file self,
+        section_name: &[u8],
+    ) -> Option<Section<'data, 'file, R>> {
         map_inner_option!(self, File, SectionInternal, |x| x
             .section_by_name_bytes(section_name))
         .map(|inner| Section { inner })
     }
 
-    fn section_by_index(&'file self, index: SectionIndex) -> Result<Section<'data, 'file, R>> {
+    fn section_by_index(&self, index: SectionIndex) -> Result<Section<'data, '_, R>> {
         map_inner_option!(self, File, SectionInternal, |x| x.section_by_index(index))
             .map(|inner| Section { inner })
     }
 
-    fn sections(&'file self) -> SectionIterator<'data, 'file, R> {
+    fn sections(&self) -> SectionIterator<'data, '_, R> {
         SectionIterator {
             inner: map_inner!(self, File, SectionIteratorInternal, |x| x.sections()),
         }
     }
 
-    fn comdats(&'file self) -> ComdatIterator<'data, 'file, R> {
+    fn comdats(&self) -> ComdatIterator<'data, '_, R> {
         ComdatIterator {
             inner: map_inner!(self, File, ComdatIteratorInternal, |x| x.comdats()),
         }
     }
 
-    fn symbol_by_index(&'file self, index: SymbolIndex) -> Result<Symbol<'data, 'file, R>> {
+    fn symbol_by_index(&self, index: SymbolIndex) -> Result<Symbol<'data, '_, R>> {
         map_inner_option!(self, File, SymbolInternal, |x| x
             .symbol_by_index(index)
             .map(|x| (x, PhantomData)))
         .map(|inner| Symbol { inner })
     }
 
-    fn symbols(&'file self) -> SymbolIterator<'data, 'file, R> {
+    fn symbols(&self) -> SymbolIterator<'data, '_, R> {
         SymbolIterator {
             inner: map_inner!(self, File, SymbolIteratorInternal, |x| (
                 x.symbols(),
@@ -380,14 +386,14 @@ where
         }
     }
 
-    fn symbol_table(&'file self) -> Option<SymbolTable<'data, 'file, R>> {
+    fn symbol_table(&self) -> Option<SymbolTable<'data, '_, R>> {
         map_inner_option!(self, File, SymbolTableInternal, |x| x
             .symbol_table()
             .map(|x| (x, PhantomData)))
         .map(|inner| SymbolTable { inner })
     }
 
-    fn dynamic_symbols(&'file self) -> SymbolIterator<'data, 'file, R> {
+    fn dynamic_symbols(&self) -> SymbolIterator<'data, '_, R> {
         SymbolIterator {
             inner: map_inner!(self, File, SymbolIteratorInternal, |x| (
                 x.dynamic_symbols(),
@@ -396,7 +402,7 @@ where
         }
     }
 
-    fn dynamic_symbol_table(&'file self) -> Option<SymbolTable<'data, 'file, R>> {
+    fn dynamic_symbol_table(&self) -> Option<SymbolTable<'data, '_, R>> {
         map_inner_option!(self, File, SymbolTableInternal, |x| x
             .dynamic_symbol_table()
             .map(|x| (x, PhantomData)))
@@ -404,7 +410,7 @@ where
     }
 
     #[cfg(feature = "elf")]
-    fn dynamic_relocations(&'file self) -> Option<DynamicRelocationIterator<'data, 'file, R>> {
+    fn dynamic_relocations(&self) -> Option<DynamicRelocationIterator<'data, '_, R>> {
         let inner = match self {
             File::Elf32(ref elf) => {
                 DynamicRelocationIteratorInternal::Elf32(elf.dynamic_relocations()?)
@@ -419,7 +425,7 @@ where
     }
 
     #[cfg(not(feature = "elf"))]
-    fn dynamic_relocations(&'file self) -> Option<DynamicRelocationIterator<'data, 'file, R>> {
+    fn dynamic_relocations(&self) -> Option<DynamicRelocationIterator<'data, '_, R>> {
         None
     }
 
@@ -481,7 +487,7 @@ where
     }
 }
 
-/// An iterator over the segments of a `File`.
+/// An iterator for the loadable segments in a [`File`].
 #[derive(Debug)]
 pub struct SegmentIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SegmentIteratorInternal<'data, 'file, R>,
@@ -522,7 +528,9 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for SegmentIterator<'data, 'file,
     }
 }
 
-/// A segment of a `File`.
+/// A loadable segment in a [`File`].
+///
+/// Most functionality is provided by the [`ObjectSegment`] trait implementation.
 pub struct Segment<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SegmentInternal<'data, 'file, R>,
 }
@@ -612,7 +620,7 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSegment<'data> for Segment<'data, 'f
     }
 }
 
-/// An iterator of the sections of a `File`.
+/// An iterator for the sections in a [`File`].
 #[derive(Debug)]
 pub struct SectionIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SectionIteratorInternal<'data, 'file, R>,
@@ -654,7 +662,9 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for SectionIterator<'data, 'file,
     }
 }
 
-/// A Section of a File
+/// A section in a [`File`].
+///
+/// Most functionality is provided by the [`ObjectSection`] trait implementation.
 pub struct Section<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SectionInternal<'data, 'file, R>,
 }
@@ -748,11 +758,11 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSection<'data> for Section<'data, 'f
         with_inner!(self.inner, SectionInternal, |x| x.compressed_data())
     }
 
-    fn name_bytes(&self) -> Result<&[u8]> {
+    fn name_bytes(&self) -> Result<&'data [u8]> {
         with_inner!(self.inner, SectionInternal, |x| x.name_bytes())
     }
 
-    fn name(&self) -> Result<&str> {
+    fn name(&self) -> Result<&'data str> {
         with_inner!(self.inner, SectionInternal, |x| x.name())
     }
 
@@ -779,12 +789,16 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSection<'data> for Section<'data, 'f
         }
     }
 
+    fn relocation_map(&self) -> Result<RelocationMap> {
+        with_inner!(self.inner, SectionInternal, |x| x.relocation_map())
+    }
+
     fn flags(&self) -> SectionFlags {
         with_inner!(self.inner, SectionInternal, |x| x.flags())
     }
 }
 
-/// An iterator of the COMDAT section groups of a `File`.
+/// An iterator for the COMDAT section groups in a [`File`].
 #[derive(Debug)]
 pub struct ComdatIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: ComdatIteratorInternal<'data, 'file, R>,
@@ -825,7 +839,9 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for ComdatIterator<'data, 'file, 
     }
 }
 
-/// A COMDAT section group of a `File`.
+/// A COMDAT section group in a [`File`].
+///
+/// Most functionality is provided by the [`ObjectComdat`] trait implementation.
 pub struct Comdat<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: ComdatInternal<'data, 'file, R>,
 }
@@ -878,11 +894,11 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectComdat<'data> for Comdat<'data, 'fil
         with_inner!(self.inner, ComdatInternal, |x| x.symbol())
     }
 
-    fn name_bytes(&self) -> Result<&[u8]> {
+    fn name_bytes(&self) -> Result<&'data [u8]> {
         with_inner!(self.inner, ComdatInternal, |x| x.name_bytes())
     }
 
-    fn name(&self) -> Result<&str> {
+    fn name(&self) -> Result<&'data str> {
         with_inner!(self.inner, ComdatInternal, |x| x.name())
     }
 
@@ -898,7 +914,7 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectComdat<'data> for Comdat<'data, 'fil
     }
 }
 
-/// An iterator over COMDAT section entries.
+/// An iterator for the sections in a [`Comdat`].
 #[derive(Debug)]
 pub struct ComdatSectionIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: ComdatSectionIteratorInternal<'data, 'file, R>,
@@ -938,7 +954,9 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for ComdatSectionIterator<'data, 
     }
 }
 
-/// A symbol table.
+/// A symbol table in a [`File`].
+///
+/// Most functionality is provided by the [`ObjectSymbolTable`] trait implementation.
 #[derive(Debug)]
 pub struct SymbolTable<'data, 'file, R = &'data [u8]>
 where
@@ -1022,7 +1040,7 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSymbolTable<'data> for SymbolTable<'
     }
 }
 
-/// An iterator over symbol table entries.
+/// An iterator for the symbols in a [`SymbolTable`].
 #[derive(Debug)]
 pub struct SymbolIterator<'data, 'file, R = &'data [u8]>
 where
@@ -1101,7 +1119,9 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for SymbolIterator<'data, 'file, 
     }
 }
 
-/// A symbol table entry.
+/// An symbol in a [`SymbolTable`].
+///
+/// Most functionality is provided by the [`ObjectSymbol`] trait implementation.
 pub struct Symbol<'data, 'file, R = &'data [u8]>
 where
     R: ReadRef<'data>,
@@ -1236,7 +1256,7 @@ impl<'data, 'file, R: ReadRef<'data>> ObjectSymbol<'data> for Symbol<'data, 'fil
     }
 }
 
-/// An iterator over dynamic relocation entries.
+/// An iterator for the dynamic relocation entries in a [`File`].
 #[derive(Debug)]
 pub struct DynamicRelocationIterator<'data, 'file, R = &'data [u8]>
 where
@@ -1273,7 +1293,7 @@ impl<'data, 'file, R: ReadRef<'data>> Iterator for DynamicRelocationIterator<'da
     }
 }
 
-/// An iterator over section relocation entries.
+/// An iterator for the relocation entries in a [`Section`].
 #[derive(Debug)]
 pub struct SectionRelocationIterator<'data, 'file, R: ReadRef<'data> = &'data [u8]> {
     inner: SectionRelocationIteratorInternal<'data, 'file, R>,

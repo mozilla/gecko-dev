@@ -17,6 +17,7 @@ members = [
   "testing/geckodriver",
   "toolkit/components/uniffi-bindgen-gecko-js",
   "toolkit/crashreporter/client/app",
+  "toolkit/crashreporter/minidump-analyzer",
   "toolkit/crashreporter/mozwer-rust",
   "toolkit/crashreporter/rust_minidump_writer_linux",
   "toolkit/library/gtest/rust",
