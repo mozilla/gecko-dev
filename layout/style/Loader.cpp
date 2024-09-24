@@ -2303,9 +2303,9 @@ void Loader::NotifyObserversForCachedSheet(SheetLoadData& aLoadData) {
   }
 
   nsCOMPtr<nsIChannel> channel;
-  nsresult rv =
-      NewStyleSheetChannel(aLoadData, CORSMode::CORS_NONE, UsePreload::No,
-                           UseLoadGroup::No, getter_AddRefs(channel));
+  nsresult rv = NewStyleSheetChannel(aLoadData, aLoadData.mSheet->GetCORSMode(),
+                                     UsePreload::No, UseLoadGroup::No,
+                                     getter_AddRefs(channel));
   if (NS_FAILED(rv)) {
     return;
   }
