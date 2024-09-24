@@ -89,7 +89,6 @@
 #include <wtsapi32.h>
 #include <process.h>
 #include <commctrl.h>
-#include <dbt.h>
 #include <unknwn.h>
 #include <psapi.h>
 #include <rpc.h>
@@ -1021,8 +1020,6 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
     SetSmallIcon(icon);
   }
 
-  mDeviceNotifyHandle = InputDeviceUtils::RegisterNotification(mWnd);
-
   // If mDefaultScale is set before mWnd has been set, it will have the scale of
   // the primary monitor, rather than the monitor that the window is actually
   // on. For non-popup windows this gets corrected by the WM_DPICHANGED message
@@ -1154,9 +1151,6 @@ void nsWindow::Destroy() {
    * cleanup. It also would like to have the HWND intact, so we nullptr it here.
    */
   DestroyLayerManager();
-
-  InputDeviceUtils::UnregisterNotification(mDeviceNotifyHandle);
-  mDeviceNotifyHandle = nullptr;
 
   // The DestroyWindow function destroys the specified window. The function
   // sends WM_DESTROY and WM_NCDESTROY messages to the window to deactivate it
@@ -4954,20 +4948,6 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
           break;
         default:
           break;
-      }
-    } break;
-
-    case WM_DEVICECHANGE: {
-      if (wParam == DBT_DEVICEARRIVAL || wParam == DBT_DEVICEREMOVECOMPLETE) {
-        DEV_BROADCAST_HDR* hdr = reinterpret_cast<DEV_BROADCAST_HDR*>(lParam);
-        // Check dbch_devicetype explicitly since we will get other device types
-        // (e.g. DBT_DEVTYP_VOLUME) for some reasons even if we specify
-        // DBT_DEVTYP_DEVICEINTERFACE in the filter for
-        // RegisterDeviceNotification.
-        if (hdr->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE) {
-          // This can only change media queries (any-hover/any-pointer).
-          NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
-        }
       }
     } break;
 

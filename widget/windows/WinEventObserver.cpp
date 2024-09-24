@@ -8,9 +8,11 @@
 #include <winternl.h>
 #include <winuser.h>
 #include <wtsapi32.h>
+#include <dbt.h>
 
 #include "WinEventObserver.h"
 
+#include "InputDeviceUtils.h"
 #include "ScreenHelperWin.h"
 #include "WindowsUIUtils.h"
 #include "WinWindowOcclusionTracker.h"
@@ -47,6 +49,7 @@ namespace {
 namespace evtwin_details {
 static HWND sHiddenWindow = nullptr;
 static bool sHiddenWindowShutdown = false;
+HDEVNOTIFY sDeviceNotifyHandle = nullptr;
 }  // namespace evtwin_details
 }  // namespace
 
@@ -81,9 +84,13 @@ void WinEventWindow::Ensure() {
     MOZ_CRASH("could not create broadcast-receiver window");
   }
 
+  sDeviceNotifyHandle = InputDeviceUtils::RegisterNotification(sHiddenWindow);
+
   // It should be harmless to leak this window until destruction -- but other
   // parts of Gecko may expect all windows to be destroyed, so do that.
   mozilla::RunOnShutdown([]() {
+    InputDeviceUtils::UnregisterNotification(sDeviceNotifyHandle);
+
     sHiddenWindowShutdown = true;
     ::DestroyWindow(sHiddenWindow);
     sHiddenWindow = nullptr;
@@ -219,6 +226,20 @@ static void OnSettingsChange(WPARAM wParam, LPARAM lParam) {
     WindowsUIUtils::UpdateInTabletMode();
   }
 }
+
+static void OnDeviceChange(WPARAM wParam, LPARAM lParam) {
+  if (wParam == DBT_DEVICEARRIVAL || wParam == DBT_DEVICEREMOVECOMPLETE) {
+    DEV_BROADCAST_HDR* hdr = reinterpret_cast<DEV_BROADCAST_HDR*>(lParam);
+    // Check dbch_devicetype explicitly since we will get other device types
+    // (e.g. DBT_DEVTYP_VOLUME) for some reason, even if we specify
+    // DBT_DEVTYP_DEVICEINTERFACE in the filter for RegisterDeviceNotification.
+    if (hdr->dbch_devicetype == DBT_DEVTYP_DEVICEINTERFACE) {
+      // This can only change media queries (any-hover/any-pointer).
+      NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
+    }
+  }
+}
+
 }  // namespace evtwin_details
 }  // namespace
 
@@ -249,6 +270,10 @@ LRESULT CALLBACK WinEventWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam,
 
     case WM_SETTINGCHANGE: {
       evtwin_details::OnSettingsChange(wParam, lParam);
+    } break;
+
+    case WM_DEVICECHANGE: {
+      evtwin_details::OnDeviceChange(wParam, lParam);
     } break;
   }
 
