@@ -86,6 +86,12 @@ class CustomTabsToolbarFeature(
     private val session: CustomTabSessionState?
         get() = sessionId?.let { store.state.findCustomTab(it) }
 
+    @ColorInt
+    private val fallbackIconColor: Int = toolbar.display.colors.menu
+
+    @ColorInt
+    var iconColor: Int = fallbackIconColor
+
     /**
      * Initializes the feature and registers the [CustomTabSessionTitleObserver].
      */
@@ -126,8 +132,10 @@ class CustomTabsToolbarFeature(
         val readableColor = colorSchemeParams.getToolbarContrastColor(
             context = context,
             shouldUpdateTheme = customTabsColorsConfig.isAnyColorUpdateAllowed(),
-            fallbackColor = toolbar.display.colors.menu,
-        )
+            fallbackColor = fallbackIconColor,
+        ).also {
+            iconColor = it
+        }
 
         if (customTabsColorsConfig.isAnyColorUpdateAllowed()) {
             colorSchemeParams.let {

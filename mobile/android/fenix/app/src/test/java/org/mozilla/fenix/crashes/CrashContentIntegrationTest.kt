@@ -149,7 +149,7 @@ class CrashContentIntegrationTest {
     }
 
     @Test
-    fun `GIVEN inegration was stopped and then restarted WHEN orientation state changes THEN margins are updated`() {
+    fun `GIVEN integration was stopped and then restarted WHEN orientation state changes THEN margins are updated`() {
         val crashReporterLayoutParams: MarginLayoutParams = mockk(relaxed = true)
         val crashReporterView: CrashContentView = mockk(relaxed = true) {
             every { layoutParams } returns crashReporterLayoutParams
