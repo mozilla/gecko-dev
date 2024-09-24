@@ -1036,6 +1036,17 @@
 #  define MOZ_EMPTY_BASES
 #endif
 
+/**
+ * Pre- C++20 equivalent to constinit
+ */
+#if defined(__cpp_constinit)
+#  define MOZ_CONSTINIT constinit
+#elif defined(__clang__)
+#  define MOZ_CONSTINIT [[clang::require_constant_initialization]]
+#else
+#  define MOZ_CONSTINIT
+#endif
+
 // XXX: GCC somehow does not allow attributes before lambda return types, while
 // clang requires so. See also bug 1627007.
 #ifdef __clang__
