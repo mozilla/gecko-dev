@@ -104,9 +104,6 @@ class FetchService final : public nsIObserver {
     nsCOMPtr<nsISerialEventTarget> mEventTarget;
     nsID mActorID;
     bool mIsThirdPartyContext;
-    MozPromiseRequestHolder<FetchServiceResponseEndPromise>
-        mResponseEndPromiseHolder;
-    RefPtr<GenericPromise::Private> mFetchParentPromise;
   };
 
   // Used for content process main thread fetch()
@@ -147,11 +144,7 @@ class FetchService final : public nsIObserver {
   // The created FetchInstance is saved in mFetchInstanceTable
   RefPtr<FetchServicePromises> Fetch(FetchArgs&& aArgs);
 
-  void CancelFetch(const RefPtr<FetchServicePromises>&& aPromises,
-                   bool aForceAbort);
-
-  MozPromiseRequestHolder<FetchServiceResponseEndPromise>&
-  GetResponseEndPromiseHolder(const RefPtr<FetchServicePromises>& aPromises);
+  void CancelFetch(const RefPtr<FetchServicePromises>&& aPromises);
 
  private:
   /**
@@ -173,15 +166,10 @@ class FetchService final : public nsIObserver {
     nsresult Initialize(FetchArgs&& aArgs);
 
     const FetchArgs& Args() { return mArgs; }
-    MozPromiseRequestHolder<FetchServiceResponseEndPromise>&
-    GetResponseEndPromiseHolder() {
-      MOZ_ASSERT(mArgs.is<WorkerFetchArgs>());
-      return mArgs.as<WorkerFetchArgs>().mResponseEndPromiseHolder;
-    }
 
     RefPtr<FetchServicePromises> Fetch();
 
-    void Cancel(bool aForceAbort);
+    void Cancel();
 
     bool IsLocalHostFetch() const;
 
@@ -210,8 +198,8 @@ class FetchService final : public nsIObserver {
     RefPtr<FetchDriver> mFetchDriver;
     SafeRefPtr<InternalResponse> mResponse;
     RefPtr<FetchServicePromises> mPromises;
+
     FetchArgsType mArgsType;
-    Atomic<bool, Relaxed> mActorDying{false};
   };
 
   ~FetchService();

@@ -11,7 +11,6 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/PFetchParent.h"
 #include "mozilla/dom/SafeRefPtr.h"
-#include "mozilla/dom/FetchService.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "nsCOMPtr.h"
@@ -37,7 +36,7 @@ class FetchParent final : public PFetchParent {
 
   mozilla::ipc::IPCResult RecvFetchOp(FetchOpArgs&& aArgs);
 
-  mozilla::ipc::IPCResult RecvAbortFetchOp(bool aForceAbort);
+  mozilla::ipc::IPCResult RecvAbortFetchOp();
 
   FetchParent();
 

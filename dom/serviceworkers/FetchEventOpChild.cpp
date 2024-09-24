@@ -381,7 +381,7 @@ mozilla::ipc::IPCResult FetchEventOpChild::Recv__delete__(
   mPreloadResponseEndPromiseRequestHolder.DisconnectIfExists();
   if (mPreloadResponseReadyPromises) {
     RefPtr<FetchService> fetchService = FetchService::GetInstance();
-    fetchService->CancelFetch(std::move(mPreloadResponseReadyPromises), false);
+    fetchService->CancelFetch(std::move(mPreloadResponseReadyPromises));
   }
 
   /**
