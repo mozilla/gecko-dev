@@ -252,8 +252,8 @@ add_task(async function test_new_tab_keep_settings() {
   );
   is(
     panel.anchorNode.closest("toolbarbutton").id,
-    "PanelUI-menu-button",
-    "The doorhanger is anchored to the menu icon"
+    "unified-extensions-button",
+    "The doorhanger is anchored to the extensions button"
   );
   is(
     panel.querySelector("#extension-new-tab-notification-description")
