@@ -80,6 +80,7 @@ export function StartupRecorder() {
       "image-loading": new Set(),
     },
     code: {},
+    extras: {},
     prefStats: {},
   };
   this.done = new Promise(resolve => {
@@ -101,6 +102,9 @@ StartupRecorder.prototype = {
           return false;
         }
       }),
+    };
+    this.data.extras[name] = {
+      hiddenWindowLoaded: Services.appShell.hasHiddenWindow,
     };
   },
 

@@ -13,14 +13,12 @@ interface nsIAppStartup : nsISupports
     /**
      * Create the hidden window.
      */
-    [noscript]
     void createHiddenWindow();
 
     /**
      * Destroys the hidden window. This will have no effect if the hidden window
      * has not yet been created.
      */
-    [noscript]
     void destroyHiddenWindow();
 
     /**
