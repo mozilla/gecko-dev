@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.translations
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -246,7 +247,11 @@ fun getTranslationOptionsList(): List<TranslationSwitchItem> {
 @LightDarkPreview
 private fun TranslationSettingsPreview() {
     FirefoxTheme {
-        Column {
+        Column(
+            modifier = Modifier.background(
+                color = FirefoxTheme.colors.layer1,
+            ),
+        ) {
             TranslationOptionsDialog(
                 translationOptionsList = getTranslationOptionsList(),
                 showGlobalSettings = true,
