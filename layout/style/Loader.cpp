@@ -2313,12 +2313,11 @@ void Loader::NotifyObserversForCachedSheet(SheetLoadData& aLoadData) {
   RefPtr<HttpBaseChannel> httpBaseChannel = do_QueryObject(channel);
   if (httpBaseChannel) {
     httpBaseChannel->SetDummyChannelForCachedResource();
-    channel->SetContentType("text/css"_ns);
-    // For now, we only care for http channels, so "file://", "chrome://"
-    // "resource://" will be ignored.
-    obsService->NotifyObservers(channel, "http-on-stylesheet-cache-response",
-                                nullptr);
   }
+
+  channel->SetContentType("text/css"_ns);
+  obsService->NotifyObservers(channel, "http-on-stylesheet-cache-response",
+                              nullptr);
 }
 
 void Loader::Stop() {
