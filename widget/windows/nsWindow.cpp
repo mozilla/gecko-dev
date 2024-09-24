@@ -77,6 +77,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "mozilla/widget/WinEventObserver.h"
 #include "mozilla/widget/WinMessages.h"
 #include "nsLookAndFeel.h"
 #include "nsWindow.h"
@@ -842,6 +843,10 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   // could be created on arbitrary threads, and this may still be reflected in
   // some comments.
   MOZ_ASSERT(NS_IsMainThread());
+
+  // Ensure that the hidden window exists, so that broadcast Windows messages
+  // (WM_FONTCHANGE et al.) are received and processed.
+  WinEventWindow::Ensure();
 
   widget::InitData defaultInitData;
   if (!aInitData) aInitData = &defaultInitData;
