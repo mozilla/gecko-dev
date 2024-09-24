@@ -29,7 +29,7 @@ class InlineTable : private AllocPolicy {
   using Lookup = typename HashPolicy::Lookup;
 
   struct InlineArray {
-    size_t inlCount = 0;
+    uint32_t count = 0;
     InlineEntry inl[InlineEntries];
   };
   mozilla::Variant<InlineArray, Table> data_{InlineArray()};
@@ -60,18 +60,18 @@ class InlineTable : private AllocPolicy {
 
   InlineEntry* inlineEnd() {
     MOZ_ASSERT(!usingTable());
-    return inlineArray().inl + inlineArray().inlCount;
+    return inlineArray().inl + inlineArray().count;
   }
 
   const InlineEntry* inlineEnd() const {
     MOZ_ASSERT(!usingTable());
-    return inlineArray().inl + inlineArray().inlCount;
+    return inlineArray().inl + inlineArray().count;
   }
 
   bool usingTable() const { return data_.template is<Table>(); }
 
   [[nodiscard]] bool switchToTable() {
-    MOZ_ASSERT(inlineArray().inlCount == InlineEntries);
+    MOZ_ASSERT(inlineArray().count == InlineEntries);
 
     Table table(*static_cast<AllocPolicy*>(this));
 
@@ -180,11 +180,11 @@ class InlineTable : private AllocPolicy {
   };
 
   size_t count() const {
-    return usingTable() ? table().count() : inlineArray().inlCount;
+    return usingTable() ? table().count() : inlineArray().count;
   }
 
   bool empty() const {
-    return usingTable() ? table().empty() : !inlineArray().inlCount;
+    return usingTable() ? table().empty() : !inlineArray().count;
   }
 
   void clear() { data_.template emplace<InlineArray>(); }
@@ -250,7 +250,7 @@ class InlineTable : private AllocPolicy {
       }
 
       addPtr->update(std::forward<KeyInput>(key), std::forward<Args>(args)...);
-      inlineArray().inlCount++;
+      inlineArray().count++;
       return true;
     }
 
@@ -262,14 +262,14 @@ class InlineTable : private AllocPolicy {
     MOZ_ASSERT(p);
     if (p.isInlinePtr_) {
       InlineArray& arr = inlineArray();
-      MOZ_ASSERT(arr.inlCount > 0);
-      InlineEntry* last = &arr.inl[arr.inlCount - 1];
+      MOZ_ASSERT(arr.count > 0);
+      InlineEntry* last = &arr.inl[arr.count - 1];
       MOZ_ASSERT(p.inlPtr_ <= last);
       if (p.inlPtr_ != last) {
         // Removing an entry that's not the last one. Move the last entry.
         *p.inlPtr_ = std::move(*last);
       }
-      arr.inlCount--;
+      arr.count--;
       return;
     }
     MOZ_ASSERT(usingTable());
