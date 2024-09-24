@@ -160,14 +160,17 @@ class nsSourceErrorEventRunner : public nsMediaEventRunner {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsSourceErrorEventRunner,
                                            nsMediaEventRunner)
-  nsSourceErrorEventRunner(HTMLMediaElement* aElement, nsIContent* aSource)
+  nsSourceErrorEventRunner(HTMLMediaElement* aElement, nsIContent* aSource,
+                           const nsACString& aErrorDetails)
       : nsMediaEventRunner(u"nsSourceErrorEventRunner"_ns, aElement),
-        mSource(aSource) {}
+        mSource(aSource),
+        mErrorDetails(NS_ConvertUTF8toUTF16(aErrorDetails)) {}
   NS_IMETHOD Run() override;
 
  private:
   virtual ~nsSourceErrorEventRunner() = default;
   nsCOMPtr<nsIContent> mSource;
+  const nsString mErrorDetails;
 };
 
 /**

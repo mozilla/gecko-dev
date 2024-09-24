@@ -24,6 +24,7 @@
 #include "FrameStatistics.h"
 #include "GMPCrashHelper.h"
 #include "GVAutoplayPermissionRequest.h"
+#include "nsString.h"
 #ifdef MOZ_ANDROID_HLS_SUPPORT
 #  include "HLSDecoder.h"
 #endif
@@ -2748,10 +2749,15 @@ void HTMLMediaElement::NotifyLoadError(const nsACString& aErrorDetails) {
     LOG(LogLevel::Debug, ("NotifyLoadError(), no supported media error"));
     NoSupportedMediaSourceError(aErrorDetails);
   } else if (mSourceLoadCandidate) {
-    DispatchAsyncSourceError(mSourceLoadCandidate);
+    DispatchAsyncSourceError(mSourceLoadCandidate, aErrorDetails);
     QueueLoadFromSourceTask();
   } else {
     NS_WARNING("Should know the source we were loading from!");
+  }
+  if (profiler_is_collecting_markers()) {
+    profiler_add_marker(nsPrintfCString("%p:mozloaderror", this),
+                        geckoprofiler::category::MEDIA_PLAYBACK, {},
+                        LoadErrorMarker{}, aErrorDetails);
   }
 }
 
@@ -2883,7 +2889,7 @@ void HTMLMediaElement::DealWithFailedElement(nsIContent* aSourceElement) {
     return;
   }
 
-  DispatchAsyncSourceError(aSourceElement);
+  DispatchAsyncSourceError(aSourceElement, "Failed load on source element"_ns);
   GetMainThreadSerialEventTarget()->Dispatch(
       NewRunnableMethod("HTMLMediaElement::QueueLoadFromSourceTask", this,
                         &HTMLMediaElement::QueueLoadFromSourceTask));
@@ -3004,7 +3010,7 @@ void HTMLMediaElement::LoadFromSourceChildren() {
     }
 
     // If we fail to load, loop back and try loading the next resource.
-    DispatchAsyncSourceError(child);
+    DispatchAsyncSourceError(child, "Failed load on resource"_ns);
   }
   MOZ_ASSERT_UNREACHABLE("Execution should not reach here!");
 }
@@ -5586,7 +5592,7 @@ void HTMLMediaElement::DecodeError(const MediaResult& aError) {
   if (mIsLoadingFromSourceChildren) {
     mErrorSink->ResetError();
     if (mSourceLoadCandidate) {
-      DispatchAsyncSourceError(mSourceLoadCandidate);
+      DispatchAsyncSourceError(mSourceLoadCandidate, aError.Message());
       QueueLoadFromSourceTask();
     } else {
       NS_WARNING("Should know the source we were loading from!");
@@ -6639,11 +6645,12 @@ void HTMLMediaElement::NotifyShutdownEvent() {
   AddRemoveSelfReference();
 }
 
-void HTMLMediaElement::DispatchAsyncSourceError(nsIContent* aSourceElement) {
+void HTMLMediaElement::DispatchAsyncSourceError(
+    nsIContent* aSourceElement, const nsACString& aErrorDetails) {
   LOG_EVENT(LogLevel::Debug, ("%p Queuing simple source error event", this));
 
   nsCOMPtr<nsIRunnable> event =
-      new nsSourceErrorEventRunner(this, aSourceElement);
+      new nsSourceErrorEventRunner(this, aSourceElement, aErrorDetails);
   GetMainThreadSerialEventTarget()->Dispatch(event.forget());
 }
 

@@ -10,6 +10,7 @@
 #include "mozilla/ProfilerState.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/dom/HTMLVideoElement.h"
+#include "mozilla/dom/MediaError.h"
 #include "mozilla/dom/TimeRanges.h"
 
 extern mozilla::LazyLogModule gMediaElementEventsLog;
@@ -71,6 +72,13 @@ void nsMediaEventRunner::ReportProfilerMarker() {
         geckoprofiler::category::MEDIA_PLAYBACK, {}, MetadataMarker{}, src,
         mediaInfo.HasAudio() ? mediaInfo.mAudio.mMimeType : "none"_ns,
         mediaInfo.HasVideo() ? mediaInfo.mVideo.mMimeType : "none"_ns);
+  } else if (mEventName.EqualsLiteral("error")) {
+    auto* error = mElement->GetError();
+    nsString message;
+    error->GetMessage(message);
+    profiler_add_marker(nsPrintfCString("%p:error", mElement.get()),
+                        geckoprofiler::category::MEDIA_PLAYBACK, {},
+                        ErrorMarker{}, message);
   } else {
     nsPrintfCString markerName{"%p:", mElement.get()};
     markerName += NS_ConvertUTF16toUTF8(mEventName);
@@ -159,6 +167,11 @@ NS_IMETHODIMP nsSourceErrorEventRunner::Run() {
   }
   LOG_EVENT(LogLevel::Debug,
             ("%p Dispatching simple event source error", mElement.get()));
+  if (profiler_is_collecting_markers()) {
+    profiler_add_marker(nsPrintfCString("%p:sourceerror", mElement.get()),
+                        geckoprofiler::category::MEDIA_PLAYBACK, {},
+                        ErrorMarker{}, mErrorDetails);
+  }
   return nsContentUtils::DispatchTrustedEvent(mElement->OwnerDoc(), mSource,
                                               u"error"_ns, CanBubble::eNo,
                                               Cancelable::eNo);
