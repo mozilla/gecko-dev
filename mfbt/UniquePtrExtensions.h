@@ -220,6 +220,14 @@ using UniqueFreePtr = UniquePtr<T, detail::FreePolicy<T>>;
 using UniqueFileHandle =
     UniquePtr<detail::FileHandleType, detail::FileHandleDeleter>;
 
+#ifndef __wasm__
+// WASI does not have `dup`
+MFBT_API UniqueFileHandle DuplicateFileHandle(detail::FileHandleType aFile);
+inline UniqueFileHandle DuplicateFileHandle(const UniqueFileHandle& aFile) {
+  return DuplicateFileHandle(aFile.get());
+}
+#endif
+
 #if defined(XP_DARWIN) && !defined(RUST_BINDGEN)
 // A RAII class for a Mach port that names a send right.
 using UniqueMachSendRight =
