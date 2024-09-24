@@ -36,7 +36,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature,
         isPWAsPromptEnabled = !settings.userKnowsAboutPwas,
-        isTCPCFREnabled = settings.shouldShowTotalCookieProtectionCFR,
         isWallpaperOnboardingEnabled = settings.showWallpaperOnboarding,
         isDeleteSitePermissionsEnabled = settings.deleteSitePermissions,
         isOpenInAppBannerEnabled = settings.shouldShowOpenInAppBanner,
@@ -71,7 +70,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
     override var isRecentTabsFeatureEnabled: Boolean by updatedFeatureFlags::isRecentTabsFeatureEnabled
     override var isRecentlyVisitedFeatureEnabled: Boolean by updatedFeatureFlags::isRecentlyVisitedFeatureEnabled
     override var isPWAsPromptEnabled: Boolean by updatedFeatureFlags::isPWAsPromptEnabled
-    override var isTCPCFREnabled: Boolean by updatedFeatureFlags::isTCPCFREnabled
     override var isOpenInAppBannerEnabled: Boolean by updatedFeatureFlags::isOpenInAppBannerEnabled
     override var etpPolicy: ETPPolicy by updatedFeatureFlags::etpPolicy
     override var composeTopSitesEnabled: Boolean by updatedFeatureFlags::composeTopSitesEnabled
@@ -103,7 +101,6 @@ class FeatureSettingsHelperDelegate() : FeatureSettingsHelper {
         settings.showRecentTabsFeature = featureFlags.isRecentTabsFeatureEnabled
         settings.historyMetadataUIFeature = featureFlags.isRecentlyVisitedFeatureEnabled
         settings.userKnowsAboutPwas = !featureFlags.isPWAsPromptEnabled
-        settings.shouldShowTotalCookieProtectionCFR = featureFlags.isTCPCFREnabled
         settings.showWallpaperOnboarding = featureFlags.isWallpaperOnboardingEnabled
         settings.deleteSitePermissions = featureFlags.isDeleteSitePermissionsEnabled
         settings.shouldShowOpenInAppBanner = featureFlags.isOpenInAppBannerEnabled
@@ -125,7 +122,6 @@ private data class FeatureFlags(
     var isRecentTabsFeatureEnabled: Boolean,
     var isRecentlyVisitedFeatureEnabled: Boolean,
     var isPWAsPromptEnabled: Boolean,
-    var isTCPCFREnabled: Boolean,
     var isWallpaperOnboardingEnabled: Boolean,
     var isDeleteSitePermissionsEnabled: Boolean,
     var isOpenInAppBannerEnabled: Boolean,

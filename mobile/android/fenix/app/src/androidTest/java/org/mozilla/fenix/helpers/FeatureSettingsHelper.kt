@@ -58,11 +58,6 @@ interface FeatureSettingsHelper {
     var isDeleteSitePermissionsEnabled: Boolean
 
     /**
-     * Enable or disable showing the TCP CFR when accessing a webpage for the first time.
-     */
-    var isTCPCFREnabled: Boolean
-
-    /**
      * The current "Enhanced Tracking Protection" policy.
      * @see ETPPolicy
      */

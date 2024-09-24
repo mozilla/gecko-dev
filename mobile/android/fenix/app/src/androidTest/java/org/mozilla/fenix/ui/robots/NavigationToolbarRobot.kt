@@ -227,22 +227,6 @@ class NavigationToolbarRobot {
             return BrowserRobot.Transition()
         }
 
-        fun enterURLAndEnterToBrowserForTCPCFR(
-            url: Uri,
-            interact: BrowserRobot.() -> Unit,
-        ): BrowserRobot.Transition {
-            openEditURLView()
-            Log.i(TAG, "enterURLAndEnterToBrowserForTCPCFR: Trying to set toolbar text to: $url")
-            awesomeBar().setText(url.toString())
-            Log.i(TAG, "enterURLAndEnterToBrowserForTCPCFR: Toolbar text was set to: $url")
-            Log.i(TAG, "enterURLAndEnterToBrowserForTCPCFR: Trying to press device enter button")
-            mDevice.pressEnter()
-            Log.i(TAG, "enterURLAndEnterToBrowserForTCPCFR: Pressed device enter button")
-
-            BrowserRobot().interact()
-            return BrowserRobot.Transition()
-        }
-
         fun openTabCrashReporter(interact: BrowserRobot.() -> Unit): BrowserRobot.Transition {
             val crashUrl = "about:crashcontent"
 

@@ -186,9 +186,6 @@ class SettingsHomepageTest : TestSetup() {
         with(activityIntentTestRule) {
             finishActivity()
             mDevice.waitForIdle()
-            this.applySettingsExceptions {
-                it.isTCPCFREnabled = false
-            }
             openAppFromExternalLink(genericPage.url.toString())
         }
 

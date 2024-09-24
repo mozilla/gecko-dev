@@ -12,7 +12,6 @@ import android.os.SystemClock
 import android.util.Log
 import android.widget.TimePicker
 import androidx.compose.ui.test.ExperimentalTestApi
-import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -41,7 +40,6 @@ import mozilla.components.browser.state.selector.selectedTab
 import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.concept.engine.mediasession.MediaSession
 import org.hamcrest.CoreMatchers.allOf
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Assert.fail
 import org.mozilla.fenix.R
@@ -73,7 +71,6 @@ import org.mozilla.fenix.helpers.click
 import org.mozilla.fenix.helpers.ext.waitNotNull
 import org.mozilla.fenix.settings.SupportUtils
 import org.mozilla.fenix.tabstray.TabsTrayTestTag
-import org.mozilla.fenix.utils.Settings
 import java.time.LocalDate
 
 class BrowserRobot {
@@ -677,54 +674,6 @@ class BrowserRobot {
                     }
                 }
             }
-        }
-    }
-
-    fun verifyCookiesProtectionHintIsDisplayed(composeTestRule: HomeActivityComposeTestRule, isDisplayed: Boolean) {
-        if (isDisplayed) {
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Trying to verify that the total cookie protection message is displayed")
-            composeTestRule.onNodeWithTag("tcp_cfr.message").assertIsDisplayed()
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Verified total cookie protection message is displayed")
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Trying to verify that the total cookie protection learn more link is displayed")
-            composeTestRule.onNodeWithTag("tcp_cfr.action").assertIsDisplayed()
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Verified that the total cookie protection learn more link is displayed")
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Trying to verify that the total cookie protection dismiss button is displayed")
-            composeTestRule.onNodeWithTag("cfr.dismiss").assertIsDisplayed()
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Verified total cookie protection dismiss button is displayed")
-        } else {
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Trying to verify that the total cookie protection message does not exist")
-            composeTestRule.onNodeWithTag("tcp_cfr.message").assertDoesNotExist()
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Verified that the total cookie protection message does not exist")
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Trying to verify that the total cookie protection learn more link does not exist")
-            composeTestRule.onNodeWithTag("tcp_cfr.action").assertDoesNotExist()
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Verified total cookie protection learn more link does not exist")
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Trying to verify that the total cookie protection dismiss button does not exist")
-            composeTestRule.onNodeWithTag("cfr.dismiss").assertDoesNotExist()
-            Log.i(TAG, "verifyCookiesProtectionHintIsDisplayed: Verified that the total cookie protection dismiss button does not exist")
-        }
-    }
-
-    fun clickTCPCFRLearnMore(composeTestRule: HomeActivityComposeTestRule) {
-        Log.i(TAG, "clickTCPCFRLearnMore: Trying to click the total cookie protection learn more link")
-        composeTestRule.onNodeWithTag("tcp_cfr.action").performClick()
-        Log.i(TAG, "clickTCPCFRLearnMore: Clicked total cookie protection learn more link")
-    }
-
-    fun dismissTCPCFRPopup(composeTestRule: HomeActivityComposeTestRule) {
-        Log.i(TAG, "dismissTCPCFRPopup: Trying to click the total cookie protection dismiss button")
-        composeTestRule.onNodeWithTag("cfr.dismiss").performClick()
-        Log.i(TAG, "dismissTCPCFRPopup: Clicked total cookie protection dismiss button")
-    }
-
-    fun verifyShouldShowCFRTCP(shouldShow: Boolean, settings: Settings) {
-        if (shouldShow) {
-            Log.i(TAG, "verifyShouldShowCFRTCP: Trying to verify that the TCP CFR should be shown")
-            assertTrue(settings.shouldShowTotalCookieProtectionCFR)
-            Log.i(TAG, "verifyShouldShowCFRTCP: Verified that the TCP CFR should be shown")
-        } else {
-            Log.i(TAG, "verifyShouldShowCFRTCP: Trying to verify that the TCP CFR should not be shown")
-            assertFalse(settings.shouldShowTotalCookieProtectionCFR)
-            Log.i(TAG, "verifyShouldShowCFRTCP: Verified that the TCP CFR should not be shown")
         }
     }
 

@@ -45,7 +45,6 @@ class SitePermissionsTest : TestSetup() {
     val activityTestRule = HomeActivityIntentTestRule(
         isNavigationBarCFREnabled = false,
         isPWAsPromptEnabled = false,
-        isTCPCFREnabled = false,
         isDeleteSitePermissionsEnabled = true,
     )
 

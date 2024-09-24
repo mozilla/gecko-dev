@@ -25,7 +25,6 @@ class SurveyExperimentIntegrationTest {
     @get:Rule
     val activityTestRule = HomeActivityTestRule(
         isPWAsPromptEnabled = false,
-        isTCPCFREnabled = false,
         isDeleteSitePermissionsEnabled = true,
     )
 

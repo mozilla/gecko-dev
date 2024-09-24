@@ -32,9 +32,6 @@ class CfrToolsPreferencesMiddleware(
             is CfrToolsAction.ToggleNavButtonsShown -> {
                 settings.shouldShowNavigationButtonsCFR = !settings.shouldShowNavigationButtonsCFR
             }
-            is CfrToolsAction.ToggleTcpShown -> {
-                settings.shouldShowTotalCookieProtectionCFR = !settings.shouldShowTotalCookieProtectionCFR
-            }
             is CfrToolsAction.ToggleCookieBannerBlockerShown -> {
                 settings.shouldShowEraseActionCFR = !settings.shouldShowEraseActionCFR
             }

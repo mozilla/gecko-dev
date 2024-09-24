@@ -53,7 +53,6 @@ class HomeActivityTestRule(
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
         isPWAsPromptEnabled: Boolean = !settings.userKnowsAboutPwas,
-        isTCPCFREnabled: Boolean = settings.shouldShowTotalCookieProtectionCFR,
         isWallpaperOnboardingEnabled: Boolean = settings.showWallpaperOnboarding,
         isDeleteSitePermissionsEnabled: Boolean = settings.deleteSitePermissions,
         isOpenInAppBannerEnabled: Boolean = settings.shouldShowOpenInAppBanner,
@@ -71,7 +70,6 @@ class HomeActivityTestRule(
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
         this.isPWAsPromptEnabled = isPWAsPromptEnabled
-        this.isTCPCFREnabled = isTCPCFREnabled
         this.isWallpaperOnboardingEnabled = isWallpaperOnboardingEnabled
         this.isDeleteSitePermissionsEnabled = isDeleteSitePermissionsEnabled
         this.isOpenInAppBannerEnabled = isOpenInAppBannerEnabled
@@ -122,7 +120,6 @@ class HomeActivityTestRule(
          * app features that would otherwise negatively impact most tests.
          *
          * The disabled features are:
-         *  - the Total Cookie Protection CFR,
          *  - the PWA prompt dialog,
          *  - the wallpaper onboarding.
          */
@@ -136,7 +133,6 @@ class HomeActivityTestRule(
             launchActivity = launchActivity,
             skipOnboarding = skipOnboarding,
             isPWAsPromptEnabled = false,
-            isTCPCFREnabled = false,
             isWallpaperOnboardingEnabled = false,
             isOpenInAppBannerEnabled = false,
             composeTopSitesEnabled = composeTopSitesEnabled,
@@ -177,7 +173,6 @@ class HomeActivityIntentTestRule internal constructor(
         isRecentTabsFeatureEnabled: Boolean = settings.showRecentTabsFeature,
         isRecentlyVisitedFeatureEnabled: Boolean = settings.historyMetadataUIFeature,
         isPWAsPromptEnabled: Boolean = !settings.userKnowsAboutPwas,
-        isTCPCFREnabled: Boolean = settings.shouldShowTotalCookieProtectionCFR,
         isWallpaperOnboardingEnabled: Boolean = settings.showWallpaperOnboarding,
         isDeleteSitePermissionsEnabled: Boolean = settings.deleteSitePermissions,
         isOpenInAppBannerEnabled: Boolean = settings.shouldShowOpenInAppBanner,
@@ -195,7 +190,6 @@ class HomeActivityIntentTestRule internal constructor(
         this.isRecentTabsFeatureEnabled = isRecentTabsFeatureEnabled
         this.isRecentlyVisitedFeatureEnabled = isRecentlyVisitedFeatureEnabled
         this.isPWAsPromptEnabled = isPWAsPromptEnabled
-        this.isTCPCFREnabled = isTCPCFREnabled
         this.isWallpaperOnboardingEnabled = isWallpaperOnboardingEnabled
         this.isDeleteSitePermissionsEnabled = isDeleteSitePermissionsEnabled
         this.isOpenInAppBannerEnabled = isOpenInAppBannerEnabled
@@ -269,7 +263,6 @@ class HomeActivityIntentTestRule internal constructor(
         isRecentTabsFeatureEnabled = settings.showRecentTabsFeature
         isRecentlyVisitedFeatureEnabled = settings.historyMetadataUIFeature
         isPWAsPromptEnabled = !settings.userKnowsAboutPwas
-        isTCPCFREnabled = settings.shouldShowTotalCookieProtectionCFR
         isWallpaperOnboardingEnabled = settings.showWallpaperOnboarding
         isDeleteSitePermissionsEnabled = settings.deleteSitePermissions
         isOpenInAppBannerEnabled = settings.shouldShowOpenInAppBanner
@@ -287,7 +280,6 @@ class HomeActivityIntentTestRule internal constructor(
          * app features that would otherwise negatively impact most tests.
          *
          * The disabled features are:
-         *  - the Total Cookie Protection CFR,
          *  - the PWA prompt dialog,
          *  - the wallpaper onboarding.
          */
@@ -301,7 +293,6 @@ class HomeActivityIntentTestRule internal constructor(
             launchActivity = launchActivity,
             skipOnboarding = skipOnboarding,
             isPWAsPromptEnabled = false,
-            isTCPCFREnabled = false,
             isWallpaperOnboardingEnabled = false,
             isOpenInAppBannerEnabled = false,
             composeTopSitesEnabled = composeTopSitesEnabled,

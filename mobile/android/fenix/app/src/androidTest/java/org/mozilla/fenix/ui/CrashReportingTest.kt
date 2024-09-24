@@ -28,7 +28,6 @@ class CrashReportingTest : TestSetup() {
         HomeActivityIntentTestRule(
             isPocketEnabled = false,
             isWallpaperOnboardingEnabled = false,
-            isTCPCFREnabled = false,
         ),
     ) { it.activity }
 

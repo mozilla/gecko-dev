@@ -36,7 +36,6 @@ object Performance {
         disableOnboarding(context)
         disableTrackingProtectionPopups(context)
         disableFirstTimePWAPopup(context)
-        disableTCPPopup(context)
     }
 
     /**
@@ -92,12 +91,5 @@ object Performance {
      */
     private fun disableFirstTimePWAPopup(context: Context) {
         context.components.settings.userKnowsAboutPwas = true
-    }
-
-    /**
-     * Disables the TCP popup.
-     */
-    private fun disableTCPPopup(context: Context) {
-        context.components.settings.shouldShowTotalCookieProtectionCFR = false
     }
 }

@@ -190,10 +190,6 @@
     <string name="debug_drawer_cfr_tools_navigation_buttons_title">Navigation Buttons</string>
     <!-- The navigation buttons CFR description in CFR Tools -->
     <string name="debug_drawer_cfr_tools_navigation_buttons_description">Displayed the first time the user double taps on the forward or backward navigation buttons within 5 seconds.</string>
-    <!-- The total cookie protection CFR title in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_tcp_title">Total Cookie Protection</string>
-    <!-- The total cookie protection CFR description in CFR Tools -->
-    <string name="debug_drawer_cfr_tools_tcp_description">Displayed the first time the user has at least 5 normal tabs open at once.</string>
     <!-- The open in app CFR title in CFR Tools -->
     <string name="debug_drawer_cfr_tools_open_in_app_title">Open in App</string>
     <!-- The open in app CFR description in CFR Tools -->

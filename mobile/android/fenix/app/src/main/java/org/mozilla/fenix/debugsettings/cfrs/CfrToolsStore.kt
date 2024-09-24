@@ -17,7 +17,6 @@ import mozilla.components.lib.state.UiStore
  * @property homepageNavToolbarShown Whether the homepage navigation toolbar CFR has been shown.
  * @property wallpaperSelectorShown Whether the wallpaper selector CFR has been shown.
  * @property navButtonsShown Whether the navigation buttons CFR has been shown.
- * @property tcpShown Whether the total cookies protection CFR has been shown.
  * @property cookieBannerBlockerShown Whether the cookie banner blocker CFR has been shown.
  * @property cookieBannersPrivateModeShown Whether the cookie banners private mode CFR has been shown.
  * @property addPrivateTabToHomeShown Whether the add private tab to home CFR has been shown.
@@ -31,7 +30,6 @@ data class CfrToolsState(
     val homepageNavToolbarShown: Boolean = false,
     val wallpaperSelectorShown: Boolean = false,
     val navButtonsShown: Boolean = false,
-    val tcpShown: Boolean = false,
     val cookieBannerBlockerShown: Boolean = false,
     val cookieBannersPrivateModeShown: Boolean = false,
     val addPrivateTabToHomeShown: Boolean = false,
@@ -65,11 +63,6 @@ sealed class CfrToolsAction : Action {
      * Toggle whether the navigation buttons CFR has been shown.
      */
     object ToggleNavButtonsShown : CfrToolsAction()
-
-    /**
-     * Toggle whether the total cookies protection CFR has been shown.
-     */
-    object ToggleTcpShown : CfrToolsAction()
 
     /**
      * Toggle whether the cookie banner blocker (erase action) CFR has been shown.
@@ -121,8 +114,6 @@ internal object CfrToolsReducer {
                 state.copy(wallpaperSelectorShown = !state.wallpaperSelectorShown)
             is CfrToolsAction.ToggleNavButtonsShown ->
                 state.copy(navButtonsShown = !state.navButtonsShown)
-            is CfrToolsAction.ToggleTcpShown ->
-                state.copy(tcpShown = !state.tcpShown)
             is CfrToolsAction.ToggleCookieBannerBlockerShown ->
                 state.copy(cookieBannerBlockerShown = !state.cookieBannerBlockerShown)
             is CfrToolsAction.ToggleCookieBannersPrivateModeShown ->

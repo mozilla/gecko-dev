@@ -121,32 +121,6 @@ class CfrToolsStoreTest {
     }
 
     @Test
-    fun `GIVEN the TCP CFR has been shown WHEN the TCP CFR is toggled THEN its preference is set to false`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                tcpShown = true,
-            ),
-        )
-
-        assertTrue(store.state.tcpShown)
-        store.dispatch(CfrToolsAction.ToggleTcpShown)
-        assertFalse(store.state.tcpShown)
-    }
-
-    @Test
-    fun `GIVEN the TCP CFR has not been shown WHEN the TCP CFR is toggled THEN its preference is set to true`() {
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                tcpShown = false,
-            ),
-        )
-
-        assertFalse(store.state.tcpShown)
-        store.dispatch(CfrToolsAction.ToggleTcpShown)
-        assertTrue(store.state.tcpShown)
-    }
-
-    @Test
     fun `GIVEN the cookie banner blocker CFR has been shown WHEN the cookie banner blocker CFR is toggled THEN its preference is set to false`() {
         val store = CfrToolsStore(
             initialState = CfrToolsState(

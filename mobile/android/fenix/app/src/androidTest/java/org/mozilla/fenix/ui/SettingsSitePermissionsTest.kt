@@ -41,7 +41,6 @@ class SettingsSitePermissionsTest : TestSetup() {
     val activityTestRule = AndroidComposeTestRule(
         HomeActivityTestRule(
             isPWAsPromptEnabled = false,
-            isTCPCFREnabled = false,
             isDeleteSitePermissionsEnabled = true,
         ),
     ) { it.activity }

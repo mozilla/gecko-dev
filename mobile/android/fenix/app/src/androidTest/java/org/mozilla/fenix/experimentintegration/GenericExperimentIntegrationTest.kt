@@ -20,7 +20,6 @@ class GenericExperimentIntegrationTest {
     @get:Rule
     val activityTestRule = HomeActivityTestRule(
         isPWAsPromptEnabled = false,
-        isTCPCFREnabled = false,
     )
 
     @Before

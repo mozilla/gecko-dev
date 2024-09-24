@@ -35,7 +35,8 @@ class WebControlsTest : TestSetup() {
 
     @get:Rule
     val activityTestRule = HomeActivityTestRule(
-        isTCPCFREnabled = false,
+        isNavigationBarCFREnabled = false,
+        shouldUseBottomToolbar = true,
     )
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2316067

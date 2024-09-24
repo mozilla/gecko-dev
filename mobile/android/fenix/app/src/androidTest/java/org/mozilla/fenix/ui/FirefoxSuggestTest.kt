@@ -30,7 +30,6 @@ class FirefoxSuggestTest : TestSetup() {
             skipOnboarding = true,
             isPocketEnabled = false,
             isRecentTabsFeatureEnabled = false,
-            isTCPCFREnabled = false,
             isWallpaperOnboardingEnabled = false,
         ),
     ) { it.activity }

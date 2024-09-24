@@ -45,10 +45,6 @@ class SettingsAboutTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/246966
     @Test
     fun verifyRateOnGooglePlayButton() {
-        activityIntentTestRule.applySettingsExceptions {
-            it.isTCPCFREnabled = false
-        }
-
         homeScreen {
         }.openThreeDotMenu {
         }.openSettings {

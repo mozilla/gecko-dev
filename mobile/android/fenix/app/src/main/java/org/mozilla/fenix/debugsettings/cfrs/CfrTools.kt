@@ -56,7 +56,6 @@ private fun ResetCfrTool() {
     var cookieBannerBlockerCfrShown by rememberSaveable { mutableStateOf(false) }
     var cookieBannersPrivateModeCfrShown by rememberSaveable { mutableStateOf(false) }
     var navButtonsCfrShown by rememberSaveable { mutableStateOf(false) }
-    var tcpCfrShown by rememberSaveable { mutableStateOf(false) }
     var openInAppCfrShown by rememberSaveable { mutableStateOf(false) }
 
     Column(
@@ -190,15 +189,6 @@ private fun ResetCfrTool() {
                 checked = navButtonsCfrShown,
                 onCfrToggle = {
                     navButtonsCfrShown = !navButtonsCfrShown
-                },
-            )
-
-            CfrToggle(
-                title = stringResource(R.string.debug_drawer_cfr_tools_tcp_title),
-                description = stringResource(R.string.debug_drawer_cfr_tools_tcp_description),
-                checked = tcpCfrShown,
-                onCfrToggle = {
-                    tcpCfrShown = !tcpCfrShown
                 },
             )
         }

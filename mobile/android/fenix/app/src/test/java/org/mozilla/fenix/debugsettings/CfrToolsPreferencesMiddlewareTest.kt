@@ -168,40 +168,6 @@ class CfrToolsPreferencesMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN the TCP CFR should not be shown WHEN the toggle TCP CFR action is dispatched THEN its preference is set to should be shown`() {
-        settings.shouldShowTotalCookieProtectionCFR = false
-        assertFalse(settings.shouldShowTotalCookieProtectionCFR)
-
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                tcpShown = true,
-            ),
-            middlewares = listOf(
-                middleware,
-            ),
-        )
-        store.dispatch(CfrToolsAction.ToggleTcpShown)
-        assertTrue(settings.shouldShowTotalCookieProtectionCFR)
-    }
-
-    @Test
-    fun `GIVEN the TCP CFR should be shown WHEN the toggle TCP CFR action is dispatched THEN its preference is set to should not be shown`() {
-        settings.shouldShowTotalCookieProtectionCFR = true
-        assertTrue(settings.shouldShowTotalCookieProtectionCFR)
-
-        val store = CfrToolsStore(
-            initialState = CfrToolsState(
-                tcpShown = false,
-            ),
-            middlewares = listOf(
-                middleware,
-            ),
-        )
-        store.dispatch(CfrToolsAction.ToggleTcpShown)
-        assertFalse(settings.shouldShowTotalCookieProtectionCFR)
-    }
-
-    @Test
     fun `GIVEN the cookie banner blocker CFR should not be shown WHEN the toggle cookie banner blocker CFR action is dispatched THEN its preference is set to should be shown`() {
         settings.shouldShowEraseActionCFR = false
         assertFalse(settings.shouldShowEraseActionCFR)
