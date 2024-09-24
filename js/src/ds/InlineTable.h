@@ -33,6 +33,11 @@ class InlineTable : private AllocPolicy {
     InlineEntry inl[InlineEntries];
   };
   mozilla::Variant<InlineArray, Table> data_{InlineArray()};
+#ifdef DEBUG
+  // Used to check that entries aren't added/removed while using Ptr/AddPtr or
+  // Range. Similar to HashTable::mMutationCount.
+  uint64_t mutationCount_ = 0;
+#endif
 
 #ifndef DEBUG
   // If this assertion fails, you should probably increase InlineEntries because
@@ -70,6 +75,12 @@ class InlineTable : private AllocPolicy {
 
   bool usingTable() const { return data_.template is<Table>(); }
 
+  void bumpMutationCount() {
+#ifdef DEBUG
+    mutationCount_++;
+#endif
+  }
+
   [[nodiscard]] bool switchToTable() {
     MOZ_ASSERT(inlineArray().count == InlineEntries);
 
@@ -85,6 +96,7 @@ class InlineTable : private AllocPolicy {
     MOZ_ASSERT(table.count() == InlineEntries);
     data_.template emplace<Table>(std::move(table));
     MOZ_ASSERT(usingTable());
+    bumpMutationCount();
     return true;
   }
 
@@ -101,14 +113,23 @@ class InlineTable : private AllocPolicy {
     MOZ_INIT_OUTSIDE_CTOR TablePtr tablePtr_;
     MOZ_INIT_OUTSIDE_CTOR InlineEntry* inlPtr_;
     MOZ_INIT_OUTSIDE_CTOR bool isInlinePtr_;
+#ifdef DEBUG
+    uint64_t mutationCount_ = 0xbadbad;
+#endif
 
-    explicit Ptr(TablePtr p)
-        : entry_(p.found() ? &*p : nullptr),
-          tablePtr_(p),
-          isInlinePtr_(false) {}
+    Ptr(const InlineTable& table, TablePtr p)
+        : entry_(p.found() ? &*p : nullptr), tablePtr_(p), isInlinePtr_(false) {
+#ifdef DEBUG
+      mutationCount_ = table.mutationCount_;
+#endif
+    }
 
-    explicit Ptr(InlineEntry* inlineEntry)
-        : entry_(inlineEntry), inlPtr_(inlineEntry), isInlinePtr_(true) {}
+    Ptr(const InlineTable& table, InlineEntry* inlineEntry)
+        : entry_(inlineEntry), inlPtr_(inlineEntry), isInlinePtr_(true) {
+#ifdef DEBUG
+      mutationCount_ = table.mutationCount_;
+#endif
+    }
 
    public:
     // Leaves Ptr uninitialized.
@@ -147,17 +168,28 @@ class InlineTable : private AllocPolicy {
     MOZ_INIT_OUTSIDE_CTOR bool isInlinePtr_;
     // Indicates whether inlAddPtr is a found result or an add pointer.
     MOZ_INIT_OUTSIDE_CTOR bool inlPtrFound_;
+#ifdef DEBUG
+    uint64_t mutationCount_ = 0xbadbad;
+#endif
 
-    AddPtr(InlineEntry* ptr, bool found)
+    AddPtr(const InlineTable& table, InlineEntry* ptr, bool found)
         : entry_(ptr),
           inlAddPtr_(ptr),
           isInlinePtr_(true),
-          inlPtrFound_(found) {}
+          inlPtrFound_(found) {
+#ifdef DEBUG
+      mutationCount_ = table.mutationCount_;
+#endif
+    }
 
-    explicit AddPtr(const TableAddPtr& p)
+    AddPtr(const InlineTable& table, const TableAddPtr& p)
         : entry_(p.found() ? &*p : nullptr),
           tableAddPtr_(p),
-          isInlinePtr_(false) {}
+          isInlinePtr_(false) {
+#ifdef DEBUG
+      mutationCount_ = table.mutationCount_;
+#endif
+    }
 
    public:
     AddPtr() = default;
@@ -187,47 +219,51 @@ class InlineTable : private AllocPolicy {
     return usingTable() ? table().empty() : !inlineArray().count;
   }
 
-  void clear() { data_.template emplace<InlineArray>(); }
+  void clear() {
+    data_.template emplace<InlineArray>();
+    bumpMutationCount();
+  }
 
   MOZ_ALWAYS_INLINE
   Ptr lookup(const Lookup& l) {
     if (usingTable()) {
-      return Ptr(table().lookup(l));
+      return Ptr(*this, table().lookup(l));
     }
 
     InlineEntry* end = inlineEnd();
     for (InlineEntry* it = inlineStart(); it != end; ++it) {
       if (HashPolicy::match(it->key, l)) {
-        return Ptr(it);
+        return Ptr(*this, it);
       }
     }
 
-    return Ptr(nullptr);
+    return Ptr(*this, nullptr);
   }
 
   MOZ_ALWAYS_INLINE
   AddPtr lookupForAdd(const Lookup& l) {
     if (usingTable()) {
-      return AddPtr(table().lookupForAdd(l));
+      return AddPtr(*this, table().lookupForAdd(l));
     }
 
     InlineEntry* end = inlineEnd();
     for (InlineEntry* it = inlineStart(); it != end; ++it) {
       if (HashPolicy::match(it->key, l)) {
-        return AddPtr(it, true);
+        return AddPtr(*this, it, true);
       }
     }
 
     // The add pointer that's returned here may indicate the limit entry of
     // the linear space, in which case the |add| operation will initialize
     // the table if necessary and add the entry there.
-    return AddPtr(inlineEnd(), false);
+    return AddPtr(*this, inlineEnd(), false);
   }
 
   template <typename KeyInput, typename... Args>
   [[nodiscard]] MOZ_ALWAYS_INLINE bool add(AddPtr& p, KeyInput&& key,
                                            Args&&... args) {
     MOZ_ASSERT(!p);
+    MOZ_ASSERT(p.mutationCount_ == mutationCount_);
 
     if (p.isInlinePtr_) {
       InlineEntry* addPtr = p.inlAddPtr_;
@@ -238,8 +274,12 @@ class InlineTable : private AllocPolicy {
         if (!switchToTable()) {
           return false;
         }
-        return table().putNew(std::forward<KeyInput>(key),
-                              std::forward<Args>(args)...);
+        if (!table().putNew(std::forward<KeyInput>(key),
+                            std::forward<Args>(args)...)) {
+          return false;
+        }
+        bumpMutationCount();
+        return true;
       }
 
       MOZ_ASSERT(!p.found());
@@ -251,15 +291,21 @@ class InlineTable : private AllocPolicy {
 
       addPtr->update(std::forward<KeyInput>(key), std::forward<Args>(args)...);
       inlineArray().count++;
+      bumpMutationCount();
       return true;
     }
 
-    return table().add(p.tableAddPtr_, std::forward<KeyInput>(key),
-                       std::forward<Args>(args)...);
+    if (!table().add(p.tableAddPtr_, std::forward<KeyInput>(key),
+                     std::forward<Args>(args)...)) {
+      return false;
+    }
+    bumpMutationCount();
+    return true;
   }
 
   void remove(Ptr& p) {
     MOZ_ASSERT(p);
+    MOZ_ASSERT(p.mutationCount_ == mutationCount_);
     if (p.isInlinePtr_) {
       InlineArray& arr = inlineArray();
       MOZ_ASSERT(arr.count > 0);
@@ -270,10 +316,11 @@ class InlineTable : private AllocPolicy {
         *p.inlPtr_ = std::move(*last);
       }
       arr.count--;
-      return;
+    } else {
+      MOZ_ASSERT(usingTable());
+      table().remove(p.tablePtr_);
     }
-    MOZ_ASSERT(usingTable());
-    table().remove(p.tablePtr_);
+    bumpMutationCount();
   }
 
   void remove(const Lookup& l) {
@@ -289,21 +336,34 @@ class InlineTable : private AllocPolicy {
     InlineEntry* cur_;
     InlineEntry* end_;
     bool isInline_;
+#ifdef DEBUG
+    const InlineTable* table_ = nullptr;
+    uint64_t mutationCount_ = 0xbadbad;
+#endif
 
-    explicit Range(TableRange r)
+    Range(const InlineTable& table, TableRange r)
         : tableRange_(mozilla::Some(r)),
           cur_(nullptr),
           end_(nullptr),
           isInline_(false) {
       MOZ_ASSERT(!isInlineRange());
+#ifdef DEBUG
+      table_ = &table;
+      mutationCount_ = table.mutationCount_;
+#endif
     }
 
-    Range(const InlineEntry* begin, const InlineEntry* end)
+    Range(const InlineTable& table, const InlineEntry* begin,
+          const InlineEntry* end)
         : tableRange_(mozilla::Nothing()),
           cur_(const_cast<InlineEntry*>(begin)),
           end_(const_cast<InlineEntry*>(end)),
           isInline_(true) {
       MOZ_ASSERT(isInlineRange());
+#ifdef DEBUG
+      table_ = &table;
+      mutationCount_ = table.mutationCount_;
+#endif
     }
 
     bool assertInlineRangeInvariants() const {
@@ -323,11 +383,13 @@ class InlineTable : private AllocPolicy {
 
    public:
     bool empty() const {
+      MOZ_ASSERT(table_->mutationCount_ == mutationCount_);
       return isInlineRange() ? cur_ == end_ : tableRange_->empty();
     }
 
     Entry front() {
       MOZ_ASSERT(!empty());
+      MOZ_ASSERT(table_->mutationCount_ == mutationCount_);
       if (isInlineRange()) {
         return Entry(cur_);
       }
@@ -336,6 +398,7 @@ class InlineTable : private AllocPolicy {
 
     void popFront() {
       MOZ_ASSERT(!empty());
+      MOZ_ASSERT(table_->mutationCount_ == mutationCount_);
       if (isInlineRange()) {
         bumpCurPtr();
       } else {
@@ -345,8 +408,8 @@ class InlineTable : private AllocPolicy {
   };
 
   Range all() const {
-    return usingTable() ? Range(table().all())
-                        : Range(inlineStart(), inlineEnd());
+    return usingTable() ? Range(*this, table().all())
+                        : Range(*this, inlineStart(), inlineEnd());
   }
 };
 
