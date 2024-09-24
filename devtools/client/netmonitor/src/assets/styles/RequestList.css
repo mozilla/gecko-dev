@@ -555,9 +555,9 @@
 }
 
 /*
- * Dim requests served from cache
+ * Dim requests served from cache when High Contrast Mode is not enabled
  */
-.request-list-item:not(.selected, :hover).fromCache {
+:root:not([forced-colors-active]) .request-list-item:not(.selected, :hover).fromCache {
   --table-icon-opacity: 0.7;
   color: var(--theme-text-color-alt);
 }
