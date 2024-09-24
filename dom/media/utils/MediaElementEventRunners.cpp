@@ -9,6 +9,7 @@
 #include "mozilla/Casting.h"
 #include "mozilla/ProfilerState.h"
 #include "mozilla/dom/HTMLMediaElement.h"
+#include "mozilla/dom/HTMLVideoElement.h"
 #include "mozilla/dom/TimeRanges.h"
 
 extern mozilla::LazyLogModule gMediaElementEventsLog;
@@ -205,11 +206,13 @@ void nsTimeupdateRunner::ReportProfilerMarker() {
   if (!profiler_is_collecting_markers()) {
     return;
   }
+  auto* videoElement = mElement->AsHTMLVideoElement();
   profiler_add_marker(nsPrintfCString("%p:timeupdate", mElement.get()),
                       geckoprofiler::category::MEDIA_PLAYBACK, {},
                       TimeUpdateMarker{},
                       AssertedCast<uint64_t>(mElement->CurrentTime() * 1000),
-                      GetElementDurationMs());
+                      GetElementDurationMs(),
+                      videoElement ? videoElement->MozPaintedFrames() : 0);
 }
 
 #undef LOG_EVENT
