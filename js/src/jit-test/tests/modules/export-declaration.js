@@ -1,4 +1,4 @@
-// |jit-test| --enable-import-assertions
+// |jit-test| --enable-import-attributes
 
 load(libdir + "match.js");
 load(libdir + "asserts.js");
@@ -406,7 +406,7 @@ if (getRealmConfiguration("importAttributes")) {
             ),
             false
         )
-    ]).assert(parseAsModule("export { a } from 'b'  assert { type: 'js' } "));
+    ]).assert(parseAsModule("export { a } from 'b'  with { type: 'js' } "));
 
     program([
         exportDeclaration(
@@ -425,7 +425,7 @@ if (getRealmConfiguration("importAttributes")) {
             ),
             false
         )
-    ]).assert(parseAsModule("export { a } from 'b'  assert { foo: 'bar', } "));
+    ]).assert(parseAsModule("export { a } from 'b'  with { foo: 'bar', } "));
 
     program([
         exportDeclaration(
@@ -446,10 +446,10 @@ if (getRealmConfiguration("importAttributes")) {
             ),
             false
         )
-    ]).assert(parseAsModule("export { a } from 'b'  assert { type: 'js', foo: 'bar', 'test': '123' } "));
+    ]).assert(parseAsModule("export { a } from 'b'  with { type: 'js', foo: 'bar', 'test': '123' } "));
 
     assertThrowsInstanceOf(function () {
-        parseAsModule("export { a } from 'b'  assert { type: type }");
+        parseAsModule("export { a } from 'b'  with { type: type }");
     }, SyntaxError);
 }
 
