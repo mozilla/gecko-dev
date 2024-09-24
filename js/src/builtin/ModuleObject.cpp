@@ -1642,6 +1642,9 @@ ModuleRequestObject* frontend::StencilModuleMetadata::createModuleRequestObject(
 
   Rooted<ModuleRequestObject*> moduleRequestObject(
       cx, ModuleRequestObject::create(cx, specifier, attributes));
+  if (!moduleRequestObject) {
+    return nullptr;
+  }
 
   if (request.firstUnsupportedAttributeKey) {
     Rooted<JSAtom*> unsupportedAttributeKey(

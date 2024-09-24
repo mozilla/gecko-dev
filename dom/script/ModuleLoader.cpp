@@ -204,9 +204,7 @@ nsresult ModuleLoader::CompileFetchedModule(
 
   switch (aRequest->mModuleType) {
     case JS::ModuleType::Unknown:
-      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
-                                JSMSG_BAD_MODULE_TYPE);
-      return NS_ERROR_FAILURE;
+      MOZ_CRASH("Unexpected module type");
     case JS::ModuleType::JavaScript:
       return CompileJavaScriptModule(aCx, aOptions, aRequest, aModuleOut);
     case JS::ModuleType::JSON: {

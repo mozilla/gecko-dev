@@ -290,6 +290,17 @@ JS_PUBLIC_API JSString* JS::GetRequestedModuleSpecifier(
     return nullptr;
   }
 
+  // This implements step 7.1.5 in HostLoadImportedModule.
+  // https://html.spec.whatwg.org/multipage/webappapis.html#validate-requested-module-specifiers
+  //
+  // If the result of running the module type allowed steps given moduleType and
+  // settings is false.
+  if (moduleRequest->moduleType() == JS::ModuleType::Unknown) {
+    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
+                              JSMSG_BAD_MODULE_TYPE);
+    return nullptr;
+  }
+
   return moduleRequest->specifier();
 }
 
