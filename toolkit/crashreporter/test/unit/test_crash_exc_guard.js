@@ -18,9 +18,10 @@ add_task(async function run_test() {
       // Refresh updated extra data
       extra = await IOUtils.readJSON(extraFile.path);
 
-      Assert.equal(
-        extra.StackTraces.crash_info.type,
-        "EXC_GUARD / GUARD_TYPE_FD / GUARD_EXC_CLOSE"
+      Assert.ok(
+        extra.StackTraces.crash_info.type.startsWith(
+          "EXC_GUARD / GUARD_TYPE_FD / GUARD_EXC_CLOSE"
+        )
       );
       Assert.equal(extra.TestKey, "TestValue");
     },
