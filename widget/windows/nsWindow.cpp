@@ -5624,11 +5624,6 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       break;
     }
 
-    case WM_DISPLAYCHANGE: {
-      ScreenHelperWin::RefreshScreens();
-      break;
-    }
-
     case WM_NCLBUTTONDBLCLK:
       DispatchMouseEvent(eMouseDoubleClick, 0, lParamToClient(lParam), false,
                          MouseButton::ePrimary, MOUSE_INPUT_SOURCE());

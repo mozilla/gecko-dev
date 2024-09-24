@@ -287,6 +287,11 @@ LRESULT CALLBACK WinEventWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     case WM_DEVICECHANGE: {
       evtwin_details::OnDeviceChange(wParam, lParam);
     } break;
+
+    case WM_DISPLAYCHANGE: {
+      ScreenHelperWin::RefreshScreens();
+      break;
+    }
   }
 
   LRESULT const ret = ::DefWindowProcW(hwnd, msg, wParam, lParam);
