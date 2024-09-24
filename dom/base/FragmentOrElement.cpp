@@ -34,6 +34,7 @@
 #include "nsDOMAttributeMap.h"
 #include "nsAtom.h"
 #include "mozilla/dom/NodeInfo.h"
+#include "mozilla/dom/CloseWatcher.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/ScriptLoader.h"
 #include "mozilla/dom/CustomElementRegistry.h"
