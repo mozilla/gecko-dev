@@ -77,6 +77,7 @@
 #include "mozilla/dom/Attr.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/CloseWatcher.h"
 #include "mozilla/dom/CustomElementRegistry.h"
 #include "mozilla/dom/CSPViolationData.h"
 #include "mozilla/dom/DOMRect.h"
