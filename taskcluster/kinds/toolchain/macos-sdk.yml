@@ -47,6 +47,19 @@ macosx64-sdk-14.4:
             - macosx64-sdk-toolchain
             - MacOSX14.4.sdk
 
+macosx64-sdk-15.0:
+    description: "MacOSX15.0 SDK"
+    treeherder:
+        symbol: TM(sdk15.0)
+    run:
+        arguments:
+            - https://swcdn.apple.com/content/downloads/33/46/042-32691-A_3MH7S3118O/3dblccqo9ws17dc5lk3hojfbt3s74q0ql6/CLTools_macOSNMOS_SDK.pkg
+            - c971561df8ca51a0ea581092ad11eba2d9b1ca5622c0ef911465f5915f8bed1a2228f8e65ea7af70c144b7c8d95aacb09ab39b899aa23a988b53ffc818875688
+            - Library/Developer/CommandLineTools/SDKs/MacOSX15.0.sdk
+        toolchain-artifact: project/gecko/mac-sdk/MacOSX15.0.sdk.tar.zst
+        toolchain-alias:
+            - MacOSX15.0.sdk
+
 ios-sdk-17.4:
     description: "iPhoneOS17.4 SDK"
     treeherder:
