@@ -399,3 +399,13 @@ jobs:
       run-on-projects: [mozilla-beta]
       when:
           - {hour: 2, minute: 0}
+
+    - name: os-integration
+      job:
+          type: decision-task
+          treeherder-symbol: osint
+          target-tasks-method: os-integration
+      run-on-projects:
+          - mozilla-central
+      when:
+          - {weekday: 'Monday', hour: 6, minute: 0}

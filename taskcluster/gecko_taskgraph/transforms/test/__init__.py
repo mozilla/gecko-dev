@@ -17,7 +17,6 @@ what should run where. this is the wrong place for special-casing platforms,
 for example - use `all_tests.py` instead.
 """
 
-
 import logging
 from importlib import import_module
 
@@ -407,10 +406,16 @@ def run_remaining_transforms(config, tasks):
         ("worker", None),
         ("confirm_failure", None),
         ("pernosco", lambda t: t["build-platform"].startswith("linux64")),
-        # These transforms should always run last as there is never any
-        # difference in configuration from one chunk to another (other than
-        # chunk number).
+        # These transforms should run last as there is never any difference in
+        # configuration from one chunk to another (other than chunk number).
+        # Although the os-integration transforms setup an index route that
+        # depends on the chunk number.
         ("chunk", None),
+        (
+            "os_integration",
+            lambda t: t.get("attributes", {}).get("unittest_variant")
+            == "os-integration",
+        ),
     )
 
     for task in tasks:

@@ -109,6 +109,7 @@ treeherder:
         'M-f-swr-cf': 'Mochitest failures software webrender w/confirm failure'
         'M-msix': 'Mochitests from MSIX builds'
         'M-msix-cf': 'Mochitests confirm failure from MSIX builds'
+        'M-osint': 'Mochitests tagged with os-integration'
         'MSI': 'Repack installers into MSIs'
         'MSIs': 'Signing of Repacked installers of MSIs'
         'MSIX': 'Repack into MSIX package'

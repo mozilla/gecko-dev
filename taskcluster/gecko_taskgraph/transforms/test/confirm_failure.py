@@ -18,7 +18,11 @@ def test_confirm_failure_tasks(config, tasks):
             yield task
             continue
 
-        if "backlog" in task["suite"] or "failure" in task["suite"]:
+        if (
+            "backlog" in task["suite"]
+            or "failure" in task["suite"]
+            or task.get("attributes", {}).get("unittest_variant") == "os-integration"
+        ):
             yield task
             continue
 

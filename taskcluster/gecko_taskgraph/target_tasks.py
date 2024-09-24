@@ -1727,3 +1727,12 @@ def target_tasks_android_l10n_import(full_task_graph, parameters, graph_config):
 @register_target_task("android-l10n-sync")
 def target_tasks_android_l10n_sync(full_task_graph, parameters, graph_config):
     return [l for l, t in full_task_graph.tasks.items() if l == "android-l10n-sync"]
+
+
+@register_target_task("os-integration")
+def target_tasks_os_integration(full_task_graph, parameters, graph_config):
+    return [
+        l
+        for l, t in full_task_graph.tasks.items()
+        if t.attributes.get("unittest_variant") == "os-integration"
+    ]

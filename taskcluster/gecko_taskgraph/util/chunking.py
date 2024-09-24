@@ -37,18 +37,11 @@ WPT_SUBSUITES = {
 
 
 def get_test_tags(config, env):
-    test_tags = []
-    try_config = json.loads(
+    tags = json.loads(
         config.params["try_task_config"].get("env", {}).get("MOZHARNESS_TEST_TAG", "[]")
     )
-    env_tags = env.get("MOZHARNESS_TEST_TAG", [])
-    if env_tags:
-        if try_config:
-            env_tags.extend(try_config)
-        test_tags = list(set(env_tags))
-    elif try_config:
-        test_tags = try_config
-    return test_tags
+    tags.extend(env.get("MOZHARNESS_TEST_TAG", []))
+    return list(set(tags))
 
 
 def guess_mozinfo_from_task(task, repo="", test_tags=[]):
