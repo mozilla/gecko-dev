@@ -23,6 +23,19 @@ let verifySidebarNotShown = win => {
   );
 };
 
+let verifySidebarPanelNotAdded = async win => {
+  const { document } = win;
+  let sidebar = document.querySelector("sidebar-main");
+  await TestUtils.waitForCondition(
+    () => sidebar.toolButtons,
+    "Sidebar tools have been added."
+  );
+  let reviewCheckerButton = sidebar.shadowRoot.querySelector(
+    "moz-button[view=viewReviewCheckerSidebar]"
+  );
+  Assert.equal(reviewCheckerButton, null, "Review Checker should not exist.");
+};
+
 add_task(async function test_private_window_disabled() {
   let privateWindow = await BrowserTestUtils.openNewBrowserWindow({
     private: true,
@@ -62,4 +75,28 @@ add_task(async function test_bug_1901979_pref_toggle_private_windows() {
   verifySidebarNotShown(privateWindow);
 
   await BrowserTestUtils.closeWindow(privateWindow);
+});
+
+add_task(async function test_private_window_does_not_have_integrated_sidebar() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["sidebar.revamp", true],
+      ["sidebar.verticalTabs", true],
+      ["browser.shopping.experience2023.integratedSidebar", true],
+    ],
+  });
+
+  let privateWindow = await BrowserTestUtils.openNewBrowserWindow({
+    private: true,
+  });
+
+  let browser = privateWindow.gBrowser.selectedBrowser;
+  BrowserTestUtils.startLoadingURIString(browser, PRODUCT_PAGE);
+  await BrowserTestUtils.browserLoaded(browser);
+
+  verifySidebarPanelNotAdded(privateWindow);
+
+  await BrowserTestUtils.closeWindow(privateWindow);
+
+  await SpecialPowers.popPrefEnv();
 });

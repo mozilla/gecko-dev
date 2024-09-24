@@ -148,18 +148,20 @@ var SidebarController = {
       }
     );
 
-    this.registerPrefSidebar(
-      "browser.shopping.experience2023.integratedSidebar",
-      "viewReviewCheckerSidebar",
-      {
-        elementId: "sidebar-switcher-review-checker",
-        url: "chrome://browser/content/shopping/shopping.html",
-        menuId: "menu_reviewCheckerSidebar",
-        menuL10nId: "menu-view-review-checker",
-        revampL10nId: "sidebar-menu-review-checker-label",
-        iconUrl: "chrome://browser/content/shopping/assets/shopping.svg",
-      }
-    );
+    if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
+      this.registerPrefSidebar(
+        "browser.shopping.experience2023.integratedSidebar",
+        "viewReviewCheckerSidebar",
+        {
+          elementId: "sidebar-switcher-review-checker",
+          url: "chrome://browser/content/shopping/shopping.html",
+          menuId: "menu_reviewCheckerSidebar",
+          menuL10nId: "menu-view-review-checker",
+          revampL10nId: "sidebar-menu-review-checker-label",
+          iconUrl: "chrome://browser/content/shopping/assets/shopping.svg",
+        }
+      );
+    }
 
     if (!this.sidebarRevampEnabled) {
       this.registerPrefSidebar(
@@ -1265,23 +1267,25 @@ var SidebarController = {
    * @returns {Array}
    */
   getTools() {
-    return Object.keys(defaultTools).map(commandID => {
-      const sidebar = this.sidebars.get(commandID);
-      const disabled = !this.sidebarRevampTools
-        .split(",")
-        .includes(defaultTools[commandID]);
-      return {
-        commandID,
-        view: commandID,
-        iconUrl: sidebar.iconUrl,
-        l10nId: sidebar.revampL10nId,
-        disabled,
-        // Reflect the current tool state defaulting to visible
-        get hidden() {
-          return !(sidebar.visible ?? true);
-        },
-      };
-    });
+    return Object.keys(defaultTools)
+      .filter(commandID => this.sidebars.get(commandID))
+      .map(commandID => {
+        const sidebar = this.sidebars.get(commandID);
+        const disabled = !this.sidebarRevampTools
+          .split(",")
+          .includes(defaultTools[commandID]);
+        return {
+          commandID,
+          view: commandID,
+          iconUrl: sidebar.iconUrl,
+          l10nId: sidebar.revampL10nId,
+          disabled,
+          // Reflect the current tool state defaulting to visible
+          get hidden() {
+            return !(sidebar.visible ?? true);
+          },
+        };
+      });
   },
 
   /**
