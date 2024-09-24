@@ -45,6 +45,7 @@ internal data class BookmarksEditBookmarkState(
 )
 
 internal data class BookmarksAddFolderState(
+    val parent: BookmarkItem.Folder,
     val folderBeingAddedTitle: String,
 )
 

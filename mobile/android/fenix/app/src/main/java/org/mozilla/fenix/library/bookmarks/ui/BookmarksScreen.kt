@@ -370,14 +370,14 @@ private fun EmptyList(
 private fun AddFolderScreen(
     store: BookmarksStore,
 ) {
-    val state by store.observeAsState(store.state) { it }
+    val state by store.observeAsState(store.state.bookmarksAddFolderState) { it.bookmarksAddFolderState }
     Scaffold(
         topBar = { AddFolderTopBar(onBackClick = { store.dispatch(BackClicked) }) },
         backgroundColor = FirefoxTheme.colors.layer1,
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
             TextField(
-                value = state.bookmarksAddFolderState?.folderBeingAddedTitle ?: "",
+                value = state?.folderBeingAddedTitle ?: "",
                 onValueChange = { newText -> store.dispatch(AddFolderAction.TitleChanged(newText)) },
                 label = {
                     Text(
@@ -399,7 +399,7 @@ private fun AddFolderScreen(
             )
 
             IconListItem(
-                label = state.currentFolder.title,
+                label = state?.parent?.title ?: "",
                 beforeIconPainter = painterResource(R.drawable.ic_folder_icon),
                 onClick = { store.dispatch(AddFolderAction.ParentFolderClicked) },
             )
@@ -719,6 +719,10 @@ private fun AddFolderPreview() {
             isSignedIntoSync = false,
             bookmarksEditBookmarkState = null,
             bookmarksAddFolderState = BookmarksAddFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
                 folderBeingAddedTitle = "Edit me!",
             ),
             bookmarksSelectFolderState = null,
@@ -746,6 +750,10 @@ private fun SelectFolderPreview() {
             isSignedIntoSync = false,
             bookmarksEditBookmarkState = null,
             bookmarksAddFolderState = BookmarksAddFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
                 folderBeingAddedTitle = "Edit me!",
             ),
             bookmarksSelectFolderState = BookmarksSelectFolderState(

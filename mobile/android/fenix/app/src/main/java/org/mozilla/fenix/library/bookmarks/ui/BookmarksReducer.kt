@@ -31,7 +31,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
         state
     }
     is AddFolderAction.TitleChanged -> state.copy(
-        bookmarksAddFolderState = BookmarksAddFolderState(
+        bookmarksAddFolderState = state.bookmarksAddFolderState?.copy(
             folderBeingAddedTitle = action.updatedText,
         ),
     )
@@ -54,13 +54,18 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
             folders = action.folders,
         ),
     )
+    AddFolderClicked -> state.copy(
+        bookmarksAddFolderState = BookmarksAddFolderState(
+            parent = state.currentFolder,
+            folderBeingAddedTitle = "",
+        ),
+    )
     EditBookmarkAction.DeleteClicked -> state.copy(bookmarksEditBookmarkState = null)
     BackClicked -> state.respondToBackClick()
     SelectFolderAction.ViewAppeared,
     EditBookmarkAction.FolderClicked,
     AddFolderAction.ParentFolderClicked,
     SearchClicked,
-    AddFolderClicked,
     SignIntoSyncClicked,
     Init,
     -> state

@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
+import mozilla.appservices.places.BookmarkRoot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -40,6 +41,27 @@ class BookmarksReducerTest {
             currentFolder = newFolder,
             bookmarkItems = items,
         )
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `WHEN a user clicks add a folder THEN initialize add folder sub screen state`() {
+        val state = BookmarksState.default.copy(
+            currentFolder = BookmarkItem.Folder(
+                guid = "guid",
+                title = "mozilla",
+            ),
+        )
+
+        val result = bookmarksReducer(state, AddFolderClicked).bookmarksAddFolderState
+        val expected = BookmarksAddFolderState(
+            parent = BookmarkItem.Folder(
+                guid = "guid",
+                title = "mozilla",
+            ),
+            folderBeingAddedTitle = "",
+        )
+
         assertEquals(expected, result)
     }
 
@@ -137,18 +159,34 @@ class BookmarksReducerTest {
 
     @Test
     fun `WHEN the title of a folder is changed on the add folder screen THEN that is reflected in state`() {
-        val state = BookmarksState.default
+        val state = BookmarksState.default.copy(
+            bookmarksAddFolderState = BookmarksAddFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
+                folderBeingAddedTitle = "",
+            ),
+        )
+
         val titleChange = "test"
 
         val result = bookmarksReducer(state, AddFolderAction.TitleChanged(titleChange))
 
-        val expected = BookmarksState.default.copy(bookmarksAddFolderState = BookmarksAddFolderState(folderBeingAddedTitle = titleChange))
-        assertEquals(expected, result)
+        assertEquals(titleChange, result.bookmarksAddFolderState?.folderBeingAddedTitle)
     }
 
     @Test
     fun `GIVEN we are on the add folder screen WHEN back is clicked THEN add folder state is removed`() {
-        val state = BookmarksState.default.copy(bookmarksAddFolderState = BookmarksAddFolderState(folderBeingAddedTitle = ""))
+        val state = BookmarksState.default.copy(
+            bookmarksAddFolderState = BookmarksAddFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
+                folderBeingAddedTitle = "",
+            ),
+        )
 
         val result = bookmarksReducer(state, BackClicked)
 
