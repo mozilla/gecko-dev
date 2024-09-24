@@ -96,7 +96,7 @@ add_task(async function test_login_line_commands() {
   const selectors = Object.keys(expectedPasswordCard);
 
   for (const selector of selectors) {
-    let loginLine = card[selector];
+    let loginLineInput = card[selector].shadowRoot.querySelector("input");
     if (selector === "originLine") {
       const browserLoadedPromise = BrowserTestUtils.browserLoaded(
         gBrowser.selectedBrowser,
@@ -104,7 +104,7 @@ add_task(async function test_login_line_commands() {
         expectedPasswordCard[selector].value
       );
       info(`click on ${selector}`);
-      loginLine.click();
+      loginLineInput.click();
       await browserLoadedPromise;
       ok(true, "origin url loaded");
     } else if (selector === "usernameLine") {
@@ -112,14 +112,15 @@ add_task(async function test_login_line_commands() {
         expectedPasswordCard[selector].value,
         () => {
           info(`click on ${selector}`);
-          loginLine.click();
+          loginLineInput.click();
         }
       );
     } else if (
       OSKeyStoreTestUtils.canTestOSKeyStoreLogin() &&
       selector === "passwordLine"
     ) {
-      const loginLine = card[selector].loginLine;
+      loginLineInput =
+        card[selector].loginLine.shadowRoot.querySelector("input");
       /* Once we pass the prompt message and pref to #verifyUser in MegalistViewModel,
        * we will have to do something like this:
        * let reauthObserved = Promise.resolve();
@@ -133,7 +134,7 @@ add_task(async function test_login_line_commands() {
         expectedPasswordCard[selector].value,
         () => {
           info(`click on ${selector}`);
-          loginLine.click();
+          loginLineInput.click();
         }
       );
     }
