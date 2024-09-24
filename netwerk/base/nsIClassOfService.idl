@@ -19,13 +19,8 @@
 namespace mozilla::net {
 class ClassOfService;
 }
-
-namespace mozilla::dom {
-enum class FetchPriority: uint8_t;
-}
 %}
 native ClassOfService(mozilla::net::ClassOfService);
-native FetchPriorityDOM(mozilla::dom::FetchPriority);
 
 [scriptable, builtinclass, uuid(1ccb58ec-5e07-4cf9-a30d-ac5490d23b41)]
 interface nsIClassOfService : nsISupports
@@ -36,17 +31,6 @@ interface nsIClassOfService : nsISupports
   void clearClassFlags(in unsigned long flags);
   void addClassFlags(in unsigned long flags);
   [noscript] void setClassOfService(in ClassOfService s);
-
-  cenum FetchPriority: 8 {
-    FETCHPRIORITY_UNSET = 0,
-    FETCHPRIORITY_LOW = 1,
-    FETCHPRIORITY_AUTO = 2,
-    FETCHPRIORITY_HIGH = 3,
-  };
-  // Reflects the fetchPriority attribute set on the request.
-  attribute nsIClassOfService_FetchPriority fetchPriority;
-
-  [notxpcom, nostdcall] void setFetchPriorityDOM(in FetchPriorityDOM aPriority);
 
   // All these flags have a (de)prioritization effect.
 

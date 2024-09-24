@@ -1489,10 +1489,6 @@ void Loader::AdjustPriority(const SheetLoadData& aLoadData,
   sp->GetPriority(&adjustedPriority);
   LogPriorityMapping(sCssLoaderLog, aLoadData.mFetchPriority, adjustedPriority);
 #endif
-
-  if (nsCOMPtr<nsIClassOfService> cos = do_QueryInterface(aChannel)) {
-    cos->SetFetchPriorityDOM(aLoadData.mFetchPriority);
-  }
 }
 
 nsresult Loader::LoadSheetAsyncInternal(SheetLoadData& aLoadData,

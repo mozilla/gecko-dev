@@ -38,13 +38,11 @@ Http3Stream::Http3Stream(nsAHttpTransaction* httpTransaction,
   LOG3(("Http3Stream::Http3Stream [this=%p]", this));
 
   nsHttpTransaction* trans = mTransaction->QueryHttpTransaction();
-  int32_t priority = nsISupportsPriority::PRIORITY_NORMAL;
   if (trans) {
     mTransactionBrowserId = trans->BrowserId();
-    priority = trans->Priority();
   }
 
-  mPriorityUrgency = nsHttpHandler::UrgencyFromCoSFlags(cos.Flags(), priority);
+  mPriorityUrgency = nsHttpHandler::UrgencyFromCoSFlags(cos.Flags());
   SetIncremental(cos.Incremental());
 }
 

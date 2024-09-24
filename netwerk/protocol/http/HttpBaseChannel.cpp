@@ -38,7 +38,6 @@
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
 #include "mozilla/dom/Document.h"
-#include "mozilla/dom/FetchPriority.h"
 #include "mozilla/dom/nsHTTPSOnlyUtils.h"
 #include "mozilla/dom/nsMixedContentBlocker.h"
 #include "mozilla/dom/Performance.h"
@@ -6715,23 +6714,6 @@ HttpBaseChannel::GetRenderBlocking(bool* aRenderBlocking) {
 NS_IMETHODIMP HttpBaseChannel::GetLastTransportStatus(
     nsresult* aLastTransportStatus) {
   return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-void HttpBaseChannel::SetFetchPriorityDOM(
-    mozilla::dom::FetchPriority aPriority) {
-  switch (aPriority) {
-    case mozilla::dom::FetchPriority::Auto:
-      SetFetchPriority(nsIClassOfService::FETCHPRIORITY_AUTO);
-      return;
-    case mozilla::dom::FetchPriority::High:
-      SetFetchPriority(nsIClassOfService::FETCHPRIORITY_HIGH);
-      return;
-    case mozilla::dom::FetchPriority::Low:
-      SetFetchPriority(nsIClassOfService::FETCHPRIORITY_LOW);
-      return;
-    default:
-      MOZ_ASSERT_UNREACHABLE();
-  }
 }
 
 }  // namespace net
