@@ -35,6 +35,8 @@ skip-if = [
 
 ["browser_hidden_browser_vsync.js"]
 
+["browser_hiddenwindow_existence.js"]
+
 ["browser_panel_vsync.js"]
 support-files = ["!/browser/components/downloads/test/browser/head.js"]
 
@@ -62,12 +64,6 @@ support-files = [
 run-if = [
   "debug",
   "nightly_build", # Requires StartupRecorder.sys.mjs, which isn't shipped everywhere by default
-]
-
-["browser_startup_hiddenwindow.js"]
-run-if = [
-  "os == 'linux'",
-  "os == 'win'",
 ]
 
 ["browser_tabclose.js"]

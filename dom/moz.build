@@ -8,8 +8,6 @@
 with Files("**"):
     BUG_COMPONENT = ("Core", "DOM: Core & HTML")
 
-JAR_MANIFESTS += ["jar.mn"]
-
 interfaces = [
     "base",
     "events",

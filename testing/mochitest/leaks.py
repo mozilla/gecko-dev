@@ -277,10 +277,7 @@ class ShutdownLeaks(object):
         return sorted(counts, key=itemgetter(1), reverse=True)
 
     def _isHiddenWindowURL(self, url):
-        return (
-            url == "resource://gre-resources/hiddenWindow.html"
-            or url == "chrome://browser/content/hiddenWindowMac.xhtml"  # Win / Linux
-        )  # Mac
+        return url == "resource://gre-resources/hiddenWindowMac.xhtml"
 
 
 class LSANLeaks(object):

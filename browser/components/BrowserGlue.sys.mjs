@@ -4868,7 +4868,7 @@ BrowserGlue.prototype = {
       return;
     }
 
-    if (Services.appShell.hiddenDOMWindow.openPreferences) {
+    if (AppConstants.platform == "macosx") {
       Services.appShell.hiddenDOMWindow.openPreferences(...args);
     }
   },
