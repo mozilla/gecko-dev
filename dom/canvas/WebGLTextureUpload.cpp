@@ -21,6 +21,7 @@
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/ImageData.h"
 #include "mozilla/dom/OffscreenCanvas.h"
+#include "mozilla/layers/SharedSurfacesChild.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/StaticPrefs_webgl.h"
@@ -69,6 +70,10 @@ Maybe<TexUnpackBlobDesc> FromImageBitmap(const GLenum target, Maybe<uvec3> size,
     size.emplace(imageSize.x, imageSize.y, 1);
   }
 
+  // For SourceSurfaceSharedData, try to get SurfaceDescriptorExternalImage.
+  Maybe<layers::SurfaceDescriptor> sd;
+  layers::SharedSurfacesChild::Share(surf, sd);
+
   // WhatWG "HTML Living Standard" (30 October 2015):
   // "The getImageData(sx, sy, sw, sh) method [...] Pixels must be returned as
   // non-premultiplied alpha values."
@@ -79,7 +84,7 @@ Maybe<TexUnpackBlobDesc> FromImageBitmap(const GLenum target, Maybe<uvec3> size,
                                 {},
                                 Some(imageSize),
                                 nullptr,
-                                {},
+                                sd,
                                 surf,
                                 {},
                                 false});
@@ -199,6 +204,11 @@ Maybe<webgl::TexUnpackBlobDesc> FromSurfaceFromElementResult(
 
     // WARNING: OSX can lose our MakeCurrent here.
     dataSurf = surf->GetDataSurface();
+  }
+
+  if (!sd) {
+    // For SourceSurfaceSharedData, try to get SurfaceDescriptorExternalImage.
+    layers::SharedSurfacesChild::Share(dataSurf, sd);
   }
 
   //////

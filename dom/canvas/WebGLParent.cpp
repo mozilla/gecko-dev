@@ -6,6 +6,7 @@
 #include "WebGLParent.h"
 
 #include "WebGLChild.h"
+#include "mozilla/layers/SharedSurfacesParent.h"
 #include "mozilla/layers/TextureClientSharedSurface.h"
 #include "ImageContainer.h"
 #include "HostWebGLContext.h"
@@ -24,8 +25,9 @@ mozilla::ipc::IPCResult WebGLParent::RecvInitialize(
   return IPC_OK();
 }
 
-WebGLParent::WebGLParent(const dom::ContentParentId& aContentId)
-    : mContentId(aContentId) {}
+WebGLParent::WebGLParent(layers::SharedSurfacesHolder* aSharedSurfacesHolder,
+                         const dom::ContentParentId& aContentId)
+    : mSharedSurfacesHolder(aSharedSurfacesHolder), mContentId(aContentId) {}
 
 WebGLParent::~WebGLParent() = default;
 

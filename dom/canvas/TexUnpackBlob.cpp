@@ -11,6 +11,7 @@
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "mozilla/gfx/Logging.h"
 #include "mozilla/layers/ImageDataSerializer.h"
+#include "mozilla/layers/SharedSurfacesParent.h"
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/layers/VideoBridgeParent.h"
 #include "mozilla/RefPtr.h"
@@ -314,6 +315,15 @@ static bool SDIsNullRemoteDecoder(const layers::SurfaceDescriptor& sd) {
                  .type() == layers::RemoteDecoderVideoSubDescriptor::Tnull_t;
 }
 
+// Check if the surface descriptor describes an ExternalImage surface for which
+// we only have an opaque source/handle to derive the actual surface from.
+static bool SDIsExternalImage(const layers::SurfaceDescriptor& sd) {
+  return sd.type() ==
+             layers::SurfaceDescriptor::TSurfaceDescriptorExternalImage &&
+         sd.get_SurfaceDescriptorExternalImage().source() ==
+             wr::ExternalImageSource::SharedSurfaces;
+}
+
 // static
 std::unique_ptr<TexUnpackBlob> TexUnpackBlob::Create(
     const TexUnpackBlobDesc& desc) {
@@ -339,7 +349,8 @@ std::unique_ptr<TexUnpackBlob> TexUnpackBlob::Create(
       // Otherwise, TexUnpackImage will try to blit the surface descriptor as
       // if it can be mapped as a framebuffer, whereas the Shmem is still CPU
       // data.
-      if (SDIsRGBBuffer(*desc.sd) || SDIsNullRemoteDecoder(*desc.sd)) {
+      if (SDIsRGBBuffer(*desc.sd) || SDIsNullRemoteDecoder(*desc.sd) ||
+          SDIsExternalImage(*desc.sd)) {
         return new TexUnpackSurface(desc);
       }
       return new TexUnpackImage(desc);
@@ -999,6 +1010,17 @@ bool TexUnpackSurface::TexOrSubImage(bool isSubImage, bool needsRespec,
         return false;
       }
       surf = texture->GetAsSurface();
+    } else if (SDIsExternalImage(sd)) {
+      const auto& sdei = sd.get_SurfaceDescriptorExternalImage();
+      if (auto* sharedSurfacesHolder = webgl->GetSharedSurfacesHolder()) {
+        surf = sharedSurfacesHolder->Get(sdei.id());
+      }
+      if (!surf) {
+        // Most likely the content process crashed before it was able to finish
+        // sharing the surface with the compositor process.
+        gfxCriticalNote << "TexUnpackSurface failed to get ExternalImage";
+        return false;
+      }
     } else {
       MOZ_ASSERT_UNREACHABLE("Unexpected surface descriptor!");
     }
