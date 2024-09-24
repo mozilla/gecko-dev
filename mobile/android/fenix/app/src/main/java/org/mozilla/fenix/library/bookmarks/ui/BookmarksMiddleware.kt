@@ -122,7 +122,9 @@ internal class BookmarksMiddleware(
                     }
                 }
             }
-            EditBookmarkAction.FolderClicked -> { /* Navigate to folder picker */ }
+            EditBookmarkAction.FolderClicked -> {
+                navController.navigate(BookmarksDestinations.SELECT_FOLDER)
+            }
             EditBookmarkAction.DeleteClicked -> {
                 // Bug 1919949 — Add undo snackbar to delete action.
                 navController.popBackStack()

@@ -211,6 +211,23 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN we are on the edit bookmark screen WHEN folder is clicked THEN initialize the select folder state`() {
+        val state = BookmarksState.default.copy(
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = BookmarkItem.Bookmark("", "", "", ""),
+                folder = BookmarkItem.Folder(
+                    guid = "1",
+                    title = "Bookmarks",
+                ),
+            ),
+        )
+
+        val result = bookmarksReducer(state, EditBookmarkAction.FolderClicked)
+
+        assertEquals("1", result.bookmarksSelectFolderState?.selectionGuid)
+    }
+
+    @Test
     fun `GIVEN there is no substate screen present WHEN back is clicked THEN state is unchanged`() {
         val state = BookmarksState.default
 

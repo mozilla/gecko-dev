@@ -247,6 +247,16 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen is edit bookmark WHEN folder is clicked THEN navigate to folder selection screen`() {
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(EditBookmarkAction.FolderClicked)
+
+        verify(navController).navigate(BookmarksDestinations.SELECT_FOLDER)
+    }
+
+    @Test
     fun `GIVEN current screen is add folder and new folder title is nonempty WHEN back is clicked THEN navigate back, save the new folder, and load the updated tree`() = runTest {
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         val middleware = buildMiddleware()
