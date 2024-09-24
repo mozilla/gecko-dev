@@ -1,6 +1,7 @@
 {
   "global": {
     "queryParams": [
+      "li_fat_id",
       "utm_ad",
       "utm_affiliate",
       "utm_brand",
