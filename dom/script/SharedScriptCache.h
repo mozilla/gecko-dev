@@ -136,6 +136,7 @@ class ScriptLoadData final
 
   void StartLoading() override {}
   void SetLoadCompleted() override {}
+  void OnCoalescedTo(const ScriptLoadData& aExistingLoad) override {}
   void Cancel() override {}
 
   void DidCancelLoad() {}

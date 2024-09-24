@@ -58,6 +58,7 @@ struct SharedSubResourceCacheLoadingValueBase {
 
   virtual void StartLoading() = 0;
   virtual void SetLoadCompleted() = 0;
+  virtual void OnCoalescedTo(const Derived& aExistingLoad) = 0;
   virtual void Cancel() = 0;
 
   // Return the next sub-resource which has the same key.
@@ -427,6 +428,8 @@ bool SharedSubResourceCache<Traits, Derived>::CoalesceLoad(
     data = data->mNext;
   }
   data->mNext = &aNewLoad;
+
+  aNewLoad.OnCoalescedTo(*existingLoad);
   return true;
 }
 

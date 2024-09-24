@@ -301,6 +301,7 @@ SheetLoadData::SheetLoadData(
       mIsCrossOriginNoCORS(false),
       mBlockResourceTiming(false),
       mLoadFailed(false),
+      mShouldEmulateNotificationsForCachedLoad(false),
       mPreloadKind(aPreloadKind),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
@@ -344,6 +345,7 @@ SheetLoadData::SheetLoadData(css::Loader* aLoader, nsIURI* aURI,
       mIsCrossOriginNoCORS(false),
       mBlockResourceTiming(false),
       mLoadFailed(false),
+      mShouldEmulateNotificationsForCachedLoad(false),
       mPreloadKind(StylePreloadKind::None),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
@@ -389,6 +391,7 @@ SheetLoadData::SheetLoadData(
       mIsCrossOriginNoCORS(false),
       mBlockResourceTiming(false),
       mLoadFailed(false),
+      mShouldEmulateNotificationsForCachedLoad(false),
       mPreloadKind(aPreloadKind),
       mObserver(aObserver),
       mTriggeringPrincipal(aTriggeringPrincipal),
@@ -987,13 +990,13 @@ static void RecordUseCountersIfNeeded(Document* aDoc,
   aDoc->MaybeWarnAboutZoom();
 }
 
-void Loader::MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData) {
+bool Loader::MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData) {
   if (!aLoadData.mURI) {
     // Inline style sheet is not tracked.
-    return;
+    return false;
   }
-  auto key = SheetLoadDataHashKey(aLoadData);
-  mLoadsPerformed.PutEntry(key);
+
+  return mLoadsPerformed.EnsureInserted(SheetLoadDataHashKey(aLoadData));
 }
 
 /**
@@ -1691,7 +1694,10 @@ Loader::Completed Loader::ParseSheet(
 
 void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus) {
   RecordUseCountersIfNeeded(mDocument, *aData.mSheet);
-  MaybePutIntoLoadsPerformed(aData);
+  if (MaybePutIntoLoadsPerformed(aData) &&
+      aData.mShouldEmulateNotificationsForCachedLoad) {
+    NotifyObserversForCachedSheet(aData);
+  }
 
   RefPtr loadDispatcher = aData.PrepareLoadEventIfNeeded();
   if (aData.mURI) {
@@ -2014,9 +2020,6 @@ Result<Loader::LoadSheetResult, nsresult> Loader::LoadStyleLink(
     LOG(("  Sheet already complete: 0x%p", sheet.get()));
     MOZ_ASSERT(sheet->GetOwnerNode() == aInfo.mContent);
     InsertSheetInTree(*sheet);
-    // Only call it here, since we want to notify only about stylesheets
-    // loaded with `link` tag.
-    NotifyObserversForCachedSheet(*data);
     NotifyOfCachedLoad(std::move(data));
     return LoadSheetResult{Completed::Yes, isAlternate, matched};
   }
@@ -2160,7 +2163,9 @@ nsresult Loader::LoadChildSheet(StyleSheet& aParentSheet,
       // Child sheets are not handled by NotifyObservers, and these need to be
       // performed here if the sheet comes from the SharedStyleSheetCache.
       RecordUseCountersIfNeeded(mDocument, *data->mSheet);
-      MaybePutIntoLoadsPerformed(*data);
+      if (MaybePutIntoLoadsPerformed(*data)) {
+        NotifyObserversForCachedSheet(*data);
+      }
     }
     data->mIntentionallyDropped = true;
     return NS_OK;
@@ -2277,6 +2282,10 @@ void Loader::NotifyOfCachedLoad(RefPtr<SheetLoadData> aLoadData) {
   // don't end up running the load event more async than needed.
   MOZ_ASSERT(!aLoadData->mLoadFailed, "Why are we marked as failed?");
   aLoadData->mSheetAlreadyComplete = true;
+
+  if (aLoadData->mURI) {
+    aLoadData->mShouldEmulateNotificationsForCachedLoad = true;
+  }
 
   // We need to check mURI to match
   // DecrementOngoingLoadCountAndMaybeUnblockOnload().

@@ -532,7 +532,7 @@ class Loader final {
                               nsIURI* aTargetURI, nsINode* aRequestingNode,
                               const nsAString& aNonce, StylePreloadKind);
 
-  void MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData);
+  bool MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData);
 
   std::tuple<RefPtr<StyleSheet>, SheetState> CreateSheet(
       const SheetInfo& aInfo, css::SheetParsingMode aParsingMode,
