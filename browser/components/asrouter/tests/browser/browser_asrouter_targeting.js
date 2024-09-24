@@ -1712,3 +1712,37 @@ add_task(async function check_totalSearches() {
     "should return a value of 20"
   );
 });
+
+add_task(
+  async function check_activeNotifications_newtab_topic_selection_modal_shown_past() {
+    // 10 minutes ago
+    let timestamp10MinsAgo = `${new Date().getTime() - 600000}`;
+    await pushPrefs([
+      "browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.lastDisplayed",
+      timestamp10MinsAgo,
+    ]);
+
+    is(
+      await ASRouterTargeting.Environment.activeNotifications,
+      false,
+      "activeNotifications should be false if the topic selection modal on newtab was last shown more than a minute ago"
+    );
+  }
+);
+
+add_task(
+  async function check_activeNotifications_newtab_topic_selection_modal_shown_recently() {
+    // 1 second ago
+    let timestamp1SecAgo = `${new Date().getTime() - 1000}`;
+    await pushPrefs([
+      "browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.lastDisplayed",
+      timestamp1SecAgo,
+    ]);
+
+    is(
+      await ASRouterTargeting.Environment.activeNotifications,
+      true,
+      "activeNotifications should be true if the topic selection modal on newtab was last shown less than a minute ago"
+    );
+  }
+);

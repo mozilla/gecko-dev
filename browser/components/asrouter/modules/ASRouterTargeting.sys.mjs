@@ -5,6 +5,9 @@
 const FXA_ENABLED_PREF = "identity.fxaccounts.enabled";
 const DISTRIBUTION_ID_PREF = "distribution.id";
 const DISTRIBUTION_ID_CHINA_REPACK = "MozillaOnline";
+const TOPIC_SELECTION_MODAL_LAST_DISPLAYED_PREF =
+  "browser.newtabpage.activity-stream.discoverystream.topicSelection.onboarding.lastDisplayed";
+const NOTIFICATION_INTERVAL_AFTER_TOPIC_MODAL_MS = 60000; // Assuming avoid notification up to 1 minute after newtab Topic Notification Modal
 
 // We use importESModule here instead of static import so that
 // the Karma test environment won't choke on this module. This
@@ -152,6 +155,17 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "totalSearches",
   "browser.search.totalSearches",
   0
+);
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "newTabTopicModalLastSeen",
+  TOPIC_SELECTION_MODAL_LAST_DISPLAYED_PREF,
+  null,
+  lastSeenString => {
+    return Number.isInteger(parseInt(lastSeenString, 10))
+      ? parseInt(lastSeenString, 10)
+      : 0;
+  }
 );
 
 XPCOMUtils.defineLazyServiceGetters(lazy, {
@@ -823,10 +837,14 @@ const TargetingGetters = {
       return true;
     }
 
+    let duration = Date.now() - lazy.newTabTopicModalLastSeen;
     if (
       window.gURLBar?.view.isOpen ||
       window.gNotificationBox?.currentNotification ||
-      window.gBrowser.getNotificationBox()?.currentNotification
+      window.gBrowser.getNotificationBox()?.currentNotification ||
+      // Avoid showing messages if the newtab Topic selection modal was shown in
+      // the past 1 minute
+      duration <= NOTIFICATION_INTERVAL_AFTER_TOPIC_MODAL_MS
     ) {
       return true;
     }
