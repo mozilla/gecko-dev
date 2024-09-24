@@ -54,7 +54,6 @@ RELEASE_OR_BETA = set(
     ]
 )
 SHELL_OPTIONS = {
-    "import-assertions": "--enable-import-assertions",
     "import-attributes": "--enable-import-attributes",
     "ShadowRealm": "--enable-shadow-realms",
     "iterator-helpers": "--enable-iterator-helpers",
