@@ -47,6 +47,7 @@
 #include "mozilla/dom/SRILogHelper.h"
 #include "mozilla/dom/WindowContext.h"
 #include "mozilla/Mutex.h"  // mozilla::Mutex
+#include "mozilla/net/HttpBaseChannel.h"
 #include "mozilla/net/UrlClassifierFeatureFactory.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/StaticPrefs_javascript.h"
@@ -79,6 +80,7 @@
 #include "nsCRT.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsProxyRelease.h"
+#include "nsQueryObject.h"
 #include "nsINetworkPredictor.h"
 #include "mozilla/ConsoleReportCollector.h"
 #include "mozilla/CycleCollectedJSContext.h"
@@ -587,6 +589,17 @@ nsresult ScriptLoader::StartLoad(
   return StartClassicLoad(aRequest, aCharsetForPreload);
 }
 
+static nsSecurityFlags CORSModeToSecurityFlags(CORSMode aCORSMode) {
+  nsSecurityFlags securityFlags =
+      nsContentSecurityManager::ComputeSecurityFlags(
+          aCORSMode, nsContentSecurityManager::CORSSecurityMapping::
+                         CORS_NONE_MAPS_TO_DISABLED_CORS_CHECKS);
+
+  securityFlags |= nsILoadInfo::SEC_ALLOW_CHROME;
+
+  return securityFlags;
+}
+
 nsresult ScriptLoader::StartClassicLoad(
     ScriptLoadRequest* aRequest,
     const Maybe<nsAutoString>& aCharsetForPreload) {
@@ -606,12 +619,7 @@ nsresult ScriptLoader::StartClassicLoad(
          url.get()));
   }
 
-  nsSecurityFlags securityFlags =
-      nsContentSecurityManager::ComputeSecurityFlags(
-          aRequest->CORSMode(), nsContentSecurityManager::CORSSecurityMapping::
-                                    CORS_NONE_MAPS_TO_DISABLED_CORS_CHECKS);
-
-  securityFlags |= nsILoadInfo::SEC_ALLOW_CHROME;
+  nsSecurityFlags securityFlags = CORSModeToSecurityFlags(aRequest->CORSMode());
 
   nsresult rv = StartLoadInternal(aRequest, securityFlags, aCharsetForPreload);
 
@@ -630,6 +638,22 @@ static bool IsWebExtensionRequest(ScriptLoadRequest* aRequest) {
   return loader->GetKind() == ModuleLoader::WebExtension;
 }
 
+static nsresult CreateChannelForScriptLoading(
+    nsIChannel** aOutChannel, Document* aDocument, nsIURI* aURI,
+    nsINode* aContext, nsIPrincipal* aTriggeringPrincipal,
+    nsSecurityFlags aSecurityFlags, nsContentPolicyType aContentPolicyType) {
+  nsCOMPtr<nsILoadGroup> loadGroup = aDocument->GetDocumentLoadGroup();
+  nsCOMPtr<nsPIDOMWindowOuter> window = aDocument->GetWindow();
+  NS_ENSURE_TRUE(window, NS_ERROR_NULL_POINTER);
+  nsIDocShell* docshell = window->GetDocShell();
+  nsCOMPtr<nsIInterfaceRequestor> prompter(do_QueryInterface(docshell));
+
+  return NS_NewChannelWithTriggeringPrincipal(
+      aOutChannel, aURI, aContext, aTriggeringPrincipal, aSecurityFlags,
+      aContentPolicyType,
+      /* aPerformanceStorage = */ nullptr, loadGroup, prompter);
+}
+
 static nsresult CreateChannelForScriptLoading(nsIChannel** aOutChannel,
                                               Document* aDocument,
                                               ScriptLoadRequest* aRequest,
@@ -644,17 +668,9 @@ static nsresult CreateChannelForScriptLoading(nsIChannel** aOutChannel,
     context = aDocument;
   }
 
-  nsCOMPtr<nsILoadGroup> loadGroup = aDocument->GetDocumentLoadGroup();
-  nsCOMPtr<nsPIDOMWindowOuter> window = aDocument->GetWindow();
-  NS_ENSURE_TRUE(window, NS_ERROR_NULL_POINTER);
-  nsIDocShell* docshell = window->GetDocShell();
-  nsCOMPtr<nsIInterfaceRequestor> prompter(do_QueryInterface(docshell));
-
-  return NS_NewChannelWithTriggeringPrincipal(
-      aOutChannel, aRequest->mURI, context, aRequest->TriggeringPrincipal(),
-      aSecurityFlags, contentPolicyType,
-      nullptr,  // aPerformanceStorage
-      loadGroup, prompter);
+  return CreateChannelForScriptLoading(aOutChannel, aDocument, aRequest->mURI,
+                                       context, aRequest->TriggeringPrincipal(),
+                                       aSecurityFlags, contentPolicyType);
 }
 
 static void PrepareLoadInfoForScriptLoading(nsIChannel* aChannel,
@@ -1022,6 +1038,37 @@ RequestPriority FetchPriorityToRequestPriority(
 }
 }  // namespace
 
+void ScriptLoader::NotifyObserversForCachedScript(
+    nsIURI* aURI, nsINode* aContext, nsIPrincipal* aTriggeringPrincipal,
+    nsSecurityFlags aSecurityFlags, nsContentPolicyType aContentPolicyType) {
+  nsCOMPtr<nsIObserverService> obsService = services::GetObserverService();
+
+  if (!obsService->HasObservers("http-on-resource-cache-response")) {
+    return;
+  }
+
+  nsCOMPtr<nsIChannel> channel;
+  nsresult rv = CreateChannelForScriptLoading(
+      getter_AddRefs(channel), mDocument, aURI, aContext, aTriggeringPrincipal,
+      aSecurityFlags, aContentPolicyType);
+  if (NS_FAILED(rv)) {
+    return;
+  }
+
+  RefPtr<net::HttpBaseChannel> httpBaseChannel = do_QueryObject(channel);
+  if (httpBaseChannel) {
+    httpBaseChannel->SetDummyChannelForCachedResource();
+  }
+
+  // TODO: Populate fields.
+
+  // TODO: Move the handling into SharedSubResourceCache once the notification
+  //       is merged between CSS and JS (bug 1919218)
+
+  obsService->NotifyObservers(channel, "http-on-resource-cache-response",
+                              nullptr);
+}
+
 already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
     ScriptKind aKind, nsIURI* aURI, nsIScriptElement* aElement,
     nsIPrincipal* aTriggeringPrincipal, CORSMode aCORSMode,
@@ -1048,6 +1095,17 @@ already_AddRefed<ScriptLoadRequest> ScriptLoader::CreateLoadRequest(
           aRequest->NoCacheEntryFound();
           return aRequest.forget();
         }
+
+        nsCOMPtr<nsINode> context;
+        if (aElement) {
+          context = do_QueryInterface(aElement);
+        } else {
+          context = mDocument;
+        }
+
+        NotifyObserversForCachedScript(aURI, context, aTriggeringPrincipal,
+                                       CORSModeToSecurityFlags(aCORSMode),
+                                       nsIContentPolicy::TYPE_INTERNAL_SCRIPT);
 
         aRequest->CacheEntryFound(cacheResult.mCompleteValue);
         return aRequest.forget();

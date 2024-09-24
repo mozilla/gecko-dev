@@ -472,6 +472,11 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       const SRIMetadata& aIntegrity, ReferrerPolicy aReferrerPolicy,
       JS::loader::ParserMetadata aParserMetadata, RequestType requestType);
 
+  void NotifyObserversForCachedScript(nsIURI* aURI, nsINode* aContext,
+                                      nsIPrincipal* aTriggeringPrincipal,
+                                      nsSecurityFlags aSecurityFlags,
+                                      nsContentPolicyType aContentPolicyType);
+
   /**
    * Unblocks the creator parser of the parser-blocking scripts.
    */
