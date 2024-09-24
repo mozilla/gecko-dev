@@ -347,7 +347,8 @@ class nsBaseWidget : public nsIWidget, public nsSupportsWeakReference {
                          ByMoveToRect = ByMoveToRect::No);
 
   // Should be called by derived implementations to notify on system color and
-  // theme changes.
+  // theme changes. (Only one invocation per change is needed, not one
+  // invocation per change per window.)
   void NotifyThemeChanged(mozilla::widget::ThemeChangeKind);
 
   void NotifyAPZOfDPIChange();

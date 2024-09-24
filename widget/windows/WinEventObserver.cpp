@@ -10,12 +10,19 @@
 #include <wtsapi32.h>
 
 #include "WinEventObserver.h"
+
+#include "ScreenHelperWin.h"
+#include "WindowsUIUtils.h"
 #include "WinWindowOcclusionTracker.h"
 
+#include "gfxDWriteFonts.h"
 #include "gfxPlatform.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/Logging.h"
+#include "mozilla/LookAndFeel.h"
+#include "nsLookAndFeel.h"
+#include "nsStringFwd.h"
 #include "nsWindowDbg.h"
 #include "nsdefs.h"
 #include "nsXULAppAPI.h"
@@ -93,6 +100,10 @@ HWND WinEventWindow::GetHwndForTestingOnly() {
 namespace {
 namespace evtwin_details {
 
+static void NotifyThemeChanged(ThemeChangeKind aKind) {
+  LookAndFeel::NotifyChangedAllWindows(aKind);
+}
+
 static void OnSessionChange(WPARAM wParam, LPARAM lParam) {
   if (wParam == WTS_SESSION_LOCK || wParam == WTS_SESSION_UNLOCK) {
     DWORD currentSessionId;
@@ -157,6 +168,57 @@ static void OnPowerBroadcast(WPARAM wParam, LPARAM lParam) {
     }
   }
 }
+
+static void OnSettingsChange(WPARAM wParam, LPARAM lParam) {
+  switch (wParam) {
+    case SPI_SETCLIENTAREAANIMATION:
+    case SPI_SETKEYBOARDDELAY:
+    case SPI_SETMOUSEVANISH:
+    case MOZ_SPI_SETCURSORSIZE:
+      // These need to update LookAndFeel cached values.
+      //
+      // They affect reduced motion settings / caret blink count / show pointer
+      // while typing / tooltip offset, so no need to invalidate style / layout.
+      NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
+      return;
+
+    case SPI_SETFONTSMOOTHING:
+    case SPI_SETFONTSMOOTHINGTYPE:
+      gfxDWriteFont::UpdateSystemTextVars();
+      return;
+
+    case SPI_SETWORKAREA:
+      // NB: We also refresh screens on WM_DISPLAYCHANGE, but the rcWork
+      // values are sometimes wrong at that point.  This message then arrives
+      // soon afterward, when we can get the right rcWork values.
+      ScreenHelperWin::RefreshScreens();
+      return;
+
+    default:
+      break;
+  }
+
+  if (lParam == 0) {
+    return;
+  }
+  nsDependentString lParamString{reinterpret_cast<const wchar_t*>(lParam)};
+
+  if (lParamString == u"ImmersiveColorSet"_ns) {
+    // This affects system colors (-moz-win-accentcolor), so gotta pass the
+    // style flag.
+    NotifyThemeChanged(widget::ThemeChangeKind::Style);
+    return;
+  }
+
+  // UserInteractionMode, ConvertibleSlateMode, SystemDockMode may cause
+  // @media(pointer) queries to change, which layout needs to know about
+  if (lParamString == u"UserInteractionMode"_ns ||
+      lParamString == u"ConvertibleSlateMode"_ns ||
+      lParamString == u"SystemDockMode"_ns) {
+    NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
+    WindowsUIUtils::UpdateInTabletMode();
+  }
+}
 }  // namespace evtwin_details
 }  // namespace
 
@@ -183,6 +245,10 @@ LRESULT CALLBACK WinEventWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam,
     case WM_FONTCHANGE: {
       // update the global font list
       gfxPlatform::GetPlatform()->UpdateFontList();
+    } break;
+
+    case WM_SETTINGCHANGE: {
+      evtwin_details::OnSettingsChange(wParam, lParam);
     } break;
   }
 

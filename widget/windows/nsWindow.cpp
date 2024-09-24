@@ -4957,55 +4957,6 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       }
     } break;
 
-    case WM_SETTINGCHANGE: {
-      if (wParam == SPI_SETCLIENTAREAANIMATION ||
-          wParam == SPI_SETKEYBOARDDELAY || wParam == SPI_SETMOUSEVANISH ||
-          wParam == MOZ_SPI_SETCURSORSIZE) {
-        // These need to update LookAndFeel cached values.
-        // They affect reduced motion settings / caret blink count / show
-        // pointer while typing / tooltip offset, so no need to invalidate style
-        // / layout.
-        NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
-        break;
-      }
-      if (wParam == SPI_SETFONTSMOOTHING ||
-          wParam == SPI_SETFONTSMOOTHINGTYPE) {
-        gfxDWriteFont::UpdateSystemTextVars();
-        break;
-      }
-      if (wParam == SPI_SETWORKAREA) {
-        // NB: We also refresh screens on WM_DISPLAYCHANGE but the rcWork
-        // values are sometimes wrong at that point.  This message then
-        // arrives soon afterward, when we can get the right rcWork values.
-        ScreenHelperWin::RefreshScreens();
-        break;
-      }
-      if (auto lParamString = reinterpret_cast<const wchar_t*>(lParam)) {
-        if (!wcscmp(lParamString, L"ImmersiveColorSet")) {
-          // This affects system colors (-moz-win-accentcolor), so gotta pass
-          // the style flag.
-          NotifyThemeChanged(widget::ThemeChangeKind::Style);
-          break;
-        }
-
-        // UserInteractionMode, ConvertibleSlateMode, SystemDockMode may cause
-        // @media(pointer) queries to change, which layout needs to know about
-        //
-        // (WM_SETTINGCHANGE will be sent to all top-level windows, so we
-        //  only respond to the hidden top-level window to avoid hammering
-        //  layout with a bunch of NotifyThemeChanged() calls)
-        //
-        if (mWindowType == WindowType::Invisible) {
-          if (!wcscmp(lParamString, L"UserInteractionMode") ||
-              !wcscmp(lParamString, L"ConvertibleSlateMode") ||
-              !wcscmp(lParamString, L"SystemDockMode")) {
-            NotifyThemeChanged(widget::ThemeChangeKind::MediaQueriesOnly);
-            WindowsUIUtils::UpdateInTabletMode();
-          }
-        }
-      }
-    } break;
-
     case WM_DEVICECHANGE: {
       if (wParam == DBT_DEVICEARRIVAL || wParam == DBT_DEVICEREMOVECOMPLETE) {
         DEV_BROADCAST_HDR* hdr = reinterpret_cast<DEV_BROADCAST_HDR*>(lParam);
