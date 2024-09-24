@@ -268,20 +268,24 @@ class CustomTabsIntegration(
         @ColorInt disableTint: Int,
     ) {
         if (forwardAction == null) {
+            val primaryDrawable = getDrawable(
+                context,
+                R.drawable.mozac_ic_forward_24,
+            )?.apply {
+                setTint(enableTint)
+            } ?: return
+
+            val secondaryDrawable = getDrawable(
+                context,
+                R.drawable.mozac_ic_forward_24,
+            )?.apply {
+                setTint(disableTint)
+            } ?: return
+
             forwardAction = BrowserToolbar.TwoStateButton(
-                primaryImage = getDrawable(
-                    context,
-                    R.drawable.mozac_ic_forward_24,
-                )!!.apply {
-                    setTint(enableTint)
-                },
+                primaryImage = primaryDrawable,
                 primaryContentDescription = context.getString(R.string.browser_menu_forward),
-                secondaryImage = getDrawable(
-                    context,
-                    R.drawable.mozac_ic_forward_24,
-                )!!.apply {
-                    setTint(disableTint)
-                },
+                secondaryImage = secondaryDrawable,
                 secondaryContentDescription = context.getString(R.string.browser_menu_forward),
                 isInPrimaryState = {
                     val currentTab = context.components.core.store.state.findCustomTabOrSelectedTab(sessionId)
@@ -311,20 +315,24 @@ class CustomTabsIntegration(
         @ColorInt disableTint: Int,
     ) {
         if (backAction == null) {
+            val primaryDrawable = getDrawable(
+                context,
+                R.drawable.mozac_ic_back_24,
+            )?.apply {
+                setTint(enableTint)
+            } ?: return
+
+            val secondaryDrawable = getDrawable(
+                context,
+                R.drawable.mozac_ic_back_24,
+            )?.apply {
+                setTint(disableTint)
+            } ?: return
+
             backAction = BrowserToolbar.TwoStateButton(
-                primaryImage = getDrawable(
-                    context,
-                    R.drawable.mozac_ic_back_24,
-                )!!.apply {
-                    setTint(enableTint)
-                },
+                primaryImage = primaryDrawable,
                 primaryContentDescription = context.getString(R.string.browser_menu_back),
-                secondaryImage = getDrawable(
-                    context,
-                    R.drawable.mozac_ic_back_24,
-                )!!.apply {
-                    setTint(disableTint)
-                },
+                secondaryImage = secondaryDrawable,
                 secondaryContentDescription = context.getString(R.string.browser_menu_back),
                 isInPrimaryState = {
                     val currentTab = context.components.core.store.state.findCustomTabOrSelectedTab(sessionId)
@@ -363,13 +371,15 @@ class CustomTabsIntegration(
     @VisibleForTesting
     internal fun initOpenInAction(context: Context) {
         if (openInAction == null) {
+            val imageDrawable = getDrawable(
+                context,
+                R.drawable.mozac_ic_open_in,
+            )?.apply {
+                setTint(feature.iconColor)
+            } ?: return
+
             openInAction = BrowserToolbar.Button(
-                imageDrawable = getDrawable(
-                    context,
-                    R.drawable.mozac_ic_open_in,
-                )!!.also {
-                    it.setTint(feature.iconColor)
-                },
+                imageDrawable = imageDrawable,
                 contentDescription = context.getString(
                     R.string.browser_menu_open_in_fenix,
                     context.getString(R.string.app_name),
