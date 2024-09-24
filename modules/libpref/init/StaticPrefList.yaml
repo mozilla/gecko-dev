@@ -12619,7 +12619,7 @@
 # (e.g. `<script>`) is enabled.
 - name: network.fetchpriority.enabled
   type: RelaxedAtomicBool
-  value: @IS_NIGHTLY_BUILD@
+  value: true
   mirror: always
 
 # When true, the channel's urgency will be adjusted based on the
