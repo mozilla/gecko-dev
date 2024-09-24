@@ -109,14 +109,6 @@ class InlineTable : private AllocPolicy {
     return true;
   }
 
-  [[nodiscard]] MOZ_NEVER_INLINE bool switchAndAdd(const InlineEntry& entry) {
-    if (!switchToTable()) {
-      return false;
-    }
-
-    return entry.putNew(table_);
-  }
-
  public:
   static const size_t SizeOfInlineEntries = sizeof(InlineEntry) * InlineEntries;
 
@@ -126,7 +118,6 @@ class InlineTable : private AllocPolicy {
   class Ptr {
     friend class InlineTable;
 
-   protected:
     MOZ_INIT_OUTSIDE_CTOR Entry entry_;
     MOZ_INIT_OUTSIDE_CTOR TablePtr tablePtr_;
     MOZ_INIT_OUTSIDE_CTOR InlineEntry* inlPtr_;
@@ -139,8 +130,6 @@ class InlineTable : private AllocPolicy {
 
     explicit Ptr(InlineEntry* inlineEntry)
         : entry_(inlineEntry), inlPtr_(inlineEntry), isInlinePtr_(true) {}
-
-    void operator==(const Ptr& other);
 
    public:
     // Leaves Ptr uninitialized.
@@ -159,19 +148,6 @@ class InlineTable : private AllocPolicy {
 
     explicit operator bool() const { return found(); }
 
-    bool operator==(const Ptr& other) const {
-      MOZ_ASSERT(found() && other.found());
-      if (isInlinePtr_ != other.isInlinePtr_) {
-        return false;
-      }
-      if (isInlinePtr_) {
-        return inlPtr_ == other.inlPtr_;
-      }
-      return tablePtr_ == other.tablePtr_;
-    }
-
-    bool operator!=(const Ptr& other) const { return !(*this == other); }
-
     Entry& operator*() {
       MOZ_ASSERT(found());
       return entry_;
@@ -186,7 +162,6 @@ class InlineTable : private AllocPolicy {
   class AddPtr {
     friend class InlineTable;
 
-   protected:
     MOZ_INIT_OUTSIDE_CTOR Entry entry_;
     MOZ_INIT_OUTSIDE_CTOR TableAddPtr tableAddPtr_;
     MOZ_INIT_OUTSIDE_CTOR InlineEntry* inlAddPtr_;
@@ -213,19 +188,6 @@ class InlineTable : private AllocPolicy {
     }
 
     explicit operator bool() const { return found(); }
-
-    bool operator==(const AddPtr& other) const {
-      MOZ_ASSERT(found() && other.found());
-      if (isInlinePtr_ != other.isInlinePtr_) {
-        return false;
-      }
-      if (isInlinePtr_) {
-        return inlAddPtr_ == other.inlAddPtr_;
-      }
-      return tableAddPtr_ == other.tableAddPtr_;
-    }
-
-    bool operator!=(const AddPtr& other) const { return !(*this == other); }
 
     Entry& operator*() {
       MOZ_ASSERT(found());
@@ -344,7 +306,6 @@ class InlineTable : private AllocPolicy {
   class Range {
     friend class InlineTable;
 
-   protected:
     mozilla::Maybe<TableRange> tableRange_;  // `Nothing` if `isInline_==true`
     InlineEntry* cur_;
     InlineEntry* end_;
