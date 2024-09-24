@@ -2695,6 +2695,13 @@ void HTMLMediaElement::SelectResource() {
     if (NS_SUCCEEDED(rv)) {
       LOG(LogLevel::Debug, ("%p Trying load from src=%s", this,
                             NS_ConvertUTF16toUTF8(src).get()));
+      if (profiler_is_collecting_markers()) {
+        nsPrintfCString markerName{"%p:mozloadresource", this};
+        profiler_add_marker(markerName, geckoprofiler::category::MEDIA_PLAYBACK,
+                            {}, LoadSourceMarker{}, nsString{src}, nsString{},
+                            nsString{});
+      }
+
       NS_ASSERTION(
           !mIsLoadingFromSourceChildren,
           "Should think we're not loading from source children by default");
@@ -2974,6 +2981,13 @@ void HTMLMediaElement::LoadFromSourceChildren() {
         ("%p Trying load from <source>=%s type=%s media=%s", this,
          NS_ConvertUTF16toUTF8(src).get(), NS_ConvertUTF16toUTF8(type).get(),
          NS_ConvertUTF16toUTF8(media).get()));
+
+    if (profiler_is_collecting_markers()) {
+      nsPrintfCString markerName{"%p:mozloadresource", this};
+      profiler_add_marker(markerName, geckoprofiler::category::MEDIA_PLAYBACK,
+                          {}, LoadSourceMarker{}, nsString{src}, nsString{type},
+                          nsString{media});
+    }
 
     nsCOMPtr<nsIURI> uri;
     NewURIFromString(src, getter_AddRefs(uri));
