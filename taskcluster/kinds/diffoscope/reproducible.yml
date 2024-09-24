@@ -16,6 +16,8 @@ reproducible-linux32-generated-files:
     artifact: target.generated-files.tar.gz
     new: build-linux-reproduced/opt
     original: build-linux-shippable/opt
+    extra-args: >-
+        --exclude b/*_yamls.cached
 
 reproducible-linux64:
     symbol: Linux64
@@ -27,3 +29,5 @@ reproducible-linux64-generated-files:
     artifact: target.generated-files.tar.gz
     new: build-linux64-reproduced/opt
     original: build-linux64-shippable/opt
+    extra-args: >-
+        --exclude b/*_yamls.cached
