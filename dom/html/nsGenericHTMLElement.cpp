@@ -3520,6 +3520,10 @@ void nsGenericHTMLElement::ShowPopoverInternal(Element* aInvoker,
       originallyFocusedElement =
           do_GetWeakReference(unretargetedFocus->AsElement());
     }
+
+    if (StaticPrefs::dom_closewatcher_enabled()) {
+      GetPopoverData()->EnsureCloseWatcher(this);
+    }
   }
 
   document->AddPopoverToTopLayer(*this);

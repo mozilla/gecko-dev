@@ -16,6 +16,8 @@
 
 namespace mozilla::dom {
 
+class CloseWatcher;
+
 // https://html.spec.whatwg.org/#attr-popover
 enum class PopoverAttributeState : uint8_t {
   None,
@@ -48,6 +50,8 @@ class PopoverData {
  public:
   PopoverData() = default;
   ~PopoverData() = default;
+
+  CloseWatcher& EnsureCloseWatcher(nsGenericHTMLElement* aElement);
 
   PopoverAttributeState GetPopoverAttributeState() const { return mState; }
   void SetPopoverAttributeState(PopoverAttributeState aState) {
@@ -101,6 +105,11 @@ class PopoverData {
   nsWeakPtr mInvokerElement;
   bool mIsShowingOrHiding = false;
   RefPtr<PopoverToggleEventTask> mTask;
+
+  // This won't need to be cycle collected as CloseWatcher only has strong
+  // references to event listeners, which themselves have Weak References back
+  // to the Node.
+  RefPtr<CloseWatcher> mCloseWatcher;
 };
 }  // namespace mozilla::dom
 

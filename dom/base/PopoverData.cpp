@@ -6,8 +6,59 @@
 
 #include "PopoverData.h"
 #include "nsGenericHTMLElement.h"
+#include "mozilla/dom/Document.h"
+#include "mozilla/dom/CloseWatcher.h"
+#include "mozilla/dom/CloseWatcherManager.h"
+
+#include "nsIDOMEventListener.h"
 
 namespace mozilla::dom {
+
+class PopoverCloseWatcherListener : public nsIDOMEventListener {
+ public:
+  NS_DECL_ISUPPORTS
+
+  explicit PopoverCloseWatcherListener(nsGenericHTMLElement* aPopover) {
+    mPopover = do_GetWeakReference(aPopover);
+  };
+
+  NS_IMETHODIMP MOZ_CAN_RUN_SCRIPT HandleEvent(Event* aEvent) override {
+    RefPtr<nsINode> node = do_QueryReferent(mPopover);
+    if (RefPtr<nsGenericHTMLElement> popover =
+            nsGenericHTMLElement::FromNodeOrNull(node)) {
+      nsAutoString eventType;
+      aEvent->GetType(eventType);
+      if (eventType.EqualsLiteral("close")) {
+        popover->HidePopover(IgnoreErrors());
+      }
+    }
+    return NS_OK;
+  }
+
+ private:
+  virtual ~PopoverCloseWatcherListener() = default;
+  nsWeakPtr mPopover;
+};
+NS_IMPL_ISUPPORTS(PopoverCloseWatcherListener, nsIDOMEventListener)
+
+CloseWatcher& PopoverData::EnsureCloseWatcher(nsGenericHTMLElement* aElement) {
+  if (!mCloseWatcher) {
+    RefPtr<Document> doc = aElement->OwnerDoc();
+    if (doc->IsActive() && doc->IsCurrentActiveDocument()) {
+      if (RefPtr<nsPIDOMWindowInner> window = doc->GetInnerWindow()) {
+        mCloseWatcher = new CloseWatcher(window);
+        RefPtr<PopoverCloseWatcherListener> eventListener =
+            new PopoverCloseWatcherListener(aElement);
+        mCloseWatcher->AddSystemEventListener(u"close"_ns, eventListener,
+                                              false /* aUseCapture */,
+                                              false /* aWantsUntrusted */);
+        RefPtr manager = window->EnsureCloseWatcherManager();
+        manager->Add(*mCloseWatcher);
+      }
+    }
+  }
+  return *mCloseWatcher;
+}
 
 PopoverToggleEventTask::PopoverToggleEventTask(nsWeakPtr aElement,
                                                PopoverVisibilityState aOldState)

@@ -6,8 +6,11 @@
 
 #include "mozilla/dom/HTMLDialogElement.h"
 #include "mozilla/dom/ElementBinding.h"
+#include "mozilla/dom/CloseWatcher.h"
+#include "mozilla/dom/CloseWatcherManager.h"
 #include "mozilla/dom/HTMLDialogElementBinding.h"
 
+#include "nsIDOMEventListener.h"
 #include "nsContentUtils.h"
 #include "nsFocusManager.h"
 #include "nsIFrame.h"
@@ -19,6 +22,43 @@ namespace mozilla::dom {
 HTMLDialogElement::~HTMLDialogElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLDialogElement)
+
+class DialogCloseWatcherListener : public nsIDOMEventListener {
+ public:
+  NS_DECL_ISUPPORTS
+
+  explicit DialogCloseWatcherListener(HTMLDialogElement* aDialog) {
+    mDialog = do_GetWeakReference(aDialog);
+  }
+
+  NS_IMETHODIMP HandleEvent(Event* aEvent) override {
+    RefPtr<nsINode> node = do_QueryReferent(mDialog);
+    if (HTMLDialogElement* dialog = HTMLDialogElement::FromNodeOrNull(node)) {
+      nsAutoString eventType;
+      aEvent->GetType(eventType);
+      if (eventType.EqualsLiteral("cancel")) {
+        bool defaultAction = true;
+        auto cancelable =
+            aEvent->Cancelable() ? Cancelable::eYes : Cancelable::eNo;
+        nsContentUtils::DispatchTrustedEvent(dialog->OwnerDoc(), dialog,
+                                             u"cancel"_ns, CanBubble::eNo,
+                                             cancelable, &defaultAction);
+        if (!defaultAction) {
+          aEvent->PreventDefault();
+        }
+      } else if (eventType.EqualsLiteral("close")) {
+        Optional<nsAString> retValue;
+        dialog->Close(retValue);
+      }
+    }
+    return NS_OK;
+  }
+
+ private:
+  virtual ~DialogCloseWatcherListener() = default;
+  nsWeakPtr mDialog;
+};
+NS_IMPL_ISUPPORTS(DialogCloseWatcherListener, nsIDOMEventListener)
 
 void HTMLDialogElement::Close(
     const mozilla::dom::Optional<nsAString>& aReturnValue) {
@@ -48,6 +88,11 @@ void HTMLDialogElement::Close(
   RefPtr<AsyncEventDispatcher> eventDispatcher =
       new AsyncEventDispatcher(this, u"close"_ns, CanBubble::eNo);
   eventDispatcher->PostDOMEvent();
+
+  if (mCloseWatcher) {
+    mCloseWatcher->Destroy();
+    mCloseWatcher = nullptr;
+  }
 }
 
 void HTMLDialogElement::Show(ErrorResult& aError) {
@@ -108,6 +153,12 @@ void HTMLDialogElement::StorePreviouslyFocusedElement() {
 
 void HTMLDialogElement::UnbindFromTree(UnbindContext& aContext) {
   RemoveFromTopLayerIfNeeded();
+
+  if (mCloseWatcher) {
+    mCloseWatcher->Destroy();
+    mCloseWatcher = nullptr;
+  }
+
   nsGenericHTMLElement::UnbindFromTree(aContext);
 }
 
@@ -134,6 +185,24 @@ void HTMLDialogElement::ShowModal(ErrorResult& aError) {
   SetOpen(true, aError);
 
   StorePreviouslyFocusedElement();
+
+  if (StaticPrefs::dom_closewatcher_enabled()) {
+    RefPtr<Document> doc = OwnerDoc();
+    if (doc->IsActive() && doc->IsCurrentActiveDocument()) {
+      if (RefPtr window = OwnerDoc()->GetInnerWindow()) {
+        mCloseWatcher = new CloseWatcher(window);
+        RefPtr<DialogCloseWatcherListener> eventListener =
+            new DialogCloseWatcherListener(this);
+        mCloseWatcher->AddSystemEventListener(u"cancel"_ns, eventListener,
+                                              false /* aUseCapture */,
+                                              false /* aWantsUntrusted */);
+        mCloseWatcher->AddSystemEventListener(u"close"_ns, eventListener,
+                                              false /* aUseCapture */,
+                                              false /* aWantsUntrusted */);
+        window->EnsureCloseWatcherManager()->Add(*mCloseWatcher);
+      }
+    }
+  }
 
   RefPtr<nsINode> hideUntil = GetTopmostPopoverAncestor(nullptr, false);
   if (!hideUntil) {

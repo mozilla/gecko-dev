@@ -1876,6 +1876,12 @@ class Document : public nsINode,
    */
   MOZ_CAN_RUN_SCRIPT void HandleEscKey();
 
+  /**
+   * Process any active CloseWatchers in the document, such
+   * as fullscreen elements, popovers, dialogs.
+   */
+  MOZ_CAN_RUN_SCRIPT void ProcessCloseRequest();
+
   void AddModalDialog(HTMLDialogElement&);
   void RemoveModalDialog(HTMLDialogElement&);
 

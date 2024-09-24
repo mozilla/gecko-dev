@@ -9,6 +9,7 @@
 
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/CloseWatcher.h"
 #include "nsGenericHTMLElement.h"
 #include "nsGkAtoms.h"
 
@@ -67,6 +68,11 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
   void StorePreviouslyFocusedElement();
 
   nsWeakPtr mPreviouslyFocusedElement;
+
+  // This won't need to be cycle collected as CloseWatcher only has strong
+  // references to event listeners, which themselves have Weak References back
+  // to the Node.
+  RefPtr<CloseWatcher> mCloseWatcher;
 };
 
 }  // namespace mozilla::dom
