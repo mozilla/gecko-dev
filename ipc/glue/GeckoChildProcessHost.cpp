@@ -1325,6 +1325,12 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
 
   mChildArgs.mArgs.push_back(ChildProcessType());
 
+#  if !defined(MOZ_WIDGET_ANDROID)
+  // Add any files which need to be transferred to fds_to_remap.
+  // NOTE: This doesn't transfer ownership of the files out of `mChildArgs`.
+  geckoargs::AddToFdsToRemap(mChildArgs, mLaunchOptions->fds_to_remap);
+#  endif
+
   return Ok();
 }
 #endif  // XP_UNIX
