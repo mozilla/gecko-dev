@@ -206,10 +206,12 @@ class ProfilerParentTracker final {
   Maybe<ProfileBufferGlobalController> mMaybeController;
 };
 
+static const Json::StaticString logRoot{"bufferGlobalController"};
+
 template <typename F>
 void ProfileBufferGlobalController::Log(F&& aF) {
   ProfilingLog::Access([&](Json::Value& aLog) {
-    Json::Value& root = aLog[Json::StaticString{"bufferGlobalController"}];
+    Json::Value& root = aLog[logRoot];
     if (!root.isObject()) {
       root = Json::Value(Json::objectValue);
       root[Json::StaticString{"logBegin" TIMESTAMP_JSON_SUFFIX}] =
