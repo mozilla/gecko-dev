@@ -2219,7 +2219,7 @@ nsresult Http2Session::RecvPushPromise(Http2Session* self) {
     nsHttpTransaction* trans = associatedStream->HttpTransaction();
     if (trans) {
       uint8_t urgency = nsHttpHandler::UrgencyFromCoSFlags(
-          trans->GetClassOfService().Flags());
+          trans->GetClassOfService().Flags(), trans->Priority());
 
       // if the initial stream was kUrgentStartGroupID or kLeaderGroupID
       // which are equivalent to urgency 1 and 2 then set the pushed stream
