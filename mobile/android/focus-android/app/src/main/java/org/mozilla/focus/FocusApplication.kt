@@ -220,6 +220,14 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
             .detectLeakedRegistrationObjects()
             .detectLeakedSqlLiteObjects()
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            vmPolicyBuilder.detectNonSdkApiUsage()
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            vmPolicyBuilder.detectUnsafeIntentLaunch()
+        }
+
         threadPolicyBuilder.penaltyLog()
         vmPolicyBuilder.penaltyLog()
 
