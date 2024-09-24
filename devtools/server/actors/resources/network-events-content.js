@@ -67,6 +67,11 @@ class NetworkEventContentWatcher {
       this.httpOnResourceCacheResponse,
       "http-on-stylesheet-cache-response"
     );
+
+    Services.obs.addObserver(
+      this.httpOnResourceCacheResponse,
+      "http-on-resource-cache-response"
+    );
   }
   /**
    * Allows clearing of network events
@@ -103,7 +108,8 @@ class NetworkEventContentWatcher {
   httpOnResourceCacheResponse(subject, topic) {
     if (
       (topic != "http-on-image-cache-response" &&
-        topic != "http-on-stylesheet-cache-response") ||
+        topic != "http-on-stylesheet-cache-response" &&
+        topic != "http-on-resource-cache-response") ||
       !(subject instanceof Ci.nsIHttpChannel)
     ) {
       return;
@@ -283,6 +289,11 @@ class NetworkEventContentWatcher {
     Services.obs.removeObserver(
       this.httpOnResourceCacheResponse,
       "http-on-stylesheet-cache-response"
+    );
+
+    Services.obs.removeObserver(
+      this.httpOnResourceCacheResponse,
+      "http-on-resource-cache-response"
     );
   }
 }
