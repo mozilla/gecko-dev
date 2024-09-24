@@ -263,6 +263,18 @@ LRESULT CALLBACK WinEventWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam,
       evtwin_details::OnPowerBroadcast(wParam, lParam);
     } break;
 
+    case WM_SYSCOLORCHANGE: {
+      // No need to invalidate layout for system color changes, but we need to
+      // invalidate style.
+      evtwin_details::NotifyThemeChanged(widget::ThemeChangeKind::Style);
+    } break;
+
+    case WM_THEMECHANGED: {
+      // We assume pretty much everything could've changed here.
+      evtwin_details::NotifyThemeChanged(
+          widget::ThemeChangeKind::StyleAndLayout);
+    } break;
+
     case WM_FONTCHANGE: {
       // update the global font list
       gfxPlatform::GetPlatform()->UpdateFontList();

@@ -4917,19 +4917,10 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       MOZ_ASSERT_UNREACHABLE("Our process was supposed to exit.");
     } break;
 
-    case WM_SYSCOLORCHANGE:
-      // No need to invalidate layout for system color changes, but we need to
-      // invalidate style.
-      NotifyThemeChanged(widget::ThemeChangeKind::Style);
-      break;
-
     case WM_THEMECHANGED: {
       // Update non-client margin offsets
       UpdateNonClientMargins();
       nsUXThemeData::UpdateNativeThemeInfo();
-
-      // We assume pretty much everything could've changed here.
-      NotifyThemeChanged(widget::ThemeChangeKind::StyleAndLayout);
 
       UpdateDarkModeToolbar();
 
