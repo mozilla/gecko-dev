@@ -249,13 +249,11 @@ RefPtr<MediaDataEncoder::InitPromise> AppleVTEncoder::Init() {
         default:
           MOZ_ASSERT_UNREACHABLE("Unhandled value");
       }
-      CFNumberRef baseLayerFPSRatioRef = CFNumberCreate(
-          kCFAllocatorDefault, kCFNumberFloatType, &baseLayerFPSRatio);
       AutoCFRelease<CFNumberRef> cf(CFNumberCreate(
           kCFAllocatorDefault, kCFNumberFloatType, &baseLayerFPSRatio));
       if (VTSessionSetProperty(
               mSession, kVTCompressionPropertyKey_BaseLayerFrameRateFraction,
-              baseLayerFPSRatioRef)) {
+              cf)) {
         LOGE("Failed to set base layer framerate fraction to %f",
              baseLayerFPSRatio);
         return InitPromise::CreateAndReject(
