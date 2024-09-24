@@ -58,7 +58,6 @@ class AppleVTEncoder final : public MediaDataEncoder {
       const RefPtr<const EncoderConfigurationChangeList>&
           aConfigurationChanges);
   void ProcessOutput(RefPtr<MediaRawData>&& aOutput);
-  void ResolvePromise();
   RefPtr<EncodePromise> ProcessDrain();
   RefPtr<ShutdownPromise> ProcessShutdown();
 
