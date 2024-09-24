@@ -103,9 +103,11 @@ SandboxReporter* SandboxReporter::Singleton() {
   return sSingleton.get();
 }
 
-int SandboxReporter::GetClientFileDescriptor() const {
+void SandboxReporter::GetClientFileDescriptorMapping(int* aSrcFd,
+                                                     int* aDstFd) const {
   MOZ_ASSERT(mClientFd >= 0);
-  return mClientFd;
+  *aSrcFd = mClientFd;
+  *aDstFd = kSandboxReporterFileDesc;
 }
 
 // This function is mentioned in Histograms.json; keep that in mind if

@@ -14,9 +14,10 @@ import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
-import java.io.IOException;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoThread;
+import org.mozilla.gecko.GeckoThread.FileDescriptors;
+import org.mozilla.gecko.GeckoThread.ParcelFileDescriptors;
 import org.mozilla.gecko.IGeckoEditableChild;
 import org.mozilla.gecko.annotation.WrapForJNI;
 import org.mozilla.gecko.gfx.ICompositorSurfaceManager;
@@ -83,7 +84,18 @@ public class GeckoServiceChildProcess extends Service {
         final int flags,
         final String userSerialNumber,
         final String crashHandlerService,
-        final ParcelFileDescriptor[] pfds) {
+        final ParcelFileDescriptor prefsPfd,
+        final ParcelFileDescriptor prefMapPfd,
+        final ParcelFileDescriptor ipcPfd,
+        final ParcelFileDescriptor crashReporterPfd) {
+
+      final ParcelFileDescriptors pfds =
+          ParcelFileDescriptors.builder()
+              .prefs(prefsPfd)
+              .prefMap(prefMapPfd)
+              .ipc(ipcPfd)
+              .crashReporter(crashReporterPfd)
+              .build();
 
       synchronized (GeckoServiceChildProcess.class) {
         if (sOwnerProcessId != null && !sOwnerProcessId.equals(mainProcessId)) {
@@ -95,23 +107,19 @@ public class GeckoServiceChildProcess extends Service {
                   + mainProcessId);
           // We need to close the File Descriptors here otherwise we will leak them causing a
           // shutdown hang.
-          closeFds(pfds);
+          pfds.close();
           return IChildProcess.STARTED_BUSY;
         }
         if (sProcessManager != null) {
           Log.e(LOGTAG, "Child process already started");
-          closeFds(pfds);
+          pfds.close();
           return IChildProcess.STARTED_FAIL;
         }
         sProcessManager = procMan;
         sOwnerProcessId = mainProcessId;
       }
 
-      int[] fds = new int[pfds.length];
-      for (int i = 0; i < pfds.length; ++i) {
-        fds[i] = pfds[i].detachFd();
-      }
-
+      final FileDescriptors fds = pfds.detach();
       ThreadUtils.runOnUiThread(
           new Runnable() {
             @Override
@@ -167,16 +175,6 @@ public class GeckoServiceChildProcess extends Service {
       Log.e(LOGTAG, "Invalid call to IChildProcess.getSurfaceAllocator for non-GPU process");
       throw new AssertionError(
           "Invalid call to IChildProcess.getSurfaceAllocator for non-GPU process.");
-    }
-
-    private void closeFds(final ParcelFileDescriptor[] pfds) {
-      for (final ParcelFileDescriptor pfd : pfds) {
-        try {
-          pfd.close();
-        } catch (final IOException ex) {
-          Log.d(LOGTAG, "Failed to close File Descriptors.", ex);
-        }
-      }
     }
   }
 

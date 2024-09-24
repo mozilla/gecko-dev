@@ -113,7 +113,8 @@ class Bootstrap {
                           const StaticXREAppData& aAppData, bool xpcshell,
                           const char* outFilePath) = 0;
 
-  virtual void XRE_SetAndroidChildFds(JNIEnv* aEnv, jintArray aFds) = 0;
+  virtual void XRE_SetAndroidChildFds(JNIEnv* aEnv,
+                                      const XRE_AndroidChildFds& fds) = 0;
 #  ifdef MOZ_PROFILE_GENERATE
   virtual void XRE_WriteLLVMProfData() = 0;
 #  endif

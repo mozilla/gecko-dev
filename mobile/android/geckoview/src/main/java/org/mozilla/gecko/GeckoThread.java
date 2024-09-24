@@ -13,6 +13,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
 import android.os.MessageQueue;
+import android.os.ParcelFileDescriptor;
 import android.os.Process;
 import android.os.SystemClock;
 import android.text.TextUtils;
@@ -20,6 +21,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.UiThread;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -150,6 +152,161 @@ public class GeckoThread extends Thread {
   private boolean mInitialized;
   private InitInfo mInitInfo;
 
+  public static final class ParcelFileDescriptors {
+    public final @Nullable ParcelFileDescriptor prefs;
+    public final @Nullable ParcelFileDescriptor prefMap;
+    public final @NonNull ParcelFileDescriptor ipc;
+    public final @Nullable ParcelFileDescriptor crashReporter;
+
+    private ParcelFileDescriptors(final Builder builder) {
+      prefs = builder.prefs;
+      prefMap = builder.prefMap;
+      ipc = builder.ipc;
+      crashReporter = builder.crashReporter;
+    }
+
+    public FileDescriptors detach() {
+      return FileDescriptors.builder()
+          .prefs(detach(prefs))
+          .prefMap(detach(prefMap))
+          .ipc(detach(ipc))
+          .crashReporter(detach(crashReporter))
+          .build();
+    }
+
+    private static int detach(final ParcelFileDescriptor pfd) {
+      if (pfd == null) {
+        return INVALID_FD;
+      }
+      return pfd.detachFd();
+    }
+
+    public void close() {
+      close(prefs, prefMap, ipc, crashReporter);
+    }
+
+    private static void close(final ParcelFileDescriptor... pfds) {
+      for (final ParcelFileDescriptor pfd : pfds) {
+        if (pfd != null) {
+          try {
+            pfd.close();
+          } catch (final IOException ex) {
+            // Nothing we can do about this really.
+            Log.w(LOGTAG, "Failed to close File Descriptors.", ex);
+          }
+        }
+      }
+    }
+
+    public static ParcelFileDescriptors from(final FileDescriptors fds) {
+      return ParcelFileDescriptors.builder()
+          .prefs(from(fds.prefs))
+          .prefMap(from(fds.prefMap))
+          .ipc(from(fds.ipc))
+          .crashReporter(from(fds.crashReporter))
+          .build();
+    }
+
+    private static ParcelFileDescriptor from(final int fd) {
+      if (fd == INVALID_FD) {
+        return null;
+      }
+      try {
+        return ParcelFileDescriptor.fromFd(fd);
+      } catch (final IOException ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static class Builder {
+      ParcelFileDescriptor prefs;
+      ParcelFileDescriptor prefMap;
+      ParcelFileDescriptor ipc;
+      ParcelFileDescriptor crashReporter;
+
+      private Builder() {}
+
+      public ParcelFileDescriptors build() {
+        return new ParcelFileDescriptors(this);
+      }
+
+      public Builder prefs(final ParcelFileDescriptor prefs) {
+        this.prefs = prefs;
+        return this;
+      }
+
+      public Builder prefMap(final ParcelFileDescriptor prefMap) {
+        this.prefMap = prefMap;
+        return this;
+      }
+
+      public Builder ipc(final ParcelFileDescriptor ipc) {
+        this.ipc = ipc;
+        return this;
+      }
+
+      public Builder crashReporter(final ParcelFileDescriptor crashReporter) {
+        this.crashReporter = crashReporter;
+        return this;
+      }
+    }
+  }
+
+  public static final class FileDescriptors {
+    final int prefs;
+    final int prefMap;
+    final int ipc;
+    final int crashReporter;
+
+    private FileDescriptors(final Builder builder) {
+      prefs = builder.prefs;
+      prefMap = builder.prefMap;
+      ipc = builder.ipc;
+      crashReporter = builder.crashReporter;
+    }
+
+    public static Builder builder() {
+      return new Builder();
+    }
+
+    public static class Builder {
+      int prefs = INVALID_FD;
+      int prefMap = INVALID_FD;
+      int ipc = INVALID_FD;
+      int crashReporter = INVALID_FD;
+
+      private Builder() {}
+
+      public FileDescriptors build() {
+        return new FileDescriptors(this);
+      }
+
+      public Builder prefs(final int prefs) {
+        this.prefs = prefs;
+        return this;
+      }
+
+      public Builder prefMap(final int prefMap) {
+        this.prefMap = prefMap;
+        return this;
+      }
+
+      public Builder ipc(final int ipc) {
+        this.ipc = ipc;
+        return this;
+      }
+
+      public Builder crashReporter(final int crashReporter) {
+        this.crashReporter = crashReporter;
+        return this;
+      }
+    }
+  }
+
   public static class InitInfo {
     public final String[] args;
     public final Bundle extras;
@@ -160,7 +317,7 @@ public class GeckoThread extends Thread {
     public final boolean xpcshell;
     public final String outFilePath;
 
-    public final int[] fds;
+    public final FileDescriptors fds;
 
     private InitInfo(final Builder builder) {
       final List<String> result = new ArrayList<>(builder.mArgs.length);
@@ -184,7 +341,11 @@ public class GeckoThread extends Thread {
 
       outFilePath = xpcshell ? builder.mOutFilePath : null;
 
-      fds = builder.mFds;
+      if (builder.mFds != null) {
+        fds = builder.mFds;
+      } else {
+        fds = FileDescriptors.builder().build();
+      }
     }
 
     public static Builder builder() {
@@ -200,7 +361,7 @@ public class GeckoThread extends Thread {
 
       private String mOutFilePath;
 
-      private int[] mFds;
+      private FileDescriptors mFds;
 
       // Prevent direct instantiation
       private Builder() {}
@@ -239,7 +400,7 @@ public class GeckoThread extends Thread {
         return this;
       }
 
-      public Builder fds(final int[] fds) {
+      public Builder fds(final FileDescriptors fds) {
         mFds = fds;
         return this;
       }
@@ -263,7 +424,7 @@ public class GeckoThread extends Thread {
   @WrapForJNI
   private static boolean isChildProcess() {
     final InitInfo info = INSTANCE.mInitInfo;
-    return info != null && info.fds != null;
+    return info != null && info.fds.ipc != INVALID_FD;
   }
 
   public static boolean init(final InitInfo info) {
@@ -497,7 +658,10 @@ public class GeckoThread extends Thread {
     // And go.
     GeckoLoader.nativeRun(
         args,
-        mInitInfo.fds,
+        mInitInfo.fds.prefs,
+        mInitInfo.fds.prefMap,
+        mInitInfo.fds.ipc,
+        mInitInfo.fds.crashReporter,
         !isChildProcess && mInitInfo.xpcshell,
         isChildProcess ? null : mInitInfo.outFilePath);
 

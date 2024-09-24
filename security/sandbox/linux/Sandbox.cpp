@@ -96,17 +96,8 @@ static mozilla::Atomic<bool> gSandboxCrashOnError(false);
 // This is initialized by SandboxSetCrashFunc().
 SandboxCrashFunc gSandboxCrashFunc;
 
-static int gSandboxChrootClientFd = -1;
-static int gSandboxReporterFd = -1;
-
 static SandboxReporterClient* gSandboxReporterClient;
 static void (*gChromiumSigSysHandler)(int, siginfo_t*, void*);
-
-static int TakeSandboxReporterFd() {
-  MOZ_RELEASE_ASSERT(PR_GetEnv("MOZ_SANDBOXED") != nullptr);
-  MOZ_RELEASE_ASSERT(gSandboxReporterFd != -1);
-  return std::exchange(gSandboxReporterFd, -1);
-}
 
 // Test whether a ucontext, interpreted as the state after a syscall,
 // indicates the given error.  See also sandbox::Syscall::PutValueInUcontext.
@@ -349,13 +340,12 @@ static void EnterChroot() {
     return;
   }
   char msg = kSandboxChrootRequest;
-  ssize_t msg_len = HANDLE_EINTR(write(gSandboxChrootClientFd, &msg, 1));
+  ssize_t msg_len = HANDLE_EINTR(write(kSandboxChrootClientFd, &msg, 1));
   MOZ_RELEASE_ASSERT(msg_len == 1);
-  msg_len = HANDLE_EINTR(read(gSandboxChrootClientFd, &msg, 1));
+  msg_len = HANDLE_EINTR(read(kSandboxChrootClientFd, &msg, 1));
   MOZ_RELEASE_ASSERT(msg_len == 1);
   MOZ_RELEASE_ASSERT(msg == kSandboxChrootResponse);
-  close(gSandboxChrootClientFd);
-  gSandboxChrootClientFd = -1;
+  close(kSandboxChrootClientFd);
 }
 
 static void BroadcastSetThreadSandbox(const sock_fprog* aFilter) {
@@ -515,21 +505,9 @@ static const Array<const char*, 1> kLibsThatWillCrash{
 };
 #endif  // NIGHTLY_BUILD
 
-void SandboxEarlyInit(Maybe<UniqueFileHandle>&& aSandboxReporter,
-                      Maybe<UniqueFileHandle>&& aChrootClient) {
+void SandboxEarlyInit() {
   if (PR_GetEnv("MOZ_SANDBOXED") == nullptr) {
     return;
-  }
-
-  // Initialize the global sandbox reporter and chroot client FDs.
-  if (aSandboxReporter) {
-    gSandboxReporterFd = aSandboxReporter->release();
-  } else {
-    SANDBOX_LOG("Missing -sandboxReporter argument");
-    MOZ_CRASH("Missing -sandboxReporter argument");
-  }
-  if (aChrootClient) {
-    gSandboxChrootClientFd = aChrootClient->release();
   }
 
   // Fix LD_PRELOAD for any child processes.  See bug 1434392 comment #10;
@@ -726,8 +704,7 @@ bool SetContentProcessSandbox(ContentProcessSandboxParams&& aParams) {
 
   auto procType = aParams.mFileProcess ? SandboxReport::ProcType::FILE
                                        : SandboxReport::ProcType::CONTENT;
-  gSandboxReporterClient =
-      new SandboxReporterClient(procType, TakeSandboxReporterFd());
+  gSandboxReporterClient = new SandboxReporterClient(procType);
 
   // This needs to live until the process exits.
   static SandboxBrokerClient* sBroker;
@@ -756,8 +733,8 @@ void SetMediaPluginSandbox(const char* aFilePath) {
     return;
   }
 
-  gSandboxReporterClient = new SandboxReporterClient(
-      SandboxReport::ProcType::MEDIA_PLUGIN, TakeSandboxReporterFd());
+  gSandboxReporterClient =
+      new SandboxReporterClient(SandboxReport::ProcType::MEDIA_PLUGIN);
 
   SandboxOpenedFile plugin(aFilePath);
   if (!plugin.IsOpen()) {
@@ -797,8 +774,8 @@ void SetRemoteDataDecoderSandbox(int aBroker) {
     return;
   }
 
-  gSandboxReporterClient = new SandboxReporterClient(
-      SandboxReport::ProcType::RDD, TakeSandboxReporterFd());
+  gSandboxReporterClient =
+      new SandboxReporterClient(SandboxReport::ProcType::RDD);
 
   // FIXME(bug 1513773): merge this with the one for content?
   static SandboxBrokerClient* sBroker;
@@ -818,8 +795,8 @@ void SetSocketProcessSandbox(int aBroker) {
     return;
   }
 
-  gSandboxReporterClient = new SandboxReporterClient(
-      SandboxReport::ProcType::SOCKET_PROCESS, TakeSandboxReporterFd());
+  gSandboxReporterClient =
+      new SandboxReporterClient(SandboxReport::ProcType::SOCKET_PROCESS);
 
   static SandboxBrokerClient* sBroker;
   if (aBroker >= 0) {
@@ -838,8 +815,8 @@ void SetUtilitySandbox(int aBroker, ipc::SandboxingKind aKind) {
     return;
   }
 
-  gSandboxReporterClient = new SandboxReporterClient(
-      SandboxReport::ProcType::UTILITY, TakeSandboxReporterFd());
+  gSandboxReporterClient =
+      new SandboxReporterClient(SandboxReport::ProcType::UTILITY);
 
   static SandboxBrokerClient* sBroker;
   if (aBroker >= 0) {

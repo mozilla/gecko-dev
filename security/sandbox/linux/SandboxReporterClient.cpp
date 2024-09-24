@@ -36,6 +36,11 @@ SandboxReporterClient::SandboxReporterClient(SandboxReport::ProcType aProcType,
   // so it's probably okay to skip it here.
 }
 
+SandboxReporterClient::SandboxReporterClient(SandboxReport::ProcType aProcType)
+    : SandboxReporterClient(aProcType, kSandboxReporterFileDesc) {
+  MOZ_RELEASE_ASSERT(PR_GetEnv("MOZ_SANDBOXED") != nullptr);
+}
+
 SandboxReport SandboxReporterClient::MakeReport(const void* aContext) {
   SandboxReport report;
   const auto ctx = static_cast<const ucontext_t*>(aContext);

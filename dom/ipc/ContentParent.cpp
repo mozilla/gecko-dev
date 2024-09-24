@@ -2423,7 +2423,7 @@ bool ContentParent::BeginSubprocessLaunch(ProcessPriority aPriority) {
     return false;
   }
 
-  geckoargs::ChildProcessArgs extraArgs;
+  std::vector<std::string> extraArgs;
   geckoargs::sIsForBrowser.Put(IsForBrowser(), extraArgs);
   geckoargs::sNotForBrowser.Put(!IsForBrowser(), extraArgs);
 
@@ -2453,11 +2453,13 @@ bool ContentParent::BeginSubprocessLaunch(ProcessPriority aPriority) {
   // happen during async launch.
   Preferences::AddStrongObserver(this, "");
 
-  geckoargs::sSafeMode.Put(gSafeMode, extraArgs);
+  if (gSafeMode) {
+    geckoargs::sSafeMode.Put(extraArgs);
+  }
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
   if (IsContentSandboxEnabled()) {
-    AppendSandboxParams(extraArgs.mArgs);
+    AppendSandboxParams(extraArgs);
     mSubprocess->DisableOSActivityMode();
   }
 #endif

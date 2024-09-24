@@ -35,6 +35,10 @@ using std::vector;
 using mozilla::gmp::GMPProcessParent;
 using mozilla::ipc::GeckoChildProcessHost;
 
+#ifdef MOZ_WIDGET_ANDROID
+static const int kInvalidFd = -1;
+#endif
+
 namespace mozilla::gmp {
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
@@ -125,7 +129,7 @@ bool GMPProcessParent::Launch(int32_t aTimeoutMs) {
   };
 
   nsresult rv;
-  geckoargs::ChildProcessArgs args;
+  vector<string> args;
   UniquePtr<ipc::SharedPreferenceSerializer> prefSerializer;
 
   ipc::ProcessChild::AddPlatformBuildID(args);
@@ -154,8 +158,9 @@ bool GMPProcessParent::Launch(int32_t aTimeoutMs) {
     prefSerializer->AddSharedPrefCmdLineArgs(*this, args);
   }
 
-  geckoargs::sPluginNativeEvent.Put(
-      StaticPrefs::media_gmp_use_native_event_processing(), args);
+  if (StaticPrefs::media_gmp_use_native_event_processing()) {
+    geckoargs::sPluginNativeEvent.Put(args);
+  }
 
 #ifdef ALLOW_GECKO_CHILD_PROCESS_ARCH
   GMP_LOG_DEBUG("GMPProcessParent::Launch() mLaunchArch: %d", mLaunchArch);
@@ -229,10 +234,17 @@ bool GMPProcessParent::Launch(int32_t aTimeoutMs) {
   }
 #endif
 
+#ifdef MOZ_WIDGET_ANDROID
+  // Add dummy values for pref and pref map to the file descriptors remapping
+  // table. See bug 1440207 and 1481139.
+  AddFdToRemap(kInvalidFd, kInvalidFd);
+  AddFdToRemap(kInvalidFd, kInvalidFd);
+#endif
+
   // We need to wait until OnChannelConnected to clear the pref serializer, but
   // SyncLaunch will block until that is called, so we don't actually need to do
   // any overriding, and it only lives on the stack.
-  return SyncLaunch(std::move(args), aTimeoutMs);
+  return SyncLaunch(args, aTimeoutMs);
 }
 
 void GMPProcessParent::Delete(nsCOMPtr<nsIRunnable> aCallback) {

@@ -10,7 +10,6 @@
 #include <functional>
 #include <vector>
 
-#include "mozilla/GeckoArgs.h"
 #include "mozilla/ipc/FileDescriptor.h"
 #include "base/shared_memory.h"
 #include "mozilla/Maybe.h"
@@ -43,7 +42,7 @@ class SharedPreferenceSerializer final {
   const UniqueFileHandle& GetPrefMapHandle() const { return mPrefMapHandle; }
 
   void AddSharedPrefCmdLineArgs(GeckoChildProcessHost& procHost,
-                                geckoargs::ChildProcessArgs& aExtraOpts) const;
+                                std::vector<std::string>& aExtraOpts) const;
 
  private:
   DISALLOW_COPY_AND_ASSIGN(SharedPreferenceSerializer);
@@ -58,9 +57,9 @@ class SharedPreferenceDeserializer final {
   SharedPreferenceDeserializer();
   ~SharedPreferenceDeserializer();
 
-  bool DeserializeFromSharedMemory(UniqueFileHandle aPrefsHandle,
-                                   UniqueFileHandle aPrefMapHandle,
-                                   uint64_t aPrefsLen, uint64_t aPrefMapSize);
+  bool DeserializeFromSharedMemory(uint64_t aPrefsHandle,
+                                   uint64_t aPrefMapHandle, uint64_t aPrefsLen,
+                                   uint64_t aPrefMapSize);
 
   const FileDescriptor& GetPrefMapHandle() const;
 
@@ -72,14 +71,21 @@ class SharedPreferenceDeserializer final {
   base::SharedMemory mShmem;
 };
 
+#if defined(ANDROID) || defined(XP_IOS)
+// Android/iOS doesn't use -prefsHandle or -prefMapHandle. It gets those FDs
+// another way.
+void SetPrefsFd(int aFd);
+void SetPrefMapFd(int aFd);
+#endif
+
 // Generate command line argument to spawn a child process. If the shared memory
 // is not properly initialized, this would be a no-op.
 void ExportSharedJSInit(GeckoChildProcessHost& procHost,
-                        geckoargs::ChildProcessArgs& aExtraOpts);
+                        std::vector<std::string>& aExtraOpts);
 
 // Initialize the content used by the JS engine during the initialization of a
 // JS::Runtime.
-bool ImportSharedJSInit(UniqueFileHandle aJsInitHandle, uint64_t aJsInitLen);
+bool ImportSharedJSInit(uint64_t aJsInitHandle, uint64_t aJsInitLen);
 
 }  // namespace ipc
 }  // namespace mozilla

@@ -33,9 +33,8 @@ nsCString ProcessChild::gIPCShutdownStateAnnotation;
 
 static Atomic<bool> sExpectingShutdown(false);
 
-ProcessChild::ProcessChild(IPC::Channel::ChannelHandle aClientChannel,
-                           ProcessId aParentPid, const nsID& aMessageChannelId)
-    : ChildProcess(new IOThreadChild(std::move(aClientChannel), aParentPid)),
+ProcessChild::ProcessChild(ProcessId aParentPid, const nsID& aMessageChannelId)
+    : ChildProcess(new IOThreadChild(aParentPid)),
       mUILoop(MessageLoop::current()),
       mParentPid(aParentPid),
       mMessageChannelId(aMessageChannelId) {
@@ -48,28 +47,33 @@ ProcessChild::ProcessChild(IPC::Channel::ChannelHandle aClientChannel,
 }
 
 /* static */
-void ProcessChild::AddPlatformBuildID(geckoargs::ChildProcessArgs& aExtraArgs) {
+void ProcessChild::AddPlatformBuildID(std::vector<std::string>& aExtraArgs) {
   nsCString parentBuildID(mozilla::PlatformBuildID());
   geckoargs::sParentBuildID.Put(parentBuildID.get(), aExtraArgs);
 }
 
 /* static */
 bool ProcessChild::InitPrefs(int aArgc, char* aArgv[]) {
-  Maybe<UniqueFileHandle> prefsHandle =
-      geckoargs::sPrefsHandle.Get(aArgc, aArgv);
-  Maybe<UniqueFileHandle> prefMapHandle =
-      geckoargs::sPrefMapHandle.Get(aArgc, aArgv);
+  Maybe<uint64_t> prefsHandle = Some(0);
+  Maybe<uint64_t> prefMapHandle = Some(0);
   Maybe<uint64_t> prefsLen = geckoargs::sPrefsLen.Get(aArgc, aArgv);
   Maybe<uint64_t> prefMapSize = geckoargs::sPrefMapSize.Get(aArgc, aArgv);
 
-  if (prefsLen.isNothing() || prefMapSize.isNothing() ||
-      prefsHandle.isNothing() || prefMapHandle.isNothing()) {
+  if (prefsLen.isNothing() || prefMapSize.isNothing()) {
     return false;
   }
 
+#ifdef XP_WIN
+  prefsHandle = geckoargs::sPrefsHandle.Get(aArgc, aArgv);
+  prefMapHandle = geckoargs::sPrefMapHandle.Get(aArgc, aArgv);
+
+  if (prefsHandle.isNothing() || prefMapHandle.isNothing()) {
+    return false;
+  }
+#endif
+
   SharedPreferenceDeserializer deserializer;
-  return deserializer.DeserializeFromSharedMemory(std::move(*prefsHandle),
-                                                  std::move(*prefMapHandle),
+  return deserializer.DeserializeFromSharedMemory(*prefsHandle, *prefMapHandle,
                                                   *prefsLen, *prefMapSize);
 }
 

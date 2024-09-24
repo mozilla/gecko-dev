@@ -11,6 +11,7 @@
 
 namespace mozilla {
 
+static const int kSandboxChrootClientFd = 6;
 static const char kSandboxChrootRequest = 'C';
 static const char kSandboxChrootResponse = 'O';
 static const char kSandboxChrootEnvFlag[] = "MOZ_SANDBOX_USE_CHROOT";

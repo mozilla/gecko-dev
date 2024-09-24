@@ -27,8 +27,7 @@ class ProcessChild : public ChildProcess {
   typedef base::ProcessId ProcessId;
 
  public:
-  explicit ProcessChild(IPC::Channel::ChannelHandle aClientChannel,
-                        ProcessId aParentPid, const nsID& aMessageChannelId);
+  explicit ProcessChild(ProcessId aParentPid, const nsID& aMessageChannelId);
 
   ProcessChild(const ProcessChild&) = delete;
   ProcessChild& operator=(const ProcessChild&) = delete;
@@ -37,7 +36,7 @@ class ProcessChild : public ChildProcess {
 
   virtual bool Init(int aArgc, char* aArgv[]) = 0;
 
-  static void AddPlatformBuildID(geckoargs::ChildProcessArgs& aExtraArgs);
+  static void AddPlatformBuildID(std::vector<std::string>& aExtraArgs);
 
   static bool InitPrefs(int aArgc, char* aArgv[]);
 

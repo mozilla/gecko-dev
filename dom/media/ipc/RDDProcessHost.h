@@ -46,9 +46,9 @@ class RDDProcessHost final : public mozilla::ipc::GeckoChildProcessHost {
   // to LaunchPromise() which will return a promise that will be resolved once
   // the RDD process has launched and a channel has been established.
   //
-  // @param aExtraOpts (geckoargs::ChildProcessArgs)
+  // @param aExtraOpts (StringVector)
   //        Extra options to pass to the subprocess.
-  bool Launch(geckoargs::ChildProcessArgs aExtraOpts);
+  bool Launch(StringVector aExtraOpts);
 
   // Return a promise that will be resolved once the process has completed its
   // launch. The promise will be immediately resolved if the launch has already

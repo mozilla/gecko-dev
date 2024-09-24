@@ -15,7 +15,6 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/Maybe.h"
-#include "mozilla/UniquePtrExtensions.h"
 
 #include "CrashAnnotations.h"
 
@@ -280,17 +279,33 @@ bool CreateMinidumpsAndPair(ProcessHandle aTargetPid,
                             nsIFile** aTargetDumpOut);
 
 #if defined(XP_WIN) || defined(XP_MACOSX)
-using CrashPipeType = const char*;
-#else
-using CrashPipeType = mozilla::UniqueFileHandle;
-#endif
-
 // Parent-side API for children
-CrashPipeType GetChildNotificationPipe();
+const char* GetChildNotificationPipe();
+
+#else
+// Parent-side API for children
+
+// Set the outparams for crash reporter server's fd (|childCrashFd|)
+// and the magic fd number it should be remapped to
+// (|childCrashRemapFd|) before exec() in the child process.
+// |SetRemoteExceptionHandler()| in the child process expects to find
+// the server at |childCrashRemapFd|.  Return true if successful.
+//
+// If crash reporting is disabled, both outparams will be set to -1
+// and |true| will be returned.
+bool CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd);
+
+#endif  // XP_WIN
 
 // Child-side API
-bool SetRemoteExceptionHandler(CrashPipeType aCrashPipe);
+bool SetRemoteExceptionHandler(const char* aCrashPipe = nullptr);
 bool UnsetRemoteExceptionHandler(bool wasSet = true);
+
+#if defined(MOZ_WIDGET_ANDROID)
+// Android creates child process as services so we must explicitly set
+// the handle for the pipe since it can't get remapped to a default value.
+void SetNotificationPipeForChild(FileHandle childCrashFd);
+#endif
 
 }  // namespace CrashReporter
 

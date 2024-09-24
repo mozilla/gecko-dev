@@ -15,22 +15,24 @@ namespace ipc {
 
 class ForkServer {
  public:
-  ForkServer(int* aArgc, char*** aArgv);
-  ~ForkServer() = default;
+  // NOTE: This can re-use the same ID as the initial IPC::Channel, as the
+  // initial IPC::Channel will not be used by the fork server.
+  static constexpr int kClientPipeFd = 3;
+
+  ForkServer();
+  ~ForkServer() {};
 
   void InitProcess(int* aArgc, char*** aArgv);
   bool HandleMessages();
 
   // Called when a message is received.
-  bool OnMessageReceived(UniquePtr<IPC::Message> message);
+  void OnMessageReceived(UniquePtr<IPC::Message> message);
 
   static bool RunForkServer(int* aArgc, char*** aArgv);
 
  private:
   UniquePtr<MiniTransceiver> mTcver;
-
-  int* mArgc;
-  char*** mArgv;
+  UniquePtr<base::AppProcessBuilder> mAppProcBuilder;
 };
 
 enum {

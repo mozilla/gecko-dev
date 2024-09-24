@@ -45,7 +45,7 @@ already_AddRefed<IPDLUnitTestParent> IPDLUnitTestParent::CreateCrossProcess() {
   parent->mSubprocess =
       new ipc::GeckoChildProcessHost(GeckoProcessType_IPDLUnitTest);
 
-  geckoargs::ChildProcessArgs extraArgs;
+  std::vector<std::string> extraArgs;
 
   auto prefSerializer = MakeUnique<ipc::SharedPreferenceSerializer>();
   if (!prefSerializer->SerializeToSharedMemory(GeckoProcessType_IPDLUnitTest,
@@ -56,7 +56,7 @@ already_AddRefed<IPDLUnitTestParent> IPDLUnitTestParent::CreateCrossProcess() {
   }
   prefSerializer->AddSharedPrefCmdLineArgs(*parent->mSubprocess, extraArgs);
 
-  if (!parent->mSubprocess->SyncLaunch(std::move(extraArgs))) {
+  if (!parent->mSubprocess->SyncLaunch(extraArgs)) {
     ADD_FAILURE() << "Subprocess launch failed";
     return nullptr;
   }
@@ -295,15 +295,14 @@ class IPDLUnitTestProcessChild : public ipc::ProcessChild {
 
 // Defined in nsEmbedFunctions.cpp
 extern UniquePtr<ipc::ProcessChild> (*gMakeIPDLUnitTestProcessChild)(
-    IPC::Channel::ChannelHandle, base::ProcessId, const nsID&);
+    base::ProcessId, const nsID&);
 
 // Initialize gMakeIPDLUnitTestProcessChild in a static constructor.
 int _childProcessEntryPointStaticConstructor = ([] {
   gMakeIPDLUnitTestProcessChild =
-      [](IPC::Channel::ChannelHandle aClientChannel, base::ProcessId aParentPid,
+      [](base::ProcessId aParentPid,
          const nsID& aMessageChannelId) -> UniquePtr<ipc::ProcessChild> {
-    return MakeUnique<IPDLUnitTestProcessChild>(std::move(aClientChannel),
-                                                aParentPid, aMessageChannelId);
+    return MakeUnique<IPDLUnitTestProcessChild>(aParentPid, aMessageChannelId);
   };
   return 0;
 })();

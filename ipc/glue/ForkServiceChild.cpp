@@ -71,11 +71,8 @@ void ForkServiceChild::StartForkServer() {
 
   GeckoChildProcessHost* subprocess =
       new GeckoChildProcessHost(GeckoProcessType_ForkServer, false);
-
-  geckoargs::ChildProcessArgs extraOpts;
-  geckoargs::sIPCHandle.Put(std::move(client), extraOpts);
-
-  if (!subprocess->LaunchAndWaitForProcessHandle(std::move(extraOpts))) {
+  subprocess->AddFdToRemap(client.get(), ForkServer::kClientPipeFd);
+  if (!subprocess->LaunchAndWaitForProcessHandle(std::vector<std::string>{})) {
     MOZ_LOG(gForkServiceLog, LogLevel::Error, ("failed to launch fork server"));
     return;
   }
@@ -98,14 +95,7 @@ ForkServiceChild::~ForkServiceChild() {
 }
 
 Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
-    geckoargs::ChildProcessArgs&& aArgs, base::LaunchOptions&& aOptions,
-    pid_t* aPid) {
-  // Double-check there are no unsupported options.
-  MOZ_ASSERT(aOptions.workdir.empty());
-  MOZ_ASSERT(!aOptions.full_env);
-  MOZ_ASSERT(!aOptions.wait);
-  MOZ_ASSERT(aOptions.fds_to_remap.size() == aArgs.mFiles.size());
-
+    const Args& aArgs, pid_t* aPid) {
   mRecvPid = -1;
 
   UniqueFileHandle execParent;
@@ -117,10 +107,11 @@ Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
 
     IPC::MessageWriter writer(msg);
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
-    WriteParam(&writer, aOptions.fork_flags);
-    WriteParam(&writer, std::move(aOptions.sandbox_chroot_server));
+    WriteIPDLParam(&writer, nullptr, aArgs.mForkFlags);
+    WriteIPDLParam(&writer, nullptr, aArgs.mChroot);
 #endif
     WriteIPDLParam(&writer, nullptr, std::move(execChild));
+    WriteIPDLParam(&writer, nullptr, aArgs.mFdsRemap);
     if (!mTcver->Send(msg)) {
       MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
               ("the pipe to the fork server is closed or having errors"));
@@ -133,9 +124,8 @@ Result<Ok, LaunchError> ForkServiceChild::SendForkNewSubprocess(
     MiniTransceiver execTcver(execParent.get());
     IPC::Message execMsg(MSG_ROUTING_CONTROL, Msg_SubprocessExecInfo__ID);
     IPC::MessageWriter execWriter(execMsg);
-    WriteParam(&execWriter, aOptions.env_map);
-    WriteParam(&execWriter, aArgs.mArgs);
-    WriteParam(&execWriter, std::move(aArgs.mFiles));
+    WriteIPDLParam(&execWriter, nullptr, aArgs.mArgv);
+    WriteIPDLParam(&execWriter, nullptr, aArgs.mEnv);
     if (!execTcver.Send(execMsg)) {
       MOZ_LOG(gForkServiceLog, LogLevel::Verbose,
               ("failed to send exec info to the fork server"));

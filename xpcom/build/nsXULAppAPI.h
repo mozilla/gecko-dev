@@ -278,7 +278,14 @@ const char* XRE_GeckoProcessTypeToString(GeckoProcessType aProcessType);
 const char* XRE_ChildProcessTypeToAnnotation(GeckoProcessType aProcessType);
 
 #if defined(MOZ_WIDGET_ANDROID)
-void XRE_SetAndroidChildFds(JNIEnv* env, jintArray fds);
+struct XRE_AndroidChildFds {
+  int mPrefsFd;
+  int mPrefMapFd;
+  int mIpcFd;
+  int mCrashFd;
+};
+
+void XRE_SetAndroidChildFds(JNIEnv* env, const XRE_AndroidChildFds& fds);
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
 nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],

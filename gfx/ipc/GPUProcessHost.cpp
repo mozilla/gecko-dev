@@ -37,7 +37,7 @@ GPUProcessHost::GPUProcessHost(Listener* aListener)
 
 GPUProcessHost::~GPUProcessHost() { MOZ_COUNT_DTOR(GPUProcessHost); }
 
-bool GPUProcessHost::Launch(geckoargs::ChildProcessArgs aExtraOpts) {
+bool GPUProcessHost::Launch(StringVector aExtraOpts) {
   MOZ_ASSERT(mLaunchPhase == LaunchPhase::Unlaunched);
   MOZ_ASSERT(!mGPUChild);
   MOZ_ASSERT(!gfxPlatform::IsHeadless());
@@ -56,7 +56,7 @@ bool GPUProcessHost::Launch(geckoargs::ChildProcessArgs aExtraOpts) {
   mLaunchPhase = LaunchPhase::Waiting;
   mLaunchTime = TimeStamp::Now();
 
-  if (!GeckoChildProcessHost::AsyncLaunch(std::move(aExtraOpts))) {
+  if (!GeckoChildProcessHost::AsyncLaunch(aExtraOpts)) {
     mLaunchPhase = LaunchPhase::Complete;
     mPrefSerializer = nullptr;
     return false;

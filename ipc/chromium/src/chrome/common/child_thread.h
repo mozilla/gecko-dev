@@ -19,9 +19,7 @@ class ResourceDispatcher;
 class ChildThread : public base::Thread {
  public:
   // Creates the thread.
-  ChildThread(Thread::Options options,
-              IPC::Channel::ChannelHandle client_handle,
-              base::ProcessId parent_pid);
+  ChildThread(Thread::Options options, base::ProcessId parent_pid);
   virtual ~ChildThread();
 
   mozilla::ipc::ScopedPort TakeInitialPort() {
@@ -49,8 +47,6 @@ class ChildThread : public base::Thread {
   mozilla::ipc::ScopedPort initial_port_;
 
   Thread::Options options_;
-
-  IPC::Channel::ChannelHandle client_handle_;
 
   base::ProcessId parent_pid_;
 

@@ -7,7 +7,6 @@
 #define __FORKSERVICE_CHILD_H_
 
 #include "base/process_util.h"
-#include "mozilla/GeckoArgs.h"
 #include "nsIObserver.h"
 #include "nsString.h"
 #include "mozilla/ipc/MiniTransceiver.h"
@@ -34,18 +33,29 @@ class ForkServiceChild {
   ForkServiceChild(int aFd, GeckoChildProcessHost* aProcess);
   virtual ~ForkServiceChild();
 
+  struct Args {
+#if defined(XP_LINUX) && defined(MOZ_SANDBOX)
+    int mForkFlags = 0;
+    bool mChroot = false;
+#endif
+    nsTArray<nsCString> mArgv;
+    nsTArray<EnvVar> mEnv;
+    nsTArray<FdMapping> mFdsRemap;
+  };
+
   /**
    * Ask the fork server to create a new process with given parameters.
    *
-   * \param aArgs arguments with file attachments used in the content process.
-   * \param aOptions other options which will be used to create the process.
-   *                 Not all launch options are supported.
-   * \param aPid returns the PID of the content
-   * process created. \return true if success.
+   * The fork server uses |base::LaunchApp()| to create a new
+   * content process with the following parameters.
+   *
+   * \param aArgv assigns |argv| of the content process.
+   * \param aEnvMap sets |LaunchOptions::env_map|.
+   * \param aFdsRemap sets |LaunchOptions::fd_to_remap|.
+   * \param aPid returns the PID of the content process created.
+   * \return true if success.
    */
-  Result<Ok, LaunchError> SendForkNewSubprocess(
-      geckoargs::ChildProcessArgs&& aArgs, base::LaunchOptions&& aOptions,
-      pid_t* aPid);
+  Result<Ok, LaunchError> SendForkNewSubprocess(const Args& aArgs, pid_t* aPid);
 
   /**
    * Create a fork server process and the singleton of this class.
@@ -56,7 +66,6 @@ class ForkServiceChild {
    */
   static void StartForkServer();
   static void StopForkServer();
-
   /**
    * Return the singleton.
    */

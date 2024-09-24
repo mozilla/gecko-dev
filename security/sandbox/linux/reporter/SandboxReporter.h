@@ -36,7 +36,7 @@ class SandboxReporter final : public PlatformThread::Delegate {
 
   // Used in GeckoChildProcessHost to connect the child process's
   // client to this report collector.
-  int GetClientFileDescriptor() const;
+  void GetClientFileDescriptorMapping(int* aSrcFd, int* aDstFd) const;
 
   // A snapshot of the report ring buffer; element 0 of `mReports` is
   // the `mOffset`th report to be received, and so on.

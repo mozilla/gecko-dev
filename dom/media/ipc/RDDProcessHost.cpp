@@ -40,7 +40,7 @@ RDDProcessHost::RDDProcessHost(Listener* aListener)
 
 RDDProcessHost::~RDDProcessHost() { MOZ_COUNT_DTOR(RDDProcessHost); }
 
-bool RDDProcessHost::Launch(geckoargs::ChildProcessArgs aExtraOpts) {
+bool RDDProcessHost::Launch(StringVector aExtraOpts) {
   MOZ_ASSERT(NS_IsMainThread());
 
   MOZ_ASSERT(mLaunchPhase == LaunchPhase::Unlaunched);
@@ -84,7 +84,7 @@ bool RDDProcessHost::Launch(geckoargs::ChildProcessArgs aExtraOpts) {
         timeoutMs);
   }
 
-  if (!GeckoChildProcessHost::AsyncLaunch(std::move(aExtraOpts))) {
+  if (!GeckoChildProcessHost::AsyncLaunch(aExtraOpts)) {
     mLaunchPhase = LaunchPhase::Complete;
     mPrefSerializer = nullptr;
     return false;

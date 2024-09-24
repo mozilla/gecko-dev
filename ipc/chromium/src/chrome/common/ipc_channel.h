@@ -142,6 +142,18 @@ class Channel {
   void StartAcceptingHandles(Mode mode);
 #endif
 
+#if defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_UIKIT)
+  // Used to set the first IPC file descriptor in the child process on
+  // Android and iOS. See ipc_channel_posix.cc for further details on how this
+  // is used.
+  static void SetClientChannelFd(int fd);
+#endif  // defined(MOZ_WIDGET_ANDROID) || defined(MOZ_WIDGET_UIKIT)
+
+  // Get the first IPC channel handle in the child process. This will have been
+  // set by SetClientChannelFd on Android, will be a constant on other unix
+  // platforms, or will have been passed on the command line on Windows.
+  static ChannelHandle::ElementType GetClientChannelHandle();
+
   // Create a new pair of pipe endpoints which can be used to establish a
   // native IPC::Channel connection.
   static bool CreateRawPipe(ChannelHandle* server, ChannelHandle* client);

@@ -362,17 +362,15 @@ static void FreeArgv(char** argv, int argc) {
 }
 
 extern "C" APKOPEN_EXPORT void MOZ_JNICALL
-Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(JNIEnv* jenv, jclass jc,
-                                                     jobjectArray jargs,
-                                                     jintArray jfds,
-                                                     bool xpcshell,
-                                                     jstring outFilePath) {
+Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(
+    JNIEnv* jenv, jclass jc, jobjectArray jargs, int prefsFd, int prefMapFd,
+    int ipcFd, int crashFd, bool xpcshell, jstring outFilePath) {
   EnsureBaseProfilerInitialized();
 
   int argc = 0;
   char** argv = CreateArgvFromObjectArray(jenv, jargs, &argc);
 
-  if (!jfds) {
+  if (ipcFd < 0) {
     if (gBootstrap == nullptr) {
       FreeArgv(argv, argc);
       return;
@@ -403,7 +401,8 @@ Java_org_mozilla_gecko_mozglue_GeckoLoader_nativeRun(JNIEnv* jenv, jclass jc,
     SetGeckoProcessType(argv[--argc]);
     SetGeckoChildID(argv[--argc]);
 
-    gBootstrap->XRE_SetAndroidChildFds(jenv, jfds);
+    gBootstrap->XRE_SetAndroidChildFds(jenv,
+                                       {prefsFd, prefMapFd, ipcFd, crashFd});
 
     XREChildData childData;
     gBootstrap->XRE_InitChildProcess(argc, argv, &childData);

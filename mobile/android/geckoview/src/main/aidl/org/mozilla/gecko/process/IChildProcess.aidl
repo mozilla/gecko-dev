@@ -27,7 +27,10 @@ interface IChildProcess {
               int flags,
               in String userSerialNumber,
               in String crashHandlerService,
-              in ParcelFileDescriptor[] pfds);
+              in ParcelFileDescriptor prefsPfd,
+              in ParcelFileDescriptor prefMapPfd,
+              in ParcelFileDescriptor ipcPfd,
+              in ParcelFileDescriptor crashReporterPfd);
 
     void crash();
 

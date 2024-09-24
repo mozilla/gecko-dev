@@ -133,13 +133,13 @@ RefPtr<GenericNonExclusivePromise> RDDProcessManager::LaunchRDDProcess() {
     return mLaunchRDDPromise;
   }
 
-  geckoargs::ChildProcessArgs extraArgs;
+  std::vector<std::string> extraArgs;
   ipc::ProcessChild::AddPlatformBuildID(extraArgs);
 
   // The subprocess is launched asynchronously, so we
   // wait for the promise to be resolved to acquire the IPDL actor.
   mProcess = new RDDProcessHost(this);
-  if (!mProcess->Launch(std::move(extraArgs))) {
+  if (!mProcess->Launch(extraArgs)) {
     mNumProcessAttempts++;
     DestroyProcess();
     return GenericNonExclusivePromise::CreateAndReject(NS_ERROR_NOT_AVAILABLE,

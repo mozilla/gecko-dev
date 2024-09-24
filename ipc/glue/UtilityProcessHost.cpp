@@ -91,7 +91,7 @@ UtilityProcessHost::~UtilityProcessHost() {
 #endif
 }
 
-bool UtilityProcessHost::Launch(geckoargs::ChildProcessArgs aExtraOpts) {
+bool UtilityProcessHost::Launch(StringVector aExtraOpts) {
   MOZ_ASSERT(NS_IsMainThread());
 
   MOZ_ASSERT(mLaunchPhase == LaunchPhase::Unlaunched);
@@ -116,7 +116,7 @@ bool UtilityProcessHost::Launch(geckoargs::ChildProcessArgs aExtraOpts) {
 
   mLaunchPhase = LaunchPhase::Waiting;
 
-  if (!GeckoChildProcessHost::AsyncLaunch(std::move(aExtraOpts))) {
+  if (!GeckoChildProcessHost::AsyncLaunch(aExtraOpts)) {
     NS_WARNING("UtilityProcess AsyncLaunch failed, aborting.");
     mLaunchPhase = LaunchPhase::Complete;
     mPrefSerializer = nullptr;
@@ -365,7 +365,7 @@ MacSandboxType UtilityProcessHost::GetMacSandboxType() {
 
 #ifdef MOZ_WMF_CDM_LPAC_SANDBOX
 void UtilityProcessHost::EnsureWidevineL1PathForSandbox(
-    geckoargs::ChildProcessArgs& aExtraOpts) {
+    StringVector& aExtraOpts) {
   if (mSandbox != SandboxingKind::MF_MEDIA_ENGINE_CDM) {
     return;
   }
