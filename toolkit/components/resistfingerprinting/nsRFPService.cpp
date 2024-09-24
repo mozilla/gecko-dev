@@ -1435,51 +1435,26 @@ nsRFPService::CleanRandomKeyByPrincipal(nsIPrincipal* aPrincipal) {
 }
 
 NS_IMETHODIMP
-nsRFPService::CleanRandomKeyByDomain(const nsACString& aDomain) {
+nsRFPService::CleanRandomKeyBySite(
+    const nsACString& aSchemelessSite,
+    JS::Handle<JS::Value> aOriginAttributesPattern, JSContext* aCx) {
   MOZ_ASSERT(XRE_IsParentProcess());
+  NS_ENSURE_ARG_POINTER(aCx);
 
-  // Get http URI from the domain.
-  nsCOMPtr<nsIURI> httpURI;
-  nsresult rv = NS_NewURI(getter_AddRefs(httpURI), "http://"_ns + aDomain);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Use the originAttributes to get the partitionKey.
-  OriginAttributes attrs;
-  attrs.SetPartitionKey(httpURI, false);
-
-  // Create a originAttributesPattern and set the http partitionKey to the
-  // pattern.
   OriginAttributesPattern pattern;
-  pattern.mPartitionKey.Reset();
-  pattern.mPartitionKey.Construct(attrs.mPartitionKey);
+  if (!aOriginAttributesPattern.isObject() ||
+      !pattern.Init(aCx, aOriginAttributesPattern)) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  if (!pattern.mPartitionKeyPattern.WasPassed()) {
+    pattern.mPartitionKeyPattern.Construct();
+  }
+  pattern.mPartitionKeyPattern.Value().mBaseDomain.Construct(
+      NS_ConvertUTF8toUTF16(aSchemelessSite));
+
   ClearBrowsingSessionKey(pattern);
 
-  // We must also include the cross-site embeds of this principal that end up
-  // re-embedded back into the same principal's top level, otherwise state will
-  // persist for this target
-  attrs.SetPartitionKey(httpURI, true);
-  pattern.mPartitionKey.Reset();
-  pattern.mPartitionKey.Construct(attrs.mPartitionKey);
-  ClearBrowsingSessionKey(pattern);
-
-  // Get https URI from the domain.
-  nsCOMPtr<nsIURI> httpsURI;
-  rv = NS_NewURI(getter_AddRefs(httpsURI), "https://"_ns + aDomain);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  // Use the originAttributes to get the partitionKey and set to the pattern.
-  attrs.SetPartitionKey(httpsURI, false);
-  pattern.mPartitionKey.Reset();
-  pattern.mPartitionKey.Construct(attrs.mPartitionKey);
-  ClearBrowsingSessionKey(pattern);
-
-  // We must also include the cross-site embeds of this principal that end up
-  // re-embedded back into the same principal's top level, otherwise state will
-  // persist for this target
-  attrs.SetPartitionKey(httpsURI, true);
-  pattern.mPartitionKey.Reset();
-  pattern.mPartitionKey.Construct(attrs.mPartitionKey);
-  ClearBrowsingSessionKey(pattern);
   return NS_OK;
 }
 
