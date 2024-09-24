@@ -110,7 +110,7 @@ static bool SetBitrateAndMode(VTCompressionSessionRef& aSession,
 
 static bool SetFrameRate(VTCompressionSessionRef& aSession, int64_t aFPS) {
   AutoCFRelease<CFNumberRef> framerate(
-      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &framerate));
+      CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt64Type, &aFPS));
   return VTSessionSetProperty(aSession,
                               kVTCompressionPropertyKey_ExpectedFrameRate,
                               framerate) == noErr;
