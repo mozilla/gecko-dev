@@ -987,6 +987,15 @@ static void RecordUseCountersIfNeeded(Document* aDoc,
   aDoc->MaybeWarnAboutZoom();
 }
 
+void Loader::MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData) {
+  if (!aLoadData.mURI) {
+    // Inline style sheet is not tracked.
+    return;
+  }
+  auto key = SheetLoadDataHashKey(aLoadData);
+  mLoadsPerformed.PutEntry(key);
+}
+
 /**
  * CreateSheet() creates a StyleSheet object for the given URI.
  *
@@ -1030,8 +1039,6 @@ std::tuple<RefPtr<StyleSheet>, Loader::SheetState> Loader::CreateSheet(
       if (cacheResult.mCompleteValue) {
         sheet = cacheResult.mCompleteValue->Clone(nullptr, nullptr);
         mDocument->SetDidHitCompleteSheetCache();
-        RecordUseCountersIfNeeded(mDocument, *sheet);
-        mLoadsPerformed.PutEntry(key);
       } else {
         MOZ_ASSERT(cacheResult.mLoadingOrPendingValue);
         sheet = cacheResult.mLoadingOrPendingValue->ValueForCache();
@@ -1684,9 +1691,10 @@ Loader::Completed Loader::ParseSheet(
 
 void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus) {
   RecordUseCountersIfNeeded(mDocument, *aData.mSheet);
+  MaybePutIntoLoadsPerformed(aData);
+
   RefPtr loadDispatcher = aData.PrepareLoadEventIfNeeded();
   if (aData.mURI) {
-    mLoadsPerformed.PutEntry(SheetLoadDataHashKey(aData));
     aData.NotifyStop(aStatus);
     // NOTE(emilio): This needs to happen before notifying observers, as
     // FontFaceSet for example checks for pending sheet loads from the
@@ -2118,8 +2126,10 @@ nsresult Loader::LoadChildSheet(StyleSheet& aParentSheet,
   // loop) do so.
   RefPtr<StyleSheet> sheet;
   SheetState state;
+  bool isReusableSheet = false;
   if (aReusableSheets && aReusableSheets->FindReusableStyleSheet(aURL, sheet)) {
     state = SheetState::Complete;
+    isReusableSheet = true;
   } else {
     // For now, use CORS_NONE for child sheets
     std::tie(sheet, state) = CreateSheet(
@@ -2146,6 +2156,12 @@ nsresult Loader::LoadChildSheet(StyleSheet& aParentSheet,
     // We're completely done.  No need to notify, even, since the
     // @import rule addition/modification will trigger the right style
     // changes automatically.
+    if (!isReusableSheet) {
+      // Child sheets are not handled by NotifyObservers, and these need to be
+      // performed here if the sheet comes from the SharedStyleSheetCache.
+      RecordUseCountersIfNeeded(mDocument, *data->mSheet);
+      MaybePutIntoLoadsPerformed(*data);
+    }
     data->mIntentionallyDropped = true;
     return NS_OK;
   }
