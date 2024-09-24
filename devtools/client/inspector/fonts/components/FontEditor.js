@@ -152,9 +152,9 @@ class FontEditor extends PureComponent {
   }
 
   renderFontGroup(family, fonts = []) {
-    const group = fonts.map(font => {
+    const group = fonts.map((font, i) => {
       return FontName({
-        key: font.name,
+        key: font.name + ":" + i,
         font,
         onToggleFontHighlight: this.props.onToggleFontHighlight,
       });
