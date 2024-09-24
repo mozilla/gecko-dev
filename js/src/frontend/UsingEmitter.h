@@ -36,6 +36,9 @@ class MOZ_STACK_CLASS UsingEmitter {
 
   [[nodiscard]] bool emitTakeDisposeCapability();
 
+  [[nodiscard]] bool emitResourcePropertyAccess(TaggedParserAtomIndex prop,
+                                                unsigned resourcesFromTop = 1);
+
   [[nodiscard]] bool emitDisposeLoop(
       EmitterScope& es,
       CompletionKind initialCompletion = CompletionKind::Normal);

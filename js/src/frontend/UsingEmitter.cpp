@@ -96,6 +96,32 @@ bool UsingEmitter::emitThrowIfException() {
   return true;
 }
 
+bool UsingEmitter::emitResourcePropertyAccess(TaggedParserAtomIndex prop,
+                                              unsigned resourcesFromTop) {
+  // [stack] # if resourcesFromTop == 1
+  // [stack] RESOURCES INDEX
+  // [stack] # if resourcesFromTop > 1
+  // [stack] RESOURCES INDEX ... (resourcesFromTop - 1 values)
+  MOZ_ASSERT(resourcesFromTop >= 1);
+
+  if (!bce_->emitDupAt(resourcesFromTop, 2)) {
+    // [stack] RESOURCES INDEX ... RESOURCES INDEX
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::GetElem)) {
+    // [stack] RESOURCES INDEX ... RESOURCE
+    return false;
+  }
+
+  if (!bce_->emitAtomOp(JSOp::GetProp, prop)) {
+    // [stack] RESOURCES INDEX ... VALUE
+    return false;
+  }
+
+  return true;
+}
+
 // Explicit Resource Management Proposal
 // DisposeResources ( disposeCapability, completion )
 // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-disposeresources
@@ -218,61 +244,17 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     return false;
   }
 
-  if (!bce_->emit1(JSOp::Dup2)) {
-    // [stack] ... RESOURCES INDEX RESOURCES INDEX
-    return false;
-  }
-
-  if (!bce_->emit1(JSOp::GetElem)) {
-    // [stack] ... RESOURCES INDEX RESOURCE
-    return false;
-  }
-
-  // Step 3.a. Let value be resource.[[ResourceValue]].
-  // Step 3.b. Let hint be resource.[[Hint]].
-  // Step 3.c. Let method be resource.[[DisposeMethod]].
-  // TODO: Defer property accesses until they are actually
-  // needed. (Bug 1913432)
-  if (!bce_->emit1(JSOp::Dup)) {
-    // [stack] ... RESOURCES INDEX RESOURCE RESOURCE
-    return false;
-  }
-
-  if (!bce_->emitAtomOp(JSOp::GetProp,
-                        TaggedParserAtomIndex::WellKnown::hint())) {
-    // [stack] ... RESOURCES INDEX RESOURCE HINT
-    return false;
-  }
-
-  if (!bce_->emitDupAt(1)) {
-    // [stack] ... RESOURCES INDEX RESOURCE HINT RESOURCE
-    return false;
-  }
-
-  if (!bce_->emitAtomOp(JSOp::GetProp,
-                        TaggedParserAtomIndex::WellKnown::method())) {
-    // [stack] ... RESOURCES INDEX RESOURCE HINT METHOD
-    return false;
-  }
-
-  if (!bce_->emitPickN(2)) {
-    // [stack] ... RESOURCES INDEX HINT METHOD RESOURCE
-    return false;
-  }
-
-  if (!bce_->emitAtomOp(JSOp::GetProp,
-                        TaggedParserAtomIndex::WellKnown::value())) {
-    // [stack] ... RESOURCES INDEX HINT METHOD VALUE
-    return false;
-  }
+  // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC RESOURCES INDEX
 
   if (hasAwaitUsing_) {
-    // [stack] NEEDS-AWAIT HAS-AWAITED ... HINT METHOD VALUE
+    // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
 
+    // Step 3.b. Let hint be resource.[[Hint]].
+    // (reordered)
     // Step 3.d. If hint is sync-dispose and needsAwait is true and hasAwaited
     // is false, then
-    if (!bce_->emitDupAt(2)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... HINT METHOD VALUE HINT
+    if (!emitResourcePropertyAccess(TaggedParserAtomIndex::WellKnown::hint())) {
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX HINT
       return false;
     }
 
@@ -285,12 +267,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
       return false;
     }
 
-    if (!bce_->emitDupAt(9)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... IS-SYNC NEEDS-AWAIT
-      return false;
-    }
-
-    if (!bce_->emitDupAt(9)) {
+    if (!bce_->emitDupAt(6, 2)) {
       // [stack] NEEDS-AWAIT HAS-AWAITED ... IS-SYNC NEEDS-AWAIT HAS-AWAITED
       return false;
     }
@@ -318,75 +295,77 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
       return false;
     }
 
-    // [stack] NEEDS-AWAIT HAS-AWAITED ... UNDEF-AWAIT-NEEDED
+    // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX AWAIT-NEEDED
 
     InternalIfEmitter ifNeedsSyncDisposeUndefinedAwaited(bce_);
 
     if (!ifNeedsSyncDisposeUndefinedAwaited.emitThen()) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ...
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
       return false;
     }
 
     // Step 3.d.i. Perform ! Await(undefined).
     if (!bce_->emit1(JSOp::Undefined)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... UNDEF
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX UNDEF
       return false;
     }
 
     if (!bce_->emitAwaitInScope(es)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... RESOLVED
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX RESOLVED
       return false;
     }
 
     // Step 3.d.ii. Set needsAwait to false.
-    if (!bce_->emitPickN(9)) {
-      // [stack] HAS-AWAITED ... RESOLVED NEEDS-AWAIT
+    if (!bce_->emitPickN(6)) {
+      // [stack] HAS-AWAITED THROWING EXC RESOURCES INDEX RESOLVED NEEDS-AWAIT
       return false;
     }
 
     if (!bce_->emitPopN(2)) {
-      // [stack] HAS-AWAITED ...
+      // [stack] HAS-AWAITED THROWING EXC RESOURCES INDEX
       return false;
     }
 
     if (!bce_->emit1(JSOp::False)) {
-      // [stack] HAS-AWAITED ... NEEDS-AWAIT
+      // [stack] HAS-AWAITED THROWING EXC RESOURCES INDEX NEEDS-AWAIT
       return false;
     }
 
-    if (!bce_->emitUnpickN(8)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ...
+    if (!bce_->emitUnpickN(5)) {
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
       return false;
     }
 
     if (!ifNeedsSyncDisposeUndefinedAwaited.emitEnd()) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ...
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
       return false;
     }
   }
 
-  // [stack] ... HINT METHOD VALUE
+  // [stack] ... RESOURCES INDEX
 
+  // Step 3.c. Let method be resource.[[DisposeMethod]].
+  // (reordered)
   // Step 3.e. If method is not undefined, then
-  if (!bce_->emitDupAt(1)) {
-    // [stack] ... HINT METHOD VALUE METHOD
+  if (!emitResourcePropertyAccess(TaggedParserAtomIndex::WellKnown::method())) {
+    // [stack] ... RESOURCES INDEX METHOD
     return false;
   }
 
   if (!bce_->emit1(JSOp::IsNullOrUndefined)) {
-    // [stack] ... HINT METHOD VALUE METHOD IS-UNDEF
+    // [stack] ... RESOURCES INDEX METHOD IS-UNDEF
     return false;
   }
 
   InternalIfEmitter ifMethodNotUndefined(bce_);
 
   if (!ifMethodNotUndefined.emitThenElse(IfEmitter::ConditionKind::Negative)) {
-    // [stack] ... HINT METHOD VALUE METHOD
+    // [stack] ... RESOURCES INDEX METHOD
     return false;
   }
 
   if (!bce_->emit1(JSOp::Pop)) {
-    // [stack] ... HINT METHOD VALUE
+    // [stack] ... RESOURCES INDEX
     return false;
   }
 
@@ -394,95 +373,108 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
                      TryEmitter::ControlKind::NonSyntactic);
 
   if (!tryCall.emitTry()) {
-    // [stack] ... HINT METHOD VALUE
+    // [stack] ... RESOURCES INDEX
     return false;
   }
 
-  if (!bce_->emit1(JSOp::Dup2)) {
-    // [stack] ... HINT METHOD VALUE METHOD VALUE
+  // Step 3.c. Let method be resource.[[DisposeMethod]].
+  // (reordered)
+  if (!emitResourcePropertyAccess(TaggedParserAtomIndex::WellKnown::method())) {
+    // [stack] ... RESOURCES INDEX METHOD
+    return false;
+  }
+
+  // Step 3.a. Let value be resource.[[ResourceValue]].
+  // (reordered)
+  if (!emitResourcePropertyAccess(TaggedParserAtomIndex::WellKnown::value(),
+                                  2)) {
+    // [stack] ... RESOURCES INDEX METHOD VALUE
     return false;
   }
 
   // Step 3.e.i. Let result be Completion(Call(method, value)).
   if (!bce_->emitCall(JSOp::Call, 0)) {
-    // [stack] ... HINT METHOD VALUE RESULT
+    // [stack] ... RESOURCES INDEX RESULT
     return false;
   }
 
   if (hasAwaitUsing_) {
     // Step 3.e.ii. If result is a normal completion and hint is async-dispose,
     // then
-    if (!bce_->emitDupAt(3)) {
-      // [stack] ... HINT METHOD VALUE RESULT HINT
+    if (!emitResourcePropertyAccess(TaggedParserAtomIndex::WellKnown::hint(),
+                                    2)) {
+      // [stack] ... RESOURCES INDEX RESULT HINT
       return false;
     }
 
     // Hint value is either 0 or 1, which can be consumed by the IfEmitter,
     // see static_assert above.
-    // [stack] NEEDS-AWAIT HAS-AWAITED ... RESULT IS-ASYNC
+    // [stack] ... RESOURCES INDEX RESULT IS-ASYNC
 
     InternalIfEmitter ifAsyncDispose(bce_);
 
     if (!ifAsyncDispose.emitThen()) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... RESULT
+      // [stack] ... RESOURCES INDEX RESULT
       return false;
     }
 
+    // [stack] NEEDS-AWAIT THROWING EXC RESOURCES INDEX RESULT HAS-AWAITED
+
     // Step 3.e.ii.2. Set hasAwaited to true. (reordered)
-    if (!bce_->emitPickN(8)) {
-      // [stack] NEEDS-AWAIT ... RESULT HAS-AWAITED
+    if (!bce_->emitPickN(5)) {
+      // [stack] NEEDS-AWAIT THROWING EXC RESOURCES INDEX RESULT HAS-AWAITED
       return false;
     }
 
     if (!bce_->emit1(JSOp::Pop)) {
-      // [stack] NEEDS-AWAIT ... RESULT
+      // [stack] NEEDS-AWAIT THROWING EXC RESOURCES INDEX RESULT
       return false;
     }
 
     if (!bce_->emit1(JSOp::True)) {
-      // [stack] NEEDS-AWAIT ... RESULT HAS-AWAITED
+      // [stack] NEEDS-AWAIT THROWING EXC RESOURCES INDEX RESULT HAS-AWAITED
       return false;
     }
 
-    if (!bce_->emitUnpickN(8)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... RESULT
+    if (!bce_->emitUnpickN(5)) {
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX RESULT
       return false;
     }
 
     // Step 3.e.ii.1. Set result to Completion(Await(result.[[Value]])).
     if (!bce_->emitAwaitInScope(es)) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... RESOLVED
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX RESOLVED
       return false;
     }
 
     if (!ifAsyncDispose.emitEnd()) {
-      // [stack] NEEDS-AWAIT HAS-AWAITED ... RESULT
+      // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX RESULT
       return false;
     }
   }
 
-  // [stack] ... THROWING EXC RESOURCES INDEX HINT METHOD VALUE RESULT
+  // [stack] ... THROWING EXC RESOURCES INDEX RESULT
 
   if (!bce_->emit1(JSOp::Pop)) {
-    // [stack] ... THROWING EXC RESOURCES INDEX HINT METHOD VALUE
+    // [stack] ... THROWING EXC RESOURCES INDEX
     return false;
   }
 
   // Step 3.e.iii. If result is a throw completion, then
   if (!tryCall.emitCatch()) {
-    // [stack] ... THROWING EXC RESOURCES INDEX HINT METHOD VALUE EXC2
+    // [stack] ... THROWING EXC RESOURCES INDEX EXC2
     return false;
   }
 
-  if (!bce_->emitPickN(6)) {
-    // [stack] .. THROWING RESOURCES INDEX HINT METHOD VALUE EXC2 EXC
+  if (!bce_->emitPickN(3)) {
+    // [stack] ... THROWING RESOURCES INDEX EXC2 EXC
     return false;
   }
 
   if (initialCompletion == CompletionKind::Throw &&
       bce_->sc->isSuspendableContext() &&
       bce_->sc->asSuspendableContext()->isGenerator()) {
-    // [stack] ... EXC2 EXC
+    // [stack] ... THROWING RESOURCES INDEX EXC2 EXC
 
     // Generator closure is implemented by throwing a magic value
     // thus when we have a throw completion we must check whether
@@ -490,115 +482,110 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     // it with the normal exception here or else we will end up exposing
     // the magic value to user program.
     if (!bce_->emit1(JSOp::IsGenClosing)) {
-      // [stack] ... EXC2 EXC GEN-CLOSING
+      // [stack] ... THROWING RESOURCES INDEX EXC2 EXC GEN-CLOSING
       return false;
     }
 
     if (!bce_->emit1(JSOp::Not)) {
-      // [stack] ... EXC2 EXC !GEN-CLOSING
+      // [stack] ... THROWING RESOURCES INDEX EXC2 EXC !GEN-CLOSING
       return false;
     }
 
-    if (!bce_->emitPickN(8)) {
-      // [stack] ... EXC2 EXC (!GEN-CLOSING) THROWING
+    if (!bce_->emitPickN(5)) {
+      // [stack] ... RESOURCES INDEX EXC2 EXC (!GEN-CLOSING) THROWING
       return false;
     }
 
     if (!bce_->emit1(JSOp::BitAnd)) {
-      // [stack] ... EXC2 EXC (!GEN-CLOSING & THROWING)
+      // [stack] ... RESOURCES INDEX EXC2 EXC (!GEN-CLOSING & THROWING)
       return false;
     }
   } else {
-    if (!bce_->emitPickN(7)) {
-      // [stack] ... RESOURCES INDEX HINT METHOD VALUE EXC2 EXC THROWING
+    if (!bce_->emitPickN(4)) {
+      // [stack] ... RESOURCES INDEX EXC2 EXC THROWING
       return false;
     }
   }
 
-  // [stack] NEEDS-AWAIT? HAS-AWAITED? ... EXC2 EXC THROWING
+  // [stack] NEEDS-AWAIT? HAS-AWAITED? RESOURCES INDEX EXC2 EXC THROWING
 
   InternalIfEmitter ifException(bce_);
 
   // Step 3.e.iii.1. If completion is a throw completion, then
   if (!ifException.emitThenElse()) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? ... EXC2 EXC
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? RESOURCES INDEX EXC2 EXC
     return false;
   }
 
   // Step 3.e.iii.1.a-f
   if (!bce_->emit1(JSOp::CreateSuppressedError)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? ... SUPPRESSED
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? RESOURCES INDEX SUPPRESSED
     return false;
   }
 
-  if (!bce_->emitUnpickN(5)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? SUPPRESSED ...
+  if (!bce_->emitUnpickN(2)) {
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? SUPPRESSED RESOURCED INDEX
     return false;
   }
 
   if (!bce_->emit1(JSOp::True)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? SUPPRESSED ... THROWING
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? SUPPRESSED RESOURCED INDEX THROWING
     return false;
   }
 
-  if (!bce_->emitUnpickN(6)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING SUPPRESSED ...
+  if (!bce_->emitUnpickN(3)) {
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING SUPPRESSED RESOURCED INDEX
     return false;
   }
 
   // Step 3.e.iii.2. Else,
   // Step 3.e.iii.2.a. Set completion to result.
   if (!ifException.emitElse()) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? ... EXC2 EXC
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? RESOURCES INDEX EXC2 EXC
     return false;
   }
 
   if (!bce_->emit1(JSOp::Pop)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? ... EXC2
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? RESOURCES INDEX EXC2
     return false;
   }
 
-  if (!bce_->emitUnpickN(5)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? EXC2 ...
+  if (!bce_->emitUnpickN(2)) {
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? EXC2 RESOURCES INDEX
     return false;
   }
 
   if (!bce_->emit1(JSOp::True)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? EXC2 ... THROWING
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? EXC2 RESOURCES INDEX THROWING
     return false;
   }
 
-  if (!bce_->emitUnpickN(6)) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING EXC2 ...
+  if (!bce_->emitUnpickN(3)) {
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING EXC2 RESOURCES INDEX
     return false;
   }
 
   if (!ifException.emitEnd()) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING EXC ...
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING EXC RESOURCES INDEX
     return false;
   }
 
   if (!tryCall.emitEnd()) {
-    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING EXC ...
+    // [stack] NEEDS-AWAIT? HAS-AWAITED? THROWING EXC RESOURCES INDEX
     return false;
   }
 
-  // [stack] ... THROWING EXC RESOURCES INDEX HINT METHOD VALUE
-
-  if (!bce_->emitPopN(3)) {
-    // [stack] ... THROWING EXC RESOURCES INDEX
-    return false;
-  }
+  // [stack] ... THROWING EXC RESOURCES INDEX
 
   // Step 3.f. Else,
   // Step 3.f.i. Assert: hint is async-dispose.
   // (implicit)
   if (!ifMethodNotUndefined.emitElse()) {
-    // [stack] ... THROWING EXC RESOURCES INDEX HINT METHOD VALUE METHOD
+    // [stack] ... THROWING EXC RESOURCES INDEX METHOD
     return false;
   }
 
-  if (!bce_->emitPopN(4)) {
+  if (!bce_->emit1(JSOp::Pop)) {
     // [stack] ... THROWING EXC RESOURCES INDEX
     return false;
   }
