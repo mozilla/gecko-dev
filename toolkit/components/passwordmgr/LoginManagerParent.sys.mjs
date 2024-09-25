@@ -989,7 +989,7 @@ export class LoginManagerParent extends JSWindowActorParent {
       Services.logins.recordPasswordUse(
         login,
         browser && lazy.PrivateBrowsingUtils.isBrowserPrivate(browser),
-        login.username ? "form_login" : "form_password",
+        login.username ? "FormLogin" : "FormPassword",
         !!autoFilledLoginGuid
       );
     }

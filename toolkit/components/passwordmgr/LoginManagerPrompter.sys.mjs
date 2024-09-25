@@ -444,7 +444,7 @@ export class LoginManagerPrompter {
         Services.logins.recordPasswordUse(
           loginToUpdate,
           PrivateBrowsingUtils.isBrowserPrivate(browser),
-          loginToUpdate.username ? "form_password" : "form_login",
+          loginToUpdate.username ? "FormPassword" : "FormLogin",
           !!autoFilledLoginGuid
         );
       } else {
