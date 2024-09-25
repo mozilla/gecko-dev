@@ -2262,8 +2262,7 @@ class ExportKeyTask : public WebCryptoTask {
       }
 
       if (mPublicKey &&
-          (mPublicKey->keyType == ecKey || mPublicKey->keyType == edKey ||
-           mPublicKey->keyType == ecMontKey)) {
+          (mPublicKey->keyType == ecKey || mPublicKey->keyType == edKey)) {
         nsresult rv = CryptoKey::PublicECKeyToRaw(mPublicKey.get(), mResult);
         if (NS_FAILED(rv)) {
           return NS_ERROR_DOM_OPERATION_ERR;

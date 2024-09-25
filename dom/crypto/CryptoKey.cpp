@@ -1056,10 +1056,9 @@ KeyType KeyTypeFromCurveName(const nsAString& aNamedCurve) {
       aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P384) ||
       aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_P521)) {
     t = ecKey;
-  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519)) {
+  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_ED25519) ||
+             aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
     t = edKey;
-  } else if (aNamedCurve.EqualsLiteral(WEBCRYPTO_NAMED_CURVE_CURVE25519)) {
-    t = ecMontKey;
   }
   return t;
 }
@@ -1088,8 +1087,7 @@ UniqueSECKEYPublicKey CreateECPublicKey(const SECItem* aKeyData,
   // Transfer arena ownership to the key.
   key->arena = arena.release();
   key->keyType = KeyTypeFromCurveName(aNamedCurve);
-  if (key->keyType != ecKey && key->keyType != edKey &&
-      key->keyType != ecMontKey) {
+  if (key->keyType != ecKey && key->keyType != edKey) {
     return nullptr;
   }
 
