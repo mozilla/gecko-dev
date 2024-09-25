@@ -3,14 +3,10 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-import importlib
-import inspect
 import os
-import pathlib
 from collections.abc import Iterable
 
 import yaml
-from base_python_support import BasePythonSupport
 from logger.logger import RaptorLogger
 from mozgeckoprofiler import view_gecko_profile
 
@@ -85,8 +81,7 @@ def flatten(data, parent_dir, sep="/"):
         for item in data:
             for k, v in flatten(item, parent_dir, sep=sep).items():
                 result.setdefault(k, []).extend(v)
-
-    if isinstance(data, dict):
+    elif isinstance(data, dict):
         for k, v in data.items():
             current_dir = parent_dir + (k,)
             subtest = sep.join(current_dir)
@@ -95,6 +90,8 @@ def flatten(data, parent_dir, sep="/"):
                     result.setdefault(x, []).extend(y)
             elif v or v == 0:
                 result.setdefault(subtest, []).append(v)
+    else:
+        result.setdefault(sep.join(parent_dir), []).append(data)
 
     return result
 
@@ -163,36 +160,3 @@ def write_yml_file(yml_file, yml_data):
 
 def bool_from_str(boolean_string):
     return bool(strtobool(boolean_string))
-
-
-def import_support_class(path):
-    """This function returns a Transformer class with the given path.
-
-    :param str path: The path points to the custom transformer.
-    :param bool ret_members: If true then return inspect.getmembers().
-    :return Transformer if not ret_members else inspect.getmembers().
-    """
-    file = pathlib.Path(path)
-
-    if not file.exists():
-        raise Exception(f"The support_class path {path} does not exist.")
-
-    # Importing a source file directly
-    spec = importlib.util.spec_from_file_location(name=file.name, location=path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-
-    # TODO: Add checks for methods that can be used for results/output parsing
-    members = inspect.getmembers(
-        module,
-        lambda c: inspect.isclass(c)
-        and c != BasePythonSupport
-        and issubclass(c, BasePythonSupport),
-    )
-
-    if not members:
-        raise Exception(
-            f"The path {path} was found but it was not a valid support_class."
-        )
-
-    return members[0][-1]
