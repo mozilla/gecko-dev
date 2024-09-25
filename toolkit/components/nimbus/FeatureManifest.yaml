@@ -115,6 +115,13 @@ search:
 
         If the key is not referenced in the search configuration, then no parameter
         will be added. Only the search team can update the configuration.
+    logEnabled:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.search.log
+      description: >-
+        Whether or not enable search log in their console.
     richSuggestionsFeatureGate:
       type: boolean
       setPref:
@@ -122,6 +129,19 @@ search:
         pref: browser.urlbar.richSuggestions.featureGate
       description: >-
         Feature gate that controls whether Rich Suggestions are enabled.
+    scotchBonnetEnableOverride:
+      type: boolean
+      setPref:
+        branch: default
+        pref: browser.urlbar.scotchBonnet.enableOverride
+      description: >-
+        Whether or not enabling scotch bonnet feature.
+        If this variable is true, the following features are available as default.
+        * Unified search button
+        * Secondary action buttons
+        * Search term persistence
+        * Intuitive search keywords
+        * HTTP swap
     serpEventTelemetryCategorizationEnabled:
       type: boolean
       setPref:

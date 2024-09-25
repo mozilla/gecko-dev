@@ -639,3 +639,54 @@ add_task(async function test_urlbar_text_after_previewed_search_mode() {
   window.document.querySelector("#searchmode-switcher-close").click();
   await UrlbarTestUtils.assertSearchMode(window, null);
 });
+
+add_task(async function nimbusScotchBonnetEnableOverride() {
+  info("Setup initial local pref");
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", false]],
+  });
+  await TestUtils.waitForCondition(() => {
+    return BrowserTestUtils.isHidden(
+      gURLBar.querySelector("#urlbar-searchmode-switcher")
+    );
+  });
+  Assert.ok(true, "Search mode switcher should be hidden");
+
+  info("Setup Numbus value");
+  const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature(
+    { scotchBonnetEnableOverride: true },
+    "search"
+  );
+  await TestUtils.waitForCondition(() => {
+    return BrowserTestUtils.isVisible(
+      gURLBar.querySelector("#urlbar-searchmode-switcher")
+    );
+  });
+  Assert.ok(true, "Search mode switcher should be visible");
+
+  await cleanUpNimbusEnable();
+  await SpecialPowers.popPrefEnv();
+});
+
+add_task(async function nimbusLogEnabled() {
+  info("Setup initial local pref");
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.search.log", false]],
+  });
+  await TestUtils.waitForCondition(() => {
+    return !Services.prefs.getBoolPref("browser.search.log");
+  });
+
+  info("Setup Numbus value");
+  const cleanUpNimbusEnable = await UrlbarTestUtils.initNimbusFeature(
+    { logEnabled: true },
+    "search"
+  );
+  await TestUtils.waitForCondition(() => {
+    return Services.prefs.getBoolPref("browser.search.log");
+  });
+  Assert.ok(true, "browser.search.log is changed properly");
+
+  await cleanUpNimbusEnable();
+  await SpecialPowers.popPrefEnv();
+});
