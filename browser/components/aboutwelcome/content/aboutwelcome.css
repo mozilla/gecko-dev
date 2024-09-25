@@ -1001,6 +1001,8 @@ html {
   --mr-screen-heading-color: var(--in-content-text-color);
   --mr-welcome-background-gradient: linear-gradient(0deg, rgba(144, 89, 255, 20%) 0%, rgba(2, 144, 238, 20%) 100%);
   --mr-screen-background-color: #F8F6F4;
+  --single-select-border-color: #8F8F9D;
+  --single-select-hover-color: #DEDEDF;
   font-family: system-ui;
   font-size: 16px;
   position: relative;
@@ -1014,6 +1016,7 @@ html {
     --mr-welcome-background-color: #333336;
     --mr-welcome-background-gradient: linear-gradient(0deg, rgba(144, 89, 255, 30%) 0%, rgba(2, 144, 238, 30%) 100%);
     --mr-screen-background-color: #62697A;
+    --single-select-hover-color: #52525E;
   }
 }
 @media (prefers-contrast) {
@@ -2224,11 +2227,27 @@ html {
   flex-direction: row;
   justify-content: flex-start;
   padding-top: 5px;
+  gap: 10px;
 }
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item {
-  flex: unset;
   position: relative;
   padding-top: 5px;
+  border: 2px solid var(--single-select-border-color);
+  border-radius: 12px;
+}
+.onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:has(.input:focus), .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:has(.selected) {
+  outline: none;
+}
+.onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:has(.input:focus) {
+  outline: 2px solid var(--in-content-primary-button-background);
+  outline-offset: 5px;
+}
+.onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:has(.selected) {
+  border: 3px solid var(--in-content-primary-button-background);
+  border-radius: 12px;
+}
+.onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:hover {
+  background-color: var(--single-select-hover-color);
 }
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item:focus-visible {
   outline: none;
@@ -2246,6 +2265,12 @@ html {
   right: 1px;
   top: -10px;
   line-height: 1;
+}
+.onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item .icon {
+  outline: none;
+}
+.onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item .text {
+  margin-block: 8px;
 }
 .onboardingContainer .tiles-single-select-section.wallpaper .select-item, .onboardingContainer .tiles-single-select-section.theme .select-item {
   width: 180px;
