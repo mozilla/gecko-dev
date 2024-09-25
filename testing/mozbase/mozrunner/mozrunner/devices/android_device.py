@@ -283,6 +283,8 @@ def metadata_for_app(app, aab=False):
     return Android metadata including launch `activity_name`, `package_name`, 'subcommand'.
     to reduce special-casing throughout the code base"""
     metadata = namedtuple("metadata", ["activity_name", "package_name", "subcommand"])
+    if not app:
+        app = "org.mozilla.geckoview.test_runner"
     package_name = app
     activity_name = None
     subcommand = None
@@ -388,6 +390,8 @@ def verify_android_device(
                 os.environ["DEVICE_SERIAL"] = d["device_serial"]
                 break
 
+    metadata = metadata_for_app(app, aab)
+
     if device_verified and install != InstallIntent.NO:
         # Determine if test app is installed on the device; if not,
         # prompt to install. This feature allows a test command to
@@ -401,11 +405,8 @@ def verify_android_device(
         # Installing every time (without prompting) is problematic because:
         #  - it prevents testing against other builds (downloaded apk)
         #  - installation may take a couple of minutes.
-        if not app:
-            app = "org.mozilla.geckoview.test_runner"
         device = _get_device(build_obj.substs, device_serial)
         response = ""
-        metadata = metadata_for_app(app, aab)
         installed = device.is_app_installed(metadata.package_name)
 
         if not installed:
