@@ -1173,6 +1173,8 @@
     <string name="bookmark_saved_in_folder_snackbar">Saved in “%s”</string>
     <!-- Snackbar edit button shown after a bookmark has been created. -->
     <string name="edit_bookmark_snackbar_action">EDIT</string>
+    <!-- Bookmark menu move button -->
+    <string name="bookmark_menu_move_button">Move</string>
     <!-- Bookmark overflow menu edit button -->
     <string name="bookmark_menu_edit_button">Edit</string>
     <!-- Bookmark overflow menu copy button -->
@@ -1239,6 +1241,8 @@
     <string name ="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Close bookmarks</string>
     <!-- Content description for bookmark search floating action button -->
     <string name ="bookmark_search_button_content_description">Search bookmarks</string>
+    <!-- Content description for icon to open the overflow menu for selected bookmarks -->
+    <string name ="bookmark_selected_menu_button_content_description">Overflow menu</string>
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name ="bookmark_item_menu_button_content_description">Item Menu for %s</string>
     <!-- Title for the bookmark list empty state-->
