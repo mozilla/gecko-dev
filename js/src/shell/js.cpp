@@ -5237,11 +5237,14 @@ static bool StackDump(JSContext* cx, unsigned argc, Value* vp) {
 }
 #endif
 
-static bool StackPointerInfo(JSContext* cx, unsigned argc, Value* vp) {
+MOZ_ASAN_IGNORE static bool StackPointerInfo(JSContext* cx, unsigned argc,
+                                             Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Copy the truncated stack pointer to the result.  This value is not used
   // as a pointer but as a way to measure frame-size from JS.
+  // The ASAN must be disabled for this function -- it may allocate `args`
+  // not on the stack.
   args.rval().setInt32(int32_t(reinterpret_cast<size_t>(&args) & 0xfffffff));
   return true;
 }
