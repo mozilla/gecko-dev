@@ -3634,6 +3634,26 @@ class GeckoEngineTest {
         verify(mockRuntime.settings).setFingerprintingProtectionPrivateBrowsing(false)
     }
 
+    @Test
+    fun `WHEN Fingerprinting Protection Overrides is set THEN setFingerprintingProtectionOverrides is getting called on GeckoRuntime`() {
+        val mockRuntime = mock<GeckoRuntime>()
+        whenever(mockRuntime.settings).thenReturn(mock())
+
+        val engine = GeckoEngine(testContext, runtime = mockRuntime)
+
+        reset(mockRuntime.settings)
+        engine.settings.fingerprintingProtectionOverrides = "+AllTargets"
+        verify(mockRuntime.settings).setFingerprintingProtectionOverrides("+AllTargets")
+
+        reset(mockRuntime.settings)
+        engine.settings.fingerprintingProtectionOverrides = "-AllTargets"
+        verify(mockRuntime.settings).setFingerprintingProtectionOverrides("-AllTargets")
+
+        reset(mockRuntime.settings)
+        engine.settings.fingerprintingProtectionOverrides = ""
+        verify(mockRuntime.settings).setFingerprintingProtectionOverrides("")
+    }
+
     private fun createSocialTrackersLogEntryList(): List<ContentBlockingController.LogEntry> {
         val blockedLogEntry = object : ContentBlockingController.LogEntry() {}
 
