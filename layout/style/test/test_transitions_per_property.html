@@ -371,12 +371,6 @@ if (IsCSSPropertyPrefEnabled("layout.css.contain-intrinsic-size.enabled")) {
 
 supported_properties["content-visibility"] = [test_content_visibility_transition];
 
-if (IsCSSPropertyPrefEnabled("layout.css.zoom.enabled")) {
-  Object.assign(supported_properties, {
-    "zoom": [ test_number_transition, test_percent_transition ],
-  });
-}
-
 // For properties which are well-tested by web-platform-tests, we don't need to
 // test animations/transitions again on them.
 var skipped_transitionable_properties = [
