@@ -119,6 +119,10 @@ eslint:
             # The plugin implementing custom checks.
             - 'tools/lint/eslint/eslint-plugin-mozilla/**'
             - 'tools/lint/eslint/eslint-plugin-spidermonkey-js/**'
+    fetches:
+        toolchain:
+            - linux64-node
+
 
 eslint-build:
     description: ESLint checks with build data
@@ -151,6 +155,8 @@ eslint-build:
         build:
             - artifact: target.xpt_artifacts.zip
               dest: xpt_artifacts
+        toolchain:
+            - linux64-node
 
 stylelint:
     description: CSS lint check
@@ -170,6 +176,9 @@ stylelint:
             # Run when stylelint policies change.
             - '**/.stylelintignore'
             - '**/*stylelintrc*'
+    fetches:
+        toolchain:
+            - linux64-node
 
 license:
     description: Check for license blocks in source files.

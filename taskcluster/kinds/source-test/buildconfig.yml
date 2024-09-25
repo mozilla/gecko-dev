@@ -27,6 +27,7 @@ task-defaults:
     fetches:
         toolchain:
             - linux64-jdk-repack
+            - linux64-node
             - android-gradle-dependencies
             - android-sdk-linux
     use-python: system

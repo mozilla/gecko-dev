@@ -35,6 +35,10 @@ generate:
         sparse-profile: sphinx-docs
     optimization:
         skip-unless-schedules: [docs]
+    fetches:
+        toolchain:
+            - linux64-node
+
 
 upload:
     description: Generate and upload the Sphinx documentation
@@ -75,3 +79,6 @@ upload:
         - secrets:get:project/releng/gecko/build/level-{level}/gecko-docs-upload
     optimization:
         skip-unless-schedules: [docs]
+    fetches:
+        toolchain:
+            - linux64-node
