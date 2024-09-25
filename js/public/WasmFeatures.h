@@ -166,7 +166,7 @@
     /* capitalized name   */ JSPromiseIntegration,                      \
     /* lower case name    */ jsPromiseIntegration,                      \
     /* compile predicate  */ WASM_JSPI_ENABLED,                         \
-    /* compiler predicate */ IonAvailable(cx),                          \
+    /* compiler predicate */ IonPlatformSupport(),                      \
     /* flag predicate     */ true,                                      \
     /* flag force enable  */ false,                                     \
     /* flag fuzz enable   */ false,                                     \
