@@ -363,5 +363,10 @@ pref(intl.icu4x.segmenter.enabled,false) == ethiopic-wordspace.html ethiopic-wor
 != webkit-text-security-5.html?square webkit-text-security-5.html?circle
 == webkit-text-security-placeholder.html webkit-text-security-placeholder-ref.html
 
+# The color-scheme overrides make sure that plaintext.css applies.
+== utf16-bom.txt utf16-bom-ref.txt
+pref(layout.css.prefers-color-scheme.content-override,0) == utf16-bom.txt utf16-bom-ref.txt
+test-pref(layout.css.prefers-color-scheme.content-override,0) ref-pref(layout.css.prefers-color-scheme.content-override,1) != utf16-bom.txt utf16-bom-ref.txt
+
 # Reset default prefs.
 defaults
