@@ -140,10 +140,6 @@ support-files = [
 ["browser_partitionedLocalStorage_events.js"]
 support-files = ["localStorageEvents.html"]
 
-["browser_nimbus_3pcb.js"]
-
-["browser_nimbus_etp_features.js"]
-
 ["browser_partitionedLockManager.js"]
 
 ["browser_partitionedMessaging.js"]
