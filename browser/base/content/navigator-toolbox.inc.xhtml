@@ -41,7 +41,6 @@
                          data-l10n-id="toolbar-button-firefox-view-2"
                          role="button"
                          aria-pressed="false"
-                         oncommand="FirefoxViewHandler.openTab();"
                          onmousedown="FirefoxViewHandler.openToolbarMouseEvent(event);"
                          cui-areatype="toolbar"
                          removable="true"/>
@@ -111,7 +110,6 @@
         <label data-l10n-id="private-browsing-indicator-label"></label>
       </hbox>
       <toolbarbutton id="content-analysis-indicator"
-                     oncommand="ContentAnalysis.showPanel(this, PanelUI);"
                      class="toolbarbutton-1 content-analysis-indicator-icon"/>
 
 #include titlebar-items.inc.xhtml
@@ -560,14 +558,12 @@
                      class="toolbarbutton-1"
                      delegatesanchor="true"
                      flex="1"
-                     data-l10n-id="bookmarks-toolbar-placeholder-button"
-                     oncommand="PlacesToolbarHelper.onPlaceholderCommand();"/>
+                     data-l10n-id="bookmarks-toolbar-placeholder-button"/>
       <hbox flex="1"
             id="PlacesToolbar"
             context="placesContext"
             onmouseup="BookmarksEventHandler.onMouseUp(event);"
             onclick="BookmarksEventHandler.onClick(event, this._placesView);"
-            oncommand="BookmarksEventHandler.onCommand(event);"
             tooltip="bhTooltip"
             popupsinherittooltip="true">
         <hbox id="PlacesToolbarDropIndicatorHolder" align="center" collapsed="true">
@@ -602,7 +598,6 @@
   <html:template id="BrowserToolbarPalette">
     <toolbarbutton id="import-button"
                    class="toolbarbutton-1 chromeclass-toolbar-additional"
-                   oncommand="MigrationUtils.showMigrationWizard(window, { entrypoint: MigrationUtils.MIGRATION_ENTRYPOINTS.BOOKMARKS_TOOLBAR });"
                    data-l10n-id="browser-import-button2"/>
 
     <toolbarbutton id="new-window-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
@@ -628,8 +623,7 @@
                    ondragenter="PlacesMenuDNDHandler.onDragEnter(event);"
                    ondragover="PlacesMenuDNDHandler.onDragOver(event);"
                    ondragleave="PlacesMenuDNDHandler.onDragLeave(event);"
-                   ondrop="PlacesMenuDNDHandler.onDrop(event);"
-                   oncommand="BookmarkingUI.onCommand(event);">
+                   ondrop="PlacesMenuDNDHandler.onDrop(event);">
       <menupopup id="BMB_bookmarksPopup"
                  is="places-popup-arrow"
                  class="toolbar-menupopup animatable-menupopup"
@@ -638,17 +632,14 @@
                  openInTabs="children"
                  side="top"
                  onmouseup="BookmarksEventHandler.onMouseUp(event);"
-                 oncommand="BookmarksEventHandler.onCommand(event);"
                  onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
                  tooltip="bhTooltip" popupsinherittooltip="true">
         <menuitem id="BMB_viewBookmarksSidebar"
                   data-l10n-id="bookmarks-tools-sidebar-visibility"
                   data-l10n-args='{ "isVisible": false }'
-                  oncommand="SidebarController.toggle('viewBookmarksSidebar');"
                   key="viewBookmarksSidebarKb"/>
         <menuitem id="BMB_searchBookmarks"
-                  data-l10n-id="bookmarks-search"
-                  oncommand="PlacesCommandHook.searchBookmarks();"/>
+                  data-l10n-id="bookmarks-search"/>
         <!-- NB: temporary solution for bug 985024, this should go away soon. -->
         <menuitem id="BMB_bookmarksShowAllTop"
                   data-l10n-id="bookmarks-manage-bookmarks"
@@ -665,8 +656,7 @@
                      context="placesContext">
             <menuitem id="BMB_viewBookmarksToolbar"
                       data-l10n-id="bookmarks-tools-toolbar-visibility-menuitem"
-                      data-l10n-args='{ "isVisible": false }'
-                      oncommand="BookmarkingUI.toggleBookmarksToolbar('bookmarks-widget');"/>
+                      data-l10n-args='{ "isVisible": false }'/>
             <menuseparator/>
             <!-- Bookmarks toolbar items -->
           </menupopup>

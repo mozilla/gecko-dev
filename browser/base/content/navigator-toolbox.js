@@ -36,6 +36,70 @@ document.addEventListener(
           break;
       }
     });
+
+    navigatorToolbox.addEventListener("command", event => {
+      let element = event.target.closest(`
+        #firefox-view-button,
+        #content-analysis-indicator,
+        #bookmarks-toolbar-button,
+        #PlacesToolbar,
+        #import-button,
+        #bookmarks-menu-button,
+        #BMB_bookmarksPopup,
+        #BMB_viewBookmarksSidebar,
+        #BMB_searchBookmarks,
+        #BMB_viewBookmarksToolbar`);
+      if (!element) {
+        return;
+      }
+
+      switch (element.id) {
+        case "firefox-view-button":
+          FirefoxViewHandler.openTab();
+          break;
+
+        case "content-analysis-indicator":
+          ContentAnalysis.showPanel(element, PanelUI);
+          break;
+
+        case "bookmarks-toolbar-button":
+          PlacesToolbarHelper.onPlaceholderCommand();
+          break;
+
+        case "PlacesToolbar":
+          BookmarksEventHandler.onCommand(event);
+          break;
+
+        case "import-button":
+          MigrationUtils.showMigrationWizard(window, {
+            entrypoint: MigrationUtils.MIGRATION_ENTRYPOINTS.BOOKMARKS_TOOLBAR,
+          });
+          break;
+
+        case "bookmarks-menu-button":
+          BookmarkingUI.onCommand(event);
+          break;
+
+        case "BMB_bookmarksPopup":
+          BookmarksEventHandler.onCommand(event);
+          break;
+
+        case "BMB_viewBookmarksSidebar":
+          SidebarController.toggle("viewBookmarksSidebar");
+          break;
+
+        case "BMB_searchBookmarks":
+          PlacesCommandHook.searchBookmarks();
+          break;
+
+        case "BMB_viewBookmarksToolbar":
+          BookmarkingUI.toggleBookmarksToolbar("bookmarks-widget");
+          break;
+
+        default:
+          throw new Error(`Missing case for #${element.id}`);
+      }
+    });
   },
   { once: true }
 );
