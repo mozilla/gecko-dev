@@ -135,7 +135,6 @@ import org.mozilla.fenix.messaging.FenixMessageSurfaceId
 import org.mozilla.fenix.messaging.MessageNotificationWorker
 import org.mozilla.fenix.nimbus.FxNimbus
 import org.mozilla.fenix.onboarding.ReEngagementNotificationWorker
-import org.mozilla.fenix.partnerships.PartnershipDealIdUtil
 import org.mozilla.fenix.perf.MarkersActivityLifecycleCallbacks
 import org.mozilla.fenix.perf.MarkersFragmentLifecycleCallbacks
 import org.mozilla.fenix.perf.Performance
@@ -376,14 +375,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             safeIntent
                 ?.let(::getIntentSource)
                 ?.also { source ->
-                    lifecycleScope.launch {
-                        Events.appOpened.record(
-                            Events.AppOpenedExtra(
-                                source = source,
-                                dealId = PartnershipDealIdUtil.getPartnershipDealId(),
-                            ),
-                        )
-                    }
+                    Events.appOpened.record(
+                        Events.AppOpenedExtra(
+                            source = source,
+                        ),
+                    )
                     // This will record an event in Nimbus' internal event store. Used for behavioral targeting
                     recordEventInNimbus("app_opened")
 
