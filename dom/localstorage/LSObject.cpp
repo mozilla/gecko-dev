@@ -1139,8 +1139,11 @@ RequestHelper::Run() {
       // message and it wouldn't make any sense because the request is about to
       // be destroyed anyway.
       if (mActor && !mActor->Finishing()) {
-        mActor->SendCancel();
+        if (mActor->SendCancel()) {
+          glean::ls_request::send_cancellation.Add();
+        }
       }
+
       return NS_OK;
     }
 

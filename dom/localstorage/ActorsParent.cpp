@@ -6470,6 +6470,8 @@ mozilla::ipc::IPCResult LSRequestBase::RecvCancel() {
 
   Log();
 
+  glean::ls_request::recv_cancellation.Add();
+
   const char* crashOnCancel = PR_GetEnv("LSNG_CRASH_ON_CANCEL");
   if (crashOnCancel) {
     MOZ_CRASH("LSNG: Crash on cancel.");

@@ -54,4 +54,37 @@ ls.preparedatastore:
       - hsingh@mozilla.com
       - jvarga@mozilla.com
       - storage-telemetry@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: 135
+ls.request:
+  send_cancellation:
+    type: counter
+    description: >
+      Upticks whenever a LS request cancellation message is sent.
+      This includes requests for ensuring either LSDatabase or LSObserver.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - hsingh@mozilla.com
+      - jvarga@mozilla.com
+    expires: 135
+  recv_cancellation:
+    type: counter
+    description: >
+      Upticks whenever a LS request cancellation message is received.
+      This includes requests for ensuring either LSDatabase or LSObserver in the child.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - hsingh@mozilla.com
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
     expires: 135
