@@ -1,4 +1,4 @@
-// |jit-test| allow-oom; skip-if: !canRunHugeMemoryTests()
+// |jit-test| heavy; allow-oom; skip-if: !canRunHugeMemoryTests()
 
 function testIt(s, addr) {
     try {

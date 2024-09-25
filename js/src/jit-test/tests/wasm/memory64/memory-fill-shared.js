@@ -1,4 +1,4 @@
-// |jit-test| allow-oom; slow; skip-if: !canRunHugeMemoryTests()
+// |jit-test| heavy; allow-oom; slow; skip-if: !canRunHugeMemoryTests()
 
 // This is just like memory-fill.js, but it is marked slow because the
 // C++-UB-safe operations we use for out-of-line fills on shared memory are slow

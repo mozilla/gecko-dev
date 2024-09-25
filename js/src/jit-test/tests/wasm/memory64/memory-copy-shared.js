@@ -1,4 +1,4 @@
-// |jit-test| allow-oom; slow; skip-if: !canRunHugeMemoryTests()
+// |jit-test| heavy; allow-oom; slow; skip-if: !canRunHugeMemoryTests()
 
 // This is just like memory-copy.js, but it is marked slow because the
 // C++-UB-safe operations we use for out-of-line copies on shared memory are slow

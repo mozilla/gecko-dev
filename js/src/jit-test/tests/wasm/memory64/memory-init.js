@@ -1,4 +1,4 @@
-// |jit-test| allow-oom; skip-if: !canRunHugeMemoryTests()
+// |jit-test| heavy; allow-oom; skip-if: !canRunHugeMemoryTests()
 
 var S = (function () {
     let s = "";

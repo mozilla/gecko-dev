@@ -1,4 +1,4 @@
-// |jit-test| allow-oom; skip-if: !canRunHugeMemoryTests()
+// |jit-test| heavy; allow-oom; skip-if: !canRunHugeMemoryTests()
 
 // This tests that we can grow the heap by more than 4GB.  Other grow tests are
 // in basic.js.

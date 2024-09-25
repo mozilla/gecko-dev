@@ -1,4 +1,4 @@
-// |jit-test| allow-oom; skip-if: !canRunHugeMemoryTests()
+// |jit-test| heavy; allow-oom; skip-if: !canRunHugeMemoryTests()
 
 const maxPages = wasmMaxMemoryPages("i64");
 const m = new WebAssembly.Memory({initial: 0n, index: "i64"});
