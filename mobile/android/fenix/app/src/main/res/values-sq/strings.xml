@@ -118,9 +118,9 @@
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_title">E re: shigjeta me një prekje, për para dhe mbrapsht</string>
+    <string name="tablet_nav_bar_cfr_title" moz:removedIn="132" tools:ignore="UnusedResources">E re: shigjeta me një prekje, për para dhe mbrapsht</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
-    <string name="tablet_nav_bar_cfr_message">Shijoni lëvizje më të shpejtë që e keni përherë në majë të gishtave.</string>
+    <string name="tablet_nav_bar_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Shijoni lëvizje më të shpejtë që e keni përherë në majë të gishtave.</string>
 
     <!-- Text for the info dialog when camera permissions have been denied but user tries to access a camera feature. -->
     <string name="camera_permissions_needed_message">Lypset hyrje në kamera. Kaloni te rregullimet e Android-it, prekni mbi Leje dhe prekni Lejoje.</string>
@@ -212,6 +212,10 @@
     <string name="browser_menu_extensions_banner_learn_more">Mësoni më tepër</string>
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_manage_extensions">Administroni zgjerime</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Zgjerime të rekomanduara</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description">Shtoni zgjerim</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Zbuloni më tepër zgjerime</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -302,7 +306,7 @@
     <string name="browser_menu_switch_to_mobile_site">Kalo te sajti për celular</string>
     <!-- Browser menu label that navigates to the page tools sub-menu -->
     <string name="browser_menu_tools">Mjete</string>
-    <!-- Content description (not visible, for screen readers etc.): Back button for the page tools sub-menu -->
+    <!-- Content description (not visible, for screen readers etc.): Back button for all menu redesign sub-menu -->
     <string name="browser_menu_back_button_content_description">Mbrapsht te menuja kryesore</string>
     <!-- Browser menu description that describes the various tools related menu items inside of the tools sub-menu -->
     <string name="browser_menu_tools_description_with_translate">Pamje Lexuesi, Përktheni, Shtypni, Ndani Me të Tjerë, Hapni aplikacion</string>
@@ -401,7 +405,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Njihuni me faqen tuaj hyrëse të personalizuar. Këtu do të shfaqen skeda të hapura së fundi, faqerojtës dhe përfundime kërkimi.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Njihuni me faqen tuaj hyrëse të personalizuar. Këtu do të shfaqen skeda të hapura së fundi, faqerojtës dhe përfundime kërkimi.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Mirë se vini te një internet më personal</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -896,6 +900,10 @@
     <string name="preferences_marketing_data">Të dhëna marketingu</string>
     <!-- Preference description for marketing data collection -->
     <string name="preferences_marketing_data_description2">I jep Adjust-it, tregtuesit tonë të marketingut për platforma celulare, të dhëna elementare mbi përdorimin</string>
+    <!-- Preference switch title for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_title">Parashtro vetvetiu njoftime vithisjesh</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">I jep vetvetiu gjatë nisjes Mozilla-s të dhëna vithisjeje pasi ndodhin vithisje    </string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">Studime</string>
     <!-- Summary for studies preferences -->
@@ -1189,6 +1197,15 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Riktheje skedën</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s iu desh të rinisej</string>
+    <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
+    <string name="unsubmitted_crash_dialog_checkbox_label">Dërgo vetvetiu njoftime vithisjesh</string>
+    <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
+    <string name="unsubmitted_crash_dialog_negative_button">Mbylle</string>
+    <!-- Unsubmitted crash dialog positive button to submit crash report -->
+    <string name="unsubmitted_crash_dialog_positive_button">Dërgo njoftim vithisjeje</string>
+
     <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Jeni i sigurt se doni të fshihet kjo dosje?</string>
@@ -1269,12 +1286,23 @@
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name="bookmark_add_new_folder_button_content_description">Shtoni një dosje të re</string>
     <!-- Content description for the bookmark navigation bar close button -->
-    <string name="bookmark_close_button_content_description">Mbylli faqerojtësit</string>
+    <string name="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Mbylli faqerojtësit</string>
     <!-- Content description for bookmark search floating action button -->
     <string name="bookmark_search_button_content_description">Kërkoni te faqerojtësit</string>
 
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Menu Elementësh për %s</string>
+
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Ende pa faqerojtës</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Ruani sajte teksa shfletoni. Bëni hyrjen, që të merrni faqerojtës nga pajisje të tjera të njëkohësuara.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Për njëkohësim, bëni hyrjen</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Ruani sajte teksa shfletoni. Do të marrim gjithashtu faqerojtës nga pajisje të tjera të njëkohësuara.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Shtoni faqerojtës teksa shfletoni, që të mund të gjeni më vonë sajtet tuaj të parapëlqyer.</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2450,13 +2478,13 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Jo tani</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Shihni nëse mund t’u besoni shqyrtime të këtij produkti — para se të blini.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Shihni nëse mund t’u besoni shqyrtime të këtij produkti — para se të blini.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Provoni kontrollor shqyrtimesh</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Provoni kontrollor shqyrtimesh</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">A janë të besueshme këto shqyrtime? Provojeni tani, që të shihni vlerësim të përshtatur.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">A janë të besueshme këto shqyrtime? Provojeni tani, që të shihni vlerësim të përshtatur.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Hap kontrollorin e shqyrtimeve</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Hap kontrollorin e shqyrtimeve</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2810,16 +2838,24 @@
     <string name="likert_scale_option_6" tools:ignore="UnusedResources">S’e përdor</string>
     <!-- Option for likert scale. Note: The word "Firefox" should NOT be translated. -->
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">S’përdor kërkim në Firefox</string>
+    <!-- Option for likert scale -->
+    <string name="likert_scale_option_8" tools:ignore="UnusedResources">S’e përdor njëkohësimin</string>
     <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">Sa të kënaqur jeni me faqen hyrëse të Firefox-it?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Ndihmoni të përmirësojmë shtypjen në Firefox. Ha vetëm një sekondë</string>
+    <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_search_title" tools:ignore="BrandUsage,UnusedResources">Ndihmoni të përmirësohet kërkimi në Firefox. Do vetëm një minutë</string>
+    <!-- Text shown in prompt for sync microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_prompt_sync_title" tools:ignore="BrandUsage,UnusedResources">Ndihmoni të përmirësohet njëkohësimi në Firefox. Do vetëm një minutë</string>
     <!-- Text shown in the survey title for printing microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_survey_printing_title" tools:ignore="BrandUsage,UnusedResources">Sa të kënaqur jeni me shtypjen në Firefox?</string>
     <!-- Text shown in the survey title for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_homepage_title" tools:ignore="BrandUsage,UnusedResources">Sa të kënaqur jeni me faqen hyrëse të Firefox-it?</string>
     <!-- Text shown in the survey title for search experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_search_title" tools:ignore="BrandUsage,UnusedResources">Sa të kënaqur jeni me kërkimin në Firefox?</string>
+    <!-- Text shown in the survey title for sync experience microsurvey. Note: The word "Firefox" should NOT be translated. -->
+    <string name="microsurvey_sync_title" tools:ignore="BrandUsage,UnusedResources">Sa të kënaqur jeni nga funksionimi i njëkohësimit në Firefox?</string>
     <!-- Accessibility -->
     <!-- Content description for the survey application icon. Note: The word "Firefox" should NOT be translated.  -->
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Stemë Firefox-i</string>

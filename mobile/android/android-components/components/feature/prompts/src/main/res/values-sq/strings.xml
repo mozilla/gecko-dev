@@ -127,7 +127,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Mbroni llogaritë tuaja duke përdorur një fjalëkalim të fortë, të prodhuar kuturu. Përfitoni hyrje të shpejtë te fjalëkalimet tuaja, duke e ruajtur te llogaria juaj.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Mbroni llogaritë tuaja duke përdorur një fjalëkalim të fuqishëm, të krijuar kuturu. Do të ruhet në llogarinë tuaj, për përdorim në të ardhmen.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Mbroni llogaritë tuaja duke përdorur një fjalëkalim të fuqishëm, të krijuar kuturu. Do të ruhet në llogarinë tuaj, për përdorim në të ardhmen.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Mbroni llogarinë tuaj duke përdorur një fjalëkalim të fuqishëm, të krijuar kuturu. Do të ruhet në llogarinë tuaj, për përdorim në të ardhmen.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Përdor fjalëkalim</string>
@@ -202,7 +205,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Përdor %1$s si shërbim hyrjesh</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Hyrja te %1$s me një llogari %2$s është subjekt i <a href="%3$s">Rregullave të Privatësisë</a> dhe <a href="%4$s">Kushteve të Shërbimit</a> të tyre]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Hyrja te %1$s me një llogari %2$s është subjekt i <a href="%3$s">Rregullave të Privatësisë</a> dhe <a href="%4$s">Kushteve të Shërbimit</a> të tyre]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Vazhdo</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
