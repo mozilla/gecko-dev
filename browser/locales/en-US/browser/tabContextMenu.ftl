@@ -2,8 +2,12 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-tab-context-new-tab =
-    .label = New Tab
+# In left-to-right languages this should use "Right" and in right-to-left languages this should use "Left" to indicate the direction a new tab will open.
+tab-context-new-tab-open =
+    .label = New Tab to Right
+    .accesskey = w
+tab-context-new-tab-open-vertical =
+    .label = New Tab Below
     .accesskey = w
 reload-tab =
     .label = Reload Tab
@@ -28,10 +32,16 @@ duplicate-tabs =
 close-tabs-to-the-start =
     .label = Close Tabs to Left
     .accesskey = l
+close-tabs-to-the-start-vertical =
+    .label = Close Tabs Above
+    .accesskey = l
 # The following string is displayed on a menuitem that will close the tabs from the end of the tabstrip to the currently targeted tab (excluding the currently targeted and any other selected tabs).
 # In left-to-right languages this should use "Right" and in right-to-left languages this should use "Left".
 close-tabs-to-the-end =
     .label = Close Tabs to Right
+    .accesskey = i
+close-tabs-to-the-end-vertical =
+    .label = Close Tabs Below
     .accesskey = i
 close-other-tabs =
     .label = Close Other Tabs
