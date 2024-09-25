@@ -1030,8 +1030,8 @@ void Http2StreamBase::UpdatePriority(Http2Session* session) {
     return;
   }
 
-  uint8_t urgency =
-      nsHttpHandler::UrgencyFromCoSFlags(trans->GetClassOfService().Flags());
+  uint8_t urgency = nsHttpHandler::UrgencyFromCoSFlags(
+      trans->GetClassOfService().Flags(), trans->Priority());
   bool incremental = trans->GetClassOfService().Incremental();
   uint32_t streamID = GetWireStreamId();
 
