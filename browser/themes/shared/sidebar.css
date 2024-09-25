@@ -2,12 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#sidebar-main {
-  background-color: var(--toolbar-bgcolor);
-  color: var(--toolbar-color);
-  text-shadow: none;
-}
-
 #sidebar-box {
   background-color: var(--sidebar-background-color);
   color: var(--sidebar-text-color);
@@ -26,11 +20,6 @@
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.revamp") {
     min-width: 200px;
-    /* Note that with sidebar.revamp we apply the background to the #sidebar
-     * browser. We still need the #sidebar-box background to match the toolbar
-     * tho */
-    background-color: var(--toolbar-bgcolor);
-    color: var(--toolbar-color);
     padding-block-end: var(--space-small);
     padding-inline-end: var(--space-small);
     position: relative;
@@ -47,6 +36,24 @@
 
   &[sidebarcommand="viewReviewCheckerSidebar"] {
     width: 340px;
+  }
+}
+
+/* Note that with sidebar.revamp we apply the --sidebar-background-color to the
+ * #sidebar browser. We still need the #sidebar-box background to match the
+ * toolbar tho */
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "sidebar.revamp") {
+  #sidebar-main,
+  #sidebar-box {
+    background-color: var(--toolbar-bgcolor);
+    color: var(--toolbar-color);
+    text-shadow: none;
+
+    :root[lwtheme] & {
+      background-color: var(--lwt-accent-color);
+      background-image: linear-gradient(var(--toolbar-bgcolor), var(--toolbar-bgcolor));
+    }
   }
 }
 
