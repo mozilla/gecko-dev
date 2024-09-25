@@ -1259,11 +1259,13 @@
       children.pop();
 
       // explode tab groups
-      Array.from(children).forEach((node, index) => {
-        if (node.tagName == "tab-group") {
-          children.splice(index, 1, ...node.tabs);
+      // Iterate backwards over the array to preserve indices while we modify
+      // things in place
+      for (let i = children.length - 1; i >= 0; i--) {
+        if (children[i].tagName == "tab-group") {
+          children.splice(i, 1, ...children[i].tabs);
         }
-      });
+      }
 
       let allChildren = [...verticalPinnedTabsContainer.children, ...children];
       this._allTabs = allChildren;

@@ -597,3 +597,31 @@ add_task(
     });
   }
 );
+
+/*
+ * Tests that gBrowser.tabs does not contain tab groups after tabs have been
+ * moved between tab groups. Resolves bug1920731.
+ */
+add_task(async function test_tabsContainNoTabGroups() {
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+
+  gBrowser.addTabGroup("red", "test", [tab]);
+  gBrowser.addTabGroup("blue", "test", [tab]);
+
+  Assert.equal(
+    gBrowser.tabs.length,
+    2,
+    "tab strip contains default tab and our tab"
+  );
+  gBrowser.tabs.forEach((t, idx) => {
+    Assert.equal(
+      t.constructor.name,
+      "MozTabbrowserTab",
+      `gBrowser.tabs[${idx}] is of type MozTabbrowserTab`
+    );
+  });
+
+  BrowserTestUtils.removeTab(tab);
+});
