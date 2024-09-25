@@ -61,7 +61,7 @@ fxview-search-textbox {
     background-color: var(--toolbar-field-background-color);
     color: var(--toolbar-field-color);
     border-radius: 2em;
-    border: none;
+    border: 0.5px solid var(--panel-separator-color);
   }
 
   &::part(container) {
