@@ -434,7 +434,7 @@ export default class LoginItem extends HTMLElement {
     this._updatePasswordRevealState();
 
     let method = this._revealCheckbox.checked ? "show" : "hide";
-    this._recordTelemetryEvent({ name: method + "Password" });
+    this._recordTelemetryEvent({ object: "password", method });
   }
 
   async handleCancelEvent(_e) {
@@ -450,7 +450,8 @@ export default class LoginItem extends HTMLElement {
     } else if (!this.hasPendingChanges()) {
       window.dispatchEvent(new CustomEvent("AboutLoginsClearSelection"));
       this._recordTelemetryEvent({
-        name: "cancelNewLogin",
+        object: "new_login",
+        method: "cancel",
       });
 
       this.setLogin(this._login, { skipFocusChange: true });
@@ -500,7 +501,8 @@ export default class LoginItem extends HTMLElement {
     }, LoginItem.COPY_BUTTON_RESET_TIMEOUT);
     this._copyPasswordTimeoutId = timeoutId;
     this._recordTelemetryEvent({
-      name: "copyPassword",
+      object: "password",
+      method: "copy",
     });
   }
 
@@ -531,7 +533,8 @@ export default class LoginItem extends HTMLElement {
     }, LoginItem.COPY_BUTTON_RESET_TIMEOUT);
     this._copyUsernameTimeoutId = timeoutId;
     this._recordTelemetryEvent({
-      name: "copyUsername",
+      object: "username",
+      method: "copy",
     });
   }
 
@@ -558,14 +561,16 @@ export default class LoginItem extends HTMLElement {
     this.render();
 
     this._recordTelemetryEvent({
-      name: "editExistingLogin",
+      object: "existing_login",
+      method: "edit",
     });
   }
 
   async handleAlertLearnMoreClick({ currentTarget }) {
     if (currentTarget.closest(".vulnerable-alert")) {
       this._recordTelemetryEvent({
-        name: "learnMoreVulnExistingLogin",
+        object: "existing_login",
+        method: "learn_more_vuln",
       });
     }
   }
@@ -608,7 +613,8 @@ export default class LoginItem extends HTMLElement {
       );
 
       this._recordTelemetryEvent({
-        name: "saveExistingLogin",
+        object: "existing_login",
+        method: "save",
       });
       this._toggleEditing(false);
       this.render();
@@ -620,7 +626,7 @@ export default class LoginItem extends HTMLElement {
         })
       );
 
-      this._recordTelemetryEvent({ name: "saveNewLogin" });
+      this._recordTelemetryEvent({ object: "new_login", method: "save" });
     }
   }
 
@@ -655,7 +661,7 @@ export default class LoginItem extends HTMLElement {
     }
     this._updatePasswordRevealState();
     let method = this._revealCheckbox.checked ? "show" : "hide";
-    this._recordTelemetryEvent({ name: method + "Password" });
+    this._recordTelemetryEvent({ object: "password", method });
   }
 
   /**
@@ -719,7 +725,8 @@ export default class LoginItem extends HTMLElement {
           onConfirm();
         } catch (ex) {}
         this._recordTelemetryEvent({
-          name: method + (wasExistingLogin ? "ExistingLogin" : "NewLogin"),
+          object: wasExistingLogin ? "existing_login" : "new_login",
+          method,
         });
       },
       () => {}
@@ -862,7 +869,8 @@ export default class LoginItem extends HTMLElement {
 
   _handleOriginClick() {
     this._recordTelemetryEvent({
-      name: "openSiteExistingLogin",
+      object: "existing_login",
+      method: "open_site",
     });
   }
 
@@ -905,13 +913,13 @@ export default class LoginItem extends HTMLElement {
     // following conditionals must reflect this priority.
     const extra = eventObject.hasOwnProperty("extra") ? eventObject.extra : {};
     if (this._breachesMap && this._breachesMap.has(this._login.guid)) {
-      Object.assign(extra, { breached: true });
+      Object.assign(extra, { breached: "true" });
       eventObject.extra = extra;
     } else if (
       this._vulnerableLoginsMap &&
       this._vulnerableLoginsMap.has(this._login.guid)
     ) {
-      Object.assign(extra, { vulnerable: true });
+      Object.assign(extra, { vulnerable: "true" });
       eventObject.extra = extra;
     }
     recordTelemetryEvent(eventObject);

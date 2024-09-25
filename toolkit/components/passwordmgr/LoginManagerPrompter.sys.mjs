@@ -227,10 +227,10 @@ export class LoginManagerPrompter {
 
     const wasModifiedEvent = {
       // Values are mutated
-      did_edit_un: false,
-      did_select_un: false,
-      did_edit_pw: false,
-      did_select_pw: false,
+      did_edit_un: "false",
+      did_select_un: "false",
+      did_edit_pw: "false",
+      did_select_pw: "false",
     };
 
     const updateButtonStatus = element => {
@@ -323,25 +323,25 @@ export class LoginManagerPrompter {
     };
 
     const onUsernameInput = () => {
-      wasModifiedEvent.did_edit_un = true;
-      wasModifiedEvent.did_select_un = false;
+      wasModifiedEvent.did_edit_un = "true";
+      wasModifiedEvent.did_select_un = "false";
       onInput();
     };
 
     const onUsernameSelect = () => {
-      wasModifiedEvent.did_edit_un = false;
-      wasModifiedEvent.did_select_un = true;
+      wasModifiedEvent.did_edit_un = "false";
+      wasModifiedEvent.did_select_un = "true";
     };
 
     const onPasswordInput = () => {
-      wasModifiedEvent.did_edit_pw = true;
-      wasModifiedEvent.did_select_pw = false;
+      wasModifiedEvent.did_edit_pw = "true";
+      wasModifiedEvent.did_select_pw = "false";
       onInput();
     };
 
     const onPasswordSelect = () => {
-      wasModifiedEvent.did_edit_pw = false;
-      wasModifiedEvent.did_select_pw = true;
+      wasModifiedEvent.did_edit_pw = "false";
+      wasModifiedEvent.did_select_pw = "true";
     };
 
     const onKeyUp = e => {
@@ -444,7 +444,7 @@ export class LoginManagerPrompter {
         Services.logins.recordPasswordUse(
           loginToUpdate,
           PrivateBrowsingUtils.isBrowserPrivate(browser),
-          loginToUpdate.username ? "FormPassword" : "FormLogin",
+          loginToUpdate.username ? "form_password" : "form_login",
           !!autoFilledLoginGuid
         );
       } else {
@@ -479,11 +479,11 @@ export class LoginManagerPrompter {
       callback: async () => {
         const eventTypeMapping = {
           "password-save": {
-            eventObject: "Save",
+            eventObject: "save",
             confirmationHintFtlId: "confirmation-hint-password-created",
           },
           "password-change": {
-            eventObject: "Update",
+            eventObject: "update",
             confirmationHintFtlId: "confirmation-hint-password-updated",
           },
         };
@@ -520,9 +520,13 @@ export class LoginManagerPrompter {
         browser.focus();
         await persistData();
 
-        Glean.pwmgr[
-          "doorhangerSubmitted" + eventTypeMapping[type].eventObject
-        ].record(wasModifiedEvent);
+        Services.telemetry.recordEvent(
+          "pwmgr",
+          "doorhanger_submitted",
+          eventTypeMapping[type].eventObject,
+          null,
+          wasModifiedEvent
+        );
 
         if (histogramName == "PWMGR_PROMPT_REMEMBER_ACTION") {
           Services.obs.notifyObservers(browser, "LoginStats:NewSavedPassword");

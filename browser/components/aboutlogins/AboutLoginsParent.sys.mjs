@@ -402,11 +402,8 @@ export class AboutLoginsParent extends JSWindowActorParent {
       captionText.value
     );
 
-    let { name, extra = {}, value = null } = telemetryEvent;
-    if (value) {
-      extra.value = value;
-    }
-    Glean.pwmgr[name].record(extra);
+    let { method, object, extra = {}, value = null } = telemetryEvent;
+    Services.telemetry.recordEvent("pwmgr", method, object, value, extra);
 
     if (!isAuthorized) {
       return;
@@ -416,7 +413,11 @@ export class AboutLoginsParent extends JSWindowActorParent {
     function fpCallback(aResult) {
       if (aResult != Ci.nsIFilePicker.returnCancel) {
         lazy.LoginExport.exportAsCSV(fp.file.path);
-        Glean.pwmgr.mgmtMenuItemUsedExportComplete.record();
+        Services.telemetry.recordEvent(
+          "pwmgr",
+          "mgmt_menu_item_used",
+          "export_complete"
+        );
       }
     }
     let [title, defaultFilename, okButtonLabel, csvFilterTitle] =
@@ -488,7 +489,11 @@ export class AboutLoginsParent extends JSWindowActorParent {
       }
       if (summary) {
         this.sendAsyncMessage("AboutLogins:ImportPasswordsDialog", summary);
-        Glean.pwmgr.mgmtMenuItemUsedImportCsvComplete.record();
+        Services.telemetry.recordEvent(
+          "pwmgr",
+          "mgmt_menu_item_used",
+          "import_csv_complete"
+        );
       }
     }
   }

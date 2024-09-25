@@ -238,7 +238,7 @@ class LoginsFooterAutocompleteItem extends AutocompleteItem {
       formHostname,
       fillMessageName: "PasswordManager:OpenPreferences",
       fillMessageData: {
-        entryPoint: "Autocomplete",
+        entryPoint: "autocomplete",
       },
     });
   }

@@ -927,7 +927,11 @@ export class LoginManagerParent extends JSWindowActorParent {
 
     generatedPW.autocompleteShown = true;
 
-    Glean.pwmgr.autocompleteShownGeneratedpassword.record();
+    Services.telemetry.recordEvent(
+      "pwmgr",
+      "autocomplete_shown",
+      "generatedpassword"
+    );
   }
 
   /**
@@ -989,7 +993,7 @@ export class LoginManagerParent extends JSWindowActorParent {
       Services.logins.recordPasswordUse(
         login,
         browser && lazy.PrivateBrowsingUtils.isBrowserPrivate(browser),
-        login.username ? "FormLogin" : "FormPassword",
+        login.username ? "form_login" : "form_password",
         !!autoFilledLoginGuid
       );
     }
@@ -1279,7 +1283,11 @@ export class LoginManagerParent extends JSWindowActorParent {
 
         // Record telemetry for the first edit
         if (!generatedPW.edited) {
-          Glean.pwmgr.filledFieldEditedGeneratedpassword.record();
+          Services.telemetry.recordEvent(
+            "pwmgr",
+            "filled_field_edited",
+            "generatedpassword"
+          );
           lazy.log("filled_field_edited telemetry event recorded.");
           generatedPW.edited = true;
         }
@@ -1293,7 +1301,11 @@ export class LoginManagerParent extends JSWindowActorParent {
           );
         }
         // record first use of this generated password
-        Glean.pwmgr.autocompleteFieldGeneratedpassword.record();
+        Services.telemetry.recordEvent(
+          "pwmgr",
+          "autocomplete_field",
+          "generatedpassword"
+        );
         lazy.log("autocomplete_field telemetry event recorded.");
         generatedPW.filled = true;
       }

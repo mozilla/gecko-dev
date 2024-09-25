@@ -331,9 +331,7 @@ export class AutoCompleteParent extends JSWindowActorParent {
       return accumulated;
     }, rawExtraData);
 
-    // Even though Glean events do not require converting extra values to
-    // strings, keep doing it so booleans keep being encoded as they were for
-    // Telemetry recordEvent.
+    // Convert extra values to strings since recordEvent requires that.
     let extraStrings = Object.fromEntries(
       Object.entries(rawExtraData).map(([key, val]) => {
         let stringVal = "";
@@ -346,8 +344,14 @@ export class AutoCompleteParent extends JSWindowActorParent {
       })
     );
 
-    extraStrings.value = duration;
-    Glean.formAutocomplete.showLogins.record(extraStrings);
+    Services.telemetry.recordEvent(
+      "form_autocomplete",
+      "show",
+      "logins",
+      // Convert to a string
+      duration + "",
+      extraStrings
+    );
   }
 
   invalidate(results) {

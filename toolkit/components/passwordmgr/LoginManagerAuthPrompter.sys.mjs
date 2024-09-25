@@ -495,7 +495,7 @@ LoginManagerAuthPrompter.prototype = {
       Services.logins.recordPasswordUse(
         selectedLogin,
         this._inPrivateBrowsing,
-        "PromptLogin",
+        "prompt_login",
         autofilled
       );
     }
@@ -768,7 +768,7 @@ LoginManagerAuthPrompter.prototype = {
         Services.logins.recordPasswordUse(
           selectedLogin,
           this._inPrivateBrowsing,
-          "AuthLogin",
+          "auth_login",
           autofilled
         );
       }

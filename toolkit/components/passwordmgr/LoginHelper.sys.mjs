@@ -1622,8 +1622,8 @@ export const LoginHelper = {
     if (expirationTime && Date.now() < expirationTime) {
       isAuthorized = true;
       telemetryEvent = {
-        name:
-          "reauthenticate" + (token.hasPassword ? "MasterPassword" : "OsAuth"),
+        object: token.hasPassword ? "master_password" : "os_auth",
+        method: "reauthenticate",
         value: "success_no_prompt",
       };
       return {
@@ -1636,7 +1636,8 @@ export const LoginHelper = {
     if (!token.hasPassword && !OSReauthEnabled) {
       isAuthorized = true;
       telemetryEvent = {
-        name: "reauthenticateOsAuth",
+        object: "os_auth",
+        method: "reauthenticate",
         value: "success_disabled",
       };
       return {
@@ -1658,7 +1659,8 @@ export const LoginHelper = {
         : "success_unsupported_platform";
 
       telemetryEvent = {
-        name: "reauthenticateOsAuth",
+        object: "os_auth",
+        method: "reauthenticate",
         value: isAuthorized ? value : "fail",
       };
       return {
@@ -1690,7 +1692,8 @@ export const LoginHelper = {
     }
     isAuthorized = token.isLoggedIn();
     telemetryEvent = {
-      name: "reauthenticateMasterPassword",
+      object: "master_password",
+      method: "reauthenticate",
       value: isAuthorized ? "success" : "fail",
     };
     return {

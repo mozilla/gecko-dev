@@ -93,7 +93,7 @@ export default class LoginFilter extends HTMLElement {
       })
     );
 
-    recordTelemetryEvent({ name: "filterList" });
+    recordTelemetryEvent({ object: "list", method: "filter" });
   }
 }
 customElements.define("login-filter", LoginFilter);

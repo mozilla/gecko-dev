@@ -1399,7 +1399,7 @@ export class nsContextMenu {
 
   openPasswordManager() {
     lazy.LoginHelper.openPasswordManager(this.window, {
-      entryPoint: "Contextmenu",
+      entryPoint: "contextmenu",
     });
   }
 
