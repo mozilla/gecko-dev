@@ -1,0 +1,57 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Core :: Storage: localStorage & sessionStorage'
+
+ls.preparelsdatabase:
+  processing_time:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      Time it took for the content process to fully prepare a new LSDatabase,
+      including any time required to prepare a Datastore in the parent.
+      This duration can be significantly affected by Datastore preloading,
+      which is triggered when a page begins to load.
+      If an error occurs, the time is not recorded.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - hsingh@mozilla.com
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: 135
+ls.preparedatastore:
+  processing_time:
+    type: timing_distribution
+    time_unit: microsecond
+    description: >
+      Time it took for the parent process to prepare a Datastore.
+      This duration can be significantly affected by Datastore preloading,
+      which is triggered when a page begins to load.
+      When a Datastore is already preloaded, the preparation is usually fast
+      since it doesn't need to do any I/O.
+      If an error occurs, the time is not recorded.
+      In future, we might want to introduce additional separate metrics for different
+      types of datastore preparations (data needs to be loaded from disk, data already available, etc.)
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1590635
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - hsingh@mozilla.com
+      - jvarga@mozilla.com
+      - storage-telemetry@mozilla.com
+    expires: 135

@@ -32,6 +32,7 @@
 #include "mozilla/dom/PBackgroundLSRequest.h"
 #include "mozilla/dom/PBackgroundLSSharedTypes.h"
 #include "mozilla/dom/quota/QuotaManager.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ipc/BackgroundChild.h"
 #include "mozilla/ipc/BackgroundUtils.h"
 #include "mozilla/ipc/PBackgroundChild.h"
@@ -890,6 +891,8 @@ nsresult LSObject::EnsureDatabase() {
     return NS_OK;
   }
 
+  auto latencyTimerId = glean::ls_preparelsdatabase::processing_time.Start();
+
   // We don't need this yet, but once the request successfully finishes, it's
   // too late to initialize PBackground child on the owning thread, because
   // it can fail and parent would keep an extra strong ref to the datastore.
@@ -939,6 +942,9 @@ nsresult LSObject::EnsureDatabase() {
       actor, *mStoragePrincipalInfo, mPrivateBrowsingId, datastoreId));
 
   database->SetActor(actor);
+
+  glean::ls_preparelsdatabase::processing_time.StopAndAccumulate(
+      std::move(latencyTimerId));
 
   mDatabase = std::move(database);
 
