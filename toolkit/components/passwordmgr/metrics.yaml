@@ -727,3 +727,67 @@ pwmgr:
           The key that is used for sorting the login-list.
         type: string
     telemetry_mirror: Pwmgr_Sort_List
+
+form_autocomplete:
+  show_logins:
+    type: event
+    description: >
+      An content form autocomplete popup was shown. Details on the timing
+      and context are provided.
+      This event was generated to correspond to the Legacy Telemetry event
+      form_autocomplete.show#logins.
+    bugs:
+      - https://bugzil.la/1619498
+      - https://bugzil.la/1628849
+    data_reviews:
+      - https://bugzil.la/1619498
+      - https://bugzil.la/1628849
+    notification_emails:
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` is the number of milliseconds since the autocomplete search started.
+        type: quantity
+      acFieldName:
+        description: >
+          The "field name" token (last one) of the field's autocomplete attribute.
+        type: string
+      fieldType:
+        description: >
+          The `type` property value of the field.
+        type: string
+      generatedPasswo:
+        description: >
+          The number of generated password rows shown.
+        type: string
+      hadPrevious:
+        description: >
+          Whether the autocomplete results had cached previous results it could use.
+        type: string
+      typeWasPassword:
+        description: >
+          Whether the input `type` was ever "password".
+        type: string
+      insecureWarning:
+        description: >
+          The number of insecure login field warning rows shown (should be 0 or 1).
+        type: string
+      login:
+        description: >
+          The number of login rows shown (with or without the domain line).
+        type: string
+      importableLogin:
+        description: >
+          The number of import suggestion rows shown.
+        type: string
+      loginsFooter:
+        description: >
+          The number of "Manage Passwords" footer row shown.
+        type: string
+      stringLength:
+        description: >
+          Length of the text in the field that triggered these results.
+        type: string
+    telemetry_mirror: Form_autocomplete_Show_Logins
