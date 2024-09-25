@@ -19,13 +19,12 @@ ChromeUtils.defineESModuleGetters(lazy, {
     "chrome://remote/content/shared/UserContextManager.sys.mjs",
 });
 
+const PREF_COOKIE_CHIPS_ENABLED = "network.cookie.CHIPS.enabled";
 const PREF_COOKIE_BEHAVIOR = "network.cookie.cookieBehavior";
-const PREF_COOKIE_OPTIN_PARTITIONING =
-  "network.cookie.cookieBehavior.optInPartitioning";
 
 // This is a static preference, so it cannot be modified during runtime and we can cache its value.
-ChromeUtils.defineLazyGetter(lazy, "cookieBehaviorOptInPartitioning", () =>
-  Services.prefs.getBoolPref(PREF_COOKIE_OPTIN_PARTITIONING)
+ChromeUtils.defineLazyGetter(lazy, "cookieCHIPSEnabled", () =>
+  Services.prefs.getBoolPref(PREF_COOKIE_CHIPS_ENABLED)
 );
 
 const CookieFieldsMapping = {
@@ -954,7 +953,7 @@ class StorageModule extends RootBiDiModule {
     return (
       cookieBehavior ===
         Ci.nsICookieService.BEHAVIOR_REJECT_TRACKER_AND_PARTITION_FOREIGN &&
-      lazy.cookieBehaviorOptInPartitioning
+      lazy.cookieCHIPSEnabled
     );
   }
 }
