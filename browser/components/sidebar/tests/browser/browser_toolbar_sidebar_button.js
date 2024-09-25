@@ -72,7 +72,6 @@ add_task(async function test_expanded_state_for_always_show() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const {
     SidebarController: { sidebarMain, toolbarButton },
-    document,
   } = win;
 
   const checkExpandedState = async (
@@ -89,16 +88,6 @@ add_task(async function test_expanded_state_for_always_show() {
       expanded
         ? "Toolbar button is highlighted."
         : "Toolbar button is not highlighted."
-    );
-    Assert.deepEqual(
-      document.l10n.getAttributes(button),
-      {
-        id: expanded
-          ? "sidebar-toolbar-collapse-sidebar"
-          : "sidebar-toolbar-expand-sidebar",
-        args: null,
-      },
-      "Toolbar button has the correct tooltip."
     );
   };
 
@@ -174,16 +163,6 @@ add_task(async function test_states_for_hide_sidebar() {
     await TestUtils.waitForCondition(
       () => button.checked == !hidden,
       "Toolbar button state is correct."
-    );
-    Assert.deepEqual(
-      document.l10n.getAttributes(button),
-      {
-        id: hidden
-          ? "sidebar-toolbar-show-sidebar"
-          : "sidebar-toolbar-hide-sidebar",
-        args: null,
-      },
-      "Toolbar button has the correct tooltip."
     );
   };
 

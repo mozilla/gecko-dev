@@ -213,29 +213,26 @@ export class SidebarCustomize extends SidebarPage {
           <moz-radio-group
             @change=${this.#handleVisibilityChange}
             name="visibility"
-            data-l10n-id="sidebar-customize-button-header"
+            data-l10n-id="sidebar-customize-settings-header"
           >
             <moz-radio
               class="visibility-setting"
               value="always-show"
               ?checked=${this.visibility === "always-show"}
               iconsrc="chrome://browser/skin/sidebar-expanded.svg"
-              data-l10n-id="sidebar-visibility-setting-always-show"
+              data-l10n-id="sidebar-visibility-always-show"
             ></moz-radio>
             <moz-radio
               class="visibility-setting"
               value="hide-sidebar"
               ?checked=${this.visibility === "hide-sidebar"}
             iconsrc="chrome://browser/skin/sidebar-hidden.svg"
-              data-l10n-id="sidebar-visibility-setting-hide-sidebar"
+              data-l10n-id="sidebar-visibility-hide-sidebar"
             ></moz-radio>
           </moz-radio-group>
-        </div>
-        <div class="customize-group">
           <moz-radio-group
               @change=${this.reversePosition}
-              name="position"
-              data-l10n-id="sidebar-customize-position-header">
+              name="position">
             <moz-radio
               class="position-setting"
               id="position-left"

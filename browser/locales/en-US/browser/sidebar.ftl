@@ -55,14 +55,12 @@ sidebar-horizontal-tabs =
   .label = Horizontal tabs
 sidebar-customize-tabs-header =
   .label = Tab settings
-sidebar-customize-button-header =
-  .label = Sidebar button
-sidebar-customize-position-header =
-  .label = Sidebar position
-sidebar-visibility-setting-always-show =
-  .label = Expand and collapse sidebar
-sidebar-visibility-setting-hide-sidebar =
-  .label = Show and hide sidebar
+sidebar-customize-settings-header =
+  .label = Sidebar settings
+sidebar-visibility-always-show =
+  .label = Always show
+sidebar-visibility-hide-sidebar =
+  .label = Hide sidebar
 
 ## Labels for sidebar context menu items
 
@@ -107,8 +105,6 @@ sidebar-menu-review-checker-label =
 
 ## Headings for sidebar menu panels.
 
-sidebar-panel-header-close-button =
-  .tooltiptext = Close
 sidebar-menu-customize-header =
   .heading = Customize sidebar
 sidebar-menu-history-header =
@@ -130,14 +126,3 @@ sidebar-syncedtabs-title = Tabs from other devices
 #   $deviceName (String) - the name of the device the user is closing a tab for
 synced-tabs-context-close-tab-title =
     .title = Close tab on { $deviceName }
-
-## Tooltips for the sidebar toolbar button.
-
-sidebar-toolbar-expand-sidebar =
-  .tooltiptext = Expand sidebar
-sidebar-toolbar-collapse-sidebar =
-  .tooltiptext = Collapse sidebar
-sidebar-toolbar-show-sidebar =
-  .tooltiptext = Show sidebar
-sidebar-toolbar-hide-sidebar =
-  .tooltiptext = Hide sidebar
