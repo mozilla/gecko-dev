@@ -45,6 +45,7 @@ gecko_metrics = [
     "security/ct/metrics.yaml",
     "security/manager/ssl/metrics.yaml",
     "services/common/metrics.yaml",
+    "services/sync/modules/metrics.yaml",
     "toolkit/components/antitracking/bouncetrackingprotection/metrics.yaml",
     "toolkit/components/cookiebanners/metrics.yaml",
     "toolkit/components/downloads/metrics.yaml",

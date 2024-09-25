@@ -1,0 +1,614 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Firefox :: Sync'
+
+synced_tabs:
+  click_fxa_avatar_menu:
+    type: event
+    description: >
+      Record how users access and use synced tabs component
+      This event was generated to correspond to the Legacy Telemetry event
+      synced_tabs.click#fxa_avatar_menu.
+    bugs: &synced_tabs_click_bugs
+      - https://bugzil.la/1756252
+    data_reviews: &synced_tabs_click_data_reviews
+      - https://bugzil.la/1756252
+    notification_emails: &synced_tabs_click_emails
+      - sync-dev@mozilla.org
+    expires: never
+    extra_keys: &synced_tabs_click_extra
+      tab_pos:
+        description: >
+          position of the tab clicked
+        type: string
+      filter:
+        description: >
+          was there a filter enabled
+        type: string
+    telemetry_mirror: Synced_tabs_Click_FxaAvatarMenu
+    no_lint:
+      - COMMON_PREFIX
+
+  click_fxa_app_menu:
+    type: event
+    description: >
+      Record how users access and use synced tabs component
+      This event was generated to correspond to the Legacy Telemetry event
+      synced_tabs.click#fxa_app_menu.
+    bugs: *synced_tabs_click_bugs
+    data_reviews: *synced_tabs_click_data_reviews
+    notification_emails: *synced_tabs_click_emails
+    expires: never
+    extra_keys: *synced_tabs_click_extra
+    telemetry_mirror: Synced_tabs_Click_FxaAppMenu
+    no_lint:
+      - COMMON_PREFIX
+
+  click_synced_tabs_sidebar:
+    type: event
+    description: >
+      Record how users access and use synced tabs component
+      This event was generated to correspond to the Legacy Telemetry event
+      synced_tabs.click#synced_tabs_sidebar.
+    bugs: *synced_tabs_click_bugs
+    data_reviews: *synced_tabs_click_data_reviews
+    notification_emails: *synced_tabs_click_emails
+    expires: never
+    extra_keys: *synced_tabs_click_extra
+    telemetry_mirror: Synced_tabs_Click_SyncedTabsSidebar
+    no_lint:
+      - COMMON_PREFIX
+
+fxa_avatar_menu:
+  click_account_settings:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#account_settings.
+    bugs: &fxa_avatar_menu_click_bugs
+      - https://bugzil.la/1524665
+      - https://bugzil.la/1585459
+      - https://bugzil.la/1606203
+    data_reviews: &fxa_avatar_menu_click_data_reviews
+      - https://bugzil.la/1524665
+      - https://bugzil.la/1585459
+      - https://bugzil.la/1606203
+    notification_emails: &fxa_avatar_menu_click_emails
+      - vbudhram@mozilla.com
+      - loines@mozilla.com
+    expires: never
+    extra_keys: &fxa_avatar_menu_click_extra
+      fxa_status:
+        description: >
+          The current state of the user. Possible states are "not_configured", "unverified", "signedin" and "login_failed".
+
+        type: string
+      fxa_avatar:
+        description: >
+          Boolean for whether or not account has set an avatar
+        type: string
+    telemetry_mirror: Fxa_avatar_menu_Click_AccountSettings
+    no_lint:
+      - COMMON_PREFIX
+
+  click_cad:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#cad.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_Cad
+    no_lint:
+      - COMMON_PREFIX
+
+  click_login:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#login.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_Login
+    no_lint:
+      - COMMON_PREFIX
+
+  click_send_tab:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#send_tab.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_SendTab
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_now:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#sync_now.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_SyncNow
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_settings:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#sync_settings.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_SyncSettings
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_tabs:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#sync_tabs.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_SyncTabs
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_tabs_sidebar:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#sync_tabs_sidebar.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_SyncTabsSidebar
+    no_lint:
+      - COMMON_PREFIX
+
+  click_toolbar_icon:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#toolbar_icon.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_ToolbarIcon
+    no_lint:
+      - COMMON_PREFIX
+
+  click_unver_sync_settings:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#unver_sync_settings.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_UnverSyncSettings
+    no_lint:
+      - COMMON_PREFIX
+
+  click_open_monitor:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#open_monitor.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_OpenMonitor
+    no_lint:
+      - COMMON_PREFIX
+
+  click_open_send:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#open_send.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_OpenSend
+    no_lint:
+      - COMMON_PREFIX
+
+  click_monitor_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#monitor_cta.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_MonitorCta
+    no_lint:
+      - COMMON_PREFIX
+
+  click_relay_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#relay_cta.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_RelayCta
+    no_lint:
+      - COMMON_PREFIX
+
+  click_vpn_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#vpn_cta.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_VpnCta
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA avatar menu on the
+      toolbar
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_avatar_menu.click#sync_cta.
+    bugs: *fxa_avatar_menu_click_bugs
+    data_reviews: *fxa_avatar_menu_click_data_reviews
+    notification_emails: *fxa_avatar_menu_click_emails
+    expires: never
+    extra_keys: *fxa_avatar_menu_click_extra
+    telemetry_mirror: Fxa_avatar_menu_Click_SyncCta
+    no_lint:
+      - COMMON_PREFIX
+
+fxa_app_menu:
+  click_account_settings:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#account_settings.
+    bugs: &fxa_app_menu_click_bugs
+      - https://bugzil.la/1542334
+      - https://bugzil.la/1606203
+    data_reviews: &fxa_app_menu_click_data_reviews
+      - https://bugzil.la/1542334
+      - https://bugzil.la/1606203
+    notification_emails: &fxa_app_menu_click_emails
+      - vbudhram@mozilla.com
+      - loines@mozilla.com
+    expires: never
+    extra_keys: &fxa_app_menu_click_extra
+      fxa_status:
+        description: >
+          The current state of the user. Possible states are "not_configured", "unverified", "signedin" and "login_failed".
+
+        type: string
+      fxa_avatar:
+        description: >
+          Boolean for whether or not account has set an avatar
+        type: string
+    telemetry_mirror: Fxa_app_menu_Click_AccountSettings
+    no_lint:
+      - COMMON_PREFIX
+
+  click_cad:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#cad.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_Cad
+    no_lint:
+      - COMMON_PREFIX
+
+  click_login:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#login.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_Login
+    no_lint:
+      - COMMON_PREFIX
+
+  click_send_tab:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#send_tab.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_SendTab
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_now:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#sync_now.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_SyncNow
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_settings:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#sync_settings.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_SyncSettings
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_tabs:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#sync_tabs.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_SyncTabs
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_tabs_sidebar:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#sync_tabs_sidebar.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_SyncTabsSidebar
+    no_lint:
+      - COMMON_PREFIX
+
+  click_toolbar_icon:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#toolbar_icon.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_ToolbarIcon
+    no_lint:
+      - COMMON_PREFIX
+
+  click_unver_sync_settings:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#unver_sync_settings.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_UnverSyncSettings
+    no_lint:
+      - COMMON_PREFIX
+
+  click_open_monitor:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#open_monitor.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_OpenMonitor
+    no_lint:
+      - COMMON_PREFIX
+
+  click_open_send:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#open_send.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_OpenSend
+    no_lint:
+      - COMMON_PREFIX
+
+  click_monitor_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#monitor_cta.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_MonitorCta
+    no_lint:
+      - COMMON_PREFIX
+
+  click_relay_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#relay_cta.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_RelayCta
+    no_lint:
+      - COMMON_PREFIX
+
+  click_vpn_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#vpn_cta.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_VpnCta
+    no_lint:
+      - COMMON_PREFIX
+
+  click_sync_cta:
+    type: event
+    description: >
+      This is recorded on interactions with the FxA menu in the app
+      (hamburger) menu
+      This event was generated to correspond to the Legacy Telemetry event
+      fxa_app_menu.click#sync_cta.
+    bugs: *fxa_app_menu_click_bugs
+    data_reviews: *fxa_app_menu_click_data_reviews
+    notification_emails: *fxa_app_menu_click_emails
+    expires: never
+    extra_keys: *fxa_app_menu_click_extra
+    telemetry_mirror: Fxa_app_menu_Click_SyncCta
+    no_lint:
+      - COMMON_PREFIX

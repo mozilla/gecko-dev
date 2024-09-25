@@ -403,13 +403,18 @@ export var SyncedTabs = {
 
   recordSyncedTabsTelemetry(object, tabEvent, extraOptions) {
     Services.telemetry.setEventRecordingEnabled("synced_tabs", true);
-    Services.telemetry.recordEvent(
-      "synced_tabs",
-      tabEvent,
-      object,
-      null,
-      extraOptions
-    );
+    if (
+      !["fxa_avatar_menu", "fxa_app_menu", "synced_tabs_sidebar"].includes(
+        object
+      )
+    ) {
+      return;
+    }
+    object = object
+      .split("_")
+      .map(word => word[0].toUpperCase() + word.slice(1))
+      .join("");
+    Glean.syncedTabs[tabEvent + object].record(extraOptions);
   },
 
   // Get list of synced tabs across all devices/clients

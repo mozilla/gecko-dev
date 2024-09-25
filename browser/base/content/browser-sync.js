@@ -1177,13 +1177,21 @@ var gSync = {
       };
 
       let eventName = this._getEntryPointForElement(sourceElement);
-      Services.telemetry.recordEvent(
-        eventName,
-        "click",
-        type,
-        null,
-        extraOptions
-      );
+      let category = "";
+      if (eventName == "fxa_avatar_menu") {
+        category = "fxaAvatarMenu";
+      } else if (eventName == "fxa_app_menu") {
+        category = "fxaAppMenu";
+      } else {
+        return;
+      }
+      Glean[category][
+        "click" +
+          type
+            .split("_")
+            .map(word => word[0].toUpperCase() + word.slice(1))
+            .join("")
+      ]?.record(extraOptions);
     }
   },
 
