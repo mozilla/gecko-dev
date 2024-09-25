@@ -962,6 +962,18 @@ class Browsertime(Perftest):
             new_path = os.pathsep.join([ffmpeg_dir, old_path])
             env["PATH"] = new_path
 
+        # Used to enable usage of browsertime packages within user scripts
+        if self.config["run_local"]:
+            env["BROWSERTIME_ROOT"] = str(
+                pathlib.Path(
+                    os.environ["MOZ_DEVELOPER_REPO_DIR"], "tools", "browsertime"
+                )
+            )
+        else:
+            env["BROWSERTIME_ROOT"] = str(
+                pathlib.Path(os.environ["MOZ_FETCHES_DIR"], "browsertime")
+            )
+
         LOG.info("PATH: {}".format(env["PATH"]))
 
         try:
