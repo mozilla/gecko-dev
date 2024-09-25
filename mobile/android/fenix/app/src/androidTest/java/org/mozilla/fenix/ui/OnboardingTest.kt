@@ -58,6 +58,9 @@ class OnboardingTest : TestSetup() {
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2122343
     @Test
     fun verifySecondOnboardingCardItemsTest() {
+        activityTestRule.activityRule.applySettingsExceptions {
+            it.isSetAsDefaultBrowserPromptEnabled = true
+        }
         runWithLauncherIntent(activityTestRule) {
             homeScreen {
                 // Check if the device is running on Android version lower than 10
@@ -75,6 +78,9 @@ class OnboardingTest : TestSetup() {
     @SmokeTest
     @Test
     fun verifyThirdOnboardingCardSignInFunctionalityTest() {
+        activityTestRule.activityRule.applySettingsExceptions {
+            it.isSetAsDefaultBrowserPromptEnabled = true
+        }
         runWithLauncherIntent(activityTestRule) {
             homeScreen {
                 // Check if the device is running on Android version lower than 10

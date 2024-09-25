@@ -99,6 +99,11 @@ interface FeatureSettingsHelper {
      */
     var isMicrosurveyEnabled: Boolean
 
+    /**
+     * Enable or disable the "Set as default browser" dialog.
+     */
+    var isSetAsDefaultBrowserPromptEnabled: Boolean
+
     fun applyFlagUpdates()
 
     fun resetAllFeatureFlags()
