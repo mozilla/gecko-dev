@@ -12,11 +12,6 @@
   --sidebar-text-color: -moz-sidebartext;
   --sidebar-border-color: -moz-sidebarborder;
 
-  --button-primary-bgcolor: AccentColor;
-  --button-primary-hover-bgcolor: color-mix(in srgb, black 10%, AccentColor);
-  --button-primary-active-bgcolor: color-mix(in srgb, black 20%, AccentColor);
-  --button-primary-color: AccentColorText;
-
   --tabs-navbar-separator-color: ThreeDShadow;
   --tabs-navbar-separator-style: solid;
 
@@ -83,16 +78,12 @@
 /* stylelint-disable-next-line media-query-no-invalid */
 @media not ((prefers-contrast) or (-moz-platform: linux) or ((-moz-platform: macos) and (-moz-bool-pref: "browser.theme.macos.native-theme"))) {
   :root:not([lwtheme]) {
-    --button-primary-bgcolor: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
-    --button-primary-hover-bgcolor: light-dark(rgb(2, 80, 187), rgb(128, 235, 255));
-    --button-primary-active-bgcolor: light-dark(rgb(5, 62, 148), rgb(170, 242, 255));
-    --button-primary-color: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
+    --color-accent-primary: light-dark(rgb(0, 97, 224), rgb(0, 221, 255));
+    --button-text-color-primary: light-dark(rgb(251, 251, 254), rgb(43, 42, 51));
     --button-background-color: light-dark(rgba(207, 207, 216, .33), rgba(0, 0, 0, .33));
     --button-background-color-hover: light-dark(rgba(207, 207, 216, .66), rgba(207, 207, 216, .20));
     --button-background-color-active: light-dark(rgb(207, 207, 216), rgba(207, 207, 216, .40));
     --button-text-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
-
-    --focus-outline-color: var(--button-primary-bgcolor);
 
     --arrowpanel-background: light-dark(white, rgb(66, 65, 77));
     --arrowpanel-color: light-dark(black, rgb(251, 251, 254));

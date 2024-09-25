@@ -501,7 +501,7 @@
                 "dark": "{color.gray.100}"
               },
               "platform": {
-                "default": "var(--button-primary-color)"
+                "default": "AccentColorText"
               }
             }
           },
@@ -662,7 +662,7 @@
               "dark": "{color.cyan.50}"
             },
             "platform": {
-              "default": "var(--button-primary-bgcolor, AccentColor)"
+              "default": "AccentColor"
             }
           }
         },
@@ -674,7 +674,7 @@
               "dark": "{color.cyan.30}"
             },
             "platform": {
-              "default": "var(--button-primary-hover-bgcolor)"
+              "default": "color-mix(in srgb, black 10%, var(--color-accent-primary))"
             }
           }
         },
@@ -686,7 +686,7 @@
               "dark": "{color.cyan.20}"
             },
             "platform": {
-              "default": "var(--button-primary-active-bgcolor)"
+              "default": "color-mix(in srgb, black 20%, var(--color-accent-primary))"
             }
           }
         }

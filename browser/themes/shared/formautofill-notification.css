@@ -84,14 +84,14 @@
   }
 
   .popup-notification-primary-button {
-    color: var(--button-primary-color);
-    background-color: var(--button-primary-bgcolor);
+    color: var(--button-text-color-primary);
+    background-color: var(--color-accent-primary);
 
     &:hover {
-      background-color: var(--button-primary-hover-bgcolor);
+      background-color: var(--color-accent-primary-hover);
 
       &:active {
-        background-color: var(--button-primary-active-bgcolor);
+        background-color: var(--color-accent-primary-active);
       }
     }
   }

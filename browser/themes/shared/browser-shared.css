@@ -38,7 +38,7 @@ body {
 :root {
   user-select: none;
   color-scheme: light dark;
-  accent-color: var(--button-primary-bgcolor);
+  accent-color: var(--color-accent-primary);
   text-rendering: optimizeLegibility;
   min-height: 95px;
   min-width: 95px;

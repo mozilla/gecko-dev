@@ -64,8 +64,8 @@ h1.translations-panel-header-wrapper {
 /* The default styling is to dim the default, but here override it so that it still uses
    the primary color. */
 .translations-panel-button-group > button[default][disabled="true"] {
-  color: var(--button-primary-color);
-  background-color: var(--button-primary-bgcolor);
+  color: var(--button-text-color-primary);
+  background-color: var(--color-accent-primary);
 }
 
 #full-page-translations-panel-translate-hint-action {

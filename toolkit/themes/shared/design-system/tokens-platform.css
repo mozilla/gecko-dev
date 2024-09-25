@@ -25,12 +25,12 @@
     --button-background-color-hover: color-mix(in srgb, currentColor 17%, transparent);
     --button-background-color-active: color-mix(in srgb, currentColor 30%, transparent);
     --button-text-color: currentColor;
-    --button-text-color-primary: var(--button-primary-color);
+    --button-text-color-primary: AccentColorText;
 
     /** Color **/
-    --color-accent-primary: var(--button-primary-bgcolor, AccentColor);
-    --color-accent-primary-hover: var(--button-primary-hover-bgcolor);
-    --color-accent-primary-active: var(--button-primary-active-bgcolor);
+    --color-accent-primary: AccentColor;
+    --color-accent-primary-hover: color-mix(in srgb, black 10%, var(--color-accent-primary));
+    --color-accent-primary-active: color-mix(in srgb, black 20%, var(--color-accent-primary));
 
     /** Font Size **/
     --font-size-root: unset;
