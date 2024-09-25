@@ -50,7 +50,7 @@ module.exports = logTest(
         }
         await commands.measure.start(url);
 
-        await startMeasurements(context, commands, false, false, true);
+        await startMeasurements(context, commands, true, false, true);
         await commands.js.runAndWait(`
         this.benchmarkClient.start()
     `);

@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* eslint-env node */
+const os = require("os");
 
 class SupportMeasurements {
   constructor(context, commands, measureCPU, measurePower, measureTime) {
@@ -40,12 +41,77 @@ class SupportMeasurements {
     };
   }
 
-  async _startMeasureCPU() {
-    // TODO
+  async _gatherAndroidCPUTimes() {
+    this.processIDs = await this.commands.android.shell(
+      `pgrep -f "${this.androidPackage}"`
+    );
+
+    let processTimes = {};
+    for (let processID of this.processIDs.split("\n")) {
+      let processTimeInfo = (
+        await this.commands.android.shell(`ps -p ${processID} -o name=,time=`)
+      ).trim();
+
+      if (!processTimeInfo) {
+        // Sometimes a processID returns empty info
+        continue;
+      }
+
+      let nameAndTime = processTimeInfo.split(" ");
+      nameAndTime.forEach(el => el.trim());
+
+      let hmsTime = nameAndTime[nameAndTime.length - 1].split(":");
+      processTimes[nameAndTime[0]] =
+        parseInt(hmsTime[0], 10) * 60 * 60 +
+        parseInt(hmsTime[1], 10) * 60 +
+        parseInt(hmsTime[2], 10);
+    }
+
+    return processTimes;
   }
 
-  async _stopMeasureCPU() {
-    // TODO
+  async _startMeasureCPU() {
+    if (!this.isAndroid) {
+      this.startCPUTimes = os.cpus().map(c => c.times);
+    } else {
+      this.startCPUTimes = await this._gatherAndroidCPUTimes();
+    }
+  }
+
+  async _stopMeasureCPU(measurementName) {
+    let totalTime = 0;
+
+    if (!this.isAndroid) {
+      let endCPUTimes = os.cpus().map(c => c.times);
+      totalTime = endCPUTimes
+        .map(
+          (times, i) =>
+            times.user -
+            this.startCPUTimes[i].user +
+            (times.sys - this.startCPUTimes[i].sys)
+        )
+        .reduce((currSum, val) => currSum + val, 0);
+    } else {
+      let endCPUTimes = await this._gatherAndroidCPUTimes();
+
+      for (let processName in endCPUTimes) {
+        if (Object.hasOwn(this.startCPUTimes, processName)) {
+          totalTime +=
+            endCPUTimes[processName] - this.startCPUTimes[processName];
+        } else {
+          // Assumes that the process was started during the test
+          totalTime += endCPUTimes[processName];
+        }
+      }
+
+      // Convert to ms
+      totalTime = totalTime * 1000;
+    }
+
+    this.context.log.info(`Total CPU time: ${totalTime}ms`);
+    this.commands.measure.addObject({
+      [measurementName]: [totalTime],
+    });
   }
 
   async _startMeasurePower() {
