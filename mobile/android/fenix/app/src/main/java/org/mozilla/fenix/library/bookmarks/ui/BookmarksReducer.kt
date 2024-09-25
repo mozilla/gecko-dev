@@ -14,7 +14,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     )
     is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
     is FolderLongClicked -> state.toggleSelectionOf(action.item)
-    is FolderClicked -> if (state.selectedItems.isNotEmpty()) {
+    is FolderClicked -> if (state.selectedItems.isNotEmpty() && !action.item.isDesktopFolder) {
         state.toggleSelectionOf(action.item)
     } else {
         state

@@ -166,26 +166,35 @@ private fun BookmarksList(
 
                     is BookmarkItem.Folder -> {
                         Box {
-                            SelectableIconListItem(
-                                label = item.title,
-                                isSelected = item in state.selectedItems,
-                                onClick = { store.dispatch(FolderClicked(item)) },
-                                onLongClick = { store.dispatch(FolderLongClicked(item)) },
-                                beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
-                                afterIconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                                onAfterIconClick = { showMenu = true },
-                                afterIconDescription = stringResource(
-                                    R.string.bookmark_item_menu_button_content_description,
-                                    item.title,
-                                ),
-                            )
+                            if (item.isDesktopFolder) {
+                                SelectableIconListItem(
+                                    label = item.title,
+                                    isSelected = item in state.selectedItems,
+                                    onClick = { store.dispatch(FolderClicked(item)) },
+                                    beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                                )
+                            } else {
+                                SelectableIconListItem(
+                                    label = item.title,
+                                    isSelected = item in state.selectedItems,
+                                    onClick = { store.dispatch(FolderClicked(item)) },
+                                    onLongClick = { store.dispatch(FolderLongClicked(item)) },
+                                    beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                                    afterIconPainter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                                    onAfterIconClick = { showMenu = true },
+                                    afterIconDescription = stringResource(
+                                        R.string.bookmark_item_menu_button_content_description,
+                                        item.title,
+                                    ),
+                                )
 
-                            BookmarkListFolderMenu(
-                                showMenu = showMenu,
-                                onDismissRequest = { showMenu = false },
-                                folder = item,
-                                store = store,
-                            )
+                                BookmarkListFolderMenu(
+                                    showMenu = showMenu,
+                                    onDismissRequest = { showMenu = false },
+                                    folder = item,
+                                    store = store,
+                                )
+                            }
                         }
                     }
                 }

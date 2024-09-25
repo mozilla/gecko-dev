@@ -76,5 +76,15 @@ internal data class BookmarksSelectFolderState(
         get() = addFolderSelectionGuid ?: selectionGuid
 }
 
+internal val BookmarkItem.Folder.isDesktopFolder: Boolean
+    get() = when (guid) {
+        BookmarkRoot.Root.id,
+        BookmarkRoot.Menu.id,
+        BookmarkRoot.Toolbar.id,
+        BookmarkRoot.Unfiled.id,
+        -> true
+        else -> false
+    }
+
 internal val BookmarkItem.Folder.isDesktopRoot: Boolean
     get() = guid == BookmarkRoot.Root.id
