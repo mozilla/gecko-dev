@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
+import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.lib.state.State
 
 /**
@@ -58,6 +59,9 @@ internal data class SelectFolderItem(
 
     val title: String
         get() = folder.title
+
+    val isDesktopRoot: Boolean
+        get() = guid == BookmarkRoot.Root.id
 }
 
 internal data class BookmarksSelectFolderState(

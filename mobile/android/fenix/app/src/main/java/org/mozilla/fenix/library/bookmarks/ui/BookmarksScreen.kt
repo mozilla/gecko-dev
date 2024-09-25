@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.paddingFromBaseline
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -335,13 +336,25 @@ private fun SelectFolderScreen(
                 .padding(vertical = 16.dp),
         ) {
             items(state?.folders ?: listOf()) { folder ->
-                SelectableIconListItem(
-                    label = folder.title,
-                    isSelected = folder.guid == state?.selectedGuid,
-                    onClick = { store.dispatch(SelectFolderAction.ItemClicked(folder)) },
-                    beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
-                    modifier = Modifier.padding(start = (40 * folder.indentation).dp),
-                )
+                if (folder.isDesktopRoot) {
+                    Row(modifier = Modifier.padding(start = (40 * folder.indentation).dp)) {
+                        // We need to account for not having an icon
+                        Spacer(modifier = Modifier.width(56.dp))
+                        Text(
+                            text = folder.title,
+                            color = FirefoxTheme.colors.textAccent,
+                            style = FirefoxTheme.typography.headline8,
+                        )
+                    }
+                } else {
+                    SelectableIconListItem(
+                        label = folder.title,
+                        isSelected = folder.guid == state?.selectedGuid,
+                        onClick = { store.dispatch(SelectFolderAction.ItemClicked(folder)) },
+                        beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_24),
+                        modifier = Modifier.padding(start = (40 * folder.indentation).dp),
+                    )
+                }
             }
         }
     }
@@ -969,6 +982,10 @@ private fun SelectFolderPreview() {
                 addFolderSelectionGuid = "guid1",
                 folders = listOf(
                     SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
+                    SelectFolderItem(1, BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Menu", BookmarkRoot.Menu.id)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Toolbar", BookmarkRoot.Toolbar.id)),
+                    SelectFolderItem(2, BookmarkItem.Folder("Bookmarks Unfiled", BookmarkRoot.Unfiled.id)),
                     SelectFolderItem(1, BookmarkItem.Folder("Nested One", "guid0")),
                     SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
                     SelectFolderItem(2, BookmarkItem.Folder("Nested Two", "guid0")),
