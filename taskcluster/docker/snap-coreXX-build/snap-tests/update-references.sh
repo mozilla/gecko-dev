@@ -2,6 +2,7 @@
 
 TASK_ID=${1}
 THIS="$(dirname "$0")"
+THERE=${2}
 
 if [ -z "${TASK_ID}" ]; then
     echo "Please provide a task ID"
@@ -16,6 +17,9 @@ do
     name="$(basename "${reference}")"
     final_name=${name//new_/}
     target_name=$(find "${THIS}" -type f -name "${final_name}")
+    if [ -n "${THERE}" ]; then
+        target_name=$(echo "${target_name}" | sed -e "s/\.png$/-${THERE}.png/g")
+    fi
     url="${TASKCLUSTER_API_ROOT}/api/queue/v1/task/${TASK_ID}/artifacts/${reference}"
     echo "$url => $target_name"
     curl -SL "${url}" -o "${target_name}"
