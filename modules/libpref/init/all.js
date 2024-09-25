@@ -4118,7 +4118,7 @@ pref("extensions.formautofill.loglevel", "Warn");
 pref("extensions.formautofill.heuristics.captureOnFormRemoval", true);
 pref("extensions.formautofill.heuristics.captureOnPageNavigation", true);
 
-pref("extensions.formautofill.heuristics.autofillSameOriginWithTop", false);
+pref("extensions.formautofill.heuristics.autofillSameOriginWithTop", true);
 
 pref("toolkit.osKeyStore.loglevel", "Warn");
 

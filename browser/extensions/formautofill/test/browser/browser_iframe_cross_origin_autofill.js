@@ -92,6 +92,33 @@ add_autofill_heuristic_tests([
       {
         fields: [
           { fieldName: "cc-number", autofill: "" },
+          { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
+          {
+            fieldName: "cc-exp",
+            autofill: `${TEST_PROFILE["cc-exp-month"]}/${TEST_PROFILE["cc-exp-year"]}`,
+          },
+          { fieldName: "cc-type", autofill: "visa" },
+        ],
+      },
+    ],
+  },
+  {
+    description: `Disable relaxed restriction - Trigger autofill in a third-party-origin iframe`,
+    fixtureData: `
+      <p><label>Card Number: <input id="cc-number" autocomplete="cc-number"></label></p>
+      <iframe src=\"${SAME_ORIGIN_CC_NAME}\"></iframe>
+      <iframe src=\"${CROSS_ORIGIN_CC_EXP}\"></iframe>
+      <iframe src=\"${CROSS_ORIGIN_CC_TYPE}\"></iframe>
+    `,
+    prefs: [
+      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", false],
+    ],
+    profile: TEST_PROFILE,
+    autofillTrigger: "#cc-exp",
+    expectedResult: [
+      {
+        fields: [
+          { fieldName: "cc-number", autofill: "" },
           { fieldName: "cc-name", autofill: "" },
           {
             fieldName: "cc-exp",
@@ -116,39 +143,12 @@ add_autofill_heuristic_tests([
       {
         fields: [
           { fieldName: "cc-number", autofill: "" },
-          { fieldName: "cc-name", autofill: "" },
-          {
-            fieldName: "cc-exp",
-            autofill: `${TEST_PROFILE["cc-exp-month"]}/${TEST_PROFILE["cc-exp-year"]}`,
-          },
-          { fieldName: "cc-type", autofill: "" },
-        ],
-      },
-    ],
-  },
-  {
-    description: `Relaxed autofill restriction - trigger autofill in a third-party-origin iframe`,
-    fixtureData: `
-      <p><label>Card Number: <input id="cc-number" autocomplete="cc-number"></label></p>
-      <iframe src=\"${SAME_ORIGIN_CC_NAME}\"></iframe>
-      <iframe src=\"${CROSS_ORIGIN_CC_EXP}\"></iframe>
-      <iframe src=\"${CROSS_ORIGIN_CC_TYPE}\"></iframe>
-    `,
-    prefs: [
-      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
-    ],
-    profile: TEST_PROFILE,
-    autofillTrigger: "#cc-exp",
-    expectedResult: [
-      {
-        fields: [
-          { fieldName: "cc-number", autofill: "" },
           { fieldName: "cc-name", autofill: TEST_PROFILE["cc-name"] },
           {
             fieldName: "cc-exp",
             autofill: `${TEST_PROFILE["cc-exp-month"]}/${TEST_PROFILE["cc-exp-year"]}`,
           },
-          { fieldName: "cc-type", autofill: "visa" },
+          { fieldName: "cc-type", autofill: "" },
         ],
       },
     ],
@@ -161,9 +161,6 @@ add_autofill_heuristic_tests([
       <iframe src=\"${SAME_SITE_CC_EXP}\"></iframe>
       <iframe src=\"${CROSS_ORIGIN_CC_TYPE}\"></iframe>
     `,
-    prefs: [
-      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
-    ],
     profile: TEST_PROFILE,
     autofillTrigger: "#cc-number",
     expectedResult: [
@@ -185,9 +182,6 @@ add_autofill_heuristic_tests([
       <iframe src=\"${SAME_SITE_CC_EXP}\"></iframe>
       <iframe src=\"${CROSS_ORIGIN_CC_TYPE}\"></iframe>
     `,
-    prefs: [
-      ["extensions.formautofill.heuristics.autofillSameOriginWithTop", true],
-    ],
     profile: TEST_PROFILE,
     autofillTrigger: "#cc-number",
     expectedResult: [
