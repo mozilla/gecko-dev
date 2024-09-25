@@ -74,6 +74,36 @@ impl CustomDistributionMetric {
             }
         }
     }
+
+    pub fn start_buffer(&self) -> LocalCustomDistribution<'_> {
+        match self {
+            CustomDistributionMetric::Parent { inner, .. } => {
+                LocalCustomDistribution::Parent(inner.start_buffer())
+            }
+            CustomDistributionMetric::Child(_) => {
+                // TODO(bug 1920957): Buffering not implemented for child processes yet. We don't
+                // want to panic though.
+                log::warn!("Can't get a local custom distribution from a child metric. No data will be recorded.");
+                LocalCustomDistribution::Child
+            }
+        }
+    }
+}
+
+pub enum LocalCustomDistribution<'a> {
+    Parent(glean::private::LocalCustomDistribution<'a>),
+    Child,
+}
+
+impl LocalCustomDistribution<'_> {
+    pub fn accumulate(&mut self, sample: u64) {
+        match self {
+            LocalCustomDistribution::Parent(p) => p.accumulate(sample),
+            LocalCustomDistribution::Child => {
+                log::debug!("Can't accumulate local custom distribution in a child process.")
+            }
+        }
+    }
 }
 
 #[inherent]
