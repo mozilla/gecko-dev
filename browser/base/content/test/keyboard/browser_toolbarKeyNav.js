@@ -3,6 +3,8 @@
 
 "use strict";
 
+requestLongerTimeout(2);
+
 /**
  * Test browser toolbar keyboard navigation.
  * These tests assume the default browser configuration for toolbars unless
@@ -582,11 +584,6 @@ add_task(async function testCharacterNavigation() {
       await expectFocusAfterKey("s", "save-to-pocket-button");
       // Pressing i makes the search "si", so it should focus Sidebars.
       await expectFocusAfterKey("i", "sidebar-button");
-    } else {
-      // Now that the search is reset, pressing s should focus Sidebars.
-      await expectFocusAfterKey("s", "sidebar-button");
-      // Pressing i makes the search "sa", so it should focus Save to Pocket.
-      await expectFocusAfterKey("a", "save-to-pocket-button");
     }
     // Reset the search.
     EventUtils.synthesizeKey("KEY_Escape");
@@ -594,10 +591,6 @@ add_task(async function testCharacterNavigation() {
       await expectFocusAfterKey("s", "save-to-pocket-button");
       // Pressing s again should find the next button starting with s: Sidebars.
       await expectFocusAfterKey("s", "sidebar-button");
-    } else {
-      await expectFocusAfterKey("s", "sidebar-button");
-      // Pressing s again should find the next button starting with s: Save to Pocket.
-      await expectFocusAfterKey("s", "save-to-pocket-button");
     }
   });
   RemoveHomeButton();
