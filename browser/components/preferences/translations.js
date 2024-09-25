@@ -778,19 +778,64 @@ let gTranslationsPane = {
     }
   },
   /**
-   * Remove the existing download language elements and rebuild
-   * the download language elements in the HTML by getting the download
-   * status of all languages from the browser records.
+   * Updates the button icons and its download states for the download language elements
+   * in the HTML by getting the download status of all languages from the browser records.
    */
-  reloadDownloadPhases() {
-    // buildDownloadLanguageList will reset the download phases
+  async reloadDownloadPhases() {
+    let downloadCount = 0;
     const downloadList = document.querySelector(
       "#translations-settings-download-section .translations-settings-language-list"
     );
-    while (downloadList.firstElementChild) {
-      downloadList.firstElementChild.remove();
+    const allLangElem = downloadList.children[0];
+    const allLangButton = allLangElem.querySelector("moz-button");
+
+    const updatePromises = [];
+    for (const langElem of downloadList.querySelectorAll(
+      ".translations-settings-language:not(:first-child)"
+    )) {
+      const langLabel = langElem.querySelector("label");
+      const langTag = langLabel.getAttribute("value");
+      const langButton = langElem.querySelector("moz-button");
+
+      updatePromises.push(
+        TranslationsParent.hasAllFilesForLanguage(langTag).then(
+          hasAllFilesForLanguage => {
+            if (hasAllFilesForLanguage) {
+              downloadCount += 1;
+              this.changeButtonState({
+                langButton,
+                langTag,
+                langState: "downloaded",
+              });
+            } else {
+              this.changeButtonState({
+                langButton,
+                langTag,
+                langState: "removed",
+              });
+            }
+            langButton.removeAttribute("disabled");
+          }
+        )
+      );
     }
-    this.buildDownloadLanguageList();
+    await Promise.allSettled(updatePromises);
+
+    const allDownloaded =
+      downloadCount === this.supportedLanguageTagsNames.length;
+    if (allDownloaded) {
+      this.changeButtonState({
+        langButton: allLangButton,
+        langTag: "all",
+        langState: "downloaded",
+      });
+    } else {
+      this.changeButtonState({
+        langButton: allLangButton,
+        langTag: "all",
+        langState: "removed",
+      });
+    }
   },
 
   /**
@@ -809,19 +854,22 @@ let gTranslationsPane = {
       langState: "loading",
     });
 
-    // TODO (1907591): Implement error handling
-    // The correct state for the download button in case of a download error
-    // needs to be determined and implemented.
     try {
       await TranslationsParent.downloadLanguageFiles(langTag);
     } catch (error) {
-      this.changeButtonState({
-        langButton: eventButton,
-        langTag,
-        langState: "removed",
-      });
       console.error(error);
-      return;
+
+      const hasAllFilesForLanguage =
+        await TranslationsParent.hasAllFilesForLanguage(langTag);
+
+      if (!hasAllFilesForLanguage) {
+        this.changeButtonState({
+          langButton: eventButton,
+          langTag,
+          langState: "removed",
+        });
+        return;
+      }
     }
     this.changeButtonState({
       langButton: eventButton,
@@ -864,20 +912,21 @@ let gTranslationsPane = {
       langState: "loading",
     });
 
-    // TODO (1907591): Implement error handling
-    // The correct state for the download button in case of a remove error
-    // needs to be determined and implemented.
     try {
       await TranslationsParent.deleteLanguageFiles(langTag);
     } catch (error) {
       // The download phases are invalidated with the error and must be reloaded.
-      this.changeButtonState({
-        langButton: eventButton,
-        langTag,
-        langState: "downloaded",
-      });
       console.error(error);
-      return;
+      const hasAllFilesForLanguage =
+        await TranslationsParent.hasAllFilesForLanguage(langTag);
+      if (hasAllFilesForLanguage) {
+        this.changeButtonState({
+          langButton: eventButton,
+          langTag,
+          langState: "downloaded",
+        });
+        return;
+      }
     }
 
     this.changeButtonState({
@@ -913,21 +962,19 @@ let gTranslationsPane = {
       langState: "loading",
     });
 
-    // TODO (1907591): Implement error handling
-    // The correct state for the download button in case of a download error
-    // needs to be determined and implemented.
     try {
       await TranslationsParent.downloadAllFiles();
-      this.changeButtonState({
-        langButton: eventButton,
-        langTag: "all",
-        langState: "downloaded",
-      });
-      this.updateAllLanguageDownloadButtons("downloaded");
     } catch (error) {
-      await this.reloadDownloadPhases();
       console.error(error);
+      await this.reloadDownloadPhases();
+      return;
     }
+    this.changeButtonState({
+      langButton: eventButton,
+      langTag: "all",
+      langState: "downloaded",
+    });
+    this.updateAllLanguageDownloadButtons("downloaded");
   },
 
   /**
@@ -943,21 +990,19 @@ let gTranslationsPane = {
       langState: "loading",
     });
 
-    // TODO (1907591): Implement error handling
-    // The correct state for the download button in case of a remove error
-    // needs to be determined and implemented.
     try {
       await TranslationsParent.deleteAllLanguageFiles();
-      this.changeButtonState({
-        langButton: eventButton,
-        langTag: "all",
-        langState: "removed",
-      });
-      this.updateAllLanguageDownloadButtons("removed");
     } catch (error) {
-      await this.reloadDownloadPhases();
       console.error(error);
+      await this.reloadDownloadPhases();
+      return;
     }
+    this.changeButtonState({
+      langButton: eventButton,
+      langTag: "all",
+      langState: "removed",
+    });
+    this.updateAllLanguageDownloadButtons("removed");
   },
 
   /**
