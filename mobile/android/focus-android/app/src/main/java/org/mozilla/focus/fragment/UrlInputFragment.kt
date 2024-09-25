@@ -510,7 +510,7 @@ class UrlInputFragment :
         if (input.trim { it <= ' ' }.isNotEmpty()) {
             handleCrashTrigger(input)
 
-            ViewUtils.hideKeyboard(binding.browserToolbar)
+            binding.browserToolbar.hideKeyboard()
 
             val isUrl = URLStringUtils.isURLLike(input)
             if (isUrl) {

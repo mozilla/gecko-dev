@@ -18,10 +18,10 @@ import androidx.preference.Preference
 import androidx.preference.PreferenceViewHolder
 import com.google.android.material.textfield.TextInputLayout
 import mozilla.components.browser.state.search.SearchEngine
+import mozilla.components.support.ktx.android.view.showKeyboard
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.components.support.utils.ext.getParcelableCompat
 import org.mozilla.focus.R
-import org.mozilla.focus.utils.ViewUtils
 
 class ManualAddSearchEnginePreference(context: Context, attrs: AttributeSet) :
     Preference(context, attrs) {
@@ -59,7 +59,7 @@ class ManualAddSearchEnginePreference(context: Context, attrs: AttributeSet) :
 
         updateState()
 
-        ViewUtils.showKeyboard(engineNameEditText)
+        engineNameEditText?.showKeyboard()
     }
 
     override fun onRestoreInstanceState(state: Parcelable?) {

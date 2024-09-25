@@ -38,6 +38,7 @@ import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.UiSelector
 import junit.framework.AssertionFailedError
+import mozilla.components.support.utils.PendingIntentUtils
 import mozilla.components.support.utils.ext.getApplicationInfoCompat
 import okio.Buffer
 import org.hamcrest.Matchers
@@ -47,7 +48,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.mozilla.focus.R
 import org.mozilla.focus.activity.IntentReceiverActivity
-import org.mozilla.focus.utils.IntentUtils
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
@@ -228,7 +228,7 @@ object TestHelper {
         val appContext = getInstrumentation()
             .targetContext
             .applicationContext
-        val pendingIntent = PendingIntent.getActivity(appContext, 0, Intent(), IntentUtils.defaultIntentPendingFlags())
+        val pendingIntent = PendingIntent.getActivity(appContext, 0, Intent(), PendingIntentUtils.defaultFlags)
 
         val customTabColorSchemeBuilder = CustomTabColorSchemeParams.Builder()
         customTabColorSchemeBuilder.setToolbarColor(Color.MAGENTA)

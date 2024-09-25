@@ -31,6 +31,7 @@ import mozilla.components.concept.fetch.Client
 import mozilla.components.concept.fetch.Request
 import mozilla.components.concept.fetch.Request.Redirect.FOLLOW
 import mozilla.components.feature.search.ext.createSearchEngine
+import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.support.ktx.util.URLStringUtils
 import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.focus.GleanMetrics.SearchEngines
@@ -98,7 +99,7 @@ class ManualAddSearchEngineSettingsFragment : BaseSettingsFragment() {
             val isPartialSuccess = engineValid && searchValid
 
             if (isPartialSuccess) {
-                ViewUtils.hideKeyboard(view)
+                view?.hideKeyboard()
                 setUiIsValidatingAsync(true, menuItem)
 
                 menuItemForActiveAsyncTask = menuItem
@@ -131,7 +132,7 @@ class ManualAddSearchEngineSettingsFragment : BaseSettingsFragment() {
     override fun onDestroyView() {
         scope?.cancel()
         super.onDestroyView()
-        if (view != null) ViewUtils.hideKeyboard(view)
+        view?.hideKeyboard()
     }
 
     private fun setUiIsValidatingAsync(isValidating: Boolean, saveMenuItem: MenuItem?) {

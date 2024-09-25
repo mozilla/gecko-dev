@@ -17,6 +17,7 @@ import android.os.RemoteException
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
 import mozilla.components.support.base.log.logger.Logger
+import mozilla.components.support.utils.PendingIntentUtils
 import mozilla.components.support.utils.ThreadUtils
 import mozilla.components.support.utils.ext.stopForegroundCompat
 import mozilla.telemetry.glean.private.NoExtras
@@ -25,7 +26,6 @@ import org.mozilla.focus.GleanMetrics.RecentApps
 import org.mozilla.focus.R
 import org.mozilla.focus.activity.MainActivity
 import org.mozilla.focus.ext.components
-import org.mozilla.focus.utils.IntentUtils
 
 /**
  * As long as a session is active this service will keep the notification (and our process) alive.
@@ -147,7 +147,7 @@ class SessionNotificationService : Service() {
 
     private fun createEraseIntent(): PendingIntent {
         val notificationIntentFlags =
-            IntentUtils.defaultIntentPendingFlags() or PendingIntent.FLAG_ONE_SHOT
+            PendingIntentUtils.defaultFlags or PendingIntent.FLAG_ONE_SHOT
         val intent = Intent(this, SessionNotificationService::class.java)
         intent.action = ACTION_ERASE
 
@@ -156,7 +156,7 @@ class SessionNotificationService : Service() {
 
     private fun createOpenActionIntent(): PendingIntent {
         val openActionIntentFlags =
-            IntentUtils.defaultIntentPendingFlags() or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntentUtils.defaultFlags or PendingIntent.FLAG_UPDATE_CURRENT
         val intent = Intent(this, MainActivity::class.java)
         intent.action = MainActivity.ACTION_OPEN
 
@@ -165,7 +165,7 @@ class SessionNotificationService : Service() {
 
     private fun createOpenAndEraseActionIntent(): PendingIntent {
         val openAndEraseActionIntentFlags =
-            IntentUtils.defaultIntentPendingFlags() or PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntentUtils.defaultFlags or PendingIntent.FLAG_UPDATE_CURRENT
         val intent = Intent(this, MainActivity::class.java)
 
         intent.action = MainActivity.ACTION_ERASE

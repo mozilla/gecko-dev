@@ -97,7 +97,6 @@
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor.Result$CustomTab : Result</ID>
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor.Result$None : Result</ID>
     <ID>UndocumentedPublicClass:IntentProcessor.kt$IntentProcessor.Result$Tab : Result</ID>
-    <ID>UndocumentedPublicClass:IntentUtils.kt$IntentUtils</ID>
     <ID>UndocumentedPublicClass:LanguageFragment.kt$LanguageFragment : BaseComposeFragment</ID>
     <ID>UndocumentedPublicClass:LanguageMiddleware.kt$LanguageMiddleware : Middleware</ID>
     <ID>UndocumentedPublicClass:LanguageScreenStore.kt$LanguageScreenAction$InitLanguages : LanguageScreenAction</ID>
@@ -390,8 +389,6 @@
     <ID>UndocumentedPublicFunction:TopSitesOverlay.kt$@OptIn(DelicateCoroutinesApi::class) @Composable fun TopSitesOverlay(modifier: Modifier = Modifier)</ID>
     <ID>UndocumentedPublicFunction:TopSitesOverlay.kt$@OptIn(DelicateCoroutinesApi::class) fun removeTopSite(item: TopSite, components: Components)</ID>
     <ID>UndocumentedPublicFunction:TopSitesOverlay.kt$@OptIn(DelicateCoroutinesApi::class) fun renameTopSite(selectedTopSite: TopSite, newTitle: String, components: Components)</ID>
-    <ID>UndocumentedPublicFunction:TransitionDrawableGroup.kt$TransitionDrawableGroup$fun resetTransition()</ID>
-    <ID>UndocumentedPublicFunction:TransitionDrawableGroup.kt$TransitionDrawableGroup$fun startTransition(durationMillis: Int)</ID>
     <ID>UndocumentedPublicFunction:UrlInputFragment.kt$UrlInputFragment$fun onBackPressed(): Boolean</ID>
     <ID>UndocumentedPublicFunction:UrlInputFragment.kt$UrlInputFragment.Companion$@JvmStatic fun createWithTab( tabId: String, ): UrlInputFragment</ID>
     <ID>UndocumentedPublicFunction:UrlInputFragment.kt$UrlInputFragment.Companion$@JvmStatic fun createWithoutSession(): UrlInputFragment</ID>

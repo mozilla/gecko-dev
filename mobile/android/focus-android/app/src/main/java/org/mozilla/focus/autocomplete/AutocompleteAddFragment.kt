@@ -18,6 +18,8 @@ import kotlinx.coroutines.Dispatchers.Main
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import mozilla.components.browser.domains.CustomDomains
+import mozilla.components.support.ktx.android.view.hideKeyboard
+import mozilla.components.support.ktx.android.view.showKeyboard
 import org.mozilla.focus.GleanMetrics.Autocomplete
 import org.mozilla.focus.R
 import org.mozilla.focus.databinding.FragmentAutocompleteAddDomainBinding
@@ -59,12 +61,12 @@ class AutocompleteAddFragment : BaseSettingsLikeFragment(), CoroutineScope {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        ViewUtils.showKeyboard(binding.domainView)
+        binding.domainView.showKeyboard()
     }
 
     override fun onPause() {
         job.cancel()
-        ViewUtils.hideKeyboard(activity?.currentFocus)
+        activity?.currentFocus?.hideKeyboard()
         super.onPause()
     }
 
