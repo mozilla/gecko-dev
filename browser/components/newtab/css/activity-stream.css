@@ -209,6 +209,9 @@ input {
 .icon.icon-history-item {
   background-image: url("chrome://browser/skin/history.svg");
 }
+.icon.icon-newsfeed {
+  background-image: url("chrome://global/skin/icons/newsfeed.svg");
+}
 .icon.icon-trending {
   background-image: url("chrome://browser/skin/trending.svg");
   transform: translateY(2px);
@@ -6133,10 +6136,11 @@ main section {
   font-weight: var(--font-weight-bold);
   margin: 0;
 }
-.list-feed .list-feed-title .icon-trending {
+.list-feed .list-feed-title .icon-newsfeed {
   margin-inline-end: var(--space-small);
   transform: none;
   fill: var(--newtab-text-primary-color);
+  vertical-align: text-bottom;
 }
 .list-feed .list-feed-content {
   list-style: none;

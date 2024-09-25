@@ -135,6 +135,10 @@
     background-image: url('chrome://browser/skin/history.svg');
   }
 
+  &.icon-newsfeed {
+    background-image: url('chrome://global/skin/icons/newsfeed.svg');
+  }
+
   &.icon-trending {
     background-image: url('chrome://browser/skin/trending.svg');
     transform: translateY(2px); // trending bolt is visually top heavy

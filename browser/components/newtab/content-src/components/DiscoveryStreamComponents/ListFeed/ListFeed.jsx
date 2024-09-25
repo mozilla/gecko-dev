@@ -27,7 +27,7 @@ function ListFeed({ type, firstVisibleTimestamp, recs }) {
       >
         <div className="list-feed-inner-wrapper">
           <h1 className="list-feed-title" id="list-feed-title">
-            <span className="icon icon-trending"></span>
+            <span className="icon icon-newsfeed"></span>
             {listFeedTitle}
           </h1>
           <div

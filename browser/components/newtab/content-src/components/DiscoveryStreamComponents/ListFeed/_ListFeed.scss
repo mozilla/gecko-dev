@@ -73,10 +73,11 @@
     font-weight: var(--font-weight-bold);
     margin: 0;
 
-    .icon-trending {
+    .icon-newsfeed {
       margin-inline-end: var(--space-small);
       transform: none;
       fill: var(--newtab-text-primary-color);
+      vertical-align: text-bottom;
     }
   }
 
