@@ -87,13 +87,39 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN bookmarks in storage WHEN store is initialized THEN bookmarks will be loaded as display format`() = runTestOnMain {
+    fun `GIVEN bookmarks in storage and not signed into sync WHEN store is initialized THEN bookmarks will be loaded as display format`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         val middleware = buildMiddleware()
 
         val store = middleware.makeStore()
 
         assertEquals(10, store.state.bookmarkItems.size)
+    }
+
+    @Test
+    fun `GIVEN bookmarks in storage when signed into sync WHEN store is initialized THEN bookmarks, including desktop will be loaded as display format`() = runTestOnMain {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Root.id)).thenReturn(generateDesktopRootTree())
+        val middleware = buildMiddleware()
+
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(isSignedIntoSync = true),
+        )
+
+        assertEquals(11, store.state.bookmarkItems.size)
+    }
+
+    @Test
+    fun `GIVEN bookmarks in storage and not signed into sync but has existing desktop bookmarks WHEN store is initialized THEN bookmarks, including desktop will be loaded as display format`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(1u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Root.id)).thenReturn(generateDesktopRootTree())
+        val middleware = buildMiddleware()
+
+        val store = middleware.makeStore()
+
+        assertEquals(11, store.state.bookmarkItems.size)
     }
 
     @Test
@@ -214,6 +240,7 @@ class BookmarksMiddlewareTest {
     fun `WHEN folder is clicked THEN children are loaded and screen title is updated to folder title`() = runTestOnMain {
         val bookmarkTree = generateBookmarkTree()
         val folderNode = bookmarkTree.children!!.first { it.type == BookmarkNodeType.FOLDER }
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         `when`(bookmarksStorage.getTree(folderNode.guid))
             .thenReturn(generateBookmarkFolder(folderNode.guid, folderNode.title!!, BookmarkRoot.Mobile.id))
@@ -270,6 +297,7 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `GIVEN current screen is add folder and new folder title is nonempty WHEN back is clicked THEN navigate back, save the new folder, and load the updated tree`() = runTest {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
@@ -308,6 +336,7 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `GIVEN current screen is edit bookmark WHEN back is clicked THEN navigate back, save the bookmark, and load the updated tree`() = runTest {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
@@ -336,6 +365,7 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `GIVEN current screen is list and the top-level is loaded WHEN back is clicked THEN exit bookmarks`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         var exited = false
         exitBookmarks = { exited = true }
@@ -349,6 +379,7 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `GIVEN current screen is an empty list and the top-level is loaded WHEN sign into sync is clicked THEN navigate to sign into sync `() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         var navigated = false
         navigateToSignIntoSync = { navigated = true }
@@ -364,6 +395,7 @@ class BookmarksMiddlewareTest {
     fun `GIVEN current screen is list and a sub-level folder is loaded WHEN back is clicked THEN load the parent level`() = runTestOnMain {
         val tree = generateBookmarkTree()
         val firstFolderNode = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         `when`(bookmarksStorage.getTree(firstFolderNode.guid)).thenReturn(generateBookmarkTree())
         `when`(bookmarksStorage.getBookmark(firstFolderNode.guid)).thenReturn(firstFolderNode)
@@ -442,6 +474,7 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `WHEN edit clicked in bookmark item menu THEN nav to edit screen`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
@@ -531,6 +564,7 @@ class BookmarksMiddlewareTest {
     fun `WHEN delete clicked in bookmark item menu THEN delete the bookmark, load the updated folder, and show the undo snackbar`() = runTestOnMain {
         val tree = generateBookmarkTree()
         val firstGuid = tree.children!!.first().guid
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         val bookmarkItem = BookmarkItem.Bookmark(url = "url", title = "title", previewImageUrl = "url", guid = firstGuid)
         val middleware = buildMiddleware()
@@ -611,6 +645,7 @@ class BookmarksMiddlewareTest {
         val tree = generateBookmarkTree()
         val folder = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
         val folderItem = BookmarkItem.Folder(guid = folder.guid, title = "title")
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
@@ -646,6 +681,7 @@ class BookmarksMiddlewareTest {
             mode = newMode
         }
         val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
             BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
@@ -674,6 +710,7 @@ class BookmarksMiddlewareTest {
             mode = newMode
         }
         val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
             BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
@@ -702,6 +739,7 @@ class BookmarksMiddlewareTest {
             sharedTitles.add(title)
         }
         val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
             BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
@@ -723,6 +761,7 @@ class BookmarksMiddlewareTest {
     @Test
     fun `GIVEN selected tabs WHEN multi-select delete clicked THEN delete all tabs`() = runTestOnMain {
         val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
             BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)

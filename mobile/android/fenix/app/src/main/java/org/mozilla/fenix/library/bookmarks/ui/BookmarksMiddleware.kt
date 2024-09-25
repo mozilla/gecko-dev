@@ -209,14 +209,39 @@ internal class BookmarksMiddleware(
     private fun Store<BookmarksState, BookmarksAction>.tryDispatchLoadFor(guid: String) =
         scope.launch {
             bookmarksStorage.getTree(guid)?.let { rootNode ->
-                val folderTitle = resolveFolderTitle(rootNode)
-                val items = rootNode.childItems()
+                val folder = BookmarkItem.Folder(
+                    guid = guid,
+                    title = resolveFolderTitle(rootNode),
+                )
+
+                val items = when (guid) {
+                    BookmarkRoot.Root.id -> {
+                        rootNode.copy(
+                            children = rootNode.children
+                                ?.filterNot { it.guid == BookmarkRoot.Mobile.id }
+                                ?.map { it.copy(title = resolveFolderTitle(it)) },
+                        ).childItems()
+                    }
+                    BookmarkRoot.Mobile.id -> {
+                        if (state.isSignedIntoSync || bookmarksStorage.hasDesktopBookmarks()) {
+                            val desktopNode = bookmarksStorage.getTree(BookmarkRoot.Root.id)?.let {
+                                it.copy(title = resolveFolderTitle(it))
+                            }
+
+                            val mobileRoot = rootNode.copy(
+                                children = listOfNotNull(desktopNode) + rootNode.children.orEmpty(),
+                            )
+                            mobileRoot.childItems()
+                        } else {
+                            rootNode.childItems()
+                        }
+                    }
+                    else -> rootNode.childItems()
+                }
+
                 dispatch(
                     BookmarksLoaded(
-                        folder = BookmarkItem.Folder(
-                            guid = guid,
-                            title = folderTitle,
-                        ),
+                        folder = folder,
                         bookmarkItems = items,
                     ),
                 )
