@@ -37,6 +37,108 @@ async function logTask(context, logString, task) {
   return rv;
 }
 
+let startedProfiling = false;
+let childPromise, child, profilePath;
+async function startWindowsPowerProfiling(iterationIndex) {
+  let canPowerProfile =
+    os.type() == "Windows_NT" &&
+    /10.0.2[2-9]/.test(os.release()) &&
+    process.env.XPCSHELL_PATH;
+
+  if (canPowerProfile && !startedProfiling) {
+    startedProfiling = true;
+
+    profilePath =
+      process.env.MOZ_UPLOAD_DIR + `/profile_power_${iterationIndex}.json`;
+    childPromise = new Promise(resolve => {
+      child = exec(
+        process.env.XPCSHELL_PATH,
+        {
+          env: {
+            MOZ_PROFILER_STARTUP: "1",
+            MOZ_PROFILER_STARTUP_FEATURES:
+              "power,nostacksampling,notimerresolutionchange",
+            MOZ_PROFILER_SHUTDOWN: profilePath,
+          },
+        },
+        (error, stdout, stderr) => {
+          if (error) {
+            console.log("DEBUG ERROR", error);
+          }
+          if (stderr) {
+            console.log("DEBUG stderr", error);
+          }
+          resolve(stdout);
+        }
+      );
+    });
+  }
+}
+
+async function stopWindowsPowerProfiling() {
+  if (startedProfiling) {
+    startedProfiling = false;
+    child.stdin.end("quit()");
+    await childPromise;
+  }
+}
+
+async function gatherWindowsPowerUsage(testTimes) {
+  let powerDataEntries = [];
+
+  if (profilePath) {
+    let profile;
+
+    try {
+      profile = JSON.parse(await fs.readFileSync(profilePath, "utf8"));
+    } catch (err) {
+      throw Error(`Failed to read the profile file: ${err}`);
+    }
+
+    for (let [start, end] of testTimes) {
+      start -= profile.meta.startTime;
+      end -= profile.meta.startTime;
+      let powerData = {
+        cpu_cores: [],
+        cpu_package: [],
+        gpu: [],
+      };
+
+      for (let counter of profile.counters) {
+        let field = "";
+        if (counter.name == "Power: iGPU") {
+          field = "gpu";
+        } else if (counter.name == "Power: CPU package") {
+          field = "cpu_package";
+        } else if (counter.name == "Power: CPU cores") {
+          field = "cpu_cores";
+        } else {
+          continue;
+        }
+
+        let accumulatedPower = 0;
+        for (let i = 0; i < counter.samples.data.length; ++i) {
+          let time = counter.samples.data[i][counter.samples.schema.time];
+          if (time < start) {
+            continue;
+          }
+          if (time > end) {
+            break;
+          }
+          accumulatedPower +=
+            counter.samples.data[i][counter.samples.schema.count];
+        }
+        powerData[field].push(accumulatedPower);
+      }
+
+      powerDataEntries.push(powerData);
+    }
+
+    return powerDataEntries;
+  }
+  return null;
+}
+
 function logTest(name, test) {
   return async function wrappedTest(context, commands) {
     let testTimes = [];
@@ -78,36 +180,7 @@ function logTest(name, test) {
       logCommands(commands, context.log, commandName, printFirstArg);
     }
 
-    let canPowerProfile =
-      os.type() == "Windows_NT" &&
-      /10.0.2[2-9]/.test(os.release()) &&
-      process.env.XPCSHELL_PATH;
-    let profilePath = process.env.MOZ_UPLOAD_DIR + "/profile_power.json";
-    let childPromise, child;
-    if (canPowerProfile) {
-      childPromise = new Promise(resolve => {
-        child = exec(
-          process.env.XPCSHELL_PATH,
-          {
-            env: {
-              MOZ_PROFILER_STARTUP: "1",
-              MOZ_PROFILER_STARTUP_FEATURES:
-                "power,nostacksampling,notimerresolutionchange",
-              MOZ_PROFILER_SHUTDOWN: profilePath,
-            },
-          },
-          (error, stdout, stderr) => {
-            if (error) {
-              console.log("DEBUG ERROR", error);
-            }
-            if (stderr) {
-              console.log("DEBUG stderr", error);
-            }
-            resolve(stdout);
-          }
-        );
-      });
-    }
+    await startWindowsPowerProfiling();
 
     let iterationName = "iteration";
     if (
@@ -121,54 +194,17 @@ function logTest(name, test) {
     let rv = await test(context, commands);
     context.log.info("END" + logString);
 
-    if (canPowerProfile) {
-      child.stdin.end("quit()");
-      await childPromise;
-
-      let power_data = {
-        cpu_cores: [],
-        cpu_package: [],
-        gpu: [],
-      };
-
-      let profile = null;
-      try {
-        profile = JSON.parse(await fs.readFileSync(profilePath, "utf8"));
-      } catch (err) {
-        throw Error(`Failed to read the profile file: ${err}`);
-      }
-      for (let [start, end] of testTimes) {
-        start -= profile.meta.startTime;
-        end -= profile.meta.startTime;
-        for (let counter of profile.counters) {
-          let field = "";
-          if (counter.name == "Power: iGPU") {
-            field = "gpu";
-          } else if (counter.name == "Power: CPU package") {
-            field = "cpu_package";
-          } else if (counter.name == "Power: CPU cores") {
-            field = "cpu_cores";
-          } else {
-            continue;
-          }
-
-          let accumulatedPower = 0;
-          for (let i = 0; i < counter.samples.data.length; ++i) {
-            let time = counter.samples.data[i][counter.samples.schema.time];
-            if (time < start) {
-              continue;
-            }
-            if (time > end) {
-              break;
-            }
-            accumulatedPower +=
-              counter.samples.data[i][counter.samples.schema.count];
-          }
-          power_data[field].push(accumulatedPower);
+    await stopWindowsPowerProfiling();
+    let powerData = await gatherWindowsPowerUsage(testTimes);
+    if (powerData?.length) {
+      powerData.forEach((powerUsage, ind) => {
+        if (!commands.measure.result[ind].extras.powerUsage) {
+          commands.measure.result[ind].extras.powerUsagePageload = [];
         }
-      }
-
-      commands.measure.addObject({ power_data });
+        commands.measure.result[ind].extras.powerUsagePageload.push({
+          powerUsagePageload: powerUsage,
+        });
+      });
     }
 
     return rv;
@@ -178,4 +214,7 @@ function logTest(name, test) {
 module.exports = {
   logTest,
   logTask,
+  gatherWindowsPowerUsage,
+  startWindowsPowerProfiling,
+  stopWindowsPowerProfiling,
 };
