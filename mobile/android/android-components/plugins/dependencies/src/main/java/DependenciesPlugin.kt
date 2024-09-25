@@ -19,7 +19,7 @@ object Versions {
     const val serialization = "1.6.3"
     const val python_envs_plugin = "0.0.31"
 
-    const val mozilla_glean = "61.0.0"
+    const val mozilla_glean = "61.1.0"
 
     const val robolectric = "4.13"
     const val mockito = "5.13.0"

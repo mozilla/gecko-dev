@@ -4,8 +4,10 @@
 
 //! A simple histogram implementation for exponential histograms.
 
+use std::any::TypeId;
 use std::collections::HashMap;
 
+use once_cell::sync::OnceCell;
 use serde::{Deserialize, Serialize};
 
 use crate::error::{Error, ErrorKind};
@@ -134,5 +136,134 @@ impl<B: Bucketing> Histogram<B> {
             }
         }
         res
+    }
+
+    /// Clear this histogram.
+    pub fn clear(&mut self) {
+        self.sum = 0;
+        self.count = 0;
+        self.values.clear();
+    }
+}
+
+/// Either linear or exponential histogram bucketing
+///
+/// This is to be used as a single type to avoid generic use in the buffered API.
+pub enum LinearOrExponential {
+    Linear(PrecomputedLinear),
+    Exponential(PrecomputedExponential),
+}
+
+impl Histogram<LinearOrExponential> {
+    /// A histogram using linear bucketing.
+    ///
+    /// _Note:_ Special naming to avoid needing to use extensive type annotations in other parts.
+    /// This type is only used for the buffered API.
+    pub fn _linear(min: u64, max: u64, bucket_count: usize) -> Histogram<LinearOrExponential> {
+        Histogram {
+            values: HashMap::new(),
+            count: 0,
+            sum: 0,
+            bucketing: LinearOrExponential::Linear(PrecomputedLinear {
+                bucket_ranges: OnceCell::new(),
+                min,
+                max,
+                bucket_count,
+            }),
+        }
+    }
+
+    /// A histogram using expontential bucketing.
+    ///
+    /// _Note:_ Special naming to avoid needing to use extensive type annotations in other parts.
+    /// This type is only used for the buffered API.
+    pub fn _exponential(min: u64, max: u64, bucket_count: usize) -> Histogram<LinearOrExponential> {
+        Histogram {
+            values: HashMap::new(),
+            count: 0,
+            sum: 0,
+            bucketing: LinearOrExponential::Exponential(PrecomputedExponential {
+                bucket_ranges: OnceCell::new(),
+                min,
+                max,
+                bucket_count,
+            }),
+        }
+    }
+}
+
+impl Bucketing for LinearOrExponential {
+    fn sample_to_bucket_minimum(&self, sample: u64) -> u64 {
+        use LinearOrExponential::*;
+        match self {
+            Linear(lin) => lin.sample_to_bucket_minimum(sample),
+            Exponential(exp) => exp.sample_to_bucket_minimum(sample),
+        }
+    }
+
+    fn ranges(&self) -> &[u64] {
+        use LinearOrExponential::*;
+        match self {
+            Linear(lin) => lin.ranges(),
+            Exponential(exp) => exp.ranges(),
+        }
+    }
+}
+
+impl<B> Histogram<B>
+where
+    B: Bucketing,
+    B: std::fmt::Debug,
+    B: PartialEq,
+{
+    /// Merges data from one histogram into the other.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the two histograms don't use the same bucketing.
+    pub fn merge(&mut self, other: &Self) {
+        assert_eq!(self.bucketing, other.bucketing);
+
+        self.sum += other.sum;
+        self.count += other.count;
+        for (&bucket, &count) in &other.values {
+            *self.values.entry(bucket).or_insert(0) += count;
+        }
+    }
+}
+
+impl<B> Histogram<B>
+where
+    B: Bucketing + 'static,
+    B: std::fmt::Debug,
+    B: PartialEq,
+{
+    /// Merges data from one histogram into the other.
+    ///
+    /// ## Panics
+    ///
+    /// Panics if the two histograms don't use the same bucketing.
+    /// Note that the `other` side can be either linear or exponential
+    /// and we only merge if it matches `self`'s bucketing.
+    // _Note:_ Unfortunately this needs a separate name from the above, otherwise it's a conflicting
+    // method.
+    // We only use it internally for the buffered API, and can guarantee correct usage that way.
+    pub fn _merge(&mut self, other: &Histogram<LinearOrExponential>) {
+        #[rustfmt::skip]
+        assert!(
+            (
+                TypeId::of::<B>() == TypeId::of::<PrecomputedLinear>()
+                && matches!(other.bucketing, LinearOrExponential::Linear(_))
+            ) ||
+            (
+                TypeId::of::<B>() == TypeId::of::<PrecomputedExponential>()
+                && matches!(other.bucketing, LinearOrExponential::Exponential(_))
+            )
+        );
+        self.sum += other.sum;
+        self.count += other.count;
+        for (&bucket, &count) in &other.values {
+            *self.values.entry(bucket).or_insert(0) += count;
+        }
     }
 }

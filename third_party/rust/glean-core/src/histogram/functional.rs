@@ -171,4 +171,50 @@ mod test {
             );
         }
     }
+
+    #[test]
+    fn histogram_merge() {
+        let mut hist = Histogram::functional(2.0, 8.0);
+
+        // Check each of the first 100 integers, where numerical accuracy of the round-tripping
+        // is most potentially problematic
+        for sample in 0..100 {
+            hist.accumulate(sample);
+        }
+
+        let mut filled_hist = hist.clone();
+
+        let mut hist2 = Histogram::functional(2.0, 8.0);
+        for sample in 100..200 {
+            hist.accumulate(sample);
+            hist2.accumulate(sample);
+        }
+
+        filled_hist.merge(&hist2);
+
+        assert_eq!(filled_hist, hist);
+    }
+
+    #[test]
+    #[should_panic]
+    fn histogram_merge_different_buckets() {
+        let mut hist1 = Histogram::functional(2.0, 8.0);
+        let hist2 = Histogram::functional(1.0, 4.0);
+
+        hist1.merge(&hist2);
+    }
+
+    #[test]
+    fn histogram_clears() {
+        let mut hist = Histogram::functional(2.0, 8.0);
+        let empty_hist = hist.clone();
+
+        assert_eq!(empty_hist, hist);
+
+        hist.accumulate(13);
+        assert_ne!(empty_hist, hist);
+
+        hist.clear();
+        assert_eq!(empty_hist, hist);
+    }
 }

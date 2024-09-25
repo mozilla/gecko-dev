@@ -291,7 +291,9 @@ pub fn get_timestamp_ms() -> u64 {
     glean_core::get_timestamp_ms()
 }
 
-/// Asks the database to persist ping-lifetime data to disk. Probably expensive to call.
+/// Asks the database to persist ping-lifetime data to disk.
+///
+/// Probably expensive to call.
 /// Only has effect when Glean is configured with `delay_ping_lifetime_io: true`.
 /// If Glean hasn't been initialized this will dispatch and return Ok(()),
 /// otherwise it will block until the persist is done and return its Result.

@@ -3,6 +3,7 @@
 // file, You can obtain one at https://mozilla.org/MPL/2.0/.
 
 use std::collections::HashMap;
+use std::mem;
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -575,6 +576,111 @@ impl TimingDistributionMetric {
         crate::core::with_glean(|glean| {
             test_get_num_recorded_errors(glean, self.meta(), error).unwrap_or(0)
         })
+    }
+
+    /// **Experimental:** Start a new histogram buffer associated with this timing distribution metric.
+    ///
+    /// A histogram buffer accumulates in-memory.
+    /// Data is recorded into the metric on drop.
+    pub fn start_buffer(&self) -> LocalTimingDistribution<'_> {
+        LocalTimingDistribution::new(self)
+    }
+
+    fn commit_histogram(&self, histogram: Histogram<Functional>, errors: usize) {
+        let metric = self.clone();
+        crate::launch_with_glean(move |glean| {
+            if errors > 0 {
+                let max_sample_time = metric.time_unit.as_nanos(MAX_SAMPLE_TIME);
+                let msg = format!(
+                    "{} samples are longer than the maximum of {}",
+                    errors, max_sample_time
+                );
+                record_error(
+                    glean,
+                    &metric.meta,
+                    ErrorType::InvalidValue,
+                    msg,
+                    Some(errors as i32),
+                );
+            }
+
+            glean
+                .storage()
+                .record_with(glean, &metric.meta, move |old_value| {
+                    let mut hist = match old_value {
+                        Some(Metric::TimingDistribution(hist)) => hist,
+                        _ => Histogram::functional(LOG_BASE, BUCKETS_PER_MAGNITUDE),
+                    };
+
+                    hist.merge(&histogram);
+                    Metric::TimingDistribution(hist)
+                });
+        });
+    }
+}
+
+/// **Experimental:** A histogram buffer associated with a specific instance of a [`TimingDistributionMetric`].
+///
+/// Accumulation happens in-memory.
+/// Data is merged into the metric on [`Drop::drop`].
+#[derive(Debug)]
+pub struct LocalTimingDistribution<'a> {
+    histogram: Histogram<Functional>,
+    metric: &'a TimingDistributionMetric,
+    errors: usize,
+}
+
+impl<'a> LocalTimingDistribution<'a> {
+    /// Create a new histogram buffer referencing the timing distribution it will record into.
+    fn new(metric: &'a TimingDistributionMetric) -> Self {
+        let histogram = Histogram::functional(LOG_BASE, BUCKETS_PER_MAGNITUDE);
+        Self {
+            histogram,
+            metric,
+            errors: 0,
+        }
+    }
+
+    /// Accumulates one sample into the histogram.
+    ///
+    /// The provided sample must be in the "unit" declared by the instance of the metric type
+    /// (e.g. if the instance this method was called on is using [`crate::TimeUnit::Second`], then
+    /// `sample` is assumed to be in seconds).
+    ///
+    /// Accumulation happens in-memory only.
+    pub fn accumulate(&mut self, sample: u64) {
+        // Check the range prior to converting the incoming unit to
+        // nanoseconds, so we can compare against the constant
+        // MAX_SAMPLE_TIME.
+        let sample = if sample == 0 {
+            1
+        } else if sample > MAX_SAMPLE_TIME {
+            self.errors += 1;
+            MAX_SAMPLE_TIME
+        } else {
+            sample
+        };
+
+        let sample = self.metric.time_unit.as_nanos(sample);
+        self.histogram.accumulate(sample)
+    }
+
+    /// Abandon this histogram buffer and don't commit accumulated data.
+    pub fn abandon(mut self) {
+        self.histogram.clear();
+    }
+}
+
+impl Drop for LocalTimingDistribution<'_> {
+    fn drop(&mut self) {
+        if self.histogram.is_empty() {
+            return;
+        }
+
+        // We want to move that value.
+        // A `0/0` histogram doesn't allocate.
+        let buffer = mem::replace(&mut self.histogram, Histogram::functional(0.0, 0.0));
+        self.metric.commit_histogram(buffer, self.errors);
     }
 }
 

@@ -69,7 +69,8 @@ pub use crate::metrics::labeled::{
 };
 pub use crate::metrics::{
     BooleanMetric, CounterMetric, CustomDistributionMetric, Datetime, DatetimeMetric,
-    DenominatorMetric, DistributionData, EventMetric, MemoryDistributionMetric, MemoryUnit,
+    DenominatorMetric, DistributionData, EventMetric, LocalCustomDistribution,
+    LocalMemoryDistribution, LocalTimingDistribution, MemoryDistributionMetric, MemoryUnit,
     NumeratorMetric, ObjectMetric, PingType, QuantityMetric, Rate, RateMetric, RecordedEvent,
     RecordedExperiment, StringListMetric, StringMetric, TextMetric, TimeUnit, TimerId,
     TimespanMetric, TimingDistributionMetric, UrlMetric, UuidMetric,
@@ -700,7 +701,9 @@ pub fn shutdown() {
     });
 }
 
-/// Asks the database to persist ping-lifetime data to disk. Probably expensive to call.
+/// Asks the database to persist ping-lifetime data to disk.
+///
+/// Probably expensive to call.
 /// Only has effect when Glean is configured with `delay_ping_lifetime_io: true`.
 /// If Glean hasn't been initialized this will dispatch and return Ok(()),
 /// otherwise it will block until the persist is done and return its Result.

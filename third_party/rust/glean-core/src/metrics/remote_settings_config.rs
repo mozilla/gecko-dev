@@ -7,9 +7,11 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 /// Represents a list of metrics and an associated boolean property
-/// indicating if the metric is enabledfrom the remote-settings
-/// configuration store. The expected format of this data is stringified JSON
-/// in the following format:
+/// indicating if the metric is enabled from the remote-settings
+/// configuration store.
+///
+/// The expected format of this data is stringified JSON in the following format:
+///
 /// ```json
 /// {
 ///     "category.metric_name": true

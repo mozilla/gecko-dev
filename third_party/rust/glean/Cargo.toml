@@ -13,7 +13,7 @@
 edition = "2021"
 rust-version = "1.76"
 name = "glean"
-version = "61.0.0"
+version = "61.1.0"
 authors = [
     "Jan-Erik Rediger <jrediger@mozilla.com>",
     "The Glean Team <glean-team@mozilla.com>",
@@ -44,8 +44,16 @@ name = "glean"
 path = "src/lib.rs"
 
 [[test]]
+name = "custom_distribution_buffered"
+path = "tests/custom_distribution_buffered.rs"
+
+[[test]]
 name = "init_fails"
 path = "tests/init_fails.rs"
+
+[[test]]
+name = "memory_distribution_buffered"
+path = "tests/memory_distribution_buffered.rs"
 
 [[test]]
 name = "never_init"
@@ -72,6 +80,10 @@ name = "simple"
 path = "tests/simple.rs"
 
 [[test]]
+name = "timing_distribution_buffered"
+path = "tests/timing_distribution_buffered.rs"
+
+[[test]]
 name = "timing_distribution_single_sample"
 path = "tests/timing_distribution_single_sample.rs"
 
@@ -80,7 +92,7 @@ name = "upload_timing"
 path = "tests/upload_timing.rs"
 
 [dependencies.glean-core]
-version = "61.0.0"
+version = "61.1.0"
 
 [dependencies.inherent]
 version = "1"
