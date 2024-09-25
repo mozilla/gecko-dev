@@ -84,11 +84,13 @@ Default.args = {
 };
 export const DefaultSmall = Template.bind({});
 DefaultSmall.args = {
-  type: "default",
+  ...Default.args,
   size: "small",
-  l10nId: "moz-button-labelled",
-  iconSrc: "",
-  disabled: false,
+};
+export const Disabled = Template.bind({});
+Disabled.args = {
+  ...Default.args,
+  disabled: true,
 };
 export const Primary = Template.bind({});
 Primary.args = {
@@ -120,8 +122,7 @@ IconGhost.args = {
 };
 export const IconText = Template.bind({});
 IconText.args = {
-  type: "default",
-  size: "default",
+  ...Default.args,
   iconSrc: "chrome://global/skin/icons/edit-copy.svg",
   l10nId: "moz-button-labelled",
 };

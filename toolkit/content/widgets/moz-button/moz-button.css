@@ -53,7 +53,7 @@ button {
     color: var(--button-text-color-hover);
   }
 
-  button:hover:active > & {
+  button:hover:active:not(:disabled) > & {
     background-color: var(--button-background-color-active);
     border-color: var(--button-border-color-active);
     color: var(--button-text-color-active);
@@ -82,7 +82,7 @@ button {
       color: var(--button-text-color-primary-hover);
     }
 
-    button:hover:active > & {
+    button:hover:active:not(:disabled) > & {
       background-color: var(--button-background-color-primary-active);
       border-color: var(--button-border-color-primary-active);
       color: var(--button-text-color-primary-active);
@@ -106,7 +106,7 @@ button {
       color: var(--button-text-color-destructive-hover);
     }
 
-    button:hover:active > & {
+    button:hover:active:not(:disabled) > & {
       background-color: var(--button-background-color-destructive-active);
       border-color: var(--button-border-color-destructive-active);
       color: var(--button-text-color-destructive-active);
@@ -130,7 +130,7 @@ button {
       color: var(--button-text-color-ghost-hover);
     }
 
-    button:hover:active > & {
+    button:hover:active:not(:disabled) > & {
       background-color: var(--button-background-color-ghost-active);
       border-color: var(--button-border-color-ghost-active);
       color: var(--button-text-color-ghost-active);
