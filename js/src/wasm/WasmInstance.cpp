@@ -366,20 +366,7 @@ Instance::callImport_general(Instance* instance, int32_t funcImportIndex,
   JSContext* cx = instance->cx();
 #ifdef ENABLE_WASM_JSPI
   if (IsSuspendableStackActive(cx)) {
-    struct ImportCallData {
-      Instance* instance;
-      int32_t funcImportIndex;
-      int32_t argc;
-      uint64_t* argv;
-      static bool Call(ImportCallData* data) {
-        Instance* instance = data->instance;
-        JSContext* cx = instance->cx();
-        return instance->callImport(cx, data->funcImportIndex, data->argc,
-                                    data->argv);
-      }
-    } data = {instance, funcImportIndex, argc, argv};
-    return CallOnMainStack(
-        cx, reinterpret_cast<CallOnMainStackFn>(ImportCallData::Call), &data);
+    return CallImportOnMainThread(cx, instance, funcImportIndex, argc, argv);
   }
 #endif
   return instance->callImport(cx, funcImportIndex, argc, argv);

@@ -19,8 +19,6 @@
 #include "wasm/WasmPI.h"
 
 #include "builtin/Promise.h"
-#include "debugger/DebugAPI.h"
-#include "debugger/Debugger.h"
 #include "jit/arm/Simulator-arm.h"
 #include "jit/MIRGenerator.h"
 #include "js/CallAndConstruct.h"
@@ -33,7 +31,6 @@
 #include "wasm/WasmContext.h"
 #include "wasm/WasmFeatures.h"
 #include "wasm/WasmGenerator.h"
-#include "wasm/WasmIonCompile.h"  // IonPlatformSupport
 #include "wasm/WasmValidate.h"
 
 #include "vm/JSObject-inl.h"
@@ -405,20 +402,6 @@ void SuspenderObject::suspend(JSContext* cx) {
   cx->wasm().promiseIntegration.suspendedStacks_.pushFront(data());
   data()->setSuspendedBy(&cx->wasm().promiseIntegration);
   cx->wasm().promiseIntegration.setActiveSuspender(nullptr);
-
-  if (cx->realm()->isDebuggee()) {
-    WasmFrameIter iter(cx->activation()->asJit());
-    while (true) {
-      MOZ_ASSERT(!iter.done());
-      if (iter.debugEnabled()) {
-        DebugAPI::onSuspendWasmFrame(cx, iter.debugFrame());
-      }
-      ++iter;
-      if (iter.stackSwitched()) {
-        break;
-      }
-    }
-  }
 }
 
 void SuspenderObject::resume(JSContext* cx) {
@@ -427,21 +410,6 @@ void SuspenderObject::resume(JSContext* cx) {
   setActive(cx);
   data()->setSuspendedBy(nullptr);
   cx->wasm().promiseIntegration.suspendedStacks_.remove(data());
-
-  if (cx->realm()->isDebuggee()) {
-    for (FrameIter iter(cx);; ++iter) {
-      MOZ_RELEASE_ASSERT(!iter.done(), "expecting stackSwitched()");
-      if (iter.isWasm()) {
-        WasmFrameIter& wasmIter = iter.wasmFrame();
-        if (wasmIter.stackSwitched()) {
-          break;
-        }
-        if (wasmIter.debugEnabled()) {
-          DebugAPI::onResumeWasmFrame(cx, iter);
-        }
-      }
-    }
-  }
 }
 
 void SuspenderObject::leave(JSContext* cx) {
@@ -488,7 +456,20 @@ bool ParseSuspendingPromisingString(JSContext* cx, HandleValue val,
   return true;
 }
 
-bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
+using CallImportData = Instance::WasmJSPICallImportData;
+
+/*static*/
+bool CallImportData::Call(CallImportData* data) {
+  Instance* instance = data->instance;
+  JSContext* cx = instance->cx();
+  return instance->callImport(cx, data->funcImportIndex, data->argc,
+                              data->argv);
+}
+
+bool CallImportOnMainThread(JSContext* cx, Instance* instance,
+                            int32_t funcImportIndex, int32_t argc,
+                            uint64_t* argv) {
+  CallImportData data = {instance, funcImportIndex, argc, argv};
   Rooted<SuspenderObject*> suspender(
       cx, cx->wasm().promiseIntegration.activeSuspender());
   SuspenderObjectData* stacks = suspender->data();
@@ -503,7 +484,7 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
   // The simulator is using its own stack, however switching is needed for
   // virtual registers.
   stacks->switchSimulatorToMain();
-  bool res = fn(data);
+  bool res = CallImportData::Call(&data);
   stacks->switchSimulatorToSuspendable();
 #    else
 #      error "not supported"
@@ -575,7 +556,7 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
           "\n   mov     sp, x27 "                                         \
           "\n   mov     %0, x0"                                           \
           : "=r"(res)                                                     \
-          : "r"(stacks), "r"(fn), "r"(data)                               \
+          : "r"(stacks), "r"(CallImportData::Call), "r"(&data)            \
           : "x0", "x3", "x27", CALLER_SAVED_REGS, "cc", "memory")
   INLINED_ASM(24, 32, 40, 48);
 
@@ -606,7 +587,7 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
                                                                           \
           "\n   movq     %%rax, %0"                                       \
           : "=r"(res)                                                     \
-          : "r"(stacks), "r"(fn), "r"(data)                               \
+          : "r"(stacks), "r"(CallImportData::Call), "r"(&data)         \
           : "rcx", "rax")
   INLINED_ASM(24, 32, 40, 48);
 
@@ -637,7 +618,7 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
                                                                           \
           "\n   movq     %%rax, %0"                                       \
           : "=r"(res)                                                     \
-          : "r"(stacks), "r"(fn), "r"(data)                               \
+          : "r"(stacks), "r"(CallImportData::Call), "r"(&data)         \
           : "rdi", "rax")
   INLINED_ASM(24, 32, 40, 48);
 #  elif defined(__i386__) || defined(_M_IX86)
@@ -664,9 +645,9 @@ bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data) {
           "\n   mov     " #SUSPENDABLE_FP "(%%edx), %%ebp"                \
           "\n   mov     " #SUSPENDABLE_SP "(%%edx), %%esp"                \
                                                                           \
-          "\n   mov     %%eax, %0"                                        \
+          "\n   mov     %%eax, %0"                                       \
           : "=r"(res)                                                     \
-          : "r"(stacks), "r"(fn), "r"(data)                               \
+          : "r"(stacks), "r"(CallImportData::Call), "r"(&data)            \
           : CALLER_SAVED_REGS)
   INLINED_ASM(12, 16, 20, 24);
 
@@ -987,7 +968,7 @@ class SuspendingFunctionModuleFactory {
     }
     MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
-    MOZ_ASSERT(IonPlatformSupport());
+    MOZ_ASSERT(IonAvailable(cx));
     CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                     DebugEnabled::False);
     compilerEnv.computeParameters();
@@ -1498,7 +1479,7 @@ class PromisingFunctionModuleFactory {
     }
     MutableCodeMetadata codeMeta = moduleMeta->codeMeta;
 
-    MOZ_ASSERT(IonPlatformSupport());
+    MOZ_ASSERT(IonAvailable(cx));
     CompilerEnvironment compilerEnv(CompileMode::Once, Tier::Optimized,
                                     DebugEnabled::False);
     compilerEnv.computeParameters();
