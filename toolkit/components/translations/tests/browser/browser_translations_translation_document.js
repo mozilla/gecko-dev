@@ -1388,6 +1388,137 @@ add_task(async function test_attributes_with_nested_attributes() {
   cleanup();
 });
 
+add_task(
+  async function test_notranslate_is_respected_for_attribute_translations() {
+    const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+    <div class="notranslate" title="A parent element with no-translate">
+      This is the outer div
+      <label>
+        Enter information:
+        <input type="text" placeholder="I cannot participate in translations because my parent said no">
+      </label>
+    </div>
+    <input type="text" placeholder="Translate me">
+    <input type="text" placeholder="Do not translate me" translate="no">
+  `);
+
+    translate();
+
+    await htmlMatches(
+      "Translations: No-Translate for Attribute Translations",
+      /* html */ `
+    <div class="notranslate" title="A parent element with no-translate">
+      This is the outer div
+      <label>
+        Enter information:
+        <input type="text" placeholder="I cannot participate in translations because my parent said no">
+      </label>
+    </div>
+    <input type="text" placeholder="TRANSLATE ME">
+    <input type="text" placeholder="Do not translate me" translate="no">
+    `
+    );
+
+    cleanup();
+  }
+);
+
+add_task(async function test_attribute_translation_for_input_elements() {
+  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+      <div>
+        <!-- Translate [title] and [value] attributes -->
+        <input type="button" title="button_title" value="button_value" alt="button_alt">
+        <input type="reset" title="reset_title" value="reset_value" alt="reset_alt">
+        <input type="submit" title="submit_title" value="submit_value" alt="submit_alt">
+
+        <!-- Translate [title] and [alt] attributes -->
+        <input type="image" title="image_title" value="image_value" alt="image_alt">
+
+        <!-- Translate [title] attribute only -->
+        <input type="checkbox" title="checkbox_title" value="checkbox_value" alt="checkbox_alt">
+        <input type="color" title="color_title" value="color_value" alt="color_alt">
+        <input type="date" title="date_title" value="date_value" alt="date_alt">
+        <input type="datetime" title="datetime_obsolete_title" value="datetime_value" alt="datetime_obsolete_alt">
+        <input type="datetime-local" title="datetime-local_title" value="datetime-local_value" alt="datetime-local_alt">
+        <input type="email" title="email_title" value="email_value" alt="email_alt">
+        <input type="file" title="file_title" value="file_value" alt="file_alt">
+        <input type="hidden" title="hidden_title" value="hidden_value" alt="hidden_alt">
+        <input type="month" title="month_title" value="month_value" alt="month_alt">
+        <input type="number" title="number_title" value="number_value" alt="number_alt">
+        <input type="password" title="password_title" value="password_value" alt="password_alt">
+        <input type="radio" title="radio_title" value="radio_value" alt="radio_alt">
+        <input type="range" title="range_title" value="range_value" alt="range_alt">
+        <input type="search" title="search_title" value="search_value" alt="search_alt">
+        <input type="tel" title="tel_title" value="tel_value" alt="tel_alt">
+        <input type="text" title="text_title" value="text_value" alt="text_alt">
+        <input type="time" title="time_title" value="time_value" alt="time_alt">
+        <input type="url" title="url_title" value="url_value" alt="url_alt">
+        <input type="week" title="week_title" value="week_value" alt="week_alt">
+      </div>
+    `);
+
+  translate();
+
+  await htmlMatches(
+    "Translations: Attribute Translation for <input> elements",
+    /* html */ `
+    <div>
+      <!-- Translate [title] and [value] attributes -->
+      <input type="button" title="BUTTON_TITLE" value="BUTTON_VALUE" alt="button_alt">
+      <input type="reset" title="RESET_TITLE" value="RESET_VALUE" alt="reset_alt">
+      <input type="submit" title="SUBMIT_TITLE" value="SUBMIT_VALUE" alt="submit_alt">
+
+      <!-- Translate [title] and [alt] attributes -->
+      <input type="image" title="IMAGE_TITLE" value="image_value" alt="IMAGE_ALT">
+
+      <!-- Translate [title] attribute only -->
+      <input type="checkbox" title="CHECKBOX_TITLE" value="checkbox_value" alt="checkbox_alt">
+      <input type="color" title="COLOR_TITLE" value="color_value" alt="color_alt">
+      <input type="date" title="DATE_TITLE" value="date_value" alt="date_alt">
+      <input type="datetime" title="DATETIME_OBSOLETE_TITLE" value="datetime_value" alt="datetime_obsolete_alt">
+      <input type="datetime-local" title="DATETIME-LOCAL_TITLE" value="datetime-local_value" alt="datetime-local_alt">
+      <input type="email" title="EMAIL_TITLE" value="email_value" alt="email_alt">
+      <input type="file" title="FILE_TITLE" value="file_value" alt="file_alt">
+      <input type="hidden" title="HIDDEN_TITLE" value="hidden_value" alt="hidden_alt">
+      <input type="month" title="MONTH_TITLE" value="month_value" alt="month_alt">
+      <input type="number" title="NUMBER_TITLE" value="number_value" alt="number_alt">
+      <input type="password" title="PASSWORD_TITLE" value="password_value" alt="password_alt">
+      <input type="radio" title="RADIO_TITLE" value="radio_value" alt="radio_alt">
+      <input type="range" title="RANGE_TITLE" value="range_value" alt="range_alt">
+      <input type="search" title="SEARCH_TITLE" value="search_value" alt="search_alt">
+      <input type="tel" title="TEL_TITLE" value="tel_value" alt="tel_alt">
+      <input type="text" title="TEXT_TITLE" value="text_value" alt="text_alt">
+      <input type="time" title="TIME_TITLE" value="time_value" alt="time_alt">
+      <input type="url" title="URL_TITLE" value="url_value" alt="url_alt">
+      <input type="week" title="WEEK_TITLE" value="week_value" alt="week_alt">
+    </div>
+    `
+  );
+
+  cleanup();
+});
+
+add_task(async function test_attribute_translation_for_track_elements() {
+  const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
+      <div>
+        <track kind="captions" label="Track label">
+      </div>
+    `);
+
+  translate();
+
+  await htmlMatches(
+    "Translations: Attribute Translation for <track> elements",
+    /* html */ `
+    <div>
+      <track kind="captions" label="TRACK LABEL">
+    </div>
+    `
+  );
+
+  cleanup();
+});
+
 add_task(async function test_nested_elements() {
   const { translate, htmlMatches, cleanup } = await createDoc(/* html */ `
     <div>
@@ -1434,7 +1565,7 @@ add_task(async function test_node_specific_attributes() {
     /* html */ `
       <div value="Do not translate div[value]">
       </div>
-      <input type="text" placeholder="THIS IS A PLACEHOLDER" value="THIS IS A VALUE">
+      <input type="text" placeholder="THIS IS A PLACEHOLDER" value="This is a value">
     `
   );
 
@@ -1582,7 +1713,7 @@ add_task(async function test_node_specific_attribute_mutation() {
   const { translate, htmlMatches, cleanup, document } =
     await createDoc(/* html */ `
       <div value="Do not translate"></div>
-      <input type="text" value="Input value">
+      <input type="button" value="Input value">
     `);
 
   translate();
@@ -1592,7 +1723,7 @@ add_task(async function test_node_specific_attribute_mutation() {
     /* html */ `
       <div value="Do not translate">
       </div>
-      <input type="text" value="INPUT VALUE">
+      <input type="button" value="INPUT VALUE">
     `
   );
 
@@ -1609,7 +1740,7 @@ add_task(async function test_node_specific_attribute_mutation() {
     /* html */ `
       <div value="New div attribute value">
       </div>
-      <input type="text" value="NEW INPUT ATTRIBUTE VALUE">
+      <input type="button" value="NEW INPUT ATTRIBUTE VALUE">
     `
   );
 

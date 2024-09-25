@@ -215,33 +215,91 @@ const EXCLUDED_TAGS = new Set([
 ]);
 
 /**
- * Attributes to be translated, a tuple of the tag name and the element. If the attribute
- * is not particular to an element, leave it as an empty string.
+ * A map of criteria to determine if an attribute is translatable for a given element.
+ * Each key in the map represents an attribute name, while the value can be either `null` or an array of further criteria.
  *
- * @type {Array<[string, string]>}
+ * - If the criteria value is `null`, the attribute is considered translatable for any element.
+ *
+ * - If the criteria array is specified, then at least one criterion must match a given element in order for the attribute to be translatable.
+ *   Each object in the array defines a tagName and optional conditions to match against an element in question.
+ *
+ *   - If none of the tagNames match the element, then the attribute is not translatable for that element.
+ *
+ *   - If a tagName matches and no further conditions are specified, then the attribute is always translatable for elements of that type.
+ *
+ *   - If a tagName matches and further conditions are specified, then at least one of the conditions must match for the attribute to be translatable for that element.
+ *
+ * Example:
+ *
+ * - "title" is translatable for all elements.
+ *
+ * - "label" is translatable only for "TRACK" elements.
+ *
+ * - "value" is translatable only for "INPUT" elements whose "type" attribute is "button", "reset", or "submit".
+ *
+ * @type {Map<string, Array<{ tagName: string, conditions?: Record<string, Array<string>> }> | null>}
  */
-const TRANSLATABLE_ATTRIBUTES = [
-  ["", "aria-brailledescription"],
-  ["", "aria-braillelabel"],
-  ["", "aria-description"],
-  ["", "aria-label"],
-  ["", "aria-placeholder"],
-  ["", "aria-roledescription"],
-  ["", "aria-valuetext"],
-  ["", "placeholder"],
-  ["", "title"],
-  ["IMG", "alt"],
-  ["INPUT", "value"],
-  ["TRACK", "label"],
-];
+const TRANSLATABLE_ATTRIBUTES = new Map([
+  [
+    "alt",
+    [{ tagName: "IMG" }, { tagName: "INPUT", conditions: { type: ["image"] } }],
+  ],
+  ["aria-brailledescription", null],
+  ["aria-braillelabel", null],
+  ["aria-description", null],
+  ["aria-label", null],
+  ["aria-placeholder", null],
+  ["aria-roledescription", null],
+  ["aria-valuetext", null],
+  ["label", [{ tagName: "TRACK" }]],
+  ["placeholder", null],
+  ["title", null],
+  [
+    // We only want to translate value attributes for button-like <input> elements.
+    // See https://bugzilla.mozilla.org/show_bug.cgi?id=1919230#c10
+    "value",
+    [{ tagName: "INPUT", conditions: { type: ["button", "reset", "submit"] } }],
+  ],
+]);
 
 /**
- * Selectors to get all the attributes.
- * e.g. "[title]", "[placeholder]", "input[value]"
+ * A single CSS selector string that matches elements with the criteria defined in TRANSLATABLE_ATTRIBUTES.
+ *
+ * @see TRANSLATABLE_ATTRIBUTES
+ *
+ * @type {string}
  */
-const TRANSLATABLE_ATTRIBUTES_SELECTOR = TRANSLATABLE_ATTRIBUTES.map(
-  ([tagName, attribute]) => `${tagName}[${attribute}]`
-);
+const TRANSLATABLE_ATTRIBUTES_SELECTOR = (() => {
+  const selectors = [];
+
+  for (const [attribute, criteria] of TRANSLATABLE_ATTRIBUTES) {
+    if (!criteria) {
+      // There are no further criteria: we translate this attribute for all elements.
+      // Example: [title]
+      selectors.push(`[${attribute}]`);
+      continue;
+    }
+
+    for (const { tagName, conditions } of criteria) {
+      if (!conditions) {
+        // There are no further conditions: we translate this attribute for all elements with this tagName.
+        // Example: TRACK[label]
+        selectors.push(`${tagName}[${attribute}]`);
+        continue;
+      }
+
+      // Further conditions are specified, so we must add a selector for each condition.
+      for (const [key, values] of Object.entries(conditions)) {
+        for (const value of values) {
+          // Example: INPUT[value][type="button"]
+          selectors.push(`${tagName}[${attribute}][${key}="${value}"]`);
+        }
+      }
+    }
+  }
+
+  return selectors.join(",");
+})();
 
 /**
  * Options used by the mutation observer
@@ -251,9 +309,7 @@ const MUTATION_OBSERVER_OPTIONS = {
   childList: true,
   subtree: true,
   attributes: true,
-  attributeFilter: TRANSLATABLE_ATTRIBUTES.map(
-    ([_tagName, attribute]) => attribute
-  ),
+  attributeFilter: [...TRANSLATABLE_ATTRIBUTES.keys()],
 };
 
 /**
@@ -470,7 +526,7 @@ export class TranslationsDocument {
             if (
               isAttributeTranslatable(mutation.target, mutation.attributeName)
             ) {
-              this.queueAttributeNodeForTranslation(mutation.target, [
+              this.#queueNodeForAttributeTranslation(mutation.target, [
                 mutation.attributeName,
               ]);
               this.dispatchQueuedAttributeTranslations();
@@ -523,12 +579,37 @@ export class TranslationsDocument {
   }
 
   /**
-   * Queue a node for translation of attributes.
+   * Queues a node's relevant attributes to be translated if it has any attributes that are
+   * determined to be translatable, and if the node itself has not been excluded from translations.
    *
-   * @param {Node} node
-   * @param {Array<string>} attributeList
+   * Otherwise does nothing with the node.
+   *
+   * @param {Node} node - The node for which to maybe translate attributes.
    */
-  queueAttributeNodeForTranslation(node, attributeList) {
+  maybeQueueNodeForAttributeTranslation(node) {
+    const translatableAttributes = this.getTranslatableAttributes(node);
+
+    if (translatableAttributes) {
+      this.#queueNodeForAttributeTranslation(node, translatableAttributes);
+    }
+  }
+
+  /**
+   * Queues a node to translate any attributes in the given attributeList.
+   *
+   * This function translates the attributes in the given attributeList without
+   * restriction and should only be used if the list has already been validated
+   * that the node has these attributes and that they are deemed translatable.
+   *
+   * If you do not already have a valid list of translatable attributes, then you
+   * should use the maybeQueueNodeForAttributeTranslation method instead.
+   *
+   * @see maybeQueueNodeForAttributeTranslation
+   *
+   * @param {Node} node - The node for which to translate attributes.
+   * @param {Array<string>} attributeList - A list of pre-validated, translatable attributes.
+   */
+  #queueNodeForAttributeTranslation(node, attributeList) {
     /** @type {NodeVisibility} */
     let visibility = "out-of-viewport";
     if (isNodeHidden(node)) {
@@ -537,6 +618,42 @@ export class TranslationsDocument {
       visibility = "in-viewport";
     }
     this.#queuedAttributeNodes.set(node, { attributeList, visibility });
+  }
+
+  /**
+   * Retrieves an array of translatable attributes within the given node.
+   *
+   * If the node is deemed to be excluded from translation, no attributes
+   * will be returned even if they are otherwise translatable.
+   *
+   * @see TRANSLATABLE_ATTRIBUTES
+   * @see TranslationsDocument.excludedNodeSelector
+   *
+   * @param {Node} node - The node from which to retrieve translatable attributes.
+   *
+   * @returns {null | Array<string>} - The translatable attribute names from the given node.
+   */
+  getTranslatableAttributes(node) {
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      // We only translate attributes on element node types.
+      return null;
+    }
+
+    if (node.closest(this.excludedNodeSelector)) {
+      // Either this node or an ancestor is explicitly excluded from translations, so we should not translate.
+      return null;
+    }
+
+    /** @type {null | Array<string>} */
+    let attributes = null;
+
+    for (const attribute of TRANSLATABLE_ATTRIBUTES.keys()) {
+      if (isAttributeTranslatable(node, attribute)) {
+        attributes ? attributes.push(attribute) : (attributes = [attribute]);
+      }
+    }
+
+    return attributes;
   }
 
   /**
@@ -746,20 +863,16 @@ export class TranslationsDocument {
    * @returns {Array<Promise<void>> | null}
    */
   translateAttributes(node) {
-    const attributeList = getTranslatableAttributes(node);
-    if (attributeList.length) {
-      // Queue the root node if it has any attributes
-      // Because querySelectorAll searches only child nodes.
-      this.queueAttributeNodeForTranslation(node, attributeList);
-    }
-    // Get all attributes in child nodes at once
+    this.maybeQueueNodeForAttributeTranslation(node);
+
     const childNodesWithTranslatableAttributes = node.querySelectorAll(
       TRANSLATABLE_ATTRIBUTES_SELECTOR
     );
+
     for (const childNode of childNodesWithTranslatableAttributes) {
-      const childNodeAttributes = getTranslatableAttributes(childNode);
-      this.queueAttributeNodeForTranslation(childNode, childNodeAttributes);
+      this.maybeQueueNodeForAttributeTranslation(childNode);
     }
+
     return this.dispatchQueuedAttributeTranslations();
   }
 
@@ -1344,29 +1457,6 @@ export class TranslationsDocument {
 }
 
 /**
- * Get the list of attributes that need to be translated
- * in a given node.
- *
- * @returns {Array<string>}
- */
-function getTranslatableAttributes(node) {
-  if (node.nodeType !== Node.ELEMENT_NODE) {
-    return [];
-  }
-  const attributes = [];
-  for (const [tagName, attribute] of TRANSLATABLE_ATTRIBUTES) {
-    if (tagName && node.tagName !== tagName) {
-      // The tagName does not match.
-      continue;
-    }
-    if (node.hasAttribute(attribute)) {
-      attributes.push(attribute);
-    }
-  }
-  return attributes;
-}
-
-/**
  * This function needs to be fairly fast since it's used on many nodes when iterating
  * over the DOM to find nodes to translate.
  *
@@ -1582,9 +1672,14 @@ function updateElement(translationsDocument, element) {
           );
         }
 
-        if (isNodeTextEmpty(translatedNode)) {
-          // The original node had text, but the one that came out of translation
-          // didn't have any text. This scenario might be caused by one of two causes:
+        if (isNodeTextEmpty(translatedNode) && !isNodeTextEmpty(liveElement)) {
+          // The translated node has no text, but the original node does have text, so we should investigate.
+          //
+          // Note that it is perfectly fine if both the translated node and original node do not have text.
+          // This occurs when attributes are translated on the node, but no text content was translated.
+          //
+          // However, since we have a case where the original node has text and the translated node does not,
+          // this scenario may be caused by one of two situations:
           //
           //   1) The element was duplicated by translation but then not given text
           //      content. This happens on Wikipedia articles for example.
@@ -1593,7 +1688,7 @@ function updateElement(translationsDocument, element) {
           //      happens on YouTube in the language selector. In that case, having the
           //      original text is much better than no text at all.
           //
-          // To make sure it is case 1 and not case 2 check whether this is the only occurrence.
+          // To make sure it is case 1) and not case 2), check whether this is the only occurrence.
           for (let i = 0; i < translatedNodes.length; i++) {
             if (translatedIndex === i) {
               // This is the current node, not a sibling.
@@ -2271,17 +2366,49 @@ class QueuedTranslator {
 }
 
 /**
- * @param {Element} element
- * @param {string} attribute
+ * Determines whether an attribute on a given element is translatable based on the specified
+ * criteria for TRANSLATABLE_ATTRIBUTES.
+ *
+ * @see TRANSLATABLE_ATTRIBUTES
+ *
+ * @param {Element} element - The DOM element on which the attribute is being checked.
+ * @param {string} attribute - The attribute name to check for translatability.
+ *
+ * @returns {boolean}
  */
 function isAttributeTranslatable(element, attribute) {
-  for (const [tagName, translatableAttribute] of TRANSLATABLE_ATTRIBUTES) {
-    if (
-      (!tagName || tagName === element.tagName) &&
-      attribute === translatableAttribute
-    ) {
+  if (!element.hasAttribute(attribute)) {
+    // The element does not have this attribute, so there is nothing to translate.
+    return false;
+  }
+
+  if (!TRANSLATABLE_ATTRIBUTES.has(attribute)) {
+    // The attribute is not listed in our translatable attributes, so we will not translate it.
+    return false;
+  }
+
+  const criteria = TRANSLATABLE_ATTRIBUTES.get(attribute);
+
+  if (!criteria) {
+    // There are no further criteria specified for this attribute, so we translate this attribute for all elements.
+    return true;
+  }
+
+  // There are further criteria specified, so attempt to find a matching criterion for the given element.
+  return criteria.some(({ tagName, conditions }) => {
+    if (tagName !== element.tagName) {
+      // The tagName does not match the given element. Try the next criterion.
+      return false;
+    }
+
+    if (!conditions) {
+      // The tagName matches and there are no further conditions, so we always translate this attribute for this element.
       return true;
     }
-  }
-  return false;
+
+    // The tagName matches, but further conditions are specified. Attempt to find a matching condition.
+    return Object.entries(conditions).some(([key, values]) =>
+      values.some(value => element.getAttribute(key) === value)
+    );
+  });
 }
