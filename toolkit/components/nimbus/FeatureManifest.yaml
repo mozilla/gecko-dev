@@ -2556,6 +2556,24 @@ etpStrictFeatures:
         branch: default
         pref: "browser.contentblocking.features.strict"
 
+thirdPartyCookieBlocking:
+  description: Prefs to control third-party cookie blocking
+  owner: tihuang@mozilla.com
+  hasExposure: false
+  variables:
+    enabled:
+      description: Whether to enable third-party cookie blocking
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.cookie.cookieBehavior.optInPartitioning"
+    enabledPBM:
+      description: Whether to enable third-party cookie blocking in private browsing mode
+      type: boolean
+      setPref:
+        branch: default
+        pref: "network.cookie.cookieBehavior.optInPartitioning.pbmode"
+
 fxaButtonVisibility:
   description: Prefs to control the visibility of the Firefox Accounts toolbar button when not signed in.
   owner: mconley@mozilla.com
