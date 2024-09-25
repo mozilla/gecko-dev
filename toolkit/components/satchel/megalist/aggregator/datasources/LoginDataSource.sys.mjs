@@ -443,8 +443,11 @@ export class LoginDataSource extends DataSourceBase {
       this.#exportPasswordsStrings.OSAuthDialogCaption
     );
 
-    let { method, object, extra = {}, value = null } = telemetryEvent;
-    Services.telemetry.recordEvent("pwmgr", method, object, value, extra);
+    let { name, extra = {}, value = null } = telemetryEvent;
+    if (value) {
+      extra.value = value;
+    }
+    Glean.pwmgr[name].record(extra);
 
     if (!isAuthorized) {
       this.cancelDialog();
@@ -459,11 +462,7 @@ export class LoginDataSource extends DataSourceBase {
     function fpCallback(aResult) {
       if (aResult != Ci.nsIFilePicker.returnCancel) {
         LoginExport.exportAsCSV(fp.file.path);
-        Services.telemetry.recordEvent(
-          "pwmgr",
-          "mgmt_menu_item_used",
-          "export_complete"
-        );
+        Glean.pwmgr.mgmtMenuItemUsedExportComplete.record();
       }
     }
     fp.init(

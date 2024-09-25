@@ -3140,7 +3140,7 @@ var gPrivacyPane = {
   showPasswords() {
     let loginManager = window.windowGlobalChild.getActor("LoginManager");
     loginManager.sendAsyncMessage("PasswordManager:OpenPreferences", {
-      entryPoint: "preferences",
+      entryPoint: "Preferences",
     });
   },
 

@@ -198,8 +198,7 @@ window.addEventListener("AboutLoginsRemoveAllLoginsDialog", () => {
 
 window.addEventListener("AboutLoginsExportPasswordsDialog", async () => {
   recordTelemetryEvent({
-    object: "export",
-    method: "mgmt_menu_item_used",
+    name: "mgmtMenuItemUsedExport",
   });
   let dialog = document.querySelector("confirmation-dialog");
   let options = {
@@ -245,8 +244,7 @@ let searchParamsChanged = false;
 let { protocol, pathname, searchParams } = new URL(document.location);
 
 recordTelemetryEvent({
-  method: "open_management",
-  object: searchParams.get("entryPoint") || "direct",
+  name: "openManagement" + (searchParams.get("entryPoint") || "Direct"),
 });
 
 if (searchParams.has("entryPoint")) {

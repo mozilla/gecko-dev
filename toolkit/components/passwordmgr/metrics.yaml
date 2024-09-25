@@ -230,3 +230,499 @@ pwmgr:
     expires: never
     extra_keys: *pwmgr_saved_login_used_extra
     telemetry_mirror: Pwmgr_SavedLoginUsed_PromptLogin
+
+  mgmt_menu_item_used_import_from_browser:
+    type: event
+    description: >
+      Record interactions with the about:logins menu.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.mgmt_menu_item_used#import_from_browser.
+    bugs: &pwmgr_mgmt_menu_item_used_bugs
+      - https://bugzil.la/1641396
+      - https://bugzil.la/1641777
+      - https://bugzil.la/1641393
+    data_reviews: &pwmgr_mgmt_menu_item_used_data_reviews
+      - https://bugzil.la/1641396
+      - https://bugzil.la/1641777
+      - https://bugzil.la/1641393
+    notification_emails: &pwmgr_mgmt_menu_item_used_emails
+      - loines@mozilla.com
+      - passwords-dev@mozilla.org
+    expires: never
+    telemetry_mirror: Pwmgr_MgmtMenuItemUsed_ImportFromBrowser
+
+  mgmt_menu_item_used_import_from_csv:
+    type: event
+    description: >
+      Record interactions with the about:logins menu.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.mgmt_menu_item_used#import_from_csv.
+    bugs: *pwmgr_mgmt_menu_item_used_bugs
+    data_reviews: *pwmgr_mgmt_menu_item_used_data_reviews
+    notification_emails: *pwmgr_mgmt_menu_item_used_emails
+    expires: never
+    telemetry_mirror: Pwmgr_MgmtMenuItemUsed_ImportFromCsv
+
+  mgmt_menu_item_used_import_csv_complete:
+    type: event
+    description: >
+      Record interactions with the about:logins menu.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.mgmt_menu_item_used#import_csv_complete.
+    bugs: *pwmgr_mgmt_menu_item_used_bugs
+    data_reviews: *pwmgr_mgmt_menu_item_used_data_reviews
+    notification_emails: *pwmgr_mgmt_menu_item_used_emails
+    expires: never
+    telemetry_mirror: Pwmgr_MgmtMenuItemUsed_ImportCsvComplete
+
+  mgmt_menu_item_used_export:
+    type: event
+    description: >
+      Record interactions with the about:logins menu.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.mgmt_menu_item_used#export.
+    bugs: *pwmgr_mgmt_menu_item_used_bugs
+    data_reviews: *pwmgr_mgmt_menu_item_used_data_reviews
+    notification_emails: *pwmgr_mgmt_menu_item_used_emails
+    expires: never
+    telemetry_mirror: Pwmgr_MgmtMenuItemUsed_Export
+
+  mgmt_menu_item_used_export_complete:
+    type: event
+    description: >
+      Record interactions with the about:logins menu.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.mgmt_menu_item_used#export_complete.
+    bugs: *pwmgr_mgmt_menu_item_used_bugs
+    data_reviews: *pwmgr_mgmt_menu_item_used_data_reviews
+    notification_emails: *pwmgr_mgmt_menu_item_used_emails
+    expires: never
+    telemetry_mirror: Pwmgr_MgmtMenuItemUsed_ExportComplete
+
+  mgmt_menu_item_used_preferences:
+    type: event
+    description: >
+      Record interactions with the about:logins menu.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.mgmt_menu_item_used#preferences.
+    bugs: *pwmgr_mgmt_menu_item_used_bugs
+    data_reviews: *pwmgr_mgmt_menu_item_used_data_reviews
+    notification_emails: *pwmgr_mgmt_menu_item_used_emails
+    expires: never
+    telemetry_mirror: Pwmgr_MgmtMenuItemUsed_Preferences
+
+  reauthenticate_master_password:
+    type: event
+    description: >
+      Measure how often users are asked to authenticate with their Operating System or Master Password to gain access to stored passwords.
+      Possible values are as follows,
+        "success" should be used when the user authenticates and provides a password or other authentication factor.
+        "success_no_prompt" should be used when the feature is enabled but no prompt is given to the user because they have recently authenticated.
+        "success_disabled" is used when the feature is disabled.
+        "success_unsupported_platform" should be set when the user attempts to authenticate on an unsupported platform.
+        "success_no_password" should be used when the user doesn't have an OS password set.
+        "fail" should be used when the user cancels the authentication prompt or an unexpected exception is encountered. The user may or may not have provided an incorrect password before cancelling.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.reauthenticate#master_password.
+    bugs: &pwmgr_reauthenticate_bugs
+      - https://bugzil.la/1628029
+      - https://bugzil.la/1623745
+      - https://bugzil.la/1636729
+      - https://bugzil.la/1642267
+    data_reviews: &pwmgr_reauthenticate_data_reviews
+      - https://bugzil.la/1628029
+      - https://bugzil.la/1623745
+      - https://bugzil.la/1636729
+      - https://bugzil.la/1642267
+    notification_emails: &pwmgr_reauthenticate_emails
+      - loines@mozilla.com
+      - passwords-dev@mozilla.org
+      - jaws@mozilla.com
+    expires: never
+    extra_keys: &pwmgr_reauthenticate_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      auto_admin:
+        description: >
+          If the AutoAdminLogon Windows feature is enabled. This feature disables password prompt when logging in to Windows.
+
+        type: string
+      require_signon:
+        description: >
+          If the Power Settings on Windows are configured to not prompt for password upon resuming from sleep.
+
+        type: string
+    telemetry_mirror: Pwmgr_Reauthenticate_MasterPassword
+
+  reauthenticate_os_auth:
+    type: event
+    description: >
+      Measure how often users are asked to authenticate with their Operating System or Master Password to gain access to stored passwords.
+      Possible values are as follows,
+        "success" should be used when the user authenticates and provides a password or other authentication factor.
+        "success_no_prompt" should be used when the feature is enabled but no prompt is given to the user because they have recently authenticated.
+        "success_disabled" is used when the feature is disabled.
+        "success_unsupported_platform" should be set when the user attempts to authenticate on an unsupported platform.
+        "success_no_password" should be used when the user doesn't have an OS password set.
+        "fail" should be used when the user cancels the authentication prompt or an unexpected exception is encountered. The user may or may not have provided an incorrect password before cancelling.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.reauthenticate#os_auth.
+    bugs: *pwmgr_reauthenticate_bugs
+    data_reviews: *pwmgr_reauthenticate_data_reviews
+    notification_emails: *pwmgr_reauthenticate_emails
+    expires: never
+    extra_keys: *pwmgr_reauthenticate_extra
+    telemetry_mirror: Pwmgr_Reauthenticate_OsAuth
+
+  open_management_aboutprotections:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#aboutprotections.
+    bugs: &pwmgr_open_management_bugs
+      - https://bugzil.la/1543499
+      - https://bugzil.la/1454733
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1550631
+      - https://bugzil.la/1622971
+    data_reviews: &pwmgr_open_management_data_reviews
+      - https://bugzil.la/1543499
+      - https://bugzil.la/1454733
+      - https://bugzil.la/1545172
+      - https://bugzil.la/1550631
+      - https://bugzil.la/1622971
+    notification_emails: &pwmgr_open_management_emails
+      - loines@mozilla.com
+      - passwords-dev@mozilla.org
+      - sfoster@mozilla.com
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Aboutprotections
+
+  open_management_autocomplete:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#autocomplete.
+    bugs: *pwmgr_open_management_bugs
+    data_reviews: *pwmgr_open_management_data_reviews
+    notification_emails: *pwmgr_open_management_emails
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Autocomplete
+
+  open_management_contextmenu:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#contextmenu.
+    bugs: *pwmgr_open_management_bugs
+    data_reviews: *pwmgr_open_management_data_reviews
+    notification_emails: *pwmgr_open_management_emails
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Contextmenu
+
+  open_management_direct:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#direct.
+    bugs: *pwmgr_open_management_bugs
+    data_reviews: *pwmgr_open_management_data_reviews
+    notification_emails: *pwmgr_open_management_emails
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Direct
+
+  open_management_mainmenu:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#mainmenu.
+    bugs: *pwmgr_open_management_bugs
+    data_reviews: *pwmgr_open_management_data_reviews
+    notification_emails: *pwmgr_open_management_emails
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Mainmenu
+
+  open_management_pageinfo:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#pageinfo.
+    bugs: *pwmgr_open_management_bugs
+    data_reviews: *pwmgr_open_management_data_reviews
+    notification_emails: *pwmgr_open_management_emails
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Pageinfo
+
+  open_management_preferences:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#preferences.
+    bugs: *pwmgr_open_management_bugs
+    data_reviews: *pwmgr_open_management_data_reviews
+    notification_emails: *pwmgr_open_management_emails
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Preferences
+
+  open_management_snippet:
+    type: event
+    description: >
+      Sent when opening the password management UI.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_management#snippet.
+    bugs: *pwmgr_open_management_bugs
+    data_reviews: *pwmgr_open_management_data_reviews
+    notification_emails: *pwmgr_open_management_emails
+    expires: never
+    telemetry_mirror: Pwmgr_OpenManagement_Snippet
+
+  cancel_existing_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.cancel#existing_login.
+    bugs: &pwmgr_cancel_bugs
+      - https://bugzil.la/1548463
+      - https://bugzil.la/1600958
+      - https://bugzil.la/1549115
+      - https://bugzil.la/1628165
+    data_reviews: &pwmgr_cancel_data_reviews
+      - https://bugzil.la/1548463
+      - https://bugzil.la/1600958
+      - https://bugzil.la/1549115
+      - https://bugzil.la/1628165
+    notification_emails: &pwmgr_cancel_emails
+      - loines@mozilla.com
+      - passwords-dev@mozilla.org
+      - jaws@mozilla.com
+    expires: never
+    extra_keys: &pwmgr_cancel_extra
+      breached:
+        description: >
+          Whether the login is marked as breached or not. If a login is both breached and vulnerable, it will only be reported as breached.
+        type: boolean
+      vulnerable:
+        description: >
+          Whether the login is marked as vulnerable or not. If a login is both breached and vulnerable, it will only be reported as breached.
+        type: boolean
+    telemetry_mirror: Pwmgr_Cancel_ExistingLogin
+
+  cancel_new_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.cancel#new_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Cancel_NewLogin
+
+  copy_password:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.copy#password.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Copy_Password
+
+  copy_username:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.copy#username.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Copy_Username
+
+  delete_existing_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.delete#existing_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    telemetry_mirror: Pwmgr_Delete_ExistingLogin
+
+  delete_new_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.delete#new_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Delete_NewLogin
+
+  edit_existing_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.edit#existing_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Edit_ExistingLogin
+
+  filter_list:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.filter#list.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    telemetry_mirror: Pwmgr_Filter_List
+
+  hide_password:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.hide#password.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Hide_Password
+
+  learn_more_vuln_existing_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.learn_more_vuln#existing_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_LearnMoreVuln_ExistingLogin
+
+  new_new_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.new#new_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    telemetry_mirror: Pwmgr_New_NewLogin
+
+  open_site_existing_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.open_site#existing_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_OpenSite_ExistingLogin
+
+  save_existing_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.save#existing_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Save_ExistingLogin
+
+  save_new_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.save#new_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Save_NewLogin
+
+  select_existing_login:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.select#existing_login.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Select_ExistingLogin
+
+  show_password:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.show#password.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys: *pwmgr_cancel_extra
+    telemetry_mirror: Pwmgr_Show_Password
+
+  sort_list:
+    type: event
+    description: >
+      These events record interactions on the about:logins page.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.sort#list.
+    bugs: *pwmgr_cancel_bugs
+    data_reviews: *pwmgr_cancel_data_reviews
+    notification_emails: *pwmgr_cancel_emails
+    expires: never
+    extra_keys:
+      sort_key:
+        description: >
+          The key that is used for sorting the login-list.
+        type: string
+    telemetry_mirror: Pwmgr_Sort_List
