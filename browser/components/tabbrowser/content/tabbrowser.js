@@ -2949,8 +2949,18 @@
       return group;
     },
 
-    removeTabGroup(group) {
-      this.removeTabs(group.tabs);
+    /**
+     * Removes the tab group. This has the effect of closing all the tabs
+     * in the group.
+     *
+     *
+     * @param {MozTabbrowserTabGroup} [group]
+     *   The tab group to remove.
+     * @param {object} [options]
+     *   Options to use when removing tabs. @see removeTabs for more info.
+     */
+    removeTabGroup(group, options = {}) {
+      this.removeTabs(group.tabs, options);
     },
 
     adoptTabGroup(group, index) {

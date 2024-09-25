@@ -21,7 +21,7 @@ add_task(async function test_tabGroupCreateAndAddTab() {
   Assert.equal(group.tabs.length, 2, "group has 2 tabs");
   Assert.ok(group.tabs.includes(tab2), "tab1 is in group");
 
-  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group, { animate: false });
 });
 
 add_task(async function test_getTabGroups() {
@@ -41,8 +41,8 @@ add_task(async function test_getTabGroups() {
     "there are two groups in the tabstrip"
   );
 
-  gBrowser.removeTabGroup(group1);
-  gBrowser.removeTabGroup(group2);
+  gBrowser.removeTabGroup(group1, { animate: false });
+  gBrowser.removeTabGroup(group2, { animate: false });
   Assert.equal(
     gBrowser.tabGroups.length,
     0,
@@ -62,7 +62,7 @@ add_task(async function test_tabGroupCollapseAndExpand() {
   group.querySelector(".tab-group-label").click();
   Assert.ok(!group.collapsed, "collapsed group is expanded on click");
 
-  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group, { animate: false });
 });
 
 add_task(async function test_tabGroupCollapsedTabsNotVisible() {
@@ -84,7 +84,7 @@ add_task(async function test_tabGroupCollapsedTabsNotVisible() {
 
   // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   group.collapsed = false;
-  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group, { animate: false });
 });
 
 /*
@@ -111,7 +111,7 @@ add_task(async function test_tabGroupCollapseSelectsAdjacentTabAfter() {
   BrowserTestUtils.removeTab(adjacentTabAfter);
   // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   group.collapsed = false;
-  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group, { animate: false });
 });
 
 /*
@@ -135,7 +135,7 @@ add_task(async function test_tabGroupCollapseSelectsAdjacentTabBefore() {
 
   BrowserTestUtils.removeTab(adjacentTabBefore);
   group.collapsed = false;
-  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group, { animate: false });
 });
 
 add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
@@ -177,7 +177,7 @@ add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
 
   // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   group.collapsed = false;
-  fgWindow.gBrowser.removeTabGroup(group);
+  fgWindow.gBrowser.removeTabGroup(group, { animate: false });
   await BrowserTestUtils.closeWindow(fgWindow);
 });
 
@@ -216,7 +216,7 @@ add_task(async function test_tabGroupRemove() {
   let groupedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let group = gBrowser.addTabGroup("blue", "test", [groupedTab]);
 
-  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group, { animate: false });
 
   Assert.equal(groupedTab.parentElement, null, "grouped tab is unloaded");
   Assert.equal(group.parentElement, null, "group is unloaded");
@@ -278,7 +278,7 @@ add_task(async function test_tabGroupMoveToNewWindow() {
     "New tab has same URI as old tab"
   );
 
-  fgWindow.gBrowser.removeTabGroup(group);
+  fgWindow.gBrowser.removeTabGroup(group, { animate: false });
   await BrowserTestUtils.closeWindow(fgWindow);
 });
 
@@ -335,7 +335,7 @@ add_task(async function test_TabGroupEvents() {
   );
 
   let tabGroupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
-  gBrowser.removeTabGroup(group);
+  gBrowser.removeTabGroup(group, { animate: false });
   await tabGroupRemoved;
 
   BrowserTestUtils.removeTab(tab1);
@@ -377,7 +377,7 @@ add_task(async function test_moveTabBetweenGroups() {
   );
   Assert.equal(group2.tabs.length, 2, "group2 has 2 tabs");
 
-  gBrowser.removeTabGroup(group2);
+  gBrowser.removeTabGroup(group2, { animate: false });
 });
 
 // Context menu tests
@@ -456,8 +456,8 @@ add_task(async function test_tabGroupContextMenuAddTabToGroup() {
   );
   Assert.equal(tab.group.label, "", "tab group label is empty");
 
-  gBrowser.removeTabGroup(otherGroup);
-  gBrowser.removeTabGroup(tab.group);
+  gBrowser.removeTabGroup(otherGroup, { animate: false });
+  gBrowser.removeTabGroup(tab.group, { animate: false });
 });
 
 /*
@@ -509,8 +509,8 @@ add_task(async function test_tabGroupContextMenuAddTabsToGroup() {
     Assert.equal(t.group, group, `tabs[${idx}] is in group`);
   });
 
-  gBrowser.removeTabGroup(group);
-  gBrowser.removeTabGroup(otherGroup);
+  gBrowser.removeTabGroup(group, { animate: false });
+  gBrowser.removeTabGroup(otherGroup, { animate: false });
 });
 
 /*
@@ -544,7 +544,7 @@ add_task(
     Assert.ok(tab.group, "tab is in group");
     Assert.equal(otherTab.group, null, "otherTab is not in group");
 
-    gBrowser.removeTabGroup(tab.group);
+    gBrowser.removeTabGroup(tab.group, { animate: false });
     BrowserTestUtils.removeTab(otherTab);
   }
 );
@@ -591,7 +591,7 @@ add_task(
       Assert.equal(t.group, null, `otherTab[${idx}] is not in group`);
     });
 
-    gBrowser.removeTabGroup(tab.group);
+    gBrowser.removeTabGroup(tab.group, { animate: false });
     otherTabs.forEach(t => {
       BrowserTestUtils.removeTab(t);
     });
