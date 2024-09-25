@@ -2544,6 +2544,18 @@ etpLevel2PBMPref:
         branch: default
         pref: "privacy.annotate_channels.strict_list.pbmode.enabled"
 
+etpStrictFeatures:
+  description: Prefs to control the strict ETP features
+  owner: tihuang@mozilla.com
+  hasExposure: false
+  variables:
+    features:
+      description: The list of strict ETP features to enable in ETP strict mode.
+      type: string
+      setPref:
+        branch: default
+        pref: "browser.contentblocking.features.strict"
+
 fxaButtonVisibility:
   description: Prefs to control the visibility of the Firefox Accounts toolbar button when not signed in.
   owner: mconley@mozilla.com
