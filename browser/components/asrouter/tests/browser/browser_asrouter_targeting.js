@@ -1690,6 +1690,15 @@ add_task(async function check_archBits() {
   ok(bits === 32 || bits === 64, "archBits is either 32 or 64");
 });
 
+add_task(async function check_systemArch() {
+  const arch = ASRouterTargeting.Environment.systemArch;
+  is(typeof arch, "string", "systemArch should be a string");
+  ok(
+    ["x86", "x86-64", "aarch64"].includes(arch),
+    "systemArch is either x86, x86-64 or aarch64"
+  );
+});
+
 add_task(async function check_memoryMB() {
   const memory = ASRouterTargeting.Environment.memoryMB;
   is(typeof memory, "number", "Memory is a number");

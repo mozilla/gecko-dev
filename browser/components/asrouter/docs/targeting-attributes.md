@@ -65,6 +65,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [screenImpressions](#screenimpressions)
 * [searchEngines](#searchengines)
 * [sync](#sync)
+* [systemArch](#systemarch)
 * [topFrecentSites](#topfrecentsites)
 * [totalBlockedCount](#totalblockedcount)
 * [totalBookmarksCount](#totalbookmarkscount)
@@ -1035,6 +1036,16 @@ An array that maps about:welcome screen IDs to their most recent impression time
 
 ```
 declare const screenImpressions: { [key: string]: Array<UnixEpochNumber> };
+```
+
+### `systemArch`
+
+The architecture of this Firefox build: x86, x86-64 or aarch64.
+
+#### Definition
+
+```ts
+declare const systemArch: string | null;
 ```
 
 ### `totalSearches`

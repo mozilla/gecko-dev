@@ -1077,6 +1077,14 @@ const TargetingGetters = {
     return bits;
   },
 
+  get systemArch() {
+    try {
+      return Services.sysinfo.get("arch");
+    } catch (_e) {
+      return null;
+    }
+  },
+
   get memoryMB() {
     let memory = null;
     try {
