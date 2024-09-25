@@ -110,6 +110,32 @@ subprojects {
         }
     }
 
+    project.configurations.configureEach {
+        // Dependencies can't depend on a different major version of Glean than A-C itself.
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.mozilla.telemetry'
+                    && details.requested.name.contains('glean') ) {
+                def requested = details.requested.version.tokenize(".")
+                    def defined = Versions.mozilla_glean.tokenize(".")
+                    // Check the major version
+                    if (requested[0] != defined[0]) {
+                        throw new AssertionError("Cannot resolve to a single Glean version. Requested: ${details.requested.version}, A-C uses: ${Versions.mozilla_glean}")
+                    } else {
+                        // Enforce that all (transitive) dependencies are using the defined Glean version
+                        details.useVersion Versions.mozilla_glean
+                    }
+            }
+        }
+
+        resolutionStrategy.capabilitiesResolution.withCapability("org.mozilla.telemetry:glean-native") {
+            def toBeSelected = candidates.find { it.id instanceof ModuleComponentIdentifier && it.id.module.contains('geckoview') }
+            if (toBeSelected != null) {
+                select(toBeSelected)
+            }
+            because 'use GeckoView Glean instead of standalone Glean'
+        }
+    }
+
     tasks.withType(KotlinCompile).configureEach { task ->
         // Translate Kotlin messages like "w: ..." and "e: ..." into
         // "...: warning: ..." and "...: error: ...", to make Treeherder understand.
