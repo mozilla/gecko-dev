@@ -682,7 +682,7 @@ export class TelemetryFeed {
     Glean.topSites.contextId.set(lazy.contextId);
     GleanPings.topSites.submit();
 
-    if (this.canSendUnifiedAdsCallbacks) {
+    if (data.reporting_url && this.canSendUnifiedAdsCallbacks) {
       // Send callback events to MARS unified ads api
       this.sendUnifiedAdsCallbackEvent({
         url: data.reporting_url,
