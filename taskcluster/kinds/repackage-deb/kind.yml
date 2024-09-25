@@ -22,10 +22,8 @@ only-for-build-platforms:
     - linux64-shippable/opt
     - linux64-devedition/opt
     - linux64-aarch64-shippable/opt
-
-only-for-attributes:
-    - nightly
-    - shippable
+    - linux/opt
+    - linux64/opt
 
 tasks:
     repackage-deb:
