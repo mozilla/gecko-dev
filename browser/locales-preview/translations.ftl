@@ -25,12 +25,19 @@ translations-settings-download-languages-link = Learn more about downloading lan
 #   $size (number) - The size of the download in megabites
 translations-settings-download-size = ({ $size })
 translations-settings-language-header = Language
+
+# Variables:
+#   $name (string) - The language to be downloaded
 translations-settings-language-download-error =
     .heading = Download Error
-    .message = Language download failed. Try again.
+    .message = Could not download { $name } language. Please try again.
+
+# Variables:
+#   $name (string) - The language to be downloaded
 translations-settings-language-remove-error =
     .heading = Remove Error
-    .message = Failed to remove language. Try again.
+    .message = Could not remove { $name } language. Please try again.
+
 # Variables:
 #   $name (string) - The display name of the language that is to be downloaded
 translations-settings-download-button =

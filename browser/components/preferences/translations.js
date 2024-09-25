@@ -270,6 +270,12 @@ let gTranslationsPane = {
     const eventNode = event.target;
     const eventNodeParent = eventNode.parentNode;
     const eventNodeClassList = eventNode.classList;
+    for (const err of document.querySelectorAll(
+      ".translations-settings-language-error"
+    )) {
+      this.removeError(err);
+    }
+
     switch (event.type) {
       case "command":
         if (
@@ -838,6 +844,21 @@ let gTranslationsPane = {
     }
   },
 
+  showErrorMessage(parentNode, fluentId, language) {
+    const errorElement = document.createElement("moz-message-bar");
+    errorElement.setAttribute("type", "error");
+    errorElement.setAttribute("data-l10n-attrs", "message");
+    document.l10n.setAttributes(errorElement, fluentId, {
+      name: language,
+    });
+    errorElement.classList.add("translations-settings-language-error");
+    parentNode.appendChild(errorElement);
+  },
+
+  removeError(errorNode) {
+    errorNode?.remove();
+  },
+
   /**
    * Event Handler to download a language model selected by the user through HTML
    * @param {Event} event
@@ -859,6 +880,11 @@ let gTranslationsPane = {
     } catch (error) {
       console.error(error);
 
+      this.showErrorMessage(
+        eventButton.parentNode,
+        "translations-settings-language-download-error",
+        TranslationsParent.getLanguageDisplayName(langTag)
+      );
       const hasAllFilesForLanguage =
         await TranslationsParent.hasAllFilesForLanguage(langTag);
 
@@ -917,6 +943,11 @@ let gTranslationsPane = {
     } catch (error) {
       // The download phases are invalidated with the error and must be reloaded.
       console.error(error);
+      this.showErrorMessage(
+        eventButton.parentNode,
+        "translations-settings-language-remove-error",
+        TranslationsParent.getLanguageDisplayName(langTag)
+      );
       const hasAllFilesForLanguage =
         await TranslationsParent.hasAllFilesForLanguage(langTag);
       if (hasAllFilesForLanguage) {
@@ -967,6 +998,11 @@ let gTranslationsPane = {
     } catch (error) {
       console.error(error);
       await this.reloadDownloadPhases();
+      this.showErrorMessage(
+        eventButton.parentNode,
+        "translations-settings-language-download-error",
+        "all"
+      );
       return;
     }
     this.changeButtonState({
@@ -995,6 +1031,11 @@ let gTranslationsPane = {
     } catch (error) {
       console.error(error);
       await this.reloadDownloadPhases();
+      this.showErrorMessage(
+        eventButton.parentNode,
+        "translations-settings-language-remove-error",
+        "all"
+      );
       return;
     }
     this.changeButtonState({

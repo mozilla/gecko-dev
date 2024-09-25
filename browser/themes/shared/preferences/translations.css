@@ -49,6 +49,7 @@
 
 .translations-settings-language {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   padding: var(--space-small) 0;
   border-top: 1px solid var(--in-content-border-color);
@@ -57,7 +58,8 @@
   }
 }
 .translations-settings-language-error {
-  flex: 100%;
+  display: inline-block;
+  flex: 0 1 100%;
 }
 .translations-settings-download-icon[type~="icon"]::part(button) {
   background-image: url(chrome://browser/skin/downloads/downloads.svg);
