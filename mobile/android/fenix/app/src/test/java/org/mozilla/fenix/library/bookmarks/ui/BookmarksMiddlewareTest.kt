@@ -380,7 +380,8 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN bookmarks in storage WHEN select folder sub screen view is loaded THEN load folders into sub screen state`() = runTestOnMain {
+    fun `GIVEN bookmarks in storage and not signed into sync WHEN select folder sub screen view is loaded THEN load folders into sub screen state`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = true)).thenReturn(generateBookmarkTree())
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
@@ -392,6 +393,38 @@ class BookmarksMiddlewareTest {
         store.dispatch(SelectFolderAction.ViewAppeared)
 
         assertEquals(6, store.state.bookmarksSelectFolderState?.folders?.count())
+    }
+
+    @Test
+    fun `GIVEN bookmarks in storage and not signed into sync but have pre-existing desktop bookmarks saved WHEN select folder sub screen view is loaded THEN load folders, including desktop folders into sub screen state`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(1u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Root.id, recursive = true)).thenReturn(generateDesktopRootTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+            ),
+        )
+
+        store.dispatch(SelectFolderAction.ViewAppeared)
+
+        assertEquals(10, store.state.bookmarksSelectFolderState?.folders?.count())
+    }
+
+    @Test
+    fun `GIVEN bookmarks in storage and signed into sync WHEN select folder sub screen view is loaded THEN load folders, including desktop folders into sub screen state`() = runTestOnMain {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Root.id, recursive = true)).thenReturn(generateDesktopRootTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                isSignedIntoSync = true,
+                bookmarksSelectFolderState = BookmarksSelectFolderState(),
+            ),
+        )
+
+        store.dispatch(SelectFolderAction.ViewAppeared)
+
+        assertEquals(10, store.state.bookmarksSelectFolderState?.folders?.count())
     }
 
     @Test
@@ -744,6 +777,22 @@ class BookmarksMiddlewareTest {
     private val bookmarkItems = List(5) {
         generateBookmark("item guid $it", "item title $it", "item url $it")
     }
+
+    private fun generateDesktopRootTree() = BookmarkNode(
+        type = BookmarkNodeType.FOLDER,
+        guid = BookmarkRoot.Root.id,
+        parentGuid = null,
+        position = 0U,
+        title = "root",
+        url = null,
+        dateAdded = 0L,
+        children = listOf(
+            generateBookmarkFolder(BookmarkRoot.Menu.id, "Menu", BookmarkRoot.Root.id),
+            generateBookmarkFolder(BookmarkRoot.Toolbar.id, "Toolbar", BookmarkRoot.Root.id),
+            generateBookmarkFolder(BookmarkRoot.Unfiled.id, "Unfiled", BookmarkRoot.Root.id),
+            generateBookmarkTree(),
+        ),
+    )
 
     private fun generateBookmarkTree() = BookmarkNode(
         type = BookmarkNodeType.FOLDER,

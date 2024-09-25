@@ -142,7 +142,11 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                     },
                                     showTabsTray = ::showTabTray,
                                     resolveFolderTitle = {
-                                        friendlyRootTitle(requireContext(), it) ?: ""
+                                        friendlyRootTitle(
+                                            context = requireContext(),
+                                            node = it,
+                                            rootTitles = composeRootTitles(requireContext()),
+                                        ) ?: ""
                                     },
                                     showUrlCopiedSnackbar = {
                                         showSnackBarWithText(resources.getString(R.string.url_copied))

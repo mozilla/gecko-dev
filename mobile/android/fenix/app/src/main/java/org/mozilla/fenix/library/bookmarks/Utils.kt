@@ -28,6 +28,19 @@ fun rootTitles(context: Context, withMobileRoot: Boolean): Map<String, String> =
 }
 
 /**
+ * Provides a lookup table for providing names for root bookmark nodes
+ *
+ * @param context The [Context] used in resolving strings.
+ */
+fun composeRootTitles(context: Context) = mapOf(
+    "root" to context.getString(R.string.library_desktop_bookmarks_root),
+    "mobile" to context.getString(R.string.library_bookmarks),
+    "menu" to context.getString(R.string.library_desktop_bookmarks_menu),
+    "toolbar" to context.getString(R.string.library_desktop_bookmarks_toolbar),
+    "unfiled" to context.getString(R.string.library_desktop_bookmarks_unfiled),
+)
+
+/**
  * Checks to see if a [BookmarkNode] is a [BookmarkRoot] and if so, returns the user-friendly
  * translated version of its title.
  *
