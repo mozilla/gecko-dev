@@ -381,7 +381,10 @@ media-gpu:
     mozinfo: "mda_gpu"
     when:
         $eval: '
-                    "windows" in task["test-platform"]
+                    (
+                        "windows" in task["test-platform"]
+                        && "hw" in task["test-platform"]
+                    )
                     || "macosx" in task["test-platform"]
                 '
     merge:
