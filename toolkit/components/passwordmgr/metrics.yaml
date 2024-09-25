@@ -39,3 +39,59 @@ pwmgr:
     notification_emails:
       - passwords-dev@mozilla.org
     expires: never
+
+  autocomplete_field_generatedpassword:
+    type: event
+    description: >
+      "autocomplete_field": The first time each unique generated password
+      is used to fill a login field - i.e. the user selects it from from
+      the autocomplete dropdown on a password input "autocomplete_shown":
+      The first time the password generation option is shown in the
+      autocomplete dropdown on a password input for a site per session
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.autocomplete_field#generatedpassword.
+    bugs: &pwmgr_autocomplete_field_bugs
+      - https://bugzil.la/1548878
+      - https://bugzil.la/1616356
+    data_reviews: &pwmgr_autocomplete_field_data_reviews
+      - https://bugzil.la/1548878
+      - https://bugzil.la/1616356
+    notification_emails: &pwmgr_autocomplete_field_emails
+      - loines@mozilla.com
+      - passwords-dev@mozilla.org
+      - sfoster@mozilla.com
+    expires: never
+    telemetry_mirror: Pwmgr_AutocompleteField_Generatedpassword
+
+  autocomplete_shown_generatedpassword:
+    type: event
+    description: >
+      "autocomplete_field": The first time each unique generated password
+      is used to fill a login field - i.e. the user selects it from from
+      the autocomplete dropdown on a password input "autocomplete_shown":
+      The first time the password generation option is shown in the
+      autocomplete dropdown on a password input for a site per session
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.autocomplete_shown#generatedpassword.
+    bugs: *pwmgr_autocomplete_field_bugs
+    data_reviews: *pwmgr_autocomplete_field_data_reviews
+    notification_emails: *pwmgr_autocomplete_field_emails
+    expires: never
+    telemetry_mirror: Pwmgr_AutocompleteShown_Generatedpassword
+
+  filled_field_edited_generatedpassword:
+    type: event
+    description: >
+      The first time each generated password filled in a website form
+      field is edited by the user in a field it was filled in
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.filled_field_edited#generatedpassword.
+    bugs:
+      - https://bugzil.la/1548880
+    data_reviews:
+      - https://bugzil.la/1548880
+    notification_emails:
+      - loines@mozilla.com
+      - passwords-dev@mozilla.org
+    expires: never
+    telemetry_mirror: Pwmgr_FilledFieldEdited_Generatedpassword
