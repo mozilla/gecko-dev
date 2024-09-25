@@ -20,6 +20,7 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.components.appstate.AppState
 import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
+import org.mozilla.fenix.home.collections.CollectionsState
 import org.mozilla.fenix.home.interactor.HomepageInteractor
 import org.mozilla.fenix.home.pocket.PocketRecommendedStoriesCategory
 import org.mozilla.fenix.home.privatebrowsing.interactor.PrivateBrowsingInteractor
@@ -283,6 +284,12 @@ internal object FakeHomepagePreview {
                 )
             }
         }
+
+    internal fun collectionState() = CollectionsState.Content(
+        collections = listOf(collection(tabs = listOf(tab()))),
+        expandedCollections = setOf(),
+        showAddTabToCollection = true,
+    )
 
     internal fun collection(tabs: List<Tab> = emptyList()): TabCollection {
         return object : TabCollection {

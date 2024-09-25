@@ -7,6 +7,8 @@ package org.mozilla.fenix.home.collections
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
@@ -26,19 +28,21 @@ import org.mozilla.fenix.theme.FirefoxTheme
 /**
  * List of expandable collections.
  *
+ * @param modifier for the UI.
  * @param collections List of [TabCollection] to display.
- * @param showAddTabToCollection Whether to show the "Add tab" menu item in the collections menu.
  * @param expandedCollections List of ids corresponding to [TabCollection]s which are currently expanded.
+ * @param showAddTabToCollection Whether to show the "Add tab" menu item in the collections menu.
  * @param interactor Interactor for interactions with the UI.
  */
 @Composable
 fun Collections(
+    modifier: Modifier = Modifier,
     collections: List<TabCollection>,
-    showAddTabToCollection: Boolean,
     expandedCollections: Set<Long> = emptySet(),
+    showAddTabToCollection: Boolean,
     interactor: CollectionInteractor,
 ) {
-    Column {
+    Column(modifier = modifier) {
         for (collection in collections) {
             Spacer(Modifier.height(12.dp))
 
@@ -136,44 +140,62 @@ private fun getMenuItems(
 @Composable
 private fun CollectionsPreview() {
     val expandedCollections: MutableState<Set<Long>> = remember { mutableStateOf(setOf(1L)) }
+
     FirefoxTheme {
-        Collections(
-            collections = listOf(FakeHomepagePreview.collection(tabs = listOf(FakeHomepagePreview.tab()))),
-            showAddTabToCollection = true,
-            expandedCollections = expandedCollections.value,
-            interactor = object : CollectionInteractor {
-                override fun onCollectionAddTabTapped(collection: TabCollection) { /* no op */ }
+        Surface(color = FirefoxTheme.colors.layer1) {
+            Collections(
+                modifier = Modifier.padding(8.dp),
+                collections = listOf(
+                    FakeHomepagePreview.collection(
+                        tabs = listOf(
+                            FakeHomepagePreview.tab(),
+                            FakeHomepagePreview.tab(),
+                            FakeHomepagePreview.tab(),
+                        ),
+                    ),
+                    FakeHomepagePreview.collection(
+                        tabs = listOf(
+                            FakeHomepagePreview.tab(),
+                            FakeHomepagePreview.tab(),
+                        ),
+                    ),
+                ),
+                showAddTabToCollection = true,
+                expandedCollections = expandedCollections.value,
+                interactor = object : CollectionInteractor {
+                    override fun onCollectionAddTabTapped(collection: TabCollection) { /* no op */ }
 
-                override fun onCollectionOpenTabClicked(tab: Tab) { /* no op */ }
+                    override fun onCollectionOpenTabClicked(tab: Tab) { /* no op */ }
 
-                override fun onCollectionOpenTabsTapped(collection: TabCollection) { /* no op */ }
+                    override fun onCollectionOpenTabsTapped(collection: TabCollection) { /* no op */ }
 
-                override fun onCollectionRemoveTab(
-                    collection: TabCollection,
-                    tab: Tab,
-                ) { /* no op */ }
+                    override fun onCollectionRemoveTab(
+                        collection: TabCollection,
+                        tab: Tab,
+                    ) { /* no op */ }
 
-                override fun onCollectionShareTabsClicked(collection: TabCollection) { /* no op */ }
+                    override fun onCollectionShareTabsClicked(collection: TabCollection) { /* no op */ }
 
-                override fun onDeleteCollectionTapped(collection: TabCollection) { /* no op */ }
+                    override fun onDeleteCollectionTapped(collection: TabCollection) { /* no op */ }
 
-                override fun onRenameCollectionTapped(collection: TabCollection) { /* no op */ }
+                    override fun onRenameCollectionTapped(collection: TabCollection) { /* no op */ }
 
-                override fun onToggleCollectionExpanded(
-                    collection: TabCollection,
-                    expand: Boolean,
-                ) {
-                    expandedCollections.value = if (expand) {
-                        setOf(1L)
-                    } else {
-                        setOf()
+                    override fun onToggleCollectionExpanded(
+                        collection: TabCollection,
+                        expand: Boolean,
+                    ) {
+                        expandedCollections.value = if (expand) {
+                            setOf(1L)
+                        } else {
+                            setOf()
+                        }
                     }
-                }
 
-                override fun onAddTabsToCollectionTapped() { /* no op */ }
+                    override fun onAddTabsToCollectionTapped() { /* no op */ }
 
-                override fun onRemoveCollectionsPlaceholder() { /* no op */ }
-            },
-        )
+                    override fun onRemoveCollectionsPlaceholder() { /* no op */ }
+                },
+            )
+        }
     }
 }

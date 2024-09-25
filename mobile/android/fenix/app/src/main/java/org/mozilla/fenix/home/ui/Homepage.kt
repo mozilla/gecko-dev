@@ -28,6 +28,8 @@ import org.mozilla.fenix.home.bookmarks.Bookmark
 import org.mozilla.fenix.home.bookmarks.interactor.BookmarksInteractor
 import org.mozilla.fenix.home.bookmarks.view.Bookmarks
 import org.mozilla.fenix.home.bookmarks.view.BookmarksMenuItem
+import org.mozilla.fenix.home.collections.Collections
+import org.mozilla.fenix.home.collections.CollectionsState
 import org.mozilla.fenix.home.fake.FakeHomepagePreview
 import org.mozilla.fenix.home.interactor.HomepageInteractor
 import org.mozilla.fenix.home.recentsyncedtabs.view.RecentSyncedTab
@@ -41,6 +43,7 @@ import org.mozilla.fenix.home.recentvisits.RecentlyVisitedItem.RecentHistoryHigh
 import org.mozilla.fenix.home.recentvisits.interactor.RecentVisitsInteractor
 import org.mozilla.fenix.home.recentvisits.view.RecentVisitMenuItem
 import org.mozilla.fenix.home.recentvisits.view.RecentlyVisited
+import org.mozilla.fenix.home.sessioncontrol.CollectionInteractor
 import org.mozilla.fenix.home.sessioncontrol.viewholders.FeltPrivacyModeInfoCard
 import org.mozilla.fenix.home.sessioncontrol.viewholders.PrivateBrowsingDescription
 import org.mozilla.fenix.home.store.HomepageState
@@ -125,6 +128,8 @@ internal fun Homepage(
                             interactor = interactor,
                         )
                     }
+
+                    CollectionsSection(collectionsState = collectionsState, interactor = interactor)
                 }
             }
         }
@@ -242,6 +247,43 @@ private fun RecentlyVisitedSection(
 }
 
 @Composable
+private fun CollectionsSection(
+    collectionsState: CollectionsState,
+    interactor: CollectionInteractor,
+) {
+    when (collectionsState) {
+        is CollectionsState.Content -> {
+            Column {
+                Spacer(Modifier.height(56.dp))
+
+                HomeSectionHeader(headerText = stringResource(R.string.collections_header))
+
+                Spacer(Modifier.height(10.dp))
+
+                with(collectionsState) {
+                    Collections(
+                        collections = collections,
+                        expandedCollections = expandedCollections,
+                        showAddTabToCollection = showAddTabToCollection,
+                        interactor = interactor,
+                    )
+                }
+            }
+        }
+
+        CollectionsState.Gone -> {} // no-op. Nothing is shown where there are no collections.
+        CollectionsState.Placeholder -> {
+            CollectionsPlaceholder()
+        }
+    }
+}
+
+@Composable
+@Suppress("EmptyFunctionBlock")
+private fun CollectionsPlaceholder() {
+}
+
+@Composable
 @LightDarkPreview
 private fun HomepagePreview() {
     FirefoxTheme {
@@ -269,6 +311,7 @@ private fun HomepagePreview() {
                     bookmarks = FakeHomepagePreview.bookmarks(),
                     showRecentlyVisited = true,
                     recentlyVisited = FakeHomepagePreview.recentHistory(),
+                    collectionsState = FakeHomepagePreview.collectionState(),
                 ),
                 interactor = FakeHomepagePreview.homepageInteractor,
                 onTopSitesItemBound = {},
