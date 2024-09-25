@@ -170,3 +170,63 @@ pwmgr:
     expires: 142
     extra_keys: *pwmgr_doorhanger_submitted_extra
     telemetry_mirror: Pwmgr_DoorhangerSubmitted_Update
+
+  saved_login_used_form_login:
+    type: event
+    description: >
+      Each time a saved login is used in a form or authentication dialog.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.saved_login_used#form_login.
+    bugs: &pwmgr_saved_login_used_bugs
+      - https://bugzil.la/1631130
+    data_reviews: &pwmgr_saved_login_used_data_reviews
+      - https://bugzil.la/1631130
+    notification_emails: &pwmgr_saved_login_used_emails
+      - loines@mozilla.com
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &pwmgr_saved_login_used_extra
+      filled:
+        description: >
+          Whether the browser filled the login details for the user vs. typing saved values.
+        type: boolean
+    telemetry_mirror: Pwmgr_SavedLoginUsed_FormLogin
+
+  saved_login_used_form_password:
+    type: event
+    description: >
+      Each time a saved login is used in a form or authentication dialog.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.saved_login_used#form_password.
+    bugs: *pwmgr_saved_login_used_bugs
+    data_reviews: *pwmgr_saved_login_used_data_reviews
+    notification_emails: *pwmgr_saved_login_used_emails
+    expires: never
+    extra_keys: *pwmgr_saved_login_used_extra
+    telemetry_mirror: Pwmgr_SavedLoginUsed_FormPassword
+
+  saved_login_used_auth_login:
+    type: event
+    description: >
+      Each time a saved login is used in a form or authentication dialog.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.saved_login_used#auth_login.
+    bugs: *pwmgr_saved_login_used_bugs
+    data_reviews: *pwmgr_saved_login_used_data_reviews
+    notification_emails: *pwmgr_saved_login_used_emails
+    expires: never
+    extra_keys: *pwmgr_saved_login_used_extra
+    telemetry_mirror: Pwmgr_SavedLoginUsed_AuthLogin
+
+  saved_login_used_prompt_login:
+    type: event
+    description: >
+      Each time a saved login is used in a form or authentication dialog.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.saved_login_used#prompt_login.
+    bugs: *pwmgr_saved_login_used_bugs
+    data_reviews: *pwmgr_saved_login_used_data_reviews
+    notification_emails: *pwmgr_saved_login_used_emails
+    expires: never
+    extra_keys: *pwmgr_saved_login_used_extra
+    telemetry_mirror: Pwmgr_SavedLoginUsed_PromptLogin

@@ -375,15 +375,7 @@ LoginManager.prototype = {
       this._storage.recordPasswordUse(login);
     }
 
-    Services.telemetry.recordEvent(
-      "pwmgr",
-      "saved_login_used",
-      loginType,
-      null,
-      {
-        filled: "" + filled,
-      }
-    );
+    Glean.pwmgr["savedLoginUsed" + loginType].record({ filled });
   },
 
   /**
