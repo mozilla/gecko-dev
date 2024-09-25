@@ -265,7 +265,8 @@ void CodeMetadata::dumpStats() const {
     statsCopy = guard.get();
   }
   auto level = mozilla::LogLevel::Info;
-  JS_LOG(wasmCodeMetaStats, level, "CodeMetadata@..%06lx::~CodeMetadata() <<<<",
+  JS_LOG(wasmCodeMetaStats, level,
+         "CM=..%06lx  CodeMetadata::~CodeMetadata() <<<<",
          0xFFFFFF & (unsigned long)uintptr_t(this));
   JS_LOG(wasmCodeMetaStats, level, "  ------ Heuristic Settings ------");
   JS_LOG(wasmCodeMetaStats, level, "     w_e_tiering_level  (1..9) = %u",
