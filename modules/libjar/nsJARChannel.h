@@ -72,8 +72,8 @@ class nsJARChannel final : public nsIJARChannel,
 
   nsCString mSpec;
 
-  bool mOpened;
-  mozilla::Atomic<bool, mozilla::ReleaseAcquire> mCanceled;
+  bool mOpened = false;
+  mozilla::Atomic<bool, mozilla::ReleaseAcquire> mCanceled{false};
   bool mOnDataCalled = false;
 
   RefPtr<nsJARProtocolHandler> mJarHandler;
@@ -87,16 +87,15 @@ class nsJARChannel final : public nsIJARChannel,
   nsCOMPtr<nsIStreamListener> mListener;
   nsCString mContentType;
   nsCString mContentCharset;
-  int64_t mContentLength;
-  uint32_t mLoadFlags;
-  mozilla::Atomic<nsresult, mozilla::ReleaseAcquire> mStatus;
-  bool mIsPending;  // the AsyncOpen is in progress.
-
-  bool mEnableOMT;
+  int64_t mContentLength = -1;
+  uint32_t mLoadFlags = LOAD_NORMAL;
+  mozilla::Atomic<nsresult, mozilla::ReleaseAcquire> mStatus{NS_OK};
+  bool mIsPending = false;  // the AsyncOpen is in progress.
+  bool mEnableOMT = true;
   // |Cancel()|, |Suspend()|, and |Resume()| might be called during AsyncOpen.
   struct {
-    bool isCanceled;
-    mozilla::Atomic<uint32_t> suspendCount;
+    bool isCanceled = false;
+    mozilla::Atomic<uint32_t> suspendCount {0};
   } mPendingEvent;
 
   nsCOMPtr<nsIInputStreamPump> mPump;

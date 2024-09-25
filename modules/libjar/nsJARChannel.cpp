@@ -159,15 +159,7 @@ nsJARInputThunk::IsNonBlocking(bool* nonBlocking) {
 // nsJARChannel
 //-----------------------------------------------------------------------------
 
-nsJARChannel::nsJARChannel()
-    : mOpened(false),
-      mCanceled(false),
-      mContentLength(-1),
-      mLoadFlags(LOAD_NORMAL),
-      mStatus(NS_OK),
-      mIsPending(false),
-      mEnableOMT(true),
-      mPendingEvent() {
+nsJARChannel::nsJARChannel() {
   LOG(("nsJARChannel::nsJARChannel [this=%p]\n", this));
   // hold an owning reference to the jar handler
   mJarHandler = gJarHandler;
