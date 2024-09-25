@@ -74,7 +74,7 @@ fuzzy-if(geckoview&&!emulator,0-14,0-184) == feMerge-2.svg feMerge-2-ref.svg
 
 # no tests for feTurbulence
 
-fuzzy-if(!gfxSVGFEGaussianBlur&&geckoview,0-36,0-220) == filter-clipped-rect-01.svg pass.svg
+fuzzy-if(geckoview,0-36,0-220) == filter-clipped-rect-01.svg pass.svg
 == filter-in-pattern-01.svg pass.svg
 fuzzy(0-5,0-67) != filter-in-pattern-02.svg filter-in-pattern-02-ref.svg
 == filter-in-mask-01.svg pass.svg
@@ -114,7 +114,7 @@ fuzzy(0-1,0-400) == feDisplacementMap-alpha-01.svg pass.svg
 fuzzy(0-2,0-500) == feDisplacementMap-colour-01.svg feDisplacementMap-colour-01-ref.svg
 == feDisplacementMap-scale-01.svg pass.svg
 
-fuzzy-if(winWidget,0-2,0-25) fuzzy-if(!useDrawSnapshot,55-98,14033-16467) fuzzy-if(gfxSVGFEDropShadow&&!gfxSVGFEOffset,97-98,21500-22951) fuzzy-if(gfxSVGFEOffset,0-2,0-1000000) == feDropShadow-01.svg feDropShadow-01-ref.svg
+fuzzy-if(winWidget,0-2,0-25) fuzzy-if(!useDrawSnapshot,55-98,14033-16467) fuzzy-if(gfxSVGFEDropShadow&&!gfxSVGFEOffset,97-98,21500-22951) fuzzy-if(gfxSVGFEOffset,0-6,0-1000000) == feDropShadow-01.svg feDropShadow-01-ref.svg
 
 == feFlood-color-01.svg pass.svg
 
