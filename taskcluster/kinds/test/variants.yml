@@ -395,25 +395,6 @@ media-gpu:
             extra-options:
                 - "--setpref=media.hardware-video-decoding.force-enabled=true"
 
-no-gpu-process:
-    description: "{description} without a dedicated GPU process"
-    component: "Core::Graphics"
-    expiration: "2025-03-01"
-    suffix: "nogpu"
-    mozinfo: "nogpu"
-    when:
-        $eval: '
-                    "windows" in task["test-platform"]
-                    || "android" in task["test-platform"]
-                '
-    replace:
-        virtualization: virtual
-    merge:
-        mozharness:
-            extra-options:
-                - "--setpref=layers.gpu-process.enabled=false"
-                - "--setpref=layers.gpu-process.force-enabled=false"
-
 msix:
     description: "{description} from msix packages"
     component: "Firefox:Installer"

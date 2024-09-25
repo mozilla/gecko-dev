@@ -315,7 +315,7 @@ fuzzy(0-1,0-133) == 273681-1.html 273681-1-ref.html
 == 283686-2.html 283686-2-ref.html
 == 283686-3.html about:blank
 == 289384-1.xhtml 289384-ref.xhtml
-random-if(winWidget) fuzzy(0-25,0-2253) fails-if(useDrawSnapshot) HTTP == 289480.html#top 289480-ref.html # basically-verbatim acid2 test, HTTP for a 404 page -- bug 578114 for the winWidget failures
+random-if(winWidget) fuzzy(0-25,0-2148) fails-if(useDrawSnapshot) HTTP == 289480.html#top 289480-ref.html # basically-verbatim acid2 test, HTTP for a 404 page -- bug 578114 for the winWidget failures
 == 290129-1.html 290129-1-ref.html
 == 291078-1.html 291078-1-ref.html
 == 291078-2.html 291078-2-ref.html
@@ -1164,7 +1164,7 @@ fuzzy(0-4,0-361) == 449519-1.html 449519-1-ref.html
 fails-if(Android) == 455826-1.html 455826-1-ref.html
 == chrome://reftest/content/bugs/456147.xhtml 456147-ref.html
 fuzzy(24-110,110-800) == 456219-1a.html 456219-1-ref.html # bug 1128229
-fuzzy(24-110,107-2439) == 456219-1b.html 456219-1-ref.html # bug 1128229
+fuzzy(24-110,107-1251) == 456219-1b.html 456219-1-ref.html # bug 1128229
 fuzzy(24-110,107-3800) == 456219-1c.html 456219-1-ref.html # bug 1128229
 fuzzy(0-10,0-8) == 456219-2.html 456219-2-ref.html
 == 456330-1.gif 456330-1-ref.png
@@ -1586,7 +1586,7 @@ fails-if(useDrawSnapshot) fuzzy-if(geckoview&&!emulator&&gfxSVGFEColorMatrix,0-4
 fails-if(useDrawSnapshot) fuzzy-if(geckoview&&!emulator&&gfxSVGFEColorMatrix,0-4,0-210) == 621253-2-externalFilter.html 621253-2-ref.html
 fails-if(useDrawSnapshot) fuzzy-if(geckoview&&!emulator&&gfxSVGFEColorMatrix,0-4,0-210) == 621253-2-internalFilter.html 621253-2-ref.html
 random-if(winWidget) == 621918-1.svg 621918-1-ref.svg # 1-pixel diacritic positioning discrepancy in rotated text (may depend on platform fonts)
-random-if(winWidget) fuzzy-if(geckoview&&!emulator,0-255,0-344) == 621918-2.svg 621918-2-ref.svg # same 1px issue as above
+random-if(winWidget) fuzzy-if(geckoview&&!emulator,0-255,0-32) == 621918-2.svg 621918-2-ref.svg # same 1px issue as above
 fuzzy-if(winWidget,0-5,0-1) == 622585-1.html 622585-1-ref.html # bug 789402
 fuzzy(0-1,0-40000) == 625409-1.html 625409-1-ref.html
 == 627393-1.html about:blank
