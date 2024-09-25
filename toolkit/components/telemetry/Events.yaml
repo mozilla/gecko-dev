@@ -3040,37 +3040,6 @@ doh:
       networkID: An ID representing the network on which heuristics were run, unique to this client
       captiveState: The Captive Portal Service state - unknown, not_captive, locked, or unlocked
       platform: Comma-separated list of platform attributes that would cause split-horizon issues (vpn, proxy, nrpt)
-  evaluate:
-    methods: ["evaluate"]
-    objects: ["heuristics"]
-    bug_numbers:
-      - 1573840
-      - 1631609
-      - 1603779
-    description: >
-      Results of DoH heuristics at startup and after network changes. OLD FORMAT: here for documentation
-    expiry_version: never
-    record_in_processes:
-      - main
-    release_channel_collection: opt-out
-    notification_emails:
-      - nhnt11@mozilla.com
-      - ddamjanovic@mozilla.com
-      - seceng-telemetry@mozilla.com
-      - necko@mozilla.com
-    products:
-      - firefox
-    extra_keys:
-      google: Google safe search result
-      youtube: YouTube safe search result
-      zscalerCanary: ZScaler canary result
-      canary: Global canary result
-      modifiedRoots: Whether enterprise roots were enabled
-      browserParent: Whether OS parental controls were detected
-      thirdPartyRoots: Whether third party roots were installed
-      policy: Enterprise policy presence - no policy/with DoH/without DoH.
-      steeredProvider: Whether we detected a steering provider
-      evaluateReason: The reason for running heuristics - startup or netchange
   state:
     methods: ["state"]
     objects: [
