@@ -105,6 +105,7 @@ include = [
   "BoolInteger",
   "OutlineStyle",
   "CaptionSide",
+  "ColorGamut",
   "FontSizeAdjust",
   "FontPalette",
   "FontLanguageOverride",

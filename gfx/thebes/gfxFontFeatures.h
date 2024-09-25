@@ -11,24 +11,9 @@
 #include "nsTHashtable.h"
 #include "nsTArray.h"
 #include "nsString.h"
+#include "mozilla/gfx/FontFeature.h"
 
-// An OpenType feature tag and value pair
-struct gfxFontFeature {
-  uint32_t
-      mTag;  // see http://www.microsoft.com/typography/otspec/featuretags.htm
-  uint32_t mValue;  // 0 = off, 1 = on, larger values may be used as parameters
-                    // to features that select among multiple alternatives
-};
-
-inline bool operator<(const gfxFontFeature& a, const gfxFontFeature& b) {
-  return (a.mTag < b.mTag) || ((a.mTag == b.mTag) && (a.mValue < b.mValue));
-}
-
-inline bool operator==(const gfxFontFeature& a, const gfxFontFeature& b) {
-  return (a.mTag == b.mTag) && (a.mValue == b.mValue);
-}
-
-class nsAtom;
+using gfxFontFeature = mozilla::gfx::FontFeature;
 
 class gfxFontFeatureValueSet final {
  public:

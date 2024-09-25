@@ -18,7 +18,6 @@ class nsCSSValue;
 class nsIContent;
 class nsIPrincipal;
 class nsIURI;
-struct gfxFontFeature;
 struct nsCSSKTableEntry;
 struct nsCSSValueList;
 struct nsStylePosition;

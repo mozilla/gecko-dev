@@ -280,7 +280,7 @@ class Accumulate {
   static Matrix4x4 operateByServo(const Matrix4x4& aMatrix1,
                                   const Matrix4x4& aMatrix2, double aCount) {
     Matrix4x4 result;
-    Servo_MatrixTransform_Operate(MatrixTransformOperator::Accumulate,
+    Servo_MatrixTransform_Operate(/* aInterpolate = */ false,
                                   &aMatrix1.components, &aMatrix2.components,
                                   aCount, &result.components);
     return result;
@@ -318,7 +318,7 @@ class Interpolate {
   static Matrix4x4 operateByServo(const Matrix4x4& aMatrix1,
                                   const Matrix4x4& aMatrix2, double aProgress) {
     Matrix4x4 result;
-    Servo_MatrixTransform_Operate(MatrixTransformOperator::Interpolate,
+    Servo_MatrixTransform_Operate(/* aInterpolate = */ true,
                                   &aMatrix1.components, &aMatrix2.components,
                                   aProgress, &result.components);
     return result;

@@ -67,7 +67,6 @@ use style::gecko_bindings::structs::nsCSSFontDesc;
 use style::gecko_bindings::structs::nsCSSPropertyID;
 use style::gecko_bindings::structs::nsChangeHint;
 use style::gecko_bindings::structs::nsCompatibility;
-use style::gecko_bindings::structs::nsStyleTransformMatrix::MatrixTransformOperator;
 use style::gecko_bindings::structs::nsresult;
 use style::gecko_bindings::structs::CallerType;
 use style::gecko_bindings::structs::CompositeOperation;
@@ -4768,28 +4767,24 @@ pub extern "C" fn Servo_GetProperties_Overriding_Animation(
 
 #[no_mangle]
 pub extern "C" fn Servo_MatrixTransform_Operate(
-    matrix_operator: MatrixTransformOperator,
-    from: *const structs::Matrix4x4Components,
-    to: *const structs::Matrix4x4Components,
+    interpolate: bool,
+    from: &structs::Matrix4x4Components,
+    to: &structs::Matrix4x4Components,
     progress: f64,
-    output: *mut structs::Matrix4x4Components,
+    output: &mut structs::Matrix4x4Components,
 ) {
-    use self::MatrixTransformOperator::{Accumulate, Interpolate};
     use style::values::computed::transform::Matrix3D;
 
-    let from = Matrix3D::from(unsafe { from.as_ref() }.expect("not a valid 'from' matrix"));
-    let to = Matrix3D::from(unsafe { to.as_ref() }.expect("not a valid 'to' matrix"));
-    let result = match matrix_operator {
-        Interpolate => from.animate(&to, Procedure::Interpolate { progress }),
-        Accumulate => from.animate(
-            &to,
-            Procedure::Accumulate {
-                count: progress as u64,
-            },
-        ),
+    let from = Matrix3D::from(from);
+    let to = Matrix3D::from(to);
+    let proc = if interpolate {
+        Procedure::Interpolate { progress }
+    } else {
+        Procedure::Accumulate {
+            count: progress as u64,
+        }
     };
-
-    let output = unsafe { output.as_mut() }.expect("not a valid 'output' matrix");
+    let result = from.animate(&to, proc);
     if let Ok(result) = result {
         *output = result.into();
     } else if progress < 0.5 {

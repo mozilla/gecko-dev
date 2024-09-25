@@ -9,23 +9,16 @@
 #ifndef mozilla_StyleAnimationValue_h_
 #define mozilla_StyleAnimationValue_h_
 
-#include "mozilla/gfx/MatrixFwd.h"
-#include "mozilla/gfx/Point.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ServoBindingTypes.h"
 #include "mozilla/ServoStyleConsts.h"  // Servo_AnimationValue_Dump
-#include "mozilla/DbgMacro.h"
 #include "mozilla/AnimatedPropertyID.h"
 #include "nsStringFwd.h"
-#include "nsCoord.h"
 #include "nsColor.h"
 #include "nsCSSPropertyID.h"
-#include "nsCSSValue.h"
-#include "nsStyleConsts.h"
 #include "nsStyleTransformMatrix.h"
 
 class nsIFrame;
-class gfx3DMatrix;
 
 namespace mozilla {
 

@@ -9,34 +9,12 @@
 #ifndef nsCSSValue_h___
 #define nsCSSValue_h___
 
-#include "mozilla/Attributes.h"
-#include "mozilla/CORSMode.h"
-#include "mozilla/EnumTypeTraits.h"
-#include "mozilla/MemoryReporting.h"
-#include "mozilla/ServoBindingTypes.h"
-#include "mozilla/URLExtraData.h"
-#include "mozilla/UniquePtr.h"
-
 #include "nsCoord.h"
-#include "nsTArray.h"
 
-#include <type_traits>
-
-// XXX Avoid including this here by moving function bodies to the cpp file
-#include "mozilla/FloatingPoint.h"
-
-class imgRequestProxy;
-class nsAtom;
-class nsIContent;
-
-class nsIPrincipal;
-class nsIURI;
-class nsPresContext;
-template <class T>
-class nsPtrHashKey;
 struct RawServoCssUrlData;
 
 namespace mozilla {
+struct URLExtraData;
 class CSSStyleSheet;
 }  // namespace mozilla
 

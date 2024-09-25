@@ -29,6 +29,7 @@ EXPORTS.mozilla.gfx += [
     "DrawTargetRecording.h",
     "DrawTargetSkia.h",
     "Filters.h",
+    "FontFeature.h",
     "FontVariation.h",
     "Helpers.h",
     "HelpersCairo.h",

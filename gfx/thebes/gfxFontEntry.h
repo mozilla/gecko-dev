@@ -16,6 +16,7 @@
 #include "gfxFontVariations.h"
 #include "gfxRect.h"
 #include "gfxTypes.h"
+#include "gfxFontFeatures.h"
 #include "harfbuzz/hb.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
@@ -44,7 +45,6 @@ class gfxSVGGlyphs;
 class gfxUserFontData;
 class nsAtom;
 struct FontListSizes;
-struct gfxFontFeature;
 struct gfxFontStyle;
 enum class eFontPresentation : uint8_t;
 
