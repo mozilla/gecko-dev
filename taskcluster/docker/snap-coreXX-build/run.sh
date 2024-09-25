@@ -117,7 +117,8 @@ else
   # index.gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.amd64-nightly
   #  => https://firefox-ci-tc.services.mozilla.com/api/index/v1/task/gecko.v2.mozilla-central.revision.bf0897ec442e625c185407cc615a6adc0e40fa75.firefox.amd64-nightly/artifacts/public%2Fbuild%2Ffirefox.snap
 
-  INDEX_NAME="${BRANCH}"
+  # Remove "-" so we get e.g., esr128 from esr-128
+  INDEX_NAME=${BRANCH//-/}
   if [ "${INDEX_NAME}" = "try" ]; then
     INDEX_NAME=nightly
   fi;
