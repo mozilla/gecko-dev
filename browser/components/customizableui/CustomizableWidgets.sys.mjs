@@ -470,7 +470,7 @@ export const CustomizableWidgets = [
     l10nId: "toolbar-button-logins",
     onCommand(aEvent) {
       let window = aEvent.view;
-      lazy.LoginHelper.openPasswordManager(window, { entryPoint: "toolbar" });
+      lazy.LoginHelper.openPasswordManager(window, { entryPoint: "Toolbar" });
     },
   },
 ];

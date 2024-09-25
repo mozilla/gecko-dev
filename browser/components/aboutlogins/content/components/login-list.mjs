@@ -299,7 +299,7 @@ export default class LoginList extends HTMLElement {
         cancelable: true,
       })
     );
-    recordTelemetryEvent({ object: "new_login", method: "new" });
+    recordTelemetryEvent({ name: "newNewLogin" });
   }
 
   handleEvent(event) {
@@ -329,13 +329,12 @@ export default class LoginList extends HTMLElement {
 
         let extra = {};
         if (listItem.notificationIcon === "breached") {
-          extra = { breached: "true" };
+          extra = { breached: true };
         } else if (listItem.notificationIcon === "vulnerable") {
-          extra = { vulnerable: "true" };
+          extra = { vulnerable: true };
         }
         recordTelemetryEvent({
-          object: "existing_login",
-          method: "select",
+          name: "selectExistingLogin",
           extra,
         });
         break;
@@ -344,7 +343,7 @@ export default class LoginList extends HTMLElement {
         this._applyHeaders();
         this._applySortAndScrollToTop();
         const extra = { sort_key: this._sortSelect.value };
-        recordTelemetryEvent({ object: "list", method: "sort", extra });
+        recordTelemetryEvent({ name: "sortList", extra });
         document.dispatchEvent(
           new CustomEvent("AboutLoginsSortChanged", {
             bubbles: true,

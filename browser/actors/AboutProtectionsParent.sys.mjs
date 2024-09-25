@@ -356,7 +356,7 @@ export class AboutProtectionsParent extends JSWindowActorParent {
     switch (aMessage.name) {
       case "OpenAboutLogins":
         lazy.LoginHelper.openPasswordManager(win, {
-          entryPoint: "aboutprotections",
+          entryPoint: "Aboutprotections",
         });
         break;
       case "OpenContentBlockingPreferences":

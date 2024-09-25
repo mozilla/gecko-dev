@@ -15,7 +15,6 @@ XPCOMUtils.defineLazyServiceGetter(
   "nsIClipboardHelper"
 );
 
-const TELEMETRY_EVENT_CATEGORY = "pwmgr";
 const TELEMETRY_MIN_MS_BETWEEN_OPEN_MANAGEMENT = 5000;
 
 let gLastOpenManagementBrowserId = null;
@@ -24,14 +23,11 @@ let gPrimaryPasswordPromise;
 
 function recordTelemetryEvent(event) {
   try {
-    let { method, object, extra = {}, value = null } = event;
-    Services.telemetry.recordEvent(
-      TELEMETRY_EVENT_CATEGORY,
-      method,
-      object,
-      value,
-      extra
-    );
+    let { name, extra = {}, value = null } = event;
+    if (value) {
+      extra.value = value;
+    }
+    Glean.pwmgr[name].record(extra);
   } catch (ex) {
     console.error("AboutLoginsChild: error recording telemetry event:", ex);
   }
@@ -186,31 +182,26 @@ export class AboutLoginsChild extends JSWindowActorChild {
   #aboutLoginsImportFromBrowser() {
     this.sendAsyncMessage("AboutLogins:ImportFromBrowser");
     recordTelemetryEvent({
-      object: "import_from_browser",
-      method: "mgmt_menu_item_used",
+      name: "mgmtMenuItemUsedImportFromBrowser",
     });
   }
 
   #aboutLoginsImportFromFile() {
     this.sendAsyncMessage("AboutLogins:ImportFromFile");
     recordTelemetryEvent({
-      object: "import_from_csv",
-      method: "mgmt_menu_item_used",
+      name: "mgmtMenuItemUsedImportFromCsv",
     });
   }
 
   #aboutLoginsOpenPreferences() {
     this.sendAsyncMessage("AboutLogins:OpenPreferences");
     recordTelemetryEvent({
-      object: "preferences",
-      method: "mgmt_menu_item_used",
+      name: "mgmtMenuItemUsedPreferences",
     });
   }
 
   #aboutLoginsRecordTelemetryEvent(event) {
-    let { method } = event.detail;
-
-    if (method == "open_management") {
+    if (event.detail.name.startsWith("openManagement")) {
       let { docShell } = this.browsingContext;
       // Compare to the last time open_management was recorded for the same
       // outerWindowID to not double-count them due to a redirect to remove

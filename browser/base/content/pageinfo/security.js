@@ -225,7 +225,7 @@ var security = {
   viewPasswords() {
     LoginHelper.openPasswordManager(window, {
       filterString: this.windowInfo.hostName,
-      entryPoint: "pageinfo",
+      entryPoint: "Pageinfo",
     });
   },
 };
