@@ -637,8 +637,8 @@ class SurfacePipeFactory {
       if (aOrientation.IsIdentity()) {
         if (colorManagement) {
           if (downscale) {
-            pipe = MakePipe(downscalingConfig, colorManagementConfig,
-                            premultiplyConfig, surfaceConfig);
+            pipe = MakePipe(colorManagementConfig, premultiplyConfig,
+                            downscalingConfig, surfaceConfig);
           } else {  // (downscale is false)
             pipe = MakePipe(colorManagementConfig, premultiplyConfig,
                             surfaceConfig);
@@ -646,7 +646,7 @@ class SurfacePipeFactory {
         } else {  // (colorManagement is false)
           if (downscale) {
             pipe =
-                MakePipe(downscalingConfig, premultiplyConfig, surfaceConfig);
+                MakePipe(premultiplyConfig, downscalingConfig, surfaceConfig);
           } else {  // (downscale is false)
             pipe = MakePipe(premultiplyConfig, surfaceConfig);
           }
@@ -654,15 +654,15 @@ class SurfacePipeFactory {
       } else {  // (orientation is not identity)
         if (colorManagement) {
           if (downscale) {
-            pipe = MakePipe(downscalingConfig, colorManagementConfig,
-                            premultiplyConfig, reorientSurfaceConfig);
+            pipe = MakePipe(colorManagementConfig, premultiplyConfig,
+                            downscalingConfig, reorientSurfaceConfig);
           } else {  // (downscale is false)
             pipe = MakePipe(colorManagementConfig, premultiplyConfig,
                             reorientSurfaceConfig);
           }
         } else {  // (colorManagement is false)
           if (downscale) {
-            pipe = MakePipe(downscalingConfig, premultiplyConfig,
+            pipe = MakePipe(premultiplyConfig, downscalingConfig,
                             reorientSurfaceConfig);
           } else {  // (downscale is false)
             pipe = MakePipe(premultiplyConfig, reorientSurfaceConfig);

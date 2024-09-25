@@ -911,7 +911,7 @@ def test_reftest_get_lineno2():
     lineno = sf.reftest_find_lineno(
         "image/test/reftest/downscaling/reftest.list", mods, allmods
     )
-    assert lineno == 177
+    assert lineno == 183
 
 
 def test_reftest_get_lineno3():
