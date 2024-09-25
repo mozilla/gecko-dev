@@ -75,3 +75,6 @@ internal data class BookmarksSelectFolderState(
     val selectedGuid: String?
         get() = addFolderSelectionGuid ?: selectionGuid
 }
+
+internal val BookmarkItem.Folder.isDesktopRoot: Boolean
+    get() = guid == BookmarkRoot.Root.id

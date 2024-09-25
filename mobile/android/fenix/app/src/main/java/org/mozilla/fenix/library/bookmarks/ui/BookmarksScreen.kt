@@ -200,6 +200,9 @@ private fun BookmarksListTopBar(
     store: BookmarksStore,
 ) {
     val selectedItems by store.observeAsState(store.state.selectedItems) { it.selectedItems }
+    val isCurrentFolderDesktopRoot by store.observeAsState(store.state.currentFolder.isDesktopRoot) {
+        store.state.currentFolder.isDesktopRoot
+    }
     var showMenu by remember { mutableStateOf(false) }
     Box {
         BookmarkListOverflowMenu(
@@ -232,14 +235,18 @@ private fun BookmarksListTopBar(
             actions = {
                 when (selectedItems.size) {
                     0 -> {
-                        IconButton(onClick = { store.dispatch(AddFolderClicked) }) {
-                            Icon(
-                                painter = painterResource(R.drawable.mozac_ic_folder_add_24),
-                                contentDescription = stringResource(
-                                    R.string.bookmark_add_new_folder_button_content_description,
-                                ),
-                                tint = FirefoxTheme.colors.iconPrimary,
-                            )
+                        if (isCurrentFolderDesktopRoot) {
+                            Unit
+                        } else {
+                            IconButton(onClick = { store.dispatch(AddFolderClicked) }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.mozac_ic_folder_add_24),
+                                    contentDescription = stringResource(
+                                        R.string.bookmark_add_new_folder_button_content_description,
+                                    ),
+                                    tint = FirefoxTheme.colors.iconPrimary,
+                                )
+                            }
                         }
                     }
 
