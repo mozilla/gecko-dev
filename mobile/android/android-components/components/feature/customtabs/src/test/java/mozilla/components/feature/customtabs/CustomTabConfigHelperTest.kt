@@ -676,6 +676,48 @@ class CustomTabConfigHelperTest {
     }
 
     @Test
+    fun `WHEN ColorSchemeParams has some properties and app is in private mode THEN getToolbarBackgroundColor returns null`() {
+        val colorSchemeParams = ColorSchemeParams(
+            toolbarColor = Color.BLACK,
+            navigationBarDividerColor = Color.YELLOW,
+        )
+        val expected = null
+
+        val result = colorSchemeParams.getToolbarBackgroundColor(false)
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `WHEN ColorSchemeParams has some properties and app is in normal mode THEN getToolbarBackgroundColor returns toolbarColor`() {
+        val toolbarColor = Color.BLACK
+        val colorSchemeParams = ColorSchemeParams(
+            toolbarColor = toolbarColor,
+            navigationBarDividerColor = Color.YELLOW,
+        )
+
+        val result = colorSchemeParams.getToolbarBackgroundColor(true)
+
+        assertEquals(toolbarColor, result)
+    }
+
+    @Test
+    fun `WHEN ColorSchemeParams has some properties THEN getToolbarContrastColorDisabled returns the correct color`() {
+        val colorSchemeParams = ColorSchemeParams(
+            toolbarColor = Color.BLACK,
+            navigationBarDividerColor = Color.YELLOW,
+        )
+        val expected = Color.parseColor(LIGHT_GRAY_HEX)
+
+        val result = colorSchemeParams.getToolbarContrastColorDisabled(
+            true,
+            fallbackColor = Color.WHITE,
+        )
+
+        assertEquals(expected, result)
+    }
+
+    @Test
     fun `WHEN ColorSchemeParams has no properties THEN withDefault returns all default ColorSchemeParams`() {
         val result = ColorSchemeParams().withDefault(defaultColorSchemeParams)
 

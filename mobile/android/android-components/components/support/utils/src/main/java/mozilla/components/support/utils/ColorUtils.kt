@@ -8,6 +8,9 @@ import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.core.graphics.ColorUtils
 
+/**
+ * Default color for disabled views in normal mode for light and dark theme.
+ */
 private const val LIGHT_GRAY_HEX = "#66FBFBFE"
 private const val DARK_GRAY_HEX = "#6615141A"
 

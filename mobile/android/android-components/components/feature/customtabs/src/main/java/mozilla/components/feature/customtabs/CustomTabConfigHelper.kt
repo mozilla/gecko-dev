@@ -13,6 +13,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.content.res.Resources
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.Parcelable
@@ -74,6 +75,12 @@ import mozilla.components.support.utils.SafeIntent
 import mozilla.components.support.utils.toSafeBundle
 import mozilla.components.support.utils.toSafeIntent
 import kotlin.math.max
+
+/**
+ * Default color for disabled views in private browsing mode.
+ */
+@VisibleForTesting
+internal const val LIGHT_GRAY_HEX = "#66FBFBFE"
 
 /**
  * Checks if the provided intent is a custom tab intent.
@@ -333,6 +340,24 @@ fun CustomTabConfig.getConfiguredColorSchemeParams(
 }
 
 /**
+ * Get a custom background color for the toolbar.
+ *
+ * @param isNormalMode whether being in normal browsing mode or private browsing mode
+ *
+ * @return A custom background color for the toolbar or `null` if the toolbar background should not be changed.
+ */
+@ColorInt
+fun ColorSchemeParams?.getToolbarBackgroundColor(
+    isNormalMode: Boolean,
+): Int? {
+    return if (isNormalMode) {
+        this?.toolbarColor
+    } else {
+        null
+    }
+}
+
+/**
  * Get a color with enough contrast over the toolbar color from the provided [ColorSchemeParams].
  *
  * @param context The [Context] used to resolve the default text color.
@@ -361,14 +386,12 @@ fun ColorSchemeParams?.getToolbarContrastColor(
 /**
  * Get a disabled color with enough contrast over the toolbar color from the provided [ColorSchemeParams].
  *
- * @param context The [Context] used to resolve the default text color.
  * @param shouldUpdateTheme Whether the contrast color should be calculated based on the toolbar color
  * or default to returning the default text color.
  * @param fallbackColor The fallback color to use if the toolbar color is not set and [shouldUpdateTheme] is `true`.
  */
 @ColorInt
 fun ColorSchemeParams?.getToolbarContrastColorDisabled(
-    context: Context,
     shouldUpdateTheme: Boolean,
     @ColorInt fallbackColor: Int,
 ): Int {
@@ -376,11 +399,9 @@ fun ColorSchemeParams?.getToolbarContrastColorDisabled(
         this?.toolbarColor?.let { getDisabledReadableTextColor(it) }
             ?: fallbackColor
     } else {
-        // When in private mode, the readable color needs match the app.
-        // Note: The main app is configuring the private theme, Custom Tabs is adding the
-        // additional theming for the dynamic UI elements e.g. action & share buttons.
-        val colorResId = context.theme.resolveAttribute(android.R.attr.textColorPrimary)
-        getColor(context, colorResId)
+        // When in private mode disabled elements need to have enough contrast to
+        // differentiate themselves from the background and also from other enabled elements.
+        Color.parseColor(LIGHT_GRAY_HEX)
     }
 }
 
