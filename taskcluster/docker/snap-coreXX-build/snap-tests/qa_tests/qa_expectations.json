@@ -70,65 +70,6 @@
         "reference": "test_pdf_navigation_hand_tool_esr.png"
       }
     },
-    "nightly": {
-      "base": {
-        "reference": "test_pdf_navigation_base-nightly.png"
-      },
-      "next": {
-        "reference": "test_pdf_navigation_next-nightly.png"
-      },
-      "previous": {
-        "reference": "test_pdf_navigation_previous-nightly.png"
-      },
-      "down": {
-        "reference": "test_pdf_navigation_down-nightly.png"
-      },
-      "up": {
-        "reference": "test_pdf_navigation_up-nightly.png"
-      },
-      "right": {
-        "reference": "test_pdf_navigation_right-nightly.png"
-      },
-      "left": {
-        "reference": "test_pdf_navigation_left-nightly.png"
-      },
-      "pagedown": {
-        "reference": "test_pdf_navigation_pagedown-nightly.png"
-      },
-      "pageup": {
-        "reference": "test_pdf_navigation_pageup-nightly.png"
-      },
-      "end": {
-        "reference": "test_pdf_navigation_end-nightly.png"
-      },
-      "home": {
-        "reference": "test_pdf_navigation_home-nightly.png"
-      },
-      "firstPage": {
-        "reference": "test_pdf_navigation_firstPage-nightly.png"
-      },
-      "lastPage": {
-        "reference": "test_pdf_navigation_lastPage-nightly.png"
-      },
-      "pageRotateCw": {
-        "reference": "test_pdf_navigation_pageRotateCw-nightly.png"
-      },
-      "pageRotateCcw": {
-        "reference": "test_pdf_navigation_pageRotateCcw-nightly.png"
-      },
-      "documentProperties": {
-        "reference": "test_pdf_navigation_documentProperties-nightly.png"
-      },
-      "select_text_with_highlight": {
-        "reference": "test_pdf_navigation_select_text_with_highlight-nightly.png"
-      },
-      "select_text_without_highlight": {
-        "reference": "test_pdf_navigation_select_text_without_highlight-nightly.png"
-      },
-      "hand_tool": {
-        "reference": "test_pdf_navigation_hand_tool-nightly.png"
-      }
-    },
     "base": {
       "reference": "test_pdf_navigation_base.png"
     },
@@ -214,32 +155,6 @@
         "reference": "test_pdf_zoom_p1_width_esr.png"
       }
     },
-    "nightly": {
-      "p1_50p": {
-        "reference": "test_pdf_zoom_p1_50p-nightly.png"
-      },
-      "p1_75p": {
-        "reference": "test_pdf_zoom_p1_75p-nightly.png"
-      },
-      "p1_100p": {
-        "reference": "test_pdf_zoom_p1_100p-nightly.png"
-      },
-      "p1_150p": {
-        "reference": "test_pdf_zoom_p1_150p-nightly.png"
-      },
-      "p1_400p": {
-        "reference": "test_pdf_zoom_p1_400p-nightly.png"
-      },
-      "p1_actual": {
-        "reference": "test_pdf_zoom_p1_actual-nightly.png"
-      },
-      "p1_fit": {
-        "reference": "test_pdf_zoom_p1_fit-nightly.png"
-      },
-      "p1_width": {
-        "reference": "test_pdf_zoom_p1_width-nightly.png"
-      }
-    },
     "p1_50p": {
       "reference": "test_pdf_zoom_p1_50p.png"
     },
@@ -268,9 +183,6 @@
   "test_pdf_download": {
     "esr-115": {
       "reference": "test_pdf_download_base_esr.png"
-    },
-    "nightly": {
-      "reference": "test_pdf_download_base-nightly.png"
     },
     "reference": "test_pdf_download_base.png"
   },
