@@ -163,12 +163,6 @@ class Core(
             } else {
                 context.settings().blockSuspectedFingerprintersPrivateBrowsing
             },
-            fingerprintingProtectionOverrides =
-            if (FxNimbus.features.fingerprintingProtection.value().enabled) {
-                FxNimbus.features.fingerprintingProtection.value().overrides
-            } else {
-                ""
-            },
             fdlibmMathEnabled = FxNimbus.features.fingerprintingProtection.value().fdlibmMath,
             cookieBannerHandlingMode = context.settings().getCookieBannerHandling(),
             cookieBannerHandlingModePrivateBrowsing = context.settings().getCookieBannerHandlingPrivateMode(),
@@ -178,6 +172,12 @@ class Core(
             emailTrackerBlockingPrivateBrowsing = true,
             userCharacteristicPingCurrentVersion = FxNimbus.features.userCharacteristics.value().currentVersion,
         )
+
+        // Apply fingerprinting protection overrides if the feature is enabled in Nimbus
+        if (FxNimbus.features.fingerprintingProtection.value().enabled) {
+            defaultSettings.fingerprintingProtectionOverrides =
+                FxNimbus.features.fingerprintingProtection.value().overrides
+        }
 
         GeckoEngine(
             context,

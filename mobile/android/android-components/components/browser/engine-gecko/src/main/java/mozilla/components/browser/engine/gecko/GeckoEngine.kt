@@ -1340,9 +1340,11 @@ class GeckoEngine(
             get() = runtime.settings.fingerprintingProtectionPrivateBrowsing
             set(value) { runtime.settings.setFingerprintingProtectionPrivateBrowsing(value) }
 
-        override var fingerprintingProtectionOverrides: String
+        override var fingerprintingProtectionOverrides: String?
             get() = runtime.settings.fingerprintingProtectionOverrides
-            set(value) { runtime.settings.setFingerprintingProtectionOverrides(value) }
+            set(value) {
+                value?.let { runtime.settings.setFingerprintingProtectionOverrides(it) }
+            }
 
         override var fdlibmMathEnabled: Boolean
             get() = runtime.settings.fdlibmMathEnabled

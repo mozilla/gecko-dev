@@ -651,8 +651,8 @@ public final class GeckoRuntimeSettings extends RuntimeSettings {
       new Pref<Boolean>("privacy.fingerprintingProtection", false);
   /* package */ final Pref<Boolean> mFingerprintingProtectionPrivateMode =
       new Pref<Boolean>("privacy.fingerprintingProtection.pbmode", true);
-  /* package */ final Pref<String> mFingerprintingProtectionOverrides =
-      new Pref<>("privacy.fingerprintingProtection.overrides", "");
+  /* package */ final PrefWithoutDefault<String> mFingerprintingProtectionOverrides =
+      new PrefWithoutDefault<>("privacy.fingerprintingProtection.overrides");
   /* package */ final Pref<Boolean> mFdlibmMathEnabled =
       new Pref<Boolean>("javascript.options.use_fdlibm_for_sin_cos_tan", false);
   /* package */ final Pref<Integer> mUserCharacteristicPingCurrentVersion =

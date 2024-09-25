@@ -267,7 +267,7 @@ abstract class Settings {
     /**
      * Setting to enable or disable certain fingerprinting protection features.
      */
-    open var fingerprintingProtectionOverrides: String by UnsupportedSetting()
+    open var fingerprintingProtectionOverrides: String? by UnsupportedSetting()
 
     /**
      * Setting to control whehter to use fdlibm for Math.sin, Math.cos, and Math.tan.
@@ -319,7 +319,7 @@ data class DefaultSettings(
     override var globalPrivacyControlEnabled: Boolean = false,
     override var fingerprintingProtection: Boolean = false,
     override var fingerprintingProtectionPrivateBrowsing: Boolean = true,
-    override var fingerprintingProtectionOverrides: String = "",
+    override var fingerprintingProtectionOverrides: String? = null,
     override var fdlibmMathEnabled: Boolean = false,
     override var cookieBannerHandlingMode: CookieBannerHandlingMode = CookieBannerHandlingMode.DISABLED,
     override var cookieBannerHandlingModePrivateBrowsing: CookieBannerHandlingMode =
