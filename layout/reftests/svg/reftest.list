@@ -367,7 +367,7 @@ fuzzy-if(winWidget,0-16,0-5) == paint-order-01.svg paint-order-01-ref.svg
 == paint-order-02.svg paint-order-02-ref.svg
 == paint-order-03.svg paint-order-03-ref.svg
 
-#fuzzy(0-23,0-60) fails-if(winWidget) == path-01.svg path-01-ref.svg
+fuzzy(0-54,0-72) == path-01.svg path-01-ref.svg
 == path-02.svg pass.svg
 == path-04.svg pass.svg
 == path-05.svg pass.svg
