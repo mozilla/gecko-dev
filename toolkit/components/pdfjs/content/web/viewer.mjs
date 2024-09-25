@@ -9373,7 +9373,7 @@ class PDFViewer {
   #scaleTimeoutId = null;
   #textLayerMode = TextLayerMode.ENABLE;
   constructor(options) {
-    const viewerVersion = "4.7.10";
+    const viewerVersion = "4.7.18";
     if (version !== viewerVersion) {
       throw new Error(`The API version "${version}" does not match the Viewer version "${viewerVersion}".`);
     }
@@ -11226,7 +11226,20 @@ class Toolbar {
     });
     this.reset();
   }
-  #updateToolbarDensity() {}
+  #updateToolbarDensity({
+    value
+  }) {
+    let name = "normal";
+    switch (value) {
+      case 1:
+        name = "compact";
+        break;
+      case 2:
+        name = "touch";
+        break;
+    }
+    document.documentElement.setAttribute("data-toolbar-density", name);
+  }
   #setAnnotationEditorUIManager(uiManager, parentContainer) {
     const colorPicker = new ColorPicker({
       uiManager
@@ -13552,8 +13565,8 @@ function beforeUnload(evt) {
 
 
 
-const pdfjsVersion = "4.7.10";
-const pdfjsBuild = "cc63941b6";
+const pdfjsVersion = "4.7.18";
+const pdfjsBuild = "9735a840a";
 const AppConstants = null;
 window.PDFViewerApplication = PDFViewerApplication;
 window.PDFViewerApplicationConstants = AppConstants;

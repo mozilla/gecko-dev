@@ -3061,7 +3061,6 @@
   --toolbar-border-color:rgb(184 184 184);
   --toolbar-box-shadow:0 1px 0 var(--toolbar-border-color);
   --toolbar-border-bottom:none;
-  --toolbar-height:32px;
   --toolbarSidebar-box-shadow:inset calc(-1px * var(--dir-factor)) 0 0 rgb(0 0 0 / 0.25), 0 1px 0 rgb(0 0 0 / 0.15), 0 0 1px rgb(0 0 0 / 0.1);
   --toolbarSidebar-border-bottom:none;
   --button-hover-color:rgb(221 222 223);
@@ -3226,6 +3225,15 @@
 
   100%{
     transform:translateX(0);
+  }
+}
+
+html{
+  &[data-toolbar-density="compact"]{
+    --toolbar-height:30px;
+  }
+  &[data-toolbar-density="touch"]{
+    --toolbar-height:44px;
   }
 }
 
@@ -4074,6 +4082,10 @@ dialog :link{
     height:100%;
   }
 
+  .menu{
+    padding-block:5px;
+  }
+
   .menuContainer{
     width:100%;
     height:auto;
@@ -4084,7 +4096,6 @@ dialog :link{
     display:flex;
     flex-direction:column;
     box-sizing:border-box;
-    padding-block:5px;
     overflow-y:auto;
   }
 
