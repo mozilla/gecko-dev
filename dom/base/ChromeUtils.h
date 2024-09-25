@@ -139,7 +139,9 @@ class ChromeUtils {
                                             ErrorResult& aRv);
 
   static void GetPartitionKeyFromURL(dom::GlobalObject& aGlobal,
-                                     const nsAString& aURL,
+                                     const nsAString& aTopLevelUrl,
+                                     const nsAString& aSubresourceUrl,
+                                     const Optional<bool>& aForeignContext,
                                      nsAString& aPartitionKey,
                                      ErrorResult& aRv);
 
