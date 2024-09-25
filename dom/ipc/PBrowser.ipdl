@@ -127,6 +127,7 @@ struct RequestData
   nullable nsIURI requestURI;
   nullable nsIURI originalRequestURI;
   nsCString matchedList;
+  nsCString canceledReason;
 };
 
 struct WebProgressStateChangeData

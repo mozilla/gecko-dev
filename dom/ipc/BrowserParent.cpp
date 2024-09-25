@@ -2958,6 +2958,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnStateChange(
     request = MakeAndAddRef<RemoteWebProgressRequest>(
         aRequestData.requestURI(), aRequestData.originalRequestURI(),
         aRequestData.matchedList());
+    request->SetCanceledReason(aRequestData.canceledReason());
   }
 
   if (aStateChangeData.isSome()) {
@@ -3017,6 +3018,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvOnLocationChange(
     request = MakeAndAddRef<RemoteWebProgressRequest>(
         aRequestData.requestURI(), aRequestData.originalRequestURI(),
         aRequestData.matchedList());
+    request->SetCanceledReason(aRequestData.canceledReason());
   }
 
   browsingContext->SetCurrentRemoteURI(aLocation);
@@ -3124,6 +3126,7 @@ mozilla::ipc::IPCResult BrowserParent::RecvNotifyContentBlockingEvent(
   nsCOMPtr<nsIRequest> request = MakeAndAddRef<RemoteWebProgressRequest>(
       aRequestData.requestURI(), aRequestData.originalRequestURI(),
       aRequestData.matchedList());
+  request->SetCanceledReason(aRequestData.canceledReason());
 
   wgp->NotifyContentBlockingEvent(
       aEvent, request, aBlocked, aTrackingOrigin, aTrackingFullHashes, aReason,

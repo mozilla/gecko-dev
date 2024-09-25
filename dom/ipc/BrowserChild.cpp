@@ -3890,6 +3890,9 @@ nsresult BrowserChild::PrepareRequestData(nsIRequest* aRequest,
       getter_AddRefs(aRequestData.originalRequestURI()));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = channel->GetCanceledReason(aRequestData.canceledReason());
+  NS_ENSURE_SUCCESS(rv, rv);
+
   nsCOMPtr<nsIClassifiedChannel> classifiedChannel = do_QueryInterface(channel);
   if (classifiedChannel) {
     rv = classifiedChannel->GetMatchedList(aRequestData.matchedList());
