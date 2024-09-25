@@ -79,9 +79,6 @@
 using namespace mozilla::dom;
 using namespace mozilla::net;
 
-// 1024 bytes is specified in https://drafts.csswg.org/css-syntax/
-#define SNIFFING_BUFFER_SIZE 1024
-
 /**
  * OVERALL ARCHITECTURE
  *
@@ -592,28 +589,23 @@ static bool GetCharsetFromData(const char* aStyleSheetData,
 
 NotNull<const Encoding*> SheetLoadData::DetermineNonBOMEncoding(
     const nsACString& aSegment, nsIChannel* aChannel) const {
-  const Encoding* encoding;
+  // 1024 bytes is specified in https://drafts.csswg.org/css-syntax/
+  constexpr size_t kSniffingBufferSize = 1024;
   nsAutoCString label;
-
   // Check HTTP
   if (aChannel && NS_SUCCEEDED(aChannel->GetContentCharset(label))) {
-    encoding = Encoding::ForLabel(label);
-    if (encoding) {
+    if (const auto* encoding = Encoding::ForLabel(label)) {
       return WrapNotNull(encoding);
     }
   }
 
   // Check @charset
-  auto sniffingLength = aSegment.Length();
-  if (sniffingLength > SNIFFING_BUFFER_SIZE) {
-    sniffingLength = SNIFFING_BUFFER_SIZE;
-  }
+  auto sniffingLength = std::min(aSegment.Length(), kSniffingBufferSize);
   if (GetCharsetFromData(aSegment.BeginReading(), sniffingLength, label)) {
-    encoding = Encoding::ForLabel(label);
-    if (encoding == UTF_16BE_ENCODING || encoding == UTF_16LE_ENCODING) {
-      return UTF_8_ENCODING;
-    }
-    if (encoding) {
+    if (const auto* encoding = Encoding::ForLabel(label)) {
+      if (encoding == UTF_16BE_ENCODING || encoding == UTF_16LE_ENCODING) {
+        return UTF_8_ENCODING;
+      }
       return WrapNotNull(encoding);
     }
   }
