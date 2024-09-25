@@ -1,0 +1,100 @@
+<!--
+  Any copyright is dedicated to the Public Domain.
+  http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <title>Indexed Database Blob Add/Delete Stress Test</title>
+
+  <script src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+
+  <script type="text/javascript">
+  /*
+   * This is a stress test which rapidly adds and deletes blobs in a row in
+   * separate transactions. Internally, blobs are only removed when all memory
+   * and database references drop to zero. At that point an asynchronous
+   * delete operation is scheduled which removes the backing file from disk.
+   * So the overall behavior and timing depends on cycle collection and
+   * garbage collection. The main goal of this test is to make it more likely
+   * that internal structures are accessed by multiple threads at the same
+   * time, potentially discovering races or other issues.
+   *
+   * Note that the test needs to always create a new blob and a new
+   * transaction, otherwise new backing files wouldn't be created due to
+   * internal optimizations for de-duplication.
+   */
+  function* testSteps()
+  {
+    const READ_WRITE = "readwrite";
+
+    const name = window.location.pathname;
+
+    const objectStoreName = "Blobs";
+
+    {
+      const request = indexedDB.open(name, 1);
+      request.onerror = errorHandler;
+      request.onupgradeneeded = grabEventAndContinueHandler;
+      request.onsuccess = grabEventAndContinueHandler;
+    }
+
+    {
+      const event = yield undefined;
+
+      is(event.type, "upgradeneeded", "Got correct event type");
+
+      const db = event.target.result;
+      db.onerror = errorHandler;
+
+      const objectStore = db.createObjectStore(objectStoreName, {});
+
+      objectStore.add(getRandomBlob(1), 1);
+    }
+
+    {
+      const event = yield undefined;
+
+      is(event.type, "success", "Got correct event type");
+
+      const db = event.target.result;
+      db.onerror = errorHandler;
+
+      let index = 1;
+
+      function doWork() {
+        const transaction = db.transaction([objectStoreName], READ_WRITE);
+
+        const objectStore = transaction.objectStore(objectStoreName);
+
+        const deleteRequest = objectStore.delete(index);
+        deleteRequest.onsuccess = function () {
+          index++;
+
+          const addRequest = objectStore.add(getRandomBlob(1), index);
+          addRequest.onsuccess = function () {
+            if (index < 1000) {
+              doWork();
+            } else {
+              continueToNextStep();
+            }
+          };
+        };
+      }
+
+      doWork();
+
+      yield undefined;
+    }
+
+    finishTest();
+  }
+  </script>
+  <script type="text/javascript" src="file.js"></script>
+  <script type="text/javascript" src="helpers.js"></script>
+
+</head>
+
+<body onload="runTest();"></body>
+
+</html>
