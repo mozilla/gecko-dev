@@ -10,7 +10,7 @@
   "name": "System theme — auto",
   "description": "Follow the operating system setting for buttons, menus, and windows.",
   "author": "Mozilla",
-  "version": "1.4",
+  "version": "1.4.1",
 
   "icons": { "32": "icon.svg" },
 
@@ -19,8 +19,8 @@
   "dark_theme": {
     "colors": {
       "tab_background_text": "#fbfbfe",
-      "tab_selected": "rgb(66,65,77)",
-      "tab_text": "rgb(251,251,254)",
+      "tab_selected": "rgba(200,200,220,0.3)",
+      "tab_text": "rgb(255,255,255)",
       "icons": "rgb(251,251,254)",
       "frame": "#1c1b22",
       "popup": "rgb(66,65,77)",

@@ -101,8 +101,8 @@
     --input-color: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
     --input-bgcolor: light-dark(rgb(255, 255, 255), #42414d);
 
-    --tab-selected-bgcolor: light-dark(rgb(255, 255, 255), rgb(66, 65, 77));
-    --tab-selected-textcolor: light-dark(rgb(21, 20, 26), rgb(251, 251, 254));
+    --tab-selected-bgcolor: light-dark(rgb(255, 255, 255), rgba(200, 200, 220, 0.3));
+    --tab-selected-textcolor: light-dark(rgb(21, 20, 26), rgb(255, 255, 255));
     --tabs-navbar-separator-style: none;
 
     /* stylelint-disable-next-line media-query-no-invalid */

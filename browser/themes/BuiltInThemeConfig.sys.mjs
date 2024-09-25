@@ -29,7 +29,7 @@ export const BuiltInThemeConfig = new Map([
   [
     "firefox-compact-dark@mozilla.org",
     {
-      version: "1.3",
+      version: "1.3.1",
       path: "resource://builtin-themes/dark/",
     },
   ],
