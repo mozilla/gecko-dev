@@ -95,3 +95,78 @@ pwmgr:
       - passwords-dev@mozilla.org
     expires: never
     telemetry_mirror: Pwmgr_FilledFieldEdited_Generatedpassword
+
+  doorhanger_submitted_save:
+    type: event
+    description: >
+      A login is saved or updated via the capture doorhanger. Carries
+      information about whether the username and password _that were
+      saved/updated by the user_ were modified in the doorhanger, selected
+      from the suggestion autocomplete, or neither. `did_edit_X` and
+      `did_select_X` will never both be true in the same event. The
+      `object` describes the type of doorhanger when it was originally
+      created. Note that user updates to the doorhanger may change whether
+      a login is actually saved or updated, but will not impact the sent
+      object.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.doorhanger_submitted#save.
+    bugs: &pwmgr_doorhanger_submitted_bugs
+      - https://bugzil.la/1650929
+      - https://bugzil.la/1650941
+      - https://bugzil.la/1678200
+      - https://bugzil.la/1714252
+      - https://bugzil.la/1754637
+      - https://bugzil.la/1850872
+    data_reviews: &pwmgr_doorhanger_submitted_data_reviews
+      - https://bugzil.la/1650929
+      - https://bugzil.la/1650941
+      - https://bugzil.la/1678200
+      - https://bugzil.la/1714252
+      - https://bugzil.la/1754637
+      - https://bugzil.la/1850872
+    notification_emails: &pwmgr_doorhanger_submitted_emails
+      - passwords-dev@mozilla.org
+    expires: 142
+    extra_keys: &pwmgr_doorhanger_submitted_extra
+      did_edit_un:
+        description: >
+          Whether or not the saved/updated username was modified by the user typing into the username field.
+
+        type: boolean
+      did_select_un:
+        description: >
+          Whether or not the saved/updated username was selected by the user choosing a suggested value from the autocomplete popup.
+
+        type: boolean
+      did_edit_pw:
+        description: >
+          Whether or not the saved/updated password was modified by the user typing into the password field.
+
+        type: boolean
+      did_select_pw:
+        description: >
+          Whether or not the saved/updated password was selected by the user choosing a suggested value from the autocomplete popup.
+
+        type: boolean
+    telemetry_mirror: Pwmgr_DoorhangerSubmitted_Save
+
+  doorhanger_submitted_update:
+    type: event
+    description: >
+      A login is saved or updated via the capture doorhanger. Carries
+      information about whether the username and password _that were
+      saved/updated by the user_ were modified in the doorhanger, selected
+      from the suggestion autocomplete, or neither. `did_edit_X` and
+      `did_select_X` will never both be true in the same event. The
+      `object` describes the type of doorhanger when it was originally
+      created. Note that user updates to the doorhanger may change whether
+      a login is actually saved or updated, but will not impact the sent
+      object.
+      This event was generated to correspond to the Legacy Telemetry event
+      pwmgr.doorhanger_submitted#update.
+    bugs: *pwmgr_doorhanger_submitted_bugs
+    data_reviews: *pwmgr_doorhanger_submitted_data_reviews
+    notification_emails: *pwmgr_doorhanger_submitted_emails
+    expires: 142
+    extra_keys: *pwmgr_doorhanger_submitted_extra
+    telemetry_mirror: Pwmgr_DoorhangerSubmitted_Update
