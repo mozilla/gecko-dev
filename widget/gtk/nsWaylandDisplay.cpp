@@ -62,11 +62,15 @@ class TouchWindow {
  public:
   already_AddRefed<nsWindow> GetAndClearWindow() { return mWindow.forget(); }
   RefPtr<nsWindow> TakeWindow(wl_surface* aSurface) {
-    GdkWindow* window =
-        static_cast<GdkWindow*>(wl_surface_get_user_data(aSurface));
-    mWindow = window ? static_cast<nsWindow*>(
-                           g_object_get_data(G_OBJECT(window), "nsWindow"))
-                     : nullptr;
+    if (!aSurface) {
+      mWindow = nullptr;
+    } else {
+      GdkWindow* window =
+          static_cast<GdkWindow*>(wl_surface_get_user_data(aSurface));
+      mWindow = window ? static_cast<nsWindow*>(
+                             g_object_get_data(G_OBJECT(window), "nsWindow"))
+                       : nullptr;
+    }
     return mWindow;
   }
 
