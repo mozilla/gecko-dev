@@ -1004,6 +1004,10 @@ pocket:
         description: >
           The list of topics the user selected
         type: string
+      is_list_card:
+        description: >
+          Where the article card is in the list component
+        type: boolean
     send_in_pings:
       - newtab
 
@@ -1053,6 +1057,10 @@ pocket:
         description: >
           The list of topics the user selected
         type: string
+      is_list_card:
+        description: >
+          Where the article card is in the list component
+        type: boolean
     send_in_pings:
       - newtab
 
@@ -1078,6 +1086,10 @@ pocket:
       scheduled_corpus_item_id: *scheduled_corpus_item_id
       received_rank: *received_rank
       recommended_at: *recommended_at
+      is_list_card:
+        description: >
+          Where the article card is in the list component
+        type: boolean
     send_in_pings:
       - newtab
 
@@ -1128,6 +1140,10 @@ pocket:
         description: >
           The list of topics the user selected
         type: string
+      is_list_card:
+        description: >
+          Where the article card is in the list component
+        type: boolean
 
     send_in_pings:
       - newtab
@@ -1257,6 +1273,10 @@ pocket:
       topic:
         description: The topic of the recommendation. Like "entertainment".
         type: string
+      is_list_card:
+        description: >
+          Where the article card is in the list component
+        type: boolean
     send_in_pings:
       - newtab
 

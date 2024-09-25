@@ -287,6 +287,7 @@ describe("<DSCard>", () => {
             topic: undefined,
             matches_selected_topic: undefined,
             selected_topics: undefined,
+            is_list_card: undefined,
           },
         })
       );
@@ -303,6 +304,7 @@ describe("<DSCard>", () => {
               recommendation_id: undefined,
               topic: undefined,
               selected_topics: undefined,
+              is_list_card: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -337,6 +339,7 @@ describe("<DSCard>", () => {
             topic: undefined,
             matches_selected_topic: undefined,
             selected_topics: undefined,
+            is_list_card: undefined,
           },
         })
       );
@@ -353,6 +356,7 @@ describe("<DSCard>", () => {
               recommendation_id: undefined,
               topic: undefined,
               selected_topics: undefined,
+              is_list_card: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -396,6 +400,7 @@ describe("<DSCard>", () => {
             topic: undefined,
             matches_selected_topic: undefined,
             selected_topics: undefined,
+            is_list_card: undefined,
           },
         })
       );
@@ -413,6 +418,7 @@ describe("<DSCard>", () => {
               recommendation_id: undefined,
               topic: undefined,
               selected_topics: undefined,
+              is_list_card: undefined,
             },
           ],
           window_inner_width: 1000,
@@ -549,6 +555,7 @@ describe("<DSCard>", () => {
             topic: undefined,
             matches_selected_topic: undefined,
             selected_topics: undefined,
+            is_list_card: undefined,
           },
         })
       );
@@ -564,6 +571,7 @@ describe("<DSCard>", () => {
               recommendation_id: undefined,
               topic: undefined,
               selected_topics: undefined,
+              is_list_card: undefined,
             },
           ],
         })

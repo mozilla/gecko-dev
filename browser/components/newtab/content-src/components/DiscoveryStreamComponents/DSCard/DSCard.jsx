@@ -256,6 +256,7 @@ export class _DSCard extends React.PureComponent {
             topic: this.props.topic,
             matches_selected_topic: matchesSelectedTopic,
             selected_topics: this.props.selectedTopics,
+            is_list_card: this.props.isListCard,
           },
         })
       );
@@ -277,6 +278,7 @@ export class _DSCard extends React.PureComponent {
               recommendation_id: this.props.recommendation_id,
               topic: this.props.topic,
               selected_topics: this.props.selectedTopics,
+              is_list_card: this.props.isListCard,
             },
           ],
         })
@@ -315,6 +317,7 @@ export class _DSCard extends React.PureComponent {
             topic: this.props.topic,
             matches_selected_topic: matchesSelectedTopic,
             selected_topics: this.props.selectedTopics,
+            is_list_card: this.props.isListCard,
           },
         })
       );
@@ -333,6 +336,7 @@ export class _DSCard extends React.PureComponent {
               recommendation_id: this.props.recommendation_id,
               topic: this.props.topic,
               selected_topics: this.props.selectedTopics,
+              is_list_card: this.props.isListCard,
             },
           ],
         })

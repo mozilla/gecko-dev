@@ -102,6 +102,7 @@ export class ImpressionStats extends React.PureComponent {
             recommended_at: link.recommended_at,
             received_rank: link.received_rank,
             topic: link.topic,
+            is_list_card: link.is_list_card,
           })),
           firstVisibleTimestamp: this.props.firstVisibleTimestamp,
         })

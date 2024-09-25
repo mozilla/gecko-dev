@@ -2219,7 +2219,8 @@ class ImpressionStats_ImpressionStats extends (external_React_default()).PureCom
           scheduled_corpus_item_id: link.scheduled_corpus_item_id,
           recommended_at: link.recommended_at,
           received_rank: link.received_rank,
-          topic: link.topic
+          topic: link.topic,
+          is_list_card: link.is_list_card
         })),
         firstVisibleTimestamp: this.props.firstVisibleTimestamp
       }));
@@ -2986,7 +2987,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           received_rank: this.props.received_rank,
           topic: this.props.topic,
           matches_selected_topic: matchesSelectedTopic,
-          selected_topics: this.props.selectedTopics
+          selected_topics: this.props.selectedTopics,
+          is_list_card: this.props.isListCard
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -3003,7 +3005,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           type: this.props.flightId ? "spoc" : "organic",
           recommendation_id: this.props.recommendation_id,
           topic: this.props.topic,
-          selected_topics: this.props.selectedTopics
+          selected_topics: this.props.selectedTopics,
+          is_list_card: this.props.isListCard
         }]
       }));
     }
@@ -3038,7 +3041,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           received_rank: this.props.received_rank,
           topic: this.props.topic,
           matches_selected_topic: matchesSelectedTopic,
-          selected_topics: this.props.selectedTopics
+          selected_topics: this.props.selectedTopics,
+          is_list_card: this.props.isListCard
         }
       }));
       this.props.dispatch(actionCreators.ImpressionStats({
@@ -3052,7 +3056,8 @@ class _DSCard extends (external_React_default()).PureComponent {
           } : {}),
           recommendation_id: this.props.recommendation_id,
           topic: this.props.topic,
-          selected_topics: this.props.selectedTopics
+          selected_topics: this.props.selectedTopics,
+          is_list_card: this.props.isListCard
         }]
       }));
     }
