@@ -24,7 +24,7 @@ class nsGNOMEShellSearchProvider;
 
 class GnomeHistoryIcon {
  public:
-  GnomeHistoryIcon() : mTimeStamp(-1), mWidth(0), mHeight(0) {};
+  GnomeHistoryIcon() : mTimeStamp(-1), mWidth(0), mHeight(0) {}
 
   // From which search is this icon
   void Set(int aTimeStamp, mozilla::UniquePtr<uint8_t[]> aData, int aWidth,
@@ -59,7 +59,7 @@ class nsGNOMEShellHistorySearchResult : public nsUnixRemoteServer {
                                   GDBusConnection* aConnection, int aTimeStamp)
       : mSearchProvider(aSearchProvider),
         mConnection(aConnection),
-        mTimeStamp(aTimeStamp) {};
+        mTimeStamp(aTimeStamp) {}
 
   void SetReply(RefPtr<GDBusMethodInvocation> aReply) {
     mReply = std::move(aReply);
@@ -77,7 +77,6 @@ class nsGNOMEShellHistorySearchResult : public nsUnixRemoteServer {
   // when we have search results available.
   void ReceiveSearchResultContainer(
       nsCOMPtr<nsINavHistoryContainerResultNode> aHistResultContainer);
-
   nsCOMPtr<nsINavHistoryContainerResultNode> GetSearchResultContainer() {
     return mHistResultContainer;
   }
@@ -98,6 +97,7 @@ class nsGNOMEShellHistorySearchResult : public nsUnixRemoteServer {
  private:
   nsGNOMEShellSearchProvider* mSearchProvider;
   nsCOMPtr<nsINavHistoryContainerResultNode> mHistResultContainer;
+  nsTArray<nsCString> mOpenTabs;
   nsAutoCString mSearchTerm;
   RefPtr<GDBusMethodInvocation> mReply;
   GDBusConnection* mConnection = nullptr;

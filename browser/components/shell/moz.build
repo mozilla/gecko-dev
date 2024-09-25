@@ -35,8 +35,11 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"] == "cocoa":
 elif CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk":
     XPIDL_SOURCES += [
         "nsIGNOMEShellService.idl",
+        "nsIOpenTabsProvider.idl",
     ]
-
+    EXTRA_JS_MODULES += [
+        "OpenTabsProvider.sys.mjs",
+    ]
     SOURCES += [
         "nsGNOMEShellService.cpp",
     ]

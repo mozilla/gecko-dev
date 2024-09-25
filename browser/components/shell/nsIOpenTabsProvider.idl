@@ -1,0 +1,19 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#include "nsISupports.idl"
+
+[scriptable, uuid(46e3e300-a45a-45b0-ac68-016e9496bf98)]
+interface nsIOpenTabsProvider : nsISupports
+{
+  /**
+   * List of currently open public tabs
+   */
+  Array<AUTF8String> getOpenTabs();
+
+  /**
+   * Function to switch current tab to a given already open URL
+   */
+  void switchToOpenTab(in AUTF8String url);
+};

@@ -13,6 +13,8 @@
 #include "nsPrintfCString.h"
 #include "mozilla/XREAppData.h"
 #include "nsAppRunner.h"
+#include "nsImportModule.h"
+#include "nsIOpenTabsProvider.h"
 
 #define DBUS_BUS_NAME_TEMPLATE "org.mozilla.%s.SearchProvider"
 #define DBUS_OBJECT_PATH_TEMPLATE "/org/mozilla/%s/SearchProvider"
@@ -65,10 +67,21 @@ static bool GetGnomeSearchTitle(const char* aSearchedTerm,
 }
 
 int DBusGetIndexFromIDKey(const char* aIDKey) {
-  // ID is NN:URL where NN is index to our current history
+  // ID is NN:S:URL where NN is index to our current history
   // result container.
   char tmp[] = {aIDKey[0], aIDKey[1], '\0'};
   return atoi(tmp);
+}
+
+char DBusGetStateFromIDKey(const char* aIDKey) {
+  // ID is NN:S:URL where NN is index to our current history
+  // result container, and S is the state, which can be 'o'pen or 'h'istory
+  if (std::strlen(aIDKey) > 3) {
+    return aIDKey[3];
+  }
+  // Should never happen, but just to avoid any possible segfault, we
+  // default to state 'history'.
+  return 'h';
 }
 
 static void ConcatArray(nsACString& aOutputStr, const char** aStringArray) {
@@ -151,6 +164,7 @@ static already_AddRefed<GVariant> DBusAppendResultID(
       aSearchResult->GetSearchResultContainer();
 
   int index = DBusGetIndexFromIDKey(aID);
+  char state = DBusGetStateFromIDKey(aID);
   nsCOMPtr<nsINavHistoryResultNode> child;
   container->GetChild(index, getter_AddRefs(child));
   nsAutoCString title;
@@ -162,6 +176,12 @@ static already_AddRefed<GVariant> DBusAppendResultID(
     if (NS_FAILED(child->GetUri(title)) || title.IsEmpty()) {
       return nullptr;
     }
+  }
+
+  // Check if the URI state is "open tab". If so, mark it with an asterisk to
+  // indicate this to the user.
+  if (state == 'o') {
+    title = "(*) "_ns + title;
   }
 
   GVariantBuilder b;
@@ -265,6 +285,7 @@ static void ActivateResultID(
         ConstructCommandLine(std::size(urlList), urlList, nullptr, &len);
   } else {
     int keyIndex = atoi(aResultID);
+    char state = DBusGetStateFromIDKey(aResultID);
     nsCOMPtr<nsINavHistoryResultNode> child;
     aSearchResult->GetSearchResultContainer()->GetChild(keyIndex,
                                                         getter_AddRefs(child));
@@ -276,6 +297,22 @@ static void ActivateResultID(
     nsresult rv = child->GetUri(uri);
     if (NS_FAILED(rv)) {
       return;
+    }
+
+    // If the state of the URI is 'o'pen, we send it along to JS and let
+    // it switch the tab accordingly
+    if (state == 'o') {
+      // If we can't successfully switch to an open tab, use the existing
+      // 'open in a new tab'-mechanism as a fallback.
+      nsresult rv;
+      nsCOMPtr<nsIOpenTabsProvider> provider = do_ImportESModule(
+          "resource:///modules/OpenTabsProvider.sys.mjs", &rv);
+      if (NS_SUCCEEDED(rv)) {
+        rv = provider->SwitchToOpenTab(uri);
+        if (NS_SUCCEEDED(rv)) {
+          return;
+        }
+      }
     }
 
     const char* urlList[2] = {"unused", uri.get()};

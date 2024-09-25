@@ -20,7 +20,8 @@
 #include "nsServiceManagerUtils.h"
 #include "mozilla/GUniquePtr.h"
 #include "mozilla/UniquePtrExtensions.h"
-
+#include "nsImportModule.h"
+#include "nsIOpenTabsProvider.h"
 #include "imgIContainer.h"
 #include "imgITools.h"
 
@@ -70,7 +71,7 @@ class AsyncFaviconDataReady final : public nsIFaviconDataCallback {
                         int aIconIndex, int aTimeStamp)
       : mSearchResult(std::move(aSearchResult)),
         mIconIndex(aIconIndex),
-        mTimeStamp(aTimeStamp) {};
+        mTimeStamp(aTimeStamp) {}
 
  private:
   ~AsyncFaviconDataReady() {}
@@ -411,11 +412,12 @@ nsresult nsGNOMEShellHistoryService::QueryHistory(
   return NS_OK;
 }
 
-static void DBusGetIDKeyForURI(int aIndex, nsAutoCString& aUri,
+static void DBusGetIDKeyForURI(int aIndex, bool aIsOpen, nsAutoCString& aUri,
                                nsAutoCString& aIDKey) {
-  // Compose ID as NN:URL where NN is index to our current history
-  // result container.
-  aIDKey = nsPrintfCString("%.2d:%s", aIndex, aUri.get());
+  // Compose ID as NN:S:URL where NN is index to our current history
+  // result container and S is the state, which can be 'o'pen or 'h'istory
+  aIDKey =
+      nsPrintfCString("%.2d:%c:%s", aIndex, aIsOpen ? 'o' : 'h', aUri.get());
 }
 
 // Send (as) rearch result reply
@@ -456,8 +458,15 @@ void nsGNOMEShellHistorySearchResult::HandleSearchResultReply() {
           new AsyncFaviconDataReady(this, i, mTimeStamp);
       favIconSvc->GetFaviconDataForPage(iconIri, callback, 0);
 
+      bool isOpen = false;
+      for (const auto& openuri : mOpenTabs) {
+        if (openuri.Equals(uri)) {
+          isOpen = true;
+          break;
+        }
+      }
       nsAutoCString idKey;
-      DBusGetIDKeyForURI(i, uri, idKey);
+      DBusGetIDKeyForURI(i, isOpen, uri, idKey);
 
       g_variant_builder_add(&b, "s", idKey.get());
     }
@@ -479,8 +488,30 @@ void nsGNOMEShellHistorySearchResult::ReceiveSearchResultContainer(
   // latest requested search timestamp).
   if (mSearchProvider->SetSearchResult(this)) {
     mHistResultContainer = aHistResultContainer;
-    HandleSearchResultReply();
   }
+
+  // Getting the currently open tabs to mark them accordingly
+  nsresult rv;
+  nsCOMPtr<nsIOpenTabsProvider> provider =
+      do_ImportESModule("resource:///modules/OpenTabsProvider.sys.mjs", &rv);
+  if (NS_FAILED(rv)) {
+    // Don't fail, just log an error message
+    NS_WARNING("Failed to determine currently open tabs. Using history only.");
+  }
+
+  nsTArray<nsCString> openTabs;
+  if (provider) {
+    rv = provider->GetOpenTabs(openTabs);
+    if (NS_FAILED(rv)) {
+      // Don't fail, just log an error message
+      NS_WARNING(
+          "Failed to determine currently open tabs. Using history only.");
+    }
+  }
+  // In case of error, we just clear out mOpenTabs with an empty new array
+  mOpenTabs = std::move(openTabs);
+
+  HandleSearchResultReply();
 }
 
 void nsGNOMEShellHistorySearchResult::SetHistoryIcon(int aTimeStamp,
