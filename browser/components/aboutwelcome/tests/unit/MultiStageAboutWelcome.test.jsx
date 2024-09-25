@@ -563,7 +563,7 @@ describe("MultiStageAboutWelcome module", () => {
           <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
         );
         const selectOption = wrapper.find(
-          ".tiles-single-select-section .select-item input[name='test1']"
+          ".tiles-single-select-section .select-item input[value='test1']"
         );
         selectOption.simulate("click");
         assert.calledOnce(AboutWelcomeUtils.handleUserAction);
@@ -573,7 +573,7 @@ describe("MultiStageAboutWelcome module", () => {
           <WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />
         );
         const selectOption = wrapper.find(
-          ".tiles-single-select-section .select-item input[name='test1']"
+          ".tiles-single-select-section .select-item input[value='test1']"
         );
         selectOption.simulate("keydown", { key: "Enter" });
         assert.calledOnce(AboutWelcomeUtils.handleUserAction);

@@ -1565,6 +1565,10 @@ const SingleSelect = ({
     flair
   }) => {
     const value = id || theme;
+    let inputName = "select-item";
+    if (!isSingleSelect) {
+      inputName = category === "theme" ? "theme" : id; // unique names per item are currently used in the wallpaper picker
+    }
     const selected = theme && theme === activeTheme || isSingleSelect && activeSingleSelect === value;
     const valOrObj = val => typeof val === "object" ? val : {};
     const handleClick = evt => {
@@ -1596,7 +1600,7 @@ const SingleSelect = ({
     }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("input", {
       type: "radio",
       value: value,
-      name: category === "theme" ? "theme" : id,
+      name: inputName,
       checked: selected,
       className: "sr-only input",
       onClick: e => handleClick(e)
