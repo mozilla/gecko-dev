@@ -372,6 +372,19 @@ class BookmarksReducerTest {
         assertEquals(expected, result)
     }
 
+    @Test
+    fun `WHEN the edit button is clicked in a bookmark menu THEN bookmark edit state is created`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val parent = BookmarkItem.Folder("title", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item),
+            currentFolder = parent,
+        )
+
+        val result = bookmarksReducer(state, BookmarksListMenuAction.Bookmark.EditClicked(item))
+        assertEquals(BookmarksEditBookmarkState(bookmark = item, folder = parent), result.bookmarksEditBookmarkState)
+    }
+
     private fun generateBookmark(
         num: Int = 0,
         url: String = "url",

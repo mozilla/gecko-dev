@@ -4,8 +4,8 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
-import androidx.annotation.VisibleForTesting
-import androidx.annotation.VisibleForTesting.Companion.PRIVATE
+import android.content.ClipData
+import android.content.ClipboardManager
 import androidx.navigation.NavController
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +17,7 @@ import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
+import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
@@ -28,10 +29,15 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
  * A middleware for handling side-effects in response to [BookmarksAction]s.
  *
  * @param bookmarksStorage Storage layer for reading and writing bookmarks.
+ * @param clipboardManager For copying bookmark URLs.
+ * @param addNewTabUseCase For opening tabs from menus.
  * @param navController NavController for navigating to a tab, a search fragment, etc.
  * @param exitBookmarks Invoked when back is clicked while the navController's backstack is empty.
  * @param navigateToSignIntoSync Invoked when handling [SignIntoSyncClicked].
+ * @param shareBookmark Invoked when the share option is selected from a menu.
+ * @param showTabsTray Invoked after opening tabs from menus.
  * @param resolveFolderTitle Invoked to lookup user-friendly bookmark titles.
+ * @param showUrlCopiedSnackbar Invoked when a bookmark url is copied.
  * @param getBrowsingMode Invoked when retrieving the app's current [BrowsingMode].
  * @param openTab Invoked when opening a tab when a bookmark is clicked.
  * @param ioDispatcher Coroutine dispatcher for IO operations.
@@ -39,10 +45,15 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 @Suppress("LongParameterList")
 internal class BookmarksMiddleware(
     private val bookmarksStorage: BookmarksStorage,
+    private val clipboardManager: ClipboardManager?,
+    private val addNewTabUseCase: TabsUseCases.AddNewTabUseCase,
     private val navController: NavController,
     private val exitBookmarks: () -> Unit,
     private val navigateToSignIntoSync: () -> Unit,
+    private val shareBookmark: (url: String, title: String) -> Unit,
+    private val showTabsTray: (isPrivateMode: Boolean) -> Unit,
     private val resolveFolderTitle: (BookmarkNode) -> String,
+    private val showUrlCopiedSnackbar: () -> Unit,
     private val getBrowsingMode: () -> BrowsingMode,
     private val openTab: (url: String, openInNewTab: Boolean) -> Unit,
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -139,6 +150,7 @@ internal class BookmarksMiddleware(
                 navController.navigate(BookmarksDestinations.SELECT_FOLDER)
             }
             SelectFolderAction.ViewAppeared -> context.store.loadFolders(BookmarkRoot.Mobile.id)
+            is BookmarksListMenuAction -> action.handleSideEffects(context.store)
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarkLongClicked,
@@ -220,14 +232,70 @@ internal class BookmarksMiddleware(
 
         return folders
     }
-}
 
-@VisibleForTesting(otherwise = PRIVATE)
-internal fun BookmarksState.createBookmarkInfo() = bookmarksEditBookmarkState?.let { state ->
-    BookmarkInfo(
-        parentGuid = state.folder.guid,
-        position = bookmarkItems.indexOfFirst { it.guid == state.bookmark.guid }.toUInt(),
-        title = state.bookmark.title,
-        url = state.bookmark.url,
-    )
+    private fun BookmarksState.createBookmarkInfo() = bookmarksEditBookmarkState?.let { state ->
+        BookmarkInfo(
+            parentGuid = state.folder.guid,
+            position = bookmarkItems.indexOfFirst { it.guid == state.bookmark.guid }.toUInt(),
+            title = state.bookmark.title,
+            url = state.bookmark.url,
+        )
+    }
+
+    private fun BookmarksListMenuAction.handleSideEffects(store: Store<BookmarksState, BookmarksAction>) {
+        when (this) {
+            // bookmark menu actions
+            is BookmarksListMenuAction.Bookmark.EditClicked -> {
+                navController.navigate(BookmarksDestinations.EDIT_BOOKMARK)
+            }
+            is BookmarksListMenuAction.Bookmark.CopyClicked -> {
+                val urlClipData = ClipData.newPlainText(bookmark.url, bookmark.url)
+                clipboardManager?.setPrimaryClip(urlClipData)
+                showUrlCopiedSnackbar()
+            }
+            is BookmarksListMenuAction.Bookmark.ShareClicked -> {
+                shareBookmark(bookmark.url, bookmark.title)
+            }
+            is BookmarksListMenuAction.Bookmark.OpenInNormalTabClicked -> {
+                // Bug 1919949 — Add undo snackbar to delete action.
+                addNewTabUseCase(url = bookmark.url, private = false)
+                showTabsTray(false)
+            }
+            is BookmarksListMenuAction.Bookmark.OpenInPrivateTabClicked -> {
+                addNewTabUseCase(url = bookmark.url, private = true)
+                showTabsTray(true)
+            }
+            is BookmarksListMenuAction.Bookmark.DeleteClicked -> scope.launch {
+                // Bug 1919949 — Add undo snackbar to delete action.
+                bookmarksStorage.deleteNode(bookmark.guid)
+                store.tryDispatchLoadFor(store.state.currentFolder.guid)
+            }
+
+            // folder menu actions
+            is BookmarksListMenuAction.Folder.EditClicked -> {
+                // todo nav to edit
+            }
+            is BookmarksListMenuAction.Folder.OpenAllInNormalTabClicked -> scope.launch {
+                bookmarksStorage.getTree(folder.guid)?.children
+                    ?.mapNotNull { it.url }
+                    ?.forEach { url -> addNewTabUseCase(url = url, private = false) }
+                withContext(Dispatchers.Main) {
+                    showTabsTray(false)
+                }
+            }
+            is BookmarksListMenuAction.Folder.OpenAllInPrivateTabClicked -> scope.launch {
+                bookmarksStorage.getTree(folder.guid)?.children
+                    ?.mapNotNull { it.url }
+                    ?.forEach { url -> addNewTabUseCase(url = url, private = true) }
+                withContext(Dispatchers.Main) {
+                    showTabsTray(true)
+                }
+            }
+            is BookmarksListMenuAction.Folder.DeleteClicked -> scope.launch {
+                // Bug 1919949 — Add undo snackbar to delete action.
+                bookmarksStorage.deleteNode(folder.guid)
+                store.tryDispatchLoadFor(store.state.currentFolder.guid)
+            }
+        }
+    }
 }

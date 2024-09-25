@@ -22,7 +22,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     is EditBookmarkClicked -> state.copy(
         bookmarksEditBookmarkState = BookmarksEditBookmarkState(
             bookmark = action.bookmark,
-            folder = BookmarkItem.Folder(title = state.currentFolder.title, guid = state.currentFolder.guid),
+            folder = state.currentFolder,
         ),
     )
     is BookmarkClicked -> if (state.selectedItems.isNotEmpty()) {
@@ -73,6 +73,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
             addFolderSelectionGuid = state.bookmarksAddFolderState?.parent?.guid ?: state.currentFolder.guid,
         ),
     )
+    is BookmarksListMenuAction -> state.handleListMenuAction(action)
     SelectFolderAction.ViewAppeared,
     SearchClicked,
     SignIntoSyncClicked,
@@ -116,3 +117,15 @@ private fun BookmarksState.respondToBackClick(): BookmarksState = when {
     bookmarksEditBookmarkState != null -> copy(bookmarksEditBookmarkState = null)
     else -> this
 }
+
+private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction): BookmarksState =
+    when (action) {
+        is BookmarksListMenuAction.Bookmark.EditClicked -> this.copy(
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = action.bookmark,
+                folder = currentFolder,
+            ),
+        )
+        is BookmarksListMenuAction.Folder.EditClicked -> this // TODO
+        else -> this
+    }

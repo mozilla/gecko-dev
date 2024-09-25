@@ -67,4 +67,7 @@ internal data class BookmarksSelectFolderState(
 ) {
     val showNewFolderButton: Boolean
         get() = addFolderSelectionGuid == null
+
+    val selectedGuid: String?
+        get() = addFolderSelectionGuid ?: selectionGuid
 }

@@ -27,6 +27,23 @@ internal data class BookmarksLoaded(
     val bookmarkItems: List<BookmarkItem>,
 ) : BookmarksAction
 
+internal sealed class BookmarksListMenuAction : BookmarksAction {
+    internal sealed class Bookmark : BookmarksListMenuAction() {
+        data class EditClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
+        data class CopyClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
+        data class ShareClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
+        data class OpenInNormalTabClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
+        data class OpenInPrivateTabClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
+        data class DeleteClicked(val bookmark: BookmarkItem.Bookmark) : Bookmark()
+    }
+    internal sealed class Folder : BookmarksListMenuAction() {
+        data class EditClicked(val folder: BookmarkItem.Folder) : Folder()
+        data class OpenAllInNormalTabClicked(val folder: BookmarkItem.Folder) : Folder()
+        data class OpenAllInPrivateTabClicked(val folder: BookmarkItem.Folder) : Folder()
+        data class DeleteClicked(val folder: BookmarkItem.Folder) : Folder()
+    }
+}
+
 internal data class FolderClicked(val item: BookmarkItem.Folder) : BookmarksAction
 internal data class FolderLongClicked(val item: BookmarkItem.Folder) : BookmarksAction
 internal data class BookmarkClicked(val item: BookmarkItem.Bookmark) : BookmarksAction

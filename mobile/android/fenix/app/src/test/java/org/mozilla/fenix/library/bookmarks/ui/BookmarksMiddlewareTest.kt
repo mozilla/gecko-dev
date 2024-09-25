@@ -4,6 +4,7 @@
 
 package org.mozilla.fenix.library.bookmarks.ui
 
+import android.content.ClipboardManager
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavController
 import androidx.navigation.NavDestination
@@ -15,6 +16,8 @@ import mozilla.components.concept.storage.BookmarkInfo
 import mozilla.components.concept.storage.BookmarkNode
 import mozilla.components.concept.storage.BookmarkNodeType
 import mozilla.components.concept.storage.BookmarksStorage
+import mozilla.components.feature.tabs.TabsUseCases
+import mozilla.components.support.test.any
 import mozilla.components.support.test.libstate.ext.waitUntilIdle
 import mozilla.components.support.test.mock
 import mozilla.components.support.test.rule.MainCoroutineRule
@@ -36,7 +39,6 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
-
 @RunWith(AndroidJUnit4::class)
 class BookmarksMiddlewareTest {
 
@@ -44,9 +46,14 @@ class BookmarksMiddlewareTest {
     val coroutineRule = MainCoroutineRule()
 
     private lateinit var bookmarksStorage: BookmarksStorage
+    private lateinit var clipboardManager: ClipboardManager
+    private lateinit var addNewTabUseCase: TabsUseCases.AddNewTabUseCase
     private lateinit var navController: NavController
     private lateinit var navigateToSignIntoSync: () -> Unit
     private lateinit var exitBookmarks: () -> Unit
+    private lateinit var shareBookmark: (String, String) -> Unit
+    private lateinit var showTabsTray: (Boolean) -> Unit
+    private lateinit var showUrlCopiedSnackbar: () -> Unit
     private lateinit var getBrowsingMode: () -> BrowsingMode
     private lateinit var openTab: (String, Boolean) -> Unit
     private val resolveFolderTitle = { node: BookmarkNode ->
@@ -67,9 +74,14 @@ class BookmarksMiddlewareTest {
     @Before
     fun setup() {
         bookmarksStorage = mock()
+        clipboardManager = mock()
+        addNewTabUseCase = mock()
         navController = mock()
         navigateToSignIntoSync = { }
         exitBookmarks = { }
+        shareBookmark = { _, _ -> }
+        showTabsTray = { _ -> }
+        showUrlCopiedSnackbar = { }
         getBrowsingMode = { BrowsingMode.Normal }
         openTab = { _, _ -> }
     }
@@ -395,12 +407,199 @@ class BookmarksMiddlewareTest {
         verify(navController).popBackStack()
     }
 
+    @Test
+    fun `WHEN edit clicked in bookmark item menu THEN nav to edit screen`() = runTestOnMain {
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        val bookmark = store.state.bookmarkItems.first { it is BookmarkItem.Bookmark } as BookmarkItem.Bookmark
+        store.dispatch(BookmarksListMenuAction.Bookmark.EditClicked(bookmark))
+
+        assertEquals(bookmark, store.state.bookmarksEditBookmarkState!!.bookmark)
+        verify(navController).navigate(BookmarksDestinations.EDIT_BOOKMARK)
+    }
+
+    @Test
+    fun `WHEN copy clicked in bookmark item menu THEN copy bookmark url to clipboard and snackboard is shown`() {
+        val url = "url"
+        val bookmarkItem = BookmarkItem.Bookmark(url = url, title = "title", previewImageUrl = url, guid = "guid")
+        var snackShown = false
+        showUrlCopiedSnackbar = { snackShown = true }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.CopyClicked(bookmarkItem))
+
+        verify(clipboardManager).setPrimaryClip(any())
+        assertTrue(snackShown)
+    }
+
+    @Test
+    fun `WHEN share clicked in bookmark item menu THEN share the bookmark`() {
+        var resultUrl = ""
+        var resultTitle = ""
+        shareBookmark = { sharedUrl, sharedTitle ->
+            resultUrl = sharedUrl
+            resultTitle = sharedTitle
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+        val url = "url"
+        val title = "title"
+        val bookmarkItem = BookmarkItem.Bookmark(url = url, title = title, previewImageUrl = url, guid = "guid")
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.ShareClicked(bookmarkItem))
+        assertEquals(url, resultUrl)
+        assertEquals(title, resultTitle)
+    }
+
+    @Test
+    fun `WHEN open in normal tab clicked in bookmark item menu THEN add a normal tab and show the tabs tray in normal mode`() {
+        val url = "url"
+        val bookmarkItem = BookmarkItem.Bookmark(url = url, title = "title", previewImageUrl = url, guid = "guid")
+        var trayShown = false
+        var mode = true
+        showTabsTray = { newMode ->
+            mode = newMode
+            trayShown = true
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.OpenInNormalTabClicked(bookmarkItem))
+
+        verify(addNewTabUseCase).invoke(url = url, private = false)
+        assertTrue(trayShown)
+        assertFalse(mode)
+    }
+
+    @Test
+    fun `WHEN open in private tab clicked in bookmark item menu THEN add a private tab and show the tabs tray in private mode`() {
+        val url = "url"
+        val bookmarkItem = BookmarkItem.Bookmark(url = url, title = "title", previewImageUrl = url, guid = "guid")
+        var trayShown = false
+        var mode = false
+        showTabsTray = { newMode ->
+            mode = newMode
+            trayShown = true
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.OpenInPrivateTabClicked(bookmarkItem))
+
+        verify(addNewTabUseCase).invoke(url = url, private = true)
+        assertTrue(trayShown)
+        assertTrue(mode)
+    }
+
+    @Test
+    fun `WHEN delete clicked in bookmark item menu THEN delete the bookmark, load the updated folder, and show the undo snackbar`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        val firstGuid = tree.children!!.first().guid
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val bookmarkItem = BookmarkItem.Bookmark(url = "url", title = "title", previewImageUrl = "url", guid = firstGuid)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.DeleteClicked(bookmarkItem))
+
+        // TODO check snackbar
+        verify(bookmarksStorage).deleteNode(firstGuid)
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+    }
+
+    @Test
+    fun `WHEN edit clicked in folder item menu THEN nav to the edit screen`() {
+        // TODO
+    }
+
+    @Test
+    fun `GIVEN a folder with fewer than 15 items WHEN open all in normal tabs clicked in folder item menu THEN open all the bookmarks as normal tabs and show the tabs tray in normal mode`() = runTestOnMain {
+        val guid = "guid"
+        val folderItem = BookmarkItem.Folder(title = "title", guid = guid)
+        val folder = generateBookmarkFolder(guid = guid, "title", "parentGuid")
+        `when`(bookmarksStorage.getTree(guid)).thenReturn(folder)
+        var trayShown = false
+        var mode = true
+        showTabsTray = { newMode ->
+            mode = newMode
+            trayShown = true
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.OpenAllInNormalTabClicked(folderItem))
+
+        folder.children!!.forEach { child ->
+            verify(addNewTabUseCase).invoke(url = child.url!!, private = false)
+        }
+        assertTrue(trayShown)
+        assertFalse(mode)
+    }
+
+    @Test
+    fun `GIVEN a folder with 15 or more items WHEN open all in normal tabs clicked in folder item menu THEN show a warning`() {
+        // TODO https://bugzilla.mozilla.org/show_bug.cgi?id=1920598
+    }
+
+    @Test
+    fun `GIVEN a folder with fewer than 15 items WHEN open all in private tabs clicked in folder item menu THEN open all the bookmarks as private tabs and show the tabs tray in private mode`() = runTestOnMain {
+        val guid = "guid"
+        val folderItem = BookmarkItem.Folder(title = "title", guid = guid)
+        val folder = generateBookmarkFolder(guid = guid, "title", "parentGuid")
+        `when`(bookmarksStorage.getTree(guid)).thenReturn(folder)
+        var trayShown = false
+        var mode = false
+        showTabsTray = { newMode ->
+            mode = newMode
+            trayShown = true
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.OpenAllInPrivateTabClicked(folderItem))
+
+        folder.children!!.forEach { child ->
+            verify(addNewTabUseCase).invoke(url = child.url!!, private = true)
+        }
+        assertTrue(trayShown)
+        assertTrue(mode)
+    }
+
+    @Test
+    fun `GIVEN a folder with 15 or more items WHEN open all in private tabs clicked in folder item menu THEN show a warning`() {
+        // TODO https://bugzilla.mozilla.org/show_bug.cgi?id=1920598
+    }
+
+    @Test
+    fun `WHEN delete clicked in folder item menu THEN delete the items, load the updated folder, and show the undo snackbar`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        val folder = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
+        val folderItem = BookmarkItem.Folder(guid = folder.guid, title = "title")
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.DeleteClicked(folderItem))
+
+        // TODO check snackbar
+        verify(bookmarksStorage).deleteNode(folder.guid)
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
+        clipboardManager = clipboardManager,
+        addNewTabUseCase = addNewTabUseCase,
         navController = navController,
         exitBookmarks = exitBookmarks,
         navigateToSignIntoSync = navigateToSignIntoSync,
+        shareBookmark = shareBookmark,
+        showTabsTray = showTabsTray,
         resolveFolderTitle = resolveFolderTitle,
+        showUrlCopiedSnackbar = showUrlCopiedSnackbar,
         getBrowsingMode = getBrowsingMode,
         openTab = openTab,
         ioDispatcher = coroutineRule.testDispatcher,
