@@ -8,7 +8,7 @@ add_task(async function () {
   // There should be one tab when we start the test
   let [origTab] = gBrowser.visibleTabs;
 
-  // Add a tab that will get pinned
+  info("Add a tab that will get pinned");
   let pinned = BrowserTestUtils.addTab(gBrowser);
   gBrowser.pinTab(pinned);
 
@@ -23,7 +23,7 @@ add_task(async function () {
   is(visible[1], origTab, "original tab is next");
   is(visible[2], testTab, "last created tab is next to last");
 
-  // Only show the test tab (but also get pinned and selected)
+  info("Only show the test tab (but also get pinned and selected)");
   is(
     gBrowser.selectedTab,
     origTab,
@@ -32,7 +32,7 @@ add_task(async function () {
   gBrowser.showOnlyTheseTabs([testTab]);
   is(gBrowser.visibleTabs.length, 3, "all 3 tabs are still visible");
 
-  // Select the test tab and only show that (and pinned)
+  info("Select the test tab and only show that (and pinned)");
   gBrowser.selectedTab = testTab;
   gBrowser.showOnlyTheseTabs([testTab]);
 
@@ -75,25 +75,27 @@ add_task(async function () {
   gBrowser.tabContainer.advanceSelectedTab(-1, true);
   is(gBrowser.selectedTab, testTab, "next to test tab again");
 
-  // select a hidden tab thats selectable
+  info("select a hidden tab thats selectable");
   gBrowser.selectedTab = firefoxViewTab;
   gBrowser.tabContainer.advanceSelectedTab(1, true);
   is(gBrowser.selectedTab, pinned, "next to first visible tab, the pinned tab");
   gBrowser.tabContainer.advanceSelectedTab(1, true);
   is(gBrowser.selectedTab, testTab, "next to second visible tab, the test tab");
 
-  // again select a hidden tab thats selectable
+  info("again select a hidden tab thats selectable");
   gBrowser.selectedTab = firefoxViewTab;
   gBrowser.tabContainer.advanceSelectedTab(-1, true);
   is(gBrowser.selectedTab, testTab, "next to last visible tab, the test tab");
   gBrowser.tabContainer.advanceSelectedTab(-1, true);
   is(gBrowser.selectedTab, pinned, "next to first visible tab, the pinned tab");
 
-  // Try showing all tabs except for the Firefox View tab
+  info("Try showing all tabs except for the Firefox View tab");
   gBrowser.showOnlyTheseTabs(Array.from(gBrowser.tabs.slice(0, 3)));
   is(gBrowser.visibleTabs.length, 3, "all 3 tabs are visible again");
 
-  // Select the pinned tab and show the testTab to make sure selection updates
+  info(
+    "Select the pinned tab and show the testTab to make sure selection updates"
+  );
   gBrowser.selectedTab = pinned;
   gBrowser.showOnlyTheseTabs([testTab]);
   is(gBrowser.tabs[1], origTab, "make sure origTab is in the middle");
@@ -102,24 +104,31 @@ add_task(async function () {
   is(gBrowser.selectedTab, testTab, "making sure origTab was skipped");
   is(gBrowser.visibleTabs.length, 1, "only testTab is there");
 
-  // Only show one of the non-pinned tabs (but testTab is selected)
+  info("Only show one of the non-pinned tabs (but testTab is selected)");
   gBrowser.showOnlyTheseTabs([origTab]);
   is(gBrowser.visibleTabs.length, 2, "got 2 tabs");
 
-  // Now really only show one of the tabs
+  info("Now really only show one of the tabs");
   gBrowser.showOnlyTheseTabs([testTab]);
   visible = gBrowser.visibleTabs;
   is(visible.length, 1, "only the original tab is visible");
   is(visible[0], testTab, "it's the original tab");
   is(gBrowser.tabs.length, 3, "still have 3 open tabs");
 
-  // Close the selectable hidden tab
+  info("Close the selectable hidden tab");
   gBrowser.removeTab(firefoxViewTab);
 
-  // Close the last visible tab and make sure we still get a visible tab
+  info(
+    "Close the last visible tab and make sure we still get a visible tab with browser.tabs.closeWindowWithLastTab = false"
+  );
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.tabs.closeWindowWithLastTab", false]],
+  });
   gBrowser.removeTab(testTab);
-  is(gBrowser.visibleTabs.length, 1, "only orig is left and visible");
-  is(gBrowser.tabs.length, 1, "sanity check that it matches");
-  is(gBrowser.selectedTab, origTab, "got the orig tab");
-  is(origTab.hidden, false, "and it's not hidden -- visible!");
+  is(gBrowser.visibleTabs.length, 1, "a new visible tab was opened");
+  is(gBrowser.tabs.length, 2, "we have two tabs in total");
+  ok(origTab.hidden, "original tab is still hidden");
+  ok(!origTab.selected, "original tab is not selected");
+  gBrowser.removeTab(origTab);
+  await SpecialPowers.popPrefEnv();
 });

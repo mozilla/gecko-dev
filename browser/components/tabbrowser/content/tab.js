@@ -322,7 +322,7 @@
     }
 
     get group() {
-      if (this.parentElement.tagName == "tab-group") {
+      if (this.parentElement?.tagName == "tab-group") {
         return this.parentElement;
       }
       return null;

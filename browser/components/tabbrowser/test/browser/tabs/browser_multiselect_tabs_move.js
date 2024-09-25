@@ -107,8 +107,8 @@ add_task(async function testMoveStartDisabledFromFirstVisibleTab() {
   updateTabContextMenu(tab2);
   is(menuItemMoveStartTab.disabled, true, "Move Tab to Start is disabled");
 
-  BrowserTestUtils.removeTab(tab2);
   gBrowser.showTab(tab);
+  BrowserTestUtils.removeTab(tab2);
 });
 
 add_task(async function testMoveEndEnabledClickedFromNonSelectedTab() {
@@ -165,8 +165,8 @@ add_task(async function testMoveEndDisabledFromLastVisibleTab() {
   updateTabContextMenu(tab);
   is(menuItemMoveEndTab.disabled, true, "Move Tab to End is disabled");
 
-  BrowserTestUtils.removeTab(tab2);
   gBrowser.showTab(tab);
+  BrowserTestUtils.removeTab(tab2);
 });
 
 add_task(async function testMoveEndDisabledFromOnlyTab() {

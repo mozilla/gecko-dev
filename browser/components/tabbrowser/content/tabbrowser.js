@@ -4676,26 +4676,19 @@
       }
 
       if (
-        aTab.owner &&
-        !aTab.owner.hidden &&
-        !aTab.owner.closing &&
+        this.tabContainer.isVisibleTab(aTab.owner) &&
         !excludeTabs.has(aTab.owner) &&
         Services.prefs.getBoolPref("browser.tabs.selectOwnerOnClose")
       ) {
         return aTab.owner;
       }
 
-      // Switch to a visible tab unless there aren't any others remaining
-      let remainingTabs = this.visibleTabs;
-      let numTabs = remainingTabs.length;
-      if (numTabs == 0 || (numTabs == 1 && remainingTabs[0] == aTab)) {
-        remainingTabs = Array.prototype.filter.call(
-          this.tabs,
-          tab => !tab.closing && !excludeTabs.has(tab)
-        );
-      }
-
       // Try to find a remaining tab that comes after the given tab
+      let remainingTabs = Array.prototype.filter.call(
+        this.visibleTabs,
+        tab => !excludeTabs.has(tab)
+      );
+
       let tab = this.tabContainer.findNextTab(aTab, {
         direction: 1,
         filter: _tab => remainingTabs.includes(_tab),

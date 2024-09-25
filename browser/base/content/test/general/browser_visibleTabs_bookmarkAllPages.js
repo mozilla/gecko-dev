@@ -26,11 +26,11 @@ function test() {
       "It's the correct URI"
     );
 
-    gBrowser.removeTab(tabOne);
-    gBrowser.removeTab(tabTwo);
     for (let tab of gBrowser.tabs) {
       gBrowser.showTab(tab);
     }
+    gBrowser.removeTab(tabOne);
+    gBrowser.removeTab(tabTwo);
 
     finish();
   });

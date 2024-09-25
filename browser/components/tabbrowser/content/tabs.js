@@ -254,16 +254,9 @@
       // select it.
       const group = event.target;
       if (gBrowser.selectedTab.group === group) {
-        let tabToSelect = gBrowser._findTabToBlurTo(
-          gBrowser.selectedTab,
-          group.tabs
-        );
-
-        if (tabToSelect) {
-          gBrowser.selectedTab = tabToSelect;
-        } else {
-          gBrowser.addAdjacentNewTab(group.tabs.at(-1));
-        }
+        gBrowser.selectedTab =
+          gBrowser._findTabToBlurTo(gBrowser.selectedTab) ||
+          gBrowser.addTrustedTab(BROWSER_NEW_TAB_URL, { skipAnimation: true });
       }
     }
 
@@ -1298,11 +1291,15 @@
       return this.hasAttribute("overflow");
     }
 
+    isVisibleTab(tab) {
+      return tab && !tab.hidden && !tab.closing && !tab.group?.collapsed;
+    }
+
     _getVisibleTabs() {
       if (!this._visibleTabs) {
         this._visibleTabs = Array.prototype.filter.call(
           this.allTabs,
-          tab => !tab.hidden && !tab.closing && !tab.group?.collapsed
+          this.isVisibleTab
         );
       }
       return this._visibleTabs;
