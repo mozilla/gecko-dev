@@ -131,6 +131,7 @@ no-fission:
         mozharness:
             extra-options:
                 - "--disable-fission"
+                - "--setpref=fission.disableSessionHistoryInParent=true"
 
 geckoview-no-fission-ship:
     description: "{description} with fission disabled and ship enabled"
