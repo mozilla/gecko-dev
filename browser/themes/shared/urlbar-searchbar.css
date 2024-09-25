@@ -21,7 +21,7 @@
 #urlbar[usertyping] > .urlbar-input-container > #page-action-buttons > #urlbar-zoom-button,
 #urlbar:not([usertyping]) > .urlbar-input-container > .urlbar-go-button,
 #urlbar:not([focused]) > .urlbar-input-container > .urlbar-go-button,
-.urlbar-revert-button {
+#urlbar-revert-button-container {
   display: none;
 }
 
@@ -805,12 +805,16 @@
 /* Persisted Search Terms rules specific when the Unified Search Button is present */
 /* stylelint-disable-next-line media-query-no-invalid */
 #urlbar[persistsearchterms] {
+  #urlbar-revert-button-container {
+    display: inherit;
+  }
   .urlbar-revert-button {
     list-style-image: url(chrome://global/skin/icons/defaultFavicon.svg);
     fill: var(--color-accent-primary);
-    display: inherit;
   }
-  #page-action-buttons,
+  .urlbar-revert-button:focus-visible {
+    outline: var(--focus-outline);
+  }
   .urlbar-go-button {
     display: none;
   }

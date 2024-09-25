@@ -190,6 +190,7 @@ export class UrlbarInput {
     this.inputField = this.querySelector(".urlbar-input");
     this._inputContainer = this.querySelector(".urlbar-input-container");
     this._identityBox = this.querySelector(".identity-box");
+    this._revertButton = this.querySelector(".urlbar-revert-button");
     this._searchModeIndicator = this.querySelector(
       "#urlbar-search-mode-indicator"
     );
@@ -441,9 +442,7 @@ export class UrlbarInput {
     ) {
       if (this.window.gBrowser.selectedBrowser.searchTerms) {
         value = this.window.gBrowser.selectedBrowser.searchTerms;
-        if (!this.focused) {
-          showPersistedState = true;
-        }
+        showPersistedState = true;
         if (!isSameDocument) {
           Services.telemetry.scalarAdd(
             "urlbar.persistedsearchterms.view_count",
@@ -3849,6 +3848,11 @@ export class UrlbarInput {
         });
       }
     }
+
+    if (event.target == this._revertButton) {
+      this.handleRevert();
+      this.select();
+    }
   }
 
   _on_contextmenu(event) {
@@ -3866,18 +3870,6 @@ export class UrlbarInput {
     this.logger.debug("Focus Event");
     if (!this._hideFocus) {
       this.toggleAttribute("focused", true);
-    }
-
-    // When the search term matches the SERP, the URL bar is in a valid
-    // pageproxystate. In order to only show the search icon, switch to
-    // an invalid pageproxystate.
-    if (this.window.gBrowser.selectedBrowser.searchTerms) {
-      // When focusing via mousedown, we don't want to cause a shift of the
-      // string, it will instead happen on the next input event.
-      this.removeAttribute("persistsearchterms");
-      if (!this.focusedViaMousedown) {
-        this.setPageProxyState("invalid", true);
-      }
     }
 
     // If the value was trimmed, check whether we should untrim it.
@@ -4070,6 +4062,12 @@ export class UrlbarInput {
       this.value != this._lastValidURLStr
     ) {
       this.setPageProxyState("invalid", true);
+    }
+
+    if (
+      this.window.gBrowser.selectedBrowser.searchTerms &&
+      this.value != this.window.gBrowser.selectedBrowser.searchTerms
+    ) {
       this.removeAttribute("persistsearchterms");
     }
 

@@ -67,13 +67,13 @@ add_task(async function load_url() {
 });
 
 // Focusing and blurring the urlbar while the search terms
-// persist should change the "persistsearchterms" attribute.
+// persist should not change the "persistsearchterms" attribute.
 add_task(async function focus_and_unfocus() {
   let { tab } = await searchWithTab(SEARCH_STRING);
 
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
   Assert.ok(
-    !gURLBar.hasAttribute("persistsearchterms"),
+    gURLBar.hasAttribute("persistsearchterms"),
     "Urlbar does not have persistsearchterms attribute."
   );
 
@@ -87,14 +87,14 @@ add_task(async function focus_and_unfocus() {
 });
 
 // If the user modifies the search term, blurring the
-// urlbar should keep the urlbar in an invalid pageproxystate.
+// urlbar should remove persistsearchterms.
 add_task(async function focus_and_unfocus_modified() {
   let { tab } = await searchWithTab(SEARCH_STRING);
 
   EventUtils.synthesizeMouseAtCenter(gURLBar.inputField, {});
   Assert.ok(
-    !gURLBar.hasAttribute("persistsearchterms"),
-    "Urlbar does not have persistsearchterms attribute."
+    gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar has persistsearchterms attribute."
   );
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({

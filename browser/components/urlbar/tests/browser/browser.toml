@@ -49,6 +49,9 @@ tags = "persisted-search"
 
 ["browser_UrlbarInput_searchTerms_remote_settings_sync.js"]
 
+["browser_UrlbarInput_searchTerms_revert_keyboard.js"]
+tags = "persisted-search"
+
 ["browser_UrlbarInput_searchTerms_revert.js"]
 tags = "persisted-search"
 

@@ -361,10 +361,12 @@
                           data-l10n-id="urlbar-placeholder"
                           data-l10n-attrs="placeholder"/>
             </moz-input-box>
-            <image class="urlbar-icon urlbar-revert-button"
-                    role="button"
-                    onclick="gURLBar.handleRevert()"
-                    data-l10n-id="urlbar-revert-button"/>
+            <hbox id="urlbar-revert-button-container">
+              <toolbartabstop/>
+              <image class="urlbar-icon urlbar-revert-button"
+                     role="button"
+                     data-l10n-id="urlbar-revert-button"/>
+            </hbox>
             <image class="urlbar-icon urlbar-go-button"
                    role="button"
                    keyNav="false"
