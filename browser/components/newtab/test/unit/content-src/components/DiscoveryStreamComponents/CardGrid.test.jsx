@@ -126,6 +126,41 @@ describe("<CardGrid>", () => {
 
     assert.ok(wrapper.find(TopicsWidget).exists());
   });
+
+  it("should create a list feed", () => {
+    const commonProps = {
+      essentialReadsHeader: true,
+      editorsPicksHeader: true,
+      items: 12,
+      data: {
+        recommendations: [
+          { feedName: "foo" },
+          { feedName: "foo" },
+          { feedName: "foo" },
+          { feedName: "foo" },
+          { feedName: "foo" },
+          { feedName: "foo" },
+        ],
+      },
+      Prefs: {
+        ...INITIAL_STATE.Prefs,
+        values: {
+          ...INITIAL_STATE.Prefs.values,
+          "discoverystream.contextualContent.enabled": true,
+          "discoverystream.contextualContent.selectedFeed": "foo",
+        },
+      },
+      DiscoveryStream: INITIAL_STATE.DiscoveryStream,
+    };
+
+    wrapper = mount(
+      <WrapWithProvider>
+        <CardGrid {...commonProps} />
+      </WrapWithProvider>
+    );
+
+    assert.ok(wrapper.find(".list-feed").exists());
+  });
 });
 
 // Build IntersectionObserver class with the arg `entries` for the intersect callback.

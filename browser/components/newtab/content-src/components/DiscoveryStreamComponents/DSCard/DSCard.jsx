@@ -89,6 +89,7 @@ export const DefaultMeta = ({
   mayHaveThumbsUpDown,
   onThumbsUpClick,
   onThumbsDownClick,
+  isListCard,
   state,
 }) => (
   <div className="meta">
@@ -106,7 +107,7 @@ export const DefaultMeta = ({
       <header className="title clamp">{title}</header>
       {excerpt && <p className="excerpt clamp">{excerpt}</p>}
     </div>
-    {mayHaveThumbsUpDown && (
+    {!isListCard && mayHaveThumbsUpDown && (
       <DSThumbsUpDownButtons
         onThumbsDownClick={onThumbsDownClick}
         onThumbsUpClick={onThumbsUpClick}
