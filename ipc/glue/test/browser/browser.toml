@@ -12,37 +12,26 @@ support-files = [
   "../../../../dom/media/test/small-shot.m4a",
   "../../../../dom/media/test/small-shot.flac"
 ]
-skip-if = [
-  "!crashreporter",
-  "ccov",
-]
+run-if = ["crashreporter"]
+skip-if = ["ccov"]
 
 ["browser_utility_crashReporter.js"]
-skip-if = [
-  "!crashreporter",
-  "ccov",
-]
+run-if = ["crashreporter"]
+skip-if = ["ccov"]
 
 ["browser_utility_filepicker_crashed.js"]
-run-if = ["os == 'win'"]
-skip-if = [
-  "!crashreporter",
-  "ccov",
-]
+run-if = ["os == 'win' && crashreporter"]
+skip-if = ["ccov"]
 
 ["browser_utility_geolocation_crashed.js"]
-run-if = ["os == 'win'"]
-skip-if = [
-  "!crashreporter",
-  "ccov",
-]
+run-if = ["os == 'win' && crashreporter"]
+skip-if = ["ccov"]
 
 ["browser_utility_hard_kill.js"]
 
 ["browser_utility_hard_kill_delayed.js"] # bug 1754572: we really want hard_kill to be rust before hard_kill_delayed
 
 ["browser_utility_memoryReport.js"]
-skip-if = ["tsan"] # bug 1754554
 
 ["browser_utility_multipleAudio.js"]
 support-files = [

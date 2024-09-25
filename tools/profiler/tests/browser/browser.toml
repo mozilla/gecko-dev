@@ -1,9 +1,9 @@
 [DEFAULT]
-skip-if = ["tsan"] # Bug 1804081 - TSan times out on pretty much all of these tests
 support-files = [
   "../shared-head.js",
   "head.js",
 ]
+skip-if = ["tsan"] # Bug 1804081 - TSan times out on pretty much all of these tests
 
 ["browser_test_feature_ipcmessages.js"]
 support-files = ["simple.html"]
@@ -19,10 +19,8 @@ skip-if = [
   # "debug" and "verify"). Having JS support for this feature is more important
   # than these tests, so we're disabling them for now. See Bug 1904897.
   "verify && debug",
-  "tsan",            # We have intermittent timeout issues in TSan, see Bug 1889828
   "ccov",            # The signals for the profiler conflict with the ccov signals
   "os == 'win'",     # Not yet supported on windows - Bug 1867328
-  "os == 'android'", # Not yet supported on android - Bug 1904639
 ]
 
 ["browser_test_feature_nostacksampling.js"]
@@ -108,4 +106,4 @@ support-files = ["single_frame.html"]
 
 ["browser_test_profile_slow_capture.js"]
 support-files = ["single_frame.html"]
-skip-if = ["!debug"]
+run-if = ["debug"]

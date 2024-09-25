@@ -2,12 +2,12 @@
 
 ["browser_native_font_cache_macos.js"]
 support-files = ["file_native_font_cache_macos.html"]
-skip-if = ["os != 'mac'"]
+run-if = ["os == 'mac'"]
 
 ["browser_omta_tearoff_tab.js"]
 
 ["browser_partial_prerender_animation_in_popup.js"]
 support-files = ["!/dom/animation/test/testcommon.js"]
-skip-if = ["os == 'mac'"] # on Mac popup windows use basic layers so animation can't be run on the compositor
+run-if = ["os != 'mac'"] # on Mac popup windows use basic layers so animation can't be run on the compositor
 
 ["browser_windowless_troubleshoot_crash.js"]

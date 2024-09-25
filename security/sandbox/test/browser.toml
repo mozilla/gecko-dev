@@ -13,12 +13,15 @@ support-files = [
 
 ["browser_bug1393259.js"]
 support-files = ["bug1393259.html"]
-skip-if = ["os != 'mac'"] # This is a Mac-specific test
+run-if = ["os == 'mac'"] # This is a Mac-specific test
 
 ["browser_content_sandbox_fs.js"]
-skip-if = ["debug && os == 'win'"] # bug 1379635
+skip-if = [
+  "os == 'win' && os_version == '11.2009' && processor == 'x86' && debug", # bug 1379635
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && debug", # bug 1379635
+]
 
 ["browser_content_sandbox_syscalls.js"]
 
 ["browser_sandbox_test.js"]
-skip-if = ["!debug"]
+run-if = ["debug"]

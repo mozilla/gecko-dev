@@ -11,13 +11,9 @@ skip-if = ["os == 'linux'"] # Linux build has not implemented sendNativeKeyEvent
 ["browser_test_clipboard_contextmenu.js"]
 
 ["browser_test_clipboardcache.js"]
-skip-if = [
-  "os == 'win' && bits == 32 && !debug", # Bug 1759422
-  "os == 'linux'", # Bug 1792749
-]
 
 ["browser_test_consumed_alt_char_on_windows.js"]
-skip-if = ["os != 'win'"]
+run-if = ["os == 'win'"]
 
 ["browser_test_contentCommand_immediately_after_setSelection.js"]
 
@@ -67,12 +63,12 @@ support-files = [
 ]
 
 ["browser_test_ime_state_on_input_type_change_in_remote_content.js"]
-skip-if = ["true"] # Bug 1817704
 support-files = [
   "file_ime_state_tests.html",
   "../file_ime_state_test_helper.js",
   "../file_test_ime_state_on_input_type_change.js",
 ]
+skip-if = ["true"] # Bug 1817704
 
 ["browser_test_ime_state_on_readonly_change_in_remote_content.js"]
 support-files = [
@@ -82,14 +78,12 @@ support-files = [
 ]
 
 ["browser_test_scrollbar_colors.js"]
-skip-if = ["os == 'linux'"] # bug 1460109
 support-files = ["helper_scrollbar_colors.html"]
 
 ["browser_test_swipe_gesture.js"]
 skip-if = [
-  "win11_2009 && bits == 32 && !debug", # Bug 1759422
   "verify", # Bug 1800022
-  "os == 'linux'", # Bug 1784772
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # Bug 1784772
 ]
 support-files = [
   "helper_swipe_gesture.html",

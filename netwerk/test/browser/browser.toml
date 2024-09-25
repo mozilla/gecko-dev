@@ -139,10 +139,6 @@ support-files = ["early_hint_preload_test_helper.sys.mjs",]
 ["browser_about_cache.js"]
 
 ["browser_backgroundtask_purgeHTTPCache.js"]
-skip-if = [
-  "os == 'android'", # MultiInstanceLock doesn't work on Android
-  "os == 'mac'", # intermittent TV timeouts on Mac
-]
 
 ["browser_bug968273.js"]
 
@@ -153,7 +149,6 @@ fail-if = ["a11y_checks"] # Bug 1854523 clicked button may not be focusable
 
 ["browser_child_resource.js"]
 run-if = ["crashreporter"]
-skip-if = ["os == 'win'"] # Bug 1775761
 
 ["browser_cookie_filtering_basic.js"]
 
