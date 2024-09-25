@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use firefox_on_glean::metrics::networking;
+use firefox_on_glean::private::{LocalCustomDistribution, LocalMemoryDistribution};
 #[cfg(not(windows))]
 use libc::{AF_INET, AF_INET6};
 use neqo_common::event::Provider;
@@ -39,18 +41,6 @@ use uuid::Uuid;
 use winapi::shared::ws2def::{AF_INET, AF_INET6};
 use xpcom::{interfaces::nsISocketProvider, AtomicRefcnt, RefCounted, RefPtr};
 
-/// Provides a buffered wrapper around [`firefox_on_glean`] metrics.
-///
-/// Enables instrumentation in the UDP IO hotpath, without a significant
-/// performance overhead through instrumentation itself.
-///
-/// See also performance analysis without it in
-/// <https://phabricator.services.mozilla.com/D216034#7453056>.
-///
-/// Will be replaced by <https://bugzilla.mozilla.org/show_bug.cgi?id=1915388>
-/// once available.
-mod metrics;
-
 #[repr(C)]
 pub struct NeqoHttp3Conn {
     conn: Http3Client,
@@ -66,12 +56,16 @@ pub struct NeqoHttp3Conn {
     // would close the file descriptor on `Drop`. The lifetime of the underlying
     // OS socket is managed not by `neqo_glue` but `NSPR`.
     socket: Option<neqo_udp::Socket<BorrowedSocket>>,
+
+    datagram_segment_size_sent: LocalMemoryDistribution<'static>,
+    datagram_segment_size_received: LocalMemoryDistribution<'static>,
+    datagram_size_received: LocalMemoryDistribution<'static>,
+    datagram_segments_received: LocalCustomDistribution<'static>,
 }
 
 impl Drop for NeqoHttp3Conn {
     fn drop(&mut self) {
         self.record_stats_in_glean();
-        metrics::METRICS.with_borrow_mut(|m| m.sync_to_glean());
     }
 }
 
@@ -326,6 +320,13 @@ impl NeqoHttp3Conn {
             last_output_time: Instant::now(),
             max_accumlated_time: Duration::from_millis(max_accumlated_time_ms.into()),
             socket,
+            datagram_segment_size_sent: networking::http_3_udp_datagram_segment_size_sent
+                .start_buffer(),
+            datagram_segment_size_received: networking::http_3_udp_datagram_segment_size_received
+                .start_buffer(),
+            datagram_size_received: networking::http_3_udp_datagram_size_received.start_buffer(),
+            datagram_segments_received: networking::http_3_udp_datagram_segments_received
+                .start_buffer(),
         }));
         unsafe { Ok(RefPtr::from_raw(conn).unwrap()) }
     }
@@ -563,12 +564,13 @@ pub unsafe extern "C" fn neqo_http3conn_process_input(
             if !ecn_enabled {
                 dgram.set_tos(Default::default());
             }
-            metrics::METRICS
-                .with_borrow_mut(|m| m.datagram_segment_size_received.sample(dgram.len()));
+            conn.datagram_segment_size_received
+                .accumulate(dgram.len() as u64);
             sum += dgram.len();
         }
-        metrics::METRICS.with_borrow_mut(|m| m.datagram_size_received.sample(sum));
-        metrics::METRICS.with_borrow_mut(|m| m.datagram_segments_received.sample(dgrams.len()));
+        conn.datagram_size_received.accumulate(sum as u64);
+        conn.datagram_segments_received
+            .accumulate(dgrams.len() as u64);
         bytes_read += sum;
 
         conn.conn
@@ -727,7 +729,7 @@ pub extern "C" fn neqo_http3conn_process_output_and_send(
                     }
                 }
                 bytes_written += dg.len();
-                metrics::METRICS.with_borrow_mut(|m| m.datagram_segment_size_sent.sample(dg.len()));
+                conn.datagram_segment_size_sent.accumulate(dg.len() as u64);
             }
             Output::Callback(to) => {
                 if to.is_zero() {
