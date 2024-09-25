@@ -28,6 +28,7 @@ class VideoCaptureModulePipeWire : public VideoCaptureImpl {
   int32_t CaptureSettings(VideoCaptureCapability& settings) override;
 
   static VideoType PipeWireRawFormatToVideoType(uint32_t format);
+  static uint32_t VideoTypeToPipeWireRawFormat(VideoType type);
 
  private:
   static void OnStreamParamChanged(void* data,
