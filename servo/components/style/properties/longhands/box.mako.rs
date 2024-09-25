@@ -631,6 +631,7 @@ ${helpers.predefined_type(
     "zoom",
     "Zoom",
     "computed::box_::Zoom::ONE",
+    animation_type="discrete",
     engines="gecko",
     spec="Non-standard (https://github.com/atanassov/css-zoom/ is the closest)",
     gecko_pref="layout.css.zoom.enabled",
