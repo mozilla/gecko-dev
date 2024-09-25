@@ -95,7 +95,7 @@ class nsJARChannel final : public nsIJARChannel,
   // |Cancel()|, |Suspend()|, and |Resume()| might be called during AsyncOpen.
   struct {
     bool isCanceled = false;
-    mozilla::Atomic<uint32_t> suspendCount {0};
+    mozilla::Atomic<uint32_t> suspendCount{0};
   } mPendingEvent;
 
   nsCOMPtr<nsIInputStreamPump> mPump;
