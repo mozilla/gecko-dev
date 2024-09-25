@@ -385,6 +385,49 @@ class BookmarksReducerTest {
         assertEquals(BookmarksEditBookmarkState(bookmark = item, folder = parent), result.bookmarksEditBookmarkState)
     }
 
+    @Test
+    fun `GIVEN one selected item WHEN the edit button is clicked in a bookmark menu THEN bookmark edit state is created`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val parent = BookmarkItem.Folder("title", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item),
+            selectedItems = listOf(item),
+            currentFolder = parent,
+        )
+
+        val result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.EditClicked)
+        assertEquals(BookmarksEditBookmarkState(bookmark = item, folder = parent), result.bookmarksEditBookmarkState)
+    }
+
+    @Test
+    fun `GIVEN selected items WHEN a multi-select menu action is taken THEN the items are unselected`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val parent = BookmarkItem.Folder("title", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item),
+            selectedItems = listOf(item),
+            currentFolder = parent,
+        )
+
+        var result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.EditClicked)
+        assertTrue(result.selectedItems.isEmpty())
+
+        result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.MoveClicked)
+        assertTrue(result.selectedItems.isEmpty())
+
+        result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.DeleteClicked)
+        assertTrue(result.selectedItems.isEmpty())
+
+        result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.OpenInNormalTabsClicked)
+        assertTrue(result.selectedItems.isEmpty())
+
+        result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.OpenInPrivateTabsClicked)
+        assertTrue(result.selectedItems.isEmpty())
+
+        result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.ShareClicked)
+        assertTrue(result.selectedItems.isEmpty())
+    }
+
     private fun generateBookmark(
         num: Int = 0,
         url: String = "url",

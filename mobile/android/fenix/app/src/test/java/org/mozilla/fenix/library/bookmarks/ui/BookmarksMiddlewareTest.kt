@@ -589,6 +589,125 @@ class BookmarksMiddlewareTest {
         verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
     }
 
+    @Test
+    fun `WHEN toolbar edit clicked THEN navigate to the edit screen`() = runTestOnMain {
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.MultiSelect.EditClicked)
+
+        verify(navController).navigate(BookmarksDestinations.EDIT_BOOKMARK)
+    }
+
+    @Test
+    fun `WHEN toolbar move clicked THEN navigate to the folder selection screen`() = runTestOnMain {
+        // TODO
+    }
+
+    @Test
+    fun `GIVEN selected tabs WHEN multi-select open in normal tabs clicked THEN open selected in new tabs and show tabs tray`() = runTestOnMain {
+        var shown = false
+        var mode = true
+        showTabsTray = { newMode ->
+            shown = true
+            mode = newMode
+        }
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
+            BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(selectedItems = items),
+        )
+
+        store.dispatch(BookmarksListMenuAction.MultiSelect.OpenInNormalTabsClicked)
+
+        assertTrue(items.size == 2)
+        for (item in items) {
+            verify(addNewTabUseCase).invoke(item.url, private = false)
+        }
+        assertTrue(shown)
+        assertFalse(mode)
+    }
+
+    @Test
+    fun `GIVEN selected tabs WHEN multi-select open in private tabs clicked THEN open selected in new private tabs and show tabs tray`() = runTestOnMain {
+        var shown = false
+        var mode = false
+        showTabsTray = { newMode ->
+            shown = true
+            mode = newMode
+        }
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
+            BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(selectedItems = items),
+        )
+
+        store.dispatch(BookmarksListMenuAction.MultiSelect.OpenInPrivateTabsClicked)
+
+        assertTrue(items.size == 2)
+        for (item in items) {
+            verify(addNewTabUseCase).invoke(item.url, private = true)
+        }
+        assertTrue(shown)
+        assertTrue(mode)
+    }
+
+    @Test
+    fun `GIVEN selected tabs WHEN multi-select share clicked THEN share all tabs`() = runTestOnMain {
+        val sharedUrls = mutableListOf<String>()
+        val sharedTitles = mutableListOf<String>()
+        shareBookmark = { url, title ->
+            sharedUrls.add(url)
+            sharedTitles.add(title)
+        }
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
+            BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(selectedItems = items),
+        )
+
+        store.dispatch(BookmarksListMenuAction.MultiSelect.ShareClicked)
+
+        assertTrue(items.size == 2)
+        for (item in items) {
+            assertTrue(item.url in sharedUrls)
+            assertTrue(item.title in sharedTitles)
+        }
+    }
+
+    @Test
+    fun `GIVEN selected tabs WHEN multi-select delete clicked THEN delete all tabs`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val items = tree.children!!.filter { it.type == BookmarkNodeType.ITEM }.take(2).map {
+            BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
+        }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(selectedItems = items),
+        )
+
+        store.dispatch(BookmarksListMenuAction.MultiSelect.DeleteClicked)
+
+        assertTrue(items.size == 2)
+        for (item in items) {
+            verify(bookmarksStorage).deleteNode(item.guid)
+        }
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         clipboardManager = clipboardManager,

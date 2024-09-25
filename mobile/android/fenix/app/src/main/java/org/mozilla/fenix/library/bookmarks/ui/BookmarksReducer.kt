@@ -127,5 +127,24 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
             ),
         )
         is BookmarksListMenuAction.Folder.EditClicked -> this // TODO
+        is BookmarksListMenuAction.MultiSelect.EditClicked ->
+            selectedItems.firstOrNull()?.let { selectedItem ->
+                if (selectedItem is BookmarkItem.Bookmark) {
+                    copy(
+                        bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                            bookmark = selectedItem,
+                            folder = currentFolder,
+                        ),
+                    )
+                } else {
+                    this // TODO
+                }
+            } ?: this
         else -> this
+    }.let { updatedState ->
+        if (action is BookmarksListMenuAction.MultiSelect) {
+            updatedState.copy(selectedItems = listOf())
+        } else {
+            updatedState
+        }
     }

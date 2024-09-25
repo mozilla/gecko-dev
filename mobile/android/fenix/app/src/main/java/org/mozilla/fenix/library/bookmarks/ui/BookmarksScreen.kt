@@ -204,6 +204,7 @@ private fun BookmarksListTopBar(
         BookmarkListOverflowMenu(
             showMenu = showMenu,
             onDismissRequest = { showMenu = false },
+            store = store,
         )
         TopAppBar(
             backgroundColor = FirefoxTheme.colors.layer1,
@@ -242,14 +243,14 @@ private fun BookmarksListTopBar(
                     }
 
                     1 -> {
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.EditClicked) }) {
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_edit_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_edit_button),
                                 tint = FirefoxTheme.colors.iconPrimary,
                             )
                         }
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked) }) {
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_move_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_move_button),
@@ -270,7 +271,7 @@ private fun BookmarksListTopBar(
                     }
 
                     else -> {
-                        IconButton(onClick = {}) {
+                        IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked) }) {
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_move_24),
                                 contentDescription = stringResource(R.string.bookmark_menu_move_button),
@@ -278,7 +279,9 @@ private fun BookmarksListTopBar(
                             )
                         }
                         if (selectedItems.any { it is BookmarkItem.Folder }) {
-                            IconButton(onClick = {}) {
+                            IconButton(onClick = {
+                                store.dispatch(BookmarksListMenuAction.MultiSelect.DeleteClicked)
+                            }) {
                                 Icon(
                                     painter = painterResource(R.drawable.mozac_ic_delete_24),
                                     contentDescription = stringResource(R.string.bookmark_menu_delete_button),
@@ -469,24 +472,25 @@ private fun EmptyList(
 private fun BookmarkListOverflowMenu(
     showMenu: Boolean,
     onDismissRequest: () -> Unit,
+    store: BookmarksStore,
 ) {
     val menuItems = listOf(
         MenuItem(
             title = stringResource(R.string.bookmark_menu_open_in_new_tab_button),
-            onClick = { },
+            onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.OpenInNormalTabsClicked) },
         ),
         MenuItem(
             title = stringResource(R.string.bookmark_menu_open_in_private_tab_button),
-            onClick = { },
+            onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.OpenInPrivateTabsClicked) },
         ),
         MenuItem(
             title = stringResource(R.string.bookmark_menu_share_button),
-            onClick = { },
+            onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.ShareClicked) },
         ),
         MenuItem(
             title = stringResource(R.string.bookmark_menu_delete_button),
             color = FirefoxTheme.colors.actionCritical,
-            onClick = { },
+            onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.DeleteClicked) },
         ),
     )
     ContextualMenu(

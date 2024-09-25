@@ -72,11 +72,19 @@ internal class BookmarksMiddleware(
         when (action) {
             Init -> context.store.tryDispatchLoadFor(BookmarkRoot.Mobile.id)
             is BookmarkClicked -> {
+                if (preReductionState.selectedItems.isNotEmpty()) {
+                    return
+                }
                 val openInNewTab = navController.previousDestinationWasHome() ||
                     getBrowsingMode() == BrowsingMode.Private
                 openTab(action.item.url, openInNewTab)
             }
-            is FolderClicked -> context.store.tryDispatchLoadFor(action.item.guid)
+            is FolderClicked -> {
+                if (preReductionState.selectedItems.isNotEmpty()) {
+                    return
+                }
+                context.store.tryDispatchLoadFor(action.item.guid)
+            }
             SearchClicked -> navController.navigate(
                 NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
             )
@@ -150,7 +158,7 @@ internal class BookmarksMiddleware(
                 navController.navigate(BookmarksDestinations.SELECT_FOLDER)
             }
             SelectFolderAction.ViewAppeared -> context.store.loadFolders(BookmarkRoot.Mobile.id)
-            is BookmarksListMenuAction -> action.handleSideEffects(context.store)
+            is BookmarksListMenuAction -> action.handleSideEffects(context.store, preReductionState)
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarkLongClicked,
@@ -242,7 +250,11 @@ internal class BookmarksMiddleware(
         )
     }
 
-    private fun BookmarksListMenuAction.handleSideEffects(store: Store<BookmarksState, BookmarksAction>) {
+    @Suppress("LongMethod")
+    private fun BookmarksListMenuAction.handleSideEffects(
+        store: Store<BookmarksState, BookmarksAction>,
+        preReductionState: BookmarksState,
+    ) {
         when (this) {
             // bookmark menu actions
             is BookmarksListMenuAction.Bookmark.EditClicked -> {
@@ -295,6 +307,41 @@ internal class BookmarksMiddleware(
                 // Bug 1919949 — Add undo snackbar to delete action.
                 bookmarksStorage.deleteNode(folder.guid)
                 store.tryDispatchLoadFor(store.state.currentFolder.guid)
+            }
+
+            // top bar menu actions
+            BookmarksListMenuAction.MultiSelect.EditClicked -> {
+                navController.navigate(BookmarksDestinations.EDIT_BOOKMARK)
+            }
+            BookmarksListMenuAction.MultiSelect.MoveClicked -> {
+                // TODO
+            }
+            BookmarksListMenuAction.MultiSelect.OpenInNormalTabsClicked -> scope.launch {
+                preReductionState.selectedItems
+                    .mapNotNull { (it as? BookmarkItem.Bookmark)?.url }
+                    .forEach { url -> addNewTabUseCase(url = url, private = false) }
+                withContext(Dispatchers.Main) {
+                    showTabsTray(false)
+                }
+            }
+            BookmarksListMenuAction.MultiSelect.OpenInPrivateTabsClicked -> scope.launch {
+                preReductionState.selectedItems
+                    .mapNotNull { (it as? BookmarkItem.Bookmark)?.url }
+                    .forEach { url -> addNewTabUseCase(url = url, private = true) }
+                withContext(Dispatchers.Main) {
+                    showTabsTray(true)
+                }
+            }
+            BookmarksListMenuAction.MultiSelect.ShareClicked -> {
+                preReductionState.selectedItems.filterIsInstance<BookmarkItem.Bookmark>()
+                    .forEach { shareBookmark(it.url, it.title) }
+            }
+            BookmarksListMenuAction.MultiSelect.DeleteClicked -> scope.launch {
+                // TODO confirm deletion
+                preReductionState.selectedItems.forEach { item ->
+                    bookmarksStorage.deleteNode(item.guid)
+                }
+                store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
             }
         }
     }
