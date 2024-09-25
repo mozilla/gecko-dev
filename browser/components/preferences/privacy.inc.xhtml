@@ -536,8 +536,10 @@
       <checkbox id="relayIntegration"
                 class="tail-with-learn-more"
                 data-l10n-id="preferences-relay-integration-checkbox2"/>
-      <html:a id="relayIntegrationLearnMoreLink" class="learnMore"
-             data-l10n-id="relay-integration-learn-more-link"/>
+      <html:a is="moz-support-link"
+              id="relayIntegrationLearnMoreLink"
+              class="learnMore"
+              data-l10n-id="relay-integration-learn-more-link"/>
     </hbox>
     <hbox class="indent" id="breachAlertsBox" flex="1" align="center">
       <checkbox id="breachAlerts"
@@ -928,8 +930,9 @@
   <description class="description-deemphasized">
     <html:span data-l10n-id="collection-description"/>
     <html:a id="dataCollectionPrivacyNotice"
-           class="learnMore"
-           data-l10n-id="collection-privacy-notice"/>
+            class="learnMore"
+            target="_blank"
+            data-l10n-id="collection-privacy-notice"/>
   </description>
 #ifdef MOZ_DATA_REPORTING
   <hbox id="telemetry-container" class="info-box-container smaller-font-size" hidden="true">
@@ -951,8 +954,9 @@
                 data-l10n-id="collection-health-report"
                 class="tail-with-learn-more"/>
       <html:a id="FHRLearnMore"
-             class="learnMore"
-             data-l10n-id="collection-health-report-link"/>
+              class="learnMore"
+              target="_blank"
+              data-l10n-id="collection-health-report-link"/>
     </hbox>
     <hbox class="indent">
       <checkbox id="addonRecommendationEnabled"
@@ -977,8 +981,8 @@
                 data-l10n-id="collection-studies"/>
       <html:a id="viewShieldStudies"
               href="about:studies"
-              useoriginprincipal="true"
               class="learnMore"
+              target="_blank"
               data-l10n-id="collection-studies-link"/>
     </hbox>
 #endif
