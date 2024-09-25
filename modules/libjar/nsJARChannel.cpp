@@ -769,6 +769,10 @@ nsJARChannel::GetContentCharset(nsACString& aContentCharset) {
   // If someone gives us a charset hint we should just use that charset.
   // So we don't care when this is being called.
   aContentCharset = mContentCharset;
+  if (mContentCharset.IsEmpty() && (mOriginalURI->SchemeIs("chrome") ||
+                                    mOriginalURI->SchemeIs("resource"))) {
+    aContentCharset.AssignLiteral("UTF-8");
+  }
   return NS_OK;
 }
 
