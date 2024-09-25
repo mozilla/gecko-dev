@@ -3,7 +3,6 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 <toolbox id="navigator-toolbox">
-  <script src="chrome://browser/content/navigator-toolbox.js" />
 
   <vbox id="titlebar">
     <!-- Menu -->
@@ -588,7 +587,9 @@
                       placespopup="true"
                       class="toolbar-menupopup"
                       tooltip="bhTooltip" popupsinherittooltip="true"
-                      context="placesContext"/>
+                      context="placesContext"
+                      onpopupshowing="document.getElementById('PlacesToolbar')
+                                              ._placesView._onChevronPopupShowing(event);"/>
         </toolbarbutton>
       </hbox>
     </toolbaritem>
@@ -640,6 +641,9 @@
                  onmouseup="BookmarksEventHandler.onMouseUp(event);"
                  oncommand="BookmarksEventHandler.onCommand(event);"
                  onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
+                 onpopupshowing="BookmarkingUI.onPopupShowing(event);
+                                 if (!this.parentNode._placesView)
+                                   new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.menuGuid}`);"
                  tooltip="bhTooltip" popupsinherittooltip="true">
         <menuitem id="BMB_viewBookmarksSidebar"
                   data-l10n-id="bookmarks-tools-sidebar-visibility"
@@ -662,7 +666,9 @@
           <menupopup id="BMB_bookmarksToolbarPopup"
                      is="places-popup"
                      placespopup="true"
-                     context="placesContext">
+                     context="placesContext"
+                     onpopupshowing="if (!this.parentNode._placesView)
+                                       new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.toolbarGuid}`);">
             <menuitem id="BMB_viewBookmarksToolbar"
                       data-l10n-id="bookmarks-tools-toolbar-visibility-menuitem"
                       data-l10n-args='{ "isVisible": false }'
@@ -678,7 +684,9 @@
           <menupopup id="BMB_unsortedBookmarksPopup"
                      is="places-popup"
                      placespopup="true"
-                     context="placesContext"/>
+                     context="placesContext"
+                     onpopupshowing="if (!this.parentNode._placesView)
+                                       new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.unfiledGuid}`);"/>
         </menu>
         <menu id="BMB_mobileBookmarks"
               class="menu-iconic bookmark-item subviewbutton"
@@ -688,7 +696,9 @@
           <menupopup id="BMB_mobileBookmarksPopup"
                      is="places-popup"
                      placespopup="true"
-                     context="placesContext"/>
+                     context="placesContext"
+                     onpopupshowing="if (!this.parentNode._placesView)
+                                       new PlacesMenu(event, `place:parent=${PlacesUtils.bookmarks.mobileGuid}`);"/>
         </menu>
 
         <menuseparator/>
