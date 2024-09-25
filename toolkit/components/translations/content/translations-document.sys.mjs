@@ -589,8 +589,8 @@ export class TranslationsDocument {
     const nodeIterator = node.ownerDocument.createTreeWalker(
       node,
       NodeFilter.SHOW_ELEMENT,
-      function (node) {
-        return node.openOrClosedShadowRoot
+      function (currentNode) {
+        return currentNode.openOrClosedShadowRoot
           ? NodeFilter.FILTER_ACCEPT
           : NodeFilter.FILTER_SKIP;
       }
@@ -622,7 +622,7 @@ export class TranslationsDocument {
     }
 
     if (this.#rootNodes.has(node)) {
-      // Exclude nodes that are already targetted.
+      // Exclude nodes that are already targeted.
       return;
     }
 
@@ -753,12 +753,12 @@ export class TranslationsDocument {
       this.queueAttributeNodeForTranslation(node, attributeList);
     }
     // Get all attributes in child nodes at once
-    const nodesWithTranslatableAttributes = node.querySelectorAll(
+    const childNodesWithTranslatableAttributes = node.querySelectorAll(
       TRANSLATABLE_ATTRIBUTES_SELECTOR
     );
-    for (const node of nodesWithTranslatableAttributes) {
-      const attributeList = getTranslatableAttributes(node);
-      this.queueAttributeNodeForTranslation(node, attributeList);
+    for (const childNode of childNodesWithTranslatableAttributes) {
+      const childNodeAttributes = getTranslatableAttributes(childNode);
+      this.queueAttributeNodeForTranslation(childNode, childNodeAttributes);
     }
     return this.dispatchQueuedAttributeTranslations();
   }
@@ -1634,7 +1634,7 @@ function updateElement(translationsDocument, element) {
     }
 
     const unhandledElements = [...liveElementsById].filter(
-      ([, element]) => !element.parentNode
+      ([, liveElement]) => !liveElement.parentNode
     );
 
     for (node of liveTree.querySelectorAll("*")) {
