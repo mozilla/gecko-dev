@@ -125,7 +125,7 @@ def read_input(tasks, timeout):
 
 def remove_task(tasks, pid):
     """
-    Return a pair with the removed task and the new, modified tasks list.
+    Remove a task from the tasks list and return it.
     """
     index = None
     for i, t in enumerate(tasks):
@@ -235,9 +235,32 @@ def run_all_tests(tests, prefix, tempdir, pb, options):
         wait_for_encoding = True
         worker_count = 1
 
-    while len(tests) or len(tasks):
-        while len(tests) and len(tasks) < worker_count:
-            test = tests.pop()
+    def running_heavy_test():
+        return any(task.test.heavy for task in tasks)
+
+    heavy_tests = [t for t in tests if t.heavy]
+    light_tests = [t for t in tests if not t.heavy]
+
+    encoding_test = None
+    while light_tests or heavy_tests or tasks:
+        new_tests = []
+        max_new_tests = worker_count - len(tasks)
+        if (
+            heavy_tests
+            and not running_heavy_test()
+            and len(new_tests) < max_new_tests
+            and not wait_for_encoding
+        ):
+            # Schedule a heavy test if available.
+            new_tests.append(heavy_tests.pop())
+        while light_tests and len(new_tests) < max_new_tests:
+            # Schedule as many more light tests as we can.
+            new_tests.append(light_tests.pop())
+
+        assert len(tasks) + len(new_tests) <= worker_count
+        assert len([x for x in new_tests if x.heavy]) <= 1
+
+        for test in new_tests:
             task = spawn_test(
                 test,
                 prefix,
@@ -248,6 +271,8 @@ def run_all_tests(tests, prefix, tempdir, pb, options):
             )
             if task:
                 tasks.append(task)
+                if not encoding_test:
+                    encoding_test = test
             else:
                 yield NullTestOutput(test)
 
@@ -257,11 +282,10 @@ def run_all_tests(tests, prefix, tempdir, pb, options):
         kill_undead(tasks, options.timeout)
         tasks, finished = reap_zombies(tasks, options.timeout)
 
-        # With Python3.4+ we could use yield from to remove this loop.
         for out in finished:
             yield out
-            if wait_for_encoding and out.test == test:
-                assert test.selfhosted_xdr_mode == "encode"
+            if wait_for_encoding and out.test == encoding_test:
+                assert encoding_test.selfhosted_xdr_mode == "encode"
                 wait_for_encoding = False
                 worker_count = options.worker_count
 

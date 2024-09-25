@@ -125,6 +125,8 @@ class JitTest:
         self.jitflags = []
         # True means the test is slow-running
         self.slow = False
+        # Heavy tests will never run alongside other heavy tests
+        self.heavy = False
         # True means that OOM is not considered a failure
         self.allow_oom = False
         # True means CrashAtUnhandlableOOM is not considered a failure
@@ -167,6 +169,7 @@ class JitTest:
         t = JitTest(self.path)
         t.jitflags = self.jitflags[:]
         t.slow = self.slow
+        t.heavy = self.heavy
         t.allow_oom = self.allow_oom
         t.allow_unhandlable_oom = self.allow_unhandlable_oom
         t.allow_overrecursed = self.allow_overrecursed
@@ -310,6 +313,8 @@ class JitTest:
                 else:
                     if name == "slow":
                         test.slow = True
+                    elif name == "heavy":
+                        test.heavy = True
                     elif name == "allow-oom":
                         test.allow_oom = True
                     elif name == "allow-unhandlable-oom":

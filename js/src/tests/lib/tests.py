@@ -218,6 +218,8 @@ class RefTestCase(object):
         self.random = False
         # bool: True => test may run slowly
         self.slow = False
+        # bool: True => test will not run alongside any other heavy tests
+        self.heavy = False
         # bool: True => test is test262 testcase with raw flag, that turns off
         # running shell.js files inside test262
         self.is_test262_raw = False
@@ -306,6 +308,8 @@ class RefTestCase(object):
             ans += ", random"
         if self.slow:
             ans += ", slow"
+        if self.heavy:
+            ans += ", heavy"
         if "-d" in self.options:
             ans += ", debugMode"
         return ans

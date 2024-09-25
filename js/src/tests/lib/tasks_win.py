@@ -21,13 +21,54 @@ class TaskFinishedMarker:
     pass
 
 
-def _do_work(qTasks, qResults, qWatch, prefix, tempdir, run_skipped, timeout, show_cmd):
+class MultiQueue:
+    def __init__(self, *queues):
+        self.queues = queues
+        self.output_queue = Queue(maxsize=1)
+        for q in queues:
+            thread = Thread(target=self._queue_getter, args=(q,), daemon=True)
+            thread.start()
+
+    def _queue_getter(self, q):
+        while True:
+            item = q.get()
+            self.output_queue.put(item)
+            if item is EndMarker:
+                return
+
+    def get(self):
+        return self.output_queue.get()
+
+
+def _do_work(
+    workerId,
+    qTasks,
+    qHeavyTasks,
+    qResults,
+    qWatch,
+    prefix,
+    tempdir,
+    run_skipped,
+    timeout,
+    show_cmd,
+):
+    q = qTasks
+    required_end_markers = 1
+    if workerId == 0:
+        # Only one worker handles heavy tests.
+        q = MultiQueue(qTasks, qHeavyTasks)
+        required_end_markers = 2
+
+    num_end_markers = 0
     while True:
-        test = qTasks.get()
+        test = q.get()
         if test is EndMarker:
-            qWatch.put(EndMarker)
-            qResults.put(EndMarker)
-            return
+            num_end_markers += 1
+            if num_end_markers == required_end_markers:
+                qWatch.put(EndMarker)
+                qResults.put(EndMarker)
+                return
+            continue
 
         if not test.enable and not run_skipped:
             qResults.put(NullTestOutput(test))
@@ -94,11 +135,11 @@ def run_all_tests(tests, prefix, tempdir, pb, options):
     """
     Uses scatter-gather to a thread-pool to manage children.
     """
-    qTasks, qResults = Queue(), Queue()
+    qTasks, qHeavyTasks, qResults = Queue(), Queue(), Queue()
 
     workers = []
     watchdogs = []
-    for _ in range(options.worker_count):
+    for i in range(options.worker_count):
         qWatch = Queue()
         watcher = Thread(target=_do_watch, args=(qWatch, options.timeout))
         watcher.setDaemon(True)
@@ -107,7 +148,9 @@ def run_all_tests(tests, prefix, tempdir, pb, options):
         worker = Thread(
             target=_do_work,
             args=(
+                i,
                 qTasks,
+                qHeavyTasks,
                 qResults,
                 qWatch,
                 prefix,
@@ -147,9 +190,13 @@ def run_all_tests(tests, prefix, tempdir, pb, options):
     # fast as we can produce tests from the filesystem.
     def _do_push(num_workers, qTasks):
         for test in tests:
-            qTasks.put(test)
+            if test.heavy:
+                qHeavyTasks.put(test)
+            else:
+                qTasks.put(test)
         for _ in range(num_workers):
             qTasks.put(EndMarker)
+        qHeavyTasks.put(EndMarker)
 
     pusher = Thread(target=_do_push, args=(len(workers), qTasks))
     pusher.setDaemon(True)
@@ -174,4 +221,5 @@ def run_all_tests(tests, prefix, tempdir, pb, options):
     for watcher in watchdogs:
         watcher.join()
     assert qTasks.empty(), "Send queue not drained"
+    assert qHeavyTasks.empty(), "Send queue (heavy tasks) not drained"
     assert qResults.empty(), "Result queue not drained"
