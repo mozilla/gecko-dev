@@ -11,6 +11,7 @@
 #include "ipc/EnumSerializer.h"
 #include "ipc/IPCMessageUtils.h"
 #include "ipc/IPCMessageUtilsSpecializations.h"
+#include "mozilla/net/ClassOfService.h"
 #include "mozilla/net/DNS.h"
 #include "nsExceptionHandler.h"
 #include "nsIDNSService.h"
@@ -152,6 +153,33 @@ struct ParamTraits<nsIDNSService::ResolverMode>
           nsIDNSService::ResolverMode,
           nsIDNSService::ResolverMode::MODE_NATIVEONLY,
           nsIDNSService::ResolverMode::MODE_TRROFF> {};
+
+template <>
+struct ParamTraits<nsIClassOfService::FetchPriority>
+    : public ContiguousEnumSerializerInclusive<
+          nsIClassOfService::FetchPriority,
+          nsIClassOfService::FETCHPRIORITY_UNSET,
+          nsIClassOfService::FETCHPRIORITY_HIGH> {};
+
+template <>
+struct ParamTraits<mozilla::net::ClassOfService> {
+  typedef mozilla::net::ClassOfService paramType;
+
+  static void Write(MessageWriter* aWriter, const paramType& aParam) {
+    WriteParam(aWriter, aParam.mClassFlags);
+    WriteParam(aWriter, aParam.mIncremental);
+    WriteParam(aWriter, aParam.mFetchPriority);
+  }
+
+  static bool Read(MessageReader* aReader, paramType* aResult) {
+    if (!ReadParam(aReader, &aResult->mClassFlags) ||
+        !ReadParam(aReader, &aResult->mIncremental) ||
+        !ReadParam(aReader, &aResult->mFetchPriority))
+      return false;
+
+    return true;
+  }
+};
 
 }  // namespace IPC
 

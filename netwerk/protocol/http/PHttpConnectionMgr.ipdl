@@ -12,6 +12,7 @@ include protocol PHttpTransaction;
 include NeckoChannelParams;
 
 include "mozilla/net/ClassOfService.h";
+include "mozilla/net/NeckoMessageUtils.h";
 
 using mozilla::net::ClassOfService from "mozilla/net/ClassOfService.h";
 
