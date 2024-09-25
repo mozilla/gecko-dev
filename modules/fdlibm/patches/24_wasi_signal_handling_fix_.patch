@@ -6,7 +6,7 @@ index b588a59..dad6b01 100644
  #ifdef DEBUG
  #if defined(__amd64__) || defined(__i386__)
  #define	breakpoint()	asm("int $3")
-+#elif defined(__wasi__)
++#elif defined(__wasm__)
 +#define breakpoint()    __builtin_trap()
  #else
  #include <signal.h>
