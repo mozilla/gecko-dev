@@ -879,6 +879,11 @@ void TransportLayerDtls::Handshake() {
     return;
   }
 
+  if (!handshakeTelemetryRecorded) {
+    RecordStartedHandshakeTelemetry();
+    handshakeTelemetryRecorded = true;
+  }
+
   // Clear the retransmit timer
   timer_->Cancel();
 
@@ -1482,6 +1487,14 @@ void TransportLayerDtls::RecordHandshakeCompletionTelemetry(
   } else {
     mozilla::glean::webrtcdtls::server_handshake_result.Get(nsCString(aResult))
         .Add(1);
+  }
+}
+
+void TransportLayerDtls::RecordStartedHandshakeTelemetry() {
+  if (role_ == CLIENT) {
+    mozilla::glean::webrtcdtls::client_handshake_started_counter.Add(1);
+  } else {
+    mozilla::glean::webrtcdtls::server_handshake_started_counter.Add(1);
   }
 }
 

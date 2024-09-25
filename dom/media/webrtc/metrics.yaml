@@ -463,3 +463,31 @@ webrtcdtls:
     notification_emails:
       - webrtc-telemetry-alerts@mozilla.com
     expires: 135
+
+  client_handshake_started_counter:
+    type: counter
+    description: >
+      The number of webrtc transports that have started a DTLS handshake as the client.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1884140
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1884140
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: 140
+
+  server_handshake_started_counter:
+    type: counter
+    description: >
+      The number of webrtc transports that have started a DTLS handshake as the server.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1884140
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1884140
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - webrtc-telemetry-alerts@mozilla.com
+    expires: 140
