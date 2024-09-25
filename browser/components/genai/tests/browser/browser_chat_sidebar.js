@@ -51,3 +51,44 @@ add_task(async function test_sidebar_providers() {
 
   SidebarController.hide();
 });
+
+/**
+ * Check that onboarding renders
+ */
+add_task(async function test_sidebar_onboarding() {
+  await SidebarController.show("viewGenaiChatSidebar");
+
+  const { document } = SidebarController.browser.contentWindow;
+  const label = await TestUtils.waitForCondition(() =>
+    document.querySelector("label:has(.localhost)")
+  );
+  Assert.ok(label, "Got a provider");
+  label.click();
+
+  const pickButton = await TestUtils.waitForCondition(() =>
+    document.querySelector(".chat_pick .primary:not([disabled])")
+  );
+  Assert.ok(pickButton, "Got button to activate provider");
+
+  pickButton.click();
+
+  const startButton = await TestUtils.waitForCondition(() =>
+    document.querySelector(".chat_suggest .primary")
+  );
+  Assert.ok(startButton, "Got button to start");
+  Assert.equal(
+    Services.prefs.getStringPref("browser.ml.chat.provider"),
+    "http://localhost:8080",
+    "Provider pref changed during onboarding"
+  );
+
+  Services.prefs.clearUserPref("browser.ml.chat.provider");
+  startButton.click();
+
+  const noOnboarding = await TestUtils.waitForCondition(
+    () => !document.getElementById("multi-stage-message-root")
+  );
+  Assert.ok(noOnboarding, "Onboarding container went away");
+
+  SidebarController.hide();
+});

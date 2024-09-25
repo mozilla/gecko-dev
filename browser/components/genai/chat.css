@@ -3,16 +3,207 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 body {
+  display: flex;
+  flex-direction: column;
   inset: 0;
   margin: 0;
   position: absolute;
+}
+
+#header {
+  display: flex;
+  flex-direction: row;
+
+  ::part(button),
+  select {
+    border-radius: 0;
+    margin: 0;
+  }
+
+  select {
+    flex: 1;
+    height: var(--button-size-icon);
+  }
+
+  /* Hide some content, e.g., dropdown, when onboarding exists */
+  #multi-stage-message-root + & {
+    select {
+      background-image: none;
+    }
+
+    #header-more {
+      display: none;
+    }
+  }
+}
+
+#header-close {
+  position: relative;
+  z-index: 1;
+
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not (-moz-bool-pref: "sidebar.revamp") {
+    display: none;
+  }
 }
 
 browser {
   flex: 1;
 }
 
-body, div {
+#multi-stage-message-root {
+  background-color: rgba(0, 0, 0, .5);
   display: flex;
   flex-direction: column;
+  inset: 0;
+  overflow: auto;
+  position: absolute;
+
+  .onboardingContainer {
+    height: unset;
+    margin: var(--space-large);
+    margin-top: 40px;
+  }
+
+  .screen {
+    border-radius: var(--border-radius-medium);
+  }
+
+  .main-content-inner {
+    max-width: initial;
+    padding: var(--space-large);
+  }
+
+  .welcome-text {
+    padding-inline: 0;
+  }
+
+  fieldset {
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+  }
+
+  label {
+    background-color: var(--background-color-box);
+    border: 1px solid var(--border-color-deemphasized);
+    border-radius: var(--border-radius-medium);
+    flex-direction: row;
+    margin: 1px; /* avoid shifting content when selected */
+    outline-offset: var(--focus-outline-offset);
+    padding: var(--space-small);
+
+    &:hover {
+      background-color: var(--button-background-color-hover);
+    }
+
+    &:has(.selected) {
+      background-color: var(--background-color-canvas);
+      border: var(--focus-outline);
+      margin: 0; /* border switches between 1px and 2px */
+    }
+
+    &:focus {
+      outline: var(--focus-outline);
+    }
+  }
+
+  .icon {
+    background-size: contain;
+    border-radius: 0;
+    margin-inline: var(--space-small);
+    min-width: 40px;
+    outline: none;
+
+    &.claude {
+      background-image: url(assets/brands/claude.svg);
+    }
+    &.chatgpt {
+      background-image: url(assets/brands/chatgpt.svg);
+      -moz-context-properties: fill;
+      fill: var(--in-content-page-color);
+    }
+    &.gemini {
+      background-image: url(assets/brands/gemini.svg);
+    }
+    &.huggingchat {
+      background-image: url(assets/brands/huggingchat.svg);
+    }
+    &.lechat {
+      background-image: url(assets/brands/lechat.svg);
+    }
+  }
+
+  .text {
+    flex-direction: column;
+    font-weight: var(--font-weight-bold);
+    margin: 5px;
+    text-align: start;
+
+    > div {
+      font-weight: normal;
+      margin: -3px;
+      overflow-y: hidden;
+      padding: 3px; /* extra space to avoid outlines hidden by overflow */
+
+      @media (prefers-reduced-motion: no-preference) {
+        transition: max-height 0.6s;
+      }
+    }
+
+    ul {
+      margin: 0;
+      padding: 0;
+    }
+
+    li {
+      background-position: 0 50%;
+      background-repeat: no-repeat;
+      -moz-context-properties: fill;
+      fill: currentColor;
+      margin-block: var(--space-small);
+      padding-inline-start: 24px;
+
+      &[data-l10n-id*=generate] {
+        background-image: url(chrome://global/skin/icons/edit-outline.svg);
+      }
+      /* Bug 1920563 these reused icons probably should be renamed */
+      &[data-l10n-id*=analyze] {
+        background-image: url(resource://gre-resources/password.svg);
+      }
+      &[data-l10n-id*=switch] {
+        background-image: url(chrome://browser/skin/import-export.svg);
+      }
+      &[data-l10n-id*=price] {
+        background-image: url(chrome://browser/content/shopping/assets/price.svg);
+      }
+    }
+  }
+
+  .link-paragraph {
+    font-size: .8em;
+  }
+
+  .inline-image {
+    background-image: url(assets/shortcuts-static.svg);
+    background-repeat: no-repeat;
+    background-size: contain;
+
+    @media (prefers-reduced-motion: no-preference) {
+      background-image: url(assets/shortcuts-animated.svg);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      background-image: url(assets/shortcuts-static-dark.svg);
+
+      @media (prefers-reduced-motion: no-preference) {
+        background-image: url(assets/shortcuts-animated-dark.svg);
+      }
+    }
+
+    > img {
+      visibility: hidden;
+    }
+  }
 }

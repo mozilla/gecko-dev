@@ -3,6 +3,7 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 browser.jar:
+    content/browser/genai/assets (assets/**/*.svg)
     content/browser/genai/chat.css
     content/browser/genai/chat.html
     content/browser/genai/chat.js

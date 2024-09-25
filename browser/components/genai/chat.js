@@ -2,9 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+const { topChromeWindow } = window.browsingContext;
+
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
   GenAI: "resource:///modules/GenAI.sys.mjs",
+  SpecialMessageActions:
+    "resource://messaging-system/lib/SpecialMessageActions.sys.mjs",
 });
 const { XPCOMUtils } = ChromeUtils.importESModule(
   "resource://gre/modules/XPCOMUtils.sys.mjs"
@@ -18,7 +22,24 @@ XPCOMUtils.defineLazyPreferenceGetter(
   renderProviders
 );
 
+ChromeUtils.defineLazyGetter(
+  lazy,
+  "supportLink",
+  () =>
+    Services.urlFormatter.formatURLPref("app.support.baseURL") + "ai-chatbot"
+);
+
 const node = {};
+
+function closeSidebar() {
+  topChromeWindow.SidebarController.hide();
+}
+
+function openLink(url) {
+  topChromeWindow.openLinkIn(url, "tabshifted", {
+    triggeringPrincipal: Services.scriptSecurityManager.createNullPrincipal({}),
+  });
+}
 
 function request(url = lazy.providerPref) {
   try {
@@ -69,11 +90,11 @@ async function renderProviders() {
 
   // Must be a custom preference if provider wasn't found
   if (!selected) {
-    const option = addOption(
-      `Custom provider (${lazy.providerPref})`,
-      lazy.providerPref
-    );
+    const option = addOption(lazy.providerPref, lazy.providerPref);
     option.selected = true;
+    if (!lazy.providerPref) {
+      showOnboarding();
+    }
   }
 
   // Update provider telemetry
@@ -110,6 +131,9 @@ var browserPromise = new Promise((resolve, reject) => {
       node.chat = renderChat();
       node.provider = await renderProviders();
       resolve(node.chat);
+      document
+        .getElementById("header-close")
+        .addEventListener("click", closeSidebar);
     } catch (ex) {
       console.error("Failed to render on load", ex);
       reject(ex);
@@ -130,3 +154,216 @@ addEventListener("unload", () =>
     reason: "unload",
   })
 );
+
+function showOnboarding() {
+  // Insert onboarding container and render with script
+  const root = document.createElement("div");
+  root.id = "multi-stage-message-root";
+  document.getElementById(root.id)?.remove();
+  document.body.prepend(root);
+  history.replaceState("", "");
+  const script = document.head.appendChild(document.createElement("script"));
+  script.src = "chrome://browser/content/aboutwelcome/aboutwelcome.bundle.js";
+
+  // Convert provider data for lookup by id
+  const providerConfigs = new Map();
+  lazy.GenAI.chatProviders.forEach((data, url) => {
+    if (!data.hidden) {
+      providerConfigs.set(data.id, { ...data, url });
+    }
+  });
+
+  // Define various AW* functions to control aboutwelcome bundle behavior
+  Object.assign(window, {
+    AWEvaluateScreenTargeting(screens) {
+      return screens;
+    },
+    AWFinish() {
+      if (lazy.providerPref == "") {
+        closeSidebar();
+      }
+      root.remove();
+    },
+    AWGetFeatureConfig() {
+      return {
+        id: "chatbot",
+        template: "multistage",
+        transitions: true,
+        screens: [
+          {
+            id: "chat_pick",
+            content: {
+              fullscreen: true,
+              hide_secondary_section: "responsive",
+              narrow: true,
+              position: "split",
+
+              title: {
+                fontWeight: 400,
+                string_id: "genai-onboarding-header",
+              },
+              cta_paragraph: {
+                text: {
+                  string_id: "genai-onboarding-description",
+                  string_name: "learn-more",
+                },
+                action: {
+                  data: {
+                    args: lazy.supportLink,
+                    where: "tabshifted",
+                  },
+                  type: "OPEN_URL",
+                },
+              },
+              tiles: {
+                action: { picker: "<event>" },
+                data: [...providerConfigs.values()].map(config => ({
+                  action: config.id,
+                  id: config.id,
+                  label: config.name,
+                  tooltip: { string_id: config.tooltipId },
+                })),
+                // Default to nothing selected
+                selected: " ",
+                type: "single-select",
+              },
+              above_button_content: [
+                // Placeholder to inject on provider change
+                {
+                  text: " ",
+                  type: "text",
+                },
+              ],
+              primary_button: {
+                action: {
+                  navigate: true,
+                  // Handle with AWSelectTheme
+                  theme: true,
+                },
+                label: { string_id: "genai-onboarding-primary" },
+              },
+              additional_button: {
+                action: { dismiss: true },
+                label: { string_id: "genai-onboarding-secondary" },
+                style: "link",
+              },
+              progress_bar: true,
+            },
+          },
+          {
+            id: "chat_suggest",
+            content: {
+              fullscreen: true,
+              hide_secondary_section: "responsive",
+              narrow: true,
+              position: "split",
+
+              title: {
+                fontWeight: 400,
+                string_id: "genai-onboarding-select-header",
+              },
+              subtitle: { string_id: "genai-onboarding-select-description" },
+              above_button_content: [
+                {
+                  height: "172px",
+                  type: "image",
+                  width: "307px",
+                },
+                {
+                  text: " ",
+                  type: "text",
+                },
+              ],
+              primary_button: {
+                action: { navigate: true },
+                label: { string_id: "genai-onboarding-select-primary" },
+              },
+              progress_bar: true,
+            },
+          },
+        ],
+      };
+    },
+    AWGetInstalledAddons() {},
+    AWGetSelectedTheme() {
+      document.querySelector(".primary").disabled = true;
+
+      // Specially handle links to open out of the sidebar
+      const handleLink = ev => {
+        const { href } = ev.target;
+        if (href) {
+          ev.preventDefault();
+          openLink(href);
+        }
+      };
+      const links = document.querySelector(".link-paragraph");
+      links.addEventListener("click", handleLink);
+
+      [...document.querySelectorAll("fieldset label")].forEach(label => {
+        // Add content that is hidden with 0 height until selected
+        const div = label
+          .querySelector(".text")
+          .appendChild(document.createElement("div"));
+        div.style.maxHeight = 0;
+        div.tabIndex = -1;
+        const ul = div.appendChild(document.createElement("ul"));
+        const config = providerConfigs.get(label.querySelector("input").value);
+        config.choiceIds?.forEach(id => {
+          const li = ul.appendChild(document.createElement("li"));
+          document.l10n.setAttributes(li, id);
+        });
+        if (config.learnLink && config.learnId) {
+          const a = div.appendChild(document.createElement("a"));
+          a.href = config.learnLink;
+          a.tabIndex = -1;
+          a.addEventListener("click", handleLink);
+          document.l10n.setAttributes(a, config.learnId);
+        }
+      });
+    },
+    AWSelectTheme() {
+      const { value } = document.querySelector("label:has(.selected) input");
+      Services.prefs.setStringPref(
+        "browser.ml.chat.provider",
+        providerConfigs.get(value).url
+      );
+    },
+    AWSendEventTelemetry() {},
+    AWSendToParent(message, action) {
+      switch (action.type) {
+        case "OPEN_URL":
+          lazy.SpecialMessageActions.handleAction(action, topChromeWindow);
+          return;
+      }
+
+      // Handle single select provider choice
+      const config = providerConfigs.get(action);
+      if (config) {
+        document.querySelector(".primary").disabled = false;
+
+        // Set max-height to trigger transition
+        document.querySelectorAll("label .text div").forEach(div => {
+          const selected =
+            div.closest("label").querySelector("input").value == action;
+          div.style.maxHeight = selected ? div.scrollHeight + "px" : 0;
+          const a = div.querySelector("a");
+          if (a) {
+            a.tabIndex = selected ? 0 : -1;
+          }
+        });
+
+        // Update potentially multiple links for the provider
+        const links = document.querySelector(".link-paragraph");
+        if (links.dataset.l10nId != config.linksId) {
+          links.innerHTML = "";
+          for (let i = 1; i <= 3; i++) {
+            const link = links.appendChild(document.createElement("a"));
+            const name = (link.dataset.l10nName = `link${i}`);
+            link.href = config[name];
+          }
+          document.l10n.setAttributes(links, config.linksId);
+        }
+      }
+    },
+  });
+}

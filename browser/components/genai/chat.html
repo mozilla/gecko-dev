@@ -10,18 +10,37 @@
       content="default-src resource: chrome:; object-src 'none'; img-src data: chrome:;"
     />
     <meta name="color-scheme" content="light dark" />
+    <link rel="localization" href="branding/brand.ftl" />
+    <link rel="localization" href="browser/newtab/onboarding.ftl" />
     <link rel="localization" href="browser/genai.ftl" />
     <link
       rel="stylesheet"
       href="chrome://browser/content/sidebar/sidebar.css"
     />
+    <link rel="stylesheet" href="chrome://global/skin/in-content/common.css" />
+    <link
+      rel="stylesheet"
+      href="chrome://browser/content/aboutwelcome/aboutwelcome.css"
+    />
     <link rel="stylesheet" href="chrome://browser/content/genai/chat.css" />
+    <script src="resource://activity-stream/vendor/react.js"></script>
+    <script src="resource://activity-stream/vendor/react-dom.js"></script>
     <script src="chrome://browser/content/contentTheme.js"></script>
     <script src="chrome://browser/content/genai/chat.js"></script>
   </head>
   <body>
-    <div>
+    <div id="header">
       <select id="provider"></select>
+      <moz-button
+        iconsrc="chrome://global/skin/icons/more.svg"
+        id="header-more"
+        type="icon"
+      ></moz-button>
+      <moz-button
+        iconsrc="chrome://global/skin/icons/close.svg"
+        id="header-close"
+        type="icon"
+      ></moz-button>
     </div>
   </body>
 </html>

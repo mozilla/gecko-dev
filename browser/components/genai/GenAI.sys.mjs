@@ -113,7 +113,14 @@ export const GenAI = {
     [
       "https://claude.ai/new",
       {
+        choiceIds: [
+          "genai-onboarding-claude-generate",
+          "genai-onboarding-claude-analyze",
+          "genai-onboarding-claude-price",
+        ],
         id: "claude",
+        learnId: "genai-onboarding-claude-learn",
+        learnLink: "https://www.anthropic.com/claude",
         link1:
           "https://www.anthropic.com/legal/archive/6370fb23-12ed-41d9-a4a2-28866dee3105",
         link2:
@@ -122,17 +129,26 @@ export const GenAI = {
           "https://www.anthropic.com/legal/archive/628feec9-7df9-4d38-bc69-fbf104df47b0",
         linksId: "genai-settings-chat-claude-links",
         name: "Anthropic Claude",
+        tooltipId: "genai-onboarding-claude-tooltip",
       },
     ],
     // ~14k max length uri before 431
     [
       "https://chatgpt.com",
       {
+        choiceIds: [
+          "genai-onboarding-chatgpt-generate",
+          "genai-onboarding-chatgpt-analyze",
+          "genai-onboarding-chatgpt-price",
+        ],
         id: "chatgpt",
+        learnId: "genai-onboarding-chatgpt-learn",
+        learnLink: "https://help.openai.com/articles/6783457-what-is-chatgpt",
         link1: "https://openai.com/terms",
         link2: "https://openai.com/privacy",
         linksId: "genai-settings-chat-chatgpt-links",
         name: "ChatGPT",
+        tooltipId: "genai-onboarding-chatgpt-tooltip",
       },
     ],
     // ~4k max length uri before 400
@@ -151,35 +167,58 @@ export const GenAI = {
     [
       "https://gemini.google.com",
       {
+        choiceIds: [
+          "genai-onboarding-gemini-generate",
+          "genai-onboarding-gemini-analyze",
+          "genai-onboarding-gemini-price",
+        ],
         header: "X-Firefox-Gemini",
         id: "gemini",
+        learnId: "genai-onboarding-gemini-learn",
+        learnLink: "https://gemini.google.com/faq",
         link1: "https://policies.google.com/terms",
         link2: "https://policies.google.com/terms/generative-ai/use-policy",
         link3: "https://support.google.com/gemini?p=privacy_notice",
         linksId: "genai-settings-chat-gemini-links",
         name: "Google Gemini",
+        tooltipId: "genai-onboarding-gemini-tooltip",
       },
     ],
     // ~8k max length uri before 413
     [
       "https://huggingface.co/chat",
       {
+        choiceIds: [
+          "genai-onboarding-huggingchat-generate",
+          "genai-onboarding-huggingchat-switch",
+          "genai-onboarding-huggingchat-price",
+        ],
         id: "huggingchat",
+        learnId: "genai-onboarding-huggingchat-learn",
+        learnLink: "https://huggingface.co/chat/privacy/",
         link1: "https://huggingface.co/chat/privacy",
         link2: "https://huggingface.co/privacy",
         linksId: "genai-settings-chat-huggingchat-links",
         name: "HuggingChat",
+        tooltipId: "genai-onboarding-huggingchat-tooltip",
       },
     ],
     // ~4k max length uri before 502
     [
       "https://chat.mistral.ai/chat",
       {
+        choiceIds: [
+          "genai-onboarding-lechat-generate",
+          "genai-onboarding-lechat-price",
+        ],
         id: "lechat",
+        learnId: "genai-onboarding-lechat-learn",
+        learnLink: "https://help.mistral.ai/collections/272960-le-chat",
         link1: "https://mistral.ai/terms/#terms-of-service-le-chat",
         link2: "https://mistral.ai/terms/#privacy-policy",
         linksId: "genai-settings-chat-lechat-links",
         name: "Le Chat Mistral",
+        tooltipId: "genai-onboarding-lechat-tooltip",
       },
     ],
     // 8k max length uri before 414
