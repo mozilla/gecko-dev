@@ -56,6 +56,7 @@ import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.runIfFragmentIsAttached
 import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.home.HomeScreenViewModel
+import org.mozilla.fenix.library.bookmarks.BookmarksSharedViewModel
 import org.mozilla.fenix.share.ShareFragment
 import org.mozilla.fenix.tabstray.browser.SelectionBannerBinding
 import org.mozilla.fenix.tabstray.browser.SelectionBannerBinding.VisibilityModifier
@@ -102,6 +103,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     private val tabsFeature = ViewBoundFeatureWrapper<TabsFeature>()
     private val tabsTrayInactiveTabsOnboardingBinding = ViewBoundFeatureWrapper<TabsTrayInactiveTabsOnboardingBinding>()
     private val syncedTabsIntegration = ViewBoundFeatureWrapper<SyncedTabsIntegration>()
+    private val bookmarksSharedViewModel: BookmarksSharedViewModel by activityViewModels()
 
     @VisibleForTesting
     @Suppress("VariableNaming")
@@ -192,7 +194,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             profiler = requireComponents.core.engine.profiler,
             tabsUseCases = requireComponents.useCases.tabsUseCases,
             closeSyncedTabsUseCases = requireComponents.useCases.closeSyncedTabsUseCases,
-            bookmarksStorage = requireComponents.core.bookmarksStorage,
+            bookmarksUseCase = requireComponents.useCases.bookmarksUseCases,
             ioDispatcher = Dispatchers.IO,
             collectionStorage = requireComponents.core.tabCollectionStorage,
             selectTabPosition = ::selectTabPosition,
@@ -203,6 +205,7 @@ class TabsTrayFragment : AppCompatDialogFragment() {
             showCancelledDownloadWarning = ::showCancelledDownloadWarning,
             showCollectionSnackbar = ::showCollectionSnackbar,
             showBookmarkSnackbar = ::showBookmarkSnackbar,
+            bookmarksSharedViewModel = bookmarksSharedViewModel,
         )
 
         tabsTrayInteractor = DefaultTabsTrayInteractor(
@@ -844,11 +847,10 @@ class TabsTrayFragment : AppCompatDialogFragment() {
     @VisibleForTesting
     internal fun showBookmarkSnackbar(
         tabSize: Int,
-        parentFolderTitle: String?,
     ) {
         FenixSnackbar
             .make(requireView())
-            .bookmarkMessage(tabSize, parentFolderTitle)
+            .bookmarkMessage(tabSize)
             .anchorWithAction(getSnackbarAnchor()) {
                 findNavController().navigate(
                     TabsTrayFragmentDirections.actionGlobalBookmarkFragment(BookmarkRoot.Mobile.id),

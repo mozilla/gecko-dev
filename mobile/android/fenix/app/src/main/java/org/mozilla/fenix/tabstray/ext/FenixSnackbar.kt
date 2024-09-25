@@ -30,18 +30,16 @@ internal fun FenixSnackbar.collectionMessage(
 
 internal fun FenixSnackbar.bookmarkMessage(
     tabSize: Int,
-    parentFolderTitle: String?,
 ): FenixSnackbar {
-    val displayFolderTitle = parentFolderTitle ?: context.getString(R.string.library_bookmarks)
-    val displayResId = when {
+    val stringRes = when {
         tabSize > 1 -> {
-            R.string.snackbar_message_bookmarks_saved_in
+            R.string.snackbar_message_bookmarks_saved
         }
         else -> {
-            R.string.bookmark_saved_in_folder_snackbar
+            R.string.bookmark_saved_snackbar
         }
     }
-    setText(context.getString(displayResId, displayFolderTitle))
+    setText(context.getString(stringRes))
     return this
 }
 
