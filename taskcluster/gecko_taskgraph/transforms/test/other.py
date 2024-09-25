@@ -293,8 +293,12 @@ def setup_raptor_external_browser_platforms(config, tasks):
             continue
 
         if is_external_browser(task["try-name"]):
-            task["build-platform"] = "linux64/opt"
-            task["build-label"] = "build-linux64/opt"
+            if "win" in task["build-label"]:
+                task["build-platform"] = "windows2012-64/opt"
+                task["build-label"] = "build-win64/opt"
+            else:
+                task["build-platform"] = "linux64/opt"
+                task["build-label"] = "build-linux64/opt"
 
         yield task
 

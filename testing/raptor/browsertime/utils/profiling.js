@@ -180,7 +180,9 @@ function logTest(name, test) {
       logCommands(commands, context.log, commandName, printFirstArg);
     }
 
-    await startWindowsPowerProfiling();
+    if (context.options.browsertime.support_class) {
+      await startWindowsPowerProfiling();
+    }
 
     let iterationName = "iteration";
     if (
@@ -194,17 +196,19 @@ function logTest(name, test) {
     let rv = await test(context, commands);
     context.log.info("END" + logString);
 
-    await stopWindowsPowerProfiling();
-    let powerData = await gatherWindowsPowerUsage(testTimes);
-    if (powerData?.length) {
-      powerData.forEach((powerUsage, ind) => {
-        if (!commands.measure.result[ind].extras.powerUsage) {
-          commands.measure.result[ind].extras.powerUsagePageload = [];
-        }
-        commands.measure.result[ind].extras.powerUsagePageload.push({
-          powerUsagePageload: powerUsage,
+    if (context.options.browsertime.support_class) {
+      await stopWindowsPowerProfiling();
+      let powerData = await gatherWindowsPowerUsage(testTimes);
+      if (powerData?.length) {
+        powerData.forEach((powerUsage, ind) => {
+          if (!commands.measure.result[ind].extras.powerUsage) {
+            commands.measure.result[ind].extras.powerUsagePageload = [];
+          }
+          commands.measure.result[ind].extras.powerUsagePageload.push({
+            powerUsagePageload: powerUsage,
+          });
         });
-      });
+      }
     }
 
     return rv;

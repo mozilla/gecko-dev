@@ -35,6 +35,7 @@ config = {
         "populate-webroot",
         "create-virtualenv",
         "install-chromium-distribution",
+        "install",
         "run-tests",
     ],
     "tooltool_cache": os.path.join("c:\\", "build", "tooltool_cache"),

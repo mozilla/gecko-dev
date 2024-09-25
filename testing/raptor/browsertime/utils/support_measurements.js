@@ -5,19 +5,29 @@
 /* eslint-env node */
 /* eslint-disable mozilla/avoid-Date-timing */
 
+const os = require("os");
 const path = require("path");
+
 const usbPowerProfiler = require(path.join(
   process.env.BROWSERTIME_ROOT,
   "node_modules",
   "usb-power-profiling",
   "usb-power-profiling.js"
 ));
-const os = require("os");
+const {
+  gatherWindowsPowerUsage,
+  startWindowsPowerProfiling,
+  stopWindowsPowerProfiling,
+} = require("./profiling");
 
 class SupportMeasurements {
   constructor(context, commands, measureCPU, measurePower, measureTime) {
     this.context = context;
     this.commands = commands;
+    this.testTimes = [];
+
+    this.isWindows11 =
+      os.type() == "Windows_NT" && /10.0.2[2-9]/.test(os.release());
 
     this.isAndroid =
       context.options.android && context.options.android.enabled == "true";
@@ -36,16 +46,19 @@ class SupportMeasurements {
         run: measureCPU,
         start: "_startMeasureCPU",
         stop: "_stopMeasureCPU",
+        finalize: null,
       },
-      powerUsage: {
+      powerUsageSupport: {
         run: measurePower,
         start: "_startMeasurePower",
         stop: "_stopMeasurePower",
+        finalize: "_finalizeMeasurePower",
       },
       "wallclock-for-tracking-only": {
         run: measureTime,
         start: "_startMeasureTime",
         stop: "_stopMeasureTime",
+        finalize: null,
       },
     };
   }
@@ -80,6 +93,7 @@ class SupportMeasurements {
   }
 
   async _startMeasureCPU() {
+    this.context.log.info("Starting CPU Time measurements");
     if (!this.isAndroid) {
       this.startCPUTimes = os.cpus().map(c => c.times);
     } else {
@@ -124,13 +138,17 @@ class SupportMeasurements {
   }
 
   async _startMeasurePower() {
+    this.context.log.info("Starting power usage measurements");
     if (this.isAndroid) {
       await usbPowerProfiler.startSampling();
-      this.startPowerTime = Date.now();
+    } else if (this.isWindows11) {
+      await startWindowsPowerProfiling(this.context.index);
     }
+    this.startPowerTime = Date.now();
   }
 
   async _stopMeasurePower(measurementName) {
+    this.context.log.info("Taking power usage measurements");
     if (this.isAndroid) {
       let powerUsageData = await usbPowerProfiler.getPowerData(
         this.startPowerTime,
@@ -144,6 +162,25 @@ class SupportMeasurements {
 
       this.commands.measure.addObject({
         [measurementName]: [powerUsage],
+      });
+    } else if (this.isWindows11) {
+      this.testTimes.push([this.startPowerTime, Date.now()]);
+    }
+  }
+
+  async _finalizeMeasurePower() {
+    this.context.log.info("Finalizing power usage measurements");
+    if (this.isWindows11) {
+      await stopWindowsPowerProfiling();
+
+      let powerData = await gatherWindowsPowerUsage(this.testTimes);
+      powerData.forEach((powerUsage, ind) => {
+        if (!this.commands.measure.result[ind].extras.powerUsageSupport) {
+          this.commands.measure.result[ind].extras.powerUsageSupport = [];
+        }
+        this.commands.measure.result[ind].extras.powerUsageSupport.push({
+          powerUsageSupport: powerUsage,
+        });
       });
     }
   }
@@ -162,10 +199,16 @@ class SupportMeasurements {
     });
   }
 
+  async reset(context, commands) {
+    this.testTimes = [];
+    this.context = context;
+    this.commands = commands;
+  }
+
   async start() {
     for (let measurementName in this.measurementMap) {
       let measurementInfo = this.measurementMap[measurementName];
-      if (!measurementInfo.run) {
+      if (!(measurementInfo.run && measurementInfo.start)) {
         continue;
       }
       await this[measurementInfo.start](measurementName);
@@ -175,10 +218,20 @@ class SupportMeasurements {
   async stop() {
     for (let measurementName in this.measurementMap) {
       let measurementInfo = this.measurementMap[measurementName];
-      if (!measurementInfo.run) {
+      if (!(measurementInfo.run && measurementInfo.stop)) {
         continue;
       }
       await this[measurementInfo.stop](measurementName);
+    }
+  }
+
+  async finalize() {
+    for (let measurementName in this.measurementMap) {
+      let measurementInfo = this.measurementMap[measurementName];
+      if (!(measurementInfo.run && measurementInfo.finalize)) {
+        continue;
+      }
+      await this[measurementInfo.finalize](measurementName);
     }
   }
 }
@@ -191,13 +244,17 @@ async function startMeasurements(
   measurePower,
   measureTime
 ) {
-  supportMeasurementObj = new SupportMeasurements(
-    context,
-    commands,
-    measureCPU,
-    measurePower,
-    measureTime
-  );
+  if (!supportMeasurementObj) {
+    supportMeasurementObj = new SupportMeasurements(
+      context,
+      commands,
+      measureCPU,
+      measurePower,
+      measureTime
+    );
+  }
+
+  await supportMeasurementObj.reset(context, commands);
   await supportMeasurementObj.start();
 }
 
@@ -208,8 +265,18 @@ async function stopMeasurements() {
   await supportMeasurementObj.stop();
 }
 
+async function finalizeMeasurements() {
+  if (!supportMeasurementObj) {
+    throw new Error(
+      "startMeasurements must be called before finalizeMeasurements"
+    );
+  }
+  await supportMeasurementObj.finalize();
+}
+
 module.exports = {
   SupportMeasurements,
   startMeasurements,
   stopMeasurements,
+  finalizeMeasurements,
 };

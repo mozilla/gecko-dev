@@ -633,9 +633,6 @@ def verify_options(parser, args):
         if args.post_startup_delay < 0:
             parser.error("--post-startup-delay must be a positive integer (in ms).")
 
-    if args.power_test and args.app not in FIREFOX_ANDROID_APPS + CHROME_ANDROID_APPS:
-        parser.error("--power-test is only available with Android apps.")
-
 
 def parse_args(argv=None):
     parser = create_parser()
