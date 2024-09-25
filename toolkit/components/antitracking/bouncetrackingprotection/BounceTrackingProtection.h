@@ -107,12 +107,13 @@ class BounceTrackingProtection final : public nsIBounceTrackingProtection,
 
   // Interface to remote settings exception list.
   nsCOMPtr<nsIBTPRemoteExceptionList> mRemoteExceptionList;
+  RefPtr<GenericNonExclusivePromise> mRemoteExceptionListInitPromise;
 
   // In-memory copy of the remote settings exception list.
   nsTHashSet<nsCStringHashKey> mRemoteSiteHostExceptions;
 
   // Lazily initializes the remote exception list.
-  RefPtr<GenericPromise> EnsureRemoteExceptionListService();
+  RefPtr<GenericNonExclusivePromise> EnsureRemoteExceptionListService();
 
   // Clear state for classified bounce trackers. To be called on an interval.
   using PurgeBounceTrackersMozPromise =

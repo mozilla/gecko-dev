@@ -8,10 +8,11 @@ namespace mozilla {
 
 NS_IMPL_ISUPPORTS0(PromiseNativeWrapper);
 
-RefPtr<GenericPromise> PromiseNativeWrapper::ConvertJSPromiseToMozPromise(
+RefPtr<GenericNonExclusivePromise>
+PromiseNativeWrapper::ConvertJSPromiseToMozPromise(
     const RefPtr<dom::Promise>& jsPromise) {
-  MozPromiseHolder<GenericPromise> holder;
-  RefPtr<GenericPromise> mozPromise = holder.Ensure(__func__);
+  MozPromiseHolder<GenericNonExclusivePromise> holder;
+  RefPtr<GenericNonExclusivePromise> mozPromise = holder.Ensure(__func__);
 
   // The handler will resolve mozPromise once jsPromise resolves.
   RefPtr<PromiseNativeWrapper> handler =

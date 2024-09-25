@@ -17,7 +17,8 @@ class PromiseNativeWrapper : public dom::PromiseNativeHandler {
  public:
   NS_DECL_ISUPPORTS
 
-  explicit PromiseNativeWrapper(MozPromiseHolder<GenericPromise>&& aHolder)
+  explicit PromiseNativeWrapper(
+      MozPromiseHolder<GenericNonExclusivePromise>&& aHolder)
       : mHolder(std::move(aHolder)) {}
 
   void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
@@ -30,12 +31,12 @@ class PromiseNativeWrapper : public dom::PromiseNativeHandler {
     mHolder.Reject(NS_ERROR_FAILURE, __func__);
   }
 
-  static RefPtr<GenericPromise> ConvertJSPromiseToMozPromise(
+  static RefPtr<GenericNonExclusivePromise> ConvertJSPromiseToMozPromise(
       const RefPtr<dom::Promise>& jsPromise);
 
  private:
   ~PromiseNativeWrapper() = default;
-  MozPromiseHolder<GenericPromise> mHolder;
+  MozPromiseHolder<GenericNonExclusivePromise> mHolder;
 };
 
 }  // namespace mozilla
