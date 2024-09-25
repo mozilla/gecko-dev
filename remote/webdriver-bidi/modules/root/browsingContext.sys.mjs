@@ -1037,6 +1037,7 @@ class BrowsingContextModule extends RootBiDiModule {
         serializationOptions: serializationOptionsWithDefaults,
         startNodes,
       },
+      retryOnAbort: true,
     });
 
     return {

@@ -6,35 +6,67 @@ from webdriver.bidi.modules.script import ContextTarget
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.parametrize("type_hint", ["tab", "window"])
-async def test_when_context_created(
-    bidi_session, wait_for_event, wait_for_future_safe, type_hint
-):
-    await bidi_session.session.subscribe(events=["browsingContext.contextCreated"])
-    on_context_created = wait_for_event("browsingContext.contextCreated")
+DOCUMENT_LOADED_SCRIPT = """
+    new Promise(resolve => {
+        const checkDone = () => {
+            if (window.location.href !== "about:blank") {
+                resolve(window.location.href);
+            }
+        };
 
-    # Start the browsingContext.create command without awaiting on it yet,
-    # because browsingContext.create already waits for the initial navigation
-    # to be completed.
-    task = asyncio.create_task(
-        bidi_session.browsing_context.create(type_hint=type_hint)
-    )
+        if (document.readyState === "complete") {
+            checkDone();
+        }
+        window.addEventListener("load", checkDone);
+    })
+    """
 
-    context_info = await wait_for_future_safe(on_context_created)
+PAGE = "/webdriver/tests/support/html/default.html?pipe=trickle(d1)"
 
-    # Execute a script that will only resolve on the next animation frame, so
-    # that the command is likely to resolve when the initial browsing context
-    # gets destroyed.
-    # Here we expect that the command will automatically be retried the initial
-    # attempt was performed on the initial document.
+
+async def test_retry_during_initial_load(bidi_session, url, new_tab):
+    page_url = url(PAGE)
+
+    # Open a new window that triggers a cross-origin navigation to force a
+    # replacement of the initial browsing context for "about:blank"
     result = await bidi_session.script.evaluate(
-        expression="new Promise(r => window.requestAnimationFrame(() => r('done')))",
-        await_promise=True,
-        target=ContextTarget(context_info["context"]),
+        expression=f"""window.open("{page_url}")""",
+        await_promise=False,
+        target=ContextTarget(new_tab["context"]),
+    )
+    new_window = result["value"]
+
+    try:
+        # Check that the script's execution in the window modal is retried.
+        result = await bidi_session.script.evaluate(
+            expression=DOCUMENT_LOADED_SCRIPT,
+            await_promise=True,
+            target=ContextTarget(new_window["context"]),
+        )
+
+        assert result["value"] == page_url
+    finally:
+        await bidi_session.browsing_context.close(context=new_window["context"])
+
+
+async def test_retry_during_navigation(bidi_session, new_tab, url):
+    page_url = url(PAGE)
+
+    # Start a new navigation that triggers a cross-origin navigation to force a
+    # replacement of the initial browsing context for "about:blank"
+    asyncio.create_task(
+        bidi_session.browsing_context.navigate(
+            context=new_tab["context"], url=page_url, wait="none"
+        )
     )
 
-    new_tab = await task
+    # Execute a script that will only resolve when the navigation finished.
+    # Here we expect that the command will automatically be retried when the
+    # browsing context gets replaced.
+    result = await bidi_session.script.evaluate(
+        expression=DOCUMENT_LOADED_SCRIPT,
+        await_promise=True,
+        target=ContextTarget(new_tab["context"]),
+    )
 
-    assert result["value"] == "done"
-
-    await bidi_session.browsing_context.close(context=new_tab["context"])
+    assert result["value"] == page_url

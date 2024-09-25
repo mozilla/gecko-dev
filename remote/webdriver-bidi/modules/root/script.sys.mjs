@@ -825,6 +825,7 @@ class ScriptModule extends RootBiDiModule {
         type: lazy.WindowGlobalMessageHandler.type,
         ...destination,
       },
+      retryOnAbort: true,
     });
 
     const isBroadcast = !!destination.contextDescriptor;

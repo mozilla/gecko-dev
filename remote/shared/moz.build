@@ -6,6 +6,7 @@ BROWSER_CHROME_MANIFESTS += [
     "listeners/test/browser/browser.toml",
     "messagehandler/test/browser/broadcast/browser.toml",
     "messagehandler/test/browser/browser.toml",
+    "messagehandler/test/browser/browser_retry_fallback.toml",
     "messagehandler/test/browser/webdriver/browser.toml",
     "test/browser/browser.toml",
 ]
