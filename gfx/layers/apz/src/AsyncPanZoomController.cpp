@@ -547,13 +547,7 @@ SampleTime AsyncPanZoomController::GetFrameTime() const {
 bool AsyncPanZoomController::IsZero(const ParentLayerPoint& aPoint) const {
   RecursiveMutexAutoLock lock(mRecursiveMutex);
 
-  const auto zoom = Metrics().GetZoom();
-
-  if (zoom == CSSToParentLayerScale(0)) {
-    return true;
-  }
-
-  return layers::IsZero(aPoint / zoom);
+  return layers::IsZero(ToCSSPixels(aPoint));
 }
 
 bool AsyncPanZoomController::IsZero(ParentLayerCoord aCoord) const {
@@ -2783,6 +2777,13 @@ AsyncPanZoomController::GetDisplacementsForPanGesture(
   }
 
   return {logicalPanDisplacement, physicalPanDisplacement};
+}
+
+CSSPoint AsyncPanZoomController::ToCSSPixels(ParentLayerPoint value) const {
+  if (this->Metrics().GetZoom() == CSSToParentLayerScale(0)) {
+    return CSSPoint{0, 0};
+  }
+  return (value / this->Metrics().GetZoom());
 }
 
 CSSCoord AsyncPanZoomController::ToCSSPixels(ParentLayerCoord value) const {
@@ -6790,7 +6791,7 @@ AsyncPanZoomController::MaybeAdjustDeltaForScrollSnapping(
     return Nothing();
   }
   CSSPoint destination = Metrics().CalculateScrollRange().ClampPoint(
-      aStartPosition + (aDelta / zoom));
+      aStartPosition + ToCSSPixels(aDelta));
 
   if (Maybe<CSSSnapDestination> snapDestination =
           FindSnapPointNear(destination, aUnit, aSnapFlags)) {
@@ -6857,8 +6858,7 @@ Maybe<uint64_t> AsyncPanZoomController::GetZoomAnimationId() const {
 
 CSSPoint AsyncPanZoomController::MaybeFillOutOverscrollGutter(
     const RecursiveMutexAutoLock& aProofOfLock) {
-  const auto zoom = Metrics().GetZoom();
-  CSSPoint delta = GetOverscrollAmount() / zoom;
+  CSSPoint delta = ToCSSPixels(GetOverscrollAmount());
   CSSPoint origin = Metrics().GetVisualScrollOffset();
   CSSRect scrollRange = Metrics().CalculateScrollRange();
   if (!scrollRange.ContainsInclusively(origin + delta)) {

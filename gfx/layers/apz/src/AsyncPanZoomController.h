@@ -1375,6 +1375,7 @@ class AsyncPanZoomController {
   std::tuple<ParentLayerPoint, ScreenPoint> GetDisplacementsForPanGesture(
       const PanGestureInput& aEvent);
 
+  CSSPoint ToCSSPixels(ParentLayerPoint value) const;
   CSSCoord ToCSSPixels(ParentLayerCoord value) const;
 
  private:
