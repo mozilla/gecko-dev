@@ -3,25 +3,34 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 import filters
 from cmdline import FIREFOX_APPS
+from utils import flatten
 
-ADDITIONAL_METRICS = ["powerUsage"]
+ADDITIONAL_METRICS = [
+    "cpuTime",
+    "powerUsage",
+    "powerUsagePageload",
+    "powerUsageSupport",
+    "wallclock-for-tracking-only",
+]
 
 
 class BasePythonSupport:
     def __init__(self, **kwargs):
         self.power_test = None
         self.app = None
-        self.bt_result = []
         self.raw_result = []
+        self.bt_result = []
 
     def save_data(self, raw_result, bt_result):
         """
         This function is used to save the bt_result, raw_result that way we can reference
-        and use this data across the different BasePythonSupport classes
+        and use this data across the different BasePythonSupport classes. Each of the
+        elements in self.raw_result is an individual page_cycle. Each of the values within
+        a metric in one of those page_cycles is a separate browser iteration.
 
-        :param raw_result all non-browsertime parts of the test, should
-         include things like the android version, ttfb, and cpu usage
-        :param bt_result browsertime results/version info from the test
+        :param dict raw_result: all non-browsertime parts of the test, should
+            include things like the android version, ttfb, and cpu usage
+        :param dict bt_result: browsertime results/version info from the test
 
         return: None
         """
@@ -73,8 +82,8 @@ class BasePythonSupport:
         new measurements as a dictionary to `bt_result["measurements"]`. Watch
         out for overriding other measurements.
 
-        `raw_result` is a single browser-cycle/iteration from Browsertime. Use object
-        attributes to store values across browser-cycles, and produce overall results
+        `raw_result` is a single page-cycle/iteration from Browsertime. Use object
+        attributes to store values across page-cycles, and produce overall results
         on the last run (denoted by `last_result`).
         """
         pass
@@ -172,38 +181,204 @@ class BasePythonSupport:
         that is specific to the test itself and this method can help with skipping
         them.
         """
-        return measurement_name in ADDITIONAL_METRICS
+        return measurement_name in ADDITIONAL_METRICS or any(
+            metric in measurement_name for metric in ADDITIONAL_METRICS
+        )
 
-    def add_additional_metrics(self, test, suite, **kwargs):
+    def _gather_browser_cycles(self, test, results):
+        """Searches, and returns the browser-cycle results for a test.
+
+        :param dict test: The test for search for.
+        :param list results: The results to search through (pairings of raw_result,
+            and bt_result).
+        :return list: A list containing a tuple pairing for the raw_result, and
+            bt_result.
+        """
+        for raw_result, bt_result in results:
+            if bt_result["name"] == test["name"]:
+                return [(raw_result, bt_result)]
+        raise Exception(f"Unable to find the test {test['name']} in the saved results")
+
+    def _gather_page_cycles(self, test, results):
+        """Searches, and returns the page-cycle results for a test.
+
+        :param dict test: The test for search for.
+        :param list results: The results to search through (pairings of raw_result,
+            and bt_result).
+        :return list: A list containing all tuple pairings for the raw_result, and
+            bt_result across page-cycles.
+        """
+        page_cycle_results = []
+
+        found_first = False
+        for raw_result, bt_result in results:
+            if bt_result["name"] != test["name"]:
+                continue
+            if not found_first:
+                found_first = True
+            else:
+                page_cycle_results.append((raw_result, bt_result))
+
+        if not page_cycle_results:
+            raise Exception(f"Unable to find any page cycles for test {test['name']}")
+
+        return page_cycle_results
+
+    def _gather_power_usage_measurements(self, raw_result):
+        """Gathers all possible power usage measurements from a result.
+
+        :param dict raw_result: The results of the test.
+
+        :return dict: A dict containing the measurements found.
+        """
+        power_usage_measurements = {}
+
+        def __convert_from_pico_to_micro(vals):
+            return [round(v * (1 * 10**-6), 2) for v in vals]
+
+        # Gather pageload measurements produced by browsertime
+        power_vals = raw_result.get("android").get("power", {})
+        if power_vals:
+            power_usage_measurements.setdefault(
+                "powerUsagePageload", {"unit": "uWh"}
+            ).setdefault("replicates", []).extend(
+                __convert_from_pico_to_micro(
+                    [vals["powerUsage"] for vals in power_vals]
+                )
+            )
+
+        # Gather power usage measurements produced in SupportMeasurements
+        # or as part of the profiling.js code (for Windows 11 power usage)
+        for res in raw_result["extras"]:
+            for metric, vals in res.items():
+                if "powerUsage" not in metric:
+                    continue
+                if any(isinstance(val, dict) for val in vals):
+                    flat_power_data = flatten(vals, (), sep="_")
+                    for powerMetric, powerVals in flat_power_data.items():
+                        power_usage_measurements.setdefault(
+                            powerMetric, {"unit": "uWh"}
+                        ).setdefault("replicates", []).extend(
+                            __convert_from_pico_to_micro(powerVals)
+                        )
+                else:
+                    power_usage_measurements.setdefault(
+                        metric, {"unit": "uWh"}
+                    ).setdefault("replicates", []).extend(
+                        __convert_from_pico_to_micro(vals)
+                    )
+
+        return power_usage_measurements
+
+    def _gather_cputime_measurements(self, raw_result):
+        """Gathers all possible cpuTime measurements from a result.
+
+        :param dict raw_result: The results of the test.
+
+        :return dict: A dict containing the measurements found.
+        """
+        cpuTime_measurements = {}
+
+        # Gather pageload cpuTime measurements
+        cpu_vals = []
+        for result in self.raw_result:
+            cpu_vals += result.get("cpu", [])
+        if cpu_vals and self.app in FIREFOX_APPS:
+            cpuTime_measurements.setdefault("cpuTimePageload", {"unit": "ms"})[
+                "replicates"
+            ] = cpu_vals
+
+        # Gather support cpuTime measurements (e.g. benchmarks)
+        for res in raw_result["extras"]:
+            for metric, vals in res.items():
+                if metric != "cpuTime":
+                    continue
+                cpuTime_measurements.setdefault(
+                    "cpuTimeSupport", {"unit": "ms"}
+                ).setdefault("replicates", []).extend(vals)
+
+        return cpuTime_measurements
+
+    def _gather_wallclock_measurements(self, raw_result):
+        """Gathers the wallclock measurements from a result.
+
+        :param dict raw_result: The results of the test.
+
+        :return dict: A dict containing the measurements found.
+        """
+        wallclock_measurements = {}
+        for res in raw_result["extras"]:
+            for metric, vals in res.items():
+                if metric != "wallclock-for-tracking-only":
+                    continue
+                wallclock_measurements.setdefault(metric, {"unit": "ms"}).setdefault(
+                    "replicates", []
+                ).extend(vals)
+        return wallclock_measurements
+
+    def _gather_additional_measurements(self, raw_result, bt_result):
+        """Gathers all possible measurements from a result.
+
+        :param dict raw_result: The results of the test.
+        :param dict bt_result: Information about the test.
+
+        :return dict: A dict containing the measurements found.
+        """
+        measurements = {}
+
+        measurements.update(self._gather_power_usage_measurements(raw_result))
+        measurements.update(self._gather_cputime_measurements(raw_result))
+        measurements.update(self._gather_wallclock_measurements(raw_result))
+
+        return measurements
+
+    def add_additional_metrics(self, test, suite, exclude=[], cycle_type="", **kwargs):
         """Adds any additional metrics to a perfherder suite result.
 
         This method can be called in a test script during summarize_test to
         add any additional metrics that were produced by the test to the suite.
+        By default, this method will attempt to gather all posible additional
+        metrics. Use the `exclude` argument to exclude metrics.
+
+        :param dict test: The test to gather measurements from.
+        :param dict suite: The suite to add parsed measurements to.
+        :param list exclude: A list of metrics not to parse.
+        :param str cycle_type: The type of cycle to gather measurements from. Can
+            either be "browser-cycle" or "page-cycle". By default, all cycles
+            will be parsed into a single metric. Used when parsing information
+            from the saved data (raw_result/bt_result). The "browser-cycle" data
+            comes from the first raw_result entry for a test. "page-cycle" data
+            comes from all the other entries in the raw_result, and excludes the
+            first one.
         """
-        if self.power_test and "powerUsage" in test["measurements"]:
+        results_to_parse = zip(self.raw_result, self.bt_result)
+        if cycle_type == "browser-cycle":
+            results_to_parse = self._gather_browser_cycles(test, results_to_parse)
+        elif cycle_type == "page-cycle":
+            results_to_parse = self._gather_page_cycles(test, results_to_parse)
+
+        all_measurements = {}
+        for raw_result, bt_result in results_to_parse:
+            measurements = self._gather_additional_measurements(raw_result, bt_result)
+
+            for measurement, measurement_info in measurements.items():
+                if measurement not in all_measurements:
+                    all_measurements[measurement] = measurement_info
+                else:
+                    all_measurements[measurement]["replicates"].extend(
+                        measurement_info["replicates"]
+                    )
+
+        # Add any requested additional metrics
+        for measurement, measurement_info in all_measurements.items():
+            if measurement in exclude:
+                continue
             suite["subtests"].append(
                 self._build_standard_subtest(
                     test,
-                    test["measurements"]["powerUsage"],
-                    "powerUsage",
-                    unit="uWh",
-                    lower_is_better=True,
-                )
-            )
-        cpu_vals = []
-        for result in self.raw_result:
-            cpu_vals += result.get("cpu", [])
-        if (
-            test.get("gather_cpuTime", None)
-            and len(cpu_vals)
-            and self.app in FIREFOX_APPS
-        ):
-            suite["subtests"].append(
-                self._build_standard_subtest(
-                    test,
-                    cpu_vals,
-                    "cpuTime",
-                    unit="ms",
+                    measurement_info["replicates"],
+                    measurement,
+                    unit=measurement_info["unit"],
                     lower_is_better=True,
                 )
             )
