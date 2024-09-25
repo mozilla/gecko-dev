@@ -33,11 +33,6 @@
             "type": "string",
             "optional": true,
             "description": "The first-party URL of the cookie, if the cookie is in storage partitioned by the top-level site."
-          },
-          "hasCrossSiteAncestor": {
-            "type": "boolean",
-            "optional": true,
-            "description": "Whether or not the cookie is in a third-party context, respecting ancestor chains."
           }
         }
       },

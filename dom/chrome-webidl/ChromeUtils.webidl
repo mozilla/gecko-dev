@@ -454,20 +454,16 @@ partial namespace ChromeUtils {
   getBaseDomainFromPartitionKey(DOMString partitionKey);
 
   /**
-   * Returns the partitionKey for a given subresourceURL given its top-level URL
-   * and whether or not it is in a foreign context.
+   * Returns the partitionKey for a given URL.
    *
-   * The function will treat the topLevelURL as a first party and construct the
-   * partitionKey according to the scheme, site and port in the URL. It will also
-   * include information about the subresource and whether or not this is a foreign
-   * request in the partition key.
+   * The function will treat the URL as a first party and construct the
+   * partitionKey according to the scheme, site and port in the URL.
    *
-   * Throws for invalid urls, if the Third Party Service is unavailable, or if the
-   * combination of inputs is impossible.
+   * Throws for invalid urls.
    */
   [Throws]
   DOMString
-  getPartitionKeyFromURL(DOMString topLevelUrl, DOMString subresourceUrl, optional boolean foreignContext);
+  getPartitionKeyFromURL(DOMString url);
 
   /**
    * Loads and compiles the script at the given URL and returns an object

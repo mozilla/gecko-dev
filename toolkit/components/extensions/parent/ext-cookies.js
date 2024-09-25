@@ -30,60 +30,30 @@ const dropBracketIfIPv6 = host =>
     ? host.slice(1, -1)
     : host;
 
-const isSubdomain = (otherDomain, baseDomain) => {
-  return otherDomain == baseDomain || otherDomain.endsWith("." + baseDomain);
-};
-
 // Converts the partitionKey format of the extension API (i.e. PartitionKey) to
 // a valid format for the "partitionKey" member of OriginAttributes.
-function fromExtPartitionKey(extPartitionKey, cookieUrl) {
+function fromExtPartitionKey(extPartitionKey) {
   if (!extPartitionKey) {
     // Unpartitioned by default.
     return "";
   }
-  const { topLevelSite, hasCrossSiteAncestor } = extPartitionKey;
+  const { topLevelSite } = extPartitionKey;
   // TODO: Expand API to force the generation of a partitionKey that differs
   // from the default that's specified by privacy.dynamic_firstparty.use_site.
   if (topLevelSite) {
     // If topLevelSite is set and a non-empty string (a site in a URL format).
     try {
-      // This is subtle! We define the ancestor bit in our code in a different
-      // way than the extension API, but they are isomorphic.
-      //   If we have cookieUrl (which is guaranteed to be the case in get, set,
-      //   and remove) this will return the topLevelSite parsed partition key,
-      //   and include the foreign ancestor bit iff the details.url is
-      //   same-site and a truthy value was passed in the hasCrossSiteAncestor
-      //   property. If we don't have cookieUrl, we handle the difference in
-      //   ancestor bit definition by returning a OA pattern that matches both
-      //   values and filtering them later on in matches.
-      if (cookieUrl == null) {
-        let topLevelSiteURI = Services.io.newURI(topLevelSite);
-        let topLevelSiteFilter = Services.eTLD.getSite(topLevelSiteURI);
-        if (topLevelSiteURI.port != -1) {
-          topLevelSiteFilter += `:${topLevelSiteURI.port}`;
-        }
-        return topLevelSiteFilter;
-      }
-      return ChromeUtils.getPartitionKeyFromURL(
-        topLevelSite,
-        cookieUrl,
-        hasCrossSiteAncestor ?? undefined
-      );
+      return ChromeUtils.getPartitionKeyFromURL(topLevelSite);
     } catch (e) {
       throw new ExtensionError("Invalid value for 'partitionKey' attribute");
     }
-  } else if (topLevelSite == null && hasCrossSiteAncestor != null) {
-    // This is an invalid combination of parameters.
-    throw new ExtensionError("Invalid value for 'partitionKey' attribute");
   }
   // Unpartitioned.
   return "";
 }
-
 // Converts an internal partitionKey (format used by OriginAttributes) to the
 // string value as exposed through the extension API.
-function getExtPartitionKey(cookie) {
-  let partitionKey = cookie.originAttributes.partitionKey;
+function toExtPartitionKey(partitionKey) {
   if (!partitionKey) {
     // Canonical representation of an empty partitionKey is null.
     // In theory {topLevelSite: ""} also works, but alas.
@@ -95,34 +65,15 @@ function getExtPartitionKey(cookie) {
   // pref, which is not necessarily the case for cookies before the pref flip.
   if (!partitionKey.startsWith("(")) {
     // A partitionKey generated with privacy.dynamic_firstparty.use_site=false.
-    let hasCrossSiteAncestor = !isSubdomain(cookie.host, partitionKey);
-    return { topLevelSite: `https://${partitionKey}`, hasCrossSiteAncestor };
+    return { topLevelSite: `https://${partitionKey}` };
   }
   // partitionKey starts with "(" and ends with ")".
-  let [scheme, domain, opt1, opt2] = partitionKey.slice(1, -1).split(",");
-  // foreignByAncestorContext logic from OriginAttributes::ParsePartitionKey.
-  let fbac = false;
-  let port;
-  if (opt2) {
-    // opt2 is "f" or undefined.
-    port = opt1;
-    fbac = true;
-  } else if (opt1 == "f") {
-    fbac = true;
-  } else if (opt1) {
-    port = opt1;
-  }
-
-  // Construct the topLevelSite part of the partitionKey
+  let [scheme, domain, port] = partitionKey.slice(1, -1).split(",");
   let topLevelSite = `${scheme}://${domain}`;
   if (port) {
     topLevelSite += `:${port}`;
   }
-
-  // Construct the hasCrossSiteAncestor bit as well.
-  // This is isomorphic, but not identical to how we partition.
-  let hasCrossSiteAncestor = fbac || !isSubdomain(cookie.host, domain);
-  return { topLevelSite, hasCrossSiteAncestor };
+  return { topLevelSite };
 }
 
 const convertCookie = ({ cookie, isPrivate }) => {
@@ -137,7 +88,7 @@ const convertCookie = ({ cookie, isPrivate }) => {
     sameSite: SAME_SITE_STATUSES[cookie.sameSite],
     session: cookie.isSession,
     firstPartyDomain: cookie.originAttributes.firstPartyDomain || "",
-    partitionKey: getExtPartitionKey(cookie),
+    partitionKey: toExtPartitionKey(cookie.originAttributes.partitionKey),
   };
 
   if (!cookie.isSession) {
@@ -155,6 +106,10 @@ const convertCookie = ({ cookie, isPrivate }) => {
   }
 
   return result;
+};
+
+const isSubdomain = (otherDomain, baseDomain) => {
+  return otherDomain == baseDomain || otherDomain.endsWith("." + baseDomain);
 };
 
 // Checks that the given extension has permission to set the given cookie for
@@ -285,7 +240,7 @@ const oaFromDetails = (details, context, allowPattern) => {
     privateBrowsingId: 0,
     // The following two keys may be deleted if allowPattern=true
     firstPartyDomain: details.firstPartyDomain ?? "",
-    partitionKey: fromExtPartitionKey(details.partitionKey, details.url),
+    partitionKey: fromExtPartitionKey(details.partitionKey),
   };
 
   let isPrivate = context.incognito;
@@ -315,9 +270,8 @@ const oaFromDetails = (details, context, allowPattern) => {
     }
   }
 
-  // If any of the originAttributes's keys are deleted, isPattern becomes true.
+  // If any of the originAttributes's keys are deleted, this becomes true.
   let isPattern = false;
-  let topLevelSiteFilter;
   if (allowPattern) {
     // firstPartyDomain is unset / void / string.
     // If unset, then we default to non-FPI cookies (or if FPI is enabled,
@@ -338,23 +292,9 @@ const oaFromDetails = (details, context, allowPattern) => {
     if (details.partitionKey && details.partitionKey.topLevelSite == null) {
       delete originAttributes.partitionKey;
       isPattern = true;
-    } else if (details.partitionKey?.topLevelSite && details.url == null) {
-      // See "This is subtle!" comment in fromExtPartitionKey.
-      // Matching foreignAncestorBit (hasCrossSiteAncestor) exactly
-      // requires a url. If url is absent, we need to filter afterwards.
-      topLevelSiteFilter = originAttributes.partitionKey;
-      delete originAttributes.partitionKey;
-      isPattern = true;
     }
   }
-
-  return {
-    originAttributes,
-    isPattern,
-    isPrivate,
-    storeId,
-    topLevelSiteFilter,
-  };
+  return { originAttributes, isPattern, isPrivate, storeId };
 };
 
 /**
@@ -388,8 +328,7 @@ const query = function* (detailsIn, props, context, allowPattern) {
     }
     throw e;
   }
-  let { originAttributes, isPattern, isPrivate, storeId, topLevelSiteFilter } =
-    parsedOA;
+  let { originAttributes, isPattern, isPrivate, storeId } = parsedOA;
 
   if ("domain" in details) {
     details.domain = details.domain.toLowerCase().replace(/^\./, "");
@@ -489,29 +428,6 @@ const query = function* (detailsIn, props, context, allowPattern) {
     // Check that the extension has permissions for this host.
     if (!context.extension.allowedOrigins.matchesCookie(cookie)) {
       return false;
-    }
-
-    // We query for more cookies than match the partitionKey parameter in cookies.getAll,
-    // so we must filter them down here to make sure the provided details match.
-    if (topLevelSiteFilter) {
-      let cookiePartitionKey = getExtPartitionKey(cookie);
-      let cookiePartitionSite = cookiePartitionKey?.topLevelSite;
-
-      // Getting here implies that we are interested in partitioned
-      // cookies. If there is no partition, skip the cookie.
-      // We also skip the cookie if it doesn't have a matching site
-      // componenet.
-      if (!cookiePartitionKey || topLevelSiteFilter !== cookiePartitionSite) {
-        return false;
-      }
-
-      if (
-        detailsIn.partitionKey.hasCrossSiteAncestor != null &&
-        detailsIn.partitionKey.hasCrossSiteAncestor !=
-          cookiePartitionKey.hasCrossSiteAncestor
-      ) {
-        return false;
-      }
     }
 
     return true;
@@ -737,7 +653,9 @@ this.cookies = class extends ExtensionAPIPersistent {
               name: details.name,
               storeId,
               firstPartyDomain: cookie.originAttributes.firstPartyDomain,
-              partitionKey: getExtPartitionKey(cookie),
+              partitionKey: toExtPartitionKey(
+                cookie.originAttributes.partitionKey
+              ),
             });
           }
 

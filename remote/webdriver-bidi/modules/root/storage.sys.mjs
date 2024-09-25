@@ -758,16 +758,12 @@ class StorageModule extends RootBiDiModule {
           originAttributes.partitionKey = "";
         } else {
           originAttributes.partitionKey = ChromeUtils.getPartitionKeyFromURL(
-            partitionKey.sourceOrigin,
-            "",
-            false
+            partitionKey.sourceOrigin
           );
         }
       } else {
         originAttributes.partitionKey = ChromeUtils.getPartitionKeyFromURL(
-          partitionKey.sourceOrigin,
-          "",
-          false
+          partitionKey.sourceOrigin
         );
       }
     }
