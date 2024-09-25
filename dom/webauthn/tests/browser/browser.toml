@@ -30,6 +30,7 @@ skip-if = [
 ["browser_webauthn_ipaddress.js"]
 
 ["browser_webauthn_prompts.js"]
-skip-if = [
+skip-if = [,
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1855383
   "win11_2009", # Test not relevant on 1903+
 ]
