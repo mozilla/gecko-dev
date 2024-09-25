@@ -21,38 +21,31 @@ export class UTEventReporting {
     this.sendSessionEndEvent = this.sendSessionEndEvent.bind(this);
   }
 
-  _createExtras(data) {
+  _createExtras(data, value) {
     // Make a copy of the given data and delete/modify it as needed.
     let utExtras = Object.assign({}, data);
     for (let field of Object.keys(utExtras)) {
-      if (EXTRAS_FIELD_NAMES.includes(field)) {
-        utExtras[field] = String(utExtras[field]);
-        continue;
+      if (!EXTRAS_FIELD_NAMES.includes(field)) {
+        delete utExtras[field];
       }
-      delete utExtras[field];
     }
+    utExtras.value = value;
     return utExtras;
   }
 
   sendUserEvent(data) {
-    let mainFields = ["event", "source"];
-    let eventFields = mainFields.map(field => String(data[field]) || null);
-
-    Services.telemetry.recordEvent(
-      "activity_stream",
-      "event",
-      ...eventFields,
-      this._createExtras(data)
+    const eventName = data.event
+      .split("_")
+      .map(word => word[0] + word.slice(1).toLowerCase())
+      .join("");
+    Glean.activityStream[`event${eventName}`].record(
+      this._createExtras(data, data.source)
     );
   }
 
   sendSessionEndEvent(data) {
-    Services.telemetry.recordEvent(
-      "activity_stream",
-      "end",
-      "session",
-      String(data.session_duration),
-      this._createExtras(data)
+    Glean.activityStream.endSession.record(
+      this._createExtras(data, data.session_duration)
     );
   }
 
