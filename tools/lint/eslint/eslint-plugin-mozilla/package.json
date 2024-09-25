@@ -25,16 +25,16 @@
     "espree": "^9.6.1",
     "estraverse": "^5.3.0",
     "htmlparser2": "^9.1.0",
-    "toml-eslint-parser": "0.9.3"
+    "toml-eslint-parser": "0.10.0"
   },
   "devDependencies": {
-    "eslint": "8.57.0",
-    "mocha": "10.2.0"
+    "eslint": "8.57.1",
+    "mocha": "10.7.3"
   },
   "peerDependencies": {
     "@microsoft/eslint-plugin-sdl": "^0.2.2",
     "eslint": "^7.23.0 || ^8.0.0",
-    "eslint-plugin-no-unsanitized": "^4.0.0"
+    "eslint-plugin-no-unsanitized": "^4.1.0"
   },
   "engines": {
     "node": ">=14.0.0"

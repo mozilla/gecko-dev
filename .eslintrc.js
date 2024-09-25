@@ -59,7 +59,7 @@ module.exports = {
   // allow external repositories that use the plugin to pick them up as well.
   extends: [
     "plugin:mozilla/recommended",
-    "plugin:json/recommended-with-comments",
+    "plugin:json/recommended-with-comments-legacy",
     "prettier",
   ],
   plugins: ["mozilla", "html", "import", "json"],
