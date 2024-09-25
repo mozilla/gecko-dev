@@ -23,6 +23,7 @@ import mozilla.components.support.base.feature.LifecycleAwareFeature
 import mozilla.components.support.ktx.android.view.hideKeyboard
 import mozilla.components.ui.tabcounter.TabCounterMenu
 import org.mozilla.fenix.R
+import org.mozilla.fenix.browser.tabstrip.isTabStripEnabled
 import org.mozilla.fenix.components.menu.MenuAccessPoint
 import org.mozilla.fenix.components.toolbar.interactor.BrowserToolbarInteractor
 import org.mozilla.fenix.components.toolbar.navbar.shouldAddNavigationBar
@@ -157,7 +158,10 @@ class DefaultToolbarIntegration(
             DisplayToolbar.Indicators.HIGHLIGHT,
         )
 
-        addNewTabBrowserAction()
+        if (!context.isTabStripEnabled()) {
+            addNewTabBrowserAction()
+        }
+
         addTabCounterBrowserAction()
     }
 
