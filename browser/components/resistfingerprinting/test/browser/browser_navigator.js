@@ -89,11 +89,11 @@ const SPOOFED_UA_NAVIGATOR_OS = {
   other: "X11; Linux x86_64",
 };
 const SPOOFED_UA_HTTPHEADER_OS = {
-  linux: "Windows NT 10.0",
-  win: "Windows NT 10.0",
-  macosx: "Windows NT 10.0",
+  linux: "Windows NT 10.0; Win64; x64",
+  win: "Windows NT 10.0; Win64; x64",
+  macosx: "Windows NT 10.0; Win64; x64",
   android: "Android 10; Mobile",
-  other: "Windows NT 10.0",
+  other: "Windows NT 10.0; Win64; x64",
 };
 const SPOOFED_HW_CONCURRENCY = 2;
 

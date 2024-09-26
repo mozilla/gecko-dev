@@ -65,7 +65,7 @@
 #if defined(MOZ_WIDGET_ANDROID)
 #  define SPOOFED_HTTP_UA_OS "Android 10; Mobile"
 #else
-#  define SPOOFED_HTTP_UA_OS "Windows NT 10.0"
+#  define SPOOFED_HTTP_UA_OS "Windows NT 10.0; Win64; x64"
 #endif
 
 struct JSContext;
