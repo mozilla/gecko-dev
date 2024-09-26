@@ -120,6 +120,9 @@ class MFTDecoder final {
   RefPtr<IMFMediaType> mOutputType;
   GUID mOutputSubType;
 
+  // Either MFMediaType_Audio or MFMediaType_Video.
+  GUID mMajorType;
+
   // True if the IMFTransform allocates the samples that it returns.
   bool mMFTProvidesOutputSamples = false;
 

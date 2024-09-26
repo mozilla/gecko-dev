@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MFTDecoder.h"
+
 #include "WMFUtils.h"
 #include "mozilla/Logging.h"
 #include "nsThreadUtils.h"
@@ -46,24 +47,24 @@ MFTDecoder::Create(const GUID& aCategory, const GUID& aInSubtype,
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
 
   // Use video by default, but select audio if necessary.
-  const GUID major = aCategory == MFT_CATEGORY_AUDIO_DECODER
-                         ? MFMediaType_Audio
-                         : MFMediaType_Video;
+  mMajorType = aCategory == MFT_CATEGORY_AUDIO_DECODER ? MFMediaType_Audio
+                                                       : MFMediaType_Video;
 
   // Ignore null GUIDs to allow searching for all decoders supporting
   // just one input or output type.
-  auto createInfo = [&major](const GUID& subtype) -> MFT_REGISTER_TYPE_INFO* {
+  auto createInfo = [](const GUID& majortype,
+                       const GUID& subtype) -> MFT_REGISTER_TYPE_INFO* {
     if (IsEqualGUID(subtype, GUID_NULL)) {
       return nullptr;
     }
 
     MFT_REGISTER_TYPE_INFO* info = new MFT_REGISTER_TYPE_INFO();
-    info->guidMajorType = major;
+    info->guidMajorType = majortype;
     info->guidSubtype = subtype;
     return info;
   };
-  const MFT_REGISTER_TYPE_INFO* inInfo = createInfo(aInSubtype);
-  const MFT_REGISTER_TYPE_INFO* outInfo = createInfo(aOutSubtype);
+  const MFT_REGISTER_TYPE_INFO* inInfo = createInfo(mMajorType, aInSubtype);
+  const MFT_REGISTER_TYPE_INFO* outInfo = createInfo(mMajorType, aOutSubtype);
 
   // Request a decoder from the Windows API.
   HRESULT hr;
@@ -173,7 +174,12 @@ MFTDecoder::SetDecoderOutputType(
   // type as fallback type.
   RefPtr<IMFMediaType> outputType, lastOutputType;
   GUID lastOutputSubtype;
-  bool foundCompatibleType  = false;
+  enum class Result : uint8_t {
+    eNotFound,
+    eFoundCompatibleType,
+    eFoundPreferredType,
+  };
+  Result foundType = Result::eNotFound;
   UINT32 typeIndex = 0;
   while (SUCCEEDED(mDecoder->GetOutputAvailableType(
       0, typeIndex++, getter_AddRefs(outputType)))) {
@@ -184,10 +190,38 @@ MFTDecoder::SetDecoderOutputType(
     lastOutputType = outputType;
     lastOutputSubtype = outSubtype;
     if (aSubType == outSubtype) {
-      foundCompatibleType  = true;
+      foundType = Result::eFoundCompatibleType;
       break;
     }
     outputType = nullptr;
+  }
+
+  if (foundType == Result::eNotFound) {
+    typeIndex = 0;
+    LOG("Can't find a compatible output type, searching with the preferred "
+        "type instead");
+    auto getPreferredSubtype = [](const GUID& aMajor) -> GUID {
+      if (aMajor == MFMediaType_Audio) {
+        return MFAudioFormat_Float;
+      }
+      return MFVideoFormat_NV12;
+    };
+    const GUID preferredSubtype = getPreferredSubtype(mMajorType);
+    while (SUCCEEDED(mDecoder->GetOutputAvailableType(
+        0, typeIndex++, getter_AddRefs(outputType)))) {
+      GUID outSubtype = {0};
+      RETURN_IF_FAILED(outputType->GetGUID(MF_MT_SUBTYPE, &outSubtype));
+      LOGV("Searching preferred type, input=%s, output=%s",
+           GetSubTypeStr(preferredSubtype).get(),
+           GetSubTypeStr(outSubtype).get());
+      lastOutputType = outputType;
+      lastOutputSubtype = outSubtype;
+      if (preferredSubtype == outSubtype) {
+        foundType = Result::eFoundPreferredType;
+        break;
+      }
+      outputType = nullptr;
+    }
   }
 
   if (!lastOutputType) {
@@ -195,10 +229,13 @@ MFTDecoder::SetDecoderOutputType(
     return E_FAIL;
   }
 
-  if (foundCompatibleType ) {
-    LOG("Found compatible type %s", GetSubTypeStr(aSubType).get());
+  if (foundType != Result::eNotFound) {
+    LOG("Found %s type %s",
+        foundType == Result::eFoundCompatibleType ? "compatible" : "preferred",
+        GetSubTypeStr(lastOutputSubtype).get());
   } else {
-    LOG("Can't find a compatible output type, use the last available type %s",
+    LOG("Can't find compatible and preferred type, use the last available type "
+        "%s",
         GetSubTypeStr(lastOutputSubtype).get());
   }
   RETURN_IF_FAILED(aCallback(lastOutputType));
