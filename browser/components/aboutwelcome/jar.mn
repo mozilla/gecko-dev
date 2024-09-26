@@ -13,6 +13,8 @@ browser.jar:
 # backwards compability is tracked in bug 1866935.
   content/activity-stream/data/content/assets/confetti.svg                                  (./assets/confetti.svg)
   content/activity-stream/data/content/assets/device-migration.svg                          (./assets/device-migration.svg)
+  content/activity-stream/data/content/assets/euo-chatbot.svg                               (./assets/euo-chatbot.svg)
+  content/activity-stream/data/content/assets/euo-tab-orientation.svg                       (./assets/euo-tab-orientation.svg)
   content/activity-stream/data/content/assets/fox-doodle-tail.png                           (./assets/fox-doodle-tail.png)
   content/activity-stream/data/content/assets/fox-doodle-waving.gif                         (./assets/fox-doodle-waving.gif)
   content/activity-stream/data/content/assets/fox-doodle-waving-static.png                  (./assets/fox-doodle-waving-static.png)
@@ -36,3 +38,6 @@ browser.jar:
   content/activity-stream/data/content/assets/noodle-solid-L.svg                            (./assets/noodle-solid-L.svg)
   content/activity-stream/data/content/assets/person-typing.svg                             (./assets/person-typing.svg)
   content/activity-stream/data/content/assets/short-zap.svg                                 (./assets/short-zap.svg)
+  content/activity-stream/data/content/assets/tabs-side-zap-transparent.svg                 (./assets/tabs-side-zap-transparent.svg)
+  content/activity-stream/data/content/assets/tabs-top-zap-transparent.svg                  (./assets/tabs-top-zap-transparent.svg)
+  content/activity-stream/data/content/assets/nuo-taborientation.svg                        (./assets/nuo-taborientation.svg)
