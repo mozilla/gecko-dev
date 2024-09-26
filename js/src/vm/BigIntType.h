@@ -8,6 +8,7 @@
 #define vm_BigIntType_h
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Maybe.h"
 #include "mozilla/OperatorNewExtensions.h"
 #include "mozilla/Range.h"
 #include "mozilla/Span.h"
@@ -129,10 +130,13 @@ class BigInt final : public js::gc::CellWithLengthAndFlags {
                                      bool isNegative,
                                      js::gc::Heap heap = js::gc::Heap::Default);
   static BigInt* createFromDouble(JSContext* cx, double d);
-  static BigInt* createFromUint64(JSContext* cx, uint64_t n);
-  static BigInt* createFromInt64(JSContext* cx, int64_t n);
+  static BigInt* createFromUint64(JSContext* cx, uint64_t n,
+                                  js::gc::Heap heap = js::gc::Heap::Default);
+  static BigInt* createFromInt64(JSContext* cx, int64_t n,
+                                 js::gc::Heap heap = js::gc::Heap::Default);
   static BigInt* createFromIntPtr(JSContext* cx, intptr_t n);
-  static BigInt* createFromDigit(JSContext* cx, Digit d, bool isNegative);
+  static BigInt* createFromDigit(JSContext* cx, Digit d, bool isNegative,
+                                 js::gc::Heap heap = js::gc::Heap::Default);
   static BigInt* createFromNonZeroRawUint64(JSContext* cx, uint64_t n,
                                             bool isNegative);
   // FIXME: Cache these values.
@@ -503,9 +507,10 @@ extern JS::Result<JS::BigInt*> StringToBigInt(JSContext* cx,
 extern JS::BigInt* ParseBigIntLiteral(
     JSContext* cx, const mozilla::Range<const char16_t>& chars);
 
-// Check an already validated numeric literal for a non-zero value. Used by
-// the parsers node folder in deferred mode.
-extern bool BigIntLiteralIsZero(const mozilla::Range<const char16_t>& chars);
+// Parse a BigInt from an already-validated numeric literal. Returns Some if the
+// BigInt literal fits into int64. Otherwise returns Nothing.
+extern mozilla::Maybe<int64_t> ParseBigInt64Literal(
+    mozilla::Range<const char16_t> chars);
 
 extern JS::BigInt* ToBigInt(JSContext* cx, JS::Handle<JS::Value> v);
 extern JS::Result<int64_t> ToBigInt64(JSContext* cx, JS::Handle<JS::Value> v);

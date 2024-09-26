@@ -79,6 +79,7 @@
 #include "vm/BigIntType.h"
 
 #include "mozilla/Casting.h"
+#include "mozilla/CheckedInt.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/MathAlgorithms.h"
@@ -87,6 +88,7 @@
 #include "mozilla/Range.h"
 #include "mozilla/RangedPtr.h"
 #include "mozilla/Span.h"  // mozilla::Span
+#include "mozilla/TextUtils.h"
 #include "mozilla/Try.h"
 #include "mozilla/WrappingOperations.h"
 
@@ -213,9 +215,10 @@ BigInt* BigInt::zero(JSContext* cx, gc::Heap heap) {
   return createUninitialized(cx, 0, false, heap);
 }
 
-BigInt* BigInt::createFromDigit(JSContext* cx, Digit d, bool isNegative) {
+BigInt* BigInt::createFromDigit(JSContext* cx, Digit d, bool isNegative,
+                                gc::Heap heap) {
   MOZ_ASSERT(d != 0);
-  BigInt* res = createUninitialized(cx, 1, isNegative);
+  BigInt* res = createUninitialized(cx, 1, isNegative, heap);
   if (!res) {
     return nullptr;
   }
@@ -1644,35 +1647,6 @@ BigInt* BigInt::parseLiteral(JSContext* cx, const Range<const CharT> chars,
                             haveParseError, heap);
 }
 
-// trim and remove radix selection prefix.
-template <typename CharT>
-bool BigInt::literalIsZero(const Range<const CharT> chars) {
-  RangedPtr<const CharT> start = chars.begin();
-  const RangedPtr<const CharT> end = chars.end();
-
-  MOZ_ASSERT(chars.length());
-
-  // Skip over radix selector.
-  if (end - start > 2 && start[0] == '0') {
-    if (start[1] == 'b' || start[1] == 'B' || start[1] == 'x' ||
-        start[1] == 'X' || start[1] == 'o' || start[1] == 'O') {
-      start += 2;
-    }
-  }
-
-  // Skipping leading zeroes.
-  while (start[0] == '0') {
-    start++;
-    if (start == end) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-template bool BigInt::literalIsZero(const Range<const char16_t> chars);
-
 BigInt* BigInt::createFromDouble(JSContext* cx, double d) {
   MOZ_ASSERT(IsInteger(d), "Only integer-valued doubles can convert to BigInt");
 
@@ -1750,9 +1724,9 @@ BigInt* BigInt::createFromDouble(JSContext* cx, double d) {
   return result;
 }
 
-BigInt* BigInt::createFromUint64(JSContext* cx, uint64_t n) {
+BigInt* BigInt::createFromUint64(JSContext* cx, uint64_t n, gc::Heap heap) {
   if (n == 0) {
-    return zero(cx);
+    return zero(cx, heap);
   }
 
   const bool isNegative = false;
@@ -1762,7 +1736,7 @@ BigInt* BigInt::createFromUint64(JSContext* cx, uint64_t n) {
     Digit high = n >> 32;
     size_t length = high ? 2 : 1;
 
-    BigInt* res = createUninitialized(cx, length, isNegative);
+    BigInt* res = createUninitialized(cx, length, isNegative, heap);
     if (!res) {
       return nullptr;
     }
@@ -1773,11 +1747,11 @@ BigInt* BigInt::createFromUint64(JSContext* cx, uint64_t n) {
     return res;
   }
 
-  return createFromDigit(cx, n, isNegative);
+  return createFromDigit(cx, n, isNegative, heap);
 }
 
-BigInt* BigInt::createFromInt64(JSContext* cx, int64_t n) {
-  BigInt* res = createFromUint64(cx, Abs(n));
+BigInt* BigInt::createFromInt64(JSContext* cx, int64_t n, gc::Heap heap) {
+  BigInt* res = createFromUint64(cx, Abs(n), heap);
   if (!res) {
     return nullptr;
   }
@@ -3853,10 +3827,57 @@ BigInt* js::ParseBigIntLiteral(JSContext* cx,
   return res;
 }
 
-// Check a already validated numeric literal for a non-zero value. Used by
-// the parsers node folder in deferred mode.
-bool js::BigIntLiteralIsZero(const mozilla::Range<const char16_t>& chars) {
-  return BigInt::literalIsZero(chars);
+mozilla::Maybe<int64_t> js::ParseBigInt64Literal(
+    mozilla::Range<const char16_t> chars) {
+  size_t length = chars.length();
+  MOZ_ASSERT(length > 0);
+
+  int32_t radix = 10;
+  if (length > 2 && chars[0] == '0') {
+    if (chars[1] == 'b' || chars[1] == 'B') {
+      // StringNumericLiteral ::: BinaryIntegerLiteral
+      radix = 2;
+    } else if (chars[1] == 'x' || chars[1] == 'X') {
+      // StringNumericLiteral ::: HexIntegerLiteral
+      radix = 16;
+    } else if (chars[1] == 'o' || chars[1] == 'O') {
+      // StringNumericLiteral ::: OctalIntegerLiteral
+      radix = 8;
+    }
+  }
+
+  auto start = chars.begin();
+  const auto end = chars.end();
+
+  // Skip over prefix.
+  if (radix != 10) {
+    start += 2;
+  }
+
+  // Skipping leading zeroes.
+  while (*start == '0') {
+    start++;
+    if (start == end) {
+      return mozilla::Some(0);
+    }
+  }
+
+  mozilla::CheckedInt<int64_t> r = 0;
+  while (start < end) {
+    char16_t c = *start++;
+    MOZ_ASSERT(mozilla::IsAsciiAlphanumeric(c));
+
+    int32_t digit = mozilla::AsciiAlphanumericToNumber(c);
+    MOZ_ASSERT(digit < radix);
+
+    r *= radix;
+    r += digit;
+    if (!r.isValid()) {
+      return mozilla::Nothing();
+    }
+  }
+
+  return mozilla::Some(r.value());
 }
 
 template <js::AllowGC allowGC>

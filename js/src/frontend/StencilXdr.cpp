@@ -180,11 +180,26 @@ template <XDRMode mode>
                                               BigIntStencil& stencil) {
   uint32_t size;
   if (mode == XDR_ENCODE) {
-    size = stencil.source_.size();
+    size = stencil.bigInt_.match(
+        [](mozilla::Span<char16_t> source) { return source.size(); },
+        [](int64_t) { return size_t(0); });
   }
   MOZ_TRY(xdr->codeUint32(&size));
 
-  return XDRSpanContent(xdr, alloc, stencil.source_, size);
+  // Zero-length size indicates inline storage for int64-sized BigInts.
+  if (size == 0) {
+    uint64_t num;
+    if (mode == XDR_ENCODE) {
+      num = static_cast<uint64_t>(stencil.bigInt_.as<int64_t>());
+    }
+    MOZ_TRY(xdr->codeUint64(&num));
+    if (mode == XDR_DECODE) {
+      stencil.bigInt_.as<int64_t>() = static_cast<int64_t>(num);
+    }
+    return Ok();
+  }
+
+  return XDRSpanContent(xdr, alloc, stencil.source(), size);
 }
 
 template <XDRMode mode>
