@@ -82,9 +82,12 @@ internal sealed class DeletionDialogState {
     data class LoadingCount(val guidsToDelete: List<String>) : DeletionDialogState()
     data class Presenting(
         val guidsToDelete: List<String>,
-        val count: Int,
+        val recursiveCount: Int,
     ) : DeletionDialogState()
 }
+
+internal val DeletionDialogState.Presenting.count
+    get() = guidsToDelete.size + recursiveCount
 
 internal val DeletionDialogState.guidsToDelete: List<String>
     get() = when (this) {

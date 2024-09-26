@@ -96,7 +96,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     is DeletionDialogAction.CountLoaded -> state.copy(
         bookmarksDeletionDialogState = DeletionDialogState.Presenting(
             guidsToDelete = state.bookmarksDeletionDialogState.guidsToDelete,
-            count = action.count,
+            recursiveCount = action.count,
         ),
     )
     DeletionDialogAction.CancelTapped -> state.copy(bookmarksDeletionDialogState = DeletionDialogState.None)
@@ -175,6 +175,17 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
                 folder = action.folder,
             ),
         )
+        BookmarksListMenuAction.MultiSelect.DeleteClicked -> {
+            if (this.selectedItems.size > 1 || this.selectedItems.any { it is BookmarkItem.Folder }) {
+                copy(
+                    bookmarksDeletionDialogState = DeletionDialogState.LoadingCount(this.selectedItems.map { it.guid }),
+                )
+            } else {
+                copy(
+                    bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(this.selectedItems.map { it.guid }),
+                )
+            }
+        }
         is BookmarksListMenuAction.MultiSelect.EditClicked ->
             selectedItems.firstOrNull()?.let { selectedItem ->
                 if (selectedItem is BookmarkItem.Bookmark) {

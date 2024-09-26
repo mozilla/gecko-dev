@@ -39,6 +39,7 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
+
 @RunWith(AndroidJUnit4::class)
 class BookmarksMiddlewareTest {
 
@@ -836,7 +837,32 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN selected tabs WHEN multi-select delete clicked THEN delete all tabs`() = runTestOnMain {
+    fun `GIVEN a single item selected WHEN multi-select delete clicked THEN show snackbar`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val bookmarkItem = tree.children!!.first { it.type == BookmarkNodeType.ITEM }.let {
+            BookmarkItem.Bookmark(guid = it.guid, title = it.title!!, url = it.url!!, previewImageUrl = it.url!!)
+        }
+
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(selectedItems = listOf(bookmarkItem)),
+        )
+
+        store.dispatch(BookmarksListMenuAction.MultiSelect.DeleteClicked)
+        assertEquals(BookmarksSnackbarState.UndoDeletion(listOf(bookmarkItem.guid)), store.state.bookmarksSnackbarState)
+
+        val initialCount = store.state.bookmarkItems.size
+        store.dispatch(SnackbarAction.Dismissed)
+        assertEquals(BookmarksSnackbarState.None, store.state.bookmarksSnackbarState)
+        assertEquals(initialCount - 1, store.state.bookmarkItems.size)
+
+        verify(bookmarksStorage).deleteNode(bookmarkItem.guid)
+    }
+
+    @Test
+    fun `GIVEN multiple selected items WHEN multi-select delete clicked THEN show the confirmation dialog`() = runTestOnMain {
         val tree = generateBookmarkTree()
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
@@ -847,14 +873,18 @@ class BookmarksMiddlewareTest {
         val store = middleware.makeStore(
             initialState = BookmarksState.default.copy(selectedItems = items),
         )
-
+        `when`(bookmarksStorage.countBookmarksInTrees(items.map { it.guid })).thenReturn(19u)
         store.dispatch(BookmarksListMenuAction.MultiSelect.DeleteClicked)
+        assertEquals(DeletionDialogState.Presenting(items.map { it.guid }, 19), store.state.bookmarksDeletionDialogState)
 
-        assertTrue(items.size == 2)
+        val initialCount = store.state.bookmarkItems.size
+        store.dispatch(DeletionDialogAction.DeleteTapped)
+        assertEquals(DeletionDialogState.None, store.state.bookmarksDeletionDialogState)
+        assertEquals(initialCount - 2, store.state.bookmarkItems.size)
+
         for (item in items) {
             verify(bookmarksStorage).deleteNode(item.guid)
         }
-        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
     }
 
     private fun buildMiddleware() = BookmarksMiddleware(

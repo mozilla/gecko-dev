@@ -560,6 +560,43 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a single bookmark selected WHEN tapping delete in the multi select menu THEN present the undo snackbar`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item),
+            selectedItems = listOf(item),
+        )
+
+        val result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.DeleteClicked)
+        assertEquals(BookmarksSnackbarState.UndoDeletion(listOf("guid")), result.bookmarksSnackbarState)
+    }
+
+    @Test
+    fun `GIVEN a single folder selected WHEN tapping delete in the multi select menu THEN present the deletion dialog`() {
+        val item = BookmarkItem.Folder("title", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item),
+            selectedItems = listOf(item),
+        )
+
+        val result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.DeleteClicked)
+        assertEquals(DeletionDialogState.LoadingCount(listOf("guid")), result.bookmarksDeletionDialogState)
+    }
+
+    @Test
+    fun `GIVEN a multiple bookmarks selected WHEN tapping delete in the multi select menu THEN present the deletion dialog`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val item2 = item.copy(guid = "guid2")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item, item2),
+            selectedItems = listOf(item, item2),
+        )
+
+        val result = bookmarksReducer(state, BookmarksListMenuAction.MultiSelect.DeleteClicked)
+        assertEquals(DeletionDialogState.LoadingCount(listOf("guid", "guid2")), result.bookmarksDeletionDialogState)
+    }
+
+    @Test
     fun `GIVEN selected items WHEN a multi-select menu action is taken THEN the items are unselected`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")

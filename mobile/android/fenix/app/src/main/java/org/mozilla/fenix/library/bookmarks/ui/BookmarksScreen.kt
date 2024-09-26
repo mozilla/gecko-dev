@@ -335,8 +335,8 @@ private fun BookmarksListTopBar(
                 }
             },
             actions = {
-                when (selectedItems.size) {
-                    0 -> {
+                when {
+                    selectedItems.isEmpty() -> {
                         if (isCurrentFolderDesktopRoot) {
                             Unit
                         } else {
@@ -351,15 +351,7 @@ private fun BookmarksListTopBar(
                             }
                         }
                     }
-
-                    1 -> {
-                        IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.EditClicked) }) {
-                            Icon(
-                                painter = painterResource(R.drawable.mozac_ic_edit_24),
-                                contentDescription = stringResource(R.string.bookmark_menu_edit_button),
-                                tint = FirefoxTheme.colors.iconPrimary,
-                            )
-                        }
+                    selectedItems.any { it is BookmarkItem.Folder } -> {
                         IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked) }) {
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_move_24),
@@ -367,20 +359,27 @@ private fun BookmarksListTopBar(
                                 tint = FirefoxTheme.colors.iconPrimary,
                             )
                         }
-                        if (selectedItems.none { it is BookmarkItem.Folder }) {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                                    contentDescription = stringResource(
-                                        R.string.bookmark_selected_menu_button_content_description,
-                                    ),
-                                    tint = FirefoxTheme.colors.iconPrimary,
-                                )
-                            }
+
+                        IconButton(onClick = {
+                            store.dispatch(BookmarksListMenuAction.MultiSelect.DeleteClicked)
+                        }) {
+                            Icon(
+                                painter = painterResource(R.drawable.mozac_ic_delete_24),
+                                contentDescription = stringResource(R.string.bookmark_menu_delete_button),
+                                tint = FirefoxTheme.colors.iconPrimary,
+                            )
                         }
                     }
-
                     else -> {
+                        if (selectedItems.size == 1) {
+                            IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.EditClicked) }) {
+                                Icon(
+                                    painter = painterResource(R.drawable.mozac_ic_edit_24),
+                                    contentDescription = stringResource(R.string.bookmark_menu_edit_button),
+                                    tint = FirefoxTheme.colors.iconPrimary,
+                                )
+                            }
+                        }
                         IconButton(onClick = { store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked) }) {
                             Icon(
                                 painter = painterResource(R.drawable.mozac_ic_move_24),
@@ -388,26 +387,15 @@ private fun BookmarksListTopBar(
                                 tint = FirefoxTheme.colors.iconPrimary,
                             )
                         }
-                        if (selectedItems.any { it is BookmarkItem.Folder }) {
-                            IconButton(onClick = {
-                                store.dispatch(BookmarksListMenuAction.MultiSelect.DeleteClicked)
-                            }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.mozac_ic_delete_24),
-                                    contentDescription = stringResource(R.string.bookmark_menu_delete_button),
-                                    tint = FirefoxTheme.colors.iconPrimary,
-                                )
-                            }
-                        } else {
-                            IconButton(onClick = { showMenu = true }) {
-                                Icon(
-                                    painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
-                                    contentDescription = stringResource(
-                                        R.string.bookmark_selected_menu_button_content_description,
-                                    ),
-                                    tint = FirefoxTheme.colors.iconPrimary,
-                                )
-                            }
+
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                painter = painterResource(R.drawable.mozac_ic_ellipsis_vertical_24),
+                                contentDescription = stringResource(
+                                    R.string.bookmark_selected_menu_button_content_description,
+                                ),
+                                tint = FirefoxTheme.colors.iconPrimary,
+                            )
                         }
                     }
                 }

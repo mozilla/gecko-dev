@@ -193,7 +193,7 @@ internal class BookmarksMiddleware(
             }
 
             SelectFolderAction.ViewAppeared -> context.store.tryDispatchLoadFolders()
-            is BookmarksListMenuAction -> action.handleSideEffects(context.store, preReductionState)
+            is BookmarksListMenuAction -> action.handleSideEffects(preReductionState)
             SnackbarAction.Dismissed -> when (preReductionState.bookmarksSnackbarState) {
                 is BookmarksSnackbarState.UndoDeletion -> scope.launch {
                     preReductionState.bookmarksSnackbarState.guidsToDelete.forEach {
@@ -339,7 +339,6 @@ internal class BookmarksMiddleware(
 
     @Suppress("LongMethod")
     private fun BookmarksListMenuAction.handleSideEffects(
-        store: Store<BookmarksState, BookmarksAction>,
         preReductionState: BookmarksState,
     ) {
         when (this) {
@@ -424,14 +423,7 @@ internal class BookmarksMiddleware(
                     .forEach { shareBookmark(it.url, it.title) }
             }
 
-            BookmarksListMenuAction.MultiSelect.DeleteClicked -> scope.launch {
-                // TODO confirm deletion
-                preReductionState.selectedItems.forEach { item ->
-                    bookmarksStorage.deleteNode(item.guid)
-                }
-                store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
-            }
-
+            is BookmarksListMenuAction.MultiSelect.DeleteClicked,
             is BookmarksListMenuAction.Folder.DeleteClicked,
             is BookmarksListMenuAction.Bookmark.DeleteClicked,
             -> { }
