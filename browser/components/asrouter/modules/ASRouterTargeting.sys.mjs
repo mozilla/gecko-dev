@@ -550,6 +550,10 @@ function decodeAttributionValue(value) {
   return decodedValue;
 }
 
+async function getPinStatus() {
+  return await ShellService.doesAppNeedPin();
+}
+
 const TargetingGetters = {
   get locale() {
     return Services.locale.appLocaleAsBCP47;
@@ -665,6 +669,9 @@ const TargetingGetters = {
   },
   get isDefaultBrowser() {
     return QueryCache.getters.isDefaultBrowser.get().catch(() => null);
+  },
+  get isDefaultBrowserUncached() {
+    return ShellService.isDefaultBrowser();
   },
   get devToolsOpenedCount() {
     return lazy.devtoolsSelfXSSCount;
@@ -871,6 +878,10 @@ const TargetingGetters = {
         (await QueryCache.getters.doesAppNeedStartMenuPin.get())
       );
     })();
+  },
+
+  get doesAppNeedPinUncached() {
+    return getPinStatus();
   },
 
   get doesAppNeedPrivatePin() {

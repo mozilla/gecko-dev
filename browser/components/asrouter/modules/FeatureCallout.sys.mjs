@@ -1328,6 +1328,9 @@ export class FeatureCallout {
       AWSendToParent: (name, data) => getActionHandler(name)(data),
       AWFinish: () => this.endTour(),
       AWEvaluateScreenTargeting: getActionHandler("EVALUATE_SCREEN_TARGETING"),
+      AWEvaluateAttributeTargeting: getActionHandler(
+        "EVALUATE_ATTRIBUTE_TARGETING"
+      ),
     };
     for (const [name, func] of Object.entries(this._windowFuncs)) {
       this.win[name] = func;
@@ -1911,6 +1914,7 @@ export class FeatureCallout {
     "link-color",
     "link-color-hover",
     "link-color-active",
+    "icon-success-color",
   ];
 
   /** @type {Object<String, FeatureCalloutTheme>} */
@@ -2053,6 +2057,7 @@ export class FeatureCallout {
         "link-color-hover": "rgb(0, 97, 224)",
         "link-color-active": "color-mix(in srgb, rgb(0, 97, 224) 80%, #000)",
         "link-color-visited": "rgb(0, 97, 224)",
+        "icon-success-color": "#2AC3A2",
       },
       dark: {
         "accent-color": "rgb(0, 221, 255)",
@@ -2067,6 +2072,7 @@ export class FeatureCallout {
         "link-color-hover": "rgb(0,221,255)",
         "link-color-active": "color-mix(in srgb, rgb(0, 221, 255) 60%, #FFF)",
         "link-color-visited": "rgb(0, 221, 255)",
+        "icon-success-color": "#54FFBD",
       },
       hcm: {
         background: "-moz-dialog",
@@ -2126,6 +2132,7 @@ export class FeatureCallout {
         "link-color-hover": "LinkText",
         "link-color-active": "ActiveText",
         "link-color-visited": "VisitedText",
+        "icon-success-color": "var(--attention-dot-color)",
       },
       hcm: {
         background: "var(--arrowpanel-background)",

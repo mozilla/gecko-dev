@@ -44,6 +44,7 @@ function renderMultistage(ready) {
   };
   window.AWWaitForMigrationClose = receive("WAIT_FOR_MIGRATION_CLOSE");
   window.AWEvaluateScreenTargeting = receive("EVALUATE_SCREEN_TARGETING");
+  window.AWEvaluateAttributeTargeting = receive("EVALUATE_ATTRIBUTE_TARGETING");
 
   // Update styling to be compatible with about:welcome.
   addStylesheet("chrome://browser/content/aboutwelcome/aboutwelcome.css");

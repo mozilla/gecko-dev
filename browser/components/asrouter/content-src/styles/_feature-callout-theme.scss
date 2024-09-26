@@ -32,6 +32,7 @@
   --fc-link-color: var(--fc-link-color-light, #0061E0);
   --fc-link-color-hover: var(--fc-link-color-hover-light, #0250BB);
   --fc-link-color-active: var(--fc-link-color-active-light, #053E94);
+  --fc-icon-success-color: var(--fc-icon-success-color-light, #2AC3A2);
 }
 
 @mixin dark-theme {
@@ -60,6 +61,7 @@
   --fc-link-color: var(--fc-link-color-dark, #00DDFF);
   --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
   --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
+  --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
 }
 
 @mixin hcm-theme {
@@ -89,4 +91,5 @@
   --fc-link-color: var(--fc-link-color-hcm, LinkText);
   --fc-link-color-hover: var(--fc-link-color-hover-hcm, LinkText);
   --fc-link-color-active: var(--fc-link-color-active-hcm, ActiveText);
+  --fc-icon-success-color: var(--fc-icon-success-color-hcm, LinkText);
 }

@@ -86,6 +86,10 @@ export class AboutWelcomeChild extends JSWindowActorChild {
       defineAs: "AWEvaluateScreenTargeting",
     });
 
+    Cu.exportFunction(this.AWEvaluateAttributeTargeting.bind(this), window, {
+      defineAs: "AWEvaluateAttributeTargeting",
+    });
+
     Cu.exportFunction(this.AWSendEventTelemetry.bind(this), window, {
       defineAs: "AWSendEventTelemetry",
     });
@@ -168,6 +172,12 @@ export class AboutWelcomeChild extends JSWindowActorChild {
     return this.sendQueryAndCloneForContent(
       "AWPage:EVALUATE_SCREEN_TARGETING",
       data
+    );
+  }
+
+  AWEvaluateAttributeTargeting(data) {
+    return this.wrapPromise(
+      this.sendQuery("AWPage:EVALUATE_ATTRIBUTE_TARGETING", data)
     );
   }
 

@@ -29,6 +29,7 @@
   --fc-link-color: var(--fc-link-color-light, #0061E0);
   --fc-link-color-hover: var(--fc-link-color-hover-light, #0250BB);
   --fc-link-color-active: var(--fc-link-color-active-light, #053E94);
+  --fc-icon-success-color: var(--fc-icon-success-color-light, #2AC3A2);
   position: absolute;
   z-index: 2147483647;
   outline: none;
@@ -74,6 +75,7 @@
     --fc-link-color: var(--fc-link-color-dark, #00DDFF);
     --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
     --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
+    --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
   }
 }
 @media (prefers-contrast) {
@@ -104,6 +106,7 @@
     --fc-link-color: var(--fc-link-color-hcm, LinkText);
     --fc-link-color-hover: var(--fc-link-color-hover-hcm, LinkText);
     --fc-link-color-active: var(--fc-link-color-active-hcm, ActiveText);
+    --fc-icon-success-color: var(--fc-icon-success-color-hcm, LinkText);
   }
 }
 #feature-callout.simulateContent {
@@ -137,6 +140,7 @@
     --fc-link-color: var(--fc-link-color-light, #0061E0);
     --fc-link-color-hover: var(--fc-link-color-hover-light, #0250BB);
     --fc-link-color-active: var(--fc-link-color-active-light, #053E94);
+    --fc-icon-success-color: var(--fc-icon-success-color-light, #2AC3A2);
   }
 }
 @media (-moz-content-prefers-color-scheme: dark) {
@@ -166,6 +170,7 @@
     --fc-link-color: var(--fc-link-color-dark, #00DDFF);
     --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
     --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
+    --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
   }
 }
 :root[lwt-newtab-brighttext] #feature-callout.simulateContent.lwtNewtab {
@@ -195,6 +200,7 @@
   --fc-link-color: var(--fc-link-color-dark, #00DDFF);
   --fc-link-color-hover: var(--fc-link-color-hover-dark, #80EBFF);
   --fc-link-color-active: var(--fc-link-color-hover-active, #AAF2FF);
+  --fc-icon-success-color: var(--fc-icon-success-color-dark, #54FFBD);
 }
 
 @media (prefers-contrast) {
@@ -225,6 +231,7 @@
     --fc-link-color: var(--fc-link-color-hcm, LinkText);
     --fc-link-color-hover: var(--fc-link-color-hover-hcm, LinkText);
     --fc-link-color-active: var(--fc-link-color-active-hcm, ActiveText);
+    --fc-icon-success-color: var(--fc-icon-success-color-hcm, LinkText);
   }
 }
 panel#feature-callout {
@@ -552,6 +559,107 @@ div#feature-callout.hidden {
   background-color: var(--fc-primary-button-background-active);
   color: var(--fc-primary-button-color-active);
   border: 1px solid var(--fc-primary-button-border-active);
+}
+#feature-callout .screen[pos=callout] .action-checklist {
+  display: flex;
+  flex-direction: column;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-subtitle {
+  text-align: start;
+  margin-block-end: 8px;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-divider {
+  margin-block: 0;
+  width: 100%;
+  color: var(--fc-button-background);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-progress-bar {
+  width: 100%;
+  height: 6px;
+  padding-block: 0;
+  background-color: color-mix(in srgb, var(--fc-color) 25%, transparent);
+  opacity: 1;
+  transition: none;
+  border-radius: 8px;
+  display: flex;
+  justify-content: flex-start;
+  margin-block-end: 16px;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-progress-bar:dir(rtl) {
+  justify-content: flex-end;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-progress-bar .indicator {
+  width: var(--action-checklist-progress-bar-progress);
+  height: 100%;
+  background-color: var(--fc-accent-color);
+  border: 0;
+  border-radius: 8px;
+  opacity: 1;
+  transition: var(--progress-bar-transition);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items {
+  display: flex;
+  flex-direction: column;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button {
+  background: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-inline: 0;
+  margin-block: 4px;
+  border: none;
+  border-radius: 4px;
+  padding-block: 8px;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button:first-child {
+  margin-block-start: 0;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button:last-child {
+  margin-block-end: 0;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button:not(:disabled):hover {
+  background-color: var(--fc-button-background-hover);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button:disabled {
+  color: var(--fc-color);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .action-checklist-label-container {
+  display: flex;
+  align-items: center;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .action-checklist-label-container span {
+  text-align: start;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .action-checklist-label-container .check-icon-container {
+  margin-block-start: 2px;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .action-checklist-label-container .check-empty, #feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .action-checklist-label-container .check-filled {
+  margin-inline-end: 8px;
+  flex-shrink: 0;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .action-checklist-label-container .check-empty {
+  border-radius: 50%;
+  width: 0.75em;
+  height: 0.75em;
+  border: 2px solid color-mix(in srgb, var(--fc-color) 25%, transparent);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .action-checklist-label-container .check-filled {
+  background-image: url("chrome://global/skin/icons/check-filled.svg");
+  fill: var(--fc-icon-success-color);
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .external-link-icon, #feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .check-filled {
+  border: none;
+  width: 1em;
+  height: 1em;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  -moz-context-properties: fill;
+}
+#feature-callout .screen[pos=callout] .action-checklist .action-checklist-items button .external-link-icon-container .external-link-icon {
+  background-image: url("chrome://global/skin/icons/open-in-new.svg");
+  fill: var(--fc-color);
 }
 panel#feature-callout:is([side=top], [side=bottom]):not([hide-arrow=permanent]) {
   margin-inline: var(--panel-margin-offset);

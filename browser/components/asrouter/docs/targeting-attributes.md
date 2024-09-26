@@ -24,6 +24,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [devToolsOpenedCount](#devtoolsopenedcount)
 * [distributionId](#distributionid)
 * [doesAppNeedPin](#doesappneedpin)
+* [doesAppNeedPinUncached](#doesappneedpinuncached)
 * [doesAppNeedPrivatePin](#doesappneedprivatepin)
 * [firefoxVersion](#firefoxversion)
 * [fxViewButtonAreaType](#fxviewbuttonareatype)
@@ -38,6 +39,7 @@ Please note that some targeting attributes require stricter controls on the tele
 * [isBackgroundTaskMode](#isbackgroundtaskmode)
 * [isChinaRepack](#ischinarepack)
 * [isDefaultBrowser](#isdefaultbrowser)
+* [isDefaultBrowserUncached](#isdefaultbrowseruncached)
 * [isDefaultHandler](#isdefaulthandler)
 * [isDeviceMigration](#isdevicemigration)
 * [isFxAEnabled](#isfxaenabled)
@@ -235,6 +237,10 @@ Is Firefox the user's default browser?
 ```ts
 declare const isDefaultBrowser: boolean;
 ```
+
+### `isDefaultBrowserUncached`
+
+Behaves the same as `isDefaultBrowser`, but retrieves the current value directly from shell service instead of using the cached value. This may not be as performant.
 
 ### `isDefaultHandler`
 
@@ -970,6 +976,10 @@ user activity where the first entry is the total urls visited for that day.
 ### `doesAppNeedPin`
 
 Checks if Firefox app can be and isn't pinned to OS taskbar/dock or Windows start menu in MSIX builds.
+
+### `doesAppNeedPinUncached`
+
+Does the same as `doesAppNeedPin`, but retrieves the current value directly from shell service instead of using the cached value. This may not be as performant.
 
 ### `doesAppNeedPrivatePin`
 

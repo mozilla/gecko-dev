@@ -171,7 +171,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(6);
 /* harmony import */ var _LanguageSwitcher__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(10);
 /* harmony import */ var _SubmenuButton__WEBPACK_IMPORTED_MODULE_5__ = __webpack_require__(15);
-/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(19);
+/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_6__ = __webpack_require__(20);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -836,9 +836,11 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var _EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_12__ = __webpack_require__(16);
 /* harmony import */ var _AddonsPicker__WEBPACK_IMPORTED_MODULE_13__ = __webpack_require__(17);
 /* harmony import */ var _LinkParagraph__WEBPACK_IMPORTED_MODULE_14__ = __webpack_require__(18);
+/* harmony import */ var _ActionChecklist__WEBPACK_IMPORTED_MODULE_15__ = __webpack_require__(19);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
 
 
 
@@ -1098,6 +1100,9 @@ class ProtonScreen extends (react__WEBPACK_IMPORTED_MODULE_0___default().PureCom
     }) : null, content.tiles && content.tiles.type === "migration-wizard" ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_EmbeddedMigrationWizard__WEBPACK_IMPORTED_MODULE_12__.EmbeddedMigrationWizard, {
       handleAction: this.props.handleAction,
       content: content
+    }) : null, content.tiles && content.tiles.type === "action_checklist" && content.tiles.data ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_ActionChecklist__WEBPACK_IMPORTED_MODULE_15__.ActionChecklist, {
+      content: content,
+      message_id: this.props.messageId
     }) : null);
   }
   renderNoodles() {
@@ -2509,6 +2514,164 @@ const LinkParagraph = props => {
 
 /***/ }),
 /* 19 */
+/***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
+
+__webpack_require__.r(__webpack_exports__);
+/* harmony export */ __webpack_require__.d(__webpack_exports__, {
+/* harmony export */   ActionChecklist: () => (/* binding */ ActionChecklist),
+/* harmony export */   ActionChecklistItem: () => (/* binding */ ActionChecklistItem),
+/* harmony export */   ActionChecklistProgressBar: () => (/* binding */ ActionChecklistProgressBar)
+/* harmony export */ });
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(1);
+/* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _MSLocalized__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(5);
+/* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this file,
+ * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+async function evaluateTargeting(targeting) {
+  return await window.AWEvaluateAttributeTargeting(targeting);
+}
+const ActionChecklistItem = ({
+  item,
+  index,
+  handleAction,
+  showExternalLinkIcon
+}) => {
+  const [actionTargeting, setActionTargeting] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(true);
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    const setInitialTargetingValue = async () => {
+      setActionTargeting(await evaluateTargeting(item.targeting));
+    };
+    setInitialTargetingValue();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function onButtonClick(event) {
+    // Immediately set targeting to true to disable the button.
+    // It will re-evaluate its targeting on the next load.
+    setActionTargeting(true);
+    handleAction(event);
+  }
+  return (
+    /*#__PURE__*/
+    // if actionTargeting is false, we want the button to be enabled
+    // because it signifies that the action is not yet complete.
+    // If it is true, the action has been completed, so we can disable the button.
+    react__WEBPACK_IMPORTED_MODULE_0___default().createElement("button", {
+      id: item.id,
+      value: index,
+      key: item.id,
+      disabled: actionTargeting,
+      onClick: onButtonClick
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "action-checklist-label-container"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "check-icon-container"
+    }, actionTargeting ? /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "check-filled"
+    }) : /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "check-empty"
+    })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+      text: item.label
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("span", null))), !actionTargeting && showExternalLinkIcon && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "external-link-icon-container"
+    }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+      className: "external-link-icon"
+    })))
+  );
+};
+const ActionChecklistProgressBar = ({
+  progress
+}) => {
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "action-checklist-progress-bar"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("progress", {
+    className: "sr-only",
+    value: progress || 0,
+    max: "100"
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "indicator",
+    role: "presentation",
+    style: {
+      "--action-checklist-progress-bar-progress": `${progress || 0}%`
+    }
+  }));
+};
+const ActionChecklist = ({
+  content,
+  message_id
+}) => {
+  const tiles = content.tiles.data;
+  const [progressValue, setProgressValue] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
+  const [numberOfCompletedActions, setNumberOfCompletedActions] = (0,react__WEBPACK_IMPORTED_MODULE_0__.useState)(0);
+  function determineProgressValue() {
+    let newValue = numberOfCompletedActions / tiles.length * 100;
+    setProgressValue(newValue);
+  }
+
+  // This instance of useEffect is to evaluate the targeting of each individual action
+  // when the component is initially loaded so that we can accurately populate the progress bar.
+  // We're doing the heavy lifting here once on load, and keeping the rest of the information
+  // regarding how many actions are complete handy in state for quick access,
+  // and a lesser performance hit.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    let evaluateAllActionsTargeting = async () => {
+      let completedActions = await Promise.all(tiles.map(async item => await evaluateTargeting(item.targeting)));
+      let numCompletedActions = completedActions.filter(item => item).length;
+      setNumberOfCompletedActions(numCompletedActions);
+    };
+    evaluateAllActionsTargeting();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // This instance of useEffect is to initially update the progress bar,
+  // and to also update the progress bar each time an action is completed.
+  (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
+    determineProgressValue();
+  }, [numberOfCompletedActions]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleAction(event) {
+    let {
+      action,
+      source_id
+    } = content.tiles.data[event.currentTarget.value];
+    let {
+      type,
+      data
+    } = action;
+    setNumberOfCompletedActions(numberOfCompletedActions + 1);
+    _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.handleUserAction({
+      type,
+      data
+    });
+    _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__.AboutWelcomeUtils.sendActionTelemetry(message_id, source_id);
+  }
+  return /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "action-checklist"
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("hr", {
+    className: "action-checklist-divider"
+  }), content.action_checklist_subtitle && /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(_MSLocalized__WEBPACK_IMPORTED_MODULE_1__.Localized, {
+    text: content.action_checklist_subtitle
+  }, /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("p", {
+    className: "action-checklist-subtitle"
+  })), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(ActionChecklistProgressBar, {
+    progress: progressValue
+  }), /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement("div", {
+    className: "action-checklist-items"
+  }, tiles.map((item, index) => /*#__PURE__*/react__WEBPACK_IMPORTED_MODULE_0___default().createElement(ActionChecklistItem, {
+    key: item.id,
+    index: index,
+    item: item,
+    handleAction: handleAction,
+    showExternalLinkIcon: item.showExternalLinkIcon
+  }))));
+};
+
+/***/ }),
+/* 20 */
 /***/ ((__unused_webpack___webpack_module__, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -2551,7 +2714,7 @@ function addUtmParams(url, utmTerm) {
 
 
 /***/ }),
-/* 20 */
+/* 21 */
 /***/ ((__unused_webpack_module, __webpack_exports__, __webpack_require__) => {
 
 __webpack_require__.r(__webpack_exports__);
@@ -2562,7 +2725,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__webpack_require__.n(react__WEBPACK_IMPORTED_MODULE_0__);
 /* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(3);
 /* harmony import */ var _MultiStageProtonScreen__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(6);
-/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(19);
+/* harmony import */ var _lib_addUtmParams_mjs__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(20);
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
@@ -2748,7 +2911,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony import */ var react_dom__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(react_dom__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _lib_aboutwelcome_utils_mjs__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(3);
 /* harmony import */ var _components_MultiStageAboutWelcome__WEBPACK_IMPORTED_MODULE_3__ = __webpack_require__(4);
-/* harmony import */ var _components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(20);
+/* harmony import */ var _components_ReturnToAMO__WEBPACK_IMPORTED_MODULE_4__ = __webpack_require__(21);
 function _extends() { _extends = Object.assign ? Object.assign.bind() : function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; }; return _extends.apply(this, arguments); }
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,

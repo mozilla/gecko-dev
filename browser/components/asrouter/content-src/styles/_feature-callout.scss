@@ -498,6 +498,130 @@
           }
         }
       }
+
+      .action-checklist {
+        display: flex;
+        flex-direction: column;
+
+        .action-checklist-subtitle {
+          text-align: start;
+          margin-block-end: 8px;
+        }
+
+        .action-checklist-divider {
+          margin-block: 0;
+          width: 100%;
+          color: var(--fc-button-background);
+        }
+
+        .action-checklist-progress-bar {
+          width: 100%;
+          height: 6px;
+          padding-block: 0;
+          background-color: color-mix(in srgb, var(--fc-color) 25%, transparent);
+          opacity: 1;
+          transition: none;
+          border-radius: 8px;
+          display: flex;
+          justify-content: flex-start;
+          margin-block-end: 16px;
+
+          &:dir(rtl) {
+            justify-content: flex-end;
+          }
+
+          .indicator {
+            width: var(--action-checklist-progress-bar-progress);
+            height: 100%;
+            background-color: var(--fc-accent-color);
+            border: 0;
+            border-radius: 8px;
+            opacity: 1;
+            transition: var(--progress-bar-transition);
+          }
+        }
+
+        .action-checklist-items {
+          display: flex;
+          flex-direction: column;
+
+          button {
+            &:first-child {
+              margin-block-start: 0;
+            }
+
+            &:last-child {
+              margin-block-end: 0;
+            }
+
+            // TODO: This is (very) likely to change
+            &:not(:disabled):hover {
+              background-color: var(--fc-button-background-hover);
+            }
+
+            &:disabled {
+              color: var(--fc-color);
+            }
+
+            .action-checklist-label-container {
+              display: flex;
+              align-items: center;
+
+              span {
+                text-align: start;
+              }
+
+              .check-icon-container {
+                margin-block-start: 2px;
+              }
+
+              .check-empty, .check-filled {
+                margin-inline-end: 8px;
+                flex-shrink: 0;
+              }
+
+              .check-empty {
+                border-radius: 50%;
+                width: 0.75em;
+                height: 0.75em;
+                border: 2px solid color-mix(in srgb, var(--fc-color) 25%, transparent);
+              }
+
+              .check-filled {
+                background-image: url('chrome://global/skin/icons/check-filled.svg');
+                fill: var(--fc-icon-success-color);
+              }
+            }
+
+            .external-link-icon, .check-filled {
+              border: none;
+              width: 1em;
+              height: 1em;
+              background-repeat: no-repeat;
+              background-position: center;
+              background-size: contain;
+              -moz-context-properties: fill;
+            }
+
+            .external-link-icon-container {
+              .external-link-icon {
+                background-image: url('chrome://global/skin/icons/open-in-new.svg');
+                fill: var(--fc-color);
+              }
+            }
+
+            background: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-inline: 0;
+            margin-block: 4px;
+            border: none;
+            border-radius: 4px;
+            padding-block: 8px;
+          }
+        }
+      }
     }
   }
 

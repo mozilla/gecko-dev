@@ -21,6 +21,7 @@ import { AdditionalCTA } from "./AdditionalCTA";
 import { EmbeddedMigrationWizard } from "./EmbeddedMigrationWizard";
 import { AddonsPicker } from "./AddonsPicker";
 import { LinkParagraph } from "./LinkParagraph";
+import { ActionChecklist } from "./ActionChecklist";
 
 export const MultiStageProtonScreen = props => {
   const { autoAdvance, handleAction, order } = props;
@@ -335,6 +336,14 @@ export class ProtonScreen extends React.PureComponent {
           <EmbeddedMigrationWizard
             handleAction={this.props.handleAction}
             content={content}
+          />
+        ) : null}
+        {content.tiles &&
+        content.tiles.type === "action_checklist" &&
+        content.tiles.data ? (
+          <ActionChecklist
+            content={content}
+            message_id={this.props.messageId}
           />
         ) : null}
       </React.Fragment>

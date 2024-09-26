@@ -1722,6 +1722,54 @@ add_task(async function check_totalSearches() {
   );
 });
 
+add_task(async function checkisDefaultBrowserUncached() {
+  const expected = ShellService.isDefaultBrowser();
+  const result = await ASRouterTargeting.Environment.isDefaultBrowserUncached;
+  is(
+    typeof result,
+    "boolean",
+    "isDefaultBrowserUncached should be a boolean value"
+  );
+  is(
+    result,
+    expected,
+    "isDefaultBrowserUncached should be equal to ShellService.isDefaultBrowser()"
+  );
+  const message = {
+    id: "foo",
+    targeting: `isDefaultBrowserUncached == ${expected.toString()}`,
+  };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item by isDefaultBrowserUncached"
+  );
+});
+
+add_task(async function check_doesAppNeedPin() {
+  const expected = await ShellService.doesAppNeedPin();
+  const result = await ASRouterTargeting.Environment.doesAppNeedPinUncached;
+  is(
+    typeof (await ASRouterTargeting.Environment.doesAppNeedPinUncached),
+    "boolean",
+    "Should return a boolean"
+  );
+  is(
+    result,
+    expected,
+    "doesAppNeedPinUncached should be equal to ShellService.doesAppNeedPin()"
+  );
+  const message = {
+    id: "foo",
+    targeting: `doesAppNeedPinUncached == ${expected.toString()}`,
+  };
+  is(
+    await ASRouterTargeting.findMatchingMessage({ messages: [message] }),
+    message,
+    "should select correct item by doesAppNeedPinUncached"
+  );
+});
+
 add_task(
   async function check_activeNotifications_newtab_topic_selection_modal_shown_past() {
     // 10 minutes ago
