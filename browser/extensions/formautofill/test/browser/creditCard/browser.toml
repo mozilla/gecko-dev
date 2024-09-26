@@ -87,17 +87,16 @@ skip-if = ["true"]
 
 ["browser_creditCard_fill_cancel_login.js"]
 skip-if = [
-  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && !debug",
-  "os == 'linux' && os_version == '18.04'",
-  "win10_2009",
-  "win11_2009",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && asan",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && tsan",
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt",
 ]
 
 ["browser_creditCard_heuristics.js"]
 skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"] # Bug 1714221
 
 ["browser_creditCard_osAuth.js"]
-skip-if = ["os == 'linux'"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
 
 ["browser_creditCard_submission_autodetect_type.js"]
 skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"]
@@ -106,9 +105,6 @@ skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"
 skip-if = ["os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug"]
 
 ["browser_creditCard_telemetry.js"]
-skip-if = [
-  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && !debug", # Bug 1714221
-]
 
 ["browser_editCreditCardDialog.js"]
 skip-if = ["true"] # perma-fail see Bug 1600059

@@ -41,7 +41,7 @@ https_first_disabled = true
 tags = "geolocation"
 
 ["browser_bug1236512.js"]
-skip-if = ["os != 'mac'"]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"]
 
 ["browser_bug1238427.js"]
 https_first_disabled = true

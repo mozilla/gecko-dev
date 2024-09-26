@@ -16,21 +16,15 @@ prefs = [
 ]
 
 ["browser_abort_visibility.js"]
-skip-if = [
-  "win11_2009", # Test not relevant on 1903+
-]
+run-if = ["os != 'win'"] # Test not relevant on 1903+
 
 ["browser_fido_appid_extension.js"]
-skip-if = [
-  "win11_2009", # Test not relevant on 1903+
-]
+run-if = ["os != 'win'"] # Test not relevant on 1903+
 
 ["browser_webauthn_conditional_mediation.js"]
 
 ["browser_webauthn_ipaddress.js"]
 
 ["browser_webauthn_prompts.js"]
-skip-if = [,
-  "os == 'linux' && os_version == '18.04' && processor == 'x86_64'", # bug 1855383
-  "win11_2009", # Test not relevant on 1903+
-]
+run-if = ["os != 'win'"] # Test not relevant on 1903+
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # bug 1855383

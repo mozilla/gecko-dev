@@ -8,7 +8,7 @@ support-files = [
 ]
 
 ["browser_CrashService_crash.js"]
-skip-if = ["!crashreporter"]
+run-if = ["crashreporter"]
 
 ["browser_ProcessPriorityManager.js"]
 # The Process Priority Manager is only enabled for Windows, Linux, and MacOS so far.
@@ -41,11 +41,12 @@ support-files = [
 ]
 
 ["browser_crash_oopiframe.js"]
+run-if = ["crashreporter"]
 skip-if = [
-  "!crashreporter",
   "verify",
-  "os == 'win'", # Bug 1775837
-  "os == 'linux'", # Bug 1775837
+  "os == 'win' && os_version == '11.2009' && processor == 'x86_64' && asan", # Bug 1775837
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && asan", # Bug 1775837
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && tsan", # Bug 1775837
 ]
 
 ["browser_domainPolicy.js"]
@@ -87,7 +88,7 @@ skip-if = [
 support-files = ["browser_wpi_base.js"]
 
 ["browser_wpi_isolate_high_value.js"]
-skip-if = ["!fission"] # Only relevant for fission
+run-if = ["fission"] # Only relevant for fission
 support-files = ["browser_wpi_base.js"]
 
 ["browser_wpi_isolate_nothing.js"]

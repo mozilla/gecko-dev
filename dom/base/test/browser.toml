@@ -64,15 +64,14 @@ support-files = [
 ]
 
 ["browser_bug1691214.js"]
-skip-if = [
-  "os == 'win'", # Bug 1692963
-  "os == 'mac'", # Bug 1692963
-  "os == 'linux'", # Bug 1775696
-]
-
 support-files = [
   "file_bug1691214.html",
   "file_bug1700871.html",
+]
+skip-if = [
+  "os == 'win'", # Bug 1692963
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && socketprocess_networking", # Bug 1775696
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64' && opt", # Bug 1775696
 ]
 
 ["browser_bug1703472.js"]

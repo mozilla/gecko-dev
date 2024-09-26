@@ -6,7 +6,10 @@ support-files = [
 ]
 
 ["browser_alt_keyup_in_content.js"]
-skip-if = ["os == 'mac'"]
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64' && opt",
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'",
+]
 
 ["browser_beforeinput_by_execCommand_in_contentscript.js"]
 support-files = [
