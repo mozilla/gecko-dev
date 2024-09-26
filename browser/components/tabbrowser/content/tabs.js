@@ -53,7 +53,7 @@
         return this.allTabs.filter(this.arrowScrollbox._canScrollToElement);
       };
       this.arrowScrollbox._canScrollToElement = tab => {
-        return !tab._pinnedUnscrollable && !tab.hidden;
+        return !tab._pinnedUnscrollable && tab.visible;
       };
 
       this.baseConnect();
@@ -196,7 +196,7 @@
 
       if (
         event.detail.changed.includes("soundplaying") &&
-        event.target.hidden
+        !event.target.visible
       ) {
         this._hiddenSoundPlayingStatusChanged(event.target);
       }
@@ -1293,15 +1293,11 @@
       return this.hasAttribute("overflow");
     }
 
-    isVisibleTab(tab) {
-      return tab && !tab.hidden && !tab.closing && !tab.group?.collapsed;
-    }
-
     _getVisibleTabs() {
       if (!this._visibleTabs) {
         this._visibleTabs = Array.prototype.filter.call(
           this.allTabs,
-          this.isVisibleTab
+          tab => tab.visible
         );
       }
       return this._visibleTabs;
@@ -2275,7 +2271,7 @@
     }
 
     _notifyBackgroundTab(aTab) {
-      if (aTab.pinned || aTab.hidden || !this.overflowing) {
+      if (aTab.pinned || !aTab.visible || !this.overflowing) {
         return;
       }
 
@@ -2567,7 +2563,7 @@
 
     _hiddenSoundPlayingStatusChanged(tab, opts) {
       let closed = opts && opts.closed;
-      if (!closed && tab.soundPlaying && tab.hidden) {
+      if (!closed && tab.soundPlaying && !tab.visible) {
         this._hiddenSoundPlayingTabs.add(tab);
         this.toggleAttribute("hiddensoundplaying", true);
       } else {

@@ -3597,7 +3597,7 @@
           let lastRelatedTab =
             openerTab && this._lastRelatedTabMap.get(openerTab);
           let previousTab = lastRelatedTab || openerTab || this.selectedTab;
-          if (!previousTab.hidden) {
+          if (previousTab.visible) {
             index = previousTab._tPos + 1;
           } else if (previousTab == FirefoxViewHandler.tab) {
             index = 0;
@@ -3658,7 +3658,7 @@
 
     getTabsToTheStartFrom(aTab) {
       let tabsToStart = [];
-      if (aTab.hidden) {
+      if (!aTab.visible) {
         return tabsToStart;
       }
       let tabs = this.visibleTabs;
@@ -3682,7 +3682,7 @@
 
     getTabsToTheEndFrom(aTab) {
       let tabsToEnd = [];
-      if (aTab.hidden) {
+      if (!aTab.visible) {
         return tabsToEnd;
       }
       let tabs = this.visibleTabs;
@@ -4155,7 +4155,8 @@
         return;
       }
 
-      let isLastTab = !aTab.hidden && this.visibleTabs.length == 1;
+      let isVisibleTab = aTab.visible;
+      let isLastTab = isVisibleTab && this.visibleTabs.length == 1;
       // We have to sample the tab width now, since _beginRemoveTab might
       // end up modifying the DOM in such a way that aTab gets a new
       // frame created for it (for example, by updating the visually selected
@@ -4179,7 +4180,7 @@
       let lockTabSizing =
         !this.tabContainer.verticalMode &&
         !aTab.pinned &&
-        !aTab.hidden &&
+        isVisibleTab &&
         aTab._fullyOpen &&
         triggeringEvent?.inputSource == MouseEvent.MOZ_SOURCE_MOUSE &&
         triggeringEvent?.target.closest(".tabbrowser-tab");
@@ -4194,7 +4195,7 @@
         gReduceMotion ||
         isLastTab ||
         aTab.pinned ||
-        aTab.hidden ||
+        !isVisibleTab ||
         this.tabContainer.verticalMode ||
         this._removingTabs.size >
           3 /* don't want lots of concurrent animations */ ||
@@ -4310,7 +4311,7 @@
 
       var closeWindow = false;
       var newTab = false;
-      if (!aTab.hidden && this.visibleTabs.length == 1) {
+      if (aTab.visible && this.visibleTabs.length == 1) {
         closeWindow =
           closeWindowWithLastTab != null
             ? closeWindowWithLastTab
@@ -4686,7 +4687,7 @@
       }
 
       if (
-        this.tabContainer.isVisibleTab(aTab.owner) &&
+        aTab.owner?.visible &&
         !excludeTabs.has(aTab.owner) &&
         Services.prefs.getBoolPref("browser.tabs.selectOwnerOnClose")
       ) {
@@ -5386,7 +5387,7 @@
     moveTabForward() {
       let nextTab = this.tabContainer.findNextTab(this.selectedTab, {
         direction: 1,
-        filter: tab => !tab.hidden,
+        filter: tab => tab.visible,
       });
 
       if (nextTab) {
@@ -5454,7 +5455,7 @@
     moveTabBackward() {
       let previousTab = this.tabContainer.findNextTab(this.selectedTab, {
         direction: -1,
-        filter: tab => !tab.hidden,
+        filter: tab => tab.visible,
       });
 
       if (previousTab) {
@@ -5729,7 +5730,7 @@
     },
 
     _mayTabBeMultiselected(aTab) {
-      return aTab.isConnected && !aTab.closing && !aTab.hidden;
+      return aTab.visible;
     },
 
     _startMultiSelectChange() {

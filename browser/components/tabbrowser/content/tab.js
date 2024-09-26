@@ -194,6 +194,15 @@
       return this.hasAttribute("pinned");
     }
 
+    get visible() {
+      return (
+        this.isConnected &&
+        !this.hidden &&
+        !this.closing &&
+        !this.group?.collapsed
+      );
+    }
+
     get hidden() {
       // This getter makes `hidden` read-only
       return super.hidden;
@@ -377,7 +386,7 @@
         });
       }
 
-      if (this.hidden || this.closing) {
+      if (!this.visible) {
         return;
       }
 
