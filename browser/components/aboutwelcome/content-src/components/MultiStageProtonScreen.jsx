@@ -39,6 +39,20 @@ export const MultiStageProtonScreen = props => {
     return () => {};
   }, [autoAdvance, handleAction, order]);
 
+  // Set narrow on an outer element to allow for use of SCSS outer selector and
+  // consolidation of styles for small screen widths with those for messages
+  // configured to always be narrow
+  if (props.content.narrow) {
+    document
+      .querySelector("#multi-stage-message-root")
+      ?.setAttribute("narrow", "");
+  } else {
+    // Clear narrow attribute in case it was set by a previous screen
+    document
+      .querySelector("#multi-stage-message-root")
+      ?.removeAttribute("narrow");
+  }
+
   return (
     <ProtonScreen
       content={props.content}

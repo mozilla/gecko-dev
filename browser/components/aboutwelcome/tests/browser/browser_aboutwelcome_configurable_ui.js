@@ -816,6 +816,73 @@ add_task(async function test_aboutwelcome_fullscreen_property() {
 });
 
 /**
+ * Test rendering a split screen with that uses narrow mode
+ */
+add_task(async function test_aboutwelcome_narrow_property() {
+  const logo = JSON.stringify([
+    makeTestContent("TEST_LOGO_STEP", {
+      logo: {
+        height: "chrome://branding/content/icon64.png",
+        imageURL: "50px",
+      },
+    }),
+  ]);
+  let screens = [
+    makeTestContent(`TEST_FULLSCREEN`, {
+      narrow: true,
+      position: "split",
+      logo,
+    }),
+  ];
+
+  let doExperimentCleanup = await ExperimentFakes.enrollWithFeatureConfig({
+    featureId: "aboutwelcome",
+    value: { enabled: true, screens },
+  });
+
+  let browser = await openAboutWelcome();
+
+  await test_screen_content(
+    browser,
+    "render #multi-stage-message-root container with 'narrow' attribute",
+    // Expected selectors:
+    ["#multi-stage-message-root[narrow]"]
+  );
+
+  // Ensure elements get narrow styles
+  await test_element_styles(
+    browser,
+    ".section-main",
+    // Expected styles:
+    {
+      "margin-top": "0px",
+      width: "400px", // $split-section-width
+    }
+  );
+
+  await test_element_styles(
+    browser,
+    ".section-secondary",
+    // Expected styles:
+    {
+      height: "100px", // $small-secondary-section-height
+    }
+  );
+
+  await test_element_styles(
+    browser,
+    ".logo-container",
+    // Expected styles:
+    {
+      "text-align": "center",
+    }
+  );
+
+  doExperimentCleanup();
+  browser.closeBrowser();
+});
+
+/**
  * Test configurability of single select picker icons styles
  */
 add_task(async function test_aboutwelcome_single_select_icon_styles() {

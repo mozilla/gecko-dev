@@ -611,8 +611,16 @@ html {
             line-height: 16.5px;
             color: #5B5B66;
 
-            @media only screen and (width <= 800px) {
+            @mixin narrow-legal-paragraph {
               padding-inline: 30px;
+            }
+
+            @media only screen and (width <= 800px) {
+              @include narrow-legal-paragraph;
+            }
+
+            [narrow] & {
+              @include narrow-legal-paragraph;
             }
 
             @media (prefers-color-scheme: dark) {
@@ -820,8 +828,16 @@ html {
             margin: 25px 0;
             padding-bottom: 30px;
 
-            @media only screen and (width <= 800px) {
+            @mixin narrow-hero-img {
               padding-bottom: unset;
+            }
+
+            @media only screen and (width <= 800px) {
+              @include narrow-hero-img;
+            }
+
+            [narrow] & {
+              @include narrow-hero-img;
             }
           }
         }
@@ -840,7 +856,7 @@ html {
           }
         }
 
-        @media only screen and (width <= 800px) {
+        @mixin narrow-multi-select-container {
           flex-direction: column;
           align-self: center;
           align-items: start;
@@ -853,6 +869,14 @@ html {
           .multi-select-item p {
             margin-inline-start: 0;
           }
+        }
+
+        @media only screen and (width <= 800px) {
+          @include narrow-multi-select-container;
+        }
+
+        [narrow] & {
+          @include narrow-multi-select-container;
         }
       }
 
@@ -1010,7 +1034,7 @@ html {
           }
         }
 
-        @media only screen and (width <= 800px) {
+        @mixin narrow-split-fullscreen {
           .section-main,
           .section-secondary {
             width: 100%;
@@ -1052,9 +1076,17 @@ html {
             }
           }
         }
+
+        @media only screen and (width <= 800px) {
+          @include narrow-split-fullscreen;
+        }
+
+        [narrow] & {
+          @include narrow-split-fullscreen;
+        }
       }
 
-      @media only screen and (width <= 800px) {
+      @mixin narrow-split {
         &:where(:not([no-rdm])) {
           flex-direction: column;
           min-height: $small-main-section-height + $small-secondary-section-height;
@@ -1293,6 +1325,14 @@ html {
         }
       }
 
+      @media only screen and (width <= 800px) {
+        @include narrow-split;
+      }
+
+      [narrow] & {
+        @include narrow-split;
+      }
+
       @media only screen and (height <= 650px) {
         // Hide the "Sign in" button on the welcome screen when it would
         // otherwise overlap the screen. We'd reposition it, but then it would
@@ -1306,12 +1346,22 @@ html {
 
         // Reposition the "Sign in" button on the welcome screen to move inside
         // the screen when it would otherwise overlap the screen.
-        @media (width <= 620px) {
+        @mixin extra-narrow-secondary-cta {
           .section-main .secondary-cta.top {
             position: absolute;
             padding: 0;
             top: 0;
             inset-inline-end: 0;
+          }
+        }
+
+        @media (width <= 620px) {
+          @include extra-narrow-secondary-cta;
+        }
+
+        [narrow] & {
+          @media (width <= 620px) {
+            @include extra-narrow-secondary-cta;
           }
         }
       }
@@ -1349,8 +1399,16 @@ html {
   .rtamo-icon {
     text-align: start;
 
-    @media only screen and (width <= 800px) {
+    @mixin narrow-rtamo-icon {
       text-align: center;
+    }
+
+    @media only screen and (width <= 800px) {
+      @include narrow-rtamo-icon;
+    }
+
+    [narrow] & {
+      @include narrow-rtamo-icon;
     }
   }
 
@@ -1526,9 +1584,9 @@ html {
     // single select only specific styles
     &.single-select:not(.wallpaper, .theme) {
       flex-direction: row;
-      justify-content: flex-start;
       padding-top: 5px;
       gap: 10px;
+      justify-content: center;
 
       .select-item {
         position: relative;

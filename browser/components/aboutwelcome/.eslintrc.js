@@ -115,6 +115,7 @@ module.exports = {
           "no-rdm",
           "above-button",
           "fullscreen",
+          "narrow",
           "srcset",
         ],
       },

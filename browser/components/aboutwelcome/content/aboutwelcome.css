@@ -1456,6 +1456,9 @@ html {
     padding-inline: 30px;
   }
 }
+[narrow] .onboardingContainer .screen[pos=split] .section-main .main-content .legal-paragraph {
+  padding-inline: 30px;
+}
 @media (prefers-color-scheme: dark) {
   .onboardingContainer .screen[pos=split] .section-main .main-content .legal-paragraph {
     color: #CFCFD8;
@@ -1669,6 +1672,9 @@ html {
     padding-bottom: unset;
   }
 }
+[narrow] .onboardingContainer .screen[pos=split] .section-secondary .hero-image img {
+  padding-bottom: unset;
+}
 .onboardingContainer .screen[pos=split] .multi-select-container {
   margin-inline: 0 10px;
 }
@@ -1694,6 +1700,19 @@ html {
   .onboardingContainer .screen[pos=split] .multi-select-container .multi-select-item p {
     margin-inline-start: 0;
   }
+}
+[narrow] .onboardingContainer .screen[pos=split] .multi-select-container {
+  flex-direction: column;
+  align-self: center;
+  align-items: start;
+  justify-content: center;
+  width: 240px;
+  padding: 0 30px;
+  margin-inline: 0;
+  box-sizing: content-box;
+}
+[narrow] .onboardingContainer .screen[pos=split] .multi-select-container .multi-select-item p {
+  margin-inline-start: 0;
 }
 .onboardingContainer .screen[pos=split] .tiles-single-select-container {
   margin-block: -20px auto;
@@ -1841,6 +1860,35 @@ html {
     width: 25%;
     max-height: 75%;
   }
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-main,
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-secondary {
+  width: 100%;
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-main {
+  height: 75%;
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-main[hide-secondary-section=responsive] {
+  height: 100%;
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-main[hide-secondary-section=responsive] .main-content {
+  border-radius: 0;
+  padding: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .action-buttons .secondary-cta {
+  inset-block-end: 0;
+  inset-inline-end: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-main .main-content .main-content-inner {
+  padding-inline: 55px;
+  margin-inline: auto;
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-secondary {
+  --mr-secondary-position: center var(--mr-secondary-background-position-y) / 50%;
+}
+[narrow] .onboardingContainer .screen[pos=split][fullscreen] .section-secondary .hero-image img {
+  width: 25%;
+  max-height: 75%;
 }
 @media only screen and (width <= 800px) {
   .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) {
@@ -2029,6 +2077,191 @@ html {
     margin-inline-start: 0;
   }
 }
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) {
+  flex-direction: column;
+  min-height: 550px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))::before {
+  width: 400px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))[reverse-split] {
+  flex-direction: column;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))[reverse-split] .section-secondary {
+  border-radius: 8px 8px 0 0;
+  margin: auto;
+  margin-bottom: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))[reverse-split] .section-secondary:dir(rtl) {
+  margin: auto;
+  margin-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))[reverse-split] .section-main {
+  margin: auto;
+  margin-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm]))[reverse-split] .section-main:dir(rtl) {
+  margin: auto;
+  margin-top: 0;
+  border-radius: 0 0 8px 8px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-secondary,
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main {
+  width: 400px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-secondary {
+  --mr-secondary-background-position-y: top;
+  --mr-secondary-position: center var(--mr-secondary-background-position-y) / 75%;
+  border-radius: 8px 8px 0 0;
+  margin: auto;
+  margin-bottom: 0;
+  height: 100px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-secondary .hero-image img {
+  margin: 6px 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-secondary .message-text {
+  margin-inline: auto;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-secondary h1 {
+  font-size: 35px;
+  text-align: center;
+  white-space: normal;
+  margin-inline: auto;
+  margin-block: 14px 6px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-secondary:dir(rtl) {
+  margin: auto;
+  margin-bottom: 0;
+  border-radius: 8px 8px 0 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-secondary.with-secondary-section-hidden {
+  display: none;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) migration-wizard::part(deck) {
+  min-width: 330px;
+  margin-inline: 36px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main {
+  margin: auto;
+  margin-top: 0;
+  height: 450px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main migration-wizard::part(buttons) {
+  flex-direction: column;
+  margin-inline: 46px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main[hide-secondary-section=responsive] {
+  height: 550px;
+  margin: auto;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main[hide-secondary-section=responsive]:dir(rtl) {
+  margin: auto;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main[hide-secondary-section=responsive] .main-content {
+  padding: 50px 0 0;
+  border-radius: 8px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main[hide-secondary-section=responsive] .main-content:dir(rtl) {
+  border-radius: 8px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content {
+  border-radius: 0 0 8px 8px;
+  padding: 30px 0 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .main-content-inner {
+  align-items: center;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .logo-container {
+  text-align: center;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .logo-container .brand-logo {
+  min-height: 25px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .logo-container .brand-logo, [narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .logo-container .brand-logo:dir(rtl) {
+  background-position: center;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .logo-container .logo-alt {
+  width: inherit;
+  height: inherit;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .welcome-text {
+  align-items: center;
+  text-align: center;
+  margin-inline: 0;
+  padding-inline: 30px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .welcome-text .spacer-bottom,
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .welcome-text .spacer-top {
+  display: none;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .action-buttons {
+  text-align: center;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .action-buttons .checkbox-container {
+  display: none;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .action-buttons .secondary-cta {
+  position: relative;
+  margin-block: 10px 0;
+  bottom: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .primary,
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .secondary {
+  min-width: 240px;
+  margin-inline: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .steps {
+  padding-block: 0;
+  margin: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .main-content .steps.progress-bar {
+  margin-inline: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .additional-cta.cta-link {
+  align-self: center;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main .dismiss-button {
+  top: -100px;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main:dir(rtl) {
+  margin: auto;
+  margin-top: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split]:where(:not([no-rdm])) .section-main:dir(rtl) .main-content {
+  border-radius: 0 0 8px 8px;
+}
+[narrow] .onboardingContainer .screen[pos=split][no-rdm] {
+  width: 800px;
+}
+[narrow] .onboardingContainer .screen[pos=split][no-rdm][reverse-split] {
+  flex-direction: row-reverse;
+}
+[narrow] .onboardingContainer .screen[pos=split][no-rdm][reverse-split] .section-main {
+  margin: auto;
+  margin-inline-end: 0;
+  border-radius: 8px 0 0 8px;
+}
+[narrow] .onboardingContainer .screen[pos=split][no-rdm][reverse-split] .section-main .main-content {
+  border-radius: inherit;
+}
+[narrow] .onboardingContainer .screen[pos=split][no-rdm][reverse-split] .section-main:dir(rtl) {
+  border-radius: 0 8px 8px 0;
+  margin: auto;
+  margin-inline-end: 0;
+}
+[narrow] .onboardingContainer .screen[pos=split][no-rdm][reverse-split] .section-secondary {
+  margin: auto;
+  margin-inline-start: 0;
+  border-radius: 0 8px 8px 0;
+}
+[narrow] .onboardingContainer .screen[pos=split][no-rdm][reverse-split] .section-secondary:dir(rtl) {
+  border-radius: 8px 0 0 8px;
+  margin: auto;
+  margin-inline-start: 0;
+}
 @media only screen and (height <= 650px) and (800px <= width <= 990px) {
   .onboardingContainer .screen[pos=split] .section-main .secondary-cta.top {
     display: none;
@@ -2036,6 +2269,14 @@ html {
 }
 @media only screen and (height <= 650px) and (width <= 620px) {
   .onboardingContainer .screen[pos=split] .section-main .secondary-cta.top {
+    position: absolute;
+    padding: 0;
+    top: 0;
+    inset-inline-end: 0;
+  }
+}
+@media only screen and (height <= 650px) and (width <= 620px) {
+  [narrow] .onboardingContainer .screen[pos=split] .section-main .secondary-cta.top {
     position: absolute;
     padding: 0;
     top: 0;
@@ -2072,6 +2313,9 @@ html {
   .onboardingContainer .rtamo-icon {
     text-align: center;
   }
+}
+[narrow] .onboardingContainer .rtamo-icon {
+  text-align: center;
 }
 .onboardingContainer .text-link {
   background: none;
@@ -2225,9 +2469,9 @@ html {
 }
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) {
   flex-direction: row;
-  justify-content: flex-start;
   padding-top: 5px;
   gap: 10px;
+  justify-content: center;
 }
 .onboardingContainer .tiles-single-select-section.single-select:not(.wallpaper, .theme) .select-item {
   position: relative;
