@@ -160,13 +160,16 @@ internal class BookmarksMiddleware(
                     preReductionState.bookmarksEditBookmarkState != null -> {
                         navController.popBackStack()
                         scope.launch(ioDispatcher) {
-                            preReductionState.createBookmarkInfo()?.also {
-                                bookmarksStorage.updateNode(
-                                    guid = preReductionState.bookmarksEditBookmarkState.bookmark.guid,
-                                    info = it,
-                                )
+                            val newBookmarkTitle = preReductionState.bookmarksEditBookmarkState.bookmark.title
+                            if (newBookmarkTitle.isNotEmpty()) {
+                                preReductionState.createBookmarkInfo()?.also {
+                                    bookmarksStorage.updateNode(
+                                        guid = preReductionState.bookmarksEditBookmarkState.bookmark.guid,
+                                        info = it,
+                                    )
+                                }
+                                context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
                             }
-                            context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
                         }
                     }
                     // list screen cases

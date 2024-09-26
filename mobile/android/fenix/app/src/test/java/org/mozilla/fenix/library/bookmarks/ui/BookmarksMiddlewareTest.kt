@@ -431,6 +431,35 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen is edit bookmark and the bookmark title is empty WHEN back is clicked THEN navigate back`() = runTest {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+        val newBookmarkTitle = ""
+
+        val bookmark = store.state.bookmarkItems.first { it is BookmarkItem.Bookmark } as BookmarkItem.Bookmark
+        store.dispatch(EditBookmarkClicked(bookmark = bookmark))
+        store.dispatch(EditBookmarkAction.TitleChanged(title = newBookmarkTitle))
+
+        assertNotNull(store.state.bookmarksEditBookmarkState)
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage, never()).updateNode(
+            guid = "item guid 0",
+            info = BookmarkInfo(
+                parentGuid = BookmarkRoot.Mobile.id,
+                position = 5u,
+                title = "",
+                url = "item url 0",
+            ),
+        )
+
+        verify(navController).popBackStack()
+        assertNull(store.state.bookmarksEditBookmarkState)
+    }
+
+    @Test
     fun `GIVEN current screen is list and the top-level is loaded WHEN back is clicked THEN exit bookmarks`() = runTestOnMain {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
