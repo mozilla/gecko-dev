@@ -2055,6 +2055,22 @@ top_sites: # Replacement for PingCentre "topsites-impression|click" pings.
     send_in_pings:
       - top-sites
 
+  context_id:
+    type: uuid
+    description: >
+      An identifier to identify users for Contextual Services user interaction pings.
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - najiang@mozilla.com
+    expires: never
+    send_in_pings:
+      - top-sites
+
 activity_stream:
   end_session:
     type: event
@@ -2829,19 +2845,3 @@ activity_stream:
     expires: never
     extra_keys: *activity_stream_event_extra
     telemetry_mirror: Activity_stream_Event_Unpin
-
-  context_id:
-    type: uuid
-    description: >
-      An identifier to identify users for Contextual Services user interaction pings.
-    bugs:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
-    data_reviews:
-      - https://bugzilla.mozilla.org/show_bug.cgi?id=1836283
-    data_sensitivity:
-      - technical
-    notification_emails:
-      - najiang@mozilla.com
-    expires: never
-    send_in_pings:
-      - top-sites
