@@ -82,7 +82,7 @@ class _BuiltInThemes {
       lazy.AddonManager.maybeInstallBuiltinAddon(
         activeThemeID,
         activeBuiltInTheme.version,
-        `resource://builtin-themes/${activeBuiltInTheme.path}`
+        activeBuiltInTheme.path
       );
     }
   }
