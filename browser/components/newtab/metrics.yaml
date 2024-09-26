@@ -2055,6 +2055,781 @@ top_sites: # Replacement for PingCentre "topsites-impression|click" pings.
     send_in_pings:
       - top-sites
 
+activity_stream:
+  end_session:
+    type: event
+    description: >
+      This is recorded with every session ended in Activity Stream.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.end#session.
+    bugs:
+      - https://bugzil.la/1429497
+      - https://bugzil.la/1429489
+    data_reviews:
+      - https://bugzil.la/1429497
+      - https://bugzil.la/1429489
+    notification_emails:
+      - najiang@mozilla.com
+      - msamuel@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The session duration. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: quantity
+      addon_version:
+        description: >
+          The Activity Stream addon version.
+        type: string
+      session_id:
+        description: >
+          The ID of the Activity Stream session in which the event occurred
+        type: string
+      page:
+        description: >
+          about:home or about_newtab - the page where the event occurred
+        type: string
+      user_prefs:
+        description: >
+          An integer representaing a user's A-S settings.
+        type: quantity
+    telemetry_mirror: Activity_stream_End_Session
+
+  event_archive_from_pocket:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#ARCHIVE_FROM_POCKET.
+    bugs: &activity_stream_event_bugs
+      - https://bugzil.la/1429497
+      - https://bugzil.la/1429489
+      - https://bugzil.la/1514732
+    data_reviews: &activity_stream_event_data_reviews
+      - https://bugzil.la/1429497
+      - https://bugzil.la/1429489
+      - https://bugzil.la/1514732
+    notification_emails: &activity_stream_event_emails
+      - najiang@mozilla.com
+      - msamuel@mozilla.com
+      - rrosario@mozilla.com
+    expires: never
+    extra_keys: &activity_stream_event_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      addon_version:
+        description: >
+          The Activity Stream addon version.
+        type: string
+      session_id:
+        description: >
+          The ID of the Activity Stream session in which the event occurred
+        type: string
+      page:
+        description: >
+          about:home or about_newtab - the page where the event occurred
+        type: string
+      user_prefs:
+        description: >
+          An integer representaing a user's A-S settings.
+        type: quantity
+      action_position:
+        description: >
+          The index of card receiving interactions.
+        type: quantity
+    telemetry_mirror: Activity_stream_Event_ArchiveFromPocket
+
+  event_block:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#BLOCK.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Block
+
+  event_bookmark_add:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#BOOKMARK_ADD.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_BookmarkAdd
+
+  event_bookmark_delete:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#BOOKMARK_DELETE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_BookmarkDelete
+
+  event_click:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#CLICK.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Click
+
+  event_click_privacy_info:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#CLICK_PRIVACY_INFO.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_ClickPrivacyInfo
+
+  event_close_newtab_prefs:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#CLOSE_NEWTAB_PREFS.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_CloseNewtabPrefs
+
+  event_show_personalize:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SHOW_PERSONALIZE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_ShowPersonalize
+
+  event_hide_personalize:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#HIDE_PERSONALIZE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_HidePersonalize
+
+  event_delete:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DELETE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Delete
+
+  event_delete_from_pocket:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DELETE_FROM_POCKET.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_DeleteFromPocket
+
+  event_delete_confirm:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DELETE_CONFIRM.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_DeleteConfirm
+
+  event_dialog_cancel:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DIALOG_CANCEL.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_DialogCancel
+
+  event_dialog_open:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DIALOG_OPEN.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_DialogOpen
+
+  event_drag:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DRAG.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Drag
+
+  event_drop:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DROP.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Drop
+
+  event_impression:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#IMPRESSION.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Impression
+
+  event_migration_cancel:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MIGRATION_CANCEL.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MigrationCancel
+
+  event_migration_start:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MIGRATION_START.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MigrationStart
+
+  event_open_newtab_prefs:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#OPEN_NEWTAB_PREFS.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_OpenNewtabPrefs
+
+  event_open_new_window:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#OPEN_NEW_WINDOW.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_OpenNewWindow
+
+  event_open_private_window:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#OPEN_PRIVATE_WINDOW.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_OpenPrivateWindow
+
+  event_pin:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#PIN.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Pin
+
+  event_pocket_thumbs_down:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#POCKET_THUMBS_DOWN.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_PocketThumbsDown
+
+  event_pocket_thumbs_up:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#POCKET_THUMBS_UP.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_PocketThumbsUp
+
+  event_pref_changed:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#PREF_CHANGED.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_PrefChanged
+
+  event_preview_request:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#PREVIEW_REQUEST.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_PreviewRequest
+
+  event_save_to_pocket:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SAVE_TO_POCKET.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_SaveToPocket
+
+  event_search:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SEARCH.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Search
+
+  event_search_edit_add:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SEARCH_EDIT_ADD.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_SearchEditAdd
+
+  event_search_edit_close:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SEARCH_EDIT_CLOSE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_SearchEditClose
+
+  event_search_edit_delete:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SEARCH_EDIT_DELETE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_SearchEditDelete
+
+  event_search_handoff:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SEARCH_HANDOFF.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_SearchHandoff
+
+  event_show_privacy_info:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SHOW_PRIVACY_INFO.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_ShowPrivacyInfo
+
+  event_skipped_signin:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SKIPPED_SIGNIN.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_SkippedSignin
+
+  event_submit_email:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#SUBMIT_EMAIL.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_SubmitEmail
+
+  event_disclaimer_acked:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#DISCLAIMER_ACKED.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_DisclaimerAcked
+
+  event_menu_add_search:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_ADD_SEARCH.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuAddSearch
+
+  event_menu_add_topsite:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_ADD_TOPSITE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuAddTopsite
+
+  event_menu_collapse:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_COLLAPSE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuCollapse
+
+  event_menu_expand:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_EXPAND.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuExpand
+
+  event_menu_manage:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_MANAGE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuManage
+
+  event_menu_move_down:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_MOVE_DOWN.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuMoveDown
+
+  event_menu_move_up:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_MOVE_UP.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuMoveUp
+
+  event_menu_privacy_notice:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_PRIVACY_NOTICE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuPrivacyNotice
+
+  event_menu_remove:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#MENU_REMOVE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_MenuRemove
+
+  event_top_sites_edit:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#TOP_SITES_EDIT.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_TopSitesEdit
+
+  event_top_sites_edit_close:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#TOP_SITES_EDIT_CLOSE.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_TopSitesEditClose
+
+  event_topsite_sponsor_info:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#TOPSITE_SPONSOR_INFO.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_TopsiteSponsorInfo
+
+  event_unpin:
+    type: event
+    description: >
+      This is recorded with every user interaction on Activity Stream
+      elements.
+      This event was generated to correspond to the Legacy Telemetry event
+      activity_stream.event#UNPIN.
+    bugs: *activity_stream_event_bugs
+    data_reviews: *activity_stream_event_data_reviews
+    notification_emails: *activity_stream_event_emails
+    expires: never
+    extra_keys: *activity_stream_event_extra
+    telemetry_mirror: Activity_stream_Event_Unpin
+
   context_id:
     type: uuid
     description: >
