@@ -2886,9 +2886,19 @@ ED_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
 /* ============== New for 3.0029 =============================== */
 
 SECStatus
-X25519_DerivePublicKey(SECItem *privateKey, SECItem *publicKey)
+X25519_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
 {
     if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
         return SECFailure;
     return (vector->p_X25519_DerivePublicKey)(privateKey, publicKey);
+}
+
+/* ============== New for 3.0030 =============================== */
+
+SECStatus
+EC_DerivePublicKey(const SECItem *privateKey, const ECParams *ecParams, SECItem *publicKey)
+{
+    if (!vector && PR_SUCCESS != freebl_RunLoaderOnce())
+        return SECFailure;
+    return (vector->p_EC_DerivePublicKey)(privateKey, ecParams, publicKey);
 }

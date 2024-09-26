@@ -603,6 +603,13 @@ VERIFIED_SRCS += Hacl_Hash_SHA3.c Hacl_P256.c Hacl_P384.c Hacl_P521.c libcrux_ml
 VERIFIED_SRCS += Hacl_Ed25519.c
 VERIFIED_SRCS += Hacl_Curve25519_51.c
 
+# Bug 1918767 / Bug 1918711 - by setting KRML_MUSTINLINE=inline here, we
+# avoid it being defined to `inline __forceinline` (for msvc) or `inline
+# __attribute__((always_inline))` (for gcc/clang) in
+# verified/karamel/include/krml/internal/target.h. These other
+# configurations can cause excessive stack usage.
+DEFINES += -DKRML_MUSTINLINE=inline
+
 ifeq (,$(filter-out x86_64 aarch64,$(CPU_ARCH)))
     # All 64-bit architectures get the 64 bit version.
     ECL_SRCS += curve25519_64.c

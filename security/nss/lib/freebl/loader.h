@@ -925,8 +925,11 @@ struct FREEBLVectorStr {
     SECStatus (*p_ED_DerivePublicKey)(const SECItem *privateKey, SECItem *publicKey);
     /* Version 3.028 came to here */
 
-    SECStatus (*p_X25519_DerivePublicKey)(SECItem *privateKey, SECItem *publicKey);
+    SECStatus (*p_X25519_DerivePublicKey)(const SECItem *privateKey, SECItem *publicKey);
     /* Version 3.029 came to here */
+
+    SECStatus (*p_EC_DerivePublicKey)(const SECItem *privateKey, const ECParams *ecParams, SECItem *publicKey);
+    /* Version 3.030 came to here */
 
     /* Add new function pointers at the end of this struct and bump
      * FREEBL_VERSION at the beginning of this file. */

@@ -1942,7 +1942,10 @@ extern SECStatus ED_VerifyMessage(ECPublicKey *key, const SECItem *signature,
  */
 extern SECStatus ED_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey);
 
-extern SECStatus X25519_DerivePublicKey(SECItem *privateKey, SECItem *publicKey);
+extern SECStatus X25519_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey);
+
+/* Public key derivation is supported only for the curves supporting pt_mul method. */
+extern SECStatus EC_DerivePublicKey(const SECItem *privateKey, const ECParams *ecParams, SECItem *publicKey);
 
 SEC_END_PROTOS
 

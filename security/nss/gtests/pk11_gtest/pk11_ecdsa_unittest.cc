@@ -199,11 +199,17 @@ TEST_F(Pkcs11EcdsaSha256Test, ImportPointNotOnCurve) {
   EXPECT_EQ(handle, static_cast<decltype(handle)>(CK_INVALID_HANDLE));
 };
 
-// Importing a private key in PKCS#8 format must fail when no point is given.
-// PK11 currently offers no APIs to derive raw public keys from private values.
+// Importing a private key in PKCS#8 without a public key will succeed
+// if NSS supports public key derivation for this curve (P-256, P-384, P-521).
 TEST_F(Pkcs11EcdsaSha256Test, ImportNoPublicKey) {
   DataBuffer k(kP256Pkcs8NoPublicKey, sizeof(kP256Pkcs8NoPublicKey));
-  EXPECT_FALSE(ImportPrivateKey(k));
+  ScopedSECKEYPrivateKey privKey(ImportPrivateKey(k));
+  ASSERT_TRUE(privKey);
+
+  ScopedSECKEYPublicKey pubKey(SECKEY_ConvertToPublicKey(privKey.get()));
+  ASSERT_TRUE(pubKey);
+
+  ASSERT_NE(pubKey->u.ec.publicValue.len, 0ul);
 };
 
 // Importing a public key in SPKI format must fail when id-ecPublicKey is

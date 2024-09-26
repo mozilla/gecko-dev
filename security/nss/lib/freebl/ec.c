@@ -675,7 +675,7 @@ ED_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
 }
 
 SECStatus
-X25519_DerivePublicKey(SECItem *privateKey, SECItem *publicKey)
+X25519_DerivePublicKey(const SECItem *privateKey, SECItem *publicKey)
 {
     SECStatus rv = SECFailure;
     /* Currently supporting only X25519.*/
@@ -690,6 +690,23 @@ X25519_DerivePublicKey(SECItem *privateKey, SECItem *publicKey)
         return SECFailure;
     }
 
-    rv = method->pt_mul(publicKey, privateKey, NULL);
+    rv = method->pt_mul(publicKey, (SECItem *) privateKey, NULL);
     return rv;
+}
+
+SECStatus
+EC_DerivePublicKey(const SECItem *privateKey, const ECParams *ecParams, SECItem *publicKey)
+{
+    if (!privateKey || privateKey->len == 0 || !publicKey || publicKey->len != EC_GetPointSize(ecParams)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    const ECMethod *method = ec_get_method_from_name(ecParams->name);
+    if (method == NULL || method->pt_mul == NULL) {
+        PORT_SetError(SEC_ERROR_UNSUPPORTED_ELLIPTIC_CURVE);
+        return SECFailure;
+    }
+
+    return method->pt_mul(publicKey, (SECItem *) privateKey, NULL);
 }

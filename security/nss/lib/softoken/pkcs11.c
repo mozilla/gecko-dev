@@ -2153,11 +2153,22 @@ sftk_mkPrivKey(SFTKObject *object, CK_KEY_TYPE key_type, CK_RV *crvp)
             if (sftk_hasAttribute(object, CKA_NSS_DB)) {
                 crv = sftk_Attribute2SSecItem(arena, &privKey->u.ec.publicValue,
                                               object, CKA_NSS_DB);
-                if (crv != CKR_OK)
+                if (crv != CKR_OK) {
                     break;
+                }
                 /* privKey was zero'd so public value is already set to NULL, 0
                  * if we don't set it explicitly */
+            } else if (key_type == CKK_EC) {
+                /* as no public key was provided during the import, we need to derive it here.
+                 See: PK11_ImportAndReturnPrivateKey*/
+                (void)SECITEM_AllocItem(arena, &privKey->u.ec.publicValue, EC_GetPointSize(&privKey->u.ec.ecParams));
+                rv = EC_DerivePublicKey(&privKey->u.ec.privateValue, &privKey->u.ec.ecParams, &privKey->u.ec.publicValue);
+                if (rv != SECSuccess) {
+                    break;
+                }
+                sftk_forceAttribute(object, CKA_NSS_DB, privKey->u.ec.publicValue.data, privKey->u.ec.publicValue.len);
             }
+
             rv = DER_SetUInteger(privKey->arena, &privKey->u.ec.version,
                                  NSSLOWKEY_EC_PRIVATE_KEY_VERSION);
             if (rv != SECSuccess) {

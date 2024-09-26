@@ -1860,8 +1860,6 @@ getSvrWrappingKey(unsigned int symWrapMechIndex,
                   cacheDesc *cache,
                   PRUint32 lockTime)
 {
-    PRUint32 ndx = (wrapKeyIndex * SSL_NUM_WRAP_MECHS) + symWrapMechIndex;
-    SSLWrappedSymWrappingKey *pwswk = cache->keyCacheData + ndx;
     PRUint32 now = 0;
     PRBool rv = SECFailure;
 
@@ -1869,6 +1867,10 @@ getSvrWrappingKey(unsigned int symWrapMechIndex,
         PORT_SetError(SSL_ERROR_SERVER_CACHE_NOT_CONFIGURED);
         return SECFailure;
     }
+
+    PRUint32 ndx = (wrapKeyIndex * SSL_NUM_WRAP_MECHS) + symWrapMechIndex;
+    SSLWrappedSymWrappingKey *pwswk = cache->keyCacheData + ndx;
+
     if (!lockTime) {
         now = LockSidCacheLock(cache->keyCacheLock, 0);
         if (!now) {

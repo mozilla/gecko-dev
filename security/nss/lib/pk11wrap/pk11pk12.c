@@ -490,15 +490,15 @@ PK11_ImportAndReturnPrivateKey(PK11SlotInfo *slot, SECKEYRawPrivateKey *lpk,
             break;
         case ecKey:
             keyType = CKK_EC;
-            if (lpk->u.ec.publicValue.len == 0) {
-                goto loser;
+            if (lpk->u.ec.publicValue.len != 0) {
+                if (PK11_IsInternal(slot)) {
+                    PK11_SETATTRS(attrs, CKA_NSS_DB,
+                                  lpk->u.ec.publicValue.data,
+                                  lpk->u.ec.publicValue.len);
+                    attrs++;
+                }
             }
-            if (PK11_IsInternal(slot)) {
-                PK11_SETATTRS(attrs, CKA_NSS_DB,
-                              lpk->u.ec.publicValue.data,
-                              lpk->u.ec.publicValue.len);
-                attrs++;
-            }
+
             PK11_SETATTRS(attrs, CKA_SIGN, (keyUsage & KU_DIGITAL_SIGNATURE) ? &cktrue : &ckfalse,
                           sizeof(CK_BBOOL));
             attrs++;
