@@ -297,7 +297,36 @@ fn arc_segment_tri(path: &mut PathBuilder, xc: f32, yc: f32, radius: f32, a: Vec
     }
     let mut t = Target{ last_point, last_normal: initial_normal, xc, yc, path };
     let mut f = CBezierFlattener::new(&bezier, &mut t, 0.25);
-    f.Flatten(true);
+    if f.GetFirstTangent().is_none() {
+        // the curve is not completely degenerate but degenerate enough that we can't flatten it
+
+        // draw a single triangle for the curve
+        let width = 0.5;
+        let next_point = GpPointR { x: (xc + r_cos_b), y: (yc + r_sin_b) };
+        if path.aa {
+            // XXX: This code will potentially run into trouble if the radius is very small
+            // but the general case suffers the same problem.
+            path.ramp(
+                next_point.x - b.x * width,
+                next_point.y - b.y * width,
+                next_point.x + b.x * width,
+                next_point.y + b.y * width,
+                last_point.x + a.x * width,
+                last_point.y + a.y * width,
+                last_point.x - a.x * width,
+                last_point.y - a.y * width);
+            path.push_tri(
+                last_point.x - a.x * 0.5,
+                last_point.y - a.y * 0.5,
+                next_point.x - b.x * 0.5,
+                next_point.y - b.y * 0.5,
+                xc, yc);
+        } else {
+            path.push_tri(last_point.x, last_point.y, next_point.x, next_point.y, xc, yc);
+        }
+    } else {
+        f.Flatten(true);
+    }
 
 }
 
@@ -1005,6 +1034,14 @@ fn round_join_less_than_90deg() {
     stroker.line_to(Point::new(20., 40.));
     stroker.line_to_capped(Point::new(30., 50.));
     assert_eq!(stroker.finish().len(), 81);
+}
+
+#[test]
+fn small_arc() {
+    let mut path = PathBuilder::new(1.);
+    let start = 0_f32;
+    let end = 0.001_f32;
+    arc(&mut path, 0., 0., 0.5, Vector::new(start.cos(), start.sin()), Vector::new(end.cos(), end.sin()));
 }
 
 #[test]

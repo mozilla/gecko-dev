@@ -751,8 +751,7 @@ TryDoubleTheStep(&mut self) -> bool
 //      The failure here is benign.
 //
 //------------------------------------------------------------------------------
-#[allow(dead_code)]
-fn GetFirstTangent(&self) -> Option<GpPointR> // Tangent vector there
+pub fn GetFirstTangent(&self) -> Option<GpPointR> // Tangent vector there
     
 {
 
@@ -828,3 +827,32 @@ fn GetLastTangent(&self) -> GpPointR
 }
 
 
+#[test]
+#[cfg_attr(debug_assertions, should_panic)]
+fn degenerate_tangent() {
+    struct Sink;
+    impl CFlatteningSink for Sink {
+        fn AcceptPointAndTangent(&mut self,
+            _: &GpPointR, _: &GpPointR, _: bool
+            ) -> HRESULT {
+            return S_OK;
+        }
+
+        fn AcceptPoint(&mut self,
+            _: &GpPointR, _: f32,
+            _: &mut bool, _: bool
+        ) -> HRESULT {
+            return S_OK;
+        }
+    }
+
+    let bezier = CBezier {m_ptB: [
+            GpPointR {x: 0., y: 0.0005},
+            GpPointR {x: 0., y: 0.0005},
+            GpPointR {x: 0., y: 0.},
+            GpPointR {x: 0., y: 0.}]};
+
+    let mut t = Sink;
+    let mut f = CBezierFlattener::new(&bezier, &mut t, 0.25);
+    f.Flatten(true);
+}
