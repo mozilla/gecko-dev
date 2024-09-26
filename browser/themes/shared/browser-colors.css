@@ -18,11 +18,6 @@
   --short-notification-background: #0250BB;
   --short-notification-gradient: #9059FF;
 
-  --buttons-destructive-bgcolor: #e22850;
-  --buttons-destructive-hover-bgcolor: #c50042;
-  --buttons-destructive-active-bgcolor: #810220;
-  --buttons-destructive-color: #fbfbfe;
-
   --urlbar-box-bgcolor: var(--button-background-color-hover);
   --urlbar-box-focus-bgcolor: var(--button-background-color);
   --urlbar-box-hover-bgcolor: var(--button-background-color-hover);

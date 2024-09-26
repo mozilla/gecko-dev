@@ -52,9 +52,9 @@
   --urlbarView-labeled-row-label-top: calc(-1.27em - 2px);
   --urlbarView-labeled-tip-margin-top-extra: 8px;
 
-  --urlbarView-action-button-background-color: light-dark(white, #1C1B22);
-  --urlbarView-action-button-hover-color: light-dark(#5B5B66, var(--buttons-destructive-color));
-  --urlbarView-action-button-selected-color: light-dark(#1C1B22, var(--urlbarView-action-button-background-color));
+  --urlbarView-action-button-background-color: light-dark(white, var(--color-gray-90));
+  --urlbarView-action-button-hover-color: light-dark(var(--color-gray-70), var(--color-gray-05));
+  --urlbarView-action-button-selected-color: light-dark(var(--color-gray-90), var(--urlbarView-action-button-background-color));
 
   &:-moz-locale-dir(rtl) {
     --urlbarView-action-slide-in-distance: -200px;

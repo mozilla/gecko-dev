@@ -1595,20 +1595,24 @@ radiogroup:focus-visible > .subviewradio[focused="true"] {
 
 #PanelUI-panic-view-button {
   appearance: none;
-  background-color: var(--buttons-destructive-bgcolor);
-  color: var(--buttons-destructive-color);
+  background-color: var(--button-background-color-destructive);
+  color: var(--button-text-color-destructive);
   margin: 5px 15px 11px;
-  border: 1px solid transparent;
+  border: 1px solid var(--button-border-color-destructive);
   border-radius: 4px;
   font-weight: 600;
   padding: 10px;
 
   &:hover {
-    background-color: var(--buttons-destructive-hover-bgcolor);
+    background-color: var(--button-background-color-destructive-hover);
+    color: var(--button-text-color-destructive-hover);
+    border-color: var(--button-border-color-destructive-hover);
   }
 
   &:hover:active {
-    background-color: var(--buttons-destructive-active-bgcolor);
+    background-color: var(--button-background-color-destructive-active);
+    color: var(--button-text-color-destructive-active);
+    border-color: var(--button-border-color-destructive-active);
   }
 
   &:focus-visible {
