@@ -12816,7 +12816,7 @@
 # imgRequest::BoostPriority and AdjustPriorityForImages.
 - name: network.fetchpriority.adjustments.images.low
   type: int32_t
-  value: 0
+  value: 10
   mirror: always
 - name: network.fetchpriority.adjustments.images.high
   type: int32_t

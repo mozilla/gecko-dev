@@ -60,7 +60,7 @@
       // See network.fetchpriority.adjustments.images and
       // nsHttpHandler::UrgencyFromCoSFlags.
       let normalUrgency = 4;
-      assert_equals(await getUrgencyForImage("low"), normalUrgency + 1);
+      assert_equals(await getUrgencyForImage("low"), normalUrgency + 2);
       assert_equals(await getUrgencyForImage("high"), normalUrgency - 1);
       assert_equals(await getUrgencyForImage("auto"), normalUrgency + 1);
       assert_equals(await getUrgencyForImage(), normalUrgency + 1);

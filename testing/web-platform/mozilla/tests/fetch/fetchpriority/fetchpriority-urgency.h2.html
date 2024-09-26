@@ -36,7 +36,7 @@
             // See kExpectedRequestsOfInitialLoad from image-test-data.js and
             // nsHttpHandler::UrgencyFromCoSFlags.
             let normalUrgency = 4;
-            assert_equals(getElementUrgencyFromSize("image_low"), normalUrgency + 1);
+            assert_equals(getElementUrgencyFromSize("image_low"), normalUrgency + 2);
             assert_equals(getElementUrgencyFromSize("image_high"), normalUrgency - 1);
             assert_equals(getElementUrgencyFromSize("image_auto"), normalUrgency + 1);
             assert_equals(getElementUrgencyFromSize("image_default"), normalUrgency + 1);
