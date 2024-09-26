@@ -38,3 +38,11 @@ Firefox CI suites.
 The user preference file takes precedence over the recommended
 preferences, meaning any user-defined preference value will not be
 overridden.
+
+### `remote.retry-on-abort`
+
+This preference defines whether certain IPC calls from the parent process to
+content processes should be retried when a browsing context is replaced due
+to cross-origin navigation, or made inactive when a page moved into BFCache.
+
+Introduced in Firefox 132, the preference is set to `true` by default.
