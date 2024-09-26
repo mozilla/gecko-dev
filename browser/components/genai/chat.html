@@ -10,6 +10,7 @@
       content="default-src resource: chrome:; object-src 'none'; img-src data: chrome:;"
     />
     <meta name="color-scheme" content="light dark" />
+    <title data-l10n-id="genai-chatbot-title"></title>
     <link rel="localization" href="branding/brand.ftl" />
     <link rel="localization" href="browser/newtab/onboarding.ftl" />
     <link rel="localization" href="browser/genai.ftl" />
@@ -30,13 +31,15 @@
   </head>
   <body>
     <div id="header">
-      <select id="provider"></select>
+      <select data-l10n-id="genai-header-provider-menu" id="provider"></select>
       <moz-button
+        data-l10n-id="genai-header-options-button"
         iconsrc="chrome://global/skin/icons/more.svg"
         id="header-more"
         type="icon"
       ></moz-button>
       <moz-button
+        data-l10n-id="genai-header-close-button"
         iconsrc="chrome://global/skin/icons/close.svg"
         id="header-close"
         type="icon"

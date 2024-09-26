@@ -389,15 +389,21 @@ export const GenAI = {
               shortcuts.toggleAttribute("active");
               const vbox = popup.querySelector("vbox");
               vbox.innerHTML = "";
+
+              const addItem = () => {
+                const button = vbox.appendChild(
+                  document.createXULElement("toolbarbutton")
+                );
+                button.className = "subviewbutton";
+                button.setAttribute("tabindex", "0");
+                return button;
+              };
+
               const context = await this.addAskChatItems(
                 browser,
                 shortcuts.data,
                 promptObj => {
-                  const button = vbox.appendChild(
-                    document.createXULElement("toolbarbutton")
-                  );
-                  button.className = "subviewbutton";
-                  button.setAttribute("tabindex", "0");
+                  const button = addItem();
                   button.textContent = promptObj.label;
                   return button;
                 },
@@ -407,7 +413,6 @@ export const GenAI = {
 
               // Add custom input box if configured
               if (lazy.chatShortcutsCustom) {
-                vbox.appendChild(document.createXULElement("toolbarseparator"));
                 const input = vbox.appendChild(document.createElement("input"));
                 const provider = this.chatProviders.get(
                   lazy.chatProvider
@@ -426,6 +431,14 @@ export const GenAI = {
                   hide();
                 });
               }
+
+              // Allow hiding these shortcuts
+              vbox.appendChild(document.createXULElement("toolbarseparator"));
+              const hider = addItem();
+              document.l10n.setAttributes(hider, "genai-shortcuts-hide");
+              hider.addEventListener("command", () =>
+                Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false)
+              );
 
               popup.openPopup(shortcuts);
               popup.addEventListener(

@@ -21,6 +21,11 @@ XPCOMUtils.defineLazyPreferenceGetter(
   null,
   renderProviders
 );
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "shortcutsPref",
+  "browser.ml.chat.shortcuts"
+);
 
 ChromeUtils.defineLazyGetter(
   lazy,
@@ -70,7 +75,7 @@ async function renderProviders() {
   select.innerHTML = "";
   let selected = false;
 
-  const addOption = (text, val) => {
+  const addOption = (text = "", val = "") => {
     const option = select.appendChild(document.createElement("option"));
     option.textContent = text;
     option.value = val;
@@ -97,6 +102,10 @@ async function renderProviders() {
     }
   }
 
+  // Add extra controls after the providers
+  addOption("---").disabled = true;
+  document.l10n.setAttributes(addOption(), "genai-provider-view-details");
+
   // Update provider telemetry
   const providerId = lazy.GenAI.getProviderId(lazy.providerPref);
   Glean.genaiChatbot.provider.set(providerId);
@@ -114,11 +123,76 @@ async function renderProviders() {
   return select;
 }
 
+function renderMore() {
+  const button = document.getElementById("header-more");
+  button.addEventListener("click", () => {
+    const topDoc = topChromeWindow.document;
+    let menu = topDoc.getElementById("chatbot-menupopup");
+    if (!menu) {
+      menu = topDoc
+        .getElementById("mainPopupSet")
+        .appendChild(topDoc.createXULElement("menupopup"));
+      menu.id = "chatbot-menupopup";
+      node.menu = menu;
+    }
+    menu.innerHTML = "";
+
+    const provider = lazy.GenAI.chatProviders.get(lazy.providerPref)?.name;
+    [
+      [
+        "menuitem",
+        [
+          provider
+            ? "genai-options-reload-provider"
+            : "genai-options-reload-generic",
+          { provider },
+        ],
+        () => request(),
+      ],
+      ["menuseparator"],
+      [
+        "menuitem",
+        ["genai-options-show-shortcut"],
+        () => Services.prefs.setBoolPref("browser.ml.chat.shortcuts", true),
+        lazy.shortcutsPref,
+      ],
+      [
+        "menuitem",
+        ["genai-options-hide-shortcut"],
+        () => Services.prefs.setBoolPref("browser.ml.chat.shortcuts", false),
+        !lazy.shortcutsPref,
+      ],
+      ["menuseparator"],
+      [
+        "menuitem",
+        ["genai-options-about-chatbot"],
+        () => openLink(lazy.supportLink),
+      ],
+    ].forEach(([type, l10n, command, checked]) => {
+      const item = menu.appendChild(topDoc.createXULElement(type));
+      if (type == "menuitem") {
+        document.l10n.setAttributes(item, ...l10n);
+        item.addEventListener("command", command);
+        if (checked) {
+          item.setAttribute("checked", true);
+        }
+      }
+    });
+    menu.openPopup(button, "after_start");
+  });
+}
+
 function handleChange({ target }) {
   const { value } = target;
   switch (target) {
     case node.provider:
-      Services.prefs.setStringPref("browser.ml.chat.provider", value);
+      // Special behavior to show first screen of onboarding
+      if (value == "") {
+        target.value = lazy.providerPref;
+        showOnboarding(1);
+      } else {
+        Services.prefs.setStringPref("browser.ml.chat.provider", value);
+      }
       break;
   }
 }
@@ -130,6 +204,7 @@ var browserPromise = new Promise((resolve, reject) => {
     try {
       node.chat = renderChat();
       node.provider = await renderProviders();
+      renderMore();
       resolve(node.chat);
       document
         .getElementById("header-close")
@@ -147,15 +222,21 @@ var browserPromise = new Promise((resolve, reject) => {
   });
 });
 
-addEventListener("unload", () =>
+addEventListener("unload", () => {
+  node.menu?.remove();
   Glean.genaiChatbot.sidebarToggle.record({
     opened: false,
     provider: lazy.GenAI.getProviderId(),
     reason: "unload",
-  })
-);
+  });
+});
 
-function showOnboarding() {
+/**
+ * Show onboarding screens
+ *
+ * @param {number} length optional show fewer screens
+ */
+function showOnboarding(length) {
   // Insert onboarding container and render with script
   const root = document.createElement("div");
   root.id = "multi-stage-message-root";
@@ -281,7 +362,7 @@ function showOnboarding() {
               progress_bar: true,
             },
           },
-        ],
+        ].slice(0, length),
       };
     },
     AWGetInstalledAddons() {},

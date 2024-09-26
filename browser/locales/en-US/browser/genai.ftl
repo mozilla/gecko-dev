@@ -62,6 +62,35 @@ genai-input-ask-generic =
 genai-input-ask-provider =
     .placeholder = Ask { $provider }…
 
+genai-shortcuts-hide =
+    .label = Hide chatbot shortcut
+
+## Chatbot header
+
+genai-chatbot-title = AI chatbot
+genai-header-provider-menu =
+    .title = Choose a chatbot
+genai-header-options-button =
+    .title = Open menu
+genai-header-close-button =
+    .title = Close
+
+genai-provider-view-details =
+    .label = View chatbot details
+genai-provider-about-chatbots =
+    .label = About these chatbots
+genai-options-reload-generic =
+    .label = Reload AI chatbot
+# $provider (string) - name of the provider
+genai-options-reload-provider =
+    .label = Reload { $provider }
+genai-options-show-shortcut =
+    .label = Show shortcut when selecting text
+genai-options-hide-shortcut =
+    .label = Hide shortcut when selecting text
+genai-options-about-chatbot =
+    .label = About AI chatbots in { -brand-short-name }
+
 ## Chatbot onboarding
 
 genai-onboarding-header = Summarize, brainstorm, and more as you browse
