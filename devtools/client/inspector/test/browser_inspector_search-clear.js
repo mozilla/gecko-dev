@@ -25,7 +25,7 @@ const TEST_URI = "data:application/xhtml+xml;charset=utf-8," + encodeURI(XHTML);
 // clear button is shown correctly
 add_task(async function () {
   const { inspector } = await openInspectorForURL(TEST_URI);
-  const { searchBox, searchClearButton } = inspector;
+  const { searchBox, searchClearButton, search } = inspector;
 
   await focusSearchBoxUsingShortcut(inspector.panelWin);
 
@@ -55,5 +55,34 @@ add_task(async function () {
   ok(
     searchClearButton.hidden,
     "The clear button is hidden when no word is in searchBox"
+  );
+
+  info("Check that clear button is keyboard accessible");
+  onSearchProcessingDone = inspector.searchSuggestions.once("processing-done");
+  EventUtils.synthesizeKey("w", {}, inspector.panelWin);
+  await onSearchProcessingDone;
+
+  ok(
+    !searchClearButton.hidden,
+    "The clear button is shown when some word is in searchBox"
+  );
+
+  info("Focus clear button with Tab");
+  EventUtils.synthesizeKey("VK_TAB", {}, inspector.panelWin);
+  is(
+    inspector.panelDoc.activeElement,
+    searchClearButton,
+    "Search clear button is focused"
+  );
+
+  info("Hit Enter to clear search input");
+  const onSearchCleared = search.once("search-cleared");
+  EventUtils.synthesizeKey("VK_RETURN", {}, inspector.panelWin);
+  await onSearchCleared;
+  is(searchBox.value, "", "input was cleared");
+  is(
+    inspector.panelDoc.activeElement,
+    searchBox,
+    "input is focused after hitting the clear button"
   );
 });

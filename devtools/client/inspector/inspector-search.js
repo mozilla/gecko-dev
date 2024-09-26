@@ -126,6 +126,7 @@ InspectorSearch.prototype = {
   _onClearSearch() {
     this.searchBox.parentNode.classList.remove("devtools-searchbox-no-match");
     this.searchBox.value = "";
+    this.searchBox.focus();
     this.searchClearButton.hidden = true;
     this.emit("search-cleared");
   },
