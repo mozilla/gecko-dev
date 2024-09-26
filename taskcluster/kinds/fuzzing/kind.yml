@@ -69,7 +69,9 @@ tasks:
             subsuite: fuzzing
         fetches:
             build:
-                - target.tar.bz2
+                - artifact: target.tar.bz2
+                - artifact: target.gtest.tests.tar.gz
+                - artifact: target.mozinfo.json
 
     grizzly-linux32-debug:
         platform: linux32/debug
@@ -86,7 +88,9 @@ tasks:
             subsuite: fuzzing
         fetches:
             build:
-                - target.tar.bz2
+                - artifact: target.tar.bz2
+                - artifact: target.gtest.tests.tar.gz
+                - artifact: target.mozinfo.json
 
     grizzly-linux64-opt:
         platform: linux64/asan
@@ -102,7 +106,9 @@ tasks:
             subsuite: fuzzing
         fetches:
             build:
-                - target.tar.bz2
+                - artifact: target.tar.bz2
+                - artifact: target.gtest.tests.tar.gz
+                - artifact: target.mozinfo.json
 
     grizzly-linux64-debug:
         platform: linux64/debug
@@ -118,7 +124,9 @@ tasks:
             subsuite: fuzzing
         fetches:
             build:
-                - target.tar.bz2
+                - artifact: target.tar.bz2
+                - artifact: target.gtest.tests.tar.gz
+                - artifact: target.mozinfo.json
 
     grizzly-linux64-tsan:
         platform: linux64/tsan
@@ -134,7 +142,9 @@ tasks:
             subsuite: fuzzing
         fetches:
             build:
-                - target.tar.bz2
+                - artifact: target.tar.bz2
+                - artifact: target.gtest.tests.tar.gz
+                - artifact: target.mozinfo.json
 
     grizzly-windows-debug:
         platform: windows2012-32/debug
