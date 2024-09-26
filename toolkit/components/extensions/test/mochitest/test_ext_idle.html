@@ -17,18 +17,17 @@ add_task(async function testWithRealIdleService() {
     browser.test.onMessage.addListener(async (msg, ...args) => {
       let detectionInterval = args[0];
       if (msg == "addListener") {
+        browser.idle.setDetectionInterval(detectionInterval);
         let status = await browser.idle.queryState(detectionInterval);
         browser.test.assertEq("active", status, "Idle status is active");
-        browser.idle.setDetectionInterval(detectionInterval);
-        browser.idle.onStateChanged.addListener(newState => {
+        browser.idle.onStateChanged.addListener(async newState => {
           browser.test.assertEq("idle", newState, "listener fired with the expected state");
           browser.test.sendMessage("listenerFired");
+          let status = await browser.idle.queryState(detectionInterval);
+          browser.test.assertEq("idle", status, "Idle status is idle");
+          browser.test.notifyPass("idle");
         });
         browser.test.sendMessage("listenerAdded");
-      } else if (msg == "checkState") {
-        let status = await browser.idle.queryState(detectionInterval);
-        browser.test.assertEq("idle", status, "Idle status is idle");
-        browser.test.notifyPass("idle");
       }
     });
   }
@@ -57,7 +56,6 @@ add_task(async function testWithRealIdleService() {
   info("Listener added");
   await extension.awaitMessage("listenerFired");
   info("Listener fired");
-  extension.sendMessage("checkState", detectionInterval);
   await extension.awaitFinish("idle");
   await extension.unload();
 });
