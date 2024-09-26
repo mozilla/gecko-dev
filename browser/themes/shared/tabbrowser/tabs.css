@@ -916,10 +916,6 @@ tab-group {
     flex: none;
   }
 
-  .tab-close-button {
-    display: none;
-  }
-
   .tab-content {
     /* Prevents the tab content in the vertical-pinned-tabs-container
     from becoming misaligned when in the expanded state. */
@@ -935,7 +931,8 @@ tab-group {
       width: var(--tab-collapsed-width);
     }
 
-    .tab-label-container {
+    .tab-label-container,
+    .tab-close-button {
       display: none;
     }
   }
@@ -946,8 +943,8 @@ tab-group {
     .tabbrowser-tab {
       max-width: none;
 
-      &:is(:hover, [selected]):not([pinned]) .tab-close-button {
-        display: flex;
+      &:not(:hover) .tab-close-button:not([selected]) {
+        display: none;
       }
     }
   }
