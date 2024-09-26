@@ -68,6 +68,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2299405
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun verifyTheDownloadFailedNotificationsTest() {
         downloadRobot {
@@ -253,6 +254,7 @@ class DownloadTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2299297
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun notificationCanBeDismissedIfDownloadIsInterruptedTest() {
         downloadRobot {
@@ -345,7 +347,7 @@ class DownloadTest : TestSetup() {
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/244125
     @Ignore("Failing to restart the network connection, to be re-enabled when it's ready for API 34")
-    @SdkSuppress(maxSdkVersion = 30)
+    @SdkSuppress(minSdkVersion = 34)
     @Test
     fun restartDownloadFromAppNotificationAfterConnectionIsInterruptedTest() {
         downloadFile = "3GB.zip"
