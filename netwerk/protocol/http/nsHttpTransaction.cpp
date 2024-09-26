@@ -583,7 +583,7 @@ void nsHttpTransaction::SetSecurityCallbacks(
 
 void nsHttpTransaction::OnTransportStatus(nsITransport* transport,
                                           nsresult status, int64_t progress) {
-  LOG1(("nsHttpTransaction::OnSocketStatus [this=%p status=%" PRIx32
+  LOG1(("nsHttpTransaction::OnTransportStatus [this=%p status=%" PRIx32
         " progress=%" PRId64 "]\n",
         this, static_cast<uint32_t>(status), progress));
 
