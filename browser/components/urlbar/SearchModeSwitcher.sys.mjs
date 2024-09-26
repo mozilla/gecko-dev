@@ -62,7 +62,7 @@ export class SearchModeSwitcher {
       return; // Left click, down arrow, space or enter only
     }
 
-    let anchor = event.target;
+    let anchor = event.target.closest("#urlbar-searchmode-switcher");
     event.preventDefault();
 
     if (this.#input.document.documentElement.hasAttribute("customizing")) {

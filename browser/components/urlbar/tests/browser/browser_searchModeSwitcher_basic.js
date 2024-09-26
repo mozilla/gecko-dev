@@ -640,6 +640,35 @@ add_task(async function test_urlbar_text_after_previewed_search_mode() {
   await UrlbarTestUtils.assertSearchMode(window, null);
 });
 
+add_task(async function test_open_state() {
+  let popup = UrlbarTestUtils.searchModeSwitcherPopup(window);
+  let switcher = document.getElementById("urlbar-searchmode-switcher");
+
+  for (let target of [
+    "urlbar-searchmode-switcher",
+    "searchmode-switcher-icon",
+    "searchmode-switcher-dropmarker",
+  ]) {
+    info(`Open search mode switcher popup by clicking on [${target}]`);
+    let popupOpen = BrowserTestUtils.waitForEvent(popup, "popupshown");
+    let button = document.getElementById(target);
+    button.click();
+    await popupOpen;
+    Assert.equal(
+      switcher.getAttribute("open"),
+      "true",
+      "The 'open' attribute should be true"
+    );
+
+    info("Close the popup");
+    popup.hidePopup();
+    await TestUtils.waitForCondition(() => {
+      return !switcher.hasAttribute("open");
+    });
+    Assert.ok(true, "The 'open' attribute should not be set");
+  }
+});
+
 add_task(async function nimbusScotchBonnetEnableOverride() {
   info("Setup initial local pref");
   await SpecialPowers.pushPrefEnv({
