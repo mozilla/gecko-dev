@@ -171,6 +171,8 @@ private fun BookmarksList(
         }
     }
 
+    WarnDialog(store = store)
+
     val dialogState = state.bookmarksDeletionDialogState
     if (dialogState is DeletionDialogState.Presenting) {
         AlertDialog(
@@ -400,6 +402,46 @@ private fun BookmarksListTopBar(
                             )
                         }
                     }
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun WarnDialog(
+    store: BookmarksStore,
+) {
+    val state by store.observeAsState(store.state.openTabsConfirmationDialog) {
+        it.openTabsConfirmationDialog
+    }
+
+    val dialog = state
+    if (dialog is OpenTabsConfirmationDialog.Presenting) {
+        AlertDialog(
+            title = {
+                Text(
+                    text = stringResource(R.string.open_all_warning_title, dialog.numberOfTabs),
+                )
+            },
+            text = {
+                Text(
+                    text = stringResource(R.string.open_all_warning_message, dialog.numberOfTabs),
+                )
+            },
+            onDismissRequest = { store.dispatch(OpenTabsConfirmationDialogAction.CancelTapped) },
+            confirmButton = {
+                TextButton(
+                    onClick = { store.dispatch(OpenTabsConfirmationDialogAction.ConfirmTapped) },
+                ) {
+                    Text(stringResource(R.string.open_all_warning_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { store.dispatch(OpenTabsConfirmationDialogAction.CancelTapped) },
+                ) {
+                    Text(stringResource(R.string.open_all_warning_cancel))
                 }
             },
         )
@@ -1012,6 +1054,7 @@ private fun EditBookmarkScreenPreview() {
                 title = "Bookmarks",
             ),
             isSignedIntoSync = true,
+            openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
             bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksAddFolderState = null,
@@ -1065,6 +1108,7 @@ private fun BookmarksScreenPreview() {
                     title = "Bookmarks",
                 ),
                 isSignedIntoSync = false,
+                openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
                 bookmarksDeletionDialogState = DeletionDialogState.None,
                 bookmarksSnackbarState = BookmarksSnackbarState.None,
                 bookmarksAddFolderState = null,
@@ -1097,6 +1141,7 @@ private fun EmptyBookmarksScreenPreview() {
                     title = "Bookmarks",
                 ),
                 isSignedIntoSync = false,
+                openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
                 bookmarksDeletionDialogState = DeletionDialogState.None,
                 bookmarksSnackbarState = BookmarksSnackbarState.None,
                 bookmarksAddFolderState = null,
@@ -1128,6 +1173,7 @@ private fun AddFolderPreview() {
                 title = "Bookmarks",
             ),
             isSignedIntoSync = false,
+            openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
             bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditBookmarkState = null,
@@ -1172,6 +1218,7 @@ private fun SelectFolderPreview() {
                 ),
                 folderBeingAddedTitle = "Edit me!",
             ),
+            openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
             bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditFolderState = null,

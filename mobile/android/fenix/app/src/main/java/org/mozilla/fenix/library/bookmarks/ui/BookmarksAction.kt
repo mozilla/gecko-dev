@@ -95,6 +95,16 @@ internal sealed class SelectFolderAction {
     data class ItemClicked(val folder: SelectFolderItem) : BookmarksAction
 }
 
+internal sealed class OpenTabsConfirmationDialogAction {
+    data class Present(
+        val guid: String,
+        val count: Int,
+        val isPrivate: Boolean,
+    ) : BookmarksAction
+    data object ConfirmTapped : BookmarksAction
+    data object CancelTapped : BookmarksAction
+}
+
 internal sealed class DeletionDialogAction {
     data class CountLoaded(val count: Int) : BookmarksAction
     data object CancelTapped : BookmarksAction

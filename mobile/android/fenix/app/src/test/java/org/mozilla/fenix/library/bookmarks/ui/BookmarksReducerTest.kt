@@ -685,6 +685,44 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a user tries to open a folder with more than 15 items WHEN we receive a Present action THEN we show the dialog`() {
+        val state = BookmarksState.default
+        val action = OpenTabsConfirmationDialogAction.Present(
+            guid = "guid0",
+            count = 19,
+            isPrivate = false,
+        )
+
+        val result = bookmarksReducer(state, action)
+        val expected = state.copy(
+            openTabsConfirmationDialog = OpenTabsConfirmationDialog.Presenting(
+                guidToOpen = "guid0",
+                numberOfTabs = 19,
+                isPrivate = false,
+            ),
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN a user is presented with a open tab confirmation dialog WHEN the user taps cancel or open THEN we close the dialog`() {
+        val state = BookmarksState.default.copy(
+            openTabsConfirmationDialog = OpenTabsConfirmationDialog.Presenting(
+                guidToOpen = "guid0",
+                numberOfTabs = 19,
+                isPrivate = false,
+            ),
+        )
+
+        listOf(
+            OpenTabsConfirmationDialogAction.CancelTapped,
+            OpenTabsConfirmationDialogAction.ConfirmTapped,
+        ).forEach {
+            assertEquals(BookmarksState.default, bookmarksReducer(state, it))
+        }
+    }
+
+    @Test
     fun `GIVEN selected items WHEN a multi-select menu action is taken THEN the items are unselected`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")

@@ -109,6 +109,16 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     DeletionDialogAction.DeleteTapped -> {
         state.withDeletedItemsRemoved().copy(bookmarksDeletionDialogState = DeletionDialogState.None)
     }
+    is OpenTabsConfirmationDialogAction.Present -> state.copy(
+        openTabsConfirmationDialog = OpenTabsConfirmationDialog.Presenting(
+            guidToOpen = action.guid,
+            numberOfTabs = action.count,
+            isPrivate = action.isPrivate,
+        ),
+    )
+    OpenTabsConfirmationDialogAction.CancelTapped,
+    OpenTabsConfirmationDialogAction.ConfirmTapped,
+    -> state.copy(openTabsConfirmationDialog = OpenTabsConfirmationDialog.None)
     SelectFolderAction.ViewAppeared,
     SearchClicked,
     SignIntoSyncClicked,

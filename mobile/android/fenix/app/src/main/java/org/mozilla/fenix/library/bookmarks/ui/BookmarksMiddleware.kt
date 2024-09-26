@@ -25,6 +25,8 @@ import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 
+private const val WARN_OPEN_ALL_SIZE = 15
+
 /**
  * A middleware for handling side-effects in response to [BookmarksAction]s.
  *
@@ -206,7 +208,7 @@ internal class BookmarksMiddleware(
             }
 
             SelectFolderAction.ViewAppeared -> context.store.tryDispatchLoadFolders()
-            is BookmarksListMenuAction -> action.handleSideEffects(preReductionState)
+            is BookmarksListMenuAction -> action.handleSideEffects(context.store, preReductionState)
             SnackbarAction.Dismissed -> when (preReductionState.bookmarksSnackbarState) {
                 is BookmarksSnackbarState.UndoDeletion -> scope.launch {
                     preReductionState.bookmarksSnackbarState.guidsToDelete.forEach {
@@ -220,7 +222,22 @@ internal class BookmarksMiddleware(
                     bookmarksStorage.deleteNode(it)
                 }
             }
+            OpenTabsConfirmationDialogAction.ConfirmTapped -> scope.launch {
+                val dialog = preReductionState.openTabsConfirmationDialog
+                if (dialog is OpenTabsConfirmationDialog.Presenting) {
+                    bookmarksStorage.getTree(dialog.guidToOpen)?.also {
+                        it.children
+                            ?.mapNotNull { it.url }
+                            ?.forEach { url -> addNewTabUseCase(url = url, private = dialog.isPrivate) }
+                        withContext(Dispatchers.Main) {
+                            showTabsTray(dialog.isPrivate)
+                        }
+                    }
+                }
+            }
             SnackbarAction.Undo,
+            is OpenTabsConfirmationDialogAction.Present,
+            OpenTabsConfirmationDialogAction.CancelTapped,
             DeletionDialogAction.CancelTapped,
             DeletionDialogAction.DeleteTapped,
             is RecursiveSelectionCountLoaded,
@@ -358,6 +375,7 @@ internal class BookmarksMiddleware(
 
     @Suppress("LongMethod")
     private fun BookmarksListMenuAction.handleSideEffects(
+        store: Store<BookmarksState, BookmarksAction>,
         preReductionState: BookmarksState,
     ) {
         when (this) {
@@ -393,20 +411,34 @@ internal class BookmarksMiddleware(
             }
 
             is BookmarksListMenuAction.Folder.OpenAllInNormalTabClicked -> scope.launch {
-                bookmarksStorage.getTree(folder.guid)?.children
-                    ?.mapNotNull { it.url }
-                    ?.forEach { url -> addNewTabUseCase(url = url, private = false) }
-                withContext(Dispatchers.Main) {
-                    showTabsTray(false)
+                bookmarksStorage.getTree(folder.guid)?.also {
+                    val count = it.children?.count() ?: 0
+                    if (count >= WARN_OPEN_ALL_SIZE) {
+                        store.dispatch(OpenTabsConfirmationDialogAction.Present(folder.guid, count, false))
+                        return@also
+                    }
+                    it.children
+                        ?.mapNotNull { it.url }
+                        ?.forEach { url -> addNewTabUseCase(url = url, private = false) }
+                    withContext(Dispatchers.Main) {
+                        showTabsTray(false)
+                    }
                 }
             }
 
             is BookmarksListMenuAction.Folder.OpenAllInPrivateTabClicked -> scope.launch {
-                bookmarksStorage.getTree(folder.guid)?.children
-                    ?.mapNotNull { it.url }
-                    ?.forEach { url -> addNewTabUseCase(url = url, private = true) }
-                withContext(Dispatchers.Main) {
-                    showTabsTray(true)
+                bookmarksStorage.getTree(folder.guid)?.also {
+                    val count = it.children?.count() ?: 0
+                    if (count >= WARN_OPEN_ALL_SIZE) {
+                        store.dispatch(OpenTabsConfirmationDialogAction.Present(folder.guid, count, true))
+                        return@also
+                    }
+                    it.children
+                        ?.mapNotNull { it.url }
+                        ?.forEach { url -> addNewTabUseCase(url = url, private = true) }
+                    withContext(Dispatchers.Main) {
+                        showTabsTray(true)
+                    }
                 }
             }
 

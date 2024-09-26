@@ -753,8 +753,36 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN a folder with 15 or more items WHEN open all in normal tabs clicked in folder item menu THEN show a warning`() {
-        // TODO https://bugzilla.mozilla.org/show_bug.cgi?id=1920598
+    fun `GIVEN a folder with 15 or more items WHEN open all in normal tabs clicked in folder item menu THEN show a warning`() = runTestOnMain {
+        val guid = "guid"
+        val folderItem = BookmarkItem.Folder(title = "title", guid = guid)
+        val folder = generateBookmarkFolder(guid = guid, "title", "parentGuid").copy(
+            children = List(15) {
+                generateBookmark(
+                    guid = "bookmark guid $it",
+                    title = "bookmark title $it",
+                    url = "bookmark urk",
+                )
+            },
+        )
+        `when`(bookmarksStorage.getTree(guid)).thenReturn(folder)
+        var trayShown = false
+        showTabsTray = { _ -> trayShown = true }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.OpenAllInNormalTabClicked(folderItem))
+        val expected = OpenTabsConfirmationDialog.Presenting(
+            guidToOpen = guid,
+            numberOfTabs = 15,
+            isPrivate = false,
+        )
+        assertEquals(expected, store.state.openTabsConfirmationDialog)
+
+        folder.children!!.forEach { child ->
+            verify(addNewTabUseCase, never()).invoke(url = child.url!!, private = false)
+        }
+        assertFalse(trayShown)
     }
 
     @Test
@@ -782,8 +810,36 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN a folder with 15 or more items WHEN open all in private tabs clicked in folder item menu THEN show a warning`() {
-        // TODO https://bugzilla.mozilla.org/show_bug.cgi?id=1920598
+    fun `GIVEN a folder with 15 or more items WHEN open all in private tabs clicked in folder item menu THEN show a warning`() = runTestOnMain {
+        val guid = "guid"
+        val folderItem = BookmarkItem.Folder(title = "title", guid = guid)
+        val folder = generateBookmarkFolder(guid = guid, "title", "parentGuid").copy(
+            children = List(15) {
+                generateBookmark(
+                    guid = "bookmark guid $it",
+                    title = "bookmark title $it",
+                    url = "bookmark urk",
+                )
+            },
+        )
+        `when`(bookmarksStorage.getTree(guid)).thenReturn(folder)
+        var trayShown = false
+        showTabsTray = { _ -> trayShown = true }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.OpenAllInPrivateTabClicked(folderItem))
+        val expected = OpenTabsConfirmationDialog.Presenting(
+            guidToOpen = guid,
+            numberOfTabs = 15,
+            isPrivate = true,
+        )
+        assertEquals(expected, store.state.openTabsConfirmationDialog)
+
+        folder.children!!.forEach { child ->
+            verify(addNewTabUseCase, never()).invoke(url = child.url!!, private = true)
+        }
+        assertFalse(trayShown)
     }
 
     @Test

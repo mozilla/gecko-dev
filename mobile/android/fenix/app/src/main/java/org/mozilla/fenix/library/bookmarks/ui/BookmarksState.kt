@@ -16,6 +16,7 @@ import org.mozilla.fenix.R
  * @property recursiveSelectedCount the total number of children of the [selectedItems] found in bookmark storage.
  * @property currentFolder the [BookmarkItem.Folder] that is currently being displayed.
  * @property isSignedIntoSync State representing if the user is currently signed into sync.
+ * @property openTabsConfirmationDialog State representing the confirmation dialog state.
  * @property bookmarksDeletionDialogState State representing the deletion dialog state.
  * @property bookmarksSnackbarState State representing which snackbar to show.
  * @property bookmarksAddFolderState State representing the add folder subscreen, if visible.
@@ -30,6 +31,7 @@ internal data class BookmarksState(
     val recursiveSelectedCount: Int?,
     val currentFolder: BookmarkItem.Folder,
     val isSignedIntoSync: Boolean,
+    val openTabsConfirmationDialog: OpenTabsConfirmationDialog,
     val bookmarksDeletionDialogState: DeletionDialogState,
     val bookmarksSnackbarState: BookmarksSnackbarState,
     val bookmarksAddFolderState: BookmarksAddFolderState?,
@@ -45,6 +47,7 @@ internal data class BookmarksState(
             recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder("", ""),
             isSignedIntoSync = false,
+            openTabsConfirmationDialog = OpenTabsConfirmationDialog.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksAddFolderState = null,
@@ -95,6 +98,15 @@ internal sealed class DeletionDialogState {
         val guidsToDelete: List<String>,
         val recursiveCount: Int,
     ) : DeletionDialogState()
+}
+
+internal sealed class OpenTabsConfirmationDialog {
+    data object None : OpenTabsConfirmationDialog()
+    data class Presenting(
+        val guidToOpen: String,
+        val numberOfTabs: Int,
+        val isPrivate: Boolean,
+    ) : OpenTabsConfirmationDialog()
 }
 
 internal val DeletionDialogState.Presenting.count
