@@ -267,6 +267,11 @@ class MOZ_STACK_CLASS ParserSharedBase {
     return compilationState_.parserAtoms;
   }
 
+  BigIntStencilVector& bigInts() { return compilationState_.bigIntData; }
+  const BigIntStencilVector& bigInts() const {
+    return compilationState_.bigIntData;
+  }
+
   LifoAlloc& stencilAlloc() { return compilationState_.alloc; }
 
   const UsedNameTracker& usedNames() { return usedNames_; }

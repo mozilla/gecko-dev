@@ -288,6 +288,8 @@ class BigIntStencil {
 #endif
 };
 
+using BigIntStencilVector = Vector<BigIntStencil, 0, js::SystemAllocPolicy>;
+
 class ScopeStencil {
   friend class StencilXDR;
   friend class InputScope;

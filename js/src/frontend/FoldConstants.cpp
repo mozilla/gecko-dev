@@ -30,6 +30,7 @@ using JS::ToUint32;
 struct FoldInfo {
   FrontendContext* fc;
   ParserAtomsTable& parserAtoms;
+  BigIntStencilVector& bigInts;
   FullParseHandler* handler;
 };
 
@@ -1318,15 +1319,17 @@ class FoldVisitor : public RewritingParseNodeVisitor<FoldVisitor> {
   using Base = RewritingParseNodeVisitor;
 
   ParserAtomsTable& parserAtoms;
+  BigIntStencilVector& bigInts;
   FullParseHandler* handler;
 
-  FoldInfo info() const { return FoldInfo{fc_, parserAtoms, handler}; }
+  FoldInfo info() const { return FoldInfo{fc_, parserAtoms, bigInts, handler}; }
 
  public:
   FoldVisitor(FrontendContext* fc, ParserAtomsTable& parserAtoms,
-              FullParseHandler* handler)
+              BigIntStencilVector& bigInts, FullParseHandler* handler)
       : RewritingParseNodeVisitor(fc),
         parserAtoms(parserAtoms),
+        bigInts(bigInts),
         handler(handler) {}
 
   bool visitElemExpr(ParseNode*& pn) {
@@ -1573,15 +1576,17 @@ class FoldVisitor : public RewritingParseNodeVisitor<FoldVisitor> {
 };
 
 static bool Fold(FrontendContext* fc, ParserAtomsTable& parserAtoms,
-                 FullParseHandler* handler, ParseNode** pnp) {
-  FoldVisitor visitor(fc, parserAtoms, handler);
+                 BigIntStencilVector& bigInts, FullParseHandler* handler,
+                 ParseNode** pnp) {
+  FoldVisitor visitor(fc, parserAtoms, bigInts, handler);
   return visitor.visit(*pnp);
 }
 static bool Fold(FoldInfo info, ParseNode** pnp) {
-  return Fold(info.fc, info.parserAtoms, info.handler, pnp);
+  return Fold(info.fc, info.parserAtoms, info.bigInts, info.handler, pnp);
 }
 
 bool frontend::FoldConstants(FrontendContext* fc, ParserAtomsTable& parserAtoms,
-                             ParseNode** pnp, FullParseHandler* handler) {
-  return Fold(fc, parserAtoms, handler, pnp);
+                             BigIntStencilVector& bigInts, ParseNode** pnp,
+                             FullParseHandler* handler) {
+  return Fold(fc, parserAtoms, bigInts, handler, pnp);
 }

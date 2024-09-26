@@ -1368,7 +1368,7 @@ struct ExtensibleCompilationStencil {
   Vector<BaseParserScopeData*, 1, js::SystemAllocPolicy> scopeNames;
 
   Vector<RegExpStencil, 0, js::SystemAllocPolicy> regExpData;
-  Vector<BigIntStencil, 0, js::SystemAllocPolicy> bigIntData;
+  BigIntStencilVector bigIntData;
   Vector<ObjLiteralStencil, 0, js::SystemAllocPolicy> objLiteralData;
 
   // Table of parser atoms for this compilation.

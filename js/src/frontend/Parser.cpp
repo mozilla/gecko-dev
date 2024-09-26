@@ -415,7 +415,8 @@ GeneralParser<ParseHandler, Unit>::parse() {
     // Don't constant-fold inside "use asm" code, as this could create a parse
     // tree that doesn't type-check as asm.js.
     if (!pc_->useAsmOrInsideUseAsm()) {
-      if (!FoldConstants(this->fc_, this->parserAtoms(), &node, &handler_)) {
+      if (!FoldConstants(this->fc_, this->parserAtoms(), this->bigInts(), &node,
+                         &handler_)) {
         return errorResult();
       }
     }
@@ -1838,7 +1839,8 @@ Parser<FullParseHandler, Unit>::evalBody(EvalSharedContext* evalsc) {
   // Don't constant-fold inside "use asm" code, as this could create a parse
   // tree that doesn't type-check as asm.js.
   if (!pc_->useAsmOrInsideUseAsm()) {
-    if (!FoldConstants(this->fc_, this->parserAtoms(), &node, &handler_)) {
+    if (!FoldConstants(this->fc_, this->parserAtoms(), this->bigInts(), &node,
+                       &handler_)) {
       return errorResult();
     }
   }
@@ -1903,7 +1905,8 @@ FullParseHandler::ListNodeResult Parser<FullParseHandler, Unit>::globalBody(
   // Don't constant-fold inside "use asm" code, as this could create a parse
   // tree that doesn't type-check as asm.js.
   if (!pc_->useAsmOrInsideUseAsm()) {
-    if (!FoldConstants(this->fc_, this->parserAtoms(), &node, &handler_)) {
+    if (!FoldConstants(this->fc_, this->parserAtoms(), this->bigInts(), &node,
+                       &handler_)) {
       return errorResult();
     }
   }
@@ -2038,7 +2041,8 @@ FullParseHandler::ModuleNodeResult Parser<FullParseHandler, Unit>::moduleBody(
   // Don't constant-fold inside "use asm" code, as this could create a parse
   // tree that doesn't type-check as asm.js.
   if (!pc_->useAsmOrInsideUseAsm()) {
-    if (!FoldConstants(this->fc_, this->parserAtoms(), &node, &handler_)) {
+    if (!FoldConstants(this->fc_, this->parserAtoms(), this->bigInts(), &node,
+                       &handler_)) {
       return errorResult();
     }
   }
@@ -2431,7 +2435,8 @@ Parser<FullParseHandler, Unit>::standaloneFunction(
   // Don't constant-fold inside "use asm" code, as this could create a parse
   // tree that doesn't type-check as asm.js.
   if (!pc_->useAsmOrInsideUseAsm()) {
-    if (!FoldConstants(this->fc_, this->parserAtoms(), &node, &handler_)) {
+    if (!FoldConstants(this->fc_, this->parserAtoms(), this->bigInts(), &node,
+                       &handler_)) {
       return errorResult();
     }
   }
@@ -3463,7 +3468,8 @@ Parser<FullParseHandler, Unit>::standaloneLazyFunction(
   // Don't constant-fold inside "use asm" code, as this could create a parse
   // tree that doesn't type-check as asm.js.
   if (!pc_->useAsmOrInsideUseAsm()) {
-    if (!FoldConstants(this->fc_, this->parserAtoms(), &node, &handler_)) {
+    if (!FoldConstants(this->fc_, this->parserAtoms(), this->bigInts(), &node,
+                       &handler_)) {
       return errorResult();
     }
   }
@@ -11645,22 +11651,21 @@ Parser<FullParseHandler, Unit>::newBigInt() {
     return errorResult();
   }
 
-  BigIntIndex index(this->compilationState_.bigIntData.length());
+  BigIntIndex index(this->bigInts().length());
   if (uint32_t(index) >= TaggedScriptThingIndex::IndexLimit) {
     ReportAllocationOverflow(fc_);
     return errorResult();
   }
-  if (!this->compilationState_.bigIntData.emplaceBack()) {
+  if (!this->bigInts().emplaceBack()) {
     js::ReportOutOfMemory(this->fc_);
     return errorResult();
   }
 
-  if (!this->compilationState_.bigIntData[index].init(
-          this->fc_, this->stencilAlloc(), chars)) {
+  if (!this->bigInts()[index].init(this->fc_, this->stencilAlloc(), chars)) {
     return errorResult();
   }
 
-  bool isZero = this->compilationState_.bigIntData[index].isZero();
+  bool isZero = this->bigInts()[index].isZero();
 
   // Should the operations below fail, the buffer held by data will
   // be cleaned up by the CompilationState destructor.
