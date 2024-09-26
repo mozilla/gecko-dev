@@ -14,7 +14,7 @@
 
 #include <stddef.h>
 
-static const PRTime kCTExpirationTime = INT64_C(1734349522000000);
+static const PRTime kCTExpirationTime = INT64_C(1734614508000000);
 
 namespace mozilla::ct {
 
@@ -502,7 +502,7 @@ const CTLogInfo kCTLogList[] = {
      "\x65",
      91},
     {"TrustAsia 'log2026a'", CTLogState::Admissible,
-     1719964800000,  // 2024-07-03T00:00:00Z
+     1726790400000,  // 2024-09-20T00:00:00Z
      5,              // operated by TrustAsia
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\xa7\x4e\x7a\xc9\xa6\x07\xf9\xff\x74"
@@ -512,7 +512,7 @@ const CTLogInfo kCTLogList[] = {
      "\x59",
      91},
     {"TrustAsia 'log2026b'", CTLogState::Admissible,
-     1719964800000,  // 2024-07-03T00:00:00Z
+     1726790400000,  // 2024-09-20T00:00:00Z
      5,              // operated by TrustAsia
      "\x30\x59\x30\x13\x06\x07\x2a\x86\x48\xce\x3d\x02\x01\x06\x08\x2a\x86\x48"
      "\xce\x3d\x03\x01\x07\x03\x42\x00\x04\x0f\x12\x8c\xa9\xe6\xe3\xec\x62\xee"
