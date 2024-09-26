@@ -4,6 +4,8 @@
 
 extern crate base64;
 extern crate byteorder;
+extern crate clubcard;
+extern crate clubcard_crlite;
 extern crate crossbeam_utils;
 #[macro_use]
 extern crate cstr;
@@ -28,6 +30,8 @@ use wr_malloc_size_of as malloc_size_of;
 
 use base64::prelude::*;
 use byteorder::{LittleEndian, NetworkEndian, ReadBytesExt, WriteBytesExt};
+use clubcard::ApproximateSizeOf;
+use clubcard_crlite::{CRLiteClubcard, CRLiteStatus};
 use crossbeam_utils::atomic::AtomicCell;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use moz_task::{create_background_task_queue, is_main_thread, Task, TaskRunnable};
@@ -41,6 +45,7 @@ use rkv::{StoreError, StoreOptions, Value};
 use rust_cascade::Cascade;
 use sha2::{Digest, Sha256};
 use std::collections::{HashMap, HashSet};
+use std::convert::TryInto;
 use std::ffi::CString;
 use std::fmt::Display;
 use std::fs::{create_dir_all, remove_file, File, OpenOptions};
@@ -253,6 +258,7 @@ impl MallocSizeOf for CascadeWithMetadata {
 
 enum Filter {
     Cascade(CascadeWithMetadata),
+    Clubcard(CRLiteClubcard),
 }
 
 impl Filter {
@@ -266,7 +272,9 @@ impl Filter {
         }
         let filter_bytes = std::fs::read(&filter_path)?;
 
-        if let Ok(maybe_cascade) = Cascade::from_bytes(filter_bytes) {
+        if let Ok(clubcard) = CRLiteClubcard::from_bytes(&filter_bytes) {
+            Ok(Some(Filter::Clubcard(clubcard)))
+        } else if let Ok(maybe_cascade) = Cascade::from_bytes(filter_bytes) {
             let Some(cascade) = maybe_cascade else {
                 return Err(SecurityStateError::from("expecting non-empty filter"));
             };
@@ -306,6 +314,23 @@ impl Filter {
                     nsICertStorage::STATE_UNSET
                 }
             }
+            Filter::Clubcard(clubcard) => {
+                let timestamps = timestamps
+                    .iter()
+                    .map(|timestamp| {
+                        (&*timestamp.log_id) /* ThinVec -> &[u8; 32] */
+                            .try_into()
+                            .ok()
+                            .map(|log_id| (log_id, timestamp.timestamp))
+                    })
+                    .flatten();
+                match clubcard.contains(issuer_spki_hash.as_ref(), serial, timestamps) {
+                    CRLiteStatus::Good => nsICertStorage::STATE_UNSET,
+                    CRLiteStatus::NotCovered => nsICertStorage::STATE_NOT_COVERED,
+                    CRLiteStatus::NotEnrolled => nsICertStorage::STATE_NOT_ENROLLED,
+                    CRLiteStatus::Revoked => nsICertStorage::STATE_ENFORCE,
+                }
+            }
         }
     }
 }
@@ -314,6 +339,7 @@ impl MallocSizeOf for Filter {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
             Filter::Cascade(cascade) => cascade.size_of(ops),
+            Filter::Clubcard(clubcard) => clubcard.approximate_size_of(),
         }
     }
 }
