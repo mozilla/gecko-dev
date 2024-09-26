@@ -183,14 +183,7 @@ internal class BookmarksMiddleware(
             }
 
             EditBookmarkAction.DeleteClicked -> {
-                // Bug 1919949 — Add undo snackbar to delete action.
                 navController.popBackStack()
-                scope.launch(ioDispatcher) {
-                    preReductionState.bookmarksEditBookmarkState?.also {
-                        bookmarksStorage.deleteNode(it.bookmark.guid)
-                    }
-                    context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
-                }
             }
             EditFolderAction.ParentFolderClicked,
             AddFolderAction.ParentFolderClicked,

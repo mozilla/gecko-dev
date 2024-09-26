@@ -65,7 +65,12 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
         ),
     )
     is SelectFolderAction.ItemClicked -> state.updateSelectedFolder(action.folder)
-    EditBookmarkAction.DeleteClicked -> state.copy(bookmarksEditBookmarkState = null)
+    EditBookmarkAction.DeleteClicked -> state.copy(
+        bookmarksSnackbarState = state.bookmarksEditBookmarkState?.let {
+            BookmarksSnackbarState.UndoDeletion(listOf(it.bookmark.guid))
+        } ?: BookmarksSnackbarState.None,
+        bookmarksEditBookmarkState = null,
+    )
     BackClicked -> state.respondToBackClick()
     EditBookmarkAction.FolderClicked -> state.copy(
         bookmarksSelectFolderState = BookmarksSelectFolderState(

@@ -610,6 +610,24 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN an edit bookmark screen WHEN deleting the bookmark THEN present the undo snackbar`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                folder = BookmarkItem.Folder("Bookmarks", BookmarkRoot.Mobile.id),
+                bookmark = item,
+            ),
+        )
+
+        val result = bookmarksReducer(state, EditBookmarkAction.DeleteClicked)
+        val expected = state.copy(
+            bookmarksEditBookmarkState = null,
+            bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(listOf(item.guid)),
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
     fun `GIVEN selected items WHEN a multi-select menu action is taken THEN the items are unselected`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")
