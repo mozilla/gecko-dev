@@ -169,7 +169,7 @@ input, textarea, select, button, ::file-selector-button {
 
 ::placeholder {
   -webkit-text-security: none;
-  opacity: 0.54;
+  color: color-mix(in srgb, currentColor 54%, transparent);
 }
 
 :not(:-moz-autofill-preview)::-moz-text-control-editing-root,
