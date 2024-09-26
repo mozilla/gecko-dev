@@ -11665,11 +11665,9 @@ Parser<FullParseHandler, Unit>::newBigInt() {
     return errorResult();
   }
 
-  bool isZero = this->bigInts()[index].isZero();
-
   // Should the operations below fail, the buffer held by data will
   // be cleaned up by the CompilationState destructor.
-  return handler_.newBigInt(index, isZero, pos());
+  return handler_.newBigInt(index, pos());
 }
 
 template <typename Unit>

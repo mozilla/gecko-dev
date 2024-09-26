@@ -1648,13 +1648,10 @@ class NumericLiteral : public ParseNode {
 
 class BigIntLiteral : public ParseNode {
   BigIntIndex index_;
-  bool isZero_;
 
  public:
-  BigIntLiteral(BigIntIndex index, bool isZero, const TokenPos& pos)
-      : ParseNode(ParseNodeKind::BigIntExpr, pos),
-        index_(index),
-        isZero_(isZero) {}
+  BigIntLiteral(BigIntIndex index, const TokenPos& pos)
+      : ParseNode(ParseNodeKind::BigIntExpr, pos), index_(index) {}
 
   static bool test(const ParseNode& node) {
     return node.isKind(ParseNodeKind::BigIntExpr);
@@ -1673,8 +1670,6 @@ class BigIntLiteral : public ParseNode {
 #endif
 
   BigIntIndex index() { return index_; }
-
-  bool isZero() const { return isZero_; }
 };
 
 template <ParseNodeKind NodeKind, typename ScopeType>
