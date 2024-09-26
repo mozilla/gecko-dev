@@ -7,6 +7,7 @@
 #include "ChromeUtils.h"
 
 #include "JSOracleParent.h"
+#include "ThirdPartyUtil.h"
 #include "js/CallAndConstruct.h"  // JS::Call
 #include "js/ColumnNumber.h"  // JS::TaggedColumnNumberOneOrigin, JS::ColumnNumberOneOrigin
 #include "js/CharacterEncoding.h"
@@ -1310,27 +1311,68 @@ void ChromeUtils::GetBaseDomainFromPartitionKey(dom::GlobalObject& aGlobal,
 
 /* static */
 void ChromeUtils::GetPartitionKeyFromURL(dom::GlobalObject& aGlobal,
-                                         const nsAString& aURL,
+                                         const nsAString& aTopLevelUrl,
+                                         const nsAString& aSubresourceUrl,
+                                         const Optional<bool>& aForeignContext,
                                          nsAString& aPartitionKey,
                                          ErrorResult& aRv) {
-  nsCOMPtr<nsIURI> uri;
-  nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL);
-  if (NS_SUCCEEDED(rv) && uri->SchemeIs("chrome")) {
+  nsCOMPtr<nsIURI> topLevelURI;
+  nsresult rv = NS_NewURI(getter_AddRefs(topLevelURI), aTopLevelUrl);
+  if (NS_SUCCEEDED(rv) && topLevelURI->SchemeIs("chrome")) {
     rv = NS_ERROR_FAILURE;
   }
-
   if (NS_WARN_IF(NS_FAILED(rv))) {
     aPartitionKey.Truncate();
     aRv.Throw(rv);
     return;
   }
 
-  mozilla::OriginAttributes attrs;
-  // For now, uses assume the partition key is cross-site.
-  // We will need to not make this assumption to allow access
-  // to same-site partitioned cookies in the cookie extension API.
-  attrs.SetPartitionKey(uri, false);
+  bool foreignResource;
+  bool fallback = false;
+  if (!aSubresourceUrl.IsEmpty()) {
+    nsCOMPtr<nsIURI> resourceURI;
+    rv = NS_NewURI(getter_AddRefs(resourceURI), aSubresourceUrl);
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      aPartitionKey.Truncate();
+      aRv.Throw(rv);
+      return;
+    }
 
+    ThirdPartyUtil* thirdPartyUtil = ThirdPartyUtil::GetInstance();
+    if (!thirdPartyUtil) {
+      aPartitionKey.Truncate();
+      aRv.Throw(NS_ERROR_SERVICE_NOT_AVAILABLE);
+      return;
+    }
+
+    rv = thirdPartyUtil->IsThirdPartyURI(topLevelURI, resourceURI,
+                                         &foreignResource);
+    if (NS_FAILED(rv)) {
+      // we fallback to assuming the resource is foreign if there is an error
+      foreignResource = true;
+      fallback = true;
+    }
+  } else {
+    // Assume we have a foreign resource if the resource was not provided
+    foreignResource = true;
+    fallback = true;
+  }
+
+  // aForeignContext is whether or not this is a foreign context.
+  // foreignResource is whether or not the resource is cross-site to the top
+  // level. So we need to validate that a false foreign context doesn't have a
+  // same-site resource. That is impossible!
+  if (aForeignContext.WasPassed() && !aForeignContext.Value() &&
+      foreignResource && !fallback) {
+    aPartitionKey.Truncate();
+    aRv.Throw(nsresult::NS_ERROR_INVALID_ARG);
+    return;
+  }
+
+  bool foreignByAncestorContext = aForeignContext.WasPassed() &&
+                                  aForeignContext.Value() && !foreignResource;
+  mozilla::OriginAttributes attrs;
+  attrs.SetPartitionKey(topLevelURI, foreignByAncestorContext);
   aPartitionKey = attrs.mPartitionKey;
 }
 

@@ -363,7 +363,10 @@ add_task(async function test_dfpi() {
       },
       expectedOut: {
         firstPartyDomain: "",
-        partitionKey: { topLevelSite: `http://${FIRST_DOMAIN_ETLD_PLUS_1}` },
+        partitionKey: {
+          topLevelSite: `http://${FIRST_DOMAIN_ETLD_PLUS_1}`,
+          hasCrossSiteAncestor: true,
+        },
       },
     },
   ];
@@ -395,7 +398,10 @@ add_task(async function test_dfpi_with_ip_and_port() {
       },
       expectedOut: {
         firstPartyDomain: "",
-        partitionKey: { topLevelSite: `http://${LOCAL_IP_AND_PORT}` },
+        partitionKey: {
+          topLevelSite: `http://${LOCAL_IP_AND_PORT}`,
+          hasCrossSiteAncestor: true,
+        },
       },
     },
   ];
@@ -429,7 +435,10 @@ add_task(async function test_dfpi_with_nested_subdomains() {
       },
       expectedOut: {
         firstPartyDomain: "",
-        partitionKey: { topLevelSite: `http://${FIRST_DOMAIN_ETLD_PLUS_1}` },
+        partitionKey: {
+          topLevelSite: `http://${FIRST_DOMAIN_ETLD_PLUS_1}`,
+          hasCrossSiteAncestor: true,
+        },
       },
     },
   ];
@@ -440,6 +449,10 @@ add_task(async function test_dfpi_with_nested_subdomains() {
   );
 });
 
+// Bug 1921038:
+// This test doesn't actually validate the the behavior it says!
+// This is because for these internal partition keys, we cannot return
+// the correct scheme!
 add_task(async function test_dfpi_with_non_default_use_site() {
   // privacy.dynamic_firstparty.use_site is a pref that can be used to toggle
   // the internal representation of partitionKey. True (default) means keyed
@@ -460,13 +473,16 @@ add_task(async function test_dfpi_with_non_default_use_site() {
       description: "third-party cookies with dFPI and use_site=false",
       domain: THIRD_PARTY_DOMAIN,
       detailsIn: {
-        partitionKey: { topLevelSite: `http://${FIRST_DOMAIN_ETLD_PLUS_1}` },
+        partitionKey: { topLevelSite: `https://${FIRST_DOMAIN_ETLD_PLUS_1}` },
       },
       expectedOut: {
         firstPartyDomain: "",
         // When use_site=false, the scheme is not stored, and the
         // implementation just prepends "https" as a dummy scheme.
-        partitionKey: { topLevelSite: `https://${FIRST_DOMAIN_ETLD_PLUS_1}` },
+        partitionKey: {
+          topLevelSite: `https://${FIRST_DOMAIN_ETLD_PLUS_1}`,
+          hasCrossSiteAncestor: true,
+        },
       },
     },
   ];
@@ -479,6 +495,11 @@ add_task(async function test_dfpi_with_non_default_use_site() {
     () => testCookiesAPI({ testCases })
   );
 });
+
+// Bug 1921038:
+// This test doesn't actually validate the the behavior it says!
+// This is because for these internal partition keys, we cannot return
+// the correct scheme or port!
 add_task(async function test_dfpi_with_ip_and_port_and_non_default_use_site() {
   // privacy.dynamic_firstparty.use_site is a pref that can be used to toggle
   // the internal representation of partitionKey. True (default) means keyed
@@ -503,13 +524,16 @@ add_task(async function test_dfpi_with_ip_and_port_and_non_default_use_site() {
         // representation of the partitionKey. So even though the web page
         // creates the cookie at HTTP, the cookies are still detected when
         // "https" is used.
-        partitionKey: { topLevelSite: `https://${LOCAL_IP_AND_PORT}` },
+        partitionKey: { topLevelSite: `https://127.0.0.1` },
       },
       expectedOut: {
         firstPartyDomain: "",
         // When use_site=false, the scheme and port are not stored.
         // "https" is used as a dummy scheme, and the port is not used.
-        partitionKey: { topLevelSite: "https://127.0.0.1" },
+        partitionKey: {
+          topLevelSite: `https://127.0.0.1`,
+          hasCrossSiteAncestor: true,
+        },
       },
     },
   ];
@@ -879,6 +903,207 @@ add_task(async function test_getAll_partitionKey() {
       await browser.cookies.remove({ url, name });
       await browser.cookies.remove({ url, name, firstPartyDomain });
       await browser.cookies.remove({ url, name, partitionKey });
+
+      browser.test.sendMessage("test_done");
+    },
+  });
+  await extension.startup();
+  await extension.awaitMessage("test_done");
+  await extension.unload();
+});
+
+add_task(async function test_getAll_partitionKey_hasCrossSiteAncestor() {
+  let extension = ExtensionTestUtils.loadExtension({
+    manifest: {
+      permissions: [
+        "cookies",
+        "*://first.example.com/",
+        "*://third.example.net/",
+      ],
+    },
+    async background() {
+      async function getAllValues(details) {
+        let cookies = await browser.cookies.getAll(details);
+        let values = cookies.map(c => c.value);
+        return values.sort().join(); // Serialize for use with assertEq.
+      }
+      const urls = ["http://first.example.com", "http://third.example.net"];
+      const name = "test_getAll_partitionKey_hasCrossSiteAncestor";
+      const partitionKeyUnspecified = { topLevelSite: "http://example.com" };
+      const partitionKeySameSite = {
+        topLevelSite: "http://example.com",
+        hasCrossSiteAncestor: false,
+      };
+      const partitionKeyForeign = {
+        topLevelSite: "http://example.com",
+        hasCrossSiteAncestor: true,
+      };
+      try {
+        for (let url of urls) {
+          await browser.cookies.set({ url, name, value: "no_partition" });
+          if (url == "http://first.example.com") {
+            await browser.cookies.set({
+              url,
+              name,
+              value: "partition1",
+              partitionKey: partitionKeySameSite,
+            });
+          } else {
+            await browser.test.assertRejects(
+              browser.cookies.set({
+                url,
+                name,
+                value: "partition1",
+                partitionKey: partitionKeySameSite,
+              }),
+              /Invalid value for 'partitionKey' attribute/,
+              // When topLevelSite and url are cross-site, hasCrossSiteAncestor cannot be false
+              "cookies.get should reject invalid partitionKey.topLevelSite"
+            );
+          }
+          await browser.cookies.set({
+            url,
+            name,
+            value: "partition3",
+            partitionKey: partitionKeyForeign,
+          });
+          let cookie = await browser.cookies.set({
+            url,
+            name,
+            value: "partitionX",
+            partitionKey: partitionKeyUnspecified,
+          });
+
+          if (url == "http://first.example.com") {
+            browser.test.assertDeepEq(
+              partitionKeySameSite,
+              cookie.partitionKey,
+              "partitionKey.hasCrossSiteAncestor computed as false"
+            );
+            browser.test.assertEq(
+              "no_partition,partition3,partitionX",
+              await getAllValues({ partitionKey: {} }),
+              "getAll() with empty partitionKey gets all cookies"
+            );
+            browser.test.assertEq(
+              "partition3,partitionX",
+              await getAllValues({ partitionKey: partitionKeyUnspecified }),
+              "getAll() with partitionKey with undefined hasCrossSiteAncestor gets all partitioned cookies"
+            );
+            browser.test.assertEq(
+              "partitionX",
+              await getAllValues({ partitionKey: partitionKeySameSite }),
+              "getAll() with partitionKey with false hasCrossSiteAncestor gets cookie stored with undefined hasCrossSiteAncestor"
+            );
+            browser.test.assertEq(
+              "partition3",
+              await getAllValues({ partitionKey: partitionKeyForeign }),
+              "getAll() with partitionKey with true hasCrossSiteAncestor gets only cookie stored with true hasCrossSiteAncestor"
+            );
+          } else {
+            browser.test.assertDeepEq(
+              partitionKeyForeign,
+              cookie.partitionKey,
+              "partitionKey.hasCrossSiteAncestor computed as true"
+            );
+            browser.test.assertEq(
+              "no_partition,partitionX",
+              await getAllValues({ partitionKey: {} }),
+              "getAll() with empty partitionKey gets all cookies"
+            );
+            browser.test.assertEq(
+              "partitionX",
+              await getAllValues({ partitionKey: partitionKeyUnspecified }),
+              "getAll() with partitionKey with undefined hasCrossSiteAncestor gets all partitioned cookies"
+            );
+            browser.test.assertEq(
+              "",
+              await getAllValues({ partitionKey: partitionKeySameSite }),
+              "getAll() with partitionKey with false hasCrossSiteAncestor gets no cookies"
+            );
+            browser.test.assertEq(
+              "partitionX",
+              await getAllValues({ partitionKey: partitionKeyForeign }),
+              "getAll() with partitionKey with true hasCrossSiteAncestor gets cookie stored with undefined hasCrossSiteAncestor"
+            );
+          }
+
+          let removedCookie = await browser.cookies.remove({ url, name });
+          browser.test.assertTrue(
+            removedCookie,
+            "remove() without partitionKey removes unpartitioned cookie"
+          );
+          removedCookie = await browser.cookies.remove({ url, name });
+          browser.test.assertDeepEq(
+            null,
+            removedCookie,
+            "remove() without partitionKey does not remove partitioned cookies"
+          );
+          removedCookie = await browser.cookies.remove({
+            url,
+            name,
+            partitionKey: partitionKeyUnspecified,
+          });
+          browser.test.assertTrue(
+            removedCookie,
+            "remove() with partitionKey and unspecified ancestry bit removes the cookie set with that parameter"
+          );
+          if (url == "http://first.example.com") {
+            browser.test.assertDeepEq(
+              partitionKeySameSite,
+              removedCookie?.partitionKey,
+              "remove() with partitionKey and unspecified ancestry bit removes the correct partitioned cookie"
+            );
+            removedCookie = await browser.cookies.remove({
+              url,
+              name,
+              partitionKey: partitionKeySameSite,
+            });
+            browser.test.assertDeepEq(
+              null,
+              removedCookie,
+              "remove() with same site partition key is the same as the unspecified ancentry for this url"
+            );
+            removedCookie = await browser.cookies.remove({
+              url,
+              name,
+              partitionKey: partitionKeyForeign,
+            });
+            browser.test.assertTrue(
+              removedCookie,
+              "remove() with partitionKey and foreign ancestry bit removes the right cookie"
+            );
+          } else {
+            browser.test.assertDeepEq(
+              partitionKeyForeign,
+              removedCookie?.partitionKey,
+              "remove() with partitionKey and unspecified ancestry bit removes the correct partitioned cookie"
+            );
+            await browser.test.assertRejects(
+              browser.cookies.remove({
+                url,
+                name,
+                partitionKey: partitionKeySameSite,
+              }),
+              /Invalid value for 'partitionKey' attribute/,
+              // When topLevelSite and url are cross-site, hasCrossSiteAncestor cannot be false
+              "cookies.get should reject invalid partitionKey.topLevelSite"
+            );
+            removedCookie = await browser.cookies.remove({
+              url,
+              name,
+              partitionKey: partitionKeyForeign,
+            });
+            browser.test.assertDeepEq(
+              null,
+              removedCookie,
+              "remove() with foreign partition key is the same as the unspecified ancentry for this url"
+            );
+          }
+        }
+      } catch (e) {
+        browser.test.fail("Unexpected error: " + e);
+      }
 
       browser.test.sendMessage("test_done");
     },
