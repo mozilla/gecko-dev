@@ -27,28 +27,11 @@
 }
 
 .status-bar-label.dom-content-loaded {
-  --bar-label-legend-color: var(--timing-marker-dom-content-loaded-color);
+  color: var(--theme-highlight-blue);
 }
 
 .status-bar-label.load {
-  --bar-label-legend-color: var(--timing-marker-load-color);
-}
-
-:is(
-  .status-bar-label.dom-content-loaded,
-  .status-bar-label.load
-)::before {
-  content: "";
-  display: inline-block;
-  width: 12px;
-  aspect-ratio: 1 / 1;
-  align-self: center;
-  margin-inline: 0 4px;
-  /* The --timing-marker-* colors are overriden in High Contrast Mode with non-system
-     highly contrasted colors that we want to use here */
-  forced-color-adjust: none;
-  border: 1px solid CanvasText;
-  background-color: var(--bar-label-legend-color);
+  color: var(--theme-highlight-red);
 }
 
 .requests-list-network-summary-button {
