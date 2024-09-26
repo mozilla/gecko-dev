@@ -16,7 +16,6 @@ task-defaults:
                 default:
                     - marionette/prod_config.py
                     - remove_executables.py
-    test-manifest-loader: null  # don't load tests in the taskgraph
     tier:
         by-variant:
             headless: 2
@@ -46,9 +45,12 @@ marionette:
     treeherder-symbol: Mn
     max-run-time:
         by-test-platform:
-            .*asan.*: 5400
+            .*asan.*: 3600
             .*ccov.*: 3600
             .*debug.*: 3600
             default: 2700
     instance-size: default
-    chunks: 1
+    chunks:
+        by-test-platform:
+            .*asan.*: 2
+            default: 1
