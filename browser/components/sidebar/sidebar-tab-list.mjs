@@ -6,6 +6,7 @@ import {
   classMap,
   html,
   ifDefined,
+  when,
 } from "chrome://global/content/vendor/lit.all.mjs";
 
 import {
@@ -54,8 +55,9 @@ export class SidebarTabList extends FxviewTabListBase {
         .primaryL10nId=${tabItem.primaryL10nId}
         role="listitem"
         .searchQuery=${ifDefined(this.searchQuery)}
-        .secondaryActionClass=${this.secondaryActionClass ??
-        tabItem.secondaryActionClass}
+        .secondaryActionClass=${ifDefined(
+          this.secondaryActionClass ?? tabItem.secondaryActionClass
+        )}
         .secondaryL10nArgs=${ifDefined(tabItem.secondaryL10nArgs)}
         .secondaryL10nId=${tabItem.secondaryL10nId}
         .sourceClosedId=${ifDefined(tabItem.sourceClosedId)}
@@ -91,18 +93,21 @@ export class SidebarTabRow extends FxviewTabRowBase {
   }
 
   secondaryButtonTemplate() {
-    return html`<moz-button
-      aria-haspopup=${ifDefined(this.hasPopup)}
-      class=${classMap({
-        "fxview-tab-row-button": true,
-        [this.secondaryActionClass]: this.secondaryActionClass,
-      })}
-      data-l10n-args=${ifDefined(this.secondaryL10nArgs)}
-      data-l10n-id=${ifDefined(this.secondaryL10nId)}
-      id="fxview-tab-row-secondary-button"
-      type="icon ghost"
-      @click=${this.secondaryActionHandler}
-    ></moz-button>`;
+    return html`${when(
+      this.secondaryL10nId && this.secondaryActionClass,
+      () => html`<moz-button
+        aria-haspopup=${ifDefined(this.hasPopup)}
+        class=${classMap({
+          "fxview-tab-row-button": true,
+          [this.secondaryActionClass]: this.secondaryActionClass,
+        })}
+        data-l10n-args=${ifDefined(this.secondaryL10nArgs)}
+        data-l10n-id=${this.secondaryL10nId}
+        id="fxview-tab-row-secondary-button"
+        type="icon ghost"
+        @click=${this.secondaryActionHandler}
+      ></moz-button>`
+    )}`;
   }
 
   render() {
@@ -115,6 +120,7 @@ export class SidebarTabRow extends FxviewTabRowBase {
       <a
         class=${classMap({
           "fxview-tab-row-main": true,
+          "no-action-button-row": this.canClose === false,
         })}
         disabled=${this.closeRequested}
         data-l10n-args=${ifDefined(this.primaryL10nArgs)}

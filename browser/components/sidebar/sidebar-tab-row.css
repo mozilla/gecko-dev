@@ -10,3 +10,7 @@
     justify-self: end;
   }
 }
+
+.no-action-button-row {
+  grid-column: span 7;
+}
