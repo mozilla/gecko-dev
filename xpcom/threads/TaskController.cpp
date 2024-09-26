@@ -759,7 +759,7 @@ uint64_t TaskController::PendingMainthreadTaskCountIncludingSuspended() {
 }
 
 bool TaskController::ExecuteNextTaskOnlyMainThreadInternal(
-    const MutexAutoLock& aProofOfLock) {
+    const MutexAutoLock& aProofOfLock) MOZ_REQUIRES(mGraphMutex) {
   MOZ_ASSERT(NS_IsMainThread());
   mGraphMutex.AssertCurrentThreadOwns();
   // Block to make it easier to jump to our cleanup.
@@ -832,7 +832,7 @@ bool TaskController::ExecuteNextTaskOnlyMainThreadInternal(
 }
 
 bool TaskController::DoExecuteNextTaskOnlyMainThreadInternal(
-    const MutexAutoLock& aProofOfLock) {
+    const MutexAutoLock& aProofOfLock) MOZ_REQUIRES(mGraphMutex) {
   mGraphMutex.AssertCurrentThreadOwns();
 
   nsCOMPtr<nsIThread> mainIThread;

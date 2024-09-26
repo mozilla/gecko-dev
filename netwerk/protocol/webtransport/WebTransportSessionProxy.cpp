@@ -257,7 +257,7 @@ void WebTransportSessionProxy::CloseSessionInternalLocked() {
   CloseSessionInternal();
 }
 
-void WebTransportSessionProxy::CloseSessionInternal() {
+void WebTransportSessionProxy::CloseSessionInternal() MOZ_REQUIRES(mMutex) {
   if (!OnSocketThread()) {
     mMutex.AssertCurrentThreadOwns();
     RefPtr<WebTransportSessionProxy> self(this);
@@ -962,7 +962,7 @@ void WebTransportSessionProxy::CallOnSessionClosedLocked() {
   CallOnSessionClosed();
 }
 
-void WebTransportSessionProxy::CallOnSessionClosed() {
+void WebTransportSessionProxy::CallOnSessionClosed() MOZ_REQUIRES(mMutex) {
   mMutex.AssertCurrentThreadOwns();
 
   if (!mTarget->IsOnCurrentThread()) {

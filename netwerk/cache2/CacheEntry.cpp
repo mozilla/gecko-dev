@@ -345,7 +345,7 @@ bool CacheEntry::Open(Callback& aCallback, bool aTruncate, bool aPriority,
   return true;
 }
 
-bool CacheEntry::Load(bool aTruncate, bool aPriority) {
+bool CacheEntry::Load(bool aTruncate, bool aPriority) MOZ_REQUIRES(mLock) {
   LOG(("CacheEntry::Load [this=%p, trunc=%d]", this, aTruncate));
 
   mLock.AssertCurrentThreadOwns();
@@ -514,7 +514,8 @@ NS_IMETHODIMP CacheEntry::OnFileDoomed(nsresult aResult) {
 }
 
 already_AddRefed<CacheEntryHandle> CacheEntry::ReopenTruncated(
-    bool aMemoryOnly, nsICacheEntryOpenCallback* aCallback) {
+    bool aMemoryOnly, nsICacheEntryOpenCallback* aCallback)
+    MOZ_REQUIRES(mLock) {
   LOG(("CacheEntry::ReopenTruncated [this=%p]", this));
 
   mLock.AssertCurrentThreadOwns();
@@ -618,7 +619,7 @@ void CacheEntry::InvokeCallbacks() {
   LOG(("CacheEntry::InvokeCallbacks END [this=%p]", this));
 }
 
-bool CacheEntry::InvokeCallbacks(bool aReadOnly) {
+bool CacheEntry::InvokeCallbacks(bool aReadOnly) MOZ_REQUIRES(mLock) {
   mLock.AssertCurrentThreadOwns();
 
   RefPtr<CacheEntryHandle> recreatedHandle;
@@ -693,7 +694,7 @@ bool CacheEntry::InvokeCallbacks(bool aReadOnly) {
   return true;
 }
 
-bool CacheEntry::InvokeCallback(Callback& aCallback) {
+bool CacheEntry::InvokeCallback(Callback& aCallback) MOZ_REQUIRES(mLock) {
   mLock.AssertCurrentThreadOwns();
   LOG(("CacheEntry::InvokeCallback [this=%p, state=%s, cb=%p]", this,
        StateString(mState), aCallback.mCallback.get()));
@@ -1781,7 +1782,8 @@ void CacheEntry::RemoveForcedValidity() {
   CacheStorageService::Self()->RemoveEntryForceValid(mStorageID, entryKey);
 }
 
-void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync) {
+void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
+    MOZ_REQUIRES(mLock) {
   mLock.AssertCurrentThreadOwns();
 
   if (!CacheStorageService::IsOnManagementThread() || aForceAsync) {

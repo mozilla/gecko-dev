@@ -474,7 +474,7 @@ nsInputStreamPump::OnInputStreamReady(nsIAsyncInputStream* stream) {
   return NS_OK;
 }
 
-uint32_t nsInputStreamPump::OnStateStart() {
+uint32_t nsInputStreamPump::OnStateStart() MOZ_REQUIRES(mMutex) {
   mMutex.AssertCurrentThreadIn();
 
   AUTO_PROFILER_LABEL("nsInputStreamPump::OnStateStart", NETWORK);
@@ -511,7 +511,7 @@ uint32_t nsInputStreamPump::OnStateStart() {
   return NS_SUCCEEDED(mStatus) ? STATE_TRANSFER : STATE_STOP;
 }
 
-uint32_t nsInputStreamPump::OnStateTransfer() {
+uint32_t nsInputStreamPump::OnStateTransfer() MOZ_REQUIRES(mMutex) {
   mMutex.AssertCurrentThreadIn();
 
   AUTO_PROFILER_LABEL("nsInputStreamPump::OnStateTransfer", NETWORK);
@@ -645,7 +645,7 @@ nsresult nsInputStreamPump::CallOnStateStop() {
   return NS_OK;
 }
 
-uint32_t nsInputStreamPump::OnStateStop() {
+uint32_t nsInputStreamPump::OnStateStop() MOZ_REQUIRES(mMutex) {
   mMutex.AssertCurrentThreadIn();
 
   if (!NS_IsMainThread() && !mOffMainThread) {

@@ -1863,7 +1863,7 @@ void nsSocketTransportService::EndPolling() {
 
 #endif
 
-void nsSocketTransportService::TryRepairPollableEvent() {
+void nsSocketTransportService::TryRepairPollableEvent() MOZ_REQUIRES(mLock) {
   mLock.AssertCurrentThreadOwns();
 
   PollableEvent* pollable = nullptr;

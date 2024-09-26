@@ -363,7 +363,7 @@ void SetInCommunication(bool aInCommunication) {
 #endif
 }
 
-bool InitPreferredSampleRate() {
+bool InitPreferredSampleRate() MOZ_REQUIRES(sMutex) {
   sMutex.AssertCurrentThreadOwns();
   if (sPreferredSampleRate != 0) {
     return true;

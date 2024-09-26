@@ -130,7 +130,8 @@ void WaylandVsyncSource::MaybeUpdateSource(
   }
 }
 
-void WaylandVsyncSource::Refresh(const MutexAutoLock& aProofOfLock) {
+void WaylandVsyncSource::Refresh(const MutexAutoLock& aProofOfLock)
+    MOZ_REQUIRES(mMutex) {
   mMutex.AssertCurrentThreadOwns();
 
   LOG("WaylandVsyncSource::Refresh fps %f\n", GetFPS(mVsyncRate));

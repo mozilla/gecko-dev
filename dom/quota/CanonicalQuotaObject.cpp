@@ -105,8 +105,8 @@ void CanonicalQuotaObject::EnableQuotaCheck() {
   mQuotaCheckDisabled = false;
 }
 
-bool CanonicalQuotaObject::LockedMaybeUpdateSize(int64_t aSize,
-                                                 bool aTruncate) {
+bool CanonicalQuotaObject::LockedMaybeUpdateSize(int64_t aSize, bool aTruncate)
+    MOZ_NO_THREAD_SAFETY_ANALYSIS {
   QuotaManager* quotaManager = QuotaManager::Get();
   MOZ_ASSERT(quotaManager);
 
