@@ -12,7 +12,7 @@ const { AppConstants } = ChromeUtils.importESModule(
 add_task(async function test_telemetry_basic() {
   await setupPolicyEngineWithJson({
     policies: {
-      BlockAboutSupport: true,
+      DisableAboutSupport: true,
     },
   });
 
@@ -21,7 +21,6 @@ add_task(async function test_telemetry_basic() {
     "policies.is_enterprise",
     true
   );
-  equal(Services.policies.isEnterprise, true);
 });
 
 add_task(async function test_telemetry_just_roots() {
@@ -38,13 +37,12 @@ add_task(async function test_telemetry_just_roots() {
     "policies.is_enterprise",
     AppConstants.IS_ESR
   );
-  equal(Services.policies.isEnterprise, AppConstants.IS_ESR);
 });
 
 add_task(async function test_telemetry_roots_plus_policy() {
   await setupPolicyEngineWithJson({
     policies: {
-      BlockAboutSupport: true,
+      DisableAboutSupport: true,
       Certificates: {
         ImportEnterpriseRoots: true,
       },
@@ -56,7 +54,6 @@ add_task(async function test_telemetry_roots_plus_policy() {
     "policies.is_enterprise",
     true
   );
-  equal(Services.policies.isEnterprise, true);
 });
 
 add_task(async function test_telemetry_esr() {
@@ -66,7 +63,6 @@ add_task(async function test_telemetry_esr() {
     "policies.is_enterprise",
     AppConstants.IS_ESR
   );
-  equal(Services.policies.isEnterprise, AppConstants.IS_ESR);
 });
 
 add_task(async function test_telemetry_esr_mac_eol() {
@@ -79,7 +75,6 @@ add_task(async function test_telemetry_esr_mac_eol() {
     "policies.is_enterprise",
     false
   );
-  equal(Services.policies.isEnterprise, false);
 });
 
 add_task(async function test_telemetry_esr_win_eol() {
@@ -92,7 +87,6 @@ add_task(async function test_telemetry_esr_win_eol() {
     "policies.is_enterprise",
     false
   );
-  equal(Services.policies.isEnterprise, false);
 });
 
 add_task(async function test_telemetry_esr_distro() {
@@ -105,5 +99,4 @@ add_task(async function test_telemetry_esr_distro() {
     "policies.is_enterprise",
     AppConstants.IS_ESR
   );
-  equal(Services.policies.isEnterprise, AppConstants.IS_ESR);
 });

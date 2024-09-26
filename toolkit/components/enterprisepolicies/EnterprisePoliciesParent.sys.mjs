@@ -107,7 +107,6 @@ EnterprisePoliciesManager.prototype = {
       }
       Services.prefs.clearUserPref(PREF_POLICIES_APPLIED);
     }
-    this._parsedPolicies = {};
 
     let provider = this._chooseProvider();
 
@@ -124,18 +123,36 @@ EnterprisePoliciesManager.prototype = {
     }
 
     this.status = Ci.nsIEnterprisePolicies.ACTIVE;
+    this._parsedPolicies = {};
+    this._reportEnterpriseTelemetry(provider.policies);
     this._activatePolicies(provider.policies);
-    this._reportEnterpriseTelemetry();
 
     Services.prefs.setBoolPref(PREF_POLICIES_APPLIED, true);
   },
 
-  _reportEnterpriseTelemetry() {
-    Services.telemetry.scalarSet(
-      "policies.count",
-      Object.keys(this._parsedPolicies).length
-    );
-    Services.telemetry.scalarSet("policies.is_enterprise", this.isEnterprise);
+  _reportEnterpriseTelemetry(policies = {}) {
+    let excludedDistributionIDs = [
+      "mozilla-mac-eol-esr115",
+      "mozilla-win-eol-esr115",
+    ];
+    let distroId = Services.prefs
+      .getDefaultBranch(null)
+      .getCharPref("distribution.id", "");
+
+    let policiesLength = Object.keys(policies).length;
+
+    Services.telemetry.scalarSet("policies.count", policiesLength);
+
+    let isEnterprise =
+      // As we migrate folks to ESR for other reasons (deprecating an OS),
+      // we need to add checks here for distribution IDs.
+      (AppConstants.IS_ESR && !excludedDistributionIDs.includes(distroId)) ||
+      // If there are multiple policies then its enterprise.
+      policiesLength > 1 ||
+      // If ImportEnterpriseRoots isn't the only policy then it's enterprise.
+      (policiesLength && !policies.Certificates?.ImportEnterpriseRoots);
+
+    Services.telemetry.scalarSet("policies.is_enterprise", isEnterprise);
   },
 
   _chooseProvider() {
@@ -454,30 +471,6 @@ EnterprisePoliciesManager.prototype = {
       }
     }
     return false;
-  },
-
-  get isEnterprise() {
-    let excludedDistributionIDs = [
-      "mozilla-mac-eol-esr115",
-      "mozilla-win-eol-esr115",
-    ];
-    let distroId = Services.prefs
-      .getDefaultBranch(null)
-      .getCharPref("distribution.id", "");
-
-    let policiesLength = Object.keys(this._parsedPolicies).length;
-
-    let isEnterprise =
-      // As we migrate folks to ESR for other reasons (deprecating an OS),
-      // we need to add checks here for distribution IDs.
-      (AppConstants.IS_ESR && !excludedDistributionIDs.includes(distroId)) ||
-      // If there are multiple policies then its enterprise.
-      policiesLength > 1 ||
-      // If ImportEnterpriseRoots isn't the only policy then it's enterprise.
-      (!!policiesLength &&
-        !this._parsedPolicies.Certificates?.ImportEnterpriseRoots);
-
-    return isEnterprise;
   },
 };
 
