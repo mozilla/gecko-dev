@@ -96,9 +96,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Naša nejmóčnjejša funkcija priwatnosći sedła pśesegujuce pśeslědowaki izolěrujo.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Naša nejmóčnjejša funkcija priwatnosći sedła pśesegujuce pśeslědowaki izolěrujo.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Zgóńśo wěcej wó dopołnem šćiśe pśed cookiejami</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Zgóńśo wěcej wó dopołnem šćiśe pśed cookiejami</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -217,8 +217,11 @@
     <string name="browser_menu_manage_extensions">Rozšyrjenja zastojaś</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">Dopórucone rozšyrjenja</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">%1$s pśidaś</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">Rozšyrjenje pśidaś</string>
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Rozšyrjenje pśidaś</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Dalšne rozšyrjenja namakaś</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -2481,13 +2484,13 @@ To buźo jano pomagaś, kwalitu pógódnośenjow pósuźiś, nic kwalitu produkt
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Nic něnto</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Wuslěźćo, lěc móžośo pógódnośenjam toś togo produkta dowěriś – nježli až jen kupujośo.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Wuslěźćo, lěc móžośo pógódnośenjam toś togo produkta dowěriś – nježli až jen kupujośo.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Kontrolu pógódnośenjow wopytaś</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Kontrolu pógódnośenjow wopytaś</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Su toś te pógódnośenja spušćobne? Kontrolěrujśo to něnto, aby pśiměrjone pógódnośowanje wiźeł.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Su toś te pógódnośenja spušćobne? Kontrolěrujśo to něnto, aby pśiměrjone pógódnośowanje wiźeł.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Kontrolu pógódnośenjow wócyniś</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Kontrolu pógódnośenjow wócyniś</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2885,6 +2888,10 @@ To buźo jano pomagaś, kwalitu pógódnośenjow pósuźiś, nic kwalitu produkt
     <string name="debug_drawer_cfr_tools_title">Rědy CFR</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR slědk stajiś</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Rědy Glean za pytanje zmólkow</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

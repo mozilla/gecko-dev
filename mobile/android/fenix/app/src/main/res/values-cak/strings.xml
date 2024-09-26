@@ -51,14 +51,6 @@
     <!-- Content description on checkmark while tab is selected in multiselect mode in tab tray -->
     <string name="tab_tray_multiselect_selected_content_description">Xcha\'</string>
 
-    <!-- Home - Recently saved bookmarks -->
-    <!-- Title for the home screen section with recently saved bookmarks. -->
-    <string name="recently_saved_title" moz:removedIn="127" tools:ignore="UnusedResources">K\'a b\'a keyak</string>
-    <!-- Content description for the button which navigates the user to show all of their saved bookmarks. -->
-    <string name="recently_saved_show_all_content_description_2" moz:removedIn="127" tools:ignore="UnusedResources">Kek\'ut ronojel ri yakon taq yaketal</string>
-    <!-- Text for the menu button to remove a recently saved bookmark from the user's home screen -->
-    <string name="recently_saved_menu_item_remove" moz:removedIn="127" tools:ignore="UnusedResources">Tiyuj</string>
-
     <!-- Home - Bookmarks -->
     <!-- Title for the home screen section with bookmarks. -->
     <string name="home_bookmarks_title">Taq yaketal</string>
@@ -107,10 +99,10 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Ri qasamaj richin nïm ichinanem k\'a wakami yerujech\'uj ri ojqanela\' chi kikojol ruxaq.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Ri qasamaj richin nïm ichinanem k\'a wakami yerujech\'uj ri ojqanela\' chi kikojol ruxaq.</string>
 
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Tetamäx ch\'aqa\' chik chi rij ri Kichajixik Chi Jun Kuki</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Tetamäx ch\'aqa\' chik chi rij ri Kichajixik Chi Jun Kuki</string>
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the erase private browsing feature. -->
@@ -198,6 +190,17 @@
 
     <!-- Browser menu button that opens the extensions manager -->
     <string name="browser_menu_extensions">Taq k\'amal</string>
+    <!-- Browser menu banner link text for learning more about extensions -->
+    <string name="browser_menu_extensions_banner_learn_more">Tetamäx ch\'aqa\' chik</string>
+    <!-- Browser menu button that opens the extensions manager -->
+    <string name="browser_menu_manage_extensions">Kinuk\'samajixik taq k\'amal</string>
+    <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
+    <string name="browser_menu_recommended_section_content_description">Chilab\'en taq k\'amal</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Titz\'aqatisäx %1$s</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Titz\'aqatisäx k\'amal</string>
     <!-- Browser menu button that opens account settings -->
     <string name="browser_menu_account_settings">Rutzijol rub\'i\' taqoya\'l</string>
     <!-- Browser menu button that sends a user to help articles -->
@@ -339,7 +342,7 @@
 
     <!-- Home onboarding -->
     <!-- Onboarding home screen popup dialog, shown on top of the Jump back in section. -->
-    <string name="onboarding_home_screen_jump_back_contextual_hint_2">Tawetamaj ruwäch ri ichinan ruxaq tikirib\'äl. Ri k\'ak\'a\' taq ruwi\', taq yaketal chuqa\' retal taq kanoxïk wawe\' xkeq\'alajin.</string>
+    <string name="onboarding_home_screen_jump_back_contextual_hint_2" moz:removedIn="132">Tawetamaj ruwäch ri ichinan ruxaq tikirib\'äl. Ri k\'ak\'a\' taq ruwi\', taq yaketal chuqa\' retal taq kanoxïk wawe\' xkeq\'alajin.</string>
     <!-- Home onboarding dialog welcome screen title text. -->
     <string name="onboarding_home_welcome_title_2">Ütz apetik pa jun k\'amaya\'l awichin</string>
     <!-- Home onboarding dialog welcome screen description text. -->
@@ -374,12 +377,12 @@
 
     <!-- Juno first user onboarding flow experiment, strings are marked unused as they are only referenced by Nimbus experiments. -->
     <!-- Description for learning more about our privacy notice. -->
-    <string name="juno_onboarding_privacy_notice_text">Firefox ichinan rutzijol</string>
+    <string name="juno_onboarding_privacy_notice_text" tools:ignore="BrandUsage">Firefox ichinan rutzijol</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_2">Niqa chi qawäch chi atqajikib\'an</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="UnusedResources">Tawila\' aruma\' yeb\'uchu\' winaqi\' nikajo\' Firefox</string>
+    <string name="juno_onboarding_default_browser_title_nimbus_3" tools:ignore="BrandUsage,UnusedResources">Tawila\' aruma\' yeb\'uchu\' winaqi\' nikajo\' Firefox</string>
     <!-- Title for set firefox as default browser screen used by Nimbus experiments. -->
     <string name="juno_onboarding_default_browser_title_nimbus_4" tools:ignore="UnusedResources">Jikil okem rik\'in k\'ïy taq cha\'oj</string>
     <!-- Description for set firefox as default browser screen used by Nimbus experiments. -->
@@ -402,17 +405,17 @@
     <string name="juno_onboarding_sign_in_title_2">Kak\'oje\' pa ewan sik\'inem toq ye\'ajäl ri taq awokisaxel</string>
     <!-- Description for sign in to sync screen. Nimbus experiments do not support string placeholders.
      Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_sign_in_description_2">Toq xatikirisaj molojri\'ïl chuqa\' yaximon jumul at jikïl. Ri Firefox yerewaj ri ewan taq atzij, taq ayaketal chuqa\' ch\'aqa\' chik.</string>
+    <string name="juno_onboarding_sign_in_description_2" moz:RemovedIn="130" tools:ignore="BrandUsage,UnusedResources">Toq xatikirisaj molojri\'ïl chuqa\' yaximon jumul at jikïl. Ri Firefox yerewaj ri ewan taq atzij, taq ayaketal chuqa\' ch\'aqa\' chik.</string>
     <!-- Text for the button to sign in to sync on the device -->
     <string name="juno_onboarding_sign_in_positive_button" tools:ignore="UnusedResources">Titikirisäx molojri\'ïl</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_sign_in_negative_button" tools:ignore="UnusedResources">Wakami mani</string>
     <!-- Title for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_title_nimbus_2">Ri taq rutzijol yatkito\' yalan at jikil pa Firefox</string>
+    <string name="juno_onboarding_enable_notifications_title_nimbus_2" tools:ignore="BrandUsage">Ri taq rutzijol yatkito\' yalan at jikil pa Firefox</string>
     <!-- Description for enable notification permission screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
        Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_enable_notifications_description_nimbus_2">Jikil ke\'ataqa\' taq ruwi\' chi kikojol taq okisaxel chuqa\' ke\'awila\' ch\'aqa\' chik taq rusamajib\'al richinanem Firefox.</string>
+    <string name="juno_onboarding_enable_notifications_description_nimbus_2" tools:ignore="BrandUsage">Jikil ke\'ataqa\' taq ruwi\' chi kikojol taq okisaxel chuqa\' ke\'awila\' ch\'aqa\' chik taq rusamajib\'al richinanem Firefox.</string>
     <!-- Text for the button to request notification permission on the device -->
     <string name="juno_onboarding_enable_notifications_positive_button" tools:ignore="UnusedResources">Ketzij taq rutzijol</string>
     <!-- Text for the button dismiss the screen and move on with the flow -->
@@ -420,13 +423,13 @@
 
     <!-- Title for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_title" tools:ignore="UnusedResources">Tatojtob\'ej ri ruwidget rukanob\'äl Firefox</string>
+    <string name="juno_onboarding_add_search_widget_title" tools:ignore="BrandUsage,UnusedResources">Tatojtob\'ej ri ruwidget rukanob\'äl Firefox</string>
     <!-- Description for add search widget screen used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_description" tools:ignore="UnusedResources">Rik\'in ri Firefox pa ruwa atikirib\'al, chanin yatok pan awokik\'amaya\'l ri nuya\' ruq\'ij ri ichinanem chuqa\' yeruq\'ät ri taq ojqanela\' chi kikojol taq ruxaq.</string>
+    <string name="juno_onboarding_add_search_widget_description" tools:ignore="BrandUsage,UnusedResources">Rik\'in ri Firefox pa ruwa atikirib\'al, chanin yatok pan awokik\'amaya\'l ri nuya\' ruq\'ij ri ichinanem chuqa\' yeruq\'ät ri taq ojqanela\' chi kikojol taq ruxaq.</string>
     <!-- Text for the button to add search widget on the device used by Nimbus experiments. Nimbus experiments do not support string placeholders.
         Note: The word "Firefox" should NOT be translated -->
-    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="UnusedResources">Titz\'aqatisäx ruwidget Firefox</string>
+    <string name="juno_onboarding_add_search_widget_positive_button" tools:ignore="BrandUsage,UnusedResources">Titz\'aqatisäx ruwidget Firefox</string>
     <!-- Text for the button to dismiss the screen and move on with the flow -->
     <string name="juno_onboarding_add_search_widget_negative_button" tools:ignore="UnusedResources">Wakami mani</string>
 
@@ -468,9 +471,9 @@
     <!-- Preference Category for settings related to Search address bar -->
     <string name="preferences_settings_address_bar">Kajowab\'al kikajtz\'ik ochochib\'äl</string>
     <!-- Preference Category for settings to Firefox Suggest -->
-    <string name="preference_search_address_bar_fx_suggest">Kikajtz\'ik ochochib\'äl - Ruchilab\'exik Firefox</string>
+    <string name="preference_search_address_bar_fx_suggest" tools:ignore="BrandUsage">Kikajtz\'ik ochochib\'äl - Ruchilab\'exik Firefox</string>
     <!-- Preference link to Learn more about Firefox Suggest -->
-    <string name="preference_search_learn_about_fx_suggest">Tawetamaj ch\'aqa\' chik chi rij ri Firefox Suggest</string>
+    <string name="preference_search_learn_about_fx_suggest" tools:ignore="BrandUsage">Tawetamaj ch\'aqa\' chik chi rij ri Firefox Suggest</string>
     <!-- Preference link to rating Fenix on the Play Store -->
     <string name="preferences_rate">Tiya\' rejqalem pa Google Play</string>
     <!-- Preference linking to about page for Fenix
@@ -561,8 +564,6 @@
     <string name="toast_override_account_sync_server_done">Xjal ruk\'u\'x kisamaj Mozilla Account/Sync. Nitz\'apïx chokoy richin yesamajïx ri taq jaloj…</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Rub\'i\' taqoya\'l</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar" moz:removedIn="129" tools:ignore="UnusedResources">Cholsamajib\'äl</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Wachinel</string>
     <!-- Preference for customizing the home screen -->
@@ -580,8 +581,6 @@
     <string name="preferences_account_sync_error">Tokisäx chik richin nitikirisäx chik ri ximoj</string>
     <!-- Preference for language -->
     <string name="preferences_language">Ch\'ab\'äl</string>
-    <!-- Preference for translation -->
-    <string name="preferences_translation" moz:removedIn="127" tools:ignore="UnusedResources">Tzalq\'omanïk</string>
     <!-- Preference for data choices -->
     <string name="preferences_data_choices">Rucha\'ik tzij</string>
     <!-- Preference for data collection -->
@@ -661,8 +660,6 @@
     <!-- Customize Home -->
     <!-- Header text for jumping back into the recent tab in customize the home screen -->
     <string name="customize_toggle_jump_back_in">Titz\'et chik</string>
-    <!-- Title for the customize home screen section with recently saved bookmarks. -->
-    <string name="customize_toggle_recent_bookmarks" moz:removedIn="127" tools:ignore="UnusedResources">K\'ak\'a\' taq yaketal</string>
     <!-- Title for the customize home screen section with recently visited. Recently visited is
     a section where users see a list of tabs that they have visited in the past few days -->
     <string name="customize_toggle_recently_visited">K\'a b\'a ketz\'et</string>
@@ -707,7 +704,7 @@
     <string name="wallpapers_onboarding_dialog_explore_more_button_text">Kekanöx ch\'aqa\' rupam ruwäch</string>
 
     <!-- Body of the Nimbus message for add-ons general availability. 'Firefox' intentionally hardcoded here-->
-    <string name="addon_ga_message_body" tools:ignore="UnusedResources">Ke\'awila\'  +100 k\'ak\'a\' taq k\'amal ri nikiya\' q\'ij chawe\' nawichinaj Firefox.</string>
+    <string name="addon_ga_message_body" tools:ignore="BrandUsage,UnusedResources">Ke\'awila\'  +100 k\'ak\'a\' taq k\'amal ri nikiya\' q\'ij chawe\' nawichinaj Firefox.</string>
 
     <!-- Account Preferences -->
     <!-- Preference for managing your account via accounts.firefox.com -->
@@ -759,7 +756,7 @@
     <string name="fxa_received_tab_channel_name">Taq ruwi\' ek\'ulun</string>
 
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Taq rutzijol taq ruwi\' ek\'ulun pa ch\'aqa\' chik rokisab\'al Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Taq rutzijol taq ruwi\' ek\'ulun pa ch\'aqa\' chik rokisab\'al Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Ruwi\' k\'ulun</string>
     <!-- %s is the device name -->
@@ -824,8 +821,6 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Taq\'axaj richin nawewaj ri ajkajtz\'ik</string>
 
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs" moz:removedIn="129" tools:ignore="UnusedResources">Tiq\'axäx ri ajkajtz\'ik chi taq ruchi\' richin nijal ruwi\'</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Tiq\'axäx ri ajkatz\'ik ajsik richin yejaq taq ruwi\'</string>
 
@@ -1008,7 +1003,7 @@
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Rub\'i\' mol</string>
     <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site">Tisik\'ïx chik</string>
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Tisik\'ïx chik</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Tiyuj</string>
 
@@ -1318,7 +1313,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Tokisäx jun chik okisab\'äl</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Richin nitaq jun ruwi\', titikirisäx molojri\'ïl xa pa jun chik okisab\'äl.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Richin nitaq jun ruwi\', titikirisäx molojri\'ïl xa pa jun chik okisab\'äl.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Xno\' pa nuwi\'</string>
     <!-- Share error message -->
@@ -1345,10 +1340,10 @@
 
     <!-- Title shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_title" tools:ignore="UnusedResources">Firefox aninäq chuqa\' ichinel</string>
+    <string name="nimbus_notification_default_browser_title" tools:ignore="BrandUsage,UnusedResources">Firefox aninäq chuqa\' ichinel</string>
     <!-- Text shown in the notification that pops up to remind the user to set fenix as default browser.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_notification_default_browser_text" tools:ignore="UnusedResources">Tab\'ana\' chi ri Firefox nok ri nab\'ey awokik\'amaya\'l</string>
+    <string name="nimbus_notification_default_browser_text" tools:ignore="BrandUsage,UnusedResources">Tab\'ana\' chi ri Firefox nok ri nab\'ey awokik\'amaya\'l</string>
     <!-- Title shown in the notification that pops up to re-engage the user -->
     <string name="notification_re_engagement_title">Titojtob\'ëx ichinan okem</string>
 
@@ -1366,7 +1361,7 @@
     <!-- Survey -->
     <!-- Text shown in the fullscreen message that pops up to ask user to take a short survey.
     The app name is in the text, due to limitations with localizing Nimbus experiments -->
-    <string name="nimbus_survey_message_text">Kato\'on chi nutziläx ri Firefox rik\'in nanojisaj ri ch\'uti nojwuj.</string>
+    <string name="nimbus_survey_message_text" tools:ignore="BrandUsage">Kato\'on chi nutziläx ri Firefox rik\'in nanojisaj ri ch\'uti nojwuj.</string>
     <!-- Preference for taking the short survey. -->
     <string name="preferences_take_survey">Tinojisäx nojwuj</string>
     <!-- Preference for not taking the short survey. -->
@@ -1412,7 +1407,7 @@
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Tiyuj</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Nok pa chijun ruwa</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Nok pa chijun ruwa</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL xwachib\'ëx</string>
 
@@ -1509,7 +1504,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Titz\'ajwachib\'ëx b\'itz\'ib\'</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[Tajaqa\' Firefox pan awoyonib\'al k\'a ri\' jät pa <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[Tajaqa\' Firefox pan awoyonib\'al k\'a ri\' jät pa <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Ütz chik nitz\'ajwachib\'ëx</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -1517,7 +1512,7 @@
     <!-- Text shown for settings option for sign with email -->
     <string name="sign_in_with_email">Tawokisaj ri taqoya\'l</string>
     <!-- Text shown for settings option for create new account text.'Firefox' intentionally hardcoded here.-->
-    <string name="sign_in_create_account_text"><![CDATA[¿La man k\'o ta rub\'i\' ataqoya\'l? <u>Tatz\'uku\' jun</u> richin naxïm Firefox pa taq okisab\'äl.]]></string>
+    <string name="sign_in_create_account_text" tools:ignore="BrandUsage"><![CDATA[¿La man k\'o ta rub\'i\' ataqoya\'l? <u>Tatz\'uku\' jun</u> richin naxïm Firefox pa taq okisab\'äl.]]></string>
     <!-- Text shown in confirmation dialog to sign out of account. The first parameter is the name of the app (e.g. Firefox Preview) -->
     <string name="sign_out_confirmation_message_2">%s Man xtuxïm ta chik ri rub\'i\' ataqoya\'l, man xkeyuj ta ri taq rutzij awokem pa re oyonib\'äl re\'.</string>
     <!-- Option to continue signing out of account shown in confirmation dialog to sign out of account -->
@@ -1579,7 +1574,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Cryptominers</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Ketal ruwi\' q\'ab\'aj</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Ketal ruwi\' q\'ab\'aj</string>
     <!-- Button label for navigating to the Enhanced Tracking Protection details -->
     <string name="enhanced_tracking_protection_details">Kib\'anikil</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
@@ -1602,9 +1597,9 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Man nikiya\' ta q\'ij chi ri itzel taq skrip yetikïr ye\'ok pan awokisab\'al richin nikik\'äm kematz\'ib\'il pwäq.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Ketal ruwi\' q\'ab\'aj</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Ketal ruwi\' q\'ab\'aj</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Tachajij awi\' richin chi kekimöl taq atzij pan awokisab\'al, ri ye\'okisäx richin yatoqäx.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Tachajij awi\' richin chi kekimöl taq atzij pan awokisab\'al, ri ye\'okisäx richin yatoqäx.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Rupam Ojqanem</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -1991,7 +1986,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
     <string name="synced_tabs_enable_tab_syncing">Tatzija\' ri kiximik taq ruwi\'.</string>
 
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">Majun ruwi\' ajaqon pa Firefox pa ri ch\'aqa\' chik awokisab\'al.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">Majun ruwi\' ajaqon pa Firefox pa ri ch\'aqa\' chik awokisab\'al.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Titz\'et jun kicholb\'al ruwi\' pa juley chik awokisab\'al.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->
@@ -2012,7 +2007,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
     <!-- Hint for renaming title of a shortcut -->
     <string name="shortcut_name_hint">Rub\'i\' ri choj okem</string>
     <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok">ÜTZ</string>
+    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">ÜTZ</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Tiq\'at</string>
 
@@ -2033,7 +2028,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
     <string name="inactive_tabs_auto_close_message_header" tools:ignore="UnusedResources">¿La ruyonil nitz\'apïx chi rij jun ik\'?</string>
 
     <!-- A description below the header to notify the user what the inactive tabs auto-close feature is. -->
-    <string name="inactive_tabs_auto_close_message_description" tools:ignore="UnusedResources">Firefox nitikïr yerutz\'apij taq ruxaq man e\'atz\'eton ta pa ri ruk\'isib\'äl ik\'.</string>
+    <string name="inactive_tabs_auto_close_message_description" tools:ignore="BrandUsage,UnusedResources">Firefox nitikïr yerutz\'apij taq ruxaq man e\'atz\'eton ta pa ri ruk\'isib\'äl ik\'.</string>
     <!-- A call to action below the description to allow the user to turn on the auto closing of inactive tabs. -->
     <string name="inactive_tabs_auto_close_message_action" tools:ignore="UnusedResources">TITZIJ RUYON NICHUPUTÄJ</string>
     <!-- Text for the snackbar to confirm auto-close is enabled for inactive tabs -->
@@ -2041,14 +2036,14 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
 
     <!-- Awesome bar suggestion's headers -->
     <!-- Search suggestions title for Firefox Suggest. -->
-    <string name="firefox_suggest_header">Firefox Suggest</string>
+    <string name="firefox_suggest_header" tools:ignore="BrandUsage">Firefox Suggest</string>
     <!-- Title for search suggestions when Google is the default search suggestion engine. -->
     <string name="google_search_engine_suggestion_header">Google Kanob\'äl</string>
     <!-- Title for search suggestions when the default search suggestion engine is anything other than Google. The first parameter is default search engine name. -->
     <string name="other_default_search_engine_suggestion_header">Tikanöx pa %s</string>
 
     <!-- Default browser card text -->
-    <string name="default_browser_experiment_card_text">Nub\'än kinuk\'ulem ximonel ajk\'amaya\'l taq ruxaq, taq taqoya\'l chuqa\' taq rutzijol richin yejaq pa ruyonil pa Firefox.</string>
+    <string name="default_browser_experiment_card_text" tools:ignore="BrandUsage">Nub\'än kinuk\'ulem ximonel ajk\'amaya\'l taq ruxaq, taq taqoya\'l chuqa\' taq rutzijol richin yejaq pa ruyonil pa Firefox.</string>
 
     <!-- Content description for close button in collection placeholder. -->
     <string name="remove_home_collection_placeholder_content_description">Tiyuj</string>
@@ -2110,7 +2105,7 @@ Achi\'el: \nhttps://www.google.com/search?q=%s</string>
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Wakami mani</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag">Beta</string>
+    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Text for minimize button from highlights card. When clicked the highlights card should reduce its size. -->
     <string name="review_quality_check_highlights_show_less">Tik\'ut jub\'a\'</string>
     <!-- Text for maximize button from highlights card. When clicked the highlights card should expand to its full size. -->

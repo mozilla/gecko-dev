@@ -1304,6 +1304,18 @@
     <!-- Content description for the overflow menu for a bookmark item. Paramter will a folder name or bookmark title. -->
     <string name="bookmark_item_menu_button_content_description">Elemmenü ehhez: %s</string>
 
+    <!-- Title for the bookmark list empty state-->
+    <string name="bookmark_empty_list_title">Még nincsenek könyvjelzők</string>
+
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">Mentse a webhelyeket böngészés közben. Jelentkezzen be, és vegye át a könyvjelzőket a többi szinkronizált eszközről.</string>
+    <!-- Text for the button to navigate to sync authentication -->
+    <string name="bookmark_empty_list_guest_cta">Bejelentkezés a Syncbe</string>
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Mentse a webhelyeket böngészés közben. A többi szinkronizált eszközről is lekérjük a könyvjelzőket.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Adjon hozzá könyvjelzőket böngészés közben, hogy később is megtalálja a kedvenc oldalait.</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Ugrás a beállításokhoz</string>
@@ -2484,14 +2496,14 @@
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Most nem</string>
 
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Tudja meg, hogy megbízhat-e ezen termék értékeléseiben – még a vásárlás előtt.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Tudja meg, hogy megbízhat-e ezen termék értékeléseiben – még a vásárlás előtt.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Próbálja ki az értékelés-ellenőrzőt</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Próbálja ki az értékelés-ellenőrzőt</string>
 
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Megbízhatók ezek az értékelések? Nézze meg a módosított értékelés megtekintéséhez.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Megbízhatók ezek az értékelések? Nézze meg a módosított értékelés megtekintéséhez.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Értékelés-ellenőrző megnyitása</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Értékelés-ellenőrző megnyitása</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->

@@ -1122,7 +1122,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Zo byšće połnu wobrazowku wopušćił, ćehńće wot horjeka dele a wužiwajće gestu wróćo</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Zo byšće połnu wobrazowku wopušćił, ćehńće wot horjeka dele a wužiwajće gestu wróćo</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Zo byšće połnu wobrazowku wopušćił, ćehńće wot horjeka dele a tłóčće na Wróćo</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Zo byšće połnu wobrazowku wopušćił, ćehńće wot horjeka dele a tłóčće na Wróćo</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Ćehńće wot horjeka a wužiwajće gestu Wróćo, zo byšće skónčił</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Ćehńće wot horjeka a tłóčće Wróćo, zo byšće skónčił</string>
 </resources>

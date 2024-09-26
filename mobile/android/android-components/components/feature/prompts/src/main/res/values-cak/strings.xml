@@ -49,7 +49,7 @@
     <!-- Prompt message displayed when app detects a user has entered a new password for an existing login and user decides if app should update the password. -->
     <string name="mozac_feature_prompt_login_update_headline_2">¿La nik\'ex ri ewan tzij?</string>
     <!-- Prompt message displayed when app detects a user has entered a username for an existing login without a username and user decides if app should update the login. -->
-    <string name="mozac_feature_prompt_login_add_username_headline">¿La nitz\'aqatisäx rub\'i\' winäq pa ri ewan tzij yakon?</string>
+    <string name="mozac_feature_prompt_login_add_username_headline" moz:removedIn="130" tools:ignore="UnusedResources">¿La nitz\'aqatisäx rub\'i\' winäq pa ri ewan tzij yakon?</string>
     <!-- Text for a label for the field when prompt requesting a text is shown. -->
     <!-- For more info take a look here https://developer.mozilla.org/en-US/docs/Web/API/Window/prompt -->
     <string name="mozac_feature_prompts_content_description_input_label">Etal richin ninim jun ruk\'ojlem rokem tz\'ib\'anïk</string>
@@ -115,10 +115,17 @@
 
     <!-- Content description for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_content_description">Tichilab\'ëx ütz ewan tzij</string>
-    <!-- Header for the suggest strong password prompt to allow users to fill a form with a suggested strong password -->
-    <string name="mozac_feature_prompts_suggest_strong_password">Tichilab\'ëx ütz ewan tzij</string>
     <!-- Title for using the suggest strong password confirmation dialog. %1$s will be replaced with the generated password -->
     <string name="mozac_feature_prompts_suggest_strong_password_message">Ke\'awokisaj ütz ewan taq tzij: %1$s</string>
+
+    <!-- Pressing this will use the suggested strong password -->
+    <string name="mozac_feature_prompts_suggest_strong_password_use_password">Tokisäx ewan tzij</string>
+    <!-- Pressing this will dismiss the suggested strong password dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_dismiss">Wakami mani</string>
+    <!-- Title for showing the suggest strong password saved confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_saved_snackbar_title">Xyak ewan tzij</string>
+    <!-- Title for showing the suggest strong password updated confirmation snackbar -->
+    <string name="mozac_feature_prompts_suggest_strong_password_updated_snackbar_title">Xk\'extäj ri ewan tzij</string>
 
     <!-- Strings shown in a dialog that appear when users try to refresh a certain kind of webpages -->
     <string name="mozac_feature_prompt_repost_title">¿La nitaq chik tzij chi re re ruxaq?</string>
@@ -181,7 +188,7 @@
     <!-- Title of the Identity Credential privacy policy dialog title. The %1$s will be replaced with the name of the provider. -->
     <string name="mozac_feature_prompts_identity_credentials_privacy_policy_title">Tokisäx %1$s achi\'el ya\'öl rutikirib\'al moloj</string>
     <!-- Title of the Identity Credential privacy policy dialog description. The %1$s will be replaced with the name of the provider, %2$s will be replaced with the account, %3$s will be replaced with the privacy policy url and  %4$s will be replaced with the terms of service. -->
-    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description"><![CDATA[Tatikirisaj moloj pa %1$s rik\'in jun rub\'i\' rutaq\'oya\'l %2$s ruximon ri\' rik\'in ri <a href="%3$s">Runa\'ojil ichinanem</a> chuqa\' <a href="%4$s">Rutzijol Samak</a>]]></string>
+    <string name="mozac_feature_prompts_identity_credentials_privacy_policy_description" tools:ignore="IncorrectStraightDoubleQuote"><![CDATA[Tatikirisaj moloj pa %1$s rik\'in jun rub\'i\' rutaq\'oya\'l %2$s ruximon ri\' rik\'in ri <a href="%3$s">Runa\'ojil ichinanem</a> chuqa\' <a href="%4$s">Rutzijol Samak</a>]]></string>
     <!-- Text for the positive button of the Identity Credential dialogs. -->
     <string name="mozac_feature_prompts_identity_credentials_continue">Titikïr chik el</string>
     <!-- Text for the cancel button of the Identity Credential dialogs. -->
