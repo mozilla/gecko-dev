@@ -227,10 +227,10 @@ MediaResult WMFVideoMFTManager::InitInternal() {
   }
 
   RefPtr<MFTDecoder> decoder = new MFTDecoder();
-  HRESULT hr = WMFDecoderModule::CreateMFTDecoder(mStreamType, decoder);
-  NS_ENSURE_TRUE(SUCCEEDED(hr),
-                 MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                             RESULT_DETAIL("Can't create the MFT decoder.")));
+  RETURN_PARAM_IF_FAILED(
+      WMFDecoderModule::CreateMFTDecoder(mStreamType, decoder),
+      MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                  RESULT_DETAIL("Can't create the MFT decoder.")));
 
   RefPtr<IMFAttributes> attr(decoder->GetAttributes());
   UINT32 aware = 0;
@@ -240,7 +240,7 @@ MediaResult WMFVideoMFTManager::InitInternal() {
                     WMFDecoderModule::GetNumDecoderThreads());
     bool lowLatency = StaticPrefs::media_wmf_low_latency_enabled();
     if (mLowLatency || lowLatency) {
-      hr = attr->SetUINT32(CODECAPI_AVLowLatencyMode, TRUE);
+      HRESULT hr = attr->SetUINT32(CODECAPI_AVLowLatencyMode, TRUE);
       if (SUCCEEDED(hr)) {
         LOG("Enabling Low Latency Mode");
       } else {
@@ -272,7 +272,8 @@ MediaResult WMFVideoMFTManager::InitInternal() {
       // NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
       MOZ_ASSERT(mDXVA2Manager);
       ULONG_PTR manager = ULONG_PTR(mDXVA2Manager->GetDXVADeviceManager());
-      hr = decoder->SendMFTMessage(MFT_MESSAGE_SET_D3D_MANAGER, manager);
+      HRESULT hr =
+          decoder->SendMFTMessage(MFT_MESSAGE_SET_D3D_MANAGER, manager);
       if (SUCCEEDED(hr)) {
         mUseHwAccel = true;
       } else {
@@ -312,25 +313,22 @@ MediaResult WMFVideoMFTManager::InitInternal() {
   }
 
   mDecoder = decoder;
-  hr = SetDecoderMediaTypes();
-  NS_ENSURE_TRUE(
-      SUCCEEDED(hr),
+  RETURN_PARAM_IF_FAILED(
+      SetDecoderMediaTypes(),
       MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                  RESULT_DETAIL("Fail to set the decoder media types.")));
+                  RESULT_DETAIL("Fail to set the decoder media types")));
 
   RefPtr<IMFMediaType> inputType;
-  hr = mDecoder->GetInputMediaType(inputType);
-  NS_ENSURE_TRUE(
-      SUCCEEDED(hr),
+  RETURN_PARAM_IF_FAILED(
+      mDecoder->GetInputMediaType(inputType),
       MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                  RESULT_DETAIL("Fail to get the input media type.")));
+                  RESULT_DETAIL("Fail to get the input media type")));
 
   RefPtr<IMFMediaType> outputType;
-  hr = mDecoder->GetOutputMediaType(outputType);
-  NS_ENSURE_TRUE(
-      SUCCEEDED(hr),
+  RETURN_PARAM_IF_FAILED(
+      mDecoder->GetOutputMediaType(outputType),
       MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                  RESULT_DETAIL("Fail to get the output media type.")));
+                  RESULT_DETAIL("Fail to get the output media type")));
 
   if (mUseHwAccel && !CanUseDXVA(inputType, outputType)) {
     LOG("DXVA manager determined that the input type was unsupported in "
@@ -345,16 +343,16 @@ MediaResult WMFVideoMFTManager::InitInternal() {
       (mUseHwAccel ? "Yes" : "No"));
 
   if (mUseHwAccel) {
-    hr = mDXVA2Manager->ConfigureForSize(
-        outputType,
-        mColorSpace.refOr(
-            DefaultColorSpace({mImageSize.width, mImageSize.height})),
-        mColorRange, mVideoInfo.ImageRect().width,
-        mVideoInfo.ImageRect().height);
-    NS_ENSURE_TRUE(SUCCEEDED(hr),
-                   MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
-                               RESULT_DETAIL("Fail to configure image size for "
-                                             "DXVA2Manager.")));
+    RETURN_PARAM_IF_FAILED(
+        mDXVA2Manager->ConfigureForSize(
+            outputType,
+            mColorSpace.refOr(
+                DefaultColorSpace({mImageSize.width, mImageSize.height})),
+            mColorRange, mVideoInfo.ImageRect().width,
+            mVideoInfo.ImageRect().height),
+        MediaResult(NS_ERROR_DOM_MEDIA_FATAL_ERR,
+                    RESULT_DETAIL("Fail to configure image size for "
+                                  "DXVA2Manager.")));
   } else {
     GetDefaultStride(outputType, mVideoInfo.ImageRect().width, &mVideoStride);
   }
@@ -377,51 +375,32 @@ HRESULT
 WMFVideoMFTManager::SetDecoderMediaTypes() {
   // Setup the input/output media types.
   RefPtr<IMFMediaType> inputType;
-  HRESULT hr = wmf::MFCreateMediaType(getter_AddRefs(inputType));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = inputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = inputType->SetGUID(MF_MT_SUBTYPE, GetMediaSubtypeGUID());
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = inputType->SetUINT32(MF_MT_INTERLACE_MODE,
-                            MFVideoInterlace_MixedInterlaceOrProgressive);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = inputType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = MFSetAttributeSize(inputType, MF_MT_FRAME_SIZE,
-                          mVideoInfo.ImageRect().width,
-                          mVideoInfo.ImageRect().height);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
+  RETURN_IF_FAILED(wmf::MFCreateMediaType(getter_AddRefs(inputType)));
+  RETURN_IF_FAILED(inputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));
+  RETURN_IF_FAILED(inputType->SetGUID(MF_MT_SUBTYPE, GetMediaSubtypeGUID()));
+  RETURN_IF_FAILED(inputType->SetUINT32(
+      MF_MT_INTERLACE_MODE, MFVideoInterlace_MixedInterlaceOrProgressive));
+  RETURN_IF_FAILED(
+      inputType->SetUINT32(MF_MT_INTERLACE_MODE, MFVideoInterlace_Progressive));
+  RETURN_IF_FAILED(MFSetAttributeSize(inputType, MF_MT_FRAME_SIZE,
+                                      mVideoInfo.ImageRect().width,
+                                      mVideoInfo.ImageRect().height));
   UINT32 fpsDenominator = 1000;
   UINT32 fpsNumerator = static_cast<uint32_t>(mFramerate * fpsDenominator);
   if (fpsNumerator > 0) {
-    hr = MFSetAttributeRatio(inputType, MF_MT_FRAME_RATE, fpsNumerator,
-                             fpsDenominator);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+    RETURN_IF_FAILED(MFSetAttributeRatio(inputType, MF_MT_FRAME_RATE,
+                                         fpsNumerator, fpsDenominator));
   }
 
   RefPtr<IMFMediaType> outputType;
-  hr = wmf::MFCreateMediaType(getter_AddRefs(outputType));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = outputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = MFSetAttributeSize(outputType, MF_MT_FRAME_SIZE,
-                          mVideoInfo.ImageRect().width,
-                          mVideoInfo.ImageRect().height);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
+  RETURN_IF_FAILED(wmf::MFCreateMediaType(getter_AddRefs(outputType)));
+  RETURN_IF_FAILED(outputType->SetGUID(MF_MT_MAJOR_TYPE, MFMediaType_Video));
+  RETURN_IF_FAILED(MFSetAttributeSize(outputType, MF_MT_FRAME_SIZE,
+                                      mVideoInfo.ImageRect().width,
+                                      mVideoInfo.ImageRect().height));
   if (fpsNumerator > 0) {
-    hr = MFSetAttributeRatio(outputType, MF_MT_FRAME_RATE, fpsNumerator,
-                             fpsDenominator);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+    RETURN_IF_FAILED(MFSetAttributeRatio(outputType, MF_MT_FRAME_RATE,
+                                         fpsNumerator, fpsDenominator));
   }
 
   GUID outputSubType = [&]() {
@@ -437,21 +416,17 @@ WMFVideoMFTManager::SetDecoderMediaTypes() {
         MOZ_ASSERT_UNREACHABLE("Unexpected color depth");
     }
   }();
-  hr = outputType->SetGUID(MF_MT_SUBTYPE, outputSubType);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+  RETURN_IF_FAILED(outputType->SetGUID(MF_MT_SUBTYPE, outputSubType));
 
   if (mZeroCopyNV12Texture) {
     RefPtr<IMFAttributes> attr(mDecoder->GetOutputStreamAttributes());
     if (attr) {
-      hr = attr->SetUINT32(MF_SA_D3D11_SHARED_WITHOUT_MUTEX, TRUE);
-      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-      hr = attr->SetUINT32(MF_SA_D3D11_BINDFLAGS,
-                           D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DECODER);
-      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+      RETURN_IF_FAILED(attr->SetUINT32(MF_SA_D3D11_SHARED_WITHOUT_MUTEX, TRUE));
+      RETURN_IF_FAILED(
+          attr->SetUINT32(MF_SA_D3D11_BINDFLAGS,
+                          D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_DECODER));
     }
   }
-
   return mDecoder->SetMediaTypes(inputType, outputType);
 }
 

@@ -11,6 +11,7 @@
 #include <winstring.h>
 
 #include "ImageTypes.h"
+#include "PlatformDecoderModule.h"
 #include "TimeUnits.h"
 #include "VideoUtils.h"
 #include "WMF.h"
@@ -21,6 +22,40 @@
 // Various utilities shared by WMF backend files.
 
 namespace mozilla {
+
+namespace gfx {
+enum class ColorDepth : uint8_t;
+}
+extern LazyLogModule sPDMLog;
+
+#define LOG_AND_WARNING_PDM(msg, ...)                            \
+  do {                                                           \
+    NS_WARNING(nsPrintfCString(msg, rv).get());                  \
+    MOZ_LOG(sPDMLog, LogLevel::Debug,                            \
+            ("%s:%d, " msg, __FILE__, __LINE__, ##__VA_ARGS__)); \
+  } while (false)
+
+#ifndef RETURN_IF_FAILED
+#  define RETURN_IF_FAILED(x)                               \
+    do {                                                    \
+      HRESULT rv = x;                                       \
+      if (MOZ_UNLIKELY(FAILED(rv))) {                       \
+        LOG_AND_WARNING_PDM("(" #x ") failed, rv=%lx", rv); \
+        return rv;                                          \
+      }                                                     \
+    } while (false)
+#endif
+
+#ifndef RETURN_PARAM_IF_FAILED
+#  define RETURN_PARAM_IF_FAILED(x, defaultOut)             \
+    do {                                                    \
+      HRESULT rv = x;                                       \
+      if (MOZ_UNLIKELY(FAILED(rv))) {                       \
+        LOG_AND_WARNING_PDM("(" #x ") failed, rv=%lx", rv); \
+        return defaultOut;                                  \
+      }                                                     \
+    } while (false)
+#endif
 
 static const GUID CLSID_MSOpusDecoder = {
     0x63e17c10,

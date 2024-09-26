@@ -109,25 +109,15 @@ MFTDecoder::SetMediaTypes(IMFMediaType* aInputType, IMFMediaType* aOutputType,
   MOZ_ASSERT(mscom::IsCurrentThreadMTA());
 
   // Set the input type to the one the caller gave us...
-  HRESULT hr = mDecoder->SetInputType(0, aInputType, 0);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
+  RETURN_IF_FAILED(mDecoder->SetInputType(0, aInputType, 0));
 
   GUID currentSubtype = {0};
-  hr = aOutputType->GetGUID(MF_MT_SUBTYPE, &currentSubtype);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = SetDecoderOutputType(currentSubtype, aOutputType, std::move(aCallback));
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = mDecoder->GetInputStreamInfo(0, &mInputStreamInfo);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = SendMFTMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-  hr = SendMFTMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0);
-  NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
+  RETURN_IF_FAILED(aOutputType->GetGUID(MF_MT_SUBTYPE, &currentSubtype));
+  RETURN_IF_FAILED(
+      SetDecoderOutputType(currentSubtype, aOutputType, std::move(aCallback)));
+  RETURN_IF_FAILED(mDecoder->GetInputStreamInfo(0, &mInputStreamInfo));
+  RETURN_IF_FAILED(SendMFTMessage(MFT_MESSAGE_NOTIFY_BEGIN_STREAMING, 0));
+  RETURN_IF_FAILED(SendMFTMessage(MFT_MESSAGE_NOTIFY_START_OF_STREAM, 0));
   return S_OK;
 }
 
@@ -179,25 +169,15 @@ MFTDecoder::SetDecoderOutputType(
   while (SUCCEEDED(mDecoder->GetOutputAvailableType(
       0, typeIndex++, getter_AddRefs(outputType)))) {
     GUID outSubtype = {0};
-    HRESULT hr = outputType->GetGUID(MF_MT_SUBTYPE, &outSubtype);
-    NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
+    RETURN_IF_FAILED(outputType->GetGUID(MF_MT_SUBTYPE, &outSubtype));
     if (aSubType == outSubtype) {
-      hr = aCallback(outputType);
-      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-      hr = mDecoder->SetOutputType(0, outputType, 0);
-      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
-      hr = mDecoder->GetOutputStreamInfo(0, &mOutputStreamInfo);
-      NS_ENSURE_TRUE(SUCCEEDED(hr), hr);
-
+      RETURN_IF_FAILED(aCallback(outputType));
+      RETURN_IF_FAILED(mDecoder->SetOutputType(0, outputType, 0));
+      RETURN_IF_FAILED(mDecoder->GetOutputStreamInfo(0, &mOutputStreamInfo));
       mMFTProvidesOutputSamples = IsFlagSet(mOutputStreamInfo.dwFlags,
                                             MFT_OUTPUT_STREAM_PROVIDES_SAMPLES);
-
       mOutputType = outputType;
       mOutputSubType = outSubtype;
-
       return S_OK;
     }
     outputType = nullptr;
