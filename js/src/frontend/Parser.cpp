@@ -164,11 +164,10 @@ void ParserSharedBase::dumpAtom(TaggedParserAtomIndex index) const {
 
 ParserBase::ParserBase(FrontendContext* fc,
                        const ReadOnlyCompileOptions& options,
-                       bool foldConstants, CompilationState& compilationState)
+                       CompilationState& compilationState)
     : ParserSharedBase(fc, compilationState, ParserSharedBase::Kind::Parser),
       anyChars(fc, options, this),
       ss(nullptr),
-      foldConstants_(foldConstants),
 #ifdef DEBUG
       checkOptionsCalled_(false),
 #endif
@@ -197,9 +196,8 @@ JSAtom* ParserBase::liftParserAtomToJSAtom(TaggedParserAtomIndex index) {
 template <class ParseHandler>
 PerHandlerParser<ParseHandler>::PerHandlerParser(
     FrontendContext* fc, const ReadOnlyCompileOptions& options,
-    bool foldConstants, CompilationState& compilationState,
-    void* internalSyntaxParser)
-    : ParserBase(fc, options, foldConstants, compilationState),
+    CompilationState& compilationState, void* internalSyntaxParser)
+    : ParserBase(fc, options, compilationState),
       handler_(fc, compilationState),
       internalSyntaxParser_(internalSyntaxParser) {
   MOZ_ASSERT(compilationState.isInitialStencil() ==
@@ -209,9 +207,9 @@ PerHandlerParser<ParseHandler>::PerHandlerParser(
 template <class ParseHandler, typename Unit>
 GeneralParser<ParseHandler, Unit>::GeneralParser(
     FrontendContext* fc, const ReadOnlyCompileOptions& options,
-    const Unit* units, size_t length, bool foldConstants,
-    CompilationState& compilationState, SyntaxParser* syntaxParser)
-    : Base(fc, options, foldConstants, compilationState, syntaxParser),
+    const Unit* units, size_t length, CompilationState& compilationState,
+    SyntaxParser* syntaxParser)
+    : Base(fc, options, compilationState, syntaxParser),
       tokenStream(fc, &compilationState.parserAtoms, options, units, length) {}
 
 template <typename Unit>
@@ -376,10 +374,6 @@ template <class ParseHandler, typename Unit>
 typename ParseHandler::ListNodeResult
 GeneralParser<ParseHandler, Unit>::parse() {
   MOZ_ASSERT(checkOptionsCalled_);
-
-  // This method doesn't produce an executable output, so avoid constant
-  // folding.
-  MOZ_ASSERT(!foldConstants_, "constant folding not supported here");
 
   SourceExtent extent = SourceExtent::makeGlobalExtent(
       /* len = */ 0, options().lineno,

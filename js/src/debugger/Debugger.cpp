@@ -6662,8 +6662,7 @@ bool Debugger::isCompilableUnit(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   frontend::Parser<frontend::FullParseHandler, char16_t> parser(
-      &fc, options, chars.twoByteChars(), length,
-      /* foldConstants = */ false, compilationState,
+      &fc, options, chars.twoByteChars(), length, compilationState,
       /* syntaxParser = */ nullptr);
   if (!parser.checkOptions() || parser.parse().isErr()) {
     // We ran into an error. If it was because we ran out of memory we report

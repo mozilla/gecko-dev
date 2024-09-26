@@ -3900,10 +3900,9 @@ static bool reflect_parse(JSContext* cx, uint32_t argc, Value* vp) {
     return false;
   }
 
-  Parser<FullParseHandler, char16_t> parser(
-      &fc, options, chars.begin().get(), chars.length(),
-      /* foldConstants = */ false, compilationState,
-      /* syntaxParser = */ nullptr);
+  Parser<FullParseHandler, char16_t> parser(&fc, options, chars.begin().get(),
+                                            chars.length(), compilationState,
+                                            /* syntaxParser = */ nullptr);
   if (!parser.checkOptions()) {
     return false;
   }
