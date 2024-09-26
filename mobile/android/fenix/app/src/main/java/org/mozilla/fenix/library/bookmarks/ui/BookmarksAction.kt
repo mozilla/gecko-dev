@@ -70,6 +70,14 @@ internal sealed class AddFolderAction {
     data object ParentFolderClicked : BookmarksAction
 }
 
+/**
+ * Actions specific to the Edit Folder screen.
+ */
+internal sealed class EditFolderAction {
+    data class TitleChanged(val updatedText: String) : BookmarksAction
+    data object ParentFolderClicked : BookmarksAction
+}
+
 internal sealed class EditBookmarkAction {
     data class TitleChanged(val title: String) : BookmarksAction
     data class URLChanged(val url: String) : BookmarksAction

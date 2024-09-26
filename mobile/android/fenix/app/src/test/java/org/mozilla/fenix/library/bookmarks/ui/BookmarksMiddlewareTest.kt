@@ -335,6 +335,72 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen is edit folder and new title is nonempty WHEN back is clicked THEN navigate back, save the folder, and load the updated tree`() = runTest {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksEditFolderState = BookmarksEditFolderState(
+                    parent = BookmarkItem.Folder("Bookmarks", "guid0"),
+                    folder = BookmarkItem.Folder("folder title 0", "folder guid 0"),
+                ),
+            ),
+        )
+
+        val newFolderTitle = "test"
+
+        store.dispatch(EditFolderAction.TitleChanged(newFolderTitle))
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage).updateNode(
+            guid = "folder guid 0",
+            info = BookmarkInfo(
+                parentGuid = "guid0",
+                position = 0u,
+                title = "test",
+                url = null,
+            ),
+        )
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+        verify(navController).popBackStack()
+        assertNull(store.state.bookmarksEditFolderState)
+    }
+
+    @Test
+    fun `GIVEN current screen is edit folder and new title is empty WHEN back is clicked THEN navigate back, without siving the folder, and load the updated tree`() = runTest {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksEditFolderState = BookmarksEditFolderState(
+                    parent = BookmarkItem.Folder("Bookmarks", "guid0"),
+                    folder = BookmarkItem.Folder("folder title 0", "folder guid 0"),
+                ),
+            ),
+        )
+
+        val newFolderTitle = ""
+
+        store.dispatch(EditFolderAction.TitleChanged(newFolderTitle))
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage, never()).updateNode(
+            guid = "folder guid 0",
+            info = BookmarkInfo(
+                parentGuid = "guid0",
+                position = 0u,
+                title = "test",
+                url = null,
+            ),
+        )
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+        verify(navController).popBackStack()
+        assertNull(store.state.bookmarksEditFolderState)
+    }
+
+    @Test
     fun `GIVEN current screen is edit bookmark WHEN back is clicked THEN navigate back, save the bookmark, and load the updated tree`() = runTest {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
@@ -579,7 +645,12 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `WHEN edit clicked in folder item menu THEN nav to the edit screen`() {
-        // TODO
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.EditClicked(folder = store.state.currentFolder))
+
+        verify(navController).navigate(BookmarksDestinations.EDIT_FOLDER)
     }
 
     @Test

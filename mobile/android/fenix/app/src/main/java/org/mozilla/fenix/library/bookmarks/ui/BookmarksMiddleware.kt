@@ -102,6 +102,19 @@ internal class BookmarksMiddleware(
                         navController.popBackStack()
                     }
 
+                    preReductionState.bookmarksEditFolderState != null -> {
+                        val editState = preReductionState.bookmarksEditFolderState
+                        navController.popBackStack()
+                        scope.launch(ioDispatcher) {
+                            if (editState.folder.title.isNotEmpty()) {
+                                preReductionState.createBookmarkInfo()?.also {
+                                    bookmarksStorage.updateNode(editState.folder.guid, it)
+                                }
+                            }
+                            context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
+                        }
+                    }
+
                     preReductionState.bookmarksAddFolderState != null -> {
                         navController.popBackStack()
                         scope.launch(ioDispatcher) {
@@ -163,8 +176,9 @@ internal class BookmarksMiddleware(
                     context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
                 }
             }
-
-            AddFolderAction.ParentFolderClicked -> {
+            EditFolderAction.ParentFolderClicked,
+            AddFolderAction.ParentFolderClicked,
+            -> {
                 navController.navigate(BookmarksDestinations.SELECT_FOLDER)
             }
 
@@ -175,6 +189,7 @@ internal class BookmarksMiddleware(
             is BookmarkLongClicked,
             is FolderLongClicked,
             is BookmarksLoaded,
+            is EditFolderAction.TitleChanged,
             is AddFolderAction.TitleChanged,
             is SelectFolderAction.FoldersLoaded,
             is SelectFolderAction.ItemClicked,
@@ -335,7 +350,7 @@ internal class BookmarksMiddleware(
 
             // folder menu actions
             is BookmarksListMenuAction.Folder.EditClicked -> {
-                // todo nav to edit
+                navController.navigate(BookmarksDestinations.EDIT_FOLDER)
             }
 
             is BookmarksListMenuAction.Folder.OpenAllInNormalTabClicked -> scope.launch {
@@ -411,11 +426,22 @@ private suspend fun BookmarksStorage.hasDesktopBookmarks(): Boolean {
     ) > 0u
 }
 
-private fun BookmarksState.createBookmarkInfo() = bookmarksEditBookmarkState?.let { state ->
-    BookmarkInfo(
-        parentGuid = state.folder.guid,
-        position = bookmarkItems.indexOfFirst { it.guid == state.bookmark.guid }.toUInt(),
-        title = state.bookmark.title,
-        url = state.bookmark.url,
-    )
+private fun BookmarksState.createBookmarkInfo() = when {
+    bookmarksEditFolderState != null -> bookmarksEditFolderState.let { state ->
+        BookmarkInfo(
+            parentGuid = state.parent.guid,
+            position = bookmarkItems.indexOfFirst { it.guid == state.folder.guid }.toUInt(),
+            title = state.folder.title,
+            url = null,
+        )
+    }
+    bookmarksEditBookmarkState != null -> bookmarksEditBookmarkState.let { state ->
+        BookmarkInfo(
+            parentGuid = state.folder.guid,
+            position = bookmarkItems.indexOfFirst { it.guid == state.bookmark.guid }.toUInt(),
+            title = state.bookmark.title,
+            url = state.bookmark.url,
+        )
+    }
+    else -> null
 }

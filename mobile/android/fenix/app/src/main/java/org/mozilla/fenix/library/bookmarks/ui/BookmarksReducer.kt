@@ -7,6 +7,7 @@ package org.mozilla.fenix.library.bookmarks.ui
 /**
  * Function for reducing a new bookmarks state based on the received action.
  */
+@Suppress("LongMethod")
 internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = when (action) {
     is BookmarksLoaded -> state.copy(
         currentFolder = action.folder,
@@ -70,7 +71,19 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     )
     AddFolderAction.ParentFolderClicked -> state.copy(
         bookmarksSelectFolderState = BookmarksSelectFolderState(
-            addFolderSelectionGuid = state.bookmarksAddFolderState?.parent?.guid ?: state.currentFolder.guid,
+            folderSelectionGuid = state.bookmarksAddFolderState?.parent?.guid ?: state.currentFolder.guid,
+        ),
+    )
+    is EditFolderAction.TitleChanged -> state.copy(
+        bookmarksEditFolderState = state.bookmarksEditFolderState?.let {
+            it.copy(
+                folder = it.folder.copy(title = action.updatedText),
+            )
+        },
+    )
+    EditFolderAction.ParentFolderClicked -> state.copy(
+        bookmarksSelectFolderState = BookmarksSelectFolderState(
+            folderSelectionGuid = state.bookmarksEditFolderState?.parent?.guid ?: state.currentFolder.guid,
         ),
     )
     is BookmarksListMenuAction -> state.handleListMenuAction(action)
@@ -82,10 +95,13 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
 }
 
 private fun BookmarksState.updateSelectedFolder(folder: SelectFolderItem): BookmarksState = when {
-    bookmarksSelectFolderState?.addFolderSelectionGuid != null -> {
+    bookmarksSelectFolderState?.folderSelectionGuid != null -> {
+        // we can't have both an add and edit folder at the same time, so we will just try to update
+        // both of them.
         copy(
+            bookmarksEditFolderState = bookmarksEditFolderState?.copy(parent = folder.folder),
             bookmarksAddFolderState = bookmarksAddFolderState?.copy(parent = folder.folder),
-            bookmarksSelectFolderState = bookmarksSelectFolderState.copy(addFolderSelectionGuid = folder.guid),
+            bookmarksSelectFolderState = bookmarksSelectFolderState.copy(folderSelectionGuid = folder.guid),
         )
     }
     bookmarksSelectFolderState?.selectionGuid != null -> {
@@ -105,7 +121,7 @@ private fun BookmarksState.toggleSelectionOf(item: BookmarkItem): BookmarksState
     }
 
 private fun BookmarksSelectFolderState.respondToBackClick(): BookmarksSelectFolderState? = when {
-    selectionGuid != null && addFolderSelectionGuid != null -> copy(addFolderSelectionGuid = null)
+    selectionGuid != null && folderSelectionGuid != null -> copy(folderSelectionGuid = null)
     else -> null
 }
 
@@ -114,6 +130,7 @@ private fun BookmarksState.respondToBackClick(): BookmarksState = when {
         bookmarksSelectFolderState = bookmarksSelectFolderState.respondToBackClick(),
     )
     bookmarksAddFolderState != null -> copy(bookmarksAddFolderState = null)
+    bookmarksEditFolderState != null -> copy(bookmarksEditFolderState = null)
     bookmarksEditBookmarkState != null -> copy(bookmarksEditBookmarkState = null)
     else -> this
 }
@@ -126,7 +143,12 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
                 folder = currentFolder,
             ),
         )
-        is BookmarksListMenuAction.Folder.EditClicked -> this // TODO
+        is BookmarksListMenuAction.Folder.EditClicked -> copy(
+            bookmarksEditFolderState = BookmarksEditFolderState(
+                parent = currentFolder,
+                folder = action.folder,
+            ),
+        )
         is BookmarksListMenuAction.MultiSelect.EditClicked ->
             selectedItems.firstOrNull()?.let { selectedItem ->
                 if (selectedItem is BookmarkItem.Bookmark) {

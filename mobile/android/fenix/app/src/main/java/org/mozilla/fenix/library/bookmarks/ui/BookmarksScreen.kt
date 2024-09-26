@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+@file:Suppress("TooManyFunctions")
+
 package org.mozilla.fenix.library.bookmarks.ui
 
 import androidx.activity.compose.BackHandler
@@ -86,6 +88,9 @@ internal fun BookmarksScreen(buildStore: (NavHostController) -> BookmarksStore) 
         composable(route = BookmarksDestinations.ADD_FOLDER) {
             AddFolderScreen(store = store)
         }
+        composable(route = BookmarksDestinations.EDIT_FOLDER) {
+            EditFolderScreen(store = store)
+        }
         composable(route = BookmarksDestinations.EDIT_BOOKMARK) {
             EditBookmarkScreen(store = store)
         }
@@ -98,6 +103,7 @@ internal fun BookmarksScreen(buildStore: (NavHostController) -> BookmarksStore) 
 internal object BookmarksDestinations {
     const val LIST = "list"
     const val ADD_FOLDER = "add folder"
+    const val EDIT_FOLDER = "edit folder"
     const val EDIT_BOOKMARK = "edit bookmark"
     const val SELECT_FOLDER = "select folder"
 }
@@ -604,6 +610,70 @@ private fun BookmarkListFolderMenu(
 }
 
 @Composable
+private fun EditFolderScreen(
+    store: BookmarksStore,
+) {
+    val state by store.observeAsState(store.state.bookmarksEditFolderState) { it.bookmarksEditFolderState }
+    Scaffold(
+        topBar = { EditFolderTopBar(onBackClick = { store.dispatch(BackClicked) }) },
+        backgroundColor = FirefoxTheme.colors.layer1,
+    ) { paddingValues ->
+        Column(modifier = Modifier.padding(paddingValues)) {
+            TextField(
+                value = state?.folder?.title ?: "",
+                onValueChange = { newText -> store.dispatch(EditFolderAction.TitleChanged(newText)) },
+                label = {
+                    Text(
+                        stringResource(R.string.bookmark_name_label_normal_case),
+                        color = FirefoxTheme.colors.textPrimary,
+                    )
+                },
+                colors = TextFieldDefaults.textFieldColors(textColor = FirefoxTheme.colors.textPrimary),
+                modifier = Modifier.padding(start = 16.dp, top = 32.dp),
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                stringResource(R.string.bookmark_save_in_label),
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.body2,
+                modifier = Modifier.padding(start = 16.dp),
+            )
+
+            IconListItem(
+                label = state?.parent?.title ?: "",
+                beforeIconPainter = painterResource(R.drawable.ic_folder_icon),
+                onClick = { store.dispatch(EditFolderAction.ParentFolderClicked) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun EditFolderTopBar(onBackClick: () -> Unit) {
+    TopAppBar(
+        backgroundColor = FirefoxTheme.colors.layer1,
+        title = {
+            Text(
+                text = stringResource(R.string.edit_bookmark_folder_fragment_title),
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.headline6,
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onBackClick) {
+                Icon(
+                    painter = painterResource(R.drawable.mozac_ic_back_24),
+                    contentDescription = stringResource(R.string.bookmark_navigate_back_button_content_description),
+                    tint = FirefoxTheme.colors.iconPrimary,
+                )
+            }
+        },
+    )
+}
+
+@Composable
 private fun AddFolderScreen(
     store: BookmarksStore,
 ) {
@@ -864,6 +934,7 @@ private fun EditBookmarkScreenPreview() {
                 folder = BookmarkItem.Folder("folder 1", guid = "1"),
             ),
             bookmarksSelectFolderState = null,
+            bookmarksEditFolderState = null,
         ),
     )
 
@@ -904,6 +975,7 @@ private fun BookmarksScreenPreview() {
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
                 bookmarksSelectFolderState = null,
+                bookmarksEditFolderState = null,
             ),
         )
     }
@@ -931,6 +1003,7 @@ private fun EmptyBookmarksScreenPreview() {
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
                 bookmarksSelectFolderState = null,
+                bookmarksEditFolderState = null,
             ),
         )
     }
@@ -963,6 +1036,7 @@ private fun AddFolderPreview() {
                 folderBeingAddedTitle = "Edit me!",
             ),
             bookmarksSelectFolderState = null,
+            bookmarksEditFolderState = null,
         ),
     )
     FirefoxTheme {
@@ -993,9 +1067,10 @@ private fun SelectFolderPreview() {
                 ),
                 folderBeingAddedTitle = "Edit me!",
             ),
+            bookmarksEditFolderState = null,
             bookmarksSelectFolderState = BookmarksSelectFolderState(
                 selectionGuid = null,
-                addFolderSelectionGuid = "guid1",
+                folderSelectionGuid = "guid1",
                 folders = listOf(
                     SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid0")),
                     SelectFolderItem(1, BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id)),

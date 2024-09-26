@@ -17,6 +17,7 @@ import mozilla.components.lib.state.State
  * @property bookmarksAddFolderState State representing the add folder subscreen, if visible.
  * @property bookmarksEditBookmarkState State representing the edit bookmark subscreen, if visible.
  * @property bookmarksSelectFolderState State representing the select folder subscreen, if visible.
+ * @property bookmarksEditFolderState State representing the edit folder subscreen, if visible.
  */
 internal data class BookmarksState(
     val bookmarkItems: List<BookmarkItem>,
@@ -26,6 +27,7 @@ internal data class BookmarksState(
     val bookmarksAddFolderState: BookmarksAddFolderState?,
     val bookmarksEditBookmarkState: BookmarksEditBookmarkState?,
     val bookmarksSelectFolderState: BookmarksSelectFolderState?,
+    val bookmarksEditFolderState: BookmarksEditFolderState?,
 ) : State {
     companion object {
         val default: BookmarksState = BookmarksState(
@@ -36,6 +38,7 @@ internal data class BookmarksState(
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = null,
             bookmarksSelectFolderState = null,
+            bookmarksEditFolderState = null,
         )
     }
 }
@@ -48,6 +51,11 @@ internal data class BookmarksEditBookmarkState(
 internal data class BookmarksAddFolderState(
     val parent: BookmarkItem.Folder,
     val folderBeingAddedTitle: String,
+)
+
+internal data class BookmarksEditFolderState(
+    val parent: BookmarkItem.Folder,
+    val folder: BookmarkItem.Folder,
 )
 
 internal data class SelectFolderItem(
@@ -66,14 +74,14 @@ internal data class SelectFolderItem(
 
 internal data class BookmarksSelectFolderState(
     val selectionGuid: String? = null,
-    val addFolderSelectionGuid: String? = null,
+    val folderSelectionGuid: String? = null,
     val folders: List<SelectFolderItem> = listOf(),
 ) {
     val showNewFolderButton: Boolean
-        get() = addFolderSelectionGuid == null
+        get() = folderSelectionGuid == null
 
     val selectedGuid: String?
-        get() = addFolderSelectionGuid ?: selectionGuid
+        get() = folderSelectionGuid ?: selectionGuid
 }
 
 internal val BookmarkItem.Folder.isDesktopFolder: Boolean

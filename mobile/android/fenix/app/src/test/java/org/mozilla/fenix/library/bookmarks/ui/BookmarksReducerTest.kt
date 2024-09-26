@@ -207,7 +207,69 @@ class BookmarksReducerTest {
 
         val result = bookmarksReducer(state, AddFolderAction.ParentFolderClicked)
 
-        assertEquals(BookmarkRoot.Mobile.id, result.bookmarksSelectFolderState?.addFolderSelectionGuid)
+        assertEquals(BookmarkRoot.Mobile.id, result.bookmarksSelectFolderState?.folderSelectionGuid)
+    }
+
+    @Test
+    fun `WHEN the title of a folder is changed on the edit folder screen THEN that is reflected in state`() {
+        val state = BookmarksState.default.copy(
+            bookmarksEditFolderState = BookmarksEditFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
+                folder = BookmarkItem.Folder(
+                    guid = "guid1",
+                    title = "New Bookmarks",
+                ),
+            ),
+        )
+
+        val titleChange = "New Bookmarks 2"
+
+        val result = bookmarksReducer(state, EditFolderAction.TitleChanged(titleChange))
+
+        assertEquals(titleChange, result.bookmarksEditFolderState?.folder?.title)
+    }
+
+    @Test
+    fun `GIVEN we are on the edit folder screen WHEN back is clicked THEN add folder state is removed`() {
+        val state = BookmarksState.default.copy(
+            bookmarksEditFolderState = BookmarksEditFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
+                folder = BookmarkItem.Folder(
+                    guid = "guid1",
+                    title = "New Bookmarks",
+                ),
+            ),
+        )
+
+        val result = bookmarksReducer(state, BackClicked)
+
+        assertEquals(BookmarksState.default, result)
+    }
+
+    @Test
+    fun `GIVEN we are on the edit folder screen WHEN parent folder is clicked THEN initialize the select folder state`() {
+        val state = BookmarksState.default.copy(
+            bookmarksEditFolderState = BookmarksEditFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
+                folder = BookmarkItem.Folder(
+                    guid = "guid1",
+                    title = "New Bookmarks",
+                ),
+            ),
+        )
+
+        val result = bookmarksReducer(state, EditFolderAction.ParentFolderClicked)
+
+        assertEquals(BookmarkRoot.Mobile.id, result.bookmarksSelectFolderState?.folderSelectionGuid)
     }
 
     @Test
@@ -256,7 +318,7 @@ class BookmarksReducerTest {
         val state = BookmarksState.default.copy(
             bookmarksSelectFolderState = BookmarksSelectFolderState(
                 selectionGuid = "abc",
-                addFolderSelectionGuid = "123",
+                folderSelectionGuid = "123",
             ),
         )
 
@@ -264,7 +326,7 @@ class BookmarksReducerTest {
 
         val expected = state.copy(
             bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
-                addFolderSelectionGuid = null,
+                folderSelectionGuid = null,
             ),
         )
 
@@ -345,7 +407,7 @@ class BookmarksReducerTest {
             ),
             bookmarksSelectFolderState = BookmarksSelectFolderState(
                 selectionGuid = "0",
-                addFolderSelectionGuid = "0",
+                folderSelectionGuid = "0",
                 folders = listOf(
                     SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "0")),
                     SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "1")),
@@ -365,7 +427,7 @@ class BookmarksReducerTest {
                 parent = BookmarkItem.Folder("Nested 0", "1"),
             ),
             bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
-                addFolderSelectionGuid = "1",
+                folderSelectionGuid = "1",
             ),
         )
 
