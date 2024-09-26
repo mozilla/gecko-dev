@@ -1261,6 +1261,8 @@
     <string name ="bookmark_empty_list_authenticated_description">Save sites as you browse. We’ll also grab bookmarks from other synced devices.</string>
     <!-- Description for the bookmark list empty state when you're in an empty folder. -->
     <string name ="bookmark_empty_list_folder_description">Add bookmarks as you browse so you can find your favorite sites later.</string>
+    <!-- Description for the add new folder button when selecting a folder. -->
+    <string name="bookmark_select_folder_new_folder_button_title">New folder</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->

@@ -455,6 +455,17 @@ private fun SelectFolderScreen(
                     )
                 }
             }
+            if (state?.showNewFolderButton == true) {
+                item {
+                    IconListItem(
+                        label = stringResource(R.string.bookmark_select_folder_new_folder_button_title),
+                        labelTextColor = FirefoxTheme.colors.textAccent,
+                        beforeIconPainter = painterResource(R.drawable.mozac_ic_folder_add_24),
+                        beforeIconTint = FirefoxTheme.colors.textAccent,
+                        onClick = { store.dispatch(AddFolderClicked) },
+                    )
+                }
+            }
         }
     }
 }
