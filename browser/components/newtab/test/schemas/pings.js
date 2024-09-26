@@ -18,16 +18,40 @@ export const baseKeys = {
 
 export const eventsTelemetryExtraKeys = Joi.object()
   .keys({
-    value: [Joi.string(), Joi.number()],
     session_id: baseKeys.session_id.required(),
     page: baseKeys.page.required(),
     addon_version: baseKeys.addon_version.required(),
     user_prefs: baseKeys.user_prefs.required(),
-    action_position: Joi.number().optional(),
+    action_position: Joi.string().optional(),
   })
   .options({ allowUnknown: false });
 
-export const UTUserEventPing = Joi.array().items(eventsTelemetryExtraKeys);
+export const UTUserEventPing = Joi.array().items(
+  Joi.string().required().valid("activity_stream"),
+  Joi.string().required().valid("event"),
+  Joi.string()
+    .required()
+    .valid([
+      "CLICK",
+      "SEARCH",
+      "BLOCK",
+      "DELETE",
+      "DELETE_CONFIRM",
+      "DIALOG_CANCEL",
+      "DIALOG_OPEN",
+      "OPEN_NEW_WINDOW",
+      "OPEN_PRIVATE_WINDOW",
+      "OPEN_NEWTAB_PREFS",
+      "CLOSE_NEWTAB_PREFS",
+      "BOOKMARK_DELETE",
+      "BOOKMARK_ADD",
+      "PIN",
+      "UNPIN",
+      "SAVE_TO_POCKET",
+    ]),
+  Joi.string().required(),
+  eventsTelemetryExtraKeys
+);
 
 // Use this to validate actions generated from Redux
 export const UserEventAction = Joi.object().keys({
@@ -108,7 +132,13 @@ export const TileSchema = Joi.object().keys({
   pos: Joi.number().integer(),
 });
 
-export const UTSessionPing = Joi.array().items(eventsTelemetryExtraKeys);
+export const UTSessionPing = Joi.array().items(
+  Joi.string().required().valid("activity_stream"),
+  Joi.string().required().valid("end"),
+  Joi.string().required().valid("session"),
+  Joi.string().required(),
+  eventsTelemetryExtraKeys
+);
 
 export function chaiAssertions(_chai) {
   const { Assertion } = _chai;

@@ -575,14 +575,6 @@ const TEST_GLOBAL = {
   getFxAccountsSingleton() {},
   AboutNewTab: {},
   Glean: {
-    activityStream: {
-      eventClick: {
-        record() {},
-      },
-      endSession: {
-        record() {},
-      },
-    },
     newtab: {
       opened: {
         record() {},

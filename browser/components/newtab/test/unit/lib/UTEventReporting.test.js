@@ -21,20 +21,26 @@ const FAKE_SESSION_PING_PC = {
   locale: "en-US",
 };
 const FAKE_EVENT_PING_UT = [
+  "activity_stream",
+  "event",
+  "CLICK",
+  "TOP_SITES",
   {
-    value: "TOP_SITES",
     addon_version: "123",
-    user_prefs: 63,
+    user_prefs: "63",
     session_id: "abc",
     page: "about:newtab",
-    action_position: 5,
+    action_position: "5",
   },
 ];
 const FAKE_SESSION_PING_UT = [
+  "activity_stream",
+  "end",
+  "session",
+  "1234",
   {
-    value: 1234,
     addon_version: "123",
-    user_prefs: 63,
+    user_prefs: "63",
     session_id: "abc",
     page: "about:newtab",
   },
@@ -49,6 +55,7 @@ describe("UTEventReporting", () => {
     globals = new GlobalOverrider();
     sandbox = globals.sandbox;
     sandbox.stub(global.Services.telemetry, "setEventRecordingEnabled");
+    sandbox.stub(global.Services.telemetry, "recordEvent");
 
     utEvents = new UTEventReporting();
   });
@@ -59,28 +66,26 @@ describe("UTEventReporting", () => {
 
   describe("#sendUserEvent()", () => {
     it("should queue up the correct data to send to Events Telemetry", async () => {
-      sandbox.stub(global.Glean.activityStream.eventClick, "record");
       utEvents.sendUserEvent(FAKE_EVENT_PING_PC);
       assert.calledWithExactly(
-        global.Glean.activityStream.eventClick.record,
+        global.Services.telemetry.recordEvent,
         ...FAKE_EVENT_PING_UT
       );
 
-      let ping = global.Glean.activityStream.eventClick.record.firstCall.args;
+      let ping = global.Services.telemetry.recordEvent.firstCall.args;
       assert.validate(ping, UTUserEventPing);
     });
   });
 
   describe("#sendSessionEndEvent()", () => {
     it("should queue up the correct data to send to Events Telemetry", async () => {
-      sandbox.stub(global.Glean.activityStream.endSession, "record");
       utEvents.sendSessionEndEvent(FAKE_SESSION_PING_PC);
       assert.calledWithExactly(
-        global.Glean.activityStream.endSession.record,
+        global.Services.telemetry.recordEvent,
         ...FAKE_SESSION_PING_UT
       );
 
-      let ping = global.Glean.activityStream.endSession.record.firstCall.args;
+      let ping = global.Services.telemetry.recordEvent.firstCall.args;
       assert.validate(ping, UTSessionPing);
     });
   });
