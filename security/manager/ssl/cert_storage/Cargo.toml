@@ -7,8 +7,6 @@ license = "MPL-2.0"
 [dependencies]
 base64 = "0.21.0"
 byteorder = "1.2.7"
-clubcard = "0.3"
-clubcard-crlite = "0.2"
 crossbeam-utils = "0.8"
 cstr = "0.2"
 firefox-on-glean = { path = "../../../../toolkit/components/glean/api" }

@@ -1125,18 +1125,6 @@ who = "Mike Hommey <mh+mozilla@glandium.org>"
 criteria = "safe-to-deploy"
 delta = "0.2.2 -> 0.2.4"
 
-[[audits.clubcard]]
-who = "John M. Schanck <jschanck@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.3.1"
-notes = "This crate is maintained by the CryptoEng team at Mozilla and it contains no unsafe code."
-
-[[audits.clubcard-crlite]]
-who = "John M. Schanck <jschanck@mozilla.com>"
-criteria = "safe-to-deploy"
-version = "0.2.1"
-notes = "This crate is maintained by the CryptoEng team at Mozilla and it contains no unsafe code."
-
 [[audits.comedy]]
 who = "Nick Alexander <nalexander@mozilla.com>"
 criteria = "safe-to-deploy"
