@@ -497,6 +497,55 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a list of a bookmarks WHEN a folder is deleted THEN load the number of nested bookmarks`() {
+        val folder = BookmarkItem.Folder("Bookmark Folder", "guid0")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(folder),
+        )
+
+        val result = bookmarksReducer(state, BookmarksListMenuAction.Folder.DeleteClicked(folder))
+        assertEquals(DeletionDialogState.LoadingCount(listOf("guid0")), result.bookmarksDeletionDialogState)
+    }
+
+    @Test
+    fun `GIVEN a deletion dialog that is loading a count WHEN we receive the count THEN present the dialog`() {
+        val folder = BookmarkItem.Folder("Bookmark Folder", "guid0")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(folder),
+            bookmarksDeletionDialogState = DeletionDialogState.LoadingCount(listOf("guid0")),
+        )
+
+        val result = bookmarksReducer(state, DeletionDialogAction.CountLoaded(19))
+        assertEquals(DeletionDialogState.Presenting(listOf("guid0"), 19), result.bookmarksDeletionDialogState)
+    }
+
+    @Test
+    fun `GIVEN a deletion dialog WHEN delete is tapped THEN dismiss the dialog and remove the deleted items`() {
+        val folder = BookmarkItem.Folder("Bookmark Folder", "guid0")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(folder),
+            bookmarksDeletionDialogState = DeletionDialogState.Presenting(listOf("guid0"), 1),
+        )
+
+        val result = bookmarksReducer(state, DeletionDialogAction.DeleteTapped)
+        assertEquals(DeletionDialogState.None, result.bookmarksDeletionDialogState)
+        assertEquals(listOf<BookmarkItem>(), result.bookmarkItems)
+    }
+
+    @Test
+    fun `GIVEN a deletion dialog WHEN cancel is tapped THEN dismiss the dialog`() {
+        val folder = BookmarkItem.Folder("Bookmark Folder", "guid0")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(folder),
+            bookmarksDeletionDialogState = DeletionDialogState.LoadingCount(listOf("guid0")),
+        )
+
+        val result = bookmarksReducer(state, DeletionDialogAction.CancelTapped)
+        assertEquals(DeletionDialogState.None, result.bookmarksDeletionDialogState)
+        assertEquals(state.bookmarkItems, result.bookmarkItems)
+    }
+
+    @Test
     fun `GIVEN one selected item WHEN the edit button is clicked in a bookmark menu THEN bookmark edit state is created`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")

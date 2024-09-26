@@ -93,6 +93,16 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     SnackbarAction.Dismissed -> {
         state.withDeletedItemsRemoved().copy(bookmarksSnackbarState = BookmarksSnackbarState.None)
     }
+    is DeletionDialogAction.CountLoaded -> state.copy(
+        bookmarksDeletionDialogState = DeletionDialogState.Presenting(
+            guidsToDelete = state.bookmarksDeletionDialogState.guidsToDelete,
+            count = action.count,
+        ),
+    )
+    DeletionDialogAction.CancelTapped -> state.copy(bookmarksDeletionDialogState = DeletionDialogState.None)
+    DeletionDialogAction.DeleteTapped -> {
+        state.withDeletedItemsRemoved().copy(bookmarksDeletionDialogState = DeletionDialogState.None)
+    }
     SelectFolderAction.ViewAppeared,
     SearchClicked,
     SignIntoSyncClicked,
@@ -100,8 +110,11 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     -> state
 }
 
-private fun BookmarksState.withDeletedItemsRemoved(): BookmarksState = when (bookmarksSnackbarState) {
-    is BookmarksSnackbarState.UndoDeletion -> copy(
+private fun BookmarksState.withDeletedItemsRemoved(): BookmarksState = when {
+    bookmarksDeletionDialogState is DeletionDialogState.Presenting -> copy(
+        bookmarkItems = bookmarkItems.filterNot { bookmarksDeletionDialogState.guidsToDelete.contains(it.guid) },
+    )
+    bookmarksSnackbarState is BookmarksSnackbarState.UndoDeletion -> copy(
         bookmarkItems = bookmarkItems.filterNot { bookmarksSnackbarState.guidsToDelete.contains(it.guid) },
     )
     else -> this
@@ -179,6 +192,9 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
             bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(
                 guidsToDelete = listOf(action.bookmark.guid),
             ),
+        )
+        is BookmarksListMenuAction.Folder.DeleteClicked -> copy(
+            bookmarksDeletionDialogState = DeletionDialogState.LoadingCount(listOf(action.folder.guid)),
         )
         else -> this
     }.let { updatedState ->

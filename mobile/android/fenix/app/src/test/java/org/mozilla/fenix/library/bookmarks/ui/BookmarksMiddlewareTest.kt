@@ -716,20 +716,22 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `WHEN delete clicked in folder item menu THEN delete the items, load the updated folder, and show the undo snackbar`() = runTestOnMain {
+    fun `WHEN delete clicked in folder item menu THEN present a dialog showing the number of items to be deleted and when delete clicked, delete the selected folder`() = runTestOnMain {
         val tree = generateBookmarkTree()
         val folder = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
         val folderItem = BookmarkItem.Folder(guid = folder.guid, title = "title")
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(folderItem.guid))).thenReturn(19u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
 
         store.dispatch(BookmarksListMenuAction.Folder.DeleteClicked(folderItem))
+        assertEquals(DeletionDialogState.Presenting(listOf(folderItem.guid), 19), store.state.bookmarksDeletionDialogState)
 
-        // TODO check snackbar
+        store.dispatch(DeletionDialogAction.DeleteTapped)
+        assertEquals(DeletionDialogState.None, store.state.bookmarksDeletionDialogState)
         verify(bookmarksStorage).deleteNode(folder.guid)
-        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
     }
 
     @Test

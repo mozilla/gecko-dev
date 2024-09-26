@@ -69,6 +69,16 @@ internal class BookmarksMiddleware(
     ) {
         val preReductionState = context.state
         next(action)
+
+        val dialogState = context.state.bookmarksDeletionDialogState
+        if (dialogState is DeletionDialogState.LoadingCount) {
+            scope.launch {
+                val count = bookmarksStorage.countBookmarksInTrees(dialogState.guidsToDelete)
+
+                context.store.dispatch(DeletionDialogAction.CountLoaded(count.toInt()))
+            }
+        }
+
         when (action) {
             Init -> context.store.tryDispatchLoadFor(BookmarkRoot.Mobile.id)
             is BookmarkClicked -> {
@@ -192,7 +202,15 @@ internal class BookmarksMiddleware(
                 }
                 else -> {}
             }
+            is DeletionDialogAction.DeleteTapped -> scope.launch {
+                preReductionState.bookmarksDeletionDialogState.guidsToDelete.forEach {
+                    bookmarksStorage.deleteNode(it)
+                }
+            }
             SnackbarAction.Undo,
+            DeletionDialogAction.CancelTapped,
+            DeletionDialogAction.DeleteTapped,
+            is DeletionDialogAction.CountLoaded,
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarkLongClicked,
@@ -374,12 +392,6 @@ internal class BookmarksMiddleware(
                 }
             }
 
-            is BookmarksListMenuAction.Folder.DeleteClicked -> scope.launch {
-                // Bug 1919949 — Add undo snackbar to delete action.
-                bookmarksStorage.deleteNode(folder.guid)
-                store.tryDispatchLoadFor(store.state.currentFolder.guid)
-            }
-
             // top bar menu actions
             BookmarksListMenuAction.MultiSelect.EditClicked -> {
                 navController.navigate(BookmarksDestinations.EDIT_BOOKMARK)
@@ -420,7 +432,9 @@ internal class BookmarksMiddleware(
                 store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
             }
 
-            is BookmarksListMenuAction.Bookmark.DeleteClicked -> { }
+            is BookmarksListMenuAction.Folder.DeleteClicked,
+            is BookmarksListMenuAction.Bookmark.DeleteClicked,
+            -> { }
         }
     }
 }

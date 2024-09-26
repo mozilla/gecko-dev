@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.AlertDialog
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
@@ -168,6 +169,32 @@ private fun BookmarksList(
                 }
             }
         }
+    }
+
+    val dialogState = state.bookmarksDeletionDialogState
+    if (dialogState is DeletionDialogState.Presenting) {
+        AlertDialog(
+            title = {
+                Text(
+                    text = stringResource(R.string.bookmark_delete_folder_dialog_title, dialogState.count),
+                )
+            },
+            onDismissRequest = { store.dispatch(DeletionDialogAction.CancelTapped) },
+            confirmButton = {
+                TextButton(
+                    onClick = { store.dispatch(DeletionDialogAction.DeleteTapped) },
+                ) {
+                    Text(stringResource(R.string.bookmark_menu_delete_button))
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { store.dispatch(DeletionDialogAction.CancelTapped) },
+                ) {
+                    Text(stringResource(R.string.bookmark_delete_negative))
+                }
+            },
+        )
     }
 
     Scaffold(
@@ -983,6 +1010,7 @@ private fun EditBookmarkScreenPreview() {
                 title = "Bookmarks",
             ),
             isSignedIntoSync = true,
+            bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = BookmarksEditBookmarkState(
@@ -1033,6 +1061,7 @@ private fun BookmarksScreenPreview() {
                     title = "Bookmarks",
                 ),
                 isSignedIntoSync = false,
+                bookmarksDeletionDialogState = DeletionDialogState.None,
                 bookmarksSnackbarState = BookmarksSnackbarState.None,
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
@@ -1062,6 +1091,7 @@ private fun EmptyBookmarksScreenPreview() {
                     title = "Bookmarks",
                 ),
                 isSignedIntoSync = false,
+                bookmarksDeletionDialogState = DeletionDialogState.None,
                 bookmarksSnackbarState = BookmarksSnackbarState.None,
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
@@ -1090,6 +1120,7 @@ private fun AddFolderPreview() {
                 title = "Bookmarks",
             ),
             isSignedIntoSync = false,
+            bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditBookmarkState = null,
             bookmarksAddFolderState = BookmarksAddFolderState(
@@ -1131,6 +1162,7 @@ private fun SelectFolderPreview() {
                 ),
                 folderBeingAddedTitle = "Edit me!",
             ),
+            bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditFolderState = null,
             bookmarksSelectFolderState = BookmarksSelectFolderState(

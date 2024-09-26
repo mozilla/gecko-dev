@@ -91,6 +91,12 @@ internal sealed class SelectFolderAction {
     data class ItemClicked(val folder: SelectFolderItem) : BookmarksAction
 }
 
+internal sealed class DeletionDialogAction {
+    data class CountLoaded(val count: Int) : BookmarksAction
+    data object CancelTapped : BookmarksAction
+    data object DeleteTapped : BookmarksAction
+}
+
 internal sealed class SnackbarAction {
     data object Undo : BookmarksAction
     data object Dismissed : BookmarksAction

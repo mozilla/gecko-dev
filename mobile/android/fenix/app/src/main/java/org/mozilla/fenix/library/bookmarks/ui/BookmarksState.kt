@@ -15,6 +15,7 @@ import org.mozilla.fenix.R
  * @property selectedItems The bookmark items that are currently selected by the user for bulk actions.
  * @property currentFolder the [BookmarkItem.Folder] that is currently being displayed.
  * @property isSignedIntoSync State representing if the user is currently signed into sync.
+ * @property bookmarksDeletionDialogState State representing the deletion dialog state.
  * @property bookmarksSnackbarState State representing which snackbar to show.
  * @property bookmarksAddFolderState State representing the add folder subscreen, if visible.
  * @property bookmarksEditBookmarkState State representing the edit bookmark subscreen, if visible.
@@ -26,6 +27,7 @@ internal data class BookmarksState(
     val selectedItems: List<BookmarkItem>,
     val currentFolder: BookmarkItem.Folder,
     val isSignedIntoSync: Boolean,
+    val bookmarksDeletionDialogState: DeletionDialogState,
     val bookmarksSnackbarState: BookmarksSnackbarState,
     val bookmarksAddFolderState: BookmarksAddFolderState?,
     val bookmarksEditBookmarkState: BookmarksEditBookmarkState?,
@@ -39,6 +41,7 @@ internal data class BookmarksState(
             currentFolder = BookmarkItem.Folder("", ""),
             isSignedIntoSync = false,
             bookmarksSnackbarState = BookmarksSnackbarState.None,
+            bookmarksDeletionDialogState = DeletionDialogState.None,
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = null,
             bookmarksSelectFolderState = null,
@@ -73,6 +76,22 @@ internal fun BookmarksState.isGuidMarkedForDeletion(guid: String): Boolean = whe
     is BookmarksSnackbarState.UndoDeletion -> bookmarksSnackbarState.guidsToDelete.contains(guid)
     else -> false
 }
+
+internal sealed class DeletionDialogState {
+    data object None : DeletionDialogState()
+    data class LoadingCount(val guidsToDelete: List<String>) : DeletionDialogState()
+    data class Presenting(
+        val guidsToDelete: List<String>,
+        val count: Int,
+    ) : DeletionDialogState()
+}
+
+internal val DeletionDialogState.guidsToDelete: List<String>
+    get() = when (this) {
+        DeletionDialogState.None -> listOf()
+        is DeletionDialogState.LoadingCount -> guidsToDelete
+        is DeletionDialogState.Presenting -> guidsToDelete
+    }
 
 internal sealed class BookmarksSnackbarState {
     data object None : BookmarksSnackbarState()
