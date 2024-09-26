@@ -75,7 +75,8 @@ export const USER_PREFS_ENCODING = {
 export const PREF_IMPRESSION_ID = "impressionId";
 export const TELEMETRY_PREF = "telemetry";
 export const EVENTS_TELEMETRY_PREF = "telemetry.ut.events";
-export const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
+export const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
+export const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.spocs.enabled";
 const PREF_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 
 // Used as the missing value for timestamps in the session ping
@@ -139,8 +140,10 @@ export class TelemetryFeed {
     return this._prefs.get(EVENTS_TELEMETRY_PREF);
   }
 
-  get canSendUnifiedAdsCallbacks() {
-    const unifiedAdsEnabled = this._prefs.get(PREF_UNIFIED_ADS_ENABLED);
+  get canSendUnifiedAdsSpocCallbacks() {
+    const unifiedAdsSpocsEnabled = this._prefs.get(
+      PREF_UNIFIED_ADS_SPOCS_ENABLED
+    );
 
     // Check PREF_UPLOAD_ENABLED if data reporting is allowed
     const uploadEnabled = Services.prefs.getBoolPref(
@@ -148,7 +151,21 @@ export class TelemetryFeed {
       false
     );
 
-    return unifiedAdsEnabled && uploadEnabled;
+    return unifiedAdsSpocsEnabled && uploadEnabled;
+  }
+
+  get canSendUnifiedAdsTilesCallbacks() {
+    const unifiedAdsTilesEnabled = this._prefs.get(
+      PREF_UNIFIED_ADS_TILES_ENABLED
+    );
+
+    // Check PREF_UPLOAD_ENABLED if data reporting is allowed
+    const uploadEnabled = Services.prefs.getBoolPref(
+      PREF_UPLOAD_ENABLED,
+      false
+    );
+
+    return unifiedAdsTilesEnabled && uploadEnabled;
   }
 
   get telemetryClientId() {
@@ -629,7 +646,9 @@ export class TelemetryFeed {
     // Legacy telemetry expects 1-based tile positions.
     const legacyTelemetryPosition = position + 1;
 
-    const unifiedAdsEnabled = this._prefs.get(PREF_UNIFIED_ADS_ENABLED);
+    const unifiedAdsTilesEnabled = this._prefs.get(
+      PREF_UNIFIED_ADS_TILES_ENABLED
+    );
 
     let pingType;
 
@@ -675,14 +694,14 @@ export class TelemetryFeed {
     Glean.topSites.position.set(legacyTelemetryPosition);
     Glean.topSites.source.set(source);
     Glean.topSites.tileId.set(tile_id);
-    if (data.reporting_url && !unifiedAdsEnabled) {
+    if (data.reporting_url && !unifiedAdsTilesEnabled) {
       Glean.topSites.reportingUrl.set(data.reporting_url);
     }
     Glean.topSites.advertiser.set(advertiser_name);
     Glean.topSites.contextId.set(lazy.contextId);
     GleanPings.topSites.submit();
 
-    if (data.reporting_url && this.canSendUnifiedAdsCallbacks) {
+    if (data.reporting_url && this.canSendUnifiedAdsTilesCallbacks) {
       // Send callback events to MARS unified ads api
       this.sendUnifiedAdsCallbackEvent({
         url: data.reporting_url,
@@ -790,7 +809,7 @@ export class TelemetryFeed {
                 }),
           });
           if (shim) {
-            if (this.canSendUnifiedAdsCallbacks) {
+            if (this.canSendUnifiedAdsSpocCallbacks) {
               // Send unified ads callback event
               this.sendUnifiedAdsCallbackEvent({
                 url: shim,
@@ -1297,7 +1316,7 @@ export class TelemetryFeed {
             }),
       });
       if (tile.shim) {
-        if (this.canSendUnifiedAdsCallbacks) {
+        if (this.canSendUnifiedAdsSpocCallbacks) {
           // Send unified ads callback event
           this.sendUnifiedAdsCallbackEvent({
             url: tile.shim,

@@ -90,7 +90,7 @@ const NIMBUS_VARIABLE_CONTILE_SOV_ENABLED = "topSitesContileSovEnabled";
 // The default will be `CONTILE_MAX_NUM_SPONSORED` if variable is unspecified.
 const NIMBUS_VARIABLE_CONTILE_MAX_NUM_SPONSORED = "topSitesContileMaxSponsored";
 
-const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
+const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.tiles.enabled";
 const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
 const PREF_UNIFIED_ADS_PLACEMENTS = "discoverystream.placements.tiles";
 const PREF_UNIFIED_ADS_COUNTS = "discoverystream.placements.tiles.counts";
@@ -390,13 +390,13 @@ export class ContileIntegration {
    *   string value of the Contile resposne cache-control header
    */
   _extractCacheValidFor(cacheHeader) {
-    const unifiedAdsEnabled =
+    const unifiedAdsTilesEnabled =
       this._topSitesFeed.store.getState().Prefs.values[
-        PREF_UNIFIED_ADS_ENABLED
+        PREF_UNIFIED_ADS_TILES_ENABLED
       ];
 
     // Note: Cache-control only applies to direct Contile API calls
-    if (!cacheHeader && !unifiedAdsEnabled) {
+    if (!cacheHeader && !unifiedAdsTilesEnabled) {
       lazy.log.warn("Contile response cache control header is empty");
       return 0;
     }
@@ -499,13 +499,14 @@ export class ContileIntegration {
     let response;
     const state = this._topSitesFeed.store.getState();
 
-    const unifiedAdsEnabled = state.Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+    const unifiedAdsTilesEnabled =
+      state.Prefs.values[PREF_UNIFIED_ADS_TILES_ENABLED];
 
-    const serviceName = unifiedAdsEnabled ? "MARS" : "Contile";
+    const serviceName = unifiedAdsTilesEnabled ? "MARS" : "Contile";
 
     try {
       // Fetch tiles via MARS unified ads service
-      if (unifiedAdsEnabled) {
+      if (unifiedAdsTilesEnabled) {
         const headers = new Headers();
         headers.append("content-type", "application/json");
 
@@ -586,7 +587,7 @@ export class ContileIntegration {
       }
       let body = await response.json();
 
-      if (unifiedAdsEnabled) {
+      if (unifiedAdsTilesEnabled) {
         // Converts response into normalized tiles[] array
         body = this._normalizeTileData(body);
       }
@@ -630,7 +631,7 @@ export class ContileIntegration {
           JSON.stringify(this._sites)
         );
 
-        if (!unifiedAdsEnabled) {
+        if (!unifiedAdsTilesEnabled) {
           Services.prefs.setIntPref(
             CONTILE_CACHE_VALID_FOR_PREF,
             this._extractCacheValidFor(

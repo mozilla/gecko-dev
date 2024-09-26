@@ -78,7 +78,7 @@ const PREF_USER_TOPSTORIES = "feeds.section.topstories";
 const PREF_SYSTEM_TOPSTORIES = "feeds.system.topstories";
 const PREF_SYSTEM_TOPSITES = "feeds.system.topsites";
 const PREF_UNIFIED_ADS_BLOCKED_LIST = "unifiedAds.blockedAds";
-const PREF_UNIFIED_ADS_ENABLED = "unifiedAds.enabled";
+const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
 const PREF_UNIFIED_ADS_ENDPOINT = "unifiedAds.endpoint";
 const PREF_USER_TOPSITES = "feeds.topsites";
 const PREF_SPOCS_CLEAR_ENDPOINT = "discoverystream.endpointSpocsClear";
@@ -988,7 +988,7 @@ export class DiscoveryStreamFeed {
   // so we can change as little as possible. Once we commit to one, we can remove all this.
   normalizeSpocsItems(spocs) {
     const unifiedAdsEnabled =
-      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
     if (unifiedAdsEnabled) {
       return {
         items: spocs.map(spoc => ({
@@ -1051,7 +1051,7 @@ export class DiscoveryStreamFeed {
   async loadSpocs(sendUpdate, isStartup) {
     const cachedData = (await this.cache.get()) || {};
     const unifiedAdsEnabled =
-      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
     let spocsState = cachedData.spocs;
     let placements = this.getPlacements();
 
@@ -1270,7 +1270,8 @@ export class DiscoveryStreamFeed {
     const state = this.store.getState();
     let endpoint = state.Prefs.values[PREF_SPOCS_CLEAR_ENDPOINT];
 
-    const unifiedAdsEnabled = state.Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+    const unifiedAdsEnabled =
+      state.Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
 
     let body = {
       pocket_id: this._impressionId,
@@ -1965,7 +1966,7 @@ export class DiscoveryStreamFeed {
 
   recordBlockFlightId(flightId) {
     const unifiedAdsEnabled =
-      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_ENABLED];
+      this.store.getState().Prefs.values[PREF_UNIFIED_ADS_SPOCS_ENABLED];
 
     const flights = this.readDataPref(PREF_FLIGHT_BLOCKS);
     if (!flights[flightId]) {
@@ -2107,7 +2108,7 @@ export class DiscoveryStreamFeed {
       case PREF_LAYOUT_EXPERIMENT_A:
       case PREF_LAYOUT_EXPERIMENT_B:
       case PREF_SPOC_POSITIONS:
-      case PREF_UNIFIED_ADS_ENABLED:
+      case PREF_UNIFIED_ADS_SPOCS_ENABLED:
       case PREF_CONTEXTUAL_CONTENT_ENABLED:
         // This is a config reset directly related to Discovery Stream pref.
         this.configReset();
