@@ -83,6 +83,7 @@ internal class BookmarksMiddleware(
             Init -> context.store.tryDispatchLoadFor(BookmarkRoot.Mobile.id)
             is BookmarkClicked -> {
                 if (preReductionState.selectedItems.isNotEmpty()) {
+                    context.store.tryDispatchReceivedRecursiveCountUpdate()
                     return
                 }
                 val openInNewTab = navController.previousDestinationWasHome() ||
@@ -92,11 +93,16 @@ internal class BookmarksMiddleware(
 
             is FolderClicked -> {
                 if (preReductionState.selectedItems.isNotEmpty()) {
+                    context.store.tryDispatchReceivedRecursiveCountUpdate()
                     return
                 }
                 context.store.tryDispatchLoadFor(action.item.guid)
             }
-
+            is BookmarkLongClicked,
+            is FolderLongClicked,
+            -> {
+                context.store.tryDispatchReceivedRecursiveCountUpdate()
+            }
             SearchClicked -> navController.navigate(
                 NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
             )
@@ -210,11 +216,10 @@ internal class BookmarksMiddleware(
             SnackbarAction.Undo,
             DeletionDialogAction.CancelTapped,
             DeletionDialogAction.DeleteTapped,
+            is RecursiveSelectionCountLoaded,
             is DeletionDialogAction.CountLoaded,
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
-            is BookmarkLongClicked,
-            is FolderLongClicked,
             is BookmarksLoaded,
             is EditFolderAction.TitleChanged,
             is AddFolderAction.TitleChanged,
@@ -289,6 +294,13 @@ internal class BookmarksMiddleware(
                 )
             }
         }
+
+    private fun Store<BookmarksState, BookmarksAction>.tryDispatchReceivedRecursiveCountUpdate() {
+        scope.launch {
+            val count = bookmarksStorage.countBookmarksInTrees(state.selectedItems.map { it.guid })
+            dispatch(RecursiveSelectionCountLoaded(count.toInt()))
+        }
+    }
 
     private fun BookmarkNode.childItems(): List<BookmarkItem> = this.children?.mapNotNull { node ->
         Result.runCatching {

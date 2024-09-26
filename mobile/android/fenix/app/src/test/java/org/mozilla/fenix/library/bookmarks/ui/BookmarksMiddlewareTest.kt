@@ -887,6 +887,22 @@ class BookmarksMiddlewareTest {
         }
     }
 
+    @Test
+    fun `GIVEN selected items in state WHEN a folder is clicked THEN update the recursive state`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                selectedItems = listOf(BookmarkItem.Folder("Folder 1", "guid1")),
+            ),
+        )
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf("guid1", "guid2"))).thenReturn(19u)
+        store.dispatch(FolderClicked(BookmarkItem.Folder("Folder2", "guid2")))
+        assertEquals(19, store.state.recursiveSelectedCount)
+    }
+
     private fun buildMiddleware() = BookmarksMiddleware(
         bookmarksStorage = bookmarksStorage,
         clipboardManager = clipboardManager,

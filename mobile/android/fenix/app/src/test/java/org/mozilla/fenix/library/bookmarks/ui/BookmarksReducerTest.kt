@@ -597,6 +597,19 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a multiple bookmarks selected WHEN receiving a recursive count update THEN update the state`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val item2 = item.copy(guid = "guid2")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item, item2),
+            selectedItems = listOf(item, item2),
+        )
+
+        val result = bookmarksReducer(state, RecursiveSelectionCountLoaded(19))
+        assertEquals(state.copy(recursiveSelectedCount = 19), result)
+    }
+
+    @Test
     fun `GIVEN selected items WHEN a multi-select menu action is taken THEN the items are unselected`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")

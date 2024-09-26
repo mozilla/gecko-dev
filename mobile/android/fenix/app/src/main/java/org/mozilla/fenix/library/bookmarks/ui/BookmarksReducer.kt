@@ -13,6 +13,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
         currentFolder = action.folder,
         bookmarkItems = action.bookmarkItems,
     )
+    is RecursiveSelectionCountLoaded -> state.copy(recursiveSelectedCount = action.count)
     is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
     is FolderLongClicked -> state.toggleSelectionOf(action.item)
     is FolderClicked -> when {
@@ -210,7 +211,10 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
         else -> this
     }.let { updatedState ->
         if (action is BookmarksListMenuAction.MultiSelect) {
-            updatedState.copy(selectedItems = listOf())
+            updatedState.copy(
+                selectedItems = listOf(),
+                recursiveSelectedCount = null,
+            )
         } else {
             updatedState
         }

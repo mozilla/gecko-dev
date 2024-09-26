@@ -13,6 +13,7 @@ import org.mozilla.fenix.R
  *
  * @property bookmarkItems Bookmark items to be displayed in the current list screen.
  * @property selectedItems The bookmark items that are currently selected by the user for bulk actions.
+ * @property recursiveSelectedCount the total number of children of the [selectedItems] found in bookmark storage.
  * @property currentFolder the [BookmarkItem.Folder] that is currently being displayed.
  * @property isSignedIntoSync State representing if the user is currently signed into sync.
  * @property bookmarksDeletionDialogState State representing the deletion dialog state.
@@ -25,6 +26,7 @@ import org.mozilla.fenix.R
 internal data class BookmarksState(
     val bookmarkItems: List<BookmarkItem>,
     val selectedItems: List<BookmarkItem>,
+    val recursiveSelectedCount: Int?,
     val currentFolder: BookmarkItem.Folder,
     val isSignedIntoSync: Boolean,
     val bookmarksDeletionDialogState: DeletionDialogState,
@@ -38,6 +40,7 @@ internal data class BookmarksState(
         val default: BookmarksState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder("", ""),
             isSignedIntoSync = false,
             bookmarksSnackbarState = BookmarksSnackbarState.None,

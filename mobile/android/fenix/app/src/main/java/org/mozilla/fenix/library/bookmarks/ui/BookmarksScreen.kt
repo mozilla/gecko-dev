@@ -302,6 +302,7 @@ private fun BookmarksListTopBar(
     store: BookmarksStore,
 ) {
     val selectedItems by store.observeAsState(store.state.selectedItems) { it.selectedItems }
+    val recursiveCount by store.observeAsState(store.state.recursiveSelectedCount) { it.recursiveSelectedCount }
     val isCurrentFolderDesktopRoot by store.observeAsState(store.state.currentFolder.isDesktopRoot) {
         store.state.currentFolder.isDesktopRoot
     }
@@ -319,7 +320,8 @@ private fun BookmarksListTopBar(
                     color = FirefoxTheme.colors.textPrimary,
                     style = FirefoxTheme.typography.headline6,
                     text = if (selectedItems.isNotEmpty()) {
-                        stringResource(R.string.bookmarks_multi_select_title, selectedItems.size)
+                        val total = selectedItems.size + (recursiveCount ?: 0)
+                        stringResource(R.string.bookmarks_multi_select_title, total)
                     } else {
                         store.state.currentFolder.title
                     },
@@ -993,6 +995,7 @@ private fun EditBookmarkScreenPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
                 title = "Bookmarks",
@@ -1044,6 +1047,7 @@ private fun BookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = bookmarkItems,
                 selectedItems = listOf(),
+                recursiveSelectedCount = null,
                 currentFolder = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
@@ -1074,6 +1078,7 @@ private fun EmptyBookmarksScreenPreview() {
             initialState = BookmarksState(
                 bookmarkItems = listOf(),
                 selectedItems = listOf(),
+                recursiveSelectedCount = null,
                 currentFolder = BookmarkItem.Folder(
                     guid = BookmarkRoot.Mobile.id,
                     title = "Bookmarks",
@@ -1103,6 +1108,7 @@ private fun AddFolderPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
                 title = "Bookmarks",
@@ -1137,6 +1143,7 @@ private fun SelectFolderPreview() {
         initialState = BookmarksState(
             bookmarkItems = listOf(),
             selectedItems = listOf(),
+            recursiveSelectedCount = null,
             currentFolder = BookmarkItem.Folder(
                 guid = BookmarkRoot.Mobile.id,
                 title = "Bookmarks",
