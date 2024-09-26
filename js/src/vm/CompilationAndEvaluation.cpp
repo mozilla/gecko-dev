@@ -210,7 +210,7 @@ JS_PUBLIC_API bool JS_Utf8BufferIsCompilableUnit(JSContext* cx,
   fc.clearAutoReport();
 
   Parser<FullParseHandler, char16_t> parser(&fc, options, chars.get(), length,
-                                            /* foldConstants = */ true,
+                                            /* foldConstants = */ false,
                                             compilationState,
                                             /* syntaxParser = */ nullptr);
   if (!parser.checkOptions() || parser.parse().isErr()) {
