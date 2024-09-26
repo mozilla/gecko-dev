@@ -245,4 +245,5 @@ policy-WebsiteFilter = Block websites from being visited. See documentation for 
 
 policy-Windows10SSO = Allow Windows single sign-on for Microsoft, work, and school accounts.
 
+# Entra is the name of a Microsoft product.
 policy-MicrosoftEntraSSO = Allow single sign-on for Microsoft Entra accounts.
