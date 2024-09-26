@@ -1,8 +1,8 @@
 'use strict';
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'foo_string.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('foo_string.txt', root);
+  const wfs = await handle.createWritable();
 
   const rs = recordingReadableStream({
     start(controller) {
@@ -17,8 +17,8 @@ directory_test(async (t, root) => {
 }, 'can be piped to with a string');
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'foo_arraybuf.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('foo_arraybuf.txt', root);
+  const wfs = await handle.createWritable();
   const buf = new ArrayBuffer(3);
   const intView = new Uint8Array(buf);
   intView[0] = 0x66;
@@ -38,8 +38,8 @@ directory_test(async (t, root) => {
 }, 'can be piped to with an ArrayBuffer');
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'foo_blob.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('foo_blob.txt', root);
+  const wfs = await handle.createWritable();
 
   const rs = recordingReadableStream({
     start(controller) {
@@ -54,8 +54,8 @@ directory_test(async (t, root) => {
 }, 'can be piped to with a Blob');
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'foo_write_param.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('foo_write_param.txt', root);
+  const wfs = await handle.createWritable();
 
   const rs = recordingReadableStream({
     start(controller) {
@@ -70,8 +70,8 @@ directory_test(async (t, root) => {
 }, 'can be piped to with a param object with write command');
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'foo_write_param.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('foo_write_param.txt', root);
+  const wfs = await handle.createWritable();
 
   const rs = recordingReadableStream({
     start(controller) {
@@ -88,8 +88,8 @@ directory_test(async (t, root) => {
 }, 'can be piped to with a param object with multiple commands');
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'foo_write_queued.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('foo_write_queued.txt', root);
+  const wfs = await handle.createWritable();
 
   const rs = recordingReadableStream({
     start(controller) {
@@ -106,8 +106,8 @@ directory_test(async (t, root) => {
 }, 'multiple operations can be queued');
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'fetched.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('fetched.txt', root);
+  const wfs = await handle.createWritable();
 
   const response = await fetch('data:text/plain,fetched from far');
   const body = await response.body;
@@ -117,8 +117,8 @@ directory_test(async (t, root) => {
 }, 'plays well with fetch');
 
 directory_test(async (t, root) => {
-  const handle = await createEmptyFile(t, 'aborted should_be_empty.txt', root);
-  const wfs = await cleanup_writable(t, await handle.createWritable());
+  const handle = await createEmptyFile('aborted should_be_empty.txt', root);
+  const wfs = await handle.createWritable();
 
   const response = await fetch('data:text/plain,fetched from far');
   const body = await response.body;
