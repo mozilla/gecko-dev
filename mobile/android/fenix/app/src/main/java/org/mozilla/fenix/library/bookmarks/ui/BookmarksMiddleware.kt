@@ -184,6 +184,7 @@ internal class BookmarksMiddleware(
 
             SelectFolderAction.ViewAppeared -> context.store.tryDispatchLoadFolders()
             is BookmarksListMenuAction -> action.handleSideEffects(context.store, preReductionState)
+            SnackbarAction.Dismissed,
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarkLongClicked,

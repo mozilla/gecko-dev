@@ -90,3 +90,7 @@ internal sealed class SelectFolderAction {
     data class FoldersLoaded(val folders: List<SelectFolderItem>) : BookmarksAction
     data class ItemClicked(val folder: SelectFolderItem) : BookmarksAction
 }
+
+internal sealed class SnackbarAction {
+    data object Dismissed : BookmarksAction
+}

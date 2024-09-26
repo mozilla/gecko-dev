@@ -14,6 +14,7 @@ import mozilla.components.lib.state.State
  * @property selectedItems The bookmark items that are currently selected by the user for bulk actions.
  * @property currentFolder the [BookmarkItem.Folder] that is currently being displayed.
  * @property isSignedIntoSync State representing if the user is currently signed into sync.
+ * @property bookmarksSnackbarState State representing which snackbar to show.
  * @property bookmarksAddFolderState State representing the add folder subscreen, if visible.
  * @property bookmarksEditBookmarkState State representing the edit bookmark subscreen, if visible.
  * @property bookmarksSelectFolderState State representing the select folder subscreen, if visible.
@@ -24,6 +25,7 @@ internal data class BookmarksState(
     val selectedItems: List<BookmarkItem>,
     val currentFolder: BookmarkItem.Folder,
     val isSignedIntoSync: Boolean,
+    val bookmarksSnackbarState: BookmarksSnackbarState,
     val bookmarksAddFolderState: BookmarksAddFolderState?,
     val bookmarksEditBookmarkState: BookmarksEditBookmarkState?,
     val bookmarksSelectFolderState: BookmarksSelectFolderState?,
@@ -35,12 +37,18 @@ internal data class BookmarksState(
             selectedItems = listOf(),
             currentFolder = BookmarkItem.Folder("", ""),
             isSignedIntoSync = false,
+            bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = null,
             bookmarksSelectFolderState = null,
             bookmarksEditFolderState = null,
         )
     }
+}
+
+internal sealed class BookmarksSnackbarState {
+    data object None : BookmarksSnackbarState()
+    data object CantEditDesktopFolders : BookmarksSnackbarState()
 }
 
 internal data class BookmarksEditBookmarkState(

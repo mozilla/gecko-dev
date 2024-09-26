@@ -448,6 +448,31 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN one selected item WHEN clicking on a desktop folder THEN display a snackbar explaining that you can't do that`() {
+        val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val parent = BookmarkItem.Folder("title", "guid")
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(item),
+            selectedItems = listOf(item),
+            currentFolder = parent,
+        )
+
+        val folder = BookmarkItem.Folder("Desktop Bookmarks", BookmarkRoot.Root.id)
+        val result = bookmarksReducer(state, FolderClicked(folder))
+        assertEquals(BookmarksSnackbarState.CantEditDesktopFolders, result.bookmarksSnackbarState)
+    }
+
+    @Test
+    fun `GIVEN a snackbar is displayed WHEN the snackbar is dismissed THEN update the state`() {
+        val state = BookmarksState.default.copy(
+            bookmarksSnackbarState = BookmarksSnackbarState.CantEditDesktopFolders,
+        )
+
+        val result = bookmarksReducer(state, SnackbarAction.Dismissed)
+        assertEquals(BookmarksSnackbarState.None, result.bookmarksSnackbarState)
+    }
+
+    @Test
     fun `GIVEN one selected item WHEN the edit button is clicked in a bookmark menu THEN bookmark edit state is created`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")

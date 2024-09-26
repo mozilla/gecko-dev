@@ -31,6 +31,10 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
+import androidx.compose.material.SnackbarDuration
+import androidx.compose.material.SnackbarHost
+import androidx.compose.material.SnackbarHostState
+import androidx.compose.material.SnackbarResult
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
 import androidx.compose.material.TextField
@@ -41,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +58,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
@@ -117,7 +123,35 @@ private fun BookmarksList(
     store: BookmarksStore,
 ) {
     val state by store.observeAsState(store.state) { it }
+    val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    val snackbarMessage = when (state.bookmarksSnackbarState) {
+        BookmarksSnackbarState.CantEditDesktopFolders -> stringResource(R.string.bookmark_cannot_edit_root)
+        else -> ""
+    }
+
+    LaunchedEffect(state.bookmarksSnackbarState) {
+        when (state.bookmarksSnackbarState) {
+            BookmarksSnackbarState.None -> return@LaunchedEffect
+            BookmarksSnackbarState.CantEditDesktopFolders -> scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = snackbarMessage,
+                    duration = SnackbarDuration.Short,
+                )
+
+                when (result) {
+                    SnackbarResult.Dismissed -> store.dispatch(SnackbarAction.Dismissed)
+                    else -> {}
+                }
+            }
+        }
+    }
+
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         floatingActionButton = {
             FloatingActionButton(
                 icon = painterResource(R.drawable.mozac_ic_search_24),
@@ -923,6 +957,7 @@ private fun EditBookmarkScreenPreview() {
                 title = "Bookmarks",
             ),
             isSignedIntoSync = true,
+            bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksAddFolderState = null,
             bookmarksEditBookmarkState = BookmarksEditBookmarkState(
                 bookmark = BookmarkItem.Bookmark(
@@ -972,6 +1007,7 @@ private fun BookmarksScreenPreview() {
                     title = "Bookmarks",
                 ),
                 isSignedIntoSync = false,
+                bookmarksSnackbarState = BookmarksSnackbarState.None,
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
                 bookmarksSelectFolderState = null,
@@ -1000,6 +1036,7 @@ private fun EmptyBookmarksScreenPreview() {
                     title = "Bookmarks",
                 ),
                 isSignedIntoSync = false,
+                bookmarksSnackbarState = BookmarksSnackbarState.None,
                 bookmarksAddFolderState = null,
                 bookmarksEditBookmarkState = null,
                 bookmarksSelectFolderState = null,
@@ -1027,6 +1064,7 @@ private fun AddFolderPreview() {
                 title = "Bookmarks",
             ),
             isSignedIntoSync = false,
+            bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditBookmarkState = null,
             bookmarksAddFolderState = BookmarksAddFolderState(
                 parent = BookmarkItem.Folder(
@@ -1067,6 +1105,7 @@ private fun SelectFolderPreview() {
                 ),
                 folderBeingAddedTitle = "Edit me!",
             ),
+            bookmarksSnackbarState = BookmarksSnackbarState.None,
             bookmarksEditFolderState = null,
             bookmarksSelectFolderState = BookmarksSelectFolderState(
                 selectionGuid = null,

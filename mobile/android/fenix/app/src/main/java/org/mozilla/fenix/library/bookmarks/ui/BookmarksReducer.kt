@@ -15,10 +15,12 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     )
     is BookmarkLongClicked -> state.toggleSelectionOf(action.item)
     is FolderLongClicked -> state.toggleSelectionOf(action.item)
-    is FolderClicked -> if (state.selectedItems.isNotEmpty() && !action.item.isDesktopFolder) {
-        state.toggleSelectionOf(action.item)
-    } else {
-        state
+    is FolderClicked -> when {
+        state.selectedItems.isNotEmpty() && action.item.isDesktopFolder -> state.copy(
+            bookmarksSnackbarState = BookmarksSnackbarState.CantEditDesktopFolders,
+        )
+        state.selectedItems.isNotEmpty() -> state.toggleSelectionOf(action.item)
+        else -> state
     }
     is EditBookmarkClicked -> state.copy(
         bookmarksEditBookmarkState = BookmarksEditBookmarkState(
@@ -87,6 +89,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
         ),
     )
     is BookmarksListMenuAction -> state.handleListMenuAction(action)
+    SnackbarAction.Dismissed -> state.copy(bookmarksSnackbarState = BookmarksSnackbarState.None)
     SelectFolderAction.ViewAppeared,
     SearchClicked,
     SignIntoSyncClicked,
