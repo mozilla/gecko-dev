@@ -731,8 +731,6 @@ version = "0.0.1"
 dependencies = [
  "base64 0.21.3",
  "byteorder",
- "clubcard",
- "clubcard-crlite",
  "crossbeam-utils",
  "cstr",
  "firefox-on-glean",
@@ -883,27 +881,6 @@ name = "clap_lex"
 version = "0.7.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1462739cb27611015575c0c11df5df7601141071f07518d56fcc1be504cbec97"
-
-[[package]]
-name = "clubcard"
-version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "30b529ab1dcb6d5e3a03107e59da1249f8f4efe1e7e123eea064a2e42c6f1e3e"
-dependencies = [
- "serde",
-]
-
-[[package]]
-name = "clubcard-crlite"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "506cfeae76e092240aa4b0c08f996748b2df1c5517e65053eeb9226fb76b93f0"
-dependencies = [
- "bincode",
- "clubcard",
- "serde",
- "sha2",
-]
 
 [[package]]
 name = "cmake"
