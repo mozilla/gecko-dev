@@ -1232,7 +1232,7 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">UNDO</string>
     <!-- Bookmark snackbar message for deleting a single item. Parameter is the title of the item being deleted -->
-    <string name="bookmark_delete_single_item">Deleted "%s"</string>
+    <string name="bookmark_delete_single_item">Deleted %s</string>
     <!-- Bookmark snackbar message for deleting multiple items. Parameter is the number of items being deleted -->
     <string name="bookmark_delete_multiple_items">Deleted %s items</string>
     <!-- Bookmark folder deletion dialog title. Parameter is the number of items being deleted -->
