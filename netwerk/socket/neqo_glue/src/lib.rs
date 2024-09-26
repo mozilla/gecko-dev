@@ -370,6 +370,12 @@ impl NeqoHttp3Conn {
                 .get(&"not-capable")
                 .add(stats.ecn_paths_not_capable as i32);
         }
+
+        // Ignore connections into the void.
+        if stats.packets_rx != 0 {
+            let loss = (stats.lost * PRECISION_FACTOR as usize) / stats.packets_tx;
+            glean::http_3_loss_ratio.accumulate_single_sample_signed(loss as i64);
+        }
     }
 
     // Noop on Android for now, due to performance regressions.

@@ -1038,6 +1038,26 @@ networking:
       - capable
       - not-capable
 
+  http_3_loss_ratio:
+    type: custom_distribution
+    unit: integer
+    range_min: 0
+    range_max: 2000
+    bucket_count: 100
+    histogram_type: exponential
+    description: >
+      HTTP3: packet loss ratio (multiply by 10000).
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917778
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1917778
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - necko@mozilla.com
+      - minden@mozilla.com
+    expires: never
+
   cache_metadata_first_read_time: &cache_metadata_first_read_time
     type: timing_distribution
     time_unit: millisecond
