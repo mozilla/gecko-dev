@@ -13,6 +13,7 @@
 #include "PlatformDecoderModule.h"
 
 #define LOG(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Debug, (__VA_ARGS__))
+#define LOGV(...) MOZ_LOG(sPDMLog, mozilla::LogLevel::Verbose, (__VA_ARGS__))
 
 namespace mozilla {
 MFTDecoder::MFTDecoder() {
@@ -100,6 +101,8 @@ MFTDecoder::Create(const GUID& aCategory, const GUID& aInSubtype,
       SUCCEEDED(hr),
       nsPrintfCString("IMFActivate::ActivateObject failed with code %lx", hr)
           .get());
+  LOG("MFTDecoder::Create, created decoder, input=%s, output=%s",
+      GetSubTypeStr(aInSubtype).get(), GetSubTypeStr(aOutSubtype).get());
   return hr;
 }
 
@@ -170,6 +173,8 @@ MFTDecoder::SetDecoderOutputType(
       0, typeIndex++, getter_AddRefs(outputType)))) {
     GUID outSubtype = {0};
     RETURN_IF_FAILED(outputType->GetGUID(MF_MT_SUBTYPE, &outSubtype));
+    LOGV("Searching compatible type, input=%s, output=%s",
+         GetSubTypeStr(aSubType).get(), GetSubTypeStr(outSubtype).get());
     if (aSubType == outSubtype) {
       RETURN_IF_FAILED(aCallback(outputType));
       RETURN_IF_FAILED(mDecoder->SetOutputType(0, outputType, 0));
@@ -182,6 +187,7 @@ MFTDecoder::SetDecoderOutputType(
     }
     outputType = nullptr;
   }
+  LOG("Can't find compatible output type!");
   return E_FAIL;
 }
 

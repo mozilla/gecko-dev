@@ -74,6 +74,8 @@ class WMFVideoMFTManager : public MFTManager {
 
   bool CanUseDXVA(IMFMediaType* aInputType, IMFMediaType* aOutputType);
 
+  GUID GetOutputSubtype() const;
+
   // Gets the duration from aSample, and if an unknown or invalid duration is
   // returned from WMF, this instead returns the last known input duration.
   // The sample duration is unknown per `IMFSample::GetSampleDuration` docs

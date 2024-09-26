@@ -74,6 +74,11 @@ bool StreamTypeIsAudio(const WMFStreamType& aType);
 
 WMFStreamType GetStreamTypeFromMimeType(const nsCString& aMimeType);
 
+GUID GetOutputSubType(const gfx::ColorDepth& aColorDepth,
+                      bool aIsHardwareDecoding);
+
+nsCString GetSubTypeStr(const GUID& aSubtype);
+
 // Converts from microseconds to hundreds of nanoseconds.
 // We use microseconds for our timestamps, whereas WMF uses
 // hundreds of nanoseconds.

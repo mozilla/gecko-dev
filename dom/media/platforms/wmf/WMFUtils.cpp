@@ -97,6 +97,61 @@ WMFStreamType GetStreamTypeFromMimeType(const nsCString& aMimeType) {
   return WMFStreamType::Unknown;
 }
 
+GUID GetOutputSubType(const gfx::ColorDepth& aColorDepth,
+                      bool aIsHardwareDecoding) {
+  switch (aColorDepth) {
+    case gfx::ColorDepth::COLOR_8:
+      return aIsHardwareDecoding ? MFVideoFormat_NV12 : MFVideoFormat_YV12;
+    case gfx::ColorDepth::COLOR_10:
+      return MFVideoFormat_P010;
+    case gfx::ColorDepth::COLOR_12:
+    case gfx::ColorDepth::COLOR_16:
+      return MFVideoFormat_P016;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected color depth");
+      return GUID_NULL;
+  }
+}
+
+#define ENUM_TO_STR(enumVal)          \
+  if (aSubtype == enumVal) {          \
+    return nsPrintfCString{#enumVal}; \
+  }
+
+// Audio :
+// https://learn.microsoft.com/en-us/windows/win32/medfound/audio-subtype-guids
+// Video :
+// https://learn.microsoft.com/en-us/windows/win32/medfound/video-subtype-guids
+nsCString GetSubTypeStr(const GUID& aSubtype) {
+  // output format
+  ENUM_TO_STR(MFAudioFormat_PCM)
+  ENUM_TO_STR(MFAudioFormat_Float)
+  ENUM_TO_STR(MFVideoFormat_NV12)
+  ENUM_TO_STR(MFVideoFormat_YV12)
+  ENUM_TO_STR(MFVideoFormat_IYUV)
+  ENUM_TO_STR(MFVideoFormat_P010)
+  ENUM_TO_STR(MFVideoFormat_P016)
+  ENUM_TO_STR(MFVideoFormat_ARGB32)
+  ENUM_TO_STR(MFVideoFormat_RGB32)
+  // codec
+  ENUM_TO_STR(MFAudioFormat_MP3)
+  ENUM_TO_STR(MFAudioFormat_AAC)
+  ENUM_TO_STR(MFAudioFormat_Vorbis)
+  ENUM_TO_STR(MFAudioFormat_Opus)
+  ENUM_TO_STR(MFVideoFormat_H264)
+  ENUM_TO_STR(MFVideoFormat_VP80)
+  ENUM_TO_STR(MFVideoFormat_VP90)
+  ENUM_TO_STR(MFVideoFormat_AV1)
+  ENUM_TO_STR(MFVideoFormat_HEVC)
+  LPOLESTR subtypeStr;
+  StringFromCLSID(aSubtype, &subtypeStr);
+  nsPrintfCString errorMsg("Unknown output subtype: %S", subtypeStr);
+  CoTaskMemFree(subtypeStr);
+  return errorMsg;
+}
+
+#undef ENUM_TO_STR
+
 HRESULT
 HNsToFrames(int64_t aHNs, uint32_t aRate, int64_t* aOutFrames) {
   MOZ_ASSERT(aOutFrames);

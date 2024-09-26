@@ -6,6 +6,7 @@
 
 #include "WMFVideoMFTManager.h"
 
+#include <cguid.h>
 #include <psapi.h>
 #include <algorithm>
 #include "DXVA2Manager.h"
@@ -312,6 +313,10 @@ MediaResult WMFVideoMFTManager::InitInternal() {
                           uint32_t(media::MediaDecoderBackend::WMFSoftware));
   }
 
+  LOG("Created a video decoder, useDxva=%s, streamType=%s, outputSubType=%s",
+      mUseHwAccel ? "Yes" : "No", EnumValueToString(mStreamType),
+      GetSubTypeStr(GetOutputSubtype()).get());
+
   mDecoder = decoder;
   RETURN_PARAM_IF_FAILED(
       SetDecoderMediaTypes(),
@@ -403,20 +408,7 @@ WMFVideoMFTManager::SetDecoderMediaTypes() {
                                          fpsNumerator, fpsDenominator));
   }
 
-  GUID outputSubType = [&]() {
-    switch (mVideoInfo.mColorDepth) {
-      case gfx::ColorDepth::COLOR_8:
-        return mUseHwAccel ? MFVideoFormat_NV12 : MFVideoFormat_YV12;
-      case gfx::ColorDepth::COLOR_10:
-        return MFVideoFormat_P010;
-      case gfx::ColorDepth::COLOR_12:
-      case gfx::ColorDepth::COLOR_16:
-        return MFVideoFormat_P016;
-      default:
-        MOZ_ASSERT_UNREACHABLE("Unexpected color depth");
-    }
-  }();
-  RETURN_IF_FAILED(outputType->SetGUID(MF_MT_SUBTYPE, outputSubType));
+  RETURN_IF_FAILED(outputType->SetGUID(MF_MT_SUBTYPE, GetOutputSubtype()));
 
   if (mZeroCopyNV12Texture) {
     RefPtr<IMFAttributes> attr(mDecoder->GetOutputStreamAttributes());
@@ -1028,6 +1020,21 @@ bool WMFVideoMFTManager::UseZeroCopyVideoFrame() const {
     return true;
   }
   return false;
+}
+
+GUID WMFVideoMFTManager::GetOutputSubtype() const {
+  switch (mVideoInfo.mColorDepth) {
+    case gfx::ColorDepth::COLOR_8:
+      return mUseHwAccel ? MFVideoFormat_NV12 : MFVideoFormat_YV12;
+    case gfx::ColorDepth::COLOR_10:
+      return MFVideoFormat_P010;
+    case gfx::ColorDepth::COLOR_12:
+    case gfx::ColorDepth::COLOR_16:
+      return MFVideoFormat_P016;
+    default:
+      MOZ_ASSERT_UNREACHABLE("Unexpected color depth");
+      return GUID_NULL;
+  }
 }
 
 }  // namespace mozilla
