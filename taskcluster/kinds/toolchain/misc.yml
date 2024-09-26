@@ -356,6 +356,41 @@ browsertime:
         toolchain:
             - linux64-node
 
+eslint-plugin-mozilla:
+    description: "npm install eslint-plugin-mozilla node_modules"
+    treeherder:
+        symbol: TL(epm)
+    run:
+        script: eslint-plugin-mozilla.sh
+        sparse-profile: null
+        resources:
+            - 'tools/lint/eslint/eslint-plugin-mozilla/package.json'
+            - 'tools/lint/eslint/eslint-plugin-mozilla/package-lock.json'
+        toolchain-artifact: public/build/eslint-plugin-mozilla.tar.zst
+    fetches:
+        toolchain:
+            - linux64-node
+
+node-modules:
+    description: "npm install top-level node_modules"
+    treeherder:
+        symbol: TL(node)
+    run:
+        script: node-modules.sh
+        sparse-profile: null
+        resources:
+            - 'package.json'
+            - 'package-lock.json'
+            - 'tools/lint/eslint/__init__.py'
+            - 'tools/lint/eslint/setup_helper.py'
+            - 'tools/lint/eslint/eslint-plugin-mozilla/package.json'
+            - 'tools/lint/eslint/eslint-plugin-mozilla/package-lock.json'
+            - 'tools/lint/eslint/eslint-plugin-spidermonkey-js/package.json'
+        toolchain-artifact: public/build/node-modules.tar.zst
+    fetches:
+        toolchain:
+            - linux64-node
+
 wrench-deps:
     description: "Downloads all the crates needed for building wrench"
     treeherder:

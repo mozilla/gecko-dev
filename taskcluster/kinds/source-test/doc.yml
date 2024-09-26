@@ -28,7 +28,7 @@ generate:
         using: run-task
         cwd: '{checkout}'
         command: >
-            cp -r /build/node_modules_eslint node_modules &&
+            cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-mozilla node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-spidermonkey-js node_modules &&
             ./mach doc --outdir docs-out --no-open --no-serve --archive --check-num-warnings --dump-trees=/builds/worker/artifacts/trees.json
@@ -38,6 +38,7 @@ generate:
     fetches:
         toolchain:
             - linux64-node
+            - node-modules
 
 
 upload:
@@ -70,7 +71,7 @@ upload:
         using: run-task
         cwd: '{checkout}'
         command: >
-            cp -r /build/node_modules_eslint node_modules &&
+            cp -r $MOZ_FETCHES_DIR/node_modules node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-mozilla node_modules &&
             ln -s ../tools/lint/eslint/eslint-plugin-spidermonkey-js node_modules &&
             ./mach doc --upload --no-open --no-serve --write-url /builds/worker/firefox-source-docs-url.txt --dump-trees=/builds/worker/artifacts/trees.json
@@ -82,3 +83,4 @@ upload:
     fetches:
         toolchain:
             - linux64-node
+            - node-modules

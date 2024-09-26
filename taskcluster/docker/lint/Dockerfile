@@ -15,10 +15,6 @@ ADD topsrcdir/python/mozbuild/mozbuild/action/tooltool.py /build/tooltool.py
 ADD topsrcdir/taskcluster/docker/recipes/install-node.sh /build/install-node.sh
 
 ADD system-setup.sh /tmp/system-setup.sh
-# %include tools/lint/eslint/manifest.tt
-ADD topsrcdir/tools/lint/eslint/manifest.tt /tmp/eslint.tt
-# %include tools/lint/eslint/eslint-plugin-mozilla/manifest.tt
-ADD topsrcdir/tools/lint/eslint/eslint-plugin-mozilla/manifest.tt /tmp/eslint-plugin-mozilla.tt
 # %include tools/lint/spell/codespell_requirements.txt
 ADD topsrcdir/tools/lint/spell/codespell_requirements.txt /tmp/codespell_requirements.txt
 # %include tools/lint/tox/tox_requirements.txt

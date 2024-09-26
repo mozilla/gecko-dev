@@ -51,11 +51,6 @@ cd /build
 
 npm install -g yarn@1.22.18
 
-/build/tooltool.py fetch -m /tmp/eslint.tt
-mv /build/node_modules /build/node_modules_eslint
-/build/tooltool.py fetch -m /tmp/eslint-plugin-mozilla.tt
-mv /build/node_modules /build/node_modules_eslint-plugin-mozilla
-
 ###
 # fzf setup
 ###

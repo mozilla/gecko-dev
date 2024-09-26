@@ -167,7 +167,7 @@ eslint-plugin-mozilla:
         cache-dotcache: true
         cwd: '{checkout}'
         command: >
-            cp -r /build/node_modules_eslint-plugin-mozilla tools/lint/eslint/eslint-plugin-mozilla/node_modules &&
+            cp -r $MOZ_FETCHES_DIR/eslint-plugin-mozilla/node_modules tools/lint/eslint/eslint-plugin-mozilla/node_modules &&
             ./mach configure --disable-compile-environment &&
             ./mach npm test --prefix tools/lint/eslint/eslint-plugin-mozilla
     when:
@@ -176,6 +176,7 @@ eslint-plugin-mozilla:
     fetches:
         toolchain:
             - linux64-node
+            - eslint-plugin-mozilla
 
 
 design-tokens-tests:

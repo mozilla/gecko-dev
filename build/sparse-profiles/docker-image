@@ -12,8 +12,6 @@ path:python/mozbuild/mozbuild/action/tooltool.py
 path:testing/mozharness/external_tools/performance-artifact-schema.json
 path:testing/mozharness/external_tools/robustcheckout.py
 path:tools/lint/spell/codespell_requirements.txt
-path:tools/lint/eslint/eslint-plugin-mozilla/manifest.tt
-path:tools/lint/eslint/manifest.tt
 path:tools/lint/python/flake8_requirements.txt
 path:tools/lint/python/pylint_requirements.txt
 path:tools/lint/python/black_requirements.txt

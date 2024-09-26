@@ -31,6 +31,10 @@ path:taskcluster/
 # them all in.
 path:testing/config/tooltool-manifests/
 path:testing/mozharness/
+
+# for ESLint toolchains
+path:package.json
+path:package-lock.json
 path:tools/lint/
 
 # for new-style try pushes
