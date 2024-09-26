@@ -64,12 +64,14 @@ add_task(async function test_ml_engine_basics() {
   info("Wait for the pending downloads.");
   await remoteClients["ml-onnx-runtime"].resolvePendingDownloads(1);
 
+  const res = await inferencePromise;
   Assert.equal(
-    (await inferencePromise).output.echo,
+    res.output.echo,
     "This gets echoed.",
     "The text get echoed exercising the whole flow."
   );
 
+  Assert.equal(res.output.dtype, "q8", "The config was enriched by RS");
   ok(
     !EngineProcess.areAllEnginesTerminated(),
     "The engine process is still active."

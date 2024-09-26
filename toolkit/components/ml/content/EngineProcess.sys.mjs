@@ -119,9 +119,9 @@ export class PipelineOptions {
   /**
    * Device used for inference
    *
-   * @type {"gpu" | "wasm"}
+   * @type {"gpu" | "wasm" | null}
    */
-  device = "wasm";
+  device = null;
 
   /**
    * Quantization level
@@ -136,9 +136,9 @@ export class PipelineOptions {
    * - 'bnb4': Binary/Boolean 4-bit quantization (`'_bnb4'`)
    * - 'q4f16': 16-bit floating point model with 4-bit block weight quantization (`'_q4f16'`)
    *
-   * @type {"fp32" | "fp16" | "q8" | "int8" | "uint8" | "q4" | "bnb4" | "q4f16"}
+   * @type {"fp32" | "fp16" | "q8" | "int8" | "uint8" | "q4" | "bnb4" | "q4f16" | null}
    */
-  dtype = "fp32";
+  dtype = null;
 
   /**
    * Create a PipelineOptions instance.

@@ -249,6 +249,7 @@ class EngineDispatcher {
   async initializeInferenceEngine(pipelineOptions, notificationsCallback) {
     // Create the inference engine given the wasm runtime and the options.
     const wasm = await this.mlEngineChild.getWasmArrayBuffer();
+
     let remoteSettingsOptions = await this.mlEngineChild.getInferenceOptions(
       this.#taskName
     );

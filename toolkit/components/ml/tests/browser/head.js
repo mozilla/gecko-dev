@@ -116,13 +116,14 @@ async function createOptionsRemoteClient(record = null) {
 
   if (!record) {
     record = {
-      taskName: "echo",
+      taskName: "moz-echo",
       modelId: "mozilla/distilvit",
       processorId: "mozilla/distilvit",
       tokenizerId: "mozilla/distilvit",
       modelRevision: "main",
       processorRevision: "main",
       tokenizerRevision: "main",
+      dtype: "q8",
       id: "74a71cfd-1734-44e6-85c0-69cf3e874138",
     };
   }
