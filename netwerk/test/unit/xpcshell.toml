@@ -1158,12 +1158,6 @@ skip-if = ["os == 'android' && processor == 'x86_64'"]
 
 ["test_tls_flags_separate_connections.js"]
 
-["test_tls_handshake_timing.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
-
 ["test_tls_server.js"]
 firefox-appdir = "browser"
 
