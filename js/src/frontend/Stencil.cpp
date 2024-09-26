@@ -8,6 +8,7 @@
 
 #include "mozilla/AlreadyAddRefed.h"        // already_AddRefed
 #include "mozilla/Assertions.h"             // MOZ_RELEASE_ASSERT
+#include "mozilla/CheckedInt.h"             // mozilla::CheckedInt
 #include "mozilla/Maybe.h"                  // mozilla::Maybe
 #include "mozilla/OperatorNewExtensions.h"  // mozilla::KnownNotNull
 #include "mozilla/PodOperations.h"          // mozilla::PodCopy
@@ -3678,6 +3679,26 @@ BigInt* BigIntStencil::createBigInt(JSContext* cx) const {
 bool BigIntStencil::isZero() const {
   return bigInt_.match([](mozilla::Span<char16_t>) { return false; },
                        [](int64_t int64) { return int64 == 0; });
+}
+
+bool BigIntStencil::inplaceNegate() {
+  return bigInt_.match([](mozilla::Span<char16_t>) { return false; },
+                       [](int64_t& int64) {
+                         auto negated = -mozilla::CheckedInt<int64_t>{int64};
+                         if (!negated.isValid()) {
+                           return false;
+                         }
+                         int64 = negated.value();
+                         return true;
+                       });
+}
+
+bool BigIntStencil::inplaceBitNot() {
+  return bigInt_.match([](mozilla::Span<char16_t>) { return false; },
+                       [](int64_t& int64) {
+                         int64 = ~int64;
+                         return true;
+                       });
 }
 
 #ifdef DEBUG

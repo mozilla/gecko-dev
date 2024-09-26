@@ -722,6 +722,21 @@ static bool FoldUnaryArithmetic(FoldInfo info, ParseNode** nodePtr) {
                         info.handler->newNumber(d, NoDecimal, node->pn_pos))) {
       return false;
     }
+  } else if (expr->is<BigIntLiteral>()) {
+    auto* literal = &expr->as<BigIntLiteral>();
+    auto& bigInt = info.bigInts[literal->index()];
+
+    if (node->isKind(ParseNodeKind::BitNotExpr)) {
+      if (bigInt.inplaceBitNot()) {
+        return TryReplaceNode(nodePtr, literal);
+      }
+    } else if (node->isKind(ParseNodeKind::NegExpr)) {
+      if (bigInt.inplaceNegate()) {
+        return TryReplaceNode(nodePtr, literal);
+      }
+    } else {
+      MOZ_ASSERT(node->isKind(ParseNodeKind::PosExpr));  // nothing to do
+    }
   }
 
   return true;

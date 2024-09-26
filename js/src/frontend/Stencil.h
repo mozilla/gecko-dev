@@ -275,7 +275,10 @@ class BigIntStencil {
 
   BigInt* createBigInt(JSContext* cx) const;
 
+  // Methods used by constant-folding.
   bool isZero() const;
+  bool inplaceNegate();
+  bool inplaceBitNot();
 
 #ifdef DEBUG
   bool isContainedIn(const LifoAlloc& alloc) const;
