@@ -92,5 +92,6 @@ internal sealed class SelectFolderAction {
 }
 
 internal sealed class SnackbarAction {
+    data object Undo : BookmarksAction
     data object Dismissed : BookmarksAction
 }

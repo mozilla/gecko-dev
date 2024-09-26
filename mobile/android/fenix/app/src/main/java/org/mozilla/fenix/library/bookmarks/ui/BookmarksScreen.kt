@@ -117,7 +117,7 @@ internal object BookmarksDestinations {
 /**
  * The Bookmarks list screen.
  */
-@Suppress("LongMethod")
+@Suppress("LongMethod", "ComplexMethod")
 @Composable
 private fun BookmarksList(
     store: BookmarksStore,
@@ -128,12 +128,34 @@ private fun BookmarksList(
 
     val snackbarMessage = when (state.bookmarksSnackbarState) {
         BookmarksSnackbarState.CantEditDesktopFolders -> stringResource(R.string.bookmark_cannot_edit_root)
+        is BookmarksSnackbarState.UndoDeletion -> {
+            val (id, titleOrCount) = state.undoSnackbarText()
+            stringResource(id, titleOrCount)
+        }
         else -> ""
+    }
+
+    val snackbarActionLabel = when (state.bookmarksSnackbarState) {
+        is BookmarksSnackbarState.UndoDeletion -> stringResource(R.string.bookmark_undo_deletion)
+        else -> null
     }
 
     LaunchedEffect(state.bookmarksSnackbarState) {
         when (state.bookmarksSnackbarState) {
             BookmarksSnackbarState.None -> return@LaunchedEffect
+            is BookmarksSnackbarState.UndoDeletion -> scope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = snackbarMessage,
+                    actionLabel = snackbarActionLabel,
+                    duration = SnackbarDuration.Short,
+                )
+
+                when (result) {
+                    SnackbarResult.ActionPerformed -> store.dispatch(SnackbarAction.Undo)
+                    SnackbarResult.Dismissed -> store.dispatch(SnackbarAction.Dismissed)
+                    else -> {}
+                }
+            }
             BookmarksSnackbarState.CantEditDesktopFolders -> scope.launch {
                 val result = snackbarHostState.showSnackbar(
                     message = snackbarMessage,
@@ -177,6 +199,10 @@ private fun BookmarksList(
         ) {
             items(state.bookmarkItems) { item ->
                 var showMenu by remember { mutableStateOf(false) }
+                if (state.isGuidMarkedForDeletion(item.guid)) {
+                    return@items
+                }
+
                 when (item) {
                     is BookmarkItem.Bookmark -> {
                         Box {

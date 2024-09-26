@@ -627,7 +627,7 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `WHEN delete clicked in bookmark item menu THEN delete the bookmark, load the updated folder, and show the undo snackbar`() = runTestOnMain {
+    fun `GIVEN a state with an undo snackbar WHEN snackbar is dismissed THEN delete all of the guids`() = runTestOnMain {
         val tree = generateBookmarkTree()
         val firstGuid = tree.children!!.first().guid
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
@@ -637,10 +637,14 @@ class BookmarksMiddlewareTest {
         val store = middleware.makeStore()
 
         store.dispatch(BookmarksListMenuAction.Bookmark.DeleteClicked(bookmarkItem))
+        assertEquals(BookmarksSnackbarState.UndoDeletion(listOf(firstGuid)), store.state.bookmarksSnackbarState)
 
-        // TODO check snackbar
+        val initialCount = store.state.bookmarkItems.size
+        store.dispatch(SnackbarAction.Dismissed)
+        assertEquals(BookmarksSnackbarState.None, store.state.bookmarksSnackbarState)
+        assertEquals(initialCount - 1, store.state.bookmarkItems.size)
+
         verify(bookmarksStorage).deleteNode(firstGuid)
-        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
     }
 
     @Test

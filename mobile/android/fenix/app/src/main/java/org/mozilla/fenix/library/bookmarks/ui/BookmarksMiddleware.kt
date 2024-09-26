@@ -184,7 +184,15 @@ internal class BookmarksMiddleware(
 
             SelectFolderAction.ViewAppeared -> context.store.tryDispatchLoadFolders()
             is BookmarksListMenuAction -> action.handleSideEffects(context.store, preReductionState)
-            SnackbarAction.Dismissed,
+            SnackbarAction.Dismissed -> when (preReductionState.bookmarksSnackbarState) {
+                is BookmarksSnackbarState.UndoDeletion -> scope.launch {
+                    preReductionState.bookmarksSnackbarState.guidsToDelete.forEach {
+                        bookmarksStorage.deleteNode(it)
+                    }
+                }
+                else -> {}
+            }
+            SnackbarAction.Undo,
             is EditBookmarkAction.TitleChanged,
             is EditBookmarkAction.URLChanged,
             is BookmarkLongClicked,
@@ -343,12 +351,6 @@ internal class BookmarksMiddleware(
                 showTabsTray(true)
             }
 
-            is BookmarksListMenuAction.Bookmark.DeleteClicked -> scope.launch {
-                // Bug 1919949 — Add undo snackbar to delete action.
-                bookmarksStorage.deleteNode(bookmark.guid)
-                store.tryDispatchLoadFor(store.state.currentFolder.guid)
-            }
-
             // folder menu actions
             is BookmarksListMenuAction.Folder.EditClicked -> {
                 navController.navigate(BookmarksDestinations.EDIT_FOLDER)
@@ -417,6 +419,8 @@ internal class BookmarksMiddleware(
                 }
                 store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
             }
+
+            is BookmarksListMenuAction.Bookmark.DeleteClicked -> { }
         }
     }
 }

@@ -89,12 +89,22 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
         ),
     )
     is BookmarksListMenuAction -> state.handleListMenuAction(action)
-    SnackbarAction.Dismissed -> state.copy(bookmarksSnackbarState = BookmarksSnackbarState.None)
+    SnackbarAction.Undo -> state.copy(bookmarksSnackbarState = BookmarksSnackbarState.None)
+    SnackbarAction.Dismissed -> {
+        state.withDeletedItemsRemoved().copy(bookmarksSnackbarState = BookmarksSnackbarState.None)
+    }
     SelectFolderAction.ViewAppeared,
     SearchClicked,
     SignIntoSyncClicked,
     Init,
     -> state
+}
+
+private fun BookmarksState.withDeletedItemsRemoved(): BookmarksState = when (bookmarksSnackbarState) {
+    is BookmarksSnackbarState.UndoDeletion -> copy(
+        bookmarkItems = bookmarkItems.filterNot { bookmarksSnackbarState.guidsToDelete.contains(it.guid) },
+    )
+    else -> this
 }
 
 private fun BookmarksState.updateSelectedFolder(folder: SelectFolderItem): BookmarksState = when {
@@ -165,6 +175,11 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
                     this // TODO
                 }
             } ?: this
+        is BookmarksListMenuAction.Bookmark.DeleteClicked -> copy(
+            bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(
+                guidsToDelete = listOf(action.bookmark.guid),
+            ),
+        )
         else -> this
     }.let { updatedState ->
         if (action is BookmarksListMenuAction.MultiSelect) {

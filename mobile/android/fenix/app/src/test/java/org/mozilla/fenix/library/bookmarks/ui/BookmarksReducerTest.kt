@@ -473,6 +473,30 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a undo snackbar is displayed WHEN the snackbar is dismissed THEN remove the snackbar and any bookmark items that were deleted`() {
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(BookmarkItem.Folder("Bookmark Folder", "guid0")),
+            bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(listOf("guid0")),
+        )
+
+        val result = bookmarksReducer(state, SnackbarAction.Dismissed)
+        assertEquals(BookmarksSnackbarState.None, result.bookmarksSnackbarState)
+        assertEquals(listOf<BookmarkItem>(), result.bookmarkItems)
+    }
+
+    @Test
+    fun `GIVEN a undo snackbar is displayed WHEN undo is tapped THEN remove the snackbar`() {
+        val state = BookmarksState.default.copy(
+            bookmarkItems = listOf(BookmarkItem.Folder("Bookmark Folder", "guid0")),
+            bookmarksSnackbarState = BookmarksSnackbarState.UndoDeletion(listOf("guid0")),
+        )
+
+        val result = bookmarksReducer(state, SnackbarAction.Undo)
+        assertEquals(BookmarksSnackbarState.None, result.bookmarksSnackbarState)
+        assertEquals(1, result.bookmarkItems.size)
+    }
+
+    @Test
     fun `GIVEN one selected item WHEN the edit button is clicked in a bookmark menu THEN bookmark edit state is created`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")

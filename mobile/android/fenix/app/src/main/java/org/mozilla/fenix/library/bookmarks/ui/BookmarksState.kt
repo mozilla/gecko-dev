@@ -6,6 +6,7 @@ package org.mozilla.fenix.library.bookmarks.ui
 
 import mozilla.appservices.places.BookmarkRoot
 import mozilla.components.lib.state.State
+import org.mozilla.fenix.R
 
 /**
  * Represents the state of the Bookmarks list screen and its various subscreens.
@@ -46,9 +47,37 @@ internal data class BookmarksState(
     }
 }
 
+internal val BookmarkItem.title: String
+    get() = when (this) {
+        is BookmarkItem.Folder -> this.title
+        is BookmarkItem.Bookmark -> this.title
+    }
+
+internal fun BookmarksState.undoSnackbarText(): Pair<Int, String> = bookmarksSnackbarState.let { state ->
+    when {
+        state is BookmarksSnackbarState.UndoDeletion && state.guidsToDelete.size == 1 -> {
+            val stringId = R.string.bookmark_delete_single_item
+            val title = this.bookmarkItems.first { it.guid == state.guidsToDelete.first() }.title
+            stringId to title
+        }
+        state is BookmarksSnackbarState.UndoDeletion -> {
+            val stringId = R.string.bookmark_delete_multiple_items
+            val numberOfBookmarks = "${state.guidsToDelete.size}"
+            stringId to numberOfBookmarks
+        }
+        else -> 0 to ""
+    }
+}
+
+internal fun BookmarksState.isGuidMarkedForDeletion(guid: String): Boolean = when (bookmarksSnackbarState) {
+    is BookmarksSnackbarState.UndoDeletion -> bookmarksSnackbarState.guidsToDelete.contains(guid)
+    else -> false
+}
+
 internal sealed class BookmarksSnackbarState {
     data object None : BookmarksSnackbarState()
     data object CantEditDesktopFolders : BookmarksSnackbarState()
+    data class UndoDeletion(val guidsToDelete: List<String>) : BookmarksSnackbarState()
 }
 
 internal data class BookmarksEditBookmarkState(
