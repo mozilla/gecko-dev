@@ -2008,7 +2008,6 @@ pref("browser.ml.chat.shortcuts.longPress", 60000);
 pref("browser.ml.chat.sidebar", true);
 
 pref("security.protectionspopup.recordEventTelemetry", true);
-pref("security.app_menu.recordEventTelemetry", true);
 
 // Block insecure active content on https pages
 pref("security.mixed_content.block_active_content", true);
