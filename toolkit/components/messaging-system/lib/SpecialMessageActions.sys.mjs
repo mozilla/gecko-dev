@@ -219,6 +219,7 @@ export const SpecialMessageActions = {
       "messaging-system.askForFeedback",
       "browser.toolbars.bookmarks.visibility",
       "sidebar.verticalTabs",
+      "sidebar.revamp",
     ];
 
     if (

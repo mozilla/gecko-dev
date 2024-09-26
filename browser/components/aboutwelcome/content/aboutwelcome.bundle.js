@@ -1537,12 +1537,42 @@ const SingleSelect = ({
 }) => {
   const category = content.tiles?.category?.type || content.tiles?.type;
   const isSingleSelect = category === "single-select";
+  const autoTriggerAllowed = itemAction => {
+    // Currently only enabled for sidebar experiment prefs
+    const allowedActions = ["SET_PREF"];
+    const allowedPrefs = ["sidebar.revamp", "sidebar.verticalTabs"];
+    const checkAction = action => {
+      if (!allowedActions.includes(action.type)) {
+        return false;
+      }
+      if (action.type === "SET_PREF" && !allowedPrefs.includes(action.data?.pref.name)) {
+        return false;
+      }
+      return true;
+    };
+    if (itemAction.type === "MULTI_ACTION") {
+      // Only allow autoTrigger if all actions are allowed
+      return !itemAction.data.actions.some(action => !checkAction(action));
+    }
+    return checkAction(itemAction);
+  };
+
   // When screen renders for first time or user navigates back, update state to
   // check default option.
   (0,react__WEBPACK_IMPORTED_MODULE_0__.useEffect)(() => {
     if (isSingleSelect && !activeSingleSelect) {
-      let newActiveSingleSelect = content.tiles?.selected || content.tiles.data[0].id;
+      let newActiveSingleSelect = content.tiles?.selected || content.tiles?.data[0].id;
       setActiveSingleSelect(newActiveSingleSelect);
+      let selectedTile = content.tiles?.data.find(opt => opt.id === newActiveSingleSelect);
+      // If applicable, automatically trigger the action for the default
+      // selected tile.
+      if (isSingleSelect && content.tiles?.autoTrigger && autoTriggerAllowed(selectedTile?.action)) {
+        handleAction({
+          currentTarget: {
+            value: selectedTile.id
+          }
+        });
+      }
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

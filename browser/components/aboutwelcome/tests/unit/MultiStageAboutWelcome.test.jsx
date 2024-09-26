@@ -493,7 +493,7 @@ describe("MultiStageAboutWelcome module", () => {
                     type: "SET_PREF",
                     data: {
                       pref: {
-                        name: "test1.pref",
+                        name: "sidebar.revamp",
                         value: true,
                       },
                     },
@@ -514,7 +514,7 @@ describe("MultiStageAboutWelcome module", () => {
                     type: "SET_PREF",
                     data: {
                       pref: {
-                        name: "test2.pref",
+                        name: "sidebar.revamp",
                         value: false,
                       },
                     },
@@ -585,6 +585,77 @@ describe("MultiStageAboutWelcome module", () => {
         const flair = wrapper.find(".flair");
         assert.ok(flair.exists());
         assert.ok(flair.text() === "New!");
+      });
+      it("should automatically trigger the selected tile's action for an approved action", () => {
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.autoTrigger = true;
+        mount(<WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />);
+        assert.calledOnce(AboutWelcomeUtils.handleUserAction);
+      });
+      it("should not trigger the selected tile's action for an unapproved action", () => {
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.autoTrigger = true;
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.data[0].action = "OPEN_URL";
+
+        mount(<WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />);
+
+        assert.notCalled(AboutWelcomeUtils.handleUserAction);
+      });
+      it("should not trigger the selected tile's action for an unapproved pref with SET_PREF action", () => {
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.autoTrigger = true;
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.data[0].action.data.pref =
+          "unapproved.pref";
+
+        mount(<WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />);
+
+        assert.notCalled(AboutWelcomeUtils.handleUserAction);
+      });
+      it("should trigger all of the selected tile's actions if MULTI_ACTION is used with SET_PREF and allowed prefs", () => {
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.autoTrigger = true;
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.data[0].action = {
+          type: "MULTI_ACTION",
+          data: {
+            actions: [
+              {
+                type: "SET_PREF",
+                data: {
+                  pref: {
+                    name: "sidebar.revamp",
+                  },
+                },
+              },
+              {
+                type: "SET_PREF",
+                data: {
+                  pref: {
+                    name: "sidebar.verticalTabs",
+                  },
+                },
+              },
+            ],
+          },
+        };
+        mount(<WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />);
+        assert.calledOnce(AboutWelcomeUtils.handleUserAction);
+      });
+      it("should not trigger any of the selected tile's action if MULTI_ACTION is used with one unallowed pref", () => {
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.autoTrigger = true;
+        SINGLE_SELECT_SCREEN_PROPS.content.tiles.data[0].action = {
+          type: "MULTI_ACTION",
+          data: {
+            actions: [
+              {
+                type: "OPEN_URL",
+              },
+              {
+                type: "SET_PREF",
+                data: {
+                  pref: "sidebar.verticalTabs",
+                },
+              },
+            ],
+          },
+        };
+        mount(<WelcomeScreen {...SINGLE_SELECT_SCREEN_PROPS} />);
+        assert.notCalled(AboutWelcomeUtils.handleUserAction);
       });
     });
 
