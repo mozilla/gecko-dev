@@ -314,6 +314,26 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN we are on the select folder screen with multi-select state WHEN back is clicked THEN the select folder and multi-select state is removed`() {
+        val state = BookmarksState.default.copy(
+            bookmarksMultiselectMoveState = MultiselectMoveState(
+                guidsToMove = listOf(),
+                destination = "",
+            ),
+            bookmarksSelectFolderState = BookmarksSelectFolderState(),
+        )
+
+        val result = bookmarksReducer(state, BackClicked)
+
+        val expected = state.copy(
+            bookmarksMultiselectMoveState = null,
+            bookmarksSelectFolderState = null,
+        )
+
+        assertEquals(expected, result)
+    }
+
+    @Test
     fun `GIVEN we are on the select folder screen while editing a bookmark and creating a folder WHEN back is clicked THEN just the select folder guid is removed`() {
         val state = BookmarksState.default.copy(
             bookmarksSelectFolderState = BookmarksSelectFolderState(
@@ -388,6 +408,43 @@ class BookmarksReducerTest {
             ),
             bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
                 selectionGuid = "guid0",
+            ),
+        )
+
+        assertEquals(expected, result)
+    }
+
+    @Test
+    fun `GIVEN we are on the select folder screen with a selection guid and multiselect state WHEN a folder is clicked THEN update the selection`() {
+        val state = BookmarksState.default.copy(
+            bookmarksMultiselectMoveState = MultiselectMoveState(
+                guidsToMove = listOf("guid0", "guid1"),
+                destination = "folder 1",
+            ),
+            bookmarksSelectFolderState = BookmarksSelectFolderState(
+                selectionGuid = "folder 1",
+                folders = listOf(
+                    SelectFolderItem(0, BookmarkItem.Folder("Bookmarks", "guid 0")),
+                    SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid 1")),
+                    SelectFolderItem(0, BookmarkItem.Folder("Nested 1", "folder 1")),
+                    SelectFolderItem(0, BookmarkItem.Folder("Nested 2", "folder 2")),
+                ),
+            ),
+        )
+
+        val result = bookmarksReducer(
+            state = state,
+            action = SelectFolderAction.ItemClicked(
+                folder = SelectFolderItem(0, BookmarkItem.Folder("Nested 2", "folder 2")),
+            ),
+        )
+
+        val expected = state.copy(
+            bookmarksMultiselectMoveState = state.bookmarksMultiselectMoveState?.copy(
+                destination = "folder 2",
+            ),
+            bookmarksSelectFolderState = state.bookmarksSelectFolderState?.copy(
+                selectionGuid = "folder 2",
             ),
         )
 

@@ -116,6 +116,17 @@ internal class BookmarksMiddleware(
                     // state is null then we are on the list screen
                     preReductionState.bookmarksSelectFolderState != null -> {
                         navController.popBackStack()
+                        preReductionState.bookmarksMultiselectMoveState?.also {
+                            if (it.destination == preReductionState.currentFolder.guid) {
+                                return@also
+                            }
+                            scope.launch {
+                                preReductionState.createMovePairs()?.forEach {
+                                    bookmarksStorage.updateNode(it.first, it.second)
+                                }
+                                context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
+                            }
+                        }
                     }
 
                     preReductionState.bookmarksEditFolderState != null -> {
@@ -402,7 +413,7 @@ internal class BookmarksMiddleware(
             }
 
             BookmarksListMenuAction.MultiSelect.MoveClicked -> {
-                // TODO
+                navController.navigate(BookmarksDestinations.SELECT_FOLDER)
             }
 
             BookmarksListMenuAction.MultiSelect.OpenInNormalTabsClicked -> scope.launch {
@@ -440,6 +451,19 @@ private suspend fun BookmarksStorage.hasDesktopBookmarks(): Boolean {
     return countBookmarksInTrees(
         listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id),
     ) > 0u
+}
+
+private fun BookmarksState.createMovePairs() = bookmarksMultiselectMoveState?.let { moveState ->
+    moveState.guidsToMove.map { guid ->
+        val bookmarkItem = bookmarkItems.first { it.guid == guid }
+        guid to BookmarkInfo(
+            moveState.destination,
+            // Setting position to 'null' is treated as a 'move to the end' by the storage API.
+            null,
+            bookmarkItem.title,
+            if (bookmarkItem is BookmarkItem.Bookmark) bookmarkItem.url else null,
+        )
+    }
 }
 
 private fun BookmarksState.createBookmarkInfo() = when {

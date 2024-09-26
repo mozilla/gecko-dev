@@ -540,6 +540,47 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen select folder while multi-selecting WHEN back is clicked THEN pop the backstack and update the selected bookmark items`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksMultiselectMoveState = MultiselectMoveState(
+                    guidsToMove = listOf("item guid 1", "item guid 2"),
+                    destination = "folder guid 1",
+                ),
+                bookmarksSelectFolderState = BookmarksSelectFolderState(
+                    selectionGuid = "folder guid 1",
+                ),
+            ),
+        )
+
+        store.dispatch(BackClicked)
+
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id)
+        verify(navController).popBackStack()
+        verify(bookmarksStorage).updateNode(
+            guid = "item guid 1",
+            info = BookmarkInfo(
+                parentGuid = "folder guid 1",
+                position = null,
+                title = "item title 1",
+                url = "item url 1",
+            ),
+        )
+        verify(bookmarksStorage).updateNode(
+            guid = "item guid 2",
+            info = BookmarkInfo(
+                parentGuid = "folder guid 1",
+                position = null,
+                title = "item title 2",
+                url = "item url 2",
+            ),
+        )
+    }
+
+    @Test
     fun `WHEN edit clicked in bookmark item menu THEN nav to edit screen`() = runTestOnMain {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
@@ -901,6 +942,22 @@ class BookmarksMiddlewareTest {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf("guid1", "guid2"))).thenReturn(19u)
         store.dispatch(FolderClicked(BookmarkItem.Folder("Folder2", "guid2")))
         assertEquals(19, store.state.recursiveSelectedCount)
+    }
+
+    @Test
+    fun `GIVEN selected items in state WHEN move folder is clicked THEN navigate to folder selection`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                selectedItems = listOf(BookmarkItem.Folder("Folder 1", "guid1")),
+            ),
+        )
+
+        store.dispatch(BookmarksListMenuAction.MultiSelect.MoveClicked)
+        verify(navController).navigate(BookmarksDestinations.SELECT_FOLDER)
     }
 
     private fun buildMiddleware() = BookmarksMiddleware(

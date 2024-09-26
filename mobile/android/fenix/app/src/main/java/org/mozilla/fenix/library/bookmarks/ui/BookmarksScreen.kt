@@ -1015,6 +1015,7 @@ private fun EditBookmarkScreenPreview() {
             ),
             bookmarksSelectFolderState = null,
             bookmarksEditFolderState = null,
+            bookmarksMultiselectMoveState = null,
         ),
     )
 
@@ -1059,6 +1060,7 @@ private fun BookmarksScreenPreview() {
                 bookmarksEditBookmarkState = null,
                 bookmarksSelectFolderState = null,
                 bookmarksEditFolderState = null,
+                bookmarksMultiselectMoveState = null,
             ),
         )
     }
@@ -1090,6 +1092,7 @@ private fun EmptyBookmarksScreenPreview() {
                 bookmarksEditBookmarkState = null,
                 bookmarksSelectFolderState = null,
                 bookmarksEditFolderState = null,
+                bookmarksMultiselectMoveState = null,
             ),
         )
     }
@@ -1126,6 +1129,7 @@ private fun AddFolderPreview() {
             ),
             bookmarksSelectFolderState = null,
             bookmarksEditFolderState = null,
+            bookmarksMultiselectMoveState = null,
         ),
     )
     FirefoxTheme {
@@ -1178,6 +1182,7 @@ private fun SelectFolderPreview() {
                     SelectFolderItem(0, BookmarkItem.Folder("Nested 0", "guid0")),
                 ),
             ),
+            bookmarksMultiselectMoveState = null,
         ),
     )
     FirefoxTheme {

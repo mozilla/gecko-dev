@@ -22,6 +22,7 @@ import org.mozilla.fenix.R
  * @property bookmarksEditBookmarkState State representing the edit bookmark subscreen, if visible.
  * @property bookmarksSelectFolderState State representing the select folder subscreen, if visible.
  * @property bookmarksEditFolderState State representing the edit folder subscreen, if visible.
+ * @property bookmarksMultiselectMoveState State representing multi-select moving.
  */
 internal data class BookmarksState(
     val bookmarkItems: List<BookmarkItem>,
@@ -35,6 +36,7 @@ internal data class BookmarksState(
     val bookmarksEditBookmarkState: BookmarksEditBookmarkState?,
     val bookmarksSelectFolderState: BookmarksSelectFolderState?,
     val bookmarksEditFolderState: BookmarksEditFolderState?,
+    val bookmarksMultiselectMoveState: MultiselectMoveState?,
 ) : State {
     companion object {
         val default: BookmarksState = BookmarksState(
@@ -49,6 +51,7 @@ internal data class BookmarksState(
             bookmarksEditBookmarkState = null,
             bookmarksSelectFolderState = null,
             bookmarksEditFolderState = null,
+            bookmarksMultiselectMoveState = null,
         )
     }
 }
@@ -79,6 +82,11 @@ internal fun BookmarksState.isGuidMarkedForDeletion(guid: String): Boolean = whe
     is BookmarksSnackbarState.UndoDeletion -> bookmarksSnackbarState.guidsToDelete.contains(guid)
     else -> false
 }
+
+internal data class MultiselectMoveState(
+    val guidsToMove: List<String>,
+    val destination: String,
+)
 
 internal sealed class DeletionDialogState {
     data object None : DeletionDialogState()

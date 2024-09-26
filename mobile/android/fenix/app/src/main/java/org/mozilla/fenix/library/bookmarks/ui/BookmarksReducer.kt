@@ -138,10 +138,12 @@ private fun BookmarksState.updateSelectedFolder(folder: SelectFolderItem): Bookm
     }
     bookmarksSelectFolderState?.selectionGuid != null -> {
         copy(
+            bookmarksMultiselectMoveState = bookmarksMultiselectMoveState?.copy(destination = folder.guid),
             bookmarksEditBookmarkState = bookmarksEditBookmarkState?.copy(folder = folder.folder),
             bookmarksSelectFolderState = bookmarksSelectFolderState.copy(selectionGuid = folder.guid),
         )
     }
+
     else -> this
 }
 
@@ -159,6 +161,7 @@ private fun BookmarksSelectFolderState.respondToBackClick(): BookmarksSelectFold
 
 private fun BookmarksState.respondToBackClick(): BookmarksState = when {
     bookmarksSelectFolderState != null -> copy(
+        bookmarksMultiselectMoveState = null,
         bookmarksSelectFolderState = bookmarksSelectFolderState.respondToBackClick(),
     )
     bookmarksAddFolderState != null -> copy(bookmarksAddFolderState = null)
@@ -212,6 +215,15 @@ private fun BookmarksState.handleListMenuAction(action: BookmarksListMenuAction)
         )
         is BookmarksListMenuAction.Folder.DeleteClicked -> copy(
             bookmarksDeletionDialogState = DeletionDialogState.LoadingCount(listOf(action.folder.guid)),
+        )
+        BookmarksListMenuAction.MultiSelect.MoveClicked -> copy(
+            bookmarksSelectFolderState = BookmarksSelectFolderState(
+                selectionGuid = currentFolder.guid,
+            ),
+            bookmarksMultiselectMoveState = MultiselectMoveState(
+                guidsToMove = selectedItems.map { it.guid },
+                destination = currentFolder.guid,
+            ),
         )
         else -> this
     }.let { updatedState ->
