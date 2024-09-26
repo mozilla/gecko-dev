@@ -17,51 +17,26 @@
  */
 @import url(chrome://devtools/skin/compatibility.css) layer(shared);
 
-/* Tooltip specific theme variables */
-.theme-dark {
-  --bezier-diagonal-color: #eee;
-  --bezier-grid-color: rgba(255, 255, 255, 0.1);
-
-  /* Tooltips */
-  --theme-tooltip-color: var(--theme-text-color-strong);
-  --theme-tooltip-background: var(--theme-popup-background);
-  --theme-tooltip-shadow-color: rgba(25, 25, 25, 0.76);
-
-  /* Doorhangers */
-  /* These colors are based on the colors used for doorhangers elsewhere in
-   * Firefox. */
-  --theme-arrowpanel-background: var(--theme-popup-background);
-  --theme-arrowpanel-color: var(--theme-popup-color);
-  --theme-arrowpanel-border-color: var(--theme-popup-border-color);
-  --theme-arrowpanel-separator: rgba(249,249,250,.1);
-  --theme-arrowpanel-dimmed: var(--theme-popup-dimmed);
-  --theme-arrowpanel-dimmed-further: rgba(249,249,250,.15);
-  --theme-arrowpanel-disabled-color: rgba(249,249,250,.5);
-}
-
-.theme-light {
-  --bezier-diagonal-color: rgba(0, 0, 0, 0.2);
-  --bezier-grid-color: rgba(0, 0, 0, 0.05);
-
-  /* Tooltips */
-  --theme-tooltip-color: var(--theme-body-color);
-  --theme-tooltip-background: rgb(255, 255, 255);
-  --theme-tooltip-shadow-color: var(--grey-90-a10);
-
-  /* Doorhangers */
-  /* These colors are based on the colors used for doorhangers elsewhere in
-   * Firefox. */
-  --theme-arrowpanel-background: var(--theme-popup-background);
-  --theme-arrowpanel-color: var(--theme-popup-color);
-  --theme-arrowpanel-border-color: var(--theme-popup-border-color);
-  --theme-arrowpanel-separator: ThreeDShadow;
-  --theme-arrowpanel-dimmed: var(--theme-popup-dimmed);
-  --theme-arrowpanel-dimmed-further: hsla(0,0%,80%,.45);
-  --theme-arrowpanel-disabled-color: GrayText;
-}
-
 :root {
   --theme-arrowpanel-border-radius: 3.5px;
+
+  --bezier-diagonal-color: light-dark(rgba(0, 0, 0, 0.2), #eee);
+  --bezier-grid-color: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.1));
+
+  /* Tooltips */
+  --theme-tooltip-color: light-dark(var(--theme-body-color), var(--theme-text-color-strong));
+  --theme-tooltip-background: light-dark(rgb(255, 255, 255), var(--theme-popup-background));
+  --theme-tooltip-shadow-color: light-dark(var(--grey-90-a10), rgba(25, 25, 25, 0.76));
+
+  /* Doorhangers */
+  /* These colors are based on the colors used for doorhangers elsewhere in Firefox. */
+  --theme-arrowpanel-background: var(--theme-popup-background);
+  --theme-arrowpanel-color: var(--theme-popup-color);
+  --theme-arrowpanel-border-color: var(--theme-popup-border-color);
+  --theme-arrowpanel-separator: light-dark(ThreeDShadow, rgba(249,249,250,.1));
+  --theme-arrowpanel-dimmed: var(--theme-popup-dimmed);
+  --theme-arrowpanel-dimmed-further: light-dark(hsla(0,0%,80%,.45), rgba(249,249,250,.15));
+  --theme-arrowpanel-disabled-color: light-dark(GrayText, rgba(249,249,250,.5));
 }
 
 :root[platform="mac"].theme-light {
