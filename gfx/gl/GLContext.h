@@ -459,6 +459,8 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
     EXT_unpack_subimage,
     EXT_semaphore,
     EXT_semaphore_fd,
+    EXT_memory_object,
+    EXT_memory_object_fd,
     IMG_read_format,
     IMG_texture_compression_pvrtc,
     IMG_texture_npot,
@@ -3493,6 +3495,161 @@ class GLContext : public GenericAtomicRefCounted, public SupportsWeakPtr {
   void fImportSemaphoreFdEXT(GLuint semaphore, GLenum handleType, GLint fd) {
     BEFORE_GL_CALL;
     mSymbols.fImportSemaphoreFdEXT(semaphore, handleType, fd);
+    AFTER_GL_CALL;
+  }
+
+  // -----------------------------------------------------------------------------
+  // Extension EXT_memory_object
+  void fGetUnsignedBytevEXT(GLenum pname, GLubyte* data) {
+    BEFORE_GL_CALL;
+    mSymbols.fGetUnsignedBytevEXT(pname, data);
+    AFTER_GL_CALL;
+  }
+
+  void fGetUnsignedBytei_vEXT(GLenum target, GLuint index, GLubyte* data) {
+    BEFORE_GL_CALL;
+    mSymbols.fGetUnsignedBytei_vEXT(target, index, data);
+    AFTER_GL_CALL;
+  }
+
+  void fDeleteMemoryObjectsEXT(GLsizei n, const GLuint* memoryObjects) {
+    BEFORE_GL_CALL;
+    mSymbols.fDeleteMemoryObjectsEXT(n, memoryObjects);
+    AFTER_GL_CALL;
+  }
+
+  void fIsMemoryObjectEXT(GLuint memoryObject) {
+    BEFORE_GL_CALL;
+    mSymbols.fIsMemoryObjectEXT(memoryObject);
+    AFTER_GL_CALL;
+  }
+
+  void fCreateMemoryObjectsEXT(GLsizei n, GLuint* memoryObjects) {
+    BEFORE_GL_CALL;
+    mSymbols.fCreateMemoryObjectsEXT(n, memoryObjects);
+    AFTER_GL_CALL;
+  }
+
+  void fMemoryObjectParameterivEXT(GLuint memoryObject, GLenum pname,
+                                   const GLint* params) {
+    BEFORE_GL_CALL;
+    mSymbols.fMemoryObjectParameterivEXT(memoryObject, pname, params);
+    AFTER_GL_CALL;
+  }
+
+  void fGetMemoryObjectParameterivEXT(GLuint memoryObject, GLenum pname,
+                                      GLint* params) {
+    BEFORE_GL_CALL;
+    mSymbols.fGetMemoryObjectParameterivEXT(memoryObject, pname, params);
+    AFTER_GL_CALL;
+  }
+
+  void fTexStorageMem2DEXT(GLenum target, GLsizei levels, GLenum internalFormat,
+                           GLsizei width, GLsizei height, GLuint memory,
+                           GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTexStorageMem2DEXT(target, levels, internalFormat, width, height,
+                                 memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fTexStorageMem2DMultisampleEXT(GLenum target, GLsizei samples,
+                                      GLenum internalFormat, GLsizei width,
+                                      GLsizei height,
+                                      realGLboolean fixedSampleLocations,
+                                      GLuint memory, GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTexStorageMem2DMultisampleEXT(target, samples, internalFormat,
+                                            width, height, fixedSampleLocations,
+                                            memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fTexStorageMem3DEXT(GLenum target, GLsizei levels, GLenum internalFormat,
+                           GLsizei width, GLsizei height, GLsizei depth,
+                           GLuint memory, GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTexStorageMem3DEXT(target, levels, internalFormat, width, height,
+                                 depth, memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fTexStorageMem3DMultisampleEXT(GLenum target, GLsizei samples,
+                                      GLenum internalFormat, GLsizei width,
+                                      GLsizei height, GLsizei depth,
+                                      realGLboolean fixedSampleLocations,
+                                      GLuint memory, GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTexStorageMem3DMultisampleEXT(
+        target, samples, internalFormat, width, height, depth,
+        fixedSampleLocations, memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fBufferStorageMemEXT(GLenum target, GLsizeiptr size, GLuint memory,
+                            GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fBufferStorageMemEXT(target, size, memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fTextureStorageMem2DEXT(GLuint texture, GLsizei levels,
+                               GLenum internalFormat, GLsizei width,
+                               GLsizei height, GLuint memory, GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTextureStorageMem2DEXT(texture, levels, internalFormat, width,
+                                     height, memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fTextureStorageMem2DMultisampleEXT(GLuint texture, GLsizei samples,
+                                          GLenum internalFormat, GLsizei width,
+                                          GLsizei height,
+                                          realGLboolean fixedSampleLocations,
+                                          GLuint memory, GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTextureStorageMem2DMultisampleEXT(
+        texture, samples, internalFormat, width, height, fixedSampleLocations,
+        memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fTextureStorageMem3DEXT(GLuint texture, GLsizei levels,
+                               GLenum internalFormat, GLsizei width,
+                               GLsizei height, GLsizei depth, GLuint memory,
+                               GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTextureStorageMem3DEXT(texture, levels, internalFormat, width,
+                                     height, depth, memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fTextureStorageMem3DMultisampleEXT(GLuint texture, GLsizei samples,
+                                          GLenum internalFormat, GLsizei width,
+                                          GLsizei height, GLsizei depth,
+                                          realGLboolean fixedSampleLocations,
+                                          GLuint memory, GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fTextureStorageMem3DMultisampleEXT(
+        texture, samples, internalFormat, width, height, depth,
+        fixedSampleLocations, memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  void fNamedBufferStorageMemEXT(GLuint buffer, GLsizeiptr size, GLuint memory,
+                                 GLuint64 offset) {
+    BEFORE_GL_CALL;
+    mSymbols.fNamedBufferStorageMemEXT(buffer, size, memory, offset);
+    AFTER_GL_CALL;
+  }
+
+  // -----------------------------------------------------------------------------
+  // Extension EXT_memory_object_fd
+
+  void fImportMemoryFdEXT(GLuint memory, GLuint64 size, GLenum handleType,
+                          GLint fd) {
+    BEFORE_GL_CALL;
+    mSymbols.fImportMemoryFdEXT(memory, size, handleType, fd);
     AFTER_GL_CALL;
   }
 
