@@ -87,6 +87,7 @@
     margin: 0;
     display: flex;
     flex-direction: column;
+    row-gap: var(--border-width);
   }
 }
 
@@ -157,7 +158,7 @@
 .ds-card-grid .list-feed-content .ds-card.list-feed-card {
   // overrides when using the DSCard component
   background-color: var(--newtab-background-color-secondary);
-  border-block-start: 1px solid light-dark(var(--color-gray-70), var(--color-gray-50));
+  border-block-start: var(--border-width) solid var(--border-color-deemphasized);
   border-radius: 0;
   box-shadow: none;
   flex-direction: row-reverse;
@@ -170,6 +171,7 @@
   .ds-card-link {
     inset-block-start: 0;
     inset-inline-start: 0;
+    border-radius: 0;
   }
 
   .meta {
@@ -238,7 +240,7 @@
 
   &:hover,
   &:focus-within {
-    background-color:var(--newtab-background-color);
+    background-color: var(--newtab-element-secondary-color);
 
     .card-stp-button-hover-background {
       background: transparent;
