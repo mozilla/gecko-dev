@@ -5,3 +5,14 @@ if [ ${DEB_PKG_NAME} = firefox-esr ]; then
         dpkg-divert --package firefox-esr --divert /usr/bin/firefox.real --rename /usr/bin/firefox
     fi
 fi
+
+# Canonical shipped an AppArmor configuration via that file until 20.04 release
+# but unfortunately there was no removal of it handled in the package.
+# Mozilla Debian package "firefox" will thus inherit this rule and it may break
+# some features, cf bug 1918003.
+#
+# The correct AppArmor configuration for that package lives at
+# /etc/apparmor.d/firefox, and properly covers all the alternatives.
+if [ ${DEB_PKG_NAME} = firefox ] ; then
+  dpkg-maintscript-helper rm_conffile /etc/apparmor.d/usr.bin.firefox -- "$$@"
+fi
