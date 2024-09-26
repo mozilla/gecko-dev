@@ -56,7 +56,7 @@ def repackage_snap(
 
     os.chmod(os.path.join(snapdir, "firefox.launcher"), 0o0777)
 
-    shutil.copy(os.path.join(objdir, "dist", "bin", "geckodriver"), pkgsrc)
+    shutil.copy(os.path.join(objdir, "dist", "host", "bin", "geckodriver"), pkgsrc)
 
     shutil.copy(
         os.path.join(srcdir, "browser/branding/nightly/default256.png"), snapdir
