@@ -115,15 +115,6 @@ let propNameAllowlist = [
   { propName: "--panel-shadow", isFromDevTools: true },
   { propName: "--panel-shadow-margin", isFromDevTools: true },
 
-  // These variable are used in JS in WaterfallBackground.js
-  {
-    propName: "--timing-marker-dom-content-loaded-color",
-    isFromDevTools: true,
-  },
-  {
-    propName: "--timing-marker-load-color",
-    isFromDevTools: true,
-  },
   // These variables are used in JS in viewer.mjs (PDF.js).
   {
     propName: "--scale-round-x",

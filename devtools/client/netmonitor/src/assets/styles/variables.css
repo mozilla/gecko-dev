@@ -40,4 +40,8 @@
     );
   --timing-wait-color: light-dark(rgba(95, 136, 176, 0.8), rgba(94, 136, 176, 0.8)); /* blue grey */
   --timing-receive-color: light-dark(rgba(44, 187, 15, 0.8), rgba(112, 191, 83, 0.8)); /* green */
+
+  &[forced-colors-active] {
+    --timing-marker-color-opacity: 1;
+  }
 }

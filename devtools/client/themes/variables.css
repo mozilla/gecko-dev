@@ -277,6 +277,10 @@
   --theme-contrast-border: light-dark(var(--yellow-70), var(--yellow-65));
 
   &[forced-colors-active] {
+    /* Color picked from HCM palette created by a11y team */
+    --theme-highlight-blue: light-dark(#0060DF, #00DDFF);
+    --theme-highlight-red: light-dark(#C50042, #FF9AA2);
+
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
     --theme-text-selection-background: Highlight;
