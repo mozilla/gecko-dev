@@ -24,7 +24,7 @@ use crate::properties_and_values::{
 use crate::selector_map::{PrecomputedHashMap, PrecomputedHashSet};
 use crate::stylesheets::UrlExtraData;
 use crate::stylist::Stylist;
-use crate::values::computed;
+use crate::values::computed::{self, ToComputedValue};
 use crate::values::specified::FontRelativeLength;
 use crate::Atom;
 use cssparser::{
@@ -291,11 +291,6 @@ impl ComputedCustomProperties {
         name: &Name,
         value: ComputedRegisteredValue,
     ) {
-        // Broadening the assert to
-        // registration.syntax.is_universal() ^ value.as_universal().is_none() would require
-        // rewriting the cascade to not temporarily store unparsed custom properties with references
-        // as universal in the custom properties map.
-        debug_assert!(!registration.syntax.is_universal() || value.as_universal().is_some());
         self.map_mut(registration).insert(name, value)
     }
 
@@ -1013,7 +1008,7 @@ impl<'a, 'b: 'a> CustomPropertiesBuilder<'a, 'b> {
         let map = &mut self.custom_properties;
         let registration = self.stylist.get_custom_property_registration(&name);
         match value {
-            CustomDeclarationValue::Value(unparsed_value) => {
+            CustomDeclarationValue::Unparsed(unparsed_value) => {
                 // At this point of the cascade we're not guaranteed to have seen the color-scheme
                 // declaration, so need to assume the worst. We could track all system color
                 // keyword tokens + the light-dark() function, but that seems non-trivial /
@@ -1044,6 +1039,10 @@ impl<'a, 'b: 'a> CustomPropertiesBuilder<'a, 'b> {
                 }
                 self.may_have_cycles = true;
                 let value = ComputedRegisteredValue::universal(Arc::clone(unparsed_value));
+                map.insert(registration, name, value);
+            },
+            CustomDeclarationValue::Parsed(parsed_value) => {
+                let value = parsed_value.to_computed_value(&self.computed_context);
                 map.insert(registration, name, value);
             },
             CustomDeclarationValue::CSSWideKeyword(keyword) => match keyword {
@@ -1186,62 +1185,78 @@ impl<'a, 'b: 'a> CustomPropertiesBuilder<'a, 'b> {
         }
 
         let existing_value = self.custom_properties.get(registration, &name);
-        match (existing_value, value) {
-            (None, &CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Initial)) => {
-                debug_assert!(registration.inherits(), "Should've been handled earlier");
-                // The initial value of a custom property without a
-                // guaranteed-invalid initial value is the same as it
-                // not existing in the map.
-                if registration.initial_value.is_none() {
-                    return false;
+        let existing_value = match existing_value {
+            None => {
+                if matches!(value, CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Initial)) {
+                    debug_assert!(registration.inherits(), "Should've been handled earlier");
+                    // The initial value of a custom property without a
+                    // guaranteed-invalid initial value is the same as it
+                    // not existing in the map.
+                    if registration.initial_value.is_none() {
+                        return false;
+                    }
                 }
+                return true;
             },
-            (
-                Some(existing_value),
-                &CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Initial),
-            ) => {
-                debug_assert!(registration.inherits(), "Should've been handled earlier");
-                // Don't bother overwriting an existing value with the initial value specified in
-                // the registration.
-                if let Some(initial_value) = self
-                    .stylist
-                    .get_custom_property_initial_values()
-                    .get(registration, name)
-                {
-                    return existing_value != initial_value;
-                }
-            },
-            (Some(_), &CustomDeclarationValue::CSSWideKeyword(CSSWideKeyword::Inherit)) => {
-                debug_assert!(!registration.inherits(), "Should've been handled earlier");
-                // existing_value is the registered initial value.
-                // Don't bother adding it to self.custom_properties.non_inherited
-                // if the key is also absent from self.inherited.non_inherited.
-                if self
-                    .computed_context
-                    .inherited_custom_properties()
-                    .non_inherited
-                    .get(name)
-                    .is_none()
-                {
-                    return false;
-                }
-            },
-            (Some(existing_value), &CustomDeclarationValue::Value(ref value)) => {
+            Some(v) => v,
+        };
+        let computed_value = match value {
+            CustomDeclarationValue::Unparsed(value) => {
                 // Don't bother overwriting an existing value with the same
                 // specified value.
                 if let Some(existing_value) = existing_value.as_universal() {
                     return existing_value != value;
                 }
-                if let Ok(value) = compute_value(
+                compute_value(
                     &value.css,
                     &value.url_data,
                     registration,
                     self.computed_context,
-                ) {
-                    return existing_value.v != value.v;
-                }
+                ).ok()
             },
-            _ => {},
+            CustomDeclarationValue::Parsed(value) => {
+                Some(value.to_computed_value(&self.computed_context))
+            },
+            CustomDeclarationValue::CSSWideKeyword(kw) => {
+                match kw {
+                    CSSWideKeyword::Inherit => {
+                        debug_assert!(!registration.inherits(), "Should've been handled earlier");
+                        // existing_value is the registered initial value.
+                        // Don't bother adding it to self.custom_properties.non_inherited
+                        // if the key is also absent from self.inherited.non_inherited.
+                        if self
+                            .computed_context
+                            .inherited_custom_properties()
+                            .non_inherited
+                            .get(name)
+                            .is_none()
+                        {
+                            return false;
+                        }
+                    },
+                    CSSWideKeyword::Initial => {
+                        debug_assert!(registration.inherits(), "Should've been handled earlier");
+                        // Don't bother overwriting an existing value with the initial value specified in
+                        // the registration.
+                        if let Some(initial_value) = self
+                            .stylist
+                            .get_custom_property_initial_values()
+                            .get(registration, name)
+                        {
+                            return existing_value != initial_value;
+                        }
+                    },
+                    CSSWideKeyword::Unset => {
+                        debug_assert!(false, "Should've been handled earlier");
+                    },
+                    CSSWideKeyword::Revert | CSSWideKeyword::RevertLayer => {},
+                }
+                None
+            }
+        };
+
+        if let Some(value) = computed_value {
+            return existing_value.v != value.v;
         }
 
         true
