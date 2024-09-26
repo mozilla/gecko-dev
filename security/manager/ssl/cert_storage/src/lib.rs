@@ -128,17 +128,203 @@ impl MallocSizeOf for EnvAndStore {
     }
 }
 
+struct CascadeWithMetadata {
+    cascade: Cascade,
+    /// Maps an RFC 6962 LogID to a pair of 64 bit unix timestamps
+    coverage: HashMap<Vec<u8>, (u64, u64)>,
+    /// Set of `SHA256(subject || spki)` values for enrolled issuers
+    enrollment: HashSet<Vec<u8>>,
+}
+
+impl CascadeWithMetadata {
+    fn new(
+        cascade: Cascade,
+        coverage_path: &PathBuf,
+        enrollment_path: &PathBuf,
+    ) -> Result<Self, SecurityStateError> {
+        if !coverage_path.exists() {
+            return Err(SecurityStateError::from("missing coverage file"));
+        }
+
+        if !enrollment_path.exists() {
+            return Err(SecurityStateError::from("missing enrollment file"));
+        }
+
+        // Deserialize the coverage metadata.
+        // The format is described in `set_full_crlite_filter`.
+        let coverage_file = File::open(coverage_path)?;
+        let coverage_file_len = coverage_file.metadata()?.len() as usize;
+        let mut coverage_reader = BufReader::new(coverage_file);
+        match coverage_reader.read_u8() {
+            Ok(COVERAGE_SERIALIZATION_VERSION) => (),
+            _ => return Err(SecurityStateError::from("unknown CRLite coverage version")),
+        }
+        if (coverage_file_len - 1) % COVERAGE_V1_ENTRY_BYTES != 0 {
+            return Err(SecurityStateError::from("truncated CRLite coverage file"));
+        }
+        let coverage_count = (coverage_file_len - 1) / COVERAGE_V1_ENTRY_BYTES;
+        let mut coverage = HashMap::new();
+        for _ in 0..coverage_count {
+            let mut coverage_entry = [0u8; COVERAGE_V1_ENTRY_BYTES];
+            match coverage_reader.read_exact(&mut coverage_entry) {
+                Ok(()) => (),
+                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
+            };
+            let log_id = &coverage_entry[0..32];
+            let min_timestamp: u64;
+            let max_timestamp: u64;
+            match (&coverage_entry[32..40]).read_u64::<LittleEndian>() {
+                Ok(value) => min_timestamp = value,
+                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
+            }
+            match (&coverage_entry[40..48]).read_u64::<LittleEndian>() {
+                Ok(value) => max_timestamp = value,
+                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
+            }
+            coverage.insert(log_id.to_vec(), (min_timestamp, max_timestamp));
+        }
+
+        // Deserialize the enrollment metadata.
+        // The format is described in `set_full_crlite_filter`.
+        let enrollment_file = File::open(enrollment_path)?;
+        let enrollment_file_len = enrollment_file.metadata()?.len() as usize;
+        let mut enrollment_reader = BufReader::new(enrollment_file);
+        match enrollment_reader.read_u8() {
+            Ok(ENROLLMENT_SERIALIZATION_VERSION) => (),
+            _ => {
+                return Err(SecurityStateError::from(
+                    "unknown CRLite enrollment version",
+                ))
+            }
+        }
+        if (enrollment_file_len - 1) % ENROLLMENT_V1_ENTRY_BYTES != 0 {
+            return Err(SecurityStateError::from("truncated CRLite enrollment file"));
+        }
+        let enrollment_count = (enrollment_file_len - 1) / ENROLLMENT_V1_ENTRY_BYTES;
+        let mut enrollment = HashSet::new();
+        for _ in 0..enrollment_count {
+            let mut enrollment_entry = [0u8; ENROLLMENT_V1_ENTRY_BYTES];
+            match enrollment_reader.read_exact(&mut enrollment_entry) {
+                Ok(()) => (),
+                _ => return Err(SecurityStateError::from("truncated CRLite enrollment file")),
+            };
+            let issuer_id = &enrollment_entry[..];
+            enrollment.insert(issuer_id.to_vec());
+        }
+
+        Ok(Self {
+            cascade,
+            coverage,
+            enrollment,
+        })
+    }
+
+    fn filter_covers_some_timestamp(&self, timestamps: &[CRLiteTimestamp]) -> bool {
+        for entry in timestamps {
+            if let Some(&(low, high)) = self.coverage.get(entry.log_id.as_ref()) {
+                if low <= entry.timestamp && entry.timestamp <= high {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    fn issuer_is_enrolled(&self, subject: &[u8], pub_key: &[u8]) -> bool {
+        let mut digest = Sha256::default();
+        digest.update(subject);
+        digest.update(pub_key);
+        let issuer_id = digest.finalize();
+        self.enrollment.contains(issuer_id.as_slice())
+    }
+
+    fn has(&self, crlite_key: &[u8]) -> bool {
+        self.cascade.has(crlite_key.to_vec())
+    }
+}
+
+impl MallocSizeOf for CascadeWithMetadata {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.cascade.approximate_size_of()
+            + self.coverage.size_of(ops)
+            + self.enrollment.size_of(ops)
+    }
+}
+
+enum Filter {
+    Cascade(CascadeWithMetadata),
+}
+
+impl Filter {
+    fn load(profile_path: &PathBuf) -> Result<Option<Filter>, SecurityStateError> {
+        let store_path = get_store_path(profile_path)?;
+
+        let filter_path = store_path.join("crlite.filter");
+        // Before we've downloaded any filters, this file won't exist.
+        if !filter_path.exists() {
+            return Ok(None);
+        }
+        let filter_bytes = std::fs::read(&filter_path)?;
+
+        if let Ok(maybe_cascade) = Cascade::from_bytes(filter_bytes) {
+            let Some(cascade) = maybe_cascade else {
+                return Err(SecurityStateError::from("expecting non-empty filter"));
+            };
+            let coverage_path = store_path.join("crlite.coverage");
+            let enrollment_path = store_path.join("crlite.enrollment");
+            if !coverage_path.exists() || !enrollment_path.exists() {
+                return Ok(None);
+            }
+            let cascade_with_metadata =
+                CascadeWithMetadata::new(cascade, &coverage_path, &enrollment_path)?;
+            Ok(Some(Filter::Cascade(cascade_with_metadata)))
+        } else {
+            Err(SecurityStateError::from("invalid CRLite filter"))
+        }
+    }
+
+    fn has(
+        &self,
+        issuer_dn: &[u8],
+        issuer_spki: &[u8],
+        serial: &[u8],
+        timestamps: &[CRLiteTimestamp],
+    ) -> i16 {
+        let issuer_spki_hash = Sha256::digest(issuer_spki);
+        match self {
+            Filter::Cascade(cascade) => {
+                let mut crlite_key = Vec::with_capacity(issuer_spki_hash.len() + serial.len());
+                crlite_key.extend_from_slice(&issuer_spki_hash);
+                crlite_key.extend_from_slice(serial);
+                if !cascade.issuer_is_enrolled(issuer_dn, issuer_spki) {
+                    nsICertStorage::STATE_NOT_ENROLLED
+                } else if !cascade.filter_covers_some_timestamp(timestamps) {
+                    nsICertStorage::STATE_NOT_COVERED
+                } else if cascade.has(&crlite_key) {
+                    nsICertStorage::STATE_ENFORCE
+                } else {
+                    nsICertStorage::STATE_UNSET
+                }
+            }
+        }
+    }
+}
+
+impl MallocSizeOf for Filter {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            Filter::Cascade(cascade) => cascade.size_of(ops),
+        }
+    }
+}
+
 /// `SecurityState`
 struct SecurityState {
     profile_path: PathBuf,
     env_and_store: Option<EnvAndStore>,
-    crlite_filter: Option<Cascade>,
+    crlite_filter: Option<Filter>,
     /// Maps issuer spki hashes to sets of serial numbers.
     crlite_stash: Option<HashMap<Vec<u8>, HashSet<Vec<u8>>>>,
-    /// Maps an RFC 6962 LogID to a pair of 64 bit unix timestamps
-    crlite_coverage: Option<HashMap<Vec<u8>, (u64, u64)>>,
-    /// Set of `SHA256(subject || spki)` values for enrolled issuers
-    crlite_enrollment: Option<HashSet<Vec<u8>>>,
     /// Tracks the number of asynchronous operations which have been dispatched but not completed.
     remaining_ops: i32,
 }
@@ -152,8 +338,6 @@ impl SecurityState {
             env_and_store: None,
             crlite_filter: None,
             crlite_stash: None,
-            crlite_coverage: None,
-            crlite_enrollment: None,
             remaining_ops: 0,
         }
     }
@@ -284,9 +468,7 @@ impl SecurityState {
 
     pub fn get_has_prior_data(&self, data_type: u8) -> Result<bool, SecurityStateError> {
         if data_type == nsICertStorage::DATA_TYPE_CRLITE_FILTER_FULL {
-            return Ok(self.crlite_filter.is_some()
-                && self.crlite_coverage.is_some()
-                && self.crlite_enrollment.is_some());
+            return Ok(self.crlite_filter.is_some());
         }
         if data_type == nsICertStorage::DATA_TYPE_CRLITE_FILTER_INCREMENTAL {
             return Ok(self.crlite_stash.is_some());
@@ -385,30 +567,6 @@ impl SecurityState {
         }
     }
 
-    fn issuer_is_enrolled(&self, subject: &[u8], pub_key: &[u8]) -> bool {
-        if let Some(crlite_enrollment) = self.crlite_enrollment.as_ref() {
-            let mut digest = Sha256::default();
-            digest.update(subject);
-            digest.update(pub_key);
-            let issuer_id = digest.finalize();
-            return crlite_enrollment.contains(&issuer_id.to_vec());
-        }
-        return false;
-    }
-
-    fn filter_covers_some_timestamp(&self, timestamps: &[CRLiteTimestamp]) -> bool {
-        if let Some(crlite_coverage) = self.crlite_coverage.as_ref() {
-            for entry in timestamps {
-                if let Some(&(low, high)) = crlite_coverage.get(entry.log_id.as_ref()) {
-                    if low <= entry.timestamp && entry.timestamp <= high {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
-
     fn note_crlite_update_time(&mut self) -> Result<(), SecurityStateError> {
         let seconds_since_epoch = Value::U64(
             SystemTime::now()
@@ -460,8 +618,6 @@ impl SecurityState {
         {
             let _ = self.crlite_filter.take();
             let _ = self.crlite_stash.take();
-            let _ = self.crlite_coverage.take();
-            let _ = self.crlite_enrollment.take();
             let mut path = get_store_path(&self.profile_path)?;
             path.push("crlite.stash");
             // Truncate the stash file if it exists.
@@ -536,106 +692,13 @@ impl SecurityState {
     }
 
     fn load_crlite_filter(&mut self) -> Result<(), SecurityStateError> {
-        if self.crlite_filter.is_some() || self.crlite_coverage.is_some() {
+        if self.crlite_filter.is_some() {
             return Err(SecurityStateError::from(
-                "Both crlite_filter and crlite_coverage should be None here",
+                "crlite_filter should be None here",
             ));
         }
 
-        let mut path = get_store_path(&self.profile_path)?;
-        path.push("crlite.filter");
-        // Before we've downloaded any filters, this file won't exist.
-        if !path.exists() {
-            return Ok(());
-        }
-        let mut filter_file = File::open(path)?;
-        let mut filter_bytes = Vec::new();
-        let _ = filter_file.read_to_end(&mut filter_bytes)?;
-        let crlite_filter = Cascade::from_bytes(filter_bytes)
-            .map_err(|_| SecurityStateError::from("invalid CRLite filter"))?
-            .ok_or(SecurityStateError::from("expecting non-empty filter"))?;
-
-        let mut path = get_store_path(&self.profile_path)?;
-        path.push("crlite.coverage");
-        if !path.exists() {
-            return Ok(());
-        }
-
-        // Deserialize the coverage metadata.
-        // The format is described in `set_full_crlite_filter`.
-        let coverage_file = File::open(path)?;
-        let coverage_file_len = coverage_file.metadata()?.len() as usize;
-        let mut coverage_reader = BufReader::new(coverage_file);
-        match coverage_reader.read_u8() {
-            Ok(COVERAGE_SERIALIZATION_VERSION) => (),
-            _ => return Err(SecurityStateError::from("unknown CRLite coverage version")),
-        }
-        if (coverage_file_len - 1) % COVERAGE_V1_ENTRY_BYTES != 0 {
-            return Err(SecurityStateError::from("truncated CRLite coverage file"));
-        }
-        let coverage_count = (coverage_file_len - 1) / COVERAGE_V1_ENTRY_BYTES;
-        let mut crlite_coverage: HashMap<Vec<u8>, (u64, u64)> = HashMap::new();
-        for _ in 0..coverage_count {
-            let mut coverage_entry = [0u8; COVERAGE_V1_ENTRY_BYTES];
-            match coverage_reader.read_exact(&mut coverage_entry) {
-                Ok(()) => (),
-                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
-            };
-            let log_id = &coverage_entry[0..32];
-            let min_timestamp: u64;
-            let max_timestamp: u64;
-            match (&coverage_entry[32..40]).read_u64::<LittleEndian>() {
-                Ok(value) => min_timestamp = value,
-                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
-            }
-            match (&coverage_entry[40..48]).read_u64::<LittleEndian>() {
-                Ok(value) => max_timestamp = value,
-                _ => return Err(SecurityStateError::from("truncated CRLite coverage file")),
-            }
-            crlite_coverage.insert(log_id.to_vec(), (min_timestamp, max_timestamp));
-        }
-
-        let mut path = get_store_path(&self.profile_path)?;
-        path.push("crlite.enrollment");
-        if !path.exists() {
-            return Ok(());
-        }
-
-        // Deserialize the enrollment metadata.
-        // The format is described in `set_full_crlite_filter`.
-        let enrollment_file = File::open(path)?;
-        let enrollment_file_len = enrollment_file.metadata()?.len() as usize;
-        let mut enrollment_reader = BufReader::new(enrollment_file);
-        match enrollment_reader.read_u8() {
-            Ok(ENROLLMENT_SERIALIZATION_VERSION) => (),
-            _ => {
-                return Err(SecurityStateError::from(
-                    "unknown CRLite enrollment version",
-                ))
-            }
-        }
-        if (enrollment_file_len - 1) % ENROLLMENT_V1_ENTRY_BYTES != 0 {
-            return Err(SecurityStateError::from("truncated CRLite enrollment file"));
-        }
-        let enrollment_count = (enrollment_file_len - 1) / ENROLLMENT_V1_ENTRY_BYTES;
-        let mut crlite_enrollment: HashSet<Vec<u8>> = HashSet::new();
-        for _ in 0..enrollment_count {
-            let mut enrollment_entry = [0u8; ENROLLMENT_V1_ENTRY_BYTES];
-            match enrollment_reader.read_exact(&mut enrollment_entry) {
-                Ok(()) => (),
-                _ => return Err(SecurityStateError::from("truncated CRLite enrollment file")),
-            };
-            let issuer_id = &enrollment_entry[..];
-            crlite_enrollment.insert(issuer_id.to_vec());
-        }
-
-        let old_crlite_filter_should_be_none = self.crlite_filter.replace(crlite_filter);
-        assert!(old_crlite_filter_should_be_none.is_none());
-        let old_crlite_coverage_should_be_none = self.crlite_coverage.replace(crlite_coverage);
-        assert!(old_crlite_coverage_should_be_none.is_none());
-        let old_crlite_enrollment_should_be_none =
-            self.crlite_enrollment.replace(crlite_enrollment);
-        assert!(old_crlite_enrollment_should_be_none.is_none());
+        self.crlite_filter = Filter::load(&self.profile_path)?;
         Ok(())
     }
 
@@ -681,27 +744,12 @@ impl SecurityState {
         if !self.is_crlite_fresh() {
             return nsICertStorage::STATE_NO_FILTER;
         }
-        if !self.issuer_is_enrolled(issuer, issuer_spki) {
-            return nsICertStorage::STATE_NOT_ENROLLED;
-        }
-        if !self.filter_covers_some_timestamp(timestamps) {
-            return nsICertStorage::STATE_NOT_COVERED;
-        }
-        let mut digest = Sha256::default();
-        digest.update(issuer_spki);
-        let mut lookup_key = digest.finalize().to_vec();
-        lookup_key.extend_from_slice(serial_number);
-        debug!("CRLite lookup key: {:?}", lookup_key);
-        let result = match &self.crlite_filter {
-            Some(crlite_filter) => crlite_filter.has(lookup_key),
+        let Some(ref crlite_filter) = self.crlite_filter else {
             // This can only happen if the backing file was deleted or if it or our database has
             // become corrupted. In any case, we have no information.
-            None => return nsICertStorage::STATE_NO_FILTER,
+            return nsICertStorage::STATE_NO_FILTER;
         };
-        match result {
-            true => nsICertStorage::STATE_ENFORCE,
-            false => nsICertStorage::STATE_UNSET,
-        }
+        crlite_filter.has(issuer, issuer_spki, serial_number, timestamps)
     }
 
     // To store certificates, we create a Cert out of each given cert, subject, and trust tuple. We
@@ -879,12 +927,8 @@ impl MallocSizeOf for SecurityState {
     fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         self.profile_path.size_of(ops)
             + self.env_and_store.size_of(ops)
-            + self
-                .crlite_filter
-                .as_ref()
-                .map_or(0, |crlite_filter| crlite_filter.approximate_size_of())
+            + self.crlite_filter.size_of(ops)
             + self.crlite_stash.size_of(ops)
-            + self.crlite_coverage.size_of(ops)
             + self.remaining_ops.size_of(ops)
     }
 }
