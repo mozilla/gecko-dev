@@ -130,32 +130,6 @@ pkix::Result CTLogVerifier::Init(Input subjectPublicKeyInfo) {
 
   InputToBuffer(subjectPublicKeyInfo, mSubjectPublicKeyInfo);
 
-  if (mSignatureAlgorithm == DigitallySigned::SignatureAlgorithm::ECDSA) {
-    SECItem spkiSECItem = {
-        siBuffer, mSubjectPublicKeyInfo.data(),
-        static_cast<unsigned int>(mSubjectPublicKeyInfo.size())};
-    UniqueCERTSubjectPublicKeyInfo spki(
-        SECKEY_DecodeDERSubjectPublicKeyInfo(&spkiSECItem));
-    if (!spki) {
-      return MapPRErrorCodeToResult(PR_GetError());
-    }
-    mPublicECKey.reset(SECKEY_ExtractPublicKey(spki.get()));
-    if (!mPublicECKey) {
-      return MapPRErrorCodeToResult(PR_GetError());
-    }
-    UniquePK11SlotInfo slot(PK11_GetInternalSlot());
-    if (!slot) {
-      return MapPRErrorCodeToResult(PR_GetError());
-    }
-    CK_OBJECT_HANDLE handle =
-        PK11_ImportPublicKey(slot.get(), mPublicECKey.get(), false);
-    if (handle == CK_INVALID_HANDLE) {
-      return MapPRErrorCodeToResult(PR_GetError());
-    }
-  } else {
-    mPublicECKey.reset(nullptr);
-  }
-
   mKeyId.resize(SHA256_LENGTH);
   rv = DigestBufNSS(subjectPublicKeyInfo, DigestAlgorithm::sha256,
                     mKeyId.data(), mKeyId.size());

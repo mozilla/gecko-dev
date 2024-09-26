@@ -7,8 +7,6 @@
 #ifndef CTLogVerifier_h
 #define CTLogVerifier_h
 
-#include <memory>
-
 #include "CTKnownLogs.h"
 #include "CTLog.h"
 #include "CTUtils.h"
@@ -72,11 +70,6 @@ class CTLogVerifier {
   pkix::Result VerifySignature(const Buffer& data, const Buffer& signature,
                                SignatureCache* signatureCache);
 
-  // mPublicECKey works around an architectural deficiency in NSS. In the case
-  // of EC, if we don't create, import, and cache this key, NSS will import and
-  // verify it every signature verification, which is slow. For RSA, this is
-  // unused and will be null.
-  UniqueSECKEYPublicKey mPublicECKey;
   Buffer mSubjectPublicKeyInfo;
   Buffer mKeyId;
   DigitallySigned::SignatureAlgorithm mSignatureAlgorithm;
