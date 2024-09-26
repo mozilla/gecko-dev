@@ -44,7 +44,7 @@ def get_test_tags(config, env):
     return list(set(tags))
 
 
-def guess_mozinfo_from_task(task, repo="", test_tags=[]):
+def guess_mozinfo_from_task(task, repo="", app_version="", test_tags=[]):
     """Attempt to build a mozinfo dict from a task definition.
 
     This won't be perfect and many values used in the manifests will be missing. But
@@ -69,11 +69,12 @@ def guess_mozinfo_from_task(task, repo="", test_tags=[]):
         "debug": setting["build"]["type"] in ("debug", "debug-isolated-process"),
         "tsan": setting["build"].get("tsan", False),
         "mingwclang": setting["build"].get("mingwclang", False),
-        "nightly_build": repo in ["mozilla-central", "autoland", "try", ""],  # trunk
+        "nightly_build": "a1"
+        in app_version,  # https://searchfox.org/mozilla-central/source/build/moz.configure/init.configure#1101
+        "release_or_beta": "a" not in app_version,
         "repo": repo,
     }
     # the following are used to evaluate reftest skip-if
-    info["release_or_beta"] = not info["nightly_build"]  # TO BE VALIDATED
     info["webrtc"] = not info["mingwclang"]
     info["opt"] = (
         not info["debug"] and not info["asan"] and not info["tsan"] and not info["ccov"]

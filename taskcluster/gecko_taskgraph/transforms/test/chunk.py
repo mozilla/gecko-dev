@@ -95,6 +95,7 @@ def set_test_manifests(config, tasks):
         mozinfo = guess_mozinfo_from_task(
             task,
             config.params.get("head_repository", ""),
+            config.params.get("app_version", ""),
             get_test_tags(config, task.get("worker", {}).get("env", {})),
         )
 
