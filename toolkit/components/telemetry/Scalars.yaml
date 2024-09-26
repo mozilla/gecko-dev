@@ -650,6 +650,21 @@ browser.engagement:
     record_in_processes:
       - 'main'
 
+  max_concurrent_vertical_tab_count:
+    bug_numbers:
+      - 1899352
+    description: >
+      The count of maximum number of tabs with vertical tabs enabled.
+    expires: never
+    kind: uint
+    notification_emails:
+      - vsabino@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
   tab_open_event_count:
     bug_numbers:
       - 1271304
@@ -665,6 +680,21 @@ browser.engagement:
     products:
       - 'firefox'
       - 'fennec'
+    record_in_processes:
+      - 'main'
+
+  vertical_tab_open_event_count:
+    bug_numbers:
+      - 1899352
+    description: >
+      The count of tab open events with vertical tabs enabled.
+    expires: never
+    kind: uint
+    notification_emails:
+      - vsabino@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
     record_in_processes:
       - 'main'
 
@@ -723,6 +753,21 @@ browser.engagement:
     record_in_processes:
       - 'main'
 
+  max_concurrent_vertical_tab_pinned_count:
+    bug_numbers:
+      - 1899352
+    description: >
+      The count of maximum number of pinned tabs with vertical tabs enabled.
+    expires: never
+    kind: uint
+    notification_emails:
+      - vsabino@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
   tab_pinned_event_count:
     bug_numbers:
       - 1505535
@@ -738,6 +783,21 @@ browser.engagement:
     products:
       - 'firefox'
       - 'fennec'
+    record_in_processes:
+      - 'main'
+
+  vertical_tab_pinned_event_count:
+    bug_numbers:
+      - 1899352
+    description: >
+      The count of tab pinned events with vertical tabs enabled.
+    expires: never
+    kind: uint
+    notification_emails:
+      - vsabino@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
     record_in_processes:
       - 'main'
 

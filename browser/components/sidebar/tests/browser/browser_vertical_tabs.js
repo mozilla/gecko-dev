@@ -3,17 +3,38 @@
 
 "use strict";
 
-add_setup(() =>
-  SpecialPowers.pushPrefEnv({
-    set: [["sidebar.verticalTabs", false]],
-  })
+const { TelemetryTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
-registerCleanupFunction(() => SpecialPowers.popPrefEnv());
+
+add_setup(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", false]],
+  });
+  Services.telemetry.clearScalars();
+});
+registerCleanupFunction(async () => {
+  await SpecialPowers.popPrefEnv();
+  while (gBrowser.tabs.length > 1) {
+    BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
+  }
+});
+
+function getTelemetryScalars(names) {
+  return TestUtils.waitForCondition(() => {
+    const scalars = TelemetryTestUtils.getProcessScalars("parent");
+    return names.every(name => Object.hasOwn(scalars, name)) && scalars;
+  }, `Scalars are present in Telemetry data: ${names.join(", ")}`);
+}
+
+function checkTelemetryScalar(name, value) {
+  return TestUtils.waitForCondition(() => {
+    const scalars = TelemetryTestUtils.getProcessScalars("parent");
+    return scalars[name] == value;
+  }, `Scalar ${name} has the correct value.`);
+}
 
 add_task(async function test_toggle_vertical_tabs() {
-  const win = await BrowserTestUtils.openNewBrowserWindow();
-  await waitForBrowserWindowActive(win);
-  const { document } = win;
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
 
@@ -46,28 +67,66 @@ add_task(async function test_toggle_vertical_tabs() {
     verticalTabs,
     "Tabstrip is slotted into the sidebar vertical tabs container"
   );
-  is(win.gBrowser.tabs.length, 1, "Tabstrip now has one tab");
+  is(gBrowser.tabs.length, 1, "Tabstrip now has one tab");
 
   // make sure the tab context menu still works
   const contextMenu = document.getElementById("tabContextMenu");
-  win.gBrowser.selectedTab.focus();
-  EventUtils.synthesizeMouseAtCenter(
-    win.gBrowser.selectedTab,
-    {
-      type: "contextmenu",
-      button: 2,
-    },
-    win
-  );
+  gBrowser.selectedTab.focus();
+  EventUtils.synthesizeMouseAtCenter(gBrowser.selectedTab, {
+    type: "contextmenu",
+    button: 2,
+  });
 
-  await openAndWaitForContextMenu(contextMenu, win.gBrowser.selectedTab, () => {
+  info("Open a new tab using the context menu.");
+  await openAndWaitForContextMenu(contextMenu, gBrowser.selectedTab, () => {
     document.getElementById("context_openANewTab").click();
   });
 
-  is(win.gBrowser.tabs.length, 2, "Tabstrip now has two tabs");
+  const keyedScalars = TelemetryTestUtils.getProcessScalars("parent", true);
+  TelemetryTestUtils.assertKeyedScalar(
+    keyedScalars,
+    "browser.ui.interaction.tabs_context_entrypoint",
+    "vertical-tabs-container",
+    1
+  );
 
-  let tabRect = win.gBrowser.selectedTab.getBoundingClientRect();
-  let containerRect = win.gBrowser.tabContainer.getBoundingClientRect();
+  let scalars = await getTelemetryScalars([
+    "browser.engagement.vertical_tab_open_event_count",
+  ]);
+  TelemetryTestUtils.assertScalar(
+    scalars,
+    "browser.engagement.vertical_tab_open_event_count",
+    1
+  );
+  await checkTelemetryScalar(
+    "browser.engagement.max_concurrent_vertical_tab_count",
+    2
+  );
+
+  info("Pin a tab using the context menu.");
+  await openAndWaitForContextMenu(contextMenu, gBrowser.selectedTab, () => {
+    document.getElementById("context_pinTab").click();
+  });
+
+  scalars = await getTelemetryScalars([
+    "browser.engagement.max_concurrent_vertical_tab_pinned_count",
+    "browser.engagement.vertical_tab_pinned_event_count",
+  ]);
+  TelemetryTestUtils.assertScalar(
+    scalars,
+    "browser.engagement.max_concurrent_vertical_tab_pinned_count",
+    1
+  );
+  TelemetryTestUtils.assertScalar(
+    scalars,
+    "browser.engagement.vertical_tab_pinned_event_count",
+    1
+  );
+
+  is(gBrowser.tabs.length, 2, "Tabstrip now has two tabs");
+
+  let tabRect = gBrowser.selectedTab.getBoundingClientRect();
+  let containerRect = gBrowser.tabContainer.getBoundingClientRect();
 
   Assert.greater(
     containerRect.bottom - tabRect.bottom,
@@ -79,29 +138,26 @@ add_task(async function test_toggle_vertical_tabs() {
   EventUtils.synthesizeMouseAtPoint(
     containerRect.left + containerRect.width / 2,
     tabRect.bottom + 100,
-    { clickCount: 1 },
-    win
+    { clickCount: 1 }
   );
   EventUtils.synthesizeMouseAtPoint(
     containerRect.left + containerRect.width / 2,
     tabRect.bottom + 100,
-    { clickCount: 2 },
-    win
+    { clickCount: 2 }
   );
 
-  is(win.gBrowser.tabs.length, 3, "Tabstrip now has three tabs");
+  is(gBrowser.tabs.length, 3, "Tabstrip now has three tabs");
 
-  tabRect = win.gBrowser.selectedTab.getBoundingClientRect();
+  tabRect = gBrowser.selectedTab.getBoundingClientRect();
 
   // Middle click should also open a new tab.
   EventUtils.synthesizeMouseAtPoint(
     containerRect.left + containerRect.width / 2,
     tabRect.bottom + 100,
-    { button: 1 },
-    win
+    { button: 1 }
   );
 
-  is(win.gBrowser.tabs.length, 4, "Tabstrip now has four tabs");
+  is(gBrowser.tabs.length, 4, "Tabstrip now has four tabs");
 
   const toolbarContextMenu = document.getElementById("toolbar-context-menu");
   EventUtils.synthesizeMouseAtPoint(
@@ -110,13 +166,12 @@ add_task(async function test_toggle_vertical_tabs() {
     {
       type: "contextmenu",
       button: 2,
-    },
-    win
+    }
   );
 
   await openAndWaitForContextMenu(
     toolbarContextMenu,
-    win.gBrowser.selectedTab,
+    gBrowser.selectedTab,
     () => {
       ok(
         document.getElementById("toolbar-context-customize").hidden,
@@ -137,6 +192,11 @@ add_task(async function test_toggle_vertical_tabs() {
     }
   );
 
+  await checkTelemetryScalar(
+    "browser.engagement.max_concurrent_vertical_tab_count",
+    4
+  );
+
   // flip the pref to move the tabstrip horizontally
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", false]] });
 
@@ -155,7 +215,20 @@ add_task(async function test_toggle_vertical_tabs() {
     "Tabstrip is before the new tab button"
   );
 
-  await BrowserTestUtils.closeWindow(win);
+  scalars = await getTelemetryScalars([
+    "browser.engagement.max_concurrent_tab_count",
+    "browser.engagement.max_concurrent_tab_pinned_count",
+  ]);
+  TelemetryTestUtils.assertScalar(
+    scalars,
+    "browser.engagement.max_concurrent_tab_count",
+    4
+  );
+  TelemetryTestUtils.assertScalar(
+    scalars,
+    "browser.engagement.max_concurrent_tab_pinned_count",
+    1
+  );
 });
 
 add_task(async function test_enabling_vertical_tabs_enables_sidebar_revamp() {
