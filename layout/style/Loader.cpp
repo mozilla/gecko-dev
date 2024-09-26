@@ -150,7 +150,7 @@ SheetLoadDataHashKey::SheetLoadDataHashKey(const css::SheetLoadData& aLoadData)
       mCORSMode(aLoadData.mSheet->GetCORSMode()),
       mParsingMode(aLoadData.mSheet->ParsingMode()),
       mCompatMode(aLoadData.mCompatMode),
-      mIsLinkRelPreload(aLoadData.IsLinkRelPreload()) {
+      mIsLinkRelPreloadOrEarlyHint(aLoadData.IsLinkRelPreloadOrEarlyHint()) {
   MOZ_COUNT_CTOR(SheetLoadDataHashKey);
   MOZ_ASSERT(mURI);
   MOZ_ASSERT(mPrincipal);
@@ -220,12 +220,11 @@ bool SheetLoadDataHashKey::KeyEquals(const SheetLoadDataHashKey& aKey) const {
   // check makes sure that regular loads will never find such a weaker preload
   // and rather start a new, independent load with new, stronger SRI checker
   // set up, so that integrity is ensured.
-  if (mIsLinkRelPreload != aKey.mIsLinkRelPreload) {
+  if (mIsLinkRelPreloadOrEarlyHint != aKey.mIsLinkRelPreloadOrEarlyHint) {
     const auto& linkPreloadMetadata =
-        mIsLinkRelPreload ? mSRIMetadata : aKey.mSRIMetadata;
+        mIsLinkRelPreloadOrEarlyHint ? mSRIMetadata : aKey.mSRIMetadata;
     const auto& consumerPreloadMetadata =
-        mIsLinkRelPreload ? aKey.mSRIMetadata : mSRIMetadata;
-
+        mIsLinkRelPreloadOrEarlyHint ? aKey.mSRIMetadata : mSRIMetadata;
     if (!consumerPreloadMetadata.CanTrustBeDelegatedTo(linkPreloadMetadata)) {
       LOG((" > Preload SRI metadata mismatch\n"));
       return false;
@@ -458,7 +457,7 @@ SheetLoadData::PrepareLoadEventIfNeeded() {
   if (!node) {
     return nullptr;
   }
-  MOZ_ASSERT(!RootLoadData().IsLinkRelPreload(),
+  MOZ_ASSERT(!RootLoadData().IsLinkRelPreloadOrEarlyHint(),
              "rel=preload handled elsewhere");
   RefPtr<AsyncEventDispatcher> dispatcher;
   if (BlocksLoadEvent()) {
@@ -1370,9 +1369,9 @@ bool Loader::MaybeCoalesceLoadAndNotifyOpen(SheetLoadData& aLoadData,
     if (aSheetState == SheetState::Pending) {
       ++mPendingLoadCount;
     } else {
-      aLoadData.NotifyOpen(
-          aPreloadKey, mDocument,
-          aLoadData.IsLinkRelPreload() /* TODO: why not `IsPreload()`?*/);
+      // TODO: why not just `IsPreload()`?
+      aLoadData.NotifyOpen(aPreloadKey, mDocument,
+                           aLoadData.IsLinkRelPreloadOrEarlyHint());
     }
   }
   return coalescedLoad;
@@ -1439,14 +1438,15 @@ nsresult Loader::LoadSheet(SheetLoadData& aLoadData, SheetState aSheetState,
     }
   }
 
-  aLoadData.NotifyOpen(preloadKey, mDocument, aLoadData.IsLinkRelPreload());
+  aLoadData.NotifyOpen(preloadKey, mDocument,
+                       aLoadData.IsLinkRelPreloadOrEarlyHint());
 
   return LoadSheetAsyncInternal(aLoadData, aEarlyHintPreloaderId, key);
 }
 
 void Loader::AdjustPriority(const SheetLoadData& aLoadData,
                             nsIChannel* aChannel) {
-  if (!aLoadData.ShouldDefer() && aLoadData.IsLinkRelPreload()) {
+  if (!aLoadData.ShouldDefer() && aLoadData.IsLinkRelPreloadOrEarlyHint()) {
     SheetLoadData::PrioritizeAsPreload(aChannel);
   }
 
@@ -1467,7 +1467,7 @@ void Loader::AdjustPriority(const SheetLoadData& aLoadData,
       return FETCH_PRIORITY_ADJUSTMENT_FOR(deferred_style,
                                            aLoadData.mFetchPriority);
     }
-    if (aLoadData.IsLinkRelPreload()) {
+    if (aLoadData.IsLinkRelPreloadOrEarlyHint()) {
       return FETCH_PRIORITY_ADJUSTMENT_FOR(link_preload_style,
                                            aLoadData.mFetchPriority);
     }
@@ -1516,7 +1516,7 @@ nsresult Loader::LoadSheetAsyncInternal(SheetLoadData& aLoadData,
       cos->AddClassFlags(nsIClassOfService::Leader);
     }
 
-    if (aLoadData.IsLinkRelPreload()) {
+    if (!aLoadData.BlocksLoadEvent()) {
       SheetLoadData::AddLoadBackgroundFlag(channel);
     }
   }

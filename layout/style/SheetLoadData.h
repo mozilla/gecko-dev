@@ -274,11 +274,13 @@ class SheetLoadData final
   }
 
   bool IsPreload() const { return mPreloadKind != StylePreloadKind::None; }
-  bool IsLinkRelPreload() const { return css::IsLinkRelPreload(mPreloadKind); }
+  bool IsLinkRelPreloadOrEarlyHint() const {
+    return css::IsLinkRelPreloadOrEarlyHint(mPreloadKind);
+  }
 
   bool BlocksLoadEvent() const {
     const auto& root = RootLoadData();
-    return !root.IsLinkRelPreload() && !root.IsSyncLoad();
+    return !root.IsLinkRelPreloadOrEarlyHint() && !root.IsSyncLoad();
   }
 
   bool IsSyncLoad() const override { return mSyncLoad; }

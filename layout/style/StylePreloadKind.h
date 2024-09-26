@@ -22,11 +22,32 @@ enum class StylePreloadKind : uint8_t {
   FromLinkRelPreloadElement,
   // A preload for a "Link" rel=preload response header.
   FromLinkRelPreloadHeader,
+  // A preload from an early-hints header.
+  FromEarlyHintsHeader,
 };
 
-inline bool IsLinkRelPreload(StylePreloadKind aKind) {
+inline bool IsLinkRelPreloadOrEarlyHint(StylePreloadKind aKind) {
   return aKind == StylePreloadKind::FromLinkRelPreloadElement ||
-         aKind == StylePreloadKind::FromLinkRelPreloadHeader;
+         aKind == StylePreloadKind::FromLinkRelPreloadHeader ||
+         aKind == StylePreloadKind::FromEarlyHintsHeader;
+}
+
+inline bool ShouldAssumeStandardsMode(StylePreloadKind aKind) {
+  switch (aKind) {
+    case StylePreloadKind::FromLinkRelPreloadHeader:
+    case StylePreloadKind::FromEarlyHintsHeader:
+      // For header preloads we guess non-quirks, because otherwise it is
+      // useless for modern pages.
+      //
+      // Link element preload is generally good because the speculative html
+      // parser deals with quirks mode properly.
+      return true;
+    case StylePreloadKind::None:
+    case StylePreloadKind::FromParser:
+    case StylePreloadKind::FromLinkRelPreloadElement:
+      break;
+  }
+  return false;
 }
 
 }  // namespace mozilla::css

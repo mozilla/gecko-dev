@@ -212,11 +212,17 @@ PreloadService::PreloadOrCoalesceResult PreloadService::PreloadOrCoalesce(
                   aFetchPriority, aIntegrity, true /* isInHead - TODO */,
                   aEarlyHintPreloaderId);
   } else if (aAs.LowerCaseEqualsASCII("style")) {
+    const auto preloadKind = [&] {
+      if (aEarlyHintPreloaderId) {
+        MOZ_ASSERT(aFromHeader);
+        return css::StylePreloadKind::FromEarlyHintsHeader;
+      }
+      return aFromHeader ? css::StylePreloadKind::FromLinkRelPreloadHeader
+                         : css::StylePreloadKind::FromLinkRelPreloadElement;
+    }();
     auto status = mDocument->PreloadStyle(
         aURI, Encoding::ForLabel(aCharset), aCORS,
-        PreloadReferrerPolicy(aReferrerPolicy), aNonce, aIntegrity,
-        aFromHeader ? css::StylePreloadKind::FromLinkRelPreloadHeader
-                    : css::StylePreloadKind::FromLinkRelPreloadElement,
+        PreloadReferrerPolicy(aReferrerPolicy), aNonce, aIntegrity, preloadKind,
         aEarlyHintPreloaderId, aFetchPriority);
     switch (status) {
       case dom::SheetPreloadStatus::AlreadyComplete:
