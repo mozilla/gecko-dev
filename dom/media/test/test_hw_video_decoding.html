@@ -15,15 +15,19 @@ const PLATFORMS = {
     process: "GPU",
     tests: [
       {
-        file: "gizmo.mp4",
+        files: ["gizmo.mp4"],
         decoder: "wmf H264 codec hardware video decoder",
       },
       {
-        file: "gizmo.webm",
+        files: ["gizmo.webm"],
         decoder: "wmf VP9 codec hardware video decoder",
       },
       {
-        file: "av1.mp4",
+        files: [
+          "av1.mp4",
+          "gizmo_av1_8bit_420.webm",
+          "gizmo_av1_10bit_420.webm"
+        ],
         decoder: "wmf AV1 codec hardware video decoder",
       },
     ],
@@ -32,7 +36,7 @@ const PLATFORMS = {
     process: "RDD",
     tests: [
       {
-        file: "gizmo.mp4",
+        files: ["gizmo.mp4"],
         decoder: "apple hardware VT decoder",
       },
       // TODO : enable VP9 for MacOS. The current machine on CI doesn't support
@@ -49,15 +53,17 @@ add_task(async function testHardwareVideoDecoding() {
   const platformName = SpecialPowers.Services.appinfo.OS;
   const platformTest = PLATFORMS[platformName];
   for (const test of platformTest.tests) {
-    info(
-      `Testing ${test.file} on ${platformName} : expect ${test.decoder} in ${platformTest.process}`
-    );
-    await createAndPlayVideo(test.file);
-    await assertRunningProcessAndDecoderName({
-      expectedProcess: platformTest.process,
-      expectedDecoder: test.decoder,
-    });
-    await waitVideoPlayToEnd();
+    for (const file of test.files) {
+      info(
+        `Testing ${file} on ${platformName} : expect ${test.decoder} in ${platformTest.process}`
+      );
+      await createAndPlayVideo(file);
+      await assertRunningProcessAndDecoderName({
+        expectedProcess: platformTest.process,
+        expectedDecoder: test.decoder,
+      });
+      await waitVideoPlayToEnd();
+    }
   }
 });
 
