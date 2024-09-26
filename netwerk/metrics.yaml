@@ -621,6 +621,23 @@ networking:
       - necko@mozilla.com
     expires: 136
 
+  http_ip_addr_any_count:
+    type: labeled_counter
+    description: >
+      The number of times we see the IP address 0.0.0.0 or its IPv6 equivalent.
+    bugs:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1914583
+    data_reviews:
+    - https://bugzilla.mozilla.org/show_bug.cgi?id=1914583
+    data_sensitivity:
+    - technical
+    notification_emails:
+    - necko@mozilla.com
+    expires: 138
+    labels:
+    - not_blocked_requests
+    - blocked_requests
+
   http_onstart_suspend_total_time:
     type: timing_distribution
     time_unit: millisecond

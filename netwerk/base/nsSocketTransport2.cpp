@@ -12,6 +12,7 @@
 #include "NetworkDataCountLayer.h"
 #include "QuicSocketControl.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/StaticPrefs_network.h"
 #include "mozilla/SyncRunnable.h"
 #include "mozilla/Telemetry.h"
@@ -1244,10 +1245,18 @@ nsresult nsSocketTransport::InitiateSocket() {
 
   // Since https://github.com/whatwg/fetch/pull/1763,
   // we need to disable access to 0.0.0.0 for non-test purposes
-  if (StaticPrefs::network_socket_ip_addr_any_disabled() &&
-      mNetAddr.IsIPAddrAny() && !mProxyTransparentResolvesHost) {
-    SOCKET_LOG(("connection refused NS_ERROR_CONNECTION_REFUSED\n"));
-    return NS_ERROR_CONNECTION_REFUSED;
+  if (mNetAddr.IsIPAddrAny() && !mProxyTransparentResolvesHost) {
+    if (StaticPrefs::network_socket_ip_addr_any_disabled()) {
+      mozilla::glean::networking::http_ip_addr_any_count
+          .Get("blocked_requests"_ns)
+          .Add(1);
+      SOCKET_LOG(("connection refused NS_ERROR_CONNECTION_REFUSED\n"));
+      return NS_ERROR_CONNECTION_REFUSED;
+    }
+
+    mozilla::glean::networking::http_ip_addr_any_count
+        .Get("not_blocked_requests"_ns)
+        .Add(1);
   }
 
   if (gIOService->IsOffline()) {
