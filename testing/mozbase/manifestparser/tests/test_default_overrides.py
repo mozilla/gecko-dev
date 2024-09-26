@@ -51,6 +51,18 @@ class TestDefaultSkipif(unittest.TestCase):
                 )
 
 
+class TestTagDefaults(unittest.TestCase):
+    """Test that tags are handled correctly when managing defaults."""
+
+    def test_defaults_toml(self):
+        default = os.path.join(here, "default-tags.toml")
+        parser = ManifestParser(manifests=(default,), use_toml=True)
+        expected_tags = {"test1": "foo", "test2": "foo bar", "test3": "foo bar\n  baz"}
+        for test in parser.tests:
+            expected = expected_tags[test["name"]]
+            self.assertEqual(test["tags"], expected)
+
+
 class TestDefaultSupportFiles(unittest.TestCase):
     """Tests combining support-files field in [DEFAULT] with the value for a test"""
 

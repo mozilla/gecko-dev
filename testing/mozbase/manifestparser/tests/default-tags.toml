@@ -1,0 +1,12 @@
+[DEFAULT]
+tags = "foo"
+
+[test1]
+[test2]
+tags = "bar"  # a comment
+
+[test3]
+tags = """
+  bar
+  baz
+  """
