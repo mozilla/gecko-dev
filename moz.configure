@@ -879,6 +879,8 @@ def strip_flags(flags, profiling, target):
     # On Darwin, it tries to strip things it can't, so we need to limit its scope.
     elif target.kernel == "Darwin":
         return ["-x", "-S"]
+    elif target.kernel == "Haiku":
+        return ["--strip-debug"]
 
 
 set_config("STRIP_FLAGS", strip_flags)
