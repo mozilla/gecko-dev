@@ -29,14 +29,17 @@ use xpcom::{
     xpcom, xpcom_method, RefPtr,
 };
 
-use crate::skv::{
-    abort::AbortError,
-    coordinator::{Coordinator, CoordinatorClient, CoordinatorError},
-    database::{Database, DatabaseError, GetOptions},
-    importer::{CleanupPolicy, ConflictPolicy, ImporterError, RkvImporter},
-    key::{Key, KeyError},
-    store::{Store, StoreError, StorePath},
-    value::{Value, ValueError},
+use crate::{
+    fs::WidePathBuf,
+    skv::{
+        abort::AbortError,
+        coordinator::{Coordinator, CoordinatorClient, CoordinatorError},
+        database::{Database, DatabaseError, GetOptions},
+        importer::{CleanupPolicy, ConflictPolicy, ImporterError, RkvImporter},
+        key::{Key, KeyError},
+        store::{Store, StoreError, StorePath},
+        value::{Value, ValueError},
+    },
 };
 
 #[xpcom(implement(nsIKeyValueService), atomic)]
@@ -65,21 +68,13 @@ impl KeyValueService {
         name: &nsACString,
     ) -> Result<(), Infallible> {
         let client = self.client.clone();
-        let dir = nsString::from(dir);
+        let dir = WidePathBuf::new(dir);
         let request =
             moz_task::spawn_blocking("skv:KeyValueService:GetOrCreate:Request", async move {
-                let path = if dir == StorePath::IN_MEMORY_DATABASE_NAME {
-                    StorePath::for_in_memory()
-                } else {
-                    // Concurrently accessing the same physical SQLite database
-                    // through different links can corrupt its WAL file,
-                    // especially when done from multiple processes.
-                    // Mitigate that by canonicalizing the path.
-                    StorePath::for_storage_dir(
-                        crate::fs::canonicalize(&*dir).map_err(InterfaceError::StorageDir)?,
-                    )
-                };
-                Ok((client.child_with_name("skv:KeyValueDatabase")?, path))
+                Ok((
+                    client.child_with_name("skv:KeyValueDatabase")?,
+                    StorePath::canonicalizing(dir)?,
+                ))
             });
 
         let name = nsCString::from(name);
@@ -135,7 +130,7 @@ impl KeyValueService {
                     .client
                     .child_with_name("skv:RkvSafeModeKeyValueImporter")
                     .map_err(|_| nserror::NS_ERROR_FAILURE)?;
-                let importer = RkvSafeModeKeyValueImporter::new(client, nsString::from(dir));
+                let importer = RkvSafeModeKeyValueImporter::new(client, WidePathBuf::new(dir));
                 Ok(RefPtr::new(importer.coerce()))
             }
             _ => Err(nserror::NS_ERROR_INVALID_ARG),
@@ -761,7 +756,7 @@ impl KeyValueServiceShutdownBlocker {
 #[xpcom(implement(nsIKeyValueImporter), atomic)]
 pub struct RkvSafeModeKeyValueImporter {
     client: CoordinatorClient<'static>,
-    dir: nsString,
+    dir: WidePathBuf,
     conflict_policy: AtomicCell<ConflictPolicy>,
     cleanup_policy: AtomicCell<CleanupPolicy>,
 }
@@ -769,7 +764,7 @@ pub struct RkvSafeModeKeyValueImporter {
 impl RkvSafeModeKeyValueImporter {
     const TYPE: &'static str = "rkv-safe-mode";
 
-    pub fn new(client: CoordinatorClient<'static>, dir: nsString) -> RefPtr<Self> {
+    pub fn new(client: CoordinatorClient<'static>, dir: WidePathBuf) -> RefPtr<Self> {
         RkvSafeModeKeyValueImporter::allocate(InitRkvSafeModeKeyValueImporter {
             client,
             dir,
@@ -785,7 +780,7 @@ impl RkvSafeModeKeyValueImporter {
 
     xpcom_method!(get_path => GetPath() -> nsAString);
     fn get_path(&self) -> Result<nsString, Infallible> {
-        Ok(self.dir.clone())
+        Ok(self.dir.as_wide().into())
     }
 
     xpcom_method!(get_conflict_policy => GetConflictPolicy() -> u8);
@@ -831,7 +826,7 @@ impl RkvSafeModeKeyValueImporter {
         let request = moz_task::spawn_blocking(
             "skv:RkvSafeModeKeyValueImporter:Import:Request",
             async move {
-                let dir = crate::fs::canonicalize(&*dir).map_err(InterfaceError::StorageDir)?;
+                let dir = dir.canonicalize()?;
                 let store = client.store_for_path(StorePath::for_storage_dir(dir.clone()))?;
                 let mut manager = rkv::Manager::<RkvSafeModeEnvironment>::singleton()
                     .write()
@@ -888,7 +883,7 @@ impl RkvSafeModeKeyValueImporter {
         let request = moz_task::spawn_blocking(
             "skv:RkvSafeModeKeyValueImporter:ImportAll:Request",
             async move {
-                let dir = crate::fs::canonicalize(&*dir).map_err(InterfaceError::StorageDir)?;
+                let dir = dir.canonicalize()?;
                 let store = client.store_for_path(StorePath::for_storage_dir(dir.clone()))?;
                 let mut manager = rkv::Manager::<RkvSafeModeEnvironment>::singleton()
                     .write()
@@ -966,8 +961,6 @@ pub enum InterfaceError {
     Coordinator(#[from] CoordinatorError),
     #[error(transparent)]
     Abort(#[from] AbortError),
-    #[error("storage dir: {0}")]
-    StorageDir(io::Error),
     #[error("database: {0}")]
     Database(#[from] DatabaseError),
     #[error("store: {0}")]
@@ -980,6 +973,8 @@ pub enum InterfaceError {
     RkvStore(#[from] rkv::StoreError),
     #[error("importer: {0}")]
     Importer(#[from] ImporterError),
+    #[error("I/O: {0}")]
+    Io(#[from] io::Error),
     #[error("error code: {0}")]
     Nsresult(#[from] nsresult),
 }

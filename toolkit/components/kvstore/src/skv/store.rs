@@ -8,7 +8,7 @@ use std::{
     borrow::Cow,
     ffi::OsStr,
     fmt::Write,
-    mem,
+    io, mem,
     ops::Deref,
     path::{Path, PathBuf},
     sync::{
@@ -21,13 +21,16 @@ use std::{
 use chrono::{DateTime, Utc};
 use rusqlite::OpenFlags;
 
-use crate::skv::{
-    checker::{Checker, CheckerAction, IntoChecker},
-    connection::{
-        Connection, ConnectionIncident, ConnectionIncidents, ConnectionMaintenanceTask,
-        ConnectionPath, ConnectionType, ToConnectionIncident,
+use crate::{
+    fs::WidePathBuf,
+    skv::{
+        checker::{Checker, CheckerAction, IntoChecker},
+        connection::{
+            Connection, ConnectionIncident, ConnectionIncidents, ConnectionMaintenanceTask,
+            ConnectionPath, ConnectionType, ToConnectionIncident,
+        },
+        schema::{Schema, SchemaError},
     },
-    schema::{Schema, SchemaError},
 };
 
 /// A persistent store backed by a physical SQLite database.
@@ -248,6 +251,25 @@ impl StorePath {
     pub const IN_MEMORY_DATABASE_NAME: &'static str = ":memory:";
 
     const DEFAULT_DATABASE_FILE_NAME: &'static str = "kvstore.sqlite";
+
+    /// Returns the canonical [`StorePath`] for a [`WidePathBuf`]. This
+    /// method normalizes string paths passed to the XPCOM
+    /// [`crate::skv::interface`] methods.
+    ///
+    /// **Canonicalization can accesses the filesystem**, so this method
+    /// should not be called on the main thread.
+    pub fn canonicalizing(path: WidePathBuf) -> Result<Self, StoreError> {
+        Ok(if path == StorePath::IN_MEMORY_DATABASE_NAME {
+            StorePath::for_in_memory()
+        } else {
+            // Concurrently accessing the same physical SQLite database
+            // through different links can corrupt its WAL file,
+            // especially when done from multiple processes.
+            // Mitigate that by canonicalizing the path.
+            let dir = path.canonicalize().map_err(StoreError::StorageDir)?;
+            StorePath::for_storage_dir(dir)
+        })
+    }
 
     /// Returns the path to the physical database file in the given
     /// storage directory.
@@ -548,6 +570,8 @@ pub enum StoreError {
     Corrupt,
     #[error("sqlite: {0}")]
     Sqlite(#[from] rusqlite::Error),
+    #[error("storage dir: {0}")]
+    StorageDir(#[source] io::Error),
 }
 
 impl ToConnectionIncident for StoreError {

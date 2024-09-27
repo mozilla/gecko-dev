@@ -27,8 +27,8 @@ use xpcom::{
 };
 
 use crate::{
-    error::KeyValueError, owned_value::owned_to_variant, KeyValueDatabase, KeyValueEnumerator,
-    KeyValuePairResult,
+    error::KeyValueError, fs::WidePathBuf, owned_value::owned_to_variant, KeyValueDatabase,
+    KeyValueEnumerator, KeyValuePairResult,
 };
 
 type Manager = rkv::Manager<SafeModeEnvironment>;
@@ -202,7 +202,7 @@ impl Task for GetOrCreateWithOptionsTask {
                 let mut builder = Rkv::environment_builder::<SafeMode>();
                 builder.set_corruption_recovery_strategy(self.strategy);
                 let mut manager = Manager::singleton().write()?;
-                let path = crate::fs::canonicalize(&*self.path)?;
+                let path = WidePathBuf::new(&self.path).canonicalize()?;
                 let rkv = manager.get_or_create_from_builder(
                     path.as_path(),
                     builder,
