@@ -27,7 +27,7 @@
 #  include "base/message_pump_libevent.h"
 #endif
 #if defined(XP_LINUX) || defined(__DragonFly__) || defined(XP_FREEBSD) || \
-    defined(XP_NETBSD) || defined(XP_OPENBSD)
+    defined(XP_NETBSD) || defined(XP_OPENBSD) || defined(XP_HAIKU)
 #  if defined(MOZ_WIDGET_GTK)
 #    include "base/message_pump_glib.h"
 #  endif
@@ -281,7 +281,7 @@ MessageLoop::MessageLoop(Type type, nsISerialEventTarget* aEventTarget)
 #  if defined(XP_DARWIN)
     pump_ = base::MessagePumpMac::Create();
 #  elif defined(XP_LINUX) || defined(__DragonFly__) || defined(XP_FREEBSD) || \
-      defined(XP_NETBSD) || defined(XP_OPENBSD)
+      defined(XP_NETBSD) || defined(XP_OPENBSD) || defined(XP_HAIKU)
     pump_ = new base::MessagePumpForUI();
 #  endif  // XP_LINUX
   } else if (type_ == TYPE_IO) {
