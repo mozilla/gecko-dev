@@ -1,0 +1,384 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'Toolkit :: General'
+
+security.doh.neterror:
+  load_dohwarning:
+    type: event
+    description: >
+      The DoH warning page is loaded.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.neterror.load#dohwarning.
+    bugs:
+      - https://bugzil.la/1829342
+    data_reviews:
+      - https://bugzil.la/1829342
+    notification_emails:
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      mode:
+        description: >
+          Current TRR mode
+        type: quantity
+      provider_key:
+        description: >
+          TRR provider
+        type: string
+      skip_reason:
+        description: >
+          The reason why DoH request is failed
+        type: string
+    telemetry_mirror: SecurityDohNeterror_Load_Dohwarning
+
+  click_try_again_button:
+    type: event
+    description: >
+      User interaction by click buttons on the DoH warning page.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.neterror.click#try_again_button.
+    bugs: &security_doh_neterror_click_bugs
+      - https://bugzil.la/1829342
+    data_reviews: &security_doh_neterror_click_data_reviews
+      - https://bugzil.la/1829342
+    notification_emails: &security_doh_neterror_click_emails
+      - necko@mozilla.com
+      - kershaw@mozilla.com
+    expires: never
+    extra_keys: &security_doh_neterror_click_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      mode:
+        description: >
+          Current TRR mode
+        type: string
+      provider_key:
+        description: >
+          TRR provider
+        type: string
+      skip_reason:
+        description: >
+          The reason why DoH request is failed
+        type: string
+    telemetry_mirror: SecurityDohNeterror_Click_TryAgainButton
+
+  click_add_exception_button:
+    type: event
+    description: >
+      User interaction by click buttons on the DoH warning page.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.neterror.click#add_exception_button.
+    bugs: *security_doh_neterror_click_bugs
+    data_reviews: *security_doh_neterror_click_data_reviews
+    notification_emails: *security_doh_neterror_click_emails
+    expires: never
+    extra_keys: *security_doh_neterror_click_extra
+    telemetry_mirror: SecurityDohNeterror_Click_AddExceptionButton
+
+  click_settings_button:
+    type: event
+    description: >
+      User interaction by click buttons on the DoH warning page.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.neterror.click#settings_button.
+    bugs: *security_doh_neterror_click_bugs
+    data_reviews: *security_doh_neterror_click_data_reviews
+    notification_emails: *security_doh_neterror_click_emails
+    expires: never
+    extra_keys: *security_doh_neterror_click_extra
+    telemetry_mirror: SecurityDohNeterror_Click_SettingsButton
+
+  click_continue_button:
+    type: event
+    description: >
+      User interaction by click buttons on the DoH warning page.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.neterror.click#continue_button.
+    bugs: *security_doh_neterror_click_bugs
+    data_reviews: *security_doh_neterror_click_data_reviews
+    notification_emails: *security_doh_neterror_click_emails
+    expires: never
+    extra_keys: *security_doh_neterror_click_extra
+    telemetry_mirror: SecurityDohNeterror_Click_ContinueButton
+
+  click_disable_warning:
+    type: event
+    description: >
+      User interaction by click buttons on the DoH warning page.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.neterror.click#disable_warning.
+    bugs: *security_doh_neterror_click_bugs
+    data_reviews: *security_doh_neterror_click_data_reviews
+    notification_emails: *security_doh_neterror_click_emails
+    expires: never
+    extra_keys: *security_doh_neterror_click_extra
+    telemetry_mirror: SecurityDohNeterror_Click_DisableWarning
+
+  click_learn_more_link:
+    type: event
+    description: >
+      User interaction by click buttons on the DoH warning page.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.doh.neterror.click#learn_more_link.
+    bugs: *security_doh_neterror_click_bugs
+    data_reviews: *security_doh_neterror_click_data_reviews
+    notification_emails: *security_doh_neterror_click_emails
+    expires: never
+    extra_keys: *security_doh_neterror_click_extra
+    telemetry_mirror: SecurityDohNeterror_Click_LearnMoreLink
+
+security.ui.certerror:
+  load_aboutcerterror:
+    type: event
+    description: >
+      The about:certerror page is loaded, keyed by error code, see
+      https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.load#aboutcerterror.
+    bugs:
+      - https://bugzil.la/1484255
+      - https://bugzil.la/1505310
+      - https://bugzil.la/1553181
+      - https://bugzil.la/1629826
+    data_reviews:
+      - https://bugzil.la/1484255
+      - https://bugzil.la/1505310
+      - https://bugzil.la/1553181
+      - https://bugzil.la/1629826
+    notification_emails:
+      - jhofmann@mozilla.com
+      - rtestard@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      is_frame:
+        description: >
+          If the error page is loaded in an iframe.
+        type: boolean
+      has_sts:
+        description: >
+          If the error page is for a site with HSTS headers or with a pinned key.
+        type: boolean
+      channel_status:
+        description: >
+          The status of the failed channel, as an nsresult.
+        type: quantity
+      issued_by_cca:
+        description: >
+          If trusting the CCA India roots would fix this error.
+        type: boolean
+    telemetry_mirror: SecurityUiCerterror_Load_Aboutcerterror
+
+  click_advanced_button:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#advanced_button.
+    bugs: &security_ui_certerror_click_bugs
+      - https://bugzil.la/1484255
+      - https://bugzil.la/1505310
+      - https://bugzil.la/1553181
+      - https://bugzil.la/1629826
+    data_reviews: &security_ui_certerror_click_data_reviews
+      - https://bugzil.la/1484255
+      - https://bugzil.la/1505310
+      - https://bugzil.la/1553181
+      - https://bugzil.la/1629826
+    notification_emails: &security_ui_certerror_click_emails
+      - jhofmann@mozilla.com
+      - rtestard@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    extra_keys: &security_ui_certerror_click_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      is_frame:
+        description: >
+          If the error page is loaded in an iframe.
+        type: boolean
+      has_sts:
+        description: >
+          If the error page is for a site with HSTS headers or with a pinned key.
+        type: boolean
+    telemetry_mirror: SecurityUiCerterror_Click_AdvancedButton
+
+  click_exception_button:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#exception_button.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_ExceptionButton
+
+  click_return_button_top:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#return_button_top.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_ReturnButtonTop
+
+  click_return_button_adv:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#return_button_adv.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_ReturnButtonAdv
+
+  click_learn_more_link:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#learn_more_link.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_LearnMoreLink
+
+  click_auto_report_cb:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#auto_report_cb.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_AutoReportCb
+
+  click_error_code_link:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#error_code_link.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_ErrorCodeLink
+
+  click_clipboard_button_top:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#clipboard_button_top.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_ClipboardButtonTop
+
+  click_clipboard_button_bot:
+    type: event
+    description: >
+      User interaction by click events on the cert error page. Keyed by
+      error code, see https://searchfox.org/mozilla-
+      central/source/security/nss/lib/mozpkix/include/pkix/Result.h
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.certerror.click#clipboard_button_bot.
+    bugs: *security_ui_certerror_click_bugs
+    data_reviews: *security_ui_certerror_click_data_reviews
+    notification_emails: *security_ui_certerror_click_emails
+    expires: never
+    extra_keys: *security_ui_certerror_click_extra
+    telemetry_mirror: SecurityUiCerterror_Click_ClipboardButtonBot
+
+security.ui.tlserror:
+  load_abouttlserror:
+    type: event
+    description: >
+      The about:neterror page is loaded with a TLS error or non-
+      overridable certificate error, keyed by error code.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.tlserror.load#abouttlserror.
+    bugs:
+      - https://bugzil.la/1881335
+    data_reviews:
+      - https://bugzil.la/1881335
+    notification_emails:
+      - dkeeler@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      is_frame:
+        description: >
+          If the error page is loaded in an iframe.
+        type: boolean
+      channel_status:
+        description: >
+          The status of the failed channel, as an nsresult.
+        type: quantity
+    telemetry_mirror: SecurityUiTlserror_Load_Abouttlserror

@@ -253,17 +253,12 @@ function recordTRREventTelemetry(
   trrDomain,
   skipReason
 ) {
-  RPMRecordTelemetryEvent(
-    "security.doh.neterror",
-    "load",
-    "dohwarning",
-    warningPageType,
-    {
-      mode: trrMode,
-      provider_key: trrDomain,
-      skip_reason: skipReason,
-    }
-  );
+  RPMRecordGleanEvent("securityDohNeterror", "loadDohwarning", {
+    value: warningPageType,
+    mode: trrMode,
+    provider_key: trrDomain,
+    skip_reason: skipReason,
+  });
 
   const netErrorButtonDiv = document.getElementById("netErrorButtonContainer");
   const buttons = netErrorButtonDiv.querySelectorAll("button");
@@ -271,12 +266,15 @@ function recordTRREventTelemetry(
     b.addEventListener("click", function (e) {
       let target = e.originalTarget;
       let telemetryId = target.dataset.telemetryId;
-      RPMRecordTelemetryEvent(
-        "security.doh.neterror",
-        "click",
-        telemetryId,
-        warningPageType,
+      RPMRecordGleanEvent(
+        "securityDohNeterror",
+        "click" +
+          telemetryId
+            .split("_")
+            .map(word => word[0].toUpperCase() + word.slice(1))
+            .join(""),
         {
+          value: warningPageType,
           mode: trrMode,
           provider_key: trrDomain,
           skip_reason: skipReason,
@@ -434,9 +432,8 @@ function initPage() {
 
       const netErrorInfo = document.getNetErrorInfo();
       void recordSecurityUITelemetry(
-        "security.ui.tlserror",
-        "load",
-        "abouttlserror",
+        "securityUiTlserror",
+        "loadAbouttlserror",
         netErrorInfo
       );
       const errorCode = netErrorInfo.errorCodeString;
@@ -554,7 +551,7 @@ function initPage() {
         descriptionTag = "neterror-dns-not-found-system-sleep";
       }
 
-      let trrMode = RPMGetIntPref("network.trr.mode").toString();
+      let trrMode = RPMGetIntPref("network.trr.mode");
       recordTRREventTelemetry(
         "TRROnlyFailure",
         trrMode,
@@ -578,17 +575,12 @@ function initPage() {
         trrOnlyLearnMoreLink.addEventListener("click", event => {
           event.preventDefault();
           RPMSendAsyncMessage("OpenTRRPreferences");
-          RPMRecordTelemetryEvent(
-            "security.doh.neterror",
-            "click",
-            "settings_button",
-            "TRROnlyFailure",
-            {
-              mode: trrMode,
-              provider_key: args.trrDomain,
-              skip_reason: skipReason,
-            }
-          );
+          RPMRecordGleanEvent("securityDohNeterror", "clickSettingsButton", {
+            value: "TRROnlyFailure",
+            mode: trrMode,
+            provider_key: args.trrDomain,
+            skip_reason: skipReason,
+          });
         });
       } else {
         // This will be replaced at a later point with a link to an offline support page
@@ -692,7 +684,7 @@ function showNativeFallbackWarning() {
 
   recordTRREventTelemetry(
     "NativeFallbackWarning",
-    RPMGetIntPref("network.trr.mode").toString(),
+    RPMGetIntPref("network.trr.mode"),
     args.trrDomain,
     skipReason
   );
@@ -994,44 +986,43 @@ function initPageCertError() {
 
   const failedCertInfo = document.getFailedCertSecurityInfo();
   void recordSecurityUITelemetry(
-    "security.ui.certerror",
-    "load",
-    "aboutcerterror",
+    "securityUiCerterror",
+    "loadAboutcerterror",
     failedCertInfo
   );
 
   setCertErrorDetails();
 }
 
-async function recordSecurityUITelemetry(category, evt, objectName, errorInfo) {
+async function recordSecurityUITelemetry(category, name, errorInfo) {
   // Truncate the error code to avoid going over the allowed
   // string size limit for telemetry events.
   let errorCode = errorInfo.errorCodeString.substring(0, 40);
   let extraKeys = {
-    is_frame: (window.parent != window).toString(),
+    value: errorCode,
+    is_frame: window.parent != window,
   };
-  if (category == "security.ui.certerror") {
-    extraKeys.has_sts = gHasSts.toString();
+  if (category == "securityUiCerterror") {
+    extraKeys.has_sts = gHasSts;
   }
-  if (evt == "load") {
-    extraKeys.channel_status = errorInfo.channelStatus.toString();
+  if (name.startsWith("load")) {
+    extraKeys.channel_status = errorInfo.channelStatus;
   }
-  if (category == "security.ui.certerror" && evt == "load") {
-    extraKeys.issued_by_cca = false.toString();
+  if (category == "securityUiCerterror" && name.startsWith("load")) {
+    extraKeys.issued_by_cca = false;
     let issuer = errorInfo.certChainStrings.at(-1);
     if (issuer && errorCode == "SEC_ERROR_UNKNOWN_ISSUER") {
       try {
         let parsed = await parse(pemToDER(issuer));
-        extraKeys.issued_by_cca = (
+        extraKeys.issued_by_cca =
           parsed.issuer.dn == "c=IN, o=India PKI, cn=CCA India 2022 SPL" ||
-          parsed.issuer.dn == "c=IN, o=India PKI, cn=CCA India 2015 SPL"
-        ).toString();
+          parsed.issuer.dn == "c=IN, o=India PKI, cn=CCA India 2015 SPL";
       } catch (e) {
         console.error("error parsing issuer certificate:", e);
       }
     }
   }
-  RPMRecordTelemetryEvent(category, evt, objectName, errorCode, extraKeys);
+  RPMRecordGleanEvent(category, name, extraKeys);
 }
 
 function recordClickTelemetry(e) {
@@ -1039,9 +1030,12 @@ function recordClickTelemetry(e) {
   let telemetryId = target.dataset.telemetryId;
   let failedCertInfo = document.getFailedCertSecurityInfo();
   void recordSecurityUITelemetry(
-    "security.ui.certerror",
-    "click",
-    telemetryId,
+    "securityUiCerterror",
+    "click" +
+      telemetryId
+        .split("_")
+        .map(word => word[0].toUpperCase() + word.slice(1))
+        .join(""),
     failedCertInfo
   );
 }

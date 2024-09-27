@@ -21,7 +21,7 @@ export class NetErrorChild extends RemotePageChild {
       "RPMGetAppBuildID",
       "RPMGetInnerMostURI",
       "RPMAddToHistogram",
-      "RPMRecordTelemetryEvent",
+      "RPMRecordGleanEvent",
       "RPMCheckAlternateHostAvailable",
       "RPMGetHttpResponseHeader",
       "RPMIsTRROnlyFailure",
@@ -82,8 +82,8 @@ export class NetErrorChild extends RemotePageChild {
     Services.telemetry.getHistogramById(histID).add(bin);
   }
 
-  RPMRecordTelemetryEvent(category, event, object, value, extra) {
-    Services.telemetry.recordEvent(category, event, object, value, extra);
+  RPMRecordGleanEvent(category, name, extra) {
+    Glean[category]?.[name]?.record(extra);
   }
 
   RPMCheckAlternateHostAvailable() {

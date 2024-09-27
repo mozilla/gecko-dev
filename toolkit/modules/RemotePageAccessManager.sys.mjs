@@ -39,7 +39,7 @@ export let RemotePageAccessManager = {
         "Browser:ResetEnterpriseRootsPref",
         "DisplayOfflineSupportPage",
       ],
-      RPMRecordTelemetryEvent: ["*"],
+      RPMRecordGleanEvent: ["*"],
       RPMAddMessageListener: ["*"],
       RPMRemoveMessageListener: ["*"],
       RPMGetFormatURLPref: ["app.support.baseURL"],
@@ -89,10 +89,7 @@ export let RemotePageAccessManager = {
         "OpenTRRPreferences",
       ],
       RPMCheckAlternateHostAvailable: ["*"],
-      RPMRecordTelemetryEvent: [
-        "security.doh.neterror",
-        "security.ui.tlserror",
-      ],
+      RPMRecordGleanEvent: ["securityDohNeterror", "securityUiTlserror"],
       RPMAddMessageListener: ["*"],
       RPMRemoveMessageListener: ["*"],
       RPMGetFormatURLPref: [
