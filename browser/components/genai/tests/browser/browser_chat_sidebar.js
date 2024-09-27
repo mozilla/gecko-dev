@@ -1,12 +1,19 @@
 /* Any copyright is dedicated to the Public Domain.
  * http://creativecommons.org/publicdomain/zero/1.0/ */
 
+ChromeUtils.defineESModuleGetters(this, {
+  PlacesTestUtils: "resource://testing-common/PlacesTestUtils.sys.mjs",
+});
+
+// Used in multiple tests for loading a page in the sidebar
+const TEST_CHAT_PROVIDER_URL = "http://mochi.test:8888/";
+
 /**
  * Check that chat sidebar renders
  */
 add_task(async function test_sidebar_render() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.ml.chat.provider", "http://mochi.test:8888"]],
+    set: [["browser.ml.chat.provider", TEST_CHAT_PROVIDER_URL]],
   });
 
   await SidebarController.show("viewGenaiChatSidebar");
@@ -132,4 +139,15 @@ add_task(async function test_sidebar_menu() {
   popup.hidePopup();
   await hidden;
   SidebarController.hide();
+});
+
+/**
+ * Check that places doesn't get history entries from embedded provider browser
+ */
+add_task(async function test_sidebar_no_history() {
+  // Earlier test opened sidebar with this test provider
+  Assert.ok(
+    !(await PlacesTestUtils.isPageInDB(TEST_CHAT_PROVIDER_URL)),
+    "Earlier test with provider from test_sidebar_render is not in history"
+  );
 });
