@@ -32,6 +32,8 @@ skip-if = [
 
 ["browser_autofill_duplicate_fields.js"]
 
+["browser_autofill_invisible_fields.js"]
+
 ["browser_autofill_sandboxed_iframe.js"]
 
 ["browser_cancel_attribute_change_task.js"]

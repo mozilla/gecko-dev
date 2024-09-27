@@ -334,12 +334,14 @@ export class FormAutofillSection {
 
       // When both visible and invisible <select> elements exist, we only autofill the
       // visible <select>.
-      if (fieldDetail.localName == "select" && !fieldDetail.isVisible) {
-        return !this.fieldDetails.some(
-          field => field.fieldName == fieldDetail.fieldName && field.isVisible
-        );
+      if (fieldDetail.localName == "select") {
+        if (!fieldDetail.isVisible) {
+          return !this.fieldDetails.some(
+            field => field.fieldName == fieldDetail.fieldName && field.isVisible
+          );
+        }
       }
-      return true;
+      return fieldDetail.isVisible;
     });
   }
 
