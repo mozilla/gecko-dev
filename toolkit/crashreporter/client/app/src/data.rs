@@ -135,6 +135,15 @@ impl<T> Synchronized<T> {
         });
     }
 
+    /// Immediately call the closure on the current value and call it whenever the value changes.
+    pub fn map_with<F: Fn(&T) + 'static>(&self, f: F) {
+        // Hold the borrow to guarantee the value doesn't change until we are subscribed (just as a
+        // measure of extra sanity; this should never occur).
+        let borrow = self.borrow();
+        f(&*borrow);
+        self.on_change(f);
+    }
+
     /// Create a new synchronized value which will update when this one changes.
     pub fn mapped<U: 'static, F: Fn(&T) -> U + 'static>(&self, f: F) -> Synchronized<U> {
         let s = Synchronized::new(f(&*self.borrow()));

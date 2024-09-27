@@ -4,8 +4,9 @@
 
 //! Types and helpers relating to windows and window classes.
 
-use super::Font;
+use super::font::{Font, Fonts};
 use super::WideString;
+use crate::data::Synchronized;
 use std::cell::RefCell;
 use windows_sys::Win32::{
     Foundation::{HINSTANCE, HWND, LPARAM, LRESULT, WPARAM},
@@ -297,15 +298,26 @@ impl<W> Window<W> {
     }
 
     /// Set a window's font.
-    pub fn set_font(&mut self, font: &Font) {
-        unsafe { win::SendMessageW(self.handle, win::WM_SETFONT, **font as _, 1 as _) };
+    pub fn set_font(
+        &mut self,
+        fonts: &Synchronized<Fonts>,
+        font: impl Fn(&Fonts) -> &Font + 'static,
+    ) {
+        let handle = self.handle;
+        fonts.map_with(move |fonts| unsafe {
+            win::SendMessageW(handle, win::WM_SETFONT, **font(fonts) as _, 1 as _);
+        });
         self.font_set = true;
     }
 
     /// Set a window's font if not already set.
-    pub fn set_default_font(&mut self, font: &Font) {
+    pub fn set_default_font(
+        &mut self,
+        fonts: &Synchronized<Fonts>,
+        font: impl Fn(&Fonts) -> &Font + 'static,
+    ) {
         if !self.font_set {
-            self.set_font(font);
+            self.set_font(fonts, font);
         }
     }
 }

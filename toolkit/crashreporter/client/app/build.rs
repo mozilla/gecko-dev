@@ -25,9 +25,9 @@ fn windows_manifest() {
         // Use legacy active code page because GDI doesn't support per-process UTF8 (and older
         // win10 may not support this setting anyway).
         .active_code_page(manifest::ActiveCodePage::Legacy)
-        // GDI scaling is not enabled by default but we need it to make the GDI-drawn text look
-        // nice on high-DPI displays.
-        .gdi_scaling(manifest::Setting::Enabled);
+        // We support WM_DPICHANGED for scaling, but need to set our DPI awareness to receive the
+        // messages.
+        .dpi_awareness(manifest::DpiAwareness::PerMonitorV2);
 
     embed_manifest(manifest).expect("unable to embed windows manifest file");
 
