@@ -10271,7 +10271,17 @@
   value: true
   mirror: always
 
-# VideoSink
+# true for talos tests so that VideoSink passes on the most recently decoded
+# frame to exercise the compositor even when the frame is out of date because
+# the decoder is stressed.
+# If this were true for normal playback, then presentation of such late decoded
+# video frames would be out of sync with audio, and VideoPlaybackQuality
+# metrics would provide no indication of the poor playback. [1]
+# For normal playback, this is false, which does not restore A/V sync in this
+# situation, but the out-of-date frames are dropped and the video playback
+# stalls.  The dropped frame count is reported to content in
+# VideoPlaybackQuality metrics.
+# [1] https://bugzilla.mozilla.org/show_bug.cgi?id=1258870#c6
 - name: media.ruin-av-sync.enabled
   type: RelaxedAtomicBool
   value: false

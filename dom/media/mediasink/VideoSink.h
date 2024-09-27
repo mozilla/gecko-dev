@@ -153,9 +153,7 @@ class VideoSink : public MediaSink {
   // video queue so that the compositor has something to composit during
   // the talos test when the decode is stressed. We have a minimum size
   // on the video queue in order to facilitate this talos test.
-  // Note: Normal playback should not have a queue size of more than 0,
-  // otherwise A/V sync will be ruined! *Only* make this non-zero for
-  // testing purposes.
+  // This is non-zero only for testing purposes.
   const uint32_t mMinVideoQueueSize;
 
 #ifdef XP_WIN
