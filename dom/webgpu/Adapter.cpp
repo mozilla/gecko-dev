@@ -267,8 +267,6 @@ static std::string_view ToJsKey(const Limit limit) {
       return "maxVertexAttributes";
     case Limit::MaxVertexBufferArrayStride:
       return "maxVertexBufferArrayStride";
-    case Limit::MaxInterStageShaderComponents:
-      return "maxInterStageShaderComponents";
     case Limit::MaxInterStageShaderVariables:
       return "maxInterStageShaderVariables";
     case Limit::MaxColorAttachments:
@@ -333,7 +331,6 @@ already_AddRefed<dom::Promise> Adapter::RequestDevice(
       case Limit::MaxBufferSize: return 268435456;
       case Limit::MaxVertexAttributes: return 16;
       case Limit::MaxVertexBufferArrayStride: return 2048;
-      case Limit::MaxInterStageShaderComponents: return 60;
       case Limit::MaxInterStageShaderVariables: return 16;
       case Limit::MaxColorAttachments: return 8;
       case Limit::MaxColorAttachmentBytesPerSample: return 32;
