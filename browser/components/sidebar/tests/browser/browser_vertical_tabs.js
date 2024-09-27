@@ -134,6 +134,12 @@ add_task(async function test_toggle_vertical_tabs() {
     "Container should extend far beyond the last tab."
   );
 
+  // We are testing click events on the tabstrip itself, rather than on any
+  // specific button. Disable a11y checks for this portion.
+  AccessibilityUtils.setEnv({
+    mustHaveAccessibleRule: false,
+  });
+
   // Synthesize a double click 100px below the last tab
   EventUtils.synthesizeMouseAtPoint(
     containerRect.left + containerRect.width / 2,
@@ -158,6 +164,8 @@ add_task(async function test_toggle_vertical_tabs() {
   );
 
   is(gBrowser.tabs.length, 4, "Tabstrip now has four tabs");
+
+  AccessibilityUtils.resetEnv();
 
   const toolbarContextMenu = document.getElementById("toolbar-context-menu");
   EventUtils.synthesizeMouseAtPoint(
