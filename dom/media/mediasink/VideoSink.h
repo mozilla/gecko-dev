@@ -148,13 +148,6 @@ class VideoSink : public MediaSink {
   // Based on the pref value obtained in MDSM.
   const uint32_t mVideoQueueSendToCompositorSize;
 
-  // Talos tests for the compositor require at least one frame in the
-  // video queue so that the compositor has something to composit during
-  // the talos test when the decode is stressed. We have a minimum size
-  // on the video queue in order to facilitate this talos test.
-  // This is non-zero only for testing purposes.
-  const uint32_t mMinVideoQueueSize;
-
 #ifdef XP_WIN
   // Whether we've called timeBeginPeriod(1) to request high resolution
   // timers. We request high resolution timers when playback starts, and

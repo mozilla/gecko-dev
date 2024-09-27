@@ -70,8 +70,7 @@ VideoSink::VideoSink(AbstractThread* aThread, MediaSink* aAudioSink,
       mPendingDroppedCount(0),
       mHasVideo(false),
       mUpdateScheduler(aThread),
-      mVideoQueueSendToCompositorSize(aVQueueSentToCompositerSize),
-      mMinVideoQueueSize(StaticPrefs::media_ruin_av_sync_enabled() ? 1 : 0)
+      mVideoQueueSendToCompositorSize(aVQueueSentToCompositerSize)
 #ifdef XP_WIN
       ,
       mHiResTimersRequested(false)
@@ -520,11 +519,12 @@ void VideoSink::UpdateRenderedVideoFrames() {
   uint32_t droppedInSink = 0;
 
   // Skip frames up to the playback position.
-  media::TimeUnit lastFrameEndTime;
-  while (VideoQueue().GetSize() > mMinVideoQueueSize &&
+  // At least the last frame is retained, even when out of date, because it
+  // will be used if no more frames are received before the queue finishes or
+  // the video is paused.
+  while (VideoQueue().GetSize() > 1 &&
          clockTime >= VideoQueue().PeekFront()->GetEndTime()) {
     RefPtr<VideoData> frame = VideoQueue().PopFront();
-    lastFrameEndTime = frame->GetEndTime();
     if (frame->IsSentToCompositor()) {
       sentToCompositorCount++;
     } else {
@@ -583,16 +583,31 @@ void VideoSink::UpdateRenderedVideoFrames() {
                             droppedInSink, droppedInCompositor});
   }
 
-  // The presentation end time of the last video frame displayed is either
-  // the end time of the current frame, or if we dropped all frames in the
-  // queue, the end time of the last frame we removed from the queue.
   RefPtr<VideoData> currentFrame = VideoQueue().PeekFront();
-  mVideoFrameEndTime =
-      std::max(mVideoFrameEndTime,
-               currentFrame ? currentFrame->GetEndTime() : lastFrameEndTime);
+  if (currentFrame) {
+    // The presentation end time of the last video frame consumed is the end
+    // time of the current frame.
+    mVideoFrameEndTime =
+        std::max(mVideoFrameEndTime, currentFrame->GetEndTime());
 
-  RenderVideoFrames(mVideoQueueSendToCompositorSize, clockTime.ToMicroseconds(),
-                    nowTime);
+    // Gecko doesn't support VideoPlaybackQuality.totalFrameDelay
+    // (bug 962353), and so poor video quality from presenting frames late
+    // would not be reported to content.  Present the current frame only if it
+    // is on time, so that otherwise it can be reported in droppedVideoFrames.
+    // If content does not provide replacement media that is faster to decode,
+    // then the effect is stalled playback (bug 1316571) instead of poor A/V
+    // sync (bug 1258870).  Perhaps the reduced number of frames composited
+    // might free up some resources for decode.
+    if (currentFrame->GetEndTime() >= clockTime ||
+        // Talos tests for the compositor require that the most recently
+        // decoded frame is passed to the compositor so that the compositor
+        // has something to composite during the talos test when the decode is
+        // stressed.
+        StaticPrefs::media_ruin_av_sync_enabled()) {
+      RenderVideoFrames(mVideoQueueSendToCompositorSize,
+                        clockTime.ToMicroseconds(), nowTime);
+    }
+  }
 
   MaybeResolveEndPromise();
 
@@ -622,7 +637,15 @@ void VideoSink::MaybeResolveEndPromise() {
   // All frames are rendered, Let's resolve the promise.
   if (VideoQueue().IsFinished() && VideoQueue().GetSize() <= 1 &&
       !mVideoSinkEndRequest.Exists()) {
+    TimeStamp nowTime;
+    const auto clockTime = mAudioSink->GetPosition(&nowTime);
+
     if (VideoQueue().GetSize() == 1) {
+      // Ensure that the last frame and its dimensions have been set on the
+      // VideoFrameContainer, even if the frame was decoded late.  This also
+      // removes references to any other frames currently held by the
+      // VideoFrameContainer.
+      RenderVideoFrames(1, clockTime.ToMicroseconds(), nowTime);
       // Remove the last frame since we have sent it to compositor.
       RefPtr<VideoData> frame = VideoQueue().PopFront();
       if (mPendingDroppedCount > 0) {
@@ -631,19 +654,6 @@ void VideoSink::MaybeResolveEndPromise() {
       } else {
         mFrameStats.NotifyPresentedFrame();
       }
-    }
-
-    TimeStamp nowTime;
-    const auto clockTime = mAudioSink->GetPosition(&nowTime);
-
-    // Clear future frames from the compositor, in case the playback position
-    // unexpectedly jumped to the end, and all frames between the previous
-    // playback position and the end were discarded. Old frames based on the
-    // previous playback position might still be queued in the compositor. See
-    // bug 1598143 for when this can happen.
-    mContainer->ClearFutureFrames(nowTime);
-    if (mSecondaryContainer) {
-      mSecondaryContainer->ClearFutureFrames(nowTime);
     }
 
     if (clockTime < mVideoFrameEndTime) {
