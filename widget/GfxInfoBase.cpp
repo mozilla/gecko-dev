@@ -562,6 +562,18 @@ static int32_t BlocklistFeatureToGfxFeature(const nsAString& aFeature) {
   if (aFeature.EqualsLiteral("ACCELERATED_CANVAS2D")) {
     return nsIGfxInfo::FEATURE_ACCELERATED_CANVAS2D;
   }
+  if (aFeature.EqualsLiteral("H264_HW_DECODE")) {
+    return nsIGfxInfo::FEATURE_H264_HW_DECODE;
+  }
+  if (aFeature.EqualsLiteral("AV1_HW_DECODE")) {
+    return nsIGfxInfo::FEATURE_AV1_HW_DECODE;
+  }
+  if (aFeature.EqualsLiteral("VIDEO_SOFTWARE_OVERLAY")) {
+    return nsIGfxInfo::FEATURE_VIDEO_SOFTWARE_OVERLAY;
+  }
+  if (aFeature.EqualsLiteral("WEBGL_USE_HARDWARE")) {
+    return nsIGfxInfo::FEATURE_WEBGL_USE_HARDWARE;
+  }
   if (aFeature.EqualsLiteral("FEATURE_OVERLAY_VP_AUTO_HDR")) {
     return nsIGfxInfo::FEATURE_OVERLAY_VP_AUTO_HDR;
   }
