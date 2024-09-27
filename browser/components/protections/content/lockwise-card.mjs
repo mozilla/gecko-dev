@@ -36,7 +36,7 @@ export default class LockwiseCard {
     // Attack link to Firefox Lockwise "How it works" page.
     const lockwiseReportLink = this.doc.getElementById("lockwise-how-it-works");
     lockwiseReportLink.addEventListener("click", () => {
-      this.doc.sendTelemetryEvent("click", "lw_about_link");
+      this.doc.sendTelemetryEvent("clickLwAboutLink");
     });
   }
 
@@ -45,19 +45,14 @@ export default class LockwiseCard {
     if (lockwiseCard.classList.contains("has-logins")) {
       if (lockwiseCard.classList.contains("breached-logins")) {
         this.doc.sendTelemetryEvent(
-          "click",
-          "lw_open_button",
+          "clickLwOpenButton",
           "manage_breached_passwords"
         );
       } else if (lockwiseCard.classList.contains("no-breached-logins")) {
-        this.doc.sendTelemetryEvent(
-          "click",
-          "lw_open_button",
-          "manage_passwords"
-        );
+        this.doc.sendTelemetryEvent("clickLwOpenButton", "manage_passwords");
       }
     } else if (lockwiseCard.classList.contains("no-logins")) {
-      this.doc.sendTelemetryEvent("click", "lw_open_button", "save_passwords");
+      this.doc.sendTelemetryEvent("clickLwOpenButton", "save_passwords");
     }
     RPMSendAsyncMessage("OpenAboutLogins");
   }

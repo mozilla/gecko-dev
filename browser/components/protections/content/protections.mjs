@@ -10,9 +10,9 @@ import ProxyCard from "./proxy-card.mjs";
 import VPNCard from "./vpn-card.mjs";
 
 let cbCategory = RPMGetStringPref("browser.contentblocking.category");
-document.sendTelemetryEvent = (action, object, value = "") => {
-  // eslint-disable-next-line no-undef
-  RPMRecordTelemetryEvent("security.ui.protections", action, object, value, {
+document.sendTelemetryEvent = (eventName, value = "") => {
+  RPMRecordGleanEvent("securityUiProtections", eventName, {
+    value,
     category: cbCategory,
   });
 };
@@ -44,12 +44,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   RPMSendQuery("FetchEntryPoint", {}).then(entrypoint => {
     // Send telemetry on arriving on this page
-    document.sendTelemetryEvent("show", "protection_report", entrypoint);
+    document.sendTelemetryEvent("showProtectionReport", entrypoint);
   });
 
   // We need to send the close telemetry before unload while we still have a connection to RPM.
   window.addEventListener("beforeunload", () => {
-    document.sendTelemetryEvent("close", "protection_report");
+    document.sendTelemetryEvent("closeProtectionReport");
   });
 
   let todayInMs = Date.now();
@@ -69,15 +69,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (evt.keyCode == evt.DOM_VK_RETURN || evt.type == "click") {
       RPMSendAsyncMessage("OpenContentBlockingPreferences");
       if (evt.target.id == "protection-settings") {
-        document.sendTelemetryEvent(
-          "click",
-          "settings_link",
-          "header-settings"
-        );
+        document.sendTelemetryEvent("clickSettingsLink", "header-settings");
       } else if (evt.target.id == "manage-protections") {
         document.sendTelemetryEvent(
-          "click",
-          "settings_link",
+          "clickSettingsLink",
           "custom-card-settings"
         );
       }
@@ -234,7 +229,7 @@ document.addEventListener("DOMContentLoaded", () => {
         `browser.contentblocking.report.${type}.url`
       );
       learnMoreLink.addEventListener("click", () => {
-        document.sendTelemetryEvent("click", "trackers_about_link", type);
+        document.sendTelemetryEvent("clickTrackersAboutLink", type);
       });
     }
 
@@ -402,14 +397,14 @@ document.addEventListener("DOMContentLoaded", () => {
     "browser.contentblocking.report.mobile-android.url"
   );
   androidMobileAppLink.addEventListener("click", () => {
-    document.sendTelemetryEvent("click", "mobile_app_link", "android");
+    document.sendTelemetryEvent("clickMobileAppLink", "android");
   });
   let iosMobileAppLink = document.getElementById("ios-mobile-inline-link");
   iosMobileAppLink.href = RPMGetStringPref(
     "browser.contentblocking.report.mobile-ios.url"
   );
   iosMobileAppLink.addEventListener("click", () => {
-    document.sendTelemetryEvent("click", "mobile_app_link", "ios");
+    document.sendTelemetryEvent("clickMobileAppLink", "ios");
   });
 
   let lockwiseEnabled = RPMGetBoolPref(

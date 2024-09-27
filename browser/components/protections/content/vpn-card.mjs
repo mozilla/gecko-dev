@@ -22,7 +22,7 @@ export default class VPNCard {
     );
 
     vpnLink.addEventListener("click", () => {
-      this.doc.sendTelemetryEvent("click", "vpn_card_link");
+      this.doc.sendTelemetryEvent("clickVpnCardLink");
     });
     let androidVPNAppLink = document.getElementById(
       "vpn-google-playstore-link"
@@ -31,25 +31,25 @@ export default class VPNCard {
       "browser.contentblocking.report.vpn-android.url"
     );
     androidVPNAppLink.addEventListener("click", () => {
-      document.sendTelemetryEvent("click", "vpn_app_link_android");
+      document.sendTelemetryEvent("clickVpnAppLinkAndroid");
     });
     let iosVPNAppLink = document.getElementById("vpn-app-store-link");
     iosVPNAppLink.href = RPMGetStringPref(
       "browser.contentblocking.report.vpn-ios.url"
     );
     iosVPNAppLink.addEventListener("click", () => {
-      document.sendTelemetryEvent("click", "vpn_app_link_ios");
+      document.sendTelemetryEvent("clickVpnAppLinkIos");
     });
 
     const vpnBanner = this.doc.querySelector(".vpn-banner");
     const exitIcon = vpnBanner.querySelector(".exit-icon");
     vpnBannerLink.addEventListener("click", () => {
-      this.doc.sendTelemetryEvent("click", "vpn_banner_link");
+      this.doc.sendTelemetryEvent("clickVpnBannerLink");
     });
     // User has closed the vpn banner, hide it.
     exitIcon.addEventListener("click", () => {
       vpnBanner.classList.add("hidden");
-      this.doc.sendTelemetryEvent("click", "vpn_banner_close");
+      this.doc.sendTelemetryEvent("clickVpnBannerClose");
     });
 
     this.showVPNCard();
@@ -96,7 +96,7 @@ export default class VPNCard {
 
     const vpnBanner = this.doc.querySelector(".vpn-banner");
     vpnBanner.classList.remove("hidden");
-    this.doc.sendTelemetryEvent("show", "vpn_banner");
+    this.doc.sendTelemetryEvent("showVpnBanner");
     // VPN banner only shows on the first visit, flip a pref so it does not show again.
     RPMSetPref("browser.contentblocking.report.hide_vpn_banner", true);
   }

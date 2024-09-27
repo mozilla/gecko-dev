@@ -248,7 +248,7 @@ export let RemotePageAccessManager = {
         "browser.contentblocking.report.fingerprinter.url",
         "browser.contentblocking.report.cryptominer.url",
       ],
-      RPMRecordTelemetryEvent: ["*"],
+      RPMRecordGleanEvent: ["securityUiProtections"],
     },
     "about:shoppingsidebar": {
       RPMSetPref: [

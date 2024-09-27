@@ -9,16 +9,10 @@ export class AboutProtectionsChild extends RemotePageChild {
   actorCreated() {
     super.actorCreated();
 
-    this.exportFunctions(["RPMRecordTelemetryEvent"]);
+    this.exportFunctions(["RPMRecordGleanEvent"]);
   }
 
-  RPMRecordTelemetryEvent(category, event, object, value, extra) {
-    return Services.telemetry.recordEvent(
-      category,
-      event,
-      object,
-      value,
-      extra
-    );
+  RPMRecordGleanEvent(category, name, extra) {
+    Glean[category]?.[name]?.record(extra);
   }
 }
