@@ -63,6 +63,11 @@ In this document, we try to list these all tools.
      - `bug 1762027 <https://bugzilla.mozilla.org/show_bug.cgi?id=1762027>`__
      - :ref:`Stylelint`
      - https://stylelint.io/
+   * - Mozilla Stylelint
+     -
+     -
+     - :ref:`Mozilla Stylelint Plugin`
+     -
 
 .. list-table:: JavaScript
    :widths: 20 20 20 20 20
