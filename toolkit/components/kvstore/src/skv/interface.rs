@@ -23,7 +23,8 @@ use xpcom::{
     getter_addrefs,
     interfaces::{
         nsIAsyncShutdownClient, nsIAsyncShutdownService, nsIKeyValueDatabaseCallback,
-        nsIKeyValueEnumeratorCallback, nsIKeyValueImporter, nsIKeyValuePair,
+        nsIKeyValueDatabaseImportOptions, nsIKeyValueEnumeratorCallback,
+        nsIKeyValueImportSourceSpec, nsIKeyValueImporter, nsIKeyValuePair,
         nsIKeyValueVariantCallback, nsIKeyValueVoidCallback, nsIPropertyBag, nsIVariant,
     },
     xpcom, xpcom_method, RefPtr,
@@ -35,7 +36,10 @@ use crate::{
         abort::AbortError,
         coordinator::{Coordinator, CoordinatorClient, CoordinatorError},
         database::{Database, DatabaseError, GetOptions},
-        importer::{CleanupPolicy, ConflictPolicy, ImporterError, RkvImporter},
+        importer::{
+            CleanupPolicy, ConflictPolicy, ImporterError, NamedSourceDatabase, RkvImporter,
+            SourceDatabases,
+        },
         key::{Key, KeyError},
         store::{Store, StoreError, StorePath},
         value::{Value, ValueError},
@@ -756,9 +760,7 @@ impl KeyValueServiceShutdownBlocker {
 #[xpcom(implement(nsIKeyValueImporter), atomic)]
 pub struct RkvSafeModeKeyValueImporter {
     client: CoordinatorClient<'static>,
-    dir: WidePathBuf,
-    conflict_policy: AtomicCell<ConflictPolicy>,
-    cleanup_policy: AtomicCell<CleanupPolicy>,
+    specs: AtomicRefCell<Vec<RefPtr<KeyValueImportSourceSpec>>>,
 }
 
 impl RkvSafeModeKeyValueImporter {
@@ -767,9 +769,8 @@ impl RkvSafeModeKeyValueImporter {
     pub fn new(client: CoordinatorClient<'static>, dir: WidePathBuf) -> RefPtr<Self> {
         RkvSafeModeKeyValueImporter::allocate(InitRkvSafeModeKeyValueImporter {
             client,
-            dir,
-            conflict_policy: ConflictPolicy::Error.into(),
-            cleanup_policy: CleanupPolicy::Keep.into(),
+            // The first spec is always the destination storage directory.
+            specs: vec![KeyValueImportSourceSpec::new(dir)].into(),
         })
     }
 
@@ -780,72 +781,78 @@ impl RkvSafeModeKeyValueImporter {
 
     xpcom_method!(get_path => GetPath() -> nsAString);
     fn get_path(&self) -> Result<nsString, Infallible> {
-        Ok(self.dir.as_wide().into())
+        self.specs.borrow()[0].get_path()
     }
 
-    xpcom_method!(get_conflict_policy => GetConflictPolicy() -> u8);
-    fn get_conflict_policy(&self) -> Result<u8, Infallible> {
-        Ok(self.conflict_policy.load() as u8)
+    xpcom_method!(add_path => AddPath(dir: *const nsAString) -> *const nsIKeyValueImportSourceSpec);
+    fn add_path(&self, dir: &nsAString) -> Result<RefPtr<nsIKeyValueImportSourceSpec>, Infallible> {
+        let spec = KeyValueImportSourceSpec::new(WidePathBuf::new(dir));
+        self.specs.borrow_mut().push(spec.clone());
+        Ok(RefPtr::new(spec.coerce()))
     }
 
-    xpcom_method!(set_conflict_policy => SetConflictPolicy(policy: u8));
-    fn set_conflict_policy(&self, policy: u8) -> Result<(), nsresult> {
-        self.conflict_policy
-            .store(ConflictPolicy::try_from(policy).map_err(|_| nserror::NS_ERROR_INVALID_ARG)?);
-        Ok(())
+    xpcom_method!(
+        add_database => AddDatabase(
+            name: *const nsACString
+        ) -> *const nsIKeyValueDatabaseImportOptions
+    );
+    fn add_database(
+        &self,
+        name: &nsACString,
+    ) -> Result<RefPtr<nsIKeyValueDatabaseImportOptions>, nsresult> {
+        self.specs.borrow()[0].add_database(name)
     }
 
-    xpcom_method!(get_cleanup_policy => GetCleanupPolicy() -> u8);
-    fn get_cleanup_policy(&self) -> Result<u8, Infallible> {
-        Ok(self.cleanup_policy.load() as u8)
-    }
-
-    xpcom_method!(set_cleanup_policy => SetCleanupPolicy(policy: u8));
-    fn set_cleanup_policy(&self, policy: u8) -> Result<(), nsresult> {
-        self.cleanup_policy
-            .store(CleanupPolicy::try_from(policy).map_err(|_| nserror::NS_ERROR_INVALID_ARG)?);
-        Ok(())
+    xpcom_method!(add_all_databases => AddAllDatabases() -> *const nsIKeyValueDatabaseImportOptions);
+    fn add_all_databases(&self) -> Result<RefPtr<nsIKeyValueDatabaseImportOptions>, nsresult> {
+        self.specs.borrow()[0].add_all_databases()
     }
 
     xpcom_method!(
         import => Import(
-            callback: *const nsIKeyValueVoidCallback,
-            name: *const nsACString
+            callback: *const nsIKeyValueVoidCallback
         )
     );
-    fn import(
-        &self,
-        callback: &nsIKeyValueVoidCallback,
-        name: &nsACString,
-    ) -> Result<(), Infallible> {
+    fn import(&self, callback: &nsIKeyValueVoidCallback) -> Result<(), Infallible> {
         let client = self.client.clone();
-        let dir = self.dir.clone();
-        let name = name.to_utf8().into_owned();
-        let conflict_policy = self.conflict_policy.load();
-        let cleanup_policy = self.cleanup_policy.load();
+        let specs = self.specs.borrow().clone();
         let request = moz_task::spawn_blocking(
             "skv:RkvSafeModeKeyValueImporter:Import:Request",
             async move {
-                let dir = dir.canonicalize()?;
-                let store = client.store_for_path(StorePath::for_storage_dir(dir.clone()))?;
                 let mut manager = rkv::Manager::<RkvSafeModeEnvironment>::singleton()
                     .write()
                     .unwrap();
+                let store =
+                    client.store_for_path(StorePath::canonicalizing(specs[0].dir.clone())?)?;
 
-                let builder = Rkv::environment_builder::<RkvSafeMode>();
-                let rkv = manager.get_or_create_from_builder(
-                    dir.as_path(),
-                    builder,
-                    Rkv::from_builder::<RkvSafeMode>,
-                )?;
-                let env = rkv.read().unwrap();
+                // An Rkv environment is unique to a storage directory;
+                // if we're importing from multiple directories, we need to
+                // open an environment for each directory.
+                let rkvs = {
+                    let mut rkvs = Vec::with_capacity(specs.len());
+                    for spec in specs {
+                        let Some(dbs) = spec.to_source_databases() else {
+                            continue;
+                        };
+                        let dir = spec.dir.canonicalize()?;
+                        let builder = Rkv::environment_builder::<RkvSafeMode>();
+                        let rkv = manager.get_or_create_from_builder(
+                            dir.as_path(),
+                            builder,
+                            Rkv::from_builder::<RkvSafeMode>,
+                        )?;
+                        rkvs.push((rkv, dbs));
+                    }
+                    rkvs
+                };
 
-                let mut importer = RkvImporter::for_database(&*env, &store, &name)?;
-                importer
-                    .conflict_policy(conflict_policy)
-                    .cleanup_policy(cleanup_policy);
-                importer.import()?;
-                importer.cleanup();
+                // Import all databases from each directory, in order.
+                for (rkv, dbs) in rkvs {
+                    let env = rkv.read().unwrap();
+                    let importer = RkvImporter::new(&*env, &store, dbs)?;
+                    importer.import()?;
+                    importer.cleanup();
+                }
 
                 Ok(())
             },
@@ -869,76 +876,130 @@ impl RkvSafeModeKeyValueImporter {
 
         Ok(())
     }
+}
+
+#[derive(Clone)]
+enum KeyValueImportSource {
+    Databases(Vec<(String, RefPtr<KeyValueDatabaseImportOptions>)>),
+    AllDatabases(RefPtr<KeyValueDatabaseImportOptions>),
+}
+
+#[xpcom(implement(nsIKeyValueImportSourceSpec), atomic)]
+pub struct KeyValueImportSourceSpec {
+    dir: WidePathBuf,
+    source: AtomicRefCell<Option<KeyValueImportSource>>,
+}
+
+impl KeyValueImportSourceSpec {
+    fn new(dir: WidePathBuf) -> RefPtr<Self> {
+        KeyValueImportSourceSpec::allocate(InitKeyValueImportSourceSpec {
+            dir,
+            source: AtomicRefCell::default(),
+        })
+    }
+
+    fn to_source_databases(&self) -> Option<SourceDatabases> {
+        self.source.borrow().as_ref().map(|source| match source {
+            KeyValueImportSource::Databases(dbs) => SourceDatabases::Named(
+                dbs.iter()
+                    .map(|(name, options)| NamedSourceDatabase {
+                        name: name.clone().into(),
+                        conflict_policy: options.conflict_policy.load(),
+                        cleanup_policy: options.cleanup_policy.load(),
+                    })
+                    .collect(),
+            ),
+            KeyValueImportSource::AllDatabases(options) => SourceDatabases::All {
+                conflict_policy: options.conflict_policy.load(),
+                cleanup_policy: options.cleanup_policy.load(),
+            },
+        })
+    }
+
+    xpcom_method!(get_path => GetPath() -> nsAString);
+    fn get_path(&self) -> Result<nsString, Infallible> {
+        Ok(self.dir.as_wide().into())
+    }
 
     xpcom_method!(
-        import_all => ImportAll(
-            callback: *const nsIKeyValueVoidCallback
-        )
+        add_database => AddDatabase(
+            dir: *const nsACString
+        ) -> *const nsIKeyValueDatabaseImportOptions
     );
-    fn import_all(&self, callback: &nsIKeyValueVoidCallback) -> Result<(), Infallible> {
-        let client = self.client.clone();
-        let dir = self.dir.clone();
-        let conflict_policy = self.conflict_policy.load();
-        let cleanup_policy = self.cleanup_policy.load();
-        let request = moz_task::spawn_blocking(
-            "skv:RkvSafeModeKeyValueImporter:ImportAll:Request",
-            async move {
-                let dir = dir.canonicalize()?;
-                let store = client.store_for_path(StorePath::for_storage_dir(dir.clone()))?;
-                let mut manager = rkv::Manager::<RkvSafeModeEnvironment>::singleton()
-                    .write()
-                    .unwrap();
+    fn add_database(
+        &self,
+        name: &nsACString,
+    ) -> Result<RefPtr<nsIKeyValueDatabaseImportOptions>, nsresult> {
+        let mut guard = self.source.borrow_mut();
+        let source = guard.get_or_insert_with(|| KeyValueImportSource::Databases(Vec::new()));
+        let options = match source {
+            KeyValueImportSource::Databases(dbs) => {
+                let options = KeyValueDatabaseImportOptions::new();
+                dbs.push((name.to_utf8().into_owned(), options.clone()));
+                options
+            }
+            KeyValueImportSource::AllDatabases(_) => {
+                return Err(nserror::NS_ERROR_ALREADY_INITIALIZED)
+            }
+        };
+        Ok(RefPtr::new(options.coerce()))
+    }
 
-                {
-                    // Scope for the Rkv environment.
-                    let builder = Rkv::environment_builder::<RkvSafeMode>();
-                    let rkv = manager.get_or_create_from_builder(
-                        dir.as_path(),
-                        builder,
-                        Rkv::from_builder::<RkvSafeMode>,
-                    )?;
-                    let env = rkv.read().unwrap();
+    xpcom_method!(add_all_databases => AddAllDatabases() -> *const nsIKeyValueDatabaseImportOptions);
+    fn add_all_databases(&self) -> Result<RefPtr<nsIKeyValueDatabaseImportOptions>, nsresult> {
+        let mut guard = self.source.borrow_mut();
+        let options = match &mut *guard {
+            Some(_) => return Err(nserror::NS_ERROR_ALREADY_INITIALIZED),
+            None => {
+                let options = KeyValueDatabaseImportOptions::new();
+                *guard = Some(KeyValueImportSource::AllDatabases(options.clone()));
+                options
+            }
+        };
+        Ok(RefPtr::new(options.coerce()))
+    }
+}
 
-                    let mut importer = RkvImporter::for_all_databases(&*env, &store)?;
-                    importer
-                        .conflict_policy(conflict_policy)
-                        .cleanup_policy(cleanup_policy);
-                    importer.import()?;
-                    importer.cleanup();
-                }
+#[xpcom(implement(nsIKeyValueDatabaseImportOptions), atomic)]
+pub struct KeyValueDatabaseImportOptions {
+    conflict_policy: AtomicCell<ConflictPolicy>,
+    cleanup_policy: AtomicCell<CleanupPolicy>,
+}
 
-                // At this point, we've already imported all the databases,
-                // so if we can't close the environment and optionally
-                // delete all its (now-empty) files, that's OK.
-                let _ = manager.try_close(
-                    dir.as_path(),
-                    match cleanup_policy {
-                        CleanupPolicy::Keep => rkv::CloseOptions::default(),
-                        CleanupPolicy::Delete => rkv::CloseOptions::delete_files_on_disk(),
-                    },
-                );
+impl KeyValueDatabaseImportOptions {
+    fn new() -> RefPtr<Self> {
+        KeyValueDatabaseImportOptions::allocate(InitKeyValueDatabaseImportOptions {
+            conflict_policy: AtomicCell::new(ConflictPolicy::Error),
+            cleanup_policy: AtomicCell::new(CleanupPolicy::Keep),
+        })
+    }
 
-                Ok(())
-            },
-        );
+    xpcom_method!(
+        set_conflict_policy => SetConflictPolicy(
+            policy: u8
+        ) -> *const nsIKeyValueDatabaseImportOptions
+    );
+    fn set_conflict_policy(
+        &self,
+        policy: u8,
+    ) -> Result<RefPtr<nsIKeyValueDatabaseImportOptions>, nsresult> {
+        let policy = ConflictPolicy::try_from(policy).map_err(|_| nserror::NS_ERROR_INVALID_ARG)?;
+        self.conflict_policy.store(policy);
+        Ok(RefPtr::new(self.coerce()))
+    }
 
-        let signal = self.client.signal();
-        let callback = RefPtr::new(callback);
-        moz_task::spawn_local(
-            "skv:RkvSafeModeKeyValueImporter:ImportAll:Response",
-            async move {
-                match signal.aborting(request).await {
-                    Ok(()) => unsafe { callback.Resolve() },
-                    Err(InterfaceError::Abort(_)) => unsafe {
-                        callback.Reject(&*nsCString::from("importAll: aborted"))
-                    },
-                    Err(err) => unsafe { callback.Reject(&*nsCString::from(err.to_string())) },
-                }
-            },
-        )
-        .detach();
-
-        Ok(())
+    xpcom_method!(
+        set_cleanup_policy => SetCleanupPolicy(
+            policy: u8
+        ) -> *const nsIKeyValueDatabaseImportOptions
+    );
+    fn set_cleanup_policy(
+        &self,
+        policy: u8,
+    ) -> Result<RefPtr<nsIKeyValueDatabaseImportOptions>, nsresult> {
+        let policy = CleanupPolicy::try_from(policy).map_err(|_| nserror::NS_ERROR_INVALID_ARG)?;
+        self.cleanup_policy.store(policy);
+        Ok(RefPtr::new(self.coerce()))
     }
 }
 

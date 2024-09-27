@@ -101,30 +101,20 @@ export class KeyValueImporter {
     return this.#importer.path;
   }
 
-  get conflictPolicy() {
-    return this.#importer.conflictPolicy;
+  addPath(dir) {
+    return this.#importer.addPath(dir);
   }
 
-  setConflictPolicy(policy) {
-    this.#importer.conflictPolicy = policy;
-    return this;
+  addDatabase(name) {
+    return this.#importer.addDatabase(name);
   }
 
-  get cleanupPolicy() {
-    return this.#importer.cleanupPolicy;
+  addAllDatabases() {
+    return this.#importer.addAllDatabases();
   }
 
-  setCleanupPolicy(policy) {
-    this.#importer.cleanupPolicy = policy;
-    return this;
-  }
-
-  import(name) {
-    return promisify(this.#importer.import, name);
-  }
-
-  importAll() {
-    return promisify(this.#importer.importAll);
+  import() {
+    return promisify(this.#importer.import);
   }
 }
 
