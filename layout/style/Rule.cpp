@@ -131,4 +131,17 @@ bool Rule::IsIncompleteImportRule() const {
   return !sheet || !sheet->IsComplete();
 }
 
+auto Rule::GetContainingRuleStateForParsing() const -> ContainingRuleState {
+  ContainingRuleState result;
+  for (const auto* rule = this; rule; rule = rule->GetParentRule()) {
+    auto type = rule->Type();
+    result.mContainingTypes |= (1 << UnderlyingValue(type));
+    if (result.mParseRelativeType.isNothing() &&
+        (type == StyleCssRuleType::Style || type == StyleCssRuleType::Scope)) {
+      result.mParseRelativeType.emplace(type);
+    }
+  }
+  return result;
+}
+
 }  // namespace mozilla::css

@@ -212,23 +212,13 @@ nsresult ServoCSSRuleList::InsertRule(const nsACString& aRule,
   if (Document* doc = mStyleSheet->GetAssociatedDocument()) {
     loader = doc->CSSLoader();
   }
+  auto containingState = css::Rule::ContainingRuleState::From(mParentRule);
   StyleCssRuleType type;
-  uint32_t containingTypes = 0;
-  Maybe<StyleCssRuleType> parseRelativeRuleType;
-  for (css::Rule* rule = mParentRule; rule; rule = rule->GetParentRule()) {
-    const auto ruleType = rule->Type();
-    containingTypes |= (1 << uint32_t(ruleType));
-    if (parseRelativeRuleType.isNothing() &&
-        (ruleType == StyleCssRuleType::Style ||
-         ruleType == StyleCssRuleType::Scope)) {
-      // Only the closest applicable type to this rule matters.
-      parseRelativeRuleType = Some(ruleType);
-    }
-  }
   nsresult rv = Servo_CssRules_InsertRule(
-      mRawRules, mStyleSheet->RawContents(), &aRule, aIndex, containingTypes,
-      parseRelativeRuleType.ptrOr(nullptr), loader, allowImportRules,
-      mStyleSheet, &type);
+      mRawRules, mStyleSheet->RawContents(), &aRule, aIndex,
+      containingState.mContainingTypes,
+      containingState.mParseRelativeType.ptrOr(nullptr), loader,
+      allowImportRules, mStyleSheet, &type);
   NS_ENSURE_SUCCESS(rv, rv);
   mRules.InsertElementAt(aIndex, uintptr_t(type));
   return rv;

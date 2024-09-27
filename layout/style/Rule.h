@@ -114,6 +114,17 @@ class Rule : public nsISupports, public nsWrapperCache, public SupportsWeakPtr {
   }
   nsISupports* GetParentObject() const { return mSheet; }
 
+  struct ContainingRuleState {
+    uint32_t mContainingTypes = 0;
+    Maybe<StyleCssRuleType> mParseRelativeType;
+
+    static ContainingRuleState From(Rule* aRule) {
+      return aRule ? aRule->GetContainingRuleStateForParsing()
+                   : ContainingRuleState();
+    }
+  };
+  ContainingRuleState GetContainingRuleStateForParsing() const;
+
  protected:
   // True if we're known-live for cycle collection purposes.
   bool IsKnownLive() const;

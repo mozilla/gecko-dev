@@ -2741,6 +2741,7 @@ pub extern "C" fn Servo_StyleRule_SetSelectorText(
     contents: &StylesheetContents,
     rule: &LockedStyleRule,
     text: &nsACString,
+    parse_relative_rule_type: Option<&CssRuleType>,
 ) -> bool {
     let value_str = unsafe { text.as_str_unchecked() };
 
@@ -2757,13 +2758,16 @@ pub extern "C" fn Servo_StyleRule_SetSelectorText(
             for_supports_rule: false,
         };
 
-        // TODO: Maybe allow setting relative selectors from the OM, if we're in a nested style
-        // rule?
+        let parse_relative = match parse_relative_rule_type {
+            Some(CssRuleType::Style) => ParseRelative::ForNesting,
+            Some(CssRuleType::Scope) => ParseRelative::ForScope,
+            _ => ParseRelative::No,
+        };
         let mut parser_input = ParserInput::new(&value_str);
         match SelectorList::parse(
             &parser,
             &mut Parser::new(&mut parser_input),
-            ParseRelative::No,
+            parse_relative,
         ) {
             Ok(selectors) => {
                 rule.selectors = selectors;
