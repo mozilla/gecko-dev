@@ -341,7 +341,8 @@ CookieServiceChild::RecordDocumentCookie(Cookie* aCookie,
 
   int64_t currentTime = PR_Now() / PR_USEC_PER_SEC;
   if (aCookie->Expiry() <= currentTime) {
-    return CookieNotificationAction::CookieDeleted;
+    return cookieFound ? CookieNotificationAction::CookieDeleted
+                       : CookieNotificationAction::NoActionNeeded;
   }
 
   cookiesList->AppendElement(aCookie);
