@@ -34,9 +34,16 @@
   --theme-arrowpanel-color: var(--theme-popup-color);
   --theme-arrowpanel-border-color: var(--theme-popup-border-color);
   --theme-arrowpanel-separator: light-dark(ThreeDShadow, rgba(249,249,250,.1));
-  --theme-arrowpanel-dimmed: var(--theme-popup-dimmed);
-  --theme-arrowpanel-dimmed-further: light-dark(hsla(0,0%,80%,.45), rgba(249,249,250,.15));
+  --theme-arrowpanel-active-background: light-dark(hsla(0,0%,80%,.45), rgba(249,249,250,.15));
+  --theme-arrowpanel-active-outline-color: transparent;
   --theme-arrowpanel-disabled-color: light-dark(GrayText, rgba(249,249,250,.5));
+
+  &[forced-colors-active] {
+    /* The active state have a different background but with an outline in HCM */
+    --theme-arrowpanel-active-background: SelectedItem;
+    --theme-arrowpanel-active-color: SelectedItemText;
+    --theme-arrowpanel-active-outline-color: ButtonText;
+  }
 }
 
 :root[platform="mac"].theme-light {
@@ -194,7 +201,7 @@ strong {
 
 .devtools-tooltip-query-container header {
   --block-end-space: 5px;
-  border-block-end: 1px solid var(--theme-arrowpanel-dimmed);
+  border-block-end: 1px solid var(--theme-popup-dimmed);
   padding-block-end: var(--block-end-space);
   margin-block-end: var(--block-end-space);
   max-width: 100%;
@@ -522,12 +529,15 @@ strong {
     }
 
     &:not([disabled],[open],:active):hover {
-      background-color: var(--theme-arrowpanel-dimmed);
+      background-color: var(--theme-popup-hover-background);
+      color: var(--theme-popup-hover-color);
     }
 
     &:not([disabled]):is([open],:hover:active) {
-      background-color: var(--theme-arrowpanel-dimmed-further);
+      background-color: var(--theme-arrowpanel-active-background);
+      color: var(--theme-arrowpanel-active-color);
       box-shadow: 0 1px 0 hsla(210,4%,10%,.03) inset;
+      outline: 1px solid var(--theme-arrowpanel-active-outline-color);
     }
 
     &[disabled] {

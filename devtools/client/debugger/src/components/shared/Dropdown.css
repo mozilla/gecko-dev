@@ -3,8 +3,9 @@
  * file, You can obtain one at <http://mozilla.org/MPL/2.0/>. */
 
 .dropdown {
-  background: var(--theme-body-background);
-  border: 1px solid var(--theme-splitter-color);
+  background: var(--theme-popup-background);
+  color: var(--theme-popup-color);
+  border: 1px solid var(--theme-popup-border-color);
   border-radius: 4px;
   box-shadow: 0 4px 4px 0 var(--search-overlays-semitransparent);
   max-height: 300px;
@@ -62,11 +63,20 @@
   padding: 6px 8px;
   font-size: 12px;
   line-height: calc(16 / 12);
-  transition: all 0.25s ease;
-}
 
-.dropdown li:hover {
-  background-color: var(--search-overlays-semitransparent);
+  &:hover {
+    background-color: var(--theme-popup-hover-background);
+    color: var(--theme-popup-hover-color);
+
+    .dropdown-icon {
+      fill: currentColor;
+    }
+
+    .dropdown-icon.prettyPrint,
+    .dropdown-icon.blackBox {
+      background-color: currentColor;
+    }
+  }
 }
 
 .dropdown-icon {

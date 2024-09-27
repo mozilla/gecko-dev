@@ -252,7 +252,8 @@ iframe {
 }
 
 .devtools-autocomplete-listbox .autocomplete-item:hover {
-  background-color: var(--theme-popup-dimmed);
+  background-color: var(--theme-popup-hover-background);
+  color: var(--theme-popup-hover-color);
 }
 
 .devtools-autocomplete-listbox .autocomplete-selected,
@@ -261,8 +262,25 @@ iframe {
   color: var(--theme-selection-color);
 }
 
+/* In High Contrast Mode, we want to distinguish betweeen hover and selected items.
+   Since hover is already adding a "SelectedItem" background we can't rely on the color
+   here, so add an outline as we do for focused element. This follows the HCM design
+   for dropdown (e.g. the Reader Mode voice selector) */
+:root[forced-colors-active] .devtools-autocomplete-listbox .autocomplete-selected {
+  outline: var(--theme-focus-outline);
+  outline-offset: -1px;
+  &:not(:hover) {
+    background-color: unset;
+    color: unset;
+  }
+}
+
 .devtools-autocomplete-listbox .autocomplete-selected > .initial-value {
   font-weight: bold;
+  :root[forced-colors-active] & {
+    background-color: Mark;
+    color: MarkText;
+  }
 }
 
 /* Autocomplete list clone used for accessibility. */

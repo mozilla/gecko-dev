@@ -228,6 +228,8 @@
   --theme-popup-color: light-dark(FieldText, rgb(249, 249, 250));
   --theme-popup-border-color: light-dark(ThreeDShadow, #27272b);
   --theme-popup-dimmed: light-dark(hsla(0, 0%, 80%, 0.3), rgba(249, 249, 250, 0.1));
+  --theme-popup-hover-background: var(--theme-popup-dimmed);
+  --theme-popup-hover-color: var(--theme-popup-color);
 
   /* Styling for devtool buttons */
   --theme-toolbarbutton-background: none;
@@ -303,5 +305,9 @@
     --theme-icon-disabled-color: GrayText;
     --theme-icon-error-color: ButtonText;
     --theme-icon-warning-color: ButtonText;
+
+    /* Menu/Autocomplete items */
+    --theme-popup-hover-background: SelectedItem;
+    --theme-popup-hover-color: SelectedItemText;
   }
 }
