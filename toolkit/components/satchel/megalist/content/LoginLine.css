@@ -3,6 +3,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 :host {
+  --line-container-height: 48px;
   --outer-border-radius: var(--border-radius-small);
   --inner-border-radius: calc(var(--outer-border-radius) - 2px);
   --alert-color: var(--icon-color-warning);
@@ -69,6 +70,7 @@
     height: var(--line-container-height);
     margin-inline-end: var(--space-small);
     background-color: var(--background-color-box);
+    padding: 3px;
     --button-text-color-ghost: var(--icon-color);
     --button-text-color-ghost-hover: var(--icon-color);
 
@@ -76,10 +78,14 @@
       z-index: 1;
     }
 
-    > moz-button:focus-within {
+    > moz-button.reveal-button:focus-within {
       background-color: var(--button-background-color-ghost-hover);
       border-color: var(--button-border-color-ghost-hover);
       color: var(--button-text-color-ghost-hover);
+    }
+
+    > moz-button.reveal-button::part(button) {
+      height: var(--line-container-height);
     }
   }
 }
