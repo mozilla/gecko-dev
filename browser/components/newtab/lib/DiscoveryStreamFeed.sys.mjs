@@ -1820,7 +1820,7 @@ export class DiscoveryStreamFeed {
       // So for now we only care if we need to make this request at all.
       const spocsPromise = this.loadSpocs(
         dispatch,
-        spocsStartupCacheEnabled
+        isStartup && spocsStartupCacheEnabled
       ).catch(error =>
         console.error("Error trying to load spocs feeds:", error)
       );
