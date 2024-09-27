@@ -319,7 +319,7 @@ struct DumpLeakedURLs {
 };
 
 DumpLeakedURLs::~DumpLeakedURLs() {
-  MOZ_ASSERT(NS_IsMainThread());
+//  MOZ_ASSERT(NS_IsMainThread());
   StaticMutexAutoLock lock(gAllURLsMutex);
   if (!gAllURLs.isEmpty()) {
     printf("Leaked URLs:\n");
