@@ -109,9 +109,6 @@ BaselineInterpreterGenerator::BaselineInterpreterGenerator(JSContext* cx,
     : BaselineCodeGen(cx, alloc /* no handlerArgs */) {}
 
 bool BaselineCompilerHandler::init(JSContext* cx) {
-  JS_LOG(baselineCompileHandler, mozilla::LogLevel::Debug,
-         "Baseline Compile Init");
-
   if (!analysis_.init(alloc_)) {
     return false;
   }

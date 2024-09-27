@@ -81,10 +81,10 @@ class LogModule {
   mutable mozilla::AtomicLogLevel* levelPtr{};
 };
 
-#define FOR_EACH_JS_LOG_MODULE(_) \
-  _(baselineCompileHandler)       \
-  _(wasmCodeMetaStats)            \
-  JITSPEW_CHANNEL_LIST(_)
+#define FOR_EACH_JS_LOG_MODULE(_)                                            \
+  _(debug)                /* A predefined log module for casual debugging */ \
+  _(wasmCodeMetaStats)    /* Wasm code statistics */                         \
+  JITSPEW_CHANNEL_LIST(_) /* A module for each JitSpew channel. */
 
 // Declare Log modules
 #define DECLARE_MODULE(X) inline constexpr LogModule X##Module(#X);
