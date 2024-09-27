@@ -610,10 +610,7 @@ MOZ_CAN_RUN_SCRIPT void reportCompilationMessagesToConsole(
 }
 
 already_AddRefed<ShaderModule> Device::CreateShaderModule(
-    JSContext* aCx, const dom::GPUShaderModuleDescriptor& aDesc,
-    ErrorResult& aRv) {
-  Unused << aCx;
-
+    const dom::GPUShaderModuleDescriptor& aDesc, ErrorResult& aRv) {
   RefPtr<dom::Promise> promise = dom::Promise::Create(GetParentObject(), aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;

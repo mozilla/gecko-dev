@@ -602,7 +602,6 @@ dictionary GPUShaderModuleDescriptor
          : GPUObjectDescriptorBase {
     // UTF8String is not observably different from USVString
     required UTF8String code;
-    object sourceMap;
 };
 
 enum GPUCompilationMessageType {
