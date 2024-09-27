@@ -2,19 +2,25 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+:host {
+  --button-size-icon: var(--tab-min-height);
+  --button-min-height: var(--button-size-icon);
+}
+
 .wrapper {
   display: grid;
   grid-template-rows: auto min-content min-content;
   box-sizing: border-box;
   height: 100%;
-  min-width: 50px;
-  padding-block: var(--space-small);
   padding-inline: 0;
 
   /* stylelint-disable-next-line media-query-no-invalid */
   @media (-moz-bool-pref: "sidebar.verticalTabs") {
     :host([expanded]) & {
-      min-width: 280px;
+      /* TODO: Should this be some other pixel value between 5/6? Need to be careful of Linux where font size is larger */
+      --tab-pinned-horizontal-count: 5;
+      /* TODO: These --space-* tokens should use semantic names shared with tabs.css */
+      min-width: calc(var(--tab-pinned-horizontal-count) * var(--tab-pinned-min-width-expanded) + 2 * var(--tab-pinned-container-margin-inline-expanded) + 1px);
     }
   }
 }
@@ -23,19 +29,31 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: start;
 
   > moz-button {
     --button-outer-padding-inline: var(--space-medium);
+    --button-outer-padding-block: var(--space-xsmall);
+
+    &:first-of-type {
+      --button-outer-padding-block-start: var(--space-small);
+    }
+
+    &:last-of-type {
+      --button-outer-padding-block-end: var(--space-small);
+    }
   }
 }
 
-.tools-and-extensions > moz-button:first-of-type {
-  --button-outer-padding-block-start: var(--space-small);
+.bottom-actions > moz-button:last-of-type {
+  --button-outer-padding-block-end: var(--space-medium);
 }
 
-.bottom-actions > moz-button:last-of-type {
-  --button-outer-padding-block-end: var(--space-small);
+/* stylelint-disable-next-line media-query-no-invalid */
+@media (-moz-bool-pref: "sidebar.verticalTabs") {
+  .tools-and-extensions > moz-button:last-of-type {
+    --button-outer-padding-block-end: var(--space-medium);
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -52,7 +70,7 @@
     font-size: var(--font-size-large);
     font-weight: var(--font-weight);
     justify-content: flex-start;
-    padding-inline-start: 8px;
+    padding-inline: calc((var(--button-size-icon) - var(--icon-size-default)) / 2 - var(--border-width));
   }
 
   &::part(label) {

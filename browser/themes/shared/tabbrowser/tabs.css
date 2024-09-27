@@ -11,8 +11,14 @@
   &[uidensity=touch] {
     --tab-min-height: 41px;
   }
-  --tab-collapsed-width: 40px;
+  --tab-collapsed-background-width: 36px;
+  --tab-collapsed-width: calc(var(--tab-collapsed-background-width) + 2 * var(--tab-inner-inline-margin));
+  --tab-inner-inline-margin: var(--space-medium);
   --tab-inline-padding: var(--space-medium);
+  --tab-pinned-expanded-background-width: 40px;
+  --tab-pinned-margin-inline-expanded: var(--space-xsmall);
+  --tab-pinned-min-width-expanded: calc(var(--tab-pinned-expanded-background-width) + 2 * var(--tab-pinned-margin-inline-expanded));
+  --tab-pinned-container-margin-inline-expanded: var(--space-small);
   --tab-border-radius: 4px;
   --tab-overflow-clip-margin: 2px;
   --tab-shadow-max-size: 6px;
@@ -169,8 +175,6 @@
     min-width: 0;
   }
 
-  /* We want the content to be centered for all vertical tabs in the collapsed state. */
-  sidebar-main:not([expanded]) > #vertical-tabs > #tabbrowser-tabs &,
   :root:not([uidensity=compact]) &[pinned] {
     padding: 0 10px;
   }
@@ -728,6 +732,10 @@ tab-group {
 #tabbrowser-arrowscrollbox {
   &[orient="horizontal"] {
     min-width: 1px;
+
+    &::part(scrollbox) {
+      contain: inline-size;
+    }
   }
 
   &:not([scrolledtostart])::part(overflow-start-indicator),
@@ -766,10 +774,6 @@ tab-group {
   &::part(overflow-start-indicator),
   &::part(overflow-end-indicator) {
     transition: opacity 150ms ease;
-  }
-
-  &::part(scrollbox) {
-    contain: inline-size;
   }
 
   /* Scroll arrows */
@@ -831,9 +835,9 @@ tab-group {
   appearance: none;
   min-height: var(--tab-min-height);
   border-radius: var(--border-radius-medium);
-  padding: 0 var(--tab-inline-padding);
-  width: 100%;
-  margin-inline: var(--tab-overflow-clip-margin);
+  padding: 0 calc(var(--tab-inline-padding) - var(--tab-inner-inline-margin));
+  width: var(--tab-collapsed-background-width);
+  margin-inline: var(--tab-inner-inline-margin);
 
   #tabbrowser-tabs[orient="vertical"]:not([expanded]) & > .toolbarbutton-text {
     display: none;
@@ -855,11 +859,19 @@ tab-group {
   }
 }
 
+#tabbrowser-tabs[expanded] {
+  > #vertical-tabs-newtab-button {
+    width: auto;
+  }
+
+  > #tabbrowser-arrowscrollbox[orient="vertical"] > #tabbrowser-arrowscrollbox-periphery > #tabs-newtab-button {
+    width: 100%;
+  }
+}
+
 #vertical-tabs {
   overflow: hidden;
   display: none;
-  padding-inline: calc(var(--space-medium) - var(--tab-overflow-clip-margin));
-  padding-block-start: var(--space-medium);
 
   &[visible] {
     display: flex;
@@ -867,18 +879,17 @@ tab-group {
 }
 
 #vertical-pinned-tabs-container {
+  --tab-inline-padding: calc((calc(var(--tab-collapsed-background-width) + 2 * var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2));
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(var(--tab-collapsed-width), auto));
+  grid-template-columns: repeat(auto-fit, minmax(var(--tab-pinned-min-width-expanded), auto));
   overflow-y: auto;
   overflow-x: hidden;
   scrollbar-width: thin;
   /* Fit slightly more than 5 tabs + padding before overflowing */
   max-height: 244px;
-  column-gap: 4px;
 
-  #tabbrowser-tabs:not([expanded]) > &:not(:empty) {
-    border-bottom: var(--tabstrip-inner-border);
-    padding-bottom: var(--space-small);
+  .tab-content {
+    justify-content: center;
   }
 
   #tabbrowser-tabs[orient="horizontal"] > & {
@@ -896,10 +907,30 @@ tab-group {
       background-color: color-mix(in srgb, currentColor 7%, transparent);
     }
   }
+
+  #tabbrowser-tabs[expanded] > & {
+    padding-inline: var(--tab-pinned-container-margin-inline-expanded);
+
+    .tab-background {
+      margin-inline: var(--tab-pinned-margin-inline-expanded);
+    }
+  }
+}
+
+#vertical-pinned-tabs-container-separator {
+  display: block;
+  border-bottom: var(--tabstrip-inner-border);
+  margin-inline: var(--tab-inner-inline-margin);
+
+  #tabbrowser-tabs[expanded] > &,
+  #vertical-pinned-tabs-container:empty + & {
+    display: none;
+  }
 }
 
 #tabbrowser-tabs[orient="vertical"] {
   --tab-min-width: unset;
+  --tab-inline-padding: calc((var(--tab-collapsed-width) - var(--icon-size-default)) / 2);
 
   min-height: 0;
   display: flex;
@@ -908,27 +939,38 @@ tab-group {
   grid-gap: var(--space-small);
   padding: 0; /* override tabbox.css on macOS */
 
-  &[overflow] {
+  &[overflow]::after {
+    content: "";
     border-bottom: var(--tabstrip-inner-border);
+    margin-inline: var(--tab-inner-inline-margin);
   }
 
   .tabbrowser-tab {
     flex: none;
+    padding: 0;
   }
 
-  .tab-content {
-    /* Prevents the tab content in the vertical-pinned-tabs-container
-    from becoming misaligned when in the expanded state. */
-    justify-content: center;
+  .tab-label-container {
+    contain: inline-size;
   }
 
   .tab-background {
     border-radius: var(--border-radius-medium);
+    margin-inline: var(--tab-inner-inline-margin);
+    height: var(--tab-min-height);
   }
 
   &:not([expanded]) {
     .tabbrowser-tab {
-      width: var(--tab-collapsed-width);
+      padding: 0;
+
+      &[pinned] {
+        width: var(--tab-collapsed-width);
+      }
+    }
+
+    .tab-background {
+      width: var(--tab-collapsed-background-width);
     }
 
     .tab-label-container,
