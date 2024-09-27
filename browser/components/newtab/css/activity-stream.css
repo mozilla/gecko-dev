@@ -2864,7 +2864,7 @@ main section {
 .location-input-wrapper .search-icon {
   content: url("chrome://global/skin/icons/search-glass.svg");
   -moz-context-properties: fill;
-  fill: light-dark(var(--color-gray-70), var(--color-gray-05));
+  fill: var(--icon-color);
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -2873,7 +2873,7 @@ main section {
 .location-input-wrapper .close-icon {
   background-image: url("chrome://global/skin/icons/close.svg");
   -moz-context-properties: fill;
-  fill: light-dark(var(--color-gray-70), var(--color-gray-05));
+  fill: var(--icon-color);
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -5495,12 +5495,12 @@ main section {
   background-size: var(--icon-size-default);
   background-position: center;
   padding: var(--space-small);
-  fill: light-dark(var(--color-gray-70), var(--color-gray-05));
+  fill: var(--icon-color);
   transition: fill 0.3s ease-in-out;
 }
 .card-stp-thumbs-buttons-wrapper .icon-thumbs-up:hover,
 .card-stp-thumbs-buttons-wrapper .icon-thumbs-down:hover {
-  fill: light-dark(var(--color-gray-100), var(--text-color));
+  fill: var(--text-color-deemphasized);
 }
 .card-stp-thumbs-buttons-wrapper .icon-thumbs-up:hover:active,
 .card-stp-thumbs-buttons-wrapper .icon-thumbs-down:hover:active {
@@ -6011,7 +6011,7 @@ main section {
 .topic-list .topic-item {
   align-items: center;
   border-radius: 40px;
-  border: 1px solid var(--color-gray-60);
+  border: var(--border-width) solid var(--border-color-interactive);
   display: flex;
   justify-self: center;
   max-width: fit-content;
