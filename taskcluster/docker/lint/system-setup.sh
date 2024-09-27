@@ -12,6 +12,7 @@ apt_packages+=('curl')
 apt_packages+=('iproute2')
 apt_packages+=('locales')
 apt_packages+=('m4')
+apt_packages+=('fzf')
 apt_packages+=('graphviz')
 apt_packages+=('python3-pip')
 apt_packages+=('python-is-python3')
@@ -33,12 +34,6 @@ dpkg-reconfigure locales
 su -c 'git config --global user.email "worker@mozilla.test"' worker
 su -c 'git config --global user.name "worker"' worker
 
-tooltool_fetch() {
-    cat >manifest.tt
-    /build/tooltool.py fetch
-    rm manifest.tt
-}
-
 cd /build
 
 ###
@@ -50,23 +45,6 @@ cd /build
 . install-node.sh
 
 npm install -g yarn@1.22.18
-
-###
-# fzf setup
-###
-
-tooltool_fetch <<EOF
-[
-  {
-    "size": 1161860,
-    "digest": "3246470715e1ddf4c7e5136fdddd2ca269928c2de3074a98233faef189efd88fc9b28ddbe68642a31cf647a97f630941d764187006c5115e6f357d49322ef58d",
-    "algorithm": "sha512",
-    "filename": "fzf-0.20.0-linux_amd64.tgz",
-    "unpack": true
-  }
-]
-EOF
-mv fzf /usr/local/bin
 
 ###
 # codespell Setup
