@@ -53,6 +53,7 @@ export class MegalistAlpha extends MozLitElement {
   connectedCallback() {
     super.connectedCallback();
     this.#messageToViewModel("Refresh");
+    this.#sendCommand(this.displayMode);
   }
 
   #onMessageFromViewModel({ detail }) {

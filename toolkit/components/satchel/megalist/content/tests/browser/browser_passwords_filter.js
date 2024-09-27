@@ -13,16 +13,8 @@ add_setup(async function () {
   registerCleanupFunction(LoginTestUtils.clearData);
 });
 
-add_task(async function test_filter_passwords() {
-  await addBreach();
-  await addMockPasswords();
-  info("Adding breached login");
-  await Services.logins.addLoginAsync(BREACHED_LOGIN);
-  const megalist = await openPasswordsSidebar();
-  await checkAllLoginsRendered(megalist);
-
-  info("Toggle showing only alerts");
-  const alertsRenderedPromise = BrowserTestUtils.waitForMutationCondition(
+const getAlertsRenderedPromise = megalist => {
+  return BrowserTestUtils.waitForMutationCondition(
     megalist,
     { childList: true, subtree: true },
     async () => {
@@ -37,8 +29,10 @@ add_task(async function test_filter_passwords() {
       );
     }
   );
-  // Ensure the alerts button is rendered.
-  await BrowserTestUtils.waitForMutationCondition(
+};
+
+const waitForAlertsButton = megalist => {
+  return BrowserTestUtils.waitForMutationCondition(
     megalist,
     { childList: true, subtree: true },
     () => {
@@ -46,6 +40,20 @@ add_task(async function test_filter_passwords() {
       return alertsButton !== null;
     }
   );
+};
+
+add_task(async function test_filter_passwords() {
+  await addBreach();
+  await addMockPasswords();
+  info("Adding breached login");
+  await Services.logins.addLoginAsync(BREACHED_LOGIN);
+  const megalist = await openPasswordsSidebar();
+  await checkAllLoginsRendered(megalist);
+  info("Toggle showing only alerts");
+  const alertsRenderedPromise = getAlertsRenderedPromise(megalist);
+
+  // Ensure the alerts button is rendered.
+  await waitForAlertsButton(megalist);
   const alertsButton = megalist.querySelector("#alerts");
   alertsButton.click();
   await alertsRenderedPromise;
@@ -55,5 +63,36 @@ add_task(async function test_filter_passwords() {
   const allLoginsButton = megalist.querySelector("#allLogins");
   allLoginsButton.click();
   await checkAllLoginsRendered(megalist);
+
+  LoginTestUtils.clearData();
+  SidebarController.hide();
+});
+
+add_task(async function test_filter_passwords_after_sidebar_closed() {
+  const megalist = await openPasswordsSidebar();
+  await addBreach();
+  await addMockPasswords();
+  info("Adding breached login");
+  await Services.logins.addLoginAsync(BREACHED_LOGIN);
+  await checkAllLoginsRendered(megalist);
+  info("Toggle showing only alerts");
+  const alertsRenderedPromise = getAlertsRenderedPromise(megalist);
+
+  // Ensure the alerts button is rendered.
+  await waitForAlertsButton(megalist);
+  const alertsButton = megalist.querySelector("#alerts");
+  alertsButton.click();
+  await alertsRenderedPromise;
+  info("Passwords list is showing only login alerts.");
+
+  // Make sure that we show all saved logins after openning and closing the sidebar.
+  info("Hide sidebar.");
+  SidebarController.hide();
+  info("Show sidebar.");
+  await SidebarController.show("viewMegalistSidebar");
+  await checkAllLoginsRendered(megalist);
+  info("All saved logins are displayed.");
+
+  LoginTestUtils.clearData();
   SidebarController.hide();
 });
