@@ -1126,7 +1126,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Za izhod iz celozaslonskega načina povlecite z vrha in uporabite potezo za pomik nazaj</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Za izhod iz celozaslonskega načina povlecite z vrha in uporabite potezo za pomik nazaj</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Za izhod iz celozaslonskega načina povlecite z vrha in pritisnite Nazaj</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Za izhod iz celozaslonskega načina povlecite z vrha in pritisnite Nazaj</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Povlecite od zgoraj in uporabite potezo nazaj za izhod</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Povlecite od zgoraj in pritisnite nazaj za izhod</string>
 </resources>

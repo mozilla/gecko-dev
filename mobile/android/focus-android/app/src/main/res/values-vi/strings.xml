@@ -1123,7 +1123,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và sử dụng cử chỉ quay lại</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Để thoát khỏi chế độ toàn màn hình, hãy kéo từ trên xuống và nhấn quay lại</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Kéo từ trên xuống &amp; sử dụng cử chỉ quay lại để thoát</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Kéo từ trên xuống &amp; nhấn phím quay lại để thoát</string>
 </resources>

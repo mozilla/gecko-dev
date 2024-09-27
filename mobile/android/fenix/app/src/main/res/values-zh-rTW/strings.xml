@@ -98,9 +98,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">我們最強大的隱私功能，會隔離跨網站追蹤器。</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">我們最強大的隱私功能，會隔離跨網站追蹤器。</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">了解「全方位 Cookie 保護」功能的更多資訊</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">了解「全方位 Cookie 保護」功能的更多資訊</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -219,8 +219,11 @@
     <string name="browser_menu_manage_extensions">管理擴充套件</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">推薦的擴充套件</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">安裝 %1$s</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">新增擴充套件</string>
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">新增擴充套件</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">探索更多擴充套件</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -2512,13 +2515,13 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">現在不要</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">在購買商品前，先看看評論是否可信。</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">在購買商品前，先看看評論是否可信。</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">試用商品評論檢查器</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">試用商品評論檢查器</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">這些評論可靠嗎？看看是否有調整過的評分。</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">這些評論可靠嗎？看看是否有調整過的評分。</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">開啟商品評論檢查器</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">開啟商品評論檢查器</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2915,6 +2918,10 @@
     <string name="debug_drawer_cfr_tools_title">CFR 工具</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">重設 CFR</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Glean 除錯工具</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

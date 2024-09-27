@@ -1123,7 +1123,14 @@ Si vous vous êtes déjà connecté·e avec succès à ce serveur, l’erreur es
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Pour quitter le mode plein écran, balayez depuis le haut et utilisez le geste de retour</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Pour quitter le mode plein écran, balayez depuis le haut et utilisez le geste de retour</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Pour quitter le mode plein écran, balayez depuis le haut et appuyez sur le bouton retour</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Pour quitter le mode plein écran, balayez depuis le haut et appuyez sur le bouton retour</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Balayez depuis le haut et utilisez le geste de retour pour quitter</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Balayez depuis le haut et appuyez sur le bouton retour pour quitter</string>
 </resources>

@@ -1096,7 +1096,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">כדי לצאת ממסך מלא, יש לגרור מלמעלה ולהשתמש בתנועת אחורה</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">כדי לצאת ממסך מלא, יש לגרור מלמעלה ולהשתמש בתנועת אחורה</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">כדי לצאת ממסך מלא, יש לגרור מלמעלה וללחוץ על חזרה</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">כדי לצאת ממסך מלא, יש לגרור מלמעלה וללחוץ על חזרה</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">יש לגרור מלמעלה ולהשתמש בתנועת החזרה כדי לצאת</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">יש לגרור מלמעלה וללחוץ על כפתור החזרה כדי לצאת</string>
 </resources>

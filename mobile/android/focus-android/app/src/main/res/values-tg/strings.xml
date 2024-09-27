@@ -1089,7 +1089,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Барои баромадан аз экрани пурра, аз боло кашед ва ишораи бозгаштро истифода баред</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Барои баромадан аз экрани пурра, аз боло кашед ва ишораи бозгаштро истифода баред</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Барои баромадан аз экрани пурра, аз боло кашед ва тугмаи бозгаштро пахш кунед</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Барои баромадан аз экрани пурра, аз боло кашед ва тугмаи бозгаштро пахш кунед</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Аз боло кашед ва барои баромад ишораи бозгаштро истифода баред</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Аз боло кашед ва барои баромад тугмаи «Бозгашт»-ро пахш намоед</string>
 </resources>

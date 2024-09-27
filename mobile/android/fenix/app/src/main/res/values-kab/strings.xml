@@ -100,9 +100,9 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Tamahilt-nneɣ n tbaḍnit iǧehden aṭas akka ar tura iɛezzel ineḍfaren gar yismal.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Tamahilt-nneɣ n tbaḍnit iǧehden aṭas akka ar tura iɛezzel ineḍfaren gar yismal.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">Issin ugar ɣef ummesten asemday mgal inagan n tuqqna</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">Issin ugar ɣef ummesten asemday mgal inagan n tuqqna</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -222,8 +222,11 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="browser_menu_manage_extensions">Sefrek isiɣzaf</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">Isiɣzaf yettuwellhen</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Rnu %1$s</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">Rnu asiɣzef</string>
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Rnu asiɣzef</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Snirem ugar n yisiɣzaf</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -2511,13 +2514,13 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">Mačči tura</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">Senqed ma ad tamneḍ tamawin ɣef ufaris-a — send ad t-taɣeḍ.</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Senqed ma ad tamneḍ tamawin ɣef ufaris-a — send ad t-taɣeḍ.</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">Ɛreḍ amsenqad n tamawt</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Ɛreḍ amsenqad n tamawt</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">Iceggiren-a ṣeḥḥan? Senqed-it tura i wakken ad twaliḍ afmiḍi yettwaseɣtan.</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Iceggiren-a ṣeḥḥan? Senqed-it tura i wakken ad twaliḍ afmiḍi yettwaseɣtan.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">Ldi amsenqad n tamawt</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Ldi amsenqad n tamawt</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2923,6 +2926,10 @@ Tiktiwin tigejdanin yuzzlen ur nṣeḥḥi ara
     <string name="debug_drawer_cfr_tools_title">Ifecka CFR</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Wennez CFRs</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Ifecka n temseɣtayt Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

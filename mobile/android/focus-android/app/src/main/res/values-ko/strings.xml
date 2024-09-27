@@ -1120,7 +1120,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">전체 화면을 종료하려면 위에서 드래그하고 뒤로 동작을 사용하세요.</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">전체 화면을 종료하려면 위에서 드래그하고 뒤로 동작을 사용하세요.</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">전체 화면을 종료하려면 위에서 드래그한 후 뒤로를 누르세요.</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">전체 화면을 종료하려면 위에서 드래그한 후 뒤로를 누르세요.</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">종료하려면, 위에서 드래그하고 뒤로 제스처를 사용하세요</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">종료하려면, 위에서 드래그하고 뒤로를 누르세요</string>
 </resources>

@@ -1122,7 +1122,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Poistu koko näytöstä vetämällä ylhäältä ja käyttämällä Takaisin-elettä</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Poistu koko näytöstä vetämällä ylhäältä ja käyttämällä Takaisin-elettä</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Poistu koko näytöstä vetämällä ylhäältä ja painamalla takaisin</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Poistu koko näytöstä vetämällä ylhäältä ja painamalla takaisin</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Vedä ylhäältä ja poistu takaisin-eleellä</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Vedä ylhäältä ja paina takaisin poistuaksesi</string>
 </resources>

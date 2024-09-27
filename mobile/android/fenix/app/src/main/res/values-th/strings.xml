@@ -93,9 +93,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">คุณลักษณะความเป็นส่วนตัวที่ทรงพลังที่สุดของเราแยกตัวติดตามข้ามไซต์</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">คุณลักษณะความเป็นส่วนตัวที่ทรงพลังที่สุดของเราแยกตัวติดตามข้ามไซต์</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">เรียนรู้เกี่ยวกับการป้องกันคุกกี้ทั้งหมด</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">เรียนรู้เกี่ยวกับการป้องกันคุกกี้ทั้งหมด</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -215,8 +215,11 @@
     <string name="browser_menu_manage_extensions">จัดการส่วนขยาย</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">ส่วนขยายที่แนะนำ</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">เพิ่ม %1$s</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">เพิ่มส่วนขยาย</string>
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">เพิ่มส่วนขยาย</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">ค้นพบส่วนขยายเพิ่มเติม</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -239,6 +242,8 @@
     <string name="browser_menu_add_to_homescreen">เพิ่มไปยังหน้าจอหลัก</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen_2">เพิ่มไปยังหน้าจอหลัก…</string>
+    <!-- Text for notifying users that Xiaomi devices require additional permissions to add to home screen -->
+    <string name="browser_menu_add_to_homescreen_xiaomi">อุปกรณ์ Xiaomi อาจต้องขออนุญาตเพิ่มเติมเพื่อเพิ่มทางลัดในหน้าจอหลัก โปรดตรวจสอบการตั้งค่าของคุณ</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">ซิงค์ใหม่</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -903,6 +908,8 @@
     <string name="preferences_marketing_data_description2">แบ่งปันข้อมูลการใช้งานพื้นฐานกับ Adjust ผู้จำหน่ายการตลาดมือถือของเรา</string>
     <!-- Preference switch title for automatically submitting crash reports -->
     <string name="preferences_automatically_submit_crashes_title">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
+    <!-- Preference switch description for automatically submitting crash reports -->
+    <string name="preferences_automatically_submit_crashes_description">ส่งข้อมูลการขัดข้องให้กับทาง Mozilla เมื่อเริ่มทำงานโดยอัตโนมัติหลังจากเกิดข้อขัดข้อง</string>
     <!-- Title for studies preferences -->
     <string name="preference_experiments_2">การศึกษา</string>
     <!-- Summary for studies preferences -->
@@ -1197,6 +1204,8 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">เรียกคืนแท็บ</string>
 
+    <!-- Unsubmitted crash dialog title, The first parameter is the name of the app (e.g. Firefox)  -->
+    <string name="unsubmitted_crash_dialog_title">%s ต้องเริ่มการทำงานใหม่อีกครั้ง</string>
     <!-- Unsubmitted crash dialog checkbox label for automatically sending reports in the future -->
     <string name="unsubmitted_crash_dialog_checkbox_label">ส่งรายงานความผิดพลาดโดยอัตโนมัติ</string>
     <!-- Unsubmitted crash dialog negative button to dismiss the dialog -->
@@ -1292,8 +1301,15 @@
 
     <!-- Title for the bookmark list empty state-->
     <string name="bookmark_empty_list_title">ไม่มีที่คั่นหน้า</string>
+    <!-- Description for the bookmark list empty state when you're not signed into sync. -->
+    <string name="bookmark_empty_list_guest_description">บันทึกไซต์ขณะที่คุณเรียกดู ลงชื่อเข้าเพื่อดึงที่คั่นหน้าจากอุปกรณ์อื่น ๆ ที่ซิงค์</string>
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">ลงชื่อเข้าใช้เพื่อซิงค์</string>
+
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">บันทึกไซต์ขณะที่คุณเรียกดู นอกจากนี้ เราจะดึงที่คั่นหน้าจากอุปกรณ์อื่น ๆ ที่ซิงค์มาให้คุณด้วย</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">เพิ่มที่คั่นหน้าขณะที่คุณเรียกดูเพื่อให้คุณสามารถหาไซต์โปรดของคุณได้ในภายหลัง</string>
 
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
@@ -2470,13 +2486,13 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ไม่ใช่ตอนนี้</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">ค้นพบว่าคุณสามารถเชื่อถือบทวิจารณ์ของผลิตภัณฑ์นี้ได้หรือไม่ ก่อนที่คุณจะตัดสินใจซื้อ</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ค้นพบว่าคุณสามารถเชื่อถือบทวิจารณ์ของผลิตภัณฑ์นี้ได้หรือไม่ ก่อนที่คุณจะตัดสินใจซื้อ</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">ลองใช้เครื่องมือตรวจสอบบทวิจารณ์</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">ลองใช้เครื่องมือตรวจสอบบทวิจารณ์</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">บทวิจารณ์เหล่านี้เชื่อถือได้หรือไม่? ตรวจสอบตอนนี้เพื่อดูคะแนนที่ปรับแล้ว</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">บทวิจารณ์เหล่านี้เชื่อถือได้หรือไม่? ตรวจสอบตอนนี้เพื่อดูคะแนนที่ปรับแล้ว</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">เปิดเครื่องมือตรวจสอบบทวิจารณ์</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">เปิดเครื่องมือตรวจสอบบทวิจารณ์</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2875,11 +2891,22 @@
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">รีเซ็ต CFR</string>
 
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">เครื่องมือดีบั๊ก Glean</string>
+
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
     <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วใช้ท่าทางย้อนกลับ</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
     <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">หากต้องการออกจากการแสดงเต็มจอ ให้ลากจากด้านบนแล้วกดย้อนกลับ</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">ลากจากด้านบนและใช้ท่าทางย้อนกลับเพื่อออก</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">ลากจากด้านบนและกดย้อนกลับเพื่อออก</string>
 
     <!-- Beta Label Component !-->
     <!-- Text shown as a label or tag to indicate a feature or area is still undergoing active development. Note that here "Beta" should not be translated, as it is used as an icon styled element. -->

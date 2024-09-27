@@ -98,9 +98,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">Notre fonctionnalité de confidentialité la plus puissante à ce jour isole les traqueurs intersites.</string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Notre fonctionnalité de confidentialité la plus puissante à ce jour isole les traqueurs intersites.</string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">En savoir plus sur la protection totale contre les cookies</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">En savoir plus sur la protection totale contre les cookies</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -219,8 +219,11 @@
     <string name="browser_menu_manage_extensions">Gérer les extensions</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">Extensions recommandées</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Ajouter %1$s</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">Ajouter l’extension</string>
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Ajouter l’extension</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">Découvrir d’autres extensions</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -2921,6 +2924,10 @@
     <string name="debug_drawer_cfr_tools_title">Outils CFR</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">Réinitialiser les CFR</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Outils de débogage Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

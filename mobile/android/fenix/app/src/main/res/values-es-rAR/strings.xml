@@ -218,6 +218,9 @@
     <string name="browser_menu_manage_extensions">Administrar extensiones</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">Extensiones recomendadas</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">Agregar %1$s</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
     <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">Agregar extensión</string>
     <!-- Browser menu button that opens AMO in a tab -->
@@ -2914,7 +2917,7 @@
 
     <!-- Glean debug tools -->
     <!-- The title of the glean debugging feature -->
-    <string name="glean_debug_tools_title">Glean depuración</string>
+    <string name="glean_debug_tools_title">Herramientas de depuración de Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

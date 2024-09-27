@@ -122,7 +122,7 @@
     <string name="navbar_cfr_message_2">웹 사이트에서, 아래로 스크롤하면 이 막대는 사라져 추가 탐색 공간을 확보할 수 있습니다.</string>
 
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
-    <string name="navbar_navigation_buttons_cfr_message">이 탭 기록의 페이지를 이동하려면 화살표를 길게 누르세요.</string>
+    <string name="navbar_navigation_buttons_cfr_message">이 탭 기록 페이지로 이동하려면 화살표를 길게 누르세요.</string>
 
     <!-- Tablet navigation bar "contextual feature recommendation" (CFR) -->
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the tablet navigation bar. -->
