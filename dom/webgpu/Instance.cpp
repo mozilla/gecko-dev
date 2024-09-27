@@ -20,8 +20,6 @@
 
 namespace mozilla::webgpu {
 
-GPU_IMPL_CYCLE_COLLECTION(WGSLLanguageFeatures, mParent)
-
 GPU_IMPL_CYCLE_COLLECTION(Instance, mOwner)
 
 static inline nsDependentCString ToCString(const std::string_view s) {
@@ -46,8 +44,7 @@ already_AddRefed<Instance> Instance::Create(nsIGlobalObject* aOwner) {
   return result.forget();
 }
 
-Instance::Instance(nsIGlobalObject* aOwner)
-    : mOwner(aOwner), mWgslLanguageFeatures(new WGSLLanguageFeatures(this)) {}
+Instance::Instance(nsIGlobalObject* aOwner) : mOwner(aOwner) {}
 
 Instance::~Instance() { Cleanup(); }
 
