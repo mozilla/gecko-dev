@@ -180,7 +180,6 @@ reftest:
         - draw-snapshot
         - geckoview-no-fission-ship
         - no-fission
-        - no-gpu-process
         - webrender-dcomp-disabled
         - webrender-dcomp-present
         - webrender-dcomp-overlays
@@ -262,7 +261,6 @@ reftest-qr:
     test-manifest-loader: null  # don't load tests in the taskgraph
     variants:
         - no-fission
-        - no-gpu-process
         - webrender-sw+no-fission
     run-without-variant: false
     run-on-projects:
@@ -272,7 +270,6 @@ reftest-qr:
                     android-hw-p5-13-0-android-aarch64-qr/debug: built-projects
                     default: []
             no-fission: built-projects
-            no-gpu-process: built-projects
     max-run-time: 2400
     mozharness:
         chunked: true
