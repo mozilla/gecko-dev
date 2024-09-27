@@ -8,13 +8,13 @@
 
 #include "MediaInfo.h"
 #include "MediaSegment.h"
+#include "mozilla/AbstractThread.h"
 #include "mozilla/DefineEnum.h"
 #include "mozilla/UniquePtr.h"
 #include "nsSize.h"
 
 namespace mozilla {
 
-class AbstractThread;
 class GMPCrashHelper;
 class VideoFrameContainer;
 class MediaInfo;
@@ -137,7 +137,9 @@ class MediaDecoderOwner {
    * implementations so they can compile in Servo without modification.
    */
   // Return an abstract thread on which to run main thread runnables.
-  virtual AbstractThread* AbstractMainThread() const { return nullptr; }
+  static AbstractThread* AbstractMainThread() {
+    return AbstractThread::MainThread();
+  }
 
   // Get the HTMLMediaElement object if the decoder is being used from an
   // HTML media element, and null otherwise.

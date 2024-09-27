@@ -796,8 +796,6 @@ class HTMLMediaElement : public nsGenericHTMLElement,
 
   void DispatchAsyncTestingEvent(const nsAString& aName) override;
 
-  AbstractThread* AbstractMainThread() const final;
-
   // Log the usage of a {visible / invisible} video element as
   // the source of {drawImage(), createPattern(), createImageBitmap() and
   // captureStream()} APIs. This function can be used to collect telemetries for

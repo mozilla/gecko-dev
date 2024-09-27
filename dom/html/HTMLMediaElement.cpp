@@ -7484,10 +7484,6 @@ void HTMLMediaElement::UpdateCustomPolicyAfterPlayed() {
   }
 }
 
-AbstractThread* HTMLMediaElement::AbstractMainThread() const {
-  return AbstractThread::MainThread();
-}
-
 nsTArray<RefPtr<PlayPromise>> HTMLMediaElement::TakePendingPlayPromises() {
   return std::move(mPendingPlayPromises);
 }
