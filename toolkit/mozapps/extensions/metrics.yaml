@@ -8,506 +8,506 @@
 ---
 $schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
 $tags:
-    - 'Toolkit :: Add-ons Manager'
+  - 'Toolkit :: Add-ons Manager'
 
 addons_manager:
-    install: &install_update_event
-        type: event
+  install: &install_update_event
+    type: event
+    description: |
+      These events are recorded during the install and update flow for
+      extensions and themes.
+    bugs:
+      - https://bugzilla.mozilla.org/1433335
+      - https://bugzilla.mozilla.org/1515697
+      - https://bugzilla.mozilla.org/1523641
+      - https://bugzilla.mozilla.org/1549770
+      - https://bugzilla.mozilla.org/1590736
+      - https://bugzilla.mozilla.org/1630596
+      - https://bugzilla.mozilla.org/1672570
+      - https://bugzilla.mozilla.org/1714251
+      - https://bugzilla.mozilla.org/1749878
+      - https://bugzilla.mozilla.org/1781974
+      - https://bugzilla.mozilla.org/1817100
+      - https://bugzilla.mozilla.org/1820153
+      - https://bugzilla.mozilla.org/1912166
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433335#c8
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+    extra_keys:
+      addon_id:
+        description: Id of the addon (when available).
+        type: string
+      addon_type:
         description: |
-            These events are recorded during the install and update flow for
-            extensions and themes.
-        bugs:
-            - https://bugzilla.mozilla.org/1433335
-            - https://bugzilla.mozilla.org/1515697
-            - https://bugzilla.mozilla.org/1523641
-            - https://bugzilla.mozilla.org/1549770
-            - https://bugzilla.mozilla.org/1590736
-            - https://bugzilla.mozilla.org/1630596
-            - https://bugzilla.mozilla.org/1672570
-            - https://bugzilla.mozilla.org/1714251
-            - https://bugzilla.mozilla.org/1749878
-            - https://bugzilla.mozilla.org/1781974
-            - https://bugzilla.mozilla.org/1817100
-            - https://bugzilla.mozilla.org/1820153
-            - https://bugzilla.mozilla.org/1912166
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1433335#c8
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
-        data_sensitivity:
-            - interaction
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-        extra_keys:
-            addon_id:
-                description: Id of the addon (when available).
-                type: string
-            addon_type:
-                description: |
-                    Addon type, one of: extension, theme, locale, dictionary,
-                    sitepermission, siteperm_deprecated, other, unknown.
-                type: string
-            install_id:
-                description: |
-                    Shared by events related to the same install or update flow.
-                type: string
-            download_time:
-                description: The number of ms needed to complete the download.
-                type: quantity
-            error:
-                description: |
-                    The AddonManager error related to an install or update failure.
-                type: string
-            source:
-                description: |
-                    The source that originally triggered the installation, one
-                    of: "about:addons", "about:debugging", "about:preferences",
-                    "amo", "browser-import", "disco", "distribution",
-                    "extension", "enterprise-policy", "file-url",
-                    "geckoview-app", "gmp-plugin", "internal", "plugin",
-                    "rtamo", "siteperm-addon-provider" "sync", "system-addon",
-                    "temporary-addon", "unknown".
-                    For events with method set to "sideload", the source value
-                    is derived from the XPIProvider location name (e.g. possible
-                    values are "app-builtin", "app-global", "app-profile",
-                    "app-system-addons", "app-system-defaults",
-                    "app-system-local", "app-system-profile",
-                    "app-system-share", "app-system-user", "winreg-app-user",
-                    "winreg-app-gobal").
-                type: string
-            source_method:
-                description: |
-                    The method used by the source to install the add-on
-                    (included when the source can use more than one, e.g.
-                    install events with source "about:addons" may have
-                    "install-from-file" or "url" as method), one of: "amWebAPI",
-                    "drag-and-drop", "installTrigger", "install-from-file",
-                    "link", "management-webext-api", "sideload",
-                    "synthetic-install", "url", "product-updates".
-                type: string
-            num_strings:
-                description: |
-                    The number of permission description strings in the
-                    extension permission doorhanger.
-                type: quantity
-            updated_from:
-                description: |
-                    Determine if an update has been requested by the user or
-                    the application ("app" / "user").
-                type: string
-            install_origins:
-                description: |
-                    This flag indicates whether install_origins is defined in
-                    the addon manifest. ("1" / "0")
-                type: string
-            step:
-                description: |
-                    The current step in the install or update flow: started,
-                    postponed, cancelled, failed, permissions_prompt, completed,
-                    site_warning, site_blocked,install_disabled_warning,
-                    download_started, download_completed, download_failed
-                type: string
-        expires: 140
-
-    update: *install_update_event
-
-    install_stats:
-        type: event
+          Addon type, one of: extension, theme, locale, dictionary,
+          sitepermission, siteperm_deprecated, other, unknown.
+        type: string
+      install_id:
         description: |
-            These events are recorded at the end of the install flow, but only
-            when the source that originally triggered the add-on installation
-            is "amo", "rtamo" or "disco".
-        bugs:
-            - https://bugzilla.mozilla.org/1653020
-            - https://bugzilla.mozilla.org/1699225
-            - https://bugzilla.mozilla.org/1820153
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1653020#c6
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
-        data_sensitivity:
-            - interaction
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-        extra_keys:
-            addon_id:
-                description: Id of the addon.
-                type: string
-            addon_type:
-                description: Type of the add-on.
-                type: string
-            taar_based:
-                description: |
-                    This extra key is only set for install flows related to the
-                    discovery addon. When available it is going to be a string
-                    set to "1" for TAAR based recommendations, "0" for manually
-                    curated and unset if not relevant for the particular
-                    install flow.
-                type: string
-            utm_campaign:
-                description: |
-                    The specific product promotion or strategic campaign that
-                    drives traffic to the install page.
-                type: string
-            utm_content:
-                description: |
-                    The specific item that a person clicks on to access the
-                    install page (such as an A/B test, a website banner, or a
-                    specific ad).
-                type: string
-            utm_medium:
-                description: The channel used to share the install page.
-                type: string
-            utm_source:
-                description: |
-                    The name of the product, domain of the website that drives
-                    traffic to the install page.
-                type: string
-        expires: never
-
-    manage:
-        type: event
+          Shared by events related to the same install or update flow.
+        type: string
+      download_time:
+        description: The number of ms needed to complete the download.
+        type: quantity
+      error:
         description: |
-            This events are recorded when an installed add-ons is being
-            disable/enabled/uninstalled.
-        bugs:
-            - https://bugzilla.mozilla.org/1433335
-            - https://bugzilla.mozilla.org/1515697
-            - https://bugzilla.mozilla.org/1523641
-            - https://bugzilla.mozilla.org/1549770
-            - https://bugzilla.mozilla.org/1590736
-            - https://bugzilla.mozilla.org/1630596
-            - https://bugzilla.mozilla.org/1672570
-            - https://bugzilla.mozilla.org/1714251
-            - https://bugzilla.mozilla.org/1749878
-            - https://bugzilla.mozilla.org/1781974
-            - https://bugzilla.mozilla.org/1817100
-            - https://bugzilla.mozilla.org/1820153
-            - https://bugzilla.mozilla.org/1912166
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1433335#c8
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
-        data_sensitivity:
-            - interaction
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-        extra_keys:
-            addon_id:
-                description: Id of the addon being managed.
-                type: string
-            addon_type:
-                description: The type of the add-on being managed.
-                type: string
-            method:
-                description: |
-                    One of: disable, enable, sideload_prompt, uninstall.
-                type: string
-            source:
-                description: |
-                    The source from which the addon has been installed.
-                    See extra_keys.source description from install event.
-                type: string
-            source_method:
-                description: |
-                    The method used by the source to install the add-on
-                    (included when the source can use more than one, e.g.
-                    install events with source "about:addons" may have
-                    "install-from-file" or "url" as method).
-                type: string
-            num_strings:
-                description: |
-                    The number of permission description strings in the
-                    extension permission doorhanger.
-                type: quantity
-        expires: 140
-
-    report_suspicious_site:
-        type: event
+          The AddonManager error related to an install or update failure.
+        type: string
+      source:
         description: |
-            Sent when a user clicks "Report Suspicious Site" on the dropdown
-            menu of the third-party xpinstall doorhanger.
-        bugs:
-            - https://bugzilla.mozilla.org/1806056
-            - https://bugzilla.mozilla.org/1817100
-            - https://bugzilla.mozilla.org/1820153
-            - https://bugzilla.mozilla.org/1912166
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1806056#c3
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
-        data_sensitivity:
-            - stored_content
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-        extra_keys:
-            suspicious_site:
-                description: The domain of the site that was reported.
-                type: string
-        expires: 140
+          The source that originally triggered the installation, one
+          of: "about:addons", "about:debugging", "about:preferences",
+          "amo", "browser-import", "disco", "distribution",
+          "extension", "enterprise-policy", "file-url",
+          "geckoview-app", "gmp-plugin", "internal", "plugin",
+          "rtamo", "siteperm-addon-provider" "sync", "system-addon",
+          "temporary-addon", "unknown".
+          For events with method set to "sideload", the source value
+          is derived from the XPIProvider location name (e.g. possible
+          values are "app-builtin", "app-global", "app-profile",
+          "app-system-addons", "app-system-defaults",
+          "app-system-local", "app-system-profile",
+          "app-system-share", "app-system-user", "winreg-app-user",
+          "winreg-app-gobal").
+        type: string
+      source_method:
+        description: |
+          The method used by the source to install the add-on
+          (included when the source can use more than one, e.g.
+          install events with source "about:addons" may have
+          "install-from-file" or "url" as method), one of: "amWebAPI",
+          "drag-and-drop", "installTrigger", "install-from-file",
+          "link", "management-webext-api", "sideload",
+          "synthetic-install", "url", "product-updates".
+        type: string
+      num_strings:
+        description: |
+          The number of permission description strings in the
+          extension permission doorhanger.
+        type: quantity
+      updated_from:
+        description: |
+          Determine if an update has been requested by the user or
+          the application ("app" / "user").
+        type: string
+      install_origins:
+        description: |
+          This flag indicates whether install_origins is defined in
+          the addon manifest. ("1" / "0")
+        type: string
+      step:
+        description: |
+          The current step in the install or update flow: started,
+          postponed, cancelled, failed, permissions_prompt, completed,
+          site_warning, site_blocked,install_disabled_warning,
+          download_started, download_completed, download_failed
+        type: string
+    expires: 140
+
+  update: *install_update_event
+
+  install_stats:
+    type: event
+    description: |
+      These events are recorded at the end of the install flow, but only
+      when the source that originally triggered the add-on installation
+      is "amo", "rtamo" or "disco".
+    bugs:
+      - https://bugzilla.mozilla.org/1653020
+      - https://bugzilla.mozilla.org/1699225
+      - https://bugzilla.mozilla.org/1820153
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1653020#c6
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+    extra_keys:
+      addon_id:
+        description: Id of the addon.
+        type: string
+      addon_type:
+        description: Type of the add-on.
+        type: string
+      taar_based:
+        description: |
+          This extra key is only set for install flows related to the
+          discovery addon. When available it is going to be a string
+          set to "1" for TAAR based recommendations, "0" for manually
+          curated and unset if not relevant for the particular
+          install flow.
+        type: string
+      utm_campaign:
+        description: |
+          The specific product promotion or strategic campaign that
+          drives traffic to the install page.
+        type: string
+      utm_content:
+        description: |
+          The specific item that a person clicks on to access the
+          install page (such as an A/B test, a website banner, or a
+          specific ad).
+        type: string
+      utm_medium:
+        description: The channel used to share the install page.
+        type: string
+      utm_source:
+        description: |
+          The name of the product, domain of the website that drives
+          traffic to the install page.
+        type: string
+    expires: never
+
+  manage:
+    type: event
+    description: |
+      This events are recorded when an installed add-ons is being
+      disable/enabled/uninstalled.
+    bugs:
+      - https://bugzilla.mozilla.org/1433335
+      - https://bugzilla.mozilla.org/1515697
+      - https://bugzilla.mozilla.org/1523641
+      - https://bugzilla.mozilla.org/1549770
+      - https://bugzilla.mozilla.org/1590736
+      - https://bugzilla.mozilla.org/1630596
+      - https://bugzilla.mozilla.org/1672570
+      - https://bugzilla.mozilla.org/1714251
+      - https://bugzilla.mozilla.org/1749878
+      - https://bugzilla.mozilla.org/1781974
+      - https://bugzilla.mozilla.org/1817100
+      - https://bugzilla.mozilla.org/1820153
+      - https://bugzilla.mozilla.org/1912166
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1433335#c8
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
+    data_sensitivity:
+      - interaction
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+    extra_keys:
+      addon_id:
+        description: Id of the addon being managed.
+        type: string
+      addon_type:
+        description: The type of the add-on being managed.
+        type: string
+      method:
+        description: |
+          One of: disable, enable, sideload_prompt, uninstall.
+        type: string
+      source:
+        description: |
+          The source from which the addon has been installed.
+          See extra_keys.source description from install event.
+        type: string
+      source_method:
+        description: |
+          The method used by the source to install the add-on
+          (included when the source can use more than one, e.g.
+          install events with source "about:addons" may have
+          "install-from-file" or "url" as method).
+        type: string
+      num_strings:
+        description: |
+          The number of permission description strings in the
+          extension permission doorhanger.
+        type: quantity
+    expires: 140
+
+  report_suspicious_site:
+    type: event
+    description: |
+      Sent when a user clicks "Report Suspicious Site" on the dropdown
+      menu of the third-party xpinstall doorhanger.
+    bugs:
+      - https://bugzilla.mozilla.org/1806056
+      - https://bugzilla.mozilla.org/1817100
+      - https://bugzilla.mozilla.org/1820153
+      - https://bugzilla.mozilla.org/1912166
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1806056#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820153#c3
+    data_sensitivity:
+      - stored_content
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+    extra_keys:
+      suspicious_site:
+        description: The domain of the site that was reported.
+        type: string
+    expires: 140
 
 blocklist:
-    last_modified_rs_addons_mblf:
-        type: datetime
-        description: >
-            Keep track of the last time the "addons-bloomfilters" remotesetting
-            blocklist has been successfully updated.
-        lifetime: application
-        bugs:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1572711
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1607744
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1607744#c11
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
-        data_sensitivity:
-            - technical
-        metadata:
-            tags:
-                - 'Toolkit :: Blocklist Implementation'
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-            - rwu@mozilla.com
-        expires: never
-    mlbf_source:
+  last_modified_rs_addons_mblf:
+    type: datetime
+    description: >
+      Keep track of the last time the "addons-bloomfilters" remotesetting
+      blocklist has been successfully updated.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1572711
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1607744
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1607744#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
+    data_sensitivity:
+      - technical
+    metadata:
+      tags:
+        - 'Toolkit :: Blocklist Implementation'
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: never
+  mlbf_source:
+    type: string
+    description: >
+      The source of the RemoteSettings attachment that
+      holds the bloom filter. Possible values are "dump_match",
+      "cache_match", "remote_match","dump_fallback", "cache_fallback",
+      "unknown". "dump_match", "cache_match" and "remote_match"
+      are expected known-good values, and means that the loaded
+      bloomfilter matches the blocklist record in
+      the RemoteSettings collection. The prefix denotes
+      the immediate source of the loaded data: "dump"
+      means packaged with the application, "remote"
+      means a freshly downloaded bloomfilter, "cache"
+      means a previously downloaded bloomfilter. "dump_fallback"
+      and "cache_fallback" means that the last known bloomfilter
+      was used, despite it not matching the latest record
+      in the RemoteSettings collection. In this case
+      the outdated bloomfilter is used as a fallback
+      (e.g. because the latest version cannot be downloaded).
+      "unknown"  means that the bloomfilter cannot
+      be loaded at all. This can happen if the blocklist
+      is disabled via preferences or enterprise policies.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
+    data_sensitivity:
+      - technical
+    metadata:
+      tags:
+        - 'Toolkit :: Blocklist Implementation'
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: never
+    telemetry_mirror: BLOCKLIST_MLBF_SOURCE
+    no_lint:
+      - GIFFT_NON_PING_LIFETIME
+
+  mlbf_generation_time:
+    type: datetime
+    description: >
+      Keep track of the generation time of the addon
+      blocklist's bloom filter. This marks the point
+      in time until which signed add-ons are recognized
+      by the selected bloom filter from the addons-bloomfilters
+      collection.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c3
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
+    data_sensitivity:
+      - technical
+    metadata:
+      tags:
+        - 'Toolkit :: Blocklist Implementation'
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: never
+  mlbf_stash_time_oldest:
+    type: datetime
+    description: >
+      Keep track of the timestamp of the oldest stash
+      of the addons blocklist.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c9
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
+    data_sensitivity:
+      - technical
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: never
+  mlbf_stash_time_newest:
+    type: datetime
+    description: >
+      Keep track of the timestamp of the most recent
+      stash of the addons blocklist.
+    lifetime: application
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c9
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
+    data_sensitivity:
+      - technical
+    metadata:
+      tags:
+        - 'Toolkit :: Blocklist Implementation'
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: never
+  addon_block_change:
+    type: event
+    description: >
+      An add-on is blocked, or an installed add-on is unblocked.
+      When an add-on install/update is blocked, its installation
+      is aborted and the add-on is no longer listed in the activeAddons
+      field of TelemetryEnvironment.
+    extra_keys:
+      value:
         type: string
         description: >
-            The source of the RemoteSettings attachment that
-            holds the bloom filter. Possible values are "dump_match",
-            "cache_match", "remote_match","dump_fallback", "cache_fallback",
-            "unknown". "dump_match", "cache_match" and "remote_match"
-            are expected known-good values, and means that the loaded
-            bloomfilter matches the blocklist record in
-            the RemoteSettings collection. The prefix denotes
-            the immediate source of the loaded data: "dump"
-            means packaged with the application, "remote"
-            means a freshly downloaded bloomfilter, "cache"
-            means a previously downloaded bloomfilter. "dump_fallback"
-            and "cache_fallback" means that the last known bloomfilter
-            was used, despite it not matching the latest record
-            in the RemoteSettings collection. In this case
-            the outdated bloomfilter is used as a fallback
-            (e.g. because the latest version cannot be downloaded).
-            "unknown"  means that the bloomfilter cannot
-            be loaded at all. This can happen if the blocklist
-            is disabled via preferences or enterprise policies.
-        lifetime: application
-        bugs:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857#c11
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
-        data_sensitivity:
-            - technical
-        metadata:
-            tags:
-                - 'Toolkit :: Blocklist Implementation'
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-            - rwu@mozilla.com
-        expires: never
-        telemetry_mirror: BLOCKLIST_MLBF_SOURCE
-        no_lint:
-          - GIFFT_NON_PING_LIFETIME
-
-    mlbf_generation_time:
-        type: datetime
+          The value is the ID of the add-on.
+      object:
+        type: string
         description: >
-            Keep track of the generation time of the addon
-            blocklist's bloom filter. This marks the point
-            in time until which signed add-ons are recognized
-            by the selected bloom filter from the addons-bloomfilters
-            collection.
-        lifetime: application
-        bugs:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c3
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
-        data_sensitivity:
-            - technical
-        metadata:
-            tags:
-                - 'Toolkit :: Blocklist Implementation'
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-            - rwu@mozilla.com
-        expires: never
-    mlbf_stash_time_oldest:
-        type: datetime
+          The object represents the reason for triggering
+          the blocklistState check: "addon_install" is when
+          an add-on is installed. "addon_update" is when an
+          add-on is updated after an update check.
+          "addon_update_check" is when an add-on is blocked
+          during the update check. "addon_db_modified" is when
+          an add-on's blocklistState was altered
+          between application restarts. "blocklist_update"
+          is when an add-on's blocklistState changed due to a
+          blocklist update. This may be
+          due to the blocklist being disabled by preferences
+          or enterprise policies, but it is more commonly
+          the result of updating entries in the blocklist.
+          objects: ["addon_install", "addon_update",
+          "addon_update_check", "addon_db_modified",
+          "blocklist_update"]
+      blocklist_state:
+        type: string
         description: >
-            Keep track of the timestamp of the oldest stash
-            of the addons blocklist.
-        lifetime: application
-        bugs:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c9
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
-        data_sensitivity:
-            - technical
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-            - rwu@mozilla.com
-        expires: never
-    mlbf_stash_time_newest:
-        type: datetime
+          The blocklistState of the add-on. 0 is unblocked,
+          2 is blocked. 1 is soft blocked (this state does not
+          exist in blocklist v3).
+      addon_version:
+        type: string
         description: >
-            Keep track of the timestamp of the most recent
-            stash of the addons blocklist.
-        lifetime: application
-        bugs:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1649960
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1689274
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1633466#c9
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
-        data_sensitivity:
-            - technical
-        metadata:
-            tags:
-                - 'Toolkit :: Blocklist Implementation'
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-            - rwu@mozilla.com
-        expires: never
-    addon_block_change:
-        type: event
+          Version of the add-on. Used together with an
+          add-on's ID (value) to identify add-ons to block.
+      signed_date:
+        type: string
         description: >
-            An add-on is blocked, or an installed add-on is unblocked.
-            When an add-on install/update is blocked, its installation
-            is aborted and the add-on is no longer listed in the activeAddons
-            field of TelemetryEnvironment.
-        extra_keys:
-            value:
-                type: string
-                description: >
-                    The value is the ID of the add-on.
-            object:
-                type: string
-                description: >
-                    The object represents the reason for triggering
-                    the blocklistState check: "addon_install" is when
-                    an add-on is installed. "addon_update" is when an
-                    add-on is updated after an update check.
-                    "addon_update_check" is when an add-on is blocked
-                    during the update check. "addon_db_modified" is when
-                    an add-on's blocklistState was altered
-                    between application restarts. "blocklist_update"
-                    is when an add-on's blocklistState changed due to a
-                    blocklist update. This may be
-                    due to the blocklist being disabled by preferences
-                    or enterprise policies, but it is more commonly
-                    the result of updating entries in the blocklist.
-                    objects: ["addon_install", "addon_update",
-                    "addon_update_check", "addon_db_modified",
-                    "blocklist_update"]
-            blocklist_state:
-                type: string
-                description: >
-                    The blocklistState of the add-on. 0 is unblocked,
-                    2 is blocked. 1 is soft blocked (this state does not
-                    exist in blocklist v3).
-            addon_version:
-                type: string
-                description: >
-                    Version of the add-on. Used together with an
-                    add-on's ID (value) to identify add-ons to block.
-            signed_date:
-                type: string
-                description: >
-                    Timestamp of the add-on (when it was signed via AMO).
-                    the add-on was installed or updated.
-                    At least zero when the blocklist is updated, -1 otherwise.
-            hours_since:
-                type: string
-                description: >
-                    The number of hours that have passed since this version of
-                    This field is missing (0) for "addon_update_check".
-            mlbf_last_time:
-                type: string
-                description: >
-                    The generation time of the most recent
-                    entry in the blocklist. Time generated by
-                    AMO when the blocklist entry was created.
-                    May be 0 when the blocklist is disabled.
-            mlbf_generation:
-                type: string
-                description: >
-                    The generation time to identify the bloomfilter
-                    that was used for this blocklist decision.
-                    The bloomfilter is updated less frequently
-                    than the so-called stashes in the RemoteSettings
-                    collection that holds the blocklist data.
-                    The stashes take precedence over the bloomfilter
-                    in blocklist decisions.
-                    Time generated by AMO when the blocklist
-                    entry was created.
-                    May be 0 when the blocklist is disabled.
-            mlbf_source:
-                type: string
-                description: >
-                    The source of the RemoteSettings attachment
-                    that holds the bloom filter. This field is
-                    documented in more detail in the definition
-                    of the blocklist.mlbf_source. Possible values
-                    are "dump_match", "cache_match",  "remote_match",
-                    "dump_fallback", "cache_fallback", "unknown".
-        bugs:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
-        data_reviews:
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857#c11
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
-            - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
-        data_sensitivity:
-            - technical
-        metadata:
-            tags:
-                - 'Toolkit :: Blocklist Implementation'
-        notification_emails:
-            - addons-dev-internal@mozilla.com
-            - rwu@mozilla.com
-        expires: never
+          Timestamp of the add-on (when it was signed via AMO).
+          the add-on was installed or updated.
+          At least zero when the blocklist is updated, -1 otherwise.
+      hours_since:
+        type: string
+        description: >
+          The number of hours that have passed since this version of
+          This field is missing (0) for "addon_update_check".
+      mlbf_last_time:
+        type: string
+        description: >
+          The generation time of the most recent
+          entry in the blocklist. Time generated by
+          AMO when the blocklist entry was created.
+          May be 0 when the blocklist is disabled.
+      mlbf_generation:
+        type: string
+        description: >
+          The generation time to identify the bloomfilter
+          that was used for this blocklist decision.
+          The bloomfilter is updated less frequently
+          than the so-called stashes in the RemoteSettings
+          collection that holds the blocklist data.
+          The stashes take precedence over the bloomfilter
+          in blocklist decisions.
+          Time generated by AMO when the blocklist
+          entry was created.
+          May be 0 when the blocklist is disabled.
+      mlbf_source:
+        type: string
+        description: >
+          The source of the RemoteSettings attachment
+          that holds the bloom filter. This field is
+          documented in more detail in the definition
+          of the blocklist.mlbf_source. Possible values
+          are "dump_match", "cache_match",  "remote_match",
+          "dump_fallback", "cache_fallback", "unknown".
+    bugs:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1730037
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1763529
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1811159
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1820155
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167
+    data_reviews:
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1662857#c11
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1861296#c5
+      - https://bugzilla.mozilla.org/show_bug.cgi?id=1912167#c4
+    data_sensitivity:
+      - technical
+    metadata:
+      tags:
+        - 'Toolkit :: Blocklist Implementation'
+    notification_emails:
+      - addons-dev-internal@mozilla.com
+      - rwu@mozilla.com
+    expires: never
