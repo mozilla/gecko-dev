@@ -26,15 +26,6 @@ add_setup(async function () {
     ],
   });
   await MerinoTestUtils.initWeather();
-
-  // When `add_tasks_with_rust()` disables the Rust backend and forces sync, the
-  // JS backend will sync `Weather` with remote settings. Since keywords are
-  // present in remote settings at that point (we added them above), `Weather`
-  // will then start fetching. The fetch may or may not be done before our test
-  // task starts. To make sure it's done, queue another fetch and await it.
-  registerAddTasksWithRustSetup(async () => {
-    await QuickSuggest.weather._test_fetch();
-  });
 });
 
 // Basic checks of the row DOM.
@@ -354,9 +345,8 @@ async function doDismissTest(command) {
 
   await UrlbarTestUtils.promisePopupClose(window);
 
-  // Enable the weather suggestion again and wait for it to be fetched.
+  // Enable the weather suggestion again.
   UrlbarPrefs.clear("suggest.weather");
-  await QuickSuggest.weather._test_fetch();
 
   // Wait for keywords to be re-synced from remote settings.
   await QuickSuggestTestUtils.forceSync();

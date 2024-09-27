@@ -97,13 +97,7 @@ class ProviderWeather extends UrlbarProvider {
       return false;
     }
 
-    if (
-      queryContext.isPrivate ||
-      queryContext.searchMode ||
-      // `QuickSuggest.weather` will be undefined if `QuickSuggest` hasn't been
-      // initialized.
-      !lazy.QuickSuggest.weather?.suggestion
-    ) {
+    if (queryContext.isPrivate || queryContext.searchMode) {
       return false;
     }
 
@@ -125,19 +119,18 @@ class ProviderWeather extends UrlbarProvider {
    * @returns {Promise}
    */
   async startQuery(queryContext, addCallback) {
-    let { weather } = lazy.QuickSuggest;
-    if (!weather.suggestion) {
-      return;
-    }
+    // As a reminder, this provider is not used and this method is not called
+    // when Rust is enabled. UrlbarProviderQuickSuggest handles weather
+    // suggestions when Rust is enabled.
 
-    let result = weather.makeResult(
+    let result = await lazy.QuickSuggest.weather.makeResult(
       queryContext,
-      weather.suggestion,
+      null,
       queryContext.searchString
     );
     if (result) {
-      result.payload.source = weather.suggestion.source;
-      result.payload.provider = weather.suggestion.provider;
+      result.payload.source = "merino";
+      result.payload.provider = "accuweather";
       addCallback(this, result);
     }
   }

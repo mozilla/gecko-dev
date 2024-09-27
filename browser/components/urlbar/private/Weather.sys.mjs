@@ -7,30 +7,19 @@ import { BaseFeature } from "resource:///modules/urlbar/private/BaseFeature.sys.
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  clearTimeout: "resource://gre/modules/Timer.sys.mjs",
   MerinoClient: "resource:///modules/MerinoClient.sys.mjs",
   QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
-  setTimeout: "resource://gre/modules/Timer.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
   UrlbarResult: "resource:///modules/UrlbarResult.sys.mjs",
   UrlbarUtils: "resource:///modules/UrlbarUtils.sys.mjs",
   UrlbarView: "resource:///modules/UrlbarView.sys.mjs",
 });
 
-const FETCH_DELAY_AFTER_COMING_ONLINE_MS = 3000; // 3s
-const FETCH_INTERVAL_MS = 30 * 60 * 1000; // 30 minutes
 const MERINO_PROVIDER = "accuweather";
 const MERINO_TIMEOUT_MS = 5000; // 5s
 
 const HISTOGRAM_LATENCY = "FX_URLBAR_MERINO_LATENCY_WEATHER_MS";
 const HISTOGRAM_RESPONSE = "FX_URLBAR_MERINO_RESPONSE_WEATHER";
-
-const NOTIFICATIONS = {
-  CAPTIVE_PORTAL_LOGIN: "captive-portal-login-success",
-  LINK_STATUS_CHANGED: "network:link-status-changed",
-  OFFLINE_STATUS_CHANGED: "network:offline-status-changed",
-  WAKE: "wake_notification",
-};
 
 const RESULT_MENU_COMMAND = {
   INACCURATE_LOCATION: "inaccurate_location",
@@ -183,24 +172,6 @@ export class Weather extends BaseFeature {
   }
 
   /**
-   * @returns {object}
-   *   The last weather suggestion fetched from Merino or null if none.
-   */
-  get suggestion() {
-    return this.#suggestion;
-  }
-
-  /**
-   * @returns {Promise}
-   *   If suggestion fetching is disabled, this will be null. Otherwise, if a
-   *   fetch is pending this will be resolved when it's done; if a fetch is not
-   *   pending then it was resolved when the previous fetch finished.
-   */
-  get fetchPromise() {
-    return this.#fetchPromise;
-  }
-
-  /**
    * @returns {Set}
    *   The set of keywords that should trigger the weather suggestion. This will
    *   be null when the Rust backend is enabled and keywords are not defined by
@@ -315,7 +286,7 @@ export class Weather extends BaseFeature {
     this.#updateKeywords();
   }
 
-  makeResult(queryContext, suggestion, searchString) {
+  async makeResult(queryContext, _suggestion, searchString) {
     // The Rust component doesn't enforce a minimum keyword length, so discard
     // the suggestion if the search string isn't long enough. This conditional
     // will always be false for the JS backend since in that case keywords are
@@ -324,25 +295,27 @@ export class Weather extends BaseFeature {
       return null;
     }
 
-    // The Rust component will return a dummy suggestion if the query matches a
-    // weather keyword. Here in this method we replace it with the actual cached
-    // weather suggestion from Merino. If there is no cached suggestion, discard
-    // the Rust suggestion.
-    if (!this.suggestion) {
+    if (!this.#merino) {
+      this.#merino = new lazy.MerinoClient(this.constructor.name);
+    }
+
+    let merino = this.#merino;
+    let fetchInstance = (this.#fetchInstance = {});
+    let suggestions = await merino.fetch({
+      query: "",
+      providers: [MERINO_PROVIDER],
+      timeoutMs: this.#timeoutMs,
+      extraLatencyHistogram: HISTOGRAM_LATENCY,
+      extraResponseHistogram: HISTOGRAM_RESPONSE,
+    });
+    if (fetchInstance != this.#fetchInstance || merino != this.#merino) {
       return null;
     }
 
-    if (suggestion.source == "rust") {
-      if (lazy.UrlbarPrefs.get("weatherKeywords")) {
-        // This shouldn't happen since this feature won't enable Rust weather
-        // suggestions in this case, but just to be safe, discard the suggestion
-        // if keywords are defined in Nimbus.
-        return null;
-      }
-      // Replace the dummy Rust suggestion with the actual weather suggestion
-      // from Merino.
-      suggestion = this.suggestion;
+    if (!suggestions.length) {
+      return null;
     }
+    let suggestion = suggestions[0];
 
     let unit = Services.locale.regionalPrefsLocales[0] == "en-US" ? "f" : "c";
     return Object.assign(
@@ -541,199 +514,19 @@ export class Weather extends BaseFeature {
     return config || {};
   }
 
-  get #vpnDetected() {
-    if (lazy.UrlbarPrefs.get("weather.ignoreVPN")) {
-      return false;
-    }
-
-    let linkService =
-      this._test_linkService ||
-      Cc["@mozilla.org/network/network-link-service;1"].getService(
-        Ci.nsINetworkLinkService
-      );
-
-    // `platformDNSIndications` throws `NS_ERROR_NOT_IMPLEMENTED` on all
-    // platforms except Windows, so we can't detect a VPN on any other platform.
-    try {
-      return (
-        linkService.platformDNSIndications &
-        Ci.nsINetworkLinkService.VPN_DETECTED
-      );
-    } catch (e) {}
-    return false;
-  }
-
   #init() {
     // On feature init, we only update keywords and listen for changes that
-    // affect keywords. Suggestion fetches will not start until either keywords
-    // exist or Rust is enabled.
+    // affect keywords.
     this.#updateKeywords();
     lazy.UrlbarPrefs.addObserver(this);
     lazy.QuickSuggest.jsBackend.register(this);
   }
 
   #uninit() {
-    this.#stopFetching();
     lazy.QuickSuggest.jsBackend.unregister(this);
     lazy.UrlbarPrefs.removeObserver(this);
     this.#keywords = null;
-  }
-
-  #startFetching() {
-    if (this.#merino) {
-      this.logger.debug("Suggestion fetching already started");
-      return;
-    }
-
-    this.logger.debug("Starting suggestion fetching");
-
-    this.#merino = new lazy.MerinoClient(this.constructor.name);
-    this.#fetch();
-    for (let notif of Object.values(NOTIFICATIONS)) {
-      Services.obs.addObserver(this, notif);
-    }
-  }
-
-  #stopFetching() {
-    if (!this.#merino) {
-      this.logger.debug("Suggestion fetching already stopped");
-      return;
-    }
-
-    this.logger.debug("Stopping suggestion fetching");
-
-    for (let notif of Object.values(NOTIFICATIONS)) {
-      Services.obs.removeObserver(this, notif);
-    }
-    lazy.clearTimeout(this.#fetchTimer);
     this.#merino = null;
-    this.#suggestion = null;
-    this.#fetchTimer = 0;
-  }
-
-  async #fetch() {
-    // Keep a handle on the `MerinoClient` instance that exists at the start of
-    // this fetch. If fetching stops or this `Weather` instance is uninitialized
-    // during the fetch, `#merino` will be nulled, and the fetch should stop. We
-    // can compare `merino` to `#merino` to tell when this occurs.
-    let merino = this.#merino;
-    let fetchInstance = (this.#fetchInstance = {});
-
-    await this.#fetchPromise;
-    if (fetchInstance != this.#fetchInstance || merino != this.#merino) {
-      return;
-    }
-    await (this.#fetchPromise = this.#fetchHelper({ fetchInstance, merino }));
-  }
-
-  async #fetchHelper({ fetchInstance, merino }) {
-    this.logger.info("Fetching suggestion");
-
-    if (this.#vpnDetected) {
-      // A VPN is detected, so Merino will not be able to accurately determine
-      // the user's location. Set the suggestion to null. We treat this as if
-      // the network is offline (see below). When the VPN is disconnected, a
-      // `network:link-status-changed` notification will be sent, triggering a
-      // new fetch.
-      this.logger.info("VPN detected, not fetching");
-      this.#suggestion = null;
-      return;
-    }
-
-    this.#restartFetchTimer();
-    this.#lastFetchTimeMs = Date.now();
-
-    let suggestions = await merino.fetch({
-      query: "",
-      providers: [MERINO_PROVIDER],
-      timeoutMs: this.#timeoutMs,
-      extraLatencyHistogram: HISTOGRAM_LATENCY,
-      extraResponseHistogram: HISTOGRAM_RESPONSE,
-    });
-
-    // Reset the Merino client's session so different fetches use different
-    // sessions. A single session is intended to represent a single user
-    // engagement in the urlbar, which this is not. Practically this isn't
-    // necessary since the client automatically resets the session on a timer
-    // whose period is much shorter than our fetch period, but there's no reason
-    // to keep it ticking in the meantime.
-    merino.resetSession();
-
-    if (fetchInstance != this.#fetchInstance || merino != this.#merino) {
-      this.logger.info("Fetch is out of date, discarding suggestion");
-      return;
-    }
-
-    let suggestion = suggestions?.[0];
-    if (!suggestion) {
-      // No suggestion was received. The network may be offline or there may be
-      // some other problem. Set the suggestion to null: Better to show nothing
-      // than outdated weather information. When the network comes back online,
-      // one or more network notifications will be sent, triggering a new fetch.
-      this.logger.info("No suggestion received");
-      this.#suggestion = null;
-    } else {
-      this.logger.info("Got suggestion");
-      this.logger.debug(JSON.stringify({ suggestion }));
-      this.#suggestion = { ...suggestion, source: "merino" };
-    }
-  }
-
-  #restartFetchTimer(ms = this.#fetchIntervalMs) {
-    this.logger.debug(
-      "Restarting fetch timer: " +
-        JSON.stringify({ ms, fetchIntervalMs: this.#fetchIntervalMs })
-    );
-
-    lazy.clearTimeout(this.#fetchTimer);
-    this.#fetchTimer = lazy.setTimeout(() => {
-      this.logger.debug("Fetch timer fired");
-      this.#fetch();
-    }, ms);
-    this._test_fetchTimerMs = ms;
-  }
-
-  #onMaybeCameOnline() {
-    this.logger.debug("Maybe came online");
-
-    // If the suggestion is null, we were offline the last time we tried to
-    // fetch, at the start of the current fetch period. Otherwise the suggestion
-    // was fetched successfully at the start of the current fetch period and is
-    // therefore still fresh.
-    if (!this.suggestion) {
-      // Multiple notifications can occur at once when the network comes online,
-      // and we don't want to do separate fetches for each. Start the timer with
-      // a small timeout. If another notification happens in the meantime, we'll
-      // start it again.
-      this.#restartFetchTimer(this.#fetchDelayAfterComingOnlineMs);
-    }
-  }
-
-  #onWake() {
-    // Calculate the elapsed time between the last fetch and now, and the
-    // remaining interval in the current fetch period.
-    let elapsedMs = Date.now() - this.#lastFetchTimeMs;
-    let remainingIntervalMs = this.#fetchIntervalMs - elapsedMs;
-    this.logger.debug(
-      "Wake: " +
-        JSON.stringify({
-          elapsedMs,
-          remainingIntervalMs,
-          fetchIntervalMs: this.#fetchIntervalMs,
-        })
-    );
-
-    // Regardless of the elapsed time, we need to restart the fetch timer
-    // because it didn't tick while the computer was asleep. If the elapsed time
-    // >= the fetch interval, the remaining interval will be negative and we
-    // need to fetch now, but do it after a brief delay in case other
-    // notifications occur soon when the network comes online. If the elapsed
-    // time < the fetch interval, the suggestion is still fresh so there's no
-    // need to fetch. Just restart the timer with the remaining interval.
-    if (remainingIntervalMs <= 0) {
-      remainingIntervalMs = this.#fetchDelayAfterComingOnlineMs;
-    }
-    this.#restartFetchTimer(remainingIntervalMs);
   }
 
   #updateKeywords() {
@@ -745,11 +538,9 @@ export class Weather extends BaseFeature {
     // Nimbus, Rust will manage the keywords.
     if (lazy.UrlbarPrefs.get("quickSuggestRustEnabled") && !nimbusKeywords) {
       this.logger.debug(
-        "Rust enabled, no keywords in Nimbus. " +
-          "Starting fetches and deferring to Rust."
+        "Rust enabled, no keywords in Nimbus, deferring to Rust"
       );
       this.#keywords = null;
-      this.#startFetching();
       return;
     }
 
@@ -760,11 +551,8 @@ export class Weather extends BaseFeature {
       !this.#config.keywords &&
       !nimbusKeywords
     ) {
-      this.logger.debug(
-        "Rust disabled, no keywords in RS or Nimbus. Stopping fetches."
-      );
+      this.logger.debug("Rust disabled, no keywords in RS or Nimbus");
       this.#keywords = null;
-      this.#stopFetching();
       return;
     }
 
@@ -788,8 +576,6 @@ export class Weather extends BaseFeature {
         }
       }
     }
-
-    this.#startFetching();
   }
 
   onPrefChanged(pref) {
@@ -798,83 +584,17 @@ export class Weather extends BaseFeature {
     }
   }
 
-  observe(subject, topic, data) {
-    this.logger.debug(
-      "Observed notification: " + JSON.stringify({ topic, data })
-    );
-
-    switch (topic) {
-      case NOTIFICATIONS.CAPTIVE_PORTAL_LOGIN:
-        this.#onMaybeCameOnline();
-        break;
-      case NOTIFICATIONS.LINK_STATUS_CHANGED:
-        // This notificaton means the user's connection status changed. See
-        // nsINetworkLinkService.
-        if (data != "down") {
-          this.#onMaybeCameOnline();
-        }
-        break;
-      case NOTIFICATIONS.OFFLINE_STATUS_CHANGED:
-        // This notificaton means the user toggled the "Work Offline" pref.
-        // See nsIIOService.
-        if (data != "offline") {
-          this.#onMaybeCameOnline();
-        }
-        break;
-      case NOTIFICATIONS.WAKE:
-        this.#onWake();
-        break;
-    }
-  }
-
-  get _test_fetchDelayAfterComingOnlineMs() {
-    return this.#fetchDelayAfterComingOnlineMs;
-  }
-  set _test_fetchDelayAfterComingOnlineMs(ms) {
-    this.#fetchDelayAfterComingOnlineMs =
-      ms < 0 ? FETCH_DELAY_AFTER_COMING_ONLINE_MS : ms;
-  }
-
-  get _test_fetchIntervalMs() {
-    return this.#fetchIntervalMs;
-  }
-  set _test_fetchIntervalMs(ms) {
-    this.#fetchIntervalMs = ms < 0 ? FETCH_INTERVAL_MS : ms;
-  }
-
-  get _test_fetchTimer() {
-    return this.#fetchTimer;
-  }
-
-  get _test_lastFetchTimeMs() {
-    return this.#lastFetchTimeMs;
-  }
-
   get _test_merino() {
     return this.#merino;
-  }
-
-  async _test_fetch() {
-    await this.#fetch();
-  }
-
-  _test_setSuggestionToNull() {
-    this.#suggestion = null;
   }
 
   _test_setTimeoutMs(ms) {
     this.#timeoutMs = ms < 0 ? MERINO_TIMEOUT_MS : ms;
   }
 
-  #fetchDelayAfterComingOnlineMs = FETCH_DELAY_AFTER_COMING_ONLINE_MS;
   #fetchInstance = null;
-  #fetchIntervalMs = FETCH_INTERVAL_MS;
-  #fetchPromise = null;
-  #fetchTimer = 0;
   #keywords = null;
-  #lastFetchTimeMs = 0;
   #merino = null;
   #rsConfig = null;
-  #suggestion = null;
   #timeoutMs = MERINO_TIMEOUT_MS;
 }

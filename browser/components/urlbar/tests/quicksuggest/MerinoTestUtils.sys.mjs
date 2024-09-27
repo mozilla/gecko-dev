@@ -4,7 +4,6 @@
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
-  QuickSuggest: "resource:///modules/QuickSuggest.sys.mjs",
   TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UrlbarPrefs: "resource:///modules/UrlbarPrefs.sys.mjs",
 });
@@ -83,10 +82,6 @@ const WEATHER_SUGGESTION = {
     low: { c: 13.9, f: 57.0 },
   },
 };
-
-// We set the weather suggestion fetch interval to an absurdly large value so it
-// absolutely will not fire during tests.
-const WEATHER_FETCH_INTERVAL_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 const GEOLOCATION_DATA = {
   provider: "geolocation",
@@ -353,23 +348,16 @@ class _MerinoTestUtils {
     this.info("MockMerinoServer initializing weather, server now started");
     this.server.response.body.suggestions = [WEATHER_SUGGESTION];
 
-    lazy.QuickSuggest.weather._test_fetchIntervalMs = WEATHER_FETCH_INTERVAL_MS;
-
     // Enabling weather will trigger a fetch. Queue another fetch and await it
     // so no fetches are ongoing when this function returns.
     this.info("MockMerinoServer initializing weather, setting prefs");
     lazy.UrlbarPrefs.set("weather.featureGate", true);
     lazy.UrlbarPrefs.set("suggest.weather", true);
-    this.info(
-      "MockMerinoServer initializing weather, done setting prefs, starting fetch"
-    );
-    await lazy.QuickSuggest.weather._test_fetch();
-    this.info("MockMerinoServer initializing weather, done awaiting fetch");
+    this.info("MockMerinoServer initializing weather, done setting prefs");
 
     this.registerCleanupFunction?.(async () => {
       lazy.UrlbarPrefs.clear("weather.featureGate");
       lazy.UrlbarPrefs.clear("suggest.weather");
-      lazy.QuickSuggest.weather._test_fetchIntervalMs = -1;
     });
   }
 

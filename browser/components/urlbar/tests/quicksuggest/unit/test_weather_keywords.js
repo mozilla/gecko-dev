@@ -23,15 +23,6 @@ add_setup(async () => {
     prefs: [["suggest.quicksuggest.nonsponsored", true]],
   });
   await MerinoTestUtils.initWeather();
-
-  // When `add_tasks_with_rust()` disables the Rust backend and forces sync, the
-  // JS backend will sync `Weather` with remote settings. Since keywords are
-  // present in remote settings at that point (we added them above), `Weather`
-  // will then start fetching. The fetch may or may not be done before our test
-  // task starts. To make sure it's done, queue another fetch and await it.
-  registerAddTasksWithRustSetup(async () => {
-    await QuickSuggest.weather._test_fetch();
-  });
 });
 
 // * Settings data: none
@@ -817,18 +808,6 @@ async function doKeywordsTest({
   info("Doing keywords test: " + desc);
   info(JSON.stringify({ nimbusValues, settingsData, minKeywordLength }));
 
-  // If the JS backend is enabled, a suggestion hasn't already been fetched, and
-  // the data contains keywords, a fetch will start. Wait for it to finish later
-  // below.
-  let fetchPromise;
-  if (
-    !QuickSuggest.weather.suggestion &&
-    !UrlbarPrefs.get("quickSuggestRustEnabled") &&
-    (nimbusValues?.weatherKeywords || settingsData?.keywords)
-  ) {
-    fetchPromise = waitForNewWeatherFetch();
-  }
-
   let nimbusCleanup;
   if (nimbusValues) {
     nimbusCleanup = await UrlbarTestUtils.initNimbusFeature(nimbusValues);
@@ -843,12 +822,6 @@ async function doKeywordsTest({
 
   if (minKeywordLength) {
     UrlbarPrefs.set("weather.minKeywordLength", minKeywordLength);
-  }
-
-  if (fetchPromise) {
-    info("Waiting for fetch");
-    await fetchPromise;
-    info("Got fetch");
   }
 
   let expectedResult = QuickSuggestTestUtils.weatherResult(
@@ -880,10 +853,6 @@ async function doKeywordsTest({
 
   await nimbusCleanup?.();
 
-  if (!QuickSuggest.weather.suggestion) {
-    fetchPromise = waitForNewWeatherFetch();
-  }
-
   await QuickSuggestTestUtils.setRemoteSettingsRecords([
     {
       type: "weather",
@@ -892,7 +861,6 @@ async function doKeywordsTest({
   ]);
 
   UrlbarPrefs.clear("weather.minKeywordLength");
-  await fetchPromise;
 }
 
 // When a sponsored quick suggest result matches the same keyword as the weather
@@ -1330,18 +1298,6 @@ async function doIncrementTest({
 
   let { nimbusValues, settingsData } = setup;
 
-  // If the JS backend is enabled, a suggestion hasn't already been fetched, and
-  // the data contains keywords, a fetch will start. Wait for it to finish later
-  // below.
-  let fetchPromise;
-  if (
-    !QuickSuggest.weather.suggestion &&
-    !UrlbarPrefs.get("quickSuggestRustEnabled") &&
-    (nimbusValues?.weatherKeywords || settingsData?.weather?.keywords)
-  ) {
-    fetchPromise = waitForNewWeatherFetch();
-  }
-
   let nimbusCleanup;
   if (nimbusValues) {
     nimbusCleanup = await UrlbarTestUtils.initNimbusFeature(nimbusValues);
@@ -1357,12 +1313,6 @@ async function doIncrementTest({
       configuration: settingsData?.configuration,
     },
   ]);
-
-  if (fetchPromise) {
-    info("Waiting for fetch");
-    await fetchPromise;
-    info("Got fetch");
-  }
 
   let expectedResult = QuickSuggestTestUtils.weatherResult(
     !alwaysExpectMerinoResult
@@ -1412,9 +1362,6 @@ async function doIncrementTest({
 
   await nimbusCleanup?.();
 
-  if (!QuickSuggest.weather.suggestion) {
-    fetchPromise = waitForNewWeatherFetch();
-  }
   await QuickSuggestTestUtils.setRemoteSettingsRecords([
     {
       type: "weather",
@@ -1422,5 +1369,4 @@ async function doIncrementTest({
     },
   ]);
   UrlbarPrefs.clear("weather.minKeywordLength");
-  await fetchPromise;
 }
