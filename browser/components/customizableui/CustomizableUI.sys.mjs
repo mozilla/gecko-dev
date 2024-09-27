@@ -217,10 +217,26 @@ XPCOMUtils.defineLazyPreferenceGetter(
       CustomizableUI.AREA_NAVBAR
     );
     if (!navbarPlacements.includes("sidebar-button")) {
+      // Find a spot for the sidebar-button.
+      // If any of the home, reload or fwd button are in there, we'll place next that.
+      let position;
+      for (let widgetId of [
+        "home-button",
+        "stop-reload-button",
+        "forward-button",
+      ]) {
+        position = navbarPlacements.indexOf(widgetId);
+        if (position > -1) {
+          position += 1;
+          break;
+        }
+      }
+      // Its not currently possible to move the forward-button out of the navbar, but we'll
+      // ensure the insert position is at least 0 just in case
       CustomizableUI.addWidgetToArea(
         "sidebar-button",
         CustomizableUI.AREA_NAVBAR,
-        0
+        Math.max(0, position)
       );
     }
   }
@@ -297,13 +313,13 @@ var CustomizableUIInternal = {
     );
 
     let navbarPlacements = [
-      lazy.sidebarRevampEnabled ? "sidebar-button" : null,
       "back-button",
       "forward-button",
       "stop-reload-button",
       Services.policies.isAllowed("removeHomeButtonByDefault")
         ? null
         : "home-button",
+      lazy.sidebarRevampEnabled ? "sidebar-button" : null,
       "spring",
       "urlbar-container",
       "spring",
@@ -504,7 +520,7 @@ var CustomizableUIInternal = {
       }
 
       if (!newPlacements.includes("sidebar-button")) {
-        newPlacements.unshift("sidebar-button");
+        newPlacements.push("sidebar-button");
       }
 
       gSavedState.placements[CustomizableUI.AREA_NAVBAR] = newPlacements;
