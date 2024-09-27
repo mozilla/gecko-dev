@@ -182,7 +182,8 @@ fn main() {
         .unwrap()
         .into(),
     )
-    .set(mock::MockHook::new("ping_uuid"), MOCK_PING_UUID);
+    .set(mock::MockHook::new("ping_uuid"), MOCK_PING_UUID)
+    .set(mock::MockHook::new("enable_glean_pings"), false);
 
     let result = mock.run(|| {
         let mut cfg = Config::new();
