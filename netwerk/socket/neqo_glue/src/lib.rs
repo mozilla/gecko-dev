@@ -352,15 +352,12 @@ impl NeqoHttp3Conn {
             if stats.ecn_tx[IpTosEcn::Ect0] > 0 {
                 let ratio =
                     (stats.ecn_tx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_tx[IpTosEcn::Ect0];
-                glean::http_3_ecn_ce_ect0_ratio
-                    .get(&"tx")
-                    .accumulate_single_sample_signed(ratio as i64);
+                glean::http_3_ecn_ce_ect0_ratio_sent.accumulate_single_sample_signed(ratio as i64);
             }
             if stats.ecn_rx[IpTosEcn::Ect0] > 0 {
                 let ratio =
                     (stats.ecn_rx[IpTosEcn::Ce] * PRECISION_FACTOR) / stats.ecn_rx[IpTosEcn::Ect0];
-                glean::http_3_ecn_ce_ect0_ratio
-                    .get(&"rx")
+                glean::http_3_ecn_ce_ect0_ratio_received
                     .accumulate_single_sample_signed(ratio as i64);
             }
             glean::http_3_ecn_path_capability
