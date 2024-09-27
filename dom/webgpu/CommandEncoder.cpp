@@ -47,21 +47,19 @@ void CommandEncoder::ConvertTextureCopyViewToFFI(
   *aViewFFI = {};
   aViewFFI->texture = aCopy.mTexture->mId;
   aViewFFI->mip_level = aCopy.mMipLevel;
-  if (aCopy.mOrigin.WasPassed()) {
-    const auto& origin = aCopy.mOrigin.Value();
-    if (origin.IsRangeEnforcedUnsignedLongSequence()) {
-      const auto& seq = origin.GetAsRangeEnforcedUnsignedLongSequence();
-      aViewFFI->origin.x = seq.Length() > 0 ? seq[0] : 0;
-      aViewFFI->origin.y = seq.Length() > 1 ? seq[1] : 0;
-      aViewFFI->origin.z = seq.Length() > 2 ? seq[2] : 0;
-    } else if (origin.IsGPUOrigin3DDict()) {
-      const auto& dict = origin.GetAsGPUOrigin3DDict();
-      aViewFFI->origin.x = dict.mX;
-      aViewFFI->origin.y = dict.mY;
-      aViewFFI->origin.z = dict.mZ;
-    } else {
-      MOZ_CRASH("Unexpected origin type");
-    }
+  const auto& origin = aCopy.mOrigin;
+  if (origin.IsRangeEnforcedUnsignedLongSequence()) {
+    const auto& seq = origin.GetAsRangeEnforcedUnsignedLongSequence();
+    aViewFFI->origin.x = seq.Length() > 0 ? seq[0] : 0;
+    aViewFFI->origin.y = seq.Length() > 1 ? seq[1] : 0;
+    aViewFFI->origin.z = seq.Length() > 2 ? seq[2] : 0;
+  } else if (origin.IsGPUOrigin3DDict()) {
+    const auto& dict = origin.GetAsGPUOrigin3DDict();
+    aViewFFI->origin.x = dict.mX;
+    aViewFFI->origin.y = dict.mY;
+    aViewFFI->origin.z = dict.mZ;
+  } else {
+    MOZ_CRASH("Unexpected origin type");
   }
 }
 
