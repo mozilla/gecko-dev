@@ -3370,6 +3370,41 @@ bool NativeKey::GetFollowingCharMessage(MSG& aCharMsg) {
       return true;
     }
 
+    const auto nextKeyMsgAfter = [&]() -> Maybe<MSG> {
+      MSG nextKeyMsgAfter;
+      if (WinUtils::PeekMessage(&nextKeyMsgAfter, mMsg.hwnd, WM_KEYFIRST,
+                                WM_KEYLAST, PM_NOREMOVE | PM_NOYIELD)) {
+        return Some(nextKeyMsgAfter);
+      }
+      return Nothing();
+    }();
+
+    // We have some crash reports for Ethiopic Syllable.  In the case, we found
+    // a WM_DEADCHAR whose wParam may be not NULL, first.  Then, we remove the
+    // message from the queue.  However, the keyboard or IME makes us to remove
+    // a dummy message whose wParam (inputting character) is NULL and scancode
+    // is 0. Finally, the found message keeps staying in the queue.  The crash
+    // report comes after we started accepting WM_DEADCHAR with NULL character
+    // above. However, we haven't handled only a part of dead key sequence but
+    // the user tried to input Ethiopic Syllable.  Therefore, it's hard to guess
+    // that the user starts using Firefox with the keyboard/IME at the timing
+    // and the the user keeps using Firefox with unfunctional keyboard/IME.
+    // Perhaps the keyboard/IME does something different hack for us to make
+    // itself available on Firefox.  Therefore, we should just return `false` to
+    // make the caller give up removing the following messages.
+    if (IsDeadCharMessage(removedMsg.message) && !removedMsg.wParam &&
+        !WinUtils::GetScanCode(removedMsg.lParam) && nextKeyMsgAfter.isSome() &&
+        MayBeSameCharMessage(nextKeyMsgAfter.ref(), nextKeyMsg)) {
+      MOZ_LOG(
+          gKeyLog, LogLevel::Warning,
+          ("%p   NativeKey::GetFollowingCharMessage(), WARNING, succeeded to "
+           "remove a dead char message, but the removed message's wParam is 0 "
+           "and the found message still in the queue, nextKeyMsg=%s but "
+           "removedMsg=%s",
+           this, ToString(nextKeyMsg).get(), ToString(removedMsg).get()));
+      return false;
+    }
+
     // NOTE: Although, we don't know when this case occurs, the scan code value
     //       in lParam may be changed from 0 to something.  The changed value
     //       is different from the scan code of handling keydown message.
@@ -3392,13 +3427,11 @@ bool NativeKey::GetFollowingCharMessage(MSG& aCharMsg) {
         ToString(kFoundCharMsg).get(), ToString(removedMsg).get());
     CrashReporter::AppendAppNotesToCrashReport(info);
     // What's the next key message?
-    MSG nextKeyMsgAfter;
-    if (WinUtils::PeekMessage(&nextKeyMsgAfter, mMsg.hwnd, WM_KEYFIRST,
-                              WM_KEYLAST, PM_NOREMOVE | PM_NOYIELD)) {
+    if (nextKeyMsgAfter.isSome()) {
       nsPrintfCString info(
           "\nNext key message after unexpected char message "
           "removed: %s, ",
-          ToString(nextKeyMsgAfter).get());
+          ToString(nextKeyMsgAfter.ref()).get());
       CrashReporter::AppendAppNotesToCrashReport(info);
     } else {
       CrashReporter::AppendAppNotesToCrashReport(
