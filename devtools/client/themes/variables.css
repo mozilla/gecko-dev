@@ -278,6 +278,10 @@
   /* This is used for search/filter results underline and need to have a 3:1 contrast against the background */
   --theme-contrast-border: light-dark(var(--yellow-70), var(--yellow-65));
 
+  --theme-search-results-background: var(--theme-contrast-background);
+  --theme-search-results-color: var(--theme-contrast-color);
+  --theme-search-results-border-color: var(--theme-contrast-border);
+
   &[forced-colors-active] {
     /* Color picked from HCM palette created by a11y team */
     --theme-highlight-blue: light-dark(#0060DF, #00DDFF);
@@ -305,6 +309,10 @@
     --theme-icon-disabled-color: GrayText;
     --theme-icon-error-color: ButtonText;
     --theme-icon-warning-color: ButtonText;
+
+    --theme-search-results-background: Mark;
+    --theme-search-results-color: MarkText;
+    --theme-search-results-border-color: MarkText;
 
     /* Menu/Autocomplete items */
     --theme-popup-hover-background: SelectedItem;

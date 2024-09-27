@@ -68,15 +68,9 @@
 }
 
 .project-text-search .result .query-match {
-  border-bottom: 1px solid var(--theme-contrast-border);
-  color: var(--theme-contrast-color);
-  background-color: var(--theme-contrast-background);
-}
-
-.project-text-search .result.focused .query-match {
-  border-bottom: none;
-  color: var(--theme-selection-background);
-  background-color: var(--theme-selection-color);
+  border-bottom: 1px solid var(--theme-search-results-border-color);
+  color: var(--theme-search-results-color);
+  background-color: var(--theme-search-results-background);
 }
 
 .project-text-search .tree-indent {
