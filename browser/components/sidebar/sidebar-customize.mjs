@@ -257,7 +257,7 @@ export class SidebarCustomize extends SidebarPage {
                   ? this.getWindow().SidebarController._positionStart
                   : !this.getWindow().SidebarController._positionStart
               }
-              iconsrc="chrome://browser/skin/sidebar-right.svg"
+              iconsrc="chrome://browser/skin/sidebar-expanded-right.svg"
               data-l10n-id="sidebar-position-right"
             ></moz-radio>
           </moz-radio-group>
