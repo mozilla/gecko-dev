@@ -15,9 +15,9 @@ task-defaults:
             - win64-node
             - win64-geckodriver
             - browsertime
-    platform: windows11-64-shippable/opt
+    platform: windows11-64-shippable-qr/opt
     require-build:
-        windows11-64-shippable/opt: build-win64-shippable/opt
+        windows11-64-shippable-qr/opt: build-win64-shippable/opt
     scopes:
         - secrets:get:project/releng/gecko/build/level-{level}/conditioned-profiles
 
