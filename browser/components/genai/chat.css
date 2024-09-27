@@ -67,6 +67,11 @@ browser {
 
   .screen {
     border-radius: var(--border-radius-medium);
+    min-height: unset;
+  }
+
+  .main-content {
+    height: unset;
   }
 
   .main-content-inner {
@@ -75,7 +80,12 @@ browser {
   }
 
   .welcome-text {
+    margin-bottom: var(--space-xlarge);
     padding-inline: 0;
+  }
+
+  .tiles-single-select-container {
+    margin-top: 0;
   }
 
   fieldset {
@@ -87,10 +97,10 @@ browser {
 
   label {
     background-color: var(--background-color-box);
-    border: 1px solid var(--border-color-deemphasized);
+    border: 0.5px solid var(--border-color-deemphasized);
     border-radius: var(--border-radius-medium);
     flex-direction: row;
-    margin: 1px; /* avoid shifting content when selected */
+    margin: 1.5px; /* avoid shifting content when selected */
     outline-offset: var(--focus-outline-offset);
     padding: var(--space-small);
 
@@ -101,7 +111,7 @@ browser {
     &:has(.selected) {
       background-color: var(--background-color-canvas);
       border: var(--focus-outline);
-      margin: 0; /* border switches between 1px and 2px */
+      margin: 0; /* border switches widths */
     }
 
     &:focus {
@@ -142,6 +152,7 @@ browser {
     text-align: start;
 
     > div {
+      color: var(--text-color-deemphasized);
       font-weight: normal;
       margin: -3px;
       overflow-y: hidden;
@@ -182,6 +193,7 @@ browser {
   }
 
   .link-paragraph {
+    color: var(--text-color-deemphasized);
     font-size: .8em;
   }
 
