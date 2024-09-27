@@ -41,7 +41,25 @@
   --timing-wait-color: light-dark(rgba(95, 136, 176, 0.8), rgba(94, 136, 176, 0.8)); /* blue grey */
   --timing-receive-color: light-dark(rgba(44, 187, 15, 0.8), rgba(112, 191, 83, 0.8)); /* green */
 
+  --timing-server-color-1: light-dark(rgba(104, 195, 179, 0.8), rgba(74, 228, 201, 0.8)); /* teal */
+  --timing-server-color-2: light-dark(rgba(123, 102, 167, 0.8), rgba(156, 119, 233, 0.8)); /* purple */
+  --timing-server-color-3: light-dark(rgba(233, 236, 130, 0.8), rgba(234, 239, 73, 0.8)); /* yellow */
+  --timing-server-color-total: light-dark(rgba(186, 90, 140, 0.8), rgba(186, 74, 133, 0.8)); /* pink */
+
   &[forced-colors-active] {
     --timing-marker-color-opacity: 1;
+
+    --timing-blocked-color: var(--theme-highlight-red);
+    --timing-dns-color: var(--theme-highlight-purple);
+    --timing-ssl-color: var(--theme-highlight-orange);
+    --timing-connect-color: var(--theme-highlight-orange);
+    --timing-send-color:var(--theme-highlight-blue);
+    --timing-wait-color: var(--theme-highlight-gray);
+    --timing-receive-color: var(--theme-highlight-green);
+
+    --timing-server-color-1: var(--theme-highlight-green);
+    --timing-server-color-2: var(--theme-highlight-purple);
+    --timing-server-color-3: var(--theme-highlight-yellow);
+    --timing-server-color-total: var(--theme-highlight-pink);
   }
 }

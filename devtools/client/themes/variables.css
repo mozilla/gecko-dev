@@ -280,6 +280,13 @@
     /* Color picked from HCM palette created by a11y team */
     --theme-highlight-blue: light-dark(#0060DF, #00DDFF);
     --theme-highlight-red: light-dark(#C50042, #FF9AA2);
+    --theme-highlight-green: light-dark(#005E5E, #3FE1B0);
+    --theme-highlight-purple: #952BB9;
+    --theme-highlight-yellow: light-dark(#FFFFCC, #FFEA80);
+    --theme-highlight-orange: light-dark(#CC3D00, #FFB587);
+    --theme-highlight-pink: light-dark(#FF9AA2, #FFDFE7);
+    --theme-highlight-gray: light-dark(#5B5B66, #F0F0F4);
+
 
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
