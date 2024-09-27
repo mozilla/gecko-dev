@@ -67,6 +67,7 @@ UNIFIED_SOURCES += [
     "TestRust.cpp",
     "TestTimeUnit.cpp",
     "TestVideoSegment.cpp",
+    "TestVideoSink.cpp",
     "TestVideoTrackEncoder.cpp",
     "TestVideoUtils.cpp",
     "TestVPXDecoding.cpp",
