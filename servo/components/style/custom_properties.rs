@@ -1207,12 +1207,16 @@ impl<'a, 'b: 'a> CustomPropertiesBuilder<'a, 'b> {
                 if let Some(existing_value) = existing_value.as_universal() {
                     return existing_value != value;
                 }
-                compute_value(
-                    &value.css,
-                    &value.url_data,
-                    registration,
-                    self.computed_context,
-                ).ok()
+                if !registration.syntax.is_universal() {
+                    compute_value(
+                        &value.css,
+                        &value.url_data,
+                        registration,
+                        self.computed_context,
+                    ).ok()
+                } else {
+                    None
+                }
             },
             CustomDeclarationValue::Parsed(value) => {
                 Some(value.to_computed_value(&self.computed_context))
