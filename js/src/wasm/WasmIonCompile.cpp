@@ -4972,9 +4972,9 @@ class FunctionCompiler {
     }
     curBlock_->add(limit);
 
-    // Use JSOp::StrictEq, not ::Eq, so that the comparison (and eventually
-    // the entire initialisation loop) will be folded out in the case where
-    // the number of elements is zero.  See MCompare::tryFoldEqualOperands.
+    // Note: the comparison (and eventually the entire initialisation loop) will
+    // be folded out in the case where the number of elements is zero.
+    // See MCompare::tryFoldEqualOperands.
     MDefinition* limitEqualsBase =
         compare(limit, index, JSOp::StrictEq, MCompare::Compare_UInt32);
     if (!limitEqualsBase) {

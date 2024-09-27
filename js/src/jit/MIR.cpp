@@ -4421,30 +4421,44 @@ bool MCompare::tryFoldEqualOperands(bool* result) {
   // However NaN !== NaN is true! So we spend some time trying
   // to eliminate this case.
 
-  if (!IsStrictEqualityOp(jsop())) {
+  if (!IsEqualityOp(jsop())) {
     return false;
   }
 
-  MOZ_ASSERT(
-      compareType_ == Compare_Undefined || compareType_ == Compare_Null ||
-      compareType_ == Compare_Int32 || compareType_ == Compare_UInt32 ||
-      compareType_ == Compare_UInt64 || compareType_ == Compare_Double ||
-      compareType_ == Compare_Float32 || compareType_ == Compare_IntPtr ||
-      compareType_ == Compare_UIntPtr || compareType_ == Compare_String ||
-      compareType_ == Compare_Object || compareType_ == Compare_Symbol ||
-      compareType_ == Compare_BigInt || compareType_ == Compare_BigInt_Int32 ||
-      compareType_ == Compare_BigInt_Double ||
-      compareType_ == Compare_BigInt_String);
+  switch (compareType_) {
+    case Compare_Int32:
+    case Compare_UInt32:
+    case Compare_Int64:
+    case Compare_UInt64:
+    case Compare_IntPtr:
+    case Compare_UIntPtr:
+    case Compare_Float32:
+    case Compare_Double:
+    case Compare_String:
+    case Compare_Object:
+    case Compare_Symbol:
+    case Compare_BigInt:
+    case Compare_WasmAnyRef:
+    case Compare_Null:
+    case Compare_Undefined:
+      break;
+    case Compare_BigInt_Int32:
+    case Compare_BigInt_String:
+    case Compare_BigInt_Double:
+      MOZ_CRASH("Expecting different operands for lhs and rhs");
+  }
 
   if (isDoubleComparison() || isFloat32Comparison()) {
     if (!operandsAreNeverNaN()) {
       return false;
     }
+  } else {
+    MOZ_ASSERT(!IsFloatingPointType(lhs()->type()));
   }
 
   lhs()->setGuardRangeBailoutsUnchecked();
 
-  *result = (jsop() == JSOp::StrictEq);
+  *result = (jsop() == JSOp::StrictEq || jsop() == JSOp::Eq);
   return true;
 }
 
