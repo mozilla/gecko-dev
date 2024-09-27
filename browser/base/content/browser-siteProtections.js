@@ -1356,10 +1356,10 @@ let cookieBannerHandling = new (class {
       this._cookieBannerSection.toggleAttribute("hasException");
     if (hasException) {
       await this.#disableCookieBannerHandling();
-      gProtectionsHandler.recordClick("cookieb_toggle_off");
+      Glean.securityUiProtectionspopup.clickCookiebToggleOff.record();
     } else {
       this.#enableCookieBannerHandling();
-      gProtectionsHandler.recordClick("cookieb_toggle_on");
+      Glean.securityUiProtectionspopup.clickCookiebToggleOn.record();
     }
     gProtectionsHandler._hidePopup();
     gBrowser.reloadTab(gBrowser.selectedTab);
@@ -1718,15 +1718,6 @@ var gProtectionsHandler = {
     );
   },
 
-  recordClick(object, value = null, source = "protectionspopup") {
-    Services.telemetry.recordEvent(
-      `security.ui.${source}`,
-      "click",
-      object,
-      value
-    );
-  },
-
   shieldHistogramAdd(value) {
     if (PrivateBrowsingUtils.isWindowPrivate(window)) {
       return;
@@ -1774,11 +1765,7 @@ var gProtectionsHandler = {
       this._insertProtectionsPanelInfoMessage(event);
 
       if (!event.target.hasAttribute("toast")) {
-        Services.telemetry.recordEvent(
-          "security.ui.protectionspopup",
-          "open",
-          "protections_popup"
-        );
+        Glean.securityUiProtectionspopup.openProtectionsPopup.record();
       }
 
       ReportBrokenSite.updateParentMenu(event);
@@ -2064,55 +2051,65 @@ var gProtectionsHandler = {
     switch (event.target.id) {
       case "protections-popup-category-trackers":
         gProtectionsHandler.showTrackersSubview(event);
-        gProtectionsHandler.recordClick("trackers");
+        Glean.securityUiProtectionspopup.clickTrackers.record();
         break;
       case "protections-popup-category-socialblock":
         gProtectionsHandler.showSocialblockerSubview(event);
-        gProtectionsHandler.recordClick("social");
+        Glean.securityUiProtectionspopup.clickSocial.record();
         break;
       case "protections-popup-category-cookies":
         gProtectionsHandler.showCookiesSubview(event);
-        gProtectionsHandler.recordClick("cookies");
+        Glean.securityUiProtectionspopup.clickCookies.record();
         break;
       case "protections-popup-category-cryptominers":
         gProtectionsHandler.showCryptominersSubview(event);
-        gProtectionsHandler.recordClick("cryptominers");
+        Glean.securityUiProtectionspopup.clickCryptominers.record();
         return;
       case "protections-popup-category-fingerprinters":
         gProtectionsHandler.showFingerprintersSubview(event);
-        gProtectionsHandler.recordClick("fingerprinters");
+        Glean.securityUiProtectionspopup.clickFingerprinters.record();
         break;
       case "protections-popup-settings-button":
         gProtectionsHandler.openPreferences();
-        gProtectionsHandler.recordClick("settings");
+        Glean.securityUiProtectionspopup.clickSettings.record();
         break;
       case "protections-popup-show-report-button":
         gProtectionsHandler.openProtections(true);
-        gProtectionsHandler.recordClick("full_report");
+        Glean.securityUiProtectionspopup.clickFullReport.record();
         break;
       case "protections-popup-milestones-content":
         gProtectionsHandler.openProtections(true);
-        gProtectionsHandler.recordClick("milestone_message");
+        Glean.securityUiProtectionspopup.clickMilestoneMessage.record();
         break;
       case "protections-popup-trackersView-settings-button":
         gProtectionsHandler.openPreferences();
-        gProtectionsHandler.recordClick("subview_settings", "trackers");
+        Glean.securityUiProtectionspopup.clickSubviewSettings.record({
+          value: "trackers",
+        });
         break;
       case "protections-popup-socialblockView-settings-button":
         gProtectionsHandler.openPreferences();
-        gProtectionsHandler.recordClick("subview_settings", "social");
+        Glean.securityUiProtectionspopup.clickSubviewSettings.record({
+          value: "social",
+        });
         break;
       case "protections-popup-cookiesView-settings-button":
         gProtectionsHandler.openPreferences();
-        gProtectionsHandler.recordClick("subview_settings", "cookies");
+        Glean.securityUiProtectionspopup.clickSubviewSettings.record({
+          value: "cookies",
+        });
         break;
       case "protections-popup-fingerprintersView-settings-button":
         gProtectionsHandler.openPreferences();
-        gProtectionsHandler.recordClick("subview_settings", "fingerprinters");
+        Glean.securityUiProtectionspopup.clickSubviewSettings.record({
+          value: "fingerprinters",
+        });
         break;
       case "protections-popup-cryptominersView-settings-button":
         gProtectionsHandler.openPreferences();
-        gProtectionsHandler.recordClick("subview_settings", "cryptominers");
+        Glean.securityUiProtectionspopup.clickSubviewSettings.record({
+          value: "cryptominers",
+        });
         break;
       case "protections-popup-cookieBannerView-cancel":
         gProtectionsHandler._protectionsPopupMultiView.goBack();
@@ -2350,10 +2347,10 @@ var gProtectionsHandler = {
 
     if (newExceptionState) {
       this.disableForCurrentPage(false);
-      this.recordClick("etp_toggle_off");
+      Glean.securityUiProtectionspopup.clickEtpToggleOff.record();
     } else {
       this.enableForCurrentPage(false);
-      this.recordClick("etp_toggle_on");
+      Glean.securityUiProtectionspopup.clickEtpToggleOn.record();
     }
 
     // We need to flush the TP state change immediately without waiting the
@@ -2560,19 +2557,6 @@ var gProtectionsHandler = {
     }
   },
 
-  _sendUserEventTelemetry(event, value = null, options = {}) {
-    // Only send telemetry for non private browsing windows
-    if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
-      Services.telemetry.recordEvent(
-        "security.ui.protectionspopup",
-        event,
-        "protectionspopup_cfr",
-        value,
-        options
-      );
-    }
-  },
-
   /**
    * Dispatch the action defined in the message and user telemetry event.
    */
@@ -2596,9 +2580,13 @@ var gProtectionsHandler = {
       window.browser
     );
 
-    this._sendUserEventTelemetry("click", "learn_more_link", {
-      message: message.id,
-    });
+    // Only send telemetry for non private browsing windows
+    if (!PrivateBrowsingUtils.isWindowPrivate(window)) {
+      Glean.securityUiProtectionspopup.clickProtectionspopupCfr.record({
+        value: "learn_more_link",
+        message: message.id,
+      });
+    }
   },
 
   /**
@@ -2654,8 +2642,13 @@ var gProtectionsHandler = {
         learnMoreLink.disabled = !learnMoreLink.disabled;
       }
       // If the message panel is opened, send impression telemetry
-      if (panelContainer.hasAttribute("infoMessageShowing")) {
-        this._sendUserEventTelemetry("open", "impression", {
+      // if we are in a non private browsing window.
+      if (
+        panelContainer.hasAttribute("infoMessageShowing") &&
+        !PrivateBrowsingUtils.isWindowPrivate(window)
+      ) {
+        Glean.securityUiProtectionspopup.openProtectionspopupCfr.record({
+          value: "impression",
           message: message.id,
         });
       }

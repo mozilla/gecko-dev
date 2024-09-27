@@ -90,3 +90,247 @@ privacy.sanitize:
       - pbz@mozilla.com
     expires:
       134
+
+security.ui.protectionspopup:
+  open_protections_popup:
+    type: event
+    description: >
+      How many times the protections panel was opened.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.open#protections_popup.
+    bugs: &security_ui_protectionspopup_open_bugs
+      - https://bugzil.la/1560327
+      - https://bugzil.la/1607488
+      - https://bugzil.la/1643428
+      - https://bugzil.la/1678201
+      - https://bugzil.la/1739287
+      - https://bugzil.la/1787249
+    data_reviews: &security_ui_protectionspopup_open_data_reviews
+      - https://bugzil.la/1560327
+      - https://bugzil.la/1607488
+      - https://bugzil.la/1643428
+      - https://bugzil.la/1678201
+      - https://bugzil.la/1739287
+      - https://bugzil.la/1787249
+    notification_emails: &security_ui_protectionspopup_open_emails
+      - pbz@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Open_ProtectionsPopup
+
+  open_protectionspopup_cfr:
+    type: event
+    description: >
+      How many times the protections panel was opened.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.open#protectionspopup_cfr.
+    bugs: *security_ui_protectionspopup_open_bugs
+    data_reviews: *security_ui_protectionspopup_open_data_reviews
+    notification_emails: *security_ui_protectionspopup_open_emails
+    expires: never
+    extra_keys: &security_ui_protectionspopup_open_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      message:
+        description: >
+          For protectionspopup_cfr, the message ID.
+
+        type: string
+    telemetry_mirror: SecurityUiProtectionspopup_Open_ProtectionspopupCfr
+
+  click_etp_toggle_on:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#etp_toggle_on.
+    bugs: &security_ui_protectionspopup_click_bugs
+      - https://bugzil.la/1560327
+      - https://bugzil.la/1602015
+      - https://bugzil.la/1607488
+      - https://bugzil.la/1643428
+      - https://bugzil.la/1678201
+      - https://bugzil.la/1739287
+      - https://bugzil.la/1787249
+      - https://bugzil.la/1798669
+    data_reviews: &security_ui_protectionspopup_click_data_reviews
+      - https://bugzil.la/1560327
+      - https://bugzil.la/1602015
+      - https://bugzil.la/1607488
+      - https://bugzil.la/1643428
+      - https://bugzil.la/1678201
+      - https://bugzil.la/1739287
+      - https://bugzil.la/1787249
+      - https://bugzil.la/1798669
+    notification_emails: &security_ui_protectionspopup_click_emails
+      - pbz@mozilla.com
+      - tihuang@mozilla.com
+      - seceng-telemetry@mozilla.com
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_EtpToggleOn
+
+  click_etp_toggle_off:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#etp_toggle_off.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_EtpToggleOff
+
+  click_social:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#social.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_Social
+
+  click_cookies:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#cookies.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_Cookies
+
+  click_trackers:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#trackers.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_Trackers
+
+  click_fingerprinters:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#fingerprinters.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_Fingerprinters
+
+  click_cryptominers:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#cryptominers.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_Cryptominers
+
+  click_subview_settings:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#subview_settings.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: SecurityUiProtectionspopup_Click_SubviewSettings
+
+  click_settings:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#settings.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_Settings
+
+  click_full_report:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#full_report.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_FullReport
+
+  click_milestone_message:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#milestone_message.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_MilestoneMessage
+
+  click_cookieb_toggle_on:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#cookieb_toggle_on.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_CookiebToggleOn
+
+  click_cookieb_toggle_off:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#cookieb_toggle_off.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    telemetry_mirror: SecurityUiProtectionspopup_Click_CookiebToggleOff
+
+  click_protectionspopup_cfr:
+    type: event
+    description: >
+      User interaction by click events in the protections panel.
+      This event was generated to correspond to the Legacy Telemetry event
+      security.ui.protectionspopup.click#protectionspopup_cfr.
+    bugs: *security_ui_protectionspopup_click_bugs
+    data_reviews: *security_ui_protectionspopup_click_data_reviews
+    notification_emails: *security_ui_protectionspopup_click_emails
+    expires: never
+    extra_keys: *security_ui_protectionspopup_open_extra
+    telemetry_mirror: SecurityUiProtectionspopup_Click_ProtectionspopupCfr
