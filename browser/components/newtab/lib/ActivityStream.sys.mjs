@@ -248,7 +248,7 @@ export const PREFS_CONFIG = new Map([
     "unifiedAds.spocs.enabled",
     {
       title:
-        "Use Mozilla Ad Routing Service (MARS) unified ads API for sponsored content in Recommend Stories",
+        "Use Mozilla Ad Routing Service (MARS) unified ads API for sponsored content in recommended stories",
       value: false,
     },
   ],

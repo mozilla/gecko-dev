@@ -76,7 +76,7 @@ export const PREF_IMPRESSION_ID = "impressionId";
 export const TELEMETRY_PREF = "telemetry";
 export const EVENTS_TELEMETRY_PREF = "telemetry.ut.events";
 export const PREF_UNIFIED_ADS_SPOCS_ENABLED = "unifiedAds.spocs.enabled";
-export const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.spocs.enabled";
+export const PREF_UNIFIED_ADS_TILES_ENABLED = "unifiedAds.tiles.enabled";
 const PREF_UPLOAD_ENABLED = "datareporting.healthreport.uploadEnabled";
 
 // Used as the missing value for timestamps in the session ping
