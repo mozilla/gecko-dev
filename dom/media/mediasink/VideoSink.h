@@ -87,11 +87,10 @@ class VideoSink : public MediaSink {
   // Sets VideoQueue images into the VideoFrameContainer. Called on the shared
   // state machine thread. The first aMaxFrames (at most) are set.
   // aClockTime and aClockTimeStamp are used as the baseline for deriving
-  // timestamps for the frames; when omitted, aMaxFrames must be 1 and
-  // a null timestamp is passed to the VideoFrameContainer.
+  // timestamps for the frames.
   // If the VideoQueue is empty, this does nothing.
-  void RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime = 0,
-                         const TimeStamp& aClickTimeStamp = TimeStamp());
+  void RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime,
+                         const TimeStamp& aClockTimeStamp);
 
   // Triggered while videosink is started, videosink becomes "playing" status,
   // or VideoQueue event arrived.
