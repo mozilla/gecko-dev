@@ -75,6 +75,11 @@ add_task(async function test_expanded_state_for_always_show() {
     document,
   } = win;
 
+  await TestUtils.waitForCondition(
+    () => toolbarButton.hasAttribute("shown"),
+    "Toolbar button shown attribute is present."
+  );
+
   const checkExpandedState = async (
     expanded,
     component = sidebarMain,
@@ -162,6 +167,11 @@ add_task(async function test_states_for_hide_sidebar() {
   const win = await BrowserTestUtils.openNewBrowserWindow();
   const { SidebarController } = win;
   const { sidebarContainer, sidebarMain, toolbarButton } = SidebarController;
+
+  await TestUtils.waitForCondition(
+    () => !toolbarButton.hasAttribute("shown"),
+    "Toolbar button shown attribute is absent."
+  );
 
   const checkStates = async (
     { hidden, expanded },
