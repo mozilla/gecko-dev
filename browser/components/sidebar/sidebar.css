@@ -6,6 +6,8 @@
 @import url("chrome://browser/skin/browser-colors.css");
 
 :root {
+  --sidebar-box-border: 0.5px solid var(--border-color-deemphasized);
+
   background-color: transparent;
   color: var(--sidebar-text-color);
   height: 100%;
@@ -21,7 +23,7 @@ moz-card {
   background-color: var(--toolbar-bgcolor);
   color: var(--toolbar-color);
   box-shadow: none;
-  border: 0.5px solid var(--panel-separator-color);
+  border: var(--sidebar-box-border);
   border-radius: var(--border-radius-medium);
 
   &::part(summary) {
@@ -61,7 +63,7 @@ fxview-search-textbox {
     background-color: var(--toolbar-field-background-color);
     color: var(--toolbar-field-color);
     border-radius: 2em;
-    border: 0.5px solid var(--panel-separator-color);
+    border: var(--sidebar-box-border);
   }
 
   &::part(container) {
@@ -74,7 +76,7 @@ fxview-empty-state {
     margin-block-start: var(--space-medium);
     background-color: var(--toolbar-bgcolor);
     color: var(--toolbar-color);
-    border: 0.5px solid var(--panel-separator-color);
+    border: var(--sidebar-box-border);
     border-radius: var(--border-radius-medium);
     padding-block: 83px;
     padding-inline: var(--space-medium);
