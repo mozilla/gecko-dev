@@ -91,7 +91,7 @@ export default class SidebarMain extends MozLitElement {
   onSidebarPopupShowing(event) {
     // Store the context menu target which holds the id required for managing sidebar items
     this.contextMenuTarget =
-      event.explicitOriginalTarget.flattenedTreeParentNode;
+      event.explicitOriginalTarget.flattenedTreeParentNode.flattenedTreeParentNode;
     if (
       this.contextMenuTarget.getAttribute("extensionId") ||
       this.contextMenuTarget.className.includes("tab") ||
@@ -199,7 +199,9 @@ export default class SidebarMain extends MozLitElement {
         }
         break;
       case "contextmenu":
-        this.onSidebarPopupShowing(e);
+        if (e.target.id != "tabs-newtab-button") {
+          this.onSidebarPopupShowing(e);
+        }
         break;
       case "popuphidden":
         this.contextMenuTarget = null;
