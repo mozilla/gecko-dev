@@ -396,6 +396,7 @@ export class MLEngineParent extends JSWindowActorParent {
       processorRevision: options.processorRevision,
       processorId: options.processorId,
       dtype: options.dtype,
+      numThreads: options.numThreads,
       runtimeFilename: MLEngineParent.WASM_FILENAME,
     };
   }

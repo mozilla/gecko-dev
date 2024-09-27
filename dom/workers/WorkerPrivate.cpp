@@ -31,6 +31,7 @@
 #include "mozilla/dom/CallbackDebuggerNotification.h"
 #include "mozilla/dom/ClientManager.h"
 #include "mozilla/dom/ClientState.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/Console.h"
 #include "mozilla/dom/DocGroup.h"
 #include "mozilla/dom/Document.h"
@@ -2675,7 +2676,8 @@ WorkerPrivate::~WorkerPrivate() {
 WorkerPrivate::AgentClusterIdAndCoop
 WorkerPrivate::ComputeAgentClusterIdAndCoop(WorkerPrivate* aParent,
                                             WorkerKind aWorkerKind,
-                                            WorkerLoadInfo* aLoadInfo) {
+                                            WorkerLoadInfo* aLoadInfo,
+                                            bool aIsChromeWorker) {
   nsILoadInfo::CrossOriginOpenerPolicy agentClusterCoop =
       nsILoadInfo::OPENER_POLICY_UNSAFE_NONE;
 
@@ -2705,6 +2707,15 @@ WorkerPrivate::ComputeAgentClusterIdAndCoop(WorkerPrivate* aParent,
     return {agentClusterId, bc->Top()->GetOpenerPolicy()};
   }
 
+  // Allow chrome workers within the "inference" content process access to
+  // SharedArrayBuffer by enabling COOP/COEP for their agent cluster group.
+  // This is useful for accelerating WASM-based inference engines.
+  if (aIsChromeWorker && XRE_IsContentProcess() &&
+      dom::ContentChild::GetSingleton()->GetRemoteType() ==
+          INFERENCE_REMOTE_TYPE) {
+    agentClusterCoop =
+        nsILoadInfo::OPENER_POLICY_SAME_ORIGIN_EMBEDDER_POLICY_REQUIRE_CORP;
+  }
   // If the window object was failed to be set into the WorkerLoadInfo, we
   // make the worker into another agent cluster group instead of failures.
   return {nsID::GenerateUUID(), agentClusterCoop};
@@ -2776,8 +2787,8 @@ already_AddRefed<WorkerPrivate> WorkerPrivate::Constructor(
     return nullptr;
   }
 
-  AgentClusterIdAndCoop idAndCoop =
-      ComputeAgentClusterIdAndCoop(parent, aWorkerKind, aLoadInfo);
+  AgentClusterIdAndCoop idAndCoop = ComputeAgentClusterIdAndCoop(
+      parent, aWorkerKind, aLoadInfo, aIsChromeWorker);
 
   RefPtr<WorkerPrivate> worker = new WorkerPrivate(
       parent, aScriptURL, aIsChromeWorker, aWorkerKind, aRequestCredentials,

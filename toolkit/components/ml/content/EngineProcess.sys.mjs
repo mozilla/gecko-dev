@@ -141,6 +141,13 @@ export class PipelineOptions {
   dtype = null;
 
   /**
+   * Number of threads to use in the pipeline
+   *
+   * @type {?number}
+   */
+  numThreads = null;
+
+  /**
    * Create a PipelineOptions instance.
    *
    * @param {object} options - The options for the pipeline. Must include mandatory fields.
@@ -172,6 +179,7 @@ export class PipelineOptions {
       "runtimeFilename",
       "device",
       "dtype",
+      "numThreads",
     ];
 
     if (options instanceof PipelineOptions) {
@@ -212,6 +220,7 @@ export class PipelineOptions {
       runtimeFilename: this.runtimeFilename,
       device: this.device,
       dtype: this.dtype,
+      numThreads: this.numThreads,
     };
   }
 

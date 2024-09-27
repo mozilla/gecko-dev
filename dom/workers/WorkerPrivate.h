@@ -1245,8 +1245,8 @@ class WorkerPrivate final
   };
 
   static AgentClusterIdAndCoop ComputeAgentClusterIdAndCoop(
-      WorkerPrivate* aParent, WorkerKind aWorkerKind,
-      WorkerLoadInfo* aLoadInfo);
+      WorkerPrivate* aParent, WorkerKind aWorkerKind, WorkerLoadInfo* aLoadInfo,
+      bool aIsChromeWorker);
 
   void CancelAllTimeouts();
 

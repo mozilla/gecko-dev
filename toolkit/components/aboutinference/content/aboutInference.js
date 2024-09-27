@@ -59,6 +59,10 @@ const TASKS = [
 ];
 
 const DTYPE = ["fp32", "fp16", "q8", "int8", "uint8", "q4", "bnb4", "q4f16"];
+const NUM_THREADS = Array.from(
+  { length: navigator.hardwareConcurrency || 4 },
+  (_, i) => i + 1
+);
 
 /**
  * Presets for the pad
@@ -350,6 +354,7 @@ async function runInference() {
   const taskName = document.getElementById("taskName").value;
   const dtype = document.getElementById("dtype").value;
   const device = document.getElementById("device").value;
+  const numThreads = parseInt(document.getElementById("numThreads").value);
 
   let inputData;
   try {
@@ -375,6 +380,7 @@ async function runInference() {
     modelHubUrlTemplate,
     device,
     dtype,
+    numThreads,
   };
 
   const { createEngine } = ChromeUtils.importESModule(
@@ -550,6 +556,7 @@ function fillSelect(elementId, values) {
 window.onload = async function () {
   fillSelect("dtype", DTYPE);
   fillSelect("taskName", TASKS);
+  fillSelect("numThreads", NUM_THREADS);
   loadExample("summary");
   await displayInfo();
 
@@ -572,6 +579,7 @@ window.onload = async function () {
   document
     .getElementById("http.limit")
     .addEventListener("change", updateHttpContext);
+
   updateHttpContext();
   setInterval(displayInfo, 5000);
 };
