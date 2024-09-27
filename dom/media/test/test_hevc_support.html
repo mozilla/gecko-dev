@@ -23,6 +23,13 @@ const videoConfiguration = {
 };
 
 add_task(async function testHEVCSupport() {
+  // Disable fingerprinting resistance/protection to get an accurate result.
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["privacy.resistFingerprinting", false],
+      ["privacy.fingerprintingProtection", false],
+    ],
+  });
   const os = SpecialPowers.Services.appinfo.OS;
   const canPlay = document.createElement('video').canPlayType(contentType);
   if (os == "WINNT") {
