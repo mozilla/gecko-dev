@@ -880,7 +880,7 @@ tab-group {
 
 #vertical-pinned-tabs-container {
   --tab-inline-padding: calc((calc(var(--tab-collapsed-background-width) + 2 * var(--tab-pinned-margin-inline-expanded) - var(--icon-size-default)) / 2));
-  display: grid;
+  display: none;
   grid-template-columns: repeat(auto-fit, minmax(var(--tab-pinned-min-width-expanded), auto));
   overflow-y: auto;
   overflow-x: hidden;
@@ -892,8 +892,8 @@ tab-group {
     justify-content: center;
   }
 
-  #tabbrowser-tabs[orient="horizontal"] > & {
-    display: none;
+  #tabbrowser-tabs[orient="vertical"] > &:not(:empty) {
+    display: grid;
   }
 
   .tab-label-container {
