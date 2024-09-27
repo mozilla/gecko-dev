@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { FirefoxRelayTelemetry } from "resource://gre/modules/FirefoxRelayTelemetry.mjs";
 import {
   LoginHelper,
   OptInFeature,
@@ -215,7 +214,7 @@ function getPostpone(postponeStrings, feature) {
         "user decided not to decide about Firefox Relay integration"
       );
       feature.markAsOffered();
-      FirefoxRelayTelemetry.recordRelayOptInPanelEvent("postponed", gFlowId);
+      Glean.relayIntegration.postponedOptInPanel.record({ value: gFlowId });
     },
   };
 }
@@ -228,14 +227,17 @@ function getDisableIntegration(disableStrings, feature) {
     callback() {
       lazy.log.info("user opted out from Firefox Relay integration");
       feature.markAsDisabled();
-      FirefoxRelayTelemetry.recordRelayOptInPanelEvent("disabled", gFlowId);
+      Glean.relayIntegration.disabledOptInPanel.record({ value: gFlowId });
     },
   };
 }
 async function showReusableMasksAsync(browser, origin, error) {
   const [reusableMasks, status] = await getReusableMasksAsync(browser, origin);
   if (!reusableMasks) {
-    FirefoxRelayTelemetry.recordRelayReusePanelEvent("shown", gFlowId, status);
+    Glean.relayIntegration.shownReusePanel.record({
+      value: gFlowId,
+      error_code: status,
+    });
     return null;
   }
 
@@ -249,10 +251,9 @@ async function showReusableMasksAsync(browser, origin, error) {
     accessKey: getUnlimitedMasksStrings.accesskey,
     dismiss: true,
     async callback() {
-      FirefoxRelayTelemetry.recordRelayReusePanelEvent(
-        "get_unlimited_masks",
-        gFlowId
-      );
+      Glean.relayIntegration.getUnlimitedMasksReusePanel.record({
+        value: gFlowId,
+      });
       browser.ownerGlobal.openWebLinkIn(gConfig.manageURL, "tab");
     },
   };
@@ -306,10 +307,9 @@ async function showReusableMasksAsync(browser, origin, error) {
               browser,
               "confirmation-hint-firefox-relay-mask-reused"
             );
-            FirefoxRelayTelemetry.recordRelayReusePanelEvent(
-              "reuse_mask",
-              gFlowId
-            );
+            Glean.relayIntegration.reuseMaskReusePanel.record({
+              value: gFlowId,
+            });
           },
           { once: true }
         );
@@ -330,7 +330,10 @@ async function showReusableMasksAsync(browser, origin, error) {
         break;
       case "shown":
         notificationShown();
-        FirefoxRelayTelemetry.recordRelayReusePanelEvent("shown", gFlowId);
+        Glean.relayIntegration.shownReusePanel.record({
+          value: gFlowId,
+          error_code: 0,
+        });
         break;
     }
   }
@@ -372,11 +375,10 @@ async function generateUsernameAsync(browser, origin) {
   );
 
   if (!response) {
-    FirefoxRelayTelemetry.recordRelayUsernameFilledEvent(
-      "shown",
-      gFlowId,
-      AUTH_TOKEN_ERROR_CODE
-    );
+    Glean.relayIntegration.shownFillUsername.record({
+      value: gFlowId,
+      error_code: AUTH_TOKEN_ERROR_CODE,
+    });
     return undefined;
   }
 
@@ -390,11 +392,10 @@ async function generateUsernameAsync(browser, origin) {
   if (response.status == 403) {
     const error = await response.json();
     if (error?.error_code == "free_tier_limit") {
-      FirefoxRelayTelemetry.recordRelayUsernameFilledEvent(
-        "shown",
-        gFlowId,
-        error?.error_code
-      );
+      Glean.relayIntegration.shownFillUsername.record({
+        value: gFlowId,
+        error_code: error.error_code,
+      });
       return showReusableMasksAsync(browser, origin, error);
     }
   }
@@ -407,11 +408,10 @@ async function generateUsernameAsync(browser, origin) {
     status: response.status,
   });
 
-  FirefoxRelayTelemetry.recordRelayReusePanelEvent(
-    "shown",
-    gFlowId,
-    response.status
-  );
+  Glean.relayIntegration.shownReusePanel.record({
+    value: gFlowId,
+    error_code: response.status,
+  });
 
   return undefined;
 }
@@ -445,11 +445,10 @@ class RelayOffered {
           },
         }
       );
-      FirefoxRelayTelemetry.recordRelayOfferedEvent(
-        "shown",
-        gFlowId,
-        scenarioName
-      );
+      Glean.relayIntegration.shownOfferRelay.record({
+        value: gFlowId,
+        scenario: scenarioName,
+      });
     }
   }
 
@@ -579,7 +578,7 @@ class RelayOffered {
           // Relay does not show up as an OAuth client
           if (await this.notifyServerTermsAcceptedAsync(browser)) {
             feature.markAsEnabled();
-            FirefoxRelayTelemetry.recordRelayOptInPanelEvent("enabled", flowId);
+            Glean.relayIntegration.enabledOptInPanel.record({ value: flowId });
             fillUsername(await generateUsernameAsync(browser, origin));
           }
         };
@@ -622,10 +621,7 @@ class RelayOffered {
                 gConfig.termsOfServiceUrl;
               document.getElementById("firefox-relay-offer-privacy-url").href =
                 gConfig.privacyPolicyUrl;
-              FirefoxRelayTelemetry.recordRelayOptInPanelEvent(
-                "shown",
-                gFlowId
-              );
+              Glean.relayIntegration.shownOptInPanel.record({ value: gFlowId });
               break;
           }
         },
@@ -657,7 +653,7 @@ class RelayOffered {
         const flowId = gFlowId;
         if (await this.notifyServerTermsAcceptedAsync(browser)) {
           feature.markAsEnabled();
-          FirefoxRelayTelemetry.recordRelayOptInPanelEvent("enabled", flowId);
+          Glean.relayIntegration.enabledOptInPanel.record({ value: flowId });
           fillUsername(await generateUsernameAsync(browser, origin));
         }
       },
@@ -699,10 +695,7 @@ class RelayOffered {
                   useremail: fxaUser.email,
                 }
               );
-              FirefoxRelayTelemetry.recordRelayOptInPanelEvent(
-                "shown",
-                gFlowId
-              );
+              Glean.relayIntegration.shownOptInPanel.record({ value: gFlowId });
               break;
           }
         },
@@ -733,7 +726,10 @@ class RelayEnabled {
           },
         }
       );
-      FirefoxRelayTelemetry.recordRelayUsernameFilledEvent("shown", gFlowId);
+      Glean.relayIntegration.shownFillUsername.record({
+        value: gFlowId,
+        error_code: 0,
+      });
     }
   }
 

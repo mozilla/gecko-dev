@@ -7,9 +7,6 @@ const { HttpServer } = ChromeUtils.importESModule(
 const { getFxAccountsSingleton } = ChromeUtils.importESModule(
   "resource://gre/modules/FxAccounts.sys.mjs"
 );
-const { FirefoxRelayTelemetry } = ChromeUtils.importESModule(
-  "resource://gre/modules/FirefoxRelayTelemetry.mjs"
-);
 
 const gFxAccounts = getFxAccountsSingleton();
 let gRelayACOptionsTitles;

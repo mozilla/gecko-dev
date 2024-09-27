@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-import { FirefoxRelayTelemetry } from "resource://gre/modules/FirefoxRelayTelemetry.mjs";
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 
 const LoginInfo = new Components.Constructor(
@@ -1530,11 +1529,10 @@ export class LoginManagerParent extends JSWindowActorParent {
       }
 
       case "PasswordManager:offerRelayIntegration": {
-        FirefoxRelayTelemetry.recordRelayOfferedEvent(
-          "clicked",
-          data.telemetry.flowId,
-          data.telemetry.scenarioName
-        );
+        Glean.relayIntegration.clickedOfferRelay.record({
+          value: data.telemetry.flowId,
+          scenario: data.telemetry.scenarioName,
+        });
         const username = await this.#offerRelayIntegration(this.origin);
         if (username) {
           this.sendAsyncMessage("PasswordManager:FillRelayUsername", username);
@@ -1543,10 +1541,10 @@ export class LoginManagerParent extends JSWindowActorParent {
       }
 
       case "PasswordManager:generateRelayUsername": {
-        FirefoxRelayTelemetry.recordRelayUsernameFilledEvent(
-          "clicked",
-          data.telemetry.flowId
-        );
+        Glean.relayIntegration.clickedFillUsername.record({
+          value: data.telemetry.flowId,
+          error_code: 0,
+        });
         const username = await this.#generateRelayUsername(this.origin);
         if (username) {
           this.sendAsyncMessage("PasswordManager:FillRelayUsername", username);

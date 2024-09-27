@@ -791,3 +791,222 @@ form_autocomplete:
           Length of the text in the field that triggered these results.
         type: string
     telemetry_mirror: Form_autocomplete_Show_Logins
+
+relay_integration:
+  enabled_pref_change:
+    type: event
+    description: >
+      Checkbox in the settings page to enable/disable relay
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.enabled#pref_change.
+    bugs: &relay_integration_enabled_bugs
+      - https://bugzil.la/1804502
+    data_reviews: &relay_integration_enabled_data_reviews
+      - https://bugzil.la/1804502
+    notification_emails: &relay_integration_enabled_emails
+      - passwords-dev@mozilla.org
+    expires: never
+    telemetry_mirror: Relay_integration_Enabled_PrefChange
+
+  disabled_pref_change:
+    type: event
+    description: >
+      Checkbox in the settings page to enable/disable relay
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.disabled#pref_change.
+    bugs: *relay_integration_enabled_bugs
+    data_reviews: *relay_integration_enabled_data_reviews
+    notification_emails: *relay_integration_enabled_emails
+    expires: never
+    telemetry_mirror: Relay_integration_Disabled_PrefChange
+
+  shown_offer_relay:
+    type: event
+    description: >
+      Firefox relay integration autocomplete popup
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.shown#offer_relay.
+    bugs: &relay_integration_shown_bugs
+      - https://bugzil.la/1804502
+    data_reviews: &relay_integration_shown_data_reviews
+      - https://bugzil.la/1804502
+    notification_emails: &relay_integration_shown_emails
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &relay_integration_offer_relay
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      scenario:
+        description: >
+          Describes the auth context for now only SignupForm is supported
+        type: string
+    telemetry_mirror: Relay_integration_Shown_OfferRelay
+
+  clicked_offer_relay:
+    type: event
+    description: >
+      Firefox relay integration autocomplete popup
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.clicked#offer_relay.
+    bugs: *relay_integration_shown_bugs
+    data_reviews: *relay_integration_shown_data_reviews
+    notification_emails: *relay_integration_shown_emails
+    expires: never
+    extra_keys: *relay_integration_offer_relay
+    telemetry_mirror: Relay_integration_Clicked_OfferRelay
+
+  shown_fill_username:
+    type: event
+    description: >
+      Firefox relay integration autocomplete popup
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.shown#fill_username.
+    bugs: *relay_integration_shown_bugs
+    data_reviews: *relay_integration_shown_data_reviews
+    notification_emails: *relay_integration_shown_emails
+    expires: never
+    extra_keys: &relay_integration_fill_username
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      error_code:
+        description: >
+          The error code after users click the fill username autocomplete entry. Only present if the object is "fill_username". When the event is successful, the error_code  is 0.
+
+        type: string
+    telemetry_mirror: Relay_integration_Shown_FillUsername
+
+  clicked_fill_username:
+    type: event
+    description: >
+      Firefox relay integration autocomplete popup
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.clicked#fill_username.
+    bugs: *relay_integration_shown_bugs
+    data_reviews: *relay_integration_shown_data_reviews
+    notification_emails: *relay_integration_shown_emails
+    expires: never
+    extra_keys: *relay_integration_fill_username
+    telemetry_mirror: Relay_integration_Clicked_FillUsername
+
+  shown_reuse_panel:
+    type: event
+    description: >
+      Panels to show the state of the email alias generation
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.shown#reuse_panel.
+    bugs: &relay_integration_reuse_panel_bugs
+      - https://bugzil.la/1804502
+    data_reviews: &relay_integration_reuse_panel_data_reviews
+      - https://bugzil.la/1804502
+    notification_emails: &relay_integration_reuse_panel_emails
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      error_code:
+        description: >
+          The error code after users click the email alias generation panel. When the event is successful, the error_code  is 0.
+
+        type: string
+    telemetry_mirror: Relay_integration_Shown_ReusePanel
+
+  get_unlimited_masks_reuse_panel:
+    type: event
+    description: >
+      Panels to show the state of the email alias generation
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.get_unlimited_masks#reuse_panel.
+    bugs: *relay_integration_reuse_panel_bugs
+    data_reviews: *relay_integration_reuse_panel_data_reviews
+    notification_emails: *relay_integration_reuse_panel_emails
+    expires: never
+    extra_keys: &relay_integration_reuse_panel_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Relay_integration_GetUnlimitedMasks_ReusePanel
+
+  reuse_mask_reuse_panel:
+    type: event
+    description: >
+      Panels to show the state of the email alias generation
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.reuse_mask#reuse_panel.
+    bugs: *relay_integration_reuse_panel_bugs
+    data_reviews: *relay_integration_reuse_panel_data_reviews
+    notification_emails: *relay_integration_reuse_panel_emails
+    expires: never
+    extra_keys: *relay_integration_reuse_panel_extra
+    telemetry_mirror: Relay_integration_ReuseMask_ReusePanel
+
+  shown_opt_in_panel:
+    type: event
+    description: >
+      Panel to opt-in Firefox Relay Integration
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.shown#opt_in_panel.
+    bugs: &relay_integration_opt_in_panel_bugs
+      - https://bugzil.la/1804502
+    data_reviews: &relay_integration_opt_in_panel_data_reviews
+      - https://bugzil.la/1804502
+    notification_emails: &relay_integration_opt_in_panel_emails
+      - passwords-dev@mozilla.org
+    expires: never
+    extra_keys: &relay_integration_opt_in_panel_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+    telemetry_mirror: Relay_integration_Shown_OptInPanel
+
+  enabled_opt_in_panel:
+    type: event
+    description: >
+      Panel to opt-in Firefox Relay Integration
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.enabled#opt_in_panel.
+    bugs: *relay_integration_opt_in_panel_bugs
+    data_reviews: *relay_integration_opt_in_panel_data_reviews
+    notification_emails: *relay_integration_opt_in_panel_emails
+    expires: never
+    extra_keys: *relay_integration_opt_in_panel_extra
+    telemetry_mirror: Relay_integration_Enabled_OptInPanel
+
+  postponed_opt_in_panel:
+    type: event
+    description: >
+      Panel to opt-in Firefox Relay Integration
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.postponed#opt_in_panel.
+    bugs: *relay_integration_opt_in_panel_bugs
+    data_reviews: *relay_integration_opt_in_panel_data_reviews
+    notification_emails: *relay_integration_opt_in_panel_emails
+    expires: never
+    extra_keys: *relay_integration_opt_in_panel_extra
+    telemetry_mirror: Relay_integration_Postponed_OptInPanel
+
+  disabled_opt_in_panel:
+    type: event
+    description: >
+      Panel to opt-in Firefox Relay Integration
+      This event was generated to correspond to the Legacy Telemetry event
+      relay_integration.disabled#opt_in_panel.
+    bugs: *relay_integration_opt_in_panel_bugs
+    data_reviews: *relay_integration_opt_in_panel_data_reviews
+    notification_emails: *relay_integration_opt_in_panel_emails
+    expires: never
+    extra_keys: *relay_integration_opt_in_panel_extra
+    telemetry_mirror: Relay_integration_Disabled_OptInPanel

@@ -3050,10 +3050,10 @@ var gPrivacyPane = {
     const checkbox = document.getElementById("relayIntegration");
     if (checkbox.checked) {
       FirefoxRelay.markAsAvailable();
-      FirefoxRelayTelemetry.recordRelayPrefEvent("enabled");
+      Glean.relayIntegration.enabledPrefChange.record();
     } else {
       FirefoxRelay.markAsDisabled();
-      FirefoxRelayTelemetry.recordRelayPrefEvent("disabled");
+      Glean.relayIntegration.disabledPrefChange.record();
     }
   },
 
