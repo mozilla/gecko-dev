@@ -7,7 +7,6 @@ use crate::json_writer::JSONWriter;
 use crate::marker::deserializer_tags_state::{
     get_marker_type_functions_read_guard, MarkerTypeFunctions,
 };
-use std::ops::DerefMut;
 use std::os::raw::{c_char, c_void};
 
 #[no_mangle]
@@ -40,13 +39,13 @@ pub unsafe extern "C" fn gecko_profiler_stream_marker_schemas(
 
     for funcs in marker_type_functions.iter() {
         let marker_name = (funcs.marker_type_name_fn)();
-        let mut marker_schema = (funcs.marker_type_display_fn)();
+        let marker_schema = (funcs.marker_type_display_fn)();
 
         bindings::gecko_profiler_marker_schema_stream(
             json_writer,
             marker_name.as_ptr() as *const c_char,
             marker_name.len(),
-            marker_schema.pin.deref_mut().as_mut_ptr(),
+            marker_schema.ptr,
             streamed_names_set,
         )
     }

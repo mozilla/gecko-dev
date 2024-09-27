@@ -5,10 +5,7 @@
 //! [`MarkerSchema`] and other enums that will be used by `MarkerSchema`.
 
 use crate::gecko_bindings::{bindings, structs::mozilla};
-use std::mem::MaybeUninit;
-use std::ops::DerefMut;
 use std::os::raw::c_char;
-use std::pin::Pin;
 
 /// Marker locations to be displayed in the profiler front-end.
 pub type Location = mozilla::MarkerSchema_Location;
@@ -27,34 +24,30 @@ pub type Searchable = mozilla::MarkerSchema_Searchable;
 /// It's a RAII object that constructs and destroys a C++ MarkerSchema object
 /// pointed to a specified reference.
 pub struct MarkerSchema {
-    pub(crate) pin: Pin<Box<MaybeUninit<mozilla::MarkerSchema>>>,
+    pub(crate) ptr: *mut mozilla::MarkerSchema,
 }
 
 impl MarkerSchema {
     // Initialize a marker schema with the given `Location`s.
     pub fn new(locations: &[Location]) -> Self {
-        let mut marker_schema = Box::pin(std::mem::MaybeUninit::<mozilla::MarkerSchema>::uninit());
-
-        unsafe {
-            bindings::gecko_profiler_construct_marker_schema(
-                marker_schema.deref_mut().as_mut_ptr(),
-                locations.as_ptr(),
-                locations.len(),
-            );
+        MarkerSchema {
+            ptr: unsafe {
+                bindings::gecko_profiler_construct_marker_schema(
+                    locations.as_ptr(),
+                    locations.len(),
+                )
+            },
         }
-        MarkerSchema { pin: marker_schema }
     }
 
     /// Marker schema for types that have special frontend handling.
     /// Nothing else should be set in this case.
     pub fn new_with_special_frontend_location() -> Self {
-        let mut marker_schema = Box::pin(std::mem::MaybeUninit::<mozilla::MarkerSchema>::uninit());
-        unsafe {
-            bindings::gecko_profiler_construct_marker_schema_with_special_front_end_location(
-                marker_schema.deref_mut().as_mut_ptr(),
-            );
+        MarkerSchema {
+            ptr: unsafe {
+                bindings::gecko_profiler_construct_marker_schema_with_special_front_end_location()
+            },
         }
-        MarkerSchema { pin: marker_schema }
     }
 
     /// Optional label in the marker chart.
@@ -64,7 +57,7 @@ impl MarkerSchema {
     pub fn set_chart_label(&mut self, label: &str) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_set_chart_label(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 label.as_ptr() as *const c_char,
                 label.len(),
             );
@@ -79,7 +72,7 @@ impl MarkerSchema {
     pub fn set_tooltip_label(&mut self, label: &str) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_set_tooltip_label(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 label.as_ptr() as *const c_char,
                 label.len(),
             );
@@ -94,7 +87,7 @@ impl MarkerSchema {
     pub fn set_table_label(&mut self, label: &str) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_set_table_label(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 label.as_ptr() as *const c_char,
                 label.len(),
             );
@@ -109,7 +102,7 @@ impl MarkerSchema {
     pub fn set_all_labels(&mut self, label: &str) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_set_all_labels(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 label.as_ptr() as *const c_char,
                 label.len(),
             );
@@ -132,7 +125,7 @@ impl MarkerSchema {
     pub fn add_key_format(&mut self, key: &str, format: Format) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_add_key_format(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 key.as_ptr() as *const c_char,
                 key.len(),
                 format,
@@ -148,7 +141,7 @@ impl MarkerSchema {
     pub fn add_key_label_format(&mut self, key: &str, label: &str, format: Format) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_add_key_label_format(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 key.as_ptr() as *const c_char,
                 key.len(),
                 label.as_ptr() as *const c_char,
@@ -170,7 +163,7 @@ impl MarkerSchema {
     ) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_add_key_format_searchable(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 key.as_ptr() as *const c_char,
                 key.len(),
                 format,
@@ -195,7 +188,7 @@ impl MarkerSchema {
     ) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_add_key_label_format_searchable(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 key.as_ptr() as *const c_char,
                 key.len(),
                 label.as_ptr() as *const c_char,
@@ -213,7 +206,7 @@ impl MarkerSchema {
     pub fn add_static_label_value(&mut self, label: &str, value: &str) -> &mut Self {
         unsafe {
             bindings::gecko_profiler_marker_schema_add_static_label_value(
-                self.pin.deref_mut().as_mut_ptr(),
+                self.ptr,
                 label.as_ptr() as *const c_char,
                 label.len(),
                 value.as_ptr() as *const c_char,
@@ -227,7 +220,7 @@ impl MarkerSchema {
 impl Drop for MarkerSchema {
     fn drop(&mut self) {
         unsafe {
-            bindings::gecko_profiler_destruct_marker_schema(self.pin.deref_mut().as_mut_ptr());
+            bindings::gecko_profiler_destruct_marker_schema(self.ptr);
         }
     }
 }
