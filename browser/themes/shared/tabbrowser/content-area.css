@@ -45,6 +45,7 @@
 }
 
 #tabbrowser-tabbox {
+  z-index: var(--browser-area-z-index-tabbox);
   position: relative;
   margin: 0;
 
