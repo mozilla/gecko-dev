@@ -184,6 +184,7 @@ private fun BookmarksList(
             title = {
                 Text(
                     text = stringResource(R.string.bookmark_delete_folder_dialog_title, dialogState.count),
+                    color = FirefoxTheme.colors.textPrimary,
                 )
             },
             onDismissRequest = { store.dispatch(DeletionDialogAction.CancelTapped) },
@@ -191,16 +192,23 @@ private fun BookmarksList(
                 TextButton(
                     onClick = { store.dispatch(DeletionDialogAction.DeleteTapped) },
                 ) {
-                    Text(stringResource(R.string.bookmark_menu_delete_button))
+                    Text(
+                        text = stringResource(R.string.bookmark_menu_delete_button),
+                        color = FirefoxTheme.colors.actionPrimary,
+                    )
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { store.dispatch(DeletionDialogAction.CancelTapped) },
                 ) {
-                    Text(stringResource(R.string.bookmark_delete_negative))
+                    Text(
+                        text = stringResource(R.string.bookmark_delete_negative),
+                        color = FirefoxTheme.colors.actionPrimary,
+                    )
                 }
             },
+            backgroundColor = FirefoxTheme.colors.layer2,
         )
     }
 
@@ -435,11 +443,13 @@ private fun WarnDialog(
             title = {
                 Text(
                     text = stringResource(R.string.open_all_warning_title, dialog.numberOfTabs),
+                    color = FirefoxTheme.colors.textPrimary,
                 )
             },
             text = {
                 Text(
                     text = stringResource(R.string.open_all_warning_message, dialog.numberOfTabs),
+                    color = FirefoxTheme.colors.textPrimary,
                 )
             },
             onDismissRequest = { store.dispatch(OpenTabsConfirmationDialogAction.CancelTapped) },
@@ -447,16 +457,23 @@ private fun WarnDialog(
                 TextButton(
                     onClick = { store.dispatch(OpenTabsConfirmationDialogAction.ConfirmTapped) },
                 ) {
-                    Text(stringResource(R.string.open_all_warning_confirm))
+                    Text(
+                        text = stringResource(R.string.open_all_warning_confirm),
+                        color = FirefoxTheme.colors.actionPrimary,
+                    )
                 }
             },
             dismissButton = {
                 TextButton(
                     onClick = { store.dispatch(OpenTabsConfirmationDialogAction.CancelTapped) },
                 ) {
-                    Text(stringResource(R.string.open_all_warning_cancel))
+                    Text(
+                        text = stringResource(R.string.open_all_warning_cancel),
+                        color = FirefoxTheme.colors.actionPrimary,
+                    )
                 }
             },
+            backgroundColor = FirefoxTheme.colors.layer2,
         )
     }
 }
