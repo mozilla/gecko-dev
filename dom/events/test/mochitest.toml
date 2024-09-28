@@ -449,7 +449,10 @@ skip-if = ["os == 'android'"] #CRASH_DUMP, RANDOM
 
 ["test_focus_blur_on_click_in_cross_origin_iframe.html"]
 support-files = ["file_focus_blur_on_click_in_cross_origin_iframe.html"]
-skip-if = ["os == 'android'"] # Bug 1701546
+skip-if = [
+  "os == 'android'", # Bug 1701546
+  "condprof && os == 'linux'", # Bug 1781387
+]
 tags = "os_integration"
 
 ["test_focus_blur_on_click_in_deep_cross_origin_iframe.html"]
@@ -460,6 +463,7 @@ support-files = [
 skip-if = [
   "os == 'android'", # Bug 1701546
   "condprof && os == 'win'", # 1773806
+  "condprof && os == 'linux'", # Bug 1781387
 ]
 
 ["test_hover_mouseleave.html"]
