@@ -723,6 +723,22 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `GIVEN a user is initializing on the edit screen WHEN the data loads THEN update the state`() {
+        val state = BookmarksState.default
+        val bookmark = BookmarkItem.Bookmark("ur", "title", "url", "guid")
+        val parent = BookmarkItem.Folder("title", "guid")
+
+        val result = bookmarksReducer(state, InitEditLoaded(bookmark = bookmark, folder = parent))
+        val expected = state.copy(
+            bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                bookmark = bookmark,
+                folder = parent,
+            ),
+        )
+        assertEquals(expected, result)
+    }
+
+    @Test
     fun `GIVEN selected items WHEN a multi-select menu action is taken THEN the items are unselected`() {
         val item = BookmarkItem.Bookmark("ur", "title", "url", "guid")
         val parent = BookmarkItem.Folder("title", "guid")

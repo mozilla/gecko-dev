@@ -15,6 +15,11 @@ internal sealed interface BookmarksAction : Action
  * The Store is initializing.
  */
 internal data object Init : BookmarksAction
+internal data class InitEdit(val guid: String) : BookmarksAction
+internal data class InitEditLoaded(
+    val bookmark: BookmarkItem.Bookmark,
+    val folder: BookmarkItem.Folder,
+) : BookmarksAction
 
 /**
  * Bookmarks have been loaded from the storage layer.

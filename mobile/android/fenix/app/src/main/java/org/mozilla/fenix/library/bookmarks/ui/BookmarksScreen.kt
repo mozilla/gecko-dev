@@ -79,15 +79,19 @@ import mozilla.components.ui.icons.R as iconsR
  *
  * @param buildStore A builder function to construct a [BookmarksStore] using the NavController that's local
  * to the nav graph for the Bookmarks view hierarchy.
+ * @param startDestination the screen on which to initialize [BookmarksScreen] with.
  */
 @Composable
-internal fun BookmarksScreen(buildStore: (NavHostController) -> BookmarksStore) {
+internal fun BookmarksScreen(
+    buildStore: (NavHostController) -> BookmarksStore,
+    startDestination: String = BookmarksDestinations.LIST,
+) {
     val navController = rememberNavController()
     val store = buildStore(navController)
     BackHandler { store.dispatch(BackClicked) }
     NavHost(
         navController = navController,
-        startDestination = BookmarksDestinations.LIST,
+        startDestination = startDestination,
     ) {
         composable(route = BookmarksDestinations.LIST) {
             BookmarksList(store = store)
@@ -872,14 +876,6 @@ private fun EditBookmarkScreen(
     store: BookmarksStore,
 ) {
     val state by store.observeAsState(store.state.bookmarksEditBookmarkState) { it.bookmarksEditBookmarkState }
-
-    LaunchedEffect(Unit) {
-        // If we somehow get to this screen without a `bookmarksEditBookmarkState`
-        // we'll want to navigate them back.
-        if (state == null) {
-            store.dispatch(BackClicked)
-        }
-    }
 
     val bookmark = state?.bookmark ?: return
     val folder = state?.folder ?: return

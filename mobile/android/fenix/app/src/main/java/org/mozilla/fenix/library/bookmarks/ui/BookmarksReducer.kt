@@ -9,6 +9,12 @@ package org.mozilla.fenix.library.bookmarks.ui
  */
 @Suppress("LongMethod")
 internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = when (action) {
+    is InitEditLoaded -> state.copy(
+        bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+            bookmark = action.bookmark,
+            folder = action.folder,
+        ),
+    )
     is BookmarksLoaded -> state.copy(
         currentFolder = action.folder,
         bookmarkItems = action.bookmarkItems,
@@ -122,6 +128,7 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
     SelectFolderAction.ViewAppeared,
     SearchClicked,
     SignIntoSyncClicked,
+    is InitEdit,
     Init,
     -> state
 }

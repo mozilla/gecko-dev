@@ -83,6 +83,21 @@ internal class BookmarksMiddleware(
 
         when (action) {
             Init -> context.store.tryDispatchLoadFor(BookmarkRoot.Mobile.id)
+            is InitEdit -> scope.launch {
+                Result.runCatching {
+                    val bookmarkNode = bookmarksStorage.getBookmark(action.guid)
+                    val bookmark = bookmarkNode?.let {
+                        BookmarkItem.Bookmark(it.url!!, it.title!!, it.url!!, it.guid)
+                    }
+                    val folder = bookmarkNode?.parentGuid
+                        ?.let { bookmarksStorage.getBookmark(it) }
+                        ?.let { BookmarkItem.Folder(guid = it.guid, title = resolveFolderTitle(it)) }
+
+                    InitEditLoaded(bookmark = bookmark!!, folder = folder!!)
+                }.getOrNull()?.also {
+                    context.store.dispatch(it)
+                }
+            }
             is BookmarkClicked -> {
                 if (preReductionState.selectedItems.isNotEmpty()) {
                     context.store.tryDispatchReceivedRecursiveCountUpdate()
@@ -160,7 +175,9 @@ internal class BookmarksMiddleware(
                     }
 
                     preReductionState.bookmarksEditBookmarkState != null -> {
-                        navController.popBackStack()
+                        if (!navController.popBackStack()) {
+                            exitBookmarks()
+                        }
                         scope.launch(ioDispatcher) {
                             val newBookmarkTitle = preReductionState.bookmarksEditBookmarkState.bookmark.title
                             if (newBookmarkTitle.isNotEmpty()) {
@@ -199,7 +216,19 @@ internal class BookmarksMiddleware(
             }
 
             EditBookmarkAction.DeleteClicked -> {
-                navController.popBackStack()
+                // 💡When we're in the browser -> edit flow, we back out to the browser bypassing our
+                // snackbar logic. So we have to also do the delete here.
+                if (!navController.popBackStack()) {
+                    scope.launch {
+                        preReductionState.bookmarksEditBookmarkState?.also {
+                            bookmarksStorage.deleteNode(it.bookmark.guid)
+                        }
+
+                        withContext(Dispatchers.Main) {
+                            exitBookmarks()
+                        }
+                    }
+                }
             }
             EditFolderAction.ParentFolderClicked,
             AddFolderAction.ParentFolderClicked,
@@ -235,6 +264,7 @@ internal class BookmarksMiddleware(
                     }
                 }
             }
+            is InitEditLoaded,
             SnackbarAction.Undo,
             is OpenTabsConfirmationDialogAction.Present,
             OpenTabsConfirmationDialogAction.CancelTapped,

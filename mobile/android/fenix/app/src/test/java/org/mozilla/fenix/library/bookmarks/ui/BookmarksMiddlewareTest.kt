@@ -719,6 +719,26 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN a user is on the edit screen with nothing on the backstack WHEN delete is clicked THEN pop the backstack, delete the bookmark and exit bookmarks`() = runTestOnMain {
+        var exited = false
+        exitBookmarks = { exited = true }
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore(
+            initialState = BookmarksState.default.copy(
+                bookmarksEditBookmarkState = BookmarksEditBookmarkState(
+                    bookmark = BookmarkItem.Bookmark("ur", "title", "url", "guid"),
+                    folder = BookmarkItem.Folder("title", "guid"),
+                ),
+            ),
+        )
+        `when`(navController.popBackStack()).thenReturn(false)
+        store.dispatch(EditBookmarkAction.DeleteClicked)
+        verify(navController).popBackStack()
+        verify(bookmarksStorage).deleteNode("guid")
+        assertTrue(exited)
+    }
+
+    @Test
     fun `WHEN edit clicked in folder item menu THEN nav to the edit screen`() {
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
