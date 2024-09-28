@@ -99,6 +99,12 @@ XPCOMUtils.defineLazyPreferenceGetter(
   "chatSidebar",
   "browser.ml.chat.sidebar"
 );
+XPCOMUtils.defineLazyPreferenceGetter(lazy, "sidebarRevamp", "sidebar.revamp");
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "sidebarTools",
+  "sidebar.main.tools"
+);
 
 export const GenAI = {
   // Cache of potentially localized prompt
@@ -232,6 +238,20 @@ export const GenAI = {
       },
     ],
   ]),
+
+  /**
+   * Determine if chat entrypoints can be shown
+   *
+   * @returns {bool} can show
+   */
+  get canShowChatEntrypoint() {
+    return (
+      lazy.chatEnabled &&
+      lazy.chatProvider != "" &&
+      // Chatbot needs to be a tool if new sidebar
+      (!lazy.sidebarRevamp || lazy.sidebarTools.includes("aichat"))
+    );
+  },
 
   /**
    * Handle startup tasks like telemetry, adding listeners.
@@ -374,7 +394,10 @@ export const GenAI = {
         break;
       case "GenAI:ShowShortcuts": {
         // Ignore some input field selection to avoid showing shortcuts
-        if (this.ignoredInputs.has(data.inputType)) {
+        if (
+          this.ignoredInputs.has(data.inputType) ||
+          !this.canShowChatEntrypoint
+        ) {
           return;
         }
 
@@ -489,7 +512,7 @@ export const GenAI = {
    */
   async buildAskChatMenu(menu, nsContextMenu) {
     nsContextMenu.showItem(menu, false);
-    if (!lazy.chatEnabled || lazy.chatProvider == "") {
+    if (!this.canShowChatEntrypoint) {
       return;
     }
     const provider = this.chatProviders.get(lazy.chatProvider)?.name;
