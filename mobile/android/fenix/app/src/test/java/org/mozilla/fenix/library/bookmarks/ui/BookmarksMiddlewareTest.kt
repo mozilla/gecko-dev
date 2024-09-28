@@ -102,7 +102,8 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN bookmarks in storage when signed into sync WHEN store is initialized THEN bookmarks, including desktop will be loaded as display format`() = runTestOnMain {
+    fun `GIVEN bookmarks in storage and user has a desktop bookmark WHEN store is initialized THEN bookmarks, including desktop will be loaded as display format`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(1u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())
         `when`(bookmarksStorage.getTree(BookmarkRoot.Root.id)).thenReturn(generateDesktopRootTree())
         val middleware = buildMiddleware()
@@ -568,7 +569,8 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
-    fun `GIVEN bookmarks in storage and signed into sync WHEN select folder sub screen view is loaded THEN load folders, including desktop folders into sub screen state`() = runTestOnMain {
+    fun `GIVEN bookmarks in storage and has desktop bookmarks WHEN select folder sub screen view is loaded THEN load folders, including desktop folders into sub screen state`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(1u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Root.id, recursive = true)).thenReturn(generateDesktopRootTree())
         val middleware = buildMiddleware()
         val store = middleware.makeStore(

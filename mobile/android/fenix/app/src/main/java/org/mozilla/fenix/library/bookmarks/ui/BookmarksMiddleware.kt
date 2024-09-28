@@ -288,15 +288,14 @@ internal class BookmarksMiddleware(
             is SelectFolderAction.FoldersLoaded,
             is SelectFolderAction.ItemClicked,
             EditFolderAction.DeleteClicked,
+            is ReceivedSyncUpdate,
             -> Unit
         }
     }
 
     private fun Store<BookmarksState, BookmarksAction>.tryDispatchLoadFolders() =
         scope.launch {
-            val includeDesktop = state.isSignedIntoSync || bookmarksStorage.hasDesktopBookmarks()
-
-            val folders = if (includeDesktop) {
+            val folders = if (bookmarksStorage.hasDesktopBookmarks()) {
                 bookmarksStorage.getTree(BookmarkRoot.Root.id, recursive = true)?.let { rootNode ->
                     val excludingMobile =
                         rootNode.children?.filterNot { it.guid == BookmarkRoot.Mobile.id }
@@ -333,7 +332,7 @@ internal class BookmarksMiddleware(
                         ).childItems()
                     }
                     BookmarkRoot.Mobile.id -> {
-                        if (state.isSignedIntoSync || bookmarksStorage.hasDesktopBookmarks()) {
+                        if (bookmarksStorage.hasDesktopBookmarks()) {
                             val desktopNode = bookmarksStorage.getTree(BookmarkRoot.Root.id)?.let {
                                 it.copy(title = resolveFolderTitle(it))
                             }

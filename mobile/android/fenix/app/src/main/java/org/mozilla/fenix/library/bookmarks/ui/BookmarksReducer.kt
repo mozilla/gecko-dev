@@ -129,6 +129,9 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
             isPrivate = action.isPrivate,
         ),
     )
+    is ReceivedSyncUpdate -> {
+        state.copy(isSignedIntoSync = action.signedIn)
+    }
     OpenTabsConfirmationDialogAction.CancelTapped,
     OpenTabsConfirmationDialogAction.ConfirmTapped,
     -> state.copy(openTabsConfirmationDialog = OpenTabsConfirmationDialog.None)

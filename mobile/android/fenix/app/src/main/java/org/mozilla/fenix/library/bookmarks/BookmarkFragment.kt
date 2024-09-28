@@ -72,6 +72,7 @@ import org.mozilla.fenix.library.bookmarks.ui.BookmarksMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksScreen
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
+import org.mozilla.fenix.library.bookmarks.ui.BookmarksSyncMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksTelemetryMiddleware
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
@@ -110,14 +111,12 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
             return ComposeView(requireContext()).apply {
                 setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
                 val buildStore = { navController: NavHostController ->
-                    val isSignedIntoSync = requireComponents
-                        .backgroundServices.accountManager.authenticatedAccount() != null
-
                     StoreProvider.get(this@BookmarkFragment) {
                         BookmarksStore(
-                            initialState = BookmarksState.default.copy(isSignedIntoSync = isSignedIntoSync),
+                            initialState = BookmarksState.default,
                             middleware = listOf(
                                 BookmarksTelemetryMiddleware(),
+                                BookmarksSyncMiddleware(requireComponents.backgroundServices.syncStore, lifecycleScope),
                                 BookmarksMiddleware(
                                     bookmarksStorage = requireContext().bookmarkStorage,
                                     clipboardManager = requireActivity().getSystemService(),
