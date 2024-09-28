@@ -342,6 +342,28 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `GIVEN current screen is add folder and previous screen is select folder WHEN back is clicked THEN reload folder tree`() = runTestOnMain {
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = true)).thenReturn(generateBookmarkTree())
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id, recursive = false)).thenReturn(generateBookmarkTree())
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        val bookmark = store.state.bookmarkItems.first { it is BookmarkItem.Bookmark } as BookmarkItem.Bookmark
+        val newFolderTitle = "i'm a new folder"
+
+        store.dispatch(BookmarksListMenuAction.Bookmark.EditClicked(bookmark))
+        store.dispatch(AddFolderAction.ParentFolderClicked)
+        store.dispatch(SelectFolderAction.ViewAppeared)
+        store.dispatch(AddFolderClicked)
+        store.dispatch(AddFolderAction.TitleChanged(newFolderTitle))
+        store.dispatch(BackClicked)
+
+        assertNotNull(store.state.bookmarksSelectFolderState)
+        verify(bookmarksStorage, times(2)).getTree(BookmarkRoot.Mobile.id, recursive = true)
+    }
+
+    @Test
     fun `GIVEN current screen is edit folder and new title is nonempty WHEN back is clicked THEN navigate back, save the folder, and load the updated tree`() = runTest {
         `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
         `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(generateBookmarkTree())

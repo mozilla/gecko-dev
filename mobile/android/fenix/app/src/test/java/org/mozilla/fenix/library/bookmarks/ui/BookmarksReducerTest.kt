@@ -7,6 +7,7 @@ package org.mozilla.fenix.library.bookmarks.ui
 import mozilla.appservices.places.BookmarkRoot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -208,6 +209,27 @@ class BookmarksReducerTest {
         val result = bookmarksReducer(state, AddFolderAction.ParentFolderClicked)
 
         assertEquals(BookmarkRoot.Mobile.id, result.bookmarksSelectFolderState?.folderSelectionGuid)
+    }
+
+    @Test
+    fun `GIVEN the add folder screen has been reached from the select folder screen WHEN select folder state is still available`() {
+        val state = BookmarksState.default.copy(
+            bookmarksAddFolderState = BookmarksAddFolderState(
+                parent = BookmarkItem.Folder(
+                    guid = BookmarkRoot.Mobile.id,
+                    title = "Bookmarks",
+                ),
+                folderBeingAddedTitle = "",
+            ),
+            bookmarksSelectFolderState = BookmarksSelectFolderState(
+                selectionGuid = "guid0",
+            ),
+        )
+
+        val result = bookmarksReducer(state, BackClicked)
+
+        assertNull(result.bookmarksAddFolderState)
+        assertEquals("guid0", result.bookmarksSelectFolderState?.selectionGuid)
     }
 
     @Test

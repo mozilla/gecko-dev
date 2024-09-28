@@ -184,11 +184,11 @@ private fun BookmarksSelectFolderState.respondToBackClick(): BookmarksSelectFold
 }
 
 private fun BookmarksState.respondToBackClick(): BookmarksState = when {
+    bookmarksAddFolderState != null -> copy(bookmarksAddFolderState = null)
     bookmarksSelectFolderState != null -> copy(
         bookmarksMultiselectMoveState = null,
         bookmarksSelectFolderState = bookmarksSelectFolderState.respondToBackClick(),
     )
-    bookmarksAddFolderState != null -> copy(bookmarksAddFolderState = null)
     bookmarksEditFolderState != null -> copy(bookmarksEditFolderState = null)
     bookmarksEditBookmarkState != null -> copy(bookmarksEditBookmarkState = null)
     else -> this

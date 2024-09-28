@@ -31,10 +31,10 @@ private const val WARN_OPEN_ALL_SIZE = 15
  * @param bookmarksStorage Storage layer for reading and writing bookmarks.
  * @param clipboardManager For copying bookmark URLs.
  * @param addNewTabUseCase For opening tabs from menus.
- * @param navController NavController for navigating to a tab, a search fragment, etc.
+ * @param navController NavController for navigating within the local Composable nav graph.
  * @param exitBookmarks Invoked when back is clicked while the navController's backstack is empty.
- * @param wasPreviousAppDestinationHome Tells the middleware if the previous screen was Home.
- * @param navigateToSearch Invoked when handling [SearchClicked].
+ * @param wasPreviousAppDestinationHome Check whether the previous destination before entering bookmarks was home.
+ * @param navigateToSearch Navigate to search.
  * @param navigateToSignIntoSync Invoked when handling [SignIntoSyncClicked].
  * @param shareBookmark Invoked when the share option is selected from a menu.
  * @param showTabsTray Invoked after opening tabs from menus.
@@ -130,6 +130,25 @@ internal class BookmarksMiddleware(
                 when {
                     // non-list screen cases need to come first, since we presume if all subscreen
                     // state is null then we are on the list screen
+                    preReductionState.bookmarksAddFolderState != null -> {
+                        navController.popBackStack()
+                        scope.launch(ioDispatcher) {
+                            val newFolderTitle =
+                                preReductionState.bookmarksAddFolderState.folderBeingAddedTitle
+                            if (newFolderTitle.isNotEmpty()) {
+                                bookmarksStorage.addFolder(
+                                    parentGuid = preReductionState.bookmarksAddFolderState.parent.guid,
+                                    title = newFolderTitle,
+                                )
+                            }
+                            context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
+                        }
+
+                        if (preReductionState.bookmarksSelectFolderState != null) {
+                            context.store.tryDispatchLoadFolders()
+                        }
+                    }
+
                     preReductionState.bookmarksSelectFolderState != null -> {
                         navController.popBackStack()
                         preReductionState.bookmarksMultiselectMoveState?.also {
@@ -153,21 +172,6 @@ internal class BookmarksMiddleware(
                                 preReductionState.createBookmarkInfo()?.also {
                                     bookmarksStorage.updateNode(editState.folder.guid, it)
                                 }
-                            }
-                            context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
-                        }
-                    }
-
-                    preReductionState.bookmarksAddFolderState != null -> {
-                        navController.popBackStack()
-                        scope.launch(ioDispatcher) {
-                            val newFolderTitle =
-                                preReductionState.bookmarksAddFolderState.folderBeingAddedTitle
-                            if (newFolderTitle.isNotEmpty()) {
-                                bookmarksStorage.addFolder(
-                                    parentGuid = preReductionState.bookmarksAddFolderState.parent.guid,
-                                    title = newFolderTitle,
-                                )
                             }
                             context.store.tryDispatchLoadFor(preReductionState.currentFolder.guid)
                         }
