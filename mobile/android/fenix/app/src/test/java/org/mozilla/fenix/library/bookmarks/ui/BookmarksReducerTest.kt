@@ -565,6 +565,17 @@ class BookmarksReducerTest {
     }
 
     @Test
+    fun `WHEN folder is deleted from folder edit screen THEN load the number of nested bookmarks`() {
+        val folder = BookmarkItem.Folder("Bookmark Folder", "guid0")
+        val state = BookmarksState.default.copy(
+            bookmarksEditFolderState = BookmarksEditFolderState(folder, folder),
+        )
+
+        val result = bookmarksReducer(state, EditFolderAction.DeleteClicked)
+        assertEquals(DeletionDialogState.LoadingCount(listOf("guid0")), result.bookmarksDeletionDialogState)
+    }
+
+    @Test
     fun `GIVEN a deletion dialog that is loading a count WHEN we receive the count THEN present the dialog`() {
         val folder = BookmarkItem.Folder("Bookmark Folder", "guid0")
         val state = BookmarksState.default.copy(

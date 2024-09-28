@@ -882,6 +882,27 @@ class BookmarksMiddlewareTest {
     }
 
     @Test
+    fun `WHEN delete clicked in folder edit screen THEN present a dialog showing the number of items to be deleted and when delete clicked, delete the selected folder`() = runTestOnMain {
+        val tree = generateBookmarkTree()
+        val folder = tree.children!!.first { it.type == BookmarkNodeType.FOLDER }
+        val folderItem = BookmarkItem.Folder(guid = folder.guid, title = "title")
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(BookmarkRoot.Menu.id, BookmarkRoot.Toolbar.id, BookmarkRoot.Unfiled.id))).thenReturn(0u)
+        `when`(bookmarksStorage.countBookmarksInTrees(listOf(folderItem.guid))).thenReturn(19u)
+        `when`(bookmarksStorage.getTree(BookmarkRoot.Mobile.id)).thenReturn(tree)
+        val middleware = buildMiddleware()
+        val store = middleware.makeStore()
+
+        store.dispatch(BookmarksListMenuAction.Folder.EditClicked(folderItem))
+        store.dispatch(EditFolderAction.DeleteClicked)
+        assertEquals(DeletionDialogState.Presenting(listOf(folderItem.guid), 19), store.state.bookmarksDeletionDialogState)
+
+        store.dispatch(DeletionDialogAction.DeleteTapped)
+        assertEquals(DeletionDialogState.None, store.state.bookmarksDeletionDialogState)
+        verify(bookmarksStorage).deleteNode(folder.guid)
+        verify(navController).popBackStack()
+    }
+
+    @Test
     fun `WHEN toolbar edit clicked THEN navigate to the edit screen`() = runTestOnMain {
         val middleware = buildMiddleware()
         val store = middleware.makeStore()

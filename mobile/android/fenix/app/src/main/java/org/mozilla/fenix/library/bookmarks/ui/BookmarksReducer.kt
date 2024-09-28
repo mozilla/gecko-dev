@@ -100,6 +100,13 @@ internal fun bookmarksReducer(state: BookmarksState, action: BookmarksAction) = 
             folderSelectionGuid = state.bookmarksEditFolderState?.parent?.guid ?: state.currentFolder.guid,
         ),
     )
+    EditFolderAction.DeleteClicked -> state.bookmarksEditFolderState?.folder?.guid?.let {
+        state.copy(
+            bookmarksDeletionDialogState = DeletionDialogState.LoadingCount(
+                listOf(state.bookmarksEditFolderState.folder.guid),
+            ),
+        )
+    } ?: state
     is BookmarksListMenuAction -> state.handleListMenuAction(action)
     SnackbarAction.Undo -> state.copy(bookmarksSnackbarState = BookmarksSnackbarState.None)
     SnackbarAction.Dismissed -> {

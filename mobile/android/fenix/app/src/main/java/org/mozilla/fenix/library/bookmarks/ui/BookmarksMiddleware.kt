@@ -246,9 +246,15 @@ internal class BookmarksMiddleware(
                 }
                 else -> {}
             }
-            is DeletionDialogAction.DeleteTapped -> scope.launch {
-                preReductionState.bookmarksDeletionDialogState.guidsToDelete.forEach {
-                    bookmarksStorage.deleteNode(it)
+            is DeletionDialogAction.DeleteTapped -> {
+                scope.launch {
+                    preReductionState.bookmarksDeletionDialogState.guidsToDelete.forEach {
+                        bookmarksStorage.deleteNode(it)
+                    }
+                }
+
+                if (preReductionState.bookmarksEditFolderState != null) {
+                    navController.popBackStack()
                 }
             }
             OpenTabsConfirmationDialogAction.ConfirmTapped -> scope.launch {
@@ -269,7 +275,6 @@ internal class BookmarksMiddleware(
             is OpenTabsConfirmationDialogAction.Present,
             OpenTabsConfirmationDialogAction.CancelTapped,
             DeletionDialogAction.CancelTapped,
-            DeletionDialogAction.DeleteTapped,
             is RecursiveSelectionCountLoaded,
             is DeletionDialogAction.CountLoaded,
             is EditBookmarkAction.TitleChanged,
@@ -279,6 +284,7 @@ internal class BookmarksMiddleware(
             is AddFolderAction.TitleChanged,
             is SelectFolderAction.FoldersLoaded,
             is SelectFolderAction.ItemClicked,
+            EditFolderAction.DeleteClicked,
             -> Unit
         }
     }
