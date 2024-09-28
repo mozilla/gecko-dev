@@ -22,11 +22,9 @@ import androidx.core.view.MenuProvider
 import androidx.core.view.isVisible
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.get
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavDirections
 import androidx.navigation.NavHostController
-import androidx.navigation.findNavController
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.fragment.navArgs
 import kotlinx.coroutines.CoroutineScope
@@ -63,6 +61,7 @@ import org.mozilla.fenix.databinding.FragmentBookmarkBinding
 import org.mozilla.fenix.ext.bookmarkStorage
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.getRootView
+import org.mozilla.fenix.ext.hideToolbar
 import org.mozilla.fenix.ext.nav
 import org.mozilla.fenix.ext.requireComponents
 import org.mozilla.fenix.ext.setTextColor
@@ -121,7 +120,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                     clipboardManager = requireActivity().getSystemService(),
                                     addNewTabUseCase = requireComponents.useCases.tabsUseCases.addTab,
                                     navigateToSignIntoSync = {
-                                        findNavController()
+                                        this@BookmarkFragment.findNavController()
                                             .navigate(
                                                 BookmarkFragmentDirections.actionGlobalTurnOnSync(
                                                     entrypoint = FenixFxAEntryPoint.BookmarkView,
@@ -129,9 +128,9 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                             )
                                     },
                                     navController = navController,
-                                    exitBookmarks = { findNavController().popBackStack() },
+                                    exitBookmarks = { this@BookmarkFragment.findNavController().popBackStack() },
                                     shareBookmark = { url, title ->
-                                        findNavController().nav(
+                                        this@BookmarkFragment.findNavController().nav(
                                             R.id.bookmarkFragment,
                                             BookmarkFragmentDirections.actionGlobalShareFragment(
                                                 data = arrayOf(
@@ -260,7 +259,10 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
 
     override fun onResume() {
         super.onResume()
-        if (requireContext().settings().useNewBookmarks) { return }
+        if (requireContext().settings().useNewBookmarks) {
+            hideToolbar()
+            return
+        }
 
         (activity as NavHostActivity).getSupportActionBarAndInflateIfNecessary().show()
 
