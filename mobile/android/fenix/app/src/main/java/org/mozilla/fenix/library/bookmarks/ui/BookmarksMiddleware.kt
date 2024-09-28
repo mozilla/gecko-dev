@@ -365,25 +365,27 @@ internal class BookmarksMiddleware(
         }
     }
 
-    private fun BookmarkNode.childItems(): List<BookmarkItem> = this.children?.mapNotNull { node ->
-        Result.runCatching {
-            when (node.type) {
-                BookmarkNodeType.ITEM -> BookmarkItem.Bookmark(
-                    url = node.url!!,
-                    title = node.title!!,
-                    previewImageUrl = node.url!!,
-                    guid = node.guid,
-                )
+    private fun BookmarkNode.childItems(): List<BookmarkItem> = this.children
+        ?.sortedByDescending { it.dateAdded }
+        ?.mapNotNull { node ->
+            Result.runCatching {
+                when (node.type) {
+                    BookmarkNodeType.ITEM -> BookmarkItem.Bookmark(
+                        url = node.url!!,
+                        title = node.title!!,
+                        previewImageUrl = node.url!!,
+                        guid = node.guid,
+                    )
 
-                BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
-                    title = node.title!!,
-                    guid = node.guid,
-                )
+                    BookmarkNodeType.FOLDER -> BookmarkItem.Folder(
+                        title = node.title!!,
+                        guid = node.guid,
+                    )
 
-                BookmarkNodeType.SEPARATOR -> null
-            }
-        }.getOrNull()
-    } ?: listOf()
+                    BookmarkNodeType.SEPARATOR -> null
+                }
+            }.getOrNull()
+        } ?: listOf()
 
     private fun collectFolders(
         node: BookmarkNode,
