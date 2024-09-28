@@ -35,7 +35,6 @@ import org.mockito.Mockito.never
 import org.mockito.Mockito.times
 import org.mockito.Mockito.verify
 import org.mockito.Mockito.`when`
-import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 import org.mozilla.fenix.library.bookmarks.friendlyRootTitle
@@ -52,6 +51,8 @@ class BookmarksMiddlewareTest {
     private lateinit var navController: NavController
     private lateinit var navigateToSignIntoSync: () -> Unit
     private lateinit var exitBookmarks: () -> Unit
+    private lateinit var wasPreviousAppDestinationHome: () -> Boolean
+    private lateinit var navigateToSearch: () -> Unit
     private lateinit var shareBookmark: (String, String) -> Unit
     private lateinit var showTabsTray: (Boolean) -> Unit
     private lateinit var showUrlCopiedSnackbar: () -> Unit
@@ -80,6 +81,8 @@ class BookmarksMiddlewareTest {
         navController = mock()
         navigateToSignIntoSync = { }
         exitBookmarks = { }
+        wasPreviousAppDestinationHome = { false }
+        navigateToSearch = { }
         shareBookmark = { _, _ -> }
         showTabsTray = { _ -> }
         showUrlCopiedSnackbar = { }
@@ -137,7 +140,6 @@ class BookmarksMiddlewareTest {
     fun `GIVEN last destination was home fragment and in normal browsing mode WHEN a bookmark is clicked THEN open it as a new tab`() {
         val url = "url"
         val bookmarkItem = BookmarkItem.Bookmark(url, "title", url, guid = "")
-        navController.mockBackstack(R.id.homeFragment)
         getBrowsingMode = { BrowsingMode.Normal }
         var capturedUrl = ""
         var capturedNewTab = false
@@ -145,6 +147,7 @@ class BookmarksMiddlewareTest {
             capturedUrl = urlCalled
             capturedNewTab = newTab
         }
+        wasPreviousAppDestinationHome = { true }
 
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
@@ -171,6 +174,7 @@ class BookmarksMiddlewareTest {
             capturedUrl = urlCalled
             capturedNewTab = newTab
         }
+        wasPreviousAppDestinationHome = { false }
 
         val middleware = buildMiddleware()
         val store = middleware.makeStore(
@@ -258,12 +262,14 @@ class BookmarksMiddlewareTest {
 
     @Test
     fun `WHEN search button is clicked THEN navigate to search`() {
+        var navigated = false
+        navigateToSearch = { navigated = true }
         val middleware = buildMiddleware()
         val store = middleware.makeStore()
 
         store.dispatch(SearchClicked)
 
-        verify(navController).navigate(NavGraphDirections.actionGlobalSearchDialog(sessionId = null))
+        assertTrue(navigated)
     }
 
     @Test
@@ -1092,6 +1098,8 @@ class BookmarksMiddlewareTest {
         addNewTabUseCase = addNewTabUseCase,
         navController = navController,
         exitBookmarks = exitBookmarks,
+        wasPreviousAppDestinationHome = wasPreviousAppDestinationHome,
+        navigateToSearch = navigateToSearch,
         navigateToSignIntoSync = navigateToSignIntoSync,
         shareBookmark = shareBookmark,
         showTabsTray = showTabsTray,

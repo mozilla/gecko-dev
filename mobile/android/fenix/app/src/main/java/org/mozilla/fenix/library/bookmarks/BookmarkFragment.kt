@@ -51,6 +51,7 @@ import mozilla.telemetry.glean.private.NoExtras
 import org.mozilla.fenix.BrowserDirection
 import org.mozilla.fenix.GleanMetrics.BookmarksManagement
 import org.mozilla.fenix.HomeActivity
+import org.mozilla.fenix.NavGraphDirections
 import org.mozilla.fenix.NavHostActivity
 import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
@@ -131,6 +132,15 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                                     },
                                     navController = navController,
                                     exitBookmarks = { this@BookmarkFragment.findNavController().popBackStack() },
+                                    wasPreviousAppDestinationHome = {
+                                        this@BookmarkFragment.findNavController()
+                                            .previousBackStackEntry?.destination?.id == R.id.homeFragment
+                                    },
+                                    navigateToSearch = {
+                                        this@BookmarkFragment.findNavController().navigate(
+                                            NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
+                                        )
+                                    },
                                     shareBookmark = { url, title ->
                                         this@BookmarkFragment.findNavController().nav(
                                             R.id.bookmarkFragment,

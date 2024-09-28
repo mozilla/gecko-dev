@@ -123,6 +123,8 @@ class EditBookmarkFragment : Fragment(R.layout.fragment_edit_bookmark), MenuProv
                                     },
                                     navController = navController,
                                     exitBookmarks = { findNavController().popBackStack() },
+                                    wasPreviousAppDestinationHome = { false },
+                                    navigateToSearch = { },
                                     shareBookmark = { url, title ->
                                         findNavController().nav(
                                             R.id.bookmarkFragment,

@@ -21,8 +21,6 @@ import mozilla.components.feature.tabs.TabsUseCases
 import mozilla.components.lib.state.Middleware
 import mozilla.components.lib.state.MiddlewareContext
 import mozilla.components.lib.state.Store
-import org.mozilla.fenix.NavGraphDirections
-import org.mozilla.fenix.R
 import org.mozilla.fenix.browser.browsingmode.BrowsingMode
 
 private const val WARN_OPEN_ALL_SIZE = 15
@@ -35,6 +33,8 @@ private const val WARN_OPEN_ALL_SIZE = 15
  * @param addNewTabUseCase For opening tabs from menus.
  * @param navController NavController for navigating to a tab, a search fragment, etc.
  * @param exitBookmarks Invoked when back is clicked while the navController's backstack is empty.
+ * @param wasPreviousAppDestinationHome Tells the middleware if the previous screen was Home.
+ * @param navigateToSearch Invoked when handling [SearchClicked].
  * @param navigateToSignIntoSync Invoked when handling [SignIntoSyncClicked].
  * @param shareBookmark Invoked when the share option is selected from a menu.
  * @param showTabsTray Invoked after opening tabs from menus.
@@ -51,6 +51,8 @@ internal class BookmarksMiddleware(
     private val addNewTabUseCase: TabsUseCases.AddNewTabUseCase,
     private val navController: NavController,
     private val exitBookmarks: () -> Unit,
+    private val wasPreviousAppDestinationHome: () -> Boolean,
+    private val navigateToSearch: () -> Unit,
     private val navigateToSignIntoSync: () -> Unit,
     private val shareBookmark: (url: String, title: String) -> Unit,
     private val showTabsTray: (isPrivateMode: Boolean) -> Unit,
@@ -103,7 +105,7 @@ internal class BookmarksMiddleware(
                     context.store.tryDispatchReceivedRecursiveCountUpdate()
                     return
                 }
-                val openInNewTab = navController.previousDestinationWasHome() ||
+                val openInNewTab = wasPreviousAppDestinationHome() ||
                     getBrowsingMode() == BrowsingMode.Private
                 openTab(action.item.url, openInNewTab)
             }
@@ -120,10 +122,7 @@ internal class BookmarksMiddleware(
             -> {
                 context.store.tryDispatchReceivedRecursiveCountUpdate()
             }
-            SearchClicked -> navController.navigate(
-                NavGraphDirections.actionGlobalSearchDialog(sessionId = null),
-            )
-
+            SearchClicked -> navigateToSearch()
             AddFolderClicked -> navController.navigate(BookmarksDestinations.ADD_FOLDER)
             SignIntoSyncClicked -> navigateToSignIntoSync()
             is EditBookmarkClicked -> navController.navigate(BookmarksDestinations.EDIT_BOOKMARK)
@@ -381,9 +380,6 @@ internal class BookmarksMiddleware(
             }
         }.getOrNull()
     } ?: listOf()
-
-    private fun NavController.previousDestinationWasHome(): Boolean =
-        previousBackStackEntry?.destination?.id == R.id.homeFragment
 
     private fun collectFolders(
         node: BookmarkNode,
