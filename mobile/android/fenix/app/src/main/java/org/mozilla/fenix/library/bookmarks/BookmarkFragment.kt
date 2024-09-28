@@ -71,6 +71,7 @@ import org.mozilla.fenix.library.bookmarks.ui.BookmarksMiddleware
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksScreen
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksState
 import org.mozilla.fenix.library.bookmarks.ui.BookmarksStore
+import org.mozilla.fenix.library.bookmarks.ui.BookmarksTelemetryMiddleware
 import org.mozilla.fenix.snackbar.FenixSnackbarDelegate
 import org.mozilla.fenix.snackbar.SnackbarBinding
 import org.mozilla.fenix.tabstray.Page
@@ -115,6 +116,7 @@ class BookmarkFragment : LibraryPageFragment<BookmarkNode>(), UserInteractionHan
                         BookmarksStore(
                             initialState = BookmarksState.default.copy(isSignedIntoSync = isSignedIntoSync),
                             middleware = listOf(
+                                BookmarksTelemetryMiddleware(),
                                 BookmarksMiddleware(
                                     bookmarksStorage = requireContext().bookmarkStorage,
                                     clipboardManager = requireActivity().getSystemService(),
