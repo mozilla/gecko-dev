@@ -32,6 +32,7 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Scaffold
+import androidx.compose.material.Snackbar
 import androidx.compose.material.SnackbarDuration
 import androidx.compose.material.SnackbarHost
 import androidx.compose.material.SnackbarHostState
@@ -205,7 +206,15 @@ private fun BookmarksList(
 
     Scaffold(
         snackbarHost = {
-            SnackbarHost(hostState = snackbarHostState)
+            SnackbarHost(hostState = snackbarHostState) { data ->
+                Snackbar(
+                    snackbarData = data,
+                    shape = RoundedCornerShape(4.dp),
+                    backgroundColor = FirefoxTheme.colors.actionPrimary,
+                    contentColor = FirefoxTheme.colors.textOnColorPrimary,
+                    actionColor = FirefoxTheme.colors.textOnColorPrimary,
+                )
+            }
         },
         floatingActionButton = {
             FloatingActionButton(
