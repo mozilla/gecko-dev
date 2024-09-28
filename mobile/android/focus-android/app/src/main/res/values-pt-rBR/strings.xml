@@ -1125,7 +1125,14 @@
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
-    <string name="exit_fullscreen_with_gesture">Para sair do modo de tela inteira, arraste a partir do alto e use o gesto de voltar</string>
+    <string name="exit_fullscreen_with_gesture" moz:removedIn="132" tools:ignore="UnusedResources">Para sair do modo de tela inteira, arraste a partir do alto e use o gesto de voltar</string>
     <!-- Message shown to explain how to exit fullscreen mode when using back button navigation -->
-    <string name="exit_fullscreen_with_back_button">Para sair do modo de tela inteira, arraste a partir do alto e toque em voltar</string>
+    <string name="exit_fullscreen_with_back_button" moz:removedIn="132" tools:ignore="UnusedResources">Para sair do modo de tela inteira, arraste a partir do alto e toque em voltar</string>
+
+    <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_gesture_short">Deslize do topo para baixo e use o gesto de voltar para sair</string>
+    <!-- Message shown to explain how to exit fullscreen mode when using back button navigation. -->
+    <!-- Localisation note: this text should be as short as possible, max 68 chars -->
+    <string name="exit_fullscreen_with_back_button_short">Deslize do topo para baixo e toque em Voltar para sair de tela inteira</string>
 </resources>

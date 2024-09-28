@@ -98,9 +98,9 @@
 
     <!-- Total cookie protection "contextual feature recommendation" (CFR) -->
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the total cookie protection feature. -->
-    <string name="tcp_cfr_message">ساݙی سب کنوں تکڑی رازداری خصوصیت اڄݨ تائیں کراس سائٹ ٹریکراں کوں انج کریندی ہے۔ </string>
+    <string name="tcp_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">ساݙی سب کنوں تکڑی رازداری خصوصیت اڄݨ تائیں کراس سائٹ ٹریکراں کوں انج کریندی ہے۔ </string>
     <!-- Text displayed that links to website containing documentation about the "Total cookie protection" feature. -->
-    <string name="tcp_cfr_learn_more">کُل کوکی حفاظت بارے سِکھو</string>
+    <string name="tcp_cfr_learn_more" moz:removedIn="132" tools:ignore="UnusedResources">کُل کوکی حفاظت بارے سِکھو</string>
 
 
     <!-- Private browsing erase action "contextual feature recommendation" (CFR) -->
@@ -217,8 +217,11 @@
     <string name="browser_menu_manage_extensions">ایکسٹینشنز دا بندوبست کرو</string>
     <!-- Content description (not visible, for screen readers etc.): Section heading for recommended extensions.-->
     <string name="browser_menu_recommended_section_content_description">تجویز کردہ ایکسٹینشنز</string>
+    <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extension.
+      The first parameter is the name of the extension (for example: ClearURLs). -->
+    <string name="browser_menu_extension_plus_icon_content_description_2">%1$s شامل کرو</string>
     <!-- Content description (not visible, for screen readers etc.): Label for plus icon used to add extensions. -->
-    <string name="browser_menu_extension_plus_icon_content_description">ایکسٹنشن شامل کرو</string>
+    <string name="browser_menu_extension_plus_icon_content_description" moz:removedIn="124" tools:ignore="UnusedResources">ایکسٹنشن شامل کرو</string>
     <!-- Browser menu button that opens AMO in a tab -->
     <string name="browser_menu_discover_more_extensions">ٻیاں ایکسٹنشناں لبھو</string>
     <!-- Browser menu description that is shown when one or more extensions are disabled due to extension errors -->
@@ -2500,13 +2503,13 @@
     <!-- Text for opt-out button from the review quality check contextual onboarding card. -->
     <string name="review_quality_check_contextual_onboarding_secondary_button_text">ہݨ کائناں</string>
     <!-- Text for the first CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_first_cfr_message">معلوم کرو جو بَھلا تُساں اِیں پراڈکٹ دے جائزیاں اُتے بھرواسہ کر سڳدے ہِیوے — خرید کرݨ کنوں پہلاں۔</string>
+    <string name="review_quality_check_first_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">معلوم کرو جو بَھلا تُساں اِیں پراڈکٹ دے جائزیاں اُتے بھرواسہ کر سڳدے ہِیوے — خرید کرݨ کنوں پہلاں۔</string>
     <!-- Text displayed in the first CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_first_cfr_action" tools:ignore="UnusedResources">نظرثانی پڑتالݨ آلا ازماؤ</string>
+    <string name="review_quality_check_first_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">نظرثانی پڑتالݨ آلا ازماؤ</string>
     <!-- Text for the second CFR presenting the review quality check feature. -->
-    <string name="review_quality_check_second_cfr_message">بَھلا اِیہ جائزے قابلِ اعتماد ہِن؟ مُرتّب کِیتی ڳئی درجہ بندی ݙیکھݨ کِیتے ہُݨیں دباؤ۔</string>
+    <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">بَھلا اِیہ جائزے قابلِ اعتماد ہِن؟ مُرتّب کِیتی ڳئی درجہ بندی ݙیکھݨ کِیتے ہُݨیں دباؤ۔</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
-    <string name="review_quality_check_second_cfr_action" tools:ignore="UnusedResources">ریویو پڑتالی کھولو</string>
+    <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">ریویو پڑتالی کھولو</string>
     <!-- Flag showing that the review quality check feature is work in progress. -->
     <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
@@ -2908,6 +2911,10 @@
     <string name="debug_drawer_cfr_tools_title">CFR آلات</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">CFRs ری سیٹ کرو</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Glean ڈی بگ ٹولز</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

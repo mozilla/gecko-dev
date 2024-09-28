@@ -250,11 +250,34 @@
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_file_not_found_title">فائل نہیں لبھی</string>
 
+    <string name="mozac_browser_errorpages_file_not_found_message"><![CDATA[
+      <ul>
+        <li>آئیٹم دا ناں بدلیا گیا ہو سکدا اے، ہٹایا گیا ہو سکدا اے جاں ہور تھاں بھیجی گئی ہو سکدی اے؟</li>
+        <li>کوئی شبد غلط لکھے گئے ہن، اکھر وڈے چھوٹو ہو گئے ہن جاں سرناویں وچ کوئی اکھر دی غلطی اے؟</li>
+        <li>کیہہ تہاڈے کول منگی گئی آئیٹم دی ورتوں گئی ڈھکویں ادھکار ہن؟</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_file_access_denied_title">فائل لئی پہنچ توں نانہہ کیتی</string>
 
+    <string name="mozac_browser_errorpages_file_access_denied_message"><![CDATA[
+      <ul>
+        <li>ایس نوں ہٹایا، کتے ہور بھیجیا گیا ہو سکدا اے جاں فائل منطوریاں ایس تک پہنچ ہوݨ توں روک رہیاں ہوݨ‌گیاں۔</li>
+      </ul>
+    ]]></string>
+
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_proxy_connection_refused_title">پراکسی سرور نے کنیکشن توں انکار کیتا</string>
+
+    <string name="mozac_browser_errorpages_proxy_connection_refused_message"><![CDATA[
+      <p>براؤزر نوں پراکسی سرور ورتݨ لئی سنرچت کیتا گیا اے، پر پراکسی سرور نے کنیکشن توں انکار کر دتا اے۔</p>
+      <ul>
+        <li>کیہہ براؤزر دی پراکسی سنرچنا ٹھیک اے؟ سیٹنگاں چیک کرکے مڑ کوشش کرو جی۔</li>
+        <li>کیہہ پراکسی سیوا ایس نیٹورک توں کنیکشن منظور کردی اے؟</li>
+        <li>حالے وی سمسیہ اے؟ مدد لئی آپݨے نیٹورک پرشاشک جاں انٹرنیٹ پرووائڈر نال سنپرک کرو جی۔</li>
+      </ul>
+    ]]></string>
 
     <!-- The document title and heading of an error page. -->
     <string name="mozac_browser_errorpages_unknown_proxy_host_title">پراکسی سرور نہیں لبھیا</string>
