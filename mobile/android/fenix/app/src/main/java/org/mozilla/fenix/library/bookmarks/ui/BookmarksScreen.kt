@@ -304,6 +304,7 @@ private fun BookmarksListTopBar(
     val isCurrentFolderDesktopRoot by store.observeAsState(store.state.currentFolder.isDesktopRoot) {
         store.state.currentFolder.isDesktopRoot
     }
+    val folderTitle by store.observeAsState(store.state.currentFolder.title) { store.state.currentFolder.title }
     var showMenu by remember { mutableStateOf(false) }
     Box {
         BookmarkListOverflowMenu(
@@ -321,7 +322,7 @@ private fun BookmarksListTopBar(
                         val total = selectedItems.size + (recursiveCount ?: 0)
                         stringResource(R.string.bookmarks_multi_select_title, total)
                     } else {
-                        store.state.currentFolder.title
+                        folderTitle
                     },
                 )
             },
