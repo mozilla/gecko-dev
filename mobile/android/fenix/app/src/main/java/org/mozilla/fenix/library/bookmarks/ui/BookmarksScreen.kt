@@ -918,7 +918,7 @@ private fun EditBookmarkScreen(
         Column(
             modifier = Modifier
                 .padding(paddingValues)
-                .padding(horizontal = 16.dp),
+                .padding(16.dp),
         ) {
             BookmarkEditor(
                 bookmarkItem = bookmark,
