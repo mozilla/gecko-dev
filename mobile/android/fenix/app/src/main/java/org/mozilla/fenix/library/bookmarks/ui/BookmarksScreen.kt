@@ -950,10 +950,12 @@ private fun BookmarkEditor(
             ClearableTextField(
                 value = bookmarkItem.title,
                 onValueChange = onTitleChanged,
+                placeholder = stringResource(R.string.bookmark_name_label_normal_case),
             )
             ClearableTextField(
                 value = bookmarkItem.url,
                 onValueChange = onURLChanged,
+                placeholder = stringResource(R.string.bookmark_url_label),
             )
         }
     }
@@ -995,6 +997,7 @@ private fun FolderInfo(
 
 @Composable
 private fun ClearableTextField(
+    placeholder: String,
     value: String,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -1004,6 +1007,13 @@ private fun ClearableTextField(
     TextField(
         value = value,
         onValueChange = onValueChange,
+        placeholder = {
+            Text(
+                text = placeholder,
+                color = FirefoxTheme.colors.textPrimary,
+                style = FirefoxTheme.typography.subtitle1,
+            )
+        },
         singleLine = true,
         trailingIcon = {
             if (isFocused && value.isNotEmpty()) {
