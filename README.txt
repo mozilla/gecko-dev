@@ -1,6 +1,8 @@
 An explanation of the Firefox Source Code Directory Structure and links to
 project pages with documentation can be found at:
 
+## This change has been made by me (Abdul Rehman)
+
     https://firefox-source-docs.mozilla.org/contributing/directory_structure.html
 
 For information on how to build Firefox from the source code and create the patch see:
