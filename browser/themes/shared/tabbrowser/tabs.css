@@ -668,13 +668,27 @@
 /* Tab Groups */
 
 tab-group {
-  /* Provide some space between tab groups or between tab groups and adjacent tabs */
-  margin-inline: var(--tab-overflow-clip-margin);
+  /*
+   * Let the tab bar flexbox distribute space between all tabs evenly, regardless of
+   * whether they are children of the tab bar directly or children of tab groups
+   */
+  display: contents;
 
+  /*
+   * .tab-group-line needs to span the drop shadows + space between tabs in the
+   * same tab group so that the whole tab group appears to be underlined by an
+   * unbroken line. However, the last tab in a tab group should have its group
+   * underline stop at the right edge of the tab itself, otherwise it looks
+   * like the tab group extends too far past the right edge of the tab.
+   */
   .tab-group-line {
     background-color: var(--tab-group-color);
     height: 2px;
     margin: 0 calc(-1 * var(--tab-overflow-clip-margin)) calc(-1 * var(--tab-block-margin));
+
+    .tabbrowser-tab:last-of-type > .tab-stack > .tab-background > & {
+      margin-inline-end: 0;
+    }
   }
 
   &[collapsed] > .tabbrowser-tab {
@@ -686,8 +700,17 @@ tab-group {
 }
 
 .tab-group-label-container {
-  /* Provide some space between tab group label and the first tab in the tab group */
+  /*
+   * Provide some empty space to either side of the tab group label
+   * Use margin on the left because the ::after underline should not extend
+   * to the left beyond the tab group label. Left margin should be larger in
+   * order to make the tab group look more separated from other tabs.
+   * Use padding on the right because the ::after underline should extend
+   * to the right to connect to the underline of the first tab in the group.
+   */
+  margin-inline-start: calc(var(--tab-overflow-clip-margin) + var(--tab-block-margin));
   padding-inline-end: var(--tab-overflow-clip-margin);
+
   position: relative;
 
   tab-group:not([collapsed]) > &::after {
@@ -713,7 +736,7 @@ tab-group {
   min-height: 2em;
   min-width: 2em;
   max-width: 10em;
-  padding: 0 4px;
+  padding-inline: 4px;
 
   background-color: var(--tab-group-color);
   /* TODO: pick the right text color depending on group color */
@@ -723,7 +746,7 @@ tab-group {
     /* TODO: choose actual color values from the spec instead of generating on the fly */
     background-color: color-mix(in srgb, var(--tab-group-color) 30%, white);
     color: var(--tab-group-color);
-    outline: 1px solid var(--tab-group-color);
+    border: 1px solid var(--tab-group-color);
   }
 }
 
