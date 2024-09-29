@@ -1160,20 +1160,10 @@ dictionary GPUQuerySetDescriptor
          : GPUObjectDescriptorBase {
     required GPUQueryType type;
     required GPUSize32 count;
-    sequence<GPUPipelineStatisticName> pipelineStatistics = [];
-};
-
-enum GPUPipelineStatisticName {
-    "vertex-shader-invocations",
-    "clipper-invocations",
-    "clipper-primitives-out",
-    "fragment-shader-invocations",
-    "compute-shader-invocations"
 };
 
 enum GPUQueryType {
     "occlusion",
-    "pipeline-statistics",
     "timestamp",
 };
 
