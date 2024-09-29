@@ -124,6 +124,24 @@ class APZScrollHandoffTester : public APZCTreeManagerTester {
     rootApzc = ApzcOf(root);
   }
 
+  // Creates a layer tree with a parent layer that is only scrollable
+  // vertically, and a child layer that is only scrollable horizontally.
+  void CreateScrollHandoffLayerTree6() {
+    const char* treeShape = "x(x)";
+    LayerIntRect layerVisibleRect[] = {LayerIntRect(0, 0, 100, 100),
+                                       LayerIntRect(0, 0, 100, 1000)};
+    CreateScrollData(treeShape, layerVisibleRect);
+    SetScrollableFrameMetrics(root, ScrollableLayerGuid::START_SCROLL_ID,
+                              CSSRect(0, 0, 100, 1000));
+    SetScrollableFrameMetrics(layers[1],
+                              ScrollableLayerGuid::START_SCROLL_ID + 1,
+                              CSSRect(0, 0, 200, 1000));
+    SetScrollHandoff(layers[1], root);
+    registration = MakeUnique<ScopedLayerTreeRegistration>(LayersId{0}, mcc);
+    UpdateHitTestingTree();
+    rootApzc = ApzcOf(root);
+  }
+
   void CreateScrollgrabLayerTree(bool makeParentScrollable = true) {
     const char* treeShape = "x(x)";
     LayerIntRect layerVisibleRect[] = {
@@ -807,4 +825,92 @@ TEST_F(APZScrollHandoffTesterMock, ChildCloseToEndOfScrollRange) {
   // thing is that at least one of the child or parent scroll, i.e. we're not
   // stuck in a situation where no scroll offset is changing).
   EXPECT_TRUE(childScrolled || parentScrolled);
+}
+
+TEST_F(APZScrollHandoffTesterMock, ScrollJump_Bug1812227) {
+  // Set the touch start tolerance to 10 pixels.
+  SCOPED_GFX_PREF_FLOAT("apz.touch_start_tolerance", 10 / manager->GetDPI());
+
+  CreateScrollHandoffLayerTree6();
+  RefPtr<TestAsyncPanZoomController> childApzc = ApzcOf(layers[1]);
+
+  // Throughout the test, we record the composited vertical scroll position
+  // of the root scroll frame after every event or animation frame.
+  std::vector<CSSCoord> rootYScrollPositions;
+  auto SampleScrollPosition = [&]() {
+    rootYScrollPositions.push_back(
+        rootApzc->GetFrameMetrics().GetVisualScrollOffset().y);
+  };
+
+  // Helper function to perform a light upward flick (finger moves upward
+  // ==> page will scroll downward).
+  auto DoLightUpwardFlick = [&](bool aSimulatePaint = false) {
+    // Don't use Pan() because it decreases the touch start tolerance
+    // to almost zero, and here we want to test a codepath related to
+    // the touch start tolerance.
+
+    mcc->AdvanceByMillis(16);
+    QueueMockHitResult(ScrollableLayerGuid::START_SCROLL_ID + 1);
+    TouchDown(manager, {30, 30}, mcc->Time());
+    SampleScrollPosition();
+
+    // If aSimulatePaint=true, simulate a main-thread paint arriving in between
+    // the touch-down (when the input block is created and the cached value
+    // InputBlockState::mTransformToApzc is set) and the first touch-move which
+    // overcomes the touch-tolerance threshold and synthesizes an additional
+    // touch-move event at the threshold. The paint has the effect of resetting
+    // transform to the APZC to zero. The bug occurs if the synthesized
+    // touch-move event incorrectly uses the up-to-date transform to the APZC
+    // rather than the value cached in InputBlockState::mTrasnformToApzc.
+    if (aSimulatePaint) {
+      // For simplicity, simulate a paint with the latest metrics stored on the
+      // APZC. In practice, what would be painted would be from a frame or two
+      // ago, but for reproducing this bug it does not matter.
+      ModifyFrameMetrics(root, [&](ScrollMetadata&, FrameMetrics& aMetrics) {
+        aMetrics = rootApzc->GetFrameMetrics();
+      });
+      ModifyFrameMetrics(layers[1],
+                         [&](ScrollMetadata&, FrameMetrics& aMetrics) {
+                           aMetrics = childApzc->GetFrameMetrics();
+                         });
+      UpdateHitTestingTree();
+    }
+
+    mcc->AdvanceByMillis(16);
+    TouchMove(manager, {30, 10}, mcc->Time());
+    SampleScrollPosition();
+
+    mcc->AdvanceByMillis(16);
+    TouchUp(manager, {30, 10}, mcc->Time());
+    SampleScrollPosition();
+
+    // The root APZC should be flinging.
+    rootApzc->AssertStateIsFling();
+  };
+
+  // Peform one flick.
+  DoLightUpwardFlick();
+
+  // Sample the resulting fling partway. Testing shows it goes well past
+  // y=100, so sample it until y=100.
+  while (SampleAnimationsOnce() && rootYScrollPositions.back() < 100) {
+    SampleScrollPosition();
+  }
+
+  // Perform a second flick, this time simulating a paint in between
+  // the touch-start and touch-move.
+  DoLightUpwardFlick(true);
+
+  // Sample the fling until its completion.
+  while (SampleAnimationsOnce()) {
+    SampleScrollPosition();
+  }
+
+  // Check that the vertical root scroll position is non-decreasing
+  // throughout the course of the test, i.e. it never jumps back up.
+  for (size_t i = 0; i < (rootYScrollPositions.size() - 1); ++i) {
+    CSSCoord before = rootYScrollPositions[i];
+    CSSCoord after = rootYScrollPositions[i + 1];
+    EXPECT_LE(before, after);
+  }
 }

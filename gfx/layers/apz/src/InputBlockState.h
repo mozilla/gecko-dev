@@ -7,7 +7,8 @@
 #ifndef mozilla_layers_InputBlockState_h
 #define mozilla_layers_InputBlockState_h
 
-#include "InputData.h"           // for MultiTouchInput
+#include "InputData.h"  // for MultiTouchInput
+#include "Units.h"
 #include "mozilla/RefCounted.h"  // for RefCounted
 #include "mozilla/RefPtr.h"      // for RefPtr
 #include "mozilla/StaticPrefs_apz.h"
@@ -93,6 +94,10 @@ class InputBlockState : public RefCounted<InputBlockState> {
    * be removed as the last item in the pending queue.
    */
   virtual bool MustStayActive() = 0;
+
+  const ScreenToParentLayerMatrix4x4& GetTransformToApzc() const {
+    return mTransformToApzc;
+  }
 
  protected:
   virtual void UpdateTargetApzc(
