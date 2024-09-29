@@ -18,13 +18,11 @@ struct APZTestDataToJSConverter {
                          dom::Sequence<KeyValuePair>& aOutTo,
                          void (*aElementConverter)(const Key&, const Value&,
                                                    KeyValuePair&)) {
+    if (!aOutTo.SetCapacity(aOutTo.Length() + aFrom.size(), fallible)) {
+      mozalloc_handle_oom(0);
+    }
     for (auto it = aFrom.begin(); it != aFrom.end(); ++it) {
-      if (!aOutTo.AppendElement(fallible)) {
-        // XXX(Bug 1632090) Instead of extending the array 1-by-1 (which might
-        // involve multiple reallocations) and potentially crashing here,
-        // SetCapacity could be called outside the loop once.
-        mozalloc_handle_oom(0);
-      }
+      (void)aOutTo.AppendElement(fallible);  // already checked OOM above
       aElementConverter(it->first, it->second, aOutTo.LastElement());
     }
   }
@@ -33,13 +31,11 @@ struct APZTestDataToJSConverter {
   static void ConvertList(const nsTArray<Src>& aFrom,
                           dom::Sequence<Target>& aOutTo,
                           void (*aElementConverter)(const Src&, Target&)) {
+    if (!aOutTo.SetCapacity(aOutTo.Length() + aFrom.Length(), fallible)) {
+      mozalloc_handle_oom(0);
+    }
     for (auto it = aFrom.begin(); it != aFrom.end(); ++it) {
-      if (!aOutTo.AppendElement(fallible)) {
-        // XXX(Bug 1632090) Instead of extending the array 1-by-1 (which might
-        // involve multiple reallocations) and potentially crashing here,
-        // SetCapacity could be called outside the loop once.
-        mozalloc_handle_oom(0);
-      }
+      (void)aOutTo.AppendElement(fallible);  // already checked OOM above
       aElementConverter(*it, aOutTo.LastElement());
     }
   }
