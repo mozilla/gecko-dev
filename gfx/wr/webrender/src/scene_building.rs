@@ -1509,6 +1509,10 @@ impl<'a> SceneBuilder<'a> {
                         source_transform: PropertyBinding::Binding(key, _),
                         ..
                     }) => key.clone().into(),
+                    SpatialNodeType::StickyFrame(StickyFrameInfo {
+                        transform: Some(PropertyBinding::Binding(key, _)),
+                        ..
+                    }) => key.clone().into(),
                     _ => 0,
                 };
 

@@ -1082,4 +1082,42 @@ class DynamicToolbarTest : BaseSessionTest() {
             assertScreenshotResult(it.capturePixels(), reference)
         }
     }
+
+    @WithDisplay(height = SCREEN_HEIGHT, width = SCREEN_WIDTH)
+    @Test
+    fun hitTestOnPositionSticky() {
+        val dynamicToolbarMaxHeight = SCREEN_HEIGHT / 2
+        sessionRule.display?.run { setDynamicToolbarMaxHeight(dynamicToolbarMaxHeight) }
+
+        // Set active since setVerticalClipping call affects only for foreground tab.
+        mainSession.setActive(true)
+
+        mainSession.loadTestPath(BaseSessionTest.POSITION_STICKY_HTML_PATH)
+        mainSession.waitForPageStop()
+        mainSession.flushApzRepaints()
+
+        val clickEventPromise = mainSession.evaluatePromiseJS(
+            """
+            new Promise(resolve => {
+                document.querySelector('button').addEventListener('click', () => {
+                    resolve(true);
+                });
+            });
+            """.trimIndent(),
+        )
+
+        // Explicitly call `waitForRoundTrip()` to make sure the above event listener
+        // has set up in the content.
+        mainSession.waitForRoundTrip()
+
+        // Simulate the dynamic toolbar being hidden by the scroll
+        sessionRule.display?.run { setVerticalClipping(-dynamicToolbarMaxHeight) }
+
+        // To make sure the dynamic toolbar height has been reflected into APZ.
+        mainSession.flushApzRepaints()
+
+        mainSession.synthesizeTap(SCREEN_WIDTH / 2, SCREEN_HEIGHT - dynamicToolbarMaxHeight / 4)
+
+        assertThat("click event", clickEventPromise.value as Boolean, equalTo(true))
+    }
 }
