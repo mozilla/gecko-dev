@@ -1,0 +1,9 @@
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at https://mozilla.org/MPL/2.0/. -->
+<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M4.67475e-07 40C3.96467e-07 62.0914 17.9086 80 40 80C62.0914 80 80 62.0914 80 40C80 17.9086 62.0914 5.44299e-08 40 1.21573e-07C17.9086 1.88715e-07 5.38483e-07 17.9086 4.67475e-07 40Z" fill="context-fill"/>
+<path d="M46 32.75H32V30H46V32.75Z" fill="context-stroke"/>
+<path d="M32.0002 40.001L46.0002 40L46 37.25L32 37.251L32.0002 40.001Z" fill="context-stroke"/>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M23 53.5C23 53.4582 23.0005 53.4165 23.0015 53.375H23V26.5C23 24.0146 25.0146 22 27.5 22H50.25C52.7354 22 54.75 24.0146 54.75 26.5V46.5C54.75 47.9497 54.0645 49.2393 53 50.0623V56H55V58.75H28.25C25.3506 58.75 23 56.3994 23 53.5ZM25.75 26.5C25.75 25.5334 26.5334 24.75 27.5 24.75H50.25C51.2166 24.75 52 25.5334 52 26.5V46.5C52 47.4666 51.2166 48.25 50.25 48.25H28.25C27.3449 48.25 26.4933 48.4791 25.75 48.8824V26.5ZM50.25 51H28.25C26.8694 51 25.75 52.1194 25.75 53.5C25.75 54.8806 26.8694 56 28.25 56H50.25V51Z" fill="context-stroke"/>
+</svg>
