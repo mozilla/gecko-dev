@@ -1013,6 +1013,7 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       unwrappedExceptionStack_(this),
 #ifdef DEBUG
       hadResourceExhaustion_(this, false),
+      hadUncatchableException_(this, false),
 #endif
       reportGranularity(this, JS_DEFAULT_JITREPORT_GRANULARITY),
       resolvingList(this, nullptr),

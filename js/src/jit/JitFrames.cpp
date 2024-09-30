@@ -322,7 +322,7 @@ static void HandleExceptionIon(JSContext* cx, const InlineFrameIterator& frame,
           }
 
           *hitBailoutException = true;
-          MOZ_ASSERT(cx->isExceptionPending());
+          MOZ_ASSERT(cx->isExceptionPending() || cx->hadUncatchableException());
         }
         break;
 
