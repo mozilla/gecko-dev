@@ -58,6 +58,7 @@ class UnicodeProperties final {
     HangulSyllableType,
     LineBreak,
     NumericType,
+    VerticalOrientation,
   };
 
   /**
@@ -81,6 +82,9 @@ class UnicodeProperties final {
         break;
       case IntProperty::NumericType:
         prop = UCHAR_NUMERIC_TYPE;
+        break;
+      case IntProperty::VerticalOrientation:
+        prop = UCHAR_VERTICAL_ORIENTATION;
         break;
     }
     return u_getIntPropertyValue(aCh, prop);

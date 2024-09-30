@@ -30,12 +30,12 @@ namespace unicode {
 
 extern const nsUGenCategory sDetailedToGeneralCategory[];
 
-/* This MUST match the values assigned by genUnicodePropertyData.pl! */
+/* This values must match the values by UVerticalOrientation by ICU */
 enum VerticalOrientation {
-  VERTICAL_ORIENTATION_U = 0,
-  VERTICAL_ORIENTATION_R = 1,
+  VERTICAL_ORIENTATION_R = 0,
+  VERTICAL_ORIENTATION_Tr = 1,
   VERTICAL_ORIENTATION_Tu = 2,
-  VERTICAL_ORIENTATION_Tr = 3
+  VERTICAL_ORIENTATION_U = 3,
 };
 
 /* This MUST match the values assigned by genUnicodePropertyData.pl! */
@@ -142,7 +142,8 @@ inline nsUGenCategory GetGenCategory(uint32_t aCh) {
 }
 
 inline VerticalOrientation GetVerticalOrientation(uint32_t aCh) {
-  return VerticalOrientation(GetCharProps2(aCh).mVertOrient);
+  return VerticalOrientation(intl::UnicodeProperties::GetIntPropertyValue(
+      aCh, intl::UnicodeProperties::IntProperty::VerticalOrientation));
 }
 
 inline IdentifierType GetIdentifierType(uint32_t aCh) {
