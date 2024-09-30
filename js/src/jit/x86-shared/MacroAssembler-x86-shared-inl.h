@@ -467,20 +467,23 @@ void MacroAssembler::rshift32Arithmetic(Imm32 shift, Register srcDest) {
 
 void MacroAssembler::cmp8Set(Condition cond, Address lhs, Imm32 rhs,
                              Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(lhs, rhs, dest);
   cmp8(lhs, rhs);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 void MacroAssembler::cmp16Set(Condition cond, Address lhs, Imm32 rhs,
                               Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(lhs, rhs, dest);
   cmp16(lhs, rhs);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 template <typename T1, typename T2>
 void MacroAssembler::cmp32Set(Condition cond, T1 lhs, T2 rhs, Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(lhs, rhs, dest);
   cmp32(lhs, rhs);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 // ===============================================================
@@ -1127,36 +1130,41 @@ void MacroAssembler::branchTestMagicImpl(Condition cond, const T& t, L label) {
 template <typename T>
 void MacroAssembler::testNumberSet(Condition cond, const T& src,
                                    Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(src, dest);
   cond = testNumber(cond, src);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 template <typename T>
 void MacroAssembler::testBooleanSet(Condition cond, const T& src,
                                     Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(src, dest);
   cond = testBoolean(cond, src);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 template <typename T>
 void MacroAssembler::testStringSet(Condition cond, const T& src,
                                    Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(src, dest);
   cond = testString(cond, src);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 template <typename T>
 void MacroAssembler::testSymbolSet(Condition cond, const T& src,
                                    Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(src, dest);
   cond = testSymbol(cond, src);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 template <typename T>
 void MacroAssembler::testBigIntSet(Condition cond, const T& src,
                                    Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(src, dest);
   cond = testBigInt(cond, src);
-  emitSet(cond, dest);
+  emitSet(cond, dest, destIsZero);
 }
 
 void MacroAssembler::cmp32Move32(Condition cond, Register lhs, Imm32 rhs,
@@ -1615,13 +1623,17 @@ void MacroAssembler::reverseInt64x2(FloatRegister src, FloatRegister dest) {
 // Any lane true, ie any bit set
 
 void MacroAssembler::anyTrueSimd128(FloatRegister src, Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(dest);
+
   vptest(src, src);
-  emitSetRegisterIf(Condition::NonZero, dest);
+  emitSet(Condition::NonZero, dest, destIsZero);
 }
 
 // All lanes true
 
 void MacroAssembler::allTrueInt8x16(FloatRegister src, Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(dest);
+
   ScratchSimd128Scope xtmp(*this);
   // xtmp is all-00h
   vpxor(xtmp, xtmp, xtmp);
@@ -1630,10 +1642,12 @@ void MacroAssembler::allTrueInt8x16(FloatRegister src, Register dest) {
   vpcmpeqb(Operand(src), xtmp, xtmp);
   // Check if xtmp is 0.
   vptest(xtmp, xtmp);
-  emitSetRegisterIf(Condition::Zero, dest);
+  emitSet(Condition::Zero, dest, destIsZero);
 }
 
 void MacroAssembler::allTrueInt16x8(FloatRegister src, Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(dest);
+
   ScratchSimd128Scope xtmp(*this);
   // xtmp is all-00h
   vpxor(xtmp, xtmp, xtmp);
@@ -1642,10 +1656,12 @@ void MacroAssembler::allTrueInt16x8(FloatRegister src, Register dest) {
   vpcmpeqw(Operand(src), xtmp, xtmp);
   // Check if xtmp is 0.
   vptest(xtmp, xtmp);
-  emitSetRegisterIf(Condition::Zero, dest);
+  emitSet(Condition::Zero, dest, destIsZero);
 }
 
 void MacroAssembler::allTrueInt32x4(FloatRegister src, Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(dest);
+
   ScratchSimd128Scope xtmp(*this);
   // xtmp is all-00h
   vpxor(xtmp, xtmp, xtmp);
@@ -1654,10 +1670,12 @@ void MacroAssembler::allTrueInt32x4(FloatRegister src, Register dest) {
   vpcmpeqd(Operand(src), xtmp, xtmp);
   // Check if xtmp is 0.
   vptest(xtmp, xtmp);
-  emitSetRegisterIf(Condition::Zero, dest);
+  emitSet(Condition::Zero, dest, destIsZero);
 }
 
 void MacroAssembler::allTrueInt64x2(FloatRegister src, Register dest) {
+  bool destIsZero = maybeEmitSetZeroByteRegister(dest);
+
   ScratchSimd128Scope xtmp(*this);
   // xtmp is all-00h
   vpxor(xtmp, xtmp, xtmp);
@@ -1666,7 +1684,7 @@ void MacroAssembler::allTrueInt64x2(FloatRegister src, Register dest) {
   vpcmpeqq(Operand(src), xtmp, xtmp);
   // Check if xtmp is 0.
   vptest(xtmp, xtmp);
-  emitSetRegisterIf(Condition::Zero, dest);
+  emitSet(Condition::Zero, dest, destIsZero);
 }
 
 // Bitmask

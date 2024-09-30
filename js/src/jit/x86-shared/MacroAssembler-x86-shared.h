@@ -920,13 +920,69 @@ class MacroAssemblerX86Shared : public Assembler {
     movzbl(source, dest);
   }
 
-  void emitSet(Assembler::Condition cond, Register dest,
+ private:
+  template <typename T>
+  static bool aliasesEmitSetRegister(T src, Register dest) {
+    if constexpr (std::is_base_of_v<Register, T>) {
+      return src == dest;
+    } else if constexpr (std::is_base_of_v<Address, T>) {
+      return src.base == dest;
+    } else if constexpr (std::is_base_of_v<BaseIndex, T>) {
+      return src.base == dest || src.index == dest;
+    } else if constexpr (std::is_base_of_v<ValueOperand, T>) {
+      return src.aliases(dest);
+    } else {
+      static_assert(
+          std::is_base_of_v<Imm32, T> || std::is_base_of_v<Imm64, T> ||
+              std::is_base_of_v<ImmPtr, T> || std::is_base_of_v<ImmWord, T>,
+          "unhandled operand");
+      return false;
+    }
+  }
+
+ public:
+  bool maybeEmitSetZeroByteRegister(Register dest) {
+    // `setCC` only writes into the low 8-bits of the register, so it has to be
+    // followed by `movzbl` to extend i8 to i32. This can cause a register stall
+    // due to the partial register write performed by `setCC`. If possible zero
+    // the output before the comparison to avoid this case.
+    if (AllocatableGeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
+      xorl(dest, dest);
+      return true;
+    }
+    return false;
+  }
+
+  template <typename T>
+  bool maybeEmitSetZeroByteRegister(T src, Register dest) {
+    // Can't zero the output register if it aliases the input.
+    if (!aliasesEmitSetRegister(src, dest)) {
+      return maybeEmitSetZeroByteRegister(dest);
+    }
+    return false;
+  }
+
+  template <typename T1, typename T2>
+  bool maybeEmitSetZeroByteRegister(T1 lhs, T2 rhs, Register dest) {
+    // Can't zero the output register if it aliases an input.
+    if (!aliasesEmitSetRegister(lhs, dest) &&
+        !aliasesEmitSetRegister(rhs, dest)) {
+      return maybeEmitSetZeroByteRegister(dest);
+    }
+    return false;
+  }
+
+  void emitSet(Assembler::Condition cond, Register dest, bool destIsZero,
                Assembler::NaNCond ifNaN = Assembler::NaN_HandledByCond) {
     if (AllocatableGeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
       // If the register we're defining is a single byte register,
       // take advantage of the setCC instruction
       setCC(cond, dest);
-      movzbl(dest, dest);
+
+      // Extend i8 to i32 if the register wasn't previously zeroed.
+      if (!destIsZero) {
+        movzbl(dest, dest);
+      }
 
       if (ifNaN != Assembler::NaN_HandledByCond) {
         Label noNaN;
@@ -953,21 +1009,6 @@ class MacroAssemblerX86Shared : public Assembler {
       bind(&ifFalse);
       mov(ImmWord(0), dest);
 
-      bind(&end);
-    }
-  }
-
-  void emitSetRegisterIf(AssemblerX86Shared::Condition cond, Register dest) {
-    if (AllocatableGeneralRegisterSet(Registers::SingleByteRegs).has(dest)) {
-      // If the register we're defining is a single byte register,
-      // take advantage of the setCC instruction
-      setCC(cond, dest);
-      movzbl(dest, dest);
-    } else {
-      Label end;
-      movl(Imm32(1), dest);
-      j(cond, &end);
-      mov(ImmWord(0), dest);
       bind(&end);
     }
   }
