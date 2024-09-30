@@ -20940,7 +20940,7 @@ void CodeGenerator::visitSignExtendInt32(LSignExtendInt32* ins) {
   Register input = ToRegister(ins->input());
   Register output = ToRegister(ins->output());
 
-  switch (ins->mode()) {
+  switch (ins->mir()->mode()) {
     case MSignExtendInt32::Byte:
       masm.move8SignExtend(input, output);
       break;

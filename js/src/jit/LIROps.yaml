@@ -920,8 +920,7 @@
   result_type: WordSized
   operands:
     num: WordSized
-  arguments:
-    mode: MSignExtendInt32::Mode
+  mir_op: true
 
 - name: SignExtendInt64
   gen_boilerplate: false

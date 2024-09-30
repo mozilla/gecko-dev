@@ -4318,6 +4318,7 @@ class MSignExtendInt32 : public MUnaryInstruction, public NoTypePolicy::Data {
 
   MSignExtendInt32(MDefinition* op, Mode mode)
       : MUnaryInstruction(classOpcode, op), mode_(mode) {
+    MOZ_ASSERT(op->type() == MIRType::Int32);
     setResultType(MIRType::Int32);
     setMovable();
   }
@@ -4333,7 +4334,7 @@ class MSignExtendInt32 : public MUnaryInstruction, public NoTypePolicy::Data {
     if (!congruentIfOperandsEqual(ins)) {
       return false;
     }
-    return ins->isSignExtendInt32() && ins->toSignExtendInt32()->mode_ == mode_;
+    return ins->toSignExtendInt32()->mode_ == mode_;
   }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
@@ -4353,6 +4354,7 @@ class MSignExtendInt64 : public MUnaryInstruction, public NoTypePolicy::Data {
 
   MSignExtendInt64(MDefinition* op, Mode mode)
       : MUnaryInstruction(classOpcode, op), mode_(mode) {
+    MOZ_ASSERT(op->type() == MIRType::Int64);
     setResultType(MIRType::Int64);
     setMovable();
   }
@@ -4368,7 +4370,7 @@ class MSignExtendInt64 : public MUnaryInstruction, public NoTypePolicy::Data {
     if (!congruentIfOperandsEqual(ins)) {
       return false;
     }
-    return ins->isSignExtendInt64() && ins->toSignExtendInt64()->mode_ == mode_;
+    return ins->toSignExtendInt64()->mode_ == mode_;
   }
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
