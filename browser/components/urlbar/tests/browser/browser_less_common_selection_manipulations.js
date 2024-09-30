@@ -297,13 +297,14 @@ async function doTest(url) {
 }
 
 function getTextWidth(inputText) {
-  const canvas =
-    getTextWidth.canvas ||
-    (getTextWidth.canvas = document.createElement("canvas"));
-  let context = canvas.getContext("2d");
-  context.font = window
+  let span = document.createElement("span");
+  document.documentElement.appendChild(span);
+  span.style.all = "initial";
+  span.style.font = window
     .getComputedStyle(gURLBar.inputField)
     .getPropertyValue("font");
-  let measure = context.measureText(inputText);
-  return measure.actualBoundingBoxLeft + measure.actualBoundingBoxRight;
+  span.textContent = inputText;
+  let result = span.offsetWidth;
+  span.remove();
+  return result;
 }
