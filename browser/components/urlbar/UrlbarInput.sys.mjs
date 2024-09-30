@@ -1136,9 +1136,7 @@ export class UrlbarInput {
         // and button is provided to switch to tab.
         if (
           this.hasAttribute("action-override") ||
-          (lazy.UrlbarPrefs.getScotchBonnetPref(
-            "secondaryActions.featureGate"
-          ) &&
+          (lazy.UrlbarPrefs.get("secondaryActions.switchToTab") &&
             element?.dataset.action !== "tabswitch")
         ) {
           where = "current";

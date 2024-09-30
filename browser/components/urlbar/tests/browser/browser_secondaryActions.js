@@ -57,6 +57,10 @@ add_task(async function test_quickaction() {
 });
 
 add_task(async function test_switchtab() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.secondaryActions.switchToTab", true]],
+  });
+
   let win = await BrowserTestUtils.openNewBrowserWindow();
   await loadURI(win.gBrowser, "https://example.com/");
 
@@ -98,9 +102,13 @@ add_task(async function test_switchtab() {
   );
 
   BrowserTestUtils.closeWindow(win);
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_switchtab_with_userContextId() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.secondaryActions.switchToTab", true]],
+  });
   let url = "https://example.com";
   let tab = BrowserTestUtils.addTab(gBrowser, url, { userContextId: 1 });
   await BrowserTestUtils.browserLoaded(tab.linkedBrowser);
@@ -128,6 +136,7 @@ add_task(async function test_switchtab_with_userContextId() {
   EventUtils.synthesizeMouseAtCenter(button, {});
   await BrowserTestUtils.waitForCondition(() => gBrowser.selectedTab == tab);
   Assert.ok(true, "Expected tab is selected");
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_sitesearch() {

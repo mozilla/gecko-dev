@@ -257,10 +257,6 @@ add_task(async function selected_result_url() {
 });
 
 add_task(async function selected_result_tab() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.secondaryActions.featureGate", false]],
-  });
-
   const tab = BrowserTestUtils.addTab(gBrowser, "https://example.com/");
 
   await doTest(async () => {

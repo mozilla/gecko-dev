@@ -89,7 +89,7 @@ add_task(async function test_switchtab_override() {
 
 add_task(async function test_switchtab_override_scotch_bonnet() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+    set: [["browser.urlbar.secondaryActions.switchToTab", true]],
   });
 
   info("Opening first tab");

@@ -368,6 +368,9 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // Feature gate pref for secondary actions being shown in the urlbar.
   ["secondaryActions.featureGate", false],
 
+  // Alternative switch to tab implementation using secondaryActions.
+  ["secondaryActions.switchToTab", false],
+
   // Whether to show each local search shortcut button in the view.
   ["shortcuts.bookmarks", true],
   ["shortcuts.tabs", true],

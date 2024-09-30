@@ -716,8 +716,6 @@
 /* Switch-to-tab and Clipboard action text is styled as a chiclet. */
 .urlbarView-row[has-action]:is([type=switchtab], [type=remotetab], [type=clipboard]) {
   > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-action {
-    color: var(--urlbar-box-text-color);
-    background-color: var(--urlbar-box-focus-bgcolor);
     border-radius: var(--toolbarbutton-border-radius);
     padding: 4px 8px;
     margin-block: -2px;
@@ -727,14 +725,39 @@
       padding: 3px 6px;
     }
 
-    &.urlbarView-userContext {
-      padding-top: 0;
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media not (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+      color: var(--urlbar-box-text-color);
+      background-color: var(--urlbar-box-focus-bgcolor);
+
+      &.urlbarView-userContext {
+        padding-top: 0;
+      }
+    }
+
+    /* stylelint-disable-next-line media-query-no-invalid */
+    @media (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+      -moz-context-properties: fill, fill-opacity;
+      color: var(--toolbar-field-focus-color);
+      border: 1px solid var(--urlbarView-separator-color);
+      padding-inline-start: calc(var(--urlbarView-favicon-width) + 8px);
+      background-image: url("chrome://browser/content/firefoxview/view-opentabs.svg");
+      background-repeat: no-repeat;
+      background-position: 4px center;
+      background-size: var(--urlbarView-favicon-width);
+
+      &:-moz-locale-dir(rtl) {
+        background-position-x: right 4px;
+      }
     }
   }
 
-  &:is([selected], :hover) > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-action {
-    color: var(--urlbarView-result-button-selected-color);
-    background-color: var(--urlbarView-result-button-selected-background-color);
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media not (-moz-bool-pref: "browser.urlbar.scotchBonnet.enableOverride") {
+    &:is([selected], :hover) > .urlbarView-row-inner > .urlbarView-no-wrap > .urlbarView-action {
+      color: var(--urlbarView-result-button-selected-color);
+      background-color: var(--urlbarView-result-button-selected-background-color);
+    }
   }
 }
 
