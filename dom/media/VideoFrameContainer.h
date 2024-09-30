@@ -59,10 +59,6 @@ class VideoFrameContainer {
   void SetCurrentFrames(
       const gfx::IntSize& aIntrinsicSize,
       const nsTArray<ImageContainer::NonOwningImage>& aImages);
-  void ClearCurrentFrame(const gfx::IntSize& aIntrinsicSize) {
-    SetCurrentFrames(aIntrinsicSize,
-                     nsTArray<ImageContainer::NonOwningImage>());
-  }
 
   // Make the current frame the only frame in the container, i.e. discard
   // all future frames.

@@ -102,15 +102,13 @@ void VideoFrameContainer::SetCurrentFrame(
 #ifdef MOZ_WIDGET_ANDROID
   NotifySetCurrent(aImage);
 #endif
+  AutoTArray<ImageContainer::NonOwningImage, 1> imageList;
   if (aImage) {
-    MutexAutoLock lock(mMutex);
-    AutoTArray<ImageContainer::NonOwningImage, 1> imageList;
     imageList.AppendElement(ImageContainer::NonOwningImage(
         aImage, aTargetTime, ++mFrameID, 0, aProcessingDuration, aMediaTime));
-    SetCurrentFramesLocked(aIntrinsicSize, imageList);
-  } else {
-    ClearCurrentFrame(aIntrinsicSize);
   }
+  MutexAutoLock lock(mMutex);
+  SetCurrentFramesLocked(aIntrinsicSize, imageList);
 }
 
 void VideoFrameContainer::SetCurrentFrames(
