@@ -805,6 +805,9 @@
 - name: SignExtendInt64
   gen_boilerplate: false
 
+- name: SignExtendIntPtr
+  gen_boilerplate: false
+
 - name: MinMax
   gen_boilerplate: false
 

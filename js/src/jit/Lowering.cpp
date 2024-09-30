@@ -1736,6 +1736,19 @@ void LIRGenerator::visitSignExtendInt32(MSignExtendInt32* ins) {
   define(lir, ins);
 }
 
+void LIRGenerator::visitSignExtendIntPtr(MSignExtendIntPtr* ins) {
+  LInstructionHelper<1, 1, 0>* lir;
+
+  if (ins->mode() == MSignExtendIntPtr::Byte) {
+    lir =
+        new (alloc()) LSignExtendIntPtr(useByteOpRegisterAtStart(ins->input()));
+  } else {
+    lir = new (alloc()) LSignExtendIntPtr(useRegisterAtStart(ins->input()));
+  }
+
+  define(lir, ins);
+}
+
 void LIRGenerator::visitRotate(MRotate* ins) {
   MDefinition* input = ins->input();
   MDefinition* count = ins->count();

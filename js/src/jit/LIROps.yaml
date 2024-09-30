@@ -922,6 +922,12 @@
     num: WordSized
   mir_op: true
 
+- name: SignExtendIntPtr
+  result_type: WordSized
+  operands:
+    num: WordSized
+  mir_op: true
+
 - name: SignExtendInt64
   gen_boilerplate: false
 

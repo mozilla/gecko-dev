@@ -20950,6 +20950,23 @@ void CodeGenerator::visitSignExtendInt32(LSignExtendInt32* ins) {
   }
 }
 
+void CodeGenerator::visitSignExtendIntPtr(LSignExtendIntPtr* ins) {
+  Register input = ToRegister(ins->input());
+  Register output = ToRegister(ins->output());
+
+  switch (ins->mir()->mode()) {
+    case MSignExtendIntPtr::Byte:
+      masm.move8SignExtendToPtr(input, output);
+      break;
+    case MSignExtendIntPtr::Half:
+      masm.move16SignExtendToPtr(input, output);
+      break;
+    case MSignExtendIntPtr::Word:
+      masm.move32SignExtendToPtr(input, output);
+      break;
+  }
+}
+
 void CodeGenerator::visitRotate(LRotate* ins) {
   MRotate* mir = ins->mir();
   Register input = ToRegister(ins->input());

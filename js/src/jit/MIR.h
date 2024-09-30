@@ -4377,6 +4377,38 @@ class MSignExtendInt64 : public MUnaryInstruction, public NoTypePolicy::Data {
   ALLOW_CLONE(MSignExtendInt64)
 };
 
+class MSignExtendIntPtr : public MUnaryInstruction, public NoTypePolicy::Data {
+ public:
+  enum Mode { Byte, Half, Word };
+
+ private:
+  Mode mode_;
+
+  MSignExtendIntPtr(MDefinition* op, Mode mode)
+      : MUnaryInstruction(classOpcode, op), mode_(mode) {
+    MOZ_ASSERT(op->type() == MIRType::IntPtr);
+    setResultType(MIRType::IntPtr);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(SignExtendIntPtr)
+  TRIVIAL_NEW_WRAPPERS
+
+  Mode mode() const { return mode_; }
+
+  MDefinition* foldsTo(TempAllocator& alloc) override;
+  bool congruentTo(const MDefinition* ins) const override {
+    if (!congruentIfOperandsEqual(ins)) {
+      return false;
+    }
+    return ins->toSignExtendIntPtr()->mode_ == mode_;
+  }
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+
+  ALLOW_CLONE(MSignExtendIntPtr)
+};
+
 class MBinaryArithInstruction : public MBinaryInstruction,
                                 public ArithPolicy::Data {
   // Implicit truncate flag is set by the truncate backward range analysis
