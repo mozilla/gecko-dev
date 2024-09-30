@@ -63,6 +63,10 @@ ChromeUtils.defineLazyGetter(lazy, "logger", () =>
   lazy.Log.get(lazy.Log.TYPES.MARIONETTE)
 );
 
+ChromeUtils.defineLazyGetter(lazy, "prefAsyncEventsEnabled", () =>
+  Services.prefs.getBoolPref("remote.events.async.enabled", false)
+);
+
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 ChromeUtils.defineLazyGetter(
@@ -1483,7 +1487,7 @@ GeckoDriver.prototype.performActions = async function (cmd) {
   await this._handleUserPrompts();
 
   const actions = cmd.parameters.actions;
-  await this.getActor().performActions(actions);
+  await this.getActor().performActions(actions, lazy.prefAsyncEventsEnabled);
 };
 
 /**
@@ -1500,7 +1504,7 @@ GeckoDriver.prototype.releaseActions = async function () {
   lazy.assert.open(this.getBrowsingContext());
   await this._handleUserPrompts();
 
-  await this.getActor().releaseActions();
+  await this.getActor().releaseActions(lazy.prefAsyncEventsEnabled);
 };
 
 /**
