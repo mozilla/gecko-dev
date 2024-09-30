@@ -196,6 +196,11 @@ void ResetDirtyPageModifier() {
 
   moz_set_max_dirty_page_modifier(0);
 
+  wr::RenderThread* renderThread = wr::RenderThread::Get();
+  if (renderThread) {
+    renderThread->NotifyIdle();
+  }
+
 #if defined(MOZ_MEMORY)
   jemalloc_free_excess_dirty_pages();
 #endif

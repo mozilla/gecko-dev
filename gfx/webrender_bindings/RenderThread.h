@@ -209,6 +209,7 @@ class RenderThread final {
 
   void Pause(wr::WindowId aWindowId);
   bool Resume(wr::WindowId aWindowId);
+  void NotifyIdle();
 
   /// Can be called from any thread.
   void RegisterExternalImage(const wr::ExternalImageId& aExternalImageId,

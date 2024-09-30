@@ -1175,6 +1175,11 @@ pub unsafe extern "C" fn wr_chunk_pool_delete(pool: *mut WrChunkPool) {
 }
 
 #[no_mangle]
+pub unsafe extern "C" fn wr_chunk_pool_purge(pool: &WrChunkPool) {
+    pool.0.purge_all_chunks();
+}
+
+#[no_mangle]
 pub unsafe extern "C" fn wr_program_cache_new(
     prof_path: &nsAString,
     thread_pool: *mut WrThreadPool,

@@ -914,6 +914,17 @@ bool RenderThread::Resume(wr::WindowId aWindowId) {
   return resumed;
 }
 
+void RenderThread::NotifyIdle() {
+  if (!IsInRenderThread()) {
+    PostRunnable(NewRunnableMethod("RenderThread::NotifyIdle", this,
+                                   &RenderThread::NotifyIdle));
+
+    return;
+  }
+
+  wr_chunk_pool_purge(mChunkPool);
+}
+
 bool RenderThread::TooManyPendingFrames(wr::WindowId aWindowId) {
   const int64_t maxFrameCount = 1;
 
