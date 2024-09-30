@@ -61,8 +61,10 @@ const CFR_JSON = {
 };
 
 async function setup() {
-  await DoHController._uninit();
-  await DoHConfigController._uninit();
+  try {
+    await DoHController._uninit();
+    await DoHConfigController._uninit();
+  } catch (e) {}
   SpecialPowers.pushPrefEnv({
     set: [["security.notification_enable_delay", 0]],
   });

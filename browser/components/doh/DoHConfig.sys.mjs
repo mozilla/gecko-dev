@@ -19,7 +19,10 @@ ChromeUtils.defineESModuleGetters(lazy, {
 });
 
 const kGlobalPrefBranch = "doh-rollout";
-var kRegionPrefBranch;
+function regionPrefBranch() {
+  let homeRegion = lazy.Preferences.get(`${kGlobalPrefBranch}.home-region`);
+  return `${kGlobalPrefBranch}.${homeRegion}`;
+}
 
 const kConfigPrefs = {
   kEnabledPref: "enabled",
@@ -37,7 +40,7 @@ const gProvidersCollection = RemoteSettings("doh-providers");
 const gConfigCollection = RemoteSettings("doh-config");
 
 function getPrefValueRegionFirst(prefName) {
-  let regionalPrefName = `${kRegionPrefBranch}.${prefName}`;
+  let regionalPrefName = `${regionPrefBranch()}.${prefName}`;
   let regionalPrefValue = lazy.Preferences.get(regionalPrefName);
   if (regionalPrefValue !== undefined) {
     return regionalPrefValue;
@@ -177,13 +180,11 @@ export const DoHConfigController = {
 
       let homeRegion = lazy.Preferences.get(`${kGlobalPrefBranch}.home-region`);
       if (homeRegion) {
-        kRegionPrefBranch = `${kGlobalPrefBranch}.${homeRegion.toLowerCase()}`;
         resolve();
         return;
       }
 
       let updateRegionAndResolve = () => {
-        kRegionPrefBranch = `${kGlobalPrefBranch}.${lazy.Region.home.toLowerCase()}`;
         lazy.Preferences.set(
           `${kGlobalPrefBranch}.home-region`,
           lazy.Region.home
@@ -242,7 +243,7 @@ export const DoHConfigController = {
         if (
           !allowedPrefs.some(pref =>
             [
-              `${kRegionPrefBranch}.${pref}`,
+              `${regionPrefBranch()}.${pref}`,
               `${kGlobalPrefBranch}.${pref}`,
             ].includes(data)
           )
