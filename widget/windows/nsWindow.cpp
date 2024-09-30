@@ -2827,12 +2827,6 @@ nsAutoRegion nsWindow::ComputeNonClientHRGN() {
   return nsAutoRegion(winRgn.out());
 }
 
-void nsWindow::InvalidateNonClientRegion() {
-  nsAutoRegion winRgn(ComputeNonClientHRGN());
-  // triggers ncpaint and paint events for the two areas
-  RedrawWindow(mWnd, nullptr, winRgn, RDW_FRAME | RDW_INVALIDATE);
-}
-
 /**************************************************************
  *
  * SECTION: nsIWidget::SetCursor
@@ -5075,10 +5069,6 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       }
 
     case WM_NCACTIVATE: {
-      /*
-       * WM_NCACTIVATE paints nc areas. Avoid this and re-route painting
-       * through WM_NCPAINT via InvalidateNonClientRegion.
-       */
       if (!mCustomNonClient) {
         break;
       }
@@ -5089,26 +5079,16 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
             "nsWindow::ForcePresent", this, &nsWindow::ForcePresent));
       }
 
-      // let the dwm handle nc painting on glass
-      // Never allow native painting if we are on fullscreen
-      if (mFrameState->GetSizeMode() != nsSizeMode_Fullscreen) break;
-
-      if (wParam == TRUE) {
-        // going active
-        *aRetValue = FALSE;  // ignored
-        result = true;
-        // invalidate to trigger a paint
-        InvalidateNonClientRegion();
-        break;
-      } else {
-        // going inactive
-        *aRetValue = TRUE;  // go ahead and deactive
-        result = true;
-        // invalidate to trigger a paint
-        InvalidateNonClientRegion();
-        break;
-      }
-    }
+      // ::DefWindowProc would paint nc areas. Avoid this, since we just want
+      // dwm to take care of re-displaying the glass effect if any. Quoting the
+      // docs[1]:
+      //
+      //     If this parameter is set to -1, DefWindowProc does not repaint the
+      //     nonclient area to reflect the state change.
+      //
+      // [1]: https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-ncactivate
+      lParam = -1;
+    } break;
 
     case WM_NCPAINT: {
       /*
@@ -5116,6 +5096,12 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
        * do seem to always send a WM_NCPAINT message, so let's update on that.
        */
       gfxDWriteFont::UpdateSystemTextVars();
+      if (mCustomNonClient) {
+        // We rely on dwm for glass / semi-transparent window painting, so we
+        // just need to make sure to clear the non-client area next time we get
+        // around to doing a main-thread paint.
+        mNeedsNCAreaClear = true;
+      }
     } break;
 
     case WM_POWERBROADCAST:
