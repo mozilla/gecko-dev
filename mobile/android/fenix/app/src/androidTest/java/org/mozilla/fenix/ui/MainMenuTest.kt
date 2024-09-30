@@ -7,7 +7,6 @@ package org.mozilla.fenix.ui
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.core.net.toUri
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
-import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -205,7 +204,6 @@ class MainMenuTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/1314137
-    @Ignore("To be removed in: https://bugzilla.mozilla.org/show_bug.cgi?id=1921359")
     @Test
     fun setDesktopSiteBeforePageLoadTest() {
         val webPage = TestAssetHelper.getGenericAsset(mockWebServer, 4)

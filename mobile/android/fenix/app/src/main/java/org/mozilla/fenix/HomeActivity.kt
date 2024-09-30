@@ -49,6 +49,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import mozilla.appservices.places.BookmarkRoot
+import mozilla.components.browser.state.action.ContentAction
 import mozilla.components.browser.state.action.MediaSessionAction
 import mozilla.components.browser.state.action.SearchAction
 import mozilla.components.browser.state.search.SearchEngine
@@ -1042,6 +1043,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
      * @param engine Optional [SearchEngine] to use when performing a search.
      * @param forceSearch Whether or not to force performing a search.
      * @param flags Flags that will be used when loading the URL (not applied to searches).
+     * @param requestDesktopMode Whether or not to request the desktop mode for the session.
      * @param historyMetadata The [HistoryMetadataKey] of the new tab in case this tab
      * was opened from history.
      * @param additionalHeaders The extra headers to use when loading the URL.
@@ -1054,6 +1056,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         engine: SearchEngine? = null,
         forceSearch: Boolean = false,
         flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
+        requestDesktopMode: Boolean = false,
         historyMetadata: HistoryMetadataKey? = null,
         additionalHeaders: Map<String, String>? = null,
     ) {
@@ -1064,6 +1067,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
             engine = engine,
             forceSearch = forceSearch,
             flags = flags,
+            requestDesktopMode = requestDesktopMode,
             historyMetadata = historyMetadata,
             additionalHeaders = additionalHeaders,
         )
@@ -1086,6 +1090,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
      * @param engine Optional [SearchEngine] to use when performing a search.
      * @param forceSearch Whether or not to force performing a search.
      * @param flags Flags that will be used when loading the URL (not applied to searches).
+     * @param requestDesktopMode Whether or not to request the desktop mode for the session.
      * @param historyMetadata The [HistoryMetadataKey] of the new tab in case this tab
      * was opened from history.
      * @param additionalHeaders The extra headers to use when loading the URL.
@@ -1096,6 +1101,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         engine: SearchEngine?,
         forceSearch: Boolean,
         flags: EngineSession.LoadUrlFlags = EngineSession.LoadUrlFlags.none(),
+        requestDesktopMode: Boolean = false,
         historyMetadata: HistoryMetadataKey? = null,
         additionalHeaders: Map<String, String>? = null,
     ) {
@@ -1111,7 +1117,7 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
         // has removed all of them, or we couldn't load any) we will pass searchTermOrURL to Gecko
         // and let it try to load whatever was entered.
         if ((!forceSearch && searchTermOrURL.isUrl()) || engine == null) {
-            if (newTab) {
+            val tabId = if (newTab) {
                 components.useCases.tabsUseCases.addTab(
                     url = searchTermOrURL.toNormalizedUrl(),
                     flags = flags,
@@ -1123,6 +1129,11 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                     url = searchTermOrURL.toNormalizedUrl(),
                     flags = flags,
                 )
+                components.core.store.state.selectedTabId
+            }
+
+            if (requestDesktopMode && tabId != null) {
+                handleRequestDesktopMode(tabId)
             }
         } else {
             if (newTab) {
@@ -1158,6 +1169,14 @@ open class HomeActivity : LocaleAwareAppCompatActivity(), NavHostActivity {
                 "newTab: $newTab",
             )
         }
+    }
+
+    internal fun handleRequestDesktopMode(tabId: String) {
+        components.useCases.sessionUseCases.requestDesktopSite(true, tabId)
+        components.core.store.dispatch(ContentAction.UpdateDesktopModeAction(tabId, true))
+
+        // Reset preference value after opening the tab in desktop mode
+        settings().openNextTabInDesktopMode = false
     }
 
     @VisibleForTesting

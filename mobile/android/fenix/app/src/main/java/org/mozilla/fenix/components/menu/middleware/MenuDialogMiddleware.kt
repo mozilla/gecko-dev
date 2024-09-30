@@ -390,6 +390,8 @@ class MenuDialogMiddleware(
                 enable = shouldRequestDesktopMode,
                 tabId = tabId,
             )
+        } else {
+            settings.openNextTabInDesktopMode = shouldRequestDesktopMode
         }
 
         onDismiss()

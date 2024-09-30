@@ -30,6 +30,7 @@ import org.mozilla.fenix.components.metrics.MetricsUtils
 import org.mozilla.fenix.crashes.CrashListActivity
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.ext.navigateSafe
+import org.mozilla.fenix.ext.settings
 import org.mozilla.fenix.ext.telemetryName
 import org.mozilla.fenix.search.toolbar.SearchSelectorInteractor
 import org.mozilla.fenix.search.toolbar.SearchSelectorMenu
@@ -95,10 +96,11 @@ class SearchDialogController(
             }
             "moz://a" -> openSearchOrUrl(
                 SupportUtils.getMozillaPageUrl(SupportUtils.MozillaPage.MANIFESTO),
+                fromHomeScreen,
             )
             else ->
                 if (url.isNotBlank()) {
-                    openSearchOrUrl(url)
+                    openSearchOrUrl(url, fromHomeScreen)
                 } else {
                     store.dispatch(AwesomeBarAction.EngagementFinished(abandoned = true))
                 }
@@ -106,7 +108,7 @@ class SearchDialogController(
         dismissDialog()
     }
 
-    private fun openSearchOrUrl(url: String) {
+    private fun openSearchOrUrl(url: String, fromHomeScreen: Boolean) {
         clearToolbarFocus()
 
         val searchEngine = fragmentStore.state.searchEngineSource.searchEngine
@@ -123,6 +125,7 @@ class SearchDialogController(
             from = BrowserDirection.FromSearchDialog,
             engine = searchEngine,
             forceSearch = !isDefaultEngine,
+            requestDesktopMode = fromHomeScreen && activity.settings().openNextTabInDesktopMode,
         )
 
         if (url.isUrl() || searchEngine == null) {

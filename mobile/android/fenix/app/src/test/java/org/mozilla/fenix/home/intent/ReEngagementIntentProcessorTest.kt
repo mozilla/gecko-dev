@@ -79,6 +79,7 @@ class ReEngagementIntentProcessorTest {
                 engine = null,
                 forceSearch = false,
                 flags = EngineSession.LoadUrlFlags.external(),
+                requestDesktopMode = false,
                 historyMetadata = null,
             )
         }

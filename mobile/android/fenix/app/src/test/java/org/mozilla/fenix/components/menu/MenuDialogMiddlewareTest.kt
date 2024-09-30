@@ -1091,6 +1091,35 @@ class MenuDialogMiddlewareTest {
         assertTrue(dismissWasCalled)
     }
 
+    @Test
+    fun `GIVEN menu is accessed from the home screen WHEN request desktop mode action is dispatched THEN set the next tab to be opened in desktop mode`() = runTestOnMain {
+        var dismissWasCalled = false
+        val store = createStore(
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.RequestDesktopSite)
+        store.waitUntilIdle()
+
+        assertTrue(settings.openNextTabInDesktopMode)
+        assertTrue(dismissWasCalled)
+    }
+
+    @Test
+    fun `GIVEN menu is accessed from the home screen and desktop mode is enabled WHEN request mobile mode action is dispatched THEN set the next tab to be opened in mobile mode`() = runTestOnMain {
+        var dismissWasCalled = false
+        val store = createStore(
+            menuState = MenuState(isDesktopMode = true),
+            onDismiss = { dismissWasCalled = true },
+        )
+
+        store.dispatch(MenuAction.RequestMobileSite)
+        store.waitUntilIdle()
+
+        assertFalse(settings.openNextTabInDesktopMode)
+        assertTrue(dismissWasCalled)
+    }
+
     private fun createStore(
         appStore: AppStore = AppStore(),
         menuState: MenuState = MenuState(),
