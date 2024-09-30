@@ -493,16 +493,3 @@ os-integration:
         worker:
             env:
                 MOZHARNESS_TEST_TAG: ["os_integration"]
-
-async-event-dispatching:
-    description: "{description} with async parent process event dispatching"
-    component: "Remote Protocol::Agent"
-    expiration: "2025-04-01"
-    suffix: "async"
-    mozinfo: "remote_async"
-    replace:
-        tier: 3
-    merge:
-        mozharness:
-            extra-options:
-                - "--setpref=remote.events.async.enabled=true"

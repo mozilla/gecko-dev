@@ -70,7 +70,6 @@ web-platform-tests:
     variants:
         - no-fission
         - geckoview-no-fission-ship
-        - async-event-dispatching
     run-on-projects:
         by-variant:
             geckoview-no-fission-ship:
@@ -83,10 +82,6 @@ web-platform-tests:
                     android.*: built-projects
                     linux1804-64-qr/debug: ['mozilla-central']
                     linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
-                    default: []
-            async-event-dispatching:
-                by-test-platform:
-                    .*/debug: []
                     default: []
             default:
                 by-test-platform:
@@ -542,7 +537,6 @@ web-platform-tests-wdspec:
     variants:
         - no-fission
         - headless
-        - async-event-dispatching
     run-on-projects:
         by-variant:
             headless:
@@ -555,12 +549,6 @@ web-platform-tests-wdspec:
                     linux1804-64-qr/debug: ['mozilla-central']
                     linux1804-64(-shippable|-asan)?-qr/opt: ['mozilla-central']
                     android.*: built-projects
-                    default: []
-            async-event-dispatching:
-                by-test-platform:
-                    .*wayland.*: []
-                    .*-32.*/.*: []
-                    .*/debug: built-projects
                     default: []
             default:
                 by-test-platform:
