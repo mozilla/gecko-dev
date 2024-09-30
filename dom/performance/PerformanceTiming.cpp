@@ -96,15 +96,9 @@ PerformanceTiming::PerformanceTiming(Performance* aPerformance,
   }
 }
 
-// Copy the timing info from the channel so we don't need to keep the channel
-// alive just to get the timestamps.
-PerformanceTimingData::PerformanceTimingData(nsITimedChannel* aChannel,
-                                             nsIHttpChannel* aHttpChannel,
-                                             DOMHighResTimeStamp aZeroTime)
-    : mZeroTime(0.0),
-      mFetchStart(0.0),
-      mEncodedBodySize(0),
-      mTransferSize(0),
+CacheablePerformanceTimingData::CacheablePerformanceTimingData(
+    nsITimedChannel* aChannel, nsIHttpChannel* aHttpChannel)
+    : mEncodedBodySize(0),
       mDecodedBodySize(0),
       mResponseStatus(0),
       mRedirectCount(0),
@@ -114,11 +108,6 @@ PerformanceTimingData::PerformanceTimingData(nsITimedChannel* aChannel,
       mTimingAllowed(true),
       mInitialized(false) {
   mInitialized = !!aChannel;
-  mZeroTime = aZeroTime;
-
-  if (!StaticPrefs::dom_enable_performance()) {
-    mZeroTime = 0;
-  }
 
   nsCOMPtr<nsIURI> uri;
   if (aHttpChannel) {
@@ -135,10 +124,38 @@ PerformanceTimingData::PerformanceTimingData(nsITimedChannel* aChannel,
   }
 
   if (aChannel) {
-    aChannel->GetAsyncOpen(&mAsyncOpen);
     aChannel->GetAllRedirectsSameOrigin(&mAllRedirectsSameOrigin);
     aChannel->GetAllRedirectsPassTimingAllowCheck(&mAllRedirectsPassTAO);
     aChannel->GetRedirectCount(&mRedirectCount);
+  }
+
+  // The aHttpChannel argument is null if this PerformanceTiming object is
+  // being used for navigation timing (which is only relevant for documents).
+  // It has a non-null value if this PerformanceTiming object is being used
+  // for resource timing, which can include document loads, both toplevel and
+  // in subframes, and resources linked from a document.
+  if (aHttpChannel) {
+    SetCacheablePropertiesFromHttpChannel(aHttpChannel, aChannel);
+  }
+}
+
+// Copy the timing info from the channel so we don't need to keep the channel
+// alive just to get the timestamps.
+PerformanceTimingData::PerformanceTimingData(nsITimedChannel* aChannel,
+                                             nsIHttpChannel* aHttpChannel,
+                                             DOMHighResTimeStamp aZeroTime)
+    : CacheablePerformanceTimingData(aChannel, aHttpChannel),
+      mZeroTime(0.0),
+      mFetchStart(0.0),
+      mTransferSize(0) {
+  mZeroTime = aZeroTime;
+
+  if (!StaticPrefs::dom_enable_performance()) {
+    mZeroTime = 0;
+  }
+
+  if (aChannel) {
+    aChannel->GetAsyncOpen(&mAsyncOpen);
     aChannel->GetRedirectStart(&mRedirectStart);
     aChannel->GetRedirectEnd(&mRedirectEnd);
     aChannel->GetDomainLookupStart(&mDomainLookupStart);
@@ -195,13 +212,10 @@ PerformanceTimingData::PerformanceTimingData(nsITimedChannel* aChannel,
     }
   }
 
-  // The aHttpChannel argument is null if this PerformanceTiming object is
-  // being used for navigation timing (which is only relevant for documents).
-  // It has a non-null value if this PerformanceTiming object is being used
-  // for resource timing, which can include document loads, both toplevel and
-  // in subframes, and resources linked from a document.
   if (aHttpChannel) {
-    SetPropertiesFromHttpChannel(aHttpChannel, aChannel);
+    // NOTE: Other fields are set by SetCacheablePropertiesFromHttpChannel,
+    // called inside CacheablePerformanceTimingData constructor.
+    SetTransferSizeFromHttpChannel(aHttpChannel);
   }
 
   bool renderBlocking = false;
@@ -213,9 +227,51 @@ PerformanceTimingData::PerformanceTimingData(nsITimedChannel* aChannel,
                               : RenderBlockingStatusType::Non_blocking;
 }
 
+CacheablePerformanceTimingData::CacheablePerformanceTimingData(
+    const CacheablePerformanceTimingData& aOther)
+    : mEncodedBodySize(aOther.mEncodedBodySize),
+      mDecodedBodySize(aOther.mDecodedBodySize),
+      mResponseStatus(aOther.mResponseStatus),
+      mRedirectCount(aOther.mRedirectCount),
+      mBodyInfoAccessAllowed(aOther.mBodyInfoAccessAllowed),
+      mAllRedirectsSameOrigin(aOther.mAllRedirectsSameOrigin),
+      mAllRedirectsPassTAO(aOther.mAllRedirectsPassTAO),
+      mSecureConnection(aOther.mSecureConnection),
+      mTimingAllowed(aOther.mTimingAllowed),
+      mInitialized(aOther.mInitialized),
+      mNextHopProtocol(aOther.mNextHopProtocol),
+      mContentType(aOther.mContentType) {
+  for (auto& data : aOther.mServerTiming) {
+    mServerTiming.AppendElement(data);
+  }
+}
+
+CacheablePerformanceTimingData::CacheablePerformanceTimingData(
+    const IPCPerformanceTimingData& aIPCData)
+    : mEncodedBodySize(aIPCData.encodedBodySize()),
+      mDecodedBodySize(aIPCData.decodedBodySize()),
+      mResponseStatus(aIPCData.responseStatus()),
+      mRedirectCount(aIPCData.redirectCount()),
+      mBodyInfoAccessAllowed(aIPCData.bodyInfoAccessAllowed()),
+      mAllRedirectsSameOrigin(aIPCData.allRedirectsSameOrigin()),
+      mAllRedirectsPassTAO(aIPCData.allRedirectsPassTAO()),
+      mSecureConnection(aIPCData.secureConnection()),
+      mTimingAllowed(aIPCData.timingAllowed()),
+      mInitialized(aIPCData.initialized()),
+      mNextHopProtocol(aIPCData.nextHopProtocol()),
+      mContentType(aIPCData.contentType()) {
+  for (const auto& serverTimingData : aIPCData.serverTiming()) {
+    RefPtr<nsServerTiming> timing = new nsServerTiming();
+    timing->SetName(serverTimingData.name());
+    timing->SetDuration(serverTimingData.duration());
+    timing->SetDescription(serverTimingData.description());
+    mServerTiming.AppendElement(timing);
+  }
+}
+
 PerformanceTimingData::PerformanceTimingData(
     const IPCPerformanceTimingData& aIPCData)
-    : mNextHopProtocol(aIPCData.nextHopProtocol()),
+    : CacheablePerformanceTimingData(aIPCData),
       mAsyncOpen(aIPCData.asyncOpen()),
       mRedirectStart(aIPCData.redirectStart()),
       mRedirectEnd(aIPCData.redirectEnd()),
@@ -234,29 +290,10 @@ PerformanceTimingData::PerformanceTimingData(
       mWorkerResponseEnd(aIPCData.workerResponseEnd()),
       mZeroTime(aIPCData.zeroTime()),
       mFetchStart(aIPCData.fetchStart()),
-      mEncodedBodySize(aIPCData.encodedBodySize()),
       mTransferSize(aIPCData.transferSize()),
-      mDecodedBodySize(aIPCData.decodedBodySize()),
-      mResponseStatus(aIPCData.responseStatus()),
-      mRedirectCount(aIPCData.redirectCount()),
       mRenderBlockingStatus(aIPCData.renderBlocking()
                                 ? RenderBlockingStatusType::Blocking
-                                : RenderBlockingStatusType::Non_blocking),
-      mContentType(aIPCData.contentType()),
-      mAllRedirectsSameOrigin(aIPCData.allRedirectsSameOrigin()),
-      mAllRedirectsPassTAO(aIPCData.allRedirectsPassTAO()),
-      mSecureConnection(aIPCData.secureConnection()),
-      mBodyInfoAccessAllowed(aIPCData.bodyInfoAccessAllowed()),
-      mTimingAllowed(aIPCData.timingAllowed()),
-      mInitialized(aIPCData.initialized()) {
-  for (const auto& serverTimingData : aIPCData.serverTiming()) {
-    RefPtr<nsServerTiming> timing = new nsServerTiming();
-    timing->SetName(serverTimingData.name());
-    timing->SetDuration(serverTimingData.duration());
-    timing->SetDescription(serverTimingData.description());
-    mServerTiming.AppendElement(timing);
-  }
-}
+                                : RenderBlockingStatusType::Non_blocking) {}
 
 IPCPerformanceTimingData PerformanceTimingData::ToIPC() {
   nsTArray<IPCServerTiming> ipcServerTiming;
@@ -283,7 +320,7 @@ IPCPerformanceTimingData PerformanceTimingData::ToIPC() {
       mTimingAllowed, mInitialized);
 }
 
-void PerformanceTimingData::SetPropertiesFromHttpChannel(
+void CacheablePerformanceTimingData::SetCacheablePropertiesFromHttpChannel(
     nsIHttpChannel* aHttpChannel, nsITimedChannel* aChannel) {
   MOZ_ASSERT(aHttpChannel);
 
@@ -292,7 +329,6 @@ void PerformanceTimingData::SetPropertiesFromHttpChannel(
   CopyUTF8toUTF16(protocol, mNextHopProtocol);
 
   Unused << aHttpChannel->GetEncodedBodySize(&mEncodedBodySize);
-  Unused << aHttpChannel->GetTransferSize(&mTransferSize);
   Unused << aHttpChannel->GetDecodedBodySize(&mDecodedBodySize);
   if (mDecodedBodySize == 0) {
     mDecodedBodySize = mEncodedBodySize;
@@ -312,6 +348,17 @@ void PerformanceTimingData::SetPropertiesFromHttpChannel(
   aChannel->GetAllRedirectsPassTimingAllowCheck(&mAllRedirectsPassTAO);
 
   aChannel->GetNativeServerTiming(mServerTiming);
+}
+
+void PerformanceTimingData::SetPropertiesFromHttpChannel(
+    nsIHttpChannel* aHttpChannel, nsITimedChannel* aChannel) {
+  SetCacheablePropertiesFromHttpChannel(aHttpChannel, aChannel);
+  SetTransferSizeFromHttpChannel(aHttpChannel);
+}
+
+void PerformanceTimingData::SetTransferSizeFromHttpChannel(
+    nsIHttpChannel* aHttpChannel) {
+  Unused << aHttpChannel->GetTransferSize(&mTransferSize);
 }
 
 PerformanceTiming::~PerformanceTiming() = default;
@@ -345,7 +392,7 @@ DOMTimeMilliSec PerformanceTiming::FetchStart() {
 }
 
 nsITimedChannel::BodyInfoAccess
-PerformanceTimingData::CheckBodyInfoAccessAllowedForOrigin(
+CacheablePerformanceTimingData::CheckBodyInfoAccessAllowedForOrigin(
     nsIHttpChannel* aResourceChannel, nsITimedChannel* aChannel) {
   // Check if the resource is either same origin as the page that started
   // the load, or if the response contains an Access-Control-Allow-Origin
@@ -372,7 +419,7 @@ PerformanceTimingData::CheckBodyInfoAccessAllowedForOrigin(
   return aChannel->BodyInfoAccessAllowedCheck(principal);
 }
 
-bool PerformanceTimingData::CheckTimingAllowedForOrigin(
+bool CacheablePerformanceTimingData::CheckTimingAllowedForOrigin(
     nsIHttpChannel* aResourceChannel, nsITimedChannel* aChannel) {
   // Check if the resource is either same origin as the page that started
   // the load, or if the response contains the proper Timing-Allow-Origin
@@ -396,7 +443,7 @@ bool PerformanceTimingData::CheckTimingAllowedForOrigin(
   return principal && aChannel->TimingAllowCheck(principal);
 }
 
-uint8_t PerformanceTimingData::GetRedirectCount() const {
+uint8_t CacheablePerformanceTimingData::GetRedirectCount() const {
   if (!StaticPrefs::dom_enable_performance() || !IsInitialized()) {
     return 0;
   }
@@ -724,7 +771,8 @@ bool PerformanceTiming::IsTopLevelContentDocument() const {
   return false;
 }
 
-nsTArray<nsCOMPtr<nsIServerTiming>> PerformanceTimingData::GetServerTiming() {
+nsTArray<nsCOMPtr<nsIServerTiming>>
+CacheablePerformanceTimingData::GetServerTiming() {
   if (!StaticPrefs::dom_enable_performance() || !IsInitialized() ||
       !TimingAllowed()) {
     return nsTArray<nsCOMPtr<nsIServerTiming>>();

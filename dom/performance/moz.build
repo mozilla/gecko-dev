@@ -8,6 +8,7 @@ with Files("**"):
     BUG_COMPONENT = ("Core", "DOM: Performance")
 
 EXPORTS.mozilla.dom += [
+    "CacheablePerformanceTimingData.h",
     "EventCounts.h",
     "LargestContentfulPaint.h",
     "Performance.h",

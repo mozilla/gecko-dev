@@ -14,6 +14,7 @@
 #include "nsDOMNavigationTiming.h"
 #include "nsRFPService.h"
 #include "nsWrapperCache.h"
+#include "CacheablePerformanceTimingData.h"
 #include "Performance.h"
 #include "nsITimedChannel.h"
 #include "mozilla/dom/PerformanceTimingTypes.h"
@@ -29,7 +30,7 @@ namespace mozilla::dom {
 class PerformanceTiming;
 enum class RenderBlockingStatusType : uint8_t;
 
-class PerformanceTimingData final {
+class PerformanceTimingData final : public CacheablePerformanceTimingData {
   friend class PerformanceTiming;
   friend struct mozilla::ipc::IPDLParamTraits<
       mozilla::dom::PerformanceTimingData>;
@@ -53,19 +54,11 @@ class PerformanceTimingData final {
   void SetPropertiesFromHttpChannel(nsIHttpChannel* aHttpChannel,
                                     nsITimedChannel* aChannel);
 
-  bool IsInitialized() const { return mInitialized; }
+ private:
+  void SetTransferSizeFromHttpChannel(nsIHttpChannel* aHttpChannel);
 
-  const nsString& NextHopProtocol() const { return mNextHopProtocol; }
-
+ public:
   uint64_t TransferSize() const { return mTransferSize; }
-
-  uint64_t EncodedBodySize() const { return mEncodedBodySize; }
-
-  uint64_t DecodedBodySize() const { return mDecodedBodySize; }
-
-  uint16_t ResponseStatus() const { return mResponseStatus; }
-
-  const nsString& ContentType() const { return mContentType; }
 
   /**
    * @param   aStamp
@@ -148,11 +141,6 @@ class PerformanceTimingData final {
 
   DOMHighResTimeStamp ZeroTime() const { return mZeroTime; }
 
-  uint8_t RedirectCountReal() const { return mRedirectCount; }
-  uint8_t GetRedirectCount() const;
-
-  bool AllRedirectsSameOrigin() const { return mAllRedirectsSameOrigin; }
-
   // If this is false the values of redirectStart/End will be 0 This is false if
   // no redirects occured, or if any of the responses failed the
   // timing-allow-origin check in HttpBaseChannel::TimingAllowCheck
@@ -163,36 +151,11 @@ class PerformanceTimingData final {
   bool ShouldReportCrossOriginRedirect(
       bool aEnsureSameOriginAndIgnoreTAO) const;
 
-  // Cached result of CheckBodyInfoAccessAllowedForOrigin.
-  nsITimedChannel::BodyInfoAccess BodyInfoAccessAllowed() const {
-    return mBodyInfoAccessAllowed;
-  }
-
-  // Cached result of CheckTimingAllowedForOrigin. If false, security sensitive
-  // attributes of the resourceTiming object will be set to 0
-  bool TimingAllowed() const { return mTimingAllowed; }
-
-  nsTArray<nsCOMPtr<nsIServerTiming>> GetServerTiming();
-
   RenderBlockingStatusType RenderBlockingStatus() const {
     return mRenderBlockingStatus;
   }
 
  private:
-  // Checks if the bodyInfo for Resource and Navigation Timing should be
-  // kept opaque or exposed, per Fetch spec.
-  nsITimedChannel::BodyInfoAccess CheckBodyInfoAccessAllowedForOrigin(
-      nsIHttpChannel* aResourceChannel, nsITimedChannel* aChannel);
-
-  // Checks if the resource is either same origin as the page that started
-  // the load, or if the response contains the Timing-Allow-Origin header
-  // with a value of * or matching the domain of the loading Principal
-  bool CheckTimingAllowedForOrigin(nsIHttpChannel* aResourceChannel,
-                                   nsITimedChannel* aChannel);
-
-  nsTArray<nsCOMPtr<nsIServerTiming>> mServerTiming;
-  nsString mNextHopProtocol;
-
   TimeStamp mAsyncOpen;
   TimeStamp mRedirectStart;
   TimeStamp mRedirectEnd;
@@ -220,30 +183,9 @@ class PerformanceTimingData final {
 
   DOMHighResTimeStamp mFetchStart = 0;
 
-  uint64_t mEncodedBodySize = 0;
   uint64_t mTransferSize = 0;
-  uint64_t mDecodedBodySize = 0;
-
-  uint16_t mResponseStatus = 0;
-
-  uint8_t mRedirectCount = 0;
 
   RenderBlockingStatusType mRenderBlockingStatus;
-
-  nsString mContentType;
-
-  bool mAllRedirectsSameOrigin = false;
-
-  bool mAllRedirectsPassTAO = false;
-
-  bool mSecureConnection = false;
-
-  nsITimedChannel::BodyInfoAccess mBodyInfoAccessAllowed =
-      nsITimedChannel::BodyInfoAccess::DISALLOWED;
-
-  bool mTimingAllowed = false;
-
-  bool mInitialized = false;
 };
 
 // Script "performance.timing" object
