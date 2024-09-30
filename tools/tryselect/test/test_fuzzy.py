@@ -150,7 +150,7 @@ def test_query_tags(run_mach, capfd, tag):
             "test-linux1804-64-qr/debug-xpcshell-*",
             "test-linux1804-64-qr/debug-test-verify",
             "test-linux1804-64-qr/debug-test-verify-gpu",
-            "test-linux1804-64-qr/debug-test-verify-wpt",
+            "test-linux1804-64-qr/debug-test-verify-wpt-*",
         ]
 
         delim = "Calculated try_task_config.json:"
