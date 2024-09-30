@@ -83,6 +83,9 @@ open class StrictModeManager(
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 builder.detectNonSdkApiUsage()
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                builder.detectUnsafeIntentLaunch()
+            }
             StrictMode.setVmPolicy(builder.build())
         }
     }
