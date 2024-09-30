@@ -14,8 +14,6 @@ add_task(async function () {
   await addBreakpoint(dbg, longSrc, 66);
   invokeInTab("testModel");
   await waitForPaused(dbg, "long.js");
-  // Some spurious scroll may happen late related to text content *and* late fetching of symbols
-  await waitForScrolling(getCM(dbg));
 
   const pauseScrollTop = getScrollTop(dbg);
 

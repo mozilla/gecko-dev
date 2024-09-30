@@ -365,17 +365,8 @@ add_task(async function testSourceTreeOnTheIntegrationTestPage() {
   // Framework icons are only displayed when we parse the source,
   // which happens when we select the source
   assertSourceIcon(dbg, "react-component-module.js", "javascript");
-  const onResumed = SpecialPowers.spawn(
-    gBrowser.selectedBrowser,
-    [],
-    function () {
-      content.eval("pauseInReact()");
-    }
-  );
-  await waitForPaused(dbg);
+  await selectSource(dbg, "react-component-module.js");
   assertSourceIcon(dbg, "react-component-module.js", "react");
-  await resume(dbg);
-  await onResumed;
 
   info("Verify blackbox source icon");
   await selectSource(dbg, "script.js");

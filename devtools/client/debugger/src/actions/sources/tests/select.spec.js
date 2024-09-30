@@ -8,6 +8,7 @@ import {
   createStore,
   createSourceObject,
   makeSource,
+  waitForState,
   makeOriginalSource,
 } from "../../../utils/test-head";
 import {
@@ -15,6 +16,7 @@ import {
   getSelectedSource,
   getSourceTabs,
   getSelectedLocation,
+  getSymbols,
 } from "../../../selectors/";
 import { createLocation } from "../../../utils/location";
 
@@ -137,6 +139,7 @@ describe("sources", () => {
 
     const selected = getSelectedSource(getState());
     expect(selected && selected.id).toBe(baseSource.id);
+    await waitForState(store, state => getSymbols(state, location));
   });
 
   it("should change the original the viewing context", async () => {

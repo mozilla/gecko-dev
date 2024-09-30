@@ -31,9 +31,7 @@ export function selectFrame(frame) {
     validateSelectedFrame(getState(), frame);
 
     await dispatch(evaluateExpressions(frame));
-    validateSelectedFrame(getState(), frame);
 
     await dispatch(fetchScopes(frame));
-    validateSelectedFrame(getState(), frame);
   };
 }

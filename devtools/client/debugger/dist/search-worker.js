@@ -372,9 +372,7 @@
     		    // string.
     		    return {
     		      error: true,
-    		      message:
-    		        error.message +
-    		        (error.stack ? "\nStack in the worker:" + error.stack : ""),
+    		      message: error.message,
     		      metadata: error.metadata,
     		    };
     		  }
