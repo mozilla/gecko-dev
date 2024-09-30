@@ -134,6 +134,11 @@ class ViewportSizeHighlighter {
 
     this.markup.destroy();
 
+    this.env = null;
+    this.parent = null;
+    this.markup = null;
+    this.isReady = null;
+
     EventEmitter.emit(this, "destroy");
   }
 
