@@ -173,6 +173,17 @@ interface nsIClearDataService : nsISupports
    */
   void cleanupAfterDeletionAtShutdown(in uint32_t aFlags, in nsIClearDataCallback aCallback);
 
+  /**
+   * Match a host and OriginAttributes against a schemeless site and
+   * OriginAttributesPattern.
+   * Also considers partitioned state by inspecting OriginAttributes
+   * partitionKey.
+   * This is a helper method for external callers that need to do
+   * filtering for data clearing.
+   */
+  boolean hostMatchesSite(in AUTF8String aHost, in jsval aOriginAttributes, in AUTF8String aSchemelessSite, [optional] in jsval aOriginAttributesPattern);
+
+
   /**************************************************************************
    * Listed below are the various flags which may be or'd together.
    */

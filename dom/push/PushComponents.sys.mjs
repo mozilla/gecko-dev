@@ -187,9 +187,25 @@ Object.assign(PushServiceParent.prototype, {
       .catch(console.error);
   },
 
-  clearForDomain(domain, callback) {
+  clearForDomain(domain, originAttributesPattern, callback) {
     return this._handleRequest("Push:Clear", null, {
       domain,
+      originAttributesPattern,
+    })
+      .then(
+        () => {
+          callback.onClear(Cr.NS_OK);
+        },
+        () => {
+          callback.onClear(Cr.NS_ERROR_FAILURE);
+        }
+      )
+      .catch(console.error);
+  },
+
+  clearForPrincipal(principal, callback) {
+    return this._handleRequest("Push:Clear", null, {
+      principal,
     })
       .then(
         () => {

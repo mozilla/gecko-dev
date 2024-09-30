@@ -144,7 +144,11 @@ export class PushService {
     }
   }
 
-  clearForDomain(domain, callback) {
+  clearForDomain(domain, originAttributesPattern, callback) {
+    callback.onClear(Cr.NS_OK);
+  }
+
+  clearForPrincipal(principal, callback) {
     callback.onClear(Cr.NS_OK);
   }
 

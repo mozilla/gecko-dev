@@ -1093,9 +1093,10 @@ const PushNotificationsCleaner = {
   /**
    * Clear entries for aDomain including subdomains of aDomain.
    * @param {string} aDomain - Domain to clear data for.
+   * @param {Object} aOriginAttributesPattern - Optional pattern to filter OriginAttributes.
    * @returns {Promise} a promise which resolves once data has been cleared.
    */
-  _deleteByRootDomain(aDomain) {
+  _deleteByRootDomain(aDomain, aOriginAttributesPattern = null) {
     if (!Services.prefs.getBoolPref("dom.push.enabled", false)) {
       return Promise.resolve();
     }
@@ -1105,7 +1106,7 @@ const PushNotificationsCleaner = {
         Ci.nsIPushService
       );
       // ClearForDomain also clears subdomains.
-      push.clearForDomain(aDomain, aStatus => {
+      push.clearForDomain(aDomain, aOriginAttributesPattern, aStatus => {
         if (!Components.isSuccessCode(aStatus)) {
           aReject();
         } else {
@@ -1122,14 +1123,26 @@ const PushNotificationsCleaner = {
   },
 
   deleteByPrincipal(aPrincipal) {
-    // Will also clear entries for subdomains of the principal host. Data is
-    // cleared across all origin attributes.
-    return this._deleteByRootDomain(aPrincipal.host);
+    if (!Services.prefs.getBoolPref("dom.push.enabled", false)) {
+      return Promise.resolve();
+    }
+
+    return new Promise((aResolve, aReject) => {
+      let push = Cc["@mozilla.org/push/Service;1"].getService(
+        Ci.nsIPushService
+      );
+      push.clearForPrincipal(aPrincipal, aStatus => {
+        if (!Components.isSuccessCode(aStatus)) {
+          aReject();
+        } else {
+          aResolve();
+        }
+      });
+    });
   },
 
-  deleteBySite(aSchemelessSite, _aOriginAttributesPattern) {
-    // TODO: aOriginAttributesPattern
-    return this._deleteByRootDomain(aSchemelessSite);
+  deleteBySite(aSchemelessSite, aOriginAttributesPattern) {
+    return this._deleteByRootDomain(aSchemelessSite, aOriginAttributesPattern);
   },
 
   deleteAll() {
@@ -1141,7 +1154,7 @@ const PushNotificationsCleaner = {
       let push = Cc["@mozilla.org/push/Service;1"].getService(
         Ci.nsIPushService
       );
-      push.clearForDomain("*", aStatus => {
+      push.clearForDomain("*", null, aStatus => {
         if (!Components.isSuccessCode(aStatus)) {
           aReject();
         } else {
@@ -2472,6 +2485,19 @@ ClearDataService.prototype = Object.freeze({
         await aCleaner.cleanupAfterDeletionAtShutdown();
       }
     });
+  },
+
+  hostMatchesSite(
+    aHost,
+    aOriginAttributes,
+    aSchemelessSite,
+    aOriginAttributesPattern = {}
+  ) {
+    return hasSite(
+      { host: aHost, originAttributes: aOriginAttributes },
+      aSchemelessSite,
+      aOriginAttributesPattern
+    );
   },
 
   // This internal method uses aFlags against FLAGS_MAP in order to retrieve a
