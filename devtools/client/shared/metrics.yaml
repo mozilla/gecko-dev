@@ -1,0 +1,2038 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+# Adding a new metric? We have docs for that!
+# https://firefox-source-docs.mozilla.org/toolkit/components/glean/user/new_definitions_file.html
+
+---
+$schema: moz://mozilla.org/schemas/glean/metrics/2-0-0
+$tags:
+  - 'DevTools :: General'
+
+devtools.main:
+  activate_responsive_design:
+    type: event
+    description: >
+      User activates the responsive_design or split_console in the
+      devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.activate#responsive_design.
+    bugs: &devtools_main_activate_bugs
+      - https://bugzil.la/1455273
+    data_reviews: &devtools_main_activate_data_reviews
+      - https://bugzil.la/1455273
+    notification_emails: &devtools_main_activate_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_activate_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      host:
+        description: >
+          Toolbox host (positioning): bottom, left, right, window, page or other.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Activate_ResponsiveDesign
+
+  activate_split_console:
+    type: event
+    description: >
+      User activates the responsive_design or split_console in the
+      devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.activate#split_console.
+    bugs: *devtools_main_activate_bugs
+    data_reviews: *devtools_main_activate_data_reviews
+    notification_emails: *devtools_main_activate_emails
+    expires: never
+    extra_keys: *devtools_main_activate_extra
+    telemetry_mirror: DevtoolsMain_Activate_SplitConsole
+
+  add_breakpoint_debugger:
+    type: event
+    description: >
+      User has added a breakpoint to a script.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.add_breakpoint#debugger.
+    bugs:
+      - https://bugzil.la/1463123
+    data_reviews:
+      - https://bugzil.la/1463123
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_AddBreakpoint_Debugger
+
+  blackbox_debugger:
+    type: event
+    description: >
+      User clicked the blackbox button to blackbox a script.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.blackbox#debugger.
+    bugs:
+      - https://bugzil.la/1463126
+    data_reviews:
+      - https://bugzil.la/1463126
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Blackbox_Debugger
+
+  close_tools:
+    type: event
+    description: >
+      User closes devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.close#tools.
+    bugs:
+      - https://bugzil.la/1453312
+    data_reviews:
+      - https://bugzil.la/1453312
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      host:
+        description: >
+          Toolbox host (positioning): bottom, side, window or other.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Close_Tools
+
+  close_adbg_aboutdebugging:
+    type: event
+    description: >
+      User closes about:debugging.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.close_adbg#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1504173
+    data_reviews:
+      - https://bugzil.la/1504173
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_CloseAdbg_Aboutdebugging
+
+  connection_attempt_aboutdebugging:
+    type: event
+    description: >
+      User is trying to connect to a remote runtime.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.connection_attempt#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1549970
+    data_reviews:
+      - https://bugzil.la/1549970
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      connection_id:
+        description: >
+          Randomly generated id to keep to group various events related to the same connection attempt.
+        type: string
+      connection_type:
+        description: >
+          Connection type
+        type: string
+      runtime_id:
+        description: >
+          Random id generated to track events related to a single runtime
+        type: string
+      status:
+        description: >
+          One of (cancelled, failed, not responding, start, success).
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_ConnectionAttempt_Aboutdebugging
+
+  continue_debugger:
+    type: event
+    description: >
+      User has pressed the continue button on a paused script.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.continue#debugger.
+    bugs:
+      - https://bugzil.la/1463122
+    data_reviews:
+      - https://bugzil.la/1463122
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Continue_Debugger
+
+  deactivate_responsive_design:
+    type: event
+    description: >
+      User deactivates the responsive_design or split_console in the
+      devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.deactivate#responsive_design.
+    bugs: &devtools_main_deactivate_bugs
+      - https://bugzil.la/1455275
+    data_reviews: &devtools_main_deactivate_data_reviews
+      - https://bugzil.la/1455275
+    notification_emails: &devtools_main_deactivate_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_deactivate_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      host:
+        description: >
+          Toolbox host (positioning): bottom, side, window or other.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Deactivate_ResponsiveDesign
+
+  deactivate_split_console:
+    type: event
+    description: >
+      User deactivates the responsive_design or split_console in the
+      devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.deactivate#split_console.
+    bugs: *devtools_main_deactivate_bugs
+    data_reviews: *devtools_main_deactivate_data_reviews
+    notification_emails: *devtools_main_deactivate_emails
+    expires: never
+    extra_keys: *devtools_main_deactivate_extra
+    telemetry_mirror: DevtoolsMain_Deactivate_SplitConsole
+
+  device_added_aboutdebugging:
+    type: event
+    description: >
+      A new device was detected in about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.device_added#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521507
+    data_reviews:
+      - https://bugzil.la/1521507
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      connection_type:
+        description: >
+          Connection type
+        type: string
+      device_name:
+        description: >
+          Device name
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_DeviceAdded_Aboutdebugging
+
+  device_removed_aboutdebugging:
+    type: event
+    description: >
+      A previously listed device was removed in about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.device_removed#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521507
+    data_reviews:
+      - https://bugzil.la/1521507
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      connection_type:
+        description: >
+          Connection type
+        type: string
+      device_name:
+        description: >
+          Device name
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_DeviceRemoved_Aboutdebugging
+
+  edit_html_inspector:
+    type: event
+    description: >
+      User is editing HTML via the context menu item in the markup view.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.edit_html#inspector.
+    bugs:
+      - https://bugzil.la/1463080
+    data_reviews:
+      - https://bugzil.la/1463080
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      made_changes:
+        description: >
+          Indicates whether changes were made.
+        type: string
+      time_open:
+        description: >
+          The amount of time in ms that the HTML editor was open.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_EditHtml_Inspector
+
+  edit_resend_netmonitor:
+    type: event
+    description: >
+      User has executed edit / resend in the netmonitor.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.edit_resend#netmonitor.
+    bugs:
+      - https://bugzil.la/1463171
+    data_reviews:
+      - https://bugzil.la/1463171
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The toolbox session start time e.g. 13963.
+        type: string
+    telemetry_mirror: DevtoolsMain_EditResend_Netmonitor
+
+  edit_rule_ruleview:
+    type: event
+    description: >
+      User is editing a CSS rule by clicking on or next to a CSS property,
+      enabling / disabling a rule or creating a new property.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.edit_rule#ruleview.
+    bugs:
+      - https://bugzil.la/1463081
+    data_reviews:
+      - https://bugzil.la/1463081
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_EditRule_Ruleview
+
+  enter_accessibility:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#accessibility.
+    bugs: &devtools_main_enter_bugs
+      - https://bugzil.la/1441070
+    data_reviews: &devtools_main_enter_data_reviews
+      - https://bugzil.la/1441070
+    notification_emails: &devtools_main_enter_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_enter_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      host:
+        description: >
+          Toolbox host (positioning): bottom, side, window or other.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      message_count:
+        description: >
+          The number of cached console messages.
+        type: string
+      start_state:
+        description: >
+          debuggerStatement, breakpoint, exception, tab_switch, toolbox_show, initial_panel, toggle_settings_off, toggle_settings_on, key_shortcut, select_next_key, select_prev_key, tool_unloaded, inspect_dom, unknown etc.
+        type: string
+      panel_name:
+        description: >
+          The name of the panel opened or other
+        type: string
+      cold:
+        description: >
+          Is this the first time the current panel has been opened in this toolbox?
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Enter_Accessibility
+
+  enter_application:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#application.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Application
+
+  enter_dom:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#dom.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Dom
+
+  enter_inspector:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#inspector.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Inspector
+
+  enter_jsdebugger:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#jsdebugger.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Jsdebugger
+
+  enter_memory:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#memory.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Memory
+
+  enter_netmonitor:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#netmonitor.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Netmonitor
+
+  enter_options:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#options.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Options
+
+  enter_performance:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#performance.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Performance
+
+  enter_storage:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#storage.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Storage
+
+  enter_styleeditor:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#styleeditor.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Styleeditor
+
+  enter_webconsole:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#webconsole.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Webconsole
+
+  enter_whatsnew:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#whatsnew.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Whatsnew
+
+  enter_other:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#other.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Other
+
+  enter_fake_tool4242:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#fakeTool4242.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Faketool4242
+
+  enter_test_blank_panel:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#testBlankPanel.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Testblankpanel
+
+  enter_test_tool:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#testTool.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Testtool
+
+  enter_testtool1:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#testtool1.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Testtool1
+
+  enter_test_tool1072208:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#testTool1072208.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Testtool1072208
+
+  enter_testtool2:
+    type: event
+    description: >
+      User opens a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.enter#testtool2.
+    bugs: *devtools_main_enter_bugs
+    data_reviews: *devtools_main_enter_data_reviews
+    notification_emails: *devtools_main_enter_emails
+    expires: never
+    extra_keys: *devtools_main_enter_extra
+    telemetry_mirror: DevtoolsMain_Enter_Testtool2
+
+  execute_js_webconsole:
+    type: event
+    description: >
+      User has executed some JS in the Web Console.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.execute_js#webconsole.
+    bugs:
+      - https://bugzil.la/1463083
+    data_reviews:
+      - https://bugzil.la/1463083
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      input:
+        description: >
+          Indicates from which input the command was evaluated ("inline" for regular input, "multiline" for editor mode).
+        type: string
+      lines:
+        description: >
+          The number of lines contained in the command.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_ExecuteJs_Webconsole
+
+  reverse_search_webconsole:
+    type: event
+    description: >
+      User has toggled, navigated or evaluated expressions from reverse
+      search .
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.reverse_search#webconsole.
+    bugs:
+      - https://bugzil.la/1489489
+    data_reviews:
+      - https://bugzil.la/1489489
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      functionality:
+        description: >
+          Indicates functionality of reverse search being accessed.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_ReverseSearch_Webconsole
+
+  exit_accessibility:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#accessibility.
+    bugs: &devtools_main_exit_bugs
+      - https://bugzil.la/1455270
+    data_reviews: &devtools_main_exit_data_reviews
+      - https://bugzil.la/1455270
+    notification_emails: &devtools_main_exit_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_exit_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      host:
+        description: >
+          Toolbox host (positioning): bottom, side, window or other.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      next_panel:
+        description: >
+          The name of the panel closed or other.
+        type: string
+      panel_name:
+        description: >
+          The name of the panel opened or other
+        type: string
+      reason:
+        description: >
+          debuggerStatement, breakpoint, exception, tab_switch, toolbox_show, initial_panel, toggle_settings_off, toggle_settings_on, key_shortcut, select_next_key, select_prev_key, tool_unloaded, inspect_dom, toolbox_closed, unknown etc.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Exit_Accessibility
+
+  exit_application:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#application.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Application
+
+  exit_dom:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#dom.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Dom
+
+  exit_inspector:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#inspector.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Inspector
+
+  exit_jsdebugger:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#jsdebugger.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Jsdebugger
+
+  exit_memory:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#memory.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Memory
+
+  exit_netmonitor:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#netmonitor.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Netmonitor
+
+  exit_options:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#options.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Options
+
+  exit_performance:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#performance.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Performance
+
+  exit_storage:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#storage.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Storage
+
+  exit_styleeditor:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#styleeditor.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Styleeditor
+
+  exit_webconsole:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#webconsole.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Webconsole
+
+  exit_whatsnew:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#whatsnew.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Whatsnew
+
+  exit_other:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#other.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Other
+
+  exit_fake_tool4242:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#fakeTool4242.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Faketool4242
+
+  exit_test_blank_panel:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#testBlankPanel.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Testblankpanel
+
+  exit_test_tool:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#testTool.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Testtool
+
+  exit_testtool1:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#testtool1.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Testtool1
+
+  exit_test_tool1072208:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#testTool1072208.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Testtool1072208
+
+  exit_testtool2:
+    type: event
+    description: >
+      User closes a tool in the devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.exit#testtool2.
+    bugs: *devtools_main_exit_bugs
+    data_reviews: *devtools_main_exit_data_reviews
+    notification_emails: *devtools_main_exit_emails
+    expires: never
+    extra_keys: *devtools_main_exit_extra
+    telemetry_mirror: DevtoolsMain_Exit_Testtool2
+
+  filters_changed_netmonitor:
+    type: event
+    description: >
+      User has changed filters in the web console.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.filters_changed#netmonitor.
+    bugs: &devtools_main_filters_changed_bugs
+      - https://bugzil.la/1463144
+      - https://bugzil.la/1463095
+    data_reviews: &devtools_main_filters_changed_data_reviews
+      - https://bugzil.la/1463144
+      - https://bugzil.la/1463095
+    notification_emails: &devtools_main_filters_changed_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_filters_changed_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      trigger:
+        description: >
+          The cause of the filter change: error, warn, log, info, debug, css, netxhr, net, text or reset and all, html, css, js, xhr, fonts, images, media, ws or other for netmonitor
+        type: string
+      active:
+        description: >
+          Comma separated list of active filters.
+        type: string
+      inactive:
+        description: >
+          Comma separated list of inactive filters.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_FiltersChanged_Netmonitor
+
+  filters_changed_webconsole:
+    type: event
+    description: >
+      User has changed filters in the web console.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.filters_changed#webconsole.
+    bugs: *devtools_main_filters_changed_bugs
+    data_reviews: *devtools_main_filters_changed_data_reviews
+    notification_emails: *devtools_main_filters_changed_emails
+    expires: never
+    extra_keys: *devtools_main_filters_changed_extra
+    telemetry_mirror: DevtoolsMain_FiltersChanged_Webconsole
+
+  inspect_aboutdebugging:
+    type: event
+    description: >
+      User has clicked on the inspect button of one of the debug targets
+      of aboutdebugging.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.inspect#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1504173
+    data_reviews:
+      - https://bugzil.la/1504173
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      runtime_type:
+        description: >
+          The runtime type
+        type: string
+      target_type:
+        description: >
+          The target type
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Inspect_Aboutdebugging
+
+  jump_to_definition_webconsole:
+    type: event
+    description: >
+      User has clicked "Jump to definition" icon (next to logged
+      functions) in the web console.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.jump_to_definition#webconsole.
+    bugs:
+      - https://bugzil.la/1463101
+    data_reviews:
+      - https://bugzil.la/1463101
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_JumpToDefinition_Webconsole
+
+  jump_to_source_webconsole:
+    type: event
+    description: >
+      User has clicked a link to a source file in the web console.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.jump_to_source#webconsole.
+    bugs:
+      - https://bugzil.la/1463092
+    data_reviews:
+      - https://bugzil.la/1463092
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_JumpToSource_Webconsole
+
+  object_expanded_webconsole:
+    type: event
+    description: >
+      User has expanded an object in the web console.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.object_expanded#webconsole.
+    bugs:
+      - https://bugzil.la/1463104
+    data_reviews:
+      - https://bugzil.la/1463104
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_ObjectExpanded_Webconsole
+
+  open_tools:
+    type: event
+    description: >
+      User opens devtools toolbox.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.open#tools.
+    bugs:
+      - https://bugzil.la/1416024
+      - https://bugzil.la/1456984
+    data_reviews:
+      - https://bugzil.la/1416024
+      - https://bugzil.la/1456984
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      entrypoint:
+        description: >
+          How was the toolbox opened? CommandLine, ContextMenu, HamburgerMenu, KeyShortcut, SessionRestore, SystemMenu or SlowScript
+        type: string
+      first_panel:
+        description: >
+          The name of the first panel opened.
+        type: string
+      host:
+        description: >
+          Toolbox host (positioning): bottom, side, window or other.
+        type: string
+      splitconsole:
+        description: >
+          Indicates whether the split console was open.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      shortcut:
+        description: >
+          The key combination pressed. Used only in the case that entrypoint === KeyShortcut.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Open_Tools
+
+  open_adbg_aboutdebugging:
+    type: event
+    description: >
+      User opens about:debugging.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.open_adbg#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1504173
+    data_reviews:
+      - https://bugzil.la/1504173
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      width:
+        description: >
+          Toolbox width rounded up to the nearest 50px.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_OpenAdbg_Aboutdebugging
+
+  pause_on_exceptions_debugger:
+    type: event
+    description: >
+      User has changed pausing behaviour in the debugger.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.pause_on_exceptions#debugger.
+    bugs:
+      - https://bugzil.la/1463117
+    data_reviews:
+      - https://bugzil.la/1463117
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      exceptions:
+        description: >
+          Pause on exceptions is checked.
+        type: string
+      caught_exceptio:
+        description: >
+          Pause on caught exceptions is checked.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_PauseOnExceptions_Debugger
+
+  pause_debugger:
+    type: event
+    description: >
+      Debugger has paused in a script due to a breakpoint or exception.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.pause#debugger.
+    bugs:
+      - https://bugzil.la/1463118
+    data_reviews:
+      - https://bugzil.la/1463118
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      reason:
+        description: >
+          caught-exception, uncaught-exception, pausing, debugger-statement or breakpoint.
+        type: string
+      lib_stacks:
+        description: >
+          Number of collapsed callstacks in the call tree. These are call stacks that are part of external libraries e.g. react, which are collapsed  by default.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_Pause_Debugger
+
+  persist_changed_netmonitor:
+    type: event
+    description: >
+      User has changed log persist status.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.persist_changed#netmonitor.
+    bugs: &devtools_main_persist_changed_bugs
+      - https://bugzil.la/1531395
+      - https://bugzil.la/1542312
+    data_reviews: &devtools_main_persist_changed_data_reviews
+      - https://bugzil.la/1531395
+      - https://bugzil.la/1542312
+    notification_emails: &devtools_main_persist_changed_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_persist_changed_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_PersistChanged_Netmonitor
+
+  persist_changed_webconsole:
+    type: event
+    description: >
+      User has changed log persist status.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.persist_changed#webconsole.
+    bugs: *devtools_main_persist_changed_bugs
+    data_reviews: *devtools_main_persist_changed_data_reviews
+    notification_emails: *devtools_main_persist_changed_emails
+    expires: never
+    extra_keys: *devtools_main_persist_changed_extra
+    telemetry_mirror: DevtoolsMain_PersistChanged_Webconsole
+
+  pretty_print_debugger:
+    type: event
+    description: >
+      User clicked the pretty print button to pretty print a script.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.pretty_print#debugger.
+    bugs:
+      - https://bugzil.la/1463125
+    data_reviews:
+      - https://bugzil.la/1463125
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_PrettyPrint_Debugger
+
+  remove_breakpoint_debugger:
+    type: event
+    description: >
+      User has removed a breakpoint from a script.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.remove_breakpoint#debugger.
+    bugs:
+      - https://bugzil.la/1463124
+    data_reviews:
+      - https://bugzil.la/1463124
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_RemoveBreakpoint_Debugger
+
+  runtime_added_aboutdebugging:
+    type: event
+    description: >
+      A new remote runtime has been detected in about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.runtime_added#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521507
+    data_reviews:
+      - https://bugzil.la/1521507
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      connection_type:
+        description: >
+          Connection type
+        type: string
+      device_name:
+        description: >
+          Name of the device on which the runtime is running (optional)
+        type: string
+      runtime_id:
+        description: >
+          Random id generated to track events related to a single runtime
+        type: string
+      runtime_name:
+        description: >
+          Name of the runtime
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_RuntimeAdded_Aboutdebugging
+
+  runtime_connected_aboutdebugging:
+    type: event
+    description: >
+      Connection was established with a remote runtime in about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.runtime_connected#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521507
+      - https://bugzil.la/1530997
+    data_reviews:
+      - https://bugzil.la/1521507
+      - https://bugzil.la/1530997
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      connection_type:
+        description: >
+          Connection type
+        type: string
+      device_name:
+        description: >
+          Name of the device on which the runtime is running (optional)
+        type: string
+      runtime_id:
+        description: >
+          Random id generated to track events related to a single runtime
+        type: string
+      runtime_name:
+        description: >
+          Name of the runtime
+        type: string
+      runtime_os:
+        description: >
+          Operating system on which the runtime is running (eg Android or Linux)
+        type: string
+      runtime_version:
+        description: >
+          Version of the runtime (eg 67.0a1)
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_RuntimeConnected_Aboutdebugging
+
+  runtime_disconnected_aboutdebugging:
+    type: event
+    description: >
+      Connection was lost with a remote runtime in about debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.runtime_disconnected#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521507
+    data_reviews:
+      - https://bugzil.la/1521507
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      connection_type:
+        description: >
+          Connection type
+        type: string
+      device_name:
+        description: >
+          Name of the device on which the runtime is running (optional)
+        type: string
+      runtime_id:
+        description: >
+          Random id generated to track events related to a single runtime
+        type: string
+      runtime_name:
+        description: >
+          Name of the runtime
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_RuntimeDisconnected_Aboutdebugging
+
+  runtime_removed_aboutdebugging:
+    type: event
+    description: >
+      A previously listed runtime was removed in about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.runtime_removed#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521507
+    data_reviews:
+      - https://bugzil.la/1521507
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      connection_type:
+        description: >
+          Connection type
+        type: string
+      device_name:
+        description: >
+          Name of the device on which the runtime is running (optional)
+        type: string
+      runtime_id:
+        description: >
+          Random id generated to track events related to a single runtime
+        type: string
+      runtime_name:
+        description: >
+          Name of the runtime
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_RuntimeRemoved_Aboutdebugging
+
+  select_page_aboutdebugging:
+    type: event
+    description: >
+      User navigates to a new page of an application such as
+      about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.select_page#aboutdebugging.
+    bugs: &devtools_main_select_page_bugs
+      - https://bugzil.la/1504173
+      - https://bugzil.la/1643253
+    data_reviews: &devtools_main_select_page_data_reviews
+      - https://bugzil.la/1504173
+      - https://bugzil.la/1643253
+    notification_emails: &devtools_main_select_page_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_select_page_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      page_type:
+        description: >
+          Type of page the user navigates to (this-firefox, connect, runtime)
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_SelectPage_Aboutdebugging
+
+  select_page_application:
+    type: event
+    description: >
+      User navigates to a new page of an application such as
+      about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.select_page#application.
+    bugs: *devtools_main_select_page_bugs
+    data_reviews: *devtools_main_select_page_data_reviews
+    notification_emails: *devtools_main_select_page_emails
+    expires: never
+    extra_keys: *devtools_main_select_page_extra
+    telemetry_mirror: DevtoolsMain_SelectPage_Application
+
+  show_profiler_aboutdebugging:
+    type: event
+    description: >
+      User has clicked on the "Open Profiler" button in a runtime page of
+      about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.show_profiler#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521511
+    data_reviews:
+      - https://bugzil.la/1521511
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      runtime_id:
+        description: >
+          Random id generated to track events related to a single runtime
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_ShowProfiler_Aboutdebugging
+
+  select_ws_frame_netmonitor:
+    type: event
+    description: >
+      User has selected a WebSocket frame.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.select_ws_frame#netmonitor.
+    bugs:
+      - https://bugzil.la/1555638
+    data_reviews:
+      - https://bugzil.la/1555638
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_SelectWsFrame_Netmonitor
+
+  sidepanel_changed_inspector:
+    type: event
+    description: >
+      User has switched sidepanel tabs.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.sidepanel_changed#inspector.
+    bugs: &devtools_main_sidepanel_changed_bugs
+      - https://bugzil.la/1463083
+      - https://bugzil.la/1463169
+    data_reviews: &devtools_main_sidepanel_changed_data_reviews
+      - https://bugzil.la/1463083
+      - https://bugzil.la/1463169
+    notification_emails: &devtools_main_sidepanel_changed_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_sidepanel_changed_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      oldpanel:
+        description: >
+          The panel the user is switching from
+        type: string
+      newpanel:
+        description: >
+          The panel the user is switching to
+        type: string
+      os:
+        description: >
+          The OS name and version e.g. "Linux 4.4.0-1014-aws", "Darwin 14.5.0", "Windows_NT 6.1.7601" or "Windows_NT 10.0.15063." This can be used to make sense of data when a feature is only available from a particular operating system build number.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_SidepanelChanged_Inspector
+
+  sidepanel_changed_netmonitor:
+    type: event
+    description: >
+      User has switched sidepanel tabs.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.sidepanel_changed#netmonitor.
+    bugs: *devtools_main_sidepanel_changed_bugs
+    data_reviews: *devtools_main_sidepanel_changed_data_reviews
+    notification_emails: *devtools_main_sidepanel_changed_emails
+    expires: never
+    extra_keys: *devtools_main_sidepanel_changed_extra
+    telemetry_mirror: DevtoolsMain_SidepanelChanged_Netmonitor
+
+  start_worker_application:
+    type: event
+    description: >
+      User manually starts a service worker
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.start_worker#application.
+    bugs:
+      - https://bugzil.la/1643253
+    data_reviews:
+      - https://bugzil.la/1643253
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_StartWorker_Application
+
+  throttle_changed_netmonitor:
+    type: event
+    description: >
+      User has changed the throttle setting in the netmonitor.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.throttle_changed#netmonitor.
+    bugs:
+      - https://bugzil.la/1463147
+    data_reviews:
+      - https://bugzil.la/1463147
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      mode:
+        description: >
+          No throttling, GPRS, Regular 2G, Good 2G, Regular 3G, Good 3G, Regular 4G / LTE, DSL, WI-FI, or Offline.
+        type: string
+      session_id:
+        description: >
+          The toolbox session start time e.g. 13963.
+        type: string
+    telemetry_mirror: DevtoolsMain_ThrottleChanged_Netmonitor
+
+  tool_timer_animationinspector:
+    type: event
+    description: >
+      The amount of time a tool was opened for.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.tool_timer#animationinspector.
+    bugs: &devtools_main_tool_timer_bugs
+      - https://bugzil.la/1483817
+      - https://bugzil.la/1639454
+    data_reviews: &devtools_main_tool_timer_data_reviews
+      - https://bugzil.la/1483817
+      - https://bugzil.la/1639454
+    notification_emails: &devtools_main_tool_timer_emails
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys: &devtools_main_tool_timer_extra
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      time_open:
+        description: >
+          Time open.
+        type: string
+      os:
+        description: >
+          The OS name and version e.g. "Linux 4.4.0-1014-aws", "Darwin 14.5.0", "Windows_NT 6.1.7601" or "Windows_NT 10.0.15063." This can be used to make sense of data when a feature is only available from a particular operating system build number.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_ToolTimer_Animationinspector
+
+  tool_timer_compatibilityview:
+    type: event
+    description: >
+      The amount of time a tool was opened for.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.tool_timer#compatibilityview.
+    bugs: *devtools_main_tool_timer_bugs
+    data_reviews: *devtools_main_tool_timer_data_reviews
+    notification_emails: *devtools_main_tool_timer_emails
+    expires: never
+    extra_keys: *devtools_main_tool_timer_extra
+    telemetry_mirror: DevtoolsMain_ToolTimer_Compatibilityview
+
+  tool_timer_computedview:
+    type: event
+    description: >
+      The amount of time a tool was opened for.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.tool_timer#computedview.
+    bugs: *devtools_main_tool_timer_bugs
+    data_reviews: *devtools_main_tool_timer_data_reviews
+    notification_emails: *devtools_main_tool_timer_emails
+    expires: never
+    extra_keys: *devtools_main_tool_timer_extra
+    telemetry_mirror: DevtoolsMain_ToolTimer_Computedview
+
+  tool_timer_changesview:
+    type: event
+    description: >
+      The amount of time a tool was opened for.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.tool_timer#changesview.
+    bugs: *devtools_main_tool_timer_bugs
+    data_reviews: *devtools_main_tool_timer_data_reviews
+    notification_emails: *devtools_main_tool_timer_emails
+    expires: never
+    extra_keys: *devtools_main_tool_timer_extra
+    telemetry_mirror: DevtoolsMain_ToolTimer_Changesview
+
+  tool_timer_fontinspector:
+    type: event
+    description: >
+      The amount of time a tool was opened for.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.tool_timer#fontinspector.
+    bugs: *devtools_main_tool_timer_bugs
+    data_reviews: *devtools_main_tool_timer_data_reviews
+    notification_emails: *devtools_main_tool_timer_emails
+    expires: never
+    extra_keys: *devtools_main_tool_timer_extra
+    telemetry_mirror: DevtoolsMain_ToolTimer_Fontinspector
+
+  tool_timer_layoutview:
+    type: event
+    description: >
+      The amount of time a tool was opened for.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.tool_timer#layoutview.
+    bugs: *devtools_main_tool_timer_bugs
+    data_reviews: *devtools_main_tool_timer_data_reviews
+    notification_emails: *devtools_main_tool_timer_emails
+    expires: never
+    extra_keys: *devtools_main_tool_timer_extra
+    telemetry_mirror: DevtoolsMain_ToolTimer_Layoutview
+
+  tool_timer_ruleview:
+    type: event
+    description: >
+      The amount of time a tool was opened for.
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.tool_timer#ruleview.
+    bugs: *devtools_main_tool_timer_bugs
+    data_reviews: *devtools_main_tool_timer_data_reviews
+    notification_emails: *devtools_main_tool_timer_emails
+    expires: never
+    extra_keys: *devtools_main_tool_timer_extra
+    telemetry_mirror: DevtoolsMain_ToolTimer_Ruleview
+
+  unregister_worker_application:
+    type: event
+    description: >
+      User manually unregisters a service worker registration
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.unregister_worker#application.
+    bugs:
+      - https://bugzil.la/1643253
+    data_reviews:
+      - https://bugzil.la/1643253
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_UnregisterWorker_Application
+
+  update_conn_prompt_aboutdebugging:
+    type: event
+    description: >
+      User has clicked on the "Enable/Disable connection prompt" button in
+      a runtime page of about:debugging
+      This event was generated to correspond to the Legacy Telemetry event
+      devtools.main.update_conn_prompt#aboutdebugging.
+    bugs:
+      - https://bugzil.la/1521511
+    data_reviews:
+      - https://bugzil.la/1521511
+    notification_emails:
+      - dev-developer-tools@lists.mozilla.org
+    expires: never
+    extra_keys:
+      value:
+        description: >
+          The `value` of the event. Mirrors to the Legacy Telemetry
+          event's `value` parameter.
+        type: string
+      prompt_enabled:
+        description: >
+          True if the user enables the prompt, false otherwise.
+        type: string
+      runtime_id:
+        description: >
+          Random id generated to track events related to a single runtime
+        type: string
+      session_id:
+        description: >
+          The start time of the session in milliseconds since epoch (Unix Timestamp) e.g. 1396381378123.
+        type: string
+    telemetry_mirror: DevtoolsMain_UpdateConnPrompt_Aboutdebugging
