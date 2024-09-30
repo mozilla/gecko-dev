@@ -90,6 +90,61 @@ interface nsIFaviconService : nsISupports
   readonly attribute AUTF8String defaultFaviconMimeType;
 
   /**
+   * Declares that a given page uses a favicon with the given URI and
+   * attempts to fetch and save the icon data by loading the favicon URI
+   * through an async network request.
+   *
+   * If the icon data already exists, we won't try to reload the icon unless
+   * aForceReload is true.  Similarly, if the icon is in the failed favicon
+   * cache we won't do anything unless aForceReload is true, in which case
+   * we'll try to reload the favicon.
+   *
+   * This function will only save favicons for pages that are already stored in
+   * the database, like visited pages or bookmarks.  For any other URIs, it
+   * will succeed but do nothing.  This function will also ignore the error
+   * page favicon URI (see FAVICON_ERRORPAGE_URL below).
+   *
+   * Icons that fail to load will automatically be added to the failed favicon
+   * cache, and this function will not save favicons for non-bookmarked URIs
+   * when history is disabled.
+   *
+   * @note This function is identical to
+   *       nsIFaviconService::setAndLoadFaviconForPage.
+   *
+   * @param aPageURI
+   *        URI of the page whose favicon is being set.
+   * @param aFaviconURI
+   *        URI of the favicon to associate with the page.
+   * @param aForceReload
+   *        If aForceReload is false, we try to reload the favicon only if we
+   *        don't have it or it has expired from the cache.  Setting
+   *        aForceReload to true causes us to reload the favicon even if we
+   *        have a usable copy.
+   * @param aFaviconLoadType
+   *        Set to FAVICON_LOAD_PRIVATE if the favicon is loaded from a private
+   *        browsing window.  Set to FAVICON_LOAD_NON_PRIVATE otherwise.
+   * @param [optional] aCallback
+   *        Once we're done setting and/or fetching the favicon, we invoke this
+   *        callback.
+   * @param [optional] aLoadingPrincipal
+   *        Principal of the page whose favicon is being set. If this argument
+   *        is omitted, the loadingPrincipal defaults to the nullPrincipal.
+   * @param [optional] aRequestContextID
+   *        used to inform Necko of how to link the
+   *        favicon request with other requests in the same tab.
+   *
+   * @see nsIFaviconDataCallback in nsIFaviconService.idl.
+   */
+  mozIPlacesPendingOperation setAndFetchFaviconForPage(
+    in nsIURI aPageURI,
+    in nsIURI aFaviconURI,
+    in boolean aForceReload,
+    in unsigned long aFaviconLoadType,
+    [optional] in nsIFaviconDataCallback aCallback,
+    [optional] in nsIPrincipal aLoadingPrincipal,
+    [optional] in unsigned long long aRequestContextID);
+
+  /**
    * Stores the relation between a page URI and a favicon URI, whose icon data
    * is provided through a data URL.
    * The process is asynchronous and a callback with the status of the operation

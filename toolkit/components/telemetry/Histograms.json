@@ -5904,6 +5904,69 @@
     "n_buckets": 10,
     "description": "PLACES: Time to convert and write bookmarks.html"
   },
+  "PLACES_FAVICON_ICO_SIZES": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 524288,
+    "n_buckets": 100,
+    "description": "PLACES: Size of the ICO favicon files loaded from the web (Bytes)"
+  },
+  "PLACES_FAVICON_PNG_SIZES": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 524288,
+    "n_buckets": 100,
+    "description": "PLACES: Size of the PNG favicon files loaded from the web (Bytes)"
+  },
+  "PLACES_FAVICON_GIF_SIZES": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 524288,
+    "n_buckets": 100,
+    "description": "PLACES: Size of the GIF favicon files loaded from the web (Bytes)"
+  },
+  "PLACES_FAVICON_JPEG_SIZES": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 524288,
+    "n_buckets": 100,
+    "description": "PLACES: Size of the JPEG favicon files loaded from the web (Bytes)"
+  },
+  "PLACES_FAVICON_BMP_SIZES": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 524288,
+    "n_buckets": 100,
+    "description": "PLACES: Size of the BMP favicon files loaded from the web (Bytes)"
+  },
+  "PLACES_FAVICON_SVG_SIZES": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 524288,
+    "n_buckets": 100,
+    "description": "PLACES: Size of the SVG favicon files loaded from the web (Bytes)"
+  },
+  "PLACES_FAVICON_OTHER_SIZES": {
+    "record_in_processes": ["main", "content"],
+    "products": ["firefox", "fennec"],
+    "expires_in_version": "never",
+    "kind": "exponential",
+    "high": 524288,
+    "n_buckets": 100,
+    "description": "PLACES: Size of favicon files without a specific file type probe, loaded from the web (Bytes)"
+  },
   "LINK_ICON_SIZES_ATTR_USAGE": {
     "record_in_processes": ["main", "content"],
     "products": ["firefox", "fennec"],

@@ -1,6 +1,5 @@
 const lazy = {};
 ChromeUtils.defineESModuleGetters(lazy, {
-  NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
   TestUtils: "resource://testing-common/TestUtils.sys.mjs",
 });
@@ -135,22 +134,18 @@ export var PlacesTestUtils = Object.freeze({
       if (!val) {
         throw new Error("URL does not exist");
       }
-
-      let uri = Services.io.newURI(key);
-      let faviconURI = Services.io.newURI(val);
-      if (!faviconURI.schemeIs("data")) {
-        throw new Error(`Favicon URL should be data URL [${faviconURI.spec}]`);
-      }
-
       faviconPromises.push(
         new Promise((resolve, reject) => {
+          let uri = Services.io.newURI(key);
+          let faviconURI = Services.io.newURI(val);
           try {
-            lazy.PlacesUtils.favicons.setFaviconForPage(
+            lazy.PlacesUtils.favicons.setAndFetchFaviconForPage(
               uri,
               faviconURI,
-              faviconURI,
-              null,
-              resolve
+              false,
+              lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+              resolve,
+              Services.scriptSecurityManager.getSystemPrincipal()
             );
           } catch (ex) {
             reject(ex);
@@ -206,98 +201,6 @@ export var PlacesTestUtils = Object.freeze({
   },
 
   /**
-   * Get favicon data for given URL from database.
-   *
-   * @param {nsIURI} faviconURI
-   *        nsIURI for the favicon
-   * @return {nsIURI} data URL
-   */
-  async getFaviconDataURLFromDB(faviconURI) {
-    const db = await lazy.PlacesUtils.promiseDBConnection();
-    const rows = await db.executeCached(
-      `SELECT data, width
-       FROM moz_icons
-       WHERE fixed_icon_url_hash = hash(fixup_url(:url))
-       AND icon_url = :url
-       ORDER BY width DESC`,
-      { url: faviconURI.spec }
-    );
-
-    if (!rows.length) {
-      return null;
-    }
-
-    const row = rows[0];
-    const data = row.getResultByName("data");
-    if (!data.length) {
-      return null;
-    }
-
-    const UINT64_MAX = 65535;
-    const width = row.getResultByName("width");
-    const contentType = width === UINT64_MAX ? "image/svg+xml" : "image/png";
-
-    return await PlacesTestUtils.fileDataToDataURL(data, contentType);
-  },
-
-  /**
-   * Get favicon data for given URL from network.
-   *
-   * @param {nsIURI} faviconURI
-   *        nsIURI for the favicon.
-   * @param {nsIPrincipal} [optional] loadingPrincipal
-   *        The principal to load from network. If no, use system principal.
-   * @return {nsIURI} data URL
-   *
-   * @note This fetching code is for test-code only and should not be copied to
-   *       production code, as a proper principal and loadGroup, or ohttp, should
-   *       be used by the browser when fetching from the network.
-   */
-  async getFaviconDataURLFromNetwork(
-    faviconURI,
-    loadingPrincipal = Services.scriptSecurityManager.getSystemPrincipal()
-  ) {
-    if (faviconURI.schemeIs("data")) {
-      return faviconURI;
-    }
-
-    let channel = lazy.NetUtil.newChannel({
-      uri: faviconURI,
-      loadingPrincipal,
-      securityFlags:
-        Ci.nsILoadInfo.SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT |
-        Ci.nsILoadInfo.SEC_ALLOW_CHROME |
-        Ci.nsILoadInfo.SEC_DISALLOW_SCRIPT,
-      contentPolicyType: Ci.nsIContentPolicy.TYPE_INTERNAL_IMAGE_FAVICON,
-    });
-
-    let resolver = Promise.withResolvers();
-
-    lazy.NetUtil.asyncFetch(channel, async (input, status, request) => {
-      if (!Components.isSuccessCode(status)) {
-        resolver.reject(status);
-        return;
-      }
-
-      try {
-        let data = lazy.NetUtil.readInputStream(input, input.available());
-        let contentType = request.QueryInterface(Ci.nsIChannel).contentType;
-        input.close();
-
-        let dataURL = await PlacesTestUtils.fileDataToDataURL(
-          data,
-          contentType
-        );
-        resolver.resolve(dataURL);
-      } catch (e) {
-        resolver.reject(e);
-      }
-    });
-
-    return resolver.promise;
-  },
-
-  /**
    * Clears any favicons stored in the database.
    */
   async clearFavicons() {
@@ -308,28 +211,6 @@ export var PlacesTestUtils = Object.freeze({
       }, "places-favicons-expired");
       lazy.PlacesUtils.favicons.expireAllFavicons();
     });
-  },
-
-  /**
-   * Converts the given data to the data URL.
-   *
-   * @param data
-   *        The file data.
-   * @param mimeType
-   *        The mime type of the file content.
-   * @return Promise that retunes data URL.
-   */
-  async fileDataToDataURL(data, mimeType) {
-    const dataURL = await new Promise(resolve => {
-      const buffer = new Uint8ClampedArray(data);
-      const blob = new Blob([buffer], { type: mimeType });
-      const reader = new FileReader();
-      reader.onload = e => {
-        resolve(Services.io.newURI(e.target.result));
-      };
-      reader.readAsDataURL(blob);
-    });
-    return dataURL;
   },
 
   /**

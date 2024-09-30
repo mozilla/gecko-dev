@@ -331,6 +331,7 @@ nsFaviconService::SetFaviconForPage(
   IconData icon;
   icon.expiration = aExpiration;
   icon.status = ICON_STATUS_CACHED;
+  icon.fetchMode = FETCH_NEVER;
   if (isRichIcon) {
     icon.flags |= ICONDATA_FLAGS_RICH;
   }
@@ -391,6 +392,101 @@ nsFaviconService::SetFaviconForPage(
   DB->DispatchToAsyncThread(event);
 
   guard.release();
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFaviconService::SetAndFetchFaviconForPage(
+    nsIURI* aPageURI, nsIURI* aFaviconURI, bool aForceReload,
+    uint32_t aFaviconLoadType, nsIFaviconDataCallback* aCallback,
+    nsIPrincipal* aLoadingPrincipal, uint64_t aRequestContextID,
+    mozIPlacesPendingOperation** _canceler) {
+  MOZ_ASSERT(NS_IsMainThread());
+  NS_ENSURE_ARG(aPageURI);
+  NS_ENSURE_ARG(aFaviconURI);
+  NS_ENSURE_ARG_POINTER(_canceler);
+
+  nsCOMPtr<nsIURI> pageURI = GetExposableURI(aPageURI);
+  nsCOMPtr<nsIURI> faviconURI = GetExposableURI(aFaviconURI);
+
+  nsCOMPtr<nsIPrincipal> loadingPrincipal = aLoadingPrincipal;
+  MOZ_ASSERT(loadingPrincipal,
+             "please provide aLoadingPrincipal for this favicon");
+  if (!loadingPrincipal) {
+    // Let's default to the nullPrincipal if no loadingPrincipal is provided.
+    AutoTArray<nsString, 2> params = {
+        u"nsFaviconService::setAndFetchFaviconForPage()"_ns,
+        u"nsFaviconService::setAndFetchFaviconForPage(..., "
+        "[optional aLoadingPrincipal])"_ns};
+    nsContentUtils::ReportToConsole(
+        nsIScriptError::warningFlag, "Security by Default"_ns,
+        nullptr,  // aDocument
+        nsContentUtils::eNECKO_PROPERTIES, "APIDeprecationWarning", params);
+    loadingPrincipal = NullPrincipal::CreateWithoutOriginAttributes();
+  }
+  NS_ENSURE_TRUE(loadingPrincipal, NS_ERROR_FAILURE);
+
+  bool loadPrivate =
+      aFaviconLoadType == nsIFaviconService::FAVICON_LOAD_PRIVATE;
+
+  // Build page data.
+  PageData page;
+  nsresult rv = pageURI->GetSpec(page.spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+  // URIs can arguably lack a host.
+  Unused << pageURI->GetHost(page.host);
+  if (StringBeginsWith(page.host, "www."_ns)) {
+    page.host.Cut(0, 4);
+  }
+  bool canAddToHistory;
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(navHistory, NS_ERROR_OUT_OF_MEMORY);
+  rv = navHistory->CanAddURI(pageURI, &canAddToHistory);
+  NS_ENSURE_SUCCESS(rv, rv);
+  page.canAddToHistory = !!canAddToHistory && !loadPrivate;
+
+  // Build icon data.
+  IconData icon;
+  icon.fetchMode = aForceReload ? FETCH_ALWAYS : FETCH_IF_MISSING;
+  rv = faviconURI->GetSpec(icon.spec);
+  NS_ENSURE_SUCCESS(rv, rv);
+  // URIs can arguably lack a host.
+  Unused << faviconURI->GetHost(icon.host);
+  if (StringBeginsWith(icon.host, "www."_ns)) {
+    icon.host.Cut(0, 4);
+  }
+
+  // A root icon is when the icon and page have the same host and the path
+  // is just /favicon.ico. These icons are considered valid for the whole
+  // origin and expired with the origin through a trigger.
+  nsAutoCString path;
+  if (NS_SUCCEEDED(faviconURI->GetPathQueryRef(path)) && !icon.host.IsEmpty() &&
+      icon.host.Equals(page.host) && path.EqualsLiteral("/favicon.ico")) {
+    icon.rootIcon = 1;
+  }
+
+  // If the page url points to an image, the icon's url will be the same.
+  // TODO (Bug 403651): store a resample of the image.  For now avoid that
+  // for database size and UX concerns.
+  // Don't store favicons for error pages either.
+  if (icon.spec.Equals(page.spec) ||
+      icon.spec.EqualsLiteral(FAVICON_CERTERRORPAGE_URL) ||
+      icon.spec.EqualsLiteral(FAVICON_ERRORPAGE_URL)) {
+    return NS_OK;
+  }
+
+  RefPtr<AsyncFetchAndSetIconForPage> event = new AsyncFetchAndSetIconForPage(
+      icon, page, loadPrivate, aCallback, aLoadingPrincipal, aRequestContextID);
+
+  // Get the target thread and start the work.
+  // DB will be updated and observers notified when data has finished loading.
+  RefPtr<Database> DB = Database::GetDatabase();
+  NS_ENSURE_STATE(DB);
+  DB->DispatchToAsyncThread(event);
+
+  // Return this event to the caller to allow aborting an eventual fetch.
+  event.forget(_canceler);
+
   return NS_OK;
 }
 
