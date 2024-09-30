@@ -684,7 +684,7 @@ impl VkImageHandle {
 
 #[no_mangle]
 #[allow(unused_variables)]
-#[cfg(target_os = "linux")]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 pub extern "C" fn wgpu_vkimage_create_with_dma_buf(
     global: &Global,
     device_id: id::DeviceId,
@@ -702,7 +702,7 @@ pub unsafe extern "C" fn wgpu_vkimage_delete(handle: *mut VkImageHandle) {
 
 #[no_mangle]
 #[allow(unused_variables)]
-#[cfg(target_os = "linux")]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 pub extern "C" fn wgpu_vkimage_get_file_descriptor(
     global: &Global,
     device_id: id::DeviceId,
