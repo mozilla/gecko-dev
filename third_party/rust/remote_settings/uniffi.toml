@@ -1,6 +1,5 @@
 [bindings.kotlin]
 package_name = "mozilla.appservices.remotesettings"
-cdylib_name = "megazord"
 
 [bindings.kotlin.custom_types.RsJsonObject]
 # Name of the type in the Kotlin code

@@ -5,16 +5,20 @@
 use crate::{LabeledTimingSample, Suggestion, SuggestionProvider, SuggestionProviderConstraints};
 
 /// A query for suggestions to show in the address bar.
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug, Default, uniffi::Record)]
 pub struct SuggestionQuery {
     pub keyword: String,
     pub providers: Vec<SuggestionProvider>,
+    #[uniffi(default = None)]
     pub provider_constraints: Option<SuggestionProviderConstraints>,
+    #[uniffi(default = None)]
     pub limit: Option<i32>,
 }
 
+#[derive(uniffi::Record)]
 pub struct QueryWithMetricsResult {
     pub suggestions: Vec<Suggestion>,
+    /// Samples for the `suggest.query_time` metric
     pub query_times: Vec<LabeledTimingSample>,
 }
 

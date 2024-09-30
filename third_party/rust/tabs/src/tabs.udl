@@ -44,7 +44,7 @@ dictionary RemoteTabRecord {
     string title;
     sequence<string> url_history;
     string? icon;
-    // Number of ms since the unix epoch (as reported by the client's clock)
+    /// Number of ms since the unix epoch (as reported by the client's clock)
     i64 last_used;
     boolean inactive = false;
 };
@@ -53,7 +53,7 @@ dictionary ClientRemoteTabs {
     string client_id;
     string client_name;
     DeviceType device_type;
-    // Number of ms since the unix epoch (as reported by the server's clock)
+    /// Number of ms since the unix epoch (as reported by the server's clock)
     i64 last_modified;
     sequence<RemoteTabRecord> remote_tabs;
 };
@@ -96,11 +96,11 @@ dictionary PendingCommand {
     Timestamp? time_sent;
 };
 
-// Note the canonical docs for this are in https://searchfox.org/mozilla-central/source/services/interfaces/mozIBridgedSyncEngine.idl
-// It's only actually used in desktop, but it's fine to expose this everywhere.
-// NOTE: all timestamps here are milliseconds.
+/// Note the canonical docs for this are in https://searchfox.org/mozilla-central/source/services/interfaces/mozIBridgedSyncEngine.idl
+/// It's only actually used in desktop, but it's fine to expose this everywhere.
+/// NOTE: all timestamps here are milliseconds.
 interface TabsBridgedEngine {
-    //readonly attribute long storageVersion;
+    // readonly attribute long storageVersion;
     // readonly attribute boolean allowSkippedRecord;
 
     // XXX - better logging story than this?

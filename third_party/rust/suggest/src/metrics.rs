@@ -5,9 +5,11 @@
 use std::time::Instant;
 
 /// Single sample for a Glean labeled_timing_distribution
+#[derive(uniffi::Record)]
 pub struct LabeledTimingSample {
     pub label: String,
-    pub value: u64, // time in microseconds
+    /// Time in microseconds
+    pub value: u64,
 }
 
 impl LabeledTimingSample {
@@ -19,9 +21,11 @@ impl LabeledTimingSample {
 /// Ingestion metrics
 ///
 /// These are recorded during [crate::Store::ingest] and returned to the consumer to record.
-#[derive(Default)]
+#[derive(Default, uniffi::Record)]
 pub struct SuggestIngestionMetrics {
+    /// Samples for the `suggest.ingestion_time` metric
     pub ingestion_times: Vec<LabeledTimingSample>,
+    /// Samples for the `suggest.ingestion_download_time` metric
     pub download_times: Vec<LabeledTimingSample>,
 }
 

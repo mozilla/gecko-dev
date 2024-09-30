@@ -170,17 +170,24 @@ pub fn print_debug_ingestion_sizes() {
     let table_row_counts = store.table_row_counts();
     let db_size = store.db_size();
     let client = store.into_settings_client();
-    let total_attachment_size: usize = client.total_attachment_size();
-
+    println!("Attachment sizes");
+    println!("-------------------------");
+    let attachment_sizes = client.attachment_size_by_record_type();
+    let total_attachment_size: usize = attachment_sizes.iter().map(|(_, size)| size).sum();
+    for (record_type, size) in attachment_sizes {
+        println!("{:30} {}kb", record_type.as_str(), (size + 500) / 1000)
+    }
+    println!();
     println!(
         "Total attachment size: {}kb",
         (total_attachment_size + 500) / 1000
     );
-    println!("Total database size: {}kb", (db_size + 500) / 1000);
-    println!();
+
     println!("Database table row counts");
     println!("-------------------------");
     for (name, count) in table_row_counts {
-        println!("{name:30}: {count}");
+        println!("{name:30} {count}");
     }
+    println!();
+    println!("Total database size: {}kb", (db_size + 500) / 1000);
 }

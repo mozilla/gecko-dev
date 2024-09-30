@@ -1,10 +1,6 @@
 [bindings.kotlin]
 package_name = "mozilla.appservices.suggest"
-cdylib_name = "megazord"
-
-[bindings.kotlin.external_packages]
-remote_settings = "mozilla.appservices.remotesettings"
-
+ 
 [bindings.swift]
 ffi_module_name = "MozillaRustComponents"
 ffi_module_filename = "suggestFFI"

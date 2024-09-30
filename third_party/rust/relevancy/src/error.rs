@@ -6,7 +6,7 @@
 use error_support::{ErrorHandling, GetErrorHandling};
 
 /// Errors we return via the public interface.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, uniffi::Error)]
 pub enum RelevancyApiError {
     #[error("Unexpected Error: {reason}")]
     Unexpected { reason: String },

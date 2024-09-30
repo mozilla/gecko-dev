@@ -154,6 +154,20 @@ class ArrayBufferDataStream {
       return value;
     }
 
+    readBytes() {
+      const size = this.readInt32();
+      const bytes = new Uint8Array(this.dataView.buffer, this.pos, size);
+      this.pos += size;
+      return bytes
+    }
+
+    writeBytes(uint8Array) {
+      this.writeUint32(uint8Array.length);
+      value.forEach((elt) => {
+        dataStream.writeUint8(elt);
+      })
+    }
+
     // Reads a RemoteSettings pointer from the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
@@ -355,7 +369,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                9, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
+                10, // remote_settings:uniffi_remote_settings_fn_constructor_remotesettings_new
                 FfiConverterTypeRemoteSettingsConfig.lower(remoteSettingsConfig),
             )
         }
@@ -382,7 +396,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                6, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
+                7, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_download_attachment_to_path
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterString.lower(attachmentId),
                 FfiConverterString.lower(path),
@@ -400,7 +414,7 @@ export class RemoteSettings {
         const liftError = (data) => FfiConverterTypeRemoteSettingsError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsync(
-                7, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
+                8, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records
                 FfiConverterTypeRemoteSettings.lower(this),
             )
         }
@@ -424,7 +438,7 @@ export class RemoteSettings {
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                8, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
+                9, // remote_settings:uniffi_remote_settings_fn_method_remotesettings_get_records_since
                 FfiConverterTypeRemoteSettings.lower(this),
                 FfiConverterU64.lower(timestamp),
             )

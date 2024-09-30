@@ -34,6 +34,7 @@ use crate::{
 ///
 /// Using a builder is preferred to calling the constructor directly since it's harder to confuse
 /// the data_path and cache_path strings.
+#[derive(uniffi::Object)]
 pub struct SuggestStoreBuilder(Mutex<SuggestStoreBuilderInner>);
 
 #[derive(Default)]
@@ -50,7 +51,9 @@ impl Default for SuggestStoreBuilder {
     }
 }
 
+#[uniffi::export]
 impl SuggestStoreBuilder {
+    #[uniffi::constructor]
     pub fn new() -> SuggestStoreBuilder {
         Self(Mutex::new(SuggestStoreBuilderInner::default()))
     }
@@ -60,6 +63,7 @@ impl SuggestStoreBuilder {
         self
     }
 
+    /// Deprecated: this is no longer used by the suggest component.
     pub fn cache_path(self: Arc<Self>, _path: String) -> Arc<Self> {
         // We used to use this, but we're not using it anymore, just ignore the call
         self
@@ -75,6 +79,11 @@ impl SuggestStoreBuilder {
         self
     }
 
+    /// Add an sqlite3 extension to load
+    ///
+    /// library_name should be the name of the library without any extension, for example `libmozsqlite3`.
+    /// entrypoint should be the entry point, for example `sqlite3_fts5_init`.  If `null` (the default)
+    /// entry point will be used (see https://sqlite.org/loadext.html for details).
     pub fn load_extension(
         self: Arc<Self>,
         library: String,
@@ -109,7 +118,7 @@ impl SuggestStoreBuilder {
 }
 
 /// What should be interrupted when [SuggestStore::interrupt] is called?
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash, uniffi::Enum)]
 pub enum InterruptKind {
     /// Interrupt read operations like [SuggestStore::query]
     Read,
@@ -148,13 +157,16 @@ pub enum InterruptKind {
 ///    to request a small subset of the Suggest data and download the rest
 ///    later, while a desktop on a fast link might download the entire dataset
 ///    on the first launch.
+#[derive(uniffi::Object)]
 pub struct SuggestStore {
     inner: SuggestStoreInner<RemoteSettingsClient>,
 }
 
+#[uniffi::export]
 impl SuggestStore {
     /// Creates a Suggest store.
     #[handle_error(Error)]
+    #[uniffi::constructor(default(settings_config = None))]
     pub fn new(
         path: &str,
         settings_config: Option<RemoteSettingsConfig>,
@@ -212,6 +224,7 @@ impl SuggestStore {
     /// This should be called when the user types new input into the address
     /// bar, to ensure that they see fresh suggestions as they type. This
     /// method does not interrupt any ongoing ingests.
+    #[uniffi::method(default(kind = None))]
     pub fn interrupt(&self, kind: Option<InterruptKind>) {
         self.inner.interrupt(kind)
     }
@@ -245,18 +258,29 @@ impl SuggestStore {
     ) -> SuggestApiResult<Option<SuggestProviderConfig>> {
         self.inner.fetch_provider_config(provider)
     }
+}
 
+impl SuggestStore {
     pub fn force_reingest(&self) {
         self.inner.force_reingest()
     }
 }
 
 /// Constraints limit which suggestions to ingest from Remote Settings.
-#[derive(Clone, Default, Debug)]
+#[derive(Clone, Default, Debug, uniffi::Record)]
 pub struct SuggestIngestionConstraints {
+    #[uniffi(default = None)]
     pub providers: Option<Vec<SuggestionProvider>>,
+    #[uniffi(default = None)]
     pub provider_constraints: Option<SuggestionProviderConstraints>,
     /// Only run ingestion if the table `suggestions` is empty
+    ///
+    // This is indented to handle periodic updates.  Consumers can schedule an ingest with
+    // `empty_only=true` on startup and a regular ingest with `empty_only=false` to run on a long periodic schedule (maybe
+    // once a day). This allows ingestion to normally be run at a slow, periodic rate.  However, if
+    // there is a schema upgrade that causes the database to be thrown away, then the
+    // `empty_only=true` ingestion that runs on startup will repopulate it.
+    #[uniffi(default = false)]
     pub empty_only: bool,
 }
 

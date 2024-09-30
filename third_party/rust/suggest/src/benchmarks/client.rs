@@ -62,6 +62,25 @@ impl RemoteSettingsBenchmarkClient {
         Ok(())
     }
 
+    pub fn attachment_size_by_record_type(&self) -> Vec<(rs::SuggestRecordType, usize)> {
+        let mut sizes = HashMap::<rs::SuggestRecordType, usize>::new();
+        for record in self.records.iter() {
+            let record_type = rs::SuggestRecordType::from(&record.payload);
+            if let Some(a) = &record.attachment {
+                if let Some(attachment) = self.attachments.get(&a.location) {
+                    sizes
+                        .entry(record_type)
+                        .and_modify(|size| *size += attachment.len())
+                        .or_insert(attachment.len());
+                }
+            }
+        }
+        let mut sizes_vec: Vec<_> = sizes.into_iter().collect();
+        sizes_vec.sort_by_key(|(_, size)| *size);
+        sizes_vec.reverse();
+        sizes_vec
+    }
+
     pub fn total_attachment_size(&self) -> usize {
         self.attachments.values().map(|a| a.len()).sum()
     }

@@ -49,6 +49,9 @@
 {%- when Type::String %}
 {%- include "String.sys.mjs" %}
 
+{%- when Type::Bytes %}
+{%- include "Bytes.sys.mjs" %}
+
 {%- when Type::Sequence { inner_type } %}
 {%- include "Sequence.sys.mjs" %}
 

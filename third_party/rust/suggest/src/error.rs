@@ -79,15 +79,15 @@ pub impl<T> Result<T, rusqlite::Error> {
 
 /// The error type for all Suggest component operations. These errors are
 /// exposed to your application, which should handle them as needed.
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, uniffi::Error)]
 #[non_exhaustive]
 pub enum SuggestApiError {
     #[error("Network error: {reason}")]
     Network { reason: String },
-    // The server requested a backoff after too many requests
+    /// The server requested a backoff after too many requests
     #[error("Backoff")]
     Backoff { seconds: u64 },
-    // The application interrupted a request
+    /// An operation was interrupted by calling `SuggestStore.interrupt()`
     #[error("Interrupted")]
     Interrupted,
     #[error("Other error: {reason}")]

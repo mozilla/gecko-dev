@@ -13,7 +13,7 @@
 edition = "2021"
 name = "relevancy"
 version = "0.1.0"
-build = "build.rs"
+build = false
 exclude = [
     "/android",
     "/ios",

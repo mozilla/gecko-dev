@@ -154,6 +154,20 @@ class ArrayBufferDataStream {
       return value;
     }
 
+    readBytes() {
+      const size = this.readInt32();
+      const bytes = new Uint8Array(this.dataView.buffer, this.pos, size);
+      this.pos += size;
+      return bytes
+    }
+
+    writeBytes(uint8Array) {
+      this.writeUint32(uint8Array.length);
+      value.forEach((elt) => {
+        dataStream.writeUint8(elt);
+      })
+    }
+
     // Reads a SingletonObject pointer from the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
@@ -320,7 +334,7 @@ export class SingletonObject {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                64, // refcounts:uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method
+                65, // refcounts:uniffi_uniffi_fixture_refcounts_fn_method_singletonobject_method
                 FfiConverterTypeSingletonObject.lower(this),
             )
         }
@@ -368,7 +382,7 @@ export function getJsRefcount() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                62, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount
+                63, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_js_refcount
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
@@ -380,7 +394,7 @@ export function getSingleton() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                63, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_singleton
+                64, // refcounts:uniffi_uniffi_fixture_refcounts_fn_func_get_singleton
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);

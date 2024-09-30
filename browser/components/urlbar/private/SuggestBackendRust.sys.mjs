@@ -155,8 +155,8 @@ export class SuggestBackendRust extends BaseFeature {
       suggestion.source = "rust";
       suggestion.provider = type;
       suggestion.is_sponsored = SPONSORED_SUGGESTION_TYPES.has(type);
-      if (Array.isArray(suggestion.icon)) {
-        suggestion.icon_blob = new Blob([new Uint8Array(suggestion.icon)], {
+      if (suggestion.icon) {
+        suggestion.icon_blob = new Blob([suggestion.icon], {
           type: suggestion.iconMimetype ?? "",
         });
 

@@ -154,6 +154,20 @@ class ArrayBufferDataStream {
       return value;
     }
 
+    readBytes() {
+      const size = this.readInt32();
+      const bytes = new Uint8Array(this.dataView.buffer, this.pos, size);
+      this.pos += size;
+      return bytes
+    }
+
+    writeBytes(uint8Array) {
+      this.writeUint32(uint8Array.length);
+      value.forEach((elt) => {
+        dataStream.writeUint8(elt);
+      })
+    }
+
     // Reads a RelevancyStore pointer from the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
@@ -269,6 +283,25 @@ export class FfiConverterU32 extends FfiConverter {
 }
 
 // Export the FFIConverter object to make external types work.
+export class FfiConverterF64 extends FfiConverter {
+    static computeSize() {
+        return 8;
+    }
+    static lift(value) {
+        return value;
+    }
+    static lower(value) {
+        return value;
+    }
+    static write(dataStream, value) {
+        dataStream.writeFloat64(value)
+    }
+    static read(dataStream) {
+        return dataStream.readFloat64()
+    }
+}
+
+// Export the FFIConverter object to make external types work.
 export class FfiConverterString extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
@@ -319,21 +352,21 @@ export class RelevancyStore {
      * 
      * @returns { RelevancyStore }
      */
-    static init(dbpath) {
+    static init(dbPath) {
         const liftResult = (result) => FfiConverterTypeRelevancyStore.lift(result);
         const liftError = null;
         const functionCall = () => {
             try {
-                FfiConverterString.checkType(dbpath)
+                FfiConverterString.checkType(dbPath)
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("dbpath");
+                    e.addItemDescriptionPart("dbPath");
                 }
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                5, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
-                FfiConverterString.lower(dbpath),
+                6, // relevancy:uniffi_relevancy_fn_constructor_relevancystore_new
+                FfiConverterString.lower(dbPath),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);}
@@ -343,7 +376,7 @@ export class RelevancyStore {
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsync(
-                0, // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
+                1, // relevancy:uniffi_relevancy_fn_method_relevancystore_calculate_metrics
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -359,29 +392,29 @@ export class RelevancyStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                1, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
+                2, // relevancy:uniffi_relevancy_fn_method_relevancystore_close
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
     }
 
-    ingest(topUrls) {
+    ingest(topUrlsByFrecency) {
         const liftResult = (result) => FfiConverterTypeInterestVector.lift(result);
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             try {
-                FfiConverterSequencestring.checkType(topUrls)
+                FfiConverterSequencestring.checkType(topUrlsByFrecency)
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("topUrls");
+                    e.addItemDescriptionPart("topUrlsByFrecency");
                 }
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                2, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
+                3, // relevancy:uniffi_relevancy_fn_method_relevancystore_ingest
                 FfiConverterTypeRelevancyStore.lower(this),
-                FfiConverterSequencestring.lower(topUrls),
+                FfiConverterSequencestring.lower(topUrlsByFrecency),
             )
         }
         try {
@@ -396,7 +429,7 @@ export class RelevancyStore {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                3, // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
+                4, // relevancy:uniffi_relevancy_fn_method_relevancystore_interrupt
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -408,7 +441,7 @@ export class RelevancyStore {
         const liftError = (data) => FfiConverterTypeRelevancyApiError.lift(data);
         const functionCall = () => {
             return UniFFIScaffolding.callAsync(
-                4, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
+                5, // relevancy:uniffi_relevancy_fn_method_relevancystore_user_interest_vector
                 FfiConverterTypeRelevancyStore.lower(this),
             )
         }
@@ -545,7 +578,15 @@ export class FfiConverterTypeInterestMetrics extends FfiConverterArrayBuffer {
 }
 
 export class InterestVector {
-    constructor({ animals, arts, autos, business, career, education, fashion, finance, food, government, hobbies, home, news, realEstate, society, sports, tech, travel, inconclusive } = {}) {
+    constructor({ inconclusive, animals, arts, autos, business, career, education, fashion, finance, food, government, hobbies, home, news, realEstate, society, sports, tech, travel } = {}) {
+        try {
+            FfiConverterU32.checkType(inconclusive)
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart("inconclusive");
+            }
+            throw e;
+        }
         try {
             FfiConverterU32.checkType(animals)
         } catch (e) {
@@ -690,14 +731,7 @@ export class InterestVector {
             }
             throw e;
         }
-        try {
-            FfiConverterU32.checkType(inconclusive)
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart("inconclusive");
-            }
-            throw e;
-        }
+        this.inconclusive = inconclusive;
         this.animals = animals;
         this.arts = arts;
         this.autos = autos;
@@ -716,10 +750,10 @@ export class InterestVector {
         this.sports = sports;
         this.tech = tech;
         this.travel = travel;
-        this.inconclusive = inconclusive;
     }
     equals(other) {
         return (
+            this.inconclusive == other.inconclusive &&
             this.animals == other.animals &&
             this.arts == other.arts &&
             this.autos == other.autos &&
@@ -737,8 +771,7 @@ export class InterestVector {
             this.society == other.society &&
             this.sports == other.sports &&
             this.tech == other.tech &&
-            this.travel == other.travel &&
-            this.inconclusive == other.inconclusive
+            this.travel == other.travel
         )
     }
 }
@@ -747,6 +780,7 @@ export class InterestVector {
 export class FfiConverterTypeInterestVector extends FfiConverterArrayBuffer {
     static read(dataStream) {
         return new InterestVector({
+            inconclusive: FfiConverterU32.read(dataStream),
             animals: FfiConverterU32.read(dataStream),
             arts: FfiConverterU32.read(dataStream),
             autos: FfiConverterU32.read(dataStream),
@@ -765,10 +799,10 @@ export class FfiConverterTypeInterestVector extends FfiConverterArrayBuffer {
             sports: FfiConverterU32.read(dataStream),
             tech: FfiConverterU32.read(dataStream),
             travel: FfiConverterU32.read(dataStream),
-            inconclusive: FfiConverterU32.read(dataStream),
         });
     }
     static write(dataStream, value) {
+        FfiConverterU32.write(dataStream, value.inconclusive);
         FfiConverterU32.write(dataStream, value.animals);
         FfiConverterU32.write(dataStream, value.arts);
         FfiConverterU32.write(dataStream, value.autos);
@@ -787,11 +821,11 @@ export class FfiConverterTypeInterestVector extends FfiConverterArrayBuffer {
         FfiConverterU32.write(dataStream, value.sports);
         FfiConverterU32.write(dataStream, value.tech);
         FfiConverterU32.write(dataStream, value.travel);
-        FfiConverterU32.write(dataStream, value.inconclusive);
     }
 
     static computeSize(value) {
         let totalSize = 0;
+        totalSize += FfiConverterU32.computeSize(value.inconclusive);
         totalSize += FfiConverterU32.computeSize(value.animals);
         totalSize += FfiConverterU32.computeSize(value.arts);
         totalSize += FfiConverterU32.computeSize(value.autos);
@@ -810,7 +844,6 @@ export class FfiConverterTypeInterestVector extends FfiConverterArrayBuffer {
         totalSize += FfiConverterU32.computeSize(value.sports);
         totalSize += FfiConverterU32.computeSize(value.tech);
         totalSize += FfiConverterU32.computeSize(value.travel);
-        totalSize += FfiConverterU32.computeSize(value.inconclusive);
         return totalSize
     }
 
@@ -818,6 +851,14 @@ export class FfiConverterTypeInterestVector extends FfiConverterArrayBuffer {
         super.checkType(value);
         if (!(value instanceof InterestVector)) {
             throw new UniFFITypeError(`Expected 'InterestVector', found '${typeof value}'`);
+        }
+        try {
+            FfiConverterU32.checkType(value.inconclusive);
+        } catch (e) {
+            if (e instanceof UniFFITypeError) {
+                e.addItemDescriptionPart(".inconclusive");
+            }
+            throw e;
         }
         try {
             FfiConverterU32.checkType(value.animals);
@@ -963,38 +1004,30 @@ export class FfiConverterTypeInterestVector extends FfiConverterArrayBuffer {
             }
             throw e;
         }
-        try {
-            FfiConverterU32.checkType(value.inconclusive);
-        } catch (e) {
-            if (e instanceof UniFFITypeError) {
-                e.addItemDescriptionPart(".inconclusive");
-            }
-            throw e;
-        }
     }
 }
 
 
 export const Interest = {
-    ANIMALS: 1,
-    ARTS: 2,
-    AUTOS: 3,
-    BUSINESS: 4,
-    CAREER: 5,
-    EDUCATION: 6,
-    FASHION: 7,
-    FINANCE: 8,
-    FOOD: 9,
-    GOVERNMENT: 10,
-    HOBBIES: 11,
-    HOME: 12,
-    NEWS: 13,
-    REAL_ESTATE: 14,
-    SOCIETY: 15,
-    SPORTS: 16,
-    TECH: 17,
-    TRAVEL: 18,
-    INCONCLUSIVE: 19,
+    INCONCLUSIVE: 1,
+    ANIMALS: 2,
+    ARTS: 3,
+    AUTOS: 4,
+    BUSINESS: 5,
+    CAREER: 6,
+    EDUCATION: 7,
+    FASHION: 8,
+    FINANCE: 9,
+    FOOD: 10,
+    GOVERNMENT: 11,
+    HOBBIES: 12,
+    HOME: 13,
+    NEWS: 14,
+    REAL_ESTATE: 15,
+    SOCIETY: 16,
+    SPORTS: 17,
+    TECH: 18,
+    TRAVEL: 19,
 };
 
 Object.freeze(Interest);
@@ -1003,122 +1036,122 @@ export class FfiConverterTypeInterest extends FfiConverterArrayBuffer {
     static read(dataStream) {
         switch (dataStream.readInt32()) {
             case 1:
-                return Interest.ANIMALS
-            case 2:
-                return Interest.ARTS
-            case 3:
-                return Interest.AUTOS
-            case 4:
-                return Interest.BUSINESS
-            case 5:
-                return Interest.CAREER
-            case 6:
-                return Interest.EDUCATION
-            case 7:
-                return Interest.FASHION
-            case 8:
-                return Interest.FINANCE
-            case 9:
-                return Interest.FOOD
-            case 10:
-                return Interest.GOVERNMENT
-            case 11:
-                return Interest.HOBBIES
-            case 12:
-                return Interest.HOME
-            case 13:
-                return Interest.NEWS
-            case 14:
-                return Interest.REAL_ESTATE
-            case 15:
-                return Interest.SOCIETY
-            case 16:
-                return Interest.SPORTS
-            case 17:
-                return Interest.TECH
-            case 18:
-                return Interest.TRAVEL
-            case 19:
                 return Interest.INCONCLUSIVE
+            case 2:
+                return Interest.ANIMALS
+            case 3:
+                return Interest.ARTS
+            case 4:
+                return Interest.AUTOS
+            case 5:
+                return Interest.BUSINESS
+            case 6:
+                return Interest.CAREER
+            case 7:
+                return Interest.EDUCATION
+            case 8:
+                return Interest.FASHION
+            case 9:
+                return Interest.FINANCE
+            case 10:
+                return Interest.FOOD
+            case 11:
+                return Interest.GOVERNMENT
+            case 12:
+                return Interest.HOBBIES
+            case 13:
+                return Interest.HOME
+            case 14:
+                return Interest.NEWS
+            case 15:
+                return Interest.REAL_ESTATE
+            case 16:
+                return Interest.SOCIETY
+            case 17:
+                return Interest.SPORTS
+            case 18:
+                return Interest.TECH
+            case 19:
+                return Interest.TRAVEL
             default:
                 throw new UniFFITypeError("Unknown Interest variant");
         }
     }
 
     static write(dataStream, value) {
-        if (value === Interest.ANIMALS) {
+        if (value === Interest.INCONCLUSIVE) {
             dataStream.writeInt32(1);
             return;
         }
-        if (value === Interest.ARTS) {
+        if (value === Interest.ANIMALS) {
             dataStream.writeInt32(2);
             return;
         }
-        if (value === Interest.AUTOS) {
+        if (value === Interest.ARTS) {
             dataStream.writeInt32(3);
             return;
         }
-        if (value === Interest.BUSINESS) {
+        if (value === Interest.AUTOS) {
             dataStream.writeInt32(4);
             return;
         }
-        if (value === Interest.CAREER) {
+        if (value === Interest.BUSINESS) {
             dataStream.writeInt32(5);
             return;
         }
-        if (value === Interest.EDUCATION) {
+        if (value === Interest.CAREER) {
             dataStream.writeInt32(6);
             return;
         }
-        if (value === Interest.FASHION) {
+        if (value === Interest.EDUCATION) {
             dataStream.writeInt32(7);
             return;
         }
-        if (value === Interest.FINANCE) {
+        if (value === Interest.FASHION) {
             dataStream.writeInt32(8);
             return;
         }
-        if (value === Interest.FOOD) {
+        if (value === Interest.FINANCE) {
             dataStream.writeInt32(9);
             return;
         }
-        if (value === Interest.GOVERNMENT) {
+        if (value === Interest.FOOD) {
             dataStream.writeInt32(10);
             return;
         }
-        if (value === Interest.HOBBIES) {
+        if (value === Interest.GOVERNMENT) {
             dataStream.writeInt32(11);
             return;
         }
-        if (value === Interest.HOME) {
+        if (value === Interest.HOBBIES) {
             dataStream.writeInt32(12);
             return;
         }
-        if (value === Interest.NEWS) {
+        if (value === Interest.HOME) {
             dataStream.writeInt32(13);
             return;
         }
-        if (value === Interest.REAL_ESTATE) {
+        if (value === Interest.NEWS) {
             dataStream.writeInt32(14);
             return;
         }
-        if (value === Interest.SOCIETY) {
+        if (value === Interest.REAL_ESTATE) {
             dataStream.writeInt32(15);
             return;
         }
-        if (value === Interest.SPORTS) {
+        if (value === Interest.SOCIETY) {
             dataStream.writeInt32(16);
             return;
         }
-        if (value === Interest.TECH) {
+        if (value === Interest.SPORTS) {
             dataStream.writeInt32(17);
             return;
         }
-        if (value === Interest.TRAVEL) {
+        if (value === Interest.TECH) {
             dataStream.writeInt32(18);
             return;
         }
-        if (value === Interest.INCONCLUSIVE) {
+        if (value === Interest.TRAVEL) {
             dataStream.writeInt32(19);
             return;
         }
@@ -1235,6 +1268,84 @@ export class FfiConverterSequencestring extends FfiConverterArrayBuffer {
     }
 }
 
+// Export the FFIConverter object to make external types work.
+export class FfiConverterSequenceTypeInterest extends FfiConverterArrayBuffer {
+    static read(dataStream) {
+        const len = dataStream.readInt32();
+        const arr = [];
+        for (let i = 0; i < len; i++) {
+            arr.push(FfiConverterTypeInterest.read(dataStream));
+        }
+        return arr;
+    }
+
+    static write(dataStream, value) {
+        dataStream.writeInt32(value.length);
+        value.forEach((innerValue) => {
+            FfiConverterTypeInterest.write(dataStream, innerValue);
+        })
+    }
+
+    static computeSize(value) {
+        // The size of the length
+        let size = 4;
+        for (const innerValue of value) {
+            size += FfiConverterTypeInterest.computeSize(innerValue);
+        }
+        return size;
+    }
+
+    static checkType(value) {
+        if (!Array.isArray(value)) {
+            throw new UniFFITypeError(`${value} is not an array`);
+        }
+        value.forEach((innerValue, idx) => {
+            try {
+                FfiConverterTypeInterest.checkType(innerValue);
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart(`[${idx}]`);
+                }
+                throw e;
+            }
+        })
+    }
+}
 
 
 
+
+
+export function score(interestVector,contentCategories) {
+
+        const liftResult = (result) => FfiConverterF64.lift(result);
+        const liftError = null;
+        const functionCall = () => {
+            try {
+                FfiConverterTypeInterestVector.checkType(interestVector)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("interestVector");
+                }
+                throw e;
+            }
+            try {
+                FfiConverterSequenceTypeInterest.checkType(contentCategories)
+            } catch (e) {
+                if (e instanceof UniFFITypeError) {
+                    e.addItemDescriptionPart("contentCategories");
+                }
+                throw e;
+            }
+            return UniFFIScaffolding.callAsync(
+                0, // relevancy:uniffi_relevancy_fn_func_score
+                FfiConverterTypeInterestVector.lower(interestVector),
+                FfiConverterSequenceTypeInterest.lower(contentCategories),
+            )
+        }
+        try {
+            return functionCall().then((result) => handleRustResult(result, liftResult, liftError));
+        }  catch (error) {
+            return Promise.reject(error)
+        }
+}

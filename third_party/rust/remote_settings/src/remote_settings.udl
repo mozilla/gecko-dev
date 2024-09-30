@@ -56,20 +56,20 @@ enum RemoteSettingsError {
 };
 
 interface RemoteSettings {
-    // Construct a new Remote Settings client with the given configuration.
+    /// Construct a new Remote Settings client with the given configuration.
     [Throws=RemoteSettingsError]
     constructor(RemoteSettingsConfig remote_settings_config);
 
-    // Fetch all records for the configuration this client was initialized with.
+    /// Fetch all records for the configuration this client was initialized with.
     [Throws=RemoteSettingsError]
     RemoteSettingsResponse get_records();
 
-    // Fetch all records added to the server since the provided timestamp,
-    // using the configuration this client was initialized with.
+    /// Fetch all records added to the server since the provided timestamp,
+    /// using the configuration this client was initialized with.
     [Throws=RemoteSettingsError]
     RemoteSettingsResponse get_records_since(u64 timestamp);
 
-    // Download an attachment with the provided id to the provided path.
+    /// Download an attachment with the provided id to the provided path.
     [Throws=RemoteSettingsError]
     void download_attachment_to_path(string attachment_id, string path);
 };

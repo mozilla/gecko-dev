@@ -34,7 +34,7 @@ impl ToSql for InterestVectorKind {
 /// List of possible interests for a domain.  Domains can have be associated with one or multiple
 /// interests.  `Inconclusive` is used for domains in the user's top sites that we can't classify
 /// because there's no corresponding entry in the interest database.
-#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord, uniffi::Enum)]
 #[repr(u32)]
 pub enum Interest {
     // Note: if you change these codes, make sure to update the `TryFrom<u32>` implementation and
@@ -149,7 +149,7 @@ impl ToSql for Interest {
 ///
 /// Here "vector" refers to the mathematical object, not a Rust `Vec`.  It always has a fixed
 /// number of elements.
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, uniffi::Record)]
 pub struct InterestVector {
     pub inconclusive: u32,
     pub animals: u32,
