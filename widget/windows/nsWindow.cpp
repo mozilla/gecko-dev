@@ -5086,7 +5086,8 @@ bool nsWindow::ProcessMessageInternal(UINT msg, WPARAM& wParam, LPARAM& lParam,
       //     If this parameter is set to -1, DefWindowProc does not repaint the
       //     nonclient area to reflect the state change.
       //
-      // [1]: https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-ncactivate
+      // [1]:
+      // https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-ncactivate
       lParam = -1;
     } break;
 
