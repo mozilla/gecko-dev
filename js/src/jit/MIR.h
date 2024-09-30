@@ -1347,6 +1347,42 @@ class MLimitedTruncate : public MUnaryInstruction,
   void setTruncateKind(TruncateKind kind) { truncate_ = kind; }
 };
 
+// Truncation barrier. This is intended for protecting its input against
+// follow-up truncation optimizations.
+class MIntPtrLimitedTruncate : public MUnaryInstruction,
+                               public NoTypePolicy::Data {
+  explicit MIntPtrLimitedTruncate(MDefinition* input)
+      : MUnaryInstruction(classOpcode, input) {
+    MOZ_ASSERT(input->type() == MIRType::IntPtr);
+    setResultType(MIRType::IntPtr);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(IntPtrLimitedTruncate)
+  TRIVIAL_NEW_WRAPPERS
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+};
+
+// Truncation barrier. This is intended for protecting its input against
+// follow-up truncation optimizations.
+class MInt64LimitedTruncate : public MUnaryInstruction,
+                              public NoTypePolicy::Data {
+  explicit MInt64LimitedTruncate(MDefinition* input)
+      : MUnaryInstruction(classOpcode, input) {
+    MOZ_ASSERT(input->type() == MIRType::Int64);
+    setResultType(MIRType::Int64);
+    setMovable();
+  }
+
+ public:
+  INSTRUCTION_HEADER(Int64LimitedTruncate)
+  TRIVIAL_NEW_WRAPPERS
+
+  AliasSet getAliasSet() const override { return AliasSet::None(); }
+};
+
 // A constant js::Value.
 class MConstant : public MNullaryInstruction {
   struct Payload {

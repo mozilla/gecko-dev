@@ -3097,6 +3097,20 @@ void LIRGenerator::visitLimitedTruncate(MLimitedTruncate* nop) {
   redefine(nop, nop->input());
 }
 
+void LIRGenerator::visitIntPtrLimitedTruncate(MIntPtrLimitedTruncate* ins) {
+  MOZ_ASSERT(ins->input()->type() == MIRType::IntPtr);
+
+  // This is a no-op.
+  redefine(ins, ins->input());
+}
+
+void LIRGenerator::visitInt64LimitedTruncate(MInt64LimitedTruncate* ins) {
+  MOZ_ASSERT(ins->input()->type() == MIRType::Int64);
+
+  // This is a no-op.
+  redefine(ins, ins->input());
+}
+
 void LIRGenerator::visitOsrEntry(MOsrEntry* entry) {
   LOsrEntry* lir = new (alloc()) LOsrEntry(temp());
   defineFixed(lir, entry, LAllocation(AnyRegister(OsrFrameReg)));
