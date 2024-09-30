@@ -19,48 +19,6 @@ using namespace js::jit;
 namespace js {
 namespace jit {
 
-const OptimizationLevelInfo IonOptimizations;
-
-void OptimizationInfo::initNormalOptimizationInfo() {
-  level_ = OptimizationLevel::Normal;
-
-  autoTruncate_ = true;
-  eaa_ = true;
-  edgeCaseAnalysis_ = true;
-  eliminateRedundantChecks_ = true;
-  eliminateRedundantShapeGuards_ = true;
-  eliminateRedundantGCBarriers_ = true;
-  inlineInterpreted_ = true;
-  inlineNative_ = true;
-  licm_ = true;
-  gvn_ = true;
-  rangeAnalysis_ = true;
-  reordering_ = true;
-  scalarReplacement_ = true;
-  sink_ = true;
-
-  registerAllocator_ = RegisterAllocator_Backtracking;
-}
-
-void OptimizationInfo::initWasmOptimizationInfo() {
-  // The Wasm optimization level
-  // Disables some passes that don't work well with wasm.
-
-  // Take normal option values for not specified values.
-  initNormalOptimizationInfo();
-
-  level_ = OptimizationLevel::Wasm;
-
-  ama_ = true;
-  autoTruncate_ = false;
-  edgeCaseAnalysis_ = false;
-  eliminateRedundantChecks_ = false;
-  eliminateRedundantShapeGuards_ = false;
-  eliminateRedundantGCBarriers_ = false;
-  scalarReplacement_ = false;  // wasm has no objects.
-  sink_ = false;
-}
-
 uint32_t OptimizationInfo::compilerWarmUpThreshold(JSContext* cx,
                                                    JSScript* script,
                                                    jsbytecode* pc) const {
@@ -133,11 +91,6 @@ uint32_t OptimizationInfo::recompileWarmUpThreshold(JSContext* cx,
   uint32_t loopDepth = LoopHeadDepthHint(pc);
   MOZ_ASSERT(loopDepth > 0);
   return threshold + loopDepth * (baseCompilerWarmUpThreshold() / 10);
-}
-
-OptimizationLevelInfo::OptimizationLevelInfo() {
-  infos_[OptimizationLevel::Normal].initNormalOptimizationInfo();
-  infos_[OptimizationLevel::Wasm].initWasmOptimizationInfo();
 }
 
 OptimizationLevel OptimizationLevelInfo::levelForScript(JSContext* cx,

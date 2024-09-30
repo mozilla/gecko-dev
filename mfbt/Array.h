@@ -39,14 +39,14 @@ class Array {
                   "parameter Length");
   }
 
-  T& operator[](size_t aIndex) {
+  constexpr T& operator[](size_t aIndex) {
     if (MOZ_UNLIKELY(aIndex >= Length)) {
       detail::InvalidArrayIndex_CRASH(aIndex, Length);
     }
     return mArr[aIndex];
   }
 
-  const T& operator[](size_t aIndex) const {
+  constexpr const T& operator[](size_t aIndex) const {
     if (MOZ_UNLIKELY(aIndex >= Length)) {
       detail::InvalidArrayIndex_CRASH(aIndex, Length);
     }

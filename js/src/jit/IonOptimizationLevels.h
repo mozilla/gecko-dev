@@ -111,8 +111,44 @@ class OptimizationInfo {
         scalarReplacement_(false),
         registerAllocator_(RegisterAllocator_Backtracking) {}
 
-  void initNormalOptimizationInfo();
-  void initWasmOptimizationInfo();
+  constexpr void initNormalOptimizationInfo() {
+    level_ = OptimizationLevel::Normal;
+
+    autoTruncate_ = true;
+    eaa_ = true;
+    edgeCaseAnalysis_ = true;
+    eliminateRedundantChecks_ = true;
+    eliminateRedundantShapeGuards_ = true;
+    eliminateRedundantGCBarriers_ = true;
+    inlineInterpreted_ = true;
+    inlineNative_ = true;
+    licm_ = true;
+    gvn_ = true;
+    rangeAnalysis_ = true;
+    reordering_ = true;
+    scalarReplacement_ = true;
+    sink_ = true;
+
+    registerAllocator_ = RegisterAllocator_Backtracking;
+  }
+  constexpr void initWasmOptimizationInfo() {
+    // The Wasm optimization level
+    // Disables some passes that don't work well with wasm.
+
+    // Take normal option values for not specified values.
+    initNormalOptimizationInfo();
+
+    level_ = OptimizationLevel::Wasm;
+
+    ama_ = true;
+    autoTruncate_ = false;
+    edgeCaseAnalysis_ = false;
+    eliminateRedundantChecks_ = false;
+    eliminateRedundantShapeGuards_ = false;
+    eliminateRedundantGCBarriers_ = false;
+    scalarReplacement_ = false;  // wasm has no objects.
+    sink_ = false;
+  }
 
   OptimizationLevel level() const { return level_; }
 
@@ -186,7 +222,10 @@ class OptimizationLevelInfo {
       infos_;
 
  public:
-  OptimizationLevelInfo();
+  constexpr OptimizationLevelInfo() {
+    infos_[OptimizationLevel::Normal].initNormalOptimizationInfo();
+    infos_[OptimizationLevel::Wasm].initWasmOptimizationInfo();
+  }
 
   const OptimizationInfo* get(OptimizationLevel level) const {
     return &infos_[level];
@@ -196,7 +235,7 @@ class OptimizationLevelInfo {
                                    jsbytecode* pc = nullptr) const;
 };
 
-extern const OptimizationLevelInfo IonOptimizations;
+constexpr OptimizationLevelInfo IonOptimizations;
 
 }  // namespace jit
 }  // namespace js
