@@ -512,7 +512,7 @@ struct RecGroupHashPolicy {
   static HashNumber hash(Lookup lookup) { return lookup->hash(); }
 
   static bool match(const SharedRecGroup& lhs, Lookup rhs) {
-    return RecGroup::matches(*rhs, *lhs);
+    return RecGroup::isoEquals(*rhs, *lhs);
   }
 };
 

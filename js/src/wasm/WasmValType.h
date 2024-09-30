@@ -208,16 +208,16 @@ union SerializableTypeCode {
 WASM_DECLARE_CACHEABLE_POD(SerializableTypeCode);
 static_assert(sizeof(SerializableTypeCode) == sizeof(uintptr_t), "packed");
 
-// [SMDOC] Matching type definitions
+// [SMDOC] Comparing type definitions
 //
 // WebAssembly type equality is structural, and we implement canonicalization
 // such that equality of pointers to type definitions means that the type
 // definitions are structurally equal.
 //
-// 'Matching' is the algorithm used to determine if two types are equal while
+// 'IsoEquals' is the algorithm used to determine if two types are equal while
 // canonicalizing types.
 //
-// A match type code encodes a type code for use in equality and hashing
+// A iso equals type code encodes a type code for use in equality and hashing
 // matching. It normalizes type references that are local to a recursion group
 // so that they can be bitwise compared to type references from other recursion
 // groups.
@@ -243,7 +243,7 @@ static_assert(sizeof(SerializableTypeCode) == sizeof(uintptr_t), "packed");
 // types that point to the function type instance before them. A bitwise
 // comparison of the element type pointers would fail.
 //
-// To solve this, we use `MatchTypeCode` to convert the example to:
+// To solve this, we use `IsoEqualsTypeCode` to convert the example to:
 //   (rec (func $a))
 //   (rec
 //     (func $b)
@@ -259,12 +259,12 @@ static_assert(sizeof(SerializableTypeCode) == sizeof(uintptr_t), "packed");
 //   )
 //
 // Now, comparing the element types will see that these are local type
-// references of the same kinds. `MatchTypeCode` performs the same mechanism
+// references of the same kinds. `IsoEqualsTypeCode` performs the same mechanism
 // as `tie` in the MVP presentation of type equality [1].
 //
 // [1]
 // https://github.com/WebAssembly/gc/blob/main/proposals/gc/MVP.md#equivalence
-union MatchTypeCode {
+union IsoEqualsTypeCode {
   using PackedRepr = uint64_t;
 
   static constexpr size_t NullableBits = 1;
@@ -285,11 +285,11 @@ union MatchTypeCode {
                 "enough bits");
 
   // Defined in WasmTypeDef.h to avoid a cycle while allowing inlining
-  static inline MatchTypeCode forMatch(PackedTypeCode ptc,
-                                       const RecGroup* recGroup);
+  static inline IsoEqualsTypeCode forIsoEquals(PackedTypeCode ptc,
+                                               const RecGroup* recGroup);
 
-  bool operator==(MatchTypeCode other) const { return bits == other.bits; }
-  bool operator!=(MatchTypeCode other) const { return bits != other.bits; }
+  bool operator==(IsoEqualsTypeCode other) const { return bits == other.bits; }
+  bool operator!=(IsoEqualsTypeCode other) const { return bits != other.bits; }
   HashNumber hash() const { return HashNumber(bits); }
 };
 
@@ -697,8 +697,8 @@ class PackedType : public T {
     return T::isValidTypeCode(tc_.typeCode());
   }
 
-  MatchTypeCode forMatch(const RecGroup* recGroup) const {
-    return MatchTypeCode::forMatch(tc_, recGroup);
+  IsoEqualsTypeCode forIsoEquals(const RecGroup* recGroup) const {
+    return IsoEqualsTypeCode::forIsoEquals(tc_, recGroup);
   }
 
   PackedTypeCode packed() const {
