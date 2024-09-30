@@ -45,10 +45,8 @@ class InProcessWinCompositorWidget final
   void LeavePresentLock() override;
   void OnDestroyWindow() override;
   bool OnWindowResize(const LayoutDeviceIntSize& aSize) override;
-  void OnWindowModeChange(nsSizeMode aSizeMode) override;
   void UpdateTransparency(TransparencyMode aMode) override;
-  void NotifyVisibilityUpdated(nsSizeMode aSizeMode,
-                               bool aIsFullyOccluded) override;
+  void NotifyVisibilityUpdated(bool aIsFullyOccluded) override;
   void ClearTransparentWindow() override;
 
   bool RedrawTransparentWindow();
@@ -62,7 +60,6 @@ class InProcessWinCompositorWidget final
     return mTransparentSurfaceLock;
   }
 
-  nsSizeMode GetWindowSizeMode() const override;
   bool GetWindowIsFullyOccluded() const override;
 
   void ObserveVsync(VsyncObserver* aObserver) override;
@@ -93,7 +90,6 @@ class InProcessWinCompositorWidget final
   }
 
   // Visibility handling.
-  mozilla::Atomic<nsSizeMode, MemoryOrdering::Relaxed> mSizeMode;
   mozilla::Atomic<bool, MemoryOrdering::Relaxed> mIsFullyOccluded;
 
   RefPtr<gfxASurface> mTransparentSurface;

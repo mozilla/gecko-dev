@@ -20,14 +20,11 @@ CompositorWidgetChild::CompositorWidgetChild(
     RefPtr<CompositorVsyncDispatcher> aVsyncDispatcher,
     RefPtr<CompositorWidgetVsyncObserver> aVsyncObserver,
     const CompositorWidgetInitData& aInitData)
-    : mVsyncDispatcher(aVsyncDispatcher),
-      mVsyncObserver(aVsyncObserver),
+    : mVsyncDispatcher(std::move(aVsyncDispatcher)),
+      mVsyncObserver(std::move(aVsyncObserver)),
       mCompositorWnd(nullptr),
       mWnd(reinterpret_cast<HWND>(
-          aInitData.get_WinCompositorWidgetInitData().hWnd())),
-      mTransparencyMode(
-          aInitData.get_WinCompositorWidgetInitData().transparencyMode()),
-      mRemoteBackbufferProvider() {
+          aInitData.get_WinCompositorWidgetInitData().hWnd())) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(!gfxPlatform::IsHeadless());
   MOZ_ASSERT(mWnd && ::IsWindow(mWnd));
@@ -37,8 +34,7 @@ CompositorWidgetChild::~CompositorWidgetChild() {}
 
 bool CompositorWidgetChild::Initialize() {
   mRemoteBackbufferProvider = std::make_unique<remote_backbuffer::Provider>();
-  if (!mRemoteBackbufferProvider->Initialize(mWnd, OtherPid(),
-                                             mTransparencyMode)) {
+  if (!mRemoteBackbufferProvider->Initialize(mWnd, OtherPid())) {
     return false;
   }
 
@@ -66,17 +62,8 @@ bool CompositorWidgetChild::OnWindowResize(const LayoutDeviceIntSize& aSize) {
   return true;
 }
 
-void CompositorWidgetChild::OnWindowModeChange(nsSizeMode aSizeMode) {}
-
-void CompositorWidgetChild::UpdateTransparency(TransparencyMode aMode) {
-  mTransparencyMode = aMode;
-  mRemoteBackbufferProvider->UpdateTransparencyMode(aMode);
-  Unused << SendUpdateTransparency(aMode);
-}
-
-void CompositorWidgetChild::NotifyVisibilityUpdated(nsSizeMode aSizeMode,
-                                                    bool aIsFullyOccluded) {
-  Unused << SendNotifyVisibilityUpdated(aSizeMode, aIsFullyOccluded);
+void CompositorWidgetChild::NotifyVisibilityUpdated(bool aIsFullyOccluded) {
+  Unused << SendNotifyVisibilityUpdated(aIsFullyOccluded);
 };
 
 void CompositorWidgetChild::ClearTransparentWindow() {

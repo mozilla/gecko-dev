@@ -887,22 +887,6 @@ static inline wr::SyntheticItalics DegreesToSyntheticItalics(float aDegrees) {
   return synthetic_italics;
 }
 
-static inline wr::WindowSizeMode ToWrWindowSizeMode(nsSizeMode aSizeMode) {
-  switch (aSizeMode) {
-    case nsSizeMode_Normal:
-      return wr::WindowSizeMode::Normal;
-    case nsSizeMode_Minimized:
-      return wr::WindowSizeMode::Minimized;
-    case nsSizeMode_Maximized:
-      return wr::WindowSizeMode::Maximized;
-    case nsSizeMode_Fullscreen:
-      return wr::WindowSizeMode::Fullscreen;
-    default:
-      MOZ_ASSERT_UNREACHABLE("Tried to convert invalid size mode.");
-      return wr::WindowSizeMode::Invalid;
-  }
-}
-
 static inline wr::APZScrollGeneration ToWrAPZScrollGeneration(
     const mozilla::APZScrollGeneration& aGeneration) {
   return wr::APZScrollGeneration(aGeneration.Raw());

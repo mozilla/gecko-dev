@@ -33,8 +33,7 @@ parent:
   
   sync EnterPresentLock();
   sync LeavePresentLock();
-  async UpdateTransparency(TransparencyMode aMode);
-  async NotifyVisibilityUpdated(nsSizeMode aSizeMode, bool aIsFullyOccluded);
+  async NotifyVisibilityUpdated(bool aIsFullyOccluded);
   sync ClearTransparentWindow();
   async __delete__();
 

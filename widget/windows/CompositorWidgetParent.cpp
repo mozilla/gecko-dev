@@ -34,25 +34,17 @@ CompositorWidgetParent::CompositorWidgetParent(
                           aOptions),
       mWnd(reinterpret_cast<HWND>(
           aInitData.get_WinCompositorWidgetInitData().hWnd())),
-      mTransparencyMode(uint32_t(
-          aInitData.get_WinCompositorWidgetInitData().transparencyMode())),
-      mSizeMode(nsSizeMode_Normal),
-      mIsFullyOccluded(false),
-      mRemoteBackbufferClient() {
+      mIsFullyOccluded(false) {
   MOZ_ASSERT(XRE_GetProcessType() == GeckoProcessType_GPU);
   MOZ_ASSERT(mWnd && ::IsWindow(mWnd));
 }
 
-CompositorWidgetParent::~CompositorWidgetParent() {}
+CompositorWidgetParent::~CompositorWidgetParent() = default;
 
 bool CompositorWidgetParent::Initialize(
     const RemoteBackbufferHandles& aRemoteHandles) {
   mRemoteBackbufferClient = std::make_unique<remote_backbuffer::Client>();
-  if (!mRemoteBackbufferClient->Initialize(aRemoteHandles)) {
-    return false;
-  }
-
-  return true;
+  return mRemoteBackbufferClient->Initialize(aRemoteHandles);
 }
 
 bool CompositorWidgetParent::PreRender(WidgetRenderingContext* aContext) {
@@ -136,21 +128,10 @@ mozilla::ipc::IPCResult CompositorWidgetParent::RecvLeavePresentLock() {
   return IPC_OK();
 }
 
-mozilla::ipc::IPCResult CompositorWidgetParent::RecvUpdateTransparency(
-    const TransparencyMode& aMode) {
-  mTransparencyMode = uint32_t(aMode);
-  return IPC_OK();
-}
-
 mozilla::ipc::IPCResult CompositorWidgetParent::RecvNotifyVisibilityUpdated(
-    const nsSizeMode& aSizeMode, const bool& aIsFullyOccluded) {
-  mSizeMode = aSizeMode;
+    const bool& aIsFullyOccluded) {
   mIsFullyOccluded = aIsFullyOccluded;
   return IPC_OK();
-}
-
-nsSizeMode CompositorWidgetParent::GetWindowSizeMode() const {
-  return mSizeMode;
 }
 
 bool CompositorWidgetParent::GetWindowIsFullyOccluded() const {

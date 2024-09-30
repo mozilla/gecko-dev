@@ -3863,7 +3863,7 @@ WindowRenderer* nsWindow::GetWindowRenderer() {
     WinCompositorWidgetInitData initData(
         reinterpret_cast<uintptr_t>(mWnd),
         reinterpret_cast<uintptr_t>(static_cast<nsIWidget*>(this)),
-        mTransparencyMode, mFrameState->GetSizeMode());
+        mTransparencyMode);
     // If we're not using the compositor, the options don't actually matter.
     CompositorOptions options(false, false);
     mBasicLayersSurface =
@@ -7003,18 +7003,6 @@ void nsWindow::OnSizeModeChange() {
   if (NeedsToTrackWindowOcclusionState()) {
     WinWindowOcclusionTracker::Get()->OnWindowVisibilityChanged(
         this, mode != nsSizeMode_Minimized);
-
-    wr::DebugFlags flags{0};
-    flags._0 = gfx::gfxVars::WebRenderDebugFlags();
-    bool debugEnabled = bool(flags & wr::DebugFlags::WINDOW_VISIBILITY_DBG);
-    if (debugEnabled && mCompositorWidgetDelegate) {
-      mCompositorWidgetDelegate->NotifyVisibilityUpdated(mode,
-                                                         mIsFullyOccluded);
-    }
-  }
-
-  if (mCompositorWidgetDelegate) {
-    mCompositorWidgetDelegate->OnWindowModeChange(mode);
   }
 
   if (mWidgetListener) {
@@ -8245,7 +8233,7 @@ void nsWindow::GetCompositorWidgetInitData(
   *aInitData = WinCompositorWidgetInitData(
       reinterpret_cast<uintptr_t>(mWnd),
       reinterpret_cast<uintptr_t>(static_cast<nsIWidget*>(this)),
-      mTransparencyMode, mFrameState->GetSizeMode());
+      mTransparencyMode);
 }
 
 bool nsWindow::SynchronouslyRepaintOnResize() { return false; }

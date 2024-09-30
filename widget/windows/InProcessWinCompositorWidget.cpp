@@ -77,8 +77,6 @@ bool InProcessWinCompositorWidget::OnWindowResize(
   return true;
 }
 
-void InProcessWinCompositorWidget::OnWindowModeChange(nsSizeMode aSizeMode) {}
-
 bool InProcessWinCompositorWidget::PreRender(WidgetRenderingContext* aContext) {
   // This can block waiting for WM_SETTEXT to finish
   // Using PreRender is unnecessarily pessimistic because
@@ -277,14 +275,8 @@ void InProcessWinCompositorWidget::UpdateTransparency(TransparencyMode aMode) {
 }
 
 void InProcessWinCompositorWidget::NotifyVisibilityUpdated(
-    nsSizeMode aSizeMode, bool aIsFullyOccluded) {
-  mSizeMode = aSizeMode;
+    bool aIsFullyOccluded) {
   mIsFullyOccluded = aIsFullyOccluded;
-}
-
-nsSizeMode InProcessWinCompositorWidget::GetWindowSizeMode() const {
-  nsSizeMode sizeMode = mSizeMode;
-  return sizeMode;
 }
 
 bool InProcessWinCompositorWidget::GetWindowIsFullyOccluded() const {

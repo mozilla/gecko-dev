@@ -1114,25 +1114,13 @@ impl Default for CompositorCapabilities {
 
 #[repr(C)]
 #[derive(Copy, Clone, Debug)]
-pub enum WindowSizeMode {
-    Normal,
-    Minimized,
-    Maximized,
-    Fullscreen,
-    Invalid,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Debug)]
 pub struct WindowVisibility {
-    pub size_mode: WindowSizeMode,
     pub is_fully_occluded: bool,
 }
 
 impl Default for WindowVisibility {
     fn default() -> Self {
         WindowVisibility {
-            size_mode: WindowSizeMode::Normal,
             is_fully_occluded: false,
         }
     }
