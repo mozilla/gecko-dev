@@ -179,7 +179,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                 customTabSessionId = args.customTabSessionId,
                                 isDesktopMode = when (args.accesspoint) {
                                     MenuAccessPoint.Home -> {
-                                        settings.openNextTabInDesktopMode
+                                        false // this is not supported on Home
                                     }
                                     MenuAccessPoint.External -> {
                                         customTab?.content?.desktopMode ?: false

@@ -1584,15 +1584,6 @@ class Settings(private val appContext: Context) : PreferencesHolder {
         featureFlag = true,
     )
 
-    /**
-     * Storing desktop item checkbox value in the home screen menu.
-     * If set to true, next opened tab from home screen will be opened in desktop mode.
-     */
-    var openNextTabInDesktopMode by booleanPreference(
-        appContext.getPreferenceKey(R.string.pref_key_open_next_tab_desktop_mode),
-        default = false,
-    )
-
     var signedInFxaAccount by booleanPreference(
         appContext.getPreferenceKey(R.string.pref_key_fxa_signed_in),
         default = false,
