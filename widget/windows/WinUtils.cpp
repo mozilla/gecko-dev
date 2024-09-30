@@ -1311,7 +1311,7 @@ LayoutDeviceIntRegion WinUtils::ConvertHRGNToRegion(HRGN aRgn) {
 }
 
 /* static */
-HRGN WinUtils::RegionToHRGN(const LayoutDeviceIntRegion& aRegion) {
+nsAutoRegion WinUtils::RegionToHRGN(const LayoutDeviceIntRegion& aRegion) {
   const uint32_t count = aRegion.GetNumRects();
   const size_t regionBytes = count * sizeof(RECT);
   const size_t regionDataBytes = sizeof(RGNDATAHEADER) + regionBytes;
@@ -1329,7 +1329,7 @@ HRGN WinUtils::RegionToHRGN(const LayoutDeviceIntRegion& aRegion) {
   for (auto iter = aRegion.RectIter(); !iter.Done(); iter.Next()) {
     *buf++ = ToWinRect(iter.Get());
   }
-  return ::ExtCreateRegion(nullptr, regionDataBytes, data);
+  return nsAutoRegion(::ExtCreateRegion(nullptr, regionDataBytes, data));
 }
 
 LayoutDeviceIntRect WinUtils::ToIntRect(const RECT& aRect) {
