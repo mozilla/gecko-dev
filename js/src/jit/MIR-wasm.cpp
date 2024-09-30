@@ -229,7 +229,7 @@ MDefinition* MWasmBinaryBitwise::foldsTo(TempAllocator& alloc) {
       case SubOpcode::Or:
         return OnesOfType(alloc, type());
       case SubOpcode::Xor:
-        return MBitNot::New(alloc, argR);
+        return MBitNot::New(alloc, argR, type());
       default:
         MOZ_CRASH();
     }
@@ -243,7 +243,7 @@ MDefinition* MWasmBinaryBitwise::foldsTo(TempAllocator& alloc) {
       case SubOpcode::Or:
         return OnesOfType(alloc, type());
       case SubOpcode::Xor:
-        return MBitNot::New(alloc, argL);
+        return MBitNot::New(alloc, argL, type());
       default:
         MOZ_CRASH();
     }

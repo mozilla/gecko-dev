@@ -4007,11 +4007,10 @@ class MToString : public MUnaryInstruction, public ToStringPolicy::Data {
 };
 
 class MBitNot : public MUnaryInstruction, public BitwisePolicy::Data {
-  explicit MBitNot(MDefinition* input) : MUnaryInstruction(classOpcode, input) {
-    setResultType(MIRType::Int32);
-    if (input->type() == MIRType::Int64) {
-      setResultType(MIRType::Int64);
-    }
+  MBitNot(MDefinition* input, MIRType type)
+      : MUnaryInstruction(classOpcode, input) {
+    MOZ_ASSERT(type == MIRType::Int32 || type == MIRType::Int64);
+    setResultType(type);
     setMovable();
   }
 

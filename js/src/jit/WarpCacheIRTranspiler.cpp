@@ -3093,7 +3093,7 @@ bool WarpCacheIRTranspiler::emitDoubleNegationResult(NumberOperandId inputId) {
 bool WarpCacheIRTranspiler::emitInt32NotResult(Int32OperandId inputId) {
   MDefinition* input = getOperand(inputId);
 
-  auto* ins = MBitNot::New(alloc(), input);
+  auto* ins = MBitNot::New(alloc(), input, MIRType::Int32);
   add(ins);
 
   pushResult(ins);
