@@ -11,6 +11,8 @@
 #include "nsIThreadInternal.h"
 #include "nsThreadPool.h"
 #include "nsThreadUtils.h"
+#include "prinrval.h"
+#include "prthread.h"
 
 namespace mozilla::dom::quota {
 
@@ -79,6 +81,13 @@ nsresult RunAfterProcessingCurrentEvent(std::function<void()>&& aCallback) {
   QM_TRY(MOZ_TO_RESULT(helper->Init(std::move(aCallback))));
 
   return NS_OK;
+}
+
+void SleepIfEnabled(StripAtomic<RelaxedAtomicUint32> aMirroredPrefValue) {
+  uint32_t pauseOnThreadMs = aMirroredPrefValue;
+  if (pauseOnThreadMs > 0) {
+    PR_Sleep(PR_MillisecondsToInterval(pauseOnThreadMs));
+  }
 }
 
 }  // namespace mozilla::dom::quota

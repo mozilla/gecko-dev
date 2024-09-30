@@ -10,6 +10,8 @@
 #include <cstdint>
 #include <functional>
 
+#include "mozilla/StaticPrefsBase.h"
+
 enum class nsresult : uint32_t;
 
 namespace mozilla::dom::quota {
@@ -40,6 +42,17 @@ namespace mozilla::dom::quota {
  * the "AfterProcessNextEvent".
  */
 nsresult RunAfterProcessingCurrentEvent(std::function<void()>&& aCallback);
+
+/**
+ * Causes the current thread to yield for a specified amount of milliseconds if
+ * a mirrored preference value is not zero.
+ *
+ * @param aMirroredPrefValue
+ *   A mirrored preference value. If this value is greater than zero, the
+ *   function will cause the current thread to sleep for that number of
+ *   milliseconds.
+ */
+void SleepIfEnabled(StripAtomic<RelaxedAtomicUint32> aMirroredPrefValue);
 
 }  // namespace mozilla::dom::quota
 
