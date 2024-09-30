@@ -633,7 +633,9 @@ export class MarionetteCommandsChild extends JSWindowActorChild {
       return;
     }
 
-    await this.#actionState.release(this.#actionsOptions);
+    const undoActions = this.#actionState.inputCancelList.reverse();
+    undoActions.dispatch(this.#actionState, this.#actionsOptions);
+
     this.#actionState = null;
 
     // Terminate the current wheel transaction if there is one. Wheel
