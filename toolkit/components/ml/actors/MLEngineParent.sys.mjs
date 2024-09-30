@@ -313,7 +313,7 @@ export class MLEngineParent extends JSWindowActorParent {
 
     // Parsing url to get model name, and file path.
     // if this errors out, it will be caught in the worker
-    const parsedUrl = this.modelHub.parseUrl(url);
+    const parsedUrl = this.modelHub.parseUrl(url, { rootUrl, urlTemplate });
 
     const [data, headers] = await this.modelHub.getModelFileAsArrayBuffer({
       taskName,

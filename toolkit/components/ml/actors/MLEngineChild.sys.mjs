@@ -487,7 +487,7 @@ class EngineDispatcher {
  * @param {string} config.url - The URL of the model file to fetch. Can be a path relative to
  * the model hub root or an absolute URL.
  * @param {string} config.modelHubRootUrl - root url of the model hub. When not provided, uses the default from prefs.
- * @param {string} config.modefHubUrlTemplate - url template of the model hub. When not provided, uses the default from prefs.
+ * @param {string} config.modelHubUrlTemplate - url template of the model hub. When not provided, uses the default from prefs.
  * @param {?function(object):Promise<[ArrayBuffer, object]>} config.getModelFileFn - A function that actually retrieves the model data and headers.
  * @returns {Promise} A promise that resolves to a Meta object containing the URL, response headers,
  * and data as an ArrayBuffer. The data is marked for transfer to avoid cloning.
@@ -497,13 +497,13 @@ async function getModelFile({
   url,
   getModelFileFn,
   modelHubRootUrl,
-  modefHubUrlTemplate,
+  modelHubUrlTemplate,
 }) {
   const [data, headers] = await getModelFileFn({
     taskName,
     url,
     rootUrl: modelHubRootUrl || lazy.MODEL_HUB_ROOT_URL,
-    urlTemplate: modefHubUrlTemplate || lazy.MODEL_HUB_URL_TEMPLATE,
+    urlTemplate: modelHubUrlTemplate || lazy.MODEL_HUB_URL_TEMPLATE,
   });
   return new lazy.BasePromiseWorker.Meta([url, headers, data], {
     transfers: [data],
