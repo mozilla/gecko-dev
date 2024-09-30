@@ -53,16 +53,26 @@
   background-image: url("chrome://devtools/skin/images/settings.svg");
 }
 
-.devtools-button.requests-list-blocking-button:empty::before {
-  fill: var(--theme-body-color);
-}
+.devtools-button.requests-list-blocking-button.requests-list-blocking-button-enabled {
+  position: relative;
+  --badge-outline-color: var(--theme-body-background);
 
-.devtools-button.requests-list-blocking-button.checked:empty::before {
-  fill: var(--theme-icon-checked-color);
-}
+  &:is(:hover, [aria-pressed="true"]) {
+    --badge-outline-color: var(--toolbarbutton-hover-background);
+  }
 
-.devtools-button.requests-list-blocking-button.requests-list-blocking-button-enabled:empty::before {
-  fill: var(--timing-blocked-color);
+  &::after {
+    content: "";
+    display: block;
+    position: absolute;
+    aspect-ratio: 1 / 1;
+    width: 6px;
+    border-radius: 100%;
+    inset-inline-end: 4px;
+    inset-block-end: 2px;
+    background-color: var(--theme-icon-error-color);
+    outline: 2px solid var(--badge-outline-color);
+  }
 }
 
 /* Throttling Button */

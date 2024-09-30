@@ -354,13 +354,6 @@ class Toolbar extends Component {
     }
 
     const className = ["devtools-button", "requests-list-blocking-button"];
-    if (
-      networkActionBarOpen &&
-      networkActionBarSelectedPanel === PANELS.BLOCKING
-    ) {
-      className.push("checked");
-    }
-
     if (hasBlockedRequests) {
       className.push("requests-list-blocking-button-enabled");
     }
@@ -368,7 +361,9 @@ class Toolbar extends Component {
     return button({
       className: className.join(" "),
       title: TOOLBAR_BLOCKING,
-      "aria-pressed": networkActionBarOpen,
+      "aria-pressed":
+        networkActionBarOpen &&
+        networkActionBarSelectedPanel === PANELS.BLOCKING,
       onClick: toggleRequestBlockingPanel,
     });
   }
@@ -384,23 +379,11 @@ class Toolbar extends Component {
       return null;
     }
 
-    const className = [
-      "devtools-button",
-      "devtools-search-icon",
-      "requests-list-search-button",
-    ];
-
-    if (
-      networkActionBarOpen &&
-      networkActionBarSelectedPanel === PANELS.SEARCH
-    ) {
-      className.push("checked");
-    }
-
     return button({
-      className: className.join(" "),
+      className: "devtools-button devtools-search-icon",
       title: TOOLBAR_SEARCH,
-      "aria-pressed": networkActionBarOpen,
+      "aria-pressed":
+        networkActionBarOpen && networkActionBarSelectedPanel === PANELS.SEARCH,
       onClick: toggleSearchPanel,
     });
   }
@@ -424,23 +407,12 @@ class Toolbar extends Component {
       return null;
     }
 
-    const className = [
-      "devtools-button",
-      "devtools-http-custom-request-icon",
-      "requests-list-http-custom-request-button",
-    ];
-
-    if (
-      networkActionBarOpen &&
-      networkActionBarSelectedPanel === PANELS.HTTP_CUSTOM_REQUEST
-    ) {
-      className.push("checked");
-    }
-
     return button({
-      className: className.join(" "),
+      className: "devtools-button devtools-http-custom-request-icon",
       title: TOOLBAR_HTTP_CUSTOM_REQUEST,
-      "aria-pressed": networkActionBarOpen,
+      "aria-pressed":
+        networkActionBarOpen &&
+        networkActionBarSelectedPanel === PANELS.HTTP_CUSTOM_REQUEST,
       onClick: toggleHTTPCustomRequestPanel,
     });
   }

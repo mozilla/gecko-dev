@@ -69,10 +69,10 @@ add_task(async function () {
   await waitForPanels;
 
   is(
-    !!document.querySelector(
-      ".devtools-button.devtools-http-custom-request-icon.checked"
-    ),
-    true,
+    document
+      .querySelector(".devtools-button.devtools-http-custom-request-icon")
+      .getAttribute("aria-pressed"),
+    "true",
     "The toolbar button should be highlighted"
   );
 

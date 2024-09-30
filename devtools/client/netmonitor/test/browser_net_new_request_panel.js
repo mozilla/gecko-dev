@@ -31,6 +31,12 @@ add_task(async function () {
     "#netmonitor-toolbar-container .devtools-http-custom-request-icon"
   );
   ok(HTTPCustomRequestButton, "The Toolbar button should be visible.");
+  is(
+    HTTPCustomRequestButton.getAttribute("aria-pressed"),
+    "false",
+    "The custom request toolbar button should not be pressed"
+  );
+
   const waitForPanels = waitForDOM(
     document,
     ".monitor-panel .network-action-bar"
@@ -44,11 +50,23 @@ add_task(async function () {
     "The 'New Request' header should be visible when the pref is true."
   );
   is(
-    !!document.querySelector(
-      ".devtools-button.devtools-http-custom-request-icon.checked"
-    ),
-    true,
-    "The toolbar button should be highlighted"
+    HTTPCustomRequestButton.getAttribute("aria-pressed"),
+    "true",
+    "The custom request toolbar button should be highlighted"
+  );
+  is(
+    document
+      .querySelector(".devtools-search-icon")
+      .getAttribute("aria-pressed"),
+    "false",
+    "The search toolbar button should not be highlighted"
+  );
+  is(
+    document
+      .querySelector(".requests-list-blocking-button")
+      .getAttribute("aria-pressed"),
+    "false",
+    "The block toolbar button should not be highlighted"
   );
 
   info("if the default state is empty");
