@@ -41,6 +41,8 @@
       this.#labelElement = this.querySelector(".tab-group-label");
       this.#labelElement.addEventListener("click", this);
 
+      this.addEventListener("TabSelect", this);
+
       this._tabsChangedObserver = new window.MutationObserver(mutationList => {
         for (let mutation of mutationList) {
           mutation.addedNodes.forEach(node => {
@@ -107,6 +109,9 @@
     }
 
     set collapsed(val) {
+      if (!!val == this.collapsed) {
+        return;
+      }
       this.toggleAttribute("collapsed", val);
       const eventName = val ? "TabGroupCollapse" : "TabGroupExpand";
       this.dispatchEvent(new CustomEvent(eventName, { bubbles: true }));
@@ -144,6 +149,10 @@
         event.preventDefault();
         this.collapsed = !this.collapsed;
       }
+    }
+
+    on_TabSelect() {
+      this.collapsed = false;
     }
   }
 

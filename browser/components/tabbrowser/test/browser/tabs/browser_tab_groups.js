@@ -62,6 +62,11 @@ add_task(async function test_tabGroupCollapseAndExpand() {
   group.querySelector(".tab-group-label").click();
   Assert.ok(!group.collapsed, "collapsed group is expanded on click");
 
+  group.collapsed = true;
+  Assert.ok(group.collapsed, "group is collapsed via API");
+  gBrowser.selectedTab = group.tabs[0];
+  Assert.ok(!group.collapsed, "group is expanded after selecting tab");
+
   gBrowser.removeTabGroup(group, { animate: false });
 });
 
