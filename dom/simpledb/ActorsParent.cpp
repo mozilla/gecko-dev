@@ -42,6 +42,7 @@
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/ipc/BackgroundParent.h"
 #include "mozilla/ipc/BackgroundUtils.h"
@@ -1283,6 +1284,9 @@ void OpenOp::StreamClosedCallback() {
 nsresult OpenOp::DoDatabaseWork(
     nsIFileRandomAccessStream* aFileRandomAccessStream) {
   AssertIsOnIOThread();
+
+  SleepIfEnabled(
+      StaticPrefs::dom_simpledb_databaseInitialization_pauseOnIOThreadMs());
 
   return NS_OK;
 }
