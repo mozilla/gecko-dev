@@ -32,11 +32,6 @@
 #     This file should be in a sub-directory "security" immediately below the
 #        directory containing the other Unicode data files.
 #
-#     We also require the latest data file for UTR50, currently revision-17:
-#        https://www.unicode.org/Public/vertical/revision-17/VerticalOrientation-17.txt
-#     This file should be in a sub-directory "vertical" immediately below the
-#        directory containing the other Unicode data files.
-#
 #
 # (2) Run this tool using a command line of the form
 #
@@ -138,23 +133,14 @@ my %mappedIdType = (
   "Allowed"      => 1
 );
 
-my %verticalOrientationCode = (
-  'U' => 0,  #   U - Upright, the same orientation as in the code charts
-  'R' => 1,  #   R - Rotated 90 degrees clockwise compared to the code charts
-  'Tu' => 2, #   Tu - Transformed typographically, with fallback to Upright
-  'Tr' => 3  #   Tr - Transformed typographically, with fallback to Rotated
-);
-
 # initialize default properties
 my @hanVariant;
 my @fullWidth;
 my @fullWidthInverse;
-my @verticalOrientation;
 for (my $i = 0; $i < 0x110000; ++$i) {
     $hanVariant[$i] = 0;
     $fullWidth[$i] = 0;
     $fullWidthInverse[$i] = 0;
-    $verticalOrientation[$i] = 1; # default for unlisted codepoints is 'R'
 }
 
 # read ReadMe.txt
@@ -263,31 +249,6 @@ while (<FH>) {
 }
 close FH;
 
-# read VerticalOrientation-17.txt
-open FH, "< $UNICODE/vertical/VerticalOrientation-17.txt" or die "can't open UTR50 data file VerticalOrientation-17.txt\n";
-push @versionInfo, "";
-while (<FH>) {
-    chomp;
-    push @versionInfo, $_;
-    last if /Date:/;
-}
-while (<FH>) {
-    chomp;
-    s/#.*//;
-    if (m/([0-9A-F]{4,6})(?:\.\.([0-9A-F]{4,6}))*\s*;\s*([^ ]+)/) {
-        my $vo = $3;
-        warn "unknown Vertical_Orientation code $vo"
-            unless exists $verticalOrientationCode{$vo};
-        $vo = $verticalOrientationCode{$vo};
-        my $start = hex "0x$1";
-        my $end = (defined $2) ? hex "0x$2" : $start;
-        for (my $i = $start; $i <= $end; ++$i) {
-            $verticalOrientation[$i] = $vo;
-        }
-    }
-}
-close FH;
-
 my $timestamp = gmtime();
 
 open DATA_TABLES, "> nsUnicodePropertyData.cpp" or die "unable to open nsUnicodePropertyData.cpp for output";
@@ -346,8 +307,8 @@ our $totalData = 0;
 sub sprintCharProps2_short
 {
   my $usv = shift;
-  return sprintf("{%d,%d},",
-                 $verticalOrientation[$usv], $idtype[$usv]);
+  return sprintf("{%d},",
+                 $idtype[$usv]);
 }
 &genTables("CharProp2", "", "nsCharProps2", 9, 7, \&sprintCharProps2_short, 16, 1, 1);
 

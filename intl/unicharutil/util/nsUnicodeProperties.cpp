@@ -36,7 +36,6 @@ const nsCharProps2& GetCharProps2(uint32_t aCh) {
   // Default values for unassigned
   using namespace mozilla::unicode;
   static const nsCharProps2 undefined = {
-      VERTICAL_ORIENTATION_R,
       0  // IdentifierType
   };
   return undefined;

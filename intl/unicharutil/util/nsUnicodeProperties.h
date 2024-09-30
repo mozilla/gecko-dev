@@ -15,10 +15,9 @@
 #include "harfbuzz/hb.h"
 
 struct nsCharProps2 {
-  // Currently only 4 bits are defined here, so 4 more could be added without
+  // Currently only 2 bits are defined here, so 6 more could be added without
   // affecting the storage requirements for this struct. Or we could pack two
   // records per byte, at the cost of a slightly more complex accessor.
-  unsigned char mVertOrient : 2;
   unsigned char mIdType : 2;
 };
 

@@ -9,7 +9,7 @@
  */
 
 /*
- * Created on Tue Oct 25 06:53:25 2022 from UCD data files with version info:
+ * Created on Wed Sep 25 08:09:45 2024 from UCD data files with version info:
  *
 
 # Unicode Character Database
@@ -35,9 +35,6 @@ for the Unicode Character Database, for Version 15.0.0 of the Unicode Standard.
 #
 # Unihan_Variants.txt
 # Date: 2022-08-01 16:36:07 GMT [JHJ]
-
-# VerticalOrientation-17.txt
-# Date: 2016-10-20, 07:00:00 GMT [EM, KI, LI]
 
  *
  * * * * * This file contains MACHINE-GENERATED DATA, do not edit! * * * * *
