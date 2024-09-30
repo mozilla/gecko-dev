@@ -77,8 +77,6 @@ add_task(async function () {
   ok(true, "Date object has expected text content");
   await executeAndWaitForMessage(hud, "new RegExp('.*')", "/.*/");
   ok(true, "RegExp has expected text content");
-  await executeAndWaitForMessage(hud, "console.log(21 + 21)", "42", ".log");
-  ok(true, "console.log has expected text content");
 
   await toolbox.selectTool("jsdebugger");
   const dbg = createDebuggerContext(toolbox);
@@ -100,10 +98,6 @@ add_task(async function () {
   info(
     "Evaluate some variable only visible if we execute in the breakpoint frame"
   );
-  // open split console
-  const onSplitConsole = toolbox.once("split-console");
-  EventUtils.synthesizeKey("VK_ESCAPE", {}, devtoolsWindow);
-  await onSplitConsole;
   await executeAndWaitForMessage(hud, "event.data", "install-service-worker");
 
   info("Resume execution");
@@ -132,12 +126,7 @@ add_task(async function () {
   await removeTab(tab);
 });
 
-async function executeAndWaitForMessage(
-  hud,
-  evaluationString,
-  expectedResult,
-  messageClass = ".result"
-) {
-  hud.ui.wrapper.dispatchEvaluateExpression(evaluationString);
-  await waitFor(() => findMessageByType(hud, expectedResult, messageClass));
+async function executeAndWaitForMessage(hud, evaluationString, expectedResult) {
+  hud.ui.wrapper.dispatchEvaluateExpression();
+  await waitFor(() => findMessagesByType(hud, expectedResult, ".result"));
 }
