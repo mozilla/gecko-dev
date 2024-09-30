@@ -1037,7 +1037,6 @@ impl Renderer {
                         None
                     };
 
-                    // TODO: Send the memory back to the render backen thread for reuse.
                     if let Some(memory) = prev_frame_memory {
                         // We just dropped the frame a few lives above. There should be no
                         // live allocations left in the frame's memory.

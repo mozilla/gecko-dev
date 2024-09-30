@@ -520,12 +520,12 @@ impl FrameBuilder {
         spatial_tree: &mut SpatialTree,
         dirty_rects_are_valid: bool,
         profile: &mut TransactionProfile,
-        minimap_data: FastHashMap<ExternalScrollId, MinimapData>
+        minimap_data: FastHashMap<ExternalScrollId, MinimapData>,
+        mut frame_memory: FrameMemory,
     ) -> Frame {
         profile_scope!("build");
         profile_marker!("BuildFrame");
 
-        let mut frame_memory = FrameMemory::new();
         frame_memory.begin_frame(stamp.frame_id());
 
         profile.set(profiler::PRIMITIVES, scene.prim_instances.len());

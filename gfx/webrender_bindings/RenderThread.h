@@ -276,6 +276,9 @@ class RenderThread final {
   /// Can be called from any thread.
   WebRenderThreadPool& ThreadPoolLP() { return mThreadPoolLP; }
 
+  /// A pool of large memory chunks used by the per-frame allocators.
+  WrChunkPool* MemoryChunkPool() { return mChunkPool; }
+
   /// Optional global glyph raster thread.
   /// Can be called from any thread.
   MaybeWebRenderGlyphRasterThread& GlyphRasterThread() {
@@ -461,6 +464,7 @@ class RenderThread final {
 
   WebRenderThreadPool mThreadPool;
   WebRenderThreadPool mThreadPoolLP;
+  WrChunkPool* mChunkPool;
   MaybeWebRenderGlyphRasterThread mGlyphRasterThread;
 
   UniquePtr<WebRenderProgramCache> mProgramCache;

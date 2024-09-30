@@ -4,10 +4,10 @@
 
  use std::{
     alloc::Layout,
-    ptr::{self, NonNull},
+    ptr::{self, NonNull}, sync::{Arc, Mutex},
 };
 
-use allocator_api2::alloc::{AllocError, Allocator};
+use allocator_api2::alloc::{AllocError, Allocator, Global};
 
 const CHUNK_ALIGNMENT: usize = 32;
 const DEFAULT_CHUNK_SIZE: usize = 128 * 1024;
@@ -17,38 +17,29 @@ const DEFAULT_CHUNK_SIZE: usize = 128 * 1024;
 ///
 /// If an allocation is larger than the chunk size, a chunk sufficiently large to contain
 /// the allocation is added.
-pub struct BumpAllocator<A: Allocator> {
+pub struct BumpAllocator {
     /// The chunk we are currently allocating from.
     current_chunk: NonNull<Chunk>,
-    /// The defaut size for chunks.
-    chunk_size: usize,
     /// For debugging.
     allocation_count: i32,
-    /// the allocator that provides the chunks.
-    parent_allocator: A,
+
+    chunk_pool: Arc<ChunkPool>,
 
     stats: Stats,
 }
 
-impl<A: Allocator> BumpAllocator<A> {
-    pub fn new_in(parent_allocator: A) -> Self {
-        Self::with_chunk_size_in(DEFAULT_CHUNK_SIZE, parent_allocator)
-    }
-
-    pub fn with_chunk_size_in(chunk_size: usize, parent_allocator: A) -> Self {
+impl BumpAllocator {
+    pub fn new(chunk_pool: Arc<ChunkPool>) -> Self {
         let mut stats = Stats::default();
-        stats.chunks = 1;
-        stats.reserved_bytes += chunk_size;
-        BumpAllocator {
-            current_chunk: Chunk::allocate_chunk(
-                chunk_size,
-                None,
-                &parent_allocator
-            ).unwrap(),
-            chunk_size,
-            parent_allocator,
-            allocation_count: 0,
 
+        let first_chunk = chunk_pool.allocate_chunk(DEFAULT_CHUNK_SIZE).unwrap();
+        stats.chunks = 1;
+        stats.reserved_bytes += DEFAULT_CHUNK_SIZE;
+
+        BumpAllocator {
+            current_chunk: first_chunk,
+            chunk_pool,
+            allocation_count: 0,
             stats,
         }
     }
@@ -145,13 +136,10 @@ impl<A: Allocator> BumpAllocator<A> {
     }
 
     fn alloc_chunk(&mut self, item_size: usize) -> Result<(), AllocError> {
-        let chunk_size = self.chunk_size.max(align(item_size, CHUNK_ALIGNMENT) + CHUNK_ALIGNMENT);
+        let chunk_size = DEFAULT_CHUNK_SIZE.max(align(item_size, CHUNK_ALIGNMENT) + CHUNK_ALIGNMENT);
         self.stats.reserved_bytes += chunk_size;
-        let chunk = Chunk::allocate_chunk(
-            chunk_size,
-            None,
-            &self.parent_allocator
-        )?;
+
+        let chunk = self.chunk_pool.allocate_chunk(chunk_size)?;
 
         unsafe {
             (*chunk.as_ptr()).previous = Some(self.current_chunk);
@@ -164,13 +152,12 @@ impl<A: Allocator> BumpAllocator<A> {
     }
 }
 
-impl<A: Allocator> Drop for BumpAllocator<A> {
+impl Drop for BumpAllocator {
     fn drop(&mut self) {
         assert!(self.allocation_count == 0);
-        let mut iter = Some(self.current_chunk);
-        while let Some(chunk) = iter {
-            iter = unsafe { (*chunk.as_ptr()).previous };
-            Chunk::deallocate_chunk(chunk, &self.parent_allocator)
+
+        unsafe {
+            self.chunk_pool.recycle_chunks(self.current_chunk);
         }
     }
 }
@@ -187,50 +174,6 @@ pub struct Chunk {
 }
 
 impl Chunk {
-    pub fn allocate_chunk(
-        size: usize,
-        previous: Option<NonNull<Chunk>>,
-        allocator: &dyn Allocator,
-    ) -> Result<NonNull<Self>, AllocError> {
-        assert!(size < usize::MAX / 2);
-
-        let layout = match Layout::from_size_align(size, CHUNK_ALIGNMENT) {
-            Ok(layout) => layout,
-            Err(_) => {
-                return Err(AllocError);
-            }
-        };
-
-        let alloc = allocator.allocate(layout)?;
-        let chunk: NonNull<Chunk> = alloc.cast();
-        let chunk_start: *mut u8 = alloc.cast().as_ptr();
-
-        unsafe {
-            let chunk_end = chunk_start.add(size);
-            let cursor = chunk_start.add(CHUNK_ALIGNMENT);
-            ptr::write(
-                chunk.as_ptr(),
-                Chunk {
-                    previous,
-                    chunk_end,
-                    cursor,
-                    size,
-                },
-            );
-        }
-
-        Ok(chunk)
-    }
-
-    pub fn deallocate_chunk(this: NonNull<Chunk>, allocator: &dyn Allocator) {
-        let size = unsafe { (*this.as_ptr()).size };
-        let layout = Layout::from_size_align(size, CHUNK_ALIGNMENT).unwrap();
-
-        unsafe {
-            allocator.deallocate(this.cast(), layout);
-        }
-    }
-
     pub fn allocate_item(this: NonNull<Chunk>, layout: Layout) -> Result<NonNull<[u8]>, ()> {
         // Common wisdom would be to always bump address downward (https://fitzgeraldnick.com/2019/11/01/always-bump-downwards.html).
         // However, bump allocation does not show up in profiles with the current workloads
@@ -369,3 +312,188 @@ pub struct Stats {
     pub allocated_bytes: usize,
     pub reserved_bytes: usize,
 }
+
+/// A simple pool for allocating and recycling memory chunks of a fixed size,
+/// protected by a mutex.
+///
+/// Chunks in the pool are stored as a linked list using a pointer to the next
+/// element at the beginning of the chunk.
+pub struct ChunkPool {
+    inner: Mutex<ChunkPoolInner>,
+}
+
+struct ChunkPoolInner {
+    first: Option<NonNull<RecycledChunk>>,
+    count: i32,
+}
+
+/// Header at the beginning of recycled memory chunk.
+struct RecycledChunk {
+    next: Option<NonNull<RecycledChunk>>,
+}
+
+impl ChunkPool {
+    pub fn new() -> Self {
+        ChunkPool {
+            inner: Mutex::new(ChunkPoolInner {
+                first: None,
+                count: 0,
+            }),
+        }
+    }
+
+    /// Pop a chunk from the pool or allocate a new one.
+    ///
+    /// If the requested size is not equal to the default chunk size,
+    /// a new chunk is allocated.
+    pub fn allocate_chunk(&self, size: usize) -> Result<NonNull<Chunk>, AllocError> {
+        let chunk: Option<NonNull<RecycledChunk>> = if size == DEFAULT_CHUNK_SIZE {
+            // Try to reuse a chunk.
+            let mut inner = self.inner.lock().unwrap();
+            let mut chunk = inner.first.take();
+            inner.first = chunk.as_mut().and_then(|chunk| unsafe { chunk.as_mut().next.take() });
+
+            if chunk.is_some() {
+                inner.count -= 1;
+                debug_assert!(inner.count >= 0);
+            }
+
+            chunk
+        } else {
+            // Always allocate a new chunk if it is not the standard size.
+            None
+        };
+
+        let chunk: NonNull<Chunk> = match chunk {
+            Some(chunk) => chunk.cast(),
+            None => {
+                // Allocate a new one.
+                let layout = match Layout::from_size_align(size, CHUNK_ALIGNMENT) {
+                    Ok(layout) => layout,
+                    Err(_) => {
+                        return Err(AllocError);
+                    }
+                };
+
+                let alloc = Global.allocate(layout)?;
+
+                alloc.cast()
+            }
+        };
+
+        let chunk_start: *mut u8 = chunk.cast().as_ptr();
+
+        unsafe {
+            let chunk_end = chunk_start.add(size);
+            let cursor = chunk_start.add(CHUNK_ALIGNMENT);
+            ptr::write(
+                chunk.as_ptr(),
+                Chunk {
+                    previous: None,
+                    chunk_end,
+                    cursor,
+                    size,
+                },
+            );
+        }
+
+        Ok(chunk)
+    }
+
+    /// Put the provided list of chunks into the pool.
+    ///
+    /// Chunks with size different from the default chunk size are deallocated
+    /// immediately.
+    ///
+    /// # Safety
+    ///
+    /// Ownership of the provided chunks is transfered to the pool, nothing
+    /// else can access them after this function runs.
+    unsafe fn recycle_chunks(&self, chunk: NonNull<Chunk>) {
+        let mut inner = self.inner.lock().unwrap();
+        let mut iter = Some(chunk);
+        // Go through the provided linked list of chunks, and insert each
+        // of them at the beginning of our linked list of recycled chunks.
+        while let Some(mut chunk) = iter {
+            // Advance the iterator.
+            iter = unsafe { chunk.as_mut().previous.take() };
+
+            unsafe {
+                // Don't recycle chunks with a non-standard size.
+                let size = chunk.as_ref().size;
+                if size != DEFAULT_CHUNK_SIZE {
+                    let layout = Layout::from_size_align(size, CHUNK_ALIGNMENT).unwrap();
+                    Global.deallocate(chunk.cast(), layout);
+                    continue;
+                }
+            }
+
+            // Turn the chunk into a recycled chunk.
+            let recycled: NonNull<RecycledChunk> = chunk.cast();
+
+            // Insert into the recycled list.
+            unsafe {
+                ptr::write(recycled.as_ptr(), RecycledChunk {
+                    next: inner.first,
+                });
+            }
+            inner.first = Some(recycled);
+
+            inner.count += 1;
+        }
+    }
+
+    /// Deallocate chunks until the pool contains at most `target` items, or
+    /// `count` chunks have been deallocated.
+    ///
+    /// Returns `true` if the target number of chunks in the pool was reached,
+    /// `false` if this method stopped before reaching the target.
+    ///
+    /// Purging chunks can be expensive so it is preferable to perform this
+    /// operation outside of the critical path. Specifying a lower `count`
+    /// allows the caller to split the work and spread it over time.
+    #[inline(never)]
+    pub fn purge_chunks(&self, target: u32, mut count: u32) -> bool {
+        let mut inner = self.inner.lock().unwrap();
+        assert!(inner.count >= 0);
+
+        while inner.count as u32 > target {
+            unsafe {
+                // First can't be None because inner.count > 0.
+                let chunk = inner.first.unwrap();
+
+                // Pop chunk off the list.
+                inner.first = chunk.as_ref().next;
+
+                // Deallocate chunk.
+                let layout = Layout::from_size_align(
+                    DEFAULT_CHUNK_SIZE,
+                    CHUNK_ALIGNMENT
+                ).unwrap();
+                Global.deallocate(chunk.cast(), layout);
+            }
+
+            inner.count -= 1;
+            count -= 1;
+
+            if count == 0 {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// Deallocate all of the chunks.
+    pub fn purge_all_chunks(&self) {
+        self.purge_chunks(0, u32::MAX);
+    }
+}
+
+impl Drop for ChunkPool {
+    fn drop(&mut self) {
+        self.purge_all_chunks();
+    }
+}
+
+unsafe impl Send for ChunkPoolInner {}

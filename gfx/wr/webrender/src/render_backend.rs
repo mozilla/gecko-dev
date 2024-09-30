@@ -15,6 +15,7 @@ use api::{NotificationRequest, Checkpoint, QualitySettings};
 use api::{FramePublishId, PrimitiveKeyKind, RenderReasons};
 use api::units::*;
 use api::channel::{single_msg_channel, Sender, Receiver};
+use crate::bump_allocator::ChunkPool;
 use crate::AsyncPropertySampler;
 use crate::box_shadow::BoxShadow;
 #[cfg(any(feature = "capture", feature = "replay"))]
@@ -34,7 +35,7 @@ use crate::hit_test::{HitTest, HitTester, SharedHitTester};
 use crate::intern::DataStore;
 #[cfg(any(feature = "capture", feature = "replay"))]
 use crate::internal_types::{DebugOutput};
-use crate::internal_types::{FastHashMap, RenderedDocument, ResultMsg, FrameId, FrameStamp};
+use crate::internal_types::{FastHashMap, FrameId, FrameMemory, FrameStamp, RenderedDocument, ResultMsg};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use crate::picture::{PictureScratchBuffer, SliceId, TileCacheInstance, TileCacheParams, SurfaceInfo, RasterConfig};
 use crate::picture::{PicturePrimitive};
@@ -515,6 +516,7 @@ impl Document {
         tile_caches: &mut FastHashMap<SliceId, Box<TileCacheInstance>>,
         frame_stats: Option<FullFrameStats>,
         render_reasons: RenderReasons,
+        frame_memory: FrameMemory,
     ) -> RenderedDocument {
         let frame_build_start_time = precise_time_ns();
 
@@ -543,7 +545,8 @@ impl Document {
                 // Consume the minimap data. If APZ wants a minimap rendered
                 // on the next frame, it will add new entries to the minimap
                 // data during sampling.
-                mem::take(&mut self.minimap_data)
+                mem::take(&mut self.minimap_data),
+                frame_memory,
             );
 
             frame
@@ -711,6 +714,7 @@ pub struct RenderBackend {
 
     gpu_cache: GpuCache,
     resource_cache: ResourceCache,
+    chunk_pool: Arc<ChunkPool>,
 
     frame_config: FrameBuilderConfig,
     default_compositor_kind: CompositorKind,
@@ -747,6 +751,7 @@ impl RenderBackend {
         result_tx: Sender<ResultMsg>,
         scene_tx: Sender<SceneBuilderRequest>,
         resource_cache: ResourceCache,
+        chunk_pool: Arc<ChunkPool>,
         notifier: Box<dyn RenderNotifier>,
         frame_config: FrameBuilderConfig,
         sampler: Option<Box<dyn AsyncPropertySampler + Send>>,
@@ -760,6 +765,7 @@ impl RenderBackend {
             scene_tx,
             resource_cache,
             gpu_cache: GpuCache::new(),
+            chunk_pool,
             frame_config,
             default_compositor_kind : frame_config.compositor_kind,
             documents: FastHashMap::default(),
@@ -1014,6 +1020,8 @@ impl RenderBackend {
                 };
                 self.result_tx.send(msg).unwrap();
                 self.notifier.wake_up(false);
+
+                self.chunk_pool.purge_all_chunks();
             }
             ApiMsg::ReportMemory(tx) => {
                 self.report_memory(tx);
@@ -1151,6 +1159,12 @@ impl RenderBackend {
                 return self.process_scene_builder_result(msg, frame_counter);
             }
         }
+
+        // Now that we are likely out of the critical path, purge a few chunks
+        // from the pool. The underlying deallocation can be expensive, especially
+        // with build configurations where all of the memory is zeroed, so we
+        // spread the load over potentially many iterations of the event loop.
+        self.chunk_pool.purge_chunks(2, 3);
 
         RenderBackendStatus::Continue
     }
@@ -1447,6 +1461,8 @@ impl RenderBackend {
 
                 let frame_stats = doc.frame_stats.take();
 
+                let frame_memory = FrameMemory::new(self.chunk_pool.clone());
+
                 let rendered_document = doc.build_frame(
                     &mut self.resource_cache,
                     &mut self.gpu_cache,
@@ -1454,6 +1470,7 @@ impl RenderBackend {
                     &mut self.tile_caches,
                     frame_stats,
                     render_reasons,
+                    frame_memory,
                 );
 
                 debug!("generated frame for document {:?} with {} passes",
@@ -1651,7 +1668,7 @@ impl RenderBackend {
             if config.bits.contains(CaptureBits::FRAME) {
                 // Temporarily force invalidation otherwise the render task graph dump is empty.
                 let force_invalidation = std::mem::replace(&mut doc.scene.config.force_invalidation, true);
-
+                let frame_memory = FrameMemory::new(self.chunk_pool.clone());
                 let rendered_document = doc.build_frame(
                     &mut self.resource_cache,
                     &mut self.gpu_cache,
@@ -1659,6 +1676,7 @@ impl RenderBackend {
                     &mut self.tile_caches,
                     None,
                     RenderReasons::empty(),
+                    frame_memory,
                 );
 
                 doc.scene.config.force_invalidation = force_invalidation;

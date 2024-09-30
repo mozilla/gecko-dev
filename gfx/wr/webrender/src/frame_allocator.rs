@@ -9,9 +9,9 @@
 
 use allocator_api2::alloc::{Allocator, AllocError, Layout, Global};
 
-use std::{cell::UnsafeCell, ptr::NonNull, sync::atomic::{AtomicI32, Ordering}};
+use std::{cell::UnsafeCell, ptr::NonNull, sync::{atomic::{AtomicI32, Ordering}, Arc}};
 
-use crate::{bump_allocator::{BumpAllocator, Stats}, internal_types::{FrameId, FrameVec}};
+use crate::{bump_allocator::{BumpAllocator, ChunkPool, Stats}, internal_types::{FrameId, FrameVec}};
 
 /// A memory allocator for allocations that have the same lifetime as a built frame.
 ///
@@ -296,7 +296,7 @@ impl FrameMemory {
     /// A `FrameMemory` must not be dropped until all of the associated
     /// `FrameAllocators` as well as their allocations have been dropped,
     /// otherwise the `FrameMemory::drop` will panic.
-    pub fn new() -> Self {
+    pub fn new(pool: Arc<ChunkPool>) -> Self {
         let layout = Layout::from_size_align(
             std::mem::size_of::<FrameInnerAllocator>(),
             std::mem::align_of::<FrameInnerAllocator>(),
@@ -307,7 +307,7 @@ impl FrameMemory {
         unsafe {
             let allocator: NonNull<FrameInnerAllocator> = uninit_u8.cast();
             allocator.as_ptr().write(FrameInnerAllocator {
-                bump: BumpAllocator::new_in(Global),
+                bump: BumpAllocator::new(pool),
 
                 live_alloc_count: AtomicI32::new(0),
                 references_dropped: AtomicI32::new(0),
@@ -426,7 +426,7 @@ impl<'de> serde::Deserialize<'de> for FrameMemory {
 }
 
 struct FrameInnerAllocator {
-    bump: BumpAllocator<Global>,
+    bump: BumpAllocator,
 
     // Strictly speaking the live allocation and reference count do not need to
     // be atomic if the allocator is used correctly (the thread that
