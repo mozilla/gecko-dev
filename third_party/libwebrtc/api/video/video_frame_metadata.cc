@@ -10,7 +10,17 @@
 
 #include "api/video/video_frame_metadata.h"
 
+#include <cstdint>
 #include <utility>
+#include <vector>
+
+#include "absl/types/optional.h"
+#include "api/array_view.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/video/video_codec_type.h"
+#include "api/video/video_content_type.h"
+#include "api/video/video_frame_type.h"
+#include "api/video/video_rotation.h"
 
 namespace webrtc {
 

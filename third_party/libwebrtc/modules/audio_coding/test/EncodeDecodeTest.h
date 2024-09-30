@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include "absl/strings/string_view.h"
+#include "api/environment/environment.h"
 #include "modules/audio_coding/acm2/acm_receiver.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "modules/audio_coding/test/PCMFile.h"
@@ -51,7 +52,8 @@ class TestPacketization : public AudioPacketizationCallback {
 class Sender {
  public:
   Sender();
-  void Setup(AudioCodingModule* acm,
+  void Setup(const Environment& env,
+             AudioCodingModule* acm,
              RTPStream* rtpStream,
              absl::string_view in_file_name,
              int in_sample_rate,

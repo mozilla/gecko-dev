@@ -238,7 +238,12 @@ WebRTC follows the
 
 WebRTC follows [Chromium's Python style][chr-py-style].
 
+Chromium's Python style is now using PEP-8 and not all Python code has been migrated.
+For this reason running presubmit on old WebRTC python script might trigger failures.
+The failures can either be fixed are ignored by adding the script to the [PYLINT_OLD_STYLE][old-style-lint] list.
+
 [chr-py-style]: https://chromium.googlesource.com/chromium/src/+/main/styleguide/python/python.md
+[old-style-lint]: https://source.chromium.org/chromium/_/webrtc/src/+/9b81d2c954128831c62d8a0657c7f955b3c02d32:PRESUBMIT.py;l=50
 
 ## Build files
 

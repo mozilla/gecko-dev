@@ -42,6 +42,12 @@ class AudioDeviceModule : public webrtc::RefCountInterface {
     kDefaultDevice = -2
   };
 
+// Only supported on iOS.
+#if defined(WEBRTC_IOS)
+  enum MutedSpeechEvent { kMutedSpeechStarted, kMutedSpeechEnded };
+  typedef void (^MutedSpeechEventHandler)(MutedSpeechEvent event);
+#endif  // WEBRTC_IOS
+
   struct Stats {
     // The fields below correspond to similarly-named fields in the WebRTC stats
     // spec. https://w3c.github.io/webrtc-stats/#playoutstats-dict*

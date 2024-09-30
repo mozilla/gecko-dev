@@ -28,20 +28,18 @@ constexpr int kRtcpReportIntervalMs = 5000;
 }  // namespace
 
 AudioChannel::AudioChannel(
+    const Environment& env,
     Transport* transport,
     uint32_t local_ssrc,
-    TaskQueueFactory* task_queue_factory,
     AudioMixer* audio_mixer,
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory)
     : audio_mixer_(audio_mixer) {
-  RTC_DCHECK(task_queue_factory);
   RTC_DCHECK(audio_mixer);
 
-  Clock* clock = Clock::GetRealTimeClock();
-  receive_statistics_ = ReceiveStatistics::Create(clock);
+  receive_statistics_ = ReceiveStatistics::Create(&env.clock());
 
   RtpRtcpInterface::Configuration rtp_config;
-  rtp_config.clock = clock;
+  rtp_config.clock = &env.clock();
   rtp_config.audio = true;
   rtp_config.receive_statistics = receive_statistics_.get();
   rtp_config.rtcp_report_interval_ms = kRtcpReportIntervalMs;
@@ -53,11 +51,10 @@ AudioChannel::AudioChannel(
   rtp_rtcp_->SetSendingMediaStatus(false);
   rtp_rtcp_->SetRTCPStatus(RtcpMode::kCompound);
 
-  ingress_ = std::make_unique<AudioIngress>(rtp_rtcp_.get(), clock,
+  ingress_ = std::make_unique<AudioIngress>(env, rtp_rtcp_.get(),
                                             receive_statistics_.get(),
                                             std::move(decoder_factory));
-  egress_ =
-      std::make_unique<AudioEgress>(rtp_rtcp_.get(), clock, task_queue_factory);
+  egress_ = std::make_unique<AudioEgress>(env, rtp_rtcp_.get());
 
   // Set the instance of audio ingress to be part of audio mixer for ADM to
   // fetch audio samples to play.

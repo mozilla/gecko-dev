@@ -210,9 +210,7 @@ void TransmissionControlBlock::MaybeSendFastRetransmit() {
 
 void TransmissionControlBlock::SendBufferedPackets(SctpPacket::Builder& builder,
                                                    Timestamp now) {
-  for (int packet_idx = 0;
-       packet_idx < options_.max_burst && retransmission_queue_.can_send_data();
-       ++packet_idx) {
+  for (int packet_idx = 0; packet_idx < options_.max_burst; ++packet_idx) {
     // Only add control chunks to the first packet that is sent, if sending
     // multiple packets in one go (as allowed by the congestion window).
     if (packet_idx == 0) {

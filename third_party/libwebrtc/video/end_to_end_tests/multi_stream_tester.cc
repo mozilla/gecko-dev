@@ -48,7 +48,8 @@ void MultiStreamTester::RunTest() {
   // to make test more stable.
   auto task_queue = env.task_queue_factory().CreateTaskQueue(
       "TaskQueue", TaskQueueFactory::Priority::HIGH);
-  CallConfig config(env);
+  CallConfig sender_config(env);
+  CallConfig receiver_config(env);
   std::unique_ptr<Call> sender_call;
   std::unique_ptr<Call> receiver_call;
   std::unique_ptr<test::DirectTransport> sender_transport;
@@ -66,8 +67,8 @@ void MultiStreamTester::RunTest() {
   InternalDecoderFactory decoder_factory;
 
   SendTask(task_queue.get(), [&]() {
-    sender_call = Call::Create(config);
-    receiver_call = Call::Create(config);
+    sender_call = Call::Create(std::move(sender_config));
+    receiver_call = Call::Create(std::move(receiver_config));
     sender_transport = CreateSendTransport(task_queue.get(), sender_call.get());
     receiver_transport =
         CreateReceiveTransport(task_queue.get(), receiver_call.get());

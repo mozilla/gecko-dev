@@ -10,13 +10,13 @@
 #include "api/test/metrics/metrics_logger.h"
 
 #include <map>
-#include <memory>
 #include <string>
 #include <vector>
 
 #include "absl/types/optional.h"
 #include "api/numerics/samples_stats_counter.h"
 #include "api/test/metrics/metric.h"
+#include "api/units/timestamp.h"
 #include "system_wrappers/include/clock.h"
 #include "test/gmock.h"
 #include "test/gtest.h"

@@ -50,26 +50,9 @@
 #include "rtc_base/strings/audio_format_to_string.h"
 #include "rtc_base/trace_event.h"
 #include "system_wrappers/include/clock.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {
-
-std::unique_ptr<NetEqController> CreateNetEqController(
-    const NetEqControllerFactory& controller_factory,
-    int base_min_delay,
-    int max_packets_in_buffer,
-    bool allow_time_stretching,
-    TickTimer* tick_timer,
-    webrtc::Clock* clock) {
-  NetEqController::Config config;
-  config.base_min_delay_ms = base_min_delay;
-  config.max_packets_in_buffer = max_packets_in_buffer;
-  config.allow_time_stretching = allow_time_stretching;
-  config.tick_timer = tick_timer;
-  config.clock = clock;
-  return controller_factory.CreateNetEqController(config);
-}
 
 AudioFrame::SpeechType ToSpeechType(NetEqImpl::OutputType type) {
   switch (type) {
@@ -107,27 +90,29 @@ bool EqualSampleRates(uint8_t pt1,
 }  // namespace
 
 NetEqImpl::Dependencies::Dependencies(
+    const Environment& env,
     const NetEq::Config& config,
-    Clock* clock,
-    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory,
+    scoped_refptr<AudioDecoderFactory> decoder_factory,
     const NetEqControllerFactory& controller_factory)
-    : clock(clock),
+    : env(env),
       tick_timer(new TickTimer),
       stats(new StatisticsCalculator),
       decoder_database(
-          new DecoderDatabase(decoder_factory, config.codec_pair_id)),
+          std::make_unique<DecoderDatabase>(env,
+                                            std::move(decoder_factory),
+                                            config.codec_pair_id)),
       dtmf_buffer(new DtmfBuffer(config.sample_rate_hz)),
       dtmf_tone_generator(new DtmfToneGenerator),
       packet_buffer(new PacketBuffer(config.max_packets_in_buffer,
                                      tick_timer.get(),
                                      stats.get())),
-      neteq_controller(
-          CreateNetEqController(controller_factory,
-                                config.min_delay_ms,
-                                config.max_packets_in_buffer,
-                                !config.for_test_no_time_stretching,
-                                tick_timer.get(),
-                                clock)),
+      neteq_controller(controller_factory.Create(
+          env,
+          NetEqController::Config{.allow_time_stretching = !config.for_test_no_time_stretching,
+           .max_packets_in_buffer =
+               static_cast<int>(config.max_packets_in_buffer),
+           .base_min_delay_ms = config.min_delay_ms,
+           .tick_timer = tick_timer.get()})),
       red_payload_splitter(new RedPayloadSplitter),
       timestamp_scaler(new TimestampScaler(*decoder_database)),
       accelerate_factory(new AccelerateFactory),
@@ -139,7 +124,7 @@ NetEqImpl::Dependencies::~Dependencies() = default;
 NetEqImpl::NetEqImpl(const NetEq::Config& config,
                      Dependencies&& deps,
                      bool create_components)
-    : clock_(deps.clock),
+    : env_(deps.env),
       tick_timer_(std::move(deps.tick_timer)),
       decoder_database_(std::move(deps.decoder_database)),
       dtmf_buffer_(std::move(deps.dtmf_buffer)),
@@ -424,7 +409,7 @@ void NetEqImpl::FlushBuffers() {
 void NetEqImpl::EnableNack(size_t max_nack_list_size) {
   MutexLock lock(&mutex_);
   if (!nack_enabled_) {
-    nack_ = std::make_unique<NackTracker>();
+    nack_ = std::make_unique<NackTracker>(env_.field_trials());
     nack_enabled_ = true;
     nack_->UpdateSampleRate(fs_hz_);
   }
@@ -1981,7 +1966,7 @@ int NetEqImpl::ExtractPackets(size_t required_samples,
     if (packet->packet_info.has_value() &&
         !packet->packet_info->receive_time().IsMinusInfinity()) {
       processing_time =
-          clock_->CurrentTime() - packet->packet_info->receive_time();
+          env_.clock().CurrentTime() - packet->packet_info->receive_time();
     }
 
     stats_->JitterBufferDelay(

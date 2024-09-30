@@ -8,16 +8,15 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#ifndef MODULES_RTP_RTCP_INCLUDE_RTP_PACKET_SENDER_H_
-#define MODULES_RTP_RTCP_INCLUDE_RTP_PACKET_SENDER_H_
+#ifndef API_RTP_PACKET_SENDER_H_
+#define API_RTP_PACKET_SENDER_H_
 
 #include <memory>
 #include <vector>
 
-#include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
-#include "modules/rtp_rtcp/source/rtp_packet_to_send.h"
-
 namespace webrtc {
+
+class RtpPacketToSend;
 
 class RtpPacketSender {
  public:
@@ -37,4 +36,4 @@ class RtpPacketSender {
 
 }  // namespace webrtc
 
-#endif  // MODULES_RTP_RTCP_INCLUDE_RTP_PACKET_SENDER_H_
+#endif  // API_RTP_PACKET_SENDER_H_

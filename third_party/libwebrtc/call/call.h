@@ -47,7 +47,7 @@ class Call {
  public:
   using Stats = CallBasicStats;
 
-  static std::unique_ptr<Call> Create(const CallConfig& config);
+  static std::unique_ptr<Call> Create(CallConfig config);
 
   virtual AudioSendStream* CreateAudioSendStream(
       const AudioSendStream::Config& config) = 0;

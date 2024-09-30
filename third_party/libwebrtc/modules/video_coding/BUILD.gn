@@ -954,6 +954,7 @@ if (rtc_include_tests) {
       "../../rtc_base:stringutils",
       "../../test:test_common",
       "../rtp_rtcp:rtp_rtcp_format",
+      "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
 

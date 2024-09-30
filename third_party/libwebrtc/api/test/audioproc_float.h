@@ -12,9 +12,9 @@
 #define API_TEST_AUDIOPROC_FLOAT_H_
 
 #include <memory>
-#include <vector>
 
 #include "api/audio/audio_processing.h"
+#include "api/scoped_refptr.h"
 
 namespace webrtc {
 namespace test {

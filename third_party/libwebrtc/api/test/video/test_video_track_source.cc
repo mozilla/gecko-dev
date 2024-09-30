@@ -9,6 +9,7 @@
  */
 #include "api/test/video/test_video_track_source.h"
 
+#include <string>
 #include <utility>
 
 #include "absl/types/optional.h"

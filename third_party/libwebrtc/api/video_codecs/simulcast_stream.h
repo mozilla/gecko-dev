@@ -13,6 +13,7 @@
 
 #include "absl/types/optional.h"
 #include "api/video_codecs/scalability_mode.h"
+#include "rtc_base/system/rtc_export.h"
 
 namespace webrtc {
 

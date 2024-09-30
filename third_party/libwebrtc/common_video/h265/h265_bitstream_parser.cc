@@ -419,6 +419,10 @@ const H265SpsParser::SpsState* H265BitstreamParser::GetSPS(uint32_t id) const {
 }
 
 void H265BitstreamParser::ParseSlice(rtc::ArrayView<const uint8_t> slice) {
+  if (slice.empty()) {
+    RTC_LOG(LS_WARNING) << "Empty slice in H265 bitstream.";
+    return;
+  }
   H265::NaluType nalu_type = H265::ParseNaluType(slice[0]);
   switch (nalu_type) {
     case H265::NaluType::kVps: {

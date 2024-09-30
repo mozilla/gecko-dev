@@ -48,8 +48,10 @@ if (!build_with_chromium) {
         "echo/echo_emulation.h",
       ]
       deps = [
+        "../../../api:sequence_checker",
         "../../../api/test/pclf:media_configuration",
         "../../../modules/audio_device:test_audio_device_module",
+        "../../../rtc_base:logging",
         "../../../rtc_base:swap_queue",
       ]
     }
@@ -302,6 +304,7 @@ if (!build_with_chromium) {
         "../../../api/test/pclf:peer_configurer",
         "../../../api/video_codecs:builtin_video_decoder_factory",
         "../../../api/video_codecs:builtin_video_encoder_factory",
+        "../../../media:media_constants",
         "../../../media:rtc_audio_video",
         "../../../modules/audio_device:audio_device_impl",
         "../../../p2p:rtc_p2p",

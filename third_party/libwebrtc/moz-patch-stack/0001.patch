@@ -416,7 +416,7 @@ index 283d238e77..da06138ce8 100644
  
  bool RtpExtension::IsSupportedForVideo(absl::string_view uri) {
 diff --git a/call/BUILD.gn b/call/BUILD.gn
-index 684b076d27..4a1f13a4b9 100644
+index f57f9e0d3c..9f2833196d 100644
 --- a/call/BUILD.gn
 +++ b/call/BUILD.gn
 @@ -20,6 +20,7 @@ rtc_library("call_interfaces") {
@@ -451,7 +451,7 @@ index 59ffd39548..71b5f12982 100644
        LntfConfig lntf;
  
 diff --git a/modules/audio_coding/acm2/acm_receiver.h b/modules/audio_coding/acm2/acm_receiver.h
-index 8b57523cb7..c0932c5e4d 100644
+index 92305da0e6..3257f5fff0 100644
 --- a/modules/audio_coding/acm2/acm_receiver.h
 +++ b/modules/audio_coding/acm2/acm_receiver.h
 @@ -19,6 +19,7 @@
@@ -1543,10 +1543,10 @@ index 0134e3ea58..86d1bdda16 100644
    std::unique_ptr<ScalableVideoController> svc_controller_;
    absl::optional<ScalabilityMode> scalability_mode_;
 diff --git a/rtc_base/BUILD.gn b/rtc_base/BUILD.gn
-index f095b228ee..0cd307a646 100644
+index 4743a46d9d..2bdbb971ef 100644
 --- a/rtc_base/BUILD.gn
 +++ b/rtc_base/BUILD.gn
-@@ -465,6 +465,12 @@ rtc_library("logging") {
+@@ -469,6 +469,12 @@ rtc_library("logging") {
      "//third_party/abseil-cpp/absl/types:optional",
    ]
  
@@ -1662,7 +1662,7 @@ index 0a9226ef6f..620c1c02f3 100644
    vcm_ = nullptr;
  }
 diff --git a/webrtc.gni b/webrtc.gni
-index dfa7033bfd..3f0e7feccb 100644
+index 66ed8434ff..45293063a9 100644
 --- a/webrtc.gni
 +++ b/webrtc.gni
 @@ -126,7 +126,7 @@ declare_args() {

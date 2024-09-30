@@ -10,8 +10,11 @@
 
 #include "api/test/audioproc_float.h"
 
+#include <memory>
 #include <utility>
 
+#include "api/audio/audio_processing.h"
+#include "api/scoped_refptr.h"
 #include "modules/audio_processing/test/audioproc_float_impl.h"
 
 namespace webrtc {

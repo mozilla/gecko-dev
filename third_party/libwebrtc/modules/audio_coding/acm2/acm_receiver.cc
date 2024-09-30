@@ -39,29 +39,29 @@ namespace {
 std::unique_ptr<NetEq> CreateNetEq(
     NetEqFactory* neteq_factory,
     const NetEq::Config& config,
-    Clock* clock,
-    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
+    const Environment& env,
+    scoped_refptr<AudioDecoderFactory> decoder_factory) {
   if (neteq_factory) {
-    return neteq_factory->CreateNetEq(config, decoder_factory, clock);
+    return neteq_factory->Create(env, config, std::move(decoder_factory));
   }
-  return DefaultNetEqFactory().CreateNetEq(config, decoder_factory, clock);
+  return DefaultNetEqFactory().Create(env, config, std::move(decoder_factory));
 }
 
 }  // namespace
 
 AcmReceiver::Config::Config(
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory)
-    : clock(*Clock::GetRealTimeClockRaw()), decoder_factory(decoder_factory) {}
+    : decoder_factory(decoder_factory) {}
 
 AcmReceiver::Config::Config(const Config&) = default;
 AcmReceiver::Config::~Config() = default;
 
-AcmReceiver::AcmReceiver(const Config& config)
-    : neteq_(CreateNetEq(config.neteq_factory,
+AcmReceiver::AcmReceiver(const Environment& env, Config config)
+    : env_(env),
+      neteq_(CreateNetEq(config.neteq_factory,
                          config.neteq_config,
-                         &config.clock,
-                         config.decoder_factory)),
-      clock_(config.clock),
+                         env_,
+                         std::move(config.decoder_factory))),
       resampled_last_output_frame_(true) {
   ClearSamples(last_audio_buffer_);
 }
@@ -338,7 +338,7 @@ uint32_t AcmReceiver::NowInTimestamp(int decoder_sampling_rate) const {
   // We masked 6 most significant bits of 32-bit so there is no overflow in
   // the conversion from milliseconds to timestamp.
   const uint32_t now_in_ms =
-      static_cast<uint32_t>(clock_.TimeInMilliseconds() & 0x03ffffff);
+      static_cast<uint32_t>(env_.clock().TimeInMilliseconds() & 0x03ffffff);
   return static_cast<uint32_t>((decoder_sampling_rate / 1000) * now_in_ms);
 }
 

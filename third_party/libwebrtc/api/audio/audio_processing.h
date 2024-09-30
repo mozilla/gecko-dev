@@ -221,6 +221,7 @@ class RTC_EXPORT AudioProcessing : public RefCountInterface {
       bool analyze_linear_aec_output_when_available = false;
     } noise_suppression;
 
+    // TODO(bugs.webrtc.org/357281131): Deprecated. Stop using and remove.
     // Enables transient suppression.
     struct TransientSuppression {
       bool enabled = false;

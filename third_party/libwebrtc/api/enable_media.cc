@@ -39,8 +39,8 @@ class MediaFactoryImpl : public MediaFactory {
   MediaFactoryImpl& operator=(const MediaFactoryImpl&) = delete;
   ~MediaFactoryImpl() override = default;
 
-  std::unique_ptr<Call> CreateCall(const CallConfig& config) override {
-    return webrtc::CreateCall(config);
+  std::unique_ptr<Call> CreateCall(CallConfig config) override {
+    return webrtc::CreateCall(std::move(config));
   }
 
   std::unique_ptr<MediaEngineInterface> CreateMediaEngine(

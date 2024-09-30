@@ -123,7 +123,12 @@ RTC_OBJC_EXPORT
  * by WebRTC for this transceiver.
  * https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-setcodecpreferences
  */
-- (void)setCodecPreferences:(NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *)codecs;
+- (BOOL)setCodecPreferences:(NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *_Nullable)codecs
+                      error:(NSError **_Nullable)error;
+
+/** Deprecated version of [RTCRtpTransceiver setCodecPreferences:error:] */
+- (void)setCodecPreferences:(NSArray<RTC_OBJC_TYPE(RTCRtpCodecCapability) *> *_Nullable)codecs
+    RTC_OBJC_DEPRECATED("Use setCodecPreferences:error: instead.");
 
 /** An update of directionality does not take effect immediately. Instead,
  *  future calls to createOffer and createAnswer mark the corresponding media

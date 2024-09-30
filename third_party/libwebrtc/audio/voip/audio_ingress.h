@@ -20,6 +20,7 @@
 #include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/audio/audio_mixer.h"
+#include "api/environment/environment.h"
 #include "api/rtp_headers.h"
 #include "api/scoped_refptr.h"
 #include "api/voip/voip_statistics.h"
@@ -46,8 +47,8 @@ namespace webrtc {
 // smaller footprint.
 class AudioIngress : public AudioMixer::Source {
  public:
-  AudioIngress(RtpRtcpInterface* rtp_rtcp,
-               Clock* clock,
+  AudioIngress(const Environment& env,
+               RtpRtcpInterface* rtp_rtcp,
                ReceiveStatistics* receive_statistics,
                rtc::scoped_refptr<AudioDecoderFactory> decoder_factory);
   ~AudioIngress() override;
@@ -105,6 +106,8 @@ class AudioIngress : public AudioMixer::Source {
   }
 
  private:
+  const Environment env_;
+
   // Indicates AudioIngress status as caller invokes Start/StopPlaying.
   // If not playing, incoming RTP data processing is skipped, thus
   // producing no data to output device.
@@ -132,8 +135,6 @@ class AudioIngress : public AudioMixer::Source {
   Mutex lock_;
 
   RemoteNtpTimeEstimator ntp_estimator_ RTC_GUARDED_BY(lock_);
-
-  Clock* clock_;
 
   // For receiving RTP statistics, this tracks the sampling rate value
   // per payload type set when caller set via SetReceiveCodecs.

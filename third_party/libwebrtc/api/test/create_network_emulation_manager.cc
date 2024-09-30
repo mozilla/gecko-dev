@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "api/field_trials_view.h"
+#include "api/test/network_emulation_manager.h"
 #include "test/network/network_emulation_manager.h"
 
 namespace webrtc {

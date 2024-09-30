@@ -141,15 +141,13 @@ class RtpVideoSenderTestFixture {
     transport_controller_.EnsureStarted();
     std::map<uint32_t, RtpState> suspended_ssrcs;
     router_ = std::make_unique<RtpVideoSender>(
-        time_controller_.GetClock(), suspended_ssrcs, suspended_payload_states,
-        config_.rtp, config_.rtcp_report_interval_ms, &transport_,
+        env_, suspended_ssrcs, suspended_payload_states, config_.rtp,
+        config_.rtcp_report_interval_ms, &transport_,
         CreateObservers(&encoder_feedback_, &stats_proxy_, &stats_proxy_,
                         &stats_proxy_, frame_count_observer, &stats_proxy_),
-        &transport_controller_, &env_.event_log(),
-        &retransmission_rate_limiter_,
+        &transport_controller_, &retransmission_rate_limiter_,
         std::make_unique<FecControllerDefault>(env_), nullptr, CryptoOptions{},
-        frame_transformer, env_.field_trials(),
-        time_controller_.GetTaskQueueFactory());
+        frame_transformer);
   }
 
   RtpVideoSenderTestFixture(

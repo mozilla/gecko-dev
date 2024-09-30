@@ -14,27 +14,30 @@
 
 #include <string>
 
+#include "absl/memory/memory.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_audio_decoder.h"
 #include "test/mock_audio_decoder_factory.h"
 
-using ::testing::_;
-using ::testing::Invoke;
-
 namespace webrtc {
 
+using ::testing::WithArg;
+
 TEST(DecoderDatabase, CreateAndDestroy) {
-  DecoderDatabase db(rtc::make_ref_counted<MockAudioDecoderFactory>(),
+  DecoderDatabase db(CreateEnvironment(),
+                     make_ref_counted<MockAudioDecoderFactory>(),
                      absl::nullopt);
   EXPECT_EQ(0, db.Size());
   EXPECT_TRUE(db.Empty());
 }
 
 TEST(DecoderDatabase, InsertAndRemove) {
-  auto factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
-  DecoderDatabase db(factory, absl::nullopt);
+  DecoderDatabase db(CreateEnvironment(),
+                     make_ref_counted<MockAudioDecoderFactory>(),
+                     absl::nullopt);
   const uint8_t kPayloadType = 0;
   const std::string kCodecName = "Robert\'); DROP TABLE Students;";
   EXPECT_EQ(
@@ -48,8 +51,9 @@ TEST(DecoderDatabase, InsertAndRemove) {
 }
 
 TEST(DecoderDatabase, InsertAndRemoveAll) {
-  auto factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
-  DecoderDatabase db(factory, absl::nullopt);
+  DecoderDatabase db(CreateEnvironment(),
+                     make_ref_counted<MockAudioDecoderFactory>(),
+                     absl::nullopt);
   const std::string kCodecName1 = "Robert\'); DROP TABLE Students;";
   const std::string kCodecName2 = "https://xkcd.com/327/";
   EXPECT_EQ(DecoderDatabase::kOK,
@@ -66,14 +70,12 @@ TEST(DecoderDatabase, InsertAndRemoveAll) {
 TEST(DecoderDatabase, GetDecoderInfo) {
   auto factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
   auto* decoder = new MockAudioDecoder;
-  EXPECT_CALL(*factory, MakeAudioDecoderMock(_, _, _))
-      .WillOnce(Invoke([decoder](const SdpAudioFormat& format,
-                                 absl::optional<AudioCodecPairId> codec_pair_id,
-                                 std::unique_ptr<AudioDecoder>* dec) {
+  EXPECT_CALL(*factory, Create)
+      .WillOnce(WithArg<1>([decoder](const SdpAudioFormat& format) {
         EXPECT_EQ("pcmu", format.name);
-        dec->reset(decoder);
+        return absl::WrapUnique(decoder);
       }));
-  DecoderDatabase db(factory, absl::nullopt);
+  DecoderDatabase db(CreateEnvironment(), std::move(factory), absl::nullopt);
   const uint8_t kPayloadType = 0;
   const std::string kCodecName = "pcmu";
   EXPECT_EQ(
@@ -90,7 +92,8 @@ TEST(DecoderDatabase, GetDecoderInfo) {
 }
 
 TEST(DecoderDatabase, GetDecoder) {
-  DecoderDatabase db(CreateBuiltinAudioDecoderFactory(), absl::nullopt);
+  DecoderDatabase db(CreateEnvironment(), CreateBuiltinAudioDecoderFactory(),
+                     absl::nullopt);
   const uint8_t kPayloadType = 0;
   EXPECT_EQ(DecoderDatabase::kOK,
             db.RegisterPayload(kPayloadType, SdpAudioFormat("l16", 8000, 1)));
@@ -99,8 +102,9 @@ TEST(DecoderDatabase, GetDecoder) {
 }
 
 TEST(DecoderDatabase, TypeTests) {
-  auto factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
-  DecoderDatabase db(factory, absl::nullopt);
+  DecoderDatabase db(CreateEnvironment(),
+                     make_ref_counted<MockAudioDecoderFactory>(),
+                     absl::nullopt);
   const uint8_t kPayloadTypePcmU = 0;
   const uint8_t kPayloadTypeCng = 13;
   const uint8_t kPayloadTypeDtmf = 100;
@@ -133,8 +137,9 @@ TEST(DecoderDatabase, TypeTests) {
 
 TEST(DecoderDatabase, CheckPayloadTypes) {
   constexpr int kNumPayloads = 10;
-  auto factory = rtc::make_ref_counted<MockAudioDecoderFactory>();
-  DecoderDatabase db(factory, absl::nullopt);
+  DecoderDatabase db(CreateEnvironment(),
+                     make_ref_counted<MockAudioDecoderFactory>(),
+                     absl::nullopt);
   // Load a number of payloads into the database. Payload types are 0, 1, ...,
   // while the decoder type is the same for all payload types (this does not
   // matter for the test).
@@ -175,7 +180,8 @@ TEST(DecoderDatabase, CheckPayloadTypes) {
 
 // Test the methods for setting and getting active speech and CNG decoders.
 TEST(DecoderDatabase, IF_ISAC(ActiveDecoders)) {
-  DecoderDatabase db(CreateBuiltinAudioDecoderFactory(), absl::nullopt);
+  DecoderDatabase db(CreateEnvironment(), CreateBuiltinAudioDecoderFactory(),
+                     absl::nullopt);
   // Load payload types.
   ASSERT_EQ(DecoderDatabase::kOK,
             db.RegisterPayload(0, SdpAudioFormat("pcmu", 8000, 1)));

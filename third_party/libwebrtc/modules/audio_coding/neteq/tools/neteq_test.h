@@ -19,6 +19,7 @@
 
 #include "absl/types/optional.h"
 #include "api/audio_codecs/audio_decoder_factory.h"
+#include "api/environment/environment.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_factory.h"
 #include "api/test/neteq_simulator.h"
@@ -112,6 +113,7 @@ class NetEqTest : public NetEqSimulator {
   void RegisterDecoders(const DecoderMap& codecs);
   std::unique_ptr<NetEqInput> input_;
   SimulatedClock clock_;
+  const Environment env_;
   absl::optional<Action> next_action_;
   absl::optional<int> last_packet_time_ms_;
   std::unique_ptr<NetEq> neteq_;

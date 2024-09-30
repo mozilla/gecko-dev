@@ -33,6 +33,7 @@ rtc_library("pacing") {
     "../../api:field_trials_view",
     "../../api:field_trials_view",
     "../../api:function_view",
+    "../../api:rtp_packet_sender",
     "../../api:sequence_checker",
     "../../api/rtc_event_log",
     "../../api/task_queue:pending_task_safety_flag",

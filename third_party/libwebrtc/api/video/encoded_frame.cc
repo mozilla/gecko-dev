@@ -10,8 +10,17 @@
 
 #include "api/video/encoded_frame.h"
 
+#include <cstddef>
+#include <cstdint>
+
 #include "absl/types/optional.h"
+#include "absl/types/variant.h"
+#include "api/units/timestamp.h"
+#include "api/video/video_codec_type.h"
 #include "modules/rtp_rtcp/source/rtp_video_header.h"
+#include "modules/video_coding/codecs/interface/common_constants.h"
+#include "modules/video_coding/codecs/vp8/include/vp8_globals.h"
+#include "modules/video_coding/codecs/vp9/include/vp9_globals.h"
 
 namespace webrtc {
 

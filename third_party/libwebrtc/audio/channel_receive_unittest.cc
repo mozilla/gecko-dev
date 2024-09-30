@@ -14,9 +14,8 @@
 #include "api/audio/audio_device.h"
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
 #include "api/crypto/frame_decryptor_interface.h"
-#include "api/task_queue/default_task_queue_factory.h"
+#include "api/environment/environment_factory.h"
 #include "api/test/mock_frame_transformer.h"
-#include "logging/rtc_event_log/mock/mock_rtc_event_log.h"
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
 #include "modules/rtp_rtcp/source/ntp_time_util.h"
@@ -61,9 +60,9 @@ class ChannelReceiveTest : public Test {
   std::unique_ptr<ChannelReceiveInterface> CreateTestChannelReceive() {
     CryptoOptions crypto_options;
     auto channel = CreateChannelReceive(
-        time_controller_.GetClock(),
+        CreateEnvironment(time_controller_.GetClock()),
         /* neteq_factory= */ nullptr, audio_device_module_.get(), &transport_,
-        &event_log_, kLocalSsrc, kRemoteSsrc,
+        kLocalSsrc, kRemoteSsrc,
         /* jitter_buffer_max_packets= */ 0,
         /* jitter_buffer_fast_playout= */ false,
         /* jitter_buffer_min_delay_ms= */ 0,
@@ -160,7 +159,6 @@ class ChannelReceiveTest : public Test {
   rtc::scoped_refptr<test::MockAudioDeviceModule> audio_device_module_;
   rtc::scoped_refptr<AudioDecoderFactory> audio_decoder_factory_;
   MockTransport transport_;
-  NiceMock<MockRtcEventLog> event_log_;
 };
 
 TEST_F(ChannelReceiveTest, CreateAndDestroy) {

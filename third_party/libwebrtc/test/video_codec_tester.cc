@@ -11,6 +11,7 @@
 #include "test/video_codec_tester.h"
 
 #include <algorithm>
+#include <numeric>
 #include <set>
 #include <tuple>
 #include <utility>
@@ -46,10 +47,7 @@
 #include "rtc_base/synchronization/mutex.h"
 #include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/time_utils.h"
-#include "system_wrappers/include/field_trial.h"
 #include "system_wrappers/include/sleep.h"
-#include "test/explicit_key_value_config.h"
-#include "test/scoped_key_value_config.h"
 #include "test/testsupport/file_utils.h"
 #include "test/testsupport/frame_reader.h"
 #include "test/testsupport/video_frame_writer.h"
@@ -1274,7 +1272,7 @@ class Encoder : public EncodedImageCallback {
   Mutex mutex_;
 };
 
-void ConfigureSimulcast(VideoCodec* vc) {
+void ConfigureSimulcast(const FieldTrialsView& field_trials, VideoCodec* vc) {
   int num_spatial_layers =
       ScalabilityModeToNumSpatialLayers(*vc->GetScalabilityMode());
   int num_temporal_layers =
@@ -1293,7 +1291,6 @@ void ConfigureSimulcast(VideoCodec* vc) {
     return;
   }
 
-  ExplicitKeyValueConfig field_trials(field_trial::GetFieldTrialString());
   VideoEncoderConfig encoder_config;
   encoder_config.codec_type = vc->codecType;
   encoder_config.number_of_streams = num_spatial_layers;
@@ -1424,7 +1421,7 @@ SplitBitrateAndUpdateScalabilityMode(const Environment& env,
       case kVideoCodecVP8:
       case kVideoCodecH264:
       case kVideoCodecH265:
-        ConfigureSimulcast(&vc);
+        ConfigureSimulcast(env.field_trials(), &vc);
         break;
       case kVideoCodecVP9: {
         const std::vector<SpatialLayer> spatialLayers = GetVp9SvcConfig(vc);

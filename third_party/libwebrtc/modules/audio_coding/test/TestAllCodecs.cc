@@ -111,6 +111,7 @@ TestAllCodecs::TestAllCodecs()
     : env_(CreateEnvironment()),
       acm_a_(AudioCodingModule::Create()),
       acm_b_(std::make_unique<acm2::AcmReceiver>(
+          env_,
           acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()))),
       channel_a_to_b_(NULL),
       test_count_(0),

@@ -64,54 +64,47 @@ std::string AudioReceiveStreamInterface::Config::ToString() const {
 
 namespace {
 std::unique_ptr<voe::ChannelReceiveInterface> CreateChannelReceive(
-    Clock* clock,
+    const Environment& env,
     webrtc::AudioState* audio_state,
     NetEqFactory* neteq_factory,
-    const webrtc::AudioReceiveStreamInterface::Config& config,
-    RtcEventLog* event_log) {
+    const webrtc::AudioReceiveStreamInterface::Config& config) {
   RTC_DCHECK(audio_state);
   internal::AudioState* internal_audio_state =
       static_cast<internal::AudioState*>(audio_state);
   return voe::CreateChannelReceive(
-      clock, neteq_factory, internal_audio_state->audio_device_module(),
-      config.rtcp_send_transport, event_log, config.rtp.local_ssrc,
-      config.rtp.remote_ssrc, config.jitter_buffer_max_packets,
-      config.jitter_buffer_fast_accelerate, config.jitter_buffer_min_delay_ms,
-      config.enable_non_sender_rtt, config.decoder_factory,
-      config.codec_pair_id, std::move(config.frame_decryptor),
-      config.crypto_options, std::move(config.frame_transformer),
-      config.rtp.rtcp_event_observer);
+      env, neteq_factory, internal_audio_state->audio_device_module(),
+      config.rtcp_send_transport, config.rtp.local_ssrc, config.rtp.remote_ssrc,
+      config.jitter_buffer_max_packets, config.jitter_buffer_fast_accelerate,
+      config.jitter_buffer_min_delay_ms, config.enable_non_sender_rtt,
+      config.decoder_factory, config.codec_pair_id,
+      std::move(config.frame_decryptor), config.crypto_options,
+      std::move(config.frame_transformer), config.rtp.rtcp_event_observer);
 }
 }  // namespace
 
 AudioReceiveStreamImpl::AudioReceiveStreamImpl(
-    Clock* clock,
+    const Environment& env,
     PacketRouter* packet_router,
     NetEqFactory* neteq_factory,
     const webrtc::AudioReceiveStreamInterface::Config& config,
-    const rtc::scoped_refptr<webrtc::AudioState>& audio_state,
-    webrtc::RtcEventLog* event_log)
-    : AudioReceiveStreamImpl(clock,
-                             packet_router,
-                             config,
-                             audio_state,
-                             event_log,
-                             CreateChannelReceive(clock,
-                                                  audio_state.get(),
-                                                  neteq_factory,
-                                                  config,
-                                                  event_log)) {}
+    const rtc::scoped_refptr<webrtc::AudioState>& audio_state)
+    : AudioReceiveStreamImpl(
+          env,
+          packet_router,
+          config,
+          audio_state,
+          CreateChannelReceive(env, audio_state.get(), neteq_factory, config)) {
+}
 
 AudioReceiveStreamImpl::AudioReceiveStreamImpl(
-    Clock* clock,
+    const Environment& env,
     PacketRouter* packet_router,
     const webrtc::AudioReceiveStreamInterface::Config& config,
     const rtc::scoped_refptr<webrtc::AudioState>& audio_state,
-    webrtc::RtcEventLog* event_log,
     std::unique_ptr<voe::ChannelReceiveInterface> channel_receive)
     : config_(config),
       audio_state_(audio_state),
-      source_tracker_(clock),
+      source_tracker_(&env.clock()),
       channel_receive_(std::move(channel_receive)) {
   RTC_LOG(LS_INFO) << "AudioReceiveStreamImpl: " << config.rtp.remote_ssrc;
   RTC_DCHECK(config.decoder_factory);

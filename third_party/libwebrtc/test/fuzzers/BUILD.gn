@@ -163,6 +163,8 @@ webrtc_fuzzer_test("flexfec_header_reader_fuzzer") {
 webrtc_fuzzer_test("flexfec_sender_fuzzer") {
   sources = [ "flexfec_sender_fuzzer.cc" ]
   deps = [
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../modules/rtp_rtcp",
     "../../modules/rtp_rtcp:rtp_rtcp_format",
     "../../system_wrappers",
@@ -182,6 +184,8 @@ webrtc_fuzzer_test("ulpfec_header_reader_fuzzer") {
 webrtc_fuzzer_test("ulpfec_generator_fuzzer") {
   sources = [ "ulpfec_generator_fuzzer.cc" ]
   deps = [
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../modules:module_api_public",
     "../../modules/rtp_rtcp",
     "../../modules/rtp_rtcp:fec_test_helper",
@@ -326,6 +330,7 @@ webrtc_fuzzer_test("audio_decoder_opus_fuzzer") {
   sources = [ "audio_decoder_opus_fuzzer.cc" ]
   deps = [
     ":audio_decoder_fuzzer",
+    "..:explicit_key_value_config",
     "../../modules/audio_coding:webrtc_opus",
   ]
 }
@@ -334,6 +339,7 @@ webrtc_fuzzer_test("audio_decoder_opus_redundant_fuzzer") {
   sources = [ "audio_decoder_opus_redundant_fuzzer.cc" ]
   deps = [
     ":audio_decoder_fuzzer",
+    "..:explicit_key_value_config",
     "../../modules/audio_coding:webrtc_opus",
   ]
 }
@@ -383,6 +389,8 @@ webrtc_fuzzer_test("audio_encoder_opus_fuzzer") {
   deps = [
     ":audio_encoder_fuzzer",
     "../../api/audio_codecs/opus:audio_encoder_opus",
+    "../../api/environment",
+    "../../api/environment:environment_factory",
     "../../rtc_base:checks",
   ]
 }

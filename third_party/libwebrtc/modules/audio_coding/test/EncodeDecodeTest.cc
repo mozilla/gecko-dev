@@ -52,7 +52,8 @@ int32_t TestPacketization::SendData(const AudioFrameType /* frameType */,
 Sender::Sender()
     : _acm(NULL), _pcmFile(), _audioFrame(), _packetization(NULL) {}
 
-void Sender::Setup(AudioCodingModule* acm,
+void Sender::Setup(const Environment& env,
+                   AudioCodingModule* acm,
                    RTPStream* rtpStream,
                    absl::string_view in_file_name,
                    int in_sample_rate,
@@ -70,7 +71,7 @@ void Sender::Setup(AudioCodingModule* acm,
   _pcmFile.FastForward(100);
 
   acm->SetEncoder(CreateBuiltinAudioEncoderFactory()->Create(
-      CreateEnvironment(), format, {.payload_type = payload_type}));
+      env, format, {.payload_type = payload_type}));
   _packetization = new TestPacketization(rtpStream, format.clockrate_hz);
   EXPECT_EQ(0, acm->RegisterTransportCallback(_packetization));
 
@@ -244,6 +245,7 @@ void EncodeDecodeTest::Perform() {
       {9, {"G722", 8000, 1}},
 #endif
   };
+  const Environment env = CreateEnvironment();
   int file_num = 0;
   for (const auto& send_codec : send_codecs) {
     RTPFile rtpFile;
@@ -254,7 +256,7 @@ void EncodeDecodeTest::Perform() {
     rtpFile.Open(fileName.c_str(), "wb+");
     rtpFile.WriteHeader();
     Sender sender;
-    sender.Setup(acm.get(), &rtpFile, "audio_coding/testfile32kHz", 32000,
+    sender.Setup(env, acm.get(), &rtpFile, "audio_coding/testfile32kHz", 32000,
                  send_codec.first, send_codec.second);
     sender.Run();
     sender.Teardown();
@@ -262,9 +264,9 @@ void EncodeDecodeTest::Perform() {
 
     rtpFile.Open(fileName.c_str(), "rb");
     rtpFile.ReadHeader();
-    std::unique_ptr<acm2::AcmReceiver> acm_receiver(
+    std::unique_ptr<acm2::AcmReceiver> acm_receiver =
         std::make_unique<acm2::AcmReceiver>(
-            acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory())));
+            env, acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()));
     Receiver receiver;
     receiver.Setup(acm_receiver.get(), &rtpFile, "encodeDecode_out", 1,
                    file_num);

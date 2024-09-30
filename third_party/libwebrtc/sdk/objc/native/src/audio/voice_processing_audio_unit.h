@@ -34,6 +34,11 @@ class VoiceProcessingAudioUnitObserver {
                                     UInt32 num_frames,
                                     AudioBufferList* io_data) = 0;
 
+  // Callback function called when a user speaking during muted is detected by
+  // system.
+  virtual void OnReceivedMutedSpeechActivity(
+      AUVoiceIOSpeechActivityEvent event) = 0;
+
  protected:
   ~VoiceProcessingAudioUnitObserver() {}
 };
@@ -47,6 +52,7 @@ class VoiceProcessingAudioUnitObserver {
 class VoiceProcessingAudioUnit {
  public:
   VoiceProcessingAudioUnit(bool bypass_voice_processing,
+                           bool detect_mute_speech,
                            VoiceProcessingAudioUnitObserver* observer);
   ~VoiceProcessingAudioUnit();
 
@@ -85,6 +91,9 @@ class VoiceProcessingAudioUnit {
 
   // Uninitializes the underlying audio unit.
   bool Uninitialize();
+
+  // Mutes the microphone.
+  bool SetMicrophoneMute(bool enable);
 
   // Calls render on the underlying audio unit.
   OSStatus Render(AudioUnitRenderActionFlags* flags,
@@ -131,6 +140,7 @@ class VoiceProcessingAudioUnit {
   void DisposeAudioUnit();
 
   const bool bypass_voice_processing_;
+  const bool detect_mute_speech_;
   VoiceProcessingAudioUnitObserver* observer_;
   AudioUnit vpio_unit_;
   VoiceProcessingAudioUnit::State state_;

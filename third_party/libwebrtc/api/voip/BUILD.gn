@@ -39,6 +39,7 @@ rtc_library("voip_engine_factory") {
     ":voip_api",
     "..:scoped_refptr",
     "../../audio/voip:voip_core",
+    "../../rtc_base:checks",
     "../../rtc_base:logging",
     "../audio:audio_device",
     "../audio:audio_processing",
@@ -57,6 +58,7 @@ if (rtc_include_tests) {
       ":voip_api",
       "..:array_view",
       "../../test:test_support",
+      "../audio_codecs:audio_codecs_api",
       "//third_party/abseil-cpp/absl/types:optional",
     ]
   }
@@ -66,6 +68,7 @@ if (rtc_include_tests) {
     sources = [ "test/voip_engine_factory_unittest.cc" ]
     deps = [
       ":voip_engine_factory",
+      "..:make_ref_counted",
       "../../modules/audio_device:mock_audio_device",
       "../../modules/audio_processing:mocks",
       "../../test:audio_codec_mocks",

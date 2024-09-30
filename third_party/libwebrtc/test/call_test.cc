@@ -128,7 +128,7 @@ void CallTest::RunBaseTest(BaseTest* test) {
       fake_send_audio_device_->RegisterAudioCallback(
           send_config.audio_state->audio_transport());
     }
-    CreateSenderCall(send_config);
+    CreateSenderCall(std::move(send_config));
     if (test->ShouldCreateReceivers()) {
       CallConfig recv_config = RecvCallConfig();
       test->ModifyReceiverBitrateConfig(&recv_config.bitrate_config);
@@ -141,7 +141,7 @@ void CallTest::RunBaseTest(BaseTest* test) {
         fake_recv_audio_device_->RegisterAudioCallback(
             recv_config.audio_state->audio_transport());
       }
-      CreateReceiverCall(recv_config);
+      CreateReceiverCall(std::move(recv_config));
     }
     test->OnCallsCreated(sender_call_.get(), receiver_call_.get());
     CreateReceiveTransport(test->GetReceiveTransportConfig(), test);
@@ -235,22 +235,22 @@ void CallTest::CreateCalls() {
   CreateCalls(SendCallConfig(), RecvCallConfig());
 }
 
-void CallTest::CreateCalls(const CallConfig& sender_config,
-                           const CallConfig& receiver_config) {
-  CreateSenderCall(sender_config);
-  CreateReceiverCall(receiver_config);
+void CallTest::CreateCalls(CallConfig sender_config,
+                           CallConfig receiver_config) {
+  CreateSenderCall(std::move(sender_config));
+  CreateReceiverCall(std::move(receiver_config));
 }
 
 void CallTest::CreateSenderCall() {
   CreateSenderCall(SendCallConfig());
 }
 
-void CallTest::CreateSenderCall(const CallConfig& config) {
-  sender_call_ = Call::Create(config);
+void CallTest::CreateSenderCall(CallConfig config) {
+  sender_call_ = Call::Create(std::move(config));
 }
 
-void CallTest::CreateReceiverCall(const CallConfig& config) {
-  receiver_call_ = Call::Create(config);
+void CallTest::CreateReceiverCall(CallConfig config) {
+  receiver_call_ = Call::Create(std::move(config));
 }
 
 void CallTest::DestroyCalls() {

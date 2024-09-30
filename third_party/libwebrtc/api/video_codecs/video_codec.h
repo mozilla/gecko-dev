@@ -16,8 +16,8 @@
 
 #include <string>
 
-#include "absl/strings/string_view.h"
-#include "api/video/video_bitrate_allocation.h"
+#include "absl/types/optional.h"
+#include "api/video/video_codec_constants.h"
 #include "api/video/video_codec_type.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/simulcast_stream.h"

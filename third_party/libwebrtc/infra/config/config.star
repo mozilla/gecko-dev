@@ -13,7 +13,7 @@ lucicfg.check_version("1.30.9")
 WEBRTC_GIT = "https://webrtc.googlesource.com/src"
 WEBRTC_GERRIT = "https://webrtc-review.googlesource.com/src"
 WEBRTC_TROOPER_EMAIL = "webrtc-troopers-robots@google.com"
-WEBRTC_XCODE14 = "14c18"
+WEBRTC_XCODE = "15f31d"
 DEFAULT_CPU = "x86-64"
 
 # Helpers:
@@ -52,7 +52,9 @@ def os_from_name(name):
 # Add names of builders to remove from LKGR finder to this list. This is
 # useful when a failure can be safely ignored while fixing it without
 # blocking the LKGR finder on it.
-skipped_lkgr_bots = []
+skipped_lkgr_bots = [
+    "iOS Debug (simulator)",
+]
 
 # Use LUCI Scheduler BBv2 names and add Scheduler realms configs.
 lucicfg.enable_experiment("crbug.com/1182002")
@@ -705,10 +707,10 @@ def normal_builder_factory(**common_kwargs):
 # Mixins:
 
 ios_builder, ios_try_job = normal_builder_factory(
-    properties = {"xcode_build_version": WEBRTC_XCODE14},
+    properties = {"xcode_build_version": WEBRTC_XCODE},
     caches = [swarming.cache(
-        name = "xcode_ios_" + WEBRTC_XCODE14,
-        path = "xcode_ios_" + WEBRTC_XCODE14 + ".app",
+        name = "xcode_ios_" + WEBRTC_XCODE,
+        path = "xcode_ios_" + WEBRTC_XCODE + ".app",
     )],
 )
 
@@ -745,7 +747,7 @@ ios_try_job("ios_compile_arm64_dbg")
 ios_builder("iOS64 Release", "iOS|arm64|rel")
 ios_try_job("ios_compile_arm64_rel")
 ios_builder("iOS Debug (simulator)", "iOS|x64|sim")
-ios_try_job("ios_dbg_simulator")
+ios_try_job("ios_dbg_simulator", cq = None)
 ios_builder("iOS API Framework Builder", "iOS|fat|size", recipe = "ios_api_framework", prioritized = True)
 ios_try_job("ios_api_framework", recipe = "ios_api_framework")
 

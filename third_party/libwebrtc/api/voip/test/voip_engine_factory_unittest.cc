@@ -12,9 +12,11 @@
 
 #include <utility>
 
+#include "api/make_ref_counted.h"
 #include "api/task_queue/default_task_queue_factory.h"
 #include "modules/audio_device/include/mock_audio_device.h"
 #include "modules/audio_processing/include/mock_audio_processing.h"
+#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/mock_audio_decoder_factory.h"
 #include "test/mock_audio_encoder_factory.h"

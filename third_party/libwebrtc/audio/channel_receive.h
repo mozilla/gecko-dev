@@ -22,6 +22,7 @@
 #include "api/call/audio_sink.h"
 #include "api/call/transport.h"
 #include "api/crypto/crypto_options.h"
+#include "api/environment/environment.h"
 #include "api/frame_transformer_interface.h"
 #include "api/neteq/neteq_factory.h"
 #include "api/transport/rtp/rtp_source.h"
@@ -30,7 +31,6 @@
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/rtp_rtcp/include/rtp_rtcp_defines.h"
 #include "modules/rtp_rtcp/source/source_tracker.h"
-#include "system_wrappers/include/clock.h"
 
 // TODO(solenberg, nisse): This file contains a few NOLINT marks, to silence
 // warnings about use of unsigned short.
@@ -47,7 +47,6 @@ class FrameDecryptorInterface;
 class PacketRouter;
 class RateLimiter;
 class ReceiveStatistics;
-class RtcEventLog;
 class RtpPacketReceived;
 class RtpRtcp;
 
@@ -173,11 +172,10 @@ class ChannelReceiveInterface : public RtpPacketSinkInterface {
 };
 
 std::unique_ptr<ChannelReceiveInterface> CreateChannelReceive(
-    Clock* clock,
+    const Environment& env,
     NetEqFactory* neteq_factory,
     AudioDeviceModule* audio_device_module,
     Transport* rtcp_send_transport,
-    RtcEventLog* rtc_event_log,
     uint32_t local_ssrc,
     uint32_t remote_ssrc,
     size_t jitter_buffer_max_packets,

@@ -13,6 +13,8 @@
 #include <iomanip>
 #include <iostream>
 
+#include "api/environment/environment.h"
+#include "api/environment/environment_factory.h"
 #include "api/units/timestamp.h"
 #include "modules/audio_coding/neteq/default_neteq_factory.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
@@ -40,10 +42,10 @@ absl::optional<NetEq::Operation> ActionToOperations(
 }
 
 std::unique_ptr<NetEq> CreateNetEq(
+    const Environment& env,
     const NetEq::Config& config,
-    Clock* clock,
-    const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory) {
-  return DefaultNetEqFactory().CreateNetEq(config, decoder_factory, clock);
+    scoped_refptr<AudioDecoderFactory> decoder_factory) {
+  return DefaultNetEqFactory().Create(env, config, std::move(decoder_factory));
 }
 
 }  // namespace
@@ -70,9 +72,11 @@ NetEqTest::NetEqTest(const NetEq::Config& config,
                      Callbacks callbacks)
     : input_(std::move(input)),
       clock_(Timestamp::Millis(input_->NextEventTime().value_or(0))),
-      neteq_(neteq_factory
-                 ? neteq_factory->CreateNetEq(config, decoder_factory, &clock_)
-                 : CreateNetEq(config, &clock_, decoder_factory)),
+      env_(CreateEnvironment(&clock_)),
+      neteq_(
+          neteq_factory
+              ? neteq_factory->Create(env_, config, std::move(decoder_factory))
+              : CreateNetEq(env_, config, std::move(decoder_factory))),
       output_(std::move(output)),
       callbacks_(callbacks),
       sample_rate_hz_(config.sample_rate_hz),

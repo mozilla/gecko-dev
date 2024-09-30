@@ -1,0 +1,37 @@
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Mon, 16 Sep 2024 14:51:00 +0000
+Subject: Bug 1918996 - Use SCShareableContentStyleNone on macOS 15.
+ r=webrtc-reviewers,jib
+
+Differential Revision: https://phabricator.services.mozilla.com/D222270
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/ade6f6dc0c5a5df1c87e78a45b2878c4ade54358
+---
+ modules/desktop_capture/mac/screen_capturer_sck.mm | 14 +++++++++++---
+ 1 file changed, 11 insertions(+), 3 deletions(-)
+
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 482501e2d9..9e45e94ccd 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -305,10 +305,18 @@ void ScreenCapturerSck::EnsureVisible() {
+   SCContentSharingPickerConfiguration* config = picker.defaultConfiguration;
+   config.allowedPickerModes = picker_modes_;
+   picker.defaultConfiguration = config;
++  SCShareableContentStyle style = SCShareableContentStyleNone;
+   // Pick a sensible style to start out with, based on our current mode.
+-  // Default to Screen because if using Window the picker automatically hides
+-  // our current window to show others.
+-  SCShareableContentStyle style = SCShareableContentStyleDisplay;
++  if (@available(macOS 15, *)) {
++    // Stick with None because if we use Display, the picker doesn't let us
++    // pick a window when first opened. Behaves like Window in 14 except doesn't
++    // change window focus.
++  } else {
++    // Default to Display because if using Window the picker automatically hides
++    // our current window to show others. Saves a click compared to None when
++    // picking a display.
++    style = SCShareableContentStyleDisplay;
++  }
+   if (picker_modes_ == SCContentSharingPickerModeSingleDisplay) {
+     style = SCShareableContentStyleDisplay;
+   } else if (picker_modes_ == SCContentSharingPickerModeSingleWindow ||

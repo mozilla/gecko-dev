@@ -36,8 +36,8 @@ void EnableFakeMedia(
         absl::Nonnull<std::unique_ptr<FakeMediaEngine>> fake)
         : fake_(std::move(fake)) {}
 
-    std::unique_ptr<Call> CreateCall(const CallConfig& config) override {
-      return Call::Create(config);
+    std::unique_ptr<Call> CreateCall(CallConfig config) override {
+      return Call::Create(std::move(config));
     }
 
     std::unique_ptr<MediaEngineInterface> CreateMediaEngine(

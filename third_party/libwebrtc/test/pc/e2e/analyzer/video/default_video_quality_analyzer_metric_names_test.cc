@@ -282,6 +282,11 @@ TEST(DefaultVideoQualityAnalyzerMetricNamesTest, MetricNamesForP2PAreCorrect) {
               .improvement_direction = ImprovementDirection::kSmallerIsBetter},
           MetricValidationInfo{
               .test_case = "test_case/alice_video",
+              .name = "rendered_frame_qp",
+              .unit = Unit::kUnitless,
+              .improvement_direction = ImprovementDirection::kSmallerIsBetter},
+          MetricValidationInfo{
+              .test_case = "test_case/alice_video",
               .name = "actual_encode_bitrate",
               .unit = Unit::kKilobitsPerSecond,
               .improvement_direction = ImprovementDirection::kNeitherIsBetter},
@@ -456,6 +461,11 @@ TEST(DefaultVideoQualityAnalyzerMetricNamesTest,
               .improvement_direction = ImprovementDirection::kSmallerIsBetter},
           MetricValidationInfo{
               .test_case = "test_case/alice_video_alice_bob",
+              .name = "rendered_frame_qp",
+              .unit = Unit::kUnitless,
+              .improvement_direction = ImprovementDirection::kSmallerIsBetter},
+          MetricValidationInfo{
+              .test_case = "test_case/alice_video_alice_bob",
               .name = "actual_encode_bitrate",
               .unit = Unit::kKilobitsPerSecond,
               .improvement_direction = ImprovementDirection::kNeitherIsBetter},
@@ -598,6 +608,11 @@ TEST(DefaultVideoQualityAnalyzerMetricNamesTest,
               .improvement_direction = ImprovementDirection::kSmallerIsBetter},
           MetricValidationInfo{
               .test_case = "test_case/alice_video_alice_charlie",
+              .name = "rendered_frame_qp",
+              .unit = Unit::kUnitless,
+              .improvement_direction = ImprovementDirection::kSmallerIsBetter},
+          MetricValidationInfo{
+              .test_case = "test_case/alice_video_alice_charlie",
               .name = "actual_encode_bitrate",
               .unit = Unit::kKilobitsPerSecond,
               .improvement_direction = ImprovementDirection::kNeitherIsBetter},
@@ -669,10 +684,10 @@ TEST(DefaultVideoQualityAnalyzerMetricNamesTest,
 
   std::vector<std::string> metrics =
       ToTestCases(metrics_logger.GetCollectedMetrics());
-  EXPECT_THAT(metrics, SizeIs(57));
-  EXPECT_THAT(metrics, Contains("test_case/alice_video_alice_bob").Times(28));
+  EXPECT_THAT(metrics, SizeIs(59));
+  EXPECT_THAT(metrics, Contains("test_case/alice_video_alice_bob").Times(29));
   EXPECT_THAT(metrics,
-              Contains("test_case/alice_video_alice_charlie").Times(28));
+              Contains("test_case/alice_video_alice_charlie").Times(29));
   EXPECT_THAT(metrics, Contains("test_case").Times(1));
 }
 

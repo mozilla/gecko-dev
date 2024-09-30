@@ -64,13 +64,10 @@ class AudioIngressTest : public ::testing::Test {
   void SetUp() override {
     constexpr int kPcmuPayload = 0;
     ingress_ = std::make_unique<AudioIngress>(
-        rtp_rtcp_.get(), time_controller_.GetClock(), receive_statistics_.get(),
-        decoder_factory_);
+        env_, rtp_rtcp_.get(), receive_statistics_.get(), decoder_factory_);
     ingress_->SetReceiveCodecs({{kPcmuPayload, kPcmuFormat}});
 
-    egress_ = std::make_unique<AudioEgress>(
-        rtp_rtcp_.get(), time_controller_.GetClock(),
-        time_controller_.GetTaskQueueFactory());
+    egress_ = std::make_unique<AudioEgress>(env_, rtp_rtcp_.get());
     egress_->SetEncoder(kPcmuPayload, kPcmuFormat,
                         encoder_factory_->Create(
                             env_, kPcmuFormat, {.payload_type = kPcmuPayload}));

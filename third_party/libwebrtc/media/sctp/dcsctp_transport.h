@@ -18,6 +18,7 @@
 #include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/environment/environment.h"
+#include "api/priority.h"
 #include "api/task_queue/task_queue_base.h"
 #include "media/sctp/sctp_transport_internal.h"
 #include "net/dcsctp/public/dcsctp_options.h"
@@ -57,7 +58,7 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
   bool Start(int local_sctp_port,
              int remote_sctp_port,
              int max_message_size) override;
-  bool OpenStream(int sid) override;
+  bool OpenStream(int sid, PriorityValue priority) override;
   bool ResetStream(int sid) override;
   RTCError SendData(int sid,
                     const SendDataParams& params,
@@ -127,6 +128,9 @@ class DcSctpTransport : public cricket::SctpTransportInternal,
     bool incoming_reset_done = false;
     // True when the local connection received OnStreamsResetPerformed
     bool outgoing_reset_done = false;
+    // Priority of the stream according to RFC 8831, section 6.4
+    dcsctp::StreamPriority priority =
+        dcsctp::StreamPriority(PriorityValue(webrtc::Priority::kLow).value());
   };
 
   // Map of all currently open or closing data channels

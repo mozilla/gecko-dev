@@ -11,7 +11,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/72a83cb2e571023cd
  1 file changed, 4 insertions(+)
 
 diff --git a/modules/desktop_capture/win/window_capture_utils.cc b/modules/desktop_capture/win/window_capture_utils.cc
-index ccfef49bc5..d58c02e17c 100644
+index 261c4002ae..040ee7da1c 100644
 --- a/modules/desktop_capture/win/window_capture_utils.cc
 +++ b/modules/desktop_capture/win/window_capture_utils.cc
 @@ -79,6 +79,10 @@ BOOL CALLBACK GetWindowListHandler(HWND hwnd, LPARAM param) {

@@ -39,7 +39,7 @@ namespace mozilla {
         webrtc::CallConfig config(env, nullptr);
         config.audio_state =
             webrtc::AudioState::Create(aSharedState->mAudioStateConfig);
-        wrapper->SetCall(WrapUnique(webrtc::Call::Create(config).release()));
+        wrapper->SetCall(WrapUnique(webrtc::Call::Create(std::move(config)).release()));
       }));
 
   return wrapper;

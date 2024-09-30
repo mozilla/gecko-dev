@@ -117,7 +117,8 @@ RTC_EXPORT const char* SdpTypeToString(SdpType type);
 // Returns the SdpType from its string form. The string form can be one of the
 // constants defined in SessionDescriptionInterface. Passing in any other string
 // results in nullopt.
-absl::optional<SdpType> SdpTypeFromString(const std::string& type_str);
+RTC_EXPORT absl::optional<SdpType> SdpTypeFromString(
+    const std::string& type_str);
 
 // Class representation of an SDP session description.
 //

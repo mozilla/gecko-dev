@@ -567,6 +567,8 @@ bool RTPSenderVideo::SendVideo(int payload_type,
     // Disable attaching dependency descriptor to delta packets (including
     // non-first packet of a key frame) when it wasn't attached to a key frame,
     // as dependency descriptor can't be usable in such case.
+    // This can also happen when the descriptor is larger than 15 bytes and
+    // two-byte header extensions are not negotiated using extmap-allow-mixed.
     RTC_LOG(LS_WARNING) << "Disable dependency descriptor because failed to "
                            "attach it to a key frame.";
     video_structure_ = nullptr;

@@ -146,6 +146,7 @@ class VideoSendStreamImpl : public webrtc::VideoSendStream,
   absl::optional<float> GetPacingFactorOverride() const;
   // Implements BitrateAllocatorObserver.
   uint32_t OnBitrateUpdated(BitrateAllocationUpdate update) override;
+  absl::optional<DataRate> GetUsedRate() const override;
 
   // Implements VideoStreamEncoderInterface::EncoderSink
   void OnEncoderConfigurationChanged(

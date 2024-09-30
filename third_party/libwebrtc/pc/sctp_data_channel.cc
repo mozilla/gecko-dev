@@ -15,6 +15,7 @@
 #include <string>
 #include <utility>
 
+#include "api/priority.h"
 #include "media/sctp/sctp_transport_internal.h"
 #include "pc/proxy.h"
 #include "rtc_base/checks.h"
@@ -50,7 +51,7 @@ BYPASS_PROXY_CONSTMETHOD0(std::string, protocol)
 BYPASS_PROXY_CONSTMETHOD0(bool, negotiated)
 // Can't bypass the proxy since the id may change.
 PROXY_SECONDARY_CONSTMETHOD0(int, id)
-BYPASS_PROXY_CONSTMETHOD0(Priority, priority)
+BYPASS_PROXY_CONSTMETHOD0(PriorityValue, priority)
 BYPASS_PROXY_CONSTMETHOD0(DataState, state)
 BYPASS_PROXY_CONSTMETHOD0(RTCError, error)
 PROXY_SECONDARY_CONSTMETHOD0(uint32_t, messages_sent)
@@ -479,8 +480,8 @@ int SctpDataChannel::id() const {
   return id_n_.has_value() ? id_n_->stream_id_int() : -1;
 }
 
-Priority SctpDataChannel::priority() const {
-  return priority_ ? *priority_ : Priority::kLow;
+PriorityValue SctpDataChannel::priority() const {
+  return priority_.value_or(PriorityValue(Priority::kLow));
 }
 
 uint64_t SctpDataChannel::buffered_amount() const {

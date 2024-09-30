@@ -1856,7 +1856,7 @@ void WebrtcVideoConduit::OnFrame(const webrtc::VideoFrame& video_frame) {
   if (profiler_is_active()) {
     MutexAutoLock lock(mMutex);
     // The first frame has a delta of zero.
-    uint32_t rtpTimestamp = video_frame.timestamp();
+    uint32_t rtpTimestamp = video_frame.rtp_timestamp();
     uint32_t timestampDelta =
         mLastRTPTimestampReceive.isSome()
             ? rtpTimestamp - mLastRTPTimestampReceive.value()

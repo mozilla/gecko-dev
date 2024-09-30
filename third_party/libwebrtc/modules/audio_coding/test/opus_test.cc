@@ -13,6 +13,7 @@
 #include <string>
 
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/codecs/opus/opus_interface.h"
 #include "modules/audio_coding/include/audio_coding_module_typedefs.h"
 #include "modules/audio_coding/test/TestStereo.h"
@@ -23,6 +24,7 @@ namespace webrtc {
 
 OpusTest::OpusTest()
     : acm_receiver_(std::make_unique<acm2::AcmReceiver>(
+          CreateEnvironment(),
           acm2::AcmReceiver::Config(CreateBuiltinAudioDecoderFactory()))),
       channel_a2b_(NULL),
       counter_(0),

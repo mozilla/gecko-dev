@@ -19,7 +19,6 @@
 #include "absl/types/optional.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/tick_timer.h"
-#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 
@@ -67,7 +66,6 @@ class NetEqController {
     int max_packets_in_buffer;
     int base_min_delay_ms;
     TickTimer* tick_timer;
-    webrtc::Clock* clock = nullptr;
   };
 
   struct PacketInfo {

@@ -31,6 +31,7 @@ if (rtc_include_tests) {
       "..:video_codecs_api",
       "../..:fec_controller_api",
       "../..:mock_video_encoder",
+      "../..:rtp_parameters",
       "../../../api:scoped_refptr",
       "../../../media:media_constants",
       "../../../modules/video_coding:video_codec_interface",
@@ -45,9 +46,13 @@ if (rtc_include_tests) {
       "../../../test:video_test_common",
       "../../environment",
       "../../environment:environment_factory",
+      "../../units:timestamp",
       "../../video:encoded_image",
+      "../../video:resolution",
       "../../video:video_bitrate_allocation",
+      "../../video:video_bitrate_allocator",
       "../../video:video_frame",
+      "../../video:video_frame_type",
       "../../video:video_rtp_headers",
       "//testing/gtest",
       "//third_party/abseil-cpp/absl/types:optional",
@@ -59,6 +64,8 @@ if (rtc_include_tests) {
     sources = [ "video_encoder_factory_template_tests.cc" ]
 
     deps = [
+      "..:scalability_mode",
+      "..:video_codecs_api",
       "..:video_encoder_factory_template",
       "..:video_encoder_factory_template_libaom_av1_adapter",
       "..:video_encoder_factory_template_libvpx_vp8_adapter",
@@ -77,6 +84,7 @@ if (rtc_include_tests) {
     sources = [ "video_decoder_factory_template_tests.cc" ]
 
     deps = [
+      "..:video_codecs_api",
       "..:video_decoder_factory_template",
       "..:video_decoder_factory_template_dav1d_adapter",
       "..:video_decoder_factory_template_libvpx_vp8_adapter",

@@ -11,14 +11,18 @@
 #ifndef API_TEST_VIDEOCODEC_TEST_FIXTURE_H_
 #define API_TEST_VIDEOCODEC_TEST_FIXTURE_H_
 
+#include <cstddef>
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "api/test/videocodec_test_stats.h"
+#include "api/video/encoded_image.h"
+#include "api/video/video_codec_type.h"
 #include "api/video_codecs/h264_profile_level_id.h"
-#include "api/video_codecs/video_decoder_factory.h"
-#include "api/video_codecs/video_encoder_factory.h"
-#include "modules/video_coding/include/video_codec_interface.h"
+#include "api/video_codecs/sdp_video_format.h"
+#include "api/video_codecs/video_codec.h"
+#include "modules/video_coding/codecs/h264/include/h264_globals.h"
 
 namespace webrtc {
 namespace test {

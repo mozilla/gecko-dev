@@ -173,6 +173,10 @@ specific_include_rules = {
     "+rtc_base/system/no_unique_address.h",
   ],
 
+  "priority\.h": [
+    "+rtc_base/strong_alias.h",
+  ],
+
   "simulated_network\.h": [
     "+rtc_base/random.h",
     "+rtc_base/thread_annotations.h",

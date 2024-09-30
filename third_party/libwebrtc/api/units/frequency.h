@@ -10,12 +10,14 @@
 #ifndef API_UNITS_FREQUENCY_H_
 #define API_UNITS_FREQUENCY_H_
 
+#include <cstdint>
 #include <cstdlib>
 #include <limits>
 #include <string>
 #include <type_traits>
 
 #include "api/units/time_delta.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/units/unit_base.h"  // IWYU pragma: export
 
 namespace webrtc {

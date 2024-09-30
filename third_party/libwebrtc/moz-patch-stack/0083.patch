@@ -18,7 +18,7 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/2f1a0ba74bf71cfa0
  6 files changed, 24 insertions(+), 4 deletions(-)
 
 diff --git a/api/frame_transformer_interface.h b/api/frame_transformer_interface.h
-index 6f632bcb72..c606328e2b 100644
+index b1f5426dd3..2fd002c0eb 100644
 --- a/api/frame_transformer_interface.h
 +++ b/api/frame_transformer_interface.h
 @@ -77,6 +77,7 @@ class TransformableVideoFrameInterface : public TransformableFrameInterface {
@@ -30,7 +30,7 @@ index 6f632bcb72..c606328e2b 100644
    virtual VideoFrameMetadata Metadata() const = 0;
  
 diff --git a/modules/rtp_rtcp/source/rtp_sender.h b/modules/rtp_rtcp/source/rtp_sender.h
-index a398f16d46..8136730e4c 100644
+index 61a1a5fbfe..027fbde220 100644
 --- a/modules/rtp_rtcp/source/rtp_sender.h
 +++ b/modules/rtp_rtcp/source/rtp_sender.h
 @@ -140,6 +140,10 @@ class RTPSender {
@@ -45,7 +45,7 @@ index a398f16d46..8136730e4c 100644
      return flexfec_ssrc_;
    }
 diff --git a/modules/rtp_rtcp/source/rtp_sender_video.cc b/modules/rtp_rtcp/source/rtp_sender_video.cc
-index 2ca5e4bb1e..1d8f29c73b 100644
+index fc39225d7e..15208c62fd 100644
 --- a/modules/rtp_rtcp/source/rtp_sender_video.cc
 +++ b/modules/rtp_rtcp/source/rtp_sender_video.cc
 @@ -156,6 +156,7 @@ RTPSenderVideo::RTPSenderVideo(const Config& config)

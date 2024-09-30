@@ -36,6 +36,7 @@ class IvfVideoFrameGenerator : public FrameGeneratorInterface {
   ~IvfVideoFrameGenerator() override;
 
   VideoFrameData NextFrame() override;
+  void SkipNextFrame() override;
   void ChangeResolution(size_t width, size_t height) override;
   Resolution GetResolution() const override;
 

@@ -11,6 +11,7 @@
 #ifndef API_TEST_FRAME_GENERATOR_INTERFACE_H_
 #define API_TEST_FRAME_GENERATOR_INTERFACE_H_
 
+#include <cstddef>
 #include <utility>
 
 #include "absl/types/optional.h"
@@ -44,6 +45,9 @@ class FrameGeneratorInterface {
   // Returns VideoFrameBuffer and area where most of update was done to set them
   // on the VideoFrame object.
   virtual VideoFrameData NextFrame() = 0;
+  // Skips the next frame in case it doesn't need to be encoded.
+  // Default implementation is to call NextFrame and ignore the returned value.
+  virtual void SkipNextFrame() { NextFrame(); }
 
   // Change the capture resolution.
   virtual void ChangeResolution(size_t width, size_t height) = 0;

@@ -13,7 +13,19 @@
 #include <string.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <string>
+#include <tuple>
+#include <vector>
 
+#include "absl/container/inlined_vector.h"
+#include "absl/types/optional.h"
+#include "api/fec_controller_override.h"
+#include "api/units/data_rate.h"
+#include "api/video/video_bitrate_allocation.h"
+#include "api/video/video_codec_constants.h"
+#include "api/video/video_frame_buffer.h"
+#include "api/video_codecs/video_codec.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
 

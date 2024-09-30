@@ -18,11 +18,14 @@
 #include "modules/audio_coding/neteq/mock/mock_buffer_level_filter.h"
 #include "modules/audio_coding/neteq/mock/mock_delay_manager.h"
 #include "modules/audio_coding/neteq/mock/mock_packet_arrival_history.h"
+#include "test/explicit_key_value_config.h"
 #include "test/gtest.h"
 
 namespace webrtc {
 
 namespace {
+
+using test::ExplicitKeyValueConfig;
 
 constexpr int kSampleRate = 8000;
 constexpr int kSamplesPerMs = kSampleRate / 1000;
@@ -59,7 +62,7 @@ class DecisionLogicTest : public ::testing::Test {
     config.tick_timer = &tick_timer_;
     config.allow_time_stretching = true;
     auto delay_manager = std::make_unique<MockDelayManager>(
-        DelayManager::Config(), config.tick_timer);
+        DelayManager::Config(ExplicitKeyValueConfig("")), config.tick_timer);
     mock_delay_manager_ = delay_manager.get();
     auto buffer_level_filter = std::make_unique<MockBufferLevelFilter>();
     mock_buffer_level_filter_ = buffer_level_filter.get();

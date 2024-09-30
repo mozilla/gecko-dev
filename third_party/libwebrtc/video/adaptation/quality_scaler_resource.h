@@ -42,7 +42,6 @@ class QualityScalerResource : public VideoStreamEncoderResource,
                             const FieldTrialsView& field_trials);
   void StopCheckForOveruse();
   void SetQpThresholds(VideoEncoder::QpThresholds qp_thresholds);
-  bool QpFastFilterLow();
   void OnEncodeCompleted(const EncodedImage& encoded_image,
                          int64_t time_sent_in_us);
   void OnFrameDropped(EncodedImageCallback::DropReason reason);

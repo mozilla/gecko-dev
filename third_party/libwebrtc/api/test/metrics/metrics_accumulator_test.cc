@@ -10,8 +10,10 @@
 #include "api/test/metrics/metrics_accumulator.h"
 
 #include <map>
+#include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "api/test/metrics/metric.h"
 #include "api/units/timestamp.h"
 #include "test/gmock.h"

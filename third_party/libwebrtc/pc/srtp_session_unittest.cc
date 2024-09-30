@@ -284,4 +284,60 @@ TEST_F(SrtpSessionTest, RemoveSsrc) {
   EXPECT_TRUE(s2_.RemoveSsrcFromSession(1));
 }
 
+TEST_F(SrtpSessionTest, ProtectUnprotectWrapAroundRocMismatch) {
+  // This unit tests demonstrates why you should be careful when
+  // choosing the initial RTP sequence number as there can be decryption
+  // failures when it wraps around with packet loss. Pick your starting
+  // sequence number in the lower half of the range for robustness reasons,
+  // see packet_sequencer.cc for the code doing so.
+  EXPECT_TRUE(s1_.SetSend(kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen,
+                          kEncryptedHeaderExtensionIds));
+  EXPECT_TRUE(s2_.SetRecv(kSrtpAes128CmSha1_80, kTestKey1, kTestKeyLen,
+                          kEncryptedHeaderExtensionIds));
+  // Buffers include enough room for the 10 byte SRTP auth tag so we can
+  // encrypt in place.
+  unsigned char kFrame1[] = {
+      // clang-format off
+      // PT=0, SN=65535, TS=0, SSRC=1
+      0x80, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0xBE, 0xEF,  // data bytes
+      // Space for the SRTP auth tag
+      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+      // clang-format on
+  };
+  unsigned char kFrame2[] = {
+      // clang-format off
+      // PT=0, SN=1, TS=0, SSRC=1
+      0x80, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+      0xBE, 0xEF,  // data bytes
+      // Space for the SRTP auth tag
+      0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+      // clang-format on
+  };
+
+  int out_len;
+  // Encrypt the frames in-order. There is a sequence number rollover from
+  // 65535 to 1 (skipping 0) and the second packet gets encrypted with a
+  // roll-over counter (ROC) of 1. See
+  // https://datatracker.ietf.org/doc/html/rfc3711#section-3.3.1
+  EXPECT_TRUE(
+      s1_.ProtectRtp(kFrame1, sizeof(kFrame1) - 10, sizeof(kFrame1), &out_len));
+  EXPECT_EQ(out_len, 24);
+  EXPECT_TRUE(
+      s1_.ProtectRtp(kFrame2, sizeof(kFrame2) - 10, sizeof(kFrame2), &out_len));
+  EXPECT_EQ(out_len, 24);
+
+  // If we decrypt frame 2 first it will have a ROC of 1 but the receiver
+  // does not know this is a rollover so will attempt with a ROC of 0.
+  // Note: If libsrtp is modified to attempt to decrypt with ROC=1 for this
+  // case, this test will fail and needs to be modified accordingly to unblock
+  // the roll. See https://issues.webrtc.org/353565743 for details.
+  EXPECT_FALSE(s2_.UnprotectRtp(kFrame2, sizeof(kFrame2), &out_len));
+  // Decrypt frame 1.
+  EXPECT_TRUE(s2_.UnprotectRtp(kFrame1, sizeof(kFrame1), &out_len));
+  // Now decrypt frame 2 again. A rollover is detected which increases
+  // the ROC to 1 so this succeeds.
+  EXPECT_TRUE(s2_.UnprotectRtp(kFrame2, sizeof(kFrame2), &out_len));
+}
+
 }  // namespace rtc

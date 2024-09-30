@@ -52,7 +52,12 @@ class SSLAdapterFactory {
   virtual void SetIgnoreBadCert(bool ignore) = 0;
 
   // Creates a new SSL adapter, but from a shared context.
-  virtual SSLAdapter* CreateAdapter(Socket* socket) = 0;
+  virtual SSLAdapter* CreateAdapter(Socket* socket,
+                                    bool permute_extensions) = 0;
+  [[deprecated(
+      "Use CreateAdapter(socket, permute_extensions) "
+      "instead")]] virtual SSLAdapter*
+  CreateAdapter(Socket* socket) = 0;
 
   static std::unique_ptr<SSLAdapterFactory> Create();
 };
@@ -75,8 +80,8 @@ class SSLAdapter : public AsyncSocketAdapter {
   virtual void SetAlpnProtocols(const std::vector<std::string>& protos) = 0;
   virtual void SetEllipticCurves(const std::vector<std::string>& curves) = 0;
 
-  // Do DTLS or TLS (default is TLS, if unspecified)
-  virtual void SetMode(SSLMode mode) = 0;
+  [[deprecated("Only TLS is supported by the adapter")]] virtual void SetMode(
+      SSLMode mode) = 0;
   // Specify a custom certificate verifier for SSL.
   virtual void SetCertVerifier(SSLCertificateVerifier* ssl_cert_verifier) = 0;
 

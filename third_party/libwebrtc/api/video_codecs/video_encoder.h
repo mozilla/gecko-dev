@@ -11,8 +11,9 @@
 #ifndef API_VIDEO_CODECS_VIDEO_ENCODER_H_
 #define API_VIDEO_CODECS_VIDEO_ENCODER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <limits>
-#include <memory>
 #include <string>
 #include <vector>
 
@@ -24,8 +25,9 @@
 #include "api/video/video_bitrate_allocation.h"
 #include "api/video/video_codec_constants.h"
 #include "api/video/video_frame.h"
+#include "api/video/video_frame_buffer.h"
+#include "api/video/video_frame_type.h"
 #include "api/video_codecs/video_codec.h"
-#include "rtc_base/checks.h"
 #include "rtc_base/system/rtc_export.h"
 
 namespace webrtc {

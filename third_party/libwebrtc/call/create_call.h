@@ -18,7 +18,7 @@
 
 namespace webrtc {
 
-std::unique_ptr<Call> CreateCall(const CallConfig& config);
+std::unique_ptr<Call> CreateCall(CallConfig config);
 
 }  // namespace webrtc
 

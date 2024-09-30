@@ -14,6 +14,7 @@
 #include <string>
 
 #include "api/data_channel_interface.h"
+#include "api/priority.h"
 #include "api/transport/data_channel_transport_interface.h"
 #include "media/base/media_channel.h"
 #include "media/sctp/sctp_transport_internal.h"
@@ -63,7 +64,7 @@ bool ParseDataChannelOpenAckMessage(const rtc::CopyOnWriteBuffer& payload);
 
 bool WriteDataChannelOpenMessage(const std::string& label,
                                  const std::string& protocol,
-                                 absl::optional<Priority> priority,
+                                 absl::optional<PriorityValue> priority,
                                  bool ordered,
                                  absl::optional<int> max_retransmits,
                                  absl::optional<int> max_retransmit_time,

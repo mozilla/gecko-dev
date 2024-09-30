@@ -70,9 +70,7 @@ class AudioEgressTest : public ::testing::Test {
   void SetUp() override {
     rtp_rtcp_ =
         CreateRtpStack(time_controller_.GetClock(), &transport_, kRemoteSsrc);
-    egress_ = std::make_unique<AudioEgress>(
-        rtp_rtcp_.get(), time_controller_.GetClock(),
-        time_controller_.GetTaskQueueFactory());
+    egress_ = std::make_unique<AudioEgress>(env_, rtp_rtcp_.get());
     constexpr int kPcmuPayload = 0;
     egress_->SetEncoder(kPcmuPayload, kPcmuFormat,
                         encoder_factory_->Create(

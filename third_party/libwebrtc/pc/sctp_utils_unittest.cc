@@ -55,9 +55,10 @@ class SctpUtilsTest : public ::testing::Test {
     if (config.priority) {
       // Exact values are checked by round-trip conversion, but
       // all values defined are greater than zero.
-      EXPECT_GT(priority, 0);
+      EXPECT_EQ(priority, config.priority->value());
     } else {
-      EXPECT_EQ(priority, 0);
+      EXPECT_EQ(priority,
+                webrtc::PriorityValue(webrtc::Priority::kLow).value());
     }
 
     ASSERT_TRUE(buffer.ReadUInt32(&reliability));
@@ -154,7 +155,7 @@ TEST_F(SctpUtilsTest, WriteParseOpenMessageWithPriority) {
   webrtc::DataChannelInit config;
   std::string label = "abc";
   config.protocol = "y";
-  config.priority = webrtc::Priority::kVeryLow;
+  config.priority = webrtc::PriorityValue(webrtc::Priority::kVeryLow);
 
   rtc::CopyOnWriteBuffer packet;
   ASSERT_TRUE(webrtc::WriteDataChannelOpenMessage(label, config, &packet));

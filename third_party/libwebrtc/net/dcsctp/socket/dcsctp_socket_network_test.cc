@@ -33,6 +33,7 @@
 #include "rtc_base/copy_on_write_buffer.h"
 #include "rtc_base/gunit.h"
 #include "rtc_base/logging.h"
+#include "rtc_base/random.h"
 #include "rtc_base/socket_address.h"
 #include "rtc_base/strings/string_format.h"
 #include "rtc_base/time_utils.h"

@@ -11,9 +11,8 @@
 #ifndef API_VIDEO_CODECS_VIDEO_DECODER_H_
 #define API_VIDEO_CODECS_VIDEO_DECODER_H_
 
-#include <memory>
+#include <cstdint>
 #include <string>
-#include <vector>
 
 #include "absl/types/optional.h"
 #include "api/video/encoded_image.h"

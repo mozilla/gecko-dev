@@ -109,6 +109,10 @@ class TransformableOutgoingAudioFrame
     return audio_level_dbov_;
   }
 
+  absl::optional<Timestamp> ReceiveTime() const override {
+    return absl::nullopt;
+  }
+
  private:
   AudioFrameType frame_type_;
   uint8_t payload_type_;

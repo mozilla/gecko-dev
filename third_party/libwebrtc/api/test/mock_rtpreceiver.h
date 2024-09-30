@@ -14,8 +14,15 @@
 #include <string>
 #include <vector>
 
+#include "absl/types/optional.h"
 #include "api/crypto/frame_decryptor_interface.h"
+#include "api/media_stream_interface.h"
+#include "api/media_types.h"
+#include "api/rtp_parameters.h"
 #include "api/rtp_receiver_interface.h"
+#include "api/scoped_refptr.h"
+#include "api/transport/rtp/rtp_source.h"
+#include "rtc_base/ref_counted_object.h"
 #include "test/gmock.h"
 
 namespace webrtc {

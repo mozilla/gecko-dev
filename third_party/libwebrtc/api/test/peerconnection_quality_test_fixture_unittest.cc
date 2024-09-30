@@ -8,15 +8,18 @@
  *  be found in the AUTHORS file in the root of the source tree.
  */
 
-#include "api/test/peerconnection_quality_test_fixture.h"
-
+#include <cstddef>
+#include <memory>
+#include <string>
 #include <vector>
 
+#include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "api/test/pclf/media_configuration.h"
 #include "api/test/video/video_frame_writer.h"
-#include "rtc_base/gunit.h"
+#include "api/video/video_frame.h"
 #include "test/gmock.h"
+#include "test/gtest.h"
 #include "test/testsupport/file_utils.h"
 
 namespace webrtc {

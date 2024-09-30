@@ -13,6 +13,7 @@
 
 #include <memory>
 
+#include "api/environment/environment.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_controller.h"
 #include "api/neteq/tick_timer.h"
@@ -26,7 +27,7 @@ namespace webrtc {
 // This is the class for the decision tree implementation.
 class DecisionLogic : public NetEqController {
  public:
-  DecisionLogic(NetEqController::Config config);
+  DecisionLogic(const Environment& env, NetEqController::Config config);
   DecisionLogic(
       NetEqController::Config config,
       std::unique_ptr<DelayManager> delay_manager,
@@ -140,29 +141,12 @@ class DecisionLogic : public NetEqController {
   // level, even though the next packet is available.
   bool PostponeDecode(NetEqController::NetEqStatus status) const;
 
-  // Checks if the timestamp leap is so long into the future that a reset due
-  // to exceeding the expand limit will be done.
-  bool ReinitAfterExpands(NetEqController::NetEqStatus status) const;
-
   // Checks if we still have not done enough expands to cover the distance from
   // the last decoded packet to the next available packet.
   bool PacketTooEarly(NetEqController::NetEqStatus status) const;
-  bool MaxWaitForPacket(NetEqController::NetEqStatus status) const;
-  bool ShouldContinueExpand(NetEqController::NetEqStatus status) const;
+
   int GetPlayoutDelayMs(NetEqController::NetEqStatus status) const;
 
-  // Runtime configurable options through field trial
-  // WebRTC-Audio-NetEqDecisionLogicConfig.
-  struct Config {
-    Config();
-
-    bool enable_stable_delay_mode = true;
-    bool combine_concealment_decision = true;
-    int deceleration_target_level_offset_ms = 85;
-    int packet_history_size_ms = 2000;
-    absl::optional<int> cng_timeout_ms = 1000;
-  };
-  Config config_;
   std::unique_ptr<DelayManager> delay_manager_;
   std::unique_ptr<BufferLevelFilter> buffer_level_filter_;
   std::unique_ptr<PacketArrivalHistory> packet_arrival_history_;

@@ -31,6 +31,7 @@
 #include "api/audio_codecs/g722/audio_encoder_g722.h"
 #include "api/audio_codecs/ilbc/audio_encoder_ilbc.h"
 #include "api/audio_codecs/opus/audio_encoder_opus.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/codecs/cng/audio_encoder_cng.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "modules/audio_coding/neteq/tools/input_audio_file.h"
@@ -206,7 +207,8 @@ std::unique_ptr<AudioEncoder> CreateEncoder(CodecType codec_type,
       config.dtx_enabled = absl::GetFlag(FLAGS_dtx);
       config.fec_enabled = absl::GetFlag(FLAGS_fec);
       RTC_CHECK(config.IsOk());
-      return AudioEncoderOpus::MakeAudioEncoder(config, payload_type);
+      return AudioEncoderOpus::MakeAudioEncoder(CreateEnvironment(), config,
+                                                {.payload_type = payload_type});
     }
 
     case CodecType::kPcmU:

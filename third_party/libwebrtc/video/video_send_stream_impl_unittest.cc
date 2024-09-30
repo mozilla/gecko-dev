@@ -1214,5 +1214,30 @@ TEST_F(VideoSendStreamImplTest, ConfiguresBitratesForSvc) {
     vss_impl->Stop();
   }
 }
+
+TEST_F(VideoSendStreamImplTest, TestElasticityForRealtimeVideo) {
+  auto vss_impl = CreateVideoSendStreamImpl(
+      TestVideoEncoderConfig(VideoEncoderConfig::ContentType::kRealtimeVideo));
+  EXPECT_CALL(bitrate_allocator_,
+              AddObserver(vss_impl.get(),
+                          Field(&MediaStreamAllocationConfig::rate_elasticity,
+                                TrackRateElasticity::kCanConsumeExtraRate)));
+  vss_impl->Start();
+  EXPECT_CALL(bitrate_allocator_, RemoveObserver(vss_impl.get()));
+  vss_impl->Stop();
+}
+
+TEST_F(VideoSendStreamImplTest, TestElasticityForScreenshare) {
+  auto vss_impl = CreateVideoSendStreamImpl(
+      TestVideoEncoderConfig(VideoEncoderConfig::ContentType::kScreen));
+  EXPECT_CALL(bitrate_allocator_,
+              AddObserver(vss_impl.get(),
+                          Field(&MediaStreamAllocationConfig::rate_elasticity,
+                                absl::nullopt)));
+  vss_impl->Start();
+  EXPECT_CALL(bitrate_allocator_, RemoveObserver(vss_impl.get()));
+  vss_impl->Stop();
+}
+
 }  // namespace internal
 }  // namespace webrtc

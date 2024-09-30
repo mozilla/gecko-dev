@@ -9,8 +9,13 @@
  */
 #include "api/test/network_emulation_manager.h"
 
+#include <cstdint>
+#include <memory>
+#include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
+#include "api/test/simulated_network.h"
 #include "api/units/data_rate.h"
 #include "rtc_base/checks.h"
 #include "test/network/simulated_network.h"

@@ -11,9 +11,10 @@
 #ifndef API_VIDEO_FRAME_BUFFER_H_
 #define API_VIDEO_FRAME_BUFFER_H_
 
+#include <cstddef>
+#include <cstdint>
 #include <map>
 #include <memory>
-#include <utility>
 
 #include "absl/container/inlined_vector.h"
 #include "absl/types/optional.h"

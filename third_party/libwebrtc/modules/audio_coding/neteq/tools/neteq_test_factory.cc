@@ -299,10 +299,10 @@ std::unique_ptr<NetEqTest> NetEqTestFactory::InitializeTest(
     // decoder_factory before it's reassigned on the left-hand side.
     decoder_factory = rtc::make_ref_counted<FunctionAudioDecoderFactory>(
         [decoder_factory, config](
-            const SdpAudioFormat& format,
+            const Environment& env, const SdpAudioFormat& format,
             absl::optional<AudioCodecPairId> codec_pair_id) {
           std::unique_ptr<AudioDecoder> decoder =
-              decoder_factory->MakeAudioDecoder(format, codec_pair_id);
+              decoder_factory->Create(env, format, codec_pair_id);
           if (!decoder && format.name == "replacement") {
             decoder = std::make_unique<FakeDecodeFromFile>(
                 std::make_unique<InputAudioFile>(config.replacement_audio_file),

@@ -256,9 +256,13 @@ PeerConnectionFactory::CreatePeerConnectionOrError(
   dependencies.allocator->SetNetworkIgnoreMask(options().network_ignore_mask);
   dependencies.allocator->SetVpnList(configuration.vpn_list);
 
-  std::unique_ptr<Call> call =
-      worker_thread()->BlockingCall([this, &env, &configuration] {
-        return CreateCall_w(env, configuration);
+  std::unique_ptr<NetworkControllerFactoryInterface>
+      network_controller_factory =
+          std::move(dependencies.network_controller_factory);
+  std::unique_ptr<Call> call = worker_thread()->BlockingCall(
+      [this, &env, &configuration, &network_controller_factory] {
+        return CreateCall_w(env, std::move(configuration),
+                            std::move(network_controller_factory));
       });
 
   auto result = PeerConnection::Create(env, context_, options_, std::move(call),
@@ -305,7 +309,9 @@ rtc::scoped_refptr<AudioTrackInterface> PeerConnectionFactory::CreateAudioTrack(
 
 std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
     const Environment& env,
-    const PeerConnectionInterface::RTCConfiguration& configuration) {
+    const PeerConnectionInterface::RTCConfiguration& configuration,
+    std::unique_ptr<NetworkControllerFactoryInterface>
+        per_call_network_controller_factory) {
   RTC_DCHECK_RUN_ON(worker_thread());
 
   CallConfig call_config(env, network_thread());
@@ -335,8 +341,12 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
       network_state_predictor_factory_.get();
   call_config.neteq_factory = neteq_factory_.get();
 
-  if (IsTrialEnabled("WebRTC-Bwe-InjectedCongestionController")) {
-    RTC_LOG(LS_INFO) << "Using injected network controller factory";
+  if (per_call_network_controller_factory != nullptr) {
+    RTC_LOG(LS_INFO) << "Using pc injected network controller factory";
+    call_config.per_call_network_controller_factory =
+        std::move(per_call_network_controller_factory);
+  } else if (IsTrialEnabled("WebRTC-Bwe-InjectedCongestionController")) {
+    RTC_LOG(LS_INFO) << "Using pcf injected network controller factory";
     call_config.network_controller_factory =
         injected_network_controller_factory_.get();
   } else {
@@ -348,7 +358,7 @@ std::unique_ptr<Call> PeerConnectionFactory::CreateCall_w(
   call_config.decode_metronome = decode_metronome_.get();
   call_config.encode_metronome = encode_metronome_.get();
   call_config.pacer_burst_interval = configuration.pacer_burst_interval;
-  return context_->call_factory()->CreateCall(call_config);
+  return context_->call_factory()->CreateCall(std::move(call_config));
 }
 
 bool PeerConnectionFactory::IsTrialEnabled(absl::string_view key) const {

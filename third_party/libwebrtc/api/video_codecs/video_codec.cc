@@ -15,6 +15,10 @@
 #include <string>
 
 #include "absl/strings/match.h"
+#include "absl/types/optional.h"
+#include "api/video/video_codec_type.h"
+#include "api/video_codecs/scalability_mode.h"
+#include "api/video_codecs/simulcast_stream.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/strings/string_builder.h"
 

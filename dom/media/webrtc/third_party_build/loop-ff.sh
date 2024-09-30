@@ -214,12 +214,8 @@ echo_log "Save patch-stack"
     --target-branch-head $MOZ_TARGET_UPSTREAM_BRANCH_HEAD \
     2>&1| tee -a $LOOP_OUTPUT_LOG
 
-MODIFIED_BUILD_RELATED_FILE_CNT=`hg diff -c tip --stat \
-    --include 'third_party/libwebrtc/**BUILD.gn' \
-    --include 'third_party/libwebrtc/**/*.gni' \
-    --include 'third_party/libwebrtc/.gn' \
-    | grep -v "files changed" \
-    | wc -l | tr -d " " || true`
+MODIFIED_BUILD_RELATED_FILE_CNT=`bash $SCRIPT_DIR/get_build_file_changes.sh \
+    | wc -l | tr -d " "`
 ERROR_HELP=$"
 Generating build files has failed.  This likely means changes to one or more
 BUILD.gn files are required.  Commit those changes following the instructions

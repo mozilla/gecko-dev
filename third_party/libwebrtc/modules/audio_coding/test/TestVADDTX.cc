@@ -74,6 +74,7 @@ TestVadDtx::TestVadDtx()
           CreateAudioDecoderFactory<AudioDecoderIlbc, AudioDecoderOpus>()),
       acm_send_(AudioCodingModule::Create()),
       acm_receive_(std::make_unique<acm2::AcmReceiver>(
+          env_,
           acm2::AcmReceiver::Config(decoder_factory_))),
       channel_(std::make_unique<Channel>()),
       packetization_callback_(

@@ -11,6 +11,8 @@
 #ifndef API_VOIP_VOIP_BASE_H_
 #define API_VOIP_VOIP_BASE_H_
 
+#include <cstdint>
+
 #include "absl/base/attributes.h"
 #include "absl/types/optional.h"
 

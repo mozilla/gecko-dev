@@ -11,9 +11,18 @@
 #include "api/video/frame_buffer.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <iterator>
+#include <memory>
+#include <utility>
 
 #include "absl/algorithm/container.h"
 #include "absl/container/inlined_vector.h"
+#include "absl/types/optional.h"
+#include "api/array_view.h"
+#include "api/field_trials_view.h"
+#include "api/video/encoded_frame.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/sequence_number_util.h"
 #include "rtc_base/trace_event.h"

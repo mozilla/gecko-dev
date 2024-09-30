@@ -12,12 +12,10 @@
 
 #include <memory>
 #include <string>
-#include <vector>
 
-#include "absl/flags/flag.h"
-#include "absl/flags/parse.h"
+#include "absl/strings/string_view.h"
+#include "api/test/neteq_simulator.h"
 #include "modules/audio_coding/neteq/tools/neteq_test_factory.h"
-#include "rtc_base/checks.h"
 
 namespace webrtc {
 namespace test {

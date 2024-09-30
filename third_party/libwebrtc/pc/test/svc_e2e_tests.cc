@@ -27,6 +27,7 @@
 #include "api/test/simulated_network.h"
 #include "api/test/time_controller.h"
 #include "api/video_codecs/vp9_profile.h"
+#include "media/base/media_constants.h"
 #include "modules/video_coding/codecs/vp9/include/vp9.h"
 #include "modules/video_coding/svc/scalability_mode_util.h"
 #include "rtc_base/containers/flat_map.h"

@@ -17,41 +17,16 @@
 #include <map>
 #include <memory>
 #include <string>
-#include <utility>
 #include <vector>
 
-#include "absl/memory/memory.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
 #include "api/array_view.h"
-#include "api/audio/audio_mixer.h"
-#include "api/audio/audio_processing.h"
 #include "api/audio_options.h"
-#include "api/fec_controller.h"
-#include "api/function_view.h"
 #include "api/media_stream_interface.h"
-#include "api/peer_connection_interface.h"
-#include "api/rtc_event_log/rtc_event_log_factory_interface.h"
 #include "api/rtp_parameters.h"
-#include "api/task_queue/task_queue_factory.h"
-#include "api/test/audio_quality_analyzer_interface.h"
-#include "api/test/frame_generator_interface.h"
-#include "api/test/peer_network_dependencies.h"
-#include "api/test/simulated_network.h"
-#include "api/test/stats_observer_interface.h"
-#include "api/test/track_id_stream_info_map.h"
 #include "api/test/video/video_frame_writer.h"
-#include "api/test/video_quality_analyzer_interface.h"
-#include "api/transport/network_control.h"
 #include "api/units/time_delta.h"
-#include "api/video_codecs/video_decoder_factory.h"
-#include "api/video_codecs/video_encoder.h"
-#include "api/video_codecs/video_encoder_factory.h"
-#include "rtc_base/checks.h"
-#include "rtc_base/network.h"
-#include "rtc_base/rtc_certificate_generator.h"
-#include "rtc_base/ssl_certificate.h"
-#include "rtc_base/thread.h"
 
 namespace webrtc {
 namespace webrtc_pc_e2e {

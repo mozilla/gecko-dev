@@ -18,13 +18,13 @@
 #include <numeric>
 #include <string>
 
+#include "api/field_trials_view.h"
 #include "modules/include/module_common_types_public.h"
 #include "rtc_base/checks.h"
 #include "rtc_base/experiments/struct_parameters_parser.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
 #include "rtc_base/numerics/safe_minmax.h"
-#include "system_wrappers/include/field_trial.h"
 
 namespace webrtc {
 namespace {
@@ -45,7 +45,7 @@ std::unique_ptr<ReorderOptimizer> MaybeCreateReorderOptimizer(
 
 }  // namespace
 
-DelayManager::Config::Config() {
+DelayManager::Config::Config(const FieldTrialsView& field_trials) {
   StructParametersParser::Create(                       //
       "quantile", &quantile,                            //
       "forget_factor", &forget_factor,                  //
@@ -54,8 +54,7 @@ DelayManager::Config::Config() {
       "use_reorder_optimizer", &use_reorder_optimizer,  //
       "reorder_forget_factor", &reorder_forget_factor,  //
       "ms_per_loss_percent", &ms_per_loss_percent)
-      ->Parse(webrtc::field_trial::FindFullName(
-          "WebRTC-Audio-NetEqDelayManagerConfig"));
+      ->Parse(field_trials.Lookup("WebRTC-Audio-NetEqDelayManagerConfig"));
 }
 
 void DelayManager::Config::Log() {

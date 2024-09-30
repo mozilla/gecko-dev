@@ -84,9 +84,9 @@ rtc::NetworkMonitorInterface::InterfaceInfo ObjCNetworkMonitor::GetInterfaceInfo
 
 void ObjCNetworkMonitor::OnPathUpdate(
     std::map<std::string, rtc::AdapterType, rtc::AbslStringViewCmp> adapter_type_by_name) {
-  RTC_DCHECK(network_monitor_ != nil);
   thread_->PostTask(SafeTask(safety_flag_, [this, adapter_type_by_name] {
     RTC_DCHECK_RUN_ON(thread_);
+    RTC_DCHECK(network_monitor_ != nil);
     adapter_type_by_name_ = adapter_type_by_name;
     InvokeNetworksChangedCallback();
   }));

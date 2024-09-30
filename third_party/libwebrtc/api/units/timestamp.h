@@ -11,6 +11,7 @@
 #ifndef API_UNITS_TIMESTAMP_H_
 #define API_UNITS_TIMESTAMP_H_
 
+#include <cstdint>
 #include <string>
 #include <type_traits>
 

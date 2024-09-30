@@ -106,6 +106,10 @@ class TransformableAudioFrameInterface : public TransformableFrameInterface {
   // dBov. 127 represents digital silence. Only present on remote frames if
   // the audio level header extension was included.
   virtual absl::optional<uint8_t> AudioLevel() const = 0;
+
+  // Timestamp at which the packet has been first seen on the network interface.
+  // Only defined for received audio packet.
+  virtual absl::optional<Timestamp> ReceiveTime() const = 0;
 };
 
 // Objects implement this interface to be notified with the transformed frame.

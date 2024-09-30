@@ -11,16 +11,22 @@
 #ifndef API_VIDEO_CODECS_SIMPLE_ENCODER_WRAPPER_H_
 #define API_VIDEO_CODECS_SIMPLE_ENCODER_WRAPPER_H_
 
+#include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "absl/functional/any_invocable.h"
-#include "api/units/data_rate.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+#include "api/scoped_refptr.h"
+#include "api/transport/rtp/dependency_descriptor.h"
+#include "api/units/timestamp.h"
+#include "api/video/video_frame_buffer.h"
 #include "api/video_codecs/video_encoder_factory_interface.h"
 #include "api/video_codecs/video_encoder_interface.h"
 #include "common_video/generic_frame_descriptor/generic_frame_info.h"
-#include "modules/video_coding/svc/create_scalability_structure.h"
+#include "modules/video_coding/svc/scalable_video_controller.h"
 
 namespace webrtc {
 class SimpleEncoderWrapper {

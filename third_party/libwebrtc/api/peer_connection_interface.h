@@ -1392,6 +1392,10 @@ struct RTC_EXPORT PeerConnectionDependencies final {
   std::unique_ptr<rtc::SSLCertificateVerifier> tls_cert_verifier;
   std::unique_ptr<webrtc::VideoBitrateAllocatorFactory>
       video_bitrate_allocator_factory;
+  // Optional network controller factory to use.
+  // Overrides that set in PeerConnectionFactoryDependencies.
+  std::unique_ptr<NetworkControllerFactoryInterface> network_controller_factory;
+
   // Optional field trials to use.
   // Overrides those from PeerConnectionFactoryDependencies.
   std::unique_ptr<FieldTrialsView> trials;

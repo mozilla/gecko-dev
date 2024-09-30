@@ -120,6 +120,21 @@ FrameGeneratorInterface::VideoFrameData IvfVideoFrameGenerator::NextFrame() {
   return VideoFrameData(buffer, next_frame_->update_rect());
 }
 
+void IvfVideoFrameGenerator::SkipNextFrame() {
+  MutexLock lock(&lock_);
+  next_frame_decoded_.Reset();
+  RTC_CHECK(file_reader_);
+  if (!file_reader_->HasMoreFrames()) {
+    file_reader_->Reset();
+  }
+  absl::optional<EncodedImage> image = file_reader_->NextFrame();
+  RTC_CHECK(image);
+  // Last parameter is undocumented and there is no usage of it found.
+  // Frame has to be decoded in case it is a key frame.
+  RTC_CHECK_EQ(WEBRTC_VIDEO_CODEC_OK,
+               video_decoder_->Decode(*image, /*render_time_ms=*/0));
+}
+
 void IvfVideoFrameGenerator::ChangeResolution(size_t width, size_t height) {
   MutexLock lock(&lock_);
   width_ = width;

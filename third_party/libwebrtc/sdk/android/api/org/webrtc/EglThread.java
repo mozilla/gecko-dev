@@ -16,9 +16,13 @@ import android.os.Looper;
 import android.os.Message;
 import androidx.annotation.GuardedBy;
 import androidx.annotation.Nullable;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
+import java.util.UUID;
+
 import org.webrtc.EglBase.EglConnection;
 
 /** EGL graphics thread that allows multiple clients to share the same underlying EGLContext. */
@@ -123,7 +127,10 @@ public class EglThread implements RenderSynchronizer.Listener {
   private final HandlerWithExceptionCallbacks handler;
   private final EglConnection eglConnection;
   private final RenderSynchronizer renderSynchronizer;
-  private Optional<RenderUpdate> pendingRenderUpdate = Optional.empty();
+  // Pending render updates if they're overwritten per renderer.
+  private final Map<UUID, RenderUpdate> pendingRenderUpdates = new HashMap<>();
+  // Pending render updates if they're in a global queue.
+  private final List<RenderUpdate> pendingRenderUpdatesQueued = new ArrayList<>();
   private boolean renderWindowOpen = true;
 
   private EglThread(
@@ -189,12 +196,25 @@ public class EglThread implements RenderSynchronizer.Listener {
    * Schedules a render update (like swapBuffers) to be run in sync with other updates on the next
    * open render window. If the render window is currently open the update will run immediately.
    * This method must be called on the EglThread during a render pass.
+   *
+   * @param id a unique id of the renderer that scheduled this render update.
    */
+  public void scheduleRenderUpdate(UUID id, RenderUpdate update) {
+    if (renderWindowOpen) {
+      update.update(/* runsInline = */ true);
+    } else {
+      pendingRenderUpdates.put(id, update);
+    }
+  }
+
+  // The same as above, except that the ids are randomly generated for each frame.
+  // So this essentially becomes a queue of frame updates.
+  @Deprecated
   public void scheduleRenderUpdate(RenderUpdate update) {
     if (renderWindowOpen) {
-      update.update(/* runsInline = */true);
+      update.update(/* runsInline = */ true);
     } else {
-      pendingRenderUpdate = Optional.of(update);
+      pendingRenderUpdatesQueued.add(update);
     }
   }
 
@@ -203,9 +223,14 @@ public class EglThread implements RenderSynchronizer.Listener {
     handler.post(
         () -> {
           renderWindowOpen = true;
-          pendingRenderUpdate.ifPresent(
-              renderUpdate -> renderUpdate.update(/* runsInline = */ false));
-          pendingRenderUpdate = Optional.empty();
+          for (RenderUpdate update : pendingRenderUpdates.values()) {
+            update.update(/* runsInline = */ false);
+          }
+          pendingRenderUpdates.clear();
+          for (RenderUpdate update: pendingRenderUpdatesQueued) {
+            update.update(/* runsInline = */ false);
+          }
+          pendingRenderUpdatesQueued.clear();
         });
   }
 

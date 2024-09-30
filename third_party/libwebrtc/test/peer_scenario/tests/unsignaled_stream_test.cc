@@ -10,11 +10,9 @@
 
 #include "media/base/stream_params.h"
 #include "modules/rtp_rtcp/source/byte_io.h"
+#include "modules/rtp_rtcp/source/rtp_header_extensions.h"
 #include "modules/rtp_rtcp/source/rtp_util.h"
-#include "pc/media_session.h"
 #include "pc/session_description.h"
-#include "test/field_trial.h"
-#include "test/gmock.h"
 #include "test/gtest.h"
 #include "test/peer_scenario/peer_scenario.h"
 

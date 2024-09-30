@@ -1,0 +1,48 @@
+From: Andreas Pehrson <apehrson@mozilla.com>
+Date: Thu, 12 Sep 2024 22:36:00 +0000
+Subject: Bug 1918096 - In ScreenCapturerSck skip some processing when
+ possible. r=webrtc-reviewers,ng
+
+No need to update the last frame unless it has changed.
+
+Differential Revision: https://phabricator.services.mozilla.com/D221942
+Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/8d52f2fd575479da72508033b3a2151906e2bf19
+---
+ .../desktop_capture/mac/screen_capturer_sck.mm  | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/modules/desktop_capture/mac/screen_capturer_sck.mm b/modules/desktop_capture/mac/screen_capturer_sck.mm
+index 19c887d435..482501e2d9 100644
+--- a/modules/desktop_capture/mac/screen_capturer_sck.mm
++++ b/modules/desktop_capture/mac/screen_capturer_sck.mm
+@@ -511,6 +511,7 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+   CGRect contentRect = {};
+   CGRect boundingRect = {};
+   CGRect overlayRect = {};
++  SCFrameStatus status = SCFrameStatusStopped;
+   const auto* dirty_rects = (NSArray*)attachment[SCStreamFrameInfoDirtyRects];
+   if (auto factor = (NSNumber *)attachment[SCStreamFrameInfoScaleFactor]) {
+     scaleFactor = [factor floatValue];
+@@ -536,6 +537,22 @@ void ScreenCapturerSck::OnNewIOSurface(IOSurfaceRef io_surface, NSDictionary* at
+     }
+   }
+ 
++  if (auto statusNr = (NSNumber *)attachment[SCStreamFrameInfoStatus]) {
++    status = (SCFrameStatus)[statusNr integerValue];
++  }
++
++  switch (status) {
++    case SCFrameStatusBlank:
++    case SCFrameStatusIdle:
++    case SCFrameStatusSuspended:
++    case SCFrameStatusStopped:
++      // No new frame. Ignore.
++      return;
++    case SCFrameStatusComplete:
++    case SCFrameStatusStarted:
++      // New frame. Process it.
++      break;
++  }
+ 
+   auto imgBoundingRect = CGRectMake(
+       scaleFactor * boundingRect.origin.x,

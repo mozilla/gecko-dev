@@ -11,25 +11,21 @@
 #ifndef API_VIDEO_CODECS_VIDEO_ENCODER_INTERFACE_H_
 #define API_VIDEO_CODECS_VIDEO_ENCODER_INTERFACE_H_
 
-#include <map>
+#include <cstdint>
 #include <memory>
-#include <string>
-#include <utility>
 #include <vector>
 
-#include "absl/functional/any_invocable.h"
 #include "absl/types/optional.h"
 #include "absl/types/variant.h"
+#include "api/array_view.h"
+#include "api/scoped_refptr.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
-#include "api/video/encoded_image.h"
 #include "api/video/resolution.h"
-#include "api/video/video_frame.h"
+#include "api/video/video_frame_buffer.h"
 #include "api/video_codecs/video_codec.h"
-#include "api/video_codecs/video_encoding_general.h"
-#include "rtc_base/numerics/rational.h"
 
 namespace webrtc {
 // NOTE: This class is still under development and may change without notice.

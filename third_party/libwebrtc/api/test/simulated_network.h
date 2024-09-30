@@ -14,13 +14,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <functional>
 #include <vector>
 
 #include "absl/functional/any_invocable.h"
 #include "absl/types/optional.h"
 #include "api/units/data_rate.h"
-#include "rtc_base/random.h"
-#include "rtc_base/thread_annotations.h"
 
 namespace webrtc {
 

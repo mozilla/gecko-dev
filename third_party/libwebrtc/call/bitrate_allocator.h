@@ -22,6 +22,7 @@
 #include "api/call/bitrate_allocation.h"
 #include "api/sequence_checker.h"
 #include "api/transport/network_types.h"
+#include "api/units/data_rate.h"
 #include "rtc_base/system/no_unique_address.h"
 
 namespace webrtc {
@@ -37,6 +38,8 @@ class BitrateAllocatorObserver {
   // Returns the amount of protection used by the BitrateAllocatorObserver
   // implementation, as bitrate in bps.
   virtual uint32_t OnBitrateUpdated(BitrateAllocationUpdate update) = 0;
+  // Returns the bitrate consumed (vs allocated) by BitrateAllocatorObserver
+  virtual absl::optional<DataRate> GetUsedRate() const = 0;
 
  protected:
   virtual ~BitrateAllocatorObserver() {}
@@ -44,6 +47,12 @@ class BitrateAllocatorObserver {
 
 // Struct describing parameters for how a media stream should get bitrate
 // allocated to it.
+
+enum class TrackRateElasticity {
+  kCanContributeUnusedRate,
+  kCanConsumeExtraRate,
+  kCanContributeAndConsume
+};
 
 struct MediaStreamAllocationConfig {
   // Minimum bitrate supported by track. 0 equals no min bitrate.
@@ -61,6 +70,7 @@ struct MediaStreamAllocationConfig {
   // observers. If an observer has twice the bitrate_priority of other
   // observers, it should be allocated twice the bitrate above its min.
   double bitrate_priority;
+  absl::optional<TrackRateElasticity> rate_elasticity;
 };
 
 // Interface used for mocking
@@ -82,10 +92,12 @@ struct AllocatableTrack {
       : observer(observer),
         config(allocation_config),
         allocated_bitrate_bps(-1),
+        last_used_bitrate_bps(-1),
         media_ratio(1.0) {}
   BitrateAllocatorObserver* observer;
   MediaStreamAllocationConfig config;
   int64_t allocated_bitrate_bps;
+  int64_t last_used_bitrate_bps;
   double media_ratio;  // Part of the total bitrate used for media [0.0, 1.0].
 
   uint32_t LastAllocatedBitrate() const;

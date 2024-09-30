@@ -11,6 +11,9 @@
 #ifndef API_TEST_MOCK_AUDIO_SINK_H_
 #define API_TEST_MOCK_AUDIO_SINK_H_
 
+#include <cstddef>
+#include <cstdint>
+
 #include "absl/types/optional.h"
 #include "api/media_stream_interface.h"
 #include "test/gmock.h"

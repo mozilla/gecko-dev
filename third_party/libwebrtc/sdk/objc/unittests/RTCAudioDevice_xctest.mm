@@ -46,7 +46,8 @@
 #endif
 
   _audioDeviceModule = webrtc::CreateAudioDeviceModule();
-  _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(/*bypass_voice_processing=*/false));
+  _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
+      /*bypass_voice_processing=*/false, /*muted_speech_event_handler=*/nullptr));
   self.audioSession = [RTC_OBJC_TYPE(RTCAudioSession) sharedInstance];
 
   NSError *error = nil;
@@ -124,6 +125,37 @@
   _audio_device->Init();
   _audio_device->InitPlayout();
   XCTAssertFalse(_audio_device->IsInterrupted());
+}
+
+- (void)testMuteSpeechHandlerCalledWithStartedWhenSpeechActivityHasStarted {
+  XCTestExpectation *handlerExpectation = [self expectationWithDescription:@"mutedSpeechHandler"];
+  webrtc::AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler =
+      ^void(webrtc::AudioDeviceModule::MutedSpeechEvent event) {
+        XCTAssertEqual(event, webrtc::AudioDeviceModule::kMutedSpeechStarted);
+        [handlerExpectation fulfill];
+      };
+
+  _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
+      /*bypass_voice_processing=*/false,
+      /*muted_speech_event_handler=*/muted_speech_event_handler));
+
+  _audio_device->OnReceivedMutedSpeechActivity(kAUVoiceIOSpeechActivityHasStarted);
+  [self waitForExpectations:@[ handlerExpectation ] timeout:10.0];
+}
+
+- (void)testMuteSpeechHandlerCalledWithEndedWhenSpeechActivityHasEnded {
+  XCTestExpectation *handlerExpectation = [self expectationWithDescription:@"mutedSpeechHandler"];
+  webrtc::AudioDeviceModule::MutedSpeechEventHandler muted_speech_event_handler =
+      ^void(webrtc::AudioDeviceModule::MutedSpeechEvent event) {
+        XCTAssertEqual(event, webrtc::AudioDeviceModule::kMutedSpeechEnded);
+        [handlerExpectation fulfill];
+      };
+
+  _audio_device.reset(new webrtc::ios_adm::AudioDeviceIOS(
+      /*bypass_voice_processing=*/false,
+      /*muted_speech_event_handler=*/muted_speech_event_handler));
+  _audio_device->OnReceivedMutedSpeechActivity(kAUVoiceIOSpeechActivityHasEnded);
+  [self waitForExpectations:@[ handlerExpectation ] timeout:10.0];
 }
 
 @end

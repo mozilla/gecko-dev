@@ -231,7 +231,7 @@ void CallPerfTest::TestAudioVideoSync(FecMode fec,
     sender_config.audio_state = audio_state;
     CallConfig receiver_config = RecvCallConfig();
     receiver_config.audio_state = audio_state;
-    CreateCalls(sender_config, receiver_config);
+    CreateCalls(std::move(sender_config), std::move(receiver_config));
 
     std::copy_if(std::begin(payload_type_map_), std::end(payload_type_map_),
                  std::inserter(audio_pt_map, audio_pt_map.end()),

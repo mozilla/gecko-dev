@@ -1238,25 +1238,13 @@ TEST_F(RtpDemuxerTest, PacketWithMidAndUnknownRsidIsNotRoutedByPayloadType) {
   EXPECT_FALSE(demuxer_.OnRtpPacket(*packet));
 }
 
-TEST_F(RtpDemuxerTest, MidMustNotExceedMaximumLength) {
+#if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
+
+TEST_F(RtpDemuxerDeathTest, MidMustNotExceedMaximumLength) {
   MockRtpPacketSink sink1;
   std::string mid1(BaseRtpStringExtension::kMaxValueSizeBytes + 1, 'a');
-  // Adding the sink should pass even though the supplied mid is too long.
-  // The mid will be truncated though.
-  EXPECT_TRUE(AddSinkOnlyMid(mid1, &sink1));
-
-  // Adding a second sink with a mid that matches the truncated mid that was
-  // just added, should fail.
-  MockRtpPacketSink sink2;
-  std::string mid2(mid1.substr(0, BaseRtpStringExtension::kMaxValueSizeBytes));
-  EXPECT_FALSE(AddSinkOnlyMid(mid2, &sink2));
-  EXPECT_FALSE(RemoveSink(&sink2));
-
-  // Remove the original sink.
-  EXPECT_TRUE(RemoveSink(&sink1));
+  EXPECT_DEATH(AddSinkOnlyMid(mid1, &sink1), "");
 }
-
-#if RTC_DCHECK_IS_ON && GTEST_HAS_DEATH_TEST && !defined(WEBRTC_ANDROID)
 
 TEST_F(RtpDemuxerDeathTest, CriteriaMustBeNonEmpty) {
   MockRtpPacketSink sink;

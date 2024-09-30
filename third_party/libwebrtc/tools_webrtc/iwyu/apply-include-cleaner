@@ -98,5 +98,18 @@ fi
 
 $CLEANER -p $WORKDIR $INCLUDE_ARGS $COMMAND $FILE
 
+# include-cleaner does not support custom mappings for certain deps
+# this ensures that the gtest/gmock deps it inserts are replaced
+# with the right paths for those includes.
+# Since sed inplace argument acts differently between GNU/BSD based systems
+# we handle this here.
+case "$(uname -s)" in
+    Linux*)     INPLACE_ARG=( -i );;
+    Darwin*)    INPLACE_ARG=( -i '' );;
+    *)          INPLACE_ARG=( -i )
+esac
+git diff-index -U -G "^#include \"gtest\/gtest\.h" HEAD --name-only | xargs -I {} sed "${INPLACE_ARG[@]}" -e 's@^#include "gtest\/gtest\.h@#include "test\/gtest\.h@g' {}
+git diff-index -U -G "^#include \"gmock\/gmock\.h" HEAD --name-only | xargs -I {} sed "${INPLACE_ARG[@]}" -e 's@^#include "gmock\/gmock\.h@#include "test\/gmock\.h@g' {}
+
 echo "Finished. Check diff, compile, gn gen --check and git cl format"
 echo "before uploading."

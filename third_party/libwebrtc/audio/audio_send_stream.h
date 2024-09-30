@@ -97,6 +97,7 @@ class AudioSendStream final : public webrtc::AudioSendStream,
 
   // Implements BitrateAllocatorObserver.
   uint32_t OnBitrateUpdated(BitrateAllocationUpdate update) override;
+  absl::optional<DataRate> GetUsedRate() const override;
 
   void SetTransportOverhead(int transport_overhead_per_packet_bytes);
 

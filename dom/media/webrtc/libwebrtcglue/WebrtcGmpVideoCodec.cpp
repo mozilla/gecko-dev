@@ -364,7 +364,7 @@ void WebrtcGmpVideoEncoder::Encode_g(
     GMP_LOG_DEBUG("GMP Encode: failed to create frame");
     return;
   }
-  frame->SetTimestamp((aInputImage.timestamp() * 1000ll) /
+  frame->SetTimestamp((aInputImage.rtp_timestamp() * 1000ll) /
                       90);  // note: rounds down!
   // frame->SetDuration(1000000ll/30); // XXX base duration on measured current
   // FPS - or don't bother

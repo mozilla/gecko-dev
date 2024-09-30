@@ -16,11 +16,11 @@
 #include <vector>
 
 #include "absl/types/optional.h"
+#include "api/transport/network_types.h"
 #include "api/units/data_rate.h"
 #include "api/units/data_size.h"
 #include "api/units/time_delta.h"
 #include "api/units/timestamp.h"
-#include "modules/rtp_rtcp/include/rtp_packet_sender.h"
 
 namespace webrtc {
 

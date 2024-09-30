@@ -10,10 +10,13 @@
 
 #include "api/voip/voip_engine_factory.h"
 
+#include <memory>
 #include <utility>
 
 #include "api/environment/environment_factory.h"
+#include "api/voip/voip_engine.h"
 #include "audio/voip/voip_core.h"
+#include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 
 namespace webrtc {

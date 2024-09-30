@@ -45,6 +45,8 @@ class Y4mFrameGenerator : public FrameGeneratorInterface {
 
   VideoFrameData NextFrame() override;
 
+  void SkipNextFrame() override;
+
   void ChangeResolution(size_t width, size_t height) override;
 
   Resolution GetResolution() const override;

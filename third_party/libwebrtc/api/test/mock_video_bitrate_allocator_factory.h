@@ -13,7 +13,10 @@
 
 #include <memory>
 
+#include "api/environment/environment.h"
+#include "api/video/video_bitrate_allocator.h"
 #include "api/video/video_bitrate_allocator_factory.h"
+#include "api/video_codecs/video_codec.h"
 #include "test/gmock.h"
 
 namespace webrtc {

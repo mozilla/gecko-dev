@@ -10,6 +10,7 @@
 
 #include "api/data_channel_interface.h"
 
+#include "api/priority.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {
@@ -40,6 +41,10 @@ std::string DataChannelInterface::protocol() const {
 
 bool DataChannelInterface::negotiated() const {
   return false;
+}
+
+PriorityValue DataChannelInterface::priority() const {
+  return PriorityValue(Priority::kLow);
 }
 
 uint64_t DataChannelInterface::MaxSendQueueSize() {

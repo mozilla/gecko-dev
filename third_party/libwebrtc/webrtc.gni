@@ -343,10 +343,6 @@ declare_args() {
 
   # Set this to true to disable webrtc metrics.
   rtc_disable_metrics = false
-
-  # Set this to true to exclude the transient suppressor in the audio processing
-  # module from the build.
-  rtc_exclude_transient_suppressor = false
 }
 
 declare_args() {

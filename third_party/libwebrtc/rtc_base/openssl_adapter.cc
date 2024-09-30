@@ -13,12 +13,29 @@
 #include <errno.h>
 #include <openssl/bio.h>
 #include <openssl/err.h>
+#include <openssl/ssl.h>
+
+#include <cstdint>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "absl/strings/string_view.h"
+#include "api/task_queue/pending_task_safety_flag.h"
+#include "rtc_base/async_socket.h"
+#include "rtc_base/openssl_session_cache.h"
+#include "rtc_base/socket.h"
+#include "rtc_base/socket_address.h"
+#include "rtc_base/ssl_adapter.h"
+#include "rtc_base/ssl_certificate.h"
+#include "rtc_base/ssl_identity.h"
+#include "rtc_base/ssl_stream_adapter.h"
 #ifdef OPENSSL_IS_BORINGSSL
+#include <openssl/base.h>
 #include <openssl/pool.h>
+
+#include "rtc_base/boringssl_certificate.h"
 #endif
-#include <openssl/rand.h>
 #include <openssl/x509.h>
 #include <string.h>
 #include <time.h>
@@ -37,7 +54,6 @@
 #include "rtc_base/checks.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/numerics/safe_conversions.h"
-#include "rtc_base/openssl.h"
 #ifdef OPENSSL_IS_BORINGSSL
 #include "rtc_base/boringssl_identity.h"
 #else
@@ -45,8 +61,8 @@
 #endif
 #include "rtc_base/openssl_utility.h"
 #include "rtc_base/strings/str_join.h"
-#include "rtc_base/strings/string_builder.h"
 #include "rtc_base/thread.h"
+#include "system_wrappers/include/field_trial.h"
 
 //////////////////////////////////////////////////////////////////////
 // SocketBIO
@@ -196,6 +212,10 @@ OpenSSLAdapter::OpenSSLAdapter(Socket* socket,
       ssl_ctx_(nullptr),
       ssl_mode_(SSL_MODE_TLS),
       ignore_bad_cert_(false),
+#ifdef OPENSSL_IS_BORINGSSL
+      permute_extension_(
+          !webrtc::field_trial::IsDisabled("WebRTC-PermuteTlsClientHello")),
+#endif
       custom_cert_verifier_status_(false) {
   // If a factory is used, take a reference on the factory's SSL_CTX.
   // Otherwise, we'll create our own later.
@@ -283,7 +303,13 @@ int OpenSSLAdapter::BeginSSL() {
   // need to create one, and specify `false` to disable session caching.
   if (ssl_session_cache_ == nullptr) {
     RTC_DCHECK(!ssl_ctx_);
-    ssl_ctx_ = CreateContext(ssl_mode_, false);
+#ifdef OPENSSL_IS_BORINGSSL
+    ssl_ctx_ =
+        CreateContext(ssl_mode_, /* enable_cache= */ false, permute_extension_);
+#else
+    ssl_ctx_ = CreateContext(ssl_mode_, /* enable_cache= */ false,
+                             /* permute_extension= */ false);
+#endif
   }
 
   if (!ssl_ctx_) {
@@ -949,7 +975,9 @@ int OpenSSLAdapter::NewSSLSessionCallback(SSL* ssl, SSL_SESSION* session) {
   return 1;  // We've taken ownership of the session; OpenSSL shouldn't free it.
 }
 
-SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode, bool enable_cache) {
+SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode,
+                                       bool enable_cache,
+                                       bool permute_extension) {
 #ifdef WEBRTC_USE_CRYPTO_BUFFER_CALLBACK
   // If X509 objects aren't used, we can use these methods to avoid
   // linking the sizable crypto/x509 code.
@@ -1011,6 +1039,9 @@ SSL_CTX* OpenSSLAdapter::CreateContext(SSLMode mode, bool enable_cache) {
     SSL_CTX_sess_set_new_cb(ctx, &OpenSSLAdapter::NewSSLSessionCallback);
   }
 
+#ifdef OPENSSL_IS_BORINGSSL
+  SSL_CTX_set_permute_extensions(ctx, permute_extension);
+#endif
   return ctx;
 }
 
@@ -1069,9 +1100,11 @@ void OpenSSLAdapterFactory::SetIgnoreBadCert(bool ignore) {
   ignore_bad_cert_ = ignore;
 }
 
-OpenSSLAdapter* OpenSSLAdapterFactory::CreateAdapter(Socket* socket) {
+OpenSSLAdapter* OpenSSLAdapterFactory::CreateAdapter(Socket* socket,
+                                                     bool permute_extension) {
   if (ssl_session_cache_ == nullptr) {
-    SSL_CTX* ssl_ctx = OpenSSLAdapter::CreateContext(ssl_mode_, true);
+    SSL_CTX* ssl_ctx =
+        OpenSSLAdapter::CreateContext(ssl_mode_, true, permute_extension);
     if (ssl_ctx == nullptr) {
       return nullptr;
     }

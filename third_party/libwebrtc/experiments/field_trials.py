@@ -109,7 +109,7 @@ ACTIVE_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
                date(2024, 4, 1)),
     FieldTrial('WebRTC-PermuteTlsClientHello',
                42225803,
-               date(2024, 7, 1)),
+               date(2025, 1, 1)),
     FieldTrial('WebRTC-QCM-Dynamic-AV1',
                349860657,
                date(2025, 7, 1)),
@@ -472,14 +472,8 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-Audio-NetEqSmartFlushing',
                42222334,
                date(2024, 4, 1)),
-    FieldTrial('WebRTC-Audio-OpusAvoidNoisePumpingDuringDtx',
-               42222522,
-               date(2024, 4, 1)),
     FieldTrial('WebRTC-Audio-OpusBitrateMultipliers',
                42221139,
-               date(2024, 4, 1)),
-    FieldTrial('WebRTC-Audio-OpusPlcUsePrevDecodedSamples',
-               143582588,
                date(2024, 4, 1)),
     FieldTrial('WebRTC-Audio-Red-For-Opus',
                42221750,
@@ -865,9 +859,6 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
     FieldTrial('WebRTC-VideoRateControl',
                42220259,
                INDEFINITE),
-    FieldTrial('WebRTC-VoIPChannelRemixingAdjustmentKillSwitch',
-               40108588,
-               date(2024, 4, 1)),
     FieldTrial('WebRTC-Vp9ExternalRefCtrl',
                42234783,
                date(2024, 4, 1)),
@@ -884,7 +875,7 @@ POLICY_EXEMPT_FIELD_TRIALS: FrozenSet[FieldTrial] = frozenset([
 ])  # yapf: disable
 
 POLICY_EXEMPT_FIELD_TRIALS_DIGEST: str = \
-    'ad853beba9dddb16d9f45164a8d69b5d01e7d1c9'
+    'e750429cb042c02921a227fa18291f2cea23ea3b'
 
 REGISTERED_FIELD_TRIALS: FrozenSet[FieldTrial] = ACTIVE_FIELD_TRIALS.union(
     POLICY_EXEMPT_FIELD_TRIALS)

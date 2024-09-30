@@ -11,6 +11,7 @@
 #ifndef API_UNITS_DATA_SIZE_H_
 #define API_UNITS_DATA_SIZE_H_
 
+#include <cstdint>
 #include <string>
 #include <type_traits>
 

@@ -31,9 +31,9 @@ namespace webrtc {
 // these two classes as it has both sending and receiving capabilities.
 class AudioChannel : public RefCountInterface {
  public:
-  AudioChannel(Transport* transport,
+  AudioChannel(const Environment& env,
+               Transport* transport,
                uint32_t local_ssrc,
-               TaskQueueFactory* task_queue_factory,
                AudioMixer* audio_mixer,
                rtc::scoped_refptr<AudioDecoderFactory> decoder_factory);
   ~AudioChannel() override;

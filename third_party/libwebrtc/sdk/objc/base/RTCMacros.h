@@ -23,6 +23,9 @@
 #define RTC_OBJC_EXPORT
 #endif
 
+// Macro used to mark a function as deprecated.
+#define RTC_OBJC_DEPRECATED(msg) __attribute__((deprecated(msg)))
+
 // Internal macros used to correctly concatenate symbols.
 #define RTC_SYMBOL_CONCAT_HELPER(a, b) a##b
 #define RTC_SYMBOL_CONCAT(a, b) RTC_SYMBOL_CONCAT_HELPER(a, b)

@@ -48,7 +48,7 @@ class AcmReceiverTestOldApi : public AudioPacketizationCallback,
 
   void SetUp() override {
     acm_ = AudioCodingModule::Create();
-    receiver_.reset(new AcmReceiver(config_));
+    receiver_ = std::make_unique<AcmReceiver>(env_, config_);
     ASSERT_TRUE(receiver_.get() != NULL);
     ASSERT_TRUE(acm_.get() != NULL);
     acm_->RegisterTransportCallback(this);

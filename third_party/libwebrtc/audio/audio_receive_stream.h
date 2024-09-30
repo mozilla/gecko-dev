@@ -18,6 +18,7 @@
 
 #include "absl/strings/string_view.h"
 #include "api/audio/audio_mixer.h"
+#include "api/environment/environment.h"
 #include "api/neteq/neteq_factory.h"
 #include "api/rtp_headers.h"
 #include "api/sequence_checker.h"
@@ -26,11 +27,9 @@
 #include "call/syncable.h"
 #include "modules/rtp_rtcp/source/source_tracker.h"
 #include "rtc_base/system/no_unique_address.h"
-#include "system_wrappers/include/clock.h"
 
 namespace webrtc {
 class PacketRouter;
-class RtcEventLog;
 class RtpStreamReceiverControllerInterface;
 class RtpStreamReceiverInterface;
 
@@ -47,19 +46,17 @@ class AudioReceiveStreamImpl final : public webrtc::AudioReceiveStreamInterface,
                                      public Syncable {
  public:
   AudioReceiveStreamImpl(
-      Clock* clock,
+      const Environment& env,
       PacketRouter* packet_router,
       NetEqFactory* neteq_factory,
       const webrtc::AudioReceiveStreamInterface::Config& config,
-      const rtc::scoped_refptr<webrtc::AudioState>& audio_state,
-      webrtc::RtcEventLog* event_log);
+      const rtc::scoped_refptr<webrtc::AudioState>& audio_state);
   // For unit tests, which need to supply a mock channel receive.
   AudioReceiveStreamImpl(
-      Clock* clock,
+      const Environment& env,
       PacketRouter* packet_router,
       const webrtc::AudioReceiveStreamInterface::Config& config,
       const rtc::scoped_refptr<webrtc::AudioState>& audio_state,
-      webrtc::RtcEventLog* event_log,
       std::unique_ptr<voe::ChannelReceiveInterface> channel_receive);
 
   AudioReceiveStreamImpl() = delete;

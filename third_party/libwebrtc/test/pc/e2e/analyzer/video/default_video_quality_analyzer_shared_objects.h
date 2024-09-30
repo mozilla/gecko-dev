@@ -151,6 +151,11 @@ struct StreamStats {
   // Sender side qp values per spatial layer. In case when spatial layer is not
   // set for `webrtc::EncodedImage`, 0 is used as default.
   std::map<int, SamplesStatsCounter> spatial_layers_qp;
+  // QP values of the rendered frames. In SVC or simulcast coding scenarios, the
+  // receiver will only render one of the spatial layers at a time. Hence, this
+  // value corresponds to the rendered frames' QP values, which should ideally
+  // correspond to one of the QP values in `spatial_layers_qp`.
+  SamplesStatsCounter rendered_frame_qp;
 
   int64_t total_encoded_images_payload = 0;
   // Counters on which phase how many frames were dropped.

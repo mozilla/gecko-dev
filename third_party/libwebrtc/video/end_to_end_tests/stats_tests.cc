@@ -527,8 +527,8 @@ TEST_F(StatsEndToEndTest, MAYBE_ContentTypeSwitches) {
 
   SendTask(task_queue(), [this, &test, &send_config, &recv_config,
                           &encoder_config_with_screenshare]() {
-    CreateSenderCall(send_config);
-    CreateReceiverCall(recv_config);
+    CreateSenderCall(std::move(send_config));
+    CreateReceiverCall(std::move(recv_config));
     CreateReceiveTransport(test.GetReceiveTransportConfig(), &test);
     CreateSendTransport(test.GetReceiveTransportConfig(), &test);
 

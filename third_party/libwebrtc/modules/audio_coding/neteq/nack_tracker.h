@@ -18,6 +18,7 @@
 #include <vector>
 
 #include "absl/types/optional.h"
+#include "api/field_trials_view.h"
 #include "modules/include/module_common_types_public.h"
 #include "rtc_base/gtest_prod_util.h"
 
@@ -54,7 +55,7 @@ class NackTracker {
   // A limit for the size of the NACK list.
   static const size_t kNackListSizeLimit = 500;  // 10 seconds for 20 ms frame
                                                  // packets.
-  NackTracker();
+  explicit NackTracker(const FieldTrialsView& field_trials);
   ~NackTracker();
 
   // Set a maximum for the size of the NACK list. If the last received packet
@@ -99,7 +100,7 @@ class NackTracker {
 
   // Options that can be configured via field trial.
   struct Config {
-    Config();
+    explicit Config(const FieldTrialsView& field_trials);
 
     // The exponential decay factor used to estimate the packet loss rate.
     double packet_loss_forget_factor = 0.996;

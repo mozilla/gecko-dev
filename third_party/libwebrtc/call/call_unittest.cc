@@ -65,7 +65,7 @@ struct CallHelper {
         rtc::make_ref_counted<MockAudioDeviceModule>();
     CallConfig config(CreateEnvironment());
     config.audio_state = AudioState::Create(audio_state_config);
-    call_ = Call::Create(config);
+    call_ = Call::Create(std::move(config));
   }
 
   Call* operator->() { return call_.get(); }

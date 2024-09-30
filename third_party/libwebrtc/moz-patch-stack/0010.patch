@@ -9,10 +9,10 @@ Mercurial Revision: https://hg.mozilla.org/mozilla-central/rev/92a7c3eee9f0c80ff
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/modules/audio_coding/codecs/opus/audio_encoder_opus.cc b/modules/audio_coding/codecs/opus/audio_encoder_opus.cc
-index 8437706122..8e23b7b88f 100644
+index 7eb8bbd163..b51e172ca8 100644
 --- a/modules/audio_coding/codecs/opus/audio_encoder_opus.cc
 +++ b/modules/audio_coding/codecs/opus/audio_encoder_opus.cc
-@@ -232,7 +232,7 @@ AudioCodecInfo AudioEncoderOpusImpl::QueryAudioEncoder(
+@@ -231,7 +231,7 @@ AudioCodecInfo AudioEncoderOpusImpl::QueryAudioEncoder(
  absl::optional<AudioEncoderOpusConfig> AudioEncoderOpusImpl::SdpToConfig(
      const SdpAudioFormat& format) {
    if (!absl::EqualsIgnoreCase(format.name, "opus") ||

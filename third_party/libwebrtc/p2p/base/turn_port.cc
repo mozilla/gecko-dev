@@ -1417,10 +1417,10 @@ void TurnAllocateRequest::OnResponse(StunMessage* response) {
   }
 
   const StunUInt32Attribute* lifetime_attr =
-      response->GetUInt32(STUN_ATTR_TURN_LIFETIME);
+      response->GetUInt32(STUN_ATTR_LIFETIME);
   if (!lifetime_attr) {
     RTC_LOG(LS_WARNING) << port_->ToString()
-                        << ": Missing STUN_ATTR_TURN_LIFETIME attribute in "
+                        << ": Missing STUN_ATTR_LIFETIME attribute in "
                            "allocate success response";
     return;
   }
@@ -1587,10 +1587,10 @@ void TurnRefreshRequest::OnResponse(StunMessage* response) {
 
   // Check mandatory attributes as indicated in RFC5766, Section 7.3.
   const StunUInt32Attribute* lifetime_attr =
-      response->GetUInt32(STUN_ATTR_TURN_LIFETIME);
+      response->GetUInt32(STUN_ATTR_LIFETIME);
   if (!lifetime_attr) {
     RTC_LOG(LS_WARNING) << port_->ToString()
-                        << ": Missing STUN_ATTR_TURN_LIFETIME attribute in "
+                        << ": Missing STUN_ATTR_LIFETIME attribute in "
                            "refresh success response.";
     return;
   }

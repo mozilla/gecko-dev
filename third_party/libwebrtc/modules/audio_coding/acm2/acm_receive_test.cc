@@ -15,6 +15,7 @@
 #include <memory>
 
 #include "api/audio_codecs/builtin_audio_decoder_factory.h"
+#include "api/environment/environment_factory.h"
 #include "modules/audio_coding/include/audio_coding_module.h"
 #include "modules/audio_coding/neteq/tools/audio_sink.h"
 #include "modules/audio_coding/neteq/tools/packet.h"
@@ -26,10 +27,8 @@ namespace test {
 
 namespace {
 acm2::AcmReceiver::Config MakeAcmConfig(
-    Clock& clock,
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory) {
   acm2::AcmReceiver::Config config;
-  config.clock = clock;
   config.decoder_factory = std::move(decoder_factory);
   return config;
 }
@@ -43,7 +42,8 @@ AcmReceiveTestOldApi::AcmReceiveTestOldApi(
     rtc::scoped_refptr<AudioDecoderFactory> decoder_factory)
     : clock_(0),
       acm_receiver_(std::make_unique<acm2::AcmReceiver>(
-          MakeAcmConfig(clock_, std::move(decoder_factory)))),
+          CreateEnvironment(&clock_),
+          MakeAcmConfig(std::move(decoder_factory)))),
       packet_source_(packet_source),
       audio_sink_(audio_sink),
       output_freq_hz_(output_freq_hz),

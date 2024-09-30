@@ -10,6 +10,11 @@
 
 #include "api/test/fake_frame_encryptor.h"
 
+#include <cstddef>
+#include <cstdint>
+
+#include "api/array_view.h"
+#include "api/media_types.h"
 #include "rtc_base/checks.h"
 
 namespace webrtc {

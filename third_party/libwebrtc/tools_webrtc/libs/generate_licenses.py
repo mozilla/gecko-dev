@@ -99,6 +99,10 @@ LIB_REGEX_TO_LICENSES_DICT = {
         'com_android_support_support_annotations/LICENSE'
     ],
 
+    'android_build_tools.*': [
+        'third_party/android_build_tools/bundletool/LICENSE'
+    ],
+
     # Internal dependencies, licenses are already included by other deps.
     'android_deps:com_android_support_support_annotations.*': [],
 }

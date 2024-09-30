@@ -48,7 +48,7 @@ class SctpDataChannelControllerInterface {
                             const SendDataParams& params,
                             const rtc::CopyOnWriteBuffer& payload) = 0;
   // Adds the data channel SID to the transport for SCTP.
-  virtual void AddSctpDataStream(StreamId sid) = 0;
+  virtual void AddSctpDataStream(StreamId sid, PriorityValue priority) = 0;
   // Begins the closing procedure by sending an outgoing stream reset. Still
   // need to wait for callbacks to tell when this completes.
   virtual void RemoveSctpDataStream(StreamId sid) = 0;
@@ -164,7 +164,7 @@ class SctpDataChannel : public DataChannelInterface {
   std::string protocol() const override;
   bool negotiated() const override;
   int id() const override;
-  Priority priority() const override;
+  PriorityValue priority() const override;
 
   uint64_t buffered_amount() const override;
   void Close() override;
@@ -277,7 +277,7 @@ class SctpDataChannel : public DataChannelInterface {
   const std::string protocol_;
   const absl::optional<int> max_retransmit_time_;
   const absl::optional<int> max_retransmits_;
-  const absl::optional<Priority> priority_;
+  const absl::optional<PriorityValue> priority_;
   const bool negotiated_;
   const bool ordered_;
   // See the body of `MaybeSendOnBufferedAmountChanged`.

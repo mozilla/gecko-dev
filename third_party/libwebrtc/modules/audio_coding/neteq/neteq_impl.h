@@ -20,6 +20,7 @@
 
 #include "absl/types/optional.h"
 #include "api/audio/audio_frame.h"
+#include "api/environment/environment.h"
 #include "api/neteq/neteq.h"
 #include "api/neteq/neteq_controller.h"
 #include "api/neteq/neteq_controller_factory.h"
@@ -40,7 +41,6 @@ namespace webrtc {
 // Forward declarations.
 class Accelerate;
 class BackgroundNoise;
-class Clock;
 class ComfortNoise;
 class DecoderDatabase;
 class DtmfBuffer;
@@ -96,13 +96,13 @@ class NetEqImpl : public webrtc::NetEq {
     // before sending the struct to the NetEqImpl constructor. However, there
     // are dependencies between some of the classes inside the struct, so
     // swapping out one may make it necessary to re-create another one.
-    Dependencies(const NetEq::Config& config,
-                 Clock* clock,
-                 const rtc::scoped_refptr<AudioDecoderFactory>& decoder_factory,
+    Dependencies(const Environment& env,
+                 const NetEq::Config& config,
+                 scoped_refptr<AudioDecoderFactory> decoder_factory,
                  const NetEqControllerFactory& controller_factory);
     ~Dependencies();
 
-    Clock* const clock;
+    const Environment env;
     std::unique_ptr<TickTimer> tick_timer;
     std::unique_ptr<StatisticsCalculator> stats;
     std::unique_ptr<DecoderDatabase> decoder_database;
@@ -340,7 +340,7 @@ class NetEqImpl : public webrtc::NetEq {
   NetEqController::PacketArrivedInfo ToPacketArrivedInfo(
       const Packet& packet) const RTC_EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Clock* const clock_;
+  const Environment env_;
 
   mutable Mutex mutex_;
   const std::unique_ptr<TickTimer> tick_timer_ RTC_GUARDED_BY(mutex_);

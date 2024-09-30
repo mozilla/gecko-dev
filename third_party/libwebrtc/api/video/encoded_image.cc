@@ -13,6 +13,13 @@
 #include <stdlib.h>
 
 #include <algorithm>
+#include <cstdint>
+
+#include "absl/types/optional.h"
+#include "api/make_ref_counted.h"
+#include "api/scoped_refptr.h"
+#include "api/units/timestamp.h"
+#include "rtc_base/checks.h"
 
 namespace webrtc {
 

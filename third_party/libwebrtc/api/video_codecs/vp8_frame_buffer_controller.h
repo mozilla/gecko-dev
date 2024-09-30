@@ -12,6 +12,8 @@
 #define API_VIDEO_CODECS_VP8_FRAME_BUFFER_CONTROLLER_H_
 
 #include <array>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <vector>
 

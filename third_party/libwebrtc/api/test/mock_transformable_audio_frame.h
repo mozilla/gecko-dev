@@ -11,9 +11,13 @@
 #ifndef API_TEST_MOCK_TRANSFORMABLE_AUDIO_FRAME_H_
 #define API_TEST_MOCK_TRANSFORMABLE_AUDIO_FRAME_H_
 
+#include <cstdint>
 #include <string>
 
+#include "absl/types/optional.h"
+#include "api/array_view.h"
 #include "api/frame_transformer_interface.h"
+#include "api/units/timestamp.h"
 #include "test/gmock.h"
 
 namespace webrtc {
@@ -50,6 +54,8 @@ class MockTransformableAudioFrame : public TransformableAudioFrameInterface {
               (),
               (const, override));
   MOCK_METHOD(absl::optional<uint8_t>, AudioLevel, (), (const, override));
+
+  MOCK_METHOD(absl::optional<Timestamp>, ReceiveTime, (), (const, override));
 };
 
 }  // namespace webrtc

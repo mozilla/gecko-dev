@@ -27,6 +27,7 @@
 #include "rtc_base/event.h"
 #include "rtc_base/logging.h"
 #include "rtc_base/rate_statistics.h"
+#include "rtc_base/task_queue_for_test.h"
 #include "rtc_base/time_utils.h"
 #include "system_wrappers/include/metrics.h"
 #include "system_wrappers/include/ntp_time.h"
@@ -579,7 +580,7 @@ TEST(FrameCadenceAdapterTest, EncodeFramesAreAlignedWithMetronomeTick) {
       "queue", TaskQueueFactory::Priority::NORMAL);
   auto worker_queue = time_controller.GetTaskQueueFactory()->CreateTaskQueue(
       "work_queue", TaskQueueFactory::Priority::NORMAL);
-  static test::FakeMetronome metronome(kTickPeriod);
+  test::FakeMetronome metronome(kTickPeriod);
   test::ScopedKeyValueConfig no_field_trials;
   auto adapter = FrameCadenceAdapterInterface::Create(
       time_controller.GetClock(), queue.get(), &metronome, worker_queue.get(),
@@ -644,6 +645,34 @@ TEST(FrameCadenceAdapterTest, EncodeFramesAreAlignedWithMetronomeTick) {
     finalized.Set();
   });
   finalized.Wait(rtc::Event::kForever);
+}
+
+TEST(FrameCadenceAdapterTest, ShutdownUnderMetronome) {
+  // Regression test for crbug.com/356423094.
+  // The current thread takes the role of worker queue.
+  GlobalSimulatedTimeController time_controller(Timestamp::Zero());
+  static constexpr TimeDelta kTickPeriod = TimeDelta::Millis(100);
+  auto queue = time_controller.GetTaskQueueFactory()->CreateTaskQueue(
+      "queue", TaskQueueFactory::Priority::NORMAL);
+  test::FakeMetronome metronome(kTickPeriod);
+  test::ScopedKeyValueConfig no_field_trials;
+  auto adapter = FrameCadenceAdapterInterface::Create(
+      time_controller.GetClock(), queue.get(), &metronome,
+      TaskQueueBase::Current(), no_field_trials);
+  MockCallback callback;
+  EXPECT_CALL(callback, OnFrame).Times(0);
+  adapter->Initialize(&callback);
+
+  // Pass a frame, this is expected to trigger an encode call in the future.
+  adapter->OnFrame(CreateFrame());
+
+  // Then post destruction of the adapter and destroy the encode queue from the
+  // worker (i.e. current).
+  SendTask(queue.get(), [&] { adapter = nullptr; });
+  queue = nullptr;
+
+  // Now that we advance time, there should be no encoding happening.
+  time_controller.AdvanceTime(TimeDelta::Millis(100));
 }
 
 class FrameCadenceAdapterSimulcastLayersParamTest

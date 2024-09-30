@@ -19,13 +19,10 @@
 #include "absl/types/optional.h"
 #include "api/array_view.h"
 #include "api/call/transport.h"
+#include "api/environment/environment.h"
 #include "api/fec_controller.h"
 #include "api/fec_controller_override.h"
-#include "api/field_trials_view.h"
-#include "api/rtc_event_log/rtc_event_log.h"
 #include "api/sequence_checker.h"
-#include "api/task_queue/task_queue_base.h"
-#include "api/task_queue/task_queue_factory.h"
 #include "api/video_codecs/video_encoder.h"
 #include "call/rtp_config.h"
 #include "call/rtp_payload_params.h"
@@ -74,7 +71,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
  public:
   // Rtp modules are assumed to be sorted in simulcast index order.
   RtpVideoSender(
-      Clock* clock,
+      const Environment& env,
       const std::map<uint32_t, RtpState>& suspended_ssrcs,
       const std::map<uint32_t, RtpPayloadState>& states,
       const RtpConfig& rtp_config,
@@ -82,14 +79,11 @@ class RtpVideoSender : public RtpVideoSenderInterface,
       Transport* send_transport,
       const RtpSenderObservers& observers,
       RtpTransportControllerSendInterface* transport,
-      RtcEventLog* event_log,
       RateLimiter* retransmission_limiter,  // move inside RtpTransport
       std::unique_ptr<FecController> fec_controller,
       FrameEncryptorInterface* frame_encryptor,
       const CryptoOptions& crypto_options,  // move inside RtpTransport
-      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer,
-      const FieldTrialsView& field_trials,
-      TaskQueueFactory* task_queue_factory);
+      rtc::scoped_refptr<FrameTransformerInterface> frame_transformer);
   ~RtpVideoSender() override;
 
   RtpVideoSender(const RtpVideoSender&) = delete;
@@ -168,7 +162,7 @@ class RtpVideoSender : public RtpVideoSenderInterface,
                                  DataSize overhead_per_packet,
                                  Frequency framerate) const;
 
-  const FieldTrialsView& field_trials_;
+  const Environment env_;
   const bool use_frame_rate_for_overhead_;
   const bool has_packet_feedback_;
 

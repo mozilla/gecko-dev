@@ -15,6 +15,7 @@
 
 #include <optional>
 #include <string>
+#include <type_traits>
 
 #include "api/array_view.h"
 #include "api/frame_transformer_interface.h"

@@ -11,18 +11,31 @@
 #include "api/video_codecs/simple_encoder_wrapper.h"
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/algorithm/container.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "absl/types/variant.h"
+#include "api/array_view.h"
+#include "api/scoped_refptr.h"
+#include "api/units/data_size.h"
+#include "api/units/frequency.h"
+#include "api/video/video_frame_buffer.h"
 #include "api/video_codecs/scalability_mode.h"
 #include "api/video_codecs/scalability_mode_helper.h"
 #include "api/video_codecs/video_encoder_factory_interface.h"
 #include "api/video_codecs/video_encoder_interface.h"
+#include "common_video/generic_frame_descriptor/generic_frame_info.h"
 #include "modules/video_coding/svc/create_scalability_structure.h"
+#include "modules/video_coding/svc/scalable_video_controller.h"
+#include "rtc_base/checks.h"
+#include "rtc_base/numerics/rational.h"
 
 namespace webrtc {
 using PredictionConstraints =

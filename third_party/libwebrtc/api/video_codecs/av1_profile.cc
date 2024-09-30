@@ -11,8 +11,12 @@
 #include "api/video_codecs/av1_profile.h"
 
 #include <map>
+#include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+#include "api/rtp_parameters.h"
 #include "media/base/media_constants.h"
 #include "rtc_base/string_to_number.h"
 

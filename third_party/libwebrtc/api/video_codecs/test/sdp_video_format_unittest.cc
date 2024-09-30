@@ -10,8 +10,7 @@
 
 #include "api/video_codecs/sdp_video_format.h"
 
-#include <stdint.h>
-
+#include "api/rtp_parameters.h"
 #include "media/base/media_constants.h"
 #include "test/gtest.h"
 
