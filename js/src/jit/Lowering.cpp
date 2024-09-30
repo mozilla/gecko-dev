@@ -3589,7 +3589,7 @@ void LIRGenerator::visitTruncateBigIntToInt64(MTruncateBigIntToInt64* ins) {
 void LIRGenerator::visitInt64ToBigInt(MInt64ToBigInt* ins) {
   MOZ_ASSERT(ins->input()->type() == MIRType::Int64);
 
-  if (ins->elementType() == Scalar::BigInt64) {
+  if (ins->isSigned()) {
     auto* lir = new (alloc())
         LInt64ToBigInt(useInt64Register(ins->input()), tempInt64());
     define(lir, ins);
@@ -3606,7 +3606,7 @@ void LIRGenerator::visitInt64ToIntPtr(MInt64ToIntPtr* ins) {
   MOZ_ASSERT(ins->input()->type() == MIRType::Int64);
 
 #ifdef JS_64BIT
-  if (ins->elementType() == Scalar::BigInt64) {
+  if (ins->isSigned()) {
     redefine(ins, ins->input());
     return;
   }

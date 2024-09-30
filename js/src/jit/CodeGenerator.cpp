@@ -5311,7 +5311,7 @@ void CodeGenerator::visitInt64ToIntPtr(LInt64ToIntPtr* lir) {
 #endif
 
   Label bail;
-  if (lir->mir()->elementType() == Scalar::BigInt64) {
+  if (lir->mir()->isSigned()) {
     masm.branchInt64NotInPtrRange(input, &bail);
   } else {
     masm.branchUInt64NotInPtrRange(input, &bail);

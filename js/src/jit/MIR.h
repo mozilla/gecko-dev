@@ -3853,12 +3853,11 @@ class MTruncateBigIntToInt64 : public MUnaryInstruction,
 
 // Takes an Int64 and returns a fresh BigInt pointer.
 class MInt64ToBigInt : public MUnaryInstruction, public NoTypePolicy::Data {
-  Scalar::Type elementType_;
+  bool isSigned_;
 
-  MInt64ToBigInt(MDefinition* def, Scalar::Type elementType)
-      : MUnaryInstruction(classOpcode, def), elementType_(elementType) {
+  MInt64ToBigInt(MDefinition* def, bool isSigned)
+      : MUnaryInstruction(classOpcode, def), isSigned_(isSigned) {
     MOZ_ASSERT(def->type() == MIRType::Int64);
-    MOZ_ASSERT(Scalar::isBigIntType(elementType));
     setResultType(MIRType::BigInt);
     setMovable();
   }
@@ -3869,12 +3868,12 @@ class MInt64ToBigInt : public MUnaryInstruction, public NoTypePolicy::Data {
 
   bool congruentTo(const MDefinition* ins) const override {
     return congruentIfOperandsEqual(ins) &&
-           ins->toInt64ToBigInt()->elementType() == elementType();
+           ins->toInt64ToBigInt()->isSigned() == isSigned();
   }
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
-  Scalar::Type elementType() const { return elementType_; }
+  bool isSigned() const { return isSigned_; }
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
@@ -3885,12 +3884,11 @@ class MInt64ToBigInt : public MUnaryInstruction, public NoTypePolicy::Data {
 
 // Takes an Int64 and returns a IntPtr.
 class MInt64ToIntPtr : public MUnaryInstruction, public NoTypePolicy::Data {
-  Scalar::Type elementType_;
+  bool isSigned_;
 
-  MInt64ToIntPtr(MDefinition* def, Scalar::Type elementType)
-      : MUnaryInstruction(classOpcode, def), elementType_(elementType) {
+  MInt64ToIntPtr(MDefinition* def, bool isSigned)
+      : MUnaryInstruction(classOpcode, def), isSigned_(isSigned) {
     MOZ_ASSERT(def->type() == MIRType::Int64);
-    MOZ_ASSERT(Scalar::isBigIntType(elementType));
     setResultType(MIRType::IntPtr);
     setMovable();
   }
@@ -3901,12 +3899,12 @@ class MInt64ToIntPtr : public MUnaryInstruction, public NoTypePolicy::Data {
 
   bool congruentTo(const MDefinition* ins) const override {
     return congruentIfOperandsEqual(ins) &&
-           ins->toInt64ToIntPtr()->elementType() == elementType();
+           ins->toInt64ToIntPtr()->isSigned() == isSigned();
   }
 
   AliasSet getAliasSet() const override { return AliasSet::None(); }
 
-  Scalar::Type elementType() const { return elementType_; }
+  bool isSigned() const { return isSigned_; }
 
   ALLOW_CLONE(MInt64ToIntPtr)
 };

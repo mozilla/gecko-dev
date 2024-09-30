@@ -2344,7 +2344,8 @@ bool WarpCacheIRTranspiler::emitLoadTypedArrayElementResult(
 
   MInstruction* result = load;
   if (Scalar::isBigIntType(elementType)) {
-    result = MInt64ToBigInt::New(alloc(), load, elementType);
+    result = MInt64ToBigInt::New(alloc(), load,
+                                 Scalar::isSignedIntType(elementType));
     add(result);
   }
 
@@ -2975,7 +2976,8 @@ bool WarpCacheIRTranspiler::emitLoadDataViewValueResult(
 
   MInstruction* result = load;
   if (Scalar::isBigIntType(elementType)) {
-    result = MInt64ToBigInt::New(alloc(), load, elementType);
+    result = MInt64ToBigInt::New(alloc(), load,
+                                 Scalar::isSignedIntType(elementType));
     add(result);
   }
 
@@ -4911,7 +4913,8 @@ bool WarpCacheIRTranspiler::emitAtomicsCompareExchangeResult(
 
   MInstruction* result = cas;
   if (Scalar::isBigIntType(elementType)) {
-    result = MInt64ToBigInt::New(alloc(), cas, elementType);
+    result =
+        MInt64ToBigInt::New(alloc(), cas, Scalar::isSignedIntType(elementType));
 
     // Make non-movable so we can attach a resume point.
     result->setNotMovable();
@@ -4948,7 +4951,8 @@ bool WarpCacheIRTranspiler::emitAtomicsExchangeResult(
 
   MInstruction* result = exchange;
   if (Scalar::isBigIntType(elementType)) {
-    result = MInt64ToBigInt::New(alloc(), exchange, elementType);
+    result = MInt64ToBigInt::New(alloc(), exchange,
+                                 Scalar::isSignedIntType(elementType));
 
     // Make non-movable so we can attach a resume point.
     result->setNotMovable();
@@ -4993,7 +4997,8 @@ bool WarpCacheIRTranspiler::emitAtomicsBinaryOp(
 
   MInstruction* result = binop;
   if (Scalar::isBigIntType(elementType)) {
-    result = MInt64ToBigInt::New(alloc(), binop, elementType);
+    result = MInt64ToBigInt::New(alloc(), binop,
+                                 Scalar::isSignedIntType(elementType));
 
     // Make non-movable so we can attach a resume point.
     result->setNotMovable();
@@ -5064,7 +5069,8 @@ bool WarpCacheIRTranspiler::emitAtomicsLoadResult(
 
   MInstruction* result = load;
   if (Scalar::isBigIntType(elementType)) {
-    result = MInt64ToBigInt::New(alloc(), load, elementType);
+    result = MInt64ToBigInt::New(alloc(), load,
+                                 Scalar::isSignedIntType(elementType));
 
     // Make non-movable so we can attach a resume point.
     result->setNotMovable();
@@ -6306,7 +6312,8 @@ bool WarpCacheIRTranspiler::emitCallWasmFunction(
     switch (results[0].kind()) {
       case wasm::ValType::I64:
         // JS expects a BigInt from I64 types.
-        postConversion = MInt64ToBigInt::New(alloc(), call, Scalar::BigInt64);
+        postConversion =
+            MInt64ToBigInt::New(alloc(), call, /* isSigned = */ true);
 
         // Make non-movable so we can attach a resume point.
         postConversion->setNotMovable();

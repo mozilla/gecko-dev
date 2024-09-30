@@ -1027,7 +1027,7 @@ class RAtomicIsLockFree final : public RInstruction {
 };
 
 class RInt64ToBigInt final : public RInstruction {
-  bool isUnsigned_;
+  bool isSigned_;
 
  public:
   RINSTRUCTION_HEADER_NUM_OP_(Int64ToBigInt, 1)

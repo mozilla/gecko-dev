@@ -4029,8 +4029,7 @@ MDefinition* MBigIntToIntPtr::foldsTo(TempAllocator& alloc) {
   // Fold BigIntToIntPtr(Int64ToBigInt(int64)) to Int64ToIntPtr(int64)
   if (def->isInt64ToBigInt()) {
     auto* toBigInt = def->toInt64ToBigInt();
-    return MInt64ToIntPtr::New(alloc, toBigInt->input(),
-                               toBigInt->elementType());
+    return MInt64ToIntPtr::New(alloc, toBigInt->input(), toBigInt->isSigned());
   }
 
   return this;
@@ -5192,11 +5191,11 @@ MDefinition* MCompare::tryFoldBigInt64(TempAllocator& alloc) {
       auto* rhsInt64 = right->toInt64ToBigInt();
 
       // Don't optimize if Int64 against Uint64 comparison.
-      if (lhsInt64->elementType() != rhsInt64->elementType()) {
+      if (lhsInt64->isSigned() != rhsInt64->isSigned()) {
         return this;
       }
 
-      bool isSigned = lhsInt64->elementType() == Scalar::BigInt64;
+      bool isSigned = lhsInt64->isSigned();
       auto compareType =
           isSigned ? MCompare::Compare_Int64 : MCompare::Compare_UInt64;
       return MCompare::New(alloc, lhsInt64->input(), rhsInt64->input(), jsop_,
@@ -5209,7 +5208,7 @@ MDefinition* MCompare::tryFoldBigInt64(TempAllocator& alloc) {
                                                     : right->toInt64ToBigInt();
 
       // Can't optimize when comparing Uint64 against IntPtr.
-      if (int64ToBigInt->elementType() == Scalar::BigUint64) {
+      if (!int64ToBigInt->isSigned()) {
         return this;
       }
 
@@ -5237,7 +5236,7 @@ MDefinition* MCompare::tryFoldBigInt64(TempAllocator& alloc) {
 
     auto* int64ToBigInt = left->isInt64ToBigInt() ? left->toInt64ToBigInt()
                                                   : right->toInt64ToBigInt();
-    bool isSigned = int64ToBigInt->elementType() == Scalar::BigInt64;
+    bool isSigned = int64ToBigInt->isSigned();
 
     auto* constant =
         left->isConstant() ? left->toConstant() : right->toConstant();
@@ -5296,7 +5295,7 @@ MDefinition* MCompare::tryFoldBigInt64(TempAllocator& alloc) {
     }
 
     auto* int64ToBigInt = left->toInt64ToBigInt();
-    bool isSigned = int64ToBigInt->elementType() == Scalar::BigInt64;
+    bool isSigned = int64ToBigInt->isSigned();
 
     int32_t constInt32 = right->toConstant()->toInt32();
 

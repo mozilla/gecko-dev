@@ -2380,22 +2380,22 @@ bool RAtomicIsLockFree::recover(JSContext* cx, SnapshotIterator& iter) const {
 bool MInt64ToBigInt::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_Int64ToBigInt));
-  writer.writeByte(elementType() == JS::Scalar::BigUint64);
+  writer.writeByte(isSigned());
   return true;
 }
 
 RInt64ToBigInt::RInt64ToBigInt(CompactBufferReader& reader) {
-  isUnsigned_ = bool(reader.readByte());
+  isSigned_ = bool(reader.readByte());
 }
 
 bool RInt64ToBigInt::recover(JSContext* cx, SnapshotIterator& iter) const {
   int64_t n = iter.readInt64();
 
   BigInt* result;
-  if (isUnsigned_) {
-    result = BigInt::createFromUint64(cx, uint64_t(n));
-  } else {
+  if (isSigned_) {
     result = BigInt::createFromInt64(cx, n);
+  } else {
+    result = BigInt::createFromUint64(cx, uint64_t(n));
   }
   if (!result) {
     return false;
