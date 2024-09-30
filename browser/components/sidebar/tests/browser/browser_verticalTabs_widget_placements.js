@@ -47,8 +47,8 @@ add_task(async function moveAndRestoreTabsToolbarWidgets() {
     "CustomizableUI verticalTabsEnabled getter reflects pref value"
   );
   Assert.ok(
-    BrowserTestUtils.isVisible(document.getElementById("TabsToolbar")),
-    "#TabsToolbar is still visible"
+    BrowserTestUtils.isHidden(document.getElementById("TabsToolbar")),
+    "#TabsToolbar is now hidden"
   );
 
   // The tabs-widget should be in the vertical tabs area
