@@ -48,6 +48,7 @@
 #include "mozilla/ipc/PBackgroundParent.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/ipc/ProtocolUtils.h"
+#include "NotifyUtils.h"
 #include "nsCOMPtr.h"
 #include "nsDebug.h"
 #include "nsError.h"
@@ -1161,6 +1162,8 @@ nsresult OpenOp::SendToIOThread() {
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+
+  simpledb::NotifyDatabaseWorkStarted();
 
   return NS_OK;
 }

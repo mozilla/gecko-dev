@@ -26,6 +26,7 @@ EXPORTS.mozilla.dom += [
 UNIFIED_SOURCES += [
     "ActorsChild.cpp",
     "ActorsParent.cpp",
+    "NotifyUtils.cpp",
     "SDBConnection.cpp",
     "SDBRequest.cpp",
     "SDBResults.cpp",
