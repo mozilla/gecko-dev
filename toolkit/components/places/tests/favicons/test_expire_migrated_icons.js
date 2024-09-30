@@ -6,17 +6,10 @@
  * expiration, will be properly expired when fetching new ones.
  */
 
-add_setup(() => {
-  registerCleanupFunction(async () => {
-    PlacesUtils.favicons.expireAllFavicons();
-    await PlacesUtils.history.clear();
-  });
-});
-
 add_task(async function test_storing_a_normal_16x16_icon() {
-  const PAGE_URL = Services.io.newURI("http://places.test");
+  const PAGE_URL = "http://places.test";
   await PlacesTestUtils.addVisits(PAGE_URL);
-  await setFavicon(PAGE_URL, SMALLPNG_DATA_URI);
+  await setFaviconForPage(PAGE_URL, SMALLPNG_DATA_URI);
 
   // Now set expiration to 0 and change the payload.
   info("Set expiration to 0 and replace favicon data");
@@ -32,18 +25,6 @@ add_task(async function test_storing_a_normal_16x16_icon() {
   );
 
   info("Refresh favicon");
-  await setFavicon(PAGE_URL, SMALLPNG_DATA_URI);
-  await compareFavicons("page-icon:" + PAGE_URL.spec, SMALLPNG_DATA_URI);
+  await setFaviconForPage(PAGE_URL, SMALLPNG_DATA_URI, false);
+  await compareFavicons("page-icon:" + PAGE_URL, SMALLPNG_DATA_URI);
 });
-
-async function setFavicon(pageURL, faviconDataURL) {
-  await new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
-      pageURL,
-      faviconDataURL,
-      faviconDataURL,
-      null,
-      resolve
-    );
-  });
-}

@@ -196,7 +196,29 @@ function readFileOfLength(aFileName, aExpectedLength) {
  */
 async function readFileDataAsDataURL(file, mimeType) {
   const data = readFileData(file);
-  return PlacesTestUtils.fileDataToDataURL(data, mimeType);
+  return fileDataToDataURL(data, mimeType);
+}
+
+/**
+ * Converts the given data to the data URL.
+ *
+ * @param data
+ *        The file data.
+ * @param mimeType
+ *        The mime type of the file content.
+ * @return Promise that retunes data URL.
+ */
+async function fileDataToDataURL(data, mimeType) {
+  const dataURL = await new Promise(resolve => {
+    const buffer = new Uint8ClampedArray(data);
+    const blob = new Blob([buffer], { type: mimeType });
+    const reader = new FileReader();
+    reader.onload = e => {
+      resolve(e.target.result);
+    };
+    reader.readAsDataURL(blob);
+  });
+  return dataURL;
 }
 
 /**
@@ -744,27 +766,19 @@ function sortBy(array, prop) {
  * @param [optional] forceReload
  *        Whether to enforce reloading the icon.
  */
-async function setFaviconForPage(page, icon, forceReload = true) {
+function setFaviconForPage(page, icon, forceReload = true) {
   let pageURI =
     page instanceof Ci.nsIURI ? page : NetUtil.newURI(new URL(page).href);
   let iconURI =
     icon instanceof Ci.nsIURI ? icon : NetUtil.newURI(new URL(icon).href);
-
-  let dataURL;
-  if (!forceReload) {
-    dataURL = await PlacesTestUtils.getFaviconDataURLFromDB(iconURI);
-  }
-  if (!dataURL) {
-    dataURL = await PlacesTestUtils.getFaviconDataURLFromNetwork(iconURI);
-  }
-
-  await new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
+  return new Promise(resolve => {
+    PlacesUtils.favicons.setAndFetchFaviconForPage(
       pageURI,
       iconURI,
-      dataURL,
-      null,
-      resolve
+      forceReload,
+      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+      resolve,
+      Services.scriptSecurityManager.getSystemPrincipal()
     );
   });
 }

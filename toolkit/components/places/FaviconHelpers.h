@@ -47,6 +47,11 @@ namespace mozilla {
 namespace places {
 
 /**
+ * Indicates when a icon should be fetched from network.
+ */
+enum AsyncFaviconFetchMode { FETCH_NEVER = 0, FETCH_IF_MISSING, FETCH_ALWAYS };
+
+/**
  * Represents one of the payloads (frames) of an icon entry.
  */
 struct IconPayload {
@@ -66,11 +71,16 @@ struct IconPayload {
  */
 struct IconData {
   IconData()
-      : expiration(0), status(ICON_STATUS_UNKNOWN), rootIcon(0), flags(0) {}
+      : expiration(0),
+        fetchMode(FETCH_NEVER),
+        status(ICON_STATUS_UNKNOWN),
+        rootIcon(0),
+        flags(0) {}
 
   nsCString spec;
   nsCString host;
   PRTime expiration;
+  enum AsyncFaviconFetchMode fetchMode;
   uint16_t status;  // This is a bitset, see ICON_STATUS_* defines above.
   uint8_t rootIcon;
   CopyableTArray<IconPayload> payloads;
@@ -103,6 +113,58 @@ struct FrameData {
 
   uint16_t index;
   uint16_t width;
+};
+
+/**
+ * Async fetches icon from database or network, associates it with the required
+ * page and finally notifies the change.
+ */
+class AsyncFetchAndSetIconForPage final : public Runnable,
+                                          public nsIStreamListener,
+                                          public nsIInterfaceRequestor,
+                                          public nsIChannelEventSink,
+                                          public mozIPlacesPendingOperation {
+ public:
+  NS_DECL_NSIRUNNABLE
+  NS_DECL_NSISTREAMLISTENER
+  NS_DECL_NSIINTERFACEREQUESTOR
+  NS_DECL_NSICHANNELEVENTSINK
+  NS_DECL_NSIREQUESTOBSERVER
+  NS_DECL_MOZIPLACESPENDINGOPERATION
+  NS_DECL_ISUPPORTS_INHERITED
+
+  /**
+   * Constructor.
+   *
+   * @param aIcon
+   *        Icon to be fetched and associated.
+   * @param aPage
+   *        Page to which associate the icon.
+   * @param aFaviconLoadPrivate
+   *        Whether this favicon load is in private browsing.
+   * @param aCallback
+   *        Function to be called when the fetch-and-associate process finishes.
+   * @param aLoadingPrincipal
+   *        LoadingPrincipal of the icon to be fetched.
+   */
+  AsyncFetchAndSetIconForPage(IconData& aIcon, PageData& aPage,
+                              bool aFaviconLoadPrivate,
+                              nsIFaviconDataCallback* aCallback,
+                              nsIPrincipal* aLoadingPrincipal,
+                              uint64_t aRequestContextID);
+
+ private:
+  nsresult FetchFromNetwork();
+  virtual ~AsyncFetchAndSetIconForPage() = default;
+
+  nsMainThreadPtrHandle<nsIFaviconDataCallback> mCallback;
+  IconData mIcon;
+  PageData mPage;
+  const bool mFaviconLoadPrivate;
+  nsMainThreadPtrHandle<nsIPrincipal> mLoadingPrincipal;
+  bool mCanceled;
+  nsCOMPtr<nsIRequest> mRequest;
+  uint64_t mRequestContextID;
 };
 
 /**

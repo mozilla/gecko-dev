@@ -378,16 +378,14 @@ add_task(async function test_orphans() {
   let uri = NetUtil.newURI("http://moz.org/");
   await PlacesTestUtils.addVisits({ uri });
 
-  await new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
-      uri,
-      SMALLPNG_DATA_URI,
-      SMALLPNG_DATA_URI,
-      null,
-      resolve
-    );
-  });
-
+  PlacesUtils.favicons.setAndFetchFaviconForPage(
+    uri,
+    SMALLPNG_DATA_URI,
+    true,
+    PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
+    null,
+    Services.scriptSecurityManager.getSystemPrincipal()
+  );
   await PlacesUtils.history.update({
     url: uri,
     annotations: new Map([["test", "restval"]]),
