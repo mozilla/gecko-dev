@@ -313,7 +313,9 @@ function createEntry(
   if (aIndex == 0) {
     element.setAttribute(
       "key",
-      "key_undoClose" + (aIsWindowsFragment ? "Window" : "Tab")
+      aIsWindowsFragment
+        ? "key_undoCloseWindow"
+        : "key_restoreLastClosedTabOrWindowOrSession"
     );
   }
 
