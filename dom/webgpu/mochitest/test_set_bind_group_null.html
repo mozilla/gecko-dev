@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <script src="/tests/SimpleTest/SimpleTest.js"></script>
+    <link rel="stylesheet" href="/tests/SimpleTest/test.css" />
+  </head>
+  <body>
+    <script>
+      ok(
+        SpecialPowers.getBoolPref("dom.webgpu.enabled"),
+        "Pref should be enabled."
+      );
+
+      const set_bind_group_null = async function () {
+        const adapter = await navigator.gpu.requestAdapter();
+        ok(adapter !== undefined, "adapter !== undefined");
+        const device = await adapter.requestDevice();
+        ok(device !== undefined, "device !== undefined");
+
+        const bundleEncoder = device.createRenderBundleEncoder({
+          colorFormats: ["rgba8unorm"],
+        });
+        bundleEncoder.setBindGroup(1, null);
+        ok(true, "Was able to set a bindGroup to null.");
+      };
+
+      SimpleTest.waitForExplicitFinish();
+
+      set_bind_group_null()
+        .catch(e => ok(false, `Unhandled exception ${e}`))
+        .finally(() => SimpleTest.finish());
+    </script>
+  </body>
+</html>

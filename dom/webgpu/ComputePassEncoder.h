@@ -51,7 +51,7 @@ class ComputePassEncoder final : public ObjectBase,
 
  public:
   // programmable pass encoder
-  void SetBindGroup(uint32_t aSlot, const BindGroup& aBindGroup,
+  void SetBindGroup(uint32_t aSlot, BindGroup* const aBindGroup,
                     const dom::Sequence<uint32_t>& aDynamicOffsets);
   // self
   void SetPipeline(const ComputePipeline& aPipeline);

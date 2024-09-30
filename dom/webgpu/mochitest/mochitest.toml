@@ -53,6 +53,8 @@ scheme = "http"
 
 ["test_queue_write_invalid_device.html"]
 
+["test_set_bind_group_null.html"]
+
 ["test_submit_compute_empty.html"]
 
 ["test_submit_render_empty.html"]
