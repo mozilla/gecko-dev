@@ -8,16 +8,19 @@
 <script src="/resources/testdriver-actions.js"></script>
 <script src="/resources/testdriver-vendor.js"></script>
 <script src="/common/utils.js"></script>
-<script src="stash.js"></script>
+<script src="/scroll-to-text-fragment/stash.js"></script>
 <body></body>
 <script>
+  const isMacOS = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
 promise_test(async t =>  new Promise((resolve, reject) =>{
   let key = token();
-  document.body.innerHTML = `<a href="scroll-to-text-fragment-target.html?key=${key}#:~:text=test">Click me</a>`;
+  document.body.innerHTML = `<a href="/scroll-to-text-fragment/scroll-to-text-fragment-target.html?key=${key}#:~:text=test">Click me</a>`;
   const link = document.querySelector("a");
   test_driver.bless('Open a URL with a text directive in a new tab', () => {
     test_driver.send_keys(document.body, '\uE004'); // TAB to focus the link
-    test_driver.send_keys(link, '\uE009\uE007'); // CTRL + ENTER
+    // Use CMD+Enter on macOS, CTRL+Enter otherwise
+    const accelEnter = isMacOS ? '\uE03D\uE007': '\uE009\uE007';
+    test_driver.send_keys(link, accelEnter);
   });
   fetchResults(key, resolve, reject);
 }).then(data => {
