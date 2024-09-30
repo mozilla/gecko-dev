@@ -159,7 +159,7 @@
 .call-stack-pane [role="listitem"] .location-async-cause {
   height: 20px;
   line-height: 20px;
-  color: var(--theme-icon-dimmed-color);
+  color: var(--theme-text-color-alt);
   display: block;
   z-index: 4;
   position: relative;
