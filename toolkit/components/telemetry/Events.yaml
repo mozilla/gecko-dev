@@ -601,48 +601,6 @@ creditcard:
       cc_exp_year: credit card expiration year
       field_name: Name of the field being affected by the method. Used by `popup_shown` and `filled_modified` methods.
 
-extensions.data:
-  migrateResult:
-    objects: ["storageLocal"]
-    bug_numbers: [1470213, 1553297, 1590736, 1630596, 1672570, 1714251, 1749878, 1781974, 1817100, 1861295, 1912166]
-    notification_emails: ["addons-dev-internal@mozilla.com"]
-    expiry_version: "140"
-    products:
-      - "firefox"
-      - "fennec"
-    record_in_processes: ["main"]
-    release_channel_collection: opt-out
-    extra_keys:
-      backend: The selected backend ("JSONFile" / "IndexedDB").
-      data_migrated: The old extension data has been migrated ("y" / "n").
-      error_name: >
-        A DOMException error name if any ("OtherError" for unknown errors).
-        The error has been fatal if the `backend` extra key is "JSONFile",
-        otherwise it is a non fatal error which didn't prevented the
-        extension from switching to the IndexedDB backend.
-      has_jsonfile: The extension has a JSONFile ("y" / "n").
-      has_olddata: The extension had some data stored in the JSONFile ("y" / "n").
-    description: >
-      These events are sent when an extension is migrating its data to the new IndexedDB backend,
-      the value of this event is the addon id.
-  storageLocalError:
-    objects: ["get", "set", "remove", "clear"]
-    bug_numbers: [1606903, 1649948, 1689255, 1730038, 1763523, 1811148, 1861297, 1912166]
-    notification_emails: ["addons-dev-internal@mozilla.com"]
-    expiry_version: "140"
-    products:
-      - "firefox"
-    record_in_processes: ["main", "content"]
-    release_channel_collection: opt-out
-    extra_keys:
-      error_name: >
-        A DOMException error name if any ("OtherError" for unknown errors).
-    description: >
-      These events are collected when an extension triggers an unexpected error
-      while running a storage.local API call (e.g. because of some underlying
-      QuotaManager and/or IndexedDB error), the value of this event is the
-      addon id.
-
 homepage:
   preference:
     objects: ["ignore"]

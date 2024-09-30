@@ -11,9 +11,6 @@ const { getTrimmedString } = ChromeUtils.importESModule(
 const { TelemetryController } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryController.sys.mjs"
 );
-const { TelemetryTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TelemetryTestUtils.sys.mjs"
-);
 
 const HISTOGRAM_IDS = [
   "WEBEXT_STORAGE_LOCAL_IDB_SET_MS",
@@ -426,11 +423,6 @@ add_task(async function test_telemetry_storage_local_unexpected_error() {
       });
     }
   }
-
-  await TelemetryTestUtils.assertEvents(expectedEvents, {
-    category: "extensions.data",
-    method: "storageLocalError",
-  });
 
   let glean = Glean.extensionsData.storageLocalError.testGetValue() ?? [];
   equal(glean.length, expectedEvents.length, "Correct number of events.");
