@@ -3449,6 +3449,54 @@ MDefinition* MBigIntAsIntN::foldsTo(TempAllocator& alloc) {
   return MInt64ToBigInt::New(alloc, inputDef, /* isSigned = */ true);
 }
 
+MDefinition* MBigIntAsUintN::foldsTo(TempAllocator& alloc) {
+  auto* bitsDef = bits();
+  if (!bitsDef->isConstant()) {
+    return this;
+  }
+
+  // Negative |bits| throw an error and too large |bits| don't fit into Int64.
+  int32_t bitsInt = bitsDef->toConstant()->toInt32();
+  if (bitsInt < 0 || bitsInt > 64) {
+    return this;
+  }
+
+  // Ensure the input is Int64 typed.
+  auto* inputDef = input();
+  if (inputDef->isIntPtrToBigInt()) {
+    inputDef = inputDef->toIntPtrToBigInt()->input();
+
+    auto* int64 = MIntPtrToInt64::New(alloc, inputDef);
+    block()->insertBefore(this, int64);
+    inputDef = int64;
+  } else if (inputDef->isInt64ToBigInt()) {
+    inputDef = inputDef->toInt64ToBigInt()->input();
+  } else {
+    auto* truncate = MTruncateBigIntToInt64::New(alloc, inputDef);
+    block()->insertBefore(this, truncate);
+    inputDef = truncate;
+  }
+  MOZ_ASSERT(inputDef->type() == MIRType::Int64);
+
+  if (bitsInt < 64) {
+    uint64_t mask = 0;
+    if (bitsInt > 0) {
+      mask = uint64_t(-1) >> (64 - bitsInt);
+    }
+
+    // Mask off any excess bits.
+    auto* cst = MConstant::NewInt64(alloc, int64_t(mask));
+    block()->insertBefore(this, cst);
+
+    auto* bitAnd = MBitAnd::New(alloc, inputDef, cst, MIRType::Int64);
+    block()->insertBefore(this, bitAnd);
+
+    inputDef = bitAnd;
+  }
+
+  return MInt64ToBigInt::New(alloc, inputDef, /* isSigned = */ false);
+}
+
 bool MBigIntPtrBinaryArithInstruction::isMaybeZero(MDefinition* ins) {
   MOZ_ASSERT(ins->type() == MIRType::IntPtr);
   if (ins->isBigIntToIntPtr()) {
