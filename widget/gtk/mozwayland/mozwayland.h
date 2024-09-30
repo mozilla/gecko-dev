@@ -139,6 +139,10 @@ static inline void wl_surface_damage_buffer(struct wl_surface* wl_surface,
 }
 #endif
 
+#ifndef WL_POINTER_RELEASE_SINCE_VERSION
+#  define WL_POINTER_RELEASE_SINCE_VERSION 3
+#endif
+
 #ifndef WL_POINTER_AXIS_ENUM
 #  define WL_POINTER_AXIS_ENUM
 /**
@@ -227,54 +231,6 @@ enum wl_pointer_axis_relative_direction {
   WL_POINTER_AXIS_RELATIVE_DIRECTION_INVERTED = 1,
 };
 #endif /* WL_POINTER_AXIS_RELATIVE_DIRECTION_ENUM */
-
-#ifndef WL_POINTER_AXIS_SOURCE_ENUM
-#  define WL_POINTER_AXIS_SOURCE_ENUM
-/**
- * @ingroup iface_wl_pointer
- * axis source types
- *
- * Describes the source types for axis events. This indicates to the
- * client how an axis event was physically generated; a client may
- * adjust the user interface accordingly. For example, scroll events
- * from a "finger" source may be in a smooth coordinate space with
- * kinetic scrolling whereas a "wheel" source may be in discrete steps
- * of a number of lines.
- *
- * The "continuous" axis source is a device generating events in a
- * continuous coordinate space, but using something other than a
- * finger. One example for this source is button-based scrolling where
- * the vertical motion of a device is converted to scroll events while
- * a button is held down.
- *
- * The "wheel tilt" axis source indicates that the actual device is a
- * wheel but the scroll event is not caused by a rotation but a
- * (usually sideways) tilt of the wheel.
- */
-enum wl_pointer_axis_source {
-  /**
-   * a physical wheel rotation
-   */
-  WL_POINTER_AXIS_SOURCE_WHEEL = 0,
-  /**
-   * finger on a touch surface
-   */
-  WL_POINTER_AXIS_SOURCE_FINGER = 1,
-  /**
-   * continuous coordinate space
-   */
-  WL_POINTER_AXIS_SOURCE_CONTINUOUS = 2,
-  /**
-   * a physical wheel tilt
-   * @since 6
-   */
-  WL_POINTER_AXIS_SOURCE_WHEEL_TILT = 3,
-};
-/**
- * @ingroup iface_wl_pointer
- */
-#  define WL_POINTER_AXIS_SOURCE_WHEEL_TILT_SINCE_VERSION 6
-#endif /* WL_POINTER_AXIS_SOURCE_ENUM */
 
 /**
  * @ingroup iface_wl_pointer
@@ -583,14 +539,6 @@ struct moz_wl_pointer_listener {
   void (*axis_relative_direction)(void* data, struct wl_pointer* wl_pointer,
                                   uint32_t axis, uint32_t direction);
 };
-
-#ifndef WL_POINTER_RELEASE_SINCE_VERSION
-#  define WL_POINTER_RELEASE_SINCE_VERSION 3
-#endif
-
-#ifndef WL_POINTER_AXIS_VALUE120_SINCE_VERSION
-#  define WL_POINTER_AXIS_VALUE120_SINCE_VERSION 8
-#endif
 
 #ifdef __cplusplus
 }

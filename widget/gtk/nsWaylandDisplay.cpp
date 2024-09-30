@@ -58,8 +58,9 @@ nsWaylandDisplay* WaylandDisplayGet() {
 
 void nsWaylandDisplay::SetShm(wl_shm* aShm) { mShm = aShm; }
 
-class WaylandPointerEvent {
+class TouchWindow {
  public:
+  already_AddRefed<nsWindow> GetAndClearWindow() { return mWindow.forget(); }
   RefPtr<nsWindow> TakeWindow(wl_surface* aSurface) {
     if (!aSurface) {
       mWindow = nullptr;
@@ -72,70 +73,18 @@ class WaylandPointerEvent {
     }
     return mWindow;
   }
-  already_AddRefed<nsWindow> GetAndClearWindow() { return mWindow.forget(); }
-  RefPtr<nsWindow> GetWindow() { return mWindow; }
-
-  void SetSource(int32_t aSource) { mSource = aSource; }
-
-  void SetDelta120(uint32_t aAxis, int32_t aDelta) {
-    switch (aAxis) {
-      case WL_POINTER_AXIS_VERTICAL_SCROLL:
-        mDeltaY = aDelta / 120.0f;
-        break;
-      case WL_POINTER_AXIS_HORIZONTAL_SCROLL:
-        mDeltaX = aDelta / 120.0f;
-        break;
-      default:
-        NS_WARNING("WaylandPointerEvent::SetDelta120(): wrong axis!");
-        break;
-    }
-  }
-
-  void SetTime(uint32_t aTime) { mTime = aTime; }
-
-  void SendScrollEvent() {
-    if (!mWindow) {
-      return;
-    }
-
-    // nsWindow::OnSmoothScrollEvent() may spin event loop so
-    // mWindow/mSource/delta may be replaced.
-    int32_t source = mSource;
-    float deltaX = mDeltaX;
-    float deltaY = mDeltaY;
-
-    mSource = -1;
-    mDeltaX = mDeltaY = 0.0f;
-
-    // We process wheel events only now.
-    if (source != WL_POINTER_AXIS_SOURCE_WHEEL) {
-      return;
-    }
-
-    RefPtr<nsWindow> win = mWindow;
-    uint32_t eventTime = mTime;
-    win->OnSmoothScrollEvent(eventTime, deltaX, deltaY);
-  }
-
-  void Clear() { mWindow = nullptr; }
-
-  WaylandPointerEvent() { Clear(); }
 
  private:
   StaticRefPtr<nsWindow> mWindow;
-  uint32_t mTime = 0;
-  int32_t mSource = 0;
-  float mDeltaX = 0;
-  float mDeltaY = 0;
 };
 
-static WaylandPointerEvent sHoldGesture;
+static TouchWindow sTouchWindow;
 
 static void gesture_hold_begin(void* data,
                                struct zwp_pointer_gesture_hold_v1* hold,
                                uint32_t serial, uint32_t time,
                                struct wl_surface* surface, uint32_t fingers) {
-  RefPtr<nsWindow> window = sHoldGesture.TakeWindow(surface);
+  RefPtr<nsWindow> window = sTouchWindow.TakeWindow(surface);
   if (!window) {
     return;
   }
@@ -146,7 +95,7 @@ static void gesture_hold_end(void* data,
                              struct zwp_pointer_gesture_hold_v1* hold,
                              uint32_t serial, uint32_t time,
                              int32_t cancelled) {
-  RefPtr<nsWindow> window = sHoldGesture.GetAndClearWindow();
+  RefPtr<nsWindow> window = sTouchWindow.GetAndClearWindow();
   if (!window) {
     return;
   }
@@ -158,18 +107,12 @@ static void gesture_hold_end(void* data,
 static const struct zwp_pointer_gesture_hold_v1_listener gesture_hold_listener =
     {gesture_hold_begin, gesture_hold_end};
 
-static WaylandPointerEvent sScrollEvent;
-
 static void pointer_handle_enter(void* data, struct wl_pointer* pointer,
                                  uint32_t serial, struct wl_surface* surface,
-                                 wl_fixed_t sx, wl_fixed_t sy) {
-  sScrollEvent.TakeWindow(surface);
-}
+                                 wl_fixed_t sx, wl_fixed_t sy) {}
 
 static void pointer_handle_leave(void* data, struct wl_pointer* pointer,
-                                 uint32_t serial, struct wl_surface* surface) {
-  sScrollEvent.Clear();
-}
+                                 uint32_t serial, struct wl_surface* surface) {}
 
 static void pointer_handle_motion(void* data, struct wl_pointer* pointer,
                                   uint32_t time, wl_fixed_t sx, wl_fixed_t sy) {
@@ -181,19 +124,13 @@ static void pointer_handle_button(void* data, struct wl_pointer* pointer,
 
 static void pointer_handle_axis(void* data, struct wl_pointer* pointer,
                                 uint32_t time, uint32_t axis,
-                                wl_fixed_t value) {
-  sScrollEvent.SetTime(time);
-}
+                                wl_fixed_t value) {}
 
-static void pointer_handle_frame(void* data, struct wl_pointer* pointer) {
-  sScrollEvent.SendScrollEvent();
-}
+static void pointer_handle_frame(void* data, struct wl_pointer* pointer) {}
 
 static void pointer_handle_axis_source(
     void* data, struct wl_pointer* pointer,
-    /*enum wl_pointer_axis_source */ uint32_t source) {
-  sScrollEvent.SetSource(source);
-}
+    /*enum wl_pointer_axis_source */ uint32_t source) {}
 
 static void pointer_handle_axis_stop(void* data, struct wl_pointer* pointer,
                                      uint32_t time, uint32_t axis) {}
@@ -202,35 +139,7 @@ static void pointer_handle_axis_discrete(void* data, struct wl_pointer* pointer,
                                          uint32_t axis, int32_t value) {}
 
 static void pointer_handle_axis_value120(void* data, struct wl_pointer* pointer,
-                                         uint32_t axis, int32_t value) {
-  sScrollEvent.SetDelta120(axis, value);
-}
-
-/*
- * Example of scroll events we get for various devices. Note that
- * even three different devices has the same wl_pointer.
- *
- * Standard mouse wheel:
- *
- *  pointer_handle_axis_source pointer 0x7fd14fd4bac0 source 0
- *  pointer_handle_axis_value120 pointer 0x7fd14fd4bac0 value 120
- *  pointer_handle_axis pointer 0x7fd14fd4bac0 time 9470441 value 10.000000
- *  pointer_handle_frame
- *
- * Hi-res mouse wheel:
- *
- * pointer_handle_axis_source pointer 0x7fd14fd4bac0 source 0
- * pointer_handle_axis_value120 pointer 0x7fd14fd4bac0 value -24
- * pointer_handle_axis pointer 0x7fd14fd4bac0 time 9593205 value -1.992188
- * pointer_handle_frame
- *
- * Touchpad:
- *
- * pointer_handle_axis_source pointer 0x7fd14fd4bac0 source 1
- * pointer_handle_axis pointer 0x7fd14fd4bac0 time 9431830 value 0.312500
- * pointer_handle_axis pointer 0x7fd14fd4bac0 time 9431830 value -1.015625
- * pointer_handle_frame
- */
+                                         uint32_t axis, int32_t value) {}
 
 static const struct moz_wl_pointer_listener pointer_listener = {
     pointer_handle_enter,         pointer_handle_leave,
@@ -456,9 +365,8 @@ static void global_registry_handler(void* data, wl_registry* registry,
     display->SetXdgDbusAnnotationManager(annotationManager);
   } else if (iface.EqualsLiteral("wl_seat") &&
              version >= WL_POINTER_RELEASE_SINCE_VERSION) {
-    auto* seat = WaylandRegistryBind<wl_seat>(
-        registry, id, &wl_seat_interface,
-        MIN(version, WL_POINTER_AXIS_VALUE120_SINCE_VERSION));
+    auto* seat = WaylandRegistryBind<wl_seat>(registry, id, &wl_seat_interface,
+                                              WL_POINTER_RELEASE_SINCE_VERSION);
     display->SetSeat(seat, id);
   } else if (iface.EqualsLiteral("wp_fractional_scale_manager_v1")) {
     auto* manager = WaylandRegistryBind<wp_fractional_scale_manager_v1>(
