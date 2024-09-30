@@ -67,11 +67,13 @@ class TlsHandshaker : public nsITlsHandshakeCallbackListener {
   virtual ~TlsHandshaker();
 
   void Check0RttEnabled(nsITLSSocketControl* ssl);
+  void ReportSecureConnectionStart();
 
   // SPDY related
   bool mSetupSSLCalled{false};
   bool mNPNComplete{false};
 
+  bool mSecureConnectionStartReported{false};
   bool mTlsHandshakeComplitionPending{false};
   // Helper variable for 0RTT handshake;
   // Possible 0RTT has been checked.
