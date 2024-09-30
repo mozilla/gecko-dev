@@ -10,13 +10,6 @@
 
 namespace mozilla {
 
-const std::string SdpPref::PRIMARY_PREF = "media.peerconnection.sdp.parser";
-const std::string SdpPref::ALTERNATE_PREF =
-    "media.peerconnection.sdp.alternate_parse_mode";
-const std::string SdpPref::STRICT_SUCCESS_PREF =
-    "media.peerconnection.sdp.strict_success";
-const std::string SdpPref::DEFAULT = "default";
-
 auto SdpPref::Parser() -> Parsers {
   static const auto values = std::unordered_map<std::string, Parsers>{
       {"sipcc", Parsers::Sipcc},
@@ -77,7 +70,7 @@ auto SdpPref::Failover() -> Maybe<UniquePtr<SdpParser>> {
 }
 
 auto SdpPref::StrictSuccess() -> bool {
-  return Preferences::GetBool(STRICT_SUCCESS_PREF.c_str(), false);
+  return Preferences::GetBool(STRICT_SUCCESS_PREF, false);
 }
 
 }  // namespace mozilla
