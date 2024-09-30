@@ -1594,6 +1594,9 @@ void nsWindow::Show(bool aState) {
     // that we've taken over the window from the skeleton UI, and we should
     // no longer treat resizes / moves specially.
     mIsShowingPreXULSkeletonUI = false;
+    // Concomitantly, this is also when we change the cursor away from the
+    // default "wait" cursor.
+    SetCursor(Cursor{eCursor_standard});
 #if defined(ACCESSIBILITY)
     // If our HWND has focus and the a11y engine hasn't started yet, fire a
     // focus win event. Windows already did this when the skeleton UI appeared,
