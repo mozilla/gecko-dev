@@ -25,6 +25,7 @@
 #include "mozilla/SelectionState.h"
 #include "mozilla/dom/AncestorIterator.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/HTMLBRElement.h"
 #include "mozilla/dom/NameSpaceConstants.h"
 #include "mozilla/dom/Selection.h"
@@ -65,9 +66,11 @@ using LeafNodeTypes = HTMLEditUtils::LeafNodeTypes;
 using WalkTreeOption = HTMLEditUtils::WalkTreeOption;
 
 template nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
-    const AutoTArray<EditorInlineStyleAndValue, 1>& aStylesToSet);
+    const AutoTArray<EditorInlineStyleAndValue, 1>& aStylesToSet,
+    const Element& aEditingHost);
 template nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
-    const AutoTArray<EditorInlineStyleAndValue, 32>& aStylesToSet);
+    const AutoTArray<EditorInlineStyleAndValue, 32>& aStylesToSet,
+    const Element& aEditingHost);
 
 template nsresult HTMLEditor::SetInlinePropertiesAroundRanges(
     AutoRangeArray& aRanges,
@@ -86,6 +89,20 @@ nsresult HTMLEditor::SetInlinePropertyAsAction(nsStaticAtom& aProperty,
       *this,
       HTMLEditUtils::GetEditActionForFormatText(aProperty, aAttribute, true),
       aPrincipal);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (NS_WARN_IF(!editingHost)) {
+    return NS_ERROR_FAILURE;
+  }
+  if (IsPlaintextMailComposer() ||
+      editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
   switch (editActionData.GetEditAction()) {
     case EditAction::eSetFontFamilyProperty:
       MOZ_ASSERT(!aValue.IsVoid());
@@ -100,10 +117,10 @@ nsresult HTMLEditor::SetInlinePropertyAsAction(nsStaticAtom& aProperty,
       break;
   }
 
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
+                         "MaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
@@ -166,7 +183,8 @@ nsresult HTMLEditor::SetInlinePropertyAsAction(nsStaticAtom& aProperty,
   }
 
   if (!stylesToRemove.IsEmpty()) {
-    nsresult rv = RemoveInlinePropertiesAsSubAction(stylesToRemove);
+    nsresult rv =
+        RemoveInlinePropertiesAsSubAction(stylesToRemove, *editingHost);
     if (NS_FAILED(rv)) {
       NS_WARNING("HTMLEditor::RemoveInlinePropertiesAsSubAction() failed");
       return rv;
@@ -178,7 +196,7 @@ nsresult HTMLEditor::SetInlinePropertyAsAction(nsStaticAtom& aProperty,
       attribute
           ? EditorInlineStyleAndValue(*property, *attribute, std::move(value))
           : EditorInlineStyleAndValue(*property));
-  rv = SetInlinePropertiesAsSubAction(styleToSet);
+  rv = SetInlinePropertiesAsSubAction(styleToSet, *editingHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::SetInlinePropertiesAsSubAction() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -195,6 +213,20 @@ NS_IMETHODIMP HTMLEditor::SetInlineProperty(const nsAString& aProperty,
   AutoEditActionDataSetter editActionData(
       *this,
       HTMLEditUtils::GetEditActionForFormatText(*property, attribute, true));
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (NS_WARN_IF(!editingHost)) {
+    return NS_ERROR_FAILURE;
+  }
+  if (IsPlaintextMailComposer() ||
+      editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
   switch (editActionData.GetEditAction()) {
     case EditAction::eSetFontFamilyProperty:
       MOZ_ASSERT(!aValue.IsVoid());
@@ -208,10 +240,10 @@ NS_IMETHODIMP HTMLEditor::SetInlineProperty(const nsAString& aProperty,
     default:
       break;
   }
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
+                         "MaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
@@ -219,7 +251,7 @@ NS_IMETHODIMP HTMLEditor::SetInlineProperty(const nsAString& aProperty,
   styleToSet.AppendElement(
       attribute ? EditorInlineStyleAndValue(*property, *attribute, aValue)
                 : EditorInlineStyleAndValue(*property));
-  rv = SetInlinePropertiesAsSubAction(styleToSet);
+  rv = SetInlinePropertiesAsSubAction(styleToSet, *editingHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::SetInlinePropertiesAsSubAction() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -227,23 +259,24 @@ NS_IMETHODIMP HTMLEditor::SetInlineProperty(const nsAString& aProperty,
 
 template <size_t N>
 nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
-    const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet) {
+    const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet,
+    const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(!aStylesToSet.IsEmpty());
 
   DebugOnly<nsresult> rvIgnored = CommitComposition();
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rvIgnored),
                        "EditorBase::CommitComposition() failed, but ignored");
+  if (MOZ_UNLIKELY(&aEditingHost !=
+                   ComputeEditingHost(LimitInBodyElement::No))) {
+    NS_WARNING("Editing host has been changed during committing composition");
+    return NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE;
+  }
 
   if (SelectionRef().IsCollapsed()) {
     // Manipulating text attributes on a collapsed selection only sets state
     // for the next text insertion
     mPendingStylesToApplyToNewContent->PreserveStyles(aStylesToSet);
-    return NS_OK;
-  }
-
-  // XXX Shouldn't we return before calling `CommitComposition()`?
-  if (IsPlaintextMailComposer()) {
     return NS_OK;
   }
 
@@ -256,12 +289,6 @@ nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
     if (result.inspect().Canceled()) {
       return NS_OK;
     }
-  }
-
-  RefPtr<Element> const editingHost =
-      ComputeEditingHost(LimitInBodyElement::No);
-  if (NS_WARN_IF(!editingHost)) {
-    return NS_ERROR_FAILURE;
   }
 
   AutoPlaceholderBatch treatAsOneTransaction(
@@ -283,7 +310,7 @@ nsresult HTMLEditor::SetInlinePropertiesAsSubAction(
 
   AutoRangeArray selectionRanges(SelectionRef());
   nsresult rv = SetInlinePropertiesAroundRanges(selectionRanges, aStylesToSet,
-                                                *editingHost);
+                                                aEditingHost);
   if (NS_FAILED(rv)) {
     NS_WARNING("HTMLEditor::SetInlinePropertiesAroundRanges() failed");
     return rv;
@@ -3203,10 +3230,20 @@ nsresult HTMLEditor::RemoveAllInlinePropertiesAsAction(
     nsIPrincipal* aPrincipal) {
   AutoEditActionDataSetter editActionData(
       *this, EditAction::eRemoveAllInlineStyleProperties, aPrincipal);
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
+                         "MaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
@@ -3225,7 +3262,7 @@ nsresult HTMLEditor::RemoveAllInlinePropertiesAsAction(
 
   AutoTArray<EditorInlineStyle, 1> removeAllInlineStyles;
   removeAllInlineStyles.AppendElement(EditorInlineStyle::RemoveAllStyles());
-  rv = RemoveInlinePropertiesAsSubAction(removeAllInlineStyles);
+  rv = RemoveInlinePropertiesAsSubAction(removeAllInlineStyles, *editingHost);
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rv),
       "HTMLEditor::RemoveInlinePropertiesAsSubAction() failed");
@@ -3240,6 +3277,16 @@ nsresult HTMLEditor::RemoveInlinePropertyAsAction(nsStaticAtom& aHTMLProperty,
       HTMLEditUtils::GetEditActionForFormatText(aHTMLProperty, aAttribute,
                                                 false),
       aPrincipal);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
   switch (editActionData.GetEditAction()) {
     case EditAction::eRemoveFontFamilyProperty:
       MOZ_ASSERT(!u""_ns.IsVoid());
@@ -3252,17 +3299,18 @@ nsresult HTMLEditor::RemoveInlinePropertyAsAction(nsStaticAtom& aHTMLProperty,
     default:
       break;
   }
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
+                         "MaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
   AutoTArray<EditorInlineStyle, 8> removeInlineStyleAndRelatedElements;
   AppendInlineStyleAndRelatedStyle(EditorInlineStyle(aHTMLProperty, aAttribute),
                                    removeInlineStyleAndRelatedElements);
-  rv = RemoveInlinePropertiesAsSubAction(removeInlineStyleAndRelatedElements);
+  rv = RemoveInlinePropertiesAsSubAction(removeInlineStyleAndRelatedElements,
+                                         *editingHost);
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rv),
       "HTMLEditor::RemoveInlinePropertiesAsSubAction() failed");
@@ -3277,28 +3325,38 @@ NS_IMETHODIMP HTMLEditor::RemoveInlineProperty(const nsAString& aProperty,
   AutoEditActionDataSetter editActionData(
       *this,
       HTMLEditUtils::GetEditActionForFormatText(*property, attribute, false));
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
   switch (editActionData.GetEditAction()) {
     case EditAction::eRemoveFontFamilyProperty:
-      MOZ_ASSERT(!u""_ns.IsVoid());
-      editActionData.SetData(u""_ns);
+      MOZ_ASSERT(!EmptyString().IsVoid());
+      editActionData.SetData(EmptyString());
       break;
     case EditAction::eRemoveColorProperty:
     case EditAction::eRemoveBackgroundColorPropertyInline:
-      editActionData.SetColorData(u""_ns);
+      editActionData.SetColorData(EmptyString());
       break;
     default:
       break;
   }
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
+                         "MaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
   AutoTArray<EditorInlineStyle, 1> removeOneInlineStyle;
   removeOneInlineStyle.AppendElement(EditorInlineStyle(*property, attribute));
-  rv = RemoveInlinePropertiesAsSubAction(removeOneInlineStyle);
+  rv = RemoveInlinePropertiesAsSubAction(removeOneInlineStyle, *editingHost);
   NS_WARNING_ASSERTION(
       NS_SUCCEEDED(rv),
       "HTMLEditor::RemoveInlinePropertiesAsSubAction() failed");
@@ -3344,7 +3402,8 @@ void HTMLEditor::AppendInlineStyleAndRelatedStyle(
 }
 
 nsresult HTMLEditor::RemoveInlinePropertiesAsSubAction(
-    const nsTArray<EditorInlineStyle>& aStylesToRemove) {
+    const nsTArray<EditorInlineStyle>& aStylesToRemove,
+    const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(!aStylesToRemove.IsEmpty());
 
@@ -3356,11 +3415,6 @@ nsresult HTMLEditor::RemoveInlinePropertiesAsSubAction(
     // Manipulating text attributes on a collapsed selection only sets state
     // for the next text insertion
     mPendingStylesToApplyToNewContent->ClearStyles(aStylesToRemove);
-    return NS_OK;
-  }
-
-  // XXX Shouldn't we quit before calling `CommitComposition()`?
-  if (IsPlaintextMailComposer()) {
     return NS_OK;
   }
 

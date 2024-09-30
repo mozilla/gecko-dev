@@ -52,6 +52,7 @@
 #include "mozilla/dom/DocumentFragment.h"
 #include "mozilla/dom/DocumentInlines.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/dom/HTMLAnchorElement.h"
@@ -2436,17 +2437,27 @@ nsresult HTMLEditor::ClearSelection() {
 
 nsresult HTMLEditor::FormatBlockAsAction(const nsAString& aParagraphFormat,
                                          nsIPrincipal* aPrincipal) {
-  AutoEditActionDataSetter editActionData(
-      *this, EditAction::eInsertBlockElement, aPrincipal);
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
-  if (NS_FAILED(rv)) {
-    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
-    return EditorBase::ToGenericNSResult(rv);
-  }
-
   if (NS_WARN_IF(aParagraphFormat.IsEmpty())) {
     return NS_ERROR_INVALID_ARG;
+  }
+
+  AutoEditActionDataSetter editActionData(
+      *this, EditAction::eInsertBlockElement, aPrincipal);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
+  if (NS_FAILED(rv)) {
+    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
+                         "MaybeDispatchBeforeInputEvent(), failed");
+    return EditorBase::ToGenericNSResult(rv);
   }
 
   RefPtr<nsAtom> tagName = NS_Atomize(aParagraphFormat);
@@ -2462,8 +2473,8 @@ nsresult HTMLEditor::FormatBlockAsAction(const nsAString& aParagraphFormat,
     // while the process is running.
     Result<EditActionResult, nsresult> result =
         MakeOrChangeListAndListItemAsSubAction(
-            MOZ_KnownLive(*tagName->AsStatic()), u""_ns,
-            SelectAllOfCurrentList::No);
+            MOZ_KnownLive(*tagName->AsStatic()), EmptyString(),
+            SelectAllOfCurrentList::No, *editingHost);
     if (MOZ_UNLIKELY(result.isErr())) {
       NS_WARNING(
           "HTMLEditor::MakeOrChangeListAndListItemAsSubAction("
@@ -2474,7 +2485,8 @@ nsresult HTMLEditor::FormatBlockAsAction(const nsAString& aParagraphFormat,
   }
 
   rv = FormatBlockContainerAsSubAction(MOZ_KnownLive(*tagName->AsStatic()),
-                                       FormatBlockMode::HTMLFormatBlockCommand);
+                                       FormatBlockMode::HTMLFormatBlockCommand,
+                                       *editingHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::FormatBlockContainerAsSubAction() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -2484,10 +2496,20 @@ nsresult HTMLEditor::SetParagraphStateAsAction(
     const nsAString& aParagraphFormat, nsIPrincipal* aPrincipal) {
   AutoEditActionDataSetter editActionData(
       *this, EditAction::eInsertBlockElement, aPrincipal);
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
+                         "MaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
@@ -2509,8 +2531,8 @@ nsresult HTMLEditor::SetParagraphStateAsAction(
     // while the process is running.
     Result<EditActionResult, nsresult> result =
         MakeOrChangeListAndListItemAsSubAction(
-            MOZ_KnownLive(*tagName->AsStatic()), u""_ns,
-            SelectAllOfCurrentList::No);
+            MOZ_KnownLive(*tagName->AsStatic()), EmptyString(),
+            SelectAllOfCurrentList::No, *editingHost);
     if (MOZ_UNLIKELY(result.isErr())) {
       NS_WARNING(
           "HTMLEditor::MakeOrChangeListAndListItemAsSubAction("
@@ -2522,7 +2544,7 @@ nsresult HTMLEditor::SetParagraphStateAsAction(
 
   rv = FormatBlockContainerAsSubAction(
       MOZ_KnownLive(*tagName->AsStatic()),
-      FormatBlockMode::XULParagraphStateCommand);
+      FormatBlockMode::XULParagraphStateCommand, *editingHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::FormatBlockContainerAsSubAction() failed");
   return EditorBase::ToGenericNSResult(rv);
@@ -2904,16 +2926,27 @@ nsresult HTMLEditor::MakeOrChangeListAsAction(
   AutoEditActionDataSetter editActionData(
       *this, HTMLEditUtils::GetEditActionForInsert(aListElementTagName),
       aPrincipal);
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
+  }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
   if (NS_FAILED(rv)) {
     NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
+                         "MaybeDispatchBeforeInputEvent(), failed");
     return EditorBase::ToGenericNSResult(rv);
   }
 
   Result<EditActionResult, nsresult> result =
       MakeOrChangeListAndListItemAsSubAction(aListElementTagName, aBulletType,
-                                             aSelectAllOfCurrentList);
+                                             aSelectAllOfCurrentList,
+                                             *editingHost);
   if (MOZ_UNLIKELY(result.isErr())) {
     NS_WARNING("HTMLEditor::MakeOrChangeListAndListItemAsSubAction() failed");
     return EditorBase::ToGenericNSResult(result.unwrapErr());
@@ -2967,7 +3000,8 @@ nsresult HTMLEditor::RemoveListAsAction(const nsAString& aListType,
 }
 
 nsresult HTMLEditor::FormatBlockContainerAsSubAction(
-    const nsStaticAtom& aTagName, FormatBlockMode aFormatBlockMode) {
+    const nsStaticAtom& aTagName, FormatBlockMode aFormatBlockMode,
+    const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
 
   if (NS_WARN_IF(!mInitSucceeded)) {
@@ -3034,14 +3068,10 @@ nsresult HTMLEditor::FormatBlockContainerAsSubAction(
   // FormatBlockContainerWithTransaction() creates AutoSelectionRestorer.
   // Therefore, even if it returns NS_OK, editor might have been destroyed
   // at restoring Selection.
-  const RefPtr<Element> editingHost = ComputeEditingHost();
-  if (MOZ_UNLIKELY(!editingHost)) {
-    return NS_SUCCESS_DOM_NO_OPERATION;
-  }
   AutoRangeArray selectionRanges(SelectionRef());
   Result<RefPtr<Element>, nsresult> suggestBlockElementToPutCaretOrError =
       FormatBlockContainerWithTransaction(selectionRanges, aTagName,
-                                          aFormatBlockMode, *editingHost);
+                                          aFormatBlockMode, aEditingHost);
   if (suggestBlockElementToPutCaretOrError.isErr()) {
     NS_WARNING("HTMLEditor::FormatBlockContainerWithTransaction() failed");
     return suggestBlockElementToPutCaretOrError.unwrapErr();
@@ -3108,16 +3138,21 @@ nsresult HTMLEditor::IndentAsAction(nsIPrincipal* aPrincipal) {
 
   AutoEditActionDataSetter editActionData(*this, EditAction::eIndent,
                                           aPrincipal);
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
-  if (NS_FAILED(rv)) {
-    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
-    return EditorBase::ToGenericNSResult(rv);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
 
-  const RefPtr<Element> editingHost = ComputeEditingHost();
-  if (!editingHost) {
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
     return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
+  if (NS_FAILED(rv)) {
+    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
+                         "MaybeDispatchBeforeInputEvent(), failed");
+    return EditorBase::ToGenericNSResult(rv);
   }
 
   Result<EditActionResult, nsresult> result = IndentAsSubAction(*editingHost);
@@ -3135,16 +3170,21 @@ nsresult HTMLEditor::OutdentAsAction(nsIPrincipal* aPrincipal) {
 
   AutoEditActionDataSetter editActionData(*this, EditAction::eOutdent,
                                           aPrincipal);
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
-  if (NS_FAILED(rv)) {
-    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
-    return EditorBase::ToGenericNSResult(rv);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
 
-  const RefPtr<Element> editingHost = ComputeEditingHost();
-  if (!editingHost) {
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
     return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
+  if (NS_FAILED(rv)) {
+    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
+                         "MaybeDispatchBeforeInputEvent(), failed");
+    return EditorBase::ToGenericNSResult(rv);
   }
 
   Result<EditActionResult, nsresult> result = OutdentAsSubAction(*editingHost);
@@ -3161,16 +3201,21 @@ nsresult HTMLEditor::AlignAsAction(const nsAString& aAlignType,
                                    nsIPrincipal* aPrincipal) {
   AutoEditActionDataSetter editActionData(
       *this, HTMLEditUtils::GetEditActionForAlignment(aAlignType), aPrincipal);
-  nsresult rv = editActionData.CanHandleAndMaybeDispatchBeforeInputEvent();
-  if (NS_FAILED(rv)) {
-    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
-                         "CanHandleAndMaybeDispatchBeforeInputEvent(), failed");
-    return EditorBase::ToGenericNSResult(rv);
+  if (NS_WARN_IF(!editActionData.CanHandle())) {
+    return NS_ERROR_NOT_INITIALIZED;
   }
 
-  const RefPtr<Element> editingHost = ComputeEditingHost();
-  if (!editingHost) {
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (!editingHost || editingHost->IsContentEditablePlainTextOnly()) {
     return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
+  nsresult rv = editActionData.MaybeDispatchBeforeInputEvent();
+  if (NS_FAILED(rv)) {
+    NS_WARNING_ASSERTION(rv == NS_ERROR_EDITOR_ACTION_CANCELED,
+                         "MaybeDispatchBeforeInputEvent(), failed");
+    return EditorBase::ToGenericNSResult(rv);
   }
 
   Result<EditActionResult, nsresult> result =
@@ -3754,6 +3799,17 @@ nsresult HTMLEditor::InsertLinkAroundSelectionAsAction(
     return NS_ERROR_NOT_INITIALIZED;
   }
 
+  RefPtr<Element> const editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (NS_WARN_IF(!editingHost)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (IsPlaintextMailComposer() ||
+      editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_SUCCESS_DOM_NO_OPERATION;
+  }
+
   if (SelectionRef().IsCollapsed()) {
     NS_WARNING("Selection was collapsed");
     return NS_OK;
@@ -3815,7 +3871,7 @@ nsresult HTMLEditor::InsertLinkAroundSelectionAsAction(
       }
     }
   }
-  rv = SetInlinePropertiesAsSubAction(stylesToSet);
+  rv = SetInlinePropertiesAsSubAction(stylesToSet, *editingHost);
   NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
                        "HTMLEditor::SetInlinePropertiesAsSubAction() failed");
   return rv;

@@ -25,7 +25,7 @@ inline void Element::UnregisterActivityObserver() {
 
 inline bool Element::IsContentEditablePlainTextOnly() const {
   const auto* const htmlElement = nsGenericHTMLElement::FromNode(this);
-  return htmlElement &&
+  return htmlElement && !htmlElement->IsInDesignMode() &&
          htmlElement->GetContentEditableState() ==
              nsGenericHTMLElement::ContentEditableState::PlainTextOnly;
 }

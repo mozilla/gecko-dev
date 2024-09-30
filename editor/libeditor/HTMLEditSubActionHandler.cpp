@@ -3406,7 +3406,8 @@ Result<EditActionResult, nsresult>
 HTMLEditor::MakeOrChangeListAndListItemAsSubAction(
     const nsStaticAtom& aListElementOrListItemElementTagName,
     const nsAString& aBulletType,
-    SelectAllOfCurrentList aSelectAllOfCurrentList) {
+    SelectAllOfCurrentList aSelectAllOfCurrentList,
+    const Element& aEditingHost) {
   MOZ_ASSERT(IsEditActionDataAvailable());
   MOZ_ASSERT(&aListElementOrListItemElementTagName == nsGkAtoms::ul ||
              &aListElementOrListItemElementTagName == nsGkAtoms::ol ||
@@ -3508,11 +3509,6 @@ HTMLEditor::MakeOrChangeListAndListItemAsSubAction(
     return Err(NS_ERROR_INVALID_ARG);
   }
 
-  const RefPtr<Element> editingHost = ComputeEditingHost();
-  if (MOZ_UNLIKELY(!editingHost)) {
-    return EditActionResult::CanceledResult();
-  }
-
   // Expands selection range to include the immediate block parent, and then
   // further expands to include any ancestors whose children are all in the
   // range.
@@ -3520,7 +3516,7 @@ HTMLEditor::MakeOrChangeListAndListItemAsSubAction(
   if (!SelectionRef().IsCollapsed() && SelectionRef().RangeCount() == 1u) {
     Result<EditorRawDOMRange, nsresult> extendedRange =
         GetRangeExtendedToHardLineEdgesForBlockEditAction(
-            SelectionRef().GetRangeAt(0u), *editingHost);
+            SelectionRef().GetRangeAt(0u), aEditingHost);
     if (MOZ_UNLIKELY(extendedRange.isErr())) {
       NS_WARNING(
           "HTMLEditor::GetRangeExtendedToHardLineEdgesForBlockEditAction() "
@@ -3546,7 +3542,7 @@ HTMLEditor::MakeOrChangeListAndListItemAsSubAction(
                                      aBulletType);
   AutoRangeArray selectionRanges(SelectionRef());
   Result<EditActionResult, nsresult> result = listCreator.Run(
-      *this, selectionRanges, aSelectAllOfCurrentList, *editingHost);
+      *this, selectionRanges, aSelectAllOfCurrentList, aEditingHost);
   if (MOZ_UNLIKELY(result.isErr())) {
     NS_WARNING("HTMLEditor::ConvertContentAroundRangesToList() failed");
     // XXX Should we try to restore selection ranges in this case?

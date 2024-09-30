@@ -1725,12 +1725,14 @@ class HTMLEditor final : public EditorBase,
    *                                    attributes will be removed.
    * @param aSelectAllOfCurrentList     Yes if this should treat all of
    *                                    ancestor list element at selection.
+   * @param aEditingHost                The editing host.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT Result<EditActionResult, nsresult>
   MakeOrChangeListAndListItemAsSubAction(
       const nsStaticAtom& aListElementOrListItemElementTagName,
       const nsAString& aBulletType,
-      SelectAllOfCurrentList aSelectAllOfCurrentList);
+      SelectAllOfCurrentList aSelectAllOfCurrentList,
+      const Element& aEditingHost);
 
   /**
    * DeleteTextAndTextNodesWithTransaction() removes text or text nodes in
@@ -3293,10 +3295,12 @@ class HTMLEditor final : public EditorBase,
    *
    * @param aStylesToSet        The styles which should be applied to the
    *                            selected content.
+   * @param aEditingHost        The editing host.
    */
   template <size_t N>
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult SetInlinePropertiesAsSubAction(
-      const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet);
+      const AutoTArray<EditorInlineStyleAndValue, N>& aStylesToSet,
+      const Element& aEditingHost);
 
   /**
    * SetInlinePropertiesAroundRanges() applying the styles to the ranges even if
@@ -3314,9 +3318,11 @@ class HTMLEditor final : public EditorBase,
    * removing the style.
    *
    * @param aStylesToRemove     Styles to remove from the selected contents.
+   * @param aEditingHost        The editing host.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult RemoveInlinePropertiesAsSubAction(
-      const nsTArray<EditorInlineStyle>& aStylesToRemove);
+      const nsTArray<EditorInlineStyle>& aStylesToRemove,
+      const Element& aEditingHost);
 
   /**
    * Helper method to call RemoveInlinePropertiesAsSubAction().  If you want to
@@ -3879,9 +3885,11 @@ class HTMLEditor final : public EditorBase,
    *                            nsGkAtoms::dt nor nsGkAtoms::dd.
    * @param aFormatBlockMode    Whether HTML formatBlock command or XUL
    *                            paragraphState command.
+   * @param aEditingHost        The editing host.
    */
   MOZ_CAN_RUN_SCRIPT nsresult FormatBlockContainerAsSubAction(
-      const nsStaticAtom& aTagName, FormatBlockMode aFormatBlockMode);
+      const nsStaticAtom& aTagName, FormatBlockMode aFormatBlockMode,
+      const Element& aEditingHost);
 
   /**
    * Increase/decrease the font size of selection.
