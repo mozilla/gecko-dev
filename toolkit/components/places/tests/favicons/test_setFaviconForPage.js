@@ -49,19 +49,22 @@ add_task(async function test_replaceExisting() {
 
   let firstFavicon = await createFavicon("favicon4.png");
   let secondFavicon = await createFavicon("favicon5.png");
+  let firstFaviconDataURL = await createDataURLForFavicon(firstFavicon);
 
   await new Promise(resolve => {
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
+    PlacesUtils.favicons.setFaviconForPage(
       pageURI,
       firstFavicon.uri,
-      true,
-      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-      function test_replaceExisting_firstSet_check(
-        aURI,
-        aDataLen,
-        aData,
-        aMimeType
-      ) {
+      firstFaviconDataURL,
+      null,
+      resolve
+    );
+  });
+
+  await new Promise(resolve => {
+    PlacesUtils.favicons.getFaviconDataForPage(
+      pageURI,
+      function (aURI, aDataLen, aData, aMimeType) {
         Assert.equal(aMimeType, firstFavicon.mimeType);
         Assert.ok(compareArrays(aData, firstFavicon.data));
         checkFaviconDataForPage(
@@ -70,8 +73,7 @@ add_task(async function test_replaceExisting() {
           firstFavicon.data,
           resolve
         );
-      },
-      Services.scriptSecurityManager.getSystemPrincipal()
+      }
     );
   });
 

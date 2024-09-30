@@ -35,13 +35,10 @@ add_task(async function test_query_result_favicon_changed_on_child() {
         // favicon for the page must have data associated with it in order for
         // the icon changed notifications to be sent, so we use a valid image
         // data URI.
-        PlacesUtils.favicons.setAndFetchFaviconForPage(
+        PlacesUtils.favicons.setFaviconForPage(
           PAGE_URI,
           SMALLPNG_DATA_URI,
-          false,
-          PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-          null,
-          Services.scriptSecurityManager.getSystemPrincipal()
+          SMALLPNG_DATA_URI
         );
       }
     },
@@ -59,8 +56,8 @@ add_task(async function test_query_result_favicon_changed_on_child() {
 
   // Open the container and wait for containerStateChanged. We should start
   // observing before setting |containerOpen| as that's caused by the
-  // setAndFetchFaviconForPage() call caused by the containerStateChanged
-  // observer above.
+  // setFaviconForPage() call caused by the containerStateChanged observer
+  // above.
   let promise = promiseFaviconChanged(PAGE_URI, SMALLPNG_DATA_URI);
   result.root.containerOpen = true;
   await promise;
@@ -110,20 +107,17 @@ add_task(
     );
 
     let promise = promiseFaviconChanged(PAGE_URI2, SMALLPNG_DATA_URI);
-    PlacesUtils.favicons.setAndFetchFaviconForPage(
+    PlacesUtils.favicons.setFaviconForPage(
       PAGE_URI2,
       SMALLPNG_DATA_URI,
-      false,
-      PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-      null,
-      Services.scriptSecurityManager.getSystemPrincipal()
+      SMALLPNG_DATA_URI
     );
     await promise;
 
     // Open the container and wait for containerStateChanged. We should start
     // observing before setting |containerOpen| as that's caused by the
-    // setAndFetchFaviconForPage() call caused by the containerStateChanged
-    // observer above.
+    // setFaviconForPage() call caused by the containerStateChanged observer
+    // above.
 
     // We must wait for the asynchronous database thread to finish the
     // operation, and then for the main thread to process any pending
