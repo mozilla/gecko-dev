@@ -7,7 +7,7 @@
  * @module actions/sources
  */
 
-import { setSymbols } from "./symbols";
+import { setSymbols } from "../sources/symbols";
 import { setInScopeLines } from "../ast/index";
 import { prettyPrintAndSelectSource } from "./prettyPrint";
 import { addTab, closeTab } from "../tabs";
@@ -37,6 +37,8 @@ import {
   hasPrettyTab,
   isSourceActorWithSourceMap,
   getSourceByActorId,
+  getSelectedFrame,
+  getCurrentThread,
 } from "../../selectors/index";
 
 // This is only used by jest tests (and within this module)
@@ -320,15 +322,28 @@ export function selectLocation(
       dispatch(closeTab(loadedSource));
     }
 
-    await dispatch(setSymbols(location));
+    const selectedFrame = getSelectedFrame(
+      getState(),
+      getCurrentThread(getState())
+    );
+    if (
+      selectedFrame &&
+      (selectedFrame.location.source.id == location.source.id ||
+        selectedFrame.generatedLocation.source.id == location.source.id)
+    ) {
+      // This is done from selectLocation and not from paused and selectFrame actions
+      // because we may select either original or generated location while being paused
+      // and we would like to also fetch the symbols.
+      await dispatch(setSymbols(location));
 
-    // Stop the async work if we started selecting another location
-    if (getSelectedLocation(getState()) != location) {
-      return;
+      // Stop the async work if we started selecting another location
+      if (getSelectedLocation(getState()) != location) {
+        return;
+      }
+
+      // /!\ we don't historicaly wait for this async action
+      dispatch(setInScopeLines());
     }
-
-    // /!\ we don't historicaly wait for this async action
-    dispatch(setInScopeLines());
 
     // When we select a generated source which has a sourcemap,
     // asynchronously fetch the related original location in order to display
