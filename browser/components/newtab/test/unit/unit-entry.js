@@ -426,7 +426,6 @@ const TEST_GLOBAL = {
             finalize: () => ({
               ref,
               spec,
-              schemeIs: scheme => spec.startsWith(scheme),
             }),
           }),
         }),
