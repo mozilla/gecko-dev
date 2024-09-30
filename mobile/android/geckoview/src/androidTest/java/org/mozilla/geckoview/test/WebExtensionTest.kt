@@ -2169,9 +2169,6 @@ class WebExtensionTest : BaseSessionTest() {
     // - verifies that the messages are received when restoring the tab in a fresh session
     @Test
     fun testRestoringExtensionPagePreservesMessages() {
-        // TODO: Bug 1837551
-        assumeThat(sessionRule.env.isFission, equalTo(false))
-
         val extension = sessionRule.waitForResult(
             controller.installBuiltIn(EXTENSION_PAGE_RESTORE),
         )
@@ -3883,9 +3880,6 @@ class WebExtensionTest : BaseSessionTest() {
 
     @Test
     fun testMozAddonManagerCanBeEnabledByPref() {
-        // TODO: Bug 1837551
-        assumeThat(sessionRule.env.isFission, equalTo(false))
-
         mainSession.loadUri("https://example.com")
         sessionRule.waitForPageStop()
 

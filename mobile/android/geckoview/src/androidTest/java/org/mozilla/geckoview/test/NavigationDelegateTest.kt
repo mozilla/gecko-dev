@@ -2781,9 +2781,6 @@ class NavigationDelegateTest : BaseSessionTest() {
     }
 
     @Test fun purgeHistory() {
-        // TODO: Bug 1837551
-        assumeThat(sessionRule.env.isFission, equalTo(false))
-
         mainSession.loadUri("$TEST_ENDPOINT$HELLO_HTML_PATH")
         sessionRule.waitUntilCalled(object : HistoryDelegate, NavigationDelegate {
             @AssertCalled(count = 1)
@@ -3161,9 +3158,6 @@ class NavigationDelegateTest : BaseSessionTest() {
     }
 
     @Test fun goBackFromHistory() {
-        // TODO: Bug 1837551
-        assumeThat(sessionRule.env.isFission, equalTo(false))
-
         mainSession.loadTestPath(HELLO_HTML_PATH)
 
         mainSession.waitUntilCalled(object : HistoryDelegate, ContentDelegate {
