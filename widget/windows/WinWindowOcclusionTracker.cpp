@@ -850,7 +850,6 @@ void WinWindowOcclusionTracker::WindowOcclusionCalculator::Initialize() {
   MOZ_ASSERT(!mVirtualDesktopManager);
   CALC_LOG(LogLevel::Info, "Initialize()");
 
-#ifndef __MINGW32__
   RefPtr<IVirtualDesktopManager> desktopManager;
   HRESULT hr = ::CoCreateInstance(
       CLSID_VirtualDesktopManager, NULL, CLSCTX_INPROC_SERVER,
@@ -859,7 +858,6 @@ void WinWindowOcclusionTracker::WindowOcclusionCalculator::Initialize() {
     return;
   }
   mVirtualDesktopManager = desktopManager;
-#endif
 }
 
 void WinWindowOcclusionTracker::WindowOcclusionCalculator::Shutdown() {
