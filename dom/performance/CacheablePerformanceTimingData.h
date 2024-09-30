@@ -29,10 +29,10 @@ class CacheablePerformanceTimingData {
  public:
   CacheablePerformanceTimingData() = default;
 
- protected:
   CacheablePerformanceTimingData(nsITimedChannel* aChannel,
                                  nsIHttpChannel* aHttpChannel);
 
+ protected:
   explicit CacheablePerformanceTimingData(
       const CacheablePerformanceTimingData& aOther);
 

@@ -35,6 +35,11 @@ class PerformanceTimingData final : public CacheablePerformanceTimingData {
   friend struct mozilla::ipc::IPDLParamTraits<
       mozilla::dom::PerformanceTimingData>;
 
+  // https://w3c.github.io/resource-timing/#dom-performanceresourcetiming-transfersize
+  // The transferSize getter steps are to perform the following steps:
+  //   1. If this's cache mode is "local", then return 0.
+  static constexpr uint64_t kLocalCacheTransferSize = 0;
+
  public:
   PerformanceTimingData() = default;  // For deserialization
   // This can return null.
@@ -47,6 +52,18 @@ class PerformanceTimingData final : public CacheablePerformanceTimingData {
   PerformanceTimingData(nsITimedChannel* aChannel, nsIHttpChannel* aHttpChannel,
                         DOMHighResTimeStamp aZeroTime);
 
+  static PerformanceTimingData* Create(
+      const CacheablePerformanceTimingData& aCachedData,
+      DOMHighResTimeStamp aZeroTime, TimeStamp aStartTime, TimeStamp aEndTime,
+      RenderBlockingStatusType aRenderBlockingStatus);
+
+ private:
+  PerformanceTimingData(const CacheablePerformanceTimingData& aCachedData,
+                        DOMHighResTimeStamp aZeroTime, TimeStamp aStartTime,
+                        TimeStamp aEndTime,
+                        RenderBlockingStatusType aRenderBlockingStatus);
+
+ public:
   explicit PerformanceTimingData(const IPCPerformanceTimingData& aIPCData);
 
   IPCPerformanceTimingData ToIPC();

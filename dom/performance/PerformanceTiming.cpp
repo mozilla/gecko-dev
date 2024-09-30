@@ -72,6 +72,22 @@ PerformanceTimingData* PerformanceTimingData::Create(
   return new PerformanceTimingData(aTimedChannel, aChannel, 0);
 }
 
+/* static */
+PerformanceTimingData* PerformanceTimingData::Create(
+    const CacheablePerformanceTimingData& aCachedData,
+    DOMHighResTimeStamp aZeroTime, TimeStamp aStartTime, TimeStamp aEndTime,
+    RenderBlockingStatusType aRenderBlockingStatus) {
+  MOZ_ASSERT(NS_IsMainThread());
+
+  // Check if resource timing is prefed off.
+  if (!StaticPrefs::dom_enable_resource_timing()) {
+    return nullptr;
+  }
+
+  return new PerformanceTimingData(aCachedData, aZeroTime, aStartTime, aEndTime,
+                                   aRenderBlockingStatus);
+}
+
 PerformanceTiming::PerformanceTiming(Performance* aPerformance,
                                      nsITimedChannel* aChannel,
                                      nsIHttpChannel* aHttpChannel,
@@ -243,6 +259,21 @@ CacheablePerformanceTimingData::CacheablePerformanceTimingData(
       mContentType(aOther.mContentType) {
   for (auto& data : aOther.mServerTiming) {
     mServerTiming.AppendElement(data);
+  }
+}
+
+PerformanceTimingData::PerformanceTimingData(
+    const CacheablePerformanceTimingData& aCachedData,
+    DOMHighResTimeStamp aZeroTime, TimeStamp aStartTime, TimeStamp aEndTime,
+    RenderBlockingStatusType aRenderBlockingStatus)
+    : CacheablePerformanceTimingData(aCachedData),
+      mAsyncOpen(aStartTime),
+      mResponseEnd(aEndTime),
+      mZeroTime(aZeroTime),
+      mTransferSize(kLocalCacheTransferSize),
+      mRenderBlockingStatus(aRenderBlockingStatus) {
+  if (!StaticPrefs::dom_enable_performance()) {
+    mZeroTime = 0;
   }
 }
 
