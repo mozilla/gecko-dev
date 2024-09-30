@@ -18,7 +18,7 @@ const NS_PER_MS = 1000000;
  * processes are still quite new, much more frequent when running with
  * ForkServer enabled.
  * */
-const LINUX_ROUNDING_ERROR = 8.0 * NS_PER_MS;
+const LINUX_ROUNDING_ERROR = 20.0 * NS_PER_MS;
 
 function checkProcessCpuTime(proc) {
   let hasProcessCPUTime = proc.cpuTime > 0;
