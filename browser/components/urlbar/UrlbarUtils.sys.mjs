@@ -188,7 +188,6 @@ export var UrlbarUtils = {
     "oneoff",
     "historymenu",
     "other",
-    "searchbutton",
     "shortcut",
     "tabmenu",
     "tabtosearch",

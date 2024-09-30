@@ -7303,22 +7303,6 @@ urlbar.searchmode:
       - 'firefox'
     record_in_processes:
       - main
-  searchbutton:
-    bug_numbers:
-      - 1919857
-    description: >
-      A keyed uint recording how many times the user entered a particular search
-      mode by unified search button.
-    expires: never
-    kind: uint
-    keyed: true
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
   shortcut:
     bug_numbers:
       - 1654680
@@ -7540,22 +7524,6 @@ urlbar.picked.searchmode:
       A keyed uint recording how many times the user picked a particular kind of
       result while in search mode after entering search mode by selecting a
       one-off.
-    expires: never
-    kind: uint
-    keyed: true
-    notification_emails:
-      - fx-search-telemetry@mozilla.com
-    release_channel_collection: opt-out
-    products:
-      - 'firefox'
-    record_in_processes:
-      - main
-  searchbutton:
-    bug_numbers:
-      - 1919857
-    description: >
-      A keyed uint recording how many times the user entered a particular search
-      mode by unified search button.
     expires: never
     kind: uint
     keyed: true
