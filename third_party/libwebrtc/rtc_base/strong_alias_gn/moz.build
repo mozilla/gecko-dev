@@ -54,10 +54,6 @@ if CONFIG["OS_TARGET"] == "Android":
     DEFINES["__STDC_CONSTANT_MACROS"] = True
     DEFINES["__STDC_FORMAT_MACROS"] = True
 
-    OS_LIBS += [
-        "log"
-    ]
-
 if CONFIG["OS_TARGET"] == "Darwin":
 
     DEFINES["WEBRTC_MAC"] = True
@@ -199,4 +195,4 @@ if CONFIG["OS_TARGET"] == "Linux" and CONFIG["TARGET_CPU"] == "x86_64":
 
     DEFINES["_GNU_SOURCE"] = True
 
-Library("priority_gn")
+Library("strong_alias_gn")
