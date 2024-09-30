@@ -41,6 +41,22 @@ add_task(async function testPrefFirstRollout() {
 
   is(Preferences.get("doh-rollout.home-region"), "UK");
 
+  RegionTestUtils.setNetworkRegion("FR");
+
+  let promise = new Promise(resolve => {
+    Services.obs.addObserver(function obs(subject, topic) {
+      Services.obs.removeObserver(obs, topic);
+      resolve();
+    }, "doh-config-updated");
+  });
+
+  // For a timezone change, a region check should be performed,
+  // and the region should change immediately.
+  Services.obs.notifyObservers(null, "default-timezone-changed");
+
+  await promise;
+  is(Preferences.get("doh-rollout.home-region"), "FR");
+
   is(
     DoHConfigController.currentConfig.enabled,
     false,

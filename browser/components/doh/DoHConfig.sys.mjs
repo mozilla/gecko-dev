@@ -222,6 +222,7 @@ export const DoHConfigController = {
 
     Services.prefs.addObserver(`${kGlobalPrefBranch}.`, this, true);
     Services.obs.addObserver(this, "idle-daily", true);
+    Services.obs.addObserver(this, "default-timezone-changed", true);
 
     gProvidersCollection.on("sync", this.updateFromRemoteSettings);
     gConfigCollection.on("sync", this.updateFromRemoteSettings);
@@ -235,6 +236,7 @@ export const DoHConfigController = {
 
     Services.prefs.removeObserver(`${kGlobalPrefBranch}`, this);
     Services.obs.removeObserver(this, "idle-daily");
+    Services.obs.removeObserver(this, "default-timezone-changed");
 
     gProvidersCollection.off("sync", this.updateFromRemoteSettings);
     gConfigCollection.off("sync", this.updateFromRemoteSettings);
@@ -242,6 +244,19 @@ export const DoHConfigController = {
     this.initComplete = new Promise(resolve => {
       this._resolveInitComplete = resolve;
     });
+  },
+
+  // Performs a region check when the timezone changes
+  async getRegionAndNotify() {
+    await lazy.Region._fetchRegion();
+    if (
+      currentRegion() &&
+      currentRegion() !=
+        lazy.Preferences.get(`${kGlobalPrefBranch}.home-region`)
+    ) {
+      lazy.Preferences.set(`${kGlobalPrefBranch}.home-region`, currentRegion());
+      this.notifyNewConfig();
+    }
   },
 
   observe(subject, topic, data) {
@@ -274,6 +289,9 @@ export const DoHConfigController = {
           );
           this.notifyNewConfig();
         }
+        break;
+      case "default-timezone-changed":
+        this.getRegionAndNotify();
         break;
     }
   },
