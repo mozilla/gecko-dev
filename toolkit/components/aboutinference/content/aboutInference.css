@@ -74,20 +74,18 @@ legend {
   padding: 5px;
 }
 
+
 .fieldset-container {
   display: flex;
-  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px; /* Optional: Adds some space between fieldsets */
 }
 
-fieldset {
-  width: 49%;
-  padding: 10px;
-  box-sizing: border-box;
+.fieldset-container fieldset {
+  flex: 1 1 48%; /* Makes the fieldsets take approximately half the width */
+  box-sizing: border-box; /* Ensures padding/border do not affect width */
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
 
-fieldset.large {
-  width: 100%;
 }
 
 legend {
@@ -201,4 +199,53 @@ legend {
   padding-left: 5px;
   line-height: 20px;
   border-radius: 5px;
+}
+
+.tab-menu {
+  display: flex;
+  justify-content: flex-start;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px 0;
+  background-color: #f1f1f1;
+}
+
+.tab-menu li {
+  padding: 10px 20px;
+  cursor: pointer;
+  background-color: #ccc;
+  margin-right: 5px;
+  border: 1px solid #ddd;
+}
+
+.tab-menu li.active {
+  background-color: #fff;
+  border-bottom: none;
+}
+
+.tab-content {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+
+#modelFiles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px; /* Optional: Adds spacing between tables */
+}
+
+#modelFiles table {
+  flex: 1 1 calc(33.333% - 10px); /* Each table takes 1/3 of the container width */
+  box-sizing: border-box;
+}
+
+#modelFiles table caption {
+  caption-side: bottom; /* Moves the caption below the table */
+  text-align: center; /* Centers the caption text */
+  font-weight: bold;
+  margin-top: 1px;
 }
