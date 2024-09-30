@@ -31,6 +31,8 @@ add_task(async function testPrefFirstRollout() {
     "DE",
     "Initial region should be DE"
   );
+  RegionTestUtils.setNetworkRegion("UK");
+  await Region._fetchRegion();
   Region._setHomeRegion("UK");
   await ensureTRRMode(2); // Mode shouldn't change.
 

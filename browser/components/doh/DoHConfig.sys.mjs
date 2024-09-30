@@ -21,7 +21,17 @@ ChromeUtils.defineESModuleGetters(lazy, {
 const kGlobalPrefBranch = "doh-rollout";
 function regionPrefBranch() {
   let homeRegion = lazy.Preferences.get(`${kGlobalPrefBranch}.home-region`);
-  return `${kGlobalPrefBranch}.${homeRegion}`;
+  if (!homeRegion) {
+    return undefined;
+  }
+  return `${kGlobalPrefBranch}.${homeRegion.toLowerCase()}`;
+}
+
+function currentRegion() {
+  if (lazy.Region.current) {
+    return lazy.Region.current;
+  }
+  return lazy.Region.home;
 }
 
 const kConfigPrefs = {
@@ -187,12 +197,12 @@ export const DoHConfigController = {
       let updateRegionAndResolve = () => {
         lazy.Preferences.set(
           `${kGlobalPrefBranch}.home-region`,
-          lazy.Region.home
+          currentRegion()
         );
         resolve();
       };
 
-      if (lazy.Region.home) {
+      if (currentRegion()) {
         updateRegionAndResolve();
         return;
       }
