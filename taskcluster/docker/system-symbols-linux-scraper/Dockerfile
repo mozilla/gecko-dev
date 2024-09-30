@@ -12,7 +12,7 @@ VOLUME /builds/worker/checkouts
 
 RUN apt-get update && \
     apt-get install --no-install-recommends -y \
-        file 7zip binutils build-essential cpio curl debuginfod elfutils flatpak jq \
+        aria2 file 7zip binutils build-essential cpio curl debuginfod elfutils flatpak jq \
         libxml2-utils python3-pip rpm2cpio squashfs-tools unzip wget zip && \
     apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
