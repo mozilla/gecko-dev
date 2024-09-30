@@ -224,9 +224,6 @@ class HomeMenuView(
                     HomeFragmentDirections.actionGlobalAddonsManagementFragment(),
                 )
             }
-            is HomeMenu.Item.DesktopMode -> {
-                context.settings().openNextTabInDesktopMode = item.checked
-            }
         }
     }
 }
