@@ -110,6 +110,13 @@
       Services.prefs.addObserver("privacy.userContext", this.boundObserve);
       this.observe(null, "nsPref:changed", "privacy.userContext.enabled");
 
+      document
+        .getElementById("vertical-tabs-newtab-button")
+        .addEventListener("keypress", this);
+      document
+        .getElementById("tabs-newtab-button")
+        .addEventListener("keypress", this);
+
       XPCOMUtils.defineLazyPreferenceGetter(
         this,
         "_tabMinWidthPref",
@@ -505,6 +512,16 @@
       }
 
       event.preventDefault();
+    }
+
+    on_keypress(event) {
+      if (event.defaultPrevented) {
+        return;
+      }
+      if (event.key == " " || event.key == "Enter") {
+        event.preventDefault();
+        event.target.click();
+      }
     }
 
     on_dragstart(event) {
