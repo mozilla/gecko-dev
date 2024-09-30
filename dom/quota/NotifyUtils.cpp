@@ -7,44 +7,13 @@
 #include "mozilla/dom/quota/NotifyUtils.h"
 
 #include "mozilla/RefPtr.h"
-#include "mozilla/Services.h"
 #include "mozilla/StaticPrefs_dom.h"
-#include "mozilla/dom/quota/QuotaCommon.h"
+#include "mozilla/dom/quota/NotifyUtilsCommon.h"
 #include "mozilla/dom/quota/QuotaManager.h"
-#include "mozilla/dom/quota/ResultExtensions.h"
-#include "nsCOMPtr.h"
 #include "nsError.h"
-#include "nsIObserverService.h"
 #include "nsSupportsPrimitives.h"
-#include "nsThreadUtils.h"
 
 namespace mozilla::dom::quota {
-
-namespace {
-
-void NotifyObserversOnMainThread(
-    const char* aTopic,
-    std::function<already_AddRefed<nsISupports>()>&& aSubjectGetter = nullptr) {
-  auto mainThreadFunction = [topic = aTopic,
-                             subjectGetter = std::move(aSubjectGetter)]() {
-    nsCOMPtr<nsIObserverService> observerService =
-        mozilla::services::GetObserverService();
-    QM_TRY(MOZ_TO_RESULT(observerService), QM_VOID);
-
-    nsCOMPtr<nsISupports> subject;
-    if (subjectGetter) {
-      subject = subjectGetter();
-    }
-
-    observerService->NotifyObservers(subject, topic, u"");
-  };
-
-  MOZ_ALWAYS_SUCCEEDS(NS_DispatchToMainThread(
-      NS_NewRunnableFunction("dom::quota::NotifyObserversOnMainThread",
-                             std::move(mainThreadFunction))));
-}
-
-}  // namespace
 
 void NotifyStoragePressure(QuotaManager& aQuotaManager, uint64_t aUsage) {
   aQuotaManager.AssertNotCurrentThreadOwnsQuotaMutex();
