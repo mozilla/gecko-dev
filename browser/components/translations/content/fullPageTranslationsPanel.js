@@ -589,11 +589,18 @@ var FullPageTranslationsPanel = new (class {
         fromMenuList.value = "";
       }
 
-      if (userLangTag && userLangTag !== docLangTag) {
+      if (
+        this.#manuallySelectedToLanguage &&
+        this.#manuallySelectedToLanguage !== docLangTag
+      ) {
+        // Use the manually selected language if available
+        toMenuList.value = this.#manuallySelectedToLanguage;
+      } else if (userLangTag && userLangTag !== docLangTag) {
         // The userLangTag is specified and does not match the doc lang tag, so we should use it.
         toMenuList.value = userLangTag;
       } else {
-        // No userLangTag is specified in the cache, so we will attempt to find a suitable one.
+        // No userLangTag is specified in the cache and no #manuallySelectedToLanguage is available,
+        // so we will attempt to find a suitable one.
         toMenuList.value =
           await TranslationsParent.getTopPreferredSupportedToLang({
             excludeLangTags: [
@@ -879,6 +886,8 @@ var FullPageTranslationsPanel = new (class {
         .onChangeToLanguage(target.value);
     }
     this.onChangeLanguages();
+    // Update the manually selected language when the user changes the target language.
+    this.#manuallySelectedToLanguage = target.value;
   }
 
   /**
@@ -1127,6 +1136,14 @@ var FullPageTranslationsPanel = new (class {
   }
 
   /**
+   * The language tag that was manually selected by the user.
+   * This is used to remember the selection if the user happens to close and then reopen the panel prior to translating.
+   *
+   * @type {string | null}
+   */
+  #manuallySelectedToLanguage = null;
+
+  /**
    * Implementation function for opening the panel. Prefer FullPageTranslationsPanel.open.
    *
    * @param {Event} event
@@ -1199,6 +1216,7 @@ var FullPageTranslationsPanel = new (class {
    * Handle the translation button being clicked when there are two language options.
    */
   async onTranslate() {
+    this.#manuallySelectedToLanguage = null;
     PanelMultiView.hidePopup(this.elements.panel);
 
     const actor = TranslationsParent.getTranslationsActor(
@@ -1529,6 +1547,8 @@ var FullPageTranslationsPanel = new (class {
           // Ensure the cached detected languages are up to date, for instance whenever
           // the user switches tabs.
           FullPageTranslationsPanel.detectedLanguages = detectedLanguages;
+          // Reset the manually selected language when the user switches tabs.
+          this.#manuallySelectedToLanguage = null;
         }
 
         if (this.#isPopupOpen) {
