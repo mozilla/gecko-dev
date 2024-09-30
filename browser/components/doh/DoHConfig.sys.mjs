@@ -221,7 +221,7 @@ export const DoHConfigController = {
     await this.loadRegion();
 
     Services.prefs.addObserver(`${kGlobalPrefBranch}.`, this, true);
-    Services.obs.addObserver(this, lazy.Region.REGION_TOPIC);
+    Services.obs.addObserver(this, "idle-daily", true);
 
     gProvidersCollection.on("sync", this.updateFromRemoteSettings);
     gConfigCollection.on("sync", this.updateFromRemoteSettings);
@@ -234,7 +234,7 @@ export const DoHConfigController = {
     await this.initComplete;
 
     Services.prefs.removeObserver(`${kGlobalPrefBranch}`, this);
-    Services.obs.removeObserver(this, lazy.Region.REGION_TOPIC);
+    Services.obs.removeObserver(this, "idle-daily");
 
     gProvidersCollection.off("sync", this.updateFromRemoteSettings);
     gConfigCollection.off("sync", this.updateFromRemoteSettings);
@@ -262,8 +262,18 @@ export const DoHConfigController = {
         }
         this.notifyNewConfig();
         break;
-      case lazy.Region.REGION_TOPIC:
-        lazy.Preferences.set(`${kGlobalPrefBranch}.home-region-changed`, true);
+      case "idle-daily":
+        if (
+          currentRegion() &&
+          currentRegion() !=
+            lazy.Preferences.get(`${kGlobalPrefBranch}.home-region`)
+        ) {
+          lazy.Preferences.set(
+            `${kGlobalPrefBranch}.home-region`,
+            currentRegion()
+          );
+          this.notifyNewConfig();
+        }
         break;
     }
   },
