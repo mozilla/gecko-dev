@@ -116,6 +116,12 @@ class FragmentDirective final : public nsISupports, public nsWrapperCache {
       nsCString& aFragment, nsTArray<TextDirective>* aTextDirectives = nullptr,
       nsIURI* aURI = nullptr);
 
+  /** Utility funciton than returns a string for `aURI` ignoring all fragment
+   * directives.
+   */
+  static nsresult GetSpecIgnoringFragmentDirective(
+      nsCOMPtr<nsIURI>& aURI, nsACString& aSpecIgnoringFragmentDirective);
+
   /** Performs various checks to determine if a text directive is allowed to be
    * scrolled to.
    *

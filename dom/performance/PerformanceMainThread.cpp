@@ -16,6 +16,7 @@
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/EventCounts.h"
+#include "mozilla/dom/FragmentDirective.h"
 #include "mozilla/dom/PerformanceEventTimingBinding.h"
 #include "mozilla/dom/PerformanceNavigationTiming.h"
 #include "mozilla/dom/PerformanceResourceTiming.h"
@@ -49,7 +50,7 @@ void GetURLSpecFromChannel(nsITimedChannel* aChannel, nsAString& aSpec) {
   }
 
   nsAutoCString spec;
-  rv = uri->GetSpec(spec);
+  rv = FragmentDirective::GetSpecIgnoringFragmentDirective(uri, spec);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }

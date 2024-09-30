@@ -143,7 +143,7 @@ impl TextDirective {
     /// that originates from a fragment directive.
     ///
     /// `text_fragment` is supposed to have this format:
-    /// ```
+    /// ```ignore
     /// text=[prefix-,]start[,end][,-suffix]
     /// ```
     /// This function returns `None` if `text_fragment`

@@ -7,6 +7,7 @@
 #include "PerformanceTiming.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/StaticPrefs_dom.h"
+#include "mozilla/dom/FragmentDirective.h"
 #include "mozilla/dom/PerformanceResourceTimingBinding.h"
 #include "mozilla/dom/PerformanceTimingBinding.h"
 #include "mozilla/glean/GleanMetrics.h"
@@ -59,7 +60,7 @@ PerformanceTimingData* PerformanceTimingData::Create(
   aChannel->GetOriginalURI(getter_AddRefs(originalURI));
 
   nsAutoCString name;
-  originalURI->GetSpec(name);
+  FragmentDirective::GetSpecIgnoringFragmentDirective(originalURI, name);
   CopyUTF8toUTF16(name, aEntryName);
 
   // The nsITimedChannel argument will be used to gather all the timings.

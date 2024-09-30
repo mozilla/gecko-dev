@@ -210,6 +210,34 @@ nsTArray<RefPtr<nsRange>> FragmentDirective::FindTextFragmentsInDocument() {
   return textDirectiveRanges;
 }
 
+/* static */ nsresult FragmentDirective::GetSpecIgnoringFragmentDirective(
+    nsCOMPtr<nsIURI>& aURI, nsACString& aSpecIgnoringFragmentDirective) {
+  bool hasRef = false;
+  if (aURI->GetHasRef(&hasRef); !hasRef) {
+    return aURI->GetSpec(aSpecIgnoringFragmentDirective);
+  }
+
+  nsAutoCString ref;
+  nsresult rv = aURI->GetRef(ref);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  rv = aURI->GetSpecIgnoringRef(aSpecIgnoringFragmentDirective);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  ParseAndRemoveFragmentDirectiveFromFragmentString(ref);
+
+  if (!ref.IsEmpty()) {
+    aSpecIgnoringFragmentDirective.Append('#');
+    aSpecIgnoringFragmentDirective.Append(ref);
+  }
+
+  return NS_OK;
+}
+
 bool FragmentDirective::IsTextDirectiveAllowedToBeScrolledTo() {
   // This method follows
   // https://wicg.github.io/scroll-to-text-fragment/#check-if-a-text-directive-can-be-scrolled
