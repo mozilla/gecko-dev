@@ -988,15 +988,13 @@ void ConnectionOperationBase::SendResults() {
 
       MOZ_ASSERT(response.type() != SDBRequestResponse::T__None);
       MOZ_ASSERT(response.type() != SDBRequestResponse::Tnsresult);
+
+      OnSuccess();
     } else {
       response = mResultCode;
     }
 
     Unused << PBackgroundSDBRequestParent::Send__delete__(this, response);
-
-    if (NS_SUCCEEDED(mResultCode)) {
-      OnSuccess();
-    }
   }
 
   Cleanup();

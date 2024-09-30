@@ -161,6 +161,12 @@ void SDBConnection::OnClose(bool aAbnormal) {
   }
 }
 
+bool SDBConnection::IsAllowedToClose() const {
+  AssertIsOnOwningThread();
+
+  return mAllowedToClose;
+}
+
 void SDBConnection::AllowToClose() {
   AssertIsOnOwningThread();
 

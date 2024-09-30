@@ -66,6 +66,8 @@ class SDBConnection final : public nsISDBConnection {
 
   void OnClose(bool aAbnormal);
 
+  bool IsAllowedToClose() const;
+
   void AllowToClose();
 
  private:

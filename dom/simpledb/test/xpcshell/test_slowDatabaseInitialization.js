@@ -28,11 +28,11 @@ add_task(
 
     info("Starting database opening");
 
-    const [dbConnection, openPromise] = (function () {
+    const openPromise = (function () {
       const connection = SimpleDBUtils.createConnection(principal);
       const request = connection.open(name);
       const promise = SimpleDBUtils.requestFinished(request);
-      return [connection, promise];
+      return promise;
     })();
 
     info("Waiting for database work to start");
@@ -49,25 +49,20 @@ add_task(
 
     info("Waiting for database to finish opening");
 
-    // XXX This should throw!
-    await openPromise;
-
-    info("Waiting for origin to finish clearing");
-
-    await clearPromise;
-
-    info("Reading from the database");
-
     try {
-      dbConnection.seek(0);
+      await openPromise;
       ok(false, "Should have thrown");
     } catch (e) {
       ok(true, "Should have thrown");
       Assert.strictEqual(
-        e.result,
+        e.resultCode,
         Cr.NS_ERROR_ABORT,
         "Threw right result code"
       );
     }
+
+    info("Waiting for origin to finish clearing");
+
+    await clearPromise;
   }
 );
