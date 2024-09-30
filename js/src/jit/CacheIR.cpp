@@ -10055,7 +10055,8 @@ AttachDecision InlinableNativeIRGenerator::tryAttachBigInt() {
   Int32OperandId int32Id = writer.guardToInt32(argId);
 
   // Convert Int32 to BigInt.
-  writer.int32ToBigIntResult(int32Id);
+  IntPtrOperandId intptrId = writer.int32ToIntPtr(int32Id);
+  writer.intPtrToBigIntResult(intptrId);
   writer.returnFromIC();
 
   trackAttached("BigInt");

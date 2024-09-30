@@ -4072,6 +4072,10 @@ MDefinition* MTruncateBigIntToInt64::foldsTo(TempAllocator& alloc) {
   // If the operand is an IntPtr, extend the IntPtr to I64.
   if (input->isIntPtrToBigInt()) {
     auto* intPtr = input->toIntPtrToBigInt()->input();
+    if (intPtr->isConstant()) {
+      intptr_t c = intPtr->toConstant()->toIntPtr();
+      return MConstant::NewInt64(alloc, int64_t(c));
+    }
     return MIntPtrToInt64::New(alloc, intPtr);
   }
 
@@ -4105,6 +4109,17 @@ MDefinition* MToInt64::foldsTo(TempAllocator& alloc) {
       return MConstant::NewInt64(alloc, int64_t(c));
     }
     return MExtendInt32ToInt64::New(alloc, int32, /* isUnsigned = */ false);
+  }
+
+  // Unwrap IntPtrToBigInt:
+  // MToInt64(MIntPtrToBigInt(intptr)) = MIntPtrToInt64(intptr).
+  if (input->isIntPtrToBigInt()) {
+    auto* intPtr = input->toIntPtrToBigInt()->input();
+    if (intPtr->isConstant()) {
+      intptr_t c = intPtr->toConstant()->toIntPtr();
+      return MConstant::NewInt64(alloc, int64_t(c));
+    }
+    return MIntPtrToInt64::New(alloc, intPtr);
   }
 
   // When the input is an Int64 already, just return it.

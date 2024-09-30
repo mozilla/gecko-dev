@@ -590,8 +590,8 @@ function rcompare_string_ge(i) {
 }
 
 var uceFault_compare_bigint_eq = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_eq'));
-function rcompare_bigint_eq(i) {
-    var x = BigInt(i) == 99n;
+function rcompare_bigint_eq(i, bi) {
+    var x = bi == 99n;
     if (uceFault_compare_bigint_eq(i) || uceFault_compare_bigint_eq(i))
         assertEq(x, true);
     assertRecoveredOnBailout(x, true);
@@ -599,8 +599,8 @@ function rcompare_bigint_eq(i) {
 }
 
 var uceFault_compare_bigint_stricteq = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_stricteq'));
-function rcompare_bigint_stricteq(i) {
-    var x = BigInt(i) === 99n;
+function rcompare_bigint_stricteq(i, bi) {
+    var x = bi === 99n;
     if (uceFault_compare_bigint_stricteq(i) || uceFault_compare_bigint_stricteq(i))
         assertEq(x, true);
     assertRecoveredOnBailout(x, true);
@@ -608,8 +608,8 @@ function rcompare_bigint_stricteq(i) {
 }
 
 var uceFault_compare_bigint_ne = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_ne'));
-function rcompare_bigint_ne(i) {
-    var x = BigInt(i) != 99n;
+function rcompare_bigint_ne(i, bi) {
+    var x = bi != 99n;
     if (uceFault_compare_bigint_ne(i) || uceFault_compare_bigint_ne(i))
         assertEq(x, false);
     assertRecoveredOnBailout(x, true);
@@ -617,8 +617,8 @@ function rcompare_bigint_ne(i) {
 }
 
 var uceFault_compare_bigint_strictne = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_strictne'));
-function rcompare_bigint_strictne(i) {
-    var x = BigInt(i) !== 99n;
+function rcompare_bigint_strictne(i, bi) {
+    var x = bi !== 99n;
     if (uceFault_compare_bigint_strictne(i) || uceFault_compare_bigint_strictne(i))
         assertEq(x, false);
     assertRecoveredOnBailout(x, true);
@@ -626,8 +626,8 @@ function rcompare_bigint_strictne(i) {
 }
 
 var uceFault_compare_bigint_lt = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_lt'));
-function rcompare_bigint_lt(i) {
-    var x = BigInt(i) < 99n;
+function rcompare_bigint_lt(i, bi) {
+    var x = bi < 99n;
     if (uceFault_compare_bigint_lt(i) || uceFault_compare_bigint_lt(i))
         assertEq(x, false);
     assertRecoveredOnBailout(x, true);
@@ -635,8 +635,8 @@ function rcompare_bigint_lt(i) {
 }
 
 var uceFault_compare_bigint_le = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_le'));
-function rcompare_bigint_le(i) {
-    var x = BigInt(i) <= 99n;
+function rcompare_bigint_le(i, bi) {
+    var x = bi <= 99n;
     if (uceFault_compare_bigint_le(i) || uceFault_compare_bigint_le(i))
         assertEq(x, true);
     assertRecoveredOnBailout(x, true);
@@ -644,8 +644,8 @@ function rcompare_bigint_le(i) {
 }
 
 var uceFault_compare_bigint_gt = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_gt'));
-function rcompare_bigint_gt(i) {
-    var x = BigInt(i) > 99n;
+function rcompare_bigint_gt(i, bi) {
+    var x = bi > 99n;
     if (uceFault_compare_bigint_gt(i) || uceFault_compare_bigint_gt(i))
         assertEq(x, false);
     assertRecoveredOnBailout(x, true);
@@ -653,8 +653,8 @@ function rcompare_bigint_gt(i) {
 }
 
 var uceFault_compare_bigint_ge = eval(`(${uceFault})`.replace('uceFault', 'uceFault_compare_bigint_ge'));
-function rcompare_bigint_ge(i) {
-    var x = BigInt(i) >= 99n;
+function rcompare_bigint_ge(i, bi) {
+    var x = bi >= 99n;
     if (uceFault_compare_bigint_ge(i) || uceFault_compare_bigint_ge(i))
         assertEq(x, true);
     assertRecoveredOnBailout(x, true);
@@ -2123,14 +2123,14 @@ for (j = 100 - max; j < 100; j++) {
     rcompare_string_le(i);
     rcompare_string_gt(i);
     rcompare_string_ge(i);
-    rcompare_bigint_eq(i);
-    rcompare_bigint_stricteq(i);
-    rcompare_bigint_ne(i);
-    rcompare_bigint_stricteq(i);
-    rcompare_bigint_lt(i);
-    rcompare_bigint_le(i);
-    rcompare_bigint_gt(i);
-    rcompare_bigint_ge(i);
+    rcompare_bigint_eq(i, BigInt(i));
+    rcompare_bigint_stricteq(i, BigInt(i));
+    rcompare_bigint_ne(i, BigInt(i));
+    rcompare_bigint_stricteq(i, BigInt(i));
+    rcompare_bigint_lt(i, BigInt(i));
+    rcompare_bigint_le(i, BigInt(i));
+    rcompare_bigint_gt(i, BigInt(i));
+    rcompare_bigint_ge(i, BigInt(i));
     rconcat_string(i);
     rconcat_number(i);
     rstring_length(i);
