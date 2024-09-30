@@ -118,10 +118,10 @@ const NEWTAB_PING_PREFS = {
   showSponsored: Glean.pocket.sponsoredStoriesEnabled,
   topSitesRows: Glean.topsites.rows,
   showWeather: Glean.newtab.weatherEnabled,
-  "discoverystream.topicSelection.selectedTopics": Glean.newtab.selectedTopics,
 };
 const TOP_SITES_BLOCKED_SPONSORS_PREF = "browser.topsites.blockedSponsors";
-
+const TOPIC_SELECTION_SELECTED_TOPICS_PREF =
+  "browser.newtabpage.activity-stream.discoverystream.topicSelection.selectedTopics";
 export class TelemetryFeed {
   constructor() {
     this.sessions = new Map();
@@ -1409,16 +1409,22 @@ export class TelemetryFeed {
 
     Services.prefs.addObserver(TOP_SITES_BLOCKED_SPONSORS_PREF, this);
     this._setBlockedSponsorsMetrics();
+
+    Services.prefs.addObserver(TOPIC_SELECTION_SELECTED_TOPICS_PREF, this);
+    this._setTopicSelectionSelectedTopicsMetrics();
   }
 
   _stopObservingNewtabPingPrefs() {
     Services.prefs.removeObserver(ACTIVITY_STREAM_PREF_BRANCH, this);
     Services.prefs.removeObserver(TOP_SITES_BLOCKED_SPONSORS_PREF, this);
+    Services.prefs.removeObserver(TOPIC_SELECTION_SELECTED_TOPICS_PREF, this);
   }
 
   observe(subject, topic, data) {
     if (data === TOP_SITES_BLOCKED_SPONSORS_PREF) {
       this._setBlockedSponsorsMetrics();
+    } else if (data === TOPIC_SELECTION_SELECTED_TOPICS_PREF) {
+      this._setTopicSelectionSelectedTopicsMetrics();
     } else {
       this._setNewtabPrefMetrics(data, true);
     }
@@ -1461,6 +1467,22 @@ export class TelemetryFeed {
     } catch (e) {}
     if (blocklist) {
       Glean.newtab.blockedSponsors.set(blocklist);
+    }
+  }
+
+  _setTopicSelectionSelectedTopicsMetrics() {
+    let topiclist;
+    try {
+      topiclist = Services.prefs.getStringPref(
+        TOPIC_SELECTION_SELECTED_TOPICS_PREF,
+        ""
+      );
+    } catch (e) {}
+    if (topiclist) {
+      // Note: Beacuse Glean is expecting a string list, the
+      // value of the pref needs to be converted to an array
+      topiclist = topiclist.split(",").map(s => s.trim());
+      Glean.newtab.selectedTopics.set(topiclist);
     }
   }
 
