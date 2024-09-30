@@ -302,15 +302,23 @@ using OutlineTraceOffsetVector = Vector<uint32_t, 0, SystemAllocPolicy>;
 
 class StructType {
  public:
-  FieldTypeVector fields_;  // Field type and mutability
-
-  uint32_t size_;  // The size of the type in bytes.
+  // Vector of the fields in this struct
+  FieldTypeVector fields_;
+  // The total size of this struct in bytes
+  uint32_t size_;
+  // The offset for every struct field
   FieldOffsetVector fieldOffsets_;
+  // The offsets of fields that must be traced in the inline portion of wasm
+  // struct object.
   InlineTraceOffsetVector inlineTraceOffsets_;
+  // The offsets of fields that must be traced in the outline portion of wasm
+  // struct object.
   OutlineTraceOffsetVector outlineTraceOffsets_;
+  // Whether this struct only contains defaultable fields.
+  bool isDefaultable_;
 
  public:
-  StructType() : size_(0) {}
+  StructType() : size_(0), isDefaultable_(false) {}
 
   explicit StructType(FieldTypeVector&& fields)
       : fields_(std::move(fields)), size_(0) {}
@@ -320,14 +328,7 @@ class StructType {
 
   [[nodiscard]] bool init();
 
-  bool isDefaultable() const {
-    for (auto& field : fields_) {
-      if (!field.type.isDefaultable()) {
-        return false;
-      }
-    }
-    return true;
-  }
+  bool isDefaultable() const { return isDefaultable_; }
 
   uint32_t fieldOffset(uint32_t fieldIndex) const {
     return fieldOffsets_[fieldIndex];

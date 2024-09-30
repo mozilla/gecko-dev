@@ -620,7 +620,7 @@ CoderResult CodeFieldType(Coder<mode>& coder, CoderArg<mode, FieldType> item) {
 template <CoderMode mode>
 CoderResult CodeStructType(Coder<mode>& coder,
                            CoderArg<mode, StructType> item) {
-  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::StructType, 184);
+  WASM_VERIFY_SERIALIZATION_FOR_SIZE(wasm::StructType, 192);
   MOZ_TRY((CodeVector<mode, FieldType, &CodeFieldType<mode>>(coder,
                                                              &item->fields_)));
   if constexpr (mode == MODE_DECODE) {

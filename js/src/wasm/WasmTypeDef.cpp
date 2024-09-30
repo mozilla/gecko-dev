@@ -331,15 +331,26 @@ CheckedInt32 StructLayout::close() {
 }
 
 bool StructType::init() {
+  bool isDefaultable = true;
+
   StructLayout layout;
   for (FieldType& field : fields_) {
     CheckedInt32 offset = layout.addField(field.type);
     if (!offset.isValid()) {
       return false;
     }
+
+    // Add the offset to the list
     if (!fieldOffsets_.append(offset.value())) {
       return false;
     }
+
+    // If any field is not defaultable, this whole struct is not defaultable
+    if (!field.type.isDefaultable()) {
+      isDefaultable = false;
+    }
+
+    // If this field is not a ref, then don't add it to the trace lists
     if (!field.type.isRefRepr()) {
       continue;
     }
@@ -363,8 +374,9 @@ bool StructType::init() {
   if (!size.isValid()) {
     return false;
   }
-  size_ = size.value();
 
+  size_ = size.value();
+  isDefaultable_ = isDefaultable;
   return true;
 }
 
