@@ -214,6 +214,10 @@ bool DebuggerFrame::resume(const FrameIter& iter) {
   return true;
 }
 
+void DebuggerFrame::suspendWasmFrame(JS::GCContext* gcx) {
+  freeFrameIterData(gcx);
+}
+
 bool DebuggerFrame::hasAnyHooks() const {
   return !getReservedSlot(ONSTEP_HANDLER_SLOT).isUndefined() ||
          !getReservedSlot(ONPOP_HANDLER_SLOT).isUndefined();
@@ -1224,9 +1228,16 @@ Result<Completion> DebuggerFrame::eval(JSContext* cx,
 }
 
 bool DebuggerFrame::isOnStack() const {
-  // Note: this is equivalent to checking frameIterData() != nullptr, but works
-  // also when called from the trace hook during a moving GC.
+  // Note: this is equivalent to checking frameIterData() != nullptr.
   return !getFixedSlot(FRAME_ITER_SLOT).isUndefined();
+}
+
+bool DebuggerFrame::isOnStackOrSuspendedWasmStack() const {
+  // Note: this is equivalent to checking `frameIterData() != nullptr &&
+  // !hasGeneratorInfo()`, but works also when called from the trace hook
+  // during a moving GC.
+  return !getFixedSlot(FRAME_ITER_SLOT).isUndefined() ||
+         getFixedSlot(GENERATOR_INFO_SLOT).isUndefined();
 }
 
 OnStepHandler* DebuggerFrame::onStepHandler() const {
