@@ -100,6 +100,14 @@ void MacroAssembler::move32To64SignExtend(Register src, Register64 dest) {
   ma_asr(Imm32(31), dest.low, dest.high);
 }
 
+void MacroAssembler::move8SignExtendToPtr(Register src, Register dest) {
+  move8SignExtend(src, dest);
+}
+
+void MacroAssembler::move16SignExtendToPtr(Register src, Register dest) {
+  move16SignExtend(src, dest);
+}
+
 void MacroAssembler::move32SignExtendToPtr(Register src, Register dest) {
   move32(src, dest);
 }

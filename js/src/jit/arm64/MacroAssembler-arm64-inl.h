@@ -92,6 +92,14 @@ void MacroAssembler::move32To64SignExtend(Register src, Register64 dest) {
   Sxtw(ARMRegister(dest.reg, 64), ARMRegister(src, 32));
 }
 
+void MacroAssembler::move8SignExtendToPtr(Register src, Register dest) {
+  Sxtb(ARMRegister(dest, 64), ARMRegister(src, 32));
+}
+
+void MacroAssembler::move16SignExtendToPtr(Register src, Register dest) {
+  Sxth(ARMRegister(dest, 64), ARMRegister(src, 32));
+}
+
 void MacroAssembler::move32SignExtendToPtr(Register src, Register dest) {
   Sxtw(ARMRegister(dest, 64), ARMRegister(src, 32));
 }

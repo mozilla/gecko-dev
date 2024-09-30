@@ -84,6 +84,14 @@ void MacroAssembler::move16SignExtend(Register src, Register dest) {
   as_ext_w_h(dest, src);
 }
 
+void MacroAssembler::move8SignExtendToPtr(Register src, Register dest) {
+  move8To64SignExtend(src, Register64(dest));
+}
+
+void MacroAssembler::move16SignExtendToPtr(Register src, Register dest) {
+  move16To64SignExtend(src, Register64(dest));
+}
+
 void MacroAssembler::move32SignExtendToPtr(Register src, Register dest) {
   as_slli_w(dest, src, 0);
 }

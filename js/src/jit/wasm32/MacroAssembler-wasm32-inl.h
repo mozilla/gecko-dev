@@ -47,6 +47,14 @@ void MacroAssembler::move32To64SignExtend(Register src, Register64 dest) {
   MOZ_CRASH();
 }
 
+void MacroAssembler::move8SignExtendToPtr(Register src, Register dest) {
+  MOZ_CRASH();
+}
+
+void MacroAssembler::move16SignExtendToPtr(Register src, Register dest) {
+  MOZ_CRASH();
+}
+
 void MacroAssembler::move32SignExtendToPtr(Register src, Register dest) {
   MOZ_CRASH();
 }
