@@ -264,6 +264,27 @@ failure:
     return CKR_MECHANISM_PARAM_INVALID;
 }
 
+static PRBool kbkdf_ValidPRF(CK_SP800_108_PRF_TYPE prf) {
+    // See Table 161 of PKCS#11 v3.0 or Table 192 of PKCS#11 v3.1.
+    switch (prf) {
+        case CKM_AES_CMAC:
+        /* case CKM_DES3_CMAC: */
+            return PR_TRUE;
+        case CKM_SHA_1_HMAC:
+        case CKM_SHA224_HMAC:
+        case CKM_SHA256_HMAC:
+        case CKM_SHA384_HMAC:
+        case CKM_SHA512_HMAC:
+        case CKM_SHA3_224_HMAC:
+        case CKM_SHA3_256_HMAC:
+        case CKM_SHA3_384_HMAC:
+        case CKM_SHA3_512_HMAC:
+            /* Valid HMAC <-> HASH isn't NULL */
+            return sftk_HMACMechanismToHash(prf) != HASH_AlgNULL;
+    }
+    return PR_FALSE;
+}
+
 static CK_RV
 kbkdf_ValidateParameters(CK_MECHANISM_TYPE mech, const CK_SP800_108_KDF_PARAMS *params, CK_ULONG keySize)
 {
@@ -273,14 +294,7 @@ kbkdf_ValidateParameters(CK_MECHANISM_TYPE mech, const CK_SP800_108_KDF_PARAMS *
 
     /* Start with checking the prfType as a mechanism against a list of
      * PRFs allowed by PKCS#11 v3.0. */
-    if (!(/* The following types aren't defined in NSS yet. */
-          /* params->prfType != CKM_3DES_CMAC && */
-          params->prfType == CKM_AES_CMAC || /* allow */
-          /* We allow any HMAC except MD2 and MD5. */
-          params->prfType != CKM_MD2_HMAC ||                        /* disallow */
-          params->prfType != CKM_MD5_HMAC ||                        /* disallow */
-          sftk_HMACMechanismToHash(params->prfType) != HASH_AlgNULL /* Valid HMAC <-> HASH isn't NULL */
-          )) {
+    if (!kbkdf_ValidPRF(params->prfType)) {
         return CKR_MECHANISM_PARAM_INVALID;
     }
 

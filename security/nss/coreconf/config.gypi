@@ -200,7 +200,7 @@
       }],
       [ 'fuzz==1', {
         'variables': {
-          'debug_optimization_level%': '1',
+          'debug_optimization_level%': '3',
         },
       }],
       [ 'target_arch=="ia32" or target_arch=="x64"', {

@@ -24,8 +24,6 @@ copy_fuzzer()
     # Zip and copy the corpus, if any.
     if [ -d "$SRC/nss-corpus/$name" ]; then
         zip $OUT/${name}_seed_corpus.zip $SRC/nss-corpus/$name/*
-    else
-        zip $OUT/${name}_seed_corpus.zip $SRC/nss-corpus/*/*
     fi
 }
 

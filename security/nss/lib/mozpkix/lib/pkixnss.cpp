@@ -389,6 +389,13 @@ RegisterErrorTable()
     { "MOZILLA_PKIX_ERROR_MITM_DETECTED",
       "Your connection is being intercepted by a TLS proxy. Uninstall it if "
       "possible or configure your device to trust its root certificate." },
+    { "MOZILLA_PKIX_ERROR_INSUFFICIENT_CERTIFICATE_TRANSPARENCY",
+      "The server presented insufficient certificate transparency information."
+      " Its certificate may not have been publicly disclosed, and it may have "
+      "been misissued." },
+    { "MOZILLA_PKIX_ERROR_ISSUER_NO_LONGER_TRUSTED",
+      "The certificate was issued by a certificate authority that is no longer"
+      " trusted to issue new certificates." },
   };
   // Note that these error strings are not localizable.
   // When these strings change, update the localization information too.

@@ -44,6 +44,7 @@
         '<(DEPTH)/lib/util/util.gyp:nssutil',
         '<(DEPTH)/lib/nss/nss.gyp:nss_static',
         '<(DEPTH)/lib/pkcs7/pkcs7.gyp:pkcs7',
+        '<(DEPTH)/lib/pkcs12/pkcs12.gyp:pkcs12',
         # This is a static build of pk11wrap, softoken, and freebl.
         '<(DEPTH)/lib/pk11wrap/pk11wrap.gyp:pk11wrap_static',
         '<(DEPTH)/lib/libpkix/libpkix.gyp:libpkix',
@@ -109,6 +110,19 @@
         'pkcs8_target.cc',
       ],
       'dependencies': [
+        '<(DEPTH)/exports.gyp:nss_exports',
+        'fuzz_base',
+      ],
+    },
+    {
+      'target_name': 'nssfuzz-pkcs12',
+      'type': 'executable',
+      'sources': [
+        'asn1_mutators.cc',
+        'pkcs12_target.cc',
+      ],
+      'dependencies': [
+        '<(DEPTH)/cpputil/cpputil.gyp:cpputil',
         '<(DEPTH)/exports.gyp:nss_exports',
         'fuzz_base',
       ],
@@ -351,6 +365,7 @@
         'nssfuzz-dtls-client',
         'nssfuzz-dtls-server',
         'nssfuzz-pkcs8',
+        'nssfuzz-pkcs12',
         'nssfuzz-quickder',
         'nssfuzz-tls-client',
         'nssfuzz-tls-server',

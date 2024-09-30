@@ -139,6 +139,11 @@ while [ $# -gt 0 ]; do
     shift
 done
 
+if [ "$opt_build" = 1 ] && [ "$fuzz" = 1 ]; then
+    echo "Specifiying --opt with --fuzz is not supported." >&2
+    exit 1
+fi
+
 if [ -n "$python" ]; then
     gyp_params+=(-Dpython="$python")
 fi

@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <limits>
+#include <unordered_set>
+
 #include "blapi.h"
 #include "ssl.h"
 #include "sslimpl.h"
@@ -18,6 +21,53 @@ namespace nss_test {
 #define FUZZ_F(c, f) TEST_F(c, DISABLED_Fuzz_##f)
 #define FUZZ_P(c, f) TEST_P(c, DISABLED_Fuzz_##f)
 #endif
+
+static std::unordered_set<PRInt32> gFuzzedSslOptions = {
+    SSL_SECURITY,             // irrelevant
+    SSL_SOCKS,                // irrelevant
+    SSL_REQUEST_CERTIFICATE,  // tls_server_fuzz_target
+    SSL_HANDSHAKE_AS_CLIENT,  // irrelevant
+    SSL_HANDSHAKE_AS_SERVER,  // irrelevant
+    SSL_ENABLE_SSL2,          // obsolete
+    SSL_ENABLE_SSL3,          // obsolete
+    SSL_NO_CACHE,             // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_REQUIRE_CERTIFICATE,  // tls_server_fuzz_target
+    SSL_ENABLE_FDX,
+    SSL_V2_COMPATIBLE_HELLO,  // obsolete
+    SSL_ENABLE_TLS,           // obsolete
+    SSL_ROLLBACK_DETECTION,
+    SSL_NO_STEP_DOWN,   // unsupported
+    SSL_BYPASS_PKCS11,  // unsupported
+    SSL_NO_LOCKS,       // tls_client_fuzz_target. tls_server_fuzz_target
+    SSL_ENABLE_SESSION_TICKETS,  // tls_client_fuzz_target,
+                                 // tls_server_fuzz_target
+    SSL_ENABLE_DEFLATE,  // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_ENABLE_RENEGOTIATION,
+    SSL_REQUIRE_SAFE_NEGOTIATION,  // tls_client_fuzz_target,
+                                   // tls_server_fuzz_target
+    SSL_ENABLE_FALSE_START,        // tls_client_fuzz_target
+    SSL_CBC_RANDOM_IV,         // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_ENABLE_OCSP_STAPLING,  // tls_client_fuzz_target
+    SSL_ENABLE_NPN,            // defunct
+    SSL_ENABLE_ALPN,           // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_REUSE_SERVER_ECDHE_KEY,
+    SSL_ENABLE_FALLBACK_SCSV,  // tls_client_fuzz_target,
+                               // tls_server_fuzz_target
+    SSL_ENABLE_SERVER_DHE,
+    SSL_ENABLE_EXTENDED_MASTER_SECRET,  // tls_client_fuzz_target,
+                                        // tls_server_fuzz_target
+    SSL_ENABLE_SIGNED_CERT_TIMESTAMPS,
+    SSL_REQUIRE_DH_NAMED_GROUPS,  // tls_client_fuzz_target
+    SSL_ENABLE_0RTT_DATA,  // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_RECORD_SIZE_LIMIT,
+    SSL_ENABLE_TLS13_COMPAT_MODE,  // tls_client_fuzz_target
+    SSL_ENABLE_DTLS_SHORT_HEADER, SSL_ENABLE_HELLO_DOWNGRADE_CHECK,
+    SSL_ENABLE_V2_COMPATIBLE_HELLO,
+    SSL_ENABLE_POST_HANDSHAKE_AUTH,  // tls_client_fuzz_target
+    SSL_ENABLE_DELEGATED_CREDENTIALS, SSL_SUPPRESS_END_OF_EARLY_DATA,
+    SSL_ENABLE_GREASE,  // tls_client_fuzz_target, tls_server_fuzz_target
+    SSL_ENABLE_CH_EXTENSION_PERMUTATION,  // tls_client_fuzz_target
+};
 
 const uint8_t kShortEmptyFinished[8] = {0};
 const uint8_t kLongEmptyFinished[128] = {0};
@@ -239,6 +289,21 @@ FUZZ_P(TlsFuzzTest, UnencryptedSessionTickets) {
   uint32_t suite = 0;
   EXPECT_TRUE(filter->buffer().Read(offset, 2, &suite));
   client_->CheckCipherSuite(static_cast<uint16_t>(suite));
+}
+
+class MiscFuzzTest : public ::testing::Test {};
+
+FUZZ_F(MiscFuzzTest, UnfuzzedSslOption) {
+  PRIntn val;
+  SECStatus rv;
+
+  for (PRInt32 option = 0; option < std::numeric_limits<PRUint8>::max();
+       ++option) {
+    rv = SSL_OptionGetDefault(option, &val);
+    // The return value should either be  a failure (=> there is no such
+    // option) or the the option should be in the fuzzed options.
+    EXPECT_TRUE(rv == SECFailure || gFuzzedSslOptions.count(option));
+  }
 }
 
 INSTANTIATE_TEST_SUITE_P(

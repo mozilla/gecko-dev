@@ -1,4 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import argparse
 import hashlib
@@ -101,7 +104,7 @@ def brrrrr(hosts, args):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--nss",
+    parser.add_argument("--nss-build",
                         required=True,
                         help="e.g. /path/to/dist/Debug")
     parser.add_argument("--hosts", required=True)
@@ -113,8 +116,10 @@ def main():
     with open(args.hosts, "r") as f:
         hosts = f.read().splitlines()
 
-    os.makedirs(os.path.join(args.output, "client"), exist_ok=True)
-    os.makedirs(os.path.join(args.output, "server"), exist_ok=True)
+    # For use in automation (e.g. MozillaSecurity/orion), the output
+    # corpus directories should follow the following scheme: $name-corpus.
+    os.makedirs(os.path.join(args.output, "tls-server-corpus"), exist_ok=True)
+    os.makedirs(os.path.join(args.output, "tls-client-corpus"), exist_ok=True)
 
     chunks = itertools.batched(hosts, len(hosts) // args.threads)
     threads = []

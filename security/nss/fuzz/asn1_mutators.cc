@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include <assert.h>
-#include <string.h>
+#include <cassert>
+#include <cstring>
 #include <random>
 #include <tuple>
 
@@ -92,8 +92,10 @@ static vector<uint8_t *> ParseItems(uint8_t *Data, size_t Size) {
   return items;
 }
 
-size_t ASN1MutatorFlipConstructed(uint8_t *Data, size_t Size, size_t MaxSize,
-                                  unsigned int Seed) {
+namespace ASN1Mutators {
+
+size_t FlipConstructed(uint8_t *Data, size_t Size, size_t MaxSize,
+                       unsigned int Seed) {
   auto items = ParseItems(Data, Size);
 
   std::mt19937 rng(Seed);
@@ -106,8 +108,8 @@ size_t ASN1MutatorFlipConstructed(uint8_t *Data, size_t Size, size_t MaxSize,
   return Size;
 }
 
-size_t ASN1MutatorChangeType(uint8_t *Data, size_t Size, size_t MaxSize,
-                             unsigned int Seed) {
+size_t ChangeType(uint8_t *Data, size_t Size, size_t MaxSize,
+                  unsigned int Seed) {
   auto items = ParseItems(Data, Size);
 
   std::mt19937 rng(Seed);
@@ -120,3 +122,5 @@ size_t ASN1MutatorChangeType(uint8_t *Data, size_t Size, size_t MaxSize,
 
   return Size;
 }
+
+}  // namespace ASN1Mutators

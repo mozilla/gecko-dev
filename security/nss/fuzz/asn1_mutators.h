@@ -2,15 +2,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef asn1_mutators_h__
-#define asn1_mutators_h__
+#ifndef ASN1_MUTATORS_H_
+#define ASN1_MUTATORS_H_
 
-#include <stdint.h>
 #include <cstddef>
+#include <cstdint>
 
-size_t ASN1MutatorFlipConstructed(uint8_t *Data, size_t Size, size_t MaxSize,
-                                  unsigned int Seed);
-size_t ASN1MutatorChangeType(uint8_t *Data, size_t Size, size_t MaxSize,
-                             unsigned int Seed);
+namespace ASN1Mutators {
 
-#endif  // asn1_mutators_h__
+size_t FlipConstructed(uint8_t *data, size_t size, size_t maxSize,
+                       unsigned int seed);
+size_t ChangeType(uint8_t *data, size_t size, size_t maxSize,
+                  unsigned int seed);
+
+}  // namespace ASN1Mutators
+
+#endif  // ASN1_MUTATORS_H_

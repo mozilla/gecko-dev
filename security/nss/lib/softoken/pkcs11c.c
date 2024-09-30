@@ -7503,8 +7503,9 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
     /*
      * now lets create an object to hang the attributes off of
      */
-    PORT_Assert(phKey);
-    *phKey = CK_INVALID_HANDLE;
+    if (phKey) {
+        *phKey = CK_INVALID_HANDLE;
+    }
 
     key = sftk_NewObject(slot); /* fill in the handle later */
     if (key == NULL) {
@@ -9050,7 +9051,9 @@ NSC_DeriveKey(CK_SESSION_HANDLE hSession,
         crv = sftk_handleObject(key, session);
         session->lastOpWasFIPS = key->isFIPS;
         sftk_FreeSession(session);
-        *phKey = key->handle;
+        if (phKey) {
+            *phKey = key->handle;
+        }
         sftk_FreeObject(key);
     }
     return crv;

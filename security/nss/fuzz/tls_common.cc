@@ -67,17 +67,30 @@ void DoHandshake(PRFileDesc* fd, bool isServer) {
 }
 
 SECStatus DummyCompressionEncode(const SECItem* input, SECItem* output) {
+  if (!input || !input->data || input->len == 0 || !output) {
+    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+    return SECFailure;
+  }
+
   SECITEM_CopyItem(nullptr, output, input);
-  PORT_Memcpy(output->data, input->data, output->len);
 
   return SECSuccess;
 }
 
 SECStatus DummyCompressionDecode(const SECItem* input, unsigned char* output,
                                  size_t outputLen, size_t* usedLen) {
-  assert(input->len == outputLen);
+  if (!input || !input->data || input->len == 0 || !output || outputLen == 0) {
+    PR_SetError(SEC_ERROR_INVALID_ARGS, 0);
+    return SECFailure;
+  }
+
+  if (input->len > outputLen) {
+    PR_SetError(SEC_ERROR_BAD_DATA, 0);
+    return SECFailure;
+  }
+
   PORT_Memcpy(output, input->data, input->len);
-  *usedLen = outputLen;
+  *usedLen = input->len;
 
   return SECSuccess;
 }
