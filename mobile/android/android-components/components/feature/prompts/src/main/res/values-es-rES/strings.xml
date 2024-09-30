@@ -128,7 +128,10 @@
     <!-- Content description for the suggest strong password confirmation dialog -->
     <string name="mozac_feature_prompts_suggest_strong_password_description" moz:removedIn="130" tools:ignore="UnusedResources">Protege tus cuentas utilizando una contraseña segura generada aleatoriamente. Obtén acceso rápido a tus contraseñas guardándolas en tu cuenta.</string>
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_2">Protege tus cuentas utilizando una contraseña segura generada aleatoriamente. Se guardará en tu cuenta para uso futuro.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Protege tus cuentas utilizando una contraseña segura generada aleatoriamente. Se guardará en tu cuenta para uso futuro.</string>
+
+    <!-- Content description for the suggest strong password confirmation dialog -->
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Protege tu cuenta utilizando una contraseña segura generada aleatoriamente. Se guardará en tu cuenta para uso futuro.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Usar contraseña</string>
