@@ -5,10 +5,6 @@ const { SearchTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/SearchTestUtils.sys.mjs"
 );
 
-ChromeUtils.defineESModuleGetters(this, {
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
-});
-
 SearchTestUtils.init(this);
 
 add_setup(async function () {
@@ -268,23 +264,6 @@ add_task(async function test_setDefaultEngine() {
 
   await setDefaultEngine(false, "engine1", "engine2");
 
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "change_default",
-        value: "user",
-        extra: {
-          prev_id: engine1.telemetryId,
-          new_id: "other-engine2",
-          new_name: "engine2",
-          new_load_path: "[addon]engine2@tests.mozilla.org",
-          new_sub_url: "",
-        },
-      },
-    ],
-    { category: "search", method: "engine" }
-  );
-
   let snapshot = await Glean.searchEngineDefault.changed.testGetValue();
   delete snapshot[0].timestamp;
   Assert.deepEqual(
@@ -330,23 +309,6 @@ add_task(async function test_setPrivateDefaultEngine() {
   Services.fog.testResetFOG();
 
   await setDefaultEngine(true, "engine2", "engine1");
-
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "change_private",
-        value: "user",
-        extra: {
-          prev_id: engine2.telemetryId,
-          new_id: "other-engine1",
-          new_name: "engine1",
-          new_load_path: "[addon]engine1@tests.mozilla.org",
-          new_sub_url: "",
-        },
-      },
-    ],
-    { category: "search", method: "engine" }
-  );
 
   let snapshot = await Glean.searchEnginePrivate.changed.testGetValue();
   delete snapshot[0].timestamp;

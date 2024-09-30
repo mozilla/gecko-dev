@@ -3153,7 +3153,6 @@ export class SearchService {
     changeSource = Ci.nsISearchService.CHANGE_REASON_UNKNOWN
   ) {
     changeSource = REASON_CHANGE_MAP.get(changeSource) ?? "unknown";
-    Services.telemetry.setEventRecordingEnabled("search", true);
     let telemetryId;
     let engineInfo;
     // If we are toggling the separate private browsing settings, we might not
@@ -3170,23 +3169,6 @@ export class SearchService {
     }
 
     let submissionURL = engineInfo.submissionURL ?? "";
-    Services.telemetry.recordEvent(
-      "search",
-      "engine",
-      isPrivate ? "change_private" : "change_default",
-      changeSource,
-      {
-        // In docshell tests, the previous engine does not exist, so we allow
-        // for the previousEngine to be undefined.
-        prev_id: previousEngine?.telemetryId ?? "",
-        new_id: telemetryId,
-        new_name: engineInfo.name,
-        new_load_path: engineInfo.loadPath,
-        // Telemetry has a limit of 80 characters.
-        new_sub_url: submissionURL.slice(0, 80),
-      }
-    );
-
     let extraArgs = {
       // In docshell tests, the previous engine does not exist, so we allow
       // for the previousEngine to be undefined.

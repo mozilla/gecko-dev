@@ -11,7 +11,6 @@
 
 ChromeUtils.defineESModuleGetters(this, {
   NimbusFeatures: "resource://nimbus/ExperimentAPI.sys.mjs",
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
 });
 
 const BASE_CONFIG = [
@@ -179,40 +178,6 @@ async function checkTelemetry(
   // this test we test for the additional `engine-update` event that's recorded.
   // In future, we should be more specific about when to record the event and
   // so only one event is captured and not two.
-  let additionalEvent = [
-    {
-      object: checkPrivate ? "change_private" : "change_default",
-      value: "engine-update",
-      extra: {
-        prev_id: prevEngine?.id ?? "",
-        new_id: prevEngine?.id ?? "",
-        new_name: prevEngine?.name ?? "",
-        new_load_path: prevEngine?.loadPath ?? "",
-        // Telemetry has a limit of 80 characters.
-        new_sub_url: prevEngine?.submissionURL.slice(0, 80) ?? "",
-      },
-    },
-  ];
-
-  TelemetryTestUtils.assertEvents(
-    [
-      ...(additionalEventsExpected ? additionalEvent : []),
-      {
-        object: checkPrivate ? "change_private" : "change_default",
-        value: source,
-        extra: {
-          prev_id: prevEngine?.id ?? "",
-          new_id: newEngine?.id ?? "",
-          new_name: newEngine?.name ?? "",
-          new_load_path: newEngine?.loadPath ?? "",
-          // Telemetry has a limit of 80 characters.
-          new_sub_url: newEngine?.submissionURL.slice(0, 80) ?? "",
-        },
-      },
-    ],
-    { category: "search", method: "engine" }
-  );
-
   let snapshot;
   if (checkPrivate) {
     snapshot = await Glean.searchEnginePrivate.changed.testGetValue();

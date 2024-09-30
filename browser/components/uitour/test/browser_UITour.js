@@ -10,7 +10,6 @@ ChromeUtils.defineESModuleGetters(this, {
   ProfileAge: "resource://gre/modules/ProfileAge.sys.mjs",
   TelemetryArchiveTesting:
     "resource://testing-common/TelemetryArchiveTesting.sys.mjs",
-  TelemetryTestUtils: "resource://testing-common/TelemetryTestUtils.sys.mjs",
   UpdateUtils: "resource://gre/modules/UpdateUtils.sys.mjs",
   CustomizableUITestUtils:
     "resource://testing-common/CustomizableUITestUtils.sys.mjs",
@@ -680,24 +679,6 @@ var tests = [
     let submissionUrl = engine
       .getSubmission("dummy")
       .uri.spec.replace("dummy", "");
-
-    TelemetryTestUtils.assertEvents(
-      [
-        {
-          object: "change_default",
-          value: "uitour",
-          extra: {
-            prev_id: defaultEngine.telemetryId,
-            new_id: engine.telemetryId,
-            new_name: engine.name,
-            new_load_path: engine.wrappedJSObject._loadPath,
-            // Telemetry has a limit of 80 characters.
-            new_sub_url: submissionUrl.slice(0, 80),
-          },
-        },
-      ],
-      { category: "search", method: "engine" }
-    );
 
     let snapshot = await Glean.searchEngineDefault.changed.testGetValue();
     delete snapshot[0].timestamp;

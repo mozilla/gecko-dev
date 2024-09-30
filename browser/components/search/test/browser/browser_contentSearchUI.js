@@ -769,22 +769,6 @@ add_task(async function cycleEngines() {
     TEST_ENGINE2.name,
     "Should have correctly cycled the engine"
   );
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "change_default",
-        value: "user_searchbar",
-        extra: {
-          prev_id: TEST_ENGINE1.id,
-          new_id: TEST_ENGINE2.id,
-          new_name: TEST_ENGINE2.name,
-          new_load_path: TEST_ENGINE2.loadPath,
-          new_sub_url: "",
-        },
-      },
-    ],
-    { category: "search", method: "engine" }
-  );
 
   let snapshot = await Glean.searchEngineDefault.changed.testGetValue();
   delete snapshot[0].timestamp;
@@ -815,23 +799,6 @@ add_task(async function cycleEngines() {
     newEngine.name,
     TEST_ENGINE1.name,
     "Should have correctly cycled the engine"
-  );
-
-  TelemetryTestUtils.assertEvents(
-    [
-      {
-        object: "change_default",
-        value: "user_searchbar",
-        extra: {
-          prev_id: TEST_ENGINE2.id,
-          new_id: TEST_ENGINE1.id,
-          new_name: TEST_ENGINE1.name,
-          new_load_path: TEST_ENGINE1.loadPath,
-          new_sub_url: "",
-        },
-      },
-    ],
-    { category: "search", method: "engine" }
   );
 
   snapshot = await Glean.searchEngineDefault.changed.testGetValue();
