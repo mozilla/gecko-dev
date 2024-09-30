@@ -18,9 +18,6 @@ const { Downloader } = ChromeUtils.importESModule(
 const { TelemetryController } = ChromeUtils.importESModule(
   "resource://gre/modules/TelemetryController.sys.mjs"
 );
-const { TelemetryTestUtils } = ChromeUtils.importESModule(
-  "resource://testing-common/TelemetryTestUtils.sys.mjs"
-);
 
 const ExtensionBlocklistMLBF = getExtensionBlocklistMLBF();
 
@@ -39,24 +36,7 @@ const SERVER_UPDATE_URL = `${SERVER_BASE_URL}${SERVER_UPDATE_PATH}`;
 // update is served via `server` over insecure http.
 Services.prefs.setBoolPref(PREF_EM_CHECK_UPDATE_SECURITY, false);
 
-async function assertEventDetails(expectedExtras) {
-  if (!IS_ANDROID_BUILD) {
-    const expectedEvents = expectedExtras.map(expectedExtra => {
-      let { object, value, ...extra } = expectedExtra;
-      return ["blocklist", "addonBlockChange", object, value, extra];
-    });
-    await TelemetryTestUtils.assertEvents(expectedEvents, {
-      category: "blocklist",
-      method: "addonBlockChange",
-    });
-  } else {
-    info(
-      `Skip assertions on collected samples for addonBlockChange on android builds`
-    );
-  }
-  assertGleanEventDetails(expectedExtras);
-}
-async function assertGleanEventDetails(expectedExtras) {
+function assertGleanEventDetails(expectedExtras) {
   const snapshot = Glean.blocklist.addonBlockChange.testGetValue();
   if (expectedExtras.length === 0) {
     Assert.deepEqual(undefined, snapshot, "Expected zero addonBlockChange");
@@ -146,7 +126,7 @@ add_task(async function install_update_not_blocked_is_no_events() {
   addon = await AddonManager.getAddonByID(EXT_ID);
   equal(addon.version, "1", "Add-on was updated");
 
-  await assertEventDetails([]);
+  assertGleanEventDetails([]);
 });
 
 add_task(async function blocklist_update_events() {
@@ -163,7 +143,7 @@ add_task(async function blocklist_update_events() {
     ],
   });
 
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       object: "blocklist_update",
       value: EXT_ID,
@@ -188,7 +168,7 @@ add_task(async function update_check_blocked_by_stash() {
   // and that scenario is covered by update_check_blocked_by_stash elsewhere.
   equal(update.updateAvailable, false, "Update was blocked by stash");
 
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       object: "addon_update_check",
       value: EXT_ID,
@@ -217,7 +197,7 @@ add_task(async function reinstall_blocked_addon() {
   let addon = await tryAddonInstall(EXT_ID, "2");
   ok(!addon, "Add-on install should be blocked by a stash");
 
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       // Note: installs of existing versions are observed as "addon_install".
       // Only updates after update checks are tagged as "addon_update".
@@ -241,10 +221,10 @@ add_task(async function regular_restart_no_event() {
   // Version different/higher than the 42.0 that was passed to createAppInfo at
   // the start of this test file to force a database rebuild.
   await promiseRestartManager("90.0");
-  await assertEventDetails([]);
+  assertGleanEventDetails([]);
 
   await promiseRestartManager();
-  await assertEventDetails([]);
+  assertGleanEventDetails([]);
 });
 
 add_task(async function database_modified() {
@@ -266,7 +246,7 @@ add_task(async function database_modified() {
   // Shut down because the database reconcilation blocks shutdown, and we want
   // to be certain that the process has finished before checking the events.
   await promiseShutdownManager();
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       object: "addon_db_modified",
       value: EXT_ID,
@@ -282,7 +262,7 @@ add_task(async function database_modified() {
 
   Services.fog.testResetFOG();
   await promiseStartupManager();
-  await assertEventDetails([]);
+  assertGleanEventDetails([]);
 });
 
 add_task(async function install_replaces_blocked_addon() {
@@ -290,7 +270,7 @@ add_task(async function install_replaces_blocked_addon() {
   let addon = await tryAddonInstall(EXT_ID, "3");
   ok(addon, "Update supersedes blocked add-on");
 
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       object: "addon_install",
       value: EXT_ID,
@@ -321,7 +301,7 @@ add_task(async function install_blocked_by_mlbf() {
 
   ok(!addon, "Add-on install should be blocked by the MLBF");
 
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       object: "addon_install",
       value: EXT_BLOCKED_ID,
@@ -364,7 +344,7 @@ add_task(async function update_check_blocked_by_mlbf() {
   );
   equal(addon.appDisabled, true, "Add-on was disabled because of the block");
 
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       object: "addon_update",
       value: EXT_BLOCKED_ID,
@@ -395,7 +375,7 @@ add_task(async function update_blocked_to_unblocked() {
 
   let addon = await AddonManager.getAddonByID(EXT_BLOCKED_ID);
   equal(addon.appDisabled, false, "Add-on was re-enabled after unblock");
-  await assertEventDetails([
+  assertGleanEventDetails([
     {
       object: "addon_update",
       value: EXT_BLOCKED_ID,

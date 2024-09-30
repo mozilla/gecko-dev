@@ -135,11 +135,6 @@ const MAX_BLOCK_LEVEL = 3;
 const BLOCKLIST_BUCKET = "blocklists";
 
 const BlocklistTelemetry = {
-  init() {
-    // Used by BlocklistTelemetry.recordAddonBlockChangeTelemetry.
-    Services.telemetry.setEventRecordingEnabled("blocklist", true);
-  },
-
   /**
    * Record the RemoteSettings Blocklist lastModified server time into the
    * "blocklist.lastModified_rs keyed scalar (or "Missing Date" when unable
@@ -233,34 +228,16 @@ const BlocklistTelemetry = {
       );
     }
 
-    const value = addon.id;
-    const extra = {
-      blocklistState: `${addon.blocklistState}`,
+    Glean.blocklist.addonBlockChange.record({
+      value: addon.id,
+      object: reason,
+      blocklist_state: addon.blocklistState,
       addon_version: addon.version,
-      signed_date: `${addon.signedDate?.getTime() || 0}`,
-      hours_since: `${hoursSinceInstall}`,
+      signed_date: addon.signedDate?.getTime() || 0,
+      hours_since: hoursSinceInstall,
 
       ...ExtensionBlocklistMLBF.getBlocklistMetadataForTelemetry(),
-    };
-    Glean.blocklist.addonBlockChange.record({
-      value,
-      object: reason,
-      blocklist_state: extra.blocklistState,
-      addon_version: extra.addon_version,
-      signed_date: extra.signed_date,
-      hours_since: extra.hours_since,
-      mlbf_last_time: extra.mlbf_last_time,
-      mlbf_generation: extra.mlbf_generation,
-      mlbf_source: extra.mlbf_source,
     });
-
-    Services.telemetry.recordEvent(
-      "blocklist",
-      "addonBlockChange",
-      reason,
-      value,
-      extra
-    );
   },
 };
 
@@ -1382,7 +1359,6 @@ export let Blocklist = {
     this._chooseExtensionBlocklistImplementationFromPref();
     Services.prefs.addObserver("extensions.blocklist.", this);
     Services.prefs.addObserver(PREF_EM_LOGGING_ENABLED, this);
-    BlocklistTelemetry.init();
   },
   isLoaded: true,
 
