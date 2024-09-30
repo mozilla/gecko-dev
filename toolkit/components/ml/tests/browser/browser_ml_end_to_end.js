@@ -36,7 +36,7 @@ async function setup({ disabled = false, prefs = [] } = {}) {
   async function pathExists(path) {
     try {
       return await IOUtils.exists(path);
-    } catch {
+    } catch (e) {
       return false;
     }
   }
