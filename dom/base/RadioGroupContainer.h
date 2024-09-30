@@ -26,7 +26,7 @@ class RadioGroupContainer final {
                        nsCycleCollectionTraversalCallback& cb);
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const;
 
-  NS_IMETHOD WalkRadioGroup(const nsAString& aName, nsIRadioVisitor* aVisitor);
+  nsresult WalkRadioGroup(const nsAString& aName, nsIRadioVisitor* aVisitor);
   void SetCurrentRadioButton(const nsAString& aName, HTMLInputElement* aRadio);
   HTMLInputElement* GetCurrentRadioButton(const nsAString& aName);
   nsresult GetNextRadioButton(const nsAString& aName, const bool aPrevious,

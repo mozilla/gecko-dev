@@ -65,7 +65,7 @@ void RadioGroupContainer::Traverse(RadioGroupContainer* tmp,
 
 size_t RadioGroupContainer::SizeOfIncludingThis(
     MallocSizeOf aMallocSizeOf) const {
-  return mRadioGroups.SizeOfIncludingThis(aMallocSizeOf);
+  return aMallocSizeOf(this) + mRadioGroups.SizeOfExcludingThis(aMallocSizeOf);
 }
 
 nsresult RadioGroupContainer::WalkRadioGroup(const nsAString& aName,
