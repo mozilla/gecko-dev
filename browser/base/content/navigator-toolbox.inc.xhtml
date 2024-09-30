@@ -4,118 +4,121 @@
 
 <toolbox id="navigator-toolbox">
 
-  <!-- Menu -->
-  <toolbar type="menubar" id="toolbar-menubar"
-           class="browser-toolbar chromeclass-menubar browser-titlebar titlebar-color"
-           customizable="true"
-           mode="icons"
-           context="toolbar-context-menu">
-    <toolbaritem id="menubar-items" align="center">
+  <vbox id="titlebar">
+    <!-- Menu -->
+    <toolbar type="menubar" id="toolbar-menubar"
+             class="browser-toolbar chromeclass-menubar titlebar-color"
+             customizable="true"
+             mode="icons"
+             context="toolbar-context-menu">
+      <toolbaritem id="menubar-items" align="center">
 # The entire main menubar is placed into browser-menubar.inc, so that it can be
 # shared with other top level windows in macWindow.inc.xhtml.
 #include browser-menubar.inc
-    </toolbaritem>
-    <spacer flex="1" skipintoolbarset="true" style="order: 1000;"/>
+      </toolbaritem>
+      <spacer flex="1" skipintoolbarset="true" style="order: 1000;"/>
 #include titlebar-items.inc.xhtml
-  </toolbar>
+    </toolbar>
 
-  <toolbar id="TabsToolbar"
-           class="browser-toolbar browser-titlebar titlebar-color"
-           fullscreentoolbar="true"
-           customizable="true"
-           customizationtarget="TabsToolbar-customization-target"
-           mode="icons"
-           data-l10n-id="tabs-toolbar"
-           context="toolbar-context-menu"
-           flex="1">
+    <toolbar id="TabsToolbar"
+             class="browser-toolbar titlebar-color"
+             fullscreentoolbar="true"
+             customizable="true"
+             customizationtarget="TabsToolbar-customization-target"
+             mode="icons"
+             data-l10n-id="tabs-toolbar"
+             context="toolbar-context-menu"
+             flex="1">
 
-    <hbox class="titlebar-spacer" type="pre-tabs"/>
+      <hbox class="titlebar-spacer" type="pre-tabs"/>
 
-    <hbox flex="1" align="end" class="toolbar-items">
-      <toolbartabstop/>
-      <hbox id="TabsToolbar-customization-target" flex="1">
-        <toolbarbutton id="firefox-view-button"
-                       class="toolbarbutton-1 chromeclass-toolbar-additional"
-                       data-l10n-id="toolbar-button-firefox-view-2"
-                       role="button"
-                       aria-pressed="false"
-                       oncommand="FirefoxViewHandler.openTab();"
-                       onmousedown="FirefoxViewHandler.openToolbarMouseEvent(event);"
-                       cui-areatype="toolbar"
-                       removable="true"/>
+      <hbox flex="1" align="end" class="toolbar-items">
+        <toolbartabstop/>
+        <hbox id="TabsToolbar-customization-target" flex="1">
+          <toolbarbutton id="firefox-view-button"
+                         class="toolbarbutton-1 chromeclass-toolbar-additional"
+                         data-l10n-id="toolbar-button-firefox-view-2"
+                         role="button"
+                         aria-pressed="false"
+                         oncommand="FirefoxViewHandler.openTab();"
+                         onmousedown="FirefoxViewHandler.openToolbarMouseEvent(event);"
+                         cui-areatype="toolbar"
+                         removable="true"/>
 
-        <tabs id="tabbrowser-tabs"
-              is="tabbrowser-tabs"
-              aria-multiselectable="true"
-              setfocus="false"
-              tooltip="tabbrowser-tab-tooltip"
-              orient="horizontal"
-              stopwatchid="FX_TAB_CLICK_MS">
-          <hbox class="tab-drop-indicator" hidden="true"/>
+          <tabs id="tabbrowser-tabs"
+                is="tabbrowser-tabs"
+                aria-multiselectable="true"
+                setfocus="false"
+                tooltip="tabbrowser-tab-tooltip"
+                orient="horizontal"
+                stopwatchid="FX_TAB_CLICK_MS">
+            <hbox class="tab-drop-indicator" hidden="true"/>
 # If the name (tabbrowser-arrowscrollbox) or structure of this changes
 # significantly, there is an optimization in
 # DisplayPortUtils::MaybeCreateDisplayPortInFirstScrollFrameEncountered based
 # the current structure that we may want to revisit.
-          <html:div id="vertical-pinned-tabs-container"></html:div>
-          <html:div id="vertical-pinned-tabs-container-separator"></html:div>
-          <arrowscrollbox id="tabbrowser-arrowscrollbox" orient="horizontal" flex="1" clicktoscroll="" scrolledtostart="" scrolledtoend="">
-            <tab is="tabbrowser-tab" class="tabbrowser-tab" selected="true" visuallyselected="" fadein=""/>
-            <hbox id="tabbrowser-arrowscrollbox-periphery">
-              <toolbartabstop/>
-              <toolbarbutton id="tabs-newtab-button"
-                             class="toolbarbutton-1"
-                             command="cmd_newNavigatorTab"
-                             onclick="gBrowser.handleNewTabMiddleClick(this, event);"
-                             tooltip="dynamic-shortcut-tooltip"
-                             data-l10n-id="tabs-toolbar-new-tab"/>
-              <spacer class="closing-tabs-spacer" style="width: 0;"/>
-            </hbox>
-          </arrowscrollbox>
-          <toolbarbutton id="vertical-tabs-newtab-button"
-                              class="toolbarbutton-1"
-                              command="cmd_newNavigatorTab"
-                              onclick="gBrowser.handleNewTabMiddleClick(this, event);"
-                              tooltip="dynamic-shortcut-tooltip"
-                              data-l10n-id="tabs-toolbar-new-tab"/>
-          <html:span id="tabbrowser-tab-a11y-desc" hidden="true"/>
-        </tabs>
+            <html:div id="vertical-pinned-tabs-container"></html:div>
+            <html:div id="vertical-pinned-tabs-container-separator"></html:div>
+            <arrowscrollbox id="tabbrowser-arrowscrollbox" orient="horizontal" flex="1" clicktoscroll="" scrolledtostart="" scrolledtoend="">
+              <tab is="tabbrowser-tab" class="tabbrowser-tab" selected="true" visuallyselected="" fadein=""/>
+              <hbox id="tabbrowser-arrowscrollbox-periphery">
+                <toolbartabstop/>
+                <toolbarbutton id="tabs-newtab-button"
+                               class="toolbarbutton-1"
+                               command="cmd_newNavigatorTab"
+                               onclick="gBrowser.handleNewTabMiddleClick(this, event);"
+                               tooltip="dynamic-shortcut-tooltip"
+                               data-l10n-id="tabs-toolbar-new-tab"/>
+                <spacer class="closing-tabs-spacer" style="width: 0;"/>
+              </hbox>
+            </arrowscrollbox>
+            <toolbarbutton id="vertical-tabs-newtab-button"
+                                class="toolbarbutton-1"
+                                command="cmd_newNavigatorTab"
+                                onclick="gBrowser.handleNewTabMiddleClick(this, event);"
+                                tooltip="dynamic-shortcut-tooltip"
+                                data-l10n-id="tabs-toolbar-new-tab"/>
+            <html:span id="tabbrowser-tab-a11y-desc" hidden="true"/>
+          </tabs>
 
-        <toolbarbutton id="new-tab-button"
-                       class="toolbarbutton-1 chromeclass-toolbar-additional"
-                       data-l10n-id="tabs-toolbar-new-tab"
-                       command="cmd_newNavigatorTab"
-                       onclick="gBrowser.handleNewTabMiddleClick(this, event);"
-                       tooltip="dynamic-shortcut-tooltip"
-                       ondrop="newTabButtonObserver.onDrop(event)"
-                       ondragover="newTabButtonObserver.onDragOver(event)"
-                       ondragenter="newTabButtonObserver.onDragOver(event)"
-                       cui-areatype="toolbar"
-                       removable="true"/>
+          <toolbarbutton id="new-tab-button"
+                         class="toolbarbutton-1 chromeclass-toolbar-additional"
+                         data-l10n-id="tabs-toolbar-new-tab"
+                         command="cmd_newNavigatorTab"
+                         onclick="gBrowser.handleNewTabMiddleClick(this, event);"
+                         tooltip="dynamic-shortcut-tooltip"
+                         ondrop="newTabButtonObserver.onDrop(event)"
+                         ondragover="newTabButtonObserver.onDragOver(event)"
+                         ondragenter="newTabButtonObserver.onDragOver(event)"
+                         cui-areatype="toolbar"
+                         removable="true"/>
 
-        <toolbarbutton id="alltabs-button"
-                       class="toolbarbutton-1 chromeclass-toolbar-additional tabs-alltabs-button"
-                       delegatesanchor="true"
-                       badged="true"
-                       onkeypress="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
-                       onmousedown="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
-                       data-l10n-id="tabs-toolbar-list-all-tabs"
-                       removable="false"/>
+          <toolbarbutton id="alltabs-button"
+                         class="toolbarbutton-1 chromeclass-toolbar-additional tabs-alltabs-button"
+                         delegatesanchor="true"
+                         badged="true"
+                         onkeypress="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
+                         onmousedown="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
+                         data-l10n-id="tabs-toolbar-list-all-tabs"
+                         removable="false"/>
+        </hbox>
       </hbox>
-    </hbox>
 
-    <hbox class="titlebar-spacer" type="post-tabs"/>
+      <hbox class="titlebar-spacer" type="post-tabs"/>
 
-    <hbox id="private-browsing-indicator-with-label">
-      <image class="private-browsing-indicator-icon"/>
-      <label data-l10n-id="private-browsing-indicator-label"></label>
-    </hbox>
-    <toolbarbutton id="content-analysis-indicator"
-                   oncommand="ContentAnalysis.showPanel(this, PanelUI);"
-                   class="toolbarbutton-1 content-analysis-indicator-icon"/>
+      <hbox id="private-browsing-indicator-with-label">
+        <image class="private-browsing-indicator-icon"/>
+        <label data-l10n-id="private-browsing-indicator-label"></label>
+      </hbox>
+      <toolbarbutton id="content-analysis-indicator"
+                     oncommand="ContentAnalysis.showPanel(this, PanelUI);"
+                     class="toolbarbutton-1 content-analysis-indicator-icon"/>
 
 #include titlebar-items.inc.xhtml
 
-  </toolbar>
+    </toolbar>
+
+  </vbox>
 
   <toolbar id="nav-bar"
            class="browser-toolbar chromeclass-location"
@@ -130,7 +133,6 @@
            addon-webext-overflowtarget="overflowed-extensions-list"
            context="toolbar-context-menu">
 
-    <hbox class="titlebar-spacer" type="pre-tabs"/>
     <toolbartabstop/>
 
     <hbox id="nav-bar-customization-target" flex="1">
@@ -529,8 +531,6 @@
                      consumeanchor="PanelUI-button"
                      data-l10n-id="appmenu-menu-button-closed2"/>
     </toolbaritem>
-    <hbox class="titlebar-spacer" type="post-tabs"/>
-#include titlebar-items.inc.xhtml
   </toolbar>
 
   <toolbar id="PersonalToolbar"
