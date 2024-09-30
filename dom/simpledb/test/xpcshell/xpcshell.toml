@@ -4,6 +4,5 @@ head = "head.js"
 ["test_databaseWorkStarted.js"]
 
 ["test_slowDatabaseInitialization.js"]
-skip-if = ["true"]
 
 ["test_slowStorageInitialization.js"]

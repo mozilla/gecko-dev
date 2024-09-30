@@ -710,6 +710,10 @@ void Connection::OnOpen(
   }
 
   gOpenConnections->AppendElement(WrapNotNullUnchecked(this));
+
+  if (mDirectoryLock->Invalidated()) {
+    AllowToClose();
+  }
 }
 
 void Connection::OnClose() {
