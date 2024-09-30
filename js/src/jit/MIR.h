@@ -4029,7 +4029,7 @@ class MBitNot : public MUnaryInstruction, public BitwisePolicy::Data {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MBitNot)
 };
@@ -4158,7 +4158,7 @@ class MBitAnd : public MBinaryBitwiseInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MBitAnd)
 };
@@ -4187,7 +4187,7 @@ class MBitOr : public MBinaryBitwiseInstruction {
   void computeRange(TempAllocator& alloc) override;
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MBitOr)
 };
@@ -4212,7 +4212,7 @@ class MBitXor : public MBinaryBitwiseInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MBitXor)
 };
@@ -4246,7 +4246,7 @@ class MLsh : public MShiftInstruction {
   void computeRange(TempAllocator& alloc) override;
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MLsh)
 };
@@ -4268,7 +4268,7 @@ class MRsh : public MShiftInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   MDefinition* foldsTo(TempAllocator& alloc) override;
 
@@ -4307,7 +4307,7 @@ class MUrsh : public MShiftInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MUrsh)
 };
@@ -4940,7 +4940,7 @@ class MAdd : public MBinaryArithInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MAdd)
 };
@@ -4977,7 +4977,7 @@ class MSub : public MBinaryArithInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MSub)
 };
@@ -5070,7 +5070,7 @@ class MMul : public MBinaryArithInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   ALLOW_CLONE(MMul)
 };
@@ -5180,7 +5180,7 @@ class MDiv : public MBinaryArithInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   bool congruentTo(const MDefinition* ins) const override {
     if (!MBinaryArithInstruction::congruentTo(ins)) {
@@ -5267,7 +5267,7 @@ class MMod : public MBinaryArithInstruction {
 
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override { return type() != MIRType::Int64; }
 
   bool fallible() const;
 
@@ -6603,7 +6603,9 @@ class MNot : public MUnaryInstruction, public TestPolicy::Data {
   }
   [[nodiscard]] bool writeRecoverData(
       CompactBufferWriter& writer) const override;
-  bool canRecoverOnBailout() const override { return true; }
+  bool canRecoverOnBailout() const override {
+    return type() == MIRType::Boolean;
+  }
 };
 
 // Bailout if index + minimum < 0 or index + maximum >= length. The length used
