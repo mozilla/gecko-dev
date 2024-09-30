@@ -7,11 +7,17 @@
 .network-monitor .learn-more-link {
   display: inline-block;
   line-height: 16px;
+
+  &::before {
+    background-image: url(chrome://devtools/skin/images/help.svg);
+    background-size: contain;
+    -moz-context-properties: fill;
+    fill: var(--theme-icon-color);
+  }
 }
 
-.network-monitor .learn-more-link::before {
-  background-image: url(chrome://devtools/skin/images/help.svg);
-  background-size: contain;
+.network-monitor [role="treeitem"][aria-selected="true"] .learn-more-link:not(:hover)::before {
+  fill: var(--theme-selection-color);
 }
 
 .network-monitor .tree-container .learn-more-link {
@@ -23,7 +29,7 @@
   padding: 1px 0;
 }
 
-.network-monitor .tree-container tr:not(:hover) .learn-more-link {
+:root:not([forced-colors-active]) .network-monitor .tree-container tr:not(:hover) .learn-more-link {
   opacity: 0.4;
 }
 
