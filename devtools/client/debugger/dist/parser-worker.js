@@ -41394,7 +41394,9 @@ Please specify the "importAttributesKeyword" generator option, whose value can b
     		    // string.
     		    return {
     		      error: true,
-    		      message: error.message,
+    		      message:
+    		        error.message +
+    		        (error.stack ? "\nStack in the worker:" + error.stack : ""),
     		      metadata: error.metadata,
     		    };
     		  }
