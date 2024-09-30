@@ -51,15 +51,11 @@ add_task(async function test_replaceExisting() {
   let secondFavicon = await createFavicon("favicon5.png");
   let firstFaviconDataURL = await createDataURLForFavicon(firstFavicon);
 
-  await new Promise(resolve => {
-    PlacesUtils.favicons.setFaviconForPage(
-      pageURI,
-      firstFavicon.uri,
-      firstFaviconDataURL,
-      null,
-      resolve
-    );
-  });
+  await PlacesTestUtils.setFaviconForPage(
+    pageURI,
+    firstFavicon.uri,
+    firstFaviconDataURL
+  );
 
   await new Promise(resolve => {
     PlacesUtils.favicons.getFaviconDataForPage(
@@ -216,6 +212,82 @@ add_task(async function test_invalidFaviconDataURI() {
       Assert.ok(true, `Expected error happend [${e.message}]`);
     }
   }
+});
+
+add_task(async function test_sameHostRedirect() {
+  // Add a bookmarked page that redirects to another page, set a favicon on the
+  // latter and check the former gets it too, if they are in the same host.
+  let srcUrl = "http://bookmarked.com/";
+  let destUrl = "https://other.bookmarked.com/";
+  await PlacesTestUtils.addVisits([
+    { uri: srcUrl, transition: TRANSITION_LINK },
+    {
+      uri: destUrl,
+      transition: TRANSITION_REDIRECT_TEMPORARY,
+      referrer: srcUrl,
+    },
+  ]);
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    url: srcUrl,
+  });
+
+  let promise = PlacesTestUtils.waitForNotification("favicon-changed", events =>
+    events.some(e => e.url == srcUrl && e.faviconUrl == SMALLPNG_DATA_URI.spec)
+  );
+
+  PlacesUtils.favicons.setFaviconForPage(
+    Services.io.newURI(destUrl),
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
+
+  await promise;
+
+  // The favicon should be set also on the bookmarked url that redirected.
+  let { dataLen } = await PlacesUtils.promiseFaviconData(srcUrl);
+  Assert.equal(dataLen, SMALLPNG_DATA_LEN, "Check favicon dataLen");
+
+  await PlacesUtils.bookmarks.eraseEverything();
+  await PlacesUtils.history.clear();
+});
+
+add_task(async function test_otherHostRedirect() {
+  // Add a bookmarked page that redirects to another page, set a favicon on the
+  // latter and check the former gets it too, if they are in the same host.
+  let srcUrl = "http://first.com/";
+  let destUrl = "https://notfirst.com/";
+  await PlacesTestUtils.addVisits([
+    { uri: srcUrl, transition: TRANSITION_LINK },
+    {
+      uri: destUrl,
+      transition: TRANSITION_REDIRECT_TEMPORARY,
+      referrer: srcUrl,
+    },
+  ]);
+  await PlacesUtils.bookmarks.insert({
+    parentGuid: PlacesUtils.bookmarks.unfiledGuid,
+    url: srcUrl,
+  });
+
+  let promise = Promise.race([
+    PlacesTestUtils.waitForNotification("favicon-changed", events =>
+      events.some(
+        e => e.url == srcUrl && e.faviconUrl == SMALLPNG_DATA_URI.spec
+      )
+    ),
+    new Promise((resolve, reject) =>
+      do_timeout(300, () => reject(new Error("timeout")))
+    ),
+  ]);
+
+  PlacesUtils.favicons.setFaviconForPage(
+    Services.io.newURI(destUrl),
+    SMALLPNG_DATA_URI,
+    SMALLPNG_DATA_URI
+  );
+
+  await Assert.rejects(promise, /timeout/);
 });
 
 async function doTestSetFaviconForPage({
