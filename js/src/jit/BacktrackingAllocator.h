@@ -14,6 +14,7 @@
 #include "ds/AvlTree.h"
 #include "ds/PriorityQueue.h"
 #include "jit/RegisterAllocator.h"
+#include "jit/SparseBitSet.h"
 #include "jit/StackSlotAllocator.h"
 
 // Gives better traces in Nightly/debug builds (could be EARLY_BETA_OR_EARLIER)
@@ -639,7 +640,8 @@ class BacktrackingAllocator : protected RegisterAllocator {
   // This flag is set when testing new allocator modifications.
   bool testbed;
 
-  BitSet* liveIn;
+  using VirtualRegBitSet = SparseBitSet<BackgroundSystemAllocPolicy>;
+  Vector<VirtualRegBitSet, 0, JitAllocPolicy> liveIn;
   Vector<VirtualRegister, 0, JitAllocPolicy> vregs;
 
   // Allocation state.
@@ -898,7 +900,7 @@ class BacktrackingAllocator : protected RegisterAllocator {
                         bool testbed)
       : RegisterAllocator(mir, lir, graph),
         testbed(testbed),
-        liveIn(nullptr),
+        liveIn(mir->alloc()),
         vregs(mir->alloc()),
         callRanges(nullptr) {}
 

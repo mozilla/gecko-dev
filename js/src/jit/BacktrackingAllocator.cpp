@@ -1499,8 +1499,9 @@ bool BacktrackingAllocator::init() {
     return false;
   }
 
-  liveIn = mir->allocate<BitSet>(graph.numBlockIds());
-  if (!liveIn) {
+  uint32_t numBlocks = graph.numBlockIds();
+  MOZ_ASSERT(liveIn.empty());
+  if (!liveIn.growBy(numBlocks)) {
     return false;
   }
 
@@ -1666,18 +1667,16 @@ bool BacktrackingAllocator::buildLivenessInfo() {
     LBlock* block = graph.getBlock(i - 1);
     MBasicBlock* mblock = block->mir();
 
-    BitSet& live = liveIn[mblock->id()];
-    new (&live) BitSet(graph.numVirtualRegisters());
-    if (!live.init(alloc())) {
-      return false;
-    }
+    VirtualRegBitSet& live = liveIn[mblock->id()];
 
     // Propagate liveIn from our successors to us.
     for (size_t i = 0; i < mblock->lastIns()->numSuccessors(); i++) {
       MBasicBlock* successor = mblock->lastIns()->getSuccessor(i);
       // Skip backedges, as we fix them up at the loop header.
       if (mblock->id() < successor->id()) {
-        live.insertAll(liveIn[successor->id()]);
+        if (!live.insertAll(liveIn[successor->id()])) {
+          return false;
+        }
       }
     }
 
@@ -1688,14 +1687,16 @@ bool BacktrackingAllocator::buildLivenessInfo() {
         LPhi* phi = phiSuccessor->getPhi(j);
         LAllocation* use = phi->getOperand(mblock->positionInPhiSuccessor());
         uint32_t reg = use->toUse()->virtualRegister();
-        live.insert(reg);
+        if (!live.insert(reg)) {
+          return false;
+        }
         vreg(use).setUsedByPhi();
       }
     }
 
     // Registers are assumed alive for the entire block, a define shortens
     // the range to the point of definition.
-    for (BitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
+    for (VirtualRegBitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
       if (!vregs[*liveRegId].addInitialRange(alloc(), entryOf(block),
                                              exitOf(block).next())) {
         return false;
@@ -1869,7 +1870,9 @@ bool BacktrackingAllocator::buildLivenessInfo() {
             return false;
           }
           vreg(use).addInitialUse(usePosition);
-          live.insert(use->virtualRegister());
+          if (!live.insert(use->virtualRegister())) {
+            return false;
+          }
         }
       }
     }
@@ -1903,7 +1906,7 @@ bool BacktrackingAllocator::buildLivenessInfo() {
       CodePosition from = entryOf(mblock->lir());
       CodePosition to = exitOf(backedge->lir()).next();
 
-      for (BitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
+      for (VirtualRegBitSet::Iterator liveRegId(live); liveRegId; ++liveRegId) {
         if (!vregs[*liveRegId].addInitialRange(alloc(), from, to)) {
           return false;
         }
@@ -1917,7 +1920,9 @@ bool BacktrackingAllocator::buildLivenessInfo() {
           MBasicBlock* loopBlock = graph.getBlock(j)->mir();
 
           // Fix up the liveIn set.
-          liveIn[loopBlock->id()].insertAll(live);
+          if (!liveIn[loopBlock->id()].insertAll(live)) {
+            return false;
+          }
 
           if (loopBlock == backedge) {
             break;
@@ -4036,7 +4041,7 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
           break;
         }
 
-        BitSet& live = liveIn[id];
+        VirtualRegBitSet& live = liveIn[id];
         if (!live.contains(i)) {
           continue;
         }
