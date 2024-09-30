@@ -18,9 +18,8 @@ static LayoutDeviceIntRegion GetTestRegion() {
 TEST(WinUtils, Regions)
 {
   auto region = GetTestRegion();
-  HRGN rgn = WinUtils::RegionToHRGN(region);
+  nsAutoRegion rgn(WinUtils::RegionToHRGN(region));
   ASSERT_NE(rgn, nullptr) << "Conversion should succeed";
   ASSERT_EQ(region, WinUtils::ConvertHRGNToRegion(rgn))
       << "Region should round-trip";
-  ::DeleteObject(rgn);
 }
