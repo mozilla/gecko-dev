@@ -674,10 +674,12 @@ class GCRuntime {
            !stringBuffersToReleaseAfterMinorGC.ref().empty();
   }
 
+  // Returns false on failure without raising an exception.
   [[nodiscard]] bool setParameter(JSGCParamKey key, uint32_t value,
                                   AutoLockGC& lock);
   void resetParameter(JSGCParamKey key, AutoLockGC& lock);
   uint32_t getParameter(JSGCParamKey key, const AutoLockGC& lock);
+  // Returns false on failure without raising an exception.
   bool setThreadParameter(JSGCParamKey key, uint32_t value, AutoLockGC& lock);
   void resetThreadParameter(JSGCParamKey key, AutoLockGC& lock);
   void updateThreadDataStructures(AutoLockGC& lock);
