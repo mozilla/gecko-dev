@@ -4095,12 +4095,6 @@
     input: WordSized
   call_instruction: true
 
-- name: BigIntAsIntN64
-  gen_boilerplate: false
-
-- name: BigIntAsIntN32
-  gen_boilerplate: false
-
 - name: GuardNonGCThing
   operands:
     input: BoxedValue
@@ -4260,12 +4254,6 @@
     bits: WordSized
     input: WordSized
   call_instruction: true
-
-- name: BigIntAsUintN64
-  gen_boilerplate: false
-
-- name: BigIntAsUintN32
-  gen_boilerplate: false
 
 - name: IonToWasmCall
   gen_boilerplate: false
