@@ -2377,27 +2377,6 @@ bool RAtomicIsLockFree::recover(JSContext* cx, SnapshotIterator& iter) const {
   return true;
 }
 
-bool MInt32ToBigInt::writeRecoverData(CompactBufferWriter& writer) const {
-  MOZ_ASSERT(canRecoverOnBailout());
-  writer.writeUnsigned(uint32_t(RInstruction::Recover_Int32ToBigInt));
-  return true;
-}
-
-RInt32ToBigInt::RInt32ToBigInt(CompactBufferReader& reader) {}
-
-bool RInt32ToBigInt::recover(JSContext* cx, SnapshotIterator& iter) const {
-  // Number because |d| is computed from (recoverable) user input.
-  double d = iter.readNumber();
-
-  BigInt* result = NumberToBigInt(cx, d);
-  if (!result) {
-    return false;
-  }
-
-  iter.storeInstructionResult(JS::BigIntValue(result));
-  return true;
-}
-
 bool MInt64ToBigInt::writeRecoverData(CompactBufferWriter& writer) const {
   MOZ_ASSERT(canRecoverOnBailout());
   writer.writeUnsigned(uint32_t(RInstruction::Recover_Int64ToBigInt));

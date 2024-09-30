@@ -10389,36 +10389,6 @@ bool CacheIRCompiler::emitAtomicsIsLockFreeResult(Int32OperandId valueId) {
   return true;
 }
 
-bool CacheIRCompiler::emitInt32ToBigIntResult(Int32OperandId inputId) {
-  JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
-
-  AutoOutputRegister output(*this);
-  Register input = allocator.useRegister(masm, inputId);
-  AutoScratchRegisterMaybeOutput scratch1(allocator, masm, output);
-  AutoScratchRegister scratch2(allocator, masm);
-
-  FailurePath* failure;
-  if (!addFailurePath(&failure)) {
-    return false;
-  }
-
-  LiveRegisterSet save = liveVolatileRegs();
-  save.takeUnchecked(scratch1);
-  save.takeUnchecked(scratch2);
-  save.takeUnchecked(output);
-
-  // Allocate a new BigInt. The code after this must be infallible.
-  gc::Heap initialHeap = InitialBigIntHeap(cx_);
-  EmitAllocateBigInt(masm, scratch1, scratch2, save, initialHeap,
-                     failure->label());
-
-  masm.move32SignExtendToPtr(input, scratch2);
-  masm.initializeBigIntPtr(scratch1, scratch2);
-
-  masm.tagValue(JSVAL_TYPE_BIGINT, scratch1, output.valueReg());
-  return true;
-}
-
 bool CacheIRCompiler::emitBigIntAsIntNResult(Int32OperandId bitsId,
                                              BigIntOperandId bigIntId) {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
