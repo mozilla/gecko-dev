@@ -296,6 +296,7 @@
 
     --theme-selection-background: SelectedItem;
     --theme-selection-color: SelectedItemText;
+    --theme-text-color-alt: CanvasText;
     --theme-text-selection-background: Highlight;
     --theme-text-selection-color: HighlightText;
     --theme-text-selection-unfocused-background: Highlight;

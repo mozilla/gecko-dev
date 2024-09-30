@@ -178,7 +178,7 @@
   display: inline-block;
   padding-inline-end: 3px;
   min-width: 90px;
-  color: var(--theme-icon-dimmed-color);
+  color: var(--theme-text-color-alt);
 }
 
 .network-monitor .tabpanel-summary-value {
@@ -191,17 +191,9 @@
   margin-right: 3px;
 }
 
-.theme-dark .network-monitor .tabpanel-summary-value {
-  color: var(--theme-selection-color);
-}
-
 .network-monitor .tracking-protection {
-  color: var(--theme-icon-dimmed-color);
+  color: var(--theme-text-color-alt);
   max-width: 200px;
-}
-
-.network-monitor .tracking-protection .learn-more-link:not(:hover)::before {
-  color: var(--theme-icon-dimmed-color);
 }
 
 .network-monitor .headers-summary-label,

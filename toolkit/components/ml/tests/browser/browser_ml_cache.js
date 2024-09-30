@@ -451,7 +451,10 @@ add_task(async function test_getting_file_from_url_cache_with_callback() {
  * Test parsing of a well-formed full URL, including protocol and path.
  */
 add_task(async function testWellFormedFullUrl() {
-  const hub = new ModelHub({ rootUrl: FAKE_HUB });
+  const hub = new ModelHub({
+    rootUrl: FAKE_HUB,
+    urlTemplate: "{model}/{revision}",
+  });
   const url = `${FAKE_HUB}/org1/model1/v1/file/path`;
   const result = hub.parseUrl(url);
 
@@ -469,25 +472,49 @@ add_task(async function testWellFormedFullUrl() {
 });
 
 /**
- * Test parsing of a well-formed relative URL, starting with a slash.
+ * Test parsing of well-formed URLs, starting with a slash.
  */
+const URLS_AND_RESULT = [
+  {
+    url: "/Xenova/bert-base-NER/resolve/main/onnx/model.onnx",
+    model: "Xenova/bert-base-NER",
+    revision: "main",
+    file: "onnx/model.onnx",
+    urlTemplate: "{model}/resolve/{revision}",
+  },
+  {
+    url: "/org1/model1/v1/file/path",
+    model: "org1/model1",
+    revision: "v1",
+    file: "file/path",
+    urlTemplate: "{model}/{revision}",
+  },
+];
+
 add_task(async function testWellFormedRelativeUrl() {
-  const hub = new ModelHub({ rootUrl: FAKE_HUB });
+  for (const example of URLS_AND_RESULT) {
+    const hub = new ModelHub({
+      rootUrl: FAKE_HUB,
+      urlTemplate: example.urlTemplate,
+    });
+    const result = hub.parseUrl(example.url);
 
-  const url = "/org1/model1/v1/file/path";
-  const result = hub.parseUrl(url);
-
-  Assert.equal(
-    result.model,
-    "org1/model1",
-    "Model should be parsed correctly."
-  );
-  Assert.equal(result.revision, "v1", "Revision should be parsed correctly.");
-  Assert.equal(
-    result.file,
-    "file/path",
-    "File path should be parsed correctly."
-  );
+    Assert.equal(
+      result.model,
+      example.model,
+      "Model should be parsed correctly."
+    );
+    Assert.equal(
+      result.revision,
+      example.revision,
+      "Revision should be parsed correctly."
+    );
+    Assert.equal(
+      result.file,
+      example.file,
+      "File path should be parsed correctly."
+    );
+  }
 });
 
 /**
@@ -495,7 +522,7 @@ add_task(async function testWellFormedRelativeUrl() {
  */
 add_task(async function testInvalidDomain() {
   const hub = new ModelHub({ rootUrl: FAKE_HUB });
-  const url = "https://example.com/org1/model1/v1/file/path";
+  const url = "https://example.com/org1/model1/resolve/v1/file/path";
   Assert.throws(
     () => hub.parseUrl(url),
     new RegExp(`Error: Invalid domain for model URL: ${url}`),
@@ -508,10 +535,10 @@ add_task(async function testInvalidDomain() {
  */
 add_task(async function testTooFewParts() {
   const hub = new ModelHub({ rootUrl: FAKE_HUB });
-  const url = "/org1/model1";
+  const url = "/org1/model1/resolve";
   Assert.throws(
     () => hub.parseUrl(url),
-    new RegExp(`Error: Invalid model URL: ${url}`),
+    new RegExp(`Error: Invalid model URL format: ${url}`),
     `Should throw with ${url}`
   );
 });
