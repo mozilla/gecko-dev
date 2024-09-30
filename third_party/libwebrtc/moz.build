@@ -69,6 +69,7 @@ DIRS += [
     "/third_party/libwebrtc/api/rtc_event_log/rtc_event_log_gn",
     "/third_party/libwebrtc/api/rtp_headers_gn",
     "/third_party/libwebrtc/api/rtp_packet_info_gn",
+    "/third_party/libwebrtc/api/rtp_packet_sender_gn",
     "/third_party/libwebrtc/api/rtp_parameters_gn",
     "/third_party/libwebrtc/api/rtp_sender_interface_gn",
     "/third_party/libwebrtc/api/rtp_sender_setparameters_callback_gn",
