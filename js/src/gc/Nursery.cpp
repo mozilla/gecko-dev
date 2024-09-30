@@ -343,8 +343,6 @@ bool js::Nursery::init(AutoLockGCBgAlloc& lock) {
 js::Nursery::~Nursery() { disable(); }
 
 void js::Nursery::enable() {
-  MOZ_ASSERT(TlsContext.get()->generationalDisabled == 0);
-
   if (isEnabled()) {
     return;
   }
