@@ -355,6 +355,18 @@ nsresult nsMathMLmfracFrame::Place(DrawTarget* aDrawTarget,
   aDesiredSize.Width() = mBoundingMetrics.width;
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
+  // Apply width/height to math content box.
+  auto sizes = GetWidthAndHeightForPlaceAdjustment(aFlags);
+  auto shiftX = ApplyAdjustmentForWidthAndHeight(aFlags, sizes, aDesiredSize,
+                                                 mBoundingMetrics);
+  if (sizes.width) {
+    // MathML Core says the math content box is horizontally centered
+    // but the fraction bar still takes the full width of the content box.
+    dxNum += shiftX;
+    dxDen += shiftX;
+    width = *sizes.width;
+  }
+
   // Add padding+border.
   auto borderPadding = GetBorderPaddingForPlace(aFlags);
   InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,

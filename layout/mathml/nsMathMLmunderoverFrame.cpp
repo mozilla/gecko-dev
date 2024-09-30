@@ -685,6 +685,14 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
   aDesiredSize.Width() = mBoundingMetrics.width;
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
+  // Apply width/height to math content box.
+  auto sizes = GetWidthAndHeightForPlaceAdjustment(aFlags);
+  auto shiftX = ApplyAdjustmentForWidthAndHeight(aFlags, sizes, aDesiredSize,
+                                                 mBoundingMetrics);
+  dxOver += shiftX;
+  dxBase += shiftX;
+  dxUnder += shiftX;
+
   // Add padding+border.
   auto borderPadding = GetBorderPaddingForPlace(aFlags);
   InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
@@ -718,4 +726,11 @@ nsresult nsMathMLmunderoverFrame::Place(DrawTarget* aDrawTarget,
     }
   }
   return NS_OK;
+}
+
+bool nsMathMLmunderoverFrame::IsMathContentBoxHorizontallyCentered() const {
+  bool subsupDisplay =
+      NS_MATHML_EMBELLISH_IS_MOVABLELIMITS(mEmbellishData.flags) &&
+      StyleFont()->mMathStyle == StyleMathStyle::Compact;
+  return !subsupDisplay;
 }

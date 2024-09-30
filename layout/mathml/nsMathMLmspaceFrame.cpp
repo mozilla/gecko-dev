@@ -113,6 +113,12 @@ nsresult nsMathMLmspaceFrame::Place(DrawTarget* aDrawTarget,
   // Also return our bounding metrics
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
+  // Apply width/height to math content box.
+  const PlaceFlags flags;
+  auto sizes = GetWidthAndHeightForPlaceAdjustment(flags);
+  ApplyAdjustmentForWidthAndHeight(flags, sizes, aDesiredSize,
+                                   mBoundingMetrics);
+
   // Add padding+border.
   auto borderPadding = GetBorderPaddingForPlace(aFlags);
   InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,

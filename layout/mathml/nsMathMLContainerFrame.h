@@ -157,6 +157,11 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
     // place some radical symbol on top of them and finally add its
     // padding/border around that radical symbol.
     IgnoreBorderPadding,
+
+    // If DoNotAdjustForWidthAndHeight is set, the function will complete
+    // without setting the computed width and height after the math layout. This
+    // can be used similarly to IgnoreBorderPadding above.
+    DoNotAdjustForWidthAndHeight,
   };
   using PlaceFlags = mozilla::EnumSet<PlaceFlag>;
 
@@ -246,6 +251,18 @@ class nsMathMLContainerFrame : public nsContainerFrame, public nsMathMLFrame {
                    nsReflowStatus& aStatus);
 
   nsMargin GetBorderPaddingForPlace(const PlaceFlags& aFlags);
+
+  struct WidthAndHeightForPlaceAdjustment {
+    mozilla::Maybe<nscoord> width;
+    mozilla::Maybe<nscoord> height;
+  };
+  WidthAndHeightForPlaceAdjustment GetWidthAndHeightForPlaceAdjustment(
+      const PlaceFlags& aFlags);
+
+  virtual bool IsMathContentBoxHorizontallyCentered() const { return false; }
+  nscoord ApplyAdjustmentForWidthAndHeight(
+      const PlaceFlags& aFlags, const WidthAndHeightForPlaceAdjustment& aSizes,
+      ReflowOutput& aReflowOutput, nsBoundingMetrics& aBoundingMetrics);
 
  protected:
   // helper to add the inter-spacing when <math> is the immediate parent.

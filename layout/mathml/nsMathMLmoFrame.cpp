@@ -741,7 +741,8 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
 
   // Place our children using the default method and no border/padding.
   // This will allow our child text frame to get its DidReflow()
-  PlaceFlags flags = PlaceFlag::IgnoreBorderPadding;
+  PlaceFlags flags(PlaceFlag::IgnoreBorderPadding,
+                   PlaceFlag::DoNotAdjustForWidthAndHeight);
   nsresult rv = Place(aDrawTarget, flags, aDesiredStretchSize);
   if (NS_FAILED(rv)) {
     // Make sure the child frames get their DidReflow() calls.
@@ -852,8 +853,10 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
   }
 
   flags = PlaceFlags();
+  auto sizes = GetWidthAndHeightForPlaceAdjustment(flags);
   auto borderPadding = GetBorderPaddingForPlace(flags);
-  if (leadingSpace || trailingSpace || !borderPadding.IsAllZero()) {
+  if (leadingSpace || trailingSpace || !borderPadding.IsAllZero() ||
+      sizes.width || sizes.height) {
     mBoundingMetrics.width += leadingSpace + trailingSpace;
     aDesiredStretchSize.Width() = mBoundingMetrics.width;
     aDesiredStretchSize.mBoundingMetrics.width = mBoundingMetrics.width;
@@ -865,6 +868,10 @@ nsMathMLmoFrame::Stretch(DrawTarget* aDrawTarget,
     mBoundingMetrics.rightBearing += dx;
     aDesiredStretchSize.mBoundingMetrics.leftBearing += dx;
     aDesiredStretchSize.mBoundingMetrics.rightBearing += dx;
+
+    // Apply inline/block sizes to math content box.
+    dx += ApplyAdjustmentForWidthAndHeight(flags, sizes, aDesiredStretchSize,
+                                           mBoundingMetrics);
 
     // Add border/padding.
     InflateReflowAndBoundingMetrics(borderPadding, aDesiredStretchSize,

@@ -133,6 +133,59 @@ void nsMathMLContainerFrame::InflateReflowAndBoundingMetrics(
   aReflowOutput.Height() += aBorderPadding.TopBottom();
 }
 
+nsMathMLContainerFrame::WidthAndHeightForPlaceAdjustment
+nsMathMLContainerFrame::GetWidthAndHeightForPlaceAdjustment(
+    const PlaceFlags& aFlags) {
+  WidthAndHeightForPlaceAdjustment sizes;
+  if (aFlags.contains(PlaceFlag::DoNotAdjustForWidthAndHeight)) {
+    return sizes;
+  }
+  const nsStylePosition* stylePos = StylePosition();
+  const auto& width = stylePos->mWidth;
+  // TODO: Resolve percentages.
+  // https://github.com/w3c/mathml-core/issues/76
+  if (width.ConvertsToLength()) {
+    sizes.width = Some(width.ToLength());
+  }
+  if (!aFlags.contains(PlaceFlag::IntrinsicSize)) {
+    // TODO: Resolve percentages.
+    // https://github.com/w3c/mathml-core/issues/77
+    const auto& height = stylePos->mHeight;
+    if (height.ConvertsToLength()) {
+      sizes.height = Some(height.ToLength());
+    }
+  }
+  return sizes;
+}
+
+nscoord nsMathMLContainerFrame::ApplyAdjustmentForWidthAndHeight(
+    const PlaceFlags& aFlags, const WidthAndHeightForPlaceAdjustment& aSizes,
+    ReflowOutput& aReflowOutput, nsBoundingMetrics& aBoundingMetrics) {
+  nscoord shiftX = 0;
+  if (aSizes.width) {
+    MOZ_ASSERT(!aFlags.contains(PlaceFlag::DoNotAdjustForWidthAndHeight));
+    auto width = *aSizes.width;
+    auto oldWidth = aReflowOutput.Width();
+    if (IsMathContentBoxHorizontallyCentered()) {
+      shiftX = (width - oldWidth) / 2;
+    } else if (StyleVisibility()->mDirection == StyleDirection::Rtl) {
+      shiftX = width - oldWidth;
+    }
+    aBoundingMetrics.leftBearing = 0;
+    aBoundingMetrics.rightBearing = width;
+    aBoundingMetrics.width = width;
+    aReflowOutput.mBoundingMetrics = aBoundingMetrics;
+    aReflowOutput.Width() = width;
+  }
+  if (aSizes.height) {
+    MOZ_ASSERT(!aFlags.contains(PlaceFlag::DoNotAdjustForWidthAndHeight));
+    MOZ_ASSERT(!aFlags.contains(PlaceFlag::IntrinsicSize));
+    auto height = *aSizes.height;
+    aReflowOutput.Height() = height;
+  }
+  return shiftX;
+}
+
 // helper to get the preferred size that a container frame should use to fire
 // the stretch on its stretchy child frames.
 void nsMathMLContainerFrame::GetPreferredStretchSize(
@@ -1169,10 +1222,16 @@ nsresult nsMathMLContainerFrame::Place(DrawTarget* aDrawTarget,
   aDesiredSize.SetBlockStartAscent(ascent);
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
+  // Apply inline/block sizes to math content box.
+  auto sizes = GetWidthAndHeightForPlaceAdjustment(aFlags);
+  nscoord shiftX = ApplyAdjustmentForWidthAndHeight(aFlags, sizes, aDesiredSize,
+                                                    mBoundingMetrics);
+
   // Add padding+border.
   auto borderPadding = GetBorderPaddingForPlace(aFlags);
   InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
                                   mBoundingMetrics);
+  shiftX += borderPadding.left;
 
   mReference.x = 0;
   mReference.y = aDesiredSize.BlockStartAscent();
@@ -1180,7 +1239,7 @@ nsresult nsMathMLContainerFrame::Place(DrawTarget* aDrawTarget,
   //////////////////
   // Place Children
   if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
-    PositionRowChildFrames(borderPadding.left, aDesiredSize.BlockStartAscent());
+    PositionRowChildFrames(shiftX, aDesiredSize.BlockStartAscent());
   }
 
   return NS_OK;

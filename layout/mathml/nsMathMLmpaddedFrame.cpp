@@ -286,8 +286,9 @@ nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget,
                                      const PlaceFlags& aFlags,
                                      ReflowOutput& aDesiredSize) {
   // First perform normal row layout without border/padding.
-  PlaceFlags flags =
-      aFlags + PlaceFlag::MeasureOnly + PlaceFlag::IgnoreBorderPadding;
+  PlaceFlags flags = aFlags + PlaceFlag::MeasureOnly +
+                     PlaceFlag::IgnoreBorderPadding +
+                     PlaceFlag::DoNotAdjustForWidthAndHeight;
   nsresult rv = nsMathMLContainerFrame::Place(aDrawTarget, flags, aDesiredSize);
   if (NS_FAILED(rv)) {
     DidReflowChildren(PrincipalChildList().FirstChild());
@@ -387,6 +388,11 @@ nsresult nsMathMLmpaddedFrame::Place(DrawTarget* aDrawTarget,
   mBoundingMetrics.ascent = height;
   mBoundingMetrics.descent = depth;
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
+
+  // Apply width/height to math content box.
+  auto sizes = GetWidthAndHeightForPlaceAdjustment(aFlags);
+  dx += ApplyAdjustmentForWidthAndHeight(aFlags, sizes, aDesiredSize,
+                                         mBoundingMetrics);
 
   // Add padding+border.
   auto borderPadding = GetBorderPaddingForPlace(aFlags);

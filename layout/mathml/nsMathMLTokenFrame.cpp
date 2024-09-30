@@ -178,6 +178,11 @@ nsresult nsMathMLTokenFrame::Place(DrawTarget* aDrawTarget,
   aDesiredSize.Height() = aDesiredSize.BlockStartAscent() +
                           std::max(mBoundingMetrics.descent, descent);
 
+  // Apply width/height to math content box.
+  auto sizes = GetWidthAndHeightForPlaceAdjustment(aFlags);
+  auto shiftX = ApplyAdjustmentForWidthAndHeight(aFlags, sizes, aDesiredSize,
+                                                 mBoundingMetrics);
+
   // Add padding+border.
   auto borderPadding = GetBorderPaddingForPlace(aFlags);
   InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize,
@@ -185,6 +190,7 @@ nsresult nsMathMLTokenFrame::Place(DrawTarget* aDrawTarget,
 
   if (!aFlags.contains(PlaceFlag::MeasureOnly)) {
     nscoord dx = borderPadding.left;
+    dx += shiftX;
     for (nsIFrame* childFrame : PrincipalChildList()) {
       ReflowOutput childSize(aDesiredSize.GetWritingMode());
       GetReflowAndBoundingMetricsFor(childFrame, childSize,

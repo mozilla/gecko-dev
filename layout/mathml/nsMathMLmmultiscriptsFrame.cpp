@@ -559,6 +559,11 @@ nsresult nsMathMLmmultiscriptsFrame::PlaceMultiScript(
   aDesiredSize.Width() = boundingMetrics.width;
   aDesiredSize.mBoundingMetrics = boundingMetrics;
 
+  // Apply width/height to math content box.
+  auto sizes = aFrame->GetWidthAndHeightForPlaceAdjustment(aFlags);
+  aFrame->ApplyAdjustmentForWidthAndHeight(aFlags, sizes, aDesiredSize,
+                                           boundingMetrics);
+
   // Add padding+border.
   auto borderPadding = aFrame->GetBorderPaddingForPlace(aFlags);
   InflateReflowAndBoundingMetrics(borderPadding, aDesiredSize, boundingMetrics);
