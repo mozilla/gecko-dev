@@ -1794,7 +1794,6 @@ class ThreadActor extends Actor {
       incrementGripDepth: () => this._gripDepth++,
       decrementGripDepth: () => this._gripDepth--,
       createValueGrip: v => this.createValueGrip(v),
-      isThreadLifetimePool: () => actor.getParent() !== this.threadLifetimePool,
     });
     pool.manage(actor);
     pool.objectActors.set(value, actor);
