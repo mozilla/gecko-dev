@@ -996,25 +996,25 @@ var SidebarController = {
   /**
    * Update `checked` state and tooltip text of the toolbar button.
    */
-  updateToolbarButton() {
-    if (!this.sidebarRevampEnabled || !this.toolbarButton) {
+  updateToolbarButton(toolbarButton = this.toolbarButton) {
+    if (!this.sidebarRevampEnabled || !toolbarButton) {
       // For the non-revamped sidebar, this is handled by CustomizableWidgets.
       return;
     }
     switch (this.sidebarRevampVisibility) {
       case "always-show":
         // Toolbar button controls expanded state.
-        this.toolbarButton.checked = this.sidebarMain.expanded;
-        this.toolbarButton.dataset.l10nId = this.toolbarButton.checked
-          ? "sidebar-toolbar-collapse-sidebar"
-          : "sidebar-toolbar-expand-sidebar";
+        toolbarButton.checked = this.sidebarMain.expanded;
+        toolbarButton.dataset.l10nId = toolbarButton.checked
+          ? "sidebar-widget-collapse-sidebar"
+          : "sidebar-widget-expand-sidebar";
         break;
       case "hide-sidebar":
         // Toolbar button controls hidden state.
-        this.toolbarButton.checked = !this.sidebarContainer.hidden;
-        this.toolbarButton.dataset.l10nId = this.toolbarButton.checked
-          ? "sidebar-toolbar-hide-sidebar"
-          : "sidebar-toolbar-show-sidebar";
+        toolbarButton.checked = !this.sidebarContainer.hidden;
+        toolbarButton.dataset.l10nId = toolbarButton.checked
+          ? "sidebar-widget-hide-sidebar"
+          : "sidebar-widget-show-sidebar";
         break;
     }
   },
