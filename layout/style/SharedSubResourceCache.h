@@ -116,6 +116,11 @@ class SharedSubResourceCache {
     CacheExpirationTime mExpirationTime = CacheExpirationTime::Never();
     bool mWasSyncLoad = false;
 
+    explicit CompleteSubResource(LoadingValue& aValue)
+        : mResource(aValue.ValueForCache()),
+          mExpirationTime(aValue.ExpirationTime()),
+          mWasSyncLoad(aValue.IsSyncLoad()) {}
+
     inline bool Expired() const;
   };
 
@@ -411,10 +416,7 @@ void SharedSubResourceCache<Traits, Derived>::Insert(LoadingValue& aValue) {
   }
 #endif
 
-  // TODO(emilio): Use counters!
-  mComplete.InsertOrUpdate(
-      key, CompleteSubResource{aValue.ValueForCache(), aValue.ExpirationTime(),
-                               aValue.IsSyncLoad()});
+  mComplete.InsertOrUpdate(key, CompleteSubResource(aValue));
 }
 
 template <typename Traits, typename Derived>
