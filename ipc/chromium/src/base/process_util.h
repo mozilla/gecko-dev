@@ -33,6 +33,7 @@
 #include "base/process.h"
 
 #include "mozilla/UniquePtr.h"
+#include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
 
@@ -169,10 +170,10 @@ struct LaunchOptions {
   // it harder to serialize LaunchOptions for the fork server.
   //
   // (fork_flags holds extra flags for the clone() syscall, and
-  // sandbox_chroot indicates whether the child process will be given
-  // the ability to chroot() itself to an empty directory.)
+  // sandbox_chroot_server, if set, is used internally by the sandbox
+  // to chroot() the process to an empty directory.)
   int fork_flags = 0;
-  bool sandbox_chroot = false;
+  mozilla::UniqueFileHandle sandbox_chroot_server;
 #endif
 
 #ifdef XP_DARWIN

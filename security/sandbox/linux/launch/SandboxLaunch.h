@@ -8,6 +8,7 @@
 #define mozilla_SandboxLaunch_h
 
 #include "base/process_util.h"
+#include "mozilla/GeckoArgs.h"
 #include "mozilla/ipc/UtilityProcessSandboxing.h"
 #include "nsXULAppAPI.h"
 #include <vector>
@@ -32,7 +33,8 @@ class SandboxLaunch final {
   // This is meant to be called in the parent process (even if the
   // fork server will be used), and if `aType` is Content then it must
   // be called on the main thread in order to access prefs.
-  static void Configure(GeckoProcessType aType, SandboxingKind aKind,
+  static bool Configure(GeckoProcessType aType, SandboxingKind aKind,
+                        geckoargs::ChildProcessArgs& aExtraOpts,
                         LaunchOptions* aOptions);
 
   // Finish setting up for process launch, based on the information
@@ -57,7 +59,6 @@ class SandboxLaunch final {
  private:
   int mFlags;
   int mChrootServer;
-  int mChrootClient;
 
   void StartChrootServer();
 };

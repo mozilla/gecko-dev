@@ -248,7 +248,7 @@ class GeckoChildProcessHost : public SupportsWeakPtr,
     PROCESS_ERROR
   } mProcessState MOZ_GUARDED_BY(mMonitor);
 
-  void PrepareLaunch();
+  bool PrepareLaunch(geckoargs::ChildProcessArgs& aExtraOpts);
 
 #ifdef XP_WIN
   void InitWindowsGroupID();

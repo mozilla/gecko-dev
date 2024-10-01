@@ -161,8 +161,8 @@ inline bool ParseForkNewSubprocess(IPC::Message& aMsg,
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   ReadParamInfallible(&reader, &aOptions->fork_flags,
                       "Error deserializing 'int'");
-  ReadParamInfallible(&reader, &aOptions->sandbox_chroot,
-                      "Error deserializing 'bool'");
+  ReadParamInfallible(&reader, &aOptions->sandbox_chroot_server,
+                      "Error deserializing 'UniqueFileHandle'");
 #endif
   ReadParamInfallible(&reader, aExecFd,
                       "Error deserializing 'UniqueFileHandle'");
