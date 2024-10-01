@@ -59,7 +59,7 @@ class EngineViewClippingBehaviorTest {
             ToolbarPosition.BOTTOM,
         )
 
-        behavior.onDependentViewChanged(mock(), mock(), toolbar)
+        behavior.applyUpdatesDependentViewChanged(toolbar)
 
         verify(engineView).setVerticalClipping(-42)
         assertEquals(0f, engineView.asView().translationY)
@@ -80,7 +80,7 @@ class EngineViewClippingBehaviorTest {
             ToolbarPosition.TOP,
         )
 
-        behavior.onDependentViewChanged(mock(), mock(), toolbar)
+        behavior.applyUpdatesDependentViewChanged(toolbar)
 
         verify(engineView).setVerticalClipping(42)
         assertEquals(142f, engineView.asView().translationY)
@@ -225,7 +225,7 @@ class EngineViewClippingBehaviorTest {
             ToolbarPosition.BOTTOM,
         )
 
-        behavior.onDependentViewChanged(mock(), mock(), toolbar)
+        behavior.applyUpdatesDependentViewChanged(toolbar)
         assertEquals(0f, engineView.asView().translationY)
     }
 }

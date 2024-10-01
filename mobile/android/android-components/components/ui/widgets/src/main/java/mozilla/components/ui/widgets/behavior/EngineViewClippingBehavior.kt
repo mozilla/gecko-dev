@@ -66,6 +66,7 @@ class EngineViewClippingBehavior(
 
     override fun layoutDependsOn(parent: CoordinatorLayout, child: View, dependency: View): Boolean {
         if (dependency is ScrollableToolbar) {
+            applyUpdatesDependentViewChanged(dependency)
             return true
         }
 
@@ -76,10 +77,9 @@ class EngineViewClippingBehavior(
      * Apply vertical clipping to [EngineView]. This requires [EngineViewClippingBehavior] to be set
      * in/on the [EngineView] or its parent. Must be a direct descending child of [CoordinatorLayout].
      */
-    override fun onDependentViewChanged(parent: CoordinatorLayout, child: View, dependency: View): Boolean {
+    @VisibleForTesting
+    internal fun applyUpdatesDependentViewChanged(dependency: View) {
         toolbarChangedAction.invoke(dependency.translationY)
-
-        return true
     }
 }
 
