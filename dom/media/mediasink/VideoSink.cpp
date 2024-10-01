@@ -678,6 +678,13 @@ void VideoSink::MaybeResolveEndPromise() {
 
 void VideoSink::SetSecondaryVideoContainer(VideoFrameContainer* aSecondary) {
   AssertOwnerThread();
+  // Clear all images of secondary ImageContainer, when it is removed from
+  // VideoSink.
+  if (mSecondaryContainer && aSecondary != mSecondaryContainer) {
+    ImageContainer* secondaryImageContainer =
+        mSecondaryContainer->GetImageContainer();
+    secondaryImageContainer->ClearAllImages();
+  }
   mSecondaryContainer = aSecondary;
   if (!IsPlaying() && mSecondaryContainer) {
     ImageContainer* mainImageContainer = mContainer->GetImageContainer();
