@@ -19,6 +19,9 @@ COPY gpgvnoexpkeysig /usr/local/sbin
 ARG DIST
 ARG SNAPSHOT
 ARG TASKCLUSTER_ROOT_URL
+
+RUN if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then mv /etc/apt/sources.list.d/ubuntu.sources /etc/apt/; fi;
+
 # Set apt sources list to a snapshot.
 # Note: the use of gpgvnoexpkeysig is because the Debian Jessie GPG key expired.
 RUN if [ -n "$DIST" ]; then for s in debian_$DIST debian_$DIST-updates debian_$DIST-backports debian-security_$DIST-security debian-debug_$DIST-debug debian-debug_$DIST-proposed-updates-debug debian-debug_$DIST-backports-debug; do \
@@ -58,6 +61,8 @@ RUN if [ -n "$DIST" ]; then for s in debian_$DIST debian_$DIST-updates debian_$D
       echo 'Pin: origin "'$TASKCLUSTER_ROOT_URL'"' | sed 's,https://,,'; \
       echo 'Pin-Priority: 1001'; \
     ) > /etc/apt/preferences.d/99taskcluster
+
+RUN if [ -f /etc/apt/ubuntu.sources ]; then mv /etc/apt/ubuntu.sources /etc/apt/sources.list.d/; fi;
 
 RUN apt-get update && \
     if grep -q snapshot.debian.org /etc/apt/sources.list; then \

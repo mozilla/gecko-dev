@@ -198,3 +198,30 @@ ub22-arm64-mercurial:
             sed -i -e "s/__VERSION__/$(awk -F\" '$2 {print $2}' mercurial/__version__.py)-1.ub22moz1/" \
                          -e "s/__DATE__/$(date --rfc-2822)/" \
                          -e "s/__CODENAME__/jammy/" debian/changelog
+
+ub24-python-zstandard:
+    description: "python-zstandard for Ubuntu noble"
+    treeherder:
+        symbol: Ub24(python-zstandard)
+    run:
+        tarball:
+            url: https://github.com/indygreg/python-zstandard/releases/download/0.22.0/zstandard-0.22.0.tar.gz
+            sha256: 8226a33c542bcb54cd6bd0a366067b610b41713b64c9abec1bc4533d69f51e70
+        name: python-zstandard
+        dist: noble
+        pre-build-command: debchange -v 0.22.0-1.ub24moz --distribution noble "Mozilla backport for noble"
+
+ub24-mercurial:
+    description: "Modern Mercurial for Ubuntu noble"
+    treeherder:
+        symbol: Ub24(hg)
+    run:
+        tarball:
+            url: https://www.mercurial-scm.org/release/mercurial-6.8.1.tar.gz
+            sha256: 030e8a7a6d590e4eaeb403ee25675615cd80d236f3ab8a0b56dcc84181158b05
+        dist: noble
+        pre-build-command: >-
+            cp -r contrib/packaging/debian debian &&
+            sed -i -e "s/__VERSION__/$(awk -F\" '$2 {print $2}' mercurial/__version__.py)-1.ub24moz1/" \
+                         -e "s/__DATE__/$(date --rfc-2822)/" \
+                         -e "s/__CODENAME__/noble/" debian/changelog

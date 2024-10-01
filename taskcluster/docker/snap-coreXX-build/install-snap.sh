@@ -22,3 +22,5 @@ curl -L \
 mkdir -p "/snap/${SNAP_TO_INSTALL}"
 
 unsquashfs -d "/snap/${SNAP_TO_INSTALL}/current" "${SNAP_TO_INSTALL}.snap"
+
+rm "${SNAP_TO_INSTALL}.snap"

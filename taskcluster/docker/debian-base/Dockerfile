@@ -1,6 +1,9 @@
 FROM $DOCKER_IMAGE_PARENT
 MAINTAINER Mike Hommey <mhommey@mozilla.com>
 
+# Ubuntu 24.04 now ships with user 1000 ...
+RUN userdel --remove ubuntu || true
+
 ### Add worker user and setup its workspace.
 RUN mkdir -p /builds && \
     groupadd -g 1000 worker && \

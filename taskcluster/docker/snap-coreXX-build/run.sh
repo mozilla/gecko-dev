@@ -26,7 +26,7 @@ USE_SNAP_FROM_STORE_OR_MC=${USE_SNAP_FROM_STORE_OR_MC:-0}
 
 TRY=0
 if [ "${BRANCH}" = "try" ]; then
-  BRANCH=nightly
+  SOURCE_BRANCH=nightly
   TRY=1
 fi
 
@@ -90,8 +90,20 @@ if [ "${USE_SNAP_FROM_STORE_OR_MC}" = "0" ]; then
     sed -ri 's/ac_add_options MOZ_PGO=1//g' snapcraft.yaml
   fi
 
-  SNAPCRAFT_BUILD_ENVIRONMENT_MEMORY=64G \
-  SNAPCRAFT_BUILD_ENVIRONMENT_CPU=$(nproc) \
+  MAX_MEMORY_GB=$(free -g | awk '/Mem:/ { print $2 - 1 }')
+
+  # setting parallelism does not work with core24 ?
+  #
+  # SNAPCRAFT_BUILD_ENVIRONMENT_CPU=$(nproc) \
+  # SNAPCRAFT_PARALLEL_BUILD_COUNT=$(nproc) \
+  # CRAFT_PARALLEL_BUILD_COUNT=$(nproc) \
+
+  # Get the value and overwrite the snap's content.
+  MAX_CPUS=$(nproc)
+  sed -ri "s|\\\$CRAFT_PARALLEL_BUILD_COUNT|${MAX_CPUS}|g" snapcraft.yaml
+  grep "make -j" snapcraft.yaml
+
+  SNAPCRAFT_BUILD_ENVIRONMENT_MEMORY="${MAX_MEMORY_GB}G" \
   CRAFT_PARTS_PACKAGE_REFRESH=0 \
     snapcraft --destructive-mode --verbose
 elif [ "${USE_SNAP_FROM_STORE_OR_MC}" = "store" ]; then

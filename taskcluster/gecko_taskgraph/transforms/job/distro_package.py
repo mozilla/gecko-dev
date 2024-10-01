@@ -236,5 +236,6 @@ def docker_worker_ubuntu_package(config, job, taskdesc):
         "bionic": 1804,
         "focal": 2004,
         "jammy": 2204,
+        "noble": 2404,
     }[run["dist"]]
     common_package(config, job, taskdesc, "ubuntu", version)
