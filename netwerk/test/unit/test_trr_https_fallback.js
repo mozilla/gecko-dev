@@ -101,70 +101,75 @@ add_task(async function testFallbackToTheLastRecord() {
   );
 
   // Only the last record is valid to use.
-  await trrServer.registerDoHAnswers("test.fallback.com", "HTTPS", {
-    answers: [
-      {
-        name: "test.fallback.com",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 1,
-          name: "test.fallback1.com",
-          values: [
-            { key: "alpn", value: ["h2", "h3-26"] },
-            { key: "echconfig", value: "123..." },
-          ],
+  await trrServer.registerDoHAnswers(
+    `_${h2Port}._https.test.fallback.com`,
+    "HTTPS",
+    {
+      answers: [
+        {
+          name: `_${h2Port}._https.test.fallback.com`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 1,
+            name: "test.fallback1.com",
+            values: [
+              { key: "alpn", value: ["h2", "h3-26"] },
+              { key: "echconfig", value: "123..." },
+            ],
+          },
         },
-      },
-      {
-        name: "test.fallback.com",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 4,
-          name: "foo.example.com",
-          values: [
-            { key: "alpn", value: ["h2", "h3-26"] },
-            { key: "port", value: h2Port },
-            { key: "echconfig", value: "456..." },
-          ],
+        {
+          name: `_${h2Port}._https.test.fallback.com`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 4,
+            name: "foo.example.com",
+            values: [
+              { key: "alpn", value: ["h2", "h3-26"] },
+              { key: "port", value: h2Port },
+              { key: "echconfig", value: "456..." },
+            ],
+          },
         },
-      },
-      {
-        name: "test.fallback.com",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 3,
-          name: "test.fallback3.com",
-          values: [
-            { key: "alpn", value: ["h2", "h3-26"] },
-            { key: "echconfig", value: "456..." },
-          ],
+        {
+          name: `_${h2Port}._https.test.fallback.com`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 3,
+            name: "test.fallback3.com",
+            values: [
+              { key: "alpn", value: ["h2", "h3-26"] },
+              { key: "echconfig", value: "456..." },
+            ],
+          },
         },
-      },
-      {
-        name: "test.fallback.com",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 2,
-          name: "test.fallback2.com",
-          values: [
-            { key: "alpn", value: ["h2", "h3-26"] },
-            { key: "echconfig", value: "456..." },
-          ],
+        {
+          name: `_${h2Port}._https.test.fallback.com`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 2,
+            name: "test.fallback2.com",
+            values: [
+              { key: "alpn", value: ["h2", "h3-26"] },
+              { key: "echconfig", value: "456..." },
+            ],
+          },
         },
-      },
-    ],
-  });
+      ],
+    }
+  );
 
   await new TRRDNSListener("test.fallback.com", {
     type: Ci.nsIDNSService.RESOLVE_TYPE_HTTPSSVC,
+    port: h2Port,
   });
 
   let chan = makeChan(`https://test.fallback.com:${h2Port}/server-timing`);
@@ -489,42 +494,47 @@ add_task(async function testResetExclusionList() {
     false
   );
 
-  await trrServer.registerDoHAnswers("test.reset.com", "HTTPS", {
-    answers: [
-      {
-        name: "test.reset.com",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 1,
-          name: "test.reset1.com",
-          values: [
-            { key: "alpn", value: ["h2", "h3-26"] },
-            { key: "port", value: h2Port },
-            { key: "echconfig", value: "456..." },
-          ],
+  await trrServer.registerDoHAnswers(
+    `_${h2Port}._https.test.reset.com`,
+    "HTTPS",
+    {
+      answers: [
+        {
+          name: `_${h2Port}._https.test.reset.com`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 1,
+            name: "test.reset1.com",
+            values: [
+              { key: "alpn", value: ["h2", "h3-26"] },
+              { key: "port", value: h2Port },
+              { key: "echconfig", value: "456..." },
+            ],
+          },
         },
-      },
-      {
-        name: "test.reset.com",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 2,
-          name: "test.reset2.com",
-          values: [
-            { key: "alpn", value: ["h2", "h3-26"] },
-            { key: "echconfig", value: "456..." },
-          ],
+        {
+          name: `_${h2Port}._https.test.reset.com`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 2,
+            name: "test.reset2.com",
+            values: [
+              { key: "alpn", value: ["h2", "h3-26"] },
+              { key: "echconfig", value: "456..." },
+            ],
+          },
         },
-      },
-    ],
-  });
+      ],
+    }
+  );
 
   await new TRRDNSListener("test.reset.com", {
     type: Ci.nsIDNSService.RESOLVE_TYPE_HTTPSSVC,
+    port: h2Port,
   });
 
   // After this request, test.reset1.com and test.reset2.com should be both in
@@ -851,13 +861,13 @@ add_task(async function testAllRecordsInHttp3ExcludedList() {
 
   Services.prefs.setCharPref(
     "network.http.http3.alt-svc-mapping-for-testing",
-    "www.h3_fail1.org;h3-29=:" + h3Port
+    "_${h2Port}._https.www.h3_fail1.org;h3-29=:" + h3Port
   );
 
-  await trrServer.registerDoHAnswers("www.h3_all_excluded.org", "A", {
+  await trrServer.registerDoHAnswers(`www.h3_all_excluded.org`, "A", {
     answers: [
       {
-        name: "www.h3_all_excluded.org",
+        name: `www.h3_all_excluded.org`,
         ttl: 55,
         type: "A",
         flush: false,
@@ -882,50 +892,55 @@ add_task(async function testAllRecordsInHttp3ExcludedList() {
 
   Services.prefs.setCharPref(
     "network.http.http3.alt-svc-mapping-for-testing",
-    "www.h3_fail2.org;h3-29=:" + h3Port
+    "_${h2Port}._https.www.h3_fail2.org;h3-29=:" + h3Port
   );
 
   // This will fail because there is no address record for www.h3_fail2.org.
   chan = makeChan(`https://www.h3_fail2.org`);
   await channelOpenPromise(chan, CL_EXPECT_LATE_FAILURE | CL_ALLOW_UNKNOWN_CL);
 
-  await trrServer.registerDoHAnswers("www.h3_all_excluded.org", "HTTPS", {
-    answers: [
-      {
-        name: "www.h3_all_excluded.org",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 1,
-          name: "www.h3_fail1.org",
-          values: [
-            { key: "alpn", value: "h3-29" },
-            { key: "port", value: h3Port },
-            { key: "echconfig", value: "456..." },
-          ],
+  await trrServer.registerDoHAnswers(
+    `_${h2Port}._https.www.h3_all_excluded.org`,
+    "HTTPS",
+    {
+      answers: [
+        {
+          name: `_${h2Port}._https.www.h3_all_excluded.org`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 1,
+            name: "www.h3_fail1.org",
+            values: [
+              { key: "alpn", value: "h3-29" },
+              { key: "port", value: h3Port },
+              { key: "echconfig", value: "456..." },
+            ],
+          },
         },
-      },
-      {
-        name: "www.h3_all_excluded.org",
-        ttl: 55,
-        type: "HTTPS",
-        flush: false,
-        data: {
-          priority: 2,
-          name: "www.h3_fail2.org",
-          values: [
-            { key: "alpn", value: "h3-29" },
-            { key: "port", value: h3Port },
-            { key: "echconfig", value: "456..." },
-          ],
+        {
+          name: `_${h2Port}._https.www.h3_all_excluded.org`,
+          ttl: 55,
+          type: "HTTPS",
+          flush: false,
+          data: {
+            priority: 2,
+            name: "www.h3_fail2.org",
+            values: [
+              { key: "alpn", value: "h3-29" },
+              { key: "port", value: h3Port },
+              { key: "echconfig", value: "456..." },
+            ],
+          },
         },
-      },
-    ],
-  });
+      ],
+    }
+  );
 
   await new TRRDNSListener("www.h3_all_excluded.org", {
     type: Ci.nsIDNSService.RESOLVE_TYPE_HTTPSSVC,
+    port: h2Port,
   });
 
   Services.dns.clearCache(true);
@@ -951,7 +966,7 @@ add_task(async function testAllRecordsInHttp3ExcludedList() {
 
   // The the case that when all records are in http3 excluded list, we still
   // give the first record one more shot.
-  chan = makeChan(`https://www.h3_all_excluded.org`);
+  chan = makeChan(`https://www.h3_all_excluded.org:${h2Port}`);
   [req] = await channelOpenPromise(chan);
   Assert.equal(req.protocolVersion, "h3-29");
   let internal = req.QueryInterface(Ci.nsIHttpChannelInternal);
