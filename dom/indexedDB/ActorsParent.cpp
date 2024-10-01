@@ -15965,6 +15965,8 @@ void OpenDatabaseOp::EnsureDatabaseActor() {
 
   MOZ_RELEASE_ASSERT(mInPrivateBrowsing == maybeKey.isSome());
 
+  const bool directoryLockInvalidated = mDirectoryLock->Invalidated();
+
   // XXX Shouldn't Manager() return already_AddRefed when
   // PBackgroundIDBFactoryParent is declared refcounted?
   mDatabase = MakeSafeRefPtr<Database>(
@@ -15986,6 +15988,10 @@ void OpenDatabaseOp::EnsureDatabaseActor() {
                        mMetadata.clonePtr(),
                        WrapNotNullUnchecked(mDatabase.unsafeGetRawPtr())))
                .get();
+  }
+
+  if (directoryLockInvalidated) {
+    mDatabase->Invalidate();
   }
 
   // Balanced in Database::CleanupMetadata().

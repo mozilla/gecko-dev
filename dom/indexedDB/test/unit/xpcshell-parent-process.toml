@@ -96,7 +96,6 @@ skip-if = ["true"]
 ["test_schema23upgrade.js"]
 
 ["test_slowDatabaseInitialization.js"]
-skip-if = ["true"]
 
 ["test_slowStorageInitialization.js"]
 
