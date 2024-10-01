@@ -30,6 +30,11 @@ interface nsIHTMLObjectResizer : nsISupports
   attribute boolean objectResizingEnabled;
 
   /**
+   * true if the object resizing UI is visible.
+   */
+  [infallible] readonly attribute boolean isObjectResizingActive;
+
+  /**
    * Hide resizers if they are visible.  If this is called while there is no
    * visible resizers, this does not throw exception, just does nothing.
    */

@@ -135,6 +135,12 @@ NS_IMETHODIMP HTMLEditor::SetAbsolutePositioningEnabled(bool aIsEnabled) {
   return NS_OK;
 }
 
+NS_IMETHODIMP HTMLEditor::GetIsAbsolutePositioningActive(bool* aIsActive) {
+  MOZ_ASSERT(aIsActive);
+  *aIsActive = !!mAbsolutelyPositionedObject;
+  return NS_OK;
+}
+
 Result<int32_t, nsresult> HTMLEditor::AddZIndexWithTransaction(
     nsStyledElement& aStyledElement, int32_t aChange) {
   if (!aChange) {

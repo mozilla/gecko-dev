@@ -12,6 +12,7 @@
 #include "mozilla/PresShellInlines.h"
 #include "mozilla/dom/BindContext.h"
 #include "mozilla/dom/Element.h"
+#include "mozilla/dom/ElementInlines.h"
 #include "mozilla/dom/EventTarget.h"
 #include "mozilla/mozalloc.h"
 #include "nsAString.h"
@@ -292,31 +293,44 @@ void HTMLEditor::HideAnonymousEditingUIs() {
 void HTMLEditor::HideAnonymousEditingUIsIfUnnecessary() {
   // XXX Perhaps, this is wrong approach to hide multiple UIs because
   //     hiding one UI may causes overwriting existing UI with newly
-  //     created one.  In such case, we will leak ovewritten UI.
-  if (!IsAbsolutePositionEditorEnabled() && mAbsolutelyPositionedObject) {
-    // XXX If we're moving something, we need to cancel or commit the
-    //     operation now.
-    HideGrabberInternal();
-    NS_ASSERTION(!mAbsolutelyPositionedObject,
-                 "HTMLEditor::HideGrabberInternal() failed, but ignored");
+  //     created one.  In such case, we will leak overwritten UI.
+  if (mAbsolutelyPositionedObject) {
+    const Element* const editingHost =
+        mAbsolutelyPositionedObject->GetEditingHost();
+    if (!IsAbsolutePositionEditorEnabled() || !editingHost ||
+        editingHost->IsContentEditablePlainTextOnly()) {
+      // XXX If we're moving something, we need to cancel or commit the
+      //     operation now.
+      HideGrabberInternal();
+      NS_ASSERTION(!mAbsolutelyPositionedObject,
+                   "HTMLEditor::HideGrabberInternal() failed, but ignored");
+    }
   }
-  if (!IsInlineTableEditorEnabled() && mInlineEditedCell) {
-    // XXX If we're resizing a table element, we need to cancel or commit the
-    //     operation now.
-    HideInlineTableEditingUIInternal();
-    NS_ASSERTION(
-        !mInlineEditedCell,
-        "HTMLEditor::HideInlineTableEditingUIInternal() failed, but ignored");
+  if (mInlineEditedCell) {
+    const Element* const editingHost = mInlineEditedCell->GetEditingHost();
+    if (!IsInlineTableEditorEnabled() || !editingHost ||
+        editingHost->IsContentEditablePlainTextOnly()) {
+      // XXX If we're resizing a table element, we need to cancel or commit the
+      //     operation now.
+      HideInlineTableEditingUIInternal();
+      NS_ASSERTION(
+          !mInlineEditedCell,
+          "HTMLEditor::HideInlineTableEditingUIInternal() failed, but ignored");
+    }
   }
-  if (!IsObjectResizerEnabled() && mResizedObject) {
-    // XXX If we're resizing something, we need to cancel or commit the
-    //     operation now.
-    DebugOnly<nsresult> rvIgnored = HideResizersInternal();
-    NS_WARNING_ASSERTION(
-        NS_SUCCEEDED(rvIgnored),
-        "HTMLEditor::HideResizersInternal() failed, but ignored");
-    NS_ASSERTION(!mResizedObject,
-                 "HTMLEditor::HideResizersInternal() failed, but ignored");
+  if (mResizedObject) {
+    const Element* const editingHost = mResizedObject->GetEditingHost();
+    if (!IsObjectResizerEnabled() || !editingHost ||
+        editingHost->IsContentEditablePlainTextOnly()) {
+      // XXX If we're resizing something, we need to cancel or commit the
+      //     operation now.
+      DebugOnly<nsresult> rvIgnored = HideResizersInternal();
+      NS_WARNING_ASSERTION(
+          NS_SUCCEEDED(rvIgnored),
+          "HTMLEditor::HideResizersInternal() failed, but ignored");
+      NS_ASSERTION(!mResizedObject,
+                   "HTMLEditor::HideResizersInternal() failed, but ignored");
+    }
   }
 }
 
@@ -360,6 +374,13 @@ nsresult HTMLEditor::RefreshEditingUI() {
   if (!selectionContainerElement->IsInComposedDoc()) {
     return NS_OK;
   }
+
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (editingHost && editingHost->IsContentEditablePlainTextOnly()) {
+    return NS_OK;
+  }
+  MOZ_ASSERT(editingHost == selectionContainerElement->GetEditingHost());
 
   // what's its tag?
   RefPtr<Element> focusElement = std::move(selectionContainerElement);
@@ -443,11 +464,9 @@ nsresult HTMLEditor::RefreshEditingUI() {
   }
 
   // now, let's display all contextual UI for good
-  nsIContent* hostContent = ComputeEditingHost();
-
   if (IsObjectResizerEnabled() && focusElement &&
       HTMLEditUtils::IsSimplyEditableNode(*focusElement) &&
-      focusElement != hostContent) {
+      focusElement != editingHost) {
     if (nsGkAtoms::img == focusTagAtom) {
       mResizedObjectIsAnImage = true;
     }
@@ -468,7 +487,7 @@ nsresult HTMLEditor::RefreshEditingUI() {
 
   if (IsAbsolutePositionEditorEnabled() && absPosElement &&
       HTMLEditUtils::IsSimplyEditableNode(*absPosElement) &&
-      absPosElement != hostContent) {
+      absPosElement != editingHost) {
     if (mAbsolutelyPositionedObject) {
       nsresult rv = RefreshGrabberInternal();
       if (NS_FAILED(rv)) {
@@ -487,7 +506,7 @@ nsresult HTMLEditor::RefreshEditingUI() {
   // XXX Shouldn't we check whether the `<table>` element is editable or not?
   if (IsInlineTableEditorEnabled() && cellElement &&
       HTMLEditUtils::IsSimplyEditableNode(*cellElement) &&
-      cellElement != hostContent) {
+      cellElement != editingHost) {
     if (mInlineEditedCell) {
       nsresult rv = RefreshInlineTableEditingUIInternal();
       if (NS_FAILED(rv)) {

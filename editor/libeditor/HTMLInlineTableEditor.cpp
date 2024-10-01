@@ -31,6 +31,12 @@ NS_IMETHODIMP HTMLEditor::GetInlineTableEditingEnabled(bool* aIsEnabled) {
   return NS_OK;
 }
 
+NS_IMETHODIMP HTMLEditor::GetIsInlineTableEditingActive(bool* aIsActive) {
+  MOZ_ASSERT(aIsActive);
+  *aIsActive = !!mInlineEditedCell;
+  return NS_OK;
+}
+
 nsresult HTMLEditor::ShowInlineTableEditingUIInternal(Element& aCellElement) {
   if (NS_WARN_IF(!HTMLEditUtils::IsTableCell(&aCellElement))) {
     return NS_OK;

@@ -15,6 +15,11 @@ interface nsIHTMLAbsPosEditor : nsISupports
   [setter_can_run_script]
   attribute boolean absolutePositioningEnabled;
 
+  /**
+   * true if the grabber to drag the absolutly positioned element is visible.
+   */
+  [infallible] readonly attribute boolean isAbsolutePositioningActive;
+
 
   /* Utility methods */
 

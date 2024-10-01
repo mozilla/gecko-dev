@@ -1481,6 +1481,12 @@ NS_IMETHODIMP HTMLEditor::SetObjectResizingEnabled(
   return NS_OK;
 }
 
+NS_IMETHODIMP HTMLEditor::GetIsObjectResizingActive(bool* aIsActive) {
+  MOZ_ASSERT(aIsActive);
+  *aIsActive = !!mResizedObject;
+  return NS_OK;
+}
+
 #undef kTopLeft
 #undef kTop
 #undef kTopRight

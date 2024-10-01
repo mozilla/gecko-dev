@@ -1,0 +1,95 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<script src="/tests/SimpleTest/EventUtils.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.element.contenteditable.plaintext-only.enabled", true]],
+  });
+  function waitForTick() {
+    return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }
+  await (async () => {
+    const editingHost = document.getElementById("testAbs");
+    editingHost.contentEditable = "plaintext-only";
+    editingHost.focus();
+    document.execCommand("enableAbsolutePositionEditing", false, "true");
+    const target = editingHost.querySelector("div[style]");
+    synthesizeMouseAtCenter(target, {});
+    await waitForTick();
+    is(
+      getHTMLEditor().isAbsolutePositioningActive,
+      false,
+      "The absolutely positioned element positioner UI should not be visible"
+    );
+    document.execCommand("enableAbsolutePositionEditing", false, "false");
+    editingHost.remove();
+    await waitForTick();
+  })();
+  await (async () => {
+    const editingHost = document.getElementById("testTable");
+    editingHost.contentEditable = "plaintext-only";
+    editingHost.focus();
+    document.execCommand("enableInlineTableEditing", false, "true");
+    const target = editingHost.querySelector("td");
+    synthesizeMouseAtCenter(target, {});
+    await waitForTick();
+    is(
+      getHTMLEditor().isInlineTableEditingActive,
+      false,
+      "The inline table editing UI should not be visible"
+    );
+    document.execCommand("enableInlineTableEditing", false, "false");
+    editingHost.remove();
+    await waitForTick();
+  })();
+  await (async () => {
+    const editingHost = document.getElementById("testResizer");
+    editingHost.contentEditable = "plaintext-only";
+    editingHost.focus();
+    document.execCommand("enableObjectResizing", false, "true");
+    const target = editingHost.querySelector("img");
+    synthesizeMouseAtCenter(target, {});
+    await waitForTick();
+    is(
+      getHTMLEditor().isObjectResizingActive,
+      false,
+      "The image resizer UI should not be visible"
+    );
+    document.execCommand("enableObjectResizing", false, "false");
+    editingHost.remove();
+    await waitForTick();
+  })();
+  SimpleTest.finish();
+});
+
+function getHTMLEditor() {
+  const Ci = SpecialPowers.Ci;
+  const editingSession = SpecialPowers.wrap(window).docShell.editingSession;
+  return editingSession.getEditorForWindow(window)
+    .QueryInterface(Ci.nsIHTMLAbsPosEditor)
+    .QueryInterface(Ci.nsIHTMLInlineTableEditor)
+    .QueryInterface(Ci.nsIHTMLObjectResizer);
+}
+</script>
+</head>
+<body>
+<div id="testAbs" style="position: absolute; width: 150px; height: 150px">
+  <div style="position: absolute; width: 100px; height: 100px"><br></div>
+</div>
+<div id="testTable">
+  <table><td><br></td></table>
+</div>
+<div id="testResizer">
+  <img src="green.png">
+</div>
+</body>
+</html>
