@@ -40,6 +40,9 @@ using namespace mozilla;
 using mozilla::dom::Document;
 using mozilla::dom::Element;
 
+/* static */
+const mozilla::gfx::DeviceColor SimpleTextContextPaint::sZero;
+
 gfxSVGGlyphs::gfxSVGGlyphs(hb_blob_t* aSVGTable, gfxFontEntry* aFontEntry)
     : mSVGData(aSVGTable), mFontEntry(aFontEntry) {
   unsigned int length;

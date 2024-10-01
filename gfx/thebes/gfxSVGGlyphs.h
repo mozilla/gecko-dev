@@ -177,7 +177,7 @@ class gfxSVGGlyphs {
  */
 class SimpleTextContextPaint : public mozilla::SVGContextPaint {
  private:
-  static constexpr mozilla::gfx::DeviceColor sZero;
+  static const mozilla::gfx::DeviceColor sZero;
 
   static gfxMatrix SetupDeviceToPatternMatrix(gfxPattern* aPattern,
                                               const gfxMatrix& aCTM) {
