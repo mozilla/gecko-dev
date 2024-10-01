@@ -547,11 +547,7 @@ public class GeckoDisplay {
     }
 
     if (Build.VERSION.SDK_INT >= 29) {
-      final int imeHeight = insetsCompat.getInsets(WindowInsetsCompat.Type.ime()).bottom;
-      if (imeHeight == 0) {
-        return 0;
-      }
-      return imeHeight - insetsCompat.getInsets(WindowInsetsCompat.Type.navigationBars()).bottom;
+      return insetsCompat.getInsets(WindowInsetsCompat.Type.ime()).bottom;
     }
 
     return insetsCompat.getSystemWindowInsets().bottom;
