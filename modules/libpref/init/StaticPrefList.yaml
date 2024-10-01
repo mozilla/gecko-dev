@@ -4164,6 +4164,13 @@
   value: @IS_NOT_ANDROID@
   mirror: always
 
+# Server-Sent Events
+# Equal to the DEFAULT_RECONNECTION_TIME_VALUE value in nsEventSource.cpp
+- name: dom.serverEvents.defaultReconnectionTime
+  type: RelaxedAtomicUint32
+  value: 5000 # in milliseconds
+  mirror: always
+
 # Whether automatic storage access granting heuristics should be turned on.
 - name: dom.storage_access.auto_grants
   type: bool
