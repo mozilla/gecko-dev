@@ -25,6 +25,17 @@ struct ChildProcessArgs {
   std::vector<UniqueFileHandle> mFiles;
 };
 
+#ifdef XP_UNIX
+// On some unix platforms, file handles are passed down without using a fixed
+// file descriptor. This method can be used to override the default mapping.
+void SetPassedFileHandles(Span<int> aFiles);
+void SetPassedFileHandles(std::vector<UniqueFileHandle>&& aFiles);
+
+// Add the file handles from a ChildProcessArgs to a fdsToRemap table.
+void AddToFdsToRemap(const ChildProcessArgs& aArgs,
+                     std::vector<std::pair<int, int>>& aFdsToRemap);
+#endif
+
 template <typename T>
 struct CommandLineArg {
   Maybe<T> Get(int& aArgc, char** aArgv,
