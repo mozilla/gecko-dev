@@ -1062,7 +1062,7 @@ void VirtualRegister::setInitialDefinition(CodePosition from) {
 }
 
 LiveRange* VirtualRegister::rangeFor(CodePosition pos,
-                                     bool preferRegister /* = false */) {
+                                     bool preferRegister /* = false */) const {
   assertRangesSorted();
 
   size_t len = ranges_.length();
@@ -1146,7 +1146,7 @@ void VirtualRegister::sortRanges() {
 }
 
 #ifdef DEBUG
-void VirtualRegister::assertRangesSorted() {
+void VirtualRegister::assertRangesSorted() const {
   MOZ_ASSERT(rangesSorted_);
 
   // Assert the last N ranges in the vector are sorted correctly. We don't check
