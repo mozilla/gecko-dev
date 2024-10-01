@@ -206,9 +206,8 @@ open class FocusApplication : LocaleAwareApplication(), Provider, CoroutineScope
     }
 
     private fun enableStrictMode() {
-        // Android/WebView sometimes commit strict mode violations, see e.g.
-        // https://github.com/mozilla-mobile/focus-android/issues/660
-        if (AppConstants.isReleaseBuild || AppConstants.isBetaBuild) {
+        // Only enable StrictMode in debug builds
+        if (!AppConstants.isDevBuild) {
             return
         }
 
