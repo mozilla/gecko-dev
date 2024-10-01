@@ -11,7 +11,7 @@
  * and create derivative works of this document.
  */
 
-[Exposed=(Window,DedicatedWorker,SharedWorker)]
+[Exposed=(Window,Worker)]
 interface EventSource : EventTarget {
   [Throws]
   constructor(USVString url, optional EventSourceInit eventSourceInitDict = {});
