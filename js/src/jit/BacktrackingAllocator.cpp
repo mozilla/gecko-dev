@@ -3904,6 +3904,59 @@ static void AssertCorrectRangeForPosition(const VirtualRegister& reg,
 #endif
 }
 
+// Helper for ::createMoveGroupsFromLiveRangeTransitions
+bool BacktrackingAllocator::createMoveGroupsForControlFlowEdges(
+    const VirtualRegister& reg, const ControlFlowEdgeVector& edges) {
+  // Iterate over both the virtual register ranges (sorted by start position)
+  // and the control flow edges (sorted by predecessorExit). When we find the
+  // predecessor range for the next edge, add a move from predecessor range to
+  // successor range.
+
+  VirtualRegister::RangeIterator iter(reg);
+  LiveRange* nonRegisterRange = nullptr;
+
+  for (const ControlFlowEdge& edge : edges) {
+    CodePosition pos = edge.predecessorExit;
+
+    // Search for a matching range. Prefer a register range.
+    LiveRange* predecessorRange = nullptr;
+    while (true) {
+      if (iter.done() || iter->from() > pos) {
+        // No register range covers this edge.
+        predecessorRange = nonRegisterRange;
+        break;
+      }
+      if (iter->to() <= pos) {
+        // Skip ranges that end before this edge (and later edges).
+        iter++;
+        continue;
+      }
+      MOZ_ASSERT(iter->covers(pos));
+      if (iter->bundle()->allocation().isRegister()) {
+        predecessorRange = *iter;
+        break;
+      }
+      if (!nonRegisterRange || iter->to() > nonRegisterRange->to()) {
+        nonRegisterRange = *iter;
+      }
+      iter++;
+    }
+    MOZ_ASSERT(predecessorRange);
+    AssertCorrectRangeForPosition(reg, pos, predecessorRange);
+
+    if (!alloc().ensureBallast()) {
+      return false;
+    }
+    JitSpew(JitSpew_RegAlloc, "    (moveAtEdge#2)");
+    if (!moveAtEdge(edge.predecessor, edge.successor, predecessorRange,
+                    edge.successorRange, reg.type())) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
   // Add moves to handle changing assignments for vregs over their lifetime.
   JitSpew(JitSpew_RegAlloc, "ResolveControlFlow: begin");
@@ -4075,8 +4128,15 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
 
   // Add moves to resolve graph edges with different allocations at their
   // source and target.
+  ControlFlowEdgeVector edges;
   for (size_t i = 1; i < graph.numVirtualRegisters(); i++) {
     VirtualRegister& reg = vregs[i];
+
+    // First collect all control flow edges we need to resolve. This loop knows
+    // the range on the successor side, but looking up the corresponding
+    // predecessor range with rangeFor is quadratic so we handle that
+    // differently.
+    edges.clear();
     for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
       LiveRange* targetRange = *iter;
 
@@ -4097,21 +4157,33 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
 
         for (size_t j = 0; j < successor->mir()->numPredecessors(); j++) {
           LBlock* predecessor = successor->mir()->getPredecessor(j)->lir();
-          if (targetRange->covers(exitOf(predecessor))) {
+          CodePosition predecessorExit = exitOf(predecessor);
+          if (targetRange->covers(predecessorExit)) {
             continue;
           }
-
-          if (!alloc().ensureBallast()) {
-            return false;
-          }
-          JitSpew(JitSpew_RegAlloc, "    (moveAtEdge#2)");
-          LiveRange* from = reg.rangeFor(exitOf(predecessor), true);
-          if (!moveAtEdge(predecessor, successor, from, targetRange,
-                          reg.type())) {
+          if (!edges.emplaceBack(predecessor, successor, targetRange,
+                                 predecessorExit)) {
             return false;
           }
         }
       }
+    }
+
+    if (edges.empty()) {
+      continue;
+    }
+
+    // Sort edges by predecessor position. This doesn't need to be a stable sort
+    // because createMoveGroupsForControlFlowEdges will use the same predecessor
+    // range if there are multiple edges with the same predecessor position.
+    auto compareEdges = [](const ControlFlowEdge& a, const ControlFlowEdge& b) {
+      return a.predecessorExit < b.predecessorExit;
+    };
+    std::sort(edges.begin(), edges.end(), compareEdges);
+
+    // Resolve edges and add move groups.
+    if (!createMoveGroupsForControlFlowEdges(reg, edges)) {
+      return false;
     }
   }
 

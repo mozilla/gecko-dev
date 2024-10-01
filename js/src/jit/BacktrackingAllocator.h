@@ -463,6 +463,32 @@ class LiveBundle : public TempObject {
 #endif
 };
 
+// Information about a control flow edge to resolve (by inserting a move from
+// predecessor range to successor range) in createMoveGroupsForControlFlowEdges.
+struct ControlFlowEdge {
+  // The predecessor and successor sides of this edge.
+  LBlock* predecessor;
+  LBlock* successor;
+
+  // Live range that covers the successor block.
+  LiveRange* successorRange;
+
+  // Exit position of the predecessor block. This is |exitOf(predecessor)| but
+  // cached here.
+  CodePosition predecessorExit;
+
+  ControlFlowEdge(LBlock* predecessor, LBlock* successor,
+                  LiveRange* successorRange, CodePosition predecessorExit)
+      : predecessor(predecessor),
+        successor(successor),
+        successorRange(successorRange),
+        predecessorExit(predecessorExit) {
+    MOZ_ASSERT(predecessor != successor);
+  }
+};
+using ControlFlowEdgeVector =
+    Vector<ControlFlowEdge, 8, BackgroundSystemAllocPolicy>;
+
 // Information about the allocation for a virtual register.
 class VirtualRegister {
  public:
@@ -877,6 +903,8 @@ class BacktrackingAllocator : protected RegisterAllocator {
                                 LiveRange* from, LiveRange* to,
                                 LDefinition::Type type);
   void removeDeadRanges(VirtualRegister& reg);
+  [[nodiscard]] bool createMoveGroupsForControlFlowEdges(
+      const VirtualRegister& reg, const ControlFlowEdgeVector& edges);
   [[nodiscard]] AVOID_INLINE_FOR_DEBUGGING bool
   createMoveGroupsFromLiveRangeTransitions();
   size_t findFirstNonCallSafepoint(CodePosition from);
