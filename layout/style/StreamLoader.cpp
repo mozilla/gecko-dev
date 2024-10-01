@@ -113,6 +113,9 @@ StreamLoader::OnStopRequest(nsIRequest* aRequest, nsresult aStatus) {
   // Resolution of parse promise fires onLoadEvent and this should not happen
   // before main thread OnStopRequest is dispatched.
   if (NS_IsMainThread()) {
+    mSheetLoadData->mNetworkMetadata =
+        new SubResourceNetworkMetadataHolder(aRequest);
+
     if (mOnDataFinishedTime) {
       // collect telemetry for the delta between OnDataFinished and
       // OnStopRequest

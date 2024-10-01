@@ -7,14 +7,14 @@
 #ifndef mozilla_dom_SharedScriptCache_h
 #define mozilla_dom_SharedScriptCache_h
 
-#include "PLDHashTable.h"                 // PLDHashEntryHdr
-#include "js/loader/LoadedScript.h"       // JS::loader::LoadedScript
-#include "js/loader/ScriptKind.h"         // JS::loader::ScriptKind
-#include "js/loader/ScriptLoadRequest.h"  // JS::loader::ScriptLoadRequest
-#include "mozilla/WeakPtr.h"              // SupportsWeakPtr
-#include "mozilla/CORSMode.h"             // mozilla::CORSMode
-#include "mozilla/MemoryReporting.h"      // MallocSizeOf
-#include "mozilla/SharedSubResourceCache.h"  // SharedSubResourceCache, SharedSubResourceCacheLoadingValueBase
+#include "PLDHashTable.h"                    // PLDHashEntryHdr
+#include "js/loader/LoadedScript.h"          // JS::loader::LoadedScript
+#include "js/loader/ScriptKind.h"            // JS::loader::ScriptKind
+#include "js/loader/ScriptLoadRequest.h"     // JS::loader::ScriptLoadRequest
+#include "mozilla/WeakPtr.h"                 // SupportsWeakPtr
+#include "mozilla/CORSMode.h"                // mozilla::CORSMode
+#include "mozilla/MemoryReporting.h"         // MallocSizeOf
+#include "mozilla/SharedSubResourceCache.h"  // SharedSubResourceCache, SharedSubResourceCacheLoadingValueBase, SubResourceNetworkMetadataHolder
 #include "mozilla/dom/CacheExpirationTime.h"  // CacheExpirationTime
 #include "nsIMemoryReporter.h"  // nsIMemoryReporter, NS_DECL_NSIMEMORYREPORTER
 #include "nsIObserver.h"        // nsIObserver, NS_DECL_NSIOBSERVER
@@ -133,6 +133,11 @@ class ScriptLoadData final
   bool IsLoading() const override { return false; }
   bool IsCancelled() const override { return false; }
   bool IsSyncLoad() const override { return true; }
+
+  SubResourceNetworkMetadataHolder* GetNetworkMetadata() const override {
+    // TODO: Bug 1916635.
+    return nullptr;
+  }
 
   void StartLoading() override {}
   void SetLoadCompleted() override {}

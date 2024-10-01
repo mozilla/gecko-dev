@@ -260,6 +260,7 @@ UNIFIED_SOURCES += [
     "ServoStyleSet.cpp",
     "ShadowParts.cpp",
     "SharedStyleSheetCache.cpp",
+    "SharedSubResourceCache.cpp",
     "StreamLoader.cpp",
     "StyleAnimationValue.cpp",
     "StyleColor.cpp",

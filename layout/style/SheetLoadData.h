@@ -7,6 +7,7 @@
 #ifndef mozilla_css_SheetLoadData_h
 #define mozilla_css_SheetLoadData_h
 
+#include "mozilla/RefPtr.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/css/SheetParsingMode.h"
 #include "mozilla/Encoding.h"
@@ -257,6 +258,8 @@ class SheetLoadData final
 
   const bool mRecordErrors;
 
+  RefPtr<SubResourceNetworkMetadataHolder> mNetworkMetadata;
+
   bool ShouldDefer() const { return mWasAlternate || !mMediaMatched; }
 
   RefPtr<StyleSheet> ValueForCache() const;
@@ -286,6 +289,10 @@ class SheetLoadData final
   bool IsSyncLoad() const override { return mSyncLoad; }
   bool IsLoading() const override { return mIsLoading; }
   bool IsCancelled() const override { return mIsCancelled; }
+
+  SubResourceNetworkMetadataHolder* GetNetworkMetadata() const override {
+    return mNetworkMetadata.get();
+  }
 
   void StartLoading() override;
   void SetLoadCompleted() override;
