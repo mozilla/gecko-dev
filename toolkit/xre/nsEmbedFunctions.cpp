@@ -113,10 +113,6 @@
 #  endif
 #endif
 
-#ifdef MOZ_JPROF
-#  include "jprof.h"
-#endif
-
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #  include "mozilla/sandboxing/SandboxInitialization.h"
 #  include "mozilla/sandboxing/sandboxLogging.h"
@@ -289,11 +285,6 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   // This just needs to happen before sandboxing, to initialize the
   // cached value, but libmozsandbox can't see this symbol.
   mozilla::GetNumberOfProcessors();
-#endif
-
-#ifdef MOZ_JPROF
-  // Call the code to install our handler
-  setupProfilingStuff();
 #endif
 
 #if defined(XP_WIN)

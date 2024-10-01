@@ -124,7 +124,6 @@ file-whitespace:
         - toolkit/components/passwordmgr/test/mochitest/
         - toolkit/content/tests/chrome
         - toolkit/locales/en-US/chrome/passwordmgr/passwordmgr.properties
-        - tools/jprof/README.html
         - tools/lint/eslint
         - tools/lint/test/test_clang_format.py
         - view/crashtests

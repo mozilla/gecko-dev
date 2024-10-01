@@ -217,10 +217,6 @@
 #  include "mozilla/Logging.h"
 #endif
 
-#ifdef MOZ_JPROF
-#  include "jprof.h"
-#endif
-
 #include "nsExceptionHandler.h"
 #include "nsICrashReporter.h"
 #include "nsIPrefService.h"
@@ -2507,11 +2503,6 @@ void UnlockProfile() {
 nsresult LaunchChild(bool aBlankCommandLine, bool aTryExec) {
   // Restart this process by exec'ing it into the current process
   // if supported by the platform.  Otherwise, use NSPR.
-
-#ifdef MOZ_JPROF
-  // make sure JPROF doesn't think we're E10s
-  unsetenv("JPROF_ISCHILD");
-#endif
 
   if (aBlankCommandLine) {
     gRestartArgc = 1;
@@ -4869,11 +4860,6 @@ int XREMain::XRE_mainStartup(bool* aExitFlag) {
 #ifdef MOZ_X11
   // Do this after initializing GDK, or GDK will install its own handler.
   XRE_InstallX11ErrorHandler();
-#endif
-
-  // Call the code to install our handler
-#ifdef MOZ_JPROF
-  setupProfilingStuff();
 #endif
 
   bool canRun = false;
