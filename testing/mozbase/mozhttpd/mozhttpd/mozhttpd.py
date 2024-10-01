@@ -15,13 +15,12 @@ import threading
 import time
 import traceback
 from argparse import ArgumentDefaultsHelpFormatter, ArgumentParser
+from http.server import HTTPServer, SimpleHTTPRequestHandler
+from socketserver import ThreadingMixIn
+from urllib.parse import unquote, urlsplit
 
 import moznetwork
 from six import ensure_binary, iteritems
-from six.moves.BaseHTTPServer import HTTPServer
-from six.moves.SimpleHTTPServer import SimpleHTTPRequestHandler
-from six.moves.socketserver import ThreadingMixIn
-from six.moves.urllib.parse import unquote, urlsplit
 
 
 class EasyServer(ThreadingMixIn, HTTPServer):

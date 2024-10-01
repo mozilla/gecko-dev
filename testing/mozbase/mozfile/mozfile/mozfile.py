@@ -10,11 +10,10 @@ import re
 import stat
 import sys
 import time
+import urllib
 import warnings
 from contextlib import contextmanager
 from textwrap import dedent
-
-from six.moves import urllib
 
 __all__ = [
     "extract_tarball",

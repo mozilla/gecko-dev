@@ -6,12 +6,12 @@
 
 import os
 import re
+from urllib.request import urlopen
 
 import mozhttpd
 import mozunit
 import pytest
 from six import ensure_str
-from six.moves.urllib.request import urlopen
 
 
 @pytest.fixture(name="docroot")

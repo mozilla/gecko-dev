@@ -8,9 +8,9 @@ import posixpath
 import shutil
 import tempfile
 import time
+from configparser import ConfigParser, RawConfigParser
 
 from mozdevice import ADBError, ADBHost
-from six.moves.configparser import ConfigParser, RawConfigParser
 
 
 class Device(object):

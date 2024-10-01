@@ -7,13 +7,8 @@
 import collections
 import json
 import os
-
-import mozhttpd
-import mozunit
-import pytest
-from six import ensure_binary, ensure_str
-from six.moves.urllib.error import HTTPError
-from six.moves.urllib.request import (
+from urllib.error import HTTPError
+from urllib.request import (
     HTTPHandler,
     ProxyHandler,
     Request,
@@ -21,6 +16,11 @@ from six.moves.urllib.request import (
     install_opener,
     urlopen,
 )
+
+import mozhttpd
+import mozunit
+import pytest
+from six import ensure_binary, ensure_str
 
 
 def httpd_url(httpd, path, querystr=None):

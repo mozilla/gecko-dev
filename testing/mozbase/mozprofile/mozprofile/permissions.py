@@ -9,9 +9,9 @@ add permissions to the profile
 
 import codecs
 import os
+from urllib import parse
 
 from six import string_types
-from six.moves.urllib import parse
 
 __all__ = [
     "MissingPrimaryLocationError",

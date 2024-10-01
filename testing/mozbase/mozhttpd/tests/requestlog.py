@@ -3,11 +3,11 @@
 # You can obtain one at http://mozilla.org/MPL/2.0/.
 
 import os
+from urllib.request import urlopen
 
 import mozhttpd
 import mozunit
 import pytest
-from six.moves.urllib.request import urlopen
 
 
 def log_requests(enabled):
