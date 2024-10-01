@@ -198,7 +198,7 @@ class ThreeDotMenuMainRobot {
         )
     }
 
-    fun verifyHomeThreeDotMainMenuItems(isRequestDesktopSiteEnabled: Boolean) {
+    fun verifyHomeThreeDotMainMenuItems() {
         assertUIObjectExists(
             bookmarksButton(),
             historyButton(),
@@ -207,12 +207,10 @@ class ThreeDotMenuMainRobot {
             addOnsButton(),
             // Disabled step due to https://github.com/mozilla-mobile/fenix/issues/26788
             // syncAndSaveDataButton,
-            desktopSiteButton(),
             whatsNewButton(),
             helpButton(),
             customizeHomeButton(),
             settingsButton(),
-            desktopSiteToggle(isRequestDesktopSiteEnabled),
         )
     }
 
