@@ -65,6 +65,7 @@
 #include "mozilla/SharedStyleSheetCache.h"
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/StaticPrefs_network.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/Try.h"
 #include "ReferrerInfo.h"
 
@@ -428,6 +429,13 @@ void SheetLoadData::SetLoadCompleted() {
     glean::performance_pageload::async_sheet_load.AccumulateRawDuration(
         TimeStamp::Now() - mLoadStart);
   }
+}
+
+void SheetLoadData::OnCoalescedTo(const SheetLoadData& aExistingLoad) {
+  if (&aExistingLoad.Loader() != &Loader()) {
+    mShouldEmulateNotificationsForCachedLoad = true;
+  }
+  mLoadStart = TimeStamp::Now();
 }
 
 RefPtr<StyleSheet> SheetLoadData::ValueForCache() const {
