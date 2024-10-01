@@ -1789,7 +1789,6 @@ class ThreadActor extends Actor {
 
           return createValueGrip(v, this.threadLifetimePool, this.objectGrip);
         },
-        createEnvironmentActor: (e, p) => this.createEnvironmentActor(e, p),
         promote: () => this.threadObjectGrip(actor),
         isThreadLifetimePool: () =>
           actor.getParent() !== this.threadLifetimePool,

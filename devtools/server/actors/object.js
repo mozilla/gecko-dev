@@ -91,8 +91,6 @@ class ObjectActor extends Actor {
    *        the caller:
    *          - createValueGrip
    *              Creates a value grip for the given object
-   *          - createEnvironmentActor
-   *              Creates and return an environment actor
    *          - getGripDepth
    *              An actor's grip depth getter
    *          - incrementGripDepth
@@ -106,7 +104,6 @@ class ObjectActor extends Actor {
     {
       thread,
       createValueGrip: createValueGripHook,
-      createEnvironmentActor,
       getGripDepth,
       incrementGripDepth,
       decrementGripDepth,
@@ -126,7 +123,6 @@ class ObjectActor extends Actor {
     this.thread = thread;
     this.hooks = {
       createValueGrip: createValueGripHook,
-      createEnvironmentActor,
       getGripDepth,
       incrementGripDepth,
       decrementGripDepth,
