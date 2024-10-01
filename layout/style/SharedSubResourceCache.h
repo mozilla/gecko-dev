@@ -124,6 +124,17 @@ class SharedSubResourceCache {
     Value* mCompleteValue = nullptr;
     LoadingValue* mLoadingOrPendingValue = nullptr;
     CachedSubResourceState mState = CachedSubResourceState::Miss;
+
+    constexpr Result() = default;
+
+    explicit constexpr Result(const CompleteSubResource& aCompleteSubResource)
+        : mCompleteValue(aCompleteSubResource.mResource.get()),
+          mLoadingOrPendingValue(nullptr),
+          mState(CachedSubResourceState::Complete) {}
+
+    constexpr Result(LoadingValue* aLoadingOrPendingValue,
+                     CachedSubResourceState aState)
+        : mLoadingOrPendingValue(aLoadingOrPendingValue), mState(aState) {}
   };
 
   Result Lookup(Loader&, const Key&, bool aSyncLoad);
@@ -460,21 +471,20 @@ auto SharedSubResourceCache<Traits, Derived>::Lookup(Loader& aLoader,
     const CompleteSubResource& completeSubResource = lookup.Data();
     if ((!aLoader.ShouldBypassCache() && !completeSubResource.Expired()) ||
         aLoader.HasLoaded(aKey)) {
-      return {completeSubResource.mResource.get(), nullptr,
-              CachedSubResourceState::Complete};
+      return Result(completeSubResource);
     }
   }
 
   if (aSyncLoad) {
-    return {};
+    return Result();
   }
 
   if (LoadingValue* data = mLoading.Get(aKey)) {
-    return {nullptr, data, CachedSubResourceState::Loading};
+    return Result(data, CachedSubResourceState::Loading);
   }
 
   if (LoadingValue* data = mPending.GetWeak(aKey)) {
-    return {nullptr, data, CachedSubResourceState::Pending};
+    return Result(data, CachedSubResourceState::Pending);
   }
 
   return {};
