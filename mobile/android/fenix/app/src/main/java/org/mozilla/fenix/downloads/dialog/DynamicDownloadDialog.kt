@@ -101,7 +101,6 @@ class DynamicDownloadDialog(
                 behavior = DynamicDownloadDialogBehavior<View>(
                     binding.root,
                     context.settings(),
-                    context.components.appStore,
                 )
             }
             (behavior as DynamicDownloadDialogBehavior).forceExpand(binding.root)
