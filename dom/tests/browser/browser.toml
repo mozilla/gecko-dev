@@ -151,6 +151,12 @@ support-files = [
   "counter_server.sjs",
 ]
 
+["browser_scriptCache_perf_timeline.js"]
+skip-if = ["!nightly_build"]
+support-files = [
+  "perf_server.sjs",
+]
+
 ["browser_scriptCache_redirect.js"]
 skip-if = ["!nightly_build"]
 support-files = [
