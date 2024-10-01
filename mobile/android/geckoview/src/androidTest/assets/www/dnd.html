@@ -3,11 +3,16 @@
   <head>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <script>
-      document.addEventListener("DOMContentLoaded", () =>
+      document.addEventListener("DOMContentLoaded", () => {
         document
           .querySelector("#drop")
-          .addEventListener("dragover", e => e.preventDefault())
-      );
+          .addEventListener("dragover", e => e.preventDefault());
+        document.querySelector("#drag").addEventListener("dragstart", () => {
+          if (window.parent != window) {
+            window.parent?.postMessage("dragstart", "*");
+          }
+        });
+      });
     </script>
   </head>
   <body>

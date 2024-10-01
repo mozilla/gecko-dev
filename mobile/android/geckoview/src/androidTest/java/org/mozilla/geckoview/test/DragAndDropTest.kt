@@ -151,4 +151,27 @@ class DragAndDropTest : BaseSessionTest() {
         assertThat("dataTransfer set empty string during dragover event", value.getString("data"), equalTo(""))
         assertThat("input event is fired correctly", promiseSetValue.value as String, equalTo("foo"))
     }
+
+    @WithDisplay(width = 300, height = 300)
+    @Test
+    fun dragStartXOriginTest() {
+        mainSession.loadTestPath(DND_XORIGIN_HTML_PATH)
+        sessionRule.waitForPageStop()
+
+        val promise = mainSession.evaluatePromiseJS(
+            """
+            new Promise(r => window.addEventListener('message', r, { once: true }))
+            """.trimIndent(),
+        )
+
+        val downTime = SystemClock.uptimeMillis()
+        mainSession.synthesizeMouse(downTime, MotionEvent.ACTION_DOWN, 50, 70, MotionEvent.BUTTON_PRIMARY)
+        for (y in 80..100) {
+            mainSession.synthesizeMouse(downTime, MotionEvent.ACTION_MOVE, 50, y, MotionEvent.BUTTON_PRIMARY)
+        }
+        mainSession.synthesizeMouse(downTime, MotionEvent.ACTION_UP, 50, 50, 0)
+        promise.value
+
+        assertThat("drag event is started correctly", true, equalTo(true))
+    }
 }

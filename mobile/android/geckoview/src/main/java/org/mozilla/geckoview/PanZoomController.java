@@ -301,7 +301,7 @@ public class PanZoomController {
     private native @InputResult int handleMouseEvent(
         int action, long time, int metaState, float x, float y, int buttons);
 
-    @WrapForJNI(calledFrom = "ui", dispatchTo = "gecko")
+    @WrapForJNI(calledFrom = "ui")
     private native void handleDragEvent(
         int action, long time, float x, float y, GeckoDragAndDrop.DropData data);
 

@@ -129,8 +129,10 @@ class nsWindow final : public nsBaseWidget {
   void ShowDynamicToolbar();
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void OnDragEvent(
-      int32_t aAction, int64_t aTime, float aX, float aY,
-      mozilla::jni::Object::Param aDropData);
+      int32_t aAction, float aX, float aY,
+      mozilla::jni::Object::Param aDropData,
+      const mozilla::layers::APZEventResult& aApzResult,
+      const mozilla::MouseInput& aInput);
   void StartDragAndDrop(mozilla::java::sdk::Bitmap::LocalRef aBitmap);
   void UpdateDragImage(mozilla::java::sdk::Bitmap::LocalRef aBitmap);
 
