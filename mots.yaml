@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-09-23T16:42:50.688656+00:00'
+updated_at: '2024-09-24T19:42:20.527455+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -1322,7 +1322,6 @@ modules:
     description: Tools for debugging Mozilla code or for analyzing speed, memory use,
       and other characteristics of it.
     includes:
-      - tools/leak-gauge/**/*
       - tools/performance/**/*
       - tools/rb/**/*
     meta:
@@ -4372,5 +4371,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 4ef99a87d009b28ee103bf36ea6d488f056a83e4
-  export: b833a5fa5b2360f580464ec80c51feceb126987a
+  config: c553dddcf95c38bb40ec19993737429db70a7f10
+  export: 0507cf09026c0c67941b3a7ba59c6bfd266680ac
