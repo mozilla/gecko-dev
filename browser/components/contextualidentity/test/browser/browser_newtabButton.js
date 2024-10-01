@@ -212,3 +212,37 @@ add_task(async function test_opening_container_tab_context() {
     BrowserTestUtils.removeTab(tab);
   }
 });
+
+add_task(async function test_vertical_tabs_right_click_new_tab_button() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["sidebar.verticalTabs", true]],
+  });
+  const sidebar = window.document.querySelector("sidebar-main");
+  await TestUtils.waitForCondition(
+    () => sidebar.toolButtons,
+    "Tool buttons are shown."
+  );
+  const newTabButton = sidebar.querySelector("#tabs-newtab-button");
+
+  let popup = findPopup();
+  ok(popup, "new tab should have a popup");
+
+  // Test context menu
+  let contextMenu = findContextPopup();
+  is(contextMenu.state, "closed", "Context menu is initally closed.");
+
+  // Right click
+  let popupshownContextmenu = BrowserTestUtils.waitForEvent(
+    contextMenu,
+    "popupshown"
+  );
+  EventUtils.synthesizeMouseAtCenter(newTabButton, { type: "contextmenu" });
+  await popupshownContextmenu;
+  is(contextMenu.state, "open", "Context menu is open.");
+  let contextIdItems = contextMenu.querySelectorAll("menuitem");
+  // 4 + default + manage containers
+  is(contextIdItems.length, 6, "Has 6 menu items");
+  contextMenu.hidePopup();
+
+  await SpecialPowers.popPrefEnv();
+});
