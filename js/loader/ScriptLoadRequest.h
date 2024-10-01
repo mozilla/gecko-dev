@@ -18,6 +18,8 @@
 #include "mozilla/LinkedList.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/PreloaderBase.h"
+#include "mozilla/RefPtr.h"
+#include "mozilla/SharedSubResourceCache.h"  // mozilla::SubResourceNetworkMetadataHolder
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Variant.h"
 #include "mozilla/Vector.h"
@@ -281,6 +283,7 @@ class ScriptLoadRequest : public nsISupports,
   CacheExpirationTime mExpirationTime = CacheExpirationTime::Never();
 
   RefPtr<ScriptFetchOptions> mFetchOptions;
+  RefPtr<mozilla::SubResourceNetworkMetadataHolder> mNetworkMetadata;
   const SRIMetadata mIntegrity;
   const nsCOMPtr<nsIURI> mReferrer;
   mozilla::Maybe<nsString>

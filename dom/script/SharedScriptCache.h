@@ -11,6 +11,7 @@
 #include "js/loader/LoadedScript.h"          // JS::loader::LoadedScript
 #include "js/loader/ScriptKind.h"            // JS::loader::ScriptKind
 #include "js/loader/ScriptLoadRequest.h"     // JS::loader::ScriptLoadRequest
+#include "mozilla/RefPtr.h"                  // RefPtr
 #include "mozilla/WeakPtr.h"                 // SupportsWeakPtr
 #include "mozilla/CORSMode.h"                // mozilla::CORSMode
 #include "mozilla/MemoryReporting.h"         // MallocSizeOf
@@ -135,8 +136,7 @@ class ScriptLoadData final
   bool IsSyncLoad() const override { return true; }
 
   SubResourceNetworkMetadataHolder* GetNetworkMetadata() const override {
-    // TODO: Bug 1916635.
-    return nullptr;
+    return mNetworkMetadata.get();
   }
 
   void StartLoading() override {}
@@ -163,6 +163,7 @@ class ScriptLoadData final
   ScriptLoader* mLoader;
   ScriptHashKey mKey;
   RefPtr<JS::loader::LoadedScript> mLoadedScript;
+  RefPtr<SubResourceNetworkMetadataHolder> mNetworkMetadata;
 };
 
 struct SharedScriptCacheTraits {

@@ -21,6 +21,7 @@
 #include "mozilla/NotNull.h"
 #include "mozilla/PerfStats.h"
 #include "mozilla/ScopeExit.h"
+#include "mozilla/SharedSubResourceCache.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Utf8.h"
 #include "mozilla/Vector.h"
@@ -372,6 +373,9 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
 
   nsCOMPtr<nsIRequest> channelRequest;
   aLoader->GetRequest(getter_AddRefs(channelRequest));
+
+  mRequest->mNetworkMetadata =
+      new SubResourceNetworkMetadataHolder(channelRequest);
 
   {
     nsCOMPtr<nsIChannel> channel = do_QueryInterface(channelRequest);
