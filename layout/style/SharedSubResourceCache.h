@@ -110,6 +110,15 @@ class SharedSubResourceCache {
 
   static void DeleteSingleton() { sSingleton = nullptr; }
 
+ protected:
+  struct CompleteSubResource {
+    RefPtr<Value> mResource;
+    CacheExpirationTime mExpirationTime = CacheExpirationTime::Never();
+    bool mWasSyncLoad = false;
+
+    inline bool Expired() const;
+  };
+
  public:
   struct Result {
     Value* mCompleteValue = nullptr;
@@ -163,14 +172,6 @@ class SharedSubResourceCache {
 
  protected:
   void CancelPendingLoadsForLoader(Loader&);
-
-  struct CompleteSubResource {
-    RefPtr<Value> mResource;
-    CacheExpirationTime mExpirationTime = CacheExpirationTime::Never();
-    bool mWasSyncLoad = false;
-
-    inline bool Expired() const;
-  };
 
   void WillStartPendingLoad(LoadingValue&);
 
