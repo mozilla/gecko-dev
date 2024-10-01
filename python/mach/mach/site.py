@@ -1321,11 +1321,15 @@ def _is_venv_up_to_date(
     if not os.path.exists(target_venv.prefix):
         return SiteUpToDateResult(False, f'"{target_venv.prefix}" does not exist')
 
-    # Modifications to any of the requirements manifest files mean the virtualenv should
-    # be rebuilt:
-    metadata_mtime = os.path.getmtime(
-        os.path.join(target_venv.prefix, METADATA_FILENAME)
-    )
+    metadata_file = os.path.join(target_venv.prefix, METADATA_FILENAME)
+
+    if not os.path.exists(metadata_file):
+        return SiteUpToDateResult(
+            False, f'"{METADATA_FILENAME}" does not exist for "{target_venv.prefix}".'
+        )
+
+    # Modifications to any of the requirements manifest files mean the virtualenv should be rebuilt:
+    metadata_mtime = os.path.getmtime(metadata_file)
     for dep_file in requirements.requirements_paths:
         if os.path.getmtime(dep_file) > metadata_mtime:
             return SiteUpToDateResult(
