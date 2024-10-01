@@ -177,7 +177,6 @@ class BaseProcessLauncher {
         mDisableOSActivityMode(aHost->mDisableOSActivityMode)
 #endif
   {
-    SprintfLiteral(mPidString, "%" PRIPID, base::GetCurrentProcId());
     aHost->mInitialChannelId.ToProvidedString(mInitialChannelIdString);
     SprintfLiteral(mChildIDString, "%d", aHost->mChildID);
 
@@ -251,7 +250,6 @@ class BaseProcessLauncher {
 #endif
   LaunchResults mResults = LaunchResults();
   TimeStamp mStartTimeStamp = TimeStamp::Now();
-  char mPidString[32];
   char mInitialChannelIdString[NSID_LENGTH];
   char mChildIDString[32];
 
@@ -1128,6 +1126,11 @@ Result<Ok, LaunchError> BaseProcessLauncher::DoSetup() {
 
   MapChildLogging();
 
+  geckoargs::sInitialChannelID.Put(mInitialChannelIdString, mChildArgs);
+
+  geckoargs::sParentPid.Put(static_cast<uint64_t>(base::GetCurrentProcId()),
+                            mChildArgs);
+
   return Ok();
 }
 
@@ -1297,10 +1300,6 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
     AddAppDirToCommandLine(mChildArgs, mAppDir, nullptr);
 #  endif
   }
-
-  mChildArgs.mArgs.push_back(mInitialChannelIdString);
-
-  mChildArgs.mArgs.push_back(mPidString);
 
   if (!CrashReporter::IsDummy()) {
 #  if defined(MOZ_WIDGET_COCOA)
@@ -1718,12 +1717,6 @@ Result<Ok, LaunchError> WindowsProcessLauncher::DoSetup() {
 
   // Win app model id
   mCmdLine->AppendLooseValue(mGroupId.get());
-
-  // Initial MessageChannel id
-  mCmdLine->AppendLooseValue(UTF8ToWide(mInitialChannelIdString));
-
-  // Process id
-  mCmdLine->AppendLooseValue(UTF8ToWide(mPidString));
 
   mCmdLine->AppendLooseValue(
       UTF8ToWide(CrashReporter::GetChildNotificationPipe()));
