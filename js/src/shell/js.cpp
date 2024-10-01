@@ -3381,6 +3381,7 @@ static bool Quit(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   SetQuitting(cx, code);
+  JS::ReportUncatchableException(cx);
   return false;
 }
 
@@ -9335,6 +9336,7 @@ static bool SideEffectfulResolveObject_resolve(JSContext* cx, HandleObject obj,
                                                HandleId id, bool* resolvedp) {
   *resolvedp = false;
   if (JS::dbg::ShouldAvoidSideEffects(cx)) {
+    JS::ReportUncatchableException(cx);
     return false;
   }
 
@@ -13004,6 +13006,9 @@ bool SetContextOptions(JSContext* cx, const OptionParser& op) {
   enableDisassemblyDumps = op.getBoolOption('D');
   cx->runtime()->profilingScripts =
       enableCodeCoverage || enableDisassemblyDumps;
+
+  // For now enable some assertions only in the JS shell.
+  cx->setShouldAssertExceptionOnFalseReturn();
 
 #ifdef JS_ENABLE_SMOOSH
   if (op.getBoolOption("smoosh")) {

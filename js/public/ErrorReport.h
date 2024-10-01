@@ -553,6 +553,20 @@ extern JS_PUBLIC_API bool CreateError(
     JSErrorReport* report, HandleString message,
     Handle<mozilla::Maybe<Value>> cause, MutableHandleValue rval);
 
+/**
+ * An uncatchable exception is used to terminate execution by returning false
+ * or nullptr without reporting a pending exception on the context. These
+ * exceptions are called "uncatchable" because try-catch can't be used to catch
+ * them.
+ *
+ * This is mainly used to terminate JS execution from the interrupt handler.
+ *
+ * If the context has a pending exception, this function will clear it. Also, in
+ * debug builds, it sets a flag on the context to improve exception handling
+ * assertions in the engine.
+ */
+extern JS_PUBLIC_API void ReportUncatchableException(JSContext* cx);
+
 } /* namespace JS */
 
 #endif /* js_ErrorReport_h */

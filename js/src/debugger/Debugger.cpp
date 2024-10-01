@@ -300,7 +300,7 @@ static void PropagateForcedReturn(JSContext* cx, AbstractFramePtr frame,
       return false;
 
     case ResumeMode::Terminate:
-      cx->clearPendingException();
+      cx->reportUncatchableException();
       return false;
 
     case ResumeMode::Return:
@@ -1049,7 +1049,7 @@ NativeResumeMode DebugAPI::slowPathOnNativeCall(JSContext* cx,
       return NativeResumeMode::Abort;
 
     case ResumeMode::Terminate:
-      cx->clearPendingException();
+      cx->reportUncatchableException();
       return NativeResumeMode::Abort;
 
     case ResumeMode::Return:

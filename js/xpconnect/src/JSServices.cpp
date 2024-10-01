@@ -138,6 +138,7 @@ static bool Services_Resolve(JSContext* cx, HandleObject obj, HandleId id,
                              bool* resolvedp) {
   *resolvedp = false;
   if (JS::dbg::ShouldAvoidSideEffects(cx)) {
+    JS::ReportUncatchableException(cx);
     return false;
   }
 

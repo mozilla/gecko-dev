@@ -3874,6 +3874,10 @@ JS_PUBLIC_API void JS_ReportAllocationOverflow(JSContext* cx) {
   ReportAllocationOverflow(cx);
 }
 
+JS_PUBLIC_API void JS::ReportUncatchableException(JSContext* cx) {
+  cx->reportUncatchableException();
+}
+
 JS_PUBLIC_API bool JS_ExpandErrorArgumentsASCII(JSContext* cx,
                                                 JSErrorCallback errorCallback,
                                                 const unsigned errorNumber,

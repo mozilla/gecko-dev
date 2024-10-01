@@ -432,6 +432,14 @@ static MOZ_ALWAYS_INLINE bool MaybeEnterInterpreterTrampoline(JSContext* cx,
   return Interpret(cx, state);
 }
 
+static void AssertExceptionResult(JSContext* cx) {
+  // If this assertion fails, a JSNative or code in the VM returned false
+  // without throwing an exception or calling JS::ReportUncatchableException.
+  MOZ_ASSERT_IF(cx->shouldAssertExceptionOnFalseReturn(),
+                cx->isExceptionPending() || cx->isPropagatingForcedReturn() ||
+                    cx->hadUncatchableException());
+}
+
 // MSVC with PGO inlines a lot of functions in RunScript, resulting in large
 // stack frames and stack overflow issues, see bug 1167883. Turn off PGO to
 // avoid this.
@@ -488,7 +496,9 @@ bool js::RunScript(JSContext* cx, RunState& state) {
   }
 
   bool ok = MaybeEnterInterpreterTrampoline(cx, state);
-
+  if (!ok) {
+    AssertExceptionResult(cx);
+  }
   return ok;
 }
 #ifdef _MSC_VER
@@ -519,6 +529,8 @@ MOZ_ALWAYS_INLINE bool CallJSNative(JSContext* cx, Native native,
   if (ok) {
     cx->check(args.rval());
     MOZ_ASSERT_IF(!alreadyThrowing, !cx->isExceptionPending());
+  } else {
+    AssertExceptionResult(cx);
   }
   return ok;
 }
