@@ -105,6 +105,56 @@ document.addEventListener(
     }
     navigatorToolbox.addEventListener("command", onCommand);
     widgetOverflow.addEventListener("command", onCommand);
+
+    function onMouseDown(event) {
+      let element = event.target.closest(`
+        #firefox-view-button,
+        #alltabs-button,
+        #pageActionButton,
+        #downloads-button,
+        #fxa-toolbar-menu-button,
+        #unified-extensions-button,
+        #library-button
+        `);
+      if (!element) {
+        return;
+      }
+
+      switch (element.id) {
+        case "firefox-view-button":
+          FirefoxViewHandler.openToolbarMouseEvent(event);
+          break;
+
+        case "alltabs-button":
+          gTabsPanel.showAllTabsPanel(event, "alltabs-button");
+          break;
+
+        case "pageActionButton":
+          BrowserPageActions.mainButtonClicked(event);
+          break;
+
+        case "downloads-button":
+          DownloadsIndicatorView.onCommand(event);
+          break;
+
+        case "fxa-toolbar-menu-button":
+          gSync.toggleAccountPanel(element, event);
+          break;
+
+        case "unified-extensions-button":
+          gUnifiedExtensions.togglePanel(event);
+          break;
+
+        case "library-button":
+          PanelUI.showSubView("appMenu-libraryView", element, event);
+          break;
+
+        default:
+          throw new Error(`Missing case for #${element.id}`);
+      }
+    }
+    navigatorToolbox.addEventListener("mousedown", onMouseDown);
+    widgetOverflow.addEventListener("mousedown", onMouseDown);
   },
   { once: true }
 );

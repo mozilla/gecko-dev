@@ -41,7 +41,6 @@
                          data-l10n-id="toolbar-button-firefox-view-2"
                          role="button"
                          aria-pressed="false"
-                         onmousedown="FirefoxViewHandler.openToolbarMouseEvent(event);"
                          cui-areatype="toolbar"
                          removable="true"/>
 
@@ -98,7 +97,6 @@
                          delegatesanchor="true"
                          badged="true"
                          onkeypress="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
-                         onmousedown="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
                          data-l10n-id="tabs-toolbar-list-all-tabs"
                          removable="false"/>
         </hbox>
@@ -434,7 +432,6 @@
                     class="urlbar-page-action"
                     role="button"
                     data-l10n-id="urlbar-page-action-button"
-                    onmousedown="BrowserPageActions.mainButtonClicked(event);"
                     onkeypress="BrowserPageActions.mainButtonClicked(event);">
                 <image class="urlbar-icon"/>
               </hbox>
@@ -459,7 +456,6 @@
                      delegatesanchor="true"
                      badged="true"
                      key="key_openDownloads"
-                     onmousedown="DownloadsIndicatorView.onCommand(event);"
                      onkeypress="DownloadsIndicatorView.onCommand(event);"
                      ondrop="DownloadsIndicatorView.onDrop(event);"
                      ondragover="DownloadsIndicatorView.onDragOver(event);"
@@ -488,7 +484,6 @@
       <toolbarbutton id="fxa-toolbar-menu-button" class="toolbarbutton-1 chromeclass-toolbar-additional subviewbutton-nav"
                      badged="true"
                      delegatesanchor="true"
-                     onmousedown="gSync.toggleAccountPanel(this, event)"
                      onkeypress="gSync.toggleAccountPanel(this, event)"
                      consumeanchor="fxa-toolbar-menu-button"
                      closemenu="none"
@@ -506,7 +501,6 @@
                      data-l10n-id="unified-extensions-button"
                      hidden="true"
                      onkeypress="gUnifiedExtensions.togglePanel(event)"
-                     onmousedown="gUnifiedExtensions.togglePanel(event)"
                      overflows="false"
                      removable="false"/>
     </hbox>
@@ -720,7 +714,6 @@
     <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional subviewbutton-nav"
                    removable="true"
                    delegatesanchor="true"
-                   onmousedown="PanelUI.showSubView('appMenu-libraryView', this, event);"
                    onkeypress="PanelUI.showSubView('appMenu-libraryView', this, event);"
                    closemenu="none"
                    cui-areatype="toolbar"
