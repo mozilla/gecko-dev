@@ -79,8 +79,6 @@ treeherder:
         'M-nofis-cf': 'Mochitests confirm failure without fission enabled'
         'M-nofis-ship': "Mochitests without fission and with SHIP (session history in parent) enabled (Android-specific)"
         'M-nofis-ship-cf': "Mochitests confirm failure: no fission + with SHIP (session history in parent) on (Android-only)"
-        'M-nogpu': 'Mochitests without GPU process enabled'
-        'M-nogpu-cf': 'Mochitests confirm failure without GPU process enabled'
         'M-spi': 'Mochitests with socket process'
         'M-spi-cf': 'Mochitests confirm failure with socket process'
         'M-spi-nofis': 'Mochitests with socket process without fission enabled'
@@ -125,8 +123,6 @@ treeherder:
         'R-nofis-cf': 'Reftests confirm failure without fission enabled'
         'R-nofis-ship': 'Reftests without fission and with SHIP (session history in parent) enabled (Android specific)'
         'R-nofis-ship-cf': 'Reftests confirm failure: no fission + with SHIP (session history in parent) on (Android-only)'
-        'R-nogpu': 'Reftests without GPU process enabled'
-        'R-nogpu-cf': 'Reftests confirm failure without GPU process enabled'
         'R-swr': 'Reftests with software webrender enabled'
         'R-swr-cf': 'Reftests confirm failure with software webrender enabled'
         'R-swr-nofis': 'Reftests with software webrender enabled without fission enabled'
