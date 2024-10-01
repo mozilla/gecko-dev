@@ -16,7 +16,9 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/UnionTypes.h"
 #include "mozilla/ipc/BackgroundParent.h"
+#include "nsCExternalHandlerService.h"
 #include "nsIFile.h"
+#include "nsIMIMEService.h"
 #include "nsString.h"
 
 namespace mozilla::dom {
@@ -218,8 +220,18 @@ FileSystemResponseValue GetDirectoryListingTaskParent::GetSuccessRequestResult(
         continue;
       }
 
+      nsAutoString fileName;
+      path->GetLeafName(fileName);
+
+      int64_t fileSize = 0;
+      rv = path->GetFileSize(&fileSize);
+      if (NS_WARN_IF(NS_FAILED(rv))) {
+        continue;
+      }
+
       FileSystemDirectoryListingResponseFile fileData;
-      RefPtr<BlobImpl> blobImpl = new FileBlobImpl(path);
+      RefPtr<BlobImpl> blobImpl = new FileBlobImpl(
+          fileName, mTargetData[i].mContentType, fileSize, path);
 
       nsAutoString filePath;
       filePath.Assign(mDOMPath);
@@ -362,6 +374,55 @@ nsresult GetDirectoryListingTaskParent::IOWork() {
     }
   }
   return NS_OK;
+}
+
+nsresult GetDirectoryListingTaskParent::MainThreadWork() {
+  MOZ_ASSERT(XRE_IsParentProcess(), "Only call from parent process!");
+  MOZ_ASSERT(NS_IsMainThread(), "Only call on main-thread!");
+
+  nsresult rv;
+  nsCOMPtr<nsIMIMEService> mimeService =
+      do_GetService(NS_MIMESERVICE_CONTRACTID, &rv);
+  if (NS_WARN_IF(NS_FAILED(rv))) {
+    return rv;
+  }
+
+  for (unsigned i = 0; i < mTargetData.Length(); i++) {
+    if (mTargetData[i].mType != FileOrDirectoryPath::eFilePath) {
+      continue;
+    }
+
+    nsCOMPtr<nsIFile> file;
+    nsresult rv =
+        NS_NewLocalFile(mTargetData[i].mPath, true, getter_AddRefs(file));
+    if (NS_WARN_IF(NS_FAILED(rv))) {
+      continue;
+    }
+
+    nsAutoCString mimeType;
+    rv = mimeService->GetTypeFromFile(file, mimeType);
+    if (NS_FAILED(rv)) {
+      mimeType.Truncate();
+    }
+
+    AppendUTF8toUTF16(mimeType, mTargetData[i].mContentType);
+  }
+
+  return NS_OK;
+}
+
+bool GetDirectoryListingTaskParent::MainThreadNeeded() const {
+  MOZ_ASSERT(XRE_IsParentProcess(), "Only call from parent process!");
+
+  // We need to go to the main-thread only if we have files in the list of
+  // target.
+  for (const FileOrDirectoryPath& data : mTargetData) {
+    if (data.mType == FileOrDirectoryPath::eFilePath) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 nsresult GetDirectoryListingTaskParent::GetTargetPath(nsAString& aPath) const {

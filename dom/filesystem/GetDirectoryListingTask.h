@@ -72,12 +72,19 @@ class GetDirectoryListingTaskParent final : public FileSystemTaskParentBase {
 
   virtual nsresult IOWork() override;
 
+  virtual nsresult MainThreadWork() override;
+
+  virtual bool MainThreadNeeded() const override;
+
   nsCOMPtr<nsIFile> mTargetPath;
   nsString mDOMPath;
   nsString mFilters;
 
   struct FileOrDirectoryPath {
     nsString mPath;
+
+    // Set on the main-thread
+    nsString mContentType;
 
     enum { eFilePath, eDirectoryPath } mType;
   };
