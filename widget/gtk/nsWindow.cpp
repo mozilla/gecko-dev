@@ -158,16 +158,16 @@ struct _GdkEventTouchpadPinch {
   guint state;
 };
 
-gint GDK_TOUCHPAD_GESTURE_MASK = 1 << 24;
+constexpr gint GDK_TOUCHPAD_GESTURE_MASK = 1 << 24;
 GdkEventType GDK_TOUCHPAD_PINCH = static_cast<GdkEventType>(42);
 #endif
 
-const gint kEvents = GDK_TOUCHPAD_GESTURE_MASK | GDK_EXPOSURE_MASK |
-                     GDK_STRUCTURE_MASK | GDK_VISIBILITY_NOTIFY_MASK |
-                     GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
-                     GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK |
-                     GDK_SMOOTH_SCROLL_MASK | GDK_TOUCH_MASK | GDK_SCROLL_MASK |
-                     GDK_POINTER_MOTION_MASK | GDK_PROPERTY_CHANGE_MASK;
+constexpr gint kEvents =
+    GDK_TOUCHPAD_GESTURE_MASK | GDK_EXPOSURE_MASK | GDK_STRUCTURE_MASK |
+    GDK_VISIBILITY_NOTIFY_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK |
+    GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_SMOOTH_SCROLL_MASK |
+    GDK_TOUCH_MASK | GDK_SCROLL_MASK | GDK_POINTER_MOTION_MASK |
+    GDK_PROPERTY_CHANGE_MASK;
 
 /* utility functions */
 static bool is_mouse_in_window(GdkWindow* aWindow, gdouble aMouseX,
