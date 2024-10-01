@@ -410,7 +410,6 @@ skip-if = [
 ["browser_inspector_search-filter_context-menu.js"]
 
 ["browser_inspector_search-label.js"]
-fail-if = ["a11y_checks"] # Bug 1849028 clicked element may not be focusable and/or labeled
 
 ["browser_inspector_search-navigation.js"]
 
