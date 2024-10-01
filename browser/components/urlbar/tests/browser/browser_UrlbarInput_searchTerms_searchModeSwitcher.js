@@ -199,8 +199,8 @@ add_task(async function select_non_default_engine_and_blur() {
   });
 
   Assert.ok(
-    gURLBar.hasAttribute("persistsearchterms"),
-    "Urlbar has persistsearchterms attribute."
+    !gURLBar.hasAttribute("persistsearchterms"),
+    "Urlbar does not have persistsearchterms attribute."
   );
   Assert.equal(
     gURLBar.getAttribute("pageproxystate"),

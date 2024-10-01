@@ -36,11 +36,8 @@ function assertSearchStringIsNotInUrlbar(searchString) {
     "valid",
     "Pageproxystate should be valid."
   );
-  Assert.equal(
-    gBrowser.selectedBrowser.searchTerms,
-    "",
-    "searchTerms should be blank."
-  );
+  let state = window.gURLBar.getBrowserState(window.gBrowser.selectedBrowser);
+  Assert.equal(state.searchTerms, "", "searchTerms should be blank.");
 }
 
 // When a user enables the search bar, and does a search in the search bar,

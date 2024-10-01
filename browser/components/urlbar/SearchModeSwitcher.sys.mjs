@@ -361,8 +361,8 @@ export class SearchModeSwitcher {
     let search = "";
     let opts = null;
     if (engine) {
-      search =
-        gBrowser.userTypedValue ?? gBrowser.selectedBrowser.searchTerms ?? "";
+      let state = this.#input.getBrowserState(gBrowser.selectedBrowser);
+      search = gBrowser.userTypedValue ?? state.searchTerms ?? "";
       opts = {
         searchEngine: engine,
         searchModeEntry: "searchbutton",
