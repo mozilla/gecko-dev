@@ -7,10 +7,20 @@
 
   <menupopup id="tabContextMenu">
     <menuitem id="context_openANewTab" data-lazy-l10n-id="tab-context-new-tab-open"/>
-    <menuitem id="context_addTabToNewGroup"
-      data-lazy-l10n-id="tab-context-add-tab-to-new-group"
+    <menuitem id="context_moveTabToNewGroup"
+      data-lazy-l10n-id="tab-context-move-tab-to-new-group"
       data-l10n-args='{"tabCount": 1}'
       hidden="true"/>
+    <menu id="context_moveTabToGroup"
+      data-lazy-l10n-id="tab-context-move-tab-to-group"
+      data-l10n-args='{"tabCount": 1}'
+      hidden="true">
+      <menupopup id="context_moveTabToGroupPopupMenu">
+        <menuitem id="context_moveTabToGroupNewGroup"
+                  data-lazy-l10n-id="tab-context-new-group"/>
+        <menuseparator/>
+      </menupopup>
+    </menu>
     <menuseparator/>
     <menuitem id="context_reloadTab" data-lazy-l10n-id="reload-tab"/>
     <menuitem id="context_reloadSelectedTabs" data-lazy-l10n-id="reload-tabs" hidden="true"/>

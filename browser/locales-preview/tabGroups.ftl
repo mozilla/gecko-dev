@@ -5,10 +5,20 @@
 ## Variables:
 ##  $tabCount (Number): the number of tabs that are affected by the action.
 
-tab-context-add-tab-to-new-group =
+tab-context-unnamed-group =
+    .label = Unnamed group
+
+tab-context-move-tab-to-new-group =
     .label =
         { $tabCount ->
             [1] Add Tab to New Group
            *[other] Add Tabs to New Group
+        }
+    .accesskey = G
+tab-context-move-tab-to-group =
+    .label =
+        { $tabCount ->
+            [1] Add Tab to Group
+           *[other] Add Tabs to Group
         }
     .accesskey = G

@@ -41,6 +41,8 @@
       this.#labelElement = this.querySelector(".tab-group-label");
       this.#labelElement.addEventListener("click", this);
 
+      this.createdDate = Date.now();
+
       this.addEventListener("TabSelect", this);
 
       this._tabsChangedObserver = new window.MutationObserver(mutationList => {

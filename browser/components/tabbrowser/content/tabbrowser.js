@@ -2976,6 +2976,24 @@
       this.addTabGroup(group.color, group.label, newTabs);
     },
 
+    getAllTabGroups() {
+      return BrowserWindowTracker.orderedWindows.reduce(
+        (acc, window) => acc.concat(window.gBrowser.tabGroups),
+        []
+      );
+    },
+
+    getTabGroupById(id) {
+      for (const win of BrowserWindowTracker.orderedWindows) {
+        for (const group of win.gBrowser.tabGroups) {
+          if (group.id === id) {
+            return group;
+          }
+        }
+      }
+      return null;
+    },
+
     _determineURIToLoad(uriString, createLazyBrowser) {
       uriString = uriString || "about:blank";
       let aURIObject = null;
@@ -7836,14 +7854,75 @@ var TabContextMenu = {
     // autohide item's checked state to mirror the autohide pref.
     showFullScreenViewContextMenuItems(aPopupMenu);
 
-    let contextAddTabToNewGroup = document.getElementById(
-      "context_addTabToNewGroup"
+    // #context_moveTabToNewGroup is a simplified context menu item that only
+    // appears if there are no existing tab groups available to move the tab to.
+    let contextMoveTabToNewGroup = document.getElementById(
+      "context_moveTabToNewGroup"
     );
+    let contextMoveTabToGroup = document.getElementById(
+      "context_moveTabToGroup"
+    );
+
     if (gBrowser._tabGroupsEnabled) {
-      contextAddTabToNewGroup.hidden = false;
-      contextAddTabToNewGroup.setAttribute("data-l10n-args", tabCountInfo);
+      let availableTabGroups = gBrowser
+        .getAllTabGroups()
+        .sort((a, b) => a.createdDate - b.createdDate);
+
+      // Determine whether or not the "current" tab group should appear in the context menu
+      let groupToFilter;
+      if (
+        gBrowser.selectedTabs.length > 1 && // if we have multiple tabs selected ...
+        gBrowser.selectedTabs.includes(this.contextTab) && // and we are operating on the selection ...
+        new Set(gBrowser.selectedTabs.map(t => t.group)).size == 1 // and all the tabs are in the same group
+      ) {
+        groupToFilter = gBrowser.selectedTabs[0].group;
+      } else if (gBrowser.selectedTabs.length == 1) {
+        groupToFilter = this.contextTab.group;
+      }
+
+      if (groupToFilter) {
+        availableTabGroups = availableTabGroups.filter(
+          group => group !== groupToFilter
+        );
+      }
+
+      if (!availableTabGroups.length) {
+        contextMoveTabToGroup.hidden = true;
+        contextMoveTabToNewGroup.hidden = false;
+        contextMoveTabToNewGroup.setAttribute("data-l10n-args", tabCountInfo);
+      } else {
+        contextMoveTabToNewGroup.hidden = true;
+        contextMoveTabToGroup.hidden = false;
+        contextMoveTabToGroup.setAttribute("data-l10n-args", tabCountInfo);
+
+        const submenu = contextMoveTabToGroup.querySelector("menupopup");
+        submenu.querySelectorAll("[tab-group-id]").forEach(el => el.remove());
+
+        availableTabGroups.forEach(group => {
+          let item = document.createXULElement("menuitem");
+          item.setAttribute("tab-group-id", group.id);
+          if (group.label) {
+            item.setAttribute("label", group.label);
+          } else {
+            document.l10n.setAttributes(item, "tab-context-unnamed-group");
+          }
+
+          item.classList.add("menuitem-iconic");
+          item.setAttribute(
+            "image",
+            `data:image/svg+xml;utf8,
+            <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="32" height="32" rx="2" fill="${encodeURIComponent(
+                group.color
+              )}"/>
+            </svg>`
+          );
+          submenu.appendChild(item);
+        });
+      }
     } else {
-      contextAddTabToNewGroup.hidden = true;
+      contextMoveTabToNewGroup.hidden = true;
+      contextMoveTabToGroup.hidden = true;
     }
 
     // Only one of Reload_Tab/Reload_Selected_Tabs should be visible.
@@ -8138,5 +8217,23 @@ var TabContextMenu = {
     } else {
       gBrowser.removeTab(this.contextTab, { animate: true });
     }
+  },
+
+  moveTabsToNewGroup() {
+    gBrowser.addTabGroup(
+      "red",
+      "",
+      gBrowser.selectedTabs.includes(this.contextTab)
+        ? gBrowser.selectedTabs
+        : [this.contextTab]
+    );
+  },
+
+  moveTabsToGroup(group) {
+    group.addTabs(
+      gBrowser.selectedTabs.includes(TabContextMenu.contextTab)
+        ? gBrowser.selectedTabs
+        : [TabContextMenu.contextTab]
+    );
   },
 };

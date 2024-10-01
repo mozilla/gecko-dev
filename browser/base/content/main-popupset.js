@@ -16,12 +16,9 @@ document.addEventListener(
         case "context_openANewTab":
           gBrowser.addAdjacentNewTab(TabContextMenu.contextTab);
           break;
-        case "context_addTabToNewGroup":
-          if (gBrowser.selectedTabs.includes(TabContextMenu.contextTab)) {
-            gBrowser.addTabGroup("red", "", gBrowser.selectedTabs);
-          } else {
-            gBrowser.addTabGroup("red", "", [TabContextMenu.contextTab]);
-          }
+        case "context_moveTabToNewGroup":
+        case "context_moveTabToGroupNewGroup":
+          TabContextMenu.moveTabsToNewGroup();
           break;
         case "context_reloadTab":
           gBrowser.reloadTab(TabContextMenu.contextTab);
@@ -269,6 +266,23 @@ document.addEventListener(
       .addEventListener("command", event => {
         // Handle commands on the descendant <menuitem>s with different containers.
         TabContextMenu.reopenInContainer(event);
+      });
+
+    document
+      .getElementById("context_moveTabToGroupPopupMenu")
+      .addEventListener("command", event => {
+        if (event.target.id == "context_moveTabToGroupNewGroup") {
+          TabContextMenu.moveTabsToNewGroup();
+          return;
+        }
+
+        const tabGroupId = event.target.getAttribute("tab-group-id");
+        const group = gBrowser.getTabGroupById(tabGroupId);
+        if (!group) {
+          return;
+        }
+
+        TabContextMenu.moveTabsToGroup(group);
       });
 
     document
