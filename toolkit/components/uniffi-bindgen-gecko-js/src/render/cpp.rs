@@ -14,15 +14,18 @@ License, v. 2.0. If a copy of the MPL was not distributed with this
 //! that represents the same concept, but is easier for the templates to render.  In this case, the
 //! new type name has `Cpp` appended to it ([FfiFunction] is converted to [FfiFunctionCpp]).
 
-use crate::{CallbackIds, Component, FunctionIds, ObjectIds};
+use std::collections::HashSet;
+
 use askama::Template;
-use heck::{ToShoutySnakeCase, ToUpperCamelCase};
-use uniffi_bindgen::interface::{ComponentInterface, FfiFunction, FfiType};
+use heck::{ToShoutySnakeCase, ToSnakeCase, ToUpperCamelCase};
+use uniffi_bindgen::interface::{ComponentInterface, FfiDefinition, FfiFunction, FfiType};
+
+use crate::{CallbackIds, Component, FunctionIds, ObjectIds};
 
 #[derive(Template)]
 #[template(path = "UniFFIScaffolding.cpp", escape = "none")]
 pub struct CPPScaffoldingTemplate {
-    all_ffi_functions: CombinedItems<Vec<FfiFunctionCpp>>,
+    all_ffi_definitions: CombinedItems<Vec<FfiDefinitionCpp>>,
     all_pointer_types: CombinedItems<Vec<PointerType>>,
     all_callback_interfaces: CombinedItems<Vec<CallbackInterfaceCpp>>,
     all_scaffolding_calls: CombinedItems<Vec<ScaffoldingCall>>,
@@ -37,10 +40,7 @@ impl CPPScaffoldingTemplate {
         callback_ids: &CallbackIds<'_>,
     ) -> Self {
         Self {
-            all_ffi_functions: CombinedItems::new(
-                Self::ffi_functions(components),
-                Self::ffi_functions(fixture_components),
-            ),
+            all_ffi_definitions: Self::all_ffi_definitions(components, fixture_components),
             all_pointer_types: CombinedItems::new(
                 Self::pointer_types(object_ids, components),
                 Self::pointer_types(object_ids, fixture_components),
@@ -56,22 +56,76 @@ impl CPPScaffoldingTemplate {
         }
     }
 
-    fn ffi_functions(components: &[Component]) -> Vec<FfiFunctionCpp> {
+    fn all_ffi_definitions(
+        components: &[Component],
+        fixture_components: &[Component],
+    ) -> CombinedItems<Vec<FfiDefinitionCpp>> {
+        // Track which FFI definition's we've seen and don't add them twice.
+        // This avoids duplicate definitions for shared FFI types like `CallbackInterfaceFree`.
+        //
+        // The code below ordered so that duplicated definitions get added to the components side
+        // of `CombinedItems` rather than the fixtures side.  This way if fixtures are disabled, we
+        // don't see missing definition errors.
+        let mut seen_names = HashSet::new();
+
+        CombinedItems::new(
+            Self::ffi_definitions(components)
+                .into_iter()
+                .filter(|ffi_def| seen_names.insert(ffi_def.name().to_owned()))
+                .collect(),
+            Self::ffi_definitions(fixture_components)
+                .into_iter()
+                .filter(|ffi_def| seen_names.insert(ffi_def.name().to_owned()))
+                .collect(),
+        )
+    }
+
+    fn ffi_definitions(components: &[Component]) -> Vec<FfiDefinitionCpp> {
         components
             .iter()
-            .flat_map(|c| c.ci.iter_user_ffi_function_definitions())
-            .map(|ffi_func| FfiFunctionCpp {
-                name: ffi_func.name().to_string(),
-                arg_types: ffi_func
-                    .arguments()
-                    .iter()
-                    .map(|a| cpp_type(&a.type_()))
-                    .chain(["RustCallStatus*".to_owned()])
-                    .collect(),
-                return_type: match ffi_func.return_type() {
-                    Some(t) => cpp_type(t),
-                    None => "void".to_owned(),
-                },
+            .flat_map(|c| c.ci.ffi_definitions())
+            .map(|ffi_definition| match ffi_definition {
+                FfiDefinition::Function(ffi_func) => FfiDefinitionCpp::Function(FfiFunctionCpp {
+                    name: ffi_func.name().to_snake_case(),
+                    arg_types: ffi_func
+                        .arguments()
+                        .iter()
+                        .map(|a| cpp_type(&a.type_()))
+                        .chain(
+                            ffi_func
+                                .has_rust_call_status_arg()
+                                .then(|| "RustCallStatus*".to_owned()),
+                        )
+                        .collect(),
+                    return_type: return_type(ffi_func.return_type()),
+                }),
+                FfiDefinition::CallbackFunction(ffi_callback) => {
+                    FfiDefinitionCpp::CallbackFunction(FfiCallbackFunctionCpp {
+                        name: ffi_callback.name().to_upper_camel_case(),
+                        arg_types: ffi_callback
+                            .arguments()
+                            .into_iter()
+                            .map(|a| cpp_type(&a.type_()))
+                            .chain(
+                                ffi_callback
+                                    .has_rust_call_status_arg()
+                                    .then(|| "RustCallStatus*".to_owned()),
+                            )
+                            .collect(),
+                        return_type: return_type(ffi_callback.return_type()),
+                    })
+                }
+                FfiDefinition::Struct(ffi_struct) => FfiDefinitionCpp::Struct(FfiStructCpp {
+                    name: ffi_struct.name().to_upper_camel_case(),
+                    fields: ffi_struct
+                        .fields()
+                        .into_iter()
+                        .map(|f| FfiFieldCpp {
+                            name: f.name().to_snake_case(),
+                            type_: cpp_type(&f.type_()),
+                        })
+                        .collect(),
+                }),
             })
             .collect()
     }
@@ -160,10 +214,42 @@ impl<T> CombinedItems<T> {
     }
 }
 
+enum FfiDefinitionCpp {
+    Function(FfiFunctionCpp),
+    CallbackFunction(FfiCallbackFunctionCpp),
+    Struct(FfiStructCpp),
+}
+
+impl FfiDefinitionCpp {
+    fn name(&self) -> &str {
+        match self {
+            Self::Function(f) => &f.name,
+            Self::CallbackFunction(c) => &c.name,
+            Self::Struct(s) => &s.name,
+        }
+    }
+}
+
 struct FfiFunctionCpp {
     name: String,
     arg_types: Vec<String>,
     return_type: String,
+}
+
+struct FfiCallbackFunctionCpp {
+    name: String,
+    arg_types: Vec<String>,
+    return_type: String,
+}
+
+struct FfiStructCpp {
+    name: String,
+    fields: Vec<FfiFieldCpp>,
+}
+
+struct FfiFieldCpp {
+    name: String,
+    type_: String,
 }
 
 struct PointerType {
@@ -260,12 +346,19 @@ fn cpp_type(ffi_type: &FfiType) -> String {
         FfiType::Float64 => "double".to_owned(),
         FfiType::RustBuffer(_) => "RustBuffer".to_owned(),
         FfiType::RustArcPtr(_) => "void*".to_owned(),
-        FfiType::ForeignBytes => unimplemented!("ForeignBytes not supported"),
+        FfiType::ForeignBytes => "ForeignBytes".to_owned(),
         FfiType::Handle => "uint64_t".to_owned(),
         FfiType::RustCallStatus => "RustCallStatus".to_owned(),
         FfiType::Callback(name) | FfiType::Struct(name) => name.to_owned(),
         FfiType::VoidPointer => "void*".to_owned(),
-        FfiType::Reference(_) => unimplemented!("References not supported"),
+        FfiType::Reference(inner) => format!("{}*", cpp_type(inner.as_ref())),
+    }
+}
+
+fn return_type(ffi_type: Option<&FfiType>) -> String {
+    match ffi_type {
+        Some(t) => cpp_type(t),
+        None => "void".to_owned(),
     }
 }
 

@@ -29,10 +29,21 @@ using dom::UniFFIScaffoldingCallResult;
 
 // Define scaffolding functions from UniFFI
 extern "C" {
-  {%- for (preprocessor_condition, ffi_functions, preprocessor_condition_end) in all_ffi_functions.iter() %}
+  {%- for (preprocessor_condition, ffi_definitions, preprocessor_condition_end) in all_ffi_definitions.iter() %}
 {{ preprocessor_condition }}
-  {%- for func in ffi_functions %}
+  {%- for def in ffi_definitions %}
+  {%- match def %}
+  {%- when FfiDefinitionCpp::Function(func) %}
   {{ func.return_type }} {{ func.name }}({{ func.arg_types|join(", ") }});
+  {%- when FfiDefinitionCpp::CallbackFunction(func) %}
+  typedef {{ func.return_type }} (*{{ func.name }})({{ func.arg_types|join(", ") }});
+  {%- when FfiDefinitionCpp::Struct(ffi_struct) %}
+  struct {{ ffi_struct.name }} {
+    {%- for field in ffi_struct.fields %}
+    {{ field.type_ }} {{ field.name }};
+    {%- endfor %}
+  };
+  {%- endmatch %}
   {%- endfor %}
 {{ preprocessor_condition_end }}
   {%- endfor %}

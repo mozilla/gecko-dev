@@ -154,6 +154,20 @@ class ArrayBufferDataStream {
       return value;
     }
 
+    readBytes() {
+      const size = this.readInt32();
+      const bytes = new Uint8Array(this.dataView.buffer, this.pos, size);
+      this.pos += size;
+      return bytes
+    }
+
+    writeBytes(uint8Array) {
+      this.writeUint32(uint8Array.length);
+      value.forEach((elt) => {
+        dataStream.writeUint8(elt);
+      })
+    }
+
     // Reads a Calc pointer from the data stream
     // UniFFI Pointers are **always** 8 bytes long. That is enforced
     // by the C++ and Rust Scaffolding code.
@@ -336,7 +350,7 @@ export class Calc {
                 throw e;
             }
             return UniFFIScaffolding.callSync(
-                147, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_method_calc_add
+                149, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_method_calc_add
                 FfiConverterTypeCalc.lower(this),
                 FfiConverterU32.lower(a),
                 FfiConverterU32.lower(b),
@@ -386,7 +400,7 @@ export function makeBuggyCalculator() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                145, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_buggy_calculator
+                147, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_buggy_calculator
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
@@ -398,7 +412,7 @@ export function makeCalculator() {
         const liftError = null;
         const functionCall = () => {
             return UniFFIScaffolding.callSync(
-                146, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_calculator
+                148, // uniffi_trait_interfaces:uniffi_uniffi_trait_interfaces_fn_func_make_calculator
             )
         }
         return handleRustResult(functionCall(), liftResult, liftError);
