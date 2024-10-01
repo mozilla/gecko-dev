@@ -2014,7 +2014,7 @@ void js::Nursery::sweep() {
 
 void gc::CellSweepSet::sweep() {
   if (head_) {
-    head_->sweepDependentStrings();
+    ArenaCellSet::sweepDependentStrings(head_);
     head_ = nullptr;
   }
   if (storage_) {

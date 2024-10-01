@@ -169,7 +169,7 @@ class StoreBuffer {
 
   struct WholeCellBuffer {
     UniquePtr<LifoAlloc> storage_;
-    ArenaCellSet* head_ = nullptr;
+    ArenaCellSet* sweepHead_ = nullptr;
     const Cell* last_ = nullptr;
 
     WholeCellBuffer() = default;
@@ -179,9 +179,9 @@ class StoreBuffer {
 
     WholeCellBuffer(WholeCellBuffer&& other)
         : storage_(std::move(other.storage_)),
-          head_(other.head_),
+          sweepHead_(other.sweepHead_),
           last_(other.last_) {
-      other.head_ = nullptr;
+      other.sweepHead_ = nullptr;
       other.last_ = nullptr;
     }
     WholeCellBuffer& operator=(WholeCellBuffer&& other) {
@@ -210,17 +210,14 @@ class StoreBuffer {
       return storage_ ? storage_->sizeOfIncludingThis(mallocSizeOf) : 0;
     }
 
-    bool isEmpty() const {
-      MOZ_ASSERT_IF(!head_, !storage_ || storage_->isEmpty());
-      return !head_;
-    }
+    bool isEmpty() const { return !storage_ || storage_->isEmpty(); }
 
     const Cell** lastBufferedPtr() { return &last_; }
 
     CellSweepSet releaseCellSweepSet() {
       CellSweepSet set;
       std::swap(storage_, set.storage_);
-      std::swap(head_, set.head_);
+      std::swap(sweepHead_, set.head_);
       last_ = nullptr;
       return set;
     }
@@ -652,10 +649,11 @@ class ArenaCellSet {
   using ArenaCellBits = BitArray<MaxArenaCellIndex>;
 
   // The arena this relates to.
-  Arena* arena;
+  Arena* arena = nullptr;
 
-  // Pointer to next set forming a linked list.
-  ArenaCellSet* next;
+  // Pointer to next set forming a linked list. Used to form the list of cell
+  // sets to sweep.
+  ArenaCellSet* next = nullptr;
 
   // Bit vector for each possible cell start position.
   ArenaCellBits bits;
@@ -663,26 +661,18 @@ class ArenaCellSet {
 #ifdef DEBUG
   // The minor GC number when this was created. This object should not survive
   // past the next minor collection.
-  const uint64_t minorGCNumberAtCreation;
+  const uint64_t minorGCNumberAtCreation = 0;
 #endif
 
   // Construct the empty sentinel object.
-  constexpr ArenaCellSet()
-      : arena(nullptr),
-        next(nullptr)
-#ifdef DEBUG
-        ,
-        minorGCNumberAtCreation(0)
-#endif
-  {
-  }
+  constexpr ArenaCellSet() = default;
 
  public:
   using WordT = ArenaCellBits::WordT;
   static constexpr size_t BitsPerWord = ArenaCellBits::bitsPerElement;
   static constexpr size_t NumWords = ArenaCellBits::numSlots;
 
-  ArenaCellSet(Arena* arena, ArenaCellSet* next);
+  explicit ArenaCellSet(Arena* arena);
 
   bool hasCell(const TenuredCell* cell) const {
     return hasCell(getCellIndex(cell));
@@ -704,13 +694,13 @@ class ArenaCellSet {
     bits.setWord(wordIndex, value);
   }
 
-  // Returns the list of ArenaCellSets that need to be swept.
-  ArenaCellSet* trace(TenuringTracer& mover);
+  // Sweep this set, returning whether it also needs to be swept later.
+  bool trace(TenuringTracer& mover);
 
   // At the end of a minor GC, sweep through all tenured dependent strings that
   // may point to nursery-allocated chars to update their pointers in case the
   // base string moved its chars.
-  void sweepDependentStrings();
+  static void sweepDependentStrings(ArenaCellSet* listHead);
 
   // Sentinel object used for all empty sets.
   //

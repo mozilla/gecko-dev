@@ -31,18 +31,21 @@ void StoreBuffer::checkAccess() const {
 #endif
 
 bool StoreBuffer::WholeCellBuffer::init() {
-  MOZ_ASSERT(!head_);
+  MOZ_ASSERT(!sweepHead_);
   if (!storage_) {
     storage_ = MakeUnique<LifoAlloc>(LifoAllocBlockSize, js::MallocArena);
-    // This prevents LifoAlloc::Enum from crashing with a release
-    // assertion if we ever allocate one entry larger than
-    // LifoAllocBlockSize.
-    if (storage_) {
-      storage_->disableOversize();
+    if (!storage_) {
+      return false;
     }
   }
+
+  // This prevents LifoAlloc::Enum from crashing with a release
+  // assertion if we ever allocate one entry larger than
+  // LifoAllocBlockSize.
+  storage_->disableOversize();
+
   clear();
-  return bool(storage_);
+  return true;
 }
 
 bool StoreBuffer::GenericBuffer::init() {
@@ -190,9 +193,8 @@ void StoreBuffer::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
 
 ArenaCellSet ArenaCellSet::Empty;
 
-ArenaCellSet::ArenaCellSet(Arena* arena, ArenaCellSet* next)
-    : arena(arena),
-      next(next)
+ArenaCellSet::ArenaCellSet(Arena* arena)
+    : arena(arena)
 #ifdef DEBUG
       ,
       minorGCNumberAtCreation(
@@ -204,6 +206,8 @@ ArenaCellSet::ArenaCellSet(Arena* arena, ArenaCellSet* next)
 }
 
 ArenaCellSet* StoreBuffer::WholeCellBuffer::allocateCellSet(Arena* arena) {
+  MOZ_ASSERT(arena->bufferedCells() == &ArenaCellSet::Empty);
+
   Zone* zone = arena->zone();
   JSRuntime* rt = zone->runtimeFromMainThread();
   if (!rt->gc.nursery().isEnabled()) {
@@ -211,13 +215,12 @@ ArenaCellSet* StoreBuffer::WholeCellBuffer::allocateCellSet(Arena* arena) {
   }
 
   AutoEnterOOMUnsafeRegion oomUnsafe;
-  auto* cells = storage_->new_<ArenaCellSet>(arena, head_);
+  auto* cells = storage_->new_<ArenaCellSet>(arena);
   if (!cells) {
     oomUnsafe.crash("Failed to allocate ArenaCellSet");
   }
 
   arena->bufferedCells() = cells;
-  head_ = cells;
 
   if (isAboutToOverflow()) {
     rt->gc.storeBuffer().setAboutToOverflow(
@@ -233,10 +236,11 @@ void gc::CellHeaderPostWriteBarrier(JSObject** ptr, JSObject* prev,
 }
 
 void StoreBuffer::WholeCellBuffer::clear() {
-  for (auto* set = head_; set; set = set->next) {
-    set->arena->bufferedCells() = &ArenaCellSet::Empty;
+  for (LifoAlloc::Enum e(*storage_); !e.empty();) {
+    ArenaCellSet* cellSet = e.read<ArenaCellSet>();
+    cellSet->arena->bufferedCells() = &ArenaCellSet::Empty;
   }
-  head_ = nullptr;
+  sweepHead_ = nullptr;
 
   if (storage_) {
     storage_->used() ? storage_->releaseAll() : storage_->freeAll();
