@@ -47,7 +47,7 @@ module.exports = async function ({
   onAvailableArray([[ResourceCommand.TYPES.CONSOLE_MESSAGE, messages]]);
 
   // Forward new message events
-  webConsoleFront.on("consoleAPICall", message => {
+  webConsoleFront.on("consoleAPICall", ({ message }) => {
     // Ignore console messages that are cloned from the content process
     // (they aren't relevant to toolboxes still using legacy listeners)
     if (message.clonedFromContentProcess) {

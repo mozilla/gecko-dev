@@ -24,6 +24,7 @@ const SW_URL =
  */
 add_task(async function () {
   await enableServiceWorkerDebugging();
+  await pushPref("devtools.toolbox.splitconsoleHeight", 400);
 
   const { document, tab, window } = await openAboutDebugging({
     enableWorkerUpdates: true,
@@ -77,20 +78,20 @@ add_task(async function () {
   ok(true, "Date object has expected text content");
   await executeAndWaitForMessage(hud, "new RegExp('.*')", "/.*/");
   ok(true, "RegExp has expected text content");
+  await executeAndWaitForMessage(
+    hud,
+    "console.log(globalThis)",
+    "ServiceWorkerGlobalScope",
+    ".log"
+  );
+  ok(true, "console.log has expected text content");
 
   await toolbox.selectTool("jsdebugger");
   const dbg = createDebuggerContext(toolbox);
-  const {
-    selectors: { getIsWaitingOnBreak, getCurrentThread },
-  } = dbg;
-
-  info("Wait for next interupt in the worker thread");
-  await clickElement(dbg, "pause");
-  await waitForState(dbg, () => getIsWaitingOnBreak(getCurrentThread()));
 
   info("Trigger some code in the worker and wait for pause");
   await SpecialPowers.spawn(swTab.linkedBrowser, [], async function () {
-    content.wrappedJSObject.installServiceWorker();
+    content.wrappedJSObject.installServiceWorkerAndPause();
   });
   await waitForPaused(dbg);
   ok(true, "successfully paused");
@@ -98,7 +99,15 @@ add_task(async function () {
   info(
     "Evaluate some variable only visible if we execute in the breakpoint frame"
   );
-  await executeAndWaitForMessage(hud, "event.data", "install-service-worker");
+  // open split console
+  const onSplitConsole = toolbox.once("split-console");
+  EventUtils.synthesizeKey("VK_ESCAPE", {}, devtoolsWindow);
+  await onSplitConsole;
+  await executeAndWaitForMessage(
+    hud,
+    "event.data",
+    "install-service-worker-and-pause"
+  );
 
   info("Resume execution");
   await resume(dbg);
@@ -109,7 +118,7 @@ add_task(async function () {
   ok(true, "successfully paused");
   info("Immediately resume");
   await resume(dbg);
-  await waitFor(() => findMessagesByType(hud, "42", ".result"));
+  await waitFor(() => findMessageByType(hud, "42", ".result"));
   ok("The paused console evaluation resumed and logged its magic number");
 
   info("Destroy the toolbox");
@@ -126,7 +135,16 @@ add_task(async function () {
   await removeTab(tab);
 });
 
-async function executeAndWaitForMessage(hud, evaluationString, expectedResult) {
-  hud.ui.wrapper.dispatchEvaluateExpression();
-  await waitFor(() => findMessagesByType(hud, expectedResult, ".result"));
+async function executeAndWaitForMessage(
+  hud,
+  evaluationString,
+  expectedResult,
+  messageClass = ".result"
+) {
+  hud.ui.wrapper.dispatchEvaluateExpression(evaluationString);
+  await waitFor(
+    () => findMessageByType(hud, expectedResult, messageClass),
+    "",
+    100
+  );
 }
