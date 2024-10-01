@@ -209,41 +209,46 @@ class GridReorderState internal constructor(
  * @param state State of the lazy grid.
  * @param key Key of the item to be displayed.
  * @param position Position in the grid of the item to be displayed.
+ * @param swipingActive Whether the container is being swiped.
  * @param content Content of the item to be displayed.
  */
 @ExperimentalFoundationApi
 @Composable
+@Suppress("MagicNumber")
 fun LazyGridItemScope.DragItemContainer(
     state: GridReorderState,
     key: Any,
     position: Int,
+    swipingActive: Boolean,
     content: @Composable () -> Unit,
 ) {
-    val modifier = when (key) {
-        state.draggingItemKey -> {
-            Modifier
-                .zIndex(1f)
-                .graphicsLayer {
+    val modifier = Modifier.zIndex(
+        if (swipingActive) {
+            10f
+        } else if (key == state.draggingItemKey || key == state.previousKeyOfDraggedItem) {
+            1f
+        } else {
+            0f
+        },
+    ).then(
+        when (key) {
+            state.draggingItemKey -> {
+                Modifier.graphicsLayer {
                     translationX = state.computeItemOffset(position).x
                     translationY = state.computeItemOffset(position).y
                 }
-        }
-
-        state.previousKeyOfDraggedItem -> {
-            Modifier
-                .zIndex(1f)
-                .graphicsLayer {
+            }
+            state.previousKeyOfDraggedItem -> {
+                Modifier.graphicsLayer {
                     translationX = state.previousItemOffset.value.x
                     translationY = state.previousItemOffset.value.y
                 }
-        }
-
-        else -> {
-            Modifier
-                .zIndex(0f)
-                .animateItem(tween())
-        }
-    }
+            }
+            else -> {
+                Modifier.animateItem(tween())
+            }
+        },
+    )
 
     Box(modifier = modifier, propagateMinConstraints = true) {
         content()

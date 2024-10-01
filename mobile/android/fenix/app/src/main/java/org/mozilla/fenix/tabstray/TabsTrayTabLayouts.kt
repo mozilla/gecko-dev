@@ -4,6 +4,8 @@
 
 package org.mozilla.fenix.tabstray
 
+import androidx.compose.animation.core.DecayAnimationSpec
+import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -22,6 +24,7 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,11 +32,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.unit.dp
 import mozilla.components.browser.state.state.ContentState
 import mozilla.components.browser.state.state.TabSessionState
 import org.mozilla.fenix.R
+import org.mozilla.fenix.compose.SwipeToDismissState
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.tabstray.TabGridItem
 import org.mozilla.fenix.compose.tabstray.TabListItem
@@ -199,10 +204,26 @@ private fun TabGrid(
             items = tabs,
             key = { _, tab -> tab.id },
         ) { index, tab ->
+            val decayAnimationSpec: DecayAnimationSpec<Float> = rememberSplineBasedDecay()
+            val density = LocalDensity.current
+            val swipeState = remember(isInMultiSelectMode, !state.isScrollInProgress) {
+                SwipeToDismissState(
+                    density = density,
+                    enabled = !isInMultiSelectMode && !state.isScrollInProgress,
+                    decayAnimationSpec = decayAnimationSpec,
+                )
+            }
+            val swipingActive by remember(swipeState.swipingActive) {
+                derivedStateOf {
+                    swipeState.swipingActive
+                }
+            }
+
             DragItemContainer(
                 state = reorderState,
                 position = index + if (header != null) 1 else 0,
                 key = tab.id,
+                swipingActive = swipingActive,
             ) {
                 TabGridItem(
                     tab = tab,
@@ -211,7 +232,7 @@ private fun TabGrid(
                     multiSelectionEnabled = isInMultiSelectMode,
                     multiSelectionSelected = selectionMode.selectedTabs.contains(tab),
                     shouldClickListen = reorderState.draggingItemKey != tab.id,
-                    swipingEnabled = !state.isScrollInProgress,
+                    swipeState = swipeState,
                     onCloseClick = onTabClose,
                     onMediaClick = onTabMediaClick,
                     onClick = onTabClick,
