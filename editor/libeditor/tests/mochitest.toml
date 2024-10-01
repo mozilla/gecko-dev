@@ -559,6 +559,8 @@ skip-if = ["xorigin"] # Testing internal API for comm-central
 
 ["test_nsITableEditor_getTableSize.html"]
 
+["test_nsITableEditor_in_plaintext-only.html"]
+
 ["test_nsITableEditor_insertTableCell.html"]
 
 ["test_nsITableEditor_insertTableColumn.html"]

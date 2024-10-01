@@ -1,0 +1,503 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title></title>
+<script src="/tests/SimpleTest/SimpleTest.js"></script>
+<link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+<script>
+"use strict";
+
+SimpleTest.waitForExplicitFinish();
+SimpleTest.waitForFocus(async () => {
+  await SpecialPowers.pushPrefEnv({
+    set: [["dom.element.contenteditable.plaintext-only.enabled", true]],
+  });
+  document.body.contentEditable = "plaintext-only";
+  document.body.focus();
+  const tableEditor = getHTMLEditor();
+
+  await (async function test_insertTableCell() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.insertTableCell(1, true);
+      ok(false, "insertTableCell should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "insertTableCell should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "insertTableCell shouldn't change the DOM");
+  })();
+
+  await (async function test_insertTableColumn() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.insertTableColumn(1, true);
+      ok(false, "insertTableColumn should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "insertTableColumn should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "insertTableColumn shouldn't change the DOM");
+  })();
+
+  await (async function test_insertTableRow() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.insertTableRow(1, true);
+      ok(false, "insertTableRow should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "insertTableRow should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "insertTableRow shouldn't change the DOM");
+  })();
+
+  await (async function test_deleteTableCellContents() {
+    document.body.innerHTML = "<table><td>abc</td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().selectAllChildren(td);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.deleteTableCellContents();
+      ok(false, "deleteTableCellContents should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "deleteTableCellContents should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "deleteTableCellContents shouldn't change the DOM");
+  })();
+
+  await (async function test_deleteTableCell() {
+    document.body.innerHTML = "<table><td><br></td><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.deleteTableCell(1);
+      ok(false, "deleteTableCell should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "deleteTableCell should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "deleteTableCell shouldn't change the DOM");
+  })();
+
+  await (async function test_deleteTableColumn() {
+    document.body.innerHTML = "<table><td><br></td><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.deleteTableColumn(1);
+      ok(false, "deleteTableColumn should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "deleteTableColumn should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "deleteTableColumn shouldn't change the DOM");
+  })();
+
+  await (async function test_deleteTableRow() {
+    document.body.innerHTML = "<table><tr><td><br></td></tr><tr><td><br></td></tr></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.deleteTableRow(1);
+      ok(false, "deleteTableRow should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "deleteTableRow should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "deleteTableRow shouldn't change the DOM");
+  })();
+
+  await (async function test_selectTableCell() {
+    document.body.innerHTML = "<table><td>abc</td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td.firstChild, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.selectTableCell();
+      ok(true, "selectTableCell should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `selectTableCell shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "selectTableCell shouldn't change the DOM");
+  })();
+
+  await (async function test_selectTableRow() {
+    document.body.innerHTML = "<table><td>abc</td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td.firstChild, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.selectTableRow();
+      ok(true, "selectTableRow should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `selectTableRow shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "selectTableRow shouldn't change the DOM");
+  })();
+
+  await (async function test_selectTableColumn() {
+    document.body.innerHTML = "<table><td>abc</td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td.firstChild, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.selectTableColumn();
+      ok(true, "selectTableColumn should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `selectTableColumn shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "selectTableColumn shouldn't change the DOM");
+  })();
+
+  await (async function test_selectTable() {
+    document.body.innerHTML = "<table><td>abc</td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td.firstChild, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.selectTable();
+      ok(true, "selectTable should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `selectTable shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "selectTable shouldn't change the DOM");
+  })();
+
+  await (async function test_selectAllTableCells() {
+    document.body.innerHTML = "<table><td>abc</td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td.firstChild, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.selectAllTableCells();
+      ok(true, "selectAllTableCells should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `selectAllTableCells shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "selectAllTableCells shouldn't change the DOM");
+  })();
+
+  await (async function test_switchTableCellHeaderType() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.switchTableCellHeaderType(td);
+      ok(false, "switchTableCellHeaderType should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "switchTableCellHeaderType should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "switchTableCellHeaderType shouldn't change the DOM");
+  })();
+
+  await (async function test_joinTableCells() {
+    document.body.innerHTML = "<table><td><br></td><td><br></td></table>";
+    const td1 = document.querySelector("td");
+    const td2 = document.querySelector("td + td");
+    td1.getBoundingClientRect();
+    const range1 = document.createRange();
+    range1.selectNode(td1);
+    const range2 = document.createRange();
+    range2.selectNode(td2);
+    getSelection().removeAllRanges();
+    getSelection().addRange(range1);
+    getSelection().addRange(range2);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.joinTableCells(true);
+      ok(false, "joinTableCells should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "joinTableCells should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "joinTableCells shouldn't change the DOM");
+  })();
+
+  await (async function test_splitTableCell() {
+    document.body.innerHTML = "<table><tr><td colspan=\"2\" rowspan=\"2\"><br></td><td><br></td></tr><tr><td><br></td></tr></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.splitTableCell();
+      ok(false, "splitTableCell should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "splitTableCell should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "splitTableCell shouldn't change the DOM");
+  })();
+
+  await (async function test_normalizeTable() {
+    document.body.innerHTML = "<table><tr><td><br></td><td><br></td></tr><tr><td><br></td></tr></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.normalizeTable(document.querySelector("table"));
+      ok(false, "normalizeTable should fail in contenteditable=plaintext-only");
+    } catch (e) {
+      is(
+        e.name,
+        "NS_ERROR_NOT_AVAILABLE",
+        "normalizeTable should throw NS_ERROR_NOT_AVAILABLE exception"
+      );
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "normalizeTable shouldn't change the DOM");
+  })();
+
+  await (async function test_getCellIndexes() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      const rowIndex = {};
+      const colIndex = {};
+      tableEditor.getCellIndexes(td, rowIndex, colIndex);
+      ok(true, "getCellIndexes should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getCellIndexes shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getCellIndexes shouldn't change the DOM");
+  })();
+
+  await (async function test_getTableSize() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      const rowSize = {};
+      const colSize = {};
+      tableEditor.getTableSize(td, rowSize, colSize);
+      ok(true, "getTableSize should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getTableSize shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getTableSize shouldn't change the DOM");
+  })();
+
+  await (async function test_getCellAt() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.getCellAt(document.querySelector("table"), 0, 0);
+      ok(true, "getCellAt should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getCellAt shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getCellAt shouldn't change the DOM");
+  })();
+
+  await (async function test_getCellDataAt() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      const cellElement = {},
+        rowIndex = {}, colIndex = {},
+        rowSpan = {}, colSpan = {},
+        effectiveRowSpan = {}, effectiveColSpan = {},
+        isSelected = {};
+      tableEditor.getCellDataAt(
+        document.querySelector("table"),
+        0, 0,
+        cellElement,
+        rowIndex, colIndex,
+        rowSpan, colSpan,
+        effectiveRowSpan, effectiveColSpan,
+        isSelected
+      );
+      ok(true, "getCellDataAt should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getCellDataAt shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getCellDataAt shouldn't change the DOM");
+  })();
+
+  await (async function test_getFirstRow() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.getFirstRow(document.querySelector("table"));
+      ok(true, "getFirstRow should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getFirstRow shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getFirstRow shouldn't change the DOM");
+  })();
+
+  await (async function test_getSelectedOrParentTableElement() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      const tagName = {}, count = {};
+      tableEditor.getSelectedOrParentTableElement(document.querySelector("table"), tagName, count);
+      ok(true, "getSelectedOrParentTableElement should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getSelectedOrParentTableElement shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getSelectedOrParentTableElement shouldn't change the DOM");
+  })();
+
+  await (async function test_getSelectedCellsType() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.getSelectedCellsType(td);
+      ok(true, "getSelectedCellsType should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getSelectedCellsType shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getSelectedCellsType shouldn't change the DOM");
+  })();
+
+  await (async function test_getFirstSelectedCellInTable() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      const rowIndex = {}, colIndex = {};
+      tableEditor.getFirstSelectedCellInTable(document.querySelector("table"), rowIndex, colIndex);
+      ok(true, "getFirstSelectedCellInTable should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getFirstSelectedCellInTable shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getFirstSelectedCellInTable shouldn't change the DOM");
+  })();
+
+  await (async function test_getSelectedCells() {
+    document.body.innerHTML = "<table><td><br></td></table>";
+    const td = document.querySelector("td");
+    td.getBoundingClientRect();
+    getSelection().collapse(td, 0);
+    const innerHTML = document.body.innerHTML;
+    try {
+      tableEditor.getSelectedCells();
+      ok(true, "getSelectedCells should succeed even in contenteditable=plaintext-only");
+    } catch (e) {
+      ok(false, `getSelectedCells shouldn't fail in contenteditable=plaintext-only (${e.message})`);
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    is(document.body.innerHTML, innerHTML, "getSelectedCells shouldn't change the DOM");
+  })();
+
+  document.body.removeAttribute("contenteditable");
+  SimpleTest.finish();
+});
+
+function getHTMLEditor() {
+  const Ci = SpecialPowers.Ci;
+  const editingSession = SpecialPowers.wrap(window).docShell.editingSession;
+  return editingSession.getEditorForWindow(window)
+    .QueryInterface(Ci.nsITableEditor);
+}
+</script>
+</head>
+<body></body>
+</html>
