@@ -3891,6 +3891,19 @@ void BacktrackingAllocator::removeDeadRanges(VirtualRegister& reg) {
   reg.removeRangesIf(isDeadRange);
 }
 
+static void AssertCorrectRangeForPosition(const VirtualRegister& reg,
+                                          CodePosition pos,
+                                          const LiveRange* range) {
+  MOZ_ASSERT(range->covers(pos));
+#ifdef DEBUG
+  // Assert the result is consistent with rangeFor. The ranges can be different
+  // but must be equivalent (both register or both non-register ranges).
+  LiveRange* expected = reg.rangeFor(pos, /* preferRegister = */ true);
+  MOZ_ASSERT(range->bundle()->allocation().isRegister() ==
+             expected->bundle()->allocation().isRegister());
+#endif
+}
+
 bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
   // Add moves to handle changing assignments for vregs over their lifetime.
   JitSpew(JitSpew_RegAlloc, "ResolveControlFlow: begin");
@@ -3912,7 +3925,29 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
     // Remove ranges which will never be used.
     removeDeadRanges(reg);
 
-    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+    LiveRange* registerRange = nullptr;
+    LiveRange* nonRegisterRange = nullptr;
+    VirtualRegister::RangeIterator iter(reg);
+
+    // Keep track of the register and non-register ranges with the highest end
+    // position before advancing the iterator. These are predecessor ranges for
+    // later ranges.
+    auto moveToNextRange = [&](LiveRange* range) {
+      MOZ_ASSERT(*iter == range);
+      if (range->bundle()->allocation().isRegister()) {
+        if (!registerRange || range->to() > registerRange->to()) {
+          registerRange = range;
+        }
+      } else {
+        if (!nonRegisterRange || range->to() > nonRegisterRange->to()) {
+          nonRegisterRange = range;
+        }
+      }
+      iter++;
+    };
+
+    // Iterate over all ranges.
+    while (!iter.done()) {
       LiveRange* range = *iter;
 
       if (mir->shouldCancel(
@@ -3923,6 +3958,7 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       // The range which defines the register does not have a predecessor
       // to add moves from.
       if (range->hasDefinition()) {
+        moveToNextRange(range);
         continue;
       }
 
@@ -3931,41 +3967,60 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       CodePosition start = range->from();
       LNode* ins = insData[start];
       if (start == entryOf(ins->block())) {
+        moveToNextRange(range);
         continue;
       }
 
-#ifdef DEBUG
-      // If we already saw a range which covers the start of this range, it must
-      // have a different allocation.
-      for (VirtualRegister::RangeIterator prevIter(reg); *prevIter != range;
-           prevIter++) {
-        MOZ_ASSERT_IF(
-            prevIter->covers(start),
-            prevIter->bundle()->allocation() != range->bundle()->allocation());
+      // Determine the predecessor range to use for this range and other ranges
+      // starting at the same position. Prefer a register range.
+      LiveRange* predecessorRange = nullptr;
+      if (registerRange && start.previous() < registerRange->to()) {
+        predecessorRange = registerRange;
+      } else {
+        MOZ_ASSERT(nonRegisterRange);
+        MOZ_ASSERT(start.previous() < nonRegisterRange->to());
+        predecessorRange = nonRegisterRange;
       }
+      AssertCorrectRangeForPosition(reg, start.previous(), predecessorRange);
+
+      // Add moves from predecessorRange to all ranges that start here.
+      do {
+        range = *iter;
+        MOZ_ASSERT(!range->hasDefinition());
+
+        if (!alloc().ensureBallast()) {
+          return false;
+        }
+
+#ifdef DEBUG
+        // If we already saw a range which covers the start of this range, it
+        // must have a different allocation.
+        for (VirtualRegister::RangeIterator prevIter(reg); *prevIter != range;
+             prevIter++) {
+          MOZ_ASSERT_IF(prevIter->covers(start),
+                        prevIter->bundle()->allocation() !=
+                            range->bundle()->allocation());
+        }
 #endif
 
-      if (!alloc().ensureBallast()) {
-        return false;
-      }
+        if (start.subpos() == CodePosition::INPUT) {
+          JitSpewIfEnabled(JitSpew_RegAlloc, "    moveInput (%s) <- (%s)",
+                           range->toString().get(),
+                           predecessorRange->toString().get());
+          if (!moveInput(ins->toInstruction(), predecessorRange, range,
+                         reg.type())) {
+            return false;
+          }
+        } else {
+          JitSpew(JitSpew_RegAlloc, "    (moveAfter)");
+          if (!moveAfter(ins->toInstruction(), predecessorRange, range,
+                         reg.type())) {
+            return false;
+          }
+        }
 
-      LiveRange* predecessorRange =
-          reg.rangeFor(start.previous(), /* preferRegister = */ true);
-      if (start.subpos() == CodePosition::INPUT) {
-        JitSpewIfEnabled(JitSpew_RegAlloc, "    moveInput (%s) <- (%s)",
-                         range->toString().get(),
-                         predecessorRange->toString().get());
-        if (!moveInput(ins->toInstruction(), predecessorRange, range,
-                       reg.type())) {
-          return false;
-        }
-      } else {
-        JitSpew(JitSpew_RegAlloc, "    (moveAfter)");
-        if (!moveAfter(ins->toInstruction(), predecessorRange, range,
-                       reg.type())) {
-          return false;
-        }
-      }
+        moveToNextRange(range);
+      } while (!iter.done() && iter->from() == start);
     }
   }
 
