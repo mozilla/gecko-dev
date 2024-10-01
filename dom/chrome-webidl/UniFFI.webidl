@@ -27,9 +27,6 @@ typedef unsigned long long UniFFIPointerId;
 // Identifies a callback interface
 typedef unsigned long UniFFICallbackInterfaceId;
 
-// Identifies a method of a callback interface
-typedef unsigned long UniFFICallbackMethodId;
-
 // Handle for a callback interface instance
 typedef unsigned long long UniFFICallbackObjectHandle;
 
@@ -59,9 +56,26 @@ dictionary UniFFIScaffoldingCallResult {
     UniFFIScaffoldingValue data;
 };
 
-// JS handler for calling a CallbackInterface method.
-// The arguments and return value are always packed into an ArrayBuffer
-callback UniFFICallbackHandler = undefined (UniFFICallbackObjectHandle objectId, UniFFICallbackMethodId methodId, ArrayBuffer aArgs);
+// JS handler for a callback interface
+//
+// These are responsible for invoking callback interface calls.  Internally, these map handles to
+// objects that implement the callback interface.
+//
+// Before the JS code returns a callback-interface-implementing object Rust, it first sends the
+// object to a UniFFICallbackHandler, which adds an entry in the map.  The handle is then what's
+// sent to Rust.
+//
+// When the Rust code wants to invoke a method, it calls into the C++ layer and passes the handle
+// along with all arguments.  The C++ layer then calls `UniFFICallbackHandler.call()` which then
+// looks up the object in the map and invokes the actual method.
+//
+// Finally, when the Rust code frees the object, it calls into the C++ layer, which then calls
+// `UniFFICallbackHandler.release()` to remove the entry in the map.
+[Exposed=Window]
+callback interface UniFFICallbackHandler {
+    UniFFIScaffoldingValue? call(UniFFICallbackObjectHandle objectHandle, unsigned long methodIndex, UniFFIScaffoldingValue... args);
+    undefined destroy(UniFFICallbackObjectHandle objectHandle);
+};
 
 // Functions to facilitate UniFFI scaffolding calls
 [ChromeOnly, Exposed=Window]

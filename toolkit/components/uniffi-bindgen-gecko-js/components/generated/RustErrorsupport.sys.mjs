@@ -429,14 +429,14 @@ class UniFFICallbackHandleMapEntry {
 }
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterI32 extends FfiConverter {
+export class FfiConverterU32 extends FfiConverter {
     static checkType(value) {
         super.checkType(value);
         if (!Number.isInteger(value)) {
             throw new UniFFITypeError(`${value} is not an integer`);
         }
-        if (value < -2147483648 || value > 2147483647) {
-            throw new UniFFITypeError(`${value} exceeds the I32 bounds`);
+        if (value < 0 || value > 4294967295) {
+            throw new UniFFITypeError(`${value} exceeds the U32 bounds`);
         }
     }
     static computeSize() {
@@ -449,10 +449,10 @@ export class FfiConverterI32 extends FfiConverter {
         return value;
     }
     static write(dataStream, value) {
-        dataStream.writeInt32(value)
+        dataStream.writeUint32(value)
     }
     static read(dataStream) {
-        return dataStream.readInt32()
+        return dataStream.readUint32()
     }
 }
 
@@ -491,13 +491,13 @@ export class FfiConverterString extends FfiConverter {
 
 
 // Export the FFIConverter object to make external types work.
-export class FfiConverterTypeLogger extends FfiConverter {
+export class FfiConverterTypeApplicationErrorReporter extends FfiConverter {
     static lower(callbackObj) {
-        return callbackHandlerLogger.storeCallbackObj(callbackObj)
+        return callbackHandlerApplicationErrorReporter.storeCallbackObj(callbackObj)
     }
 
     static lift(handleId) {
-        return callbackHandlerLogger.getCallbackObj(handleId)
+        return callbackHandlerApplicationErrorReporter.getCallbackObj(handleId)
     }
 
     static read(dataStream) {
@@ -513,103 +513,55 @@ export class FfiConverterTypeLogger extends FfiConverter {
     }
 }
 
-// Export the FFIConverter object to make external types work.
-export class FfiConverterSequencei32 extends FfiConverterArrayBuffer {
-    static read(dataStream) {
-        const len = dataStream.readInt32();
-        const arr = [];
-        for (let i = 0; i < len; i++) {
-            arr.push(FfiConverterI32.read(dataStream));
-        }
-        return arr;
-    }
-
-    static write(dataStream, value) {
-        dataStream.writeInt32(value.length);
-        value.forEach((innerValue) => {
-            FfiConverterI32.write(dataStream, innerValue);
-        })
-    }
-
-    static computeSize(value) {
-        // The size of the length
-        let size = 4;
-        for (const innerValue of value) {
-            size += FfiConverterI32.computeSize(innerValue);
-        }
-        return size;
-    }
-
-    static checkType(value) {
-        if (!Array.isArray(value)) {
-            throw new UniFFITypeError(`${value} is not an array`);
-        }
-        value.forEach((innerValue, idx) => {
-            try {
-                FfiConverterI32.checkType(innerValue);
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart(`[${idx}]`);
-                }
-                throw e;
-            }
-        })
-    }
-}
-
 
 // Define callback interface handlers, this must come after the type loop since they reference the FfiConverters defined above.
 
-const callbackHandlerLogger = new UniFFICallbackHandler(
-    "fixture_callbacks:Logger",
-    1,
+const callbackHandlerApplicationErrorReporter = new UniFFICallbackHandler(
+    "errorsupport:ApplicationErrorReporter",
+    0,
     [
         new UniFFICallbackMethodHandler(
-            "log",
+            "reportError",
             [
+                FfiConverterString,
                 FfiConverterString,
             ],
         ),
         new UniFFICallbackMethodHandler(
-            "finished",
+            "reportBreadcrumb",
             [
+                FfiConverterString,
+                FfiConverterString,
+                FfiConverterU32,
+                FfiConverterU32,
             ],
         ),
     ]
 );
 
 // Allow the shutdown-related functionality to be tested in the unit tests
-UnitTestObjs.callbackHandlerLogger = callbackHandlerLogger;
+UnitTestObjs.callbackHandlerApplicationErrorReporter = callbackHandlerApplicationErrorReporter;
 
 
 
 
 
-export function logEvenNumbers(logger,items) {
+export function setApplicationErrorReporter(errorReporter) {
 
         const liftResult = (result) => undefined;
         const liftError = null;
         const functionCall = () => {
             try {
-                FfiConverterTypeLogger.checkType(logger)
+                FfiConverterTypeApplicationErrorReporter.checkType(errorReporter)
             } catch (e) {
                 if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("logger");
-                }
-                throw e;
-            }
-            try {
-                FfiConverterSequencei32.checkType(items)
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("items");
+                    e.addItemDescriptionPart("errorReporter");
                 }
                 throw e;
             }
             return UniFFIScaffolding.callAsync(
-                63, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_log_even_numbers
-                FfiConverterTypeLogger.lower(logger),
-                FfiConverterSequencei32.lower(items),
+                0, // errorsupport:uniffi_error_support_fn_func_set_application_error_reporter
+                FfiConverterTypeApplicationErrorReporter.lower(errorReporter),
             )
         }
         try {
@@ -619,31 +571,13 @@ export function logEvenNumbers(logger,items) {
         }
 }
 
-export function logEvenNumbersMainThread(logger,items) {
+export function unsetApplicationErrorReporter() {
 
         const liftResult = (result) => undefined;
         const liftError = null;
         const functionCall = () => {
-            try {
-                FfiConverterTypeLogger.checkType(logger)
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("logger");
-                }
-                throw e;
-            }
-            try {
-                FfiConverterSequencei32.checkType(items)
-            } catch (e) {
-                if (e instanceof UniFFITypeError) {
-                    e.addItemDescriptionPart("items");
-                }
-                throw e;
-            }
             return UniFFIScaffolding.callAsync(
-                64, // fixture_callbacks:uniffi_uniffi_fixture_callbacks_fn_func_log_even_numbers_main_thread
-                FfiConverterTypeLogger.lower(logger),
-                FfiConverterSequencei32.lower(items),
+                1, // errorsupport:uniffi_error_support_fn_func_unset_application_error_reporter
             )
         }
         try {
