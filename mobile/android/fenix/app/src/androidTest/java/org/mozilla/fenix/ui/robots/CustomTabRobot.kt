@@ -27,6 +27,7 @@ import org.mozilla.fenix.helpers.TestAssetHelper.waitingTime
 import org.mozilla.fenix.helpers.TestHelper.appName
 import org.mozilla.fenix.helpers.TestHelper.mDevice
 import org.mozilla.fenix.helpers.TestHelper.packageName
+import org.mozilla.fenix.helpers.TestHelper.waitForAppWindowToBeUpdated
 import org.mozilla.fenix.helpers.TestHelper.waitForObjects
 import org.mozilla.fenix.helpers.click
 
@@ -124,7 +125,9 @@ class CustomTabRobot {
         mDevice.waitForIdle(waitingTime)
         Log.i(TAG, "fillAndSubmitLoginCredentials: Waited for device to be idle for $waitingTime ms")
         setPageObjectText(itemWithResId("username"), userName)
+        waitForAppWindowToBeUpdated()
         setPageObjectText(itemWithResId("password"), password)
+        waitForAppWindowToBeUpdated()
         clickPageObject(itemWithResId("submit"))
         mDevice.waitForObjects(
             mDevice.findObject(UiSelector().resourceId("$packageName:id/save_confirm")),
