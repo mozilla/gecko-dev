@@ -2881,6 +2881,12 @@
   value: false
   mirror: always
 
+# A pref that is used to slow down database initialization for testing purposes.
+- name: dom.indexedDB.databaseInitialization.pauseOnIOThreadMs
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 # How innerWidth / innerHeight return rounded or fractional sizes.
 #
 #   0 or others: Do not round at all.
