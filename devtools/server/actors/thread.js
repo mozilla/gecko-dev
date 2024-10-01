@@ -1789,19 +1789,13 @@ class ThreadActor extends Actor {
       return this.threadLifetimePool.objectActors.get(value).form();
     }
 
-    const actor = new PauseScopedObjectActor(
-      value,
-      {
-        thread: this,
-        getGripDepth: () => this._gripDepth,
-        incrementGripDepth: () => this._gripDepth++,
-        decrementGripDepth: () => this._gripDepth--,
-        createValueGrip: v => this.createValueGrip(v),
-        isThreadLifetimePool: () =>
-          actor.getParent() !== this.threadLifetimePool,
-      },
-      this.conn
-    );
+    const actor = new PauseScopedObjectActor(this, value, {
+      getGripDepth: () => this._gripDepth,
+      incrementGripDepth: () => this._gripDepth++,
+      decrementGripDepth: () => this._gripDepth--,
+      createValueGrip: v => this.createValueGrip(v),
+      isThreadLifetimePool: () => actor.getParent() !== this.threadLifetimePool,
+    });
     pool.manage(actor);
     pool.objectActors.set(value, actor);
     return actor.form();

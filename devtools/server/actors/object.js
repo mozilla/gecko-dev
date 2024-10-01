@@ -83,7 +83,9 @@ class ObjectActor extends Actor {
   /**
    * Creates an actor for the specified object.
    *
-   * @param obj Debugger.Object
+   * @param ThreadActor thread
+   *        The current thread actor from where this object is running from.
+   * @param Debugger.Object obj
    *        The debuggee object.
    * @param Object
    *        A collection of abstract methods that are implemented by the caller.
@@ -97,22 +99,20 @@ class ObjectActor extends Actor {
    *              Increment the actor's grip depth
    *          - decrementGripDepth
    *              Decrement the actor's grip depth
-   * @param DevToolsServerConnection conn
    */
   constructor(
+    thread,
     obj,
     {
-      thread,
       createValueGrip: createValueGripHook,
       getGripDepth,
       incrementGripDepth,
       decrementGripDepth,
       customFormatterObjectTagDepth,
       customFormatterConfigDbgObj,
-    },
-    conn
+    }
   ) {
-    super(conn, objectSpec);
+    super(thread.conn, objectSpec);
 
     assert(
       !obj.optimizedOut,

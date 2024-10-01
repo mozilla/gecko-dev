@@ -545,16 +545,15 @@ function createObjectGrip(
 ) {
   let gripDepth = depth;
   const actor = new ObjectActor(
+    targetActor.threadActor,
     object,
     {
       ...objectActorAttributes,
-      thread: targetActor.threadActor,
       getGripDepth: () => gripDepth,
       incrementGripDepth: () => gripDepth++,
       decrementGripDepth: () => gripDepth--,
       createValueGrip: v => createValueGripForTarget(targetActor, v, gripDepth),
-    },
-    targetActor.conn
+    }
   );
   pool.manage(actor);
 

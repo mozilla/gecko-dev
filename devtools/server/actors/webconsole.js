@@ -388,17 +388,12 @@ class WebConsoleActor extends Actor {
    *        The object grip.
    */
   objectGrip(object, pool) {
-    const actor = new ObjectActor(
-      object,
-      {
-        thread: this.parentActor.threadActor,
-        getGripDepth: () => this._gripDepth,
-        incrementGripDepth: () => this._gripDepth++,
-        decrementGripDepth: () => this._gripDepth--,
-        createValueGrip: v => this.createValueGrip(v),
-      },
-      this.conn
-    );
+    const actor = new ObjectActor(this.parentActor.threadActor, object, {
+      getGripDepth: () => this._gripDepth,
+      incrementGripDepth: () => this._gripDepth++,
+      decrementGripDepth: () => this._gripDepth--,
+      createValueGrip: v => this.createValueGrip(v),
+    });
     pool.manage(actor);
     return actor.form();
   }
