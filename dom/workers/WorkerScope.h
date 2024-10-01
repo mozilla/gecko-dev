@@ -24,7 +24,6 @@
 #include "mozilla/dom/SafeRefPtr.h"
 #include "mozilla/dom/TrustedTypePolicyFactory.h"
 #include "mozilla/dom/WorkerPrivate.h"
-#include "mozilla/dom/TimeoutManager.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIGlobalObject.h"
@@ -104,10 +103,6 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 
   WorkerGlobalScopeBase(WorkerPrivate* aWorkerPrivate,
                         UniquePtr<ClientSource> aClientSource);
-
-  mozilla::dom::TimeoutManager* GetTimeoutManager() override final {
-    return mTimeoutManager.get();
-  }
 
   virtual bool WrapGlobalObject(JSContext* aCx,
                                 JS::MutableHandle<JSObject*> aReflector) = 0;
@@ -200,7 +195,6 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
 #ifdef DEBUG
   PRThread* mWorkerThreadUsedOnlyForAssert;
 #endif
-  mozilla::UniquePtr<mozilla::dom::TimeoutManager> mTimeoutManager;
 };
 
 namespace workerinternals {

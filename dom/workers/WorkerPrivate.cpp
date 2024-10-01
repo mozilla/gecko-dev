@@ -5424,18 +5424,8 @@ int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,
   auto data = mWorkerThreadAccessible.Access();
   MOZ_ASSERT(aHandler);
 
-  if (StaticPrefs::dom_workers_throttling_enabled() && XRE_IsContentProcess()) {
+  if (StaticPrefs::dom_workers_throttling_enabled()) {
     // todo(aiunusov): change the logic of setTimeout accordingly
-
-    WorkerGlobalScope* globalScope = GlobalScope();
-    auto* timeoutManager = globalScope->GetTimeoutManager();
-    int32_t timerId = -1;
-    nsresult rv = timeoutManager->SetTimeout(aHandler, aTimeout, aIsInterval,
-                                             aReason, &timerId);
-    if (NS_FAILED(rv)) {
-      aRv.Throw(NS_ERROR_FAILURE);
-    }
-    return timerId;
   }
 
   // Reasons that doesn't support cancellation will get -1 as their ids.
@@ -5518,12 +5508,6 @@ int32_t WorkerPrivate::SetTimeout(JSContext* aCx, TimeoutHandler* aHandler,
 void WorkerPrivate::ClearTimeout(int32_t aId, Timeout::Reason aReason) {
   MOZ_ASSERT(aReason == Timeout::Reason::eTimeoutOrInterval,
              "This timeout reason doesn't support cancellation.");
-  if (StaticPrefs::dom_workers_throttling_enabled() && XRE_IsContentProcess()) {
-    WorkerGlobalScope* globalScope = GlobalScope();
-    auto* timeoutManager = globalScope->GetTimeoutManager();
-    timeoutManager->ClearTimeout(aId, aReason);
-    return;
-  }
 
   auto data = mWorkerThreadAccessible.Access();
 
