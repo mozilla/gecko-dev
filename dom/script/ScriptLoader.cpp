@@ -2929,10 +2929,13 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
 
   if (aRequest->IsStencil()) {
 #ifdef DEBUG
-    bool equals;
-    (void)aRequest->mLoadedScript->BaseURL()->Equals(aRequest->mBaseURL,
-                                                     &equals);
-    MOZ_ASSERT(equals);
+    // A request with cache might not have mBaseURL.
+    if (aRequest->mBaseURL) {
+      bool equals;
+      (void)aRequest->mLoadedScript->BaseURL()->Equals(aRequest->mBaseURL,
+                                                       &equals);
+      MOZ_ASSERT(equals);
+    }
 #endif
   } else {
     aRequest->mLoadedScript->SetBaseURL(aRequest->mBaseURL);
