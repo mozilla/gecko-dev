@@ -41,27 +41,29 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
       "limit which at time of writing was 80 bytes.");
 
   // Try recording before category's enabled.
-  Telemetry::RecordEvent(Telemetry::EventID::TelemetryTest_Test1_Object1,
-                         Nothing(), Nothing());
+  TelemetryEvent::RecordEventNative(
+      Telemetry::EventID::TelemetryTest_Test1_Object1, Nothing(), Nothing());
 
   // Ensure "telemetry.test" is enabled
   Telemetry::SetEventRecordingEnabled(category, true);
 
   // Try recording after it's enabled.
-  Telemetry::RecordEvent(Telemetry::EventID::TelemetryTest_Test2_Object1,
-                         Nothing(), Nothing());
+  TelemetryEvent::RecordEventNative(
+      Telemetry::EventID::TelemetryTest_Test2_Object1, Nothing(), Nothing());
 
   // Try recording with normal value, extra
   CopyableTArray<EventExtraEntry> extra(
       {EventExtraEntry{extraKey, extraValue}});
-  Telemetry::RecordEvent(Telemetry::EventID::TelemetryTest_Test1_Object2,
-                         mozilla::Some(value), mozilla::Some(extra));
+  TelemetryEvent::RecordEventNative(
+      Telemetry::EventID::TelemetryTest_Test1_Object2, mozilla::Some(value),
+      mozilla::Some(extra));
 
   // Try recording with too-long value, extra
   CopyableTArray<EventExtraEntry> longish(
       {EventExtraEntry{extraKey, extraValueLong}});
-  Telemetry::RecordEvent(Telemetry::EventID::TelemetryTest_Test2_Object2,
-                         mozilla::Some(valueLong), mozilla::Some(longish));
+  TelemetryEvent::RecordEventNative(
+      Telemetry::EventID::TelemetryTest_Test2_Object2, mozilla::Some(valueLong),
+      mozilla::Some(longish));
 
   JS::Rooted<JS::Value> eventsSnapshot(cx.GetJSContext());
   GetEventSnapshot(cx.GetJSContext(), &eventsSnapshot);

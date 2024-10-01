@@ -53,9 +53,9 @@ void GleanEvent::Record(
   // here as well as in EventMetric::Record.
   auto id = EventIdForMetric(mEvent.mId);
   if (id) {
-    Telemetry::RecordEvent(id.extract(),
-                           telValue.IsVoid() ? Nothing() : Some(telValue),
-                           telExtras.IsEmpty() ? Nothing() : Some(telExtras));
+    TelemetryEvent::RecordEventNative(
+        id.extract(), telValue.IsVoid() ? Nothing() : Some(telValue),
+        telExtras.IsEmpty() ? Nothing() : Some(telExtras));
   }
 
   // Calling the implementation directly, because we have a `string->string`

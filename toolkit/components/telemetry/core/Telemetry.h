@@ -550,18 +550,6 @@ class MOZ_RAII AutoScalarTimer {
 };
 
 /**
- * Records an event. See the Event documentation for more information:
- * https://firefox-source-docs.mozilla.org/toolkit/components/telemetry/telemetry/collection/events.html
- *
- * @param aId The event enum id.
- * @param aValue Optional. The event value.
- * @param aExtra Optional. The event's extra key/value pairs.
- */
-void RecordEvent(mozilla::Telemetry::EventID aId,
-                 const mozilla::Maybe<nsCString>& aValue,
-                 const mozilla::Maybe<CopyableTArray<EventExtraEntry>>& aExtra);
-
-/**
  * Enables recording of events in a category.
  * Events default to recording disabled.
  * This toggles recording for all events in the specified category.
