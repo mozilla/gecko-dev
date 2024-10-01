@@ -16023,6 +16023,10 @@ nsresult OpenDatabaseOp::EnsureDatabaseActorIsAlive() {
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
   }
 
+  if (mDatabase->IsInvalidated()) {
+    Unused << mDatabase->SendInvalidate();
+  }
+
   return NS_OK;
 }
 

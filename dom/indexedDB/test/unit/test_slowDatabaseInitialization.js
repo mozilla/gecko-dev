@@ -99,20 +99,17 @@ async function testExistingDatabase() {
 
   info("Waiting for database to finish opening");
 
-  // XXX This should throw!
-  const database = await openPromise;
+  try {
+    await openPromise;
+    ok(false, "Should have thrown");
+  } catch (e) {
+    ok(true, "Should have thrown");
+    Assert.strictEqual(e.name, "AbortError", "Threw right result code");
+  }
 
   info("Waiting for origin to finish clearing");
 
   await clearPromise;
-
-  info("Reading from the database");
-
-  const request = database
-    .transaction(objectStoreName)
-    .objectStore(objectStoreName)
-    .count();
-  await IndexedDBUtils.requestFinished(request);
 }
 
 /* exported testSteps */
@@ -131,7 +128,6 @@ async function testSteps() {
       pref_set: [
         ["dom.indexedDB.databaseInitialization.pauseOnIOThreadMs", 2000],
       ],
-      skip_if: () => true,
     },
     testExistingDatabase
   );

@@ -909,8 +909,6 @@ void BackgroundFactoryRequestChild::HandleResponse(
 
       database = databaseActor->GetDOMObject();
       MOZ_ASSERT(database);
-
-      MOZ_ASSERT(!database->IsClosed());
     }
 
     return database;
@@ -1030,7 +1028,8 @@ BackgroundDatabaseChild::BackgroundDatabaseChild(
     const DatabaseSpec& aSpec, BackgroundFactoryRequestChild* aOpenRequestActor)
     : mSpec(MakeUnique<DatabaseSpec>(aSpec)),
       mOpenRequestActor(aOpenRequestActor),
-      mDatabase(nullptr) {
+      mDatabase(nullptr),
+      mPendingInvalidate(false) {
   // Can't assert owning thread here because IPDL has not yet set our manager!
   MOZ_ASSERT(aOpenRequestActor);
 
@@ -1101,6 +1100,11 @@ bool BackgroundDatabaseChild::EnsureDOMObject() {
   mTemporaryStrongDatabase->AssertIsOnOwningThread();
 
   mDatabase = mTemporaryStrongDatabase;
+
+  if (mPendingInvalidate) {
+    mDatabase->Invalidate();
+    mPendingInvalidate = false;
+  }
 
   mOpenRequestActor->SetDatabaseActor(this);
 
@@ -1299,6 +1303,8 @@ mozilla::ipc::IPCResult BackgroundDatabaseChild::RecvInvalidate() {
 
   if (mDatabase) {
     mDatabase->Invalidate();
+  } else {
+    mPendingInvalidate = true;
   }
 
   return IPC_OK();

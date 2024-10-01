@@ -208,6 +208,7 @@ class BackgroundDatabaseChild final : public PBackgroundIDBDatabaseChild {
   RefPtr<IDBDatabase> mTemporaryStrongDatabase;
   BackgroundFactoryRequestChild* mOpenRequestActor;
   IDBDatabase* mDatabase;
+  bool mPendingInvalidate;
 
  public:
   NS_INLINE_DECL_REFCOUNTING(BackgroundDatabaseChild, override)
