@@ -26,23 +26,23 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.helpers.FenixRobolectricTestRunner
 import org.mozilla.fenix.utils.Settings
 
 @RunWith(FenixRobolectricTestRunner::class)
 class DynamicDownloadDialogBehaviorTest {
-    private val downloadDialog: View = mockk()
+    private val downloadDialog: View = mockk {
+        every { translationY = any() } just Runs
+    }
     private val settings: Settings = mockk()
-    private val appStore: AppStore = mockk()
     private lateinit var behavior: DynamicDownloadDialogBehavior<View>
 
     @Before
     fun setup() {
         every { downloadDialog.context } returns testContext
         every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
-        behavior = spyk(DynamicDownloadDialogBehavior(downloadDialog, settings, appStore))
+        behavior = spyk(DynamicDownloadDialogBehavior(downloadDialog, settings))
     }
 
     @Test
@@ -264,9 +264,13 @@ class DynamicDownloadDialogBehaviorTest {
     @Test
     fun `GIVEN toolbar at top WHEN the layout is updated THEN the anchor is correctly inferred`() {
         every { settings.toolbarPosition } returns ToolbarPosition.TOP
-        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
-        val anchor = View(testContext).apply {
-            id = R.id.toolbar_navbar_container
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings)
+        val anchor = spyk(
+            View(testContext).apply {
+                id = R.id.toolbar_navbar_container
+            },
+        ) {
+            every { height } returns 3
         }
         val rootLayout = CoordinatorLayout(testContext).apply {
             addView(View(testContext))
@@ -280,12 +284,13 @@ class DynamicDownloadDialogBehaviorTest {
 
         assertFalse(result)
         assertSame(anchor, behavior.anchor)
+        verify { downloadDialog.translationY = -3f }
     }
 
     @Test
     fun `GIVEN toolbar at top WHEN the layout is updated THEN a bottom anchor might be missing`() {
         every { settings.toolbarPosition } returns ToolbarPosition.TOP
-        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings)
         val anchor = View(testContext).apply {
             id = R.id.toolbar
         }
@@ -306,9 +311,13 @@ class DynamicDownloadDialogBehaviorTest {
     @Test
     fun `GIVEN toolbar at bottom WHEN the layout is updated THEN the anchor is correctly inferred`() {
         every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
-        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
-        val anchor = View(testContext).apply {
-            id = listOf(R.id.toolbar_navbar_container, R.id.toolbar).random()
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings)
+        val anchor = spyk(
+            View(testContext).apply {
+                id = listOf(R.id.toolbar_navbar_container, R.id.toolbar).random()
+            },
+        ) {
+            every { height } returns 123
         }
         val rootLayout = CoordinatorLayout(testContext).apply {
             addView(View(testContext))
@@ -322,14 +331,19 @@ class DynamicDownloadDialogBehaviorTest {
 
         assertFalse(result)
         assertSame(anchor, behavior.anchor)
+        verify { downloadDialog.translationY = -123f }
     }
 
     @Test
     fun `GIVEN toolbar at top WHEN the dynamic download dialog is expanded THEN the anchor is correctly inferred`() {
         every { settings.toolbarPosition } returns ToolbarPosition.TOP
-        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
-        val anchor = View(testContext).apply {
-            id = R.id.toolbar_navbar_container
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings)
+        val anchor = spyk(
+            View(testContext).apply {
+                id = R.id.toolbar_navbar_container
+            },
+        ) {
+            every { height } returns 23
         }
         val rootLayout = CoordinatorLayout(testContext).apply {
             addView(View(testContext))
@@ -350,7 +364,7 @@ class DynamicDownloadDialogBehaviorTest {
     @Test
     fun `GIVEN toolbar at top WHEN the dynamic download dialog is expanded THEN a bottom anchor might be missing`() {
         every { settings.toolbarPosition } returns ToolbarPosition.TOP
-        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings)
         val anchor = View(testContext).apply {
             id = R.id.toolbar
         }
@@ -373,7 +387,7 @@ class DynamicDownloadDialogBehaviorTest {
     @Test
     fun `GIVEN toolbar at bottom WHEN the dynamic download dialog is expanded THEN the anchor is correctly inferred`() {
         every { settings.toolbarPosition } returns ToolbarPosition.BOTTOM
-        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings, appStore)
+        behavior = DynamicDownloadDialogBehavior(downloadDialog, settings)
         val anchor = View(testContext).apply {
             id = listOf(R.id.toolbar_navbar_container, R.id.toolbar).random()
         }

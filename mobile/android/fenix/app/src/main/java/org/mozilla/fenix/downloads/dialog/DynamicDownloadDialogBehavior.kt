@@ -12,16 +12,9 @@ import androidx.annotation.VisibleForTesting
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.children
-import androidx.lifecycle.findViewTreeLifecycleOwner
-import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.launch
 import mozilla.components.concept.engine.EngineView
-import mozilla.components.lib.state.ext.flow
 import mozilla.components.support.ktx.android.view.findViewInHierarchy
 import org.mozilla.fenix.R
-import org.mozilla.fenix.components.AppStore
 import org.mozilla.fenix.components.toolbar.ToolbarPosition
 import org.mozilla.fenix.utils.Settings
 import kotlin.math.max
@@ -48,7 +41,6 @@ private val TOP_TOOLBAR_ANCHOR_IDS = listOf(
 class DynamicDownloadDialogBehavior<V : View>(
     private val dynamicDownload: V,
     settings: Settings,
-    appStore: AppStore,
 ) : CoordinatorLayout.Behavior<V>(dynamicDownload.context, null) {
 
     @VisibleForTesting(otherwise = VisibleForTesting.PRIVATE)
@@ -77,17 +69,6 @@ class DynamicDownloadDialogBehavior<V : View>(
     private val possibleAnchors = when (settings.toolbarPosition) {
         ToolbarPosition.BOTTOM -> BOTTOM_TOOLBAR_ANCHOR_IDS
         ToolbarPosition.TOP -> TOP_TOOLBAR_ANCHOR_IDS
-    }
-
-    init {
-        MainScope().launch {
-            appStore.flow(dynamicDownload.findViewTreeLifecycleOwner())
-                .map { it.orientation }
-                .distinctUntilChanged()
-                .collect {
-                    dynamicDownload.translationY = -anchorHeight.toFloat()
-                }
-        }
     }
 
     /**
@@ -179,7 +160,13 @@ class DynamicDownloadDialogBehavior<V : View>(
         dependency: View,
     ): Boolean {
         engineView = parent.findViewInHierarchy { it is EngineView } as? EngineView
-        anchor = findAnchorInParent(parent)
+        val newAnchor = findAnchorInParent(parent)
+        // The same valid anchor can report height 0 or the actual measured height
+        // so checking for anchor equality is not enough, we need to check for height differences.
+        if (anchorHeight != newAnchor?.height) {
+            anchor = newAnchor
+            dynamicDownload.translationY = -anchorHeight.toFloat()
+        }
         return super.layoutDependsOn(parent, child, dependency)
     }
 
