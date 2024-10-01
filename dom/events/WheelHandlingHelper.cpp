@@ -118,8 +118,9 @@ WheelHandlingUtils::GetDisregardedWheelScrollDirection(const nsIFrame* aFrame) {
 /* mozilla::WheelTransaction                                      */
 /******************************************************************/
 
-AutoWeakFrame WheelTransaction::sScrollTargetFrame(nullptr);
-AutoWeakFrame WheelTransaction::sEventTargetFrame(nullptr);
+MOZ_CONSTINIT AutoWeakFrame WheelTransaction::sScrollTargetFrame;
+MOZ_CONSTINIT AutoWeakFrame WheelTransaction::sEventTargetFrame;
+
 bool WheelTransaction::sHandledByApz(false);
 uint32_t WheelTransaction::sTime = 0;
 uint32_t WheelTransaction::sMouseMoved = 0;
@@ -473,9 +474,10 @@ DeltaValues WheelTransaction::OverrideSystemScrollSpeed(
 /* mozilla::ScrollbarsForWheel                                    */
 /******************************************************************/
 
-AutoWeakFrame ScrollbarsForWheel::sActiveOwner = nullptr;
-AutoWeakFrame ScrollbarsForWheel::sActivatedScrollTargets[kNumberOfTargets] = {
-    nullptr, nullptr, nullptr, nullptr};
+MOZ_CONSTINIT AutoWeakFrame ScrollbarsForWheel::sActiveOwner;
+MOZ_CONSTINIT AutoWeakFrame
+    ScrollbarsForWheel::sActivatedScrollTargets[kNumberOfTargets] = {
+        AutoWeakFrame(), AutoWeakFrame(), AutoWeakFrame(), AutoWeakFrame()};
 
 bool ScrollbarsForWheel::sHadWheelStart = false;
 bool ScrollbarsForWheel::sOwnWheelTransaction = false;

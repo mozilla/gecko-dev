@@ -5627,7 +5627,7 @@ MOZ_MAKE_ENUM_CLASS_BITWISE_OPERATORS(nsIFrame::ReflowChildFlags)
 class WeakFrame;
 class MOZ_NONHEAP_CLASS AutoWeakFrame {
  public:
-  explicit AutoWeakFrame() : mPrev(nullptr), mFrame(nullptr) {}
+  explicit constexpr AutoWeakFrame() : mPrev(nullptr), mFrame(nullptr) {}
 
   AutoWeakFrame(const AutoWeakFrame& aOther) : mPrev(nullptr), mFrame(nullptr) {
     Init(aOther.GetFrame());
