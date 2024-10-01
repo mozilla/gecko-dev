@@ -107,7 +107,7 @@ public class GeckoServiceChildProcess extends Service {
         sOwnerProcessId = mainProcessId;
       }
 
-      int[] fds = new int[pfds.length];
+      final int[] fds = new int[pfds.length];
       for (int i = 0; i < pfds.length; ++i) {
         fds[i] = pfds[i].detachFd();
       }
