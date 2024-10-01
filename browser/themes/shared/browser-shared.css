@@ -57,12 +57,6 @@ body {
   --browser-stack-z-index-dialog-stack: 2;
   --browser-stack-z-index-rdm-toolbar: 3;
 
-  /* z-indices that fight in the general browser / toolbox area */
-  --browser-area-z-index-sidebar: 1;
-  --browser-area-z-index-tabbox: 2;
-  --browser-area-z-index-sidebar-splitter: 3;
-  --browser-area-z-index-toolbox: 4;
-
   --toolbarbutton-border-radius: 4px;
   --identity-box-margin-inline: 4px;
   --urlbar-min-height: max(32px, 1.4em);
@@ -122,7 +116,6 @@ body {
 
 #navigator-toolbox {
   appearance: none;
-  z-index: var(--browser-area-z-index-toolbox);
 
   background-color: var(--toolbox-non-lwt-bgcolor);
   color: var(--toolbox-non-lwt-textcolor);
