@@ -301,6 +301,8 @@ class SheetLoadData final
     mExpirationTime.SetMinimum(aExpirationTime);
   }
 
+  nsLiteralString InitiatorTypeString();
+
  private:
   const SheetLoadData& RootLoadData() const {
     const auto* top = this;

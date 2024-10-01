@@ -1540,9 +1540,9 @@ nsresult Loader::LoadSheetAsyncInternal(SheetLoadData& aLoadData,
     // Set the initiator type
     if (nsCOMPtr<nsITimedChannel> timedChannel =
             do_QueryInterface(httpChannel)) {
-      if (aLoadData.mParentData) {
-        timedChannel->SetInitiatorType(u"css"_ns);
+      timedChannel->SetInitiatorType(aLoadData.InitiatorTypeString());
 
+      if (aLoadData.mParentData) {
         // This is a child sheet load.
         //
         // The resource timing of the sub-resources that a document loads
@@ -1573,11 +1573,6 @@ nsresult Loader::LoadSheetAsyncInternal(SheetLoadData& aLoadData,
           // report the resource.
           timedChannel->SetReportResourceTiming(false);
         }
-
-      } else if (aEarlyHintPreloaderId) {
-        timedChannel->SetInitiatorType(u"early-hints"_ns);
-      } else {
-        timedChannel->SetInitiatorType(u"link"_ns);
       }
     }
   }
@@ -1914,6 +1909,22 @@ Result<Loader::LoadSheetResult, nsresult> Loader::LoadInlineStyle(
   }
 
   return LoadSheetResult{completed, isAlternate, matched};
+}
+
+nsLiteralString SheetLoadData::InitiatorTypeString() {
+  MOZ_ASSERT(mURI, "Inline sheet doesn't have the initiator type string");
+
+  if (mPreloadKind == StylePreloadKind::FromEarlyHintsHeader) {
+    return u"early-hints"_ns;
+  }
+
+  if (mParentData) {
+    // @import rule.
+    return u"css"_ns;
+  }
+
+  // <link>.
+  return u"link"_ns;
 }
 
 Result<Loader::LoadSheetResult, nsresult> Loader::LoadStyleLink(
