@@ -471,7 +471,9 @@ class WidgetDragEvent : public WidgetMouseEvent {
   }
 
   bool CanConvertToInputData() const {
-    return mMessage == eDragStart || mMessage == eDragEnd;
+    return mMessage == eDragStart || mMessage == eDragEnd ||
+           mMessage == eDragEnter || mMessage == eDragOver ||
+           mMessage == eDragExit || mMessage == eDrop;
   }
 
   /**

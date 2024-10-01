@@ -25,6 +25,7 @@ using namespace dom;
 
 template WidgetMouseEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const;
 template WidgetPointerEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const;
+template WidgetDragEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const;
 
 InputData::~InputData() = default;
 
@@ -310,6 +311,18 @@ MouseInput::MouseInput(const WidgetMouseEventBase& aMouseEvent)
     case eDragEnd:
       mType = MOUSE_DRAG_END;
       break;
+    case eDragEnter:
+      mType = MOUSE_DRAG_ENTER;
+      break;
+    case eDragOver:
+      mType = MOUSE_DRAG_OVER;
+      break;
+    case eDragExit:
+      mType = MOUSE_DRAG_EXIT;
+      break;
+    case eDrop:
+      mType = MOUSE_DROP;
+      break;
     case eMouseEnterIntoWidget:
       mType = MOUSE_WIDGET_ENTER;
       break;
@@ -361,10 +374,13 @@ WidgetMouseOrPointerEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
       std::is_same<WidgetMouseOrPointerEvent, WidgetPointerEvent>::value;
   const DebugOnly<bool> isMouseEvent =
       std::is_same<WidgetMouseOrPointerEvent, WidgetMouseEvent>::value;
+  const DebugOnly<bool> isDragEvent =
+      std::is_same<WidgetMouseOrPointerEvent, WidgetDragEvent>::value;
   MOZ_ASSERT(!IsPointerEventType() || isPointerEvent,
              "Please use ToWidgetEvent<WidgetPointerEvent>() for the instance");
-  MOZ_ASSERT(IsPointerEventType() || isMouseEvent,
-             "Please use ToWidgetEvent<WidgetMouseEvent>() for the instance");
+  MOZ_ASSERT(IsPointerEventType() || isMouseEvent || isDragEvent,
+             "Please use ToWidgetEvent<WidgetMouseEvent>() or "
+             "ToWidgetEvent<WidgetDragEvent>() for the instance");
 
   EventMessage msg = eVoidEvent;
   uint32_t clickCount = 0;
@@ -386,6 +402,18 @@ WidgetMouseOrPointerEvent MouseInput::ToWidgetEvent(nsIWidget* aWidget) const {
       break;
     case MOUSE_DRAG_END:
       msg = eDragEnd;
+      break;
+    case MOUSE_DRAG_ENTER:
+      msg = eDragEnter;
+      break;
+    case MOUSE_DRAG_OVER:
+      msg = eDragOver;
+      break;
+    case MOUSE_DRAG_EXIT:
+      msg = eDragExit;
+      break;
+    case MOUSE_DROP:
+      msg = eDrop;
       break;
     case MOUSE_WIDGET_ENTER:
       msg = eMouseEnterIntoWidget;
