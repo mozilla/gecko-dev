@@ -16,21 +16,11 @@ const { TestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TestUtils.sys.mjs"
 );
 
-/* exported testSteps */
-async function testSteps() {
-  const pauseOnIOThreadMS = 2 * 1000;
-
+async function testNewDatabase() {
   const principal = PrincipalUtils.createPrincipal("https://example.com");
   const name = "test_slowStorageInitialization.js";
 
   info("Testing origin clearing requested after starting database work");
-
-  info("Setting pref");
-
-  Services.prefs.setIntPref(
-    "dom.indexedDB.databaseInitialization.pauseOnIOThreadMs",
-    pauseOnIOThreadMS
-  );
 
   info("Starting database opening");
 
@@ -65,8 +55,16 @@ async function testSteps() {
   info("Waiting for origin to finish clearing");
 
   await clearPromise;
+}
 
-  Services.prefs.clearUserPref(
-    "dom.indexedDB.databaseInitialization.pauseOnIOThreadMs"
+/* exported testSteps */
+async function testSteps() {
+  add_task(
+    {
+      pref_set: [
+        ["dom.indexedDB.databaseInitialization.pauseOnIOThreadMs", 2000],
+      ],
+    },
+    testNewDatabase
   );
 }
