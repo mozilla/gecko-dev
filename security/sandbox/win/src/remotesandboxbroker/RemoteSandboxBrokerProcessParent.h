@@ -28,6 +28,15 @@ class RemoteSandboxBrokerProcessParent final
 
   using mozilla::ipc::GeckoChildProcessHost::GetChildProcessHandle;
 
+  // GeckoChildProcessHost does not directly provide `AddHandleToShare` as
+  // handles are expected to be passed using `GeckoArgs`. However when
+  // `RemoteSandboxBroker` is being used, we have already set up the argument
+  // list, so allow adding those handles directly to the broker's launch
+  // options.
+  void AddHandleToShare(HANDLE aHandle) {
+    mLaunchOptions->handles_to_inherit.push_back(aHandle);
+  }
+
  private:
   ~RemoteSandboxBrokerProcessParent();
 

@@ -47,33 +47,28 @@ ProcessChild::ProcessChild(ProcessId aParentPid, const nsID& aMessageChannelId)
 }
 
 /* static */
-void ProcessChild::AddPlatformBuildID(std::vector<std::string>& aExtraArgs) {
+void ProcessChild::AddPlatformBuildID(geckoargs::ChildProcessArgs& aExtraArgs) {
   nsCString parentBuildID(mozilla::PlatformBuildID());
   geckoargs::sParentBuildID.Put(parentBuildID.get(), aExtraArgs);
 }
 
 /* static */
 bool ProcessChild::InitPrefs(int aArgc, char* aArgv[]) {
-  Maybe<uint64_t> prefsHandle = Some(0);
-  Maybe<uint64_t> prefMapHandle = Some(0);
+  Maybe<UniqueFileHandle> prefsHandle =
+      geckoargs::sPrefsHandle.Get(aArgc, aArgv);
+  Maybe<UniqueFileHandle> prefMapHandle =
+      geckoargs::sPrefMapHandle.Get(aArgc, aArgv);
   Maybe<uint64_t> prefsLen = geckoargs::sPrefsLen.Get(aArgc, aArgv);
   Maybe<uint64_t> prefMapSize = geckoargs::sPrefMapSize.Get(aArgc, aArgv);
 
-  if (prefsLen.isNothing() || prefMapSize.isNothing()) {
+  if (prefsLen.isNothing() || prefMapSize.isNothing() ||
+      prefsHandle.isNothing() || prefMapHandle.isNothing()) {
     return false;
   }
-
-#ifdef XP_WIN
-  prefsHandle = geckoargs::sPrefsHandle.Get(aArgc, aArgv);
-  prefMapHandle = geckoargs::sPrefMapHandle.Get(aArgc, aArgv);
-
-  if (prefsHandle.isNothing() || prefMapHandle.isNothing()) {
-    return false;
-  }
-#endif
 
   SharedPreferenceDeserializer deserializer;
-  return deserializer.DeserializeFromSharedMemory(*prefsHandle, *prefMapHandle,
+  return deserializer.DeserializeFromSharedMemory(std::move(*prefsHandle),
+                                                  std::move(*prefMapHandle),
                                                   *prefsLen, *prefMapSize);
 }
 

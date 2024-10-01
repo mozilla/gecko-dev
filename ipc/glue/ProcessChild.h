@@ -36,7 +36,7 @@ class ProcessChild : public ChildProcess {
 
   virtual bool Init(int aArgc, char* aArgv[]) = 0;
 
-  static void AddPlatformBuildID(std::vector<std::string>& aExtraArgs);
+  static void AddPlatformBuildID(geckoargs::ChildProcessArgs& aExtraArgs);
 
   static bool InitPrefs(int aArgc, char* aArgv[]);
 
