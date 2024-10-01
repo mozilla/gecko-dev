@@ -1789,7 +1789,6 @@ class ThreadActor extends Actor {
 
           return createValueGrip(v, this.threadLifetimePool, this.objectGrip);
         },
-        promote: () => this.threadObjectGrip(actor),
         isThreadLifetimePool: () =>
           actor.getParent() !== this.threadLifetimePool,
       },
@@ -1812,17 +1811,6 @@ class ThreadActor extends Actor {
     }
 
     return this.objectGrip(value, this._pausePool);
-  }
-
-  /**
-   * Extend the lifetime of the provided object actor to thread lifetime.
-   *
-   * @param actor object
-   *        The object actor.
-   */
-  threadObjectGrip(actor) {
-    this.threadLifetimePool.manage(actor);
-    this.threadLifetimePool.objectActors.set(actor.obj, actor);
   }
 
   _onWindowReady({ isTopLevel, isBFCache }) {

@@ -14,7 +14,6 @@ class PauseScopedObjectActor extends ObjectActor {
   constructor(obj, hooks, conn) {
     super(obj, hooks, conn);
 
-    this.hooks.promote = hooks.promote;
     this.hooks.isThreadLifetimePool = hooks.isThreadLifetimePool;
 
     const guardWithPaused = [
@@ -31,15 +30,6 @@ class PauseScopedObjectActor extends ObjectActor {
     for (const methodName of guardWithPaused) {
       this[methodName] = this.withPaused(this[methodName]);
     }
-
-    /**
-     * Handle a protocol request to promote a pause-lifetime grip to a
-     * thread-lifetime grip.
-     */
-    this.threadGrip = this.withPaused(function () {
-      this.hooks.promote();
-      return {};
-    });
   }
 
   isPaused() {

@@ -281,17 +281,11 @@ skip-if = ["tsan"] # Unreasonably slow, bug 1612707
 
 ["test_objectgrips-fn-apply-01.js"]
 
-["test_objectgrips-fn-apply-02.js"]
-
-["test_objectgrips-fn-apply-03.js"]
-
 ["test_objectgrips-nested-promise.js"]
 
 ["test_objectgrips-nested-proxy.js"]
 
 ["test_objectgrips-property-value-01.js"]
-
-["test_objectgrips-property-value-02.js"]
 
 ["test_objectgrips-property-value-03.js"]
 
@@ -406,12 +400,6 @@ skip-if = ["true"] # breakpoint sliding is not supported bug 1525685
 ["test_symbols-01.js"]
 
 ["test_symbols-02.js"]
-
-["test_threadlifetime-01.js"]
-
-["test_threadlifetime-02.js"]
-
-["test_threadlifetime-04.js"]
 
 ["test_unsafeDereference.js"]
 
