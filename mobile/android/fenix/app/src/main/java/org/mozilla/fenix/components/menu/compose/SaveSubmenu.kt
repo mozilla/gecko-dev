@@ -18,8 +18,6 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
-internal const val SAVE_MENU_ROUTE = "save_menu"
-
 @Suppress("LongParameterList")
 @Composable
 internal fun SaveSubmenu(

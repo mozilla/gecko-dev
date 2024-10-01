@@ -222,26 +222,6 @@ sealed class MenuAction : Action {
         data object ReleaseNotes : Navigate()
 
         /**
-         * [Navigate] action dispatched when navigating to the tools submenu.
-         */
-        data object Tools : Navigate()
-
-        /**
-         * [Navigate] action dispatched when navigating to the save submenu.
-         */
-        data object Save : Navigate()
-
-        /**
-         * [Navigate] action dispatched when navigating to the extensions submenu.
-         */
-        data object Extensions : Navigate()
-
-        /**
-         * [Navigate] action dispatched when a back navigation event occurs.
-         */
-        data object Back : Navigate()
-
-        /**
          * [Navigate] action dispatched when navigating to edit the existing bookmark.
          */
         data object EditBookmark : Navigate()
