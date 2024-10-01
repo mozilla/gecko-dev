@@ -40,6 +40,8 @@ import org.mozilla.fenix.compose.list.TextListItem
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
+internal const val EXTENSIONS_MENU_ROUTE = "extensions_menu"
+
 @Suppress("LongParameterList")
 @Composable
 internal fun ExtensionsSubmenu(

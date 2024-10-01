@@ -19,6 +19,8 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
+internal const val CUSTOM_TAB_MENU_ROUTE = "custom_tab_menu"
+
 /**
  * Wrapper column containing the main menu items.
  *

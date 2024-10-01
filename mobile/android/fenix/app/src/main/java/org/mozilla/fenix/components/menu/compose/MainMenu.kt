@@ -34,6 +34,8 @@ import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.theme.FirefoxTheme
 import org.mozilla.fenix.theme.Theme
 
+internal const val MAIN_MENU_ROUTE = "main_menu"
+
 private const val ARROW_VERTICAL_OFFSET = 10
 private const val INDICATOR_START_OFFSET = 46
 
@@ -48,9 +50,6 @@ private const val INDICATOR_START_OFFSET = 46
  * @param isDesktopMode Whether or not the current site is in desktop mode.
  * @param isTranslationSupported Whether or not Translations are supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
- * @param onExtensionsMenuClick Invoked when the user clicks on extensions menu button.
- * @param onToolsMenuClick Invoked when the user clicks on tools menu button.
- * @param onSaveMenuClick Invoked when the user clicks on save menu button.
  */
 @Suppress("LongParameterList")
 @Composable
@@ -63,9 +62,6 @@ internal fun MainMenuWithCFR(
     isDesktopMode: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
-    onExtensionsMenuClick: () -> Unit,
-    onToolsMenuClick: () -> Unit,
-    onSaveMenuClick: () -> Unit,
 ) {
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp
@@ -117,9 +113,6 @@ internal fun MainMenuWithCFR(
             isDesktopMode = isDesktopMode,
             isTranslationSupported = isTranslationSupported,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
-            onExtensionsMenuClick = { onExtensionsMenuClick() },
-            onToolsMenuClick = { onToolsMenuClick() },
-            onSaveMenuClick = { onSaveMenuClick() },
         )
     }
 }
@@ -135,9 +128,6 @@ internal fun MainMenuWithCFR(
  * @param isDesktopMode Whether or not the current site is in desktop mode.
  * @param isTranslationSupported Whether or not Translations are supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
- * @param onExtensionsMenuClick Invoked when the user clicks on extensions menu button.
- * @param onToolsMenuClick Invoked when the user clicks on tools menu button.
- * @param onSaveMenuClick Invoked when the user clicks on save menu button.
  */
 @Suppress("LongMethod", "LongParameterList")
 @Composable
@@ -150,9 +140,6 @@ internal fun MainMenu(
     isDesktopMode: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
-    onExtensionsMenuClick: () -> Unit,
-    onToolsMenuClick: () -> Unit,
-    onSaveMenuClick: () -> Unit,
 ) {
     val account by syncStore.observeAsState(initialValue = null) { state -> state.account }
     val accountState by syncStore.observeAsState(initialValue = NotAuthenticated) { state ->
@@ -199,13 +186,13 @@ internal fun MainMenu(
             store.dispatch(MenuAction.FindInPage)
         },
         onToolsMenuClick = {
-            onToolsMenuClick()
+            store.dispatch(MenuAction.Navigate.Tools)
         },
         onSaveMenuClick = {
-            onSaveMenuClick()
+            store.dispatch(MenuAction.Navigate.Save)
         },
         onExtensionsMenuClick = {
-            onExtensionsMenuClick()
+            store.dispatch(MenuAction.Navigate.Extensions)
         },
         onBookmarksMenuClick = {
             store.dispatch(MenuAction.Navigate.Bookmarks)
