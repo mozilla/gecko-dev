@@ -500,12 +500,30 @@ auto MakeEmptyBaseHashtable() {
 }
 
 template <typename TypeParam>
+auto MakeUniqueEmptyBaseHashtable() {
+  return MakeUnique<
+      nsBaseHashtable<nsUint64HashKey, typename TypeParam::DataType,
+                      typename TypeParam::UserDataType>>();
+}
+
+template <typename TypeParam>
 auto MakeBaseHashtable(const uint32_t aExpectedAddRefCnt) {
   auto table = MakeEmptyBaseHashtable<TypeParam>();
 
   auto myChar = MakeRefPtr<TestUniCharRefCounted>(42, aExpectedAddRefCnt);
 
   table.InsertOrUpdate(1, typename TypeParam::UserDataType(std::move(myChar)));
+
+  return table;
+}
+
+template <typename TypeParam>
+auto MakeUniqueBaseHashtable(const uint32_t aExpectedAddRefCnt) {
+  auto table = MakeUniqueEmptyBaseHashtable<TypeParam>();
+
+  auto myChar = MakeRefPtr<TestUniCharRefCounted>(42, aExpectedAddRefCnt);
+
+  table->InsertOrUpdate(1, typename TypeParam::UserDataType(std::move(myChar)));
 
   return table;
 }
@@ -644,10 +662,10 @@ TYPED_TEST_P(BaseHashtableTest, SizeOfIncludingThis) {
   // This doesn't compile at the moment, since nsBaseHashtableET lacks
   // SizeOfIncludingThis implementation. Bug 1689214.
 #if 0
-  auto table = MakeBaseHashtable<TypeParam>(
+  auto table = MakeUniqueBaseHashtable<TypeParam>(
       TypeParam::kExpectedAddRefCnt_SizeOfIncludingThis);
 
-  auto res = table.SizeOfIncludingThis(MallocSizeOf);
+  auto res = table->SizeOfIncludingThis(MallocSizeOf);
   EXPECT_GT(res, 0u);
 #endif
 }
@@ -986,14 +1004,11 @@ TYPED_TEST_P(BaseHashtableTest, ShallowSizeOfExcludingThis) {
 }
 
 TYPED_TEST_P(BaseHashtableTest, ShallowSizeOfIncludingThis) {
-  // Make this work with ASAN builds, bug 1689549.
-#if !defined(MOZ_ASAN)
-  auto table = MakeBaseHashtable<TypeParam>(
+  auto table = MakeUniqueBaseHashtable<TypeParam>(
       TypeParam::kExpectedAddRefCnt_ShallowSizeOfIncludingThis);
 
-  auto res = table.ShallowSizeOfIncludingThis(MallocSizeOf);
+  auto res = table->ShallowSizeOfIncludingThis(MallocSizeOf);
   EXPECT_GT(res, 0u);
-#endif
 }
 
 TYPED_TEST_P(BaseHashtableTest, SwapElements) {
