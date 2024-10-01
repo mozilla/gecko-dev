@@ -136,3 +136,26 @@ add_task(async function test_prompt_prefix() {
     "l10nId replaced with localized"
   );
 });
+
+/**
+ * Check that prefix pref supports dynamic limit
+ */
+add_task(async function test_prompt_limit() {
+  const getLength = () => GenAI.chatPromptPrefix.match(/selection\|(\d+)/)[1];
+  await GenAI.prepareChatPromptPrefix();
+
+  const length = getLength();
+  Assert.ok(length, "Got a max length by default");
+
+  Services.prefs.setStringPref(
+    "browser.ml.chat.provider",
+    "http://localhost:8080"
+  );
+  await GenAI.prepareChatPromptPrefix();
+
+  const newLength = getLength();
+  Assert.ok(newLength, "Got another max length");
+  Assert.ok(newLength != length, "Lengths changed with provider change");
+
+  Services.prefs.clearUserPref("browser.ml.chat.provider");
+});
