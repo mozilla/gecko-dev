@@ -1,0 +1,15 @@
+[package]
+name = "uniffi-trait-interfaces"
+edition = "2021"
+version = "0.22.0"
+license = "MPL-2.0"
+publish = false
+
+[lib]
+crate-type = ["lib", "cdylib"]
+
+[dependencies]
+uniffi = { workspace = true }
+
+[build-dependencies]
+uniffi = { workspace = true, features = ["build"] }

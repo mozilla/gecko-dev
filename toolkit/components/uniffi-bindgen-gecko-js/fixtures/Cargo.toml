@@ -26,3 +26,4 @@ uniffi-example-custom-types = { path = "custom-types/" }
 uniffi-fixture-callbacks = { path = "callbacks/" }
 uniffi-fixture-external-types = { path = "external-types/" }
 uniffi-fixture-refcounts = { path = "refcounts/" }
+uniffi-trait-interfaces = { path = "trait-interfaces/" }
