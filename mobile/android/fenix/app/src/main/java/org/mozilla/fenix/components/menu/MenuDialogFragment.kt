@@ -155,6 +155,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                     val isTranslationSupported =
                         isTranslationEngineSupported &&
                             FxNimbus.features.translations.value().mainFlowBrowserMenuEnabled
+                    val isPdf = selectedTab?.content?.isPdf ?: false
                     val isReaderable = selectedTab?.readerState?.readerable ?: false
                     val settings = components.settings
                     val supportedLanguages = components.core.store.state.translationEngine.supportedLanguages
@@ -335,6 +336,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                     isPrivate = browsingModeManager.mode.isPrivate,
                                     isDesktopMode = isDesktopMode,
+                                    isPdf = isPdf,
                                     isTranslationSupported = isTranslationSupported,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                 )
@@ -346,6 +348,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     showQuitMenu = settings.shouldDeleteBrowsingDataOnQuit,
                                     isPrivate = browsingModeManager.mode.isPrivate,
                                     isDesktopMode = isDesktopMode,
+                                    isPdf = isPdf,
                                     isTranslationSupported = isTranslationSupported,
                                     isExtensionsProcessDisabled = isExtensionsProcessDisabled,
                                 )
@@ -398,6 +401,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                             }
 
                             ToolsSubmenu(
+                                isPdf = isPdf,
                                 isReaderable = isReaderable,
                                 isReaderViewActive = isReaderViewActive,
                                 hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,

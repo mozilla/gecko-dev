@@ -23,6 +23,7 @@ internal const val TOOLS_MENU_ROUTE = "tools_menu"
 @Suppress("LongParameterList")
 @Composable
 internal fun ToolsSubmenu(
+    isPdf: Boolean,
     isReaderable: Boolean,
     isReaderViewActive: Boolean,
     isTranslated: Boolean,
@@ -70,6 +71,7 @@ internal fun ToolsSubmenu(
                 Divider(color = FirefoxTheme.colors.borderSecondary)
 
                 TranslationMenuItem(
+                    isPdf = isPdf,
                     isTranslated = isTranslated,
                     isReaderViewActive = isReaderViewActive,
                     translatedLanguage = translatedLanguage,
@@ -142,6 +144,7 @@ private fun ReaderViewMenuItem(
 
 @Composable
 private fun TranslationMenuItem(
+    isPdf: Boolean,
     isTranslated: Boolean,
     isReaderViewActive: Boolean,
     translatedLanguage: String,
@@ -154,14 +157,14 @@ private fun TranslationMenuItem(
                 translatedLanguage,
             ),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_active_24),
-            state = if (isReaderViewActive) MenuItemState.DISABLED else MenuItemState.ACTIVE,
+            state = if (isReaderViewActive || isPdf) MenuItemState.DISABLED else MenuItemState.ACTIVE,
             onClick = onClick,
         )
     } else {
         MenuItem(
             label = stringResource(id = R.string.browser_menu_translate_page),
             beforeIconPainter = painterResource(id = R.drawable.mozac_ic_translate_24),
-            state = if (isReaderViewActive) MenuItemState.DISABLED else MenuItemState.ENABLED,
+            state = if (isReaderViewActive || isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED,
             onClick = onClick,
         )
     }
@@ -175,6 +178,7 @@ private fun ToolsSubmenuPreview() {
             modifier = Modifier.background(color = FirefoxTheme.colors.layer3),
         ) {
             ToolsSubmenu(
+                isPdf = false,
                 isReaderable = true,
                 isReaderViewActive = false,
                 isTranslated = false,
@@ -202,6 +206,7 @@ private fun ToolsSubmenuPrivatePreview() {
             modifier = Modifier.background(color = FirefoxTheme.colors.layer3),
         ) {
             ToolsSubmenu(
+                isPdf = false,
                 isReaderable = true,
                 isReaderViewActive = false,
                 isTranslated = false,
