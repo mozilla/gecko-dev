@@ -436,7 +436,9 @@ export const GenAI = {
 
               // Add custom input box if configured
               if (lazy.chatShortcutsCustom) {
-                const input = vbox.appendChild(document.createElement("input"));
+                const input = vbox.appendChild(
+                  document.createElement("textarea")
+                );
                 const provider = this.chatProviders.get(
                   lazy.chatProvider
                 )?.name;
@@ -448,10 +450,21 @@ export const GenAI = {
                   { provider }
                 );
                 input.style.margin = "var(--arrowpanel-menuitem-margin)";
+                input.style.marginTop = "5px";
                 input.addEventListener("mouseover", () => input.focus());
-                input.addEventListener("change", () => {
-                  this.handleAskChat({ value: input.value }, context);
-                  hide();
+                input.addEventListener("keydown", event => {
+                  if (event.key == "Enter" && !event.shiftKey) {
+                    this.handleAskChat({ value: input.value }, context);
+                    hide();
+                  }
+                });
+                const updateHeight = () => {
+                  input.style.height = "auto";
+                  input.style.height = input.scrollHeight + "px";
+                };
+                input.addEventListener("input", updateHeight);
+                popup.addEventListener("popupshown", updateHeight, {
+                  once: true,
                 });
               }
 
