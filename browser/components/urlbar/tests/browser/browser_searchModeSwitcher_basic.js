@@ -78,7 +78,7 @@ add_task(async function basic() {
 
   await UrlbarTestUtils.assertSearchMode(window, {
     engineName: "Bing",
-    entry: "other",
+    entry: "searchbutton",
     source: 3,
   });
 
@@ -140,7 +140,7 @@ add_task(async function detect_searchmode_changes() {
 
   await UrlbarTestUtils.assertSearchMode(window, {
     engineName: "Bing",
-    entry: "other",
+    entry: "searchbutton",
     source: 3,
   });
 
@@ -237,7 +237,7 @@ async function test_navigate_switcher(navKey, navTimes, searchMode) {
 // TODO: Don't let tests depend on the actual search config.
 let amazonSearchMode = {
   engineName: "Amazon.com",
-  entry: "other",
+  entry: "searchbutton",
   isPreview: false,
   isGeneralPurposeEngine: true,
 };
@@ -246,7 +246,7 @@ let bingSearchMode = {
   isGeneralPurposeEngine: true,
   source: 3,
   isPreview: false,
-  entry: "other",
+  entry: "searchbutton",
 };
 
 add_task(async function test_keyboard_nav() {
@@ -421,7 +421,7 @@ add_task(async function test_search_icon_change_without_keyword_enabled() {
   );
   await UrlbarTestUtils.assertSearchMode(newWin, {
     engineName: "Bing",
-    entry: "other",
+    entry: "searchbutton",
     source: 3,
   });
 
@@ -587,7 +587,7 @@ add_task(async function open_engine_page_directly() {
       engineName: "MozSearch",
       isGeneralPurposeEngine: false,
       isPreview: true,
-      entry: "other",
+      entry: "searchbutton",
     });
 
     // Cleanup.

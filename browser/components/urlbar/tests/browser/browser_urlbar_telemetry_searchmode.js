@@ -96,6 +96,7 @@ add_setup(async function () {
     url: getRootDirectory(gTestPath) + "urlbarTelemetrySearchSuggestions.xml",
     setAsDefault: true,
   });
+  suggestionEngine._setIcon("https://www.example.com/favicon.ico", false);
   suggestionEngine.alias = ENGINE_ALIAS;
   engineDomain = suggestionEngine.searchUrlDomain;
   engineName = suggestionEngine.name;
@@ -588,5 +589,39 @@ add_task(async function test_tabtosearch_onboard() {
 
   BrowserTestUtils.removeTab(tab);
   await PlacesUtils.history.clear();
+  await SpecialPowers.popPrefEnv();
+});
+
+// Enters search mode by unified search button.
+add_task(async function test_unified_search_button() {
+  await SpecialPowers.pushPrefEnv({
+    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+  });
+
+  let tab = await BrowserTestUtils.openNewForegroundTab(gBrowser);
+
+  info("Show search mode switcher");
+  let popup = await UrlbarTestUtils.openSearchModeSwitcher(window);
+
+  info("Press on the search engine we added for test and enter search mode");
+  let popupHidden = UrlbarTestUtils.searchModeSwitcherPopupClosed(window);
+  popup.querySelector("toolbarbutton").click();
+  await popupHidden;
+  await UrlbarTestUtils.assertSearchMode(window, {
+    engineName,
+    entry: "searchbutton",
+  });
+
+  await UrlbarTestUtils.promiseAutocompleteResultPopup({
+    window,
+    value: TEST_QUERY,
+  });
+
+  let loadPromise = BrowserTestUtils.browserLoaded(tab.linkedBrowser);
+  EventUtils.synthesizeKey("KEY_Enter");
+  await loadPromise;
+  assertSearchModeScalars("searchbutton", "other", 0);
+
+  BrowserTestUtils.removeTab(tab);
   await SpecialPowers.popPrefEnv();
 });
