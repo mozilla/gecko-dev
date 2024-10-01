@@ -7761,32 +7761,59 @@ var StatusPanel = {
 var TabBarVisibility = {
   _initialUpdateDone: false,
 
-  update() {
+  update(force = false) {
     let toolbar = document.getElementById("TabsToolbar");
-    let collapse = false;
+    let hideTabstrip = false;
+    let isPopup = !window.toolbar.visible;
+    let isVerticalTabs = Services.prefs.getBoolPref(
+      "sidebar.verticalTabs",
+      false
+    );
+    let nonPopupWithVerticalTabs = !isPopup && isVerticalTabs;
     if (
       !gBrowser /* gBrowser isn't initialized yet */ ||
       gBrowser.visibleTabs.length == 1
     ) {
-      collapse = !window.toolbar.visible;
+      hideTabstrip = isPopup;
     }
 
-    if (collapse == toolbar.collapsed && this._initialUpdateDone) {
+    if (nonPopupWithVerticalTabs) {
+      // TabsInTitlebar decides if we can draw within the titlebar area.
+      // In vertical tabs mode, the toolbar with the horizontal tabstrip gets hidden
+      // and the navbar becomes a titlebar. This makie TabsInTitlebar a bit of a misnomer.
+      // We'll fix this in Bug 1921034.
+      hideTabstrip = true;
+      TabsInTitlebar.allowedBy("tabs-visible", true);
+    } else {
+      TabsInTitlebar.allowedBy("tabs-visible", !hideTabstrip);
+    }
+
+    if (
+      hideTabstrip == toolbar.collapsed &&
+      !force &&
+      this._initialUpdateDone
+    ) {
       return;
     }
     this._initialUpdateDone = true;
 
-    toolbar.collapsed = collapse;
+    toolbar.collapsed = hideTabstrip;
     let navbar = document.getElementById("nav-bar");
-    navbar.toggleAttribute("tabs-hidden", collapse);
+    navbar.toggleAttribute("tabs-hidden", hideTabstrip);
+    // Should the nav-bar look and function  like a titlebar?
+    navbar.classList.toggle(
+      "browser-titlebar",
+      TabsInTitlebar.enabled && hideTabstrip
+    );
+    navbar.classList.toggle("titlebar-color", hideTabstrip);
 
-    document.getElementById("menu_closeWindow").hidden = collapse;
+    document.getElementById("menu_closeWindow").hidden = hideTabstrip;
     document.l10n.setAttributes(
       document.getElementById("menu_close"),
-      collapse ? "tabbrowser-menuitem-close" : "tabbrowser-menuitem-close-tab"
+      hideTabstrip
+        ? "tabbrowser-menuitem-close"
+        : "tabbrowser-menuitem-close-tab"
     );
-
-    TabsInTitlebar.allowedBy("tabs-visible", !collapse);
   },
 };
 

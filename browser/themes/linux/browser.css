@@ -143,10 +143,8 @@
   min-height: 0;
 }
 
-#TabsToolbar,
-#toolbar-menubar,
-#main-menubar,
-#titlebar {
+.browser-titlebar,
+#main-menubar {
   appearance: none;
   background-color: transparent;
   color: inherit;

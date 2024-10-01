@@ -1688,7 +1688,9 @@ var gUnifiedExtensions = {
     // This is where we are going to re-insert the extension widgets (DOM
     // nodes) but we need to account for some hidden DOM nodes already present
     // in this container when determining where to put the nodes back.
-    const container = document.getElementById(area);
+    const container = CustomizableUI.getCustomizationTarget(
+      document.getElementById(area)
+    );
 
     let moved = false;
     let currentPosition = 0;

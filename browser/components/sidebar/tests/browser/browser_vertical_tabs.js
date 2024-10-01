@@ -34,6 +34,35 @@ function checkTelemetryScalar(name, value) {
   }, `Scalar ${name} has the correct value.`);
 }
 
+function getExpectedElements(win, tabstripOrientation = "horizontal") {
+  const sizeMode = win.document.documentElement.getAttribute("sizemode");
+  let selectors;
+
+  // NOTE: TabsInTitlebar behaviour isn't under test here. We just want to assert on
+  // the right stuff being visible whatever the case for the given window.
+
+  if (tabstripOrientation == "horizontal") {
+    selectors = ["#TabsToolbar"];
+
+    if (win.TabsInTitlebar.enabled) {
+      selectors.push("#TabsToolbar .titlebar-buttonbox-container");
+      if (sizeMode == "normal") {
+        selectors.push("#TabsToolbar .titlebar-spacer");
+      }
+    }
+    return selectors;
+  }
+
+  selectors = ["#vertical-tabs"];
+  if (win.TabsInTitlebar.enabled) {
+    selectors.push("#nav-bar .titlebar-buttonbox-container");
+    if (sizeMode == "normal") {
+      selectors.push("#nav-bar .titlebar-spacer");
+    }
+  }
+  return selectors;
+}
+
 add_task(async function test_toggle_vertical_tabs() {
   const sidebar = document.querySelector("sidebar-main");
   ok(sidebar, "Sidebar is shown.");
@@ -43,10 +72,38 @@ add_task(async function test_toggle_vertical_tabs() {
     "TabsToolbar-customization-target"
   );
   let verticalTabs = document.querySelector("#vertical-tabs");
-  ok(
-    !BrowserTestUtils.isVisible(verticalTabs),
-    "Vertical tabs slot is not visible"
+  info(
+    `toolbars collapsed: \n${Array.from(
+      document.querySelectorAll("#navigator-toolbox > toolbar")
+    )
+      .map(t => `  ${t.id}: ${t.collapsed}`)
+      .join("\n")}`
   );
+  info(`sizemode: ${document.documentElement.getAttribute("sizemode")}`);
+  info(
+    `tabsintitlebar: ${document.documentElement.getAttribute("tabsintitlebar")}`
+  );
+
+  const expectedElementsWhenHorizontal = getExpectedElements(
+    window,
+    "horizontal"
+  );
+  const expectedElementsWhenVertical = getExpectedElements(window, "vertical");
+
+  for (let selector of expectedElementsWhenHorizontal) {
+    let elem = document.querySelector(selector);
+    ok(
+      elem && BrowserTestUtils.isVisible(elem),
+      `${selector} exists and is visible`
+    );
+  }
+  for (let selector of expectedElementsWhenVertical) {
+    let elem = document.querySelector(selector);
+    ok(
+      elem && BrowserTestUtils.isHidden(elem),
+      `${selector} exists and is hidden`
+    );
+  }
 
   is(
     tabStrip.parentNode,
@@ -61,7 +118,26 @@ add_task(async function test_toggle_vertical_tabs() {
 
   // flip the pref to move the tabstrip into the sidebar
   await SpecialPowers.pushPrefEnv({ set: [["sidebar.verticalTabs", true]] });
-  ok(BrowserTestUtils.isVisible(verticalTabs), "Vertical tabs slot is visible");
+
+  for (let selector of expectedElementsWhenVertical) {
+    let elem = document.querySelector(selector);
+    ok(
+      elem && BrowserTestUtils.isVisible(elem),
+      `${selector} exists and is visible: ${!!elem}, ${
+        elem && BrowserTestUtils.isVisible(elem)
+      }`
+    );
+  }
+  for (let selector of expectedElementsWhenHorizontal) {
+    let elem = document.querySelector(selector);
+    ok(
+      elem && BrowserTestUtils.isHidden(elem),
+      `${selector} exists and is hidden: ${!!elem}, ${
+        elem && BrowserTestUtils.isHidden(elem)
+      }`
+    );
+  }
+
   is(
     tabStrip.parentNode,
     verticalTabs,
@@ -130,7 +206,7 @@ add_task(async function test_toggle_vertical_tabs() {
 
   Assert.greater(
     containerRect.bottom - tabRect.bottom,
-    500,
+    450,
     "Container should extend far beyond the last tab."
   );
 

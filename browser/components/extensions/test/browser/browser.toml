@@ -702,3 +702,5 @@ tags = "fullscreen"
 
 ["browser_unified_extensions_overflowable_toolbar.js"]
 tags = "overflowable-toolbar"
+
+["browser_unified_extensions_vertical_tabs.js"]
