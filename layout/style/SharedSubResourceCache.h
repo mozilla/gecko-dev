@@ -35,6 +35,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/StoragePrincipalHelper.h"
 #include "mozilla/dom/CacheExpirationTime.h"
+#include "mozilla/TimeStamp.h"
 #include "mozilla/dom/Document.h"
 #include "nsContentUtils.h"
 #include "nsISupportsImpl.h"
@@ -107,6 +108,15 @@ struct SharedSubResourceCacheLoadingValueBase {
     }
   }
 };
+
+namespace SharedSubResourceCacheUtils {
+
+void AddPerformanceEntryForCache(
+    const nsString& aEntryName, const nsString& aInitiatorType,
+    const SubResourceNetworkMetadataHolder* aNetworkMetadata,
+    TimeStamp aStartTime, TimeStamp aEndTime, dom::Document* aDocument);
+
+}  // namespace SharedSubResourceCacheUtils
 
 template <typename Traits, typename Derived>
 class SharedSubResourceCache {

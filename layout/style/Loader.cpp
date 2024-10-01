@@ -1700,11 +1700,34 @@ Loader::Completed Loader::ParseSheet(
   return Completed::No;
 }
 
+void Loader::AddPerformanceEntryForCachedSheet(SheetLoadData& aLoadData) {
+  MOZ_ASSERT(aLoadData.mURI);
+
+  if (!aLoadData.mNetworkMetadata) {
+    return;
+  }
+
+  nsAutoCString name;
+  aLoadData.mURI->GetSpec(name);
+  NS_ConvertUTF8toUTF16 entryName(name);
+
+  auto end = TimeStamp::Now();
+  auto start = aLoadData.mLoadStart;
+  if (start.IsNull()) {
+    start = end;
+  }
+
+  SharedSubResourceCacheUtils::AddPerformanceEntryForCache(
+      entryName, aLoadData.InitiatorTypeString(), aLoadData.mNetworkMetadata,
+      start, end, mDocument);
+}
+
 void Loader::NotifyObservers(SheetLoadData& aData, nsresult aStatus) {
   RecordUseCountersIfNeeded(mDocument, *aData.mSheet);
   if (MaybePutIntoLoadsPerformed(aData) &&
       aData.mShouldEmulateNotificationsForCachedLoad) {
     NotifyObserversForCachedSheet(aData);
+    AddPerformanceEntryForCachedSheet(aData);
   }
 
   RefPtr loadDispatcher = aData.PrepareLoadEventIfNeeded();
@@ -2192,6 +2215,7 @@ nsresult Loader::LoadChildSheet(StyleSheet& aParentSheet,
       RecordUseCountersIfNeeded(mDocument, *data->mSheet);
       if (MaybePutIntoLoadsPerformed(*data)) {
         NotifyObserversForCachedSheet(*data);
+        AddPerformanceEntryForCachedSheet(*data);
       }
     }
     data->mIntentionallyDropped = true;

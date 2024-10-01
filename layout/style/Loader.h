@@ -584,6 +584,9 @@ class Loader final {
   // Notify observers of a cached stylesheet being.
   void NotifyObserversForCachedSheet(SheetLoadData&);
 
+  // Add the Performance API's Resource Timing entry for the cached load data.
+  void AddPerformanceEntryForCachedSheet(SheetLoadData&);
+
   // Start the loads of all the sheets in mPendingDatas
   void StartDeferredLoads();
 
