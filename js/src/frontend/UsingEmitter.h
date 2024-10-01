@@ -19,8 +19,6 @@ class EmitterScope;
 
 class MOZ_STACK_CLASS UsingEmitter {
  private:
-  BytecodeEmitter* bce_;
-
   mozilla::Maybe<TryEmitter> tryEmitter_;
 
   // TODO: add state transition graph and state
@@ -39,12 +37,17 @@ class MOZ_STACK_CLASS UsingEmitter {
   [[nodiscard]] bool emitResourcePropertyAccess(TaggedParserAtomIndex prop,
                                                 unsigned resourcesFromTop = 1);
 
+ protected:
+  BytecodeEmitter* bce_;
+
   [[nodiscard]] bool emitDisposeLoop(
-      EmitterScope& es,
+      EmitterScope& es, bool hasAsyncDisposables,
       CompletionKind initialCompletion = CompletionKind::Normal);
 
  public:
   explicit UsingEmitter(BytecodeEmitter* bce);
+
+  bool hasAwaitUsing() const { return hasAwaitUsing_; }
 
   [[nodiscard]] bool prepareForDisposableScopeBody();
 
@@ -55,6 +58,59 @@ class MOZ_STACK_CLASS UsingEmitter {
   [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
 
   [[nodiscard]] bool emitNonLocalJump(EmitterScope* present);
+
+  [[nodiscard]] bool emitEnd();
+
+  [[nodiscard]] bool emitNonLocalJumpNeedingIteratorClose(
+      EmitterScope* present);
+};
+
+// This is a version of UsingEmitter specialized to help emit code for
+// non-local jumps in for-of loops for closing iterators.
+//
+// Usage: (check for the return value is omitted for simplicity)
+//
+//   at the point of IteratorClose inside non-local jump
+//     NonLocalIteratorCloseUsingEmitter disposeBeforeIterClose(bce);
+//     disposeBeforeIterClose.prepareForIteratorClose(&currentScope);
+//     emit_IteratorClose();
+//     disposeBeforeIterClose.emitEnd(&currentScope);
+//
+class MOZ_STACK_CLASS NonLocalIteratorCloseUsingEmitter
+    : protected UsingEmitter {
+ private:
+  mozilla::Maybe<TryEmitter> tryClosingIterator_;
+
+#ifdef DEBUG
+  // The state of this emitter.
+  //
+  // +-------+  prepareForIteratorClose  +-------------------------+
+  // | Start |-------------------------->| prepareForIteratorClose |--+
+  // +-------+                           +-------------------------+  |
+  //                                                                  |
+  //   +--------------------------------------------------------------+
+  //   |
+  //   |  emitEnd  +-----+
+  //   +---------->| End |
+  //               +-----+
+  enum class State {
+    // The initial state.
+    Start,
+
+    // After calling prepareForIteratorClose.
+    IteratorClose,
+
+    // After calling emitEnd.
+    End
+  };
+  State state_ = State::Start;
+#endif
+
+ public:
+  explicit NonLocalIteratorCloseUsingEmitter(BytecodeEmitter* bce)
+      : UsingEmitter(bce) {}
+
+  [[nodiscard]] bool prepareForIteratorClose(EmitterScope& es);
 
   [[nodiscard]] bool emitEnd();
 };
