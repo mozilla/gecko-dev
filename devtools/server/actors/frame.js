@@ -10,9 +10,6 @@ const { frameSpec } = require("resource://devtools/shared/specs/frame.js");
 
 const Debugger = require("Debugger");
 const { assert } = require("resource://devtools/shared/DevToolsUtils.js");
-const {
-  createValueGrip,
-} = require("resource://devtools/server/actors/object/utils.js");
 
 function formatDisplayName(frame) {
   if (frame.type === "call") {
@@ -176,11 +173,7 @@ class FrameActor extends Actor {
     }
 
     if (this.frame.type != "wasmcall") {
-      form.this = createValueGrip(
-        this.frame.this,
-        threadActor._pausePool,
-        threadActor.objectGrip
-      );
+      form.this = threadActor.createValueGrip(this.frame.this);
     }
 
     form.displayName = formatDisplayName(this.frame);
@@ -210,11 +203,7 @@ class FrameActor extends Actor {
     }
 
     return this.frame.arguments.map(arg =>
-      createValueGrip(
-        arg,
-        this.threadActor._pausePool,
-        this.threadActor.objectGrip
-      )
+      this.threadActor.createValueGrip(arg)
     );
   }
 }
