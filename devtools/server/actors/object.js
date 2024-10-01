@@ -83,7 +83,7 @@ class ObjectActor extends Actor {
   /**
    * Creates an actor for the specified object.
    *
-   * @param ThreadActor thread
+   * @param ThreadActor threadActor
    *        The current thread actor from where this object is running from.
    * @param Debugger.Object obj
    *        The debuggee object.
@@ -101,7 +101,7 @@ class ObjectActor extends Actor {
    *              Decrement the actor's grip depth
    */
   constructor(
-    thread,
+    threadActor,
     obj,
     {
       createValueGrip: createValueGripHook,
@@ -112,7 +112,7 @@ class ObjectActor extends Actor {
       customFormatterConfigDbgObj,
     }
   ) {
-    super(thread.conn, objectSpec);
+    super(threadActor.conn, objectSpec);
 
     assert(
       !obj.optimizedOut,
@@ -120,7 +120,7 @@ class ObjectActor extends Actor {
     );
 
     this.obj = obj;
-    this.thread = thread;
+    this.threadActor = threadActor;
     this.hooks = {
       createValueGrip: createValueGripHook,
       getGripDepth,
@@ -136,15 +136,15 @@ class ObjectActor extends Actor {
   }
 
   addWatchpoint(property, label, watchpointType) {
-    this.thread.addWatchpoint(this, { property, label, watchpointType });
+    this.threadActor.addWatchpoint(this, { property, label, watchpointType });
   }
 
   removeWatchpoint(property) {
-    this.thread.removeWatchpoint(this, property);
+    this.threadActor.removeWatchpoint(this, property);
   }
 
   removeWatchpoints() {
-    this.thread.removeWatchpoint(this);
+    this.threadActor.removeWatchpoint(this);
   }
 
   /**
@@ -165,7 +165,7 @@ class ObjectActor extends Actor {
     }
 
     // Only process custom formatters if the feature is enabled.
-    if (this.thread?.targetActor?.customFormatters) {
+    if (this.threadActor?.targetActor?.customFormatters) {
       const result = customFormatterHeader(this);
       if (result) {
         const { formatter, ...header } = result;
@@ -764,8 +764,8 @@ class ObjectActor extends Actor {
     if ("value" in desc) {
       retval.writable = desc.writable;
       retval.value = this.hooks.createValueGrip(desc.value);
-    } else if (this.thread.getWatchpoint(obj, name.toString())) {
-      const watchpoint = this.thread.getWatchpoint(obj, name.toString());
+    } else if (this.threadActor.getWatchpoint(obj, name.toString())) {
+      const watchpoint = this.threadActor.getWatchpoint(obj, name.toString());
       retval.value = this.hooks.createValueGrip(watchpoint.desc.value);
       retval.watchpoint = watchpoint.watchpointType;
     } else {
@@ -810,7 +810,7 @@ class ObjectActor extends Actor {
     }
     this._customFormatterItem = null;
     this.obj = null;
-    this.thread = null;
+    this.threadActor = null;
   }
 }
 

@@ -11,8 +11,8 @@ class PauseScopedObjectActor extends ObjectActor {
    * Creates a pause-scoped actor for the specified object.
    * @see ObjectActor
    */
-  constructor(thread, obj, hooks) {
-    super(thread, obj, hooks);
+  constructor(threadActor, obj, hooks) {
+    super(threadActor, obj, hooks);
 
     this.hooks.isThreadLifetimePool = hooks.isThreadLifetimePool;
 
