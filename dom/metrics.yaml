@@ -119,6 +119,12 @@ perf:
         description:
           "TRR domain used."
         type: string
+      features:
+        description:
+          "Bitfield of features in use within this document:
+            1 - fetchpriority applied to images"
+        type: quantity
+        unit: integer
     send_in_pings:
       - pageload
 

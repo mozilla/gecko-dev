@@ -3158,6 +3158,10 @@ class Document : public nsINode,
 
   void SetNavigationTiming(nsDOMNavigationTiming* aTiming);
 
+  inline void SetPageloadEventFeature(uint32_t aFeature) {
+    mPageloadEventFeatures |= aFeature;
+  }
+
   nsContentList* ImageMapList();
 
   // Add aLink to the set of links that need their status resolved.
@@ -5423,6 +5427,10 @@ class Document : public nsINode,
 
   // See SetNotifyFormOrPasswordRemoved and ShouldNotifyFormOrPasswordRemoved.
   bool mShouldNotifyFormOrPasswordRemoved;
+
+  // Bitfield to be collected in the pageload event, recording relevant features
+  // used in the document
+  uint32_t mPageloadEventFeatures = 0;
 
   // Record page load telemetry
   void RecordPageLoadEventTelemetry(

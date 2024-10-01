@@ -2303,6 +2303,8 @@ void Document::AccumulatePageLoadTelemetry(
           mozilla::Some(static_cast<uint32_t>(loadTime.ToMilliseconds()));
     }
   }
+
+  aEventTelemetryDataOut.features = mozilla::Some(mPageloadEventFeatures);
 }
 
 void Document::AccumulateJSTelemetry(

@@ -52,6 +52,7 @@
 #include "mozilla/dom/HTMLImageElement.h"
 #include "mozilla/dom/ImageTextBinding.h"
 #include "mozilla/dom/ImageTracker.h"
+#include "mozilla/dom/PageLoadEventUtils.h"
 #include "mozilla/dom/ReferrerInfo.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/intl/LocaleService.h"
@@ -1107,11 +1108,17 @@ nsresult nsImageLoadingContent::LoadImage(nsIURI* aNewURI, bool aForce,
              : PolicyTypeForLoad(aImageLoadType);
 
   auto referrerInfo = MakeRefPtr<ReferrerInfo>(*element);
+  auto fetchPriority = GetFetchPriorityForImage();
   nsresult rv = nsContentUtils::LoadImage(
       aNewURI, element, aDocument, triggeringPrincipal, 0, referrerInfo, this,
       loadFlags, element->LocalName(), getter_AddRefs(req), policyType,
       mUseUrgentStartForChannel, /* aLinkPreload */ false,
-      /* aEarlyHintPreloaderId */ 0, GetFetchPriorityForImage());
+      /* aEarlyHintPreloaderId */ 0, fetchPriority);
+
+  if (fetchPriority != FetchPriority::Auto) {
+    aDocument->SetPageloadEventFeature(
+        pageload_event::FeatureBits::FETCH_PRIORITY_IMAGES);
+  }
 
   // Reset the flag to avoid loading from XPCOM or somewhere again else without
   // initiated by user interaction.

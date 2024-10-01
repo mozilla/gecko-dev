@@ -10,6 +10,19 @@
 #include "ipc/IPCMessageUtils.h"
 #include "mozilla/glean/GleanMetrics.h"
 
+#include <cstdint>
+
+namespace mozilla {
+namespace pageload_event {
+
+/*
+ *  Features utilized within a document, represented as bitfield in the pageload
+ * event.
+ */
+enum FeatureBits : uint32_t { FETCH_PRIORITY_IMAGES = 1 << 0 };
+}  // namespace pageload_event
+}  // namespace mozilla
+
 namespace IPC {
 
 template <>
@@ -29,6 +42,7 @@ struct ParamTraits<mozilla::glean::perf::PageLoadExtra> {
     WriteParam(aWriter, aParam.sameOriginNav);
     WriteParam(aWriter, aParam.trrDomain);
     WriteParam(aWriter, aParam.dnsLookupTime);
+    WriteParam(aWriter, aParam.features);
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
@@ -43,7 +57,8 @@ struct ParamTraits<mozilla::glean::perf::PageLoadExtra> {
            ReadParam(aReader, &aResult->redirectTime) &&
            ReadParam(aReader, &aResult->sameOriginNav) &&
            ReadParam(aReader, &aResult->trrDomain) &&
-           ReadParam(aReader, &aResult->dnsLookupTime);
+           ReadParam(aReader, &aResult->dnsLookupTime) &&
+           ReadParam(aReader, &aResult->features);
   }
 };
 
