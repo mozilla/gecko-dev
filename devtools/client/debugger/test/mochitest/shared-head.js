@@ -222,8 +222,6 @@ function waitForSelectedSource(dbg, sourceOrUrl) {
     getSourceActorsForSource,
     getSourceActorBreakableLines,
     getFirstSourceActorForGeneratedSource,
-    getSelectedFrame,
-    getCurrentThread,
   } = dbg.selectors;
 
   return waitForState(
@@ -248,14 +246,8 @@ function waitForSelectedSource(dbg, sourceOrUrl) {
         }
       }
 
-      // Only when we are paused on that specific source (and this isn't a WASM source, which has no AST):
-      // wait for symbols/AST to be parsed
-      if (
-        getSelectedFrame(getCurrentThread())?.location.source.id ==
-          location.source.id &&
-        !getSymbols(location) &&
-        !isWasmBinarySource(location.source)
-      ) {
+      // Wait for symbols/AST to be parsed
+      if (!getSymbols(location) && !isWasmBinarySource(location.source)) {
         return false;
       }
 
@@ -607,8 +599,6 @@ async function waitForPaused(
   if (options.shouldWaitForLoadedScopes) {
     await waitForLoadedScopes(dbg);
   }
-
-  // Note that this will wait for symbols, which are fetched on pause
   await waitForSelectedSource(dbg, url);
 }
 
