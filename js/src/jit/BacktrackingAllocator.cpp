@@ -3917,9 +3917,22 @@ bool BacktrackingAllocator::createMoveGroupsForControlFlowEdges(
 
   for (const ControlFlowEdge& edge : edges) {
     CodePosition pos = edge.predecessorExit;
+    LAllocation successorAllocation =
+        edge.successorRange->bundle()->allocation();
+
+    // We don't need to insert a move if nonRegisterRange covers the predecessor
+    // block exit and has the same allocation as the successor block. This check
+    // is not required for correctness but it reduces the number of generated
+    // moves.
+    if (nonRegisterRange && pos < nonRegisterRange->to() &&
+        nonRegisterRange->bundle()->allocation() == successorAllocation) {
+      MOZ_ASSERT(nonRegisterRange->covers(pos));
+      continue;
+    }
 
     // Search for a matching range. Prefer a register range.
     LiveRange* predecessorRange = nullptr;
+    bool foundSameAllocation = false;
     while (true) {
       if (iter.done() || iter->from() > pos) {
         // No register range covers this edge.
@@ -3932,6 +3945,14 @@ bool BacktrackingAllocator::createMoveGroupsForControlFlowEdges(
         continue;
       }
       MOZ_ASSERT(iter->covers(pos));
+      if (iter->bundle()->allocation() == successorAllocation) {
+        // There's a range covering the predecessor block exit that has the same
+        // allocation, so we don't need to insert a move. This check is not
+        // required for correctness but it reduces the number of generated
+        // moves.
+        foundSameAllocation = true;
+        break;
+      }
       if (iter->bundle()->allocation().isRegister()) {
         predecessorRange = *iter;
         break;
@@ -3941,6 +3962,11 @@ bool BacktrackingAllocator::createMoveGroupsForControlFlowEdges(
       }
       iter++;
     }
+
+    if (foundSameAllocation) {
+      continue;
+    }
+
     MOZ_ASSERT(predecessorRange);
     AssertCorrectRangeForPosition(reg, pos, predecessorRange);
 
