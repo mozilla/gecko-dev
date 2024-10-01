@@ -674,26 +674,6 @@ double nsRangeFrame::GetValue() const {
       .toDouble();
 }
 
-Maybe<nscoord> nsRangeFrame::GetNaturalBaselineBOffset(
-    WritingMode aWM, BaselineSharingGroup aBaselineGroup,
-    BaselineExportContext) const {
-  NS_ASSERTION(!IsSubtreeDirty(), "frame must not be dirty");
-
-  if (aBaselineGroup == BaselineSharingGroup::Last) {
-    return Nothing{};
-  }
-
-  if (StyleDisplay()->IsBlockOutsideStyle()) {
-    return Nothing{};
-  }
-
-  if (aWM.IsCentralBaseline()) {
-    return Some(BSize(aWM) / 2);
-  }
-
-  return Some(GetLogicalSize(aWM).BSize(aWM));
-}
-
 bool nsRangeFrame::ShouldUseNativeStyle() const {
   nsIFrame* trackFrame = mTrackDiv->GetPrimaryFrame();
   nsIFrame* progressFrame = mProgressDiv->GetPrimaryFrame();
