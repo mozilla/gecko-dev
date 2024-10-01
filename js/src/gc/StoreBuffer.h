@@ -679,8 +679,8 @@ class ArenaCellSet {
 
  public:
   using WordT = ArenaCellBits::WordT;
-  const size_t BitsPerWord = ArenaCellBits::bitsPerElement;
-  const size_t NumWords = ArenaCellBits::numSlots;
+  static constexpr size_t BitsPerWord = ArenaCellBits::bitsPerElement;
+  static constexpr size_t NumWords = ArenaCellBits::numSlots;
 
   ArenaCellSet(Arena* arena, ArenaCellSet* next);
 
