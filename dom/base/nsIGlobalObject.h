@@ -301,6 +301,8 @@ class nsIGlobalObject : public nsISupports {
   virtual mozilla::dom::TimeoutManager* GetTimeoutManager() { return nullptr; }
   virtual bool IsRunningTimeout() { return false; }
 
+  virtual bool IsXPCSandbox() { return false; }
+
  protected:
   virtual ~nsIGlobalObject();
 
