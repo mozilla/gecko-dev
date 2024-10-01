@@ -19,7 +19,6 @@ add_setup(async function () {
       ["browser.urlbar.autoFill", false],
       // Special prefs for remote tabs.
       ["services.sync.username", "fake"],
-      ["services.sync.syncedTabs.showRemoteTabs", true],
     ],
   });
 
