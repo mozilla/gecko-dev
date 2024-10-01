@@ -357,6 +357,10 @@ const PREF_URLBAR_DEFAULTS = new Map([
   // grouped release.
   ["scotchBonnet.enableOverride", false],
 
+  // Allow searchmode to be persisted as the user navigates the
+  // search host.
+  ["scotchBonnet.persistSearchMode", false],
+
   // Feature gate pref for search restrict keywords being shown in the urlbar.
   ["searchRestrictKeywords.featureGate", false],
 

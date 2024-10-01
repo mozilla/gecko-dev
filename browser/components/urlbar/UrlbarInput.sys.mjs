@@ -405,7 +405,10 @@ export class UrlbarInput {
   ) {
     // We only need to update the searchModeUI on tab switch conditionally
     // as we only persist searchMode with ScotchBonnet enabled.
-    if (dueToTabSwitch && lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+    if (
+      dueToTabSwitch &&
+      lazy.UrlbarPrefs.getScotchBonnetPref("scotchBonnet.persistSearchMode")
+    ) {
       this._updateSearchModeUI(this.searchMode);
     }
     if (!this.window.gBrowser.userTypedValue) {
@@ -895,7 +898,7 @@ export class UrlbarInput {
     this.window.gBrowser.userTypedValue = null;
     // Nullify search mode before setURI so it won't try to restore it.
     if (
-      !lazy.UrlbarPrefs.get("scotchBonnet.enableOverride") ||
+      !lazy.UrlbarPrefs.getScotchBonnetPref("scotchBonnet.persistSearchMode") ||
       escapeSearchMode
     ) {
       this.searchMode = null;
@@ -2437,7 +2440,9 @@ export class UrlbarInput {
   }
 
   #shouldExitSearchMode(uri) {
-    if (!lazy.UrlbarPrefs.get("scotchBonnet.enableOverride")) {
+    if (
+      !lazy.UrlbarPrefs.getScotchBonnetPref("scotchBonnet.persistSearchMode")
+    ) {
       return true;
     }
 

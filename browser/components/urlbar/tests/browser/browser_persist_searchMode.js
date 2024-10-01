@@ -9,7 +9,10 @@ const { AddonTestUtils } = ChromeUtils.importESModule(
 
 add_setup(async function setup() {
   await SpecialPowers.pushPrefEnv({
-    set: [["browser.urlbar.scotchBonnet.enableOverride", true]],
+    set: [
+      ["browser.urlbar.secondaryActions.featureGate", true],
+      ["browser.urlbar.scotchBonnet.persistSearchMode", true],
+    ],
   });
 
   await SearchTestUtils.installSearchExtension({
