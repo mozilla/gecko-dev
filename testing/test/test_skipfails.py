@@ -888,7 +888,7 @@ def test_reftest_get_lineno():
     ]
     allmods = " ".join(mods)
     lineno = sf.reftest_find_lineno(
-        "layout/reftests/font-face/reftest.list", mods, allmods
+        "testing/test/data/fontface_reftest.list", mods, allmods
     )
     assert lineno == 171
 
@@ -909,7 +909,7 @@ def test_reftest_get_lineno2():
     ]
     allmods = " ".join(mods)
     lineno = sf.reftest_find_lineno(
-        "image/test/reftest/downscaling/reftest.list", mods, allmods
+        "testing/test/data/downscaling_reftest.list", mods, allmods
     )
     assert lineno == 183
 
@@ -928,7 +928,7 @@ def test_reftest_get_lineno3():
     ]
     allmods = " ".join(mods)
     lineno = sf.reftest_find_lineno(
-        "dom/canvas/test/reftest/reftest.list", mods, allmods
+        "testing/test/data/dom_canvas_reftest.list", mods, allmods
     )
     assert lineno == 233
 
