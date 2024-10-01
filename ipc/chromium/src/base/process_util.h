@@ -39,17 +39,6 @@
 
 #include "mozilla/ipc/LaunchError.h"
 
-#if defined(MOZ_ENABLE_FORKSERVER)
-#  include "nsStringFwd.h"
-#  include "mozilla/ipc/FileDescriptorShuffle.h"
-
-namespace mozilla {
-namespace ipc {
-class FileDescriptor;
-}
-}  // namespace mozilla
-#endif
-
 #if defined(XP_DARWIN)
 struct kinfo_proc;
 #endif
@@ -160,10 +149,6 @@ struct LaunchOptions {
   file_handle_mapping_vector fds_to_remap;
 #endif
 
-#if defined(MOZ_ENABLE_FORKSERVER)
-  bool use_forkserver = false;
-#endif
-
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   // These fields are used by the sandboxing code in SandboxLaunch.cpp.
   // It's not ideal to have them here, but trying to abstract them makes
@@ -225,44 +210,6 @@ Result<Ok, LaunchError> LaunchApp(const std::vector<std::string>& argv,
 EnvironmentArray BuildEnvironmentArray(const environment_map& env_vars_to_set);
 #endif
 
-#if defined(MOZ_ENABLE_FORKSERVER)
-/**
- * Create and initialize a new process as a content process.
- *
- * This class is used only by the fork server.
- * To create a new content process, two steps are
- *  - calling |ForkProcess()| to create a new process, and
- *  - calling |InitAppProcess()| in the new process, the child
- *    process, to initialize it for running WEB content later.
- *
- * The fork server can clean up it's resources in-between the first
- * and second step, that is why two steps.
- */
-class AppProcessBuilder {
- public:
-  AppProcessBuilder();
-  // This function will fork a new process for use as a content
-  // processes.  The next two functions substitute for the
-  // corresponding exec().
-  bool ForkProcess(LaunchOptions&& options, ProcessHandle* process_handle);
-  // This function must be called with the argument and environment
-  // information to be used by the following call to InitAppProcess.
-  void SetExecInfo(std::vector<std::string>&& aArgv, environment_map&& aEnv);
-  // This function will be called in the child process to initialize
-  // the environment of the content process.
-  void InitAppProcess(int* argcp, char*** argvp);
-
- private:
-  void ReplaceArguments(int* argcp, char*** argvp);
-
-  mozilla::ipc::FileDescriptorShuffle shuffle_;
-  std::vector<std::string> argv_;
-  environment_map env_;
-};
-
-void InitForkServerProcess();
-#endif
-
 // Attempts to kill the process identified by the given process
 // entry structure, giving it the specified exit code.
 // Returns true if this is successful, false otherwise.
@@ -310,11 +257,6 @@ class EnvironmentLog {
 
   DISALLOW_EVIL_CONSTRUCTORS(EnvironmentLog);
 };
-
-#if defined(MOZ_ENABLE_FORKSERVER)
-typedef std::tuple<nsCString, nsCString> EnvVar;
-typedef std::tuple<mozilla::ipc::FileDescriptor, int> FdMapping;
-#endif
 
 }  // namespace mozilla
 
