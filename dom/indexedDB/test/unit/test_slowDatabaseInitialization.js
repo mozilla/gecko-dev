@@ -57,6 +57,64 @@ async function testNewDatabase() {
   await clearPromise;
 }
 
+async function testExistingDatabase() {
+  const principal = PrincipalUtils.createPrincipal("https://example.com");
+  const name = "test_slowStorageInitialization.js";
+  const objectStoreName = "foo";
+
+  info("Testing origin clearing requested after starting database work");
+
+  info("Ensuring a pre-existing database");
+
+  {
+    const request = indexedDB.openForPrincipal(principal, name);
+    request.onupgradeneeded = function (event) {
+      const database = event.target.result;
+      database.createObjectStore(objectStoreName);
+    };
+    const promise = IndexedDBUtils.requestFinished(request);
+    const database = await promise;
+    database.close();
+  }
+
+  info("Starting database opening");
+
+  const openPromise = (function () {
+    const request = indexedDB.openForPrincipal(principal, name);
+    const promise = IndexedDBUtils.requestFinished(request);
+    return promise;
+  })();
+
+  info("Waiting for database work to start");
+
+  await TestUtils.topicObserved("IndexedDB::DatabaseWorkStarted");
+
+  info("Starting origin clearing");
+
+  const clearPromise = (async function () {
+    const request = Services.qms.clearStoragesForPrincipal(principal);
+    const promise = QuotaUtils.requestFinished(request);
+    return promise;
+  })();
+
+  info("Waiting for database to finish opening");
+
+  // XXX This should throw!
+  const database = await openPromise;
+
+  info("Waiting for origin to finish clearing");
+
+  await clearPromise;
+
+  info("Reading from the database");
+
+  const request = database
+    .transaction(objectStoreName)
+    .objectStore(objectStoreName)
+    .count();
+  await IndexedDBUtils.requestFinished(request);
+}
+
 /* exported testSteps */
 async function testSteps() {
   add_task(
@@ -66,5 +124,15 @@ async function testSteps() {
       ],
     },
     testNewDatabase
+  );
+
+  add_task(
+    {
+      pref_set: [
+        ["dom.indexedDB.databaseInitialization.pauseOnIOThreadMs", 2000],
+      ],
+      skip_if: () => true,
+    },
+    testExistingDatabase
   );
 }
