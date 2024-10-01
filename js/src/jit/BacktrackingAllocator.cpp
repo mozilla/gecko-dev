@@ -3934,22 +3934,16 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
         continue;
       }
 
-      // If we already saw a range which covers the start of this range
-      // and has the same allocation, we don't need an explicit move at
-      // the start of this range.
-      bool skip = false;
+#ifdef DEBUG
+      // If we already saw a range which covers the start of this range, it must
+      // have a different allocation.
       for (VirtualRegister::RangeIterator prevIter(reg); *prevIter != range;
            prevIter++) {
-        LiveRange* prevRange = *prevIter;
-        if (prevRange->covers(start) && prevRange->bundle()->allocation() ==
-                                            range->bundle()->allocation()) {
-          skip = true;
-          break;
-        }
+        MOZ_ASSERT_IF(
+            prevIter->covers(start),
+            prevIter->bundle()->allocation() != range->bundle()->allocation());
       }
-      if (skip) {
-        continue;
-      }
+#endif
 
       if (!alloc().ensureBallast()) {
         return false;
