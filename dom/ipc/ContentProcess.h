@@ -25,7 +25,8 @@ class ContentProcess : public mozilla::ipc::ProcessChild {
   using ProcessChild = mozilla::ipc::ProcessChild;
 
  public:
-  ContentProcess(ProcessId aParentPid, const nsID& aMessageChannelId);
+  ContentProcess(IPC::Channel::ChannelHandle aClientChannel,
+                 ProcessId aParentPid, const nsID& aMessageChannelId);
   ~ContentProcess();
 
   virtual bool Init(int aArgc, char* aArgv[]) override;

@@ -58,9 +58,10 @@ static nsresult GetGREDir(nsIFile** aResult) {
   return NS_OK;
 }
 
-ContentProcess::ContentProcess(ProcessId aParentPid,
+ContentProcess::ContentProcess(IPC::Channel::ChannelHandle aClientChannel,
+                               ProcessId aParentPid,
                                const nsID& aMessageChannelId)
-    : ProcessChild(aParentPid, aMessageChannelId) {
+    : ProcessChild(std::move(aClientChannel), aParentPid, aMessageChannelId) {
   NS_LogInit();
 }
 
