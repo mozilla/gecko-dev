@@ -2448,6 +2448,9 @@ export class ExtensionData {
    * @param {boolean} [options.buildOptionalOrigins]
    *                  Wether to build optional origins Maps for permission
    *                  controls.  Defaults to false.
+   * @param {boolean} [options.fullDomainsList]
+   *                  Wether to include the full domains set in the returned
+   *                  results.  Defaults to false.
    *
    * @returns {object} An object with properties containing localized strings
    *                   for various elements of a permission dialog. The "header"
@@ -2463,6 +2466,14 @@ export class ExtensionData {
    *                   "object.optionalOrigins" is a map of a host permission to localized strings
    *                   describing the host permission, where appropriate.  Currently only
    *                   all url style permissions are included.
+   *
+   *                   "object.fullDomainsList" is an object with a Set of the
+   *                   full domains list (with the property name "domainsSet")
+   *                   and the index of the corresponding message string (with
+   *                   the property name "msgIdIndex"). This property is
+   *                   expected to be set only if "options.fullDomainsList" is
+   *                   passed as true and the extension doesn't include
+   *                   allUrls origin permissions.
    */
   static formatPermissionStrings(
     {
@@ -2474,7 +2485,11 @@ export class ExtensionData {
       type,
       unsigned,
     },
-    { collapseOrigins = false, buildOptionalOrigins = false } = {}
+    {
+      collapseOrigins = false,
+      buildOptionalOrigins = false,
+      fullDomainsList = false,
+    } = {}
   ) {
     const l10n = lazy.PERMISSION_L10N;
 
@@ -2596,7 +2611,7 @@ export class ExtensionData {
       // first, then individual host permissions.
       if (allUrls) {
         msgIds.push("webext-perms-host-description-all-urls");
-      } else {
+      } else if (!fullDomainsList) {
         // Formats a list of host permissions.  If we have 4 or fewer, display
         // them all, otherwise display the first 3 followed by an item that
         // says "...plus N others"
@@ -2626,6 +2641,29 @@ export class ExtensionData {
           "webext-perms-host-description-one-site",
           "webext-perms-host-description-too-many-sites"
         );
+      }
+
+      if (!allUrls && fullDomainsList) {
+        const allHostPermissions = wildcards.union(sites);
+        if (allHostPermissions.size > 1) {
+          msgIds.push({
+            id: "webext-perms-host-description-multiple-domains",
+            args: {
+              domainCount: allHostPermissions.size,
+            },
+          });
+          result.fullDomainsList = {
+            domainsSet: allHostPermissions,
+            msgIdIndex: msgIds.length - 1,
+          };
+        } else if (allHostPermissions.size) {
+          msgIds.push({
+            id: "webext-perms-host-description-one-domain",
+            args: {
+              domain: Array.from(allHostPermissions)[0],
+            },
+          });
+        }
       }
 
       // Finally, show remaining permissions, in the same order as AMO.

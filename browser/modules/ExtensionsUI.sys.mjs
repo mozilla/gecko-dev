@@ -40,6 +40,13 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
+XPCOMUtils.defineLazyPreferenceGetter(
+  lazy,
+  "SHOW_FULL_DOMAINS_LIST",
+  "extensions.ui.installDialogFullDomains",
+  true
+);
+
 const DEFAULT_EXTENSION_ICON =
   "chrome://mozapps/skin/extensions/extensionGeneric.svg";
 
@@ -64,6 +71,10 @@ export var ExtensionsUI = {
   sideloadListener: null,
 
   pendingNotifications: new WeakMap(),
+
+  get SHOW_FULL_DOMAINS_LIST() {
+    return lazy.SHOW_FULL_DOMAINS_LIST;
+  },
 
   get POSTINSTALL_PRIVATEBROWSING_CHECKBOX() {
     return lazy.POSTINSTALL_PRIVATEBROWSING_CHECKBOX;
@@ -369,9 +380,12 @@ export var ExtensionsUI = {
 
   // Create a set of formatted strings for a permission prompt
   _buildStrings(info) {
-    const strings = lazy.ExtensionData.formatPermissionStrings(info, {
-      collapseOrigins: true,
-    });
+    const strings = lazy.ExtensionData.formatPermissionStrings(
+      info,
+      this.SHOW_FULL_DOMAINS_LIST
+        ? { fullDomainsList: true }
+        : { collapseOrigins: true }
+    );
     strings.addonName = info.addon.name;
     return strings;
   },
