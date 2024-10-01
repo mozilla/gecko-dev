@@ -303,8 +303,6 @@ skip-if = ["tsan"] # Unreasonably slow, bug 1612707
 
 ["test_pauselifetime-02.js"]
 
-["test_pauselifetime-03.js"]
-
 ["test_pauselifetime-04.js"]
 
 ["test_promise_state-01.js"]

@@ -305,19 +305,6 @@ async function autocomplete(input, cursor, frameId) {
   });
 }
 
-function getProperties(thread, grip) {
-  const objClient = lookupThreadFront(thread).pauseGrip(grip);
-
-  return objClient.getPrototypeAndProperties().then(resp => {
-    const { ownProperties, safeGetterValues } = resp;
-    for (const name in safeGetterValues) {
-      const { enumerable, writable, getterValue } = safeGetterValues[name];
-      ownProperties[name] = { enumerable, writable, value: getterValue };
-    }
-    return resp;
-  });
-}
-
 async function getFrames(thread) {
   const threadFront = lookupThreadFront(thread);
   const response = await threadFront.getFrames(0, CALL_STACK_PAGE_SIZE);
@@ -403,10 +390,6 @@ async function getEventListenerBreakpointTypes() {
   return currentThreadFront().getAvailableEventBreakpoints();
 }
 
-function pauseGrip(thread, func) {
-  return lookupThreadFront(thread).pauseGrip(func);
-}
-
 async function toggleEventLogging(logEventBreakpoints) {
   await commands.threadConfigurationCommand.updateConfiguration({
     logEventBreakpoints,
@@ -451,7 +434,6 @@ const clientCommands = {
   createObjectFront,
   loadObjectProperties,
   releaseActor,
-  pauseGrip,
   resume,
   stepIn,
   stepOut,
@@ -471,7 +453,6 @@ const clientCommands = {
   removeBreakpoint,
   evaluate,
   evaluateExpressions,
-  getProperties,
   getFrameScopes,
   getFrames,
   pauseOnDebuggerStatement,
