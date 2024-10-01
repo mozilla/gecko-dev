@@ -502,25 +502,6 @@ static JitActivation* CallingActivation(JSContext* cx) {
   return act->asJit();
 }
 
-template <typename Fn, typename... Ts>
-static bool ForwardToMainStack(Fn fn, JSContext* cx, Ts... args) {
-#ifdef ENABLE_WASM_JSPI
-  if (IsSuspendableStackActive(cx)) {
-    struct InvokeContext {
-      bool (*fn)(JSContext*, Ts...);
-      JSContext* cx;
-      std::tuple<Ts...> args;
-      static bool Run(InvokeContext* data) {
-        return data->fn(data->cx, std::get<Ts>(data->args)...);
-      }
-    } data = {fn, cx, std::make_tuple(args...)};
-    return CallOnMainStack(
-        cx, reinterpret_cast<CallOnMainStackFn>(InvokeContext::Run), &data);
-  }
-#endif
-  return fn(cx, args...);
-}
-
 static bool WasmHandleDebugTrap() {
   JSContext* cx = TlsContext.get();  // Cold code
   JitActivation* activation = CallingActivation(cx);
@@ -544,8 +525,7 @@ static bool WasmHandleDebugTrap() {
     }
     debugFrame->setIsDebuggee();
     debugFrame->observe(cx);
-    if (!ForwardToMainStack(DebugAPI::onEnterFrame, cx,
-                            js::AbstractFramePtr(debugFrame))) {
+    if (!DebugAPI::onEnterFrame(cx, debugFrame)) {
       if (cx->isPropagatingForcedReturn()) {
         cx->clearPropagatingForcedReturn();
         // Ignoring forced return because changing code execution order is
@@ -567,9 +547,7 @@ static bool WasmHandleDebugTrap() {
     if (site->kind() == CallSite::CollapseFrame) {
       debugFrame->discardReturnJSValue();
     }
-    bool ok = ForwardToMainStack(DebugAPI::onLeaveFrame, cx,
-                                 js::AbstractFramePtr(debugFrame),
-                                 (const jsbytecode*)nullptr, true);
+    bool ok = DebugAPI::onLeaveFrame(cx, debugFrame, nullptr, true);
     debugFrame->leave(cx);
     return ok;
   }
@@ -577,7 +555,7 @@ static bool WasmHandleDebugTrap() {
   DebugState& debug = instance->debug();
   MOZ_ASSERT(debug.hasBreakpointTrapAtOffset(site->lineOrBytecode()));
   if (debug.stepModeEnabled(debugFrame->funcIndex())) {
-    if (!ForwardToMainStack(DebugAPI::onSingleStep, cx)) {
+    if (!DebugAPI::onSingleStep(cx)) {
       if (cx->isPropagatingForcedReturn()) {
         cx->clearPropagatingForcedReturn();
         // TODO properly handle forced return.
@@ -588,7 +566,7 @@ static bool WasmHandleDebugTrap() {
     }
   }
   if (debug.hasBreakpointSite(site->lineOrBytecode())) {
-    if (!ForwardToMainStack(DebugAPI::onTrap, cx)) {
+    if (!DebugAPI::onTrap(cx)) {
       if (cx->isPropagatingForcedReturn()) {
         cx->clearPropagatingForcedReturn();
         // TODO properly handle forced return.
@@ -838,8 +816,7 @@ void wasm::HandleExceptionWasm(JSContext* cx, JitFrameIter& iter,
     // Assume ResumeMode::Terminate if no exception is pending --
     // no onExceptionUnwind handlers must be fired.
     if (cx->isExceptionPending()) {
-      if (!ForwardToMainStack(DebugAPI::onExceptionUnwind, cx,
-                              AbstractFramePtr(frame))) {
+      if (!DebugAPI::onExceptionUnwind(cx, frame)) {
         if (cx->isPropagatingForcedReturn()) {
           cx->clearPropagatingForcedReturn();
           // Unexpected trap return -- raising error since throw recovery
@@ -852,9 +829,7 @@ void wasm::HandleExceptionWasm(JSContext* cx, JitFrameIter& iter,
       }
     }
 
-    bool ok =
-        ForwardToMainStack(DebugAPI::onLeaveFrame, cx, AbstractFramePtr(frame),
-                           (const jsbytecode*)nullptr, false);
+    bool ok = DebugAPI::onLeaveFrame(cx, frame, nullptr, false);
     if (ok) {
       // Unexpected success from the handler onLeaveFrame -- raising error
       // since throw recovery is not yet implemented in the wasm baseline.

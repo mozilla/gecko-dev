@@ -224,8 +224,9 @@ class SuspenderObjectData
 bool ParseSuspendingPromisingString(JSContext* cx, JS::HandleValue val,
                                     SuspenderArgPosition& result);
 
-using CallOnMainStackFn = bool (*)(void* data);
-bool CallOnMainStack(JSContext* cx, CallOnMainStackFn fn, void* data);
+bool CallImportOnMainThread(JSContext* cx, Instance* instance,
+                            int32_t funcImportIndex, int32_t argc,
+                            uint64_t* argv);
 
 JSFunction* WasmSuspendingFunctionCreate(JSContext* cx, HandleObject func,
                                          wasm::ValTypeVector&& params,
