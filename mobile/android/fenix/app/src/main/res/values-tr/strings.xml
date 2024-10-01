@@ -1314,6 +1314,11 @@
     <!-- Text for the button to navigate to sync authentication -->
     <string name="bookmark_empty_list_guest_cta">Eşitlemek için giriş yap</string>
 
+    <!-- Description for the bookmark list empty state when you're signed into sync. -->
+    <string name="bookmark_empty_list_authenticated_description">Gezinirken siteleri kaydedin. Eşitlenen diğer cihazlardaki yer imleriniz de buraya eklenecek.</string>
+    <!-- Description for the bookmark list empty state when you're in an empty folder. -->
+    <string name="bookmark_empty_list_folder_description">Gezinirken sevdiğiniz siteleri yer imlerinize ekleyerek onları daha sonra bulabilirsiniz.</string>
+
     <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Ayarlara git</string>
@@ -2896,6 +2901,10 @@
     <string name="debug_drawer_cfr_tools_title">CFR araçları</string>
     <!-- The title of the reset CFR section in CFR Tools -->
     <string name="debug_drawer_cfr_tools_reset_cfr_title">CFR’leri sıfırla</string>
+
+    <!-- Glean debug tools -->
+    <!-- The title of the glean debugging feature -->
+    <string name="glean_debug_tools_title">Glean Hata Ayıklama Araçları</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->

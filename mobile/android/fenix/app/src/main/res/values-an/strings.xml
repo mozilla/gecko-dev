@@ -12,7 +12,7 @@
     <string name="content_description_private_browsing_button">Activar navegación privada</string>
     <!-- Content description (not visible, for screen readers etc.): "Private Browsing" menu button. -->
     <string name="content_description_disable_private_browsing_button">Desactivar navegación privada</string>
-    <!-- Placeholder text shown in the search bar before a user enters text -->
+    <!-- Placeholder text shown in the search bar before a user enters text for the default engine -->
     <string name="search_hint">Buscar u escribir adreza</string>
     <!-- No Open Tabs Message Description -->
     <string name="no_open_tabs_description">Las tuyas pestanyas ubiertas amaneixerán aquí.</string>
@@ -38,15 +38,19 @@
     <!-- About content. The first parameter is the name of the application. (For example: Fenix) -->
     <string name="about_content">%1$s ye produciu per Mozilla.</string>
 
+    <!-- Private Browsing -->
     <!-- Explanation for private browsing displayed to users on home view when they first enable private mode
         The first parameter is the name of the app defined in app_name (for example: Fenix) -->
     <string name="private_browsing_placeholder_description_2">%1$s limpia lo tuyo historial de busquedas y de navegación en as pestanyas privadas quan las zarras u en salir de l’aplicación. Encara que no te fa invisible debant d’os puestos web u d’o tuyo furnidor de servicios, ye mas facil salvaguardar la tuya vida privada de qualsequier persona que faga servir este dispositivo.</string>
     <string name="private_browsing_common_myths">
        Mitos comuns sobre la navegación privada</string>
 
-    <!-- Text for the negative button -->
+    <!-- Text for the negative button to decline adding a Private Browsing shortcut to the Home screen -->
     <string name="cfr_neg_button_text">No, gracias</string>
 
+    <!-- Open in App "contextual feature recommendation" (CFR) -->
+    <!-- Text for the info message. The first parameter is the name of the application.-->
+    <string name="open_in_app_cfr_info_message_2">Puez configurar %1$s pa que ubra automaticament los vinclos en as aplicacions.</string>
     <!-- Text for the positive action button -->
     <string name="open_in_app_cfr_positive_button_text">Ir ta los achustes</string>
     <!-- Text for the negative action button -->
@@ -68,12 +72,50 @@
     <string name="tab_tray_close_tabs_banner_negative_button_text">Descartar</string>
 
 
+    <!-- Text for the banner message to tell users about our inactive tabs feature. -->
+    <string name="tab_tray_inactive_onboarding_message">Ta aquí se mueven las pestanyas que no has visitau dende fa dos semanas.</string>
+    <!-- Text for the action link to go to Settings for inactive tabs. -->
+    <string name="tab_tray_inactive_onboarding_button_text">Desactivar-lo en achustes</string>
+    <!-- Text for title for the auto-close dialog of the inactive tabs. -->
+    <string name="tab_tray_inactive_auto_close_title">Tancar automaticament dimpués d\'un mes?</string>
+    <!-- Text for the body for the auto-close dialog of the inactive tabs.
+        The first parameter is the name of the application.-->
+    <string name="tab_tray_inactive_auto_close_body_2">%1$s puet tancar pestanyas que no haigas ubierto en un mes.</string>
+    <!-- Content description for close button in the auto-close dialog of the inactive tabs. -->
+    <string name="tab_tray_inactive_auto_close_button_content_description">Tancar</string>
+
+    <!-- Text for turn on auto close tabs button in the auto-close dialog of the inactive tabs. -->
+    <string name="tab_tray_inactive_turn_on_auto_close_button_2">Activar tancamiento automatico</string>
+
+
     <!-- Home screen icons - Long press shortcuts -->
     <!-- Shortcut action to open new tab -->
     <string name="home_screen_shortcut_open_new_tab_2">Nueva pestanya</string>
     <!-- Shortcut action to open new private tab -->
     <string name="home_screen_shortcut_open_new_private_tab_2">Nueva pestanya privada</string>
 
+    <!-- Recent Tabs -->
+    <!-- Header text for jumping back into the recent tab in the home screen -->
+    <string name="recent_tabs_header">Tornar ta la pestanya</string>
+    <!-- Button text for showing all the tabs in the tabs tray -->
+    <string name="recent_tabs_show_all">Amostrar-lo tot</string>
+    <!-- Content description for the button which navigates the user to show all recent tabs in the tabs tray. -->
+    <string name="recent_tabs_show_all_content_description_2">Amostrar lo botón de totas as pestanyas recients</string>
+    <!-- Text for the menu button to remove a grouped highlight from the user's browsing history
+         in the Recently visited section -->
+    <string name="recent_tab_menu_item_remove">Borrar</string>
+
+    <!-- History Metadata -->
+    <!-- Header text for a section on the home screen that displays grouped highlights from the
+         user's browsing history, such as topics they have researched or explored on the web -->
+    <string name="history_metadata_header_2">Visitadas recientment</string>
+    <!-- Text for the menu button to remove a grouped highlight from the user's browsing history
+         in the Recently visited section -->
+    <string name="recently_visited_menu_item_remove">Borrar</string>
+    <!-- Content description for the button which navigates the user to show all of their history. -->
+    <string name="past_explorations_show_all_content_description_2">Amostrar totas las exploracions pasadas</string>
+
+    <!-- Browser Fragment -->
     <!-- Content description (not visible, for screen readers etc.): Navigate backward (browsing history) -->
     <string name="browser_menu_back">Dezaga</string>
     <!-- Content description (not visible, for screen readers etc.): Navigate forward (browsing history) -->
@@ -82,10 +124,6 @@
     <string name="browser_menu_refresh">Actualizar</string>
     <!-- Content description (not visible, for screen readers etc.): Stop loading current website -->
     <string name="browser_menu_stop">Aturar</string>
-    <!-- Browser menu button that opens the addon manager -->
-    <string name="browser_menu_add_ons">Complementos</string>
-    <!-- Text displayed when there are no add-ons to be shown -->
-    <string name="no_add_ons">No i hai garra complemento aquí</string>
     <!-- Browser menu button that sends a user to help articles -->
     <string name="browser_menu_help">Aduya</string>
     <!-- Browser menu button that sends a to a the what's new article -->
@@ -98,8 +136,6 @@
     <string name="browser_menu_desktop_site">Puesto d’escritorio</string>
     <!-- Browser menu toggle that adds a shortcut to the site on the device home screen. -->
     <string name="browser_menu_add_to_homescreen">Adhibir a la pantalla d’Inicio</string>
-    <!-- Browser menu toggle that installs a Progressive Web App shortcut to the site on the device home screen. -->
-    <string name="browser_menu_install_on_homescreen">Instalar</string>
     <!-- Content description (not visible, for screen readers etc.) for the Resync tabs button -->
     <string name="resync_button_content_description">Resincronizar</string>
     <!-- Browser menu button that opens the find in page menu -->
@@ -123,6 +159,19 @@
     <string name="browser_menu_read_close">Zarrar la vista de lectura</string>
     <!-- Browser menu button to open the current page in an external app -->
     <string name="browser_menu_open_app_link">Ubrir en aplicación</string>
+
+    <!-- Browser menu button to show reader view appearance controls e.g. the used font type and size -->
+    <string name="browser_menu_customize_reader_view">Personalizar la vista de lectura</string>
+    <!-- Browser menu label for adding a bookmark -->
+    <string name="browser_menu_add">Anyadir</string>
+    <!-- Browser menu label for editing a bookmark -->
+    <string name="browser_menu_edit">Editar</string>
+    <!-- Button shown on the home page that opens the Customize home settings -->
+    <string name="browser_menu_customize_home_1">Personalizar pachina d’inicio</string>
+
+    <!-- Browser Toolbar -->
+    <!-- Content description for the Home screen button on the browser toolbar -->
+    <string name="browser_toolbar_home">Pachina d’inicio</string>
 
     <!-- Locale Settings Fragment -->
     <!-- Content description for tick mark on selected language -->
@@ -148,6 +197,14 @@
     <!-- Search suggestion onboarding hint description text, first parameter is the name of the app defined in app_name (for example: Fenix)-->
     <string name="search_suggestions_onboarding_text">%s compartirá tot lo que escribas en a barra d’adrezas con o tuyo buscador predeterminau.</string>
 
+    <!-- Search engine suggestion title text. The first parameter is the name of the suggested engine-->
+    <string name="search_engine_suggestions_title">Mirar %s</string>
+    <!-- Search engine suggestion description text -->
+    <string name="search_engine_suggestions_description">Mirar directament d’a barra d’adrezas</string>
+
+    <!-- Search Widget -->
+    <!-- Content description for searching with a widget. The first parameter is the name of the application.-->
+    <string name="search_widget_content_description_2">Ubrir una nueva pestanya %1$s</string>
     <!-- Text preview for smaller sized widgets -->
     <string name="search_widget_text_short">Buscar</string>
     <!-- Text preview for larger sized widgets -->
@@ -196,10 +253,10 @@
     <string name="preferences_override_sync_tokenserver">Servidor personalizau de Sync</string>
     <!-- Preference category for account information -->
     <string name="preferences_category_account">Cuenta</string>
-    <!-- Preference for changing where the toolbar is positioned -->
-    <string name="preferences_toolbar">Barra de ferramientas</string>
     <!-- Preference for changing default theme to dark or light mode -->
     <string name="preferences_theme">Tema</string>
+    <!-- Preference for customizing the home screen -->
+    <string name="preferences_home_2">Pachina d’inicio</string>
     <!-- Preference for gestures based actions -->
     <string name="preferences_gestures">Cenyos</string>
     <!-- Preference for settings related to visual options -->
@@ -237,13 +294,28 @@
     <!-- Preference for open download with an external download manager app -->
     <string name="preferences_external_download_manager">Chestor de descargas externo</string>
 
-    <!-- Preference for add_ons -->
-    <string name="preferences_addons">Complementos</string>
-
     <!-- Preference for notifications -->
     <string name="preferences_notifications">Notificacions</string>
 
-    <!-- Account Preferences -->
+    <!-- Button caption to confirm the add-on collection configuration -->
+    <string name="customize_addon_collection_ok">Aceptar</string>
+    <!-- Button caption to abort the add-on collection configuration -->
+    <string name="customize_addon_collection_cancel">Cancelar</string>
+    <!-- Hint displayed on input field for custom collection name -->
+    <string name="customize_addon_collection_hint">Nombre d’a colección</string>
+    <!-- Hint displayed on input field for custom collection user ID-->
+    <string name="customize_addon_collection_user_hint">Propietario d’a colección (ID d’usuario)</string>
+
+    <!-- Customize Home -->
+    <!-- Header text for jumping back into the recent tab in customize the home screen -->
+    <string name="customize_toggle_jump_back_in">Tornar ta la pestanya</string>
+    <!-- Title for the customize home screen section with recently visited. Recently visited is
+    a section where users see a list of tabs that they have visited in the past few days -->
+    <string name="customize_toggle_recently_visited">Visitadas fa poco</string>
+
+    <!-- Snackbar label for action to view selected wallpaper -->
+    <string name="wallpaper_updated_snackbar_action">Veyer</string>
+
     <!-- Preference for triggering sync -->
     <string name="preferences_sync_now">Sincronizar agora</string>
     <!-- Preference category for sync -->
@@ -252,8 +324,6 @@
     <string name="preferences_sync_history">Historial</string>
     <!-- Preference for syncing bookmarks -->
     <string name="preferences_sync_bookmarks">Marcapachinas</string>
-    <!-- Preference for syncing logins -->
-    <string name="preferences_sync_logins">Inicios de sesión</string>
     <!-- Preference for syncing tabs -->
     <string name="preferences_sync_tabs_2">Pestanyas ubiertas</string>
     <!-- Preference for signing out -->
@@ -277,16 +347,20 @@
         and the third is the device model. -->
     <string name="default_device_name_2">%1$s en %2$s %3$s</string>
 
+    <!-- Preference for syncing addresses -->
+    <string name="preferences_sync_address">Adrezas</string>
+
     <!-- Send Tab -->
     <!-- Name of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
     <string name="fxa_received_tab_channel_name">Pestanyas recebidas</string>
     <!-- Description of the "receive tabs" notification channel. Displayed in the "App notifications" system settings for the app -->
-    <string name="fxa_received_tab_channel_description">Notificacions pa pestanyas recibidas d’atros dispositivos Firefox.</string>
+    <string name="fxa_received_tab_channel_description" tools:ignore="BrandUsage">Notificacions pa pestanyas recibidas d’atros dispositivos Firefox.</string>
     <!--  The body for these is the URL of the tab received  -->
     <string name="fxa_tab_received_notification_name">Pestanya recebida</string>
     <!-- %s is the device name -->
     <string name="fxa_tab_received_from_notification_name">Pestanya de %s</string>
 
+    <!-- Advanced Preferences -->
     <!-- Preference for tracking protection exceptions -->
     <string name="preferences_tracking_protection_exceptions">Excepcions</string>
     <!-- Button in Exceptions Preference to turn on tracking protection for all sites (remove all exceptions) -->
@@ -302,6 +376,11 @@
     <string name="preferences_usage_data_description">Comparte datos de rendimiento, uso, hardware y personalizacions sobre lo tuyo navegador con Mozilla pa aduyar a amillorar %1$s</string>
     <!-- Preference switch for marketing data collection -->
     <string name="preferences_marketing_data">Datos de marketing</string>
+
+    <!-- Title for studies preferences -->
+    <string name="preference_experiments_2">Estudios</string>
+    <!-- Summary for studies preferences -->
+    <string name="preference_experiments_summary_2">Permite que Mozilla instale y execute estudios</string>
 
     <!-- Preference for reconnecting to FxA sync -->
     <string name="preferences_sync_sign_in_to_reconnect">Inicia sesión pa reconnectar</string>
@@ -334,11 +413,10 @@
     <!-- Preference for using the dynamic toolbar -->
     <string name="preference_gestures_dynamic_toolbar">Desplazar pa amagar la barra de ferramientas</string>
 
-    <!-- Preference for switching tabs by swiping horizontally on the toolbar -->
-    <string name="preference_gestures_swipe_toolbar_switch_tabs">Eslizar la barra de ferramientas enta los costaus pa cambiar de pestanya</string>
     <!-- Preference for showing the opened tabs by swiping up on the toolbar-->
     <string name="preference_gestures_swipe_toolbar_show_tabs">Eslizar la barra de ferramientas enta alto pa ubrir las pestanyas</string>
 
+    <!-- Library -->
     <!-- Option in Library to open Downloads page -->
     <string name="library_downloads">Descargas</string>
     <!-- Option in library to open Bookmarks page -->
@@ -353,6 +431,8 @@
     <string name="library_desktop_bookmarks_unfiled">Atros marcapachinas</string>
     <!-- Option in Library to open History page -->
     <string name="library_history">Historial</string>
+    <!-- Option in Library to open a new tab -->
+    <string name="library_new_tab">Nueva pestanya</string>
     <!-- Settings Page Title -->
     <string name="settings_title">Achustes</string>
     <!-- Content description (not visible, for screen readers etc.): "Close button for library settings" -->
@@ -371,6 +451,15 @@
     <!-- Recently closed tabs screen message when there are no recently closed tabs -->
     <string name="recently_closed_empty_message">No bi ha aquí pestanyas zarradas fa poco</string>
 
+    <!-- Tab Management -->
+    <!-- Title of preference for tabs management -->
+    <string name="preferences_tabs">Pestanyas</string>
+    <!-- Title of preference that allows a user to specify the tab view -->
+    <string name="preferences_tab_view">Vista de pestanyas</string>
+    <!-- Option for a list tab view -->
+    <string name="tab_view_list">Lista</string>
+    <!-- Option for a grid tab view -->
+    <string name="tab_view_grid">Rella</string>
     <!-- Title of preference that allows a user to auto close tabs after a specified amount of time -->
     <string name="preferences_close_tabs">Zarrar las pestanyas</string>
     <!-- Option for auto closing tabs that will never auto close tabs, always allows user to manually close tabs -->
@@ -382,27 +471,84 @@
     <!-- Option for auto closing tabs that will auto close tabs after one month -->
     <string name="close_tabs_after_one_month">Dimpués d\'un mes</string>
 
+    <!-- Title of preference that allows a user to specify the auto-close settings for open tabs -->
+    <string name="preference_auto_close_tabs" tools:ignore="UnusedResources">Auto-tancar pestanyas ubiertas</string>
+
+    <!-- Option for always opening the homepage when re-opening the app -->
+    <string name="opening_screen_homepage">Pachina d’inicio</string>
+    <!-- Option for always opening the user's last-open tab when re-opening the app -->
+    <string name="opening_screen_last_tab">Zaguera pestanya</string>
+    <!-- Option for always opening the homepage when re-opening the app after four hours of inactivity -->
+    <string name="opening_screen_after_four_hours_of_inactivity">Pachina d’inicio dimpués de cuatro horas d’inactividaz</string>
+    <!-- Summary for tabs preference when auto closing tabs setting is set to manual close-->
+    <string name="close_tabs_manually_summary">Tancar manualment</string>
+    <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one day-->
+    <string name="close_tabs_after_one_day_summary">Tancar dimpués d’un día</string>
+    <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one week-->
+    <string name="close_tabs_after_one_week_summary">Tancar dimpués d’una semana</string>
+    <!-- Summary for tabs preference when auto closing tabs setting is set to auto close tabs after one month-->
+    <string name="close_tabs_after_one_month_summary">Tancar dimpués d’un mes</string>
+
+    <!-- Title of inactive tabs preference -->
+    <string name="preferences_inactive_tabs_title">Las pestanyas que no has visto dende fa dos semanas se mueven ta la sección inactiva.</string>
+
+    <!-- Studies -->
+    <!-- Title of the remove studies button -->
+    <string name="studies_remove">Eliminar</string>
+    <!-- Title of the active section on the studies list -->
+    <string name="studies_active">Activo</string>
+    <!-- Description for studies, it indicates why Firefox use studies. The first parameter is the name of the application. -->
+    <string name="studies_description_2">%1$s puede instalar y executar estudios de cabo ta cuan.</string>
+    <!-- Learn more link for studies, links to an article for more information about studies. -->
+    <string name="studies_learn_more">Mas información</string>
+    <!-- Dialog message shown after removing a study -->
+    <string name="studies_restart_app">L’aplicación se tancará pa aplicar cambios</string>
+    <!-- Dialog button to confirm the removing a study. -->
+    <string name="studies_restart_dialog_ok">Aceptar</string>
+    <!-- Dialog button text for canceling removing a study. -->
+    <string name="studies_restart_dialog_cancel">Cancelar</string>
+    <!-- Toast shown after turning on/off studies preferences -->
+    <string name="studies_toast_quit_application" tools:ignore="UnusedResources">Tancando l’aplicación pa aplicar cambios…</string>
+
     <!-- Sessions -->
     <!-- Title for the list of tabs -->
     <string name="tab_header_label">Pestanyas ubiertas</string>
     <!-- Title for the list of tabs in the current private session -->
     <string name="tabs_header_private_tabs_title">Pestanyas privadas</string>
+    <!-- Title for the list of tabs in the synced tabs -->
+    <string name="tabs_header_synced_tabs_title">Pestanyas sincronizadas</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_tab">Anyadir pestanya</string>
     <!-- Content description (not visible, for screen readers etc.): Add tab button. Adds a news tab when pressed -->
     <string name="add_private_tab">Anyadir pestanya privada</string>
     <!-- Text for the new tab button to indicate adding a new private tab in the tab -->
     <string name="tab_drawer_fab_content">Privada</string>
+    <!-- Text for the new tab button to indicate syncing command on the synced tabs page -->
+    <string name="tab_drawer_fab_sync">Sincronizar</string>
     <!-- Text shown in the menu for sharing all tabs -->
     <string name="tab_tray_menu_item_share">Compartir totas las pestanyas</string>
     <!-- Text shown in the menu to view recently closed tabs -->
     <string name="tab_tray_menu_recently_closed">Pestanyas tancadas fa poco</string>
+    <!-- Text shown in the tabs tray inactive tabs section -->
+    <string name="tab_tray_inactive_recently_closed" tools:ignore="UnusedResources">Tancadas recientement</string>
+    <!-- Text shown in the menu to view account settings -->
+    <string name="tab_tray_menu_account_settings">Achustes d’a cuenta</string>
     <!-- Text shown in the menu to view tab settings -->
     <string name="tab_tray_menu_tab_settings">Achustes de pestanya</string>
     <!-- Text shown in the menu for closing all tabs -->
     <string name="tab_tray_menu_item_close">Zarrar totas las pestanyas</string>
+    <!-- Text shown in the multiselect menu for bookmarking selected tabs. -->
+    <string name="tab_tray_multiselect_menu_item_bookmark">Marcapachinas</string>
+    <!-- Text shown in the multiselect menu for closing selected tabs. -->
+    <string name="tab_tray_multiselect_menu_item_close">Tancar</string>
+    <!-- Content description for tabs tray multiselect share button -->
+    <string name="tab_tray_multiselect_share_content_description">Compartir pestanyas triadas</string>
+    <!-- Content description for tabs tray multiselect menu -->
+    <string name="tab_tray_multiselect_menu_content_description">Menu de pestanyas triadas</string>
     <!-- Content description (not visible, for screen readers etc.): Removes tab from collection button. Removes the selected tab from collection when pressed -->
     <string name="remove_tab_from_collection">Borrar pestanya d’a colección</string>
+    <!-- Text for button to enter multiselect mode in tabs tray -->
+    <string name="tabs_tray_select_tabs">Triar pestanyas</string>
     <!-- Content description (not visible, for screen readers etc.): Close tab button. Closes the current session when pressed -->
     <string name="close_tab">Zarrar pestanya</string>
     <!-- Content description (not visible, for screen readers etc.): Close tab <title> button. First parameter is tab title  -->
@@ -417,25 +563,35 @@
     <string name="collection_rename">Cambiar nombre a colección</string>
     <!-- Text for the button to open tabs of the selected collection -->
     <string name="collection_open_tabs">Ubrir pestanyas</string>
+    <!-- Hint for adding name of a collection -->
+    <string name="collection_name_hint">Nombre d’a coleccion</string>
+    <!-- Text for the menu button to rename a top site -->
+    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Renombrar</string>
     <!-- Text for the menu button to remove a top site -->
-	<string name="remove_top_site">Borrar</string>
+    <string name="remove_top_site">Borrar</string>
     <!-- Text for the menu button to delete a top site from history -->
     <string name="delete_from_history">Borrar de l\'historial</string>
     <!-- Postfix for private WebApp titles, placeholder is replaced with app name -->
     <string name="pwa_site_controls_title_private">%1$s (modo privau)</string>
 
     <!-- History -->
+    <!-- Text for the button to search all history -->
+    <string name="history_search_1">Escribe los termens de busqueda</string>
     <!-- Text for the button to clear all history -->
     <string name="history_delete_all">Borrar historial</string>
     <!-- Text for the snackbar to confirm that multiple browsing history items has been deleted -->
     <string name="history_delete_multiple_items_snackbar">Historial borrau</string>
     <!-- Text for the snackbar to confirm that a single browsing history item has been deleted. The first parameter is the shortened URL of the deleted history item. -->
     <string name="history_delete_single_item_snackbar">S’ha borrau %1$s</string>
-    <!-- Text for the button to delete a single history item -->
-    <string moz:removedIn="94" name="history_delete_item" tools:ignore="UnusedResources">Borrar</string>
+    <!-- Context description text for the button to delete a single history item -->
+    <string name="history_delete_item">Borrar</string>
     <!-- History multi select title in app bar
     The first parameter is the number of bookmarks selected -->
     <string name="history_multi_select_title">%1$d triau(s)</string>
+    <!-- Text for the header that groups the history for today -->
+    <string name="history_today">Hue</string>
+    <!-- Text for the header that groups the history for yesterday -->
+    <string name="history_yesterday">Ahiere</string>
     <!-- Text for the header that groups the history the past 7 days -->
     <string name="history_7_days">Zaguers 7 días</string>
     <!-- Text for the header that groups the history the past 30 days -->
@@ -445,9 +601,20 @@
     <!-- Text shown when no history exists -->
     <string name="history_empty_message">No i hai garra historial</string>
 
+    <!-- Downloads -->
+    <!-- Text for the snackbar to confirm that multiple downloads items have been removed -->
+    <string name="download_delete_multiple_items_snackbar_1">Descargas eliminadas</string>
+    <!-- Text for the snackbar to confirm that a single download item has been removed. The first parameter is the name of the download item. -->
+    <string name="download_delete_single_item_snackbar">%1$s eliminau</string>
+    <!-- Text shown when no download exists -->
+    <string name="download_empty_message_1">No hi ha descargas aquí</string>
     <!-- History multi select title in app bar
     The first parameter is the number of downloads selected -->
     <string name="download_multi_select_title">%1$d seleccionaus</string>
+
+
+    <!-- Text for the button to remove a single download item -->
+    <string name="download_delete_item_1">Eliminar</string>
 
 
     <!-- Crashes -->
@@ -460,6 +627,7 @@
     <!-- Restore tab button text on the tab crash page -->
     <string name="tab_crash_restore">Restaurar pestanya</string>
 
+    <!-- Bookmarks -->
     <!-- Confirmation message for a dialog confirming if the user wants to delete the selected folder -->
     <string name="bookmark_delete_folder_confirmation_dialog">Seguro que quiers borrar esta carpeta?</string>
     <!-- Confirmation message for a dialog confirming if the user wants to delete multiple items including folders. Parameter will be replaced by app name. -->
@@ -519,6 +687,7 @@
     <!-- Bookmark undo button for deletion snackbar action -->
     <string name="bookmark_undo_deletion">DESFER</string>
 
+    <!-- Site Permissions -->
     <!-- Button label that take the user to the Android App setting -->
     <string name="phone_feature_go_to_settings">Ir a Achustes</string>
     <!-- Content description (not visible, for screen readers etc.): Quick settings sheet
@@ -543,6 +712,8 @@
     <string name="preference_phone_feature_location">Ubicación</string>
     <!-- Preference for altering the notification access for all websites -->
     <string name="preference_phone_feature_notification">Notificación</string>
+    <!-- Preference for altering the EME access for all websites -->
+    <string name="preference_phone_feature_media_key_system_access">Conteniu controlau per DRM</string>
     <!-- Label that indicates that a permission must be asked always -->
     <string name="preference_option_phone_feature_ask_to_allow">Pedir permiso</string>
     <!-- Label that indicates that a permission must be blocked -->
@@ -557,18 +728,29 @@
     <string name="tracking_protection_off">Desactivada</string>
     <!-- Label for global setting that indicates that all video and audio autoplay is allowed -->
     <string name="preference_option_autoplay_allowed2">Permitir audio y vídeo</string>
+    <!-- Label for site specific setting that indicates that all video and audio autoplay is allowed -->
+    <string name="quick_setting_option_autoplay_allowed">Permitir audio y vídeo</string>
     <!-- Label that indicates that video and audio autoplay is only allowed over Wi-Fi -->
     <string name="preference_option_autoplay_allowed_wifi_only2">Blocar audio y vídeo nomás con datos mobils</string>
     <!-- Subtext that explains 'autoplay on Wi-Fi only' option -->
     <string name="preference_option_autoplay_allowed_wifi_subtext">L’audio y lo vídeo se reproducirán con Wi-Fi</string>
     <!-- Label for global setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
     <string name="preference_option_autoplay_block_audio2">Blocar solo audio</string>
+    <!-- Label for site specific setting that indicates that video autoplay is allowed, but audio autoplay is blocked -->
+    <string name="quick_setting_option_autoplay_block_audio">Blocar solo audio</string>
     <!-- Label for global setting that indicates that all video and audio autoplay is blocked -->
     <string name="preference_option_autoplay_blocked3">Blocar audio y vídeo</string>
+    <!-- Label for site specific setting that indicates that all video and audio autoplay is blocked -->
+    <string name="quick_setting_option_autoplay_blocked">Blocar audio y video</string>
     <!-- Summary of delete browsing data on quit preference if it is set to on -->
     <string name="delete_browsing_data_quit_on">Activau</string>
     <!-- Summary of delete browsing data on quit preference if it is set to off -->
     <string name="delete_browsing_data_quit_off">Desactivau</string>
+
+    <!-- Summary of studies preference if it is set to on -->
+    <string name="studies_on">Activau</string>
+    <!-- Summary of studies data on quit preference if it is set to off -->
+    <string name="studies_off">Desactivau</string>
 
     <!-- Collections -->
     <!-- Collections header on home fragment -->
@@ -613,6 +795,7 @@
     <!-- Default name for a new collection in "name new collection" step of the collection creator. %d is a placeholder for the number of collections-->
     <string name="create_collection_default_name">Colección %d</string>
 
+    <!-- Share -->
     <!-- Share screen header -->
     <string name="share_header_2">Compartir</string>
     <!-- Content description (not visible, for screen readers etc.):
@@ -635,7 +818,7 @@
     <!-- An option to connect additional devices -->
     <string name="sync_connect_device">Connectar belatro dispositivo</string>
     <!-- The dialog text shown when additional devices are not available -->
-    <string name="sync_connect_device_dialog">Pa ninviar una pestanya, inicia sesión en Firefox a lo menos en unatro dispositivo.</string>
+    <string name="sync_connect_device_dialog" tools:ignore="BrandUsage">Pa ninviar una pestanya, inicia sesión en Firefox a lo menos en unatro dispositivo.</string>
     <!-- Confirmation dialog button -->
     <string name="sync_confirmation_button">Entendiu</string>
     <!-- Share error message -->
@@ -649,6 +832,7 @@
     <!-- Text for the button to connect another device -->
     <string name="sync_add_new_device_connect_button">Connectar unatro dispositivo…</string>
 
+    <!-- Notifications -->
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Zarrar pestanyas privadas</string>
 
@@ -661,6 +845,8 @@
     <string name="snackbar_tab_closed">Pestanya zarrada</string>
     <!-- Text shown in snackbar when user closes all tabs -->
     <string name="snackbar_tabs_closed">Pestanyas zarradas</string>
+    <!-- Text shown in snackbar when user bookmarks a list of tabs -->
+    <string name="snackbar_message_bookmarks_saved">S’han alzau es marcapachinas!</string>
     <!-- Text shown in snackbar when user closes a private tab -->
     <string name="snackbar_private_tab_closed">Pestanya privada zarrada</string>
     <!-- Text shown in snackbar when user closes all private tabs -->
@@ -676,16 +862,16 @@
     <string name="qr_scanner_dialog_positive">PERMITIR</string>
     <!-- QR code scanner prompt dialog positive option to deny navigation to scanned link -->
     <string name="qr_scanner_dialog_negative">DENEGAR</string>
+    <!-- QR code scanner prompt dialog error message shown when a hostname does not contain http or https. -->
+    <string name="qr_scanner_dialog_invalid">L’adreza web no ye valida.</string>
+    <!-- QR code scanner prompt dialog positive option when there is an error -->
+    <string name="qr_scanner_dialog_invalid_ok">Aceptar</string>
     <!-- Tab collection deletion prompt dialog message. Placeholder will be replaced with the collection name -->
     <string name="tab_collection_dialog_message">Seguro que quiers borrar %1$s?</string>
-    <!-- Collection and tab deletion prompt dialog message. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_message">Si borras esta pestanya borrarás tota la colección. Puetz crear nuevas colecciones en qualsequier momento.</string>
-    <!-- Collection and tab deletion prompt dialog title. Placeholder will be replaced with the collection name. This will show when the last tab from a collection is deleted -->
-    <string name="delete_tab_and_collection_dialog_title">Borrar %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Borrar</string>
     <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification">Accedendo a pantalla completa</string>
+    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Accedendo a pantalla completa</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">S’ha copiau la URL</string>
     <!-- Sample text for accessibility font size -->
@@ -706,7 +892,8 @@
     <string name="preferences_delete_browsing_data_tabs_title_2">Pestanyas ubiertas</string>
     <!-- Subtitle for the tabs item in Delete browsing data, parameter will be replaced with the number of open tabs -->
     <string name="preferences_delete_browsing_data_tabs_subtitle">%d pestanyas</string>
-    <!-- Title for history items in Delete browsing data -->
+    <!-- Title for the data and history items in Delete browsing data -->
+    <!-- Title for the history item in Delete browsing data -->
     <string name="preferences_delete_browsing_data_browsing_history_title">Historial</string>
     <!-- Subtitle for the data and history items in delete browsing data, parameter will be replaced with the
         number of history items the user has -->
@@ -719,6 +906,8 @@
     <string name="preferences_delete_browsing_data_cached_files_subtitle">Libera espacio d’almagazenamiento</string>
     <!-- Title for the site permissions item in Delete browsing data -->
     <string name="preferences_delete_browsing_data_site_permissions">Permisos d’o puesto</string>
+    <!-- Title for the downloads item in Delete browsing data -->
+    <string name="preferences_delete_browsing_data_downloads">Descargas</string>
     <!-- Text for the button to delete browsing data -->
     <string name="preferences_delete_browsing_data_button">Borrar datos de navegación</string>
     <!-- Title for the Delete browsing data on quit preference -->
@@ -739,9 +928,11 @@
     <!-- Text for the snackbar to show the user that the deletion of browsing data is in progress -->
     <string name="deleting_browsing_data_in_progress">Borrando datos de navegación…</string>
 
+    <!-- Onboarding -->
     <!-- text to display in the snackbar once account is signed-in -->
     <string name="onboarding_firefox_account_sync_is_on">Sync ye activau</string>
 
+    <!-- Onboarding theme -->
     <!-- Text shown in snackbar when multiple tabs have been sent to device -->
     <string name="sync_sent_tabs_snackbar">Pestanyas ninviadas!</string>
     <!-- Text shown in snackbar when one tab has been sent to device  -->
@@ -753,7 +944,7 @@
     <!-- Title of QR Pairing Fragment -->
     <string name="sync_scan_code">Escaniar lo codigo</string>
     <!-- Instructions on how to access pairing -->
-    <string name="sign_in_instructions"><![CDATA[En o tuyo equipo, ubre Firefox y ves ta <b>https://firefox.com/pair</b>]]></string>
+    <string name="sign_in_instructions" tools:ignore="BrandUsage"><![CDATA[En o tuyo equipo, ubre Firefox y ves ta <b>https://firefox.com/pair</b>]]></string>
     <!-- Text shown for sign in pairing when ready -->
     <string name="sign_in_ready_for_scan">Listo pa escaniar</string>
     <!-- Text shown for settings option for sign with pairing -->
@@ -810,7 +1001,7 @@
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
     <string name="preference_enhanced_tracking_protection_custom_cryptominers">Criptominers</string>
     <!-- Preference for enhanced tracking protection for the custom protection settings -->
-    <string name="preference_enhanced_tracking_protection_custom_fingerprinters">Detectores de ditaladas</string>
+    <string name="preference_enhanced_tracking_protection_custom_fingerprinters" moz:RemovedIn="130" tools:ignore="UnusedResources">Detectores de ditaladas</string>
     <!-- Header for categories that are being being blocked by current Enhanced Tracking Protection settings -->
     <string name="enhanced_tracking_protection_blocked">Blocau</string>
     <!-- Header for categories that are being not being blocked by current Enhanced Tracking Protection settings -->
@@ -828,9 +1019,9 @@
     <!-- Description of cryptominers that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_cryptominers_description">Priva que los scripts maliciosos obtiengan acceso a lo tuyo dispositivo pa extrayer moneda dichital.</string>
     <!-- Category of trackers (fingerprinters) that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_title">Detectores de ditaladas</string>
+    <string name="etp_fingerprinters_title" moz:RemovedIn="130" tools:ignore="UnusedResources">Detectores de ditaladas</string>
     <!-- Description of fingerprinters that can be blocked by Enhanced Tracking Protection -->
-    <string name="etp_fingerprinters_description">Impide que se repleguen datos que identifiquen de traza sola a lo tuyo dispositivo y  que pueden usar-se pa fins de seguimiento.</string>
+    <string name="etp_fingerprinters_description" moz:RemovedIn="130" tools:ignore="UnusedResources">Impide que se repleguen datos que identifiquen de traza sola a lo tuyo dispositivo y  que pueden usar-se pa fins de seguimiento.</string>
     <!-- Category of trackers (tracking content) that can be blocked by Enhanced Tracking Protection -->
     <string name="etp_tracking_content_title">Conteniu de seguimiento</string>
     <!-- Description of tracking content that can be blocked by Enhanced Tracking Protection -->
@@ -888,33 +1079,15 @@
     <!-- Placeholder text for the TextView in the Add to Homescreen dialog -->
     <string name="add_to_homescreen_text_placeholder">Nombre d’acceso directo</string>
 
-    <!-- Preference for managing the settings for logins and passwords in Fenix -->
-    <string name="preferences_passwords_logins_and_passwords">Inicios de sesión y claus</string>
-    <!-- Preference for managing the saving of logins and passwords in Fenix -->
-    <string name="preferences_passwords_save_logins">Alzar inicios de sesión y claus</string>
     <!-- Preference option for asking to save passwords in Fenix -->
     <string name="preferences_passwords_save_logins_ask_to_save">Preguntar antes d’alzar</string>
     <!-- Preference option for never saving passwords in Fenix -->
     <string name="preferences_passwords_save_logins_never_save">No alzar nunca</string>
 
-    <!-- Preference for syncing saved logins in Fenix -->
-    <string name="preferences_passwords_sync_logins">Inicios de sesión sincronizaus</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins">Inicios de sesión alzaus</string>
-    <!-- Description of empty list of saved passwords. Placeholder is replaced with app name.  -->
-    <string name="preferences_passwords_saved_logins_description_empty_text">Los inicios de sesión que alces u sincronices con %s s’amostrarán aquí.</string>
-    <!-- Preference to access list of saved logins -->
-    <string name="preferences_passwords_saved_logins_description_empty_learn_more_link">Saber mas sobre Sync.</string>
     <!-- Preference to access list of login exceptions that we never save logins for -->
     <string name="preferences_passwords_exceptions">Excepcions</string>
-    <!-- Empty description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description_empty">Los inicios de sesión y claus no alzaus amaneixerán aquí.</string>
-    <!-- Description of list of login exceptions that we never save logins for -->
-    <string name="preferences_passwords_exceptions_description">No s’alzarán los inicios de sesión y claus pa estes puestos.</string>
     <!-- Text on button to remove all saved login exceptions -->
     <string name="preferences_passwords_exceptions_remove_all">Borrar totas las excepcions</string>
-    <!-- Hint for search box in logins list -->
-    <string name="preferences_passwords_saved_logins_search">Buscar inicios de sesión</string>
     <!-- The header for the site that a login is for -->
     <string name="preferences_passwords_saved_logins_site">Puesto</string>
     <!-- The header for the username for a login -->
@@ -939,12 +1112,6 @@
     <string name="saved_login_reveal_password">Amostrar clau</string>
     <!-- Content Description (for screenreaders etc) read for the button to hide a password in logins -->
     <string name="saved_login_hide_password">Amagar clau</string>
-    <!-- Message displayed in biometric prompt displayed for authentication before allowing users to view their logins -->
-    <string name="logins_biometric_prompt_message">Desblocar pa veyer los tuyos inicios de sesión alzaus</string>
-    <!-- Title of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_title">Asegurar los tuyos usuarios y claus</string>
-    <!-- Message of warning dialog if users have no device authentication set up -->
-    <string name="logins_warning_dialog_message">Configura un patrón de bloqueyo d’o dispositivo, un PIN u una clau pa protecher l’acceso a los tuyos usuarios y claus alzaus si belún mas tiene lo tuyo dispositivo.</string>
     <!-- Negative button to ignore warning dialog if users have no device authentication set up -->
     <string name="logins_warning_dialog_later">Mas tarde</string>
     <!-- Positive button to send users to set up a pin of warning dialog if users have no device authentication set up -->
@@ -959,8 +1126,6 @@
     <string name="saved_logins_sort_strategy_alphabetically">Nombre (A-Z)</string>
     <!-- Saved logins sorting strategy menu item -by last used- (if selected, it will sort saved logins by last used) -->
     <string name="saved_logins_sort_strategy_last_used">Usau per zaguer vegada</string>
-    <!-- Content description (not visible, for screen readers etc.): Sort saved logins dropdown menu chevron icon -->
-    <string name="saved_logins_menu_dropdown_chevron_icon_content_description">Ordenar menú d’inicio de sesión</string>
 
     <!-- Title of the Add search engine screen -->
     <string name="search_engine_add_custom_search_engine_title">Anyadir buscador</string>
@@ -972,7 +1137,7 @@
     <string name="search_engine_delete">Borrar</string>
 
     <!-- Description text for the Search String TextField. The %s is part of the string -->
-    <string formatted="false" name="search_add_custom_engine_search_string_example">Substituyir la consulta con “%s”. Eixemplo:\n https://www.google.com/search?q=%s</string>
+    <string name="search_add_custom_engine_search_string_example" formatted="false">Substituyir la consulta con “%s”. Eixemplo:\n https://www.google.com/search?q=%s</string>
     <!-- Accessibility description for the form in which details about the custom search engine are entered -->
     <string name="search_add_custom_engine_form_description">Detalles d’o buscador personalizau</string>
 
@@ -1017,24 +1182,8 @@
     <string name="login_menu_delete_button">Borrar</string>
     <!-- Login overflow menu edit button -->
     <string name="login_menu_edit_button">Editar</string>
-    <!-- Message in delete confirmation dialog for logins -->
-    <string name="login_deletion_confirmation">Seguro que quiers borrar este inicio de sesión?</string>
     <!-- Positive action of a dialog asking to delete  -->
     <string name="dialog_delete_positive">Borrar</string>
-    <!--  The saved login options menu description. -->
-    <string name="login_options_menu">Opcions d’inicio de sesión</string>
-    <!--  The editable text field for a login's web address. -->
-    <string name="saved_login_hostname_description">Lo campo de texto editable pa l’adreza web de l’inicio de sesión.</string>
-    <!--  The editable text field for a login's username. -->
-    <string name="saved_login_username_description">Lo campo de texto editable pa lo nombre d’usuario de l’inicio de sesión.</string>
-    <!--  The editable text field for a login's password. -->
-    <string name="saved_login_password_description">Lo campo de texto editable pa la clau de l’inicio de sesión.</string>
-    <!--  The button description to save changes to an edited login. -->
-    <string name="save_changes_to_login">Alzar cambios pa l’inicio de sesión.</string>
-    <!--  The page title for editing a saved login. -->
-    <string name="edit">Editar</string>
-    <!--  The error message in add/edit login view when password field is blank. -->
-    <string name="saved_login_password_required">Fa falta clau</string>
     <!-- Voice search button content description  -->
     <string name="voice_search_content_description">Busqueda per voz</string>
     <!-- Voice search prompt description displayed after the user presses the voice search button -->
@@ -1050,7 +1199,7 @@
     <!-- Text displayed when user has disabled tab syncing in Firefox Sync Account -->
     <string name="synced_tabs_enable_tab_syncing">Per favor, activa la sincronización de pestanyas.</string>
     <!-- Text displayed when user has no tabs that have been synced -->
-    <string name="synced_tabs_no_tabs">No tiens garra pestanya ubierta en Firefox en as tuyas atros dispositivos.</string>
+    <string name="synced_tabs_no_tabs" tools:ignore="BrandUsage">No tiens garra pestanya ubierta en Firefox en as tuyas atros dispositivos.</string>
     <!-- Text displayed in the synced tabs screen when a user is not signed in to Firefox Sync describing Synced Tabs -->
     <string name="synced_tabs_sign_in_message">Veyer una lista de pestanyas d’as tuyas atros dispositivos.</string>
     <!-- Text displayed on a button in the synced tabs screen to link users to sign in when a user is not signed in to Firefox Sync -->

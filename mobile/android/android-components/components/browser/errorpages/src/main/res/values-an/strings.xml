@@ -244,4 +244,8 @@
     <!-- The %1$s will be replaced by the malicious website URL-->
     <string name="mozac_browser_errorpages_safe_phishing_uri_message"><![CDATA[<p>Lo puesto en %1$s s’ha identificau como un puesto potencialment nocivo y s’ha blocau, seguindo las tuyas preferencias de seguridat</p>]]></string>
 
-    </resources>
+    <!-- The title of the error page for websites that do not support HTTPS when HTTPS-Only is turned on -->
+    <string name="mozac_browser_errorpages_httpsonly_title">Puesto seguro no disponible</string>
+    <!-- Button on error page for websites that do not support HTTPS when HTTPS-Only is turned on. Clicking the button allows the user to nevertheless load the website using HTTP. -->
+    <string name="mozac_browser_errorpages_httpsonly_button">Continar ta puesto web HTTP</string>
+</resources>

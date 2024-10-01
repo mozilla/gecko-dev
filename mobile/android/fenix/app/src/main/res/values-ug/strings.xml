@@ -738,7 +738,7 @@
     <!-- Button caption to confirm the add-on collection configuration -->
     <string name="customize_addon_collection_ok">ھەئە</string>
     <!-- Button caption to abort the add-on collection configuration -->
-    <string name="customize_addon_collection_cancel">بىكار قىلىش</string>
+    <string name="customize_addon_collection_cancel">ۋاز كەچ</string>
 
     <!-- Hint displayed on input field for custom collection name -->
     <string name="customize_addon_collection_hint">توپلام ئىسمى</string>
