@@ -22,6 +22,8 @@ import {
   MAX_TABS_FOR_RECENT_BROWSING,
   navigateToLink,
 } from "./helpers.mjs";
+// eslint-disable-next-line import/no-unassigned-import
+import "chrome://browser/content/firefoxview/syncedtabs-tab-list.mjs";
 
 const UI_OPEN_STATE = "browser.tabs.firefox-view.ui-state.tab-pickup.open";
 
@@ -61,7 +63,7 @@ class SyncedTabsInView extends ViewPage {
     cardEls: { all: "card-container" },
     emptyState: "fxview-empty-state",
     searchTextbox: "fxview-search-textbox",
-    tabLists: { all: "fxview-tab-list" },
+    tabLists: { all: "syncedtabs-tab-list" },
   };
 
   start() {
@@ -186,6 +188,18 @@ class SyncedTabsInView extends ViewPage {
     e.target.querySelector("panel-list").toggle(e.detail.originalEvent);
   }
 
+  onCloseTab(e) {
+    const { url, fxaDeviceId, tertiaryActionClass } = e.originalTarget;
+    if (tertiaryActionClass === "dismiss-button") {
+      // Set new pending close tab
+      this.controller.requestCloseRemoteTab(fxaDeviceId, url);
+    } else if (tertiaryActionClass === "undo-button") {
+      // User wants to undo
+      this.controller.removePendingTabToClose(fxaDeviceId, url);
+    }
+    this.requestUpdate();
+  }
+
   panelListTemplate() {
     return html`
       <panel-list slot="menu" data-tab-type="syncedtabs">
@@ -259,19 +273,19 @@ class SyncedTabsInView extends ViewPage {
         <span class="icon ${deviceType}" role="presentation"></span>
         ${deviceName}
       </h3>
-      <fxview-tab-list
+      <syncedtabs-tab-list
         slot="main"
-        secondaryActionClass="options-button"
-        hasPopup="menu"
+        .hasPopup=${"menu"}
         .tabItems=${ifDefined(tabItems)}
         .searchQuery=${this.controller.searchQuery}
-        maxTabsLength=${this.showAll ? -1 : this.maxTabsLength}
+        .maxTabsLength=${this.showAll ? -1 : this.maxTabsLength}
         @fxview-tab-list-primary-action=${this.onOpenLink}
         @fxview-tab-list-secondary-action=${this.onContextMenu}
+        @fxview-tab-list-tertiary-action=${this.onCloseTab}
         secondaryActionClass="options-button"
       >
         ${this.panelListTemplate()}
-      </fxview-tab-list>`;
+      </syncedtabs-tab-list>`;
   }
 
   generateTabList() {

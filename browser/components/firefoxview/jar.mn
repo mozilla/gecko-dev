@@ -27,6 +27,8 @@ browser.jar:
     content/browser/firefoxview/opentabs-tab-list.css
     content/browser/firefoxview/opentabs-tab-list.mjs
     content/browser/firefoxview/opentabs-tab-row.css
+    content/browser/firefoxview/syncedtabs-tab-list.css
+    content/browser/firefoxview/syncedtabs-tab-list.mjs
     content/browser/firefoxview/recentlyclosed.mjs
     content/browser/firefoxview/viewpage.mjs
     content/browser/firefoxview/history-empty.svg (content/history-empty.svg)

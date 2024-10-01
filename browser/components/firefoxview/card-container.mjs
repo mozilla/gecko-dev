@@ -114,7 +114,9 @@ class CardContainer extends MozLitElement {
   }
 
   updateTabLists() {
-    let tabLists = this.querySelectorAll("fxview-tab-list, opentabs-tab-list");
+    let tabLists = this.querySelectorAll(
+      "fxview-tab-list, opentabs-tab-list, syncedtabs-tab-list"
+    );
     if (tabLists) {
       tabLists.forEach(tabList => {
         tabList.updatesPaused = !this.visible || !this.isExpanded;
