@@ -1131,6 +1131,19 @@ Result<Ok, LaunchError> BaseProcessLauncher::DoSetup() {
   geckoargs::sParentPid.Put(static_cast<uint64_t>(base::GetCurrentProcId()),
                             mChildArgs);
 
+  if (!CrashReporter::IsDummy() && CrashReporter::GetEnabled()) {
+#if defined(MOZ_WIDGET_COCOA) || defined(XP_WIN)
+    geckoargs::sCrashReporter.Put(CrashReporter::GetChildNotificationPipe(),
+                                  mChildArgs);
+#elif defined(XP_UNIX)
+    UniqueFileHandle childCrashFd = CrashReporter::GetChildNotificationPipe();
+    if (!childCrashFd) {
+      return Err(LaunchError("DuplicateFileHandle failed"));
+    }
+    geckoargs::sCrashReporter.Put(std::move(childCrashFd), mChildArgs);
+#endif
+  }
+
   return Ok();
 }
 
@@ -1301,27 +1314,9 @@ Result<Ok, LaunchError> PosixProcessLauncher::DoSetup() {
 #  endif
   }
 
-  if (!CrashReporter::IsDummy()) {
-#  if defined(MOZ_WIDGET_COCOA)
-    mChildArgv.push_back(CrashReporter::GetChildNotificationPipe());
-#  elif defined(XP_UNIX)
-    int childCrashFd, childCrashRemapFd;
-    if (NS_WARN_IF(!CrashReporter::CreateNotificationPipeForChild(
-            &childCrashFd, &childCrashRemapFd))) {
-      return Err(LaunchError("CR::CreateNotificationPipeForChild"));
-    }
-
-    if (0 <= childCrashFd) {
-      mLaunchOptions->fds_to_remap.push_back(
-          std::pair<int, int>(childCrashFd, childCrashRemapFd));
-      // "true" == crash reporting enabled
-      mChildArgs.mArgs.push_back("true");
-    } else {
-      // "false" == crash reporting disabled
-      mChildArgs.mArgs.push_back("false");
-    }
-#  endif
-  }
+  // XXX Command line params past this point are expected to be at
+  // the end of the command line string, and in a specific order.
+  // See XRE_InitChildProcess in nsEmbedFunction.
 
 #  ifdef MOZ_WIDGET_COCOA
   {
@@ -1717,9 +1712,6 @@ Result<Ok, LaunchError> WindowsProcessLauncher::DoSetup() {
 
   // Win app model id
   mCmdLine->AppendLooseValue(mGroupId.get());
-
-  mCmdLine->AppendLooseValue(
-      UTF8ToWide(CrashReporter::GetChildNotificationPipe()));
 
   // Gecko child id
   mCmdLine->AppendLooseValue(UTF8ToWide(mChildIDString));
