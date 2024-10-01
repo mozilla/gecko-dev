@@ -1341,6 +1341,9 @@ public class GeckoViewActivity extends AppCompatActivity
       case R.id.translate_manage:
         translateManage();
         break;
+      case R.id.webcompat_info:
+        webCompatInfo(session);
+        break;
       default:
         return super.onOptionsItemSelected(item);
     }
@@ -2427,6 +2430,15 @@ public class GeckoViewActivity extends AppCompatActivity
       }
     }
     return null;
+  }
+
+  public void webCompatInfo(@NonNull final GeckoSession session) {
+    GeckoResult<JSONObject> result = session.getWebCompatInfo();
+    result.map(
+        info -> {
+          Log.d(LOGTAG, "Received web compat info.");
+          return info;
+        });
   }
 
   public void shoppingActions(@NonNull final GeckoSession session, @NonNull final String url) {

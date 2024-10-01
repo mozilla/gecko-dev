@@ -66,6 +66,7 @@
     <string name="shopping_actions">Shopping Actions</string>
     <string name="shopping_manage_actions">Actions</string>
     <string name="shopping_display_log">See Logcat for "Shopping Action" Results</string>
+    <string name="webcompat_info">Get Webcompat Info</string>
     <string name="shopping_query">Query</string>
 
 

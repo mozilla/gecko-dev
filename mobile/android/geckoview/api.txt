@@ -1052,6 +1052,7 @@ package org.mozilla.geckoview {
     method @AnyThread @NonNull public SessionTextInput getTextInput();
     method @AnyThread @Nullable public TranslationsController.SessionTranslation.Delegate getTranslationsSessionDelegate();
     method @AnyThread @NonNull public GeckoResult<String> getUserAgent();
+    method @AnyThread @NonNull public GeckoResult<JSONObject> getWebCompatInfo();
     method @NonNull @UiThread public WebExtension.SessionController getWebExtensionController();
     method @AnyThread public void goBack();
     method @AnyThread public void goBack(boolean);

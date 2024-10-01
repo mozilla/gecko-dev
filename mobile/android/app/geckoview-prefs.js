@@ -144,6 +144,9 @@ pref("browser.translations.enable", true);
 // Used for mocking data for GeckoView Translations tests, should use in addition with an automation check.
 pref("browser.translations.geckoview.enableAllTestMocks", false);
 
+// Used for mocking data for GeckoView WebCompat tests, should use in addition with an automation check.
+pref("browser.webcompat.geckoview.enableAllTestMocks", false);
+
 // SSL error page behaviour (bug 437372)
 pref("browser.xul.error_pages.expert_bad_cert", false);
 

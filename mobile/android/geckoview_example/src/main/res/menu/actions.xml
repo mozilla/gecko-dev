@@ -19,5 +19,6 @@
     <item android:title="@string/translate" android:id="@+id/translate"/>
     <item android:title="@string/translate_restore" android:id="@+id/translate_restore"/>
     <item android:title="@string/translate_manage" android:id="@+id/translate_manage"/>
+    <item android:title="@string/webcompat_info" android:id="@+id/webcompat_info"/>
     <item android:title="@string/settings" android:id="@+id/settings" app:showAsAction="never" />
 </menu>
