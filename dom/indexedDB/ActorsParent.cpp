@@ -148,6 +148,7 @@
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/mozalloc.h"
 #include "mozilla/storage/Variant.h"
+#include "NotifyUtils.h"
 #include "nsBaseHashtable.h"
 #include "nsCOMPtr.h"
 #include "nsClassHashtable.h"
@@ -14885,6 +14886,8 @@ nsresult FactoryOp::SendToIOThread() {
   QM_TRY(MOZ_TO_RESULT(
              quotaManager->IOThread()->Dispatch(this, NS_DISPATCH_NORMAL)),
          NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR, IDB_REPORT_INTERNAL_ERR_LAMBDA);
+
+  NotifyDatabaseWorkStarted();
 
   return NS_OK;
 }

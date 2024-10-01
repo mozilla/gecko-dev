@@ -83,6 +83,7 @@ UNIFIED_SOURCES += [
     "IndexedDatabaseManager.cpp",
     "IndexedDBCommon.cpp",
     "KeyPath.cpp",
+    "NotifyUtils.cpp",
     "ProfilerHelpers.cpp",
     "ReportInternalError.cpp",
     "SchemaUpgrades.cpp",
