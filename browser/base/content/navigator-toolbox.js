@@ -288,7 +288,13 @@ document.addEventListener(
         #tracking-protection-icon-container,
         #identity-icon-box,
         #identity-permission-box,
-        #translations-button
+        #translations-button,
+        #alltabs-button,
+        #pageActionButton,
+        #downloads-button,
+        #fxa-toolbar-menu-button,
+        #unified-extensions-button,
+        #library-button
       `);
       if (!element) {
         return;
@@ -348,6 +354,30 @@ document.addEventListener(
 
         case "translations-button":
           FullPageTranslationsPanel.open(event);
+          break;
+
+        case "alltabs-button":
+          gTabsPanel.showAllTabsPanel(event, "alltabs-button");
+          break;
+
+        case "pageActionButton":
+          BrowserPageActions.mainButtonClicked(event);
+          break;
+
+        case "downloads-button":
+          DownloadsIndicatorView.onCommand(event);
+          break;
+
+        case "fxa-toolbar-menu-button":
+          gSync.toggleAccountPanel(element, event);
+          break;
+
+        case "unified-extensions-button":
+          gUnifiedExtensions.togglePanel(event);
+          break;
+
+        case "library-button":
+          PanelUI.showSubView("appMenu-libraryView", element, event);
           break;
 
         default:

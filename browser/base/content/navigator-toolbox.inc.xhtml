@@ -93,7 +93,6 @@
                          class="toolbarbutton-1 chromeclass-toolbar-additional tabs-alltabs-button"
                          delegatesanchor="true"
                          badged="true"
-                         onkeypress="gTabsPanel.showAllTabsPanel(event, 'alltabs-button');"
                          data-l10n-id="tabs-toolbar-list-all-tabs"
                          removable="false"/>
         </hbox>
@@ -412,8 +411,7 @@
               <hbox id="pageActionButton"
                     class="urlbar-page-action"
                     role="button"
-                    data-l10n-id="urlbar-page-action-button"
-                    onkeypress="BrowserPageActions.mainButtonClicked(event);">
+                    data-l10n-id="urlbar-page-action-button">
                 <image class="urlbar-icon"/>
               </hbox>
               <hbox id="star-button-box"
@@ -436,7 +434,6 @@
                      delegatesanchor="true"
                      badged="true"
                      key="key_openDownloads"
-                     onkeypress="DownloadsIndicatorView.onCommand(event);"
                      ondrop="DownloadsIndicatorView.onDrop(event);"
                      ondragover="DownloadsIndicatorView.onDragOver(event);"
                      ondragenter="DownloadsIndicatorView.onDragOver(event);"
@@ -464,7 +461,6 @@
       <toolbarbutton id="fxa-toolbar-menu-button" class="toolbarbutton-1 chromeclass-toolbar-additional subviewbutton-nav"
                      badged="true"
                      delegatesanchor="true"
-                     onkeypress="gSync.toggleAccountPanel(this, event)"
                      consumeanchor="fxa-toolbar-menu-button"
                      closemenu="none"
                      data-l10n-id="toolbar-button-account"
@@ -480,7 +476,6 @@
                      delegatesanchor="true"
                      data-l10n-id="unified-extensions-button"
                      hidden="true"
-                     onkeypress="gUnifiedExtensions.togglePanel(event)"
                      overflows="false"
                      removable="false"/>
     </hbox>
@@ -690,7 +685,6 @@
     <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional subviewbutton-nav"
                    removable="true"
                    delegatesanchor="true"
-                   onkeypress="PanelUI.showSubView('appMenu-libraryView', this, event);"
                    closemenu="none"
                    cui-areatype="toolbar"
                    data-l10n-id="navbar-library"/>
