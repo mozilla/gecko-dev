@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-09-24T19:42:20.527455+00:00'
+updated_at: '2024-10-02T13:02:32.808243+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -251,6 +251,10 @@ people:
     bmo_id: 637163
     name: Deian Stefan
     nick: deian
+  - &denschub
+    bmo_id: 421268
+    name: Dennis Schubert
+    nick: denschub
   - &Dexter
     bmo_id: 248036
     name: Alessio Placitelli
@@ -643,6 +647,10 @@ people:
     bmo_id: 698141
     name: Kash Shampur
     nick: kshampur
+  - &ksy36
+    bmo_id: 638886
+    name: Ksenia Berezina
+    nick: ksy36
   - &kvark
     bmo_id: 582393
     name: Dzmitry Malyshau
@@ -1021,6 +1029,10 @@ people:
     bmo_id: 703078
     name: Tom Schuster
     nick: tschuster
+  - &twisniewski
+    bmo_id: 583576
+    name: Thomas Wisniewski
+    nick: twisniewski
   - &TYLin
     bmo_id: 503090
     name: Ting-Yu Lin
@@ -4307,6 +4319,26 @@ modules:
           - *hjones
         machine_name: ui_widgets
 
+      - name: WebCompat Addons
+        description: Compatibility interventions (webcompat system addon) and bug
+          reporting capabilities (Report Site Issue addon).
+        includes:
+          - browser/extensions/webcompat
+          - browser/extensions/report-site-issue
+          - mobile/android/extensions/webcompat
+          - mobile/android/extensions/report-site-issue
+          - toolkit/components/reportbrokensite
+          - https://github.com/mozilla-extensions/webcompat-addon
+        meta:
+          peers_emeritus:
+            - Mike Taylor
+        owners:
+          - *denschub
+          - *twisniewski
+        peers:
+          - *ksy36
+        machine_name: webcompat_addons
+
       - name: Webextensions
         description: Webextension APIs and integration.
         includes:
@@ -4371,5 +4403,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: c553dddcf95c38bb40ec19993737429db70a7f10
-  export: 0507cf09026c0c67941b3a7ba59c6bfd266680ac
+  config: 49e5007f7ab2212f83ed59b912ec9b4cda95470d
+  export: bf7c97134884870f26d69b1d6c59fd977f9104f4
