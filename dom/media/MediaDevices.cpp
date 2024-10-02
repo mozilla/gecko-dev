@@ -231,6 +231,21 @@ void MediaDevices::MaybeResumeDeviceExposure() {
   mHaveUnprocessedDeviceListChange = false;
 }
 
+static bool IsLegacyMode(nsPIDOMWindowInner* window) {
+  if (StaticPrefs::media_devices_enumerate_legacy_enabled()) {
+    return true;
+  }
+  if (window->GetDocumentURI()) {
+    nsAutoCString host;
+    window->GetDocumentURI()->GetAsciiHost(host);
+    if (media::HostnameInPref("media.devices.enumerate.legacy.allowlist",
+                              host)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 RefPtr<MediaDeviceSetRefCnt> MediaDevices::FilterExposedDevices(
     const MediaDeviceSet& aDevices) const {
   nsPIDOMWindowInner* window = GetOwnerWindow();
@@ -250,7 +265,7 @@ RefPtr<MediaDeviceSetRefCnt> MediaDevices::FilterExposedDevices(
       !Preferences::GetBool("media.setsinkid.enabled") ||
       !FeaturePolicyUtils::IsFeatureAllowed(doc, u"speaker-selection"_ns);
 
-  bool legacy = StaticPrefs::media_devices_enumerate_legacy_enabled();
+  bool legacy = IsLegacyMode(window);
   bool outputIsDefault = true;  // First output is the default.
   bool haveDefaultOutput = false;
   nsTHashSet<nsString> exposedMicrophoneGroupIds;
@@ -467,7 +482,7 @@ void MediaDevices::ResolveEnumerateDevicesPromise(
   nsCOMPtr<nsPIDOMWindowInner> window = GetOwnerWindow();
   auto windowId = window->WindowID();
   nsTArray<RefPtr<MediaDeviceInfo>> infos;
-  bool legacy = StaticPrefs::media_devices_enumerate_legacy_enabled();
+  bool legacy = IsLegacyMode(window);
   bool capturePermitted =
       legacy &&
       MediaManager::Get()->IsActivelyCapturingOrHasAPermission(windowId);
