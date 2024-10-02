@@ -923,8 +923,8 @@ add_task(async function test_tabsContainNoTabGroups() {
     skipAnimation: true,
   });
 
-  gBrowser.addTabGroup("red", "test", [tab]);
-  gBrowser.addTabGroup("blue", "test", [tab]);
+  let group1 = gBrowser.addTabGroup("red", "test", [tab]);
+  let group2 = gBrowser.addTabGroup("blue", "test", [tab]);
 
   Assert.equal(
     gBrowser.tabs.length,
@@ -940,4 +940,68 @@ add_task(async function test_tabsContainNoTabGroups() {
   });
 
   BrowserTestUtils.removeTab(tab);
+  gBrowser.removeTabGroup(group1, { animate: false });
+  gBrowser.removeTabGroup(group2, { animate: false });
+});
+
+/**
+ * Tests behavior of the group management panel.
+ */
+add_task(async function test_tabGroupCreatePanel() {
+  let tabgroupPanel = document.getElementById("tab-group-editor").panel;
+  let nameField = tabgroupPanel.querySelector("#tab-group-name");
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+
+  let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+  let group = gBrowser.addTabGroup("cyan", "Food", [tab]);
+  await panelShown;
+  // Edit panel should be populated with correct group details
+  Assert.ok(
+    nameField.value == group.label,
+    "Create panel's input populated with correct name"
+  );
+  Assert.ok(
+    tabgroupPanel.querySelector("input[name='tab-group-color']:checked")
+      .value == group.color,
+    "Create panel's colorpicker has correct color pre-selected"
+  );
+
+  // Group should be removed after hitting Cancel
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  tabgroupPanel.querySelector("#tab-group-editor-button-cancel").click();
+  await panelHidden;
+  Assert.ok(!tab.group, "Tab is ungrouped after hitting Cancel");
+
+  panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+  group = gBrowser.addTabGroup("cyan", "Food", [tab]);
+  await panelShown;
+
+  // Panel inputs should work correctly
+  nameField.focus();
+  nameField.value = "";
+  EventUtils.sendString("Shopping");
+  Assert.ok(
+    group.label == "Shopping",
+    "Group label changed when input value changed"
+  );
+  tabgroupPanel.querySelector("#tab-group-editor-swatch-red").click();
+  Assert.ok(
+    group.color == "red",
+    "Group color changed to red after clicking red swatch"
+  );
+  Assert.ok(
+    tabgroupPanel.querySelector("input[name='tab-group-color']:checked")
+      .value == "red",
+    "Red swatch radio selected after clicking red swatch"
+  );
+
+  // Panel dismissed after clicking Create and group remains
+  panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  tabgroupPanel.querySelector("#tab-group-editor-button-create").click();
+  await panelHidden;
+  Assert.ok(tabgroupPanel.state == "closed", "Tabgroup edit panel is closed");
+  Assert.ok(group.label == "Shopping");
+  Assert.ok(group.color == "red");
+
+  gBrowser.removeTabGroup(group, { animate: false });
 });
