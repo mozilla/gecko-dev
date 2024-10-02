@@ -21,4 +21,6 @@ disabled = "Temporarily disabled until we can re-enable callback support"
 
 ["test_todolist.js"]
 
+["test_trait_interfaces.js"]
+
 ["test_type_checking.js"]

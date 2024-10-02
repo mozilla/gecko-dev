@@ -205,6 +205,11 @@ extern "C" {
   RustBuffer uniffi_uniffi_todolist_fn_func_create_entry_with(RustBuffer, RustCallStatus*);
   RustBuffer uniffi_uniffi_todolist_fn_func_get_default_list(RustCallStatus*);
   void uniffi_uniffi_todolist_fn_func_set_default_list(void*, RustCallStatus*);
+  void* uniffi_uniffi_trait_interfaces_fn_clone_calc(void*, RustCallStatus*);
+  void uniffi_uniffi_trait_interfaces_fn_free_calc(void*, RustCallStatus*);
+  uint32_t uniffi_uniffi_trait_interfaces_fn_method_calc_add(void*, uint32_t, uint32_t, RustCallStatus*);
+  void* uniffi_uniffi_trait_interfaces_fn_func_make_buggy_calculator(RustCallStatus*);
+  void* uniffi_uniffi_trait_interfaces_fn_func_make_calculator(RustCallStatus*);
 #endif /* MOZ_UNIFFI_FIXTURES */
 }
 
@@ -276,6 +281,11 @@ const static mozilla::uniffi::UniFFIPointerType kTodolistTodoListPointerType {
   "todolist::TodoList"_ns,
   uniffi_uniffi_todolist_fn_clone_todolist,
   uniffi_uniffi_todolist_fn_free_todolist,
+};
+const static mozilla::uniffi::UniFFIPointerType kUniffiTraitInterfacesCalcPointerType {
+  "uniffi_trait_interfaces::Calc"_ns,
+  uniffi_uniffi_trait_interfaces_fn_clone_calc,
+  uniffi_uniffi_trait_interfaces_fn_free_calc,
 };
 #endif /* MOZ_UNIFFI_FIXTURES */
 
@@ -6488,6 +6498,126 @@ public:
         );
     }
 };
+class ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeBuggyCalculator : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::FromRust(
+            uniffi_uniffi_trait_interfaces_fn_func_make_buggy_calculator(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeCalculator : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::FromRust(
+            uniffi_uniffi_trait_interfaces_fn_func_make_calculator(
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
+class ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnMethodCalcAdd : public UniffiHandlerBase {
+private:
+    // PrepareRustArgs stores the resulting arguments in these fields
+    typename ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntermediateType mPtr;
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mA;
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mB;
+
+    // MakeRustCall stores the result of the call in these fields
+    typename ScaffoldingConverter<uint32_t>::IntermediateType mUniffiReturnValue;
+
+public:
+    void PrepareRustArgs(const dom::Sequence<dom::UniFFIScaffoldingValue>& aArgs, ErrorResult& aError) override {
+        ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::FromJs(aArgs[0], &mPtr, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint32_t>::FromJs(aArgs[1], &mA, aError);
+        if (aError.Failed()) {
+            return;
+        }
+        ScaffoldingConverter<uint32_t>::FromJs(aArgs[2], &mB, aError);
+        if (aError.Failed()) {
+            return;
+        }
+    }
+
+    void MakeRustCall() override {
+        RustCallStatus callStatus{};
+        mUniffiReturnValue = ScaffoldingConverter<uint32_t>::FromRust(
+            uniffi_uniffi_trait_interfaces_fn_method_calc_add(
+                ScaffoldingObjectConverter<&kUniffiTraitInterfacesCalcPointerType>::IntoRust(std::move(mPtr)),
+                ScaffoldingConverter<uint32_t>::IntoRust(std::move(mA)),
+                ScaffoldingConverter<uint32_t>::IntoRust(std::move(mB)),
+                &callStatus
+            )
+        );
+
+        mUniffiCallStatusCode = callStatus.code;
+        if (callStatus.error_buf.data) {
+            mUniffiCallStatusErrorBuf = OwnedRustBuffer(callStatus.error_buf);
+        }
+    }
+
+    virtual void ExtractSuccessfulCallResult(JSContext* aCx, dom::Optional<dom::UniFFIScaffoldingValue>& aDest, ErrorResult& aError) override {
+        ScaffoldingConverter<uint32_t>::IntoJs(
+          aCx,
+          std::move(mUniffiReturnValue),
+          aDest,
+          aError
+        );
+    }
+};
 #endif /* MOZ_UNIFFI_FIXTURES */
 
 UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId) {
@@ -6936,6 +7066,15 @@ UniquePtr<UniffiHandlerBase> GetHandler(uint64_t aId) {
     case 146: {
         return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTodolistFnConstructorTodolistNew>();
     }
+    case 145: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeBuggyCalculator>();
+    }
+    case 146: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnFuncMakeCalculator>();
+    }
+    case 147: {
+        return MakeUnique<ScaffoldingCallHandlerUniffiUniffiTraitInterfacesFnMethodCalcAdd>();
+    }
 #endif /* MOZ_UNIFFI_FIXTURES */
 
     default:
@@ -7001,6 +7140,10 @@ Maybe<already_AddRefed<UniFFIPointer>> ReadPointer(const GlobalObject& aGlobal, 
       type = &kTodolistTodoListPointerType;
       break;
     }
+    case 13: {
+      type = &kUniffiTraitInterfacesCalcPointerType;
+      break;
+    }
 #endif /* MOZ_UNIFFI_FIXTURES */
     default:
       return Nothing();
@@ -7064,6 +7207,10 @@ bool WritePointer(const GlobalObject& aGlobal, uint64_t aId, const UniFFIPointer
     }
     case 12: {
       type = &kTodolistTodoListPointerType;
+      break;
+    }
+    case 13: {
+      type = &kUniffiTraitInterfacesCalcPointerType;
       break;
     }
 #endif /* MOZ_UNIFFI_FIXTURES */

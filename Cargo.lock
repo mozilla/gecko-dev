@@ -2477,6 +2477,7 @@ dependencies = [
  "uniffi-fixture-callbacks",
  "uniffi-fixture-external-types",
  "uniffi-fixture-refcounts",
+ "uniffi-trait-interfaces",
 ]
 
 [[package]]
@@ -6505,6 +6506,13 @@ dependencies = [
 [[package]]
 name = "uniffi-fixture-refcounts"
 version = "0.21.0"
+dependencies = [
+ "uniffi",
+]
+
+[[package]]
+name = "uniffi-trait-interfaces"
+version = "0.22.0"
 dependencies = [
  "uniffi",
 ]

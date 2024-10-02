@@ -11,3 +11,4 @@ uniffi_geometry::uniffi_reexport_scaffolding!();
 uniffi_rondpoint::uniffi_reexport_scaffolding!();
 uniffi_sprites::uniffi_reexport_scaffolding!();
 uniffi_todolist::uniffi_reexport_scaffolding!();
+uniffi_trait_interfaces::uniffi_reexport_scaffolding!();
