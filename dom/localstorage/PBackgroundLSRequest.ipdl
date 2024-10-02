@@ -11,6 +11,7 @@ namespace dom {
 
 struct LSRequestPreloadDatastoreResponse
 {
+  bool invalidated;
 };
 
 struct LSRequestPrepareDatastoreResponse

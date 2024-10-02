@@ -52,8 +52,17 @@ add_task(
 
     info("Waiting for database to finish opening");
 
-    // XXX This should throw!
-    await openPromise;
+    try {
+      await openPromise;
+      ok(false, "Should have thrown");
+    } catch (e) {
+      ok(true, "Should have thrown");
+      Assert.strictEqual(
+        e.result,
+        Cr.NS_ERROR_ABORT,
+        "Threw right result code"
+      );
+    }
 
     info("Waiting for origin to finish clearing");
 

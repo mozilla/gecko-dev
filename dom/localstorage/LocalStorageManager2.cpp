@@ -502,7 +502,16 @@ void AsyncRequestHelper::Finish() {
 
       case LSRequestResponse::TLSRequestPreloadDatastoreResponse:
         if (mPromise) {
-          mPromise->MaybeResolveWithUndefined();
+          const LSRequestPreloadDatastoreResponse& preloadDatastoreResponse =
+              mResponse.get_LSRequestPreloadDatastoreResponse();
+
+          const bool invalidated = preloadDatastoreResponse.invalidated();
+
+          if (invalidated) {
+            mPromise->MaybeReject(NS_ERROR_ABORT);
+          } else {
+            mPromise->MaybeResolveWithUndefined();
+          }
         }
         break;
       default:

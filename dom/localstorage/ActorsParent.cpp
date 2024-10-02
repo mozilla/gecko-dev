@@ -7477,6 +7477,7 @@ void PrepareDatastoreOp::GetResponse(LSRequestResponse& aResponse) {
 
   if (mForPreload) {
     LSRequestPreloadDatastoreResponse preloadDatastoreResponse;
+    preloadDatastoreResponse.invalidated() = mInvalidated;
 
     aResponse = preloadDatastoreResponse;
   } else {
