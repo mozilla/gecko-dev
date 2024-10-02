@@ -1778,6 +1778,12 @@ nsHostResolver::LookupStatus nsHostResolver::CompleteLookupByTypeLocked(
   typeRec->mResolving--;
 
   if (NS_FAILED(status)) {
+    if (status != NS_ERROR_UNKNOWN_HOST &&
+        status != NS_ERROR_DEFINITIVE_UNKNOWN_HOST) {
+      // See nsHostResolver::CompleteLookupLocked. Use the same logic as
+      // AddrRecord here.
+      typeRec->mResolverType = DNSResolverType::Native;
+    }
     LOG(("nsHostResolver::CompleteLookupByType record %p [%s] status %x\n",
          typeRec.get(), typeRec->host.get(), (unsigned int)status));
     typeRec->SetExpiration(

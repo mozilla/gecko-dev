@@ -426,6 +426,9 @@ nsDNSByTypeRecord::GetServiceModeRecordWithCname(bool aNoHttp2, bool aNoHttp3,
 }
 
 NS_IMETHODIMP
+nsDNSByTypeRecord::IsTRR(bool* aResult) { return mHostRecord->IsTRR(aResult); }
+
+NS_IMETHODIMP
 nsDNSByTypeRecord::GetAllRecordsWithEchConfig(
     bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
     bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,

@@ -220,7 +220,8 @@ class ChildDNSByTypeRecord : public nsIDNSByTypeRecord,
   NS_DECL_NSIDNSHTTPSSVCRECORD
 
   explicit ChildDNSByTypeRecord(const TypeRecordResultType& reply,
-                                const nsACString& aHost, uint32_t aTTL);
+                                const nsACString& aHost, uint32_t aTTL,
+                                bool aIsTRR);
 
  private:
   virtual ~ChildDNSByTypeRecord() = default;
@@ -228,6 +229,7 @@ class ChildDNSByTypeRecord : public nsIDNSByTypeRecord,
   TypeRecordResultType mResults = AsVariant(mozilla::Nothing());
   bool mAllRecordsExcluded = false;
   uint32_t mTTL = 0;
+  bool mIsTRR = false;
 };
 
 NS_IMPL_ISUPPORTS(ChildDNSByTypeRecord, nsIDNSByTypeRecord, nsIDNSRecord,
@@ -235,10 +237,11 @@ NS_IMPL_ISUPPORTS(ChildDNSByTypeRecord, nsIDNSByTypeRecord, nsIDNSRecord,
 
 ChildDNSByTypeRecord::ChildDNSByTypeRecord(const TypeRecordResultType& reply,
                                            const nsACString& aHost,
-                                           uint32_t aTTL)
+                                           uint32_t aTTL, bool aIsTRR)
     : DNSHTTPSSVCRecordBase(aHost) {
   mResults = reply;
   mTTL = aTTL;
+  mIsTRR = aIsTRR;
 }
 
 NS_IMETHODIMP
@@ -294,6 +297,12 @@ NS_IMETHODIMP
 ChildDNSByTypeRecord::GetServiceModeRecord(bool aNoHttp2, bool aNoHttp3,
                                            nsISVCBRecord** aRecord) {
   return GetServiceModeRecordWithCname(aNoHttp2, aNoHttp3, ""_ns, aRecord);
+}
+
+NS_IMETHODIMP
+ChildDNSByTypeRecord::IsTRR(bool* aResult) {
+  *aResult = mIsTRR;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -502,9 +511,9 @@ bool DNSRequestSender::OnRecvLookupCompleted(const DNSRequestResponse& reply) {
     }
     case DNSRequestResponse::TIPCTypeRecord: {
       MOZ_ASSERT(mType != nsIDNSService::RESOLVE_TYPE_DEFAULT);
-      mResultRecord =
-          new ChildDNSByTypeRecord(reply.get_IPCTypeRecord().mData, mHost,
-                                   reply.get_IPCTypeRecord().mTTL);
+      mResultRecord = new ChildDNSByTypeRecord(
+          reply.get_IPCTypeRecord().mData, mHost,
+          reply.get_IPCTypeRecord().mTTL, reply.get_IPCTypeRecord().mIsTRR);
       break;
     }
     default:

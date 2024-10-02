@@ -129,6 +129,11 @@ interface nsIDNSHTTPSSVCRecord : nsISupports
    */
   readonly attribute uint32_t ttl;
 
+  /**
+   * Record retreived with TRR.
+   */
+  boolean IsTRR();
+
   Array<nsISVCBRecord> GetAllRecordsWithEchConfig(in boolean aNoHttp2,
                                                   in boolean aNoHttp3,
                                                   in ACString aCName,
