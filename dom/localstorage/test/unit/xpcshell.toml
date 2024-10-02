@@ -86,6 +86,8 @@ support-files = ["migration_emptyValue_profile.zip",]
 
 ["test_schema4upgrade.js"]
 
+["test_slowDatabaseInitialization.js"]
+
 ["test_slowStorageInitialization.js"]
 
 ["test_snapshotting.js"]
