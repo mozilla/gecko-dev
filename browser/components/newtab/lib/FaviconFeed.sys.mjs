@@ -19,107 +19,12 @@ const { RemoteSettings } = ChromeUtils.importESModule(
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
+  NetUtil: "resource://gre/modules/NetUtil.sys.mjs",
   NewTabUtils: "resource://gre/modules/NewTabUtils.sys.mjs",
   PlacesUtils: "resource://gre/modules/PlacesUtils.sys.mjs",
 });
 
 const MIN_FAVICON_SIZE = 96;
-
-/**
- * Get favicon info (uri and size) for a uri from Places.
- *
- * @param uri {nsIURI} Page to check for favicon data
- * @returns A promise of an object (possibly null) containing the data
- */
-function getFaviconInfo(uri) {
-  return new Promise(resolve =>
-    lazy.PlacesUtils.favicons.getFaviconDataForPage(
-      uri,
-      // Package up the icon data in an object if we have it; otherwise null
-      (iconUri, faviconLength, favicon, mimeType, faviconSize) =>
-        resolve(iconUri ? { iconUri, faviconSize } : null),
-      lazy.NewTabUtils.activityStreamProvider.THUMB_FAVICON_SIZE
-    )
-  );
-}
-
-/**
- * Fetches visit paths for a given URL from its most recent visit in Places.
- *
- * Note that this includes the URL itself as well as all the following
- * permenent&temporary redirected URLs if any.
- *
- * @param {String} a URL string
- *
- * @returns {Array} Returns an array containing objects as
- *   {int}    visit_id: ID of the visit in moz_historyvisits.
- *   {String} url: URL of the redirected URL.
- */
-async function fetchVisitPaths(url) {
-  const query = `
-    WITH RECURSIVE path(visit_id)
-    AS (
-      SELECT v.id
-      FROM moz_places h
-      JOIN moz_historyvisits v
-        ON v.place_id = h.id
-      WHERE h.url_hash = hash(:url) AND h.url = :url
-        AND v.visit_date = h.last_visit_date
-
-      UNION
-
-      SELECT id
-      FROM moz_historyvisits
-      JOIN path
-        ON visit_id = from_visit
-      WHERE visit_type IN
-        (${lazy.PlacesUtils.history.TRANSITIONS.REDIRECT_PERMANENT},
-         ${lazy.PlacesUtils.history.TRANSITIONS.REDIRECT_TEMPORARY})
-    )
-    SELECT visit_id, (
-      SELECT (
-        SELECT url
-        FROM moz_places
-        WHERE id = place_id)
-      FROM moz_historyvisits
-      WHERE id = visit_id) AS url
-    FROM path
-  `;
-
-  const visits =
-    await lazy.NewTabUtils.activityStreamProvider.executePlacesQuery(query, {
-      columns: ["visit_id", "url"],
-      params: { url },
-    });
-  return visits;
-}
-
-/**
- * Fetch favicon for a url by following its redirects in Places.
- *
- * This can improve the rich icon coverage for Top Sites since Places only
- * associates the favicon to the final url if the original one gets redirected.
- * Note this is not an urgent request, hence it is dispatched to the main
- * thread idle handler to avoid any possible performance impact.
- */
-export async function fetchIconFromRedirects(url) {
-  const visitPaths = await fetchVisitPaths(url);
-  if (visitPaths.length > 1) {
-    const lastVisit = visitPaths.pop();
-    const redirectedUri = Services.io.newURI(lastVisit.url);
-    const iconInfo = await getFaviconInfo(redirectedUri);
-    if (iconInfo && iconInfo.faviconSize >= MIN_FAVICON_SIZE) {
-      lazy.PlacesUtils.favicons.setAndFetchFaviconForPage(
-        Services.io.newURI(url),
-        iconInfo.iconUri,
-        false,
-        lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-        null,
-        Services.scriptSecurityManager.getSystemPrincipal()
-      );
-    }
-  }
-}
 
 export class FaviconFeed {
   constructor() {
@@ -142,7 +47,9 @@ export class FaviconFeed {
     if (!site) {
       if (!this._queryForRedirects.has(url)) {
         this._queryForRedirects.add(url);
-        Services.tm.idleDispatchToMainThread(() => fetchIconFromRedirects(url));
+        Services.tm.idleDispatchToMainThread(() =>
+          this.fetchIconFromRedirects(url)
+        );
       }
       return;
     }
@@ -150,14 +57,7 @@ export class FaviconFeed {
     let iconUri = Services.io.newURI(site.image_url);
     // The #tippytop is to be able to identify them for telemetry.
     iconUri = iconUri.mutate().setRef("tippytop").finalize();
-    lazy.PlacesUtils.favicons.setAndFetchFaviconForPage(
-      Services.io.newURI(url),
-      iconUri,
-      false,
-      lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE,
-      null,
-      Services.scriptSecurityManager.getSystemPrincipal()
-    );
+    await this.#setFaviconForPage(Services.io.newURI(url), iconUri);
   }
 
   /**
@@ -194,5 +94,183 @@ export class FaviconFeed {
         this.fetchIcon(action.data.url);
         break;
     }
+  }
+
+  /**
+   * Get favicon info (uri and size) for a uri from Places.
+   *
+   * @param uri {nsIURI} Page to check for favicon data
+   * @returns A promise of an object (possibly null) containing the data
+   */
+  getFaviconInfo(uri) {
+    return new Promise(resolve =>
+      lazy.PlacesUtils.favicons.getFaviconDataForPage(
+        uri,
+        // Package up the icon data in an object if we have it; otherwise null
+        (iconUri, faviconLength, favicon, mimeType, faviconSize) =>
+          resolve(iconUri ? { iconUri, faviconSize } : null),
+        lazy.NewTabUtils.activityStreamProvider.THUMB_FAVICON_SIZE
+      )
+    );
+  }
+
+  /**
+   * Fetch favicon for a url by following its redirects in Places.
+   *
+   * This can improve the rich icon coverage for Top Sites since Places only
+   * associates the favicon to the final url if the original one gets redirected.
+   * Note this is not an urgent request, hence it is dispatched to the main
+   * thread idle handler to avoid any possible performance impact.
+   */
+  async fetchIconFromRedirects(url) {
+    const visitPaths = await this.#fetchVisitPaths(url);
+    if (visitPaths.length > 1) {
+      const lastVisit = visitPaths.pop();
+      const redirectedUri = Services.io.newURI(lastVisit.url);
+      const iconInfo = await this.getFaviconInfo(redirectedUri);
+      if (iconInfo?.faviconSize >= MIN_FAVICON_SIZE) {
+        lazy.PlacesUtils.favicons.copyFavicons(
+          redirectedUri,
+          Services.io.newURI(url),
+          lazy.PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE
+        );
+      }
+    }
+  }
+
+  /**
+   * Get favicon data for given URL from network.
+   *
+   * @param {nsIURI} faviconURI
+   *        nsIURI for the favicon.
+   * @return {nsIURI} data URL
+   */
+  async getFaviconDataURLFromNetwork(faviconURI) {
+    let channel = lazy.NetUtil.newChannel({
+      uri: faviconURI,
+      loadingPrincipal: Services.scriptSecurityManager.getSystemPrincipal(),
+      securityFlags:
+        Ci.nsILoadInfo.SEC_REQUIRE_CORS_INHERITS_SEC_CONTEXT |
+        Ci.nsILoadInfo.SEC_ALLOW_CHROME |
+        Ci.nsILoadInfo.SEC_DISALLOW_SCRIPT,
+      contentPolicyType: Ci.nsIContentPolicy.TYPE_INTERNAL_IMAGE_FAVICON,
+    });
+
+    let resolver = Promise.withResolvers();
+
+    lazy.NetUtil.asyncFetch(channel, async (input, status, request) => {
+      if (!Components.isSuccessCode(status)) {
+        resolver.resolve();
+        return;
+      }
+
+      try {
+        let data = lazy.NetUtil.readInputStream(input, input.available());
+        let { contentType } = request.QueryInterface(Ci.nsIChannel);
+        input.close();
+
+        let buffer = new Uint8ClampedArray(data);
+        let blob = new Blob([buffer], { type: contentType });
+        let dataURL = await new Promise((resolve, reject) => {
+          let reader = new FileReader();
+          reader.addEventListener("load", () => resolve(reader.result));
+          reader.addEventListener("error", reject);
+          reader.readAsDataURL(blob);
+        });
+        resolver.resolve(Services.io.newURI(dataURL));
+      } catch (e) {
+        resolver.reject(e);
+      }
+    });
+
+    return resolver.promise;
+  }
+
+  /**
+   * Set favicon for page.
+   *
+   * @param {nsIURI} pageURI
+   * @param {nsIURI} faviconURI
+   */
+  async #setFaviconForPage(pageURI, faviconURI) {
+    try {
+      // If the given faviconURI is data URL, set it as is.
+      if (faviconURI.schemeIs("data")) {
+        lazy.PlacesUtils.favicons.setFaviconForPage(
+          pageURI,
+          faviconURI,
+          faviconURI
+        );
+        return;
+      }
+
+      // Try to find the favicon data from DB.
+      const faviconInfo = await this.getFaviconInfo(pageURI);
+      if (faviconInfo?.faviconSize) {
+        // As valid favicon data is already stored for the page,
+        // we don't have to update.
+        return;
+      }
+
+      // Otherwise, fetch from network.
+      lazy.PlacesUtils.favicons.setFaviconForPage(
+        pageURI,
+        faviconURI,
+        await this.getFaviconDataURLFromNetwork(faviconURI)
+      );
+    } catch (ex) {
+      console.error(`Failed to set favicon for page:${ex}`);
+    }
+  }
+
+  /**
+   * Fetches visit paths for a given URL from its most recent visit in Places.
+   *
+   * Note that this includes the URL itself as well as all the following
+   * permenent&temporary redirected URLs if any.
+   *
+   * @param {String} a URL string
+   *
+   * @returns {Array} Returns an array containing objects as
+   *   {int}    visit_id: ID of the visit in moz_historyvisits.
+   *   {String} url: URL of the redirected URL.
+   */
+  async #fetchVisitPaths(url) {
+    const query = `
+    WITH RECURSIVE path(visit_id)
+    AS (
+      SELECT v.id
+      FROM moz_places h
+      JOIN moz_historyvisits v
+        ON v.place_id = h.id
+      WHERE h.url_hash = hash(:url) AND h.url = :url
+        AND v.visit_date = h.last_visit_date
+
+      UNION
+
+      SELECT id
+      FROM moz_historyvisits
+      JOIN path
+        ON visit_id = from_visit
+      WHERE visit_type IN
+        (${lazy.PlacesUtils.history.TRANSITIONS.REDIRECT_PERMANENT},
+         ${lazy.PlacesUtils.history.TRANSITIONS.REDIRECT_TEMPORARY})
+    )
+    SELECT visit_id, (
+      SELECT (
+        SELECT url
+        FROM moz_places
+        WHERE id = place_id)
+      FROM moz_historyvisits
+      WHERE id = visit_id) AS url
+    FROM path
+  `;
+
+    const visits =
+      await lazy.NewTabUtils.activityStreamProvider.executePlacesQuery(query, {
+        columns: ["visit_id", "url"],
+        params: { url },
+      });
+    return visits;
   }
 }
