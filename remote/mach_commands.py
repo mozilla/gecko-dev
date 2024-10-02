@@ -409,6 +409,8 @@ class PuppeteerRunner(MozbuildObject):
         binary = params.get("binary")
         headless = params.get("headless", False)
         product = params.get("product", "firefox")
+        this_chunk = params.get("this_chunk", "1")
+        total_chunks = params.get("total_chunks", "1")
         with_cdp = params.get("cdp", False)
 
         extra_options = {}
@@ -458,26 +460,34 @@ class PuppeteerRunner(MozbuildObject):
         if product == "chrome":
             if with_cdp:
                 if headless:
-                    test_command = "test:chrome:headless"
+                    test_command = "chrome-headless"
                 else:
-                    test_command = "test:chrome:headful"
+                    test_command = "chrome-headful"
             elif headless:
-                test_command = "test:chrome:bidi"
+                test_command = "chrome-bidi"
             else:
                 raise Exception(
                     "Chrome doesn't support headful mode with the WebDriver BiDi protocol"
                 )
         elif product == "firefox":
             if with_cdp:
-                test_command = "test:firefox:cdp"
+                test_command = "firefox-cdp"
             elif headless:
-                test_command = "test:firefox:headless"
+                test_command = "firefox-headless"
             else:
-                test_command = "test:firefox:headful"
+                test_command = "firefox-headful"
         else:
-            test_command = "test:" + product
+            test_command = product
 
-        command = ["run", test_command, "--"] + mocha_options
+        command = [
+            "run",
+            "test",
+            "--",
+            "--shard",
+            "'" + this_chunk + "-" + total_chunks + "'",
+            "--test-suite",
+            test_command,
+        ] + mocha_options
 
         prefs = {}
         for k, v in params.get("extra_prefs", {}).items():
@@ -587,6 +597,18 @@ def create_parser_puppeteer():
         help="Defines additional options for `puppeteer.launch`.",
     )
     p.add_argument(
+        "--this-chunk",
+        type=str,
+        default="1",
+        help="Defines a current chunk to run.",
+    )
+    p.add_argument(
+        "--total-chunks",
+        type=str,
+        default="1",
+        help="Defines a total amount of chunks to run.",
+    )
+    p.add_argument(
         "-v",
         dest="verbosity",
         action="count",
@@ -660,6 +682,8 @@ def puppeteer_test(
     verbosity=0,
     tests=None,
     product="firefox",
+    this_chunk="1",
+    total_chunks="1",
     **kwargs,
 ):
     logger = mozlog.commandline.setup_logging(
@@ -718,6 +742,8 @@ def puppeteer_test(
         "extra_prefs": prefs,
         "product": product,
         "extra_launcher_options": options,
+        "this_chunk": this_chunk,
+        "total_chunks": total_chunks,
     }
     puppeteer = command_context._spawn(PuppeteerRunner)
     try:

@@ -5,6 +5,7 @@
 loader: taskgraph.loader.transform:loader
 
 transforms:
+    - taskgraph.transforms.chunking
     - gecko_taskgraph.transforms.try_job:transforms
     - gecko_taskgraph.transforms.source_test:transforms
     - taskgraph.transforms.task_context

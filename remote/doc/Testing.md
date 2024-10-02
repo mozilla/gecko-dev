@@ -149,6 +149,12 @@ test files have to be updated first. To select specific tests or test
 groups within a file define [exclusive tests] by adding the `.only` suffix
 like `it.only()` or `describe.only()`.
 
+It is also possible, similar to how it works in CI, to run tests in chunks:
+
+```shell
+% ./mach puppeteer-test --this-chunk=1 --total-chunks=2
+```
+
 More customizations for [Mocha] can be found in its own documentation.
 
 Test expectation metadata is collected in _remote/test/puppeteer-expected.json_

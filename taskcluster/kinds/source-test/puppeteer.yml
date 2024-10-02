@@ -41,13 +41,19 @@ puppeteer:
             $MOZ_FETCHES_DIR/firefox/firefox --screenshot http://example.org &&
             ./mach puppeteer-test --ci -vv --binary $MOZ_FETCHES_DIR/firefox/firefox --cdp --headless --log-tbpl - --log-errorsummary /builds/worker/pup_errorsummary.json
 
-puppeteer-with-bidi:
+puppeteer-with-bidi-{this_chunk}:
     description: Puppeteer tests against Firefox Webdriver BiDi remote protocol
+    chunk:
+        total-chunks: 2
+        substitution-fields:
+            - name
+            - treeherder
+            - run
     treeherder:
-        symbol: Pup(wd)
+        symbol: Pup(Wd{this_chunk})
     run:  # Bug 1651542: Use screenshot feature to warm-up the font cache before the actual test
         using: run-task
         command: >
             cd $GECKO_PATH/ &&
             $MOZ_FETCHES_DIR/firefox/firefox --screenshot http://example.org &&
-            ./mach puppeteer-test --ci -vv --binary $MOZ_FETCHES_DIR/firefox/firefox --headless --log-tbpl - --log-errorsummary /builds/worker/pup_errorsummary.json
+            ./mach puppeteer-test --ci -vv --binary $MOZ_FETCHES_DIR/firefox/firefox --headless --log-tbpl - --log-errorsummary /builds/worker/pup_errorsummary.json --this-chunk={this_chunk} --total-chunks={total_chunks}
