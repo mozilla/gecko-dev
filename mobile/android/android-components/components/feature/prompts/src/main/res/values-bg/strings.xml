@@ -130,7 +130,7 @@
     <string name="mozac_feature_prompts_suggest_strong_password_description_2" moz:removedIn="133" tools:ignore="UnusedResources">Защитете профилите си, като използвате силна, произволна парола. Ще бъде запазена в профила ви за бъдеща употреба.</string>
 
     <!-- Content description for the suggest strong password confirmation dialog -->
-    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Защитете профила си, като използвате силна, произволно генерирана парола. Ще бъде запазен в профила ви за бъдеща употреба.</string>
+    <string name="mozac_feature_prompts_suggest_strong_password_description_3">Защитете профила си, като използвате силна, произволна парола. Ще бъде запазена в профила за бъдеща употреба.</string>
 
     <!-- Pressing this will use the suggested strong password -->
     <string name="mozac_feature_prompts_suggest_strong_password_use_password">Използване на парола</string>

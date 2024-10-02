@@ -2885,7 +2885,7 @@
 
     <!-- Glean debug tools -->
     <!-- The title of the glean debugging feature -->
-    <string name="glean_debug_tools_title">Offer Dadfygio Glanhau</string>
+    <string name="glean_debug_tools_title">Offer Dadfygio Glean</string>
 
     <!-- Messages explaining how to exit fullscreen mode -->
     <!-- Message shown to explain how to exit fullscreen mode when gesture navigation is enabled -->
