@@ -15,7 +15,7 @@
     <!-- Alert dialog confirmation before download a file, this is the positive action. -->
     <string name="mozac_feature_downloads_dialog_download">چۈشۈرۈش</string>
     <!-- Alert dialog confirmation before download a file, this is the negative action. -->
-    <string name="mozac_feature_downloads_dialog_cancel">بىكار قىلىش</string>
+    <string name="mozac_feature_downloads_dialog_cancel">ۋاز كەچ</string>
 
     <!-- Error shown when the user is trying to download a invalid file. %1$s will be replaced with the name of the app. -->
     <string name="mozac_feature_downloads_file_not_supported2">%1$s بۇ تىپتىكى ھۆججەتنى چۈشۈرەلمەيدۇ</string>
@@ -31,7 +31,7 @@
     <!-- Button that resumes the download when pressed -->
     <string name="mozac_feature_downloads_button_resume">داۋاملاشتۇرۇش</string>
     <!-- Button that cancels the download when pressed -->
-    <string name="mozac_feature_downloads_button_cancel">بىكار قىلىش</string>
+    <string name="mozac_feature_downloads_button_cancel">ۋاز كەچ</string>
     <!-- Button that opens the downloaded file when pressed -->
     <string name="mozac_feature_downloads_button_open">ئېچىش</string>
     <!-- Button that restarts the download after a failed attempt -->
@@ -53,7 +53,7 @@
     <!-- Alert dialog confirmation before cancelling private downloads, this is the body. %1$s will be replaced with the name of the file. -->
     <string name="mozac_feature_downloads_cancel_active_private_downloads_warning_content_body">ئەگەر ھازىر ھەممە شەخسىيەت بەتكۈچنى تاقىسىڭىز، %1$s چۈشۈرۈشتىن ۋاز كېچىدۇ. راستىنلا شەخسىي زىيارەت ھالىتىدىن چېكىنەمسىز؟</string>
     <!-- Alert dialog confirmation before cancelling downloads, this is the positive action. -->
-    <string name="mozac_feature_downloads_cancel_active_downloads_accept">چۈشۈرۈشنى بىكار قىلىش</string>
+    <string name="mozac_feature_downloads_cancel_active_downloads_accept">چۈشۈرۈشتىن ۋاز كەچ</string>
     <!-- Alert dialog confirmation before cancelling downloads, this is the negative action. Leaves user in Private browsing -->
     <string name="mozac_feature_downloads_cancel_active_private_downloads_deny">شەخسىي زىيارەت ھالىتىدە قالدۇر</string>
 </resources>

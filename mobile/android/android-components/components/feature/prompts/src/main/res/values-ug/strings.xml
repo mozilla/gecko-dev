@@ -3,7 +3,7 @@
     <!-- Text for confirmation for a positive action in dialog  -->
     <string name="mozac_feature_prompts_ok">ماقۇل</string>
     <!-- Text for confirmation for a negative action in dialog.  -->
-    <string name="mozac_feature_prompts_cancel">بىكار قىلىش</string>
+    <string name="mozac_feature_prompts_cancel">ۋاز كەچ</string>
     <!-- When a page shows many dialogs, this checkbox will appear for letting the user choose to prevent showing more dialogs. -->
     <string name="mozac_feature_prompts_no_more_dialogs">بۇ بەتنىڭ تېخىمۇ كۆپ سۆزلەشكۈ قۇرۇشىنىڭ ئالدىنى ئالىدۇ</string>
     <!-- Text for a positive button, when an user selects a date in date/time picker. -->
@@ -155,7 +155,7 @@
     <!-- Pressing this will dismiss the dialog and reload the page sending again the previous data -->
     <string name="mozac_feature_prompt_repost_positive_button_text">سانلىق مەلۇماتنى قايتا يوللايدۇ</string>
     <!-- Pressing this will dismiss the dialog and not refresh the webpage -->
-    <string name="mozac_feature_prompt_repost_negative_button_text">بىكار قىلىش</string>
+    <string name="mozac_feature_prompt_repost_negative_button_text">ۋاز كەچ</string>
 
     <!-- Credit Card Autofill -->
     <!-- Header for the select credit card prompt to allow users to fill a form with a saved credit card. -->
