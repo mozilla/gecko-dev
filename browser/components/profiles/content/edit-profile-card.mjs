@@ -14,6 +14,9 @@ import "chrome://global/content/elements/moz-button.mjs";
 // eslint-disable-next-line import/no-unassigned-import
 import "chrome://global/content/elements/moz-button-group.mjs";
 
+const SAVE_NAME_TIMEOUT = 2000;
+const SAVED_MESSAGE_TIMEOUT = 5000;
+
 /**
  * Element used for updating a profile's name, theme, and avatar.
  */
@@ -27,6 +30,7 @@ export class EditProfileCard extends MozLitElement {
     mozCard: "moz-card",
     nameInput: "#profile-name",
     errorMessage: "#error-message",
+    savedMessage: "#saved-message",
   };
 
   connectedCallback() {
@@ -49,7 +53,23 @@ export class EditProfileCard extends MozLitElement {
     this.initialized = true;
   }
 
-  handleChangeEvent() {
+  debounce(callback) {
+    return () => {
+      clearTimeout(this.timeoutID);
+      this.timeoutID = setTimeout(() => {
+        callback();
+      }, SAVE_NAME_TIMEOUT);
+    };
+  }
+
+  updateName() {
+    this.savedMessage.parentElement.hidden = false;
+    if (this.saveMessageTimeoutId) {
+      clearTimeout(this.saveMessageTimeoutId);
+    }
+    this.saveMessageTimeoutId = setTimeout(() => {
+      this.savedMessage.parentElement.hidden = true;
+    }, SAVED_MESSAGE_TIMEOUT);
     let newName = this.nameInput.value.trim();
     if (!newName) {
       return;
@@ -73,10 +93,14 @@ export class EditProfileCard extends MozLitElement {
       this.showErrorMessage("edit-profile-page-duplicate-name");
     } else {
       this.hideErrorMessage();
+      this.debounce(() => {
+        this.updateName();
+      })();
     }
   }
 
   showErrorMessage(l10nId) {
+    clearTimeout(this.timeoutID);
     document.l10n.setAttributes(this.errorMessage, l10nId);
     this.errorMessage.parentElement.hidden = false;
   }
@@ -98,12 +122,28 @@ export class EditProfileCard extends MozLitElement {
         aria-errormessage="error-message"
         value=${this.profile.name}
         @input=${this.handleInputEvent}
-        @change=${this.handleChangeEvent}
       />
-      <span id="error" hidden
-        ><img id="error-icon" src="chrome://global/skin/icons/info.svg" />
-        <span id="error-message"></span>
-      </span>
+      <div class="message-parent">
+        <span class="message" hidden
+          ><img
+            class="message-icon"
+            id="error-icon"
+            src="chrome://global/skin/icons/info.svg"
+          />
+          <span id="error-message"></span>
+        </span>
+        <span class="message" hidden
+          ><img
+            class="message-icon"
+            id="saved-icon"
+            src="chrome://global/skin/icons/check-filled.svg"
+          />
+          <span
+            id="saved-message"
+            data-l10n-id="edit-profile-page-profile-saved"
+          ></span>
+        </span>
+      </div>
     </div>`;
   }
 

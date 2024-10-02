@@ -1062,7 +1062,7 @@ void VirtualRegister::setInitialDefinition(CodePosition from) {
 }
 
 LiveRange* VirtualRegister::rangeFor(CodePosition pos,
-                                     bool preferRegister /* = false */) {
+                                     bool preferRegister /* = false */) const {
   assertRangesSorted();
 
   size_t len = ranges_.length();
@@ -1146,7 +1146,7 @@ void VirtualRegister::sortRanges() {
 }
 
 #ifdef DEBUG
-void VirtualRegister::assertRangesSorted() {
+void VirtualRegister::assertRangesSorted() const {
   MOZ_ASSERT(rangesSorted_);
 
   // Assert the last N ranges in the vector are sorted correctly. We don't check
@@ -3891,6 +3891,98 @@ void BacktrackingAllocator::removeDeadRanges(VirtualRegister& reg) {
   reg.removeRangesIf(isDeadRange);
 }
 
+static void AssertCorrectRangeForPosition(const VirtualRegister& reg,
+                                          CodePosition pos,
+                                          const LiveRange* range) {
+  MOZ_ASSERT(range->covers(pos));
+#ifdef DEBUG
+  // Assert the result is consistent with rangeFor. The ranges can be different
+  // but must be equivalent (both register or both non-register ranges).
+  LiveRange* expected = reg.rangeFor(pos, /* preferRegister = */ true);
+  MOZ_ASSERT(range->bundle()->allocation().isRegister() ==
+             expected->bundle()->allocation().isRegister());
+#endif
+}
+
+// Helper for ::createMoveGroupsFromLiveRangeTransitions
+bool BacktrackingAllocator::createMoveGroupsForControlFlowEdges(
+    const VirtualRegister& reg, const ControlFlowEdgeVector& edges) {
+  // Iterate over both the virtual register ranges (sorted by start position)
+  // and the control flow edges (sorted by predecessorExit). When we find the
+  // predecessor range for the next edge, add a move from predecessor range to
+  // successor range.
+
+  VirtualRegister::RangeIterator iter(reg);
+  LiveRange* nonRegisterRange = nullptr;
+
+  for (const ControlFlowEdge& edge : edges) {
+    CodePosition pos = edge.predecessorExit;
+    LAllocation successorAllocation =
+        edge.successorRange->bundle()->allocation();
+
+    // We don't need to insert a move if nonRegisterRange covers the predecessor
+    // block exit and has the same allocation as the successor block. This check
+    // is not required for correctness but it reduces the number of generated
+    // moves.
+    if (nonRegisterRange && pos < nonRegisterRange->to() &&
+        nonRegisterRange->bundle()->allocation() == successorAllocation) {
+      MOZ_ASSERT(nonRegisterRange->covers(pos));
+      continue;
+    }
+
+    // Search for a matching range. Prefer a register range.
+    LiveRange* predecessorRange = nullptr;
+    bool foundSameAllocation = false;
+    while (true) {
+      if (iter.done() || iter->from() > pos) {
+        // No register range covers this edge.
+        predecessorRange = nonRegisterRange;
+        break;
+      }
+      if (iter->to() <= pos) {
+        // Skip ranges that end before this edge (and later edges).
+        iter++;
+        continue;
+      }
+      MOZ_ASSERT(iter->covers(pos));
+      if (iter->bundle()->allocation() == successorAllocation) {
+        // There's a range covering the predecessor block exit that has the same
+        // allocation, so we don't need to insert a move. This check is not
+        // required for correctness but it reduces the number of generated
+        // moves.
+        foundSameAllocation = true;
+        break;
+      }
+      if (iter->bundle()->allocation().isRegister()) {
+        predecessorRange = *iter;
+        break;
+      }
+      if (!nonRegisterRange || iter->to() > nonRegisterRange->to()) {
+        nonRegisterRange = *iter;
+      }
+      iter++;
+    }
+
+    if (foundSameAllocation) {
+      continue;
+    }
+
+    MOZ_ASSERT(predecessorRange);
+    AssertCorrectRangeForPosition(reg, pos, predecessorRange);
+
+    if (!alloc().ensureBallast()) {
+      return false;
+    }
+    JitSpew(JitSpew_RegAlloc, "    (moveAtEdge#2)");
+    if (!moveAtEdge(edge.predecessor, edge.successor, predecessorRange,
+                    edge.successorRange, reg.type())) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
   // Add moves to handle changing assignments for vregs over their lifetime.
   JitSpew(JitSpew_RegAlloc, "ResolveControlFlow: begin");
@@ -3912,7 +4004,29 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
     // Remove ranges which will never be used.
     removeDeadRanges(reg);
 
-    for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
+    LiveRange* registerRange = nullptr;
+    LiveRange* nonRegisterRange = nullptr;
+    VirtualRegister::RangeIterator iter(reg);
+
+    // Keep track of the register and non-register ranges with the highest end
+    // position before advancing the iterator. These are predecessor ranges for
+    // later ranges.
+    auto moveToNextRange = [&](LiveRange* range) {
+      MOZ_ASSERT(*iter == range);
+      if (range->bundle()->allocation().isRegister()) {
+        if (!registerRange || range->to() > registerRange->to()) {
+          registerRange = range;
+        }
+      } else {
+        if (!nonRegisterRange || range->to() > nonRegisterRange->to()) {
+          nonRegisterRange = range;
+        }
+      }
+      iter++;
+    };
+
+    // Iterate over all ranges.
+    while (!iter.done()) {
       LiveRange* range = *iter;
 
       if (mir->shouldCancel(
@@ -3923,6 +4037,7 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       // The range which defines the register does not have a predecessor
       // to add moves from.
       if (range->hasDefinition()) {
+        moveToNextRange(range);
         continue;
       }
 
@@ -3931,47 +4046,60 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
       CodePosition start = range->from();
       LNode* ins = insData[start];
       if (start == entryOf(ins->block())) {
+        moveToNextRange(range);
         continue;
       }
 
-      // If we already saw a range which covers the start of this range
-      // and has the same allocation, we don't need an explicit move at
-      // the start of this range.
-      bool skip = false;
-      for (VirtualRegister::RangeIterator prevIter(reg); *prevIter != range;
-           prevIter++) {
-        LiveRange* prevRange = *prevIter;
-        if (prevRange->covers(start) && prevRange->bundle()->allocation() ==
-                                            range->bundle()->allocation()) {
-          skip = true;
-          break;
-        }
-      }
-      if (skip) {
-        continue;
-      }
-
-      if (!alloc().ensureBallast()) {
-        return false;
-      }
-
-      LiveRange* predecessorRange =
-          reg.rangeFor(start.previous(), /* preferRegister = */ true);
-      if (start.subpos() == CodePosition::INPUT) {
-        JitSpewIfEnabled(JitSpew_RegAlloc, "    moveInput (%s) <- (%s)",
-                         range->toString().get(),
-                         predecessorRange->toString().get());
-        if (!moveInput(ins->toInstruction(), predecessorRange, range,
-                       reg.type())) {
-          return false;
-        }
+      // Determine the predecessor range to use for this range and other ranges
+      // starting at the same position. Prefer a register range.
+      LiveRange* predecessorRange = nullptr;
+      if (registerRange && start.previous() < registerRange->to()) {
+        predecessorRange = registerRange;
       } else {
-        JitSpew(JitSpew_RegAlloc, "    (moveAfter)");
-        if (!moveAfter(ins->toInstruction(), predecessorRange, range,
-                       reg.type())) {
+        MOZ_ASSERT(nonRegisterRange);
+        MOZ_ASSERT(start.previous() < nonRegisterRange->to());
+        predecessorRange = nonRegisterRange;
+      }
+      AssertCorrectRangeForPosition(reg, start.previous(), predecessorRange);
+
+      // Add moves from predecessorRange to all ranges that start here.
+      do {
+        range = *iter;
+        MOZ_ASSERT(!range->hasDefinition());
+
+        if (!alloc().ensureBallast()) {
           return false;
         }
-      }
+
+#ifdef DEBUG
+        // If we already saw a range which covers the start of this range, it
+        // must have a different allocation.
+        for (VirtualRegister::RangeIterator prevIter(reg); *prevIter != range;
+             prevIter++) {
+          MOZ_ASSERT_IF(prevIter->covers(start),
+                        prevIter->bundle()->allocation() !=
+                            range->bundle()->allocation());
+        }
+#endif
+
+        if (start.subpos() == CodePosition::INPUT) {
+          JitSpewIfEnabled(JitSpew_RegAlloc, "    moveInput (%s) <- (%s)",
+                           range->toString().get(),
+                           predecessorRange->toString().get());
+          if (!moveInput(ins->toInstruction(), predecessorRange, range,
+                         reg.type())) {
+            return false;
+          }
+        } else {
+          JitSpew(JitSpew_RegAlloc, "    (moveAfter)");
+          if (!moveAfter(ins->toInstruction(), predecessorRange, range,
+                         reg.type())) {
+            return false;
+          }
+        }
+
+        moveToNextRange(range);
+      } while (!iter.done() && iter->from() == start);
     }
   }
 
@@ -4026,8 +4154,15 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
 
   // Add moves to resolve graph edges with different allocations at their
   // source and target.
+  ControlFlowEdgeVector edges;
   for (size_t i = 1; i < graph.numVirtualRegisters(); i++) {
     VirtualRegister& reg = vregs[i];
+
+    // First collect all control flow edges we need to resolve. This loop knows
+    // the range on the successor side, but looking up the corresponding
+    // predecessor range with rangeFor is quadratic so we handle that
+    // differently.
+    edges.clear();
     for (VirtualRegister::RangeIterator iter(reg); iter; iter++) {
       LiveRange* targetRange = *iter;
 
@@ -4048,21 +4183,33 @@ bool BacktrackingAllocator::createMoveGroupsFromLiveRangeTransitions() {
 
         for (size_t j = 0; j < successor->mir()->numPredecessors(); j++) {
           LBlock* predecessor = successor->mir()->getPredecessor(j)->lir();
-          if (targetRange->covers(exitOf(predecessor))) {
+          CodePosition predecessorExit = exitOf(predecessor);
+          if (targetRange->covers(predecessorExit)) {
             continue;
           }
-
-          if (!alloc().ensureBallast()) {
-            return false;
-          }
-          JitSpew(JitSpew_RegAlloc, "    (moveAtEdge#2)");
-          LiveRange* from = reg.rangeFor(exitOf(predecessor), true);
-          if (!moveAtEdge(predecessor, successor, from, targetRange,
-                          reg.type())) {
+          if (!edges.emplaceBack(predecessor, successor, targetRange,
+                                 predecessorExit)) {
             return false;
           }
         }
       }
+    }
+
+    if (edges.empty()) {
+      continue;
+    }
+
+    // Sort edges by predecessor position. This doesn't need to be a stable sort
+    // because createMoveGroupsForControlFlowEdges will use the same predecessor
+    // range if there are multiple edges with the same predecessor position.
+    auto compareEdges = [](const ControlFlowEdge& a, const ControlFlowEdge& b) {
+      return a.predecessorExit < b.predecessorExit;
+    };
+    std::sort(edges.begin(), edges.end(), compareEdges);
+
+    // Resolve edges and add move groups.
+    if (!createMoveGroupsForControlFlowEdges(reg, edges)) {
+      return false;
     }
   }
 

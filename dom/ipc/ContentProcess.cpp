@@ -58,9 +58,10 @@ static nsresult GetGREDir(nsIFile** aResult) {
   return NS_OK;
 }
 
-ContentProcess::ContentProcess(ProcessId aParentPid,
+ContentProcess::ContentProcess(IPC::Channel::ChannelHandle aClientChannel,
+                               ProcessId aParentPid,
                                const nsID& aMessageChannelId)
-    : ProcessChild(aParentPid, aMessageChannelId) {
+    : ProcessChild(std::move(aClientChannel), aParentPid, aMessageChannelId) {
   NS_LogInit();
 }
 
@@ -75,7 +76,10 @@ void ContentProcess::InfallibleInit(int aArgc, char* aArgv[]) {
   Maybe<bool> isForBrowser = Nothing();
   Maybe<const char*> parentBuildID =
       geckoargs::sParentBuildID.Get(aArgc, aArgv);
-  Maybe<uint64_t> jsInitHandle;
+
+  // command line: -jsInitHandle handle -jsInitLen length
+  Maybe<UniqueFileHandle> jsInitHandle =
+      geckoargs::sJsInitHandle.Get(aArgc, aArgv);
   Maybe<uint64_t> jsInitLen = geckoargs::sJsInitLen.Get(aArgc, aArgv);
 
   nsCOMPtr<nsIFile> appDirArg;
@@ -102,11 +106,6 @@ void ContentProcess::InfallibleInit(int aArgc, char* aArgv[]) {
   if (notForBrowserParam.isSome()) {
     isForBrowser = Some(false);
   }
-
-  // command line: [-jsInitHandle handle] -jsInitLen length
-#ifdef XP_WIN
-  jsInitHandle = geckoargs::sJsInitHandle.Get(aArgc, aArgv);
-#endif
 
 #if defined(XP_MACOSX) && defined(MOZ_SANDBOX)
   nsCOMPtr<nsIFile> profileDir;
@@ -137,8 +136,8 @@ void ContentProcess::InfallibleInit(int aArgc, char* aArgv[]) {
     MOZ_CRASH("InitPrefs failed");
   }
 
-  if (!::mozilla::ipc::ImportSharedJSInit(jsInitHandle.valueOr(0),
-                                          jsInitLen.valueOr(0))) {
+  if (jsInitHandle && jsInitLen &&
+      !::mozilla::ipc::ImportSharedJSInit(jsInitHandle.extract(), *jsInitLen)) {
     MOZ_CRASH("ImportSharedJSInit failed");
   }
 

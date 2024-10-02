@@ -50,13 +50,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
 
 XPCOMUtils.defineLazyPreferenceGetter(
   lazy,
-  "showRemoteTabsPref",
-  "services.sync.syncedTabs.showRemoteTabs",
-  true
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
   "syncUsernamePref",
   "services.sync.username"
 );
@@ -105,7 +98,6 @@ class ProviderRemoteTabs extends UrlbarProvider {
   isActive(queryContext) {
     return (
       lazy.syncUsernamePref &&
-      lazy.showRemoteTabsPref &&
       lazy.UrlbarPrefs.get("suggest.remotetab") &&
       queryContext.sources.includes(UrlbarUtils.RESULT_SOURCE.TABS) &&
       lazy.weaveXPCService &&

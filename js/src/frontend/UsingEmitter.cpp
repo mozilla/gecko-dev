@@ -129,7 +129,7 @@ bool UsingEmitter::emitResourcePropertyAccess(TaggedParserAtomIndex prop,
 // This implementation of DisposeResources is designed for using and await using
 // syntax and covers the complete algorithm as defined in the spec for
 // both sync and async disposals as necessary in bytecode.
-bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
+bool UsingEmitter::emitDisposeLoop(EmitterScope& es, bool hasAsyncDisposables,
                                    CompletionKind initialCompletion) {
   MOZ_ASSERT(initialCompletion != CompletionKind::Return);
 
@@ -138,7 +138,12 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
   // [stack] # otherwise (CompletionKind::Normal)
   // [stack]
 
-  if (hasAwaitUsing_) {
+  // TODO: This method still has access to instance variables and it maybe
+  // possible to accidentally use them wrongly for example hasAwaitUsing_ could
+  // be used instead and that would cause inconsistent behaviour. Consider
+  // refactoring this method to either be a static method or move this method to
+  // a base class without hasAwaitUsing_ but with bce_. (Bug 1917491)
+  if (hasAsyncDisposables) {
     // Awaits can cause suspension of the current frame and
     // the erasure of the frame's return value, thus we preserve
     // the frame's return value on the value stack.
@@ -167,7 +172,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
       return false;
     }
 
-    if (hasAwaitUsing_) {
+    if (hasAsyncDisposables) {
       // [stack] EXC RVAL NEEDS-AWAIT HAS-AWAITED THROWING
       if (!bce_->emitPickN(4)) {
         // [stack] RVAL NEEDS-AWAIT HAS-AWAITED THROWING EXC
@@ -246,7 +251,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
 
   // [stack] RVAL? NEEDS-AWAIT? HAS-AWAITED? THROWING EXC RESOURCES INDEX
 
-  if (hasAwaitUsing_) {
+  if (hasAsyncDisposables) {
     // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
 
     // Step 3.b. Let hint be resource.[[Hint]].
@@ -398,7 +403,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     return false;
   }
 
-  if (hasAwaitUsing_) {
+  if (hasAsyncDisposables) {
     // Step 3.e.ii. If result is a normal completion and hint is async-dispose,
     // then
     if (!emitResourcePropertyAccess(TaggedParserAtomIndex::WellKnown::hint(),
@@ -590,7 +595,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     return false;
   }
 
-  if (hasAwaitUsing_) {
+  if (hasAsyncDisposables) {
     // [stack] NEEDS-AWAIT HAS-AWAITED THROWING EXC RESOURCES INDEX
 
     // Step 3.f.ii. Set needsAwait to true.
@@ -635,7 +640,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     return false;
   }
 
-  if (hasAwaitUsing_) {
+  if (hasAsyncDisposables) {
     // Step 4. If needsAwait is true and hasAwaited is false, then
     if (!bce_->emitPickN(3)) {
       // [stack] HAS-AWAITED THROWING EXC NEEDS-AWAIT
@@ -691,7 +696,7 @@ bool UsingEmitter::emitDisposeLoop(EmitterScope& es,
     return false;
   }
 
-  if (hasAwaitUsing_) {
+  if (hasAsyncDisposables) {
     // [stack] RVAL EXC THROWING
 
     if (!bce_->emitPickN(2)) {
@@ -1004,7 +1009,7 @@ bool UsingEmitter::prepareForForOfLoopIteration() {
   EmitterScope* es = bce_->innermostEmitterScopeNoCheck();
   MOZ_ASSERT(es->hasDisposables());
 
-  if (!emitDisposeLoop(*es)) {
+  if (!emitDisposeLoop(*es, hasAwaitUsing_)) {
     // [stack] EXC THROWING
     return false;
   }
@@ -1023,7 +1028,7 @@ bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
     return false;
   }
 
-  if (!emitDisposeLoop(*es, CompletionKind::Throw)) {
+  if (!emitDisposeLoop(*es, hasAwaitUsing_, CompletionKind::Throw)) {
     // [stack] STACK EXC THROWING
     return false;
   }
@@ -1040,7 +1045,7 @@ bool UsingEmitter::prepareForForOfIteratorCloseOnThrow() {
 bool UsingEmitter::emitNonLocalJump(EmitterScope* present) {
   MOZ_ASSERT(present->hasDisposables());
 
-  if (!emitDisposeLoop(*present)) {
+  if (!emitDisposeLoop(*present, hasAwaitUsing_)) {
     // [stack] EXC THROWING
     return false;
   }
@@ -1056,7 +1061,7 @@ bool UsingEmitter::emitEnd() {
   // Given that we are using NonSyntactic TryEmitter we do
   // not have fallthrough behaviour in the normal completion case
   // see comment on controlInfo_ in TryEmitter.h
-  if (!emitDisposeLoop(*es)) {
+  if (!emitDisposeLoop(*es, hasAwaitUsing_)) {
     //     [stack] EXC THROWING
     return false;
   }
@@ -1083,7 +1088,7 @@ bool UsingEmitter::emitEnd() {
     return false;
   }
 
-  if (!emitDisposeLoop(*es, CompletionKind::Throw)) {
+  if (!emitDisposeLoop(*es, hasAwaitUsing_, CompletionKind::Throw)) {
     //     [stack] STACK THROWING EXC THROWING
     return false;
   }
@@ -1103,5 +1108,214 @@ bool UsingEmitter::emitEnd() {
     return false;
   }
 
+  return true;
+}
+
+// Explicit Resource Management Proposal
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-runtime-semantics-forin-div-ofbodyevaluation-lhs-stmt-iterator-lhskind-labelset
+// Step 9.k.i.
+bool NonLocalIteratorCloseUsingEmitter::prepareForIteratorClose(
+    EmitterScope& es) {
+  MOZ_ASSERT(state_ == State::Start);
+  // In this function we prepare for the closure of the iterator but first
+  // emitting the dispose loop and preseving exceptions on the stack and after
+  // that emitting a try to wrap the iterator closure code that shall come after
+  // this.
+  if (!es.hasDisposables()) {
+#ifdef DEBUG
+    state_ = State::IteratorClose;
+#endif
+    return true;
+  }
+
+  // [stack] ITER
+
+  if (!emitDisposeLoop(es, es.hasAsyncDisposables())) {
+    // [stack] ITER EXC-DISPOSE DISPOSE-THROWING
+    return false;
+  }
+
+  if (!bce_->emitPickN(2)) {
+    // [stack] EXC-DISPOSE DISPOSE-THROWING ITER
+    return false;
+  }
+
+  tryClosingIterator_.emplace(bce_, TryEmitter::Kind::TryCatch,
+                              TryEmitter::ControlKind::NonSyntactic);
+
+  if (!tryClosingIterator_->emitTry()) {
+    // [stack] EXC-DISPOSE DISPOSE-THROWING ITER
+    return false;
+  }
+
+#ifdef DEBUG
+  state_ = State::IteratorClose;
+#endif
+  return true;
+}
+
+// Explicit Resource Management Proposal
+// 7.4.9 IteratorClose ( iteratorRecord, completion )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-iteratorclose&secAll=true
+// Steps 5-6.
+//
+// 7.4.11 AsyncIteratorClose ( iteratorRecord, completion )
+// https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-asynciteratorclose&secAll=true
+// Steps 5-6.
+bool NonLocalIteratorCloseUsingEmitter::emitEnd() {
+  // This function handles the steps after the iterator close operation which
+  // may or may not have thrown. note that prepareForIteratorClose would have
+  // already wrapped the iterator closure with a try and have preserved any
+  // exception by the disposal operation on the stack now this function does the
+  // equivalent of the following pseudocode (consider excDispose and
+  // disposeThrowing and iter equal to corresponding values left on stack by
+  // prepareForIteratorClose):
+  //
+  //
+  // let excToThrow, throwing = disposeThrowing;
+  // try {
+  //   IteratorClose(iter);
+  // } catch (excIterClose) {
+  //   throwing = true;
+  //   if (disposeThrowing) {
+  //     excToThrow = excDispose;
+  //   } else {
+  //     excToThrow = excIterClose;
+  //   }
+  // }
+  // if (throwing) {
+  //   throw excToThrow;
+  // }
+  //
+  MOZ_ASSERT(state_ == State::IteratorClose);
+
+  if (!tryClosingIterator_.isSome()) {
+#ifdef DEBUG
+    state_ = State::End;
+#endif
+    return true;
+  }
+
+  // [stack] EXC-DISPOSE DISPOSE-THROWING ITER
+
+  if (!tryClosingIterator_->emitCatch()) {
+    // [stack] EXC-DISPOSE DISPOSE-THROWING ITER EXC-ITER-CLOSE
+    return false;
+  }
+
+  if (!bce_->emitPickN(2)) {
+    // [stack] EXC-DISPOSE ITER EXC-ITER-CLOSE DISPOSE-THROWING
+    return false;
+  }
+
+  InternalIfEmitter ifDisposeWasThrowing(bce_);
+
+  if (!ifDisposeWasThrowing.emitThenElse()) {
+    // [stack] EXC-DISPOSE ITER EXC-ITER-CLOSE
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Pop)) {
+    // [stack] EXC-DISPOSE ITER
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::True)) {
+    // [stack] EXC-DISPOSE ITER THROWING
+    return false;
+  }
+
+  // This swap operation is to make the stack state consistent with the
+  // the non-throwing case.
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] EXC-DISPOSE THROWING ITER
+    return false;
+  }
+
+  if (!ifDisposeWasThrowing.emitElse()) {
+    // [stack] EXC-DISPOSE ITER EXC-ITER-CLOSE
+    return false;
+  }
+
+  if (!bce_->emitPickN(2)) {
+    // [stack] ITER EXC-ITER-CLOSE EXC-DISPOSE
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Pop)) {
+    // [stack] ITER EXC-ITER-CLOSE
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] EXC-ITER-CLOSE ITER
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::True)) {
+    // [stack] EXC-ITER-CLOSE ITER THROWING
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] EXC-ITER-CLOSE THROWING ITER
+    return false;
+  }
+
+  if (!ifDisposeWasThrowing.emitEnd()) {
+    // [stack] EXC THROWING ITER
+    return false;
+  }
+
+  if (!tryClosingIterator_->emitEnd()) {
+    // [stack] EXC THROWING ITER
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] EXC ITER THROWING
+    return false;
+  }
+
+  InternalIfEmitter ifThrowing(bce_);
+
+  if (!ifThrowing.emitThenElse()) {
+    // [stack] EXC ITER
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] ITER EXC
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Throw)) {
+    // [stack] ITER
+    return false;
+  }
+
+  if (!ifThrowing.emitElse()) {
+    // [stack] EXC ITER
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Swap)) {
+    // [stack] ITER EXC
+    return false;
+  }
+
+  if (!bce_->emit1(JSOp::Pop)) {
+    // [stack] ITER
+    return false;
+  }
+
+  if (!ifThrowing.emitEnd()) {
+    // [stack] ITER
+    return false;
+  }
+
+#ifdef DEBUG
+  state_ = State::End;
+#endif
   return true;
 }

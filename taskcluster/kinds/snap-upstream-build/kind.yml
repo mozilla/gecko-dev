@@ -19,7 +19,7 @@ task-defaults:
         kind: build
         tier: 2
         symbol: B
-    worker-type: b-linux-gcp
+    worker-type: b-linux-xlarge-gcp
     run:
         checkout: true
     worker:
@@ -27,7 +27,6 @@ task-defaults:
             - name: public/build
               type: directory
               path: /builds/worker/artifacts/
-        docker-image: {in-tree: snap-build-core22}
         max-run-time: 900
         env:
             UPLOAD_DIR: artifacts
@@ -47,6 +46,7 @@ tasks:
             job-name: amd64-nightly
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core24}
             max-run-time: 9000
         run:
             using: run-task
@@ -65,6 +65,7 @@ tasks:
             job-name: amd64-nightly-debug
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
         run:
             using: run-task
@@ -83,6 +84,7 @@ tasks:
             job-name: amd64-beta
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 9000
         run:
             using: run-task
@@ -101,6 +103,7 @@ tasks:
             job-name: amd64-beta-debug
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 7200
         run:
             using: run-task
@@ -119,6 +122,7 @@ tasks:
             job-name: amd64-stable
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 9000
         run:
             using: run-task
@@ -137,6 +141,7 @@ tasks:
             job-name: amd64-stable-debug
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 7200
         run:
             using: run-task
@@ -155,6 +160,7 @@ tasks:
             job-name: amd64-esr
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 9000
         run:
             using: run-task
@@ -173,6 +179,7 @@ tasks:
             job-name: amd64-esr-debug
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 7200
         run:
             using: run-task
@@ -191,6 +198,7 @@ tasks:
             job-name: amd64-esr128
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 9000
         run:
             using: run-task
@@ -209,6 +217,7 @@ tasks:
             job-name: amd64-esr128-debug
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core22}
             max-run-time: 7200
         run:
             using: run-task
@@ -227,6 +236,7 @@ tasks:
             job-name: amd64-try
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core24}
             max-run-time: 9000
         run:
             using: run-task
@@ -245,6 +255,7 @@ tasks:
             job-name: amd64-try-debug
             type: generic
         worker:
+            docker-image: {in-tree: snap-build-core24}
             max-run-time: 7200
         run:
             using: run-task

@@ -7,6 +7,8 @@
 #ifndef mozilla_css_SheetLoadData_h
 #define mozilla_css_SheetLoadData_h
 
+#include "mozilla/AlreadyAddRefed.h"
+#include "mozilla/RefPtr.h"
 #include "mozilla/css/Loader.h"
 #include "mozilla/css/SheetParsingMode.h"
 #include "mozilla/Encoding.h"
@@ -59,24 +61,29 @@ class SheetLoadData final
   void StartPendingLoad();
 
   // Data for loading a sheet linked from a document
-  SheetLoadData(css::Loader*, const nsAString& aTitle, nsIURI*, StyleSheet*,
-                SyncLoad, nsINode* aOwningNode, IsAlternate, MediaMatched,
-                StylePreloadKind, nsICSSLoaderObserver* aObserver,
-                nsIPrincipal* aTriggeringPrincipal, nsIReferrerInfo*,
-                const nsAString& aNonce, dom::FetchPriority aFetchPriority);
+  SheetLoadData(
+      css::Loader*, const nsAString& aTitle, nsIURI*, StyleSheet*, SyncLoad,
+      nsINode* aOwningNode, IsAlternate, MediaMatched, StylePreloadKind,
+      nsICSSLoaderObserver* aObserver, nsIPrincipal* aTriggeringPrincipal,
+      nsIReferrerInfo*, const nsAString& aNonce,
+      dom::FetchPriority aFetchPriority,
+      already_AddRefed<SubResourceNetworkMetadataHolder>&& aNetworkMetadata);
 
   // Data for loading a sheet linked from an @import rule
-  SheetLoadData(css::Loader*, nsIURI*, StyleSheet*, SheetLoadData* aParentData,
-                nsICSSLoaderObserver* aObserver,
-                nsIPrincipal* aTriggeringPrincipal, nsIReferrerInfo*);
+  SheetLoadData(
+      css::Loader*, nsIURI*, StyleSheet*, SheetLoadData* aParentData,
+      nsICSSLoaderObserver* aObserver, nsIPrincipal* aTriggeringPrincipal,
+      nsIReferrerInfo*,
+      already_AddRefed<SubResourceNetworkMetadataHolder>&& aNetworkMetadata);
 
   // Data for loading a non-document sheet
-  SheetLoadData(css::Loader*, nsIURI*, StyleSheet*, SyncLoad,
-                UseSystemPrincipal, StylePreloadKind,
-                const Encoding* aPreloadEncoding,
-                nsICSSLoaderObserver* aObserver,
-                nsIPrincipal* aTriggeringPrincipal, nsIReferrerInfo*,
-                const nsAString& aNonce, dom::FetchPriority aFetchPriority);
+  SheetLoadData(
+      css::Loader*, nsIURI*, StyleSheet*, SyncLoad, UseSystemPrincipal,
+      StylePreloadKind, const Encoding* aPreloadEncoding,
+      nsICSSLoaderObserver* aObserver, nsIPrincipal* aTriggeringPrincipal,
+      nsIReferrerInfo*, const nsAString& aNonce,
+      dom::FetchPriority aFetchPriority,
+      already_AddRefed<SubResourceNetworkMetadataHolder>&& aNetworkMetadata);
 
   nsIReferrerInfo* ReferrerInfo() const { return mReferrerInfo; }
 
@@ -252,10 +259,13 @@ class SheetLoadData final
   // listening for the load.
   bool mIntentionallyDropped = false;
 
-  // The start timestamp for the load.
+  // The start timestamp for the load, or the timestamp where this load is
+  // coalesced into an existing load.
   TimeStamp mLoadStart;
 
   const bool mRecordErrors;
+
+  RefPtr<SubResourceNetworkMetadataHolder> mNetworkMetadata;
 
   bool ShouldDefer() const { return mWasAlternate || !mMediaMatched; }
 
@@ -287,19 +297,21 @@ class SheetLoadData final
   bool IsLoading() const override { return mIsLoading; }
   bool IsCancelled() const override { return mIsCancelled; }
 
+  SubResourceNetworkMetadataHolder* GetNetworkMetadata() const override {
+    return mNetworkMetadata.get();
+  }
+
   void StartLoading() override;
   void SetLoadCompleted() override;
-  void OnCoalescedTo(const SheetLoadData& aExistingLoad) override {
-    if (&aExistingLoad.Loader() != &Loader()) {
-      mShouldEmulateNotificationsForCachedLoad = true;
-    }
-  }
+  void OnCoalescedTo(const SheetLoadData& aExistingLoad) override;
 
   void Cancel() override { mIsCancelled = true; }
 
   void SetMinimumExpirationTime(const CacheExpirationTime& aExpirationTime) {
     mExpirationTime.SetMinimum(aExpirationTime);
   }
+
+  nsLiteralString InitiatorTypeString();
 
  private:
   const SheetLoadData& RootLoadData() const {

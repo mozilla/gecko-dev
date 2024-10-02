@@ -120,10 +120,8 @@ function openAndWaitForContextMenu(popup, button, onShown, onHidden) {
 
     button.scrollIntoView();
     const eventDetails = { type: "contextmenu", button: 2 };
-    EventUtils.synthesizeMouse(
+    EventUtils.synthesizeMouseAtCenter(
       button,
-      5,
-      2,
       eventDetails,
       // eslint-disable-next-line mozilla/use-ownerGlobal
       button.ownerDocument.defaultView

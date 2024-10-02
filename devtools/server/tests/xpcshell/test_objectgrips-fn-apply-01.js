@@ -9,7 +9,7 @@ registerCleanupFunction(() => {
 });
 
 add_task(
-  threadFrontTest(async ({ threadFront, debuggee }) => {
+  threadFrontTest(async ({ commands, threadFront, debuggee }) => {
     const packet = await executeOnNextTickAndWaitForPause(
       () => evalCode(debuggee),
       threadFront
@@ -35,6 +35,9 @@ add_task(
     info(`Retrieve "error" function reference`);
     const error = (await objectFront.getPropertyValue("error", null)).value
       .return;
+    const notCallable = (
+      await objectFront.getPropertyValue("notCallable", null)
+    ).value.return;
 
     assert_response(await context.apply(obj1, [obj1]), {
       return: "correct context",
@@ -57,7 +60,34 @@ add_task(
       throw: "an error",
     });
 
+    try {
+      await notCallable.apply(obj1, []);
+      Assert.ok(false, "expected exception");
+    } catch (err) {
+      Assert.ok(!!err.message.match(/debugee object is not callable/));
+    }
+
+    await resume(threadFront);
+
+    // In order to cover pausing from getPropertyValue we have to first resume
+    // as pausing while already paused will be ignored.
+    // So we have to have the pausingProp in a global object and access it while not paused.
+    const { result: secondObjectFront } = await commands.scriptCommand.execute(
+      "obj"
+    );
+
+    const onPropertyResumed = secondObjectFront.getPropertyValue(
+      "pausingProp",
+      null
+    );
+
+    // Ensure that we actually paused at the `debugger;` line.
+    const packet2 = await waitForPause(threadFront);
+    Assert.equal(packet2.frame.where.line, 18);
+    Assert.equal(packet2.frame.where.column, 8);
+
     await threadFront.resume();
+    await onPropertyResumed;
   })
 );
 
@@ -83,7 +113,13 @@ function evalCode(debuggee) {
       error() {
         throw "an error";
       },
+      notCallable: {},
     });
+    var obj = {
+      get pausingProp() {
+        debugger;
+      },
+    };
   `);
 }
 

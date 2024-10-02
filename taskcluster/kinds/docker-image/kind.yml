@@ -96,6 +96,11 @@ tasks:
         definition: debian-packages
         parent: ubuntu2204-arm64-raw
         arch: arm64
+    ubuntu2404-raw:
+        symbol: I(ub24-raw)
+        definition: debian-raw
+        args:
+            BASE_IMAGE: ubuntu:noble
     ubuntu2004-packages:
         symbol: I(ub20-pkg)
         definition: debian-packages
@@ -104,6 +109,10 @@ tasks:
         symbol: I(ub22-pkg)
         definition: debian-packages
         parent: ubuntu2204-raw
+    ubuntu2404-packages:
+        symbol: I(ub24-pkg)
+        definition: debian-packages
+        parent: ubuntu2404-raw
     ubuntu2004-base:
         symbol: I(ub20-base)
         definition: debian-base
@@ -126,6 +135,13 @@ tasks:
             - ub22-arm64-mercurial
             - ub22-arm64-python-zstandard
         arch: arm64
+    ubuntu2404-base:
+        symbol: I(ub24-base)
+        definition: debian-base
+        parent: ubuntu2404-raw
+        packages:
+            - ub24-mercurial
+            - ub24-python-zstandard
     # Neither the debian8-*raw nor the debian8-*packages images can have
     # packages dependencies.
     debian8-raw:
@@ -273,7 +289,15 @@ tasks:
         definition: snap-coreXX-build
         args:
             SNAP_BASE: core22
-            SNAP_LIST: "gnome-42-2204 gtk-common-themes gnome-42-2204-sdk"
+            SNAP_LIST: "core20 gnome-42-2204 gtk-common-themes gnome-42-2204-sdk"
+            EXTRA_PACKAGES: "libavcodec58 libavutil56"
+    snap-build-core24:
+        symbol: I(snap24-build)
+        parent: ubuntu2404-base
+        definition: snap-coreXX-build
+        args:
+            SNAP_BASE: core24
+            SNAP_LIST: "core22 gnome-46-2404 gtk-common-themes gnome-46-2404-sdk mesa-2404"
     android-components:
         symbol: I(android-components)
         parent: debian12-base

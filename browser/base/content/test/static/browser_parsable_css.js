@@ -124,6 +124,44 @@ let propNameAllowlist = [
     propName: "--scale-round-y",
     isFromDevTools: false,
   },
+
+  // These variables define accent colors for tab group chrome
+  // and are used in JS in tabgroup.js
+  { propName: "--tab-group-color-blue", isFromDevTools: false },
+  { propName: "--tab-group-color-blue-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-blue-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-purple", isFromDevTools: false },
+  { propName: "--tab-group-color-purple-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-purple-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-cyan", isFromDevTools: false },
+  { propName: "--tab-group-color-cyan-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-cyan-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-orange", isFromDevTools: false },
+  { propName: "--tab-group-color-orange-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-orange-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-yellow", isFromDevTools: false },
+  { propName: "--tab-group-color-yellow-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-yellow-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-pink", isFromDevTools: false },
+  { propName: "--tab-group-color-pink-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-pink-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-green", isFromDevTools: false },
+  { propName: "--tab-group-color-green-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-green-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-red", isFromDevTools: false },
+  { propName: "--tab-group-color-red-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-red-pale", isFromDevTools: false },
+
+  { propName: "--tab-group-color-gray", isFromDevTools: false },
+  { propName: "--tab-group-color-gray-invert", isFromDevTools: false },
+  { propName: "--tab-group-color-gray-pale", isFromDevTools: false },
 ];
 
 // Add suffix to stylesheets' URI so that we always load them here and

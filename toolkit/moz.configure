@@ -164,23 +164,6 @@ set_config("MOZ_FOLD_LIBS", fold_libs)
 # Some of the options here imply an option from js/moz.configure,
 # so, need to be declared before the include.
 
-option(
-    "--enable-jprof",
-    env="MOZ_JPROF",
-    help="Enable jprof profiling tool (needs mozilla/tools/jprof)",
-)
-
-
-@depends("--enable-jprof")
-def jprof(value):
-    if value:
-        return True
-
-
-set_config("MOZ_JPROF", jprof)
-set_define("MOZ_JPROF", jprof)
-imply_option("--enable-profiling", jprof)
-
 option("--disable-gecko-profiler", help="Disable the Gecko profiler")
 
 

@@ -9,6 +9,8 @@ prefs = [
 
 ["browser_edit_profile_test.js"]
 
+["browser_test_db_lazily_created.js"]
+
 ["browser_test_profile_selector.js"]
 
 ["browser_update_profile_on_window_switch.js"]

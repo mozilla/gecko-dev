@@ -11,6 +11,12 @@ support-files = [
 
 ["browser_bug453896.js"]
 
+["browser_resource_cache_perf_timeline.js"]
+support-files = [
+  "empty.html",
+  "css_server.sjs",
+]
+
 ["browser_sourcemap.js"]
 
 ["browser_sourcemap_comment.js"]

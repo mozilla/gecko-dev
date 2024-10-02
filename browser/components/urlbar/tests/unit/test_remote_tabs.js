@@ -173,35 +173,6 @@ add_task(async function test_noShowIcons() {
   Services.prefs.clearUserPref("services.sync.syncedTabs.showRemoteIcons");
 });
 
-add_task(async function test_dontMatchSyncedTabs() {
-  Services.prefs.setBoolPref("services.sync.syncedTabs.showRemoteTabs", false);
-  configureEngine([
-    {
-      id: "mobile",
-      tabs: [
-        {
-          urlHistory: ["http://example.com/"],
-          title: "An Example",
-          icon: "http://favicon",
-        },
-      ],
-    },
-  ]);
-
-  let context = createContext("ex", { isPrivate: false });
-  await check_results({
-    context,
-    matches: [
-      makeSearchResult(context, {
-        engineName: SUGGESTIONS_ENGINE_NAME,
-        heuristic: true,
-      }),
-    ],
-  });
-
-  Services.prefs.clearUserPref("services.sync.syncedTabs.showRemoteTabs");
-});
-
 add_task(async function test_tabsDisabledInUrlbar() {
   Services.prefs.setBoolPref("browser.urlbar.suggest.remotetab", false);
   configureEngine([

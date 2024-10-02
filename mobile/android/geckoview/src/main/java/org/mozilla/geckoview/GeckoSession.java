@@ -3151,6 +3151,24 @@ public class GeckoSession {
     return mEventDispatcher.queryString("GeckoView:ReportBackInStock", bundle);
   }
 
+  /**
+   * Get the web compatibility info when a site is reported as broken.
+   *
+   * @return a {@link GeckoResult} containing the WebCompatInfo as a JSONObject.
+   */
+  @AnyThread
+  public @NonNull GeckoResult<JSONObject> getWebCompatInfo() {
+    return mEventDispatcher
+        .queryString("GeckoView:GetWebCompatInfo")
+        .map(
+            value -> {
+              if (value == null) {
+                throw new IllegalStateException("Unable to get web compat info");
+              }
+              return new JSONObject(value);
+            });
+  }
+
   // This is the GeckoDisplay acquired via acquireDisplay(), if any.
   private GeckoDisplay mDisplay;
 

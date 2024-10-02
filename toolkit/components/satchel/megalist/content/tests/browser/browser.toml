@@ -1,5 +1,5 @@
 [DEFAULT]
-skip-if = ["release_or_beta"]
+run-if = ["!release_or_beta"]
 
 support-files = [
   "head.js",

@@ -1,6 +1,9 @@
 const TEST_URI1 = Services.io.newURI("http://mozilla.com/");
 const TEST_URI2 = Services.io.newURI("http://places.com/");
 const TEST_URI3 = Services.io.newURI("http://bookmarked.com/");
+const TEST_LOCAL_URI = Services.io.newURI(
+  "chrome://branding/content/icon32.png"
+);
 const LOAD_NON_PRIVATE = PlacesUtils.favicons.FAVICON_LOAD_NON_PRIVATE;
 const LOAD_PRIVATE = PlacesUtils.favicons.FAVICON_LOAD_PRIVATE;
 
@@ -162,5 +165,15 @@ add_task(async function test_copyFavicons_overlap() {
     await getFaviconUrlForPage(TEST_URI2),
     SMALLSVG_DATA_URI.spec,
     "Large icon found"
+  );
+});
+
+add_task(async function test_copyFavicons_local_uri() {
+  await PlacesTestUtils.addVisits(TEST_URI1);
+  await setFaviconForPage(TEST_URI1, SMALLPNG_DATA_URI);
+
+  Assert.throws(
+    () => PlacesUtils.favicons.copyFavicons(TEST_URI1, TEST_LOCAL_URI, false),
+    /NS_ERROR_ILLEGAL_VALUE/
   );
 });

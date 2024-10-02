@@ -375,13 +375,10 @@ static INLINE void transpose_concat_4x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
   int8x16_t a2q = vcombine_s8(a2, vdup_n_s8(0));
   int8x16_t a3q = vcombine_s8(a3, vdup_n_s8(0));
 
-  int8x16_t a01 = vzipq_s8(a0q, a1q).val[0];
-  int8x16_t a23 = vzipq_s8(a2q, a3q).val[0];
+  int8x16_t a02 = vzipq_s8(a0q, a2q).val[0];
+  int8x16_t a13 = vzipq_s8(a1q, a3q).val[0];
 
-  int16x8_t a0123 =
-      vzipq_s16(vreinterpretq_s16_s8(a01), vreinterpretq_s16_s8(a23)).val[0];
-
-  *b = vreinterpretq_s8_s16(a0123);
+  *b = vzipq_s8(a02, a13).val[0];
 }
 
 static INLINE void transpose_concat_8x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
@@ -401,14 +398,13 @@ static INLINE void transpose_concat_8x4(int8x8_t a0, int8x8_t a1, int8x8_t a2,
   int8x16_t a2q = vcombine_s8(a2, vdup_n_s8(0));
   int8x16_t a3q = vcombine_s8(a3, vdup_n_s8(0));
 
-  int8x16_t a01 = vzipq_s8(a0q, a1q).val[0];
-  int8x16_t a23 = vzipq_s8(a2q, a3q).val[0];
+  int8x16_t a02 = vzipq_s8(a0q, a2q).val[0];
+  int8x16_t a13 = vzipq_s8(a1q, a3q).val[0];
 
-  int16x8x2_t a0123 =
-      vzipq_s16(vreinterpretq_s16_s8(a01), vreinterpretq_s16_s8(a23));
+  int8x16x2_t a0123 = vzipq_s8(a02, a13);
 
-  *b0 = vreinterpretq_s8_s16(a0123.val[0]);
-  *b1 = vreinterpretq_s8_s16(a0123.val[1]);
+  *b0 = a0123.val[0];
+  *b1 = a0123.val[1];
 }
 
 static INLINE int16x4_t convolve8_4_v(const int8x16_t samples_lo,

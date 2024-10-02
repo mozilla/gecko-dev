@@ -171,14 +171,14 @@ UtilityProcessManager::LaunchProcess(SandboxingKind aSandbox) {
     mProcesses[aSandbox] = p;
   }
 
-  std::vector<std::string> extraArgs;
+  geckoargs::ChildProcessArgs extraArgs;
   ProcessChild::AddPlatformBuildID(extraArgs);
   geckoargs::sSandboxingKind.Put(aSandbox, extraArgs);
 
   // The subprocess is launched asynchronously, so we
   // wait for the promise to be resolved to acquire the IPDL actor.
   p->mProcess = new UtilityProcessHost(aSandbox, this);
-  if (!p->mProcess->Launch(extraArgs)) {
+  if (!p->mProcess->Launch(std::move(extraArgs))) {
     p->mNumProcessAttempts++;
     DestroyProcess(aSandbox);
     NS_WARNING("Reject LaunchProcess() for mNumProcessAttempts++");

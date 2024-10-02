@@ -48,6 +48,7 @@ private const val INDICATOR_START_OFFSET = 46
  * @param showQuitMenu Whether or not to show the [QuitMenuGroup].
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the current site is in desktop mode.
+ * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not Translations are supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
  */
@@ -60,6 +61,7 @@ internal fun MainMenuWithCFR(
     showQuitMenu: Boolean,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
+    isPdf: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
 ) {
@@ -111,6 +113,7 @@ internal fun MainMenuWithCFR(
             showQuitMenu = showQuitMenu,
             isPrivate = isPrivate,
             isDesktopMode = isDesktopMode,
+            isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
         )
@@ -126,6 +129,7 @@ internal fun MainMenuWithCFR(
  * @param showQuitMenu Whether or not to show the [QuitMenuGroup].
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the current site is in desktop mode.
+ * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not Translations are supported.
  * @param isExtensionsProcessDisabled Whether or not the extensions process is disabled due to extension errors.
  */
@@ -138,6 +142,7 @@ internal fun MainMenu(
     showQuitMenu: Boolean,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
+    isPdf: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
 ) {
@@ -152,6 +157,7 @@ internal fun MainMenu(
         accountState = accountState,
         isPrivate = isPrivate,
         isDesktopMode = isDesktopMode,
+        isPdf = isPdf,
         isTranslationSupported = isTranslationSupported,
         showQuitMenu = showQuitMenu,
         isExtensionsProcessDisabled = isExtensionsProcessDisabled,
@@ -226,6 +232,7 @@ internal fun MainMenu(
  * @param accountState The [AccountState] of a Mozilla account.
  * @param isPrivate Whether or not the browsing mode is in private mode.
  * @param isDesktopMode Whether or not the desktop mode is enabled.
+ * @param isPdf Whether or not the current tab is a PDF.
  * @param isTranslationSupported Whether or not translation is supported.
  * @param showQuitMenu Whether or not the button to delete browsing data and quit
  * should be visible.
@@ -258,6 +265,7 @@ internal fun MainMenu(
     accountState: AccountState,
     isPrivate: Boolean,
     isDesktopMode: Boolean,
+    isPdf: Boolean,
     isTranslationSupported: Boolean,
     showQuitMenu: Boolean,
     isExtensionsProcessDisabled: Boolean,
@@ -300,6 +308,7 @@ internal fun MainMenu(
         ToolsAndActionsMenuGroup(
             accessPoint = accessPoint,
             isDesktopMode = isDesktopMode,
+            isPdf = isPdf,
             isTranslationSupported = isTranslationSupported,
             isExtensionsProcessDisabled = isExtensionsProcessDisabled,
             onSwitchToDesktopSiteMenuClick = onSwitchToDesktopSiteMenuClick,
@@ -396,6 +405,7 @@ private fun NewTabsMenuGroup(
 private fun ToolsAndActionsMenuGroup(
     accessPoint: MenuAccessPoint,
     isDesktopMode: Boolean,
+    isPdf: Boolean,
     isTranslationSupported: Boolean,
     isExtensionsProcessDisabled: Boolean,
     onSwitchToDesktopSiteMenuClick: () -> Unit,
@@ -417,7 +427,7 @@ private fun ToolsAndActionsMenuGroup(
             } else {
                 labelId = R.string.browser_menu_switch_to_desktop_site
                 iconId = R.drawable.mozac_ic_device_desktop_24
-                menuItemState = MenuItemState.ENABLED
+                menuItemState = if (isPdf) MenuItemState.DISABLED else MenuItemState.ENABLED
             }
 
             MenuItem(
@@ -562,6 +572,7 @@ private fun MenuDialogPreview() {
                 accountState = NotAuthenticated,
                 isPrivate = false,
                 isDesktopMode = false,
+                isPdf = false,
                 isTranslationSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = true,
@@ -601,6 +612,7 @@ private fun MenuDialogPrivatePreview() {
                 accountState = NotAuthenticated,
                 isPrivate = false,
                 isDesktopMode = false,
+                isPdf = false,
                 isTranslationSupported = true,
                 showQuitMenu = true,
                 isExtensionsProcessDisabled = false,

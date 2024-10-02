@@ -308,11 +308,7 @@ IPCResult CookieServiceParent::RecvSetCookies(
     nsIURI* aHost, bool aFromHttp, bool aIsThirdParty,
     const nsTArray<CookieStruct>& aCookies) {
   if (!ContentProcessHasCookie(aBaseDomain, aOriginAttributes)) {
-#ifdef NIGHTLY_BUILD
     return IPC_FAIL(this, "Invalid set-cookie request from content process");
-#else
-    return IPC_OK();
-#endif
   }
 
   return SetCookies(aBaseDomain, aOriginAttributes, aHost, aFromHttp,

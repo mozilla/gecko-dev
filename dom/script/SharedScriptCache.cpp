@@ -90,7 +90,8 @@ ScriptLoadData::ScriptLoadData(ScriptLoader* aLoader,
     : mExpirationTime(aRequest->ExpirationTime()),
       mLoader(aLoader),
       mKey(aLoader, aRequest),
-      mLoadedScript(aRequest->getLoadedScript()) {}
+      mLoadedScript(aRequest->getLoadedScript()),
+      mNetworkMetadata(aRequest->mNetworkMetadata) {}
 
 NS_IMPL_ISUPPORTS(SharedScriptCache, nsIMemoryReporter, nsIObserver)
 

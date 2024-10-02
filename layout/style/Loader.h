@@ -17,6 +17,7 @@
 #include "mozilla/css/StylePreloadKind.h"
 #include "mozilla/dom/LinkStyle.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/SharedSubResourceCache.h"
 #include "mozilla/UniquePtr.h"
 #include "nsCompatibility.h"
 #include "nsCycleCollectionParticipant.h"
@@ -531,9 +532,11 @@ class Loader final {
 
   bool MaybePutIntoLoadsPerformed(SheetLoadData& aLoadData);
 
-  std::tuple<RefPtr<StyleSheet>, SheetState> CreateSheet(
-      const SheetInfo& aInfo, css::SheetParsingMode aParsingMode,
-      bool aSyncLoad, css::StylePreloadKind aPreloadKind) {
+ private:
+  std::tuple<RefPtr<StyleSheet>, SheetState,
+             RefPtr<SubResourceNetworkMetadataHolder>>
+  CreateSheet(const SheetInfo& aInfo, css::SheetParsingMode aParsingMode,
+              bool aSyncLoad, css::StylePreloadKind aPreloadKind) {
     nsIPrincipal* triggeringPrincipal = aInfo.mTriggeringPrincipal
                                             ? aInfo.mTriggeringPrincipal.get()
                                             : LoaderPrincipal();
@@ -546,11 +549,12 @@ class Loader final {
   // For inline style, the aURI param is null, but the aLinkingContent
   // must be non-null then.  The loader principal must never be null
   // if aURI is not null.
-  std::tuple<RefPtr<StyleSheet>, SheetState> CreateSheet(
-      nsIURI* aURI, nsIContent* aLinkingContent,
-      nsIPrincipal* aTriggeringPrincipal, css::SheetParsingMode, CORSMode,
-      const Encoding* aPreloadOrParentDataEncoding, const nsAString& aIntegrity,
-      bool aSyncLoad, StylePreloadKind);
+  std::tuple<RefPtr<StyleSheet>, SheetState,
+             RefPtr<SubResourceNetworkMetadataHolder>>
+  CreateSheet(nsIURI* aURI, nsIContent* aLinkingContent,
+              nsIPrincipal* aTriggeringPrincipal, css::SheetParsingMode,
+              CORSMode, const Encoding* aPreloadOrParentDataEncoding,
+              const nsAString& aIntegrity, bool aSyncLoad, StylePreloadKind);
 
   // Pass in either a media string or the MediaList from the CSSParser.  Don't
   // pass both.
@@ -579,6 +583,9 @@ class Loader final {
 
   // Notify observers of a cached stylesheet being.
   void NotifyObserversForCachedSheet(SheetLoadData&);
+
+  // Add the Performance API's Resource Timing entry for the cached load data.
+  void AddPerformanceEntryForCachedSheet(SheetLoadData&);
 
   // Start the loads of all the sheets in mPendingDatas
   void StartDeferredLoads();

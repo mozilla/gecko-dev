@@ -66,6 +66,10 @@ add_task(async function test_show_shortcuts() {
     Assert.equal(events.length, 1, "One shortcuts opened");
     Assert.equal(events[0].extra.selection, 2, "Selected hi");
 
+    const custom = popup.querySelector("textarea");
+    Assert.ok(custom, "Got custom prompt entry");
+    Assert.ok(custom.style.height, "Dynamic height for custom");
+
     Assert.ok(!SidebarController.isOpen, "Sidebar is closed");
     popup.querySelector("toolbarbutton").click();
     const isOpen = await TestUtils.waitForCondition(

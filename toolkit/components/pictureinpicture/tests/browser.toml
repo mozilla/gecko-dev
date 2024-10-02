@@ -71,7 +71,6 @@ prefs = [
 ["browser_conflictingPips.js"]
 
 ["browser_contextMenu.js"]
-skip-if = ["os == 'linux' && bits == 64 && os_version == '18.04'"] # Bug 1569205
 
 ["browser_controlsHover.js"]
 
@@ -81,26 +80,26 @@ run-if = ["os == 'mac'"]
 ["browser_dblclickFullscreen.js"]
 
 ["browser_disableSwipeGestures.js"]
-skip-if = ["os == 'mac'"] # Bug 1840716
+skip-if = [
+  "os == 'mac' && os_version == '11.20' && arch == 'aarch64'", # Bug 1840716
+  "os == 'mac' && os_version == '10.15' && processor == 'x86_64'", # Bug 1840716
+]
 
 ["browser_durationChange.js"]
 
 ["browser_flipIconWithRTL.js"]
 skip-if = [
   "os == 'linux' && ccov", # Bug 1678091
-  "tsan", # Bug 1678091
 ]
 
 ["browser_fontSize_change.js"]
 skip-if = [
-   "os == 'linux' && os_version == '18.04'", # Bug 1775867
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && asan", # Bug 1775867
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && tsan", # Bug 1775867
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && opt && swgl", # Bug 1775867
 ]
 
 ["browser_fullscreen.js"]
-skip-if = [
-  "os == 'mac' && debug", # Bug 1566173
-  "os == 'linux'", # Bug 1664667
-]
 
 ["browser_improved_controls.js"]
 
@@ -120,10 +119,6 @@ support-files = ["test-page-with-nan-video-duration.html"]
 ["browser_mediaStreamVideos.js"]
 
 ["browser_mouseButtonVariation.js"]
-skip-if = [
-  "debug",
-  "os == 'linux' && bits == 64 && !debug", # Bug 1549875
-]
 
 ["browser_multiPip.js"]
 
@@ -150,23 +145,18 @@ skip-if = [
 ["browser_removeVideoElement.js"]
 
 ["browser_resizeVideo.js"]
-skip-if = ["os == 'linux'"] # Bug 1594223
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1594223
 
 ["browser_reversePiP.js"]
 
 ["browser_saveLastPiPLoc.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1673465
-  "os == 'win' && bits == 64 && debug", # Bug 1683002
-]
+skip-if = ["os == 'linux' && os_version == '18.04' && processor == 'x86_64'"] # Bug 1673465
 
 ["browser_shortcutsAfterFocus.js"]
-skip-if = ["os == 'win' && bits == 64 && debug"] # Bug 1683002
 
 ["browser_showMessage.js"]
 
 ["browser_smallVideoLayout.js"]
-skip-if = ["os == 'win' && bits == 64 && debug"] # Bug 1683002
 
 ["browser_stripVideoStyles.js"]
 
@@ -185,23 +175,14 @@ skip-if = ["os == 'win' && bits == 64 && debug"] # Bug 1683002
 ["browser_thirdPartyIframe.js"]
 
 ["browser_toggleAfterTabTearOutIn.js"]
-skip-if = [
-  "os == 'linux' && bits == 64", # Bug 1605546
-  "os == 'mac' && !debug", # Bug 1605546
-]
 
 ["browser_toggleButtonOnNanDuration.js"]
-skip-if = ["os == 'linux' && !debug"] # Bug 1700504
 support-files = ["test-page-with-nan-video-duration.html"]
 
 ["browser_toggleButtonOverlay.js"]
 skip-if = ["true"] # Bug 1546455
 
 ["browser_toggleMode_2.js"]
-skip-if = [
-  "os == 'linux'", # Bug 1654971
-  "os == 'mac'", # Bug 1654971
-]
 
 ["browser_toggleOnInsertedVideo.js"]
 
@@ -212,22 +193,14 @@ skip-if = ["true"] # Bug 1546455
 skip-if = ["true"] # Bug 1664920, Bug 1628777
 
 ["browser_togglePolicies.js"]
-skip-if = [
-  "os == 'linux' && bits == 64", # Bug 1605565
-  "apple_catalina && debug", # Bug 1605565
-]
 
 ["browser_togglePositionChange.js"]
-skip-if = ["os == 'linux' && bits == 64 && !debug"] # Bug 1738532
 
 ["browser_toggleSimple.js"]
-skip-if = ["os == 'linux'"] # Bug 1546455
 
 ["browser_toggleTransparentOverlay-1.js"]
-skip-if = ["os == 'linux' && bits == 64"] # Bug 1552288
 
 ["browser_toggleTransparentOverlay-2.js"]
-skip-if = ["os == 'linux' && bits == 64 && os_version == '18.04'"] # Bug 1546930
 
 ["browser_toggle_enabled.js"]
 

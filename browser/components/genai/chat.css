@@ -120,6 +120,8 @@ browser {
   }
 
   .icon {
+    background-position: center;
+    background-repeat: no-repeat;
     background-size: contain;
     border-radius: 0;
     margin-inline: var(--space-small);

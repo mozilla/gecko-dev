@@ -110,7 +110,7 @@ if (!build_with_chromium || is_linux || is_chromeos) {
         ]
         if (build_with_mozilla) {
           configs -= [ "../portal:pipewire_base" ]
-          public_deps = [ "//third_party/pipewire" ]
+          public_deps = [ "../../third_party/pipewire" ]
         }
       }
     }

@@ -71,7 +71,7 @@ function customFormatterHeader(objectActor) {
     return null;
   }
 
-  const { targetActor } = objectActor.thread;
+  const { targetActor } = objectActor.threadActor;
 
   const {
     customFormatterConfigDbgObj: configDbgObj,
@@ -253,7 +253,7 @@ async function customFormatterBody(objectActor, formatter) {
 
   const customFormatterIndex = global.devtoolsFormatters.indexOf(formatter);
 
-  const { targetActor } = objectActor.thread;
+  const { targetActor } = objectActor.threadActor;
   try {
     const { customFormatterConfigDbgObj, customFormatterObjectTagDepth } =
       objectActor.hooks;

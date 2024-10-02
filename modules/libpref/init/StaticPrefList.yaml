@@ -2881,6 +2881,12 @@
   value: false
   mirror: always
 
+# A pref that is used to slow down database initialization for testing purposes.
+- name: dom.indexedDB.databaseInitialization.pauseOnIOThreadMs
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 # How innerWidth / innerHeight return rounded or fractional sizes.
 #
 #   0 or others: Do not round at all.
@@ -2941,7 +2947,7 @@
   mirror: always
 
 - name: dom.interactive_widget_default_resizes_visual
-  type: bool
+  type: RelaxedAtomicBool
   value: true
   mirror: always
 
@@ -4162,6 +4168,13 @@
 - name: dom.sitepermsaddon-provider.enabled
   type: bool
   value: @IS_NOT_ANDROID@
+  mirror: always
+
+# Server-Sent Events
+# Equal to the DEFAULT_RECONNECTION_TIME_VALUE value in nsEventSource.cpp
+- name: dom.serverEvents.defaultReconnectionTime
+  type: RelaxedAtomicUint32
+  value: 5000 # in milliseconds
   mirror: always
 
 # Whether automatic storage access granting heuristics should be turned on.

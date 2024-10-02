@@ -8,6 +8,16 @@ add_setup(async function () {
   });
 });
 
+async function removeTabGroup(group) {
+  if (!group.parentNode) {
+    ok(false, "group was already removed");
+    return;
+  }
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+  group.ownerGlobal.gBrowser.removeTabGroup(group, { animate: false });
+  await removePromise;
+}
+
 add_task(async function test_tabGroupCreateAndAddTab() {
   let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let group = gBrowser.addTabGroup("blue", "test", [tab1]);
@@ -21,7 +31,7 @@ add_task(async function test_tabGroupCreateAndAddTab() {
   Assert.equal(group.tabs.length, 2, "group has 2 tabs");
   Assert.ok(group.tabs.includes(tab2), "tab1 is in group");
 
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 });
 
 add_task(async function test_getTabGroups() {
@@ -41,8 +51,8 @@ add_task(async function test_getTabGroups() {
     "there are two groups in the tabstrip"
   );
 
-  gBrowser.removeTabGroup(group1, { animate: false });
-  gBrowser.removeTabGroup(group2, { animate: false });
+  await removeTabGroup(group1);
+  await removeTabGroup(group2);
   Assert.equal(
     gBrowser.tabGroups.length,
     0,
@@ -67,7 +77,7 @@ add_task(async function test_tabGroupCollapseAndExpand() {
   gBrowser.selectedTab = group.tabs[0];
   Assert.ok(!group.collapsed, "group is expanded after selecting tab");
 
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 });
 
 add_task(async function test_tabGroupCollapsedTabsNotVisible() {
@@ -89,7 +99,7 @@ add_task(async function test_tabGroupCollapsedTabsNotVisible() {
 
   // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   group.collapsed = false;
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 });
 
 /*
@@ -116,7 +126,7 @@ add_task(async function test_tabGroupCollapseSelectsAdjacentTabAfter() {
   BrowserTestUtils.removeTab(adjacentTabAfter);
   // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   group.collapsed = false;
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 });
 
 /*
@@ -140,7 +150,7 @@ add_task(async function test_tabGroupCollapseSelectsAdjacentTabBefore() {
 
   BrowserTestUtils.removeTab(adjacentTabBefore);
   group.collapsed = false;
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 });
 
 add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
@@ -182,7 +192,7 @@ add_task(async function test_tabGroupCollapseCreatesNewTabIfAllTabsInGroup() {
 
   // TODO gBrowser.removeTabs breaks if the tab is not in a visible state
   group.collapsed = false;
-  fgWindow.gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
   await BrowserTestUtils.closeWindow(fgWindow);
 });
 
@@ -197,7 +207,10 @@ add_task(async function test_tabUngroup() {
   Assert.equal(groupedTab._tPos, 2, "grouped tab starts in correct position");
   Assert.equal(groupedTab.group, group, "tab belongs to group");
 
+  info("Calling ungroupTabs and waiting for TabGroupRemove event.");
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
   group.ungroupTabs();
+  await removePromise;
 
   Assert.equal(
     groupedTab._tPos,
@@ -205,12 +218,6 @@ add_task(async function test_tabUngroup() {
     "tab is in the same position as before ungroup"
   );
   Assert.equal(groupedTab.group, null, "tab no longer belongs to group");
-
-  // TODO add a DOM event that fires when tab group is removed and listen for that here
-  await BrowserTestUtils.waitForCondition(() => {
-    return group.parentElement === null;
-  });
-  Assert.equal(group.parentElement, null, "group is unloaded");
 
   BrowserTestUtils.removeTab(groupedTab);
   BrowserTestUtils.removeTab(extraTab1);
@@ -221,7 +228,7 @@ add_task(async function test_tabGroupRemove() {
   let groupedTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
   let group = gBrowser.addTabGroup("blue", "test", [groupedTab]);
 
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
 
   Assert.equal(groupedTab.parentElement, null, "grouped tab is unloaded");
   Assert.equal(group.parentElement, null, "group is unloaded");
@@ -241,13 +248,12 @@ add_task(async function test_tabGroupMoveToNewWindow() {
   let groupedTab = BrowserTestUtils.addTab(gBrowser, tabUri);
   let group = gBrowser.addTabGroup("blue", "test", [groupedTab]);
 
+  info("Calling adoptTabGroup and waiting for TabGroupRemove event.");
+  let removePromise = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
+
   let fgWindow = await BrowserTestUtils.openNewBrowserWindow();
   fgWindow.gBrowser.adoptTabGroup(group, 0);
-
-  // TODO add a DOM event that fires when tab group is removed and listen for that here
-  await BrowserTestUtils.waitForCondition(() => {
-    return group.parentElement === null;
-  });
+  await removePromise;
 
   Assert.equal(
     gBrowser.tabGroups.length,
@@ -283,7 +289,7 @@ add_task(async function test_tabGroupMoveToNewWindow() {
     "New tab has same URI as old tab"
   );
 
-  fgWindow.gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(newGroup);
   await BrowserTestUtils.closeWindow(fgWindow);
 });
 
@@ -340,7 +346,7 @@ add_task(async function test_TabGroupEvents() {
   );
 
   let tabGroupRemoved = BrowserTestUtils.waitForEvent(group, "TabGroupRemove");
-  gBrowser.removeTabGroup(group, { animate: false });
+  await removeTabGroup(group);
   await tabGroupRemoved;
 
   BrowserTestUtils.removeTab(tab1);
@@ -382,7 +388,7 @@ add_task(async function test_moveTabBetweenGroups() {
   );
   Assert.equal(group2.tabs.length, 2, "group2 has 2 tabs");
 
-  gBrowser.removeTabGroup(group2, { animate: false });
+  await removeTabGroup(group2);
 });
 
 // Context menu tests
@@ -407,8 +413,11 @@ const withTabMenu = async function (tab, callback) {
   );
   await contextMenuShown;
 
-  const addTabMenuItem = document.getElementById("context_addTabToNewGroup");
-  await callback(addTabMenuItem);
+  const moveTabToNewGroupItem = document.getElementById(
+    "context_moveTabToNewGroup"
+  );
+  const moveTabToGroupItem = document.getElementById("context_moveTabToGroup");
+  await callback(moveTabToNewGroupItem, moveTabToGroupItem);
 
   tabContextMenu.hidePopup();
 };
@@ -426,56 +435,52 @@ add_task(async function test_tabGroupTabContextMenuWithoutPref() {
     skipAnimation: true,
   });
 
-  await withTabMenu(tab, async addTabMenuItem => {
-    Assert.ok(addTabMenuItem.hidden, "Add tab menu item is hidden");
+  await withTabMenu(tab, async (moveTabToNewGroupItem, moveTabToGroupItem) => {
+    Assert.ok(moveTabToNewGroupItem.hidden, "moveTabToNewGroupItem is hidden");
+    Assert.ok(moveTabToGroupItem.hidden, "moveTabToGroupItem is hidden");
   });
 
   BrowserTestUtils.removeTab(tab);
   await SpecialPowers.popPrefEnv();
 });
 
-/*
- * Tests that if a tab is selected, the "add tab to group" option appears in
- * the context menu, and clicking it adds the tab to a new group
- */
-add_task(async function test_tabGroupContextMenuAddTabToGroup() {
-  let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank");
-  let otherGroup = gBrowser.addTabGroup("blue", "test", [otherTab]);
+// Context menu tests: "move tab to new group" option
+// (i.e. the option that appears in the menu when no other groups exist)
+// ---
 
+/*
+ * Tests that when no groups exist, if a tab is selected, the "move tab to
+ * group" option appears in the context menu, and clicking it moves the tab to
+ * a new group
+ */
+add_task(async function test_tabGroupContextMenuMoveTabToNewGroup() {
   let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
     skipAnimation: true,
   });
 
-  await withTabMenu(tab, async addTabMenuItem => {
+  await withTabMenu(tab, async (moveTabToNewGroupItem, moveTabToGroupItem) => {
     Assert.equal(tab.group, null, "tab is not in group");
-    Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
+    Assert.ok(
+      !moveTabToNewGroupItem.hidden,
+      "moveTabToNewGroupItem is visible"
+    );
+    Assert.ok(moveTabToGroupItem.hidden, "moveTabToGroupItem is hidden");
 
-    addTabMenuItem.click();
+    moveTabToNewGroupItem.click();
   });
 
   Assert.ok(tab.group, "tab is in group");
-  Assert.notEqual(
-    tab.group,
-    otherGroup,
-    "tab is not in the pre-existing group"
-  );
   Assert.equal(tab.group.label, "", "tab group label is empty");
 
-  gBrowser.removeTabGroup(otherGroup, { animate: false });
-  gBrowser.removeTabGroup(tab.group, { animate: false });
+  await removeTabGroup(tab.group);
 });
 
 /*
- * Tests that if multiple tabs are selected and one of the selected tabs has
- * its context menu open, the "adds tab to group" option appears in the
- * context menu, and clicking it adds the tabs to a new group
+ * Tests that when no groups exist, if multiple tabs are selected and one of
+ * the selected tabs has its context menu open, the "move tabs to group" option
+ * appears in the context menu, and clicking it moves the tabs to a new group
  */
-add_task(async function test_tabGroupContextMenuAddTabsToGroup() {
-  let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
-    skipAnimation: true,
-  });
-  let otherGroup = gBrowser.addTabGroup("blue", "test", [otherTab]);
-
+add_task(async function test_tabGroupContextMenuMoveTabsToNewGroup() {
   const tabs = Array.from({ length: 3 }, () => {
     return BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
@@ -496,36 +501,38 @@ add_task(async function test_tabGroupContextMenuAddTabsToGroup() {
 
   let tabToClick = tabs[2];
 
-  await withTabMenu(tabToClick, async addTabMenuItem => {
-    Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
-    addTabMenuItem.click();
-  });
+  await withTabMenu(
+    tabToClick,
+    async (moveTabToNewGroupItem, moveTabToGroupItem) => {
+      Assert.ok(
+        !moveTabToNewGroupItem.hidden,
+        "moveTabToNewGroupItem is visible"
+      );
+      Assert.ok(moveTabToGroupItem.hidden, "moveTabToGroupItem is hidden");
 
-  Assert.ok(tabs[0].group, "tab is in group");
-  Assert.notEqual(
-    tabs[0].group,
-    otherGroup,
-    "tab is not in the pre-existing group"
+      moveTabToNewGroupItem.click();
+    }
   );
-  Assert.equal(tabs[0].group.label, "", "tab group label is empty");
+
   let group = tabs[0].group;
 
+  Assert.ok(tabs[0].group, "tab is in group");
+  Assert.equal(tabs[0].group.label, "", "tab group label is empty");
   tabs.forEach((t, idx) => {
     Assert.equal(t.group, group, `tabs[${idx}] is in group`);
   });
 
-  gBrowser.removeTabGroup(group, { animate: false });
-  gBrowser.removeTabGroup(otherGroup, { animate: false });
+  await removeTabGroup(group);
 });
 
 /*
- * Tests that if a tab is selected and a tab that is *not* selected
- * has its context menu open, the "add tab to group" option appears in the
- * context menu, and clicking it adds the *context menu* tab to the group, not
- * the selected tab
+ * Tests that when no groups exist, if a tab is selected and a tab that is
+ * *not* selected has its context menu open, the "move tab to group" option
+ * appears in the context menu, and clicking it moves the *context menu* tab to
+ * the group, not the selected tab
  */
 add_task(
-  async function test_tabGroupContextMenuAddTabToGroupWhileAnotherSelected() {
+  async function test_tabGroupContextMenuMoveTabToNewGroupWhileAnotherSelected() {
     let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
     });
@@ -535,33 +542,40 @@ add_task(
 
     EventUtils.synthesizeMouseAtCenter(otherTab, {});
 
-    await withTabMenu(tab, async addTabMenuItem => {
-      Assert.equal(
-        gBrowser.selectedTabs.includes(TabContextMenu.contextTab),
-        false,
-        "context menu tab is not selected"
-      );
-      Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
+    await withTabMenu(
+      tab,
+      async (moveTabToNewGroupItem, moveTabToGroupItem) => {
+        Assert.equal(
+          gBrowser.selectedTabs.includes(TabContextMenu.contextTab),
+          false,
+          "context menu tab is not selected"
+        );
+        Assert.ok(
+          !moveTabToNewGroupItem.hidden,
+          "moveTabToNewGroupItem is visible"
+        );
+        Assert.ok(moveTabToGroupItem.hidden, "moveTabToGroupItem is hidden");
 
-      addTabMenuItem.click();
-    });
+        moveTabToNewGroupItem.click();
+      }
+    );
 
     Assert.ok(tab.group, "tab is in group");
     Assert.equal(otherTab.group, null, "otherTab is not in group");
 
-    gBrowser.removeTabGroup(tab.group, { animate: false });
+    await removeTabGroup(tab.group);
     BrowserTestUtils.removeTab(otherTab);
   }
 );
 
 /*
- * Tests that if multiple tabs are selected and a tab that is *not* selected
- * has its context menu open, the "add tabs to group" option appears in the
- * context menu, and clicking it adds the *context menu* tab to the group, not
- * the selected tabs
+ * Tests that when no groups exist, if multiple tabs are selected and a tab
+ * that is *not* selected has its context menu open, the "move tabs to group"
+ * option appears in the context menu, and clicking it moves the *context menu*
+ * tab to the group, not the selected tabs
  */
 add_task(
-  async function test_tabGroupContextMenuAddTabToGroupWhileOthersSelected() {
+  async function test_tabGroupContextMenuMoveTabToNewGroupWhileOthersSelected() {
     let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
       skipAnimation: true,
     });
@@ -580,15 +594,23 @@ add_task(
       );
     });
 
-    await withTabMenu(tab, async addTabMenuItem => {
-      Assert.ok(
-        !gBrowser.selectedTabs.includes(TabContextMenu.contextTab),
-        "context menu tab is not selected"
-      );
-      Assert.ok(!addTabMenuItem.hidden, "Add tab menu item is visible");
+    await withTabMenu(
+      tab,
+      async (moveTabToNewGroupItem, moveTabToGroupItem) => {
+        Assert.equal(
+          gBrowser.selectedTabs.includes(TabContextMenu.contextTab),
+          false,
+          "context menu tab is not selected"
+        );
+        Assert.ok(
+          !moveTabToNewGroupItem.hidden,
+          "moveTabToNewGroupItem is visible"
+        );
+        Assert.ok(moveTabToGroupItem.hidden, "moveTabToGroupItem is hidden");
 
-      addTabMenuItem.click();
-    });
+        moveTabToNewGroupItem.click();
+      }
+    );
 
     Assert.ok(tab.group, "tab is in group");
 
@@ -596,10 +618,299 @@ add_task(
       Assert.equal(t.group, null, `otherTab[${idx}] is not in group`);
     });
 
-    gBrowser.removeTabGroup(tab.group, { animate: false });
+    await removeTabGroup(tab.group);
     otherTabs.forEach(t => {
       BrowserTestUtils.removeTab(t);
     });
+  }
+);
+
+// Context menu tests: "move tab to group" option
+// (i.e. the option that appears in the menu when other groups already exist)
+// ---
+
+/*
+ * Tests that when groups exist, the "move tab to group" menu option is visible
+ * and is correctly populated with the group list
+ */
+add_task(async function test_tabGroupContextMenuMoveTabToGroupBasics() {
+  let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let group1 = gBrowser.addTabGroup("red", "Test group with label", [tab1]);
+  let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let group2 = gBrowser.addTabGroup("blue", "", [tab2]);
+
+  let tabToClick = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+
+  await withTabMenu(
+    tabToClick,
+    async (moveTabToNewGroupItem, moveTabToGroupItem) => {
+      Assert.ok(
+        moveTabToNewGroupItem.hidden,
+        "moveTabToNewGroupItem is hidden"
+      );
+      Assert.ok(!moveTabToGroupItem.hidden, "moveTabToGroupItem is visible");
+
+      const submenu = moveTabToGroupItem.querySelector(
+        "#context_moveTabToGroupPopupMenu"
+      ).children;
+
+      // Items 0 and 1 are the "new group" item and a separator respectively
+      // Note that groups should appear in order of most recently created to least
+      const group2Item = submenu[3];
+      Assert.equal(
+        group2Item.getAttribute("tab-group-id"),
+        group2.getAttribute("id"),
+        "first group in list is group2"
+      );
+      Assert.equal(
+        group2Item.getAttribute("label"),
+        "Unnamed group",
+        "group2 menu item has correct label"
+      );
+      Assert.ok(
+        group2Item.getAttribute("image").includes('fill="blue"'),
+        "group2 menu item chicklet has correct color"
+      );
+
+      const group1Item = submenu[2];
+      Assert.equal(
+        group1Item.getAttribute("tab-group-id"),
+        group1.getAttribute("id"),
+        "second group in list is group1"
+      );
+      Assert.equal(
+        group1Item.getAttribute("label"),
+        "Test group with label",
+        "group1 menu item has correct label"
+      );
+      Assert.ok(
+        group1Item.getAttribute("image").includes('fill="red"'),
+        "group1 menu item chicklet has correct color"
+      );
+    }
+  );
+
+  await removeTabGroup(group1);
+  await removeTabGroup(group2);
+  BrowserTestUtils.removeTab(tabToClick);
+});
+
+/*
+ * Tests that the "move tab to group > new group" option creates a new group and moves the tab to it
+ */
+add_task(async function test_tabGroupContextMenuMoveTabToGroupNewGroup() {
+  let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let otherGroup = gBrowser.addTabGroup("red", "", [otherTab]);
+
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+
+  await withTabMenu(tab, async (_, moveTabToGroupItem) => {
+    moveTabToGroupItem.querySelector("#context_moveTabToGroupNewGroup").click();
+  });
+
+  Assert.ok(tab.group, "tab is in group");
+  Assert.notEqual(
+    tab.group.id,
+    otherGroup.id,
+    "tab is not in the original group"
+  );
+
+  await removeTabGroup(otherGroup);
+  await removeTabGroup(tab.group);
+});
+
+/*
+ * Tests that the "move tab to group > [group name]" option moves a tab to the selected group
+ */
+add_task(async function test_tabGroupContextMenuMoveTabToGroupNewGroup() {
+  let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+  let group = gBrowser.addTabGroup("red", "", [otherTab]);
+
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+    skipAnimation: true,
+  });
+
+  await withTabMenu(tab, async (_, moveTabToGroupItem) => {
+    moveTabToGroupItem.querySelector(`[tab-group-id="${group.id}"]`).click();
+  });
+
+  Assert.ok(tab.group, "tab is in group");
+  Assert.equal(tab.group.id, group.id, "tab is in the original group");
+
+  await removeTabGroup(group);
+});
+
+/*
+ * Tests that when groups exist, and the context menu tab has a group,
+ * that group does not exist in the context menu list
+ */
+add_task(
+  async function test_tabGroupContextMenuMoveTabToGroupContextMenuTabNotInList() {
+    let tab1 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+    let group1 = gBrowser.addTabGroup("red", "", [tab1]);
+    let tab2 = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+    let group2 = gBrowser.addTabGroup("blue", "", [tab2]);
+
+    await withTabMenu(tab2, async (_, moveTabToGroupItem) => {
+      const submenu = moveTabToGroupItem.querySelector(
+        "#context_moveTabToGroupPopupMenu"
+      ).children;
+
+      // Accounting for the existence of the "new group" and menuseparator elements
+      Assert.equal(submenu.length, 3, "only one tab group exists in the list");
+      Assert.equal(
+        submenu[2].getAttribute("tab-group-id"),
+        group1.getAttribute("id"),
+        "tab group in the list is not the context menu tab's group"
+      );
+    });
+
+    await removeTabGroup(group1);
+    await removeTabGroup(group2);
+  }
+);
+
+/*
+ * Tests that when only one group exists, and the context menu tab is in the group,
+ * the condensed "move tab to new group" menu item is shown in place of the submenu variant
+ */
+add_task(
+  async function test_tabGroupContextMenuMoveTabToGroupOnlyOneGroupIsSelectedGroup() {
+    let tab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+    let group = gBrowser.addTabGroup("red", "", [tab]);
+
+    await withTabMenu(
+      tab,
+      async (moveTabToNewGroupItem, moveTabToGroupItem) => {
+        Assert.ok(
+          !moveTabToNewGroupItem.hidden,
+          "moveTabToNewGroupItem is visible"
+        );
+        Assert.ok(moveTabToGroupItem.hidden, "moveTabToGroupItem is hidden");
+      }
+    );
+
+    await removeTabGroup(group);
+  }
+);
+
+/*
+ * Tests that when many groups exist, if many tabs are selected and the
+ * selected tabs belong to different groups or are ungrouped, all tab groups
+ * appear in the context menu list
+ */
+add_task(
+  async function test_tabGroupContextMenuManySelectedTabsFromManyGroups() {
+    const tabs = Array.from({ length: 3 }, () => {
+      return BrowserTestUtils.addTab(gBrowser, "about:blank", {
+        skipAnimation: true,
+      });
+    });
+
+    let group1 = gBrowser.addTabGroup("red", "", [tabs[0]]);
+    let group2 = gBrowser.addTabGroup("blue", "", [tabs[1]]);
+
+    tabs.forEach(tab => {
+      EventUtils.synthesizeMouseAtCenter(
+        tab,
+        { ctrlKey: true, metaKey: true },
+        window
+      );
+    });
+
+    const tabToClick = tabs[2];
+
+    await withTabMenu(tabToClick, async (_, moveTabToGroupItem) => {
+      const submenu = moveTabToGroupItem.querySelector(
+        "#context_moveTabToGroupPopupMenu"
+      ).children;
+
+      const tabGroupIds = Array.from(submenu).map(item =>
+        item.getAttribute("tab-group-id")
+      );
+
+      Assert.ok(
+        tabGroupIds.includes(group1.getAttribute("id")),
+        "group1 is in context menu list"
+      );
+      Assert.ok(
+        tabGroupIds.includes(group2.getAttribute("id")),
+        "group2 is in context menu list"
+      );
+    });
+
+    await removeTabGroup(group1);
+    await removeTabGroup(group2);
+    BrowserTestUtils.removeTab(tabToClick);
+  }
+);
+
+/*
+ * Tests that when many groups exist, if many tabs are selected and all the
+ * tabs belong to the same group, that group does not appear in the context
+ * menu list
+ */
+add_task(
+  async function test_tabGroupContextMenuManySelectedTabsFromSameGroup() {
+    const tabsToSelect = Array.from({ length: 3 }, () => {
+      return BrowserTestUtils.addTab(gBrowser, "about:blank", {
+        skipAnimation: true,
+      });
+    });
+    let selectedTabGroup = gBrowser.addTabGroup("red", "", tabsToSelect);
+    let otherTab = BrowserTestUtils.addTab(gBrowser, "about:blank", {
+      skipAnimation: true,
+    });
+    let otherGroup = gBrowser.addTabGroup("blue", "", [otherTab]);
+
+    // Click the first tab in our test group to make sure the default tab at the
+    // start of the tab strip is deselected
+    // This is broken on tabs within tab groups ...
+    EventUtils.synthesizeMouseAtCenter(tabsToSelect[0], {});
+
+    tabsToSelect.forEach(tab => {
+      EventUtils.synthesizeMouseAtCenter(
+        tab,
+        { ctrlKey: true, metaKey: true },
+        window
+      );
+    });
+
+    await withTabMenu(tabsToSelect[2], async (_, moveTabToGroupItem) => {
+      const submenu = moveTabToGroupItem.querySelector(
+        "#context_moveTabToGroupPopupMenu"
+      ).children;
+
+      const tabGroupIds = Array.from(submenu).map(item =>
+        item.getAttribute("tab-group-id")
+      );
+
+      Assert.ok(
+        !tabGroupIds.includes(selectedTabGroup.getAttribute("id")),
+        "group with selected tabs is not in context menu list"
+      );
+    });
+
+    await removeTabGroup(selectedTabGroup);
+    await removeTabGroup(otherGroup);
   }
 );
 
@@ -612,8 +923,8 @@ add_task(async function test_tabsContainNoTabGroups() {
     skipAnimation: true,
   });
 
-  gBrowser.addTabGroup("red", "test", [tab]);
-  gBrowser.addTabGroup("blue", "test", [tab]);
+  let group1 = gBrowser.addTabGroup("red", "test", [tab]);
+  let group2 = gBrowser.addTabGroup("blue", "test", [tab]);
 
   Assert.equal(
     gBrowser.tabs.length,
@@ -629,4 +940,68 @@ add_task(async function test_tabsContainNoTabGroups() {
   });
 
   BrowserTestUtils.removeTab(tab);
+  gBrowser.removeTabGroup(group1, { animate: false });
+  gBrowser.removeTabGroup(group2, { animate: false });
+});
+
+/**
+ * Tests behavior of the group management panel.
+ */
+add_task(async function test_tabGroupCreatePanel() {
+  let tabgroupPanel = document.getElementById("tab-group-editor").panel;
+  let nameField = tabgroupPanel.querySelector("#tab-group-name");
+  let tab = BrowserTestUtils.addTab(gBrowser, "about:blank");
+
+  let panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+  let group = gBrowser.addTabGroup("cyan", "Food", [tab]);
+  await panelShown;
+  // Edit panel should be populated with correct group details
+  Assert.ok(
+    nameField.value == group.label,
+    "Create panel's input populated with correct name"
+  );
+  Assert.ok(
+    tabgroupPanel.querySelector("input[name='tab-group-color']:checked")
+      .value == group.color,
+    "Create panel's colorpicker has correct color pre-selected"
+  );
+
+  // Group should be removed after hitting Cancel
+  let panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  tabgroupPanel.querySelector("#tab-group-editor-button-cancel").click();
+  await panelHidden;
+  Assert.ok(!tab.group, "Tab is ungrouped after hitting Cancel");
+
+  panelShown = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "shown");
+  group = gBrowser.addTabGroup("cyan", "Food", [tab]);
+  await panelShown;
+
+  // Panel inputs should work correctly
+  nameField.focus();
+  nameField.value = "";
+  EventUtils.sendString("Shopping");
+  Assert.ok(
+    group.label == "Shopping",
+    "Group label changed when input value changed"
+  );
+  tabgroupPanel.querySelector("#tab-group-editor-swatch-red").click();
+  Assert.ok(
+    group.color == "red",
+    "Group color changed to red after clicking red swatch"
+  );
+  Assert.ok(
+    tabgroupPanel.querySelector("input[name='tab-group-color']:checked")
+      .value == "red",
+    "Red swatch radio selected after clicking red swatch"
+  );
+
+  // Panel dismissed after clicking Create and group remains
+  panelHidden = BrowserTestUtils.waitForPopupEvent(tabgroupPanel, "hidden");
+  tabgroupPanel.querySelector("#tab-group-editor-button-create").click();
+  await panelHidden;
+  Assert.ok(tabgroupPanel.state == "closed", "Tabgroup edit panel is closed");
+  Assert.ok(group.label == "Shopping");
+  Assert.ok(group.color == "red");
+
+  gBrowser.removeTabGroup(group, { animate: false });
 });

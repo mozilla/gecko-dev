@@ -43,6 +43,7 @@
 #include "mozilla/java/GeckoThreadNatives.h"
 #include "mozilla/java/XPCOMEventTargetNatives.h"
 #include "mozilla/widget/ScreenManager.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "prenv.h"
 #include "prtime.h"
 
@@ -335,6 +336,10 @@ class GeckoAppShellSupport final
 
   static bool IsGpuProcessEnabled() {
     return gfx::gfxVars::GPUProcessEnabled();
+  }
+
+  static bool IsInteractiveWidgetDefaultResizesVisual() {
+    return StaticPrefs::dom_interactive_widget_default_resizes_visual();
   }
 
   static void OnSystemLocaleChanged() {

@@ -320,6 +320,11 @@ function setupMocks({ fxaDevices = null, state, syncEnabled = true }) {
       }),
     };
   });
+
+  // whatever was passed in was the "found" client
+  sandbox
+    .stub(SyncedTabs._internal, "_getClientFxaDeviceId")
+    .callsFake(clientId => clientId);
   // This is converting the device list to a client list.
   // There are two primary differences:
   // 1. The client list doesn't return the current device.

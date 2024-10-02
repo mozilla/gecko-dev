@@ -21,7 +21,6 @@
   --in-content-item-hover-text: var(--in-content-page-color);
   --in-content-item-selected: var(--in-content-primary-button-background);
   --in-content-item-selected-text: var(--in-content-primary-button-text-color);
-  --in-content-icon-color: rgb(91,91,102);
   --in-content-accent-color: var(--in-content-primary-button-background);
   --in-content-accent-color-active: var(--in-content-primary-button-background-hover);
   --in-content-border-invalid: var(--red-50);
@@ -118,8 +117,6 @@
 
     --in-content-success-icon-color: #54FFBD;
 
-    --in-content-icon-color: rgb(251,251,254);
-
     --in-content-primary-button-text-color: rgb(43,42,51);
     --in-content-primary-button-background: rgb(0,221,255);
     --in-content-primary-button-background-hover: rgb(128,235,255);
@@ -161,7 +158,6 @@
     --in-content-item-hover-text: SelectedItemText;
     --in-content-item-selected: SelectedItem;
     --in-content-item-selected-text: SelectedItemText;
-    --in-content-icon-color: -moz-DialogText;
 
     --in-content-accent-color: SelectedItem;
     --in-content-accent-color-active: SelectedItem;

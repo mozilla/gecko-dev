@@ -262,3 +262,41 @@ add_task(async function test_incorrectMimeTypeDataURI() {
 
   await PlacesUtils.history.clear();
 });
+
+add_task(async function test_pageURIProtocols() {
+  let favicon = await createFavicon("favicon.png");
+  let invalidPageURIs = [
+    "resource:///path/to/file.html",
+    "chrome://page/example.html",
+  ];
+  let validPageURIs = [
+    "file:///path/to/file.html",
+    "about://page/example.html",
+    "http://example.com/",
+    "https://example.com/",
+  ];
+  for (let pageURI of invalidPageURIs) {
+    try {
+      PlacesUtils.favicons.setFaviconForPage(
+        uri(pageURI),
+        favicon.uri,
+        await createDataURLForFavicon(favicon)
+      );
+      Assert.ok(false, "Error should occur");
+    } catch (e) {
+      Assert.ok(true, `Expected error [${e.message}]`);
+    }
+  }
+  for (let pageURI of validPageURIs) {
+    try {
+      PlacesUtils.favicons.setFaviconForPage(
+        uri(pageURI),
+        favicon.uri,
+        await createDataURLForFavicon(favicon)
+      );
+      Assert.ok(true, "Favicon should be set for page");
+    } catch (e) {
+      Assert.ok(false, `Unexpected error [${e.message}]`);
+    }
+  }
+});

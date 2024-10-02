@@ -113,10 +113,6 @@
 #  endif
 #endif
 
-#ifdef MOZ_JPROF
-#  include "jprof.h"
-#endif
-
 #if defined(XP_WIN) && defined(MOZ_SANDBOX)
 #  include "mozilla/sandboxing/SandboxInitialization.h"
 #  include "mozilla/sandboxing/sandboxLogging.h"
@@ -151,7 +147,7 @@ using mozilla::ipc::TestShellParent;
 namespace mozilla::_ipdltest {
 // Set in IPDLUnitTest.cpp when running gtests.
 UniquePtr<mozilla::ipc::ProcessChild> (*gMakeIPDLUnitTestProcessChild)(
-    base::ProcessId, const nsID&) = nullptr;
+    IPC::Channel::ChannelHandle, base::ProcessId, const nsID&) = nullptr;
 }  // namespace mozilla::_ipdltest
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
@@ -184,12 +180,14 @@ const char* XRE_ChildProcessTypeToAnnotation(GeckoProcessType aProcessType) {
 }
 
 #if defined(MOZ_WIDGET_ANDROID)
-void XRE_SetAndroidChildFds(JNIEnv* env, const XRE_AndroidChildFds& fds) {
+void XRE_SetAndroidChildFds(JNIEnv* env, jintArray jfds) {
   mozilla::jni::SetGeckoThreadEnv(env);
-  mozilla::ipc::SetPrefsFd(fds.mPrefsFd);
-  mozilla::ipc::SetPrefMapFd(fds.mPrefMapFd);
-  IPC::Channel::SetClientChannelFd(fds.mIpcFd);
-  CrashReporter::SetNotificationPipeForChild(fds.mCrashFd);
+
+  // Copy passed file handles from the JNI environment into geckoargs.
+  jsize size = env->GetArrayLength(jfds);
+  jint* fds = env->GetIntArrayElements(jfds, nullptr);
+  geckoargs::SetPassedFileHandles(Span(fds, size));
+  env->ReleaseIntArrayElements(jfds, fds, JNI_ABORT);
 }
 #endif  // defined(MOZ_WIDGET_ANDROID)
 
@@ -238,17 +236,6 @@ int GetDebugChildPauseTime() {
 #endif
 }
 
-static bool IsCrashReporterEnabled(const char* aArg) {
-  // on windows and mac, |aArg| is the named pipe on which the server is
-  // listening for requests, or "-" if crash reporting is disabled.
-#if defined(XP_MACOSX) || defined(XP_WIN)
-  return 0 != strcmp("-", aArg);
-#else
-  // on POSIX, |aArg| is "true" if crash reporting is enabled, false otherwise
-  return 0 != strcmp("false", aArg);
-#endif
-}
-
 }  // namespace
 
 nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
@@ -285,15 +272,11 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 
 #if defined(XP_LINUX) && defined(MOZ_SANDBOX)
   // This has to happen before glib thread pools are started.
-  mozilla::SandboxEarlyInit();
+  mozilla::SandboxEarlyInit(geckoargs::sSandboxReporter.Get(aArgc, aArgv),
+                            geckoargs::sChrootClient.Get(aArgc, aArgv));
   // This just needs to happen before sandboxing, to initialize the
   // cached value, but libmozsandbox can't see this symbol.
   mozilla::GetNumberOfProcessors();
-#endif
-
-#ifdef MOZ_JPROF
-  // Call the code to install our handler
-  setupProfilingStuff();
 #endif
 
 #if defined(XP_WIN)
@@ -381,12 +364,10 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 
   bool exceptionHandlerIsSet = false;
   if (!CrashReporter::IsDummy()) {
-    if (aArgc < 1) return NS_ERROR_FAILURE;
-    const char* const crashReporterArg = aArgv[--aArgc];
-
-    if (IsCrashReporterEnabled(crashReporterArg)) {
-      exceptionHandlerIsSet =
-          CrashReporter::SetRemoteExceptionHandler(crashReporterArg);
+    auto crashReporterArg = geckoargs::sCrashReporter.Get(aArgc, aArgv);
+    if (crashReporterArg) {
+      exceptionHandlerIsSet = CrashReporter::SetRemoteExceptionHandler(
+          std::move(*crashReporterArg));
       MOZ_ASSERT(exceptionHandlerIsSet,
                  "Should have been able to set remote exception handler");
 
@@ -402,9 +383,6 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
       CrashReporter::UnregisterRuntimeExceptionModule();
     }
   }
-
-  gArgv = aArgv;
-  gArgc = aArgc;
 
 #ifdef MOZ_X11
   XInitThreads();
@@ -447,26 +425,6 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   mozilla::startup::IncreaseDescriptorLimits();
 #endif
 
-  // child processes launched by GeckoChildProcessHost get this magic
-  // argument appended to their command lines
-  const char* const parentPIDString = aArgv[aArgc - 1];
-  MOZ_ASSERT(parentPIDString, "NULL parent PID");
-  --aArgc;
-
-  char* end = 0;
-  base::ProcessId parentPID = strtol(parentPIDString, &end, 10);
-  MOZ_ASSERT(!*end, "invalid parent PID");
-
-  // They also get the initial message channel ID passed in the same manner.
-  const char* const messageChannelIdString = aArgv[aArgc - 1];
-  MOZ_ASSERT(messageChannelIdString, "NULL MessageChannel Id");
-  --aArgc;
-
-  nsID messageChannelId{};
-  if (!messageChannelId.Parse(messageChannelIdString)) {
-    return NS_ERROR_FAILURE;
-  }
-
 #if defined(XP_WIN)
   // On Win7+, when not running as an MSIX package, register the application
   // user model id passed in by parent. This ensures windows created by the
@@ -486,6 +444,20 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
     }
   }
 #endif
+
+  Maybe<base::ProcessId> parentPID = geckoargs::sParentPid.Get(aArgc, aArgv);
+  Maybe<const char*> initialChannelIdString =
+      geckoargs::sInitialChannelID.Get(aArgc, aArgv);
+  Maybe<IPC::Channel::ChannelHandle> clientChannel =
+      geckoargs::sIPCHandle.Get(aArgc, aArgv);
+  if (NS_WARN_IF(!parentPID || !initialChannelIdString || !clientChannel)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsID messageChannelId{};
+  if (NS_WARN_IF(!messageChannelId.Parse(*initialChannelIdString))) {
+    return NS_ERROR_FAILURE;
+  }
 
   base::AtExitManager exitManager;
 
@@ -553,50 +525,52 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
 
         case GeckoProcessType_Content:
           ioInterposerGuard.Init();
-          process = MakeUnique<ContentProcess>(parentPID, messageChannelId);
+          process = MakeUnique<ContentProcess>(std::move(*clientChannel),
+                                               *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_IPDLUnitTest:
           MOZ_RELEASE_ASSERT(mozilla::_ipdltest::gMakeIPDLUnitTestProcessChild,
                              "xul-gtest not loaded!");
           process = mozilla::_ipdltest::gMakeIPDLUnitTestProcessChild(
-              parentPID, messageChannelId);
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_GMPlugin:
-          process =
-              MakeUnique<gmp::GMPProcessChild>(parentPID, messageChannelId);
+          process = MakeUnique<gmp::GMPProcessChild>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_GPU:
-          process =
-              MakeUnique<gfx::GPUProcessImpl>(parentPID, messageChannelId);
+          process = MakeUnique<gfx::GPUProcessImpl>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_VR:
-          process =
-              MakeUnique<gfx::VRProcessChild>(parentPID, messageChannelId);
+          process = MakeUnique<gfx::VRProcessChild>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_RDD:
-          process = MakeUnique<RDDProcessImpl>(parentPID, messageChannelId);
+          process = MakeUnique<RDDProcessImpl>(std::move(*clientChannel),
+                                               *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_Socket:
           ioInterposerGuard.Init();
-          process =
-              MakeUnique<net::SocketProcessImpl>(parentPID, messageChannelId);
+          process = MakeUnique<net::SocketProcessImpl>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
         case GeckoProcessType_Utility:
-          process =
-              MakeUnique<ipc::UtilityProcessImpl>(parentPID, messageChannelId);
+          process = MakeUnique<ipc::UtilityProcessImpl>(
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 
 #if defined(MOZ_SANDBOX) && defined(XP_WIN)
         case GeckoProcessType_RemoteSandboxBroker:
           process = MakeUnique<RemoteSandboxBrokerProcessChild>(
-              parentPID, messageChannelId);
+              std::move(*clientChannel), *parentPID, messageChannelId);
           break;
 #endif
 

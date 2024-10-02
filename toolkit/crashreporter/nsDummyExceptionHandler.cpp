@@ -205,21 +205,11 @@ bool WriteExtraFile(const nsAString& id, const AnnotationTable& annotations) {
 
 void OOPInit() {}
 
-#if defined(XP_WIN) || defined(XP_MACOSX)
-const char* GetChildNotificationPipe() { return nullptr; }
-#endif
+CrashPipeType GetChildNotificationPipe() { return nullptr; }
 
 bool GetLastRunCrashID(nsAString& id) { return false; }
 
-#if !defined(XP_WIN) && !defined(XP_MACOSX)
-
-bool CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd) {
-  return false;
-}
-
-#endif  // !defined(XP_WIN) && !defined(XP_MACOSX)
-
-bool SetRemoteExceptionHandler(const char* aCrashPipe) { return false; }
+bool SetRemoteExceptionHandler(CrashPipeType aCrashPipe) { return false; }
 
 bool TakeMinidumpForChild(ProcessId childPid, nsIFile** dump,
                           AnnotationTable& aAnnotations) {

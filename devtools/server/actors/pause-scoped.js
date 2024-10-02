@@ -11,11 +11,8 @@ class PauseScopedObjectActor extends ObjectActor {
    * Creates a pause-scoped actor for the specified object.
    * @see ObjectActor
    */
-  constructor(obj, hooks, conn) {
-    super(obj, hooks, conn);
-
-    this.hooks.promote = hooks.promote;
-    this.hooks.isThreadLifetimePool = hooks.isThreadLifetimePool;
+  constructor(threadActor, obj, hooks) {
+    super(threadActor, obj, hooks);
 
     const guardWithPaused = [
       "decompile",
@@ -31,15 +28,10 @@ class PauseScopedObjectActor extends ObjectActor {
     for (const methodName of guardWithPaused) {
       this[methodName] = this.withPaused(this[methodName]);
     }
+  }
 
-    /**
-     * Handle a protocol request to promote a pause-lifetime grip to a
-     * thread-lifetime grip.
-     */
-    this.threadGrip = this.withPaused(function () {
-      this.hooks.promote();
-      return {};
-    });
+  isThreadLifetimePool() {
+    return this.getParent() === this.threadActor.threadLifetimePool;
   }
 
   isPaused() {
@@ -65,7 +57,7 @@ class PauseScopedObjectActor extends ObjectActor {
    * Handle a protocol request to release a thread-lifetime grip.
    */
   destroy() {
-    if (this.hooks.isThreadLifetimePool()) {
+    if (!this.isThreadLifetimePool()) {
       return {
         error: "notReleasable",
         message: "Only thread-lifetime actors can be released.",

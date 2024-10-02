@@ -7,6 +7,7 @@ package org.mozilla.geckoview.test
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.filters.MediumTest
+import junit.framework.TestCase.assertTrue
 import org.hamcrest.Matchers.* // ktlint-disable no-wildcard-imports
 import org.junit.Assume.assumeThat
 import org.junit.Ignore
@@ -571,5 +572,39 @@ class ProgressDelegateTest : BaseSessionTest() {
             override fun onSessionStateChange(session: GeckoSession, sessionState: GeckoSession.SessionState) {
             }
         })
+    }
+
+    @Test
+    fun getWebCompatInfo() {
+        sessionRule.setPrefsUntilTestEnd(mapOf("browser.webcompat.geckoview.enableAllTestMocks" to true))
+
+        val expectedResult = """{"devicePixelRatio":2.5,"antitracking":{"hasTrackingContentBlocked":false}}"""
+
+        val info = mainSession.webCompatInfo
+        assertThat("Result should match mocked web compat info", sessionRule.waitForResult(info).toString(), equalTo(expectedResult))
+
+        sessionRule.setPrefsUntilTestEnd(mapOf("browser.webcompat.geckoview.enableAllTestMocks" to false))
+    }
+
+    @Test
+    fun getWebCompatInfoExampleSite() {
+        val url = "https://www.mozilla.org/en-US/"
+        mainSession.loadUri(url)
+        sessionRule.waitForPageStop()
+        val info = sessionRule.waitForResult(mainSession.webCompatInfo)
+        val infoUrl = info.getString("url")
+
+        assertThat("Result should match actual url", infoUrl, equalTo(url))
+    }
+
+    @Test
+    fun getWebCompatInfoError() {
+        // Catch an exception when no web page is loaded
+        try {
+            sessionRule.waitForResult(mainSession.webCompatInfo)
+            assertThat("This test is expected to fail.", true, equalTo(false))
+        } catch (error: Exception) {
+            assertTrue("Expect an exception while getting web compat info.", true)
+        }
     }
 }

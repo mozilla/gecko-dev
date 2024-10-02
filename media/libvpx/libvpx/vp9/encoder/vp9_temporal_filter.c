@@ -45,36 +45,27 @@ static int64_t highbd_index_mult[14] = { 0U,          0U,          0U,
                                          0U,          991146300U };
 #endif  // CONFIG_VP9_HIGHBITDEPTH
 
-// Prediction function using 12-tap interpolation filter.
-// TODO(yunqingwang@google.com): add SIMD optimization.
-#define MAX_FILTER_TAP 12
+static const MV kZeroMv = { 0, 0 };
 #define TF_INTERP_EXTEND 6
-typedef int16_t InterpKernel12[MAX_FILTER_TAP];
-// 12-tap filter (used by the encoder only).
-DECLARE_ALIGNED(256, static const InterpKernel12,
-                sub_pel_filters_12[SUBPEL_SHIFTS]) = {
-  { 0, 0, 0, 0, 0, 128, 0, 0, 0, 0, 0, 0 },
-  { 0, 1, -2, 3, -7, 127, 8, -4, 2, -1, 1, 0 },
-  { -1, 2, -3, 6, -13, 124, 18, -8, 4, -2, 2, -1 },
-  { -1, 3, -4, 8, -18, 120, 28, -12, 7, -4, 2, -1 },
-  { -1, 3, -6, 10, -21, 115, 38, -15, 8, -5, 3, -1 },
-  { -2, 4, -6, 12, -24, 108, 49, -18, 10, -6, 3, -2 },
-  { -2, 4, -7, 13, -25, 100, 60, -21, 11, -7, 4, -2 },
-  { -2, 4, -7, 13, -26, 91, 71, -24, 13, -7, 4, -2 },
-  { -2, 4, -7, 13, -25, 81, 81, -25, 13, -7, 4, -2 },
-  { -2, 4, -7, 13, -24, 71, 91, -26, 13, -7, 4, -2 },
-  { -2, 4, -7, 11, -21, 60, 100, -25, 13, -7, 4, -2 },
-  { -2, 3, -6, 10, -18, 49, 108, -24, 12, -6, 4, -2 },
-  { -1, 3, -5, 8, -15, 38, 115, -21, 10, -6, 3, -1 },
-  { -1, 2, -4, 7, -12, 28, 120, -18, 8, -4, 3, -1 },
-  { -1, 2, -2, 4, -8, 18, 124, -13, 6, -3, 2, -1 },
-  { 0, 1, -1, 2, -4, 8, 127, -7, 3, -2, 1, 0 }
-};
 
-static void convolve_horiz_12(const uint8_t *src, ptrdiff_t src_stride,
-                              uint8_t *dst, ptrdiff_t dst_stride,
-                              const InterpKernel12 *x_filters, int x0_q4,
-                              int x_step_q4, int w, int h) {
+// Prediction function using 12-tap interpolation filter.
+void vpx_convolve_copy_12_c(const uint8_t *src, ptrdiff_t src_stride,
+                            uint8_t *dst, ptrdiff_t dst_stride,
+                            const InterpKernel12 *filter, int x0_q4,
+                            int x_step_q4, int y0_q4, int y_step_q4, int w,
+                            int h) {
+  (void)filter;
+  vpx_convolve_copy_c(src, src_stride, dst, dst_stride, NULL, x0_q4, x_step_q4,
+                      y0_q4, y_step_q4, w, h);
+}
+
+void vpx_convolve_horiz_12_c(const uint8_t *src, ptrdiff_t src_stride,
+                             uint8_t *dst, ptrdiff_t dst_stride,
+                             const InterpKernel12 *filter, int x0_q4,
+                             int x_step_q4, int y0_q4, int y_step_q4, int w,
+                             int h) {
+  (void)y0_q4;
+  (void)y_step_q4;
   int x, y;
   src -= MAX_FILTER_TAP / 2 - 1;
 
@@ -82,7 +73,7 @@ static void convolve_horiz_12(const uint8_t *src, ptrdiff_t src_stride,
     int x_q4 = x0_q4;
     for (x = 0; x < w; ++x) {
       const uint8_t *const src_x = &src[x_q4 >> SUBPEL_BITS];
-      const int16_t *const x_filter = x_filters[x_q4 & SUBPEL_MASK];
+      const int16_t *const x_filter = filter[x_q4 & SUBPEL_MASK];
       int k, sum = 0;
       for (k = 0; k < MAX_FILTER_TAP; ++k) sum += src_x[k] * x_filter[k];
       dst[x] = clip_pixel(ROUND_POWER_OF_TWO(sum, FILTER_BITS));
@@ -93,10 +84,13 @@ static void convolve_horiz_12(const uint8_t *src, ptrdiff_t src_stride,
   }
 }
 
-static void convolve_vert_12(const uint8_t *src, ptrdiff_t src_stride,
-                             uint8_t *dst, ptrdiff_t dst_stride,
-                             const InterpKernel12 *y_filters, int y0_q4,
-                             int y_step_q4, int w, int h) {
+void vpx_convolve_vert_12_c(const uint8_t *src, ptrdiff_t src_stride,
+                            uint8_t *dst, ptrdiff_t dst_stride,
+                            const InterpKernel12 *filter, int x0_q4,
+                            int x_step_q4, int y0_q4, int y_step_q4, int w,
+                            int h) {
+  (void)x0_q4;
+  (void)x_step_q4;
   int x, y;
   src -= src_stride * (MAX_FILTER_TAP / 2 - 1);
 
@@ -104,7 +98,7 @@ static void convolve_vert_12(const uint8_t *src, ptrdiff_t src_stride,
     int y_q4 = y0_q4;
     for (y = 0; y < h; ++y) {
       const uint8_t *src_y = &src[(y_q4 >> SUBPEL_BITS) * src_stride];
-      const int16_t *const y_filter = y_filters[y_q4 & SUBPEL_MASK];
+      const int16_t *const y_filter = filter[y_q4 & SUBPEL_MASK];
       int k, sum = 0;
       for (k = 0; k < MAX_FILTER_TAP; ++k)
         sum += src_y[k * src_stride] * y_filter[k];
@@ -117,21 +111,21 @@ static void convolve_vert_12(const uint8_t *src, ptrdiff_t src_stride,
 }
 
 // Copied from vpx_convolve8_c(). Possible block sizes are 32x32, 16x16, 8x8.
-static void vpx_convolve8_12_c(const uint8_t *src, ptrdiff_t src_stride,
-                               uint8_t *dst, ptrdiff_t dst_stride,
-                               const InterpKernel12 *filter, int x0_q4,
-                               int x_step_q4, int y0_q4, int y_step_q4, int w,
-                               int h) {
+void vpx_convolve8_12_c(const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst,
+                        ptrdiff_t dst_stride, const InterpKernel12 *filter,
+                        int x0_q4, int x_step_q4, int y0_q4, int y_step_q4,
+                        int w, int h) {
   uint8_t temp[BW * (BH + MAX_FILTER_TAP - 1)];
   const int temp_stride = BW;
   const int intermediate_height =
       (((h - 1) * y_step_q4 + y0_q4) >> SUBPEL_BITS) + MAX_FILTER_TAP;
 
-  convolve_horiz_12(src - src_stride * (MAX_FILTER_TAP / 2 - 1), src_stride,
-                    temp, temp_stride, filter, x0_q4, x_step_q4, w,
-                    intermediate_height);
-  convolve_vert_12(temp + temp_stride * (MAX_FILTER_TAP / 2 - 1), temp_stride,
-                   dst, dst_stride, filter, y0_q4, y_step_q4, w, h);
+  vpx_convolve_horiz_12_c(src - src_stride * (MAX_FILTER_TAP / 2 - 1),
+                          src_stride, temp, temp_stride, filter, x0_q4,
+                          x_step_q4, y0_q4, y_step_q4, w, intermediate_height);
+  vpx_convolve_vert_12_c(temp + temp_stride * (MAX_FILTER_TAP / 2 - 1),
+                         temp_stride, dst, dst_stride, filter, x0_q4, x_step_q4,
+                         y0_q4, y_step_q4, w, h);
 }
 
 static void vp9_build_inter_predictor_12(
@@ -148,8 +142,19 @@ static void vp9_build_inter_predictor_12(
 
   src += (mv.row >> SUBPEL_BITS) * src_stride + (mv.col >> SUBPEL_BITS);
 
-  vpx_convolve8_12_c(src, src_stride, dst, dst_stride, kernel, subpel_x,
+  if (subpel_x == 0 && subpel_y == 0) {
+    vpx_convolve_copy_12(src, src_stride, dst, dst_stride, kernel, subpel_x,
+                         sf->x_step_q4, subpel_y, sf->y_step_q4, w, h);
+  } else if (subpel_x == 0 && subpel_y != 0) {
+    vpx_convolve_vert_12(src, src_stride, dst, dst_stride, kernel, subpel_x,
+                         sf->x_step_q4, subpel_y, sf->y_step_q4, w, h);
+  } else if (subpel_x != 0 && subpel_y == 0) {
+    vpx_convolve_horiz_12(src, src_stride, dst, dst_stride, kernel, subpel_x,
+                          sf->x_step_q4, subpel_y, sf->y_step_q4, w, h);
+  } else {
+    vpx_convolve8_12(src, src_stride, dst, dst_stride, kernel, subpel_x,
                      sf->x_step_q4, subpel_y, sf->y_step_q4, w, h);
+  }
 }
 
 #if CONFIG_VP9_HIGHBITDEPTH

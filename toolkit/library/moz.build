@@ -187,11 +187,6 @@ if CONFIG["MOZ_WAYLAND"]:
         "mozwayland",
     ]
 
-if CONFIG["MOZ_JPROF"]:
-    USE_LIBS += [
-        "jprof",
-    ]
-
 if CONFIG["MOZ_WIDGET_TOOLKIT"] == "gtk" or CONFIG["MOZ_TREE_FREETYPE"]:
     USE_LIBS += [
         "freetype",

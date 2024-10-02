@@ -198,6 +198,10 @@ class EmitterScope : public Nestable<EmitterScope> {
   [[nodiscard]] bool prepareForForOfIteratorCloseOnThrow();
 
   bool hasDisposables() const { return usingEmitter_.isSome(); }
+
+  bool hasAsyncDisposables() const {
+    return hasDisposables() && usingEmitter_->hasAwaitUsing();
+  }
 #endif
 
   // The first frame slot used.

@@ -1054,4 +1054,14 @@ public final class GeckoRuntime implements Parcelable {
           return new GeckoRuntime[size];
         }
       };
+
+  /**
+   * Whether the default `interactive-widget` is `resizes-visual`.
+   *
+   * @return True the default `interactive-widget` is `resizes-visual`, false otherwise.
+   */
+  @AnyThread
+  public boolean isInteractiveWidgetDefaultResizesVisual() {
+    return GeckoAppShell.isInteractiveWidgetDefaultResizesVisual();
+  }
 }

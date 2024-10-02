@@ -66,7 +66,7 @@ class MainMenuTest : TestSetup() {
     fun homeMainMenuItemsTest() {
         homeScreen {
         }.openThreeDotMenu {
-            verifyHomeThreeDotMainMenuItems(isRequestDesktopSiteEnabled = false)
+            verifyHomeThreeDotMainMenuItems()
         }.openBookmarks {
             verifyBookmarksMenuView()
         }.goBack {
@@ -75,7 +75,7 @@ class MainMenuTest : TestSetup() {
             verifyHistoryMenuView()
         }.goBack {
         }.openThreeDotMenu {
-        }.openDownloadsManager() {
+        }.openDownloadsManager {
             verifyEmptyDownloadsList(composeTestRule)
         }.goBack {
         }.openThreeDotMenu {
@@ -210,12 +210,10 @@ class MainMenuTest : TestSetup() {
     fun setDesktopSiteBeforePageLoadTest() {
         val webPage = TestAssetHelper.getGenericAsset(mockWebServer, 4)
 
-        homeScreen {
-        }.openThreeDotMenu {
-            verifyDesktopSiteModeEnabled(false)
-        }.switchDesktopSiteMode {
-        }.openNavigationToolbar {
+        navigationToolbar {
         }.enterURLAndEnterToBrowser(webPage.url) {
+        }.openThreeDotMenu {
+        }.switchDesktopSiteMode {
         }.openThreeDotMenu {
             verifyDesktopSiteModeEnabled(true)
         }.closeBrowserMenuToBrowser {

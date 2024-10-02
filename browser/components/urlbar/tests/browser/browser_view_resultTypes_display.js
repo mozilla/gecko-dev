@@ -233,10 +233,7 @@ add_task(async function test_omnibox_result() {
 
 add_task(async function test_remote_tab_result() {
   await SpecialPowers.pushPrefEnv({
-    set: [
-      ["services.sync.username", "fake"],
-      ["services.sync.syncedTabs.showRemoteTabs", true],
-    ],
+    set: [["services.sync.username", "fake"]],
   });
   // Clear history so that history added by previous tests doesn't mess up this
   // test when it selects results in the urlbar.

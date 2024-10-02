@@ -190,8 +190,9 @@ add_task(async function focus_after_top_sites() {
     false,
     expectedSearchUrl
   );
+  let state = window.gURLBar.getBrowserState(window.gBrowser.selectedBrowser);
   Assert.equal(
-    gBrowser.selectedBrowser.searchTerms,
+    state.searchTerms,
     SEARCH_STRING,
     "The search term should be in the Urlbar."
   );

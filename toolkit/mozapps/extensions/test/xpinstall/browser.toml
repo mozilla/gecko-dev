@@ -57,7 +57,6 @@ https_first_disabled = true # Bug 1737265
 
 ["browser_block_fullscreen_prompt.js"]
 https_first_disabled = true # Bug 1737265
-skip-if = ["os == 'mac' && debug"] #Bug 1590136
 
 ["browser_bug540558.js"]
 https_first_disabled = true # Bug 1737265
@@ -94,9 +93,6 @@ https_first_disabled = true # Bug 1737265
 
 ["browser_doorhanger_installs.js"]
 https_first_disabled = true # Bug 1737265
-skip-if = [
-  "os == 'win' && os_version == '10.2009' && bits == 64", #Bug 1615449
-]
 
 ["browser_empty.js"]
 
@@ -139,13 +135,12 @@ https_first_disabled = true # Bug 1737265
 ["browser_localfile4_postDownload.js"]
 
 ["browser_newwindow.js"]
-skip-if = ["!debug"]  # This is a test for leaks, see comment in the test.
+run-if = ["debug"]  # This is a test for leaks, see comment in the test.
 
 ["browser_offline.js"]
 
 ["browser_privatebrowsing.js"]
 https_first_disabled = true # Bug 1737265
-skip-if = ["debug"] # Bug 1541577 - leaks on debug
 
 ["browser_relative.js"]
 https_first_disabled = true # Bug 1737265
@@ -160,15 +155,15 @@ https_first_disabled = true # Bug 1737265
 
 ["browser_unsigned_trigger.js"]
 https_first_disabled = true # Bug 1737265
-skip-if = ["require_signing"]
+run-if = ["!require_signing"]
 
 ["browser_unsigned_trigger_iframe.js"]
 https_first_disabled = true # Bug 1737265
-skip-if = ["require_signing"]
+run-if = ["!require_signing"]
 
 ["browser_unsigned_trigger_xorigin.js"]
 https_first_disabled = true # Bug 1737265
 
 ["browser_unsigned_url.js"]
 https_first_disabled = true # Bug 1737265
-skip-if = ["require_signing"]
+run-if = ["!require_signing"]

@@ -2,8 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import("../../../webrtc.gni")
-
 import("//build/config/c++/c++.gni")
 import("//build/config/chromeos/ui_mode.gni")
 import("//build/config/linux/pkg_config.gni")
@@ -39,10 +37,13 @@ config("runtime_library") {
     defines = [ "OS_CHROMEOS" ]
   }
 
+  # Mozilla disable libatomic on linux builds
+  if (false) {
   if ((!(is_chromeos_ash || is_chromeos_lacros) ||
        default_toolchain != "//build/toolchain/cros:target") &&
-      (!use_custom_libcxx || target_cpu == "mipsel") && !build_with_mozilla) {
+      (!use_custom_libcxx || target_cpu == "mipsel")) {
     libs = [ "atomic" ]
+  }
   }
 }
 
@@ -54,6 +55,7 @@ config("libresolv") {
   libs = [ "resolv" ]
 }
 
+# Mozilla disable glib - Bug 1654112 (hg sha 127ace4d8887)
 if (false && use_glib) {
   pkg_config("glib") {
     packages = [

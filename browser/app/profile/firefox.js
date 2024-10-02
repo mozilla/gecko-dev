@@ -1996,11 +1996,7 @@ pref("browser.ml.chat.prompts.2", '{"id":"simplify","l10nId":"genai-prompts-simp
 pref("browser.ml.chat.prompts.3", '{"id":"quiz","l10nId":"genai-prompts-quiz","targeting":"!provider|regExpMatch(\'gemini\') || region == \'US\'"}');
 pref("browser.ml.chat.provider", "");
 pref("browser.ml.chat.shortcuts", true);
-#ifdef NIGHTLY_BUILD
 pref("browser.ml.chat.shortcuts.custom", true);
-#else
-pref("browser.ml.chat.shortcuts.custom", false);
-#endif
 pref("browser.ml.chat.shortcuts.longPress", 60000);
 pref("browser.ml.chat.sidebar", true);
 

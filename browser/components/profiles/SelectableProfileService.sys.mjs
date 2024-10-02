@@ -85,7 +85,11 @@ class SelectableProfileServiceClass {
     );
   }
 
-  async createProfilesStorePath() {
+  async maybeCreateProfilesStorePath() {
+    if (this.#groupToolkitProfile.storeID) {
+      return;
+    }
+
     await IOUtils.makeDirectory(
       SelectableProfileServiceClass.PROFILE_GROUPS_DIR
     );
@@ -100,9 +104,7 @@ class SelectableProfileServiceClass {
   }
 
   async getProfilesStorePath() {
-    if (!this.#groupToolkitProfile.storeID) {
-      await this.createProfilesStorePath();
-    }
+    await this.maybeCreateProfilesStorePath();
 
     return PathUtils.join(
       SelectableProfileServiceClass.PROFILE_GROUPS_DIR,
@@ -115,11 +117,15 @@ class SelectableProfileServiceClass {
    * Get the groupDBPath from the nsToolkitProfile, and connect to it.
    */
   async init() {
-    if (this.#initialized) {
+    if (this.#initialized || !this.groupToolkitProfile) {
       return;
     }
 
-    let shouldSetSharedPrefs = !this.groupToolkitProfile.storeID;
+    // If the storeID doesn't exist, we don't want to create the db until we
+    // need to so we early return.
+    if (!this.groupToolkitProfile.storeID) {
+      return;
+    }
 
     await this.initConnection();
 
@@ -133,9 +139,7 @@ class SelectableProfileServiceClass {
       );
     } catch {}
 
-    if (shouldSetSharedPrefs) {
-      this.setSharedPrefs();
-    }
+    this.setSharedPrefs();
 
     // The 'activate' event listeners use #currentProfile, so this line has
     // to come after #currentProfile has been set.
@@ -530,6 +534,10 @@ class SelectableProfileServiceClass {
   }
 
   async createNewProfile() {
+    // Create the profiles db and set the storeID on the toolkit profile if it
+    // doesn't exist so we can init the service
+    await this.maybeCreateProfilesStorePath();
+    await this.init();
     let nextProfileNumber =
       1 + Math.max(0, ...(await this.getAllProfiles()).map(p => p.id));
     let [defaultName] = lazy.profilesLocalization.formatMessagesSync([

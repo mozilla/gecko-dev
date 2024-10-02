@@ -589,6 +589,20 @@ if (is_ios || is_mac) {
         "CoreGraphics.framework",
         "CoreVideo.framework",
       ]
+      if (build_with_mozilla) {
+        deps -= [
+          "//api/video:video_frame",
+          "//api/video:video_rtp_headers",
+          "//common_video",
+          "//rtc_base:checks",
+        ]
+        deps += [
+          "../api/video:video_frame",
+          "../api/video:video_rtp_headers",
+          "../common_video",
+          "../rtc_base:checks",
+        ]
+      }
     }
 
     if (!build_with_mozilla) {

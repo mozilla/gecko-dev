@@ -137,10 +137,10 @@ if (!build_with_mozilla) {
       deps -= [ ":pipewire_stubs" ]
       defines -= [ "WEBRTC_DLOPEN_PIPEWIRE" ]
       public_deps = [
-        "//third_party/pipewire",
-        "//third_party/drm",
-        "//third_party/gbm",
-        "//third_party/libepoxy"
+        "../../third_party/pipewire",
+        "../../third_party/drm",
+        "../../third_party/gbm",
+        "../../third_party/libepoxy"
       ]
     }
   }

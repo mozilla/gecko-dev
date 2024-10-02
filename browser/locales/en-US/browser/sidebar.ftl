@@ -131,13 +131,17 @@ sidebar-syncedtabs-title = Tabs from other devices
 synced-tabs-context-close-tab-title =
     .title = Close tab on { $deviceName }
 
-## Tooltips for the sidebar toolbar button.
+## Tooltips for the sidebar toolbar widget.
 
-sidebar-toolbar-expand-sidebar =
+sidebar-widget-expand-sidebar =
   .tooltiptext = Expand sidebar
-sidebar-toolbar-collapse-sidebar =
+  .label = Sidebars
+sidebar-widget-collapse-sidebar =
   .tooltiptext = Collapse sidebar
-sidebar-toolbar-show-sidebar =
+  .label = Sidebars
+sidebar-widget-show-sidebar =
   .tooltiptext = Show sidebar
-sidebar-toolbar-hide-sidebar =
+  .label = Sidebars
+sidebar-widget-hide-sidebar =
   .tooltiptext = Hide sidebar
+  .label = Sidebars

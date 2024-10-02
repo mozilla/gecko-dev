@@ -792,7 +792,9 @@ class QATests(SnapTestsBase):
         )
         if not os.path.isabs(previous_folder):
             previous_folder = os.path.join(os.environ.get("HOME", ""), previous_folder)
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(
+            dir=os.environ.get("HOME"), prefix="snap-test-download"
+        ) as tmpdir:
             assert os.path.isdir(tmpdir), "tmpdir download should exists"
 
             download_1 = os.path.abspath(os.path.join(previous_folder, download_name))
@@ -820,7 +822,9 @@ class QATests(SnapTestsBase):
         download_site = self.open_lafibre()
         extra_small = self.get_lafibre_1M()
 
-        with tempfile.TemporaryDirectory() as tmpdir:
+        with tempfile.TemporaryDirectory(
+            dir=os.environ.get("HOME"), prefix="snap-test-download-rm"
+        ) as tmpdir:
             self.change_download_folder(None, tmpdir)
 
             self._driver.switch_to.window(download_site)

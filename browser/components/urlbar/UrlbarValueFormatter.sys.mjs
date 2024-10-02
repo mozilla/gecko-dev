@@ -315,7 +315,13 @@ export class UrlbarValueFormatter {
    */
   _formatURL() {
     let urlMetaData = this._getUrlMetaData();
-    if (!urlMetaData || this.window.gBrowser.selectedBrowser.searchTerms) {
+    if (!urlMetaData) {
+      return false;
+    }
+    let state = this.urlbarInput.getBrowserState(
+      this.window.gBrowser.selectedBrowser
+    );
+    if (state.searchTerms) {
       return false;
     }
 

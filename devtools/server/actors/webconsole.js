@@ -63,12 +63,6 @@ loader.lazyRequireGetter(
 );
 loader.lazyRequireGetter(
   this,
-  "EnvironmentActor",
-  "resource://devtools/server/actors/environment.js",
-  true
-);
-loader.lazyRequireGetter(
-  this,
   "EventEmitter",
   "resource://devtools/shared/event-emitter.js"
 );
@@ -348,33 +342,6 @@ class WebConsoleActor extends Actor {
   }
 
   /**
-   * Create and return an environment actor that corresponds to the provided
-   * Debugger.Environment. This is a straightforward clone of the ThreadActor's
-   * method except that it stores the environment actor in the web console
-   * actor's pool.
-   *
-   * @param Debugger.Environment environment
-   *        The lexical environment we want to extract.
-   * @return The EnvironmentActor for |environment| or |undefined| for host
-   *         functions or functions scoped to a non-debuggee global.
-   */
-  createEnvironmentActor(environment) {
-    if (!environment) {
-      return undefined;
-    }
-
-    if (environment.actor) {
-      return environment.actor;
-    }
-
-    const actor = new EnvironmentActor(environment, this);
-    this.manage(actor);
-    environment.actor = actor;
-
-    return actor;
-  }
-
-  /**
    * Create a grip for the given value.
    *
    * @param mixed value
@@ -421,18 +388,12 @@ class WebConsoleActor extends Actor {
    *        The object grip.
    */
   objectGrip(object, pool) {
-    const actor = new ObjectActor(
-      object,
-      {
-        thread: this.parentActor.threadActor,
-        getGripDepth: () => this._gripDepth,
-        incrementGripDepth: () => this._gripDepth++,
-        decrementGripDepth: () => this._gripDepth--,
-        createValueGrip: v => this.createValueGrip(v),
-        createEnvironmentActor: env => this.createEnvironmentActor(env),
-      },
-      this.conn
-    );
+    const actor = new ObjectActor(this.parentActor.threadActor, object, {
+      getGripDepth: () => this._gripDepth,
+      incrementGripDepth: () => this._gripDepth++,
+      decrementGripDepth: () => this._gripDepth--,
+      createValueGrip: v => this.createValueGrip(v),
+    });
     pool.manage(actor);
     return actor.form();
   }

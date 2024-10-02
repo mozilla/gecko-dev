@@ -175,16 +175,36 @@ bool ForOfLoopControl::emitPrepareForNonLocalJumpFromScope(
     return false;
   }
 
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  // Explicit Resource Management Proposal
+  // https://arai-a.github.io/ecma262-compare/?pr=3000&id=sec-runtime-semantics-forin-div-ofbodyevaluation-lhs-stmt-iterator-lhskind-labelset
+  // Step 9.k.i. Set result to
+  // Completion(DisposeResources(iterationEnv.[[DisposeCapability]], result)).
+  NonLocalIteratorCloseUsingEmitter disposeBeforeIterClose(bce);
+
+  if (!disposeBeforeIterClose.prepareForIteratorClose(currentScope)) {
+    //              [stack] EXC-DISPOSE? DISPOSE-THROWING? ITER
+    return false;
+  }
+#endif
+
   if (!bce->emit1(JSOp::Dup)) {
-    //              [stack] ITER ITER
+    //              [stack] EXC-DISPOSE? DISPOSE-THROWING? ITER ITER
     return false;
   }
 
   *tryNoteStart = bce->bytecodeSection().offset();
   if (!emitIteratorCloseInScope(bce, currentScope, CompletionKind::Normal)) {
+    //              [stack] EXC-DISPOSE? DISPOSE-THROWING? ITER
+    return false;
+  }
+
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  if (!disposeBeforeIterClose.emitEnd()) {
     //              [stack] ITER
     return false;
   }
+#endif
 
   if (isTarget) {
     // At the level of the target block, there's bytecode after the

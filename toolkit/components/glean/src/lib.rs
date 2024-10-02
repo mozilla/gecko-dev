@@ -17,6 +17,7 @@
 //! [privacy-policy]: https://www.mozilla.org/privacy/
 //! [docs]: https://firefox-source-docs.mozilla.org/toolkit/components/glean/
 
+use std::cell::UnsafeCell;
 use firefox_on_glean::{ipc, metrics, pings};
 use nserror::{nsresult, NS_ERROR_FAILURE, NS_OK};
 use nsstring::{nsACString, nsCString};
@@ -42,7 +43,25 @@ pub extern "C" fn fog_register_pings() {
     pings::register_pings(None);
 }
 
-static mut PENDING_BUF: Vec<u8> = Vec::new();
+// Enough of unstable std::cell::SyncUnsafeCell for our needs, and
+// compatible enough such that it can just be replaced with
+// std::cell::SynUnsafeCell when it's stabilized.
+#[repr(transparent)]
+pub struct SyncUnsafeCell<T>(UnsafeCell<T>);
+
+unsafe impl<T: Sync> Sync for SyncUnsafeCell<T> {}
+
+impl<T> SyncUnsafeCell<T> {
+    pub const fn new(value: T) -> Self {
+        SyncUnsafeCell(UnsafeCell::new(value))
+    }
+
+    pub const fn get(&self) -> *mut T {
+        self.0.get()
+    }
+}
+
+static PENDING_BUF: SyncUnsafeCell<Vec<u8>> = SyncUnsafeCell::new(Vec::new());
 
 // IPC serialization/deserialization methods
 // Crucially important that the first two not be called on multiple threads.
@@ -52,11 +71,12 @@ static mut PENDING_BUF: Vec<u8> = Vec::new();
 /// fog_give_ipc_buf on).
 #[no_mangle]
 pub unsafe extern "C" fn fog_serialize_ipc_buf() -> usize {
+    let pending_buf = &mut *PENDING_BUF.get();
     if let Some(buf) = ipc::take_buf() {
-        PENDING_BUF = buf;
-        PENDING_BUF.len()
+        *pending_buf = buf;
+        pending_buf.len()
     } else {
-        PENDING_BUF = vec![];
+        *pending_buf = vec![];
         0
     }
 }
@@ -67,12 +87,13 @@ pub unsafe extern "C" fn fog_serialize_ipc_buf() -> usize {
 /// least buf_len bytes.
 #[no_mangle]
 pub unsafe extern "C" fn fog_give_ipc_buf(buf: *mut u8, buf_len: usize) -> usize {
-    let pending_len = PENDING_BUF.len();
+    let pending_buf = &mut *PENDING_BUF.get();
+    let pending_len = pending_buf.len();
     if buf.is_null() || buf_len < pending_len {
         return 0;
     }
-    std::ptr::copy_nonoverlapping(PENDING_BUF.as_ptr(), buf, pending_len);
-    PENDING_BUF = Vec::new();
+    std::ptr::copy_nonoverlapping(pending_buf.as_ptr(), buf, pending_len);
+    *pending_buf = Vec::new();
     pending_len
 }
 

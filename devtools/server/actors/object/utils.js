@@ -520,35 +520,6 @@ function createValueGripForTarget(
 }
 
 /**
- * Create and return an environment actor that corresponds to the provided
- * Debugger.Environment. This is a straightforward clone of the ThreadActor's
- * method except that it stores the environment actor in the web console
- * actor's pool.
- *
- * @param Debugger.Environment environment
- *        The lexical environment we want to extract.
- * @param TargetActor targetActor
- *        The Target Actor to use as parent actor.
- * @return The EnvironmentActor for |environment| or |undefined| for host
- *         functions or functions scoped to a non-debuggee global.
- */
-function createEnvironmentActor(environment, targetActor) {
-  if (!environment) {
-    return undefined;
-  }
-
-  if (environment.actor) {
-    return environment.actor;
-  }
-
-  const actor = new EnvironmentActor(environment, targetActor);
-  targetActor.manage(actor);
-  environment.actor = actor;
-
-  return actor;
-}
-
-/**
  * Create a grip for the given object.
  *
  * @param TargetActor targetActor
@@ -574,17 +545,15 @@ function createObjectGrip(
 ) {
   let gripDepth = depth;
   const actor = new ObjectActor(
+    targetActor.threadActor,
     object,
     {
       ...objectActorAttributes,
-      thread: targetActor.threadActor,
       getGripDepth: () => gripDepth,
       incrementGripDepth: () => gripDepth++,
       decrementGripDepth: () => gripDepth--,
       createValueGrip: v => createValueGripForTarget(targetActor, v, gripDepth),
-      createEnvironmentActor: env => createEnvironmentActor(env, targetActor),
-    },
-    targetActor.conn
+    }
   );
   pool.manage(actor);
 

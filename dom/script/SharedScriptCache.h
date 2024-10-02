@@ -7,14 +7,15 @@
 #ifndef mozilla_dom_SharedScriptCache_h
 #define mozilla_dom_SharedScriptCache_h
 
-#include "PLDHashTable.h"                 // PLDHashEntryHdr
-#include "js/loader/LoadedScript.h"       // JS::loader::LoadedScript
-#include "js/loader/ScriptKind.h"         // JS::loader::ScriptKind
-#include "js/loader/ScriptLoadRequest.h"  // JS::loader::ScriptLoadRequest
-#include "mozilla/WeakPtr.h"              // SupportsWeakPtr
-#include "mozilla/CORSMode.h"             // mozilla::CORSMode
-#include "mozilla/MemoryReporting.h"      // MallocSizeOf
-#include "mozilla/SharedSubResourceCache.h"  // SharedSubResourceCache, SharedSubResourceCacheLoadingValueBase
+#include "PLDHashTable.h"                    // PLDHashEntryHdr
+#include "js/loader/LoadedScript.h"          // JS::loader::LoadedScript
+#include "js/loader/ScriptKind.h"            // JS::loader::ScriptKind
+#include "js/loader/ScriptLoadRequest.h"     // JS::loader::ScriptLoadRequest
+#include "mozilla/RefPtr.h"                  // RefPtr
+#include "mozilla/WeakPtr.h"                 // SupportsWeakPtr
+#include "mozilla/CORSMode.h"                // mozilla::CORSMode
+#include "mozilla/MemoryReporting.h"         // MallocSizeOf
+#include "mozilla/SharedSubResourceCache.h"  // SharedSubResourceCache, SharedSubResourceCacheLoadingValueBase, SubResourceNetworkMetadataHolder
 #include "mozilla/dom/CacheExpirationTime.h"  // CacheExpirationTime
 #include "nsIMemoryReporter.h"  // nsIMemoryReporter, NS_DECL_NSIMEMORYREPORTER
 #include "nsIObserver.h"        // nsIObserver, NS_DECL_NSIOBSERVER
@@ -134,6 +135,10 @@ class ScriptLoadData final
   bool IsCancelled() const override { return false; }
   bool IsSyncLoad() const override { return true; }
 
+  SubResourceNetworkMetadataHolder* GetNetworkMetadata() const override {
+    return mNetworkMetadata.get();
+  }
+
   void StartLoading() override {}
   void SetLoadCompleted() override {}
   void OnCoalescedTo(const ScriptLoadData& aExistingLoad) override {}
@@ -158,6 +163,7 @@ class ScriptLoadData final
   ScriptLoader* mLoader;
   ScriptHashKey mKey;
   RefPtr<JS::loader::LoadedScript> mLoadedScript;
+  RefPtr<SubResourceNetworkMetadataHolder> mNetworkMetadata;
 };
 
 struct SharedScriptCacheTraits {

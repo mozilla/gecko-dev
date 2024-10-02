@@ -9,6 +9,7 @@ import io
 import json
 import os
 import sys
+import tempfile
 import time
 import traceback
 
@@ -27,6 +28,10 @@ from selenium.webdriver.support.ui import WebDriverWait
 
 class SnapTestsBase:
     def __init__(self, exp):
+        snap_profile_path = tempfile.mkdtemp(
+            prefix="snap-tests",
+            dir=os.path.expanduser("~/snap/firefox/common/.mozilla/firefox/"),
+        )
         driver_service = Service(
             executable_path=r"/snap/firefox/current/usr/lib/firefox/geckodriver",
             log_output=os.path.join(
@@ -36,13 +41,15 @@ class SnapTestsBase:
         options = Options()
         if "TEST_GECKODRIVER_TRACE" in os.environ.keys():
             options.log.level = "trace"
-        options.binary_location = r"/snap/firefox/current/usr/lib/firefox/firefox"
+        options.binary_location = r"/snap/bin/firefox"
         if not "TEST_NO_HEADLESS" in os.environ.keys():
             options.add_argument("--headless")
         if "MOZ_AUTOMATION" in os.environ.keys():
             os.environ["MOZ_LOG_FILE"] = os.path.join(
                 os.environ.get("ARTIFACT_DIR"), "gecko.log"
             )
+        options.add_argument("-profile")
+        options.add_argument(snap_profile_path)
         self._driver = webdriver.Firefox(service=driver_service, options=options)
 
         self._logger = structuredlog.StructuredLogger(self.__class__.__name__)
@@ -105,10 +112,12 @@ class SnapTestsBase:
                     test_status = "TIMEOUT"
 
                 test_message = repr(ex)
-                self.save_screenshot("screenshot_{}.png".format(test_status.lower()))
+                self.save_screenshot(
+                    "screenshot_{}_{}.png".format(m.lower(), test_status.lower())
+                )
                 self._driver.switch_to.parent_frame()
                 self.save_screenshot(
-                    "screenshot_{}_parent.png".format(test_status.lower())
+                    "screenshot_{}_{}_parent.png".format(m.lower(), test_status.lower())
                 )
                 self._logger.test_end(m, status=test_status, message=test_message)
                 traceback.print_exc()

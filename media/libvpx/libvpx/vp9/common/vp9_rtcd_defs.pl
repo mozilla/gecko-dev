@@ -18,6 +18,9 @@ print <<EOF
 #include "vp9/common/vp9_common.h"
 #include "vp9/common/vp9_enums.h"
 #include "vp9/common/vp9_filter.h"
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+#include "vp9/encoder/vp9_temporal_filter.h"
+#endif
 
 struct macroblockd;
 
@@ -115,7 +118,19 @@ if (vpx_config("CONFIG_VP9_HIGHBITDEPTH") eq "yes") {
 # Encoder functions below this point.
 #
 if (vpx_config("CONFIG_VP9_ENCODER") eq "yes") {
+if (vpx_config("CONFIG_REALTIME_ONLY") ne "yes") {
+add_proto qw/void vpx_convolve_copy_12/, "const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h";
+specialize qw/vpx_convolve_copy_12 avx2/;
 
+add_proto qw/void vpx_convolve_vert_12/, "const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h";
+specialize qw/vpx_convolve_vert_12 avx2/;
+
+add_proto qw/void vpx_convolve_horiz_12/, "const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h";
+specialize qw/vpx_convolve_horiz_12 avx2/;
+
+add_proto qw/void vpx_convolve8_12/, "const uint8_t *src, ptrdiff_t src_stride, uint8_t *dst, ptrdiff_t dst_stride, const InterpKernel12 *filter, int x0_q4, int x_step_q4, int y0_q4, int y_step_q4, int w, int h";
+specialize qw/vpx_convolve8_12 avx2/;
+}
 # ENCODEMB INVOKE
 
 #

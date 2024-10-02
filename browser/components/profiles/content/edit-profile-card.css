@@ -43,25 +43,40 @@ edit-profile-card {
   width: fit-content;
 
   &:invalid {
-    border-color: var(--button-background-color-destructive);
+    border-color: var(--outline-color-error);
   }
 }
 
-#error {
+.message-parent {
+  position: relative;
+}
+
+.message {
   display: inline-flex;
   gap: var(--space-xsmall);
   padding: var(--space-xsmall);
-  color: var(--button-background-color-destructive);
+
+  position: absolute;
+  inset-inline-start: 0;
 
   &[hidden] {
-    display: none;
+    visibility: hidden;
   }
 
-  > #error-icon {
+  > .message-icon {
     -moz-context-properties: fill, stroke;
     fill: currentColor;
     stroke: currentColor;
   }
+}
+
+#error-icon,
+#error-message {
+  color: var(--icon-color-critical);
+}
+
+#saved-icon {
+  color: var(--icon-color-success);
 }
 
 #themes {

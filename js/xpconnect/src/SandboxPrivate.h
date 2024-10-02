@@ -115,6 +115,8 @@ class SandboxPrivate final : public nsIGlobalObject,
         aTarget);
   }
 
+  bool IsXPCSandbox() override { return true; }
+
  private:
   explicit SandboxPrivate(nsIPrincipal* principal) : mPrincipal(principal) {}
 

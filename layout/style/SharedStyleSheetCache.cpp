@@ -110,9 +110,14 @@ void SharedStyleSheetCache::LoadCompletedInternal(
 
   // Go through and deal with the whole linked list.
   auto* data = &aData;
+  auto* networkMetadata = aData.GetNetworkMetadata();
   do {
     MOZ_RELEASE_ASSERT(!data->mSheetCompleteCalled);
     data->mSheetCompleteCalled = true;
+
+    if (!data->mNetworkMetadata) {
+      data->mNetworkMetadata = networkMetadata;
+    }
 
     if (!data->mSheetAlreadyComplete) {
       // If mSheetAlreadyComplete, then the sheet could well be modified between

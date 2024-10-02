@@ -436,10 +436,10 @@ def setup_perfparser():
                         "!safari-tp",
                     ],
                 },
-                "Responsiveness android-a51 geckoview": {
+                "Responsiveness android-a55 geckoview": {
                     "raptor": [
                         "'browsertime 'responsive",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'geckoview",
                         "!nofis",
                         "!live",
@@ -448,7 +448,7 @@ def setup_perfparser():
                 },
             },
             [
-                "Responsiveness android-a51 chrome-m",
+                "Responsiveness android-a55 chrome-m",
                 "Firefox Pageload android",
             ],
         ),
@@ -468,10 +468,10 @@ def setup_perfparser():
                         "!safari-tp",
                     ],
                 },
-                "Responsiveness android-a51 chrome-m": {
+                "Responsiveness android-a55 chrome-m": {
                     "raptor": [
                         "'browsertime 'responsive",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'chrome-m",
                         "!nofis",
                         "!live",
@@ -515,10 +515,10 @@ def setup_perfparser():
             {"android": True, "fenix": True},
             88,
             {
-                "Pageload android-a51": {
+                "Pageload android-a55": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "!nofis",
                         "!live",
                         "!profil",
@@ -528,10 +528,10 @@ def setup_perfparser():
                         "!safari-tp",
                     ]
                 },
-                "Pageload android-a51 fenix": {
+                "Pageload android-a55 fenix": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "!nofis",
                         "!live",
@@ -594,7 +594,7 @@ def setup_perfparser():
                 "Pageload android fenix": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "!nofis",
                         "!live",
@@ -616,7 +616,7 @@ def setup_perfparser():
                 "Benchmarks android geckoview": {
                     "raptor": [
                         "'browsertime 'benchmark",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'geckoview",
                         "!nofis",
                         "!live",
@@ -626,7 +626,7 @@ def setup_perfparser():
                 "Pageload android fenix": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "!nofis",
                         "!live",
@@ -650,19 +650,19 @@ def setup_perfparser():
             },
             32,
             {
-                "Pageload android-a51 fenix": {
+                "Pageload android-a55 fenix": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "!live",
                         "!profil",
                     ],
                 },
-                "Pageload android-a51 fenix fission": {
+                "Pageload android-a55 fenix fission": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "'nofis",
                         "!live",
@@ -672,7 +672,7 @@ def setup_perfparser():
                 "Pageload (essential) android fenix fission": {
                     "raptor": [
                         "'browsertime 'tp6 'essential",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "'nofis",
                         "!live",
@@ -696,28 +696,28 @@ def setup_perfparser():
             },
             40,
             {
-                "Pageload android-a51 fenix": {
+                "Pageload android-a55 fenix": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "!profil",
                     ],
                 },
-                "Pageload android-a51 fenix fission": {
+                "Pageload android-a55 fenix fission": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "'nofis",
                         "!live",
                         "!profil",
                     ],
                 },
-                "Pageload android-a51 fenix live-sites": {
+                "Pageload android-a55 fenix live-sites": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "'live",
                         "!nofis",
@@ -727,7 +727,7 @@ def setup_perfparser():
                 "Pageload (essential) android fenix fission": {
                     "raptor": [
                         "'browsertime 'tp6 'essential",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "'nofis",
                         "!live",
@@ -737,7 +737,7 @@ def setup_perfparser():
                 "Pageload android fenix fission+live-sites": {
                     "raptor": [
                         "'browsertime 'tp6",
-                        "'android 'a51 'shippable 'aarch64",
+                        "'android 'a55 'shippable 'aarch64",
                         "'fenix",
                         "'nofis",
                         "'live",

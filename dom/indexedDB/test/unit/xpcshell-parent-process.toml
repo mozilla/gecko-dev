@@ -48,6 +48,8 @@ skip-if = ["tsan"]
 
 ["test_connection_idle_maintenance_stop.js"]
 
+["test_databaseWorkStarted.js"]
+
 ["test_database_close_without_onclose.js"]
 
 ["test_database_onclose.js"]
@@ -92,6 +94,8 @@ skip-if = ["true"]
 ["test_schema21upgrade.js"]
 
 ["test_schema23upgrade.js"]
+
+["test_slowDatabaseInitialization.js"]
 
 ["test_slowStorageInitialization.js"]
 

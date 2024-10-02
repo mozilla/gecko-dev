@@ -133,7 +133,7 @@ tasks:
             signed-apk-debug-apk: signing-apk-focus-debug
             signed-apk-android-test: signing-apk-focus-android-test-debug
         treeherder:
-            platform: 'focus-ui-test/opt'
+            platform: 'focus-android-all/opt'
             symbol: focus-debug(ui-test-arm)
         worker:
             env:
@@ -163,7 +163,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-start-test, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'focus-ui-test/opt'
+            platform: 'focus-android-all/opt'
             symbol: focus-nightly(ui-test-arm-nightly)
         worker:
             env:
@@ -193,7 +193,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-beta, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'focus-ui-test/opt'
+            platform: 'focus-android-all/opt'
             symbol: focus-beta(ui-test-arm-beta)
         worker:
             env:
@@ -222,7 +222,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm64-v8a, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-debug(ui-test-arm)
         worker:
             env:
@@ -253,7 +253,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-screenshots-tests, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-debug(screenshots-arm)
         worker:
             env:
@@ -283,7 +283,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-beta, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-beta(ui-test-arm-beta)
         worker:
             env:
@@ -313,7 +313,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-start-test, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-nightly(ui-test-arm-nightly)
         worker:
             env:
@@ -343,7 +343,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-legacy-api-tests, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-debug(legacy-arm)
         worker:
             env:
@@ -370,7 +370,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-debug-apk/public/build/target.arm64-v8a.apk>'}, '-O', app.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-robo-test, app.apk]
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-debug(robo-arm)
         worker:
             env:
@@ -399,7 +399,7 @@ tasks:
                 - [wget, {artifact-reference: '<signed-apk-android-test/public/build/target.noarch.apk>'}, '-O', android-test.apk]
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-experimental-api-tests, app.apk, --apk_test, android-test.apk]
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-debug(experimental-arm)
         worker:
             env:
@@ -428,7 +428,7 @@ tasks:
                 - [python3, ../../../taskcluster/scripts/tests/test-lab.py, arm-smoke-tests, app.apk, --apk_test, android-test.apk]
         run-on-projects: ['autoland', 'mozilla-central']
         treeherder:
-            platform: 'fenix-ui-test/opt'
+            platform: 'fenix-android-all/opt'
             symbol: fenix-debug(smoke-arm)
             tier: 1
         worker:

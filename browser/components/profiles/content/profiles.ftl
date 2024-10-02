@@ -25,6 +25,8 @@ edit-profile-page-delete-button =
 edit-profile-page-no-name = Name this profile to help you find it later. Rename it any time.
 edit-profile-page-duplicate-name = Profile name already in use. Try a new name.
 
+edit-profile-page-profile-saved = Saved
+
 # Variables
 #   $profilename (String) - The name of the profile.
 delete-profile-page-title = Delete { $profilename } profile

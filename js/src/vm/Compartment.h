@@ -201,11 +201,7 @@ class ObjectWrapperMap {
     return size;
   }
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
-    size_t size = map.shallowSizeOfIncludingThis(mallocSizeOf);
-    for (OuterMap::Enum e(map); !e.empty(); e.popFront()) {
-      size += e.front().value().sizeOfIncludingThis(mallocSizeOf);
-    }
-    return size;
+    return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
   }
 
   bool hasNurseryAllocatedWrapperEntries(const CompartmentFilter& f) {

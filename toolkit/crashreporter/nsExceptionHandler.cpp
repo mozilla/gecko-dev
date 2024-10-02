@@ -266,26 +266,12 @@ static CrashGenerationServer* crashServer;  // chrome process has this
 static std::terminate_handler oldTerminateHandler = nullptr;
 
 #if defined(XP_WIN) || defined(XP_MACOSX)
-// If crash reporting is disabled, we hand out this "null" pipe to the
-// child process and don't attempt to connect to a parent server.
-static const char kNullNotifyPipe[] = "-";
 static char* childCrashNotifyPipe;
 
 #elif defined(XP_LINUX)
 static int serverSocketFd = -1;
 static int clientSocketFd = -1;
 
-// On Linux these file descriptors are created in the parent process and
-// remapped in the child ones. See PosixProcessLauncher::DoSetup() for more
-// details.
-static FileHandle gMagicChildCrashReportFd =
-#  if defined(MOZ_WIDGET_ANDROID)
-    // On android the fd is set at the time of child creation.
-    kInvalidFileHandle
-#  else
-    4
-#  endif  // defined(MOZ_WIDGET_ANDROID)
-    ;
 #endif
 
 // |dumpMapLock| must protect all access to |pidToMinidump|.
@@ -3500,38 +3486,22 @@ static void OOPDeinit() {
 #endif
 }
 
-#if defined(XP_WIN) || defined(XP_MACOSX)
 // Parent-side API for children
-const char* GetChildNotificationPipe() {
-  if (!GetEnabled()) return kNullNotifyPipe;
-
-  MOZ_ASSERT(OOPInitialized());
-
-  return childCrashNotifyPipe;
-}
-#endif
-
-#if defined(XP_LINUX)
-
-// Parent-side API for children
-bool CreateNotificationPipeForChild(int* childCrashFd, int* childCrashRemapFd) {
+CrashPipeType GetChildNotificationPipe() {
   if (!GetEnabled()) {
-    *childCrashFd = -1;
-    *childCrashRemapFd = -1;
-    return true;
+    return nullptr;
   }
 
   MOZ_ASSERT(OOPInitialized());
 
-  *childCrashFd = clientSocketFd;
-  *childCrashRemapFd = gMagicChildCrashReportFd;
-
-  return true;
+#if defined(XP_WIN) || defined(XP_MACOSX)
+  return childCrashNotifyPipe;
+#elif defined(XP_LINUX)
+  return DuplicateFileHandle(clientSocketFd);
+#endif
 }
 
-#endif  // defined(XP_LINUX)
-
-bool SetRemoteExceptionHandler(const char* aCrashPipe) {
+bool SetRemoteExceptionHandler(CrashPipeType aCrashPipe) {
   MOZ_ASSERT(!gExceptionHandler, "crash client already init'd");
   RegisterRuntimeExceptionModule();
   InitializeAppNotes();
@@ -3567,7 +3537,7 @@ bool SetRemoteExceptionHandler(const char* aCrashPipe) {
       path, ChildFilter, ChildMinidumpCallback,
       nullptr,  // no callback context
       true,     // install signal handlers
-      gMagicChildCrashReportFd);
+      aCrashPipe.release());
 #elif defined(XP_MACOSX)
   gExceptionHandler = new google_breakpad::ExceptionHandler(
       "", ChildFilter, ChildMinidumpCallback,
@@ -3898,11 +3868,5 @@ bool UnsetRemoteExceptionHandler(bool wasSet) {
 
   return true;
 }
-
-#if defined(MOZ_WIDGET_ANDROID)
-void SetNotificationPipeForChild(int childCrashFd) {
-  gMagicChildCrashReportFd = childCrashFd;
-}
-#endif
 
 }  // namespace CrashReporter

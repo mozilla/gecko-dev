@@ -411,17 +411,17 @@ export class UrlbarInput {
     ) {
       this._updateSearchModeUI(this.searchMode);
     }
+    let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
     if (!this.window.gBrowser.userTypedValue) {
-      this.window.gBrowser.selectedBrowser.searchTerms = "";
+      state.searchTerms = "";
       if (
         !hideSearchTerms &&
         lazy.UrlbarPrefs.isPersistedSearchTermsEnabled()
       ) {
-        this.window.gBrowser.selectedBrowser.searchTerms =
-          lazy.UrlbarSearchTermsPersistence.getSearchTerm(
-            this.window.gBrowser.selectedBrowser.originalURI,
-            uri
-          );
+        state.searchTerms = lazy.UrlbarSearchTermsPersistence.getSearchTerm(
+          this.window.gBrowser.selectedBrowser.originalURI,
+          uri
+        );
       }
     }
 
@@ -441,10 +441,10 @@ export class UrlbarInput {
     if (
       value === null ||
       (!value && dueToTabSwitch) ||
-      (value && value === this.window.gBrowser.selectedBrowser.searchTerms)
+      (value && value === state.searchTerms)
     ) {
-      if (this.window.gBrowser.selectedBrowser.searchTerms) {
-        value = this.window.gBrowser.selectedBrowser.searchTerms;
+      if (state.searchTerms) {
+        value = state.searchTerms;
         showPersistedState = true;
         if (!isSameDocument) {
           Services.telemetry.scalarAdd(
@@ -559,11 +559,7 @@ export class UrlbarInput {
     // page loads. If we're switching tabs, restore the tab's search mode.
     // Otherwise, if the URI is valid, exit search mode.  This must happen
     // after setting proxystate above because search mode depends on it.
-    if (
-      this.window.gBrowser.selectedBrowser.searchTerms &&
-      !isSameDocument &&
-      !dueToTabSwitch
-    ) {
+    if (state.searchTerms && !isSameDocument && !dueToTabSwitch) {
       let result = this.#searchModeForUrl(uri?.spec);
       if (result && this.searchMode?.name != result.engineName) {
         if (result.isDefaultEngine) {
@@ -910,10 +906,8 @@ export class UrlbarInput {
   }
 
   maybeHandleRevertFromPopup(anchorElement) {
-    if (
-      anchorElement?.closest("#urlbar") &&
-      this.window.gBrowser.selectedBrowser.searchTerms
-    ) {
+    let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
+    if (anchorElement?.closest("#urlbar") && state.searchTerms) {
       this.handleRevert();
       Services.telemetry.scalarAdd(
         "urlbar.persistedsearchterms.revert_by_popup_count",
@@ -2281,7 +2275,8 @@ export class UrlbarInput {
       return "urlbar-searchmode";
     }
 
-    if (this.window.gBrowser.selectedBrowser.searchTerms && !isOneOff) {
+    let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
+    if (state.searchTerms && !isOneOff) {
       return "urlbar-persisted";
     }
 
@@ -3749,10 +3744,8 @@ export class UrlbarInput {
     this._isHandoffSession = false;
     this.removeAttribute("focused");
 
-    if (
-      this._revertOnBlurValue == this.value &&
-      !this.window.gBrowser.selectedBrowser.searchTerms
-    ) {
+    let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
+    if (this._revertOnBlurValue == this.value && !state.searchTerms) {
       this.handleRevert();
     } else if (
       this._autofillPlaceholder &&
@@ -3791,26 +3784,6 @@ export class UrlbarInput {
     // the browser toolbox.
     if (!lazy.UrlbarPrefs.get("ui.popup.disable_autohide")) {
       this.view.close();
-    }
-
-    // Restore the persisted search terms state
-    if (this.window.gBrowser.selectedBrowser.searchTerms) {
-      let result = this.#searchModeForUrl(this.window.gBrowser.currentURI.spec);
-      if (result) {
-        let userTypedValue = this.window.gBrowser.userTypedValue;
-        let searchTerms = this.window.gBrowser.selectedBrowser.searchTerms;
-        // Only restore the persisted state if the values of searchTerms and
-        // userTypedValue match the same values they would be if a user didn't
-        // modify the values in the address following an initial page load.
-        if (
-          (result.isDefaultEngine && userTypedValue == null) ||
-          (!result.isDefaultEngine &&
-            searchTerms === userTypedValue &&
-            this.searchMode?.engineName === result.engineName)
-        ) {
-          this.toggleAttribute("persistsearchterms", true);
-        }
-      }
     }
 
     // We may have hidden popup notifications, show them again if necessary.
@@ -4067,8 +4040,9 @@ export class UrlbarInput {
       this.setPageProxyState("invalid", true);
     }
 
+    let state = this.getBrowserState(this.window.gBrowser.selectedBrowser);
     if (
-      this.window.gBrowser.selectedBrowser.searchTerms &&
+      state.searchTerms &&
       this.value != this.window.gBrowser.selectedBrowser.searchTerms
     ) {
       this.removeAttribute("persistsearchterms");

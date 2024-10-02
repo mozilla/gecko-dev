@@ -113,6 +113,17 @@ nsresult GetFramesInfoForContainer(imgIContainer* aContainer,
   return NS_OK;
 }
 
+static constexpr nsLiteralCString supportedProtocols[] = {
+    "http"_ns, "https"_ns, "file"_ns, "about"_ns};
+
+bool canStoreIconForPage(nsIURI* aPageURI) {
+  nsAutoCString pageURIScheme;
+  return (NS_SUCCEEDED(aPageURI->GetScheme(pageURIScheme)) &&
+          std::find(std::begin(supportedProtocols),
+                    std::end(supportedProtocols),
+                    pageURIScheme) != std::end(supportedProtocols));
+}
+
 }  // namespace
 
 PLACES_FACTORY_SINGLETON_IMPLEMENTATION(nsFaviconService, gFaviconService)
@@ -226,6 +237,8 @@ nsFaviconService::SetFaviconForPage(
   if (!aDataURL->SchemeIs("data")) {
     return NS_ERROR_INVALID_ARG;
   }
+
+  NS_ENSURE_ARG(canStoreIconForPage(aPageURI));
 
   if (AppShutdown::IsInOrBeyond(ShutdownPhase::AppShutdownConfirmed)) {
     return NS_OK;
@@ -572,6 +585,8 @@ nsFaviconService::CopyFavicons(nsIURI* aFromPageURI, nsIURI* aToPageURI,
   PageData toPage;
   rv = toPageURI->GetSpec(toPage.spec);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ENSURE_ARG(canStoreIconForPage(aToPageURI));
 
   bool canAddToHistory;
   nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
