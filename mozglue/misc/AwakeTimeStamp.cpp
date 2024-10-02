@@ -31,9 +31,24 @@ double AwakeTimeDuration::ToMicroseconds() const {
   return static_cast<double>(mValueUs);
 }
 
+AwakeTimeDuration AwakeTimeDuration::FromSeconds(uint64_t aSeconds) {
+  return AwakeTimeDuration(aSeconds * 1000000);
+}
+AwakeTimeDuration AwakeTimeDuration::FromMilliseconds(uint64_t aMilliseconds) {
+  return AwakeTimeDuration(aMilliseconds * 1000);
+}
+AwakeTimeDuration AwakeTimeDuration::FromMicroseconds(uint64_t aMicroseconds) {
+  return AwakeTimeDuration(aMicroseconds);
+}
+
 AwakeTimeDuration AwakeTimeStamp::operator-(
     AwakeTimeStamp const& aOther) const {
   return AwakeTimeDuration(mValueUs - aOther.mValueUs);
+}
+
+AwakeTimeStamp AwakeTimeStamp::operator-(
+    AwakeTimeDuration const& aOther) const {
+  return AwakeTimeStamp(mValueUs - aOther.mValueUs);
 }
 
 AwakeTimeStamp AwakeTimeStamp::operator+(

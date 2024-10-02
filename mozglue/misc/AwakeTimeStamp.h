@@ -53,6 +53,7 @@ class AwakeTimeStamp {
     return !(*this == aOther);
   }
   MFBT_API AwakeTimeDuration operator-(AwakeTimeStamp const& aOther) const;
+  MFBT_API AwakeTimeStamp operator-(AwakeTimeDuration const& aOther) const;
   MFBT_API AwakeTimeStamp operator+(const AwakeTimeDuration& aDuration) const;
 
  private:
@@ -74,6 +75,9 @@ class AwakeTimeDuration {
   MFBT_API double ToSeconds() const;
   MFBT_API double ToMilliseconds() const;
   MFBT_API double ToMicroseconds() const;
+  static MFBT_API AwakeTimeDuration FromSeconds(uint64_t aSeconds);
+  static MFBT_API AwakeTimeDuration FromMilliseconds(uint64_t aMilliseconds);
+  static MFBT_API AwakeTimeDuration FromMicroseconds(uint64_t aMicroseconds);
   MFBT_API void operator+=(const AwakeTimeDuration& aDuration) {
     mValueUs += aDuration.mValueUs;
   }
