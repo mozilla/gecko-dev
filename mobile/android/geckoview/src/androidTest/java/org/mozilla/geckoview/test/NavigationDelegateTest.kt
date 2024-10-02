@@ -2589,6 +2589,7 @@ class NavigationDelegateTest : BaseSessionTest() {
 
         sessionRule.delegateUntilTestEnd(object : WebExtensionController.PromptDelegate {
             @AssertCalled
+            @Deprecated("Update to the new API when addressing https://bugzilla.mozilla.org/show_bug.cgi?id=1919374")
             override fun onInstallPrompt(
                 extension: WebExtension,
                 permissions: Array<String>,
