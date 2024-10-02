@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-02T15:56:06.539887+00:00'
+updated_at: '2024-10-02T16:01:22.525107+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -4338,8 +4338,13 @@ modules:
           - toolkit/components/reportbrokensite
           - https://github.com/mozilla-extensions/webcompat-addon
         meta:
+          url: https://wiki.mozilla.org/Compatibility/System_Addon
+          group: compatibility
           peers_emeritus:
             - Mike Taylor
+          components:
+            - Web Compatibility::Interventions
+            - Web Compatibility::Tooling & Investigations
         owners:
           - *denschub
           - *twisniewski
@@ -4434,5 +4439,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 79f14cc4164fc65d8dc5b2a306c189c32c4e70b3
-  export: 9fbd0d53bdcea831091c33f7b4b5a818acd5eade
+  config: d230aac53a99098a219aff7776a1eb269ff6fa26
+  export: 8879d093cdfcf74d478a2af9a135791b625ca5fd
