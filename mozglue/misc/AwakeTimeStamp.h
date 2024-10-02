@@ -30,6 +30,7 @@ class AwakeTimeDuration;
 // methods are equivalent on non-Windows.
 class AwakeTimeStamp {
  public:
+  using DurationType = AwakeTimeDuration;
   MFBT_API static AwakeTimeStamp NowLoRes();
   MFBT_API static AwakeTimeStamp Now();
   MFBT_API void operator+=(const AwakeTimeDuration& aOther);
