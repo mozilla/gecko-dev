@@ -954,11 +954,10 @@ struct sRGBColor {
 /* Color is stored in non-premultiplied form in device color space */
 struct DeviceColor {
  public:
-  constexpr DeviceColor() : r(0.0f), g(0.0f), b(0.0f), a(0.0f) {}
-  constexpr DeviceColor(Float aR, Float aG, Float aB, Float aA)
+  DeviceColor() : r(0.0f), g(0.0f), b(0.0f), a(0.0f) {}
+  DeviceColor(Float aR, Float aG, Float aB, Float aA)
       : r(aR), g(aG), b(aB), a(aA) {}
-  constexpr DeviceColor(Float aR, Float aG, Float aB)
-      : r(aR), g(aG), b(aB), a(1.0f) {}
+  DeviceColor(Float aR, Float aG, Float aB) : r(aR), g(aG), b(aB), a(1.0f) {}
 
   /* The following Mask* variants are helpers used to make it clear when a
    * particular color is being used for masking purposes. These masks should
