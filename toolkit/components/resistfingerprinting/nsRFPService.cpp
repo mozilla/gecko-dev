@@ -1367,9 +1367,6 @@ Maybe<nsTArray<uint8_t>> nsRFPService::GenerateKeyForServiceWorker(
   OriginAttributes attrs = aPrincipal->OriginAttributesRef();
   attrs.SetPartitionKey(aFirstPartyURI, aForeignByAncestorContext);
 
-  nsAutoCString oaSuffix;
-  attrs.CreateSuffix(oaSuffix);
-
   nsID sessionKey = {};
   if (NS_FAILED(service->GetBrowsingSessionKey(attrs, sessionKey))) {
     return Nothing();
