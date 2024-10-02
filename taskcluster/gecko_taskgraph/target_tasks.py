@@ -338,6 +338,63 @@ def _try_task_config(full_task_graph, parameters, graph_config):
                 [x for x in full_task_graph.graph.nodes if "source-test-python" in x]
             )
 
+            # add perf tests: talos xperf/other/webgl, perftest-*, browsertime: amazon, sp3, rdt-post-*, ytp-widevine-*
+            matched_tasks.extend(
+                [
+                    x
+                    for x in full_task_graph.graph.nodes
+                    if ("talos-xperf" in x or "talos-other" in x or "talos-webgl" in x)
+                    and ("swr" not in x and "profiling" not in x)
+                ]
+            )
+
+            matched_tasks.extend(
+                [
+                    x
+                    for x in full_task_graph.graph.nodes
+                    if "perftest-" in x
+                    and ("service-worker" in x or "startup-geckoview" in x)
+                ]
+            )
+
+            matched_tasks.extend(
+                [
+                    x
+                    for x in full_task_graph.graph.nodes
+                    if "browsertime-" in x
+                    and "firefox" in x
+                    and "nightlyasrelease" not in x
+                    and (
+                        "amazon" in x
+                        or "billgates-ama" in x
+                        or "playback-widevine-" in x
+                    )
+                    and (
+                        "bytecode" not in x
+                        and "profiling" not in x
+                        and "live" not in x
+                        and "webextensions" not in x
+                    )
+                ]
+            )
+
+            matched_tasks.extend(
+                [
+                    x
+                    for x in full_task_graph.graph.nodes
+                    if "browsertime-" in x
+                    and "speedometer3" in x
+                    and "nightlyasrelease" not in x
+                    and (
+                        "firefox" in x
+                        or "safari" in x
+                        or "chrome" in x
+                        or "custom-car" in x
+                    )
+                    and ("bytecode" not in x and "profiling" not in x)
+                ]
+            )
+
     selected_tasks = set(tasks) | set(matched_tasks)
     missing.update(selected_tasks - set(full_task_graph.tasks))
 
