@@ -4316,7 +4316,7 @@
 
 # Is support for Storage test APIs enabled?
 - name: dom.storage.testing
-  type: bool
+  type: SequentiallyConsistentAtomicBool
   value: false
   mirror: always
 
