@@ -264,7 +264,6 @@ class SearchUtils {
     } else if (searchMode.source) {
       scalarKey =
         lazy.UrlbarUtils.getResultSourceName(searchMode.source) || "other";
-      scalarKey += searchMode.restrictType ? `_${searchMode.restrictType}` : "";
     }
 
     return scalarKey;
