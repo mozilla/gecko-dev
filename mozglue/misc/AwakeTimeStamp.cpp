@@ -93,8 +93,7 @@ AwakeTimeStamp AwakeTimeStamp::NowLoRes() {
 
 AwakeTimeStamp AwakeTimeStamp::Now() {
   ULONGLONG interrupt_time;
-  DebugOnly<bool> rv = QueryUnbiasedInterruptTimePrecise(&interrupt_time);
-  MOZ_ASSERT(rv);
+  QueryUnbiasedInterruptTimePrecise(&interrupt_time);
 
   return AwakeTimeStamp(interrupt_time / kHNSperUS);
 }
