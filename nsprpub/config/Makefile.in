@@ -28,14 +28,10 @@ include $(topsrcdir)/config/config.mk
 
 CSRCS	= now.c
 
-# This version hasn't been ported for us; the one in mozilla/config has
-ifneq ($(OS_ARCH),OS2)
 CSRCS  += nsinstall.c
- 
 PLSRCS	= nfspwd.pl
-endif
 
-ifeq (,$(CROSS_COMPILE)$(filter-out WINNT OS2,$(OS_ARCH)))
+ifeq (,$(CROSS_COMPILE)$(filter-out WINNT,$(OS_ARCH)))
 PROG_SUFFIX = .exe
 else
 PROG_SUFFIX =
@@ -44,7 +40,7 @@ endif
 # Temporary workaround to disable the generation of
 # library build time because now.c uses the 'long long'
 # data type that's not available on some platforms.
-ifeq (,$(filter-out QNX SCOOS UNIXWARE,$(OS_ARCH)))
+ifeq (,$(filter-out QNX,$(OS_ARCH)))
 DEFINES += -DOMIT_LIB_BUILD_TIME
 endif
 
@@ -54,15 +50,11 @@ ifeq ($(OS_ARCH), HP-UX)
     endif
 endif
 
-ifeq ($(OS_ARCH), OS2)
-XCFLAGS = $(OS_CFLAGS)
-endif
-
 include $(topsrcdir)/config/rules.mk
 
 PROGS	= $(OBJDIR)/now$(PROG_SUFFIX)
 
-ifeq (,$(CROSS_COMPILE)$(filter-out OS2 WINNT,$(OS_ARCH)))
+ifeq (,$(CROSS_COMPILE)$(filter-out WINNT,$(OS_ARCH)))
 TARGETS = $(PROGS)
 else
 ifeq (,$(filter-out WINCE,$(OS_ARCH)))

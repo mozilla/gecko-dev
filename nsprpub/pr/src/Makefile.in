@@ -95,13 +95,6 @@ endif
 endif
 endif
 
-ifeq ($(OS_ARCH),OS2)
-MAPFILE = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).def
-ADD_TO_DEF_FILE = cat $(srcdir)/os2extra.def >> $(MAPFILE)
-GARBAGE += $(MAPFILE)
-MKSHLIB += $(MAPFILE)
-endif
-
 # Linux, GNU/Hurd, and GNU/kFreeBSD systems
 ifneq (,$(filter Linux GNU%,$(OS_ARCH)))
 ifeq ($(USE_PTHREADS), 1)
@@ -137,10 +130,6 @@ ifndef USE_64
 DSO_LDOPTS	+= +I PR_HPUX10xInit
 endif
 endif
-endif
-
-ifeq ($(OS_ARCH),UNIXWARE)
-OS_LIBS		= -lsocket -lc
 endif
 
 ifeq ($(OS_ARCH),WINNT)
@@ -284,11 +273,7 @@ ECHO = echo
 INCLUDES = -I$(dist_includedir) -I$(topsrcdir)/pr/include -I$(topsrcdir)/pr/include/private
 TINC = $(OBJDIR)/_pr_bld.h
 
-ifeq ($(OS_TARGET),OS2)
-PROD = nspr$(MOD_MAJOR_VERSION).$(DLL_SUFFIX)
-else
 PROD = $(notdir $(SHARED_LIBRARY))
-endif
 
 NOW = $(MOD_DEPTH)/config/$(OBJDIR)/now
 SH_DATE = $(shell date "+%Y-%m-%d %T")

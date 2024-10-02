@@ -151,6 +151,7 @@ CSRCS =             \
 	sockpong.c		\
 	sprintf.c		\
 	stack.c		    \
+	stat.c		    \
 	stdio.c		    \
 	str2addr.c		\
 	strod.c			\
@@ -183,15 +184,7 @@ CFLAGS += -FImozce_shunt.h -Zi -UDEBUG -DNDEBUG
 LDOPTS += -link $(DIST)/lib/mozce_shunt.lib ws2.lib -DEBUG -DEBUGTYPE:CV -INCREMENTAL:NO -PDB:$(@:.exe=.pdb)
 endif
 
-ifeq ($(OS_TARGET),OS2)
-CSRCS +=            \
-	sleep.c			\
-	stat.c		    \
-	yield.c         \
-	$(NULL)
-endif
-
-ifeq (,$(filter-out WINCE WINNT OS2,$(OS_ARCH)))
+ifeq (,$(filter-out WINCE WINNT,$(OS_ARCH)))
 PROG_SUFFIX = .exe
 DLL_SUFFIX = .dll
 else
@@ -216,11 +209,6 @@ else
     LDOPTS += -PROFILE -MAP
   endif # profile
 endif # NS_USE_GCC
-endif
-
-ifeq ($(OS_ARCH),OS2)
-EXTRA_LIBS = $(OS_LIBS)
-LDOPTS = -Zomf -Zlinker /PM:VIO -Zlinker /ST:0x64000
 endif
 
 ifneq ($(OS_ARCH), WINNT)
@@ -293,10 +281,6 @@ export LD_RUN_PATH = $(ABSOLUTE_LIB_DIR)
 ifeq ($(USE_PTHREADS),1)
 LDOPTS += -pthread
 endif
-endif
-
-ifeq ($(OS_ARCH), UNIXWARE)
-export LD_RUN_PATH = $(ABSOLUTE_LIB_DIR)
 endif
 
 ifeq ($(OS_ARCH),FreeBSD)
@@ -392,7 +376,7 @@ endif # AIX_PRE_4_2
 
 export:: $(TARGETS)
 clean::
-	rm -f $(TARGETS)
+	rm -f $(TARGETS) runtests
 
 # The following tests call BSD socket functions, so they need to link
 # with -lsocket on some platforms.
@@ -429,7 +413,7 @@ PROGRAMS = $(notdir $(PROGS))
 ifdef NSPR_TEST_LOGFILE
 LOGFILE = $(NSPR_TEST_LOGFILE)
 else
-ifeq (,$(filter-out WINNT OS2,$(OS_ARCH)))
+ifeq (,$(filter-out WINNT,$(OS_ARCH)))
 LOGFILE = nul
 else
 LOGFILE = /dev/null

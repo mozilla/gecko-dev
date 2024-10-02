@@ -16,36 +16,34 @@
 #ifdef NO_NSPR_10_SUPPORT
 
 /* nothing to do */
-int main(int argc, char **argv)
-{
-    printf("PASS\n");
-    return 0;
+int main(int argc, char** argv) {
+  printf("PASS\n");
+  return 0;
 }
 
 #else /* NO_NSPR_10_SUPPORT */
 
-#include "prtypes.h"  /* which includes protypes.h */
+#  include "prtypes.h" /* which includes protypes.h */
 
-int main(int argc, char **argv)
-{
-    /*
-     * Compilation fails if any of these integer types are not
-     * defined by protypes.h.
-     */
-    intn in;
-    uintn uin;
-    uint ui;
-    int8 i8;
-    uint8 ui8;
-    int16 i16;
-    uint16 ui16;
-    int32 i32;
-    uint32 ui32;
-    int64 i64;
-    uint64 ui64;
+int main(int argc, char** argv) {
+  /*
+   * Compilation fails if any of these integer types are not
+   * defined by protypes.h.
+   */
+  intn in;
+  uintn uin;
+  uint ui;
+  int8 i8;
+  uint8 ui8;
+  int16 i16;
+  uint16 ui16;
+  int32 i32;
+  uint32 ui32;
+  int64 i64;
+  uint64 ui64;
 
-    printf("PASS\n");
-    return 0;
+  printf("PASS\n");
+  return 0;
 }
 
 #endif /* NO_NSPR_10_SUPPORT */

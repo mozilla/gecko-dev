@@ -73,7 +73,7 @@ ifeq ($(OS_ARCH),Darwin)
 PWD := $(shell pwd)
 endif
 
-ifeq (,$(CROSS_COMPILE)$(filter-out WINNT OS2, $(OS_ARCH)))
+ifeq (,$(CROSS_COMPILE)$(filter-out WINNT, $(OS_ARCH)))
 INSTALL		= $(NSINSTALL)
 else
 ifeq ($(NSDISTMODE),copy)
@@ -92,7 +92,7 @@ else
 INSTALL		= $(NSINSTALL) -R
 endif
 endif
-endif # (WINNT || OS2) && !CROSS_COMPILE
+endif # (WINNT) && !CROSS_COMPILE
 
 DEPENDENCIES	= $(OBJDIR)/.md
 

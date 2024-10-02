@@ -3,19 +3,19 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef prwin16_h___
-#define prwin16_h___
+#ifndef prwin_h___
+#define prwin_h___
 
 /*
 ** Condition use of this header on platform.
 */
-#if (defined(XP_PC) && !defined(_WIN32) && !defined(XP_OS2) && defined(MOZILLA_CLIENT)) || defined(WIN16)
+#if (defined(XP_PC) && !defined(_WIN32) && defined(MOZILLA_CLIENT))
 #include <stdio.h>
 
 PR_BEGIN_EXTERN_C
 /*
-** Win16 stdio special case.
-** To get stdio to work for Win16, all calls to printf() and related
+** Windows stdio special case.
+** To get stdio to work for Windows, all calls to printf() and related
 ** things must be called from the environment of the .EXE; calls to
 ** printf() from the .DLL send output to the bit-bucket.
 **
@@ -151,9 +151,9 @@ PR_END_EXTERN_C
 ** PR_STDIO_INIT() as a No-Op.
 */
 #define PR_STDIO_INIT()
-#endif /* WIN16 || MOZILLA_CLIENT */
+#endif /* MOZILLA_CLIENT */
 
-#endif /* prwin16_h___ */
+#endif /* prwin_h___ */
 
 
 

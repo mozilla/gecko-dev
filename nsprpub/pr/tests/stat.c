@@ -15,73 +15,64 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#ifdef XP_OS2
-#include <io.h>
-#include <sys/types.h>
 #include <sys/stat.h>
-#endif
 
 #define DEFAULT_COUNT 100000
 PRInt32 count;
 
 #ifndef XP_PC
-char *filename = "/etc/passwd";
+char* filename = "/etc/passwd";
 #else
-char *filename = "..\\stat.c";
+char* filename = "..\\stat.c";
 #endif
 
-static void statPRStat(void)
-{
-    PRFileInfo finfo;
-    PRInt32 index = count;
+static void statPRStat(void) {
+  PRFileInfo finfo;
+  PRInt32 index = count;
 
-    for (; index--;) {
-        PR_GetFileInfo(filename, &finfo);
-    }
+  for (; index--;) {
+    PR_GetFileInfo(filename, &finfo);
+  }
 }
 
-static void statStat(void)
-{
-    struct stat finfo;
-    PRInt32 index = count;
+static void statStat(void) {
+  struct stat finfo;
+  PRInt32 index = count;
 
-    for (; index--;) {
-        stat(filename, &finfo);
-    }
+  for (; index--;) {
+    stat(filename, &finfo);
+  }
 }
 
 /************************************************************************/
 
-static void Measure(void (*func)(void), const char *msg)
-{
-    PRIntervalTime start, stop;
-    double d;
-    PRInt32 tot;
+static void Measure(void (*func)(void), const char* msg) {
+  PRIntervalTime start, stop;
+  double d;
+  PRInt32 tot;
 
-    start = PR_IntervalNow();
-    (*func)();
-    stop = PR_IntervalNow();
+  start = PR_IntervalNow();
+  (*func)();
+  stop = PR_IntervalNow();
 
-    d = (double)PR_IntervalToMicroseconds(stop - start);
-    tot = PR_IntervalToMilliseconds(stop-start);
+  d = (double)PR_IntervalToMicroseconds(stop - start);
+  tot = PR_IntervalToMilliseconds(stop - start);
 
-    printf("%40s: %6.2f usec avg, %d msec total\n", msg, d / count, tot);
+  printf("%40s: %6.2f usec avg, %d msec total\n", msg, d / count, tot);
 }
 
-int main(int argc, char **argv)
-{
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-    PR_STDIO_INIT();
+int main(int argc, char** argv) {
+  PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+  PR_STDIO_INIT();
 
-    if (argc > 1) {
-        count = atoi(argv[1]);
-    } else {
-        count = DEFAULT_COUNT;
-    }
+  if (argc > 1) {
+    count = atoi(argv[1]);
+  } else {
+    count = DEFAULT_COUNT;
+  }
 
-    Measure(statPRStat, "time to call PR_GetFileInfo()");
-    Measure(statStat, "time to call stat()");
+  Measure(statPRStat, "time to call PR_GetFileInfo()");
+  Measure(statStat, "time to call stat()");
 
-    PR_Cleanup();
+  PR_Cleanup();
 }

@@ -6,36 +6,35 @@
 #include <stdio.h>
 #include <time.h>
 
-int main(int argc, char **argv)
-{
+int main(int argc, char** argv) {
 #if defined(OMIT_LIB_BUILD_TIME)
-    /*
-     * Some platforms don't have any 64-bit integer type
-     * such as 'long long'.  Because we can't use NSPR's
-     * PR_snprintf in this program, it is difficult to
-     * print a static initializer for PRInt64 (a struct).
-     * So we print nothing.  The makefiles that build the
-     * shared libraries will detect the empty output string
-     * of this program and omit the library build time
-     * in PRVersionDescription.
-     */
+  /*
+   * Some platforms don't have any 64-bit integer type
+   * such as 'long long'.  Because we can't use NSPR's
+   * PR_snprintf in this program, it is difficult to
+   * print a static initializer for PRInt64 (a struct).
+   * So we print nothing.  The makefiles that build the
+   * shared libraries will detect the empty output string
+   * of this program and omit the library build time
+   * in PRVersionDescription.
+   */
 #elif defined(_MSC_VER)
-    __int64 now;
-    time_t sec;
+  __int64 now;
+  time_t sec;
 
-    sec = time(NULL);
-    now = (1000000i64) * sec;
-    fprintf(stdout, "%I64d", now);
+  sec = time(NULL);
+  now = (1000000i64) * sec;
+  fprintf(stdout, "%I64d", now);
 #else
-    long long now;
-    time_t sec;
+  long long now;
+  time_t sec;
 
-    sec = time(NULL);
-    now = (1000000LL) * sec;
-    fprintf(stdout, "%lld", now);
+  sec = time(NULL);
+  now = (1000000LL) * sec;
+  fprintf(stdout, "%lld", now);
 #endif
 
-    return 0;
-}  /* main */
+  return 0;
+} /* main */
 
 /* now.c */

@@ -26,52 +26,44 @@
 PRLock *lock1, *lock2;
 PRCondVar *cv1, *cv2;
 
-void ThreadFunc(void *arg)
-{
-    PR_Lock(lock1);
-    PR_WaitCondVar(cv1, PR_MillisecondsToInterval(SHORT_TIMEOUT));
-    PR_Unlock(lock1);
+void ThreadFunc(void* arg) {
+  PR_Lock(lock1);
+  PR_WaitCondVar(cv1, PR_MillisecondsToInterval(SHORT_TIMEOUT));
+  PR_Unlock(lock1);
 }
 
-int main(int argc, char **argv)
-{
-    PRThread *thread;
-    PRIntervalTime start, end;
-    PRUint32 elapsed_ms;
+int main(int argc, char** argv) {
+  PRThread* thread;
+  PRIntervalTime start, end;
+  PRUint32 elapsed_ms;
 
-    lock1 = PR_NewLock();
-    PR_ASSERT(NULL != lock1);
-    cv1 = PR_NewCondVar(lock1);
-    PR_ASSERT(NULL != cv1);
-    lock2 = PR_NewLock();
-    PR_ASSERT(NULL != lock2);
-    cv2 = PR_NewCondVar(lock2);
-    PR_ASSERT(NULL != cv2);
-    start = PR_IntervalNow();
-    thread = PR_CreateThread(
-                 PR_USER_THREAD,
-                 ThreadFunc,
-                 NULL,
-                 PR_PRIORITY_NORMAL,
-                 PR_LOCAL_THREAD,
-                 PR_JOINABLE_THREAD,
-                 0);
-    PR_ASSERT(NULL != thread);
-    PR_Lock(lock2);
-    PR_WaitCondVar(cv2, PR_MillisecondsToInterval(LONG_TIMEOUT));
-    PR_Unlock(lock2);
-    PR_JoinThread(thread);
-    end = PR_IntervalNow();
-    elapsed_ms = PR_IntervalToMilliseconds((PRIntervalTime)(end - start));
-    /* Allow 100ms imprecision */
-    if (elapsed_ms < LONG_TIMEOUT - 100 || elapsed_ms > LONG_TIMEOUT + 100) {
-        printf("Elapsed time should be %u ms but is %u ms\n",
-               LONG_TIMEOUT, elapsed_ms);
-        printf("FAIL\n");
-        exit(1);
-    }
-    printf("Elapsed time: %u ms, expected time: %u ms\n",
-           LONG_TIMEOUT, elapsed_ms);
-    printf("PASS\n");
-    return 0;
+  lock1 = PR_NewLock();
+  PR_ASSERT(NULL != lock1);
+  cv1 = PR_NewCondVar(lock1);
+  PR_ASSERT(NULL != cv1);
+  lock2 = PR_NewLock();
+  PR_ASSERT(NULL != lock2);
+  cv2 = PR_NewCondVar(lock2);
+  PR_ASSERT(NULL != cv2);
+  start = PR_IntervalNow();
+  thread = PR_CreateThread(PR_USER_THREAD, ThreadFunc, NULL, PR_PRIORITY_NORMAL,
+                           PR_LOCAL_THREAD, PR_JOINABLE_THREAD, 0);
+  PR_ASSERT(NULL != thread);
+  PR_Lock(lock2);
+  PR_WaitCondVar(cv2, PR_MillisecondsToInterval(LONG_TIMEOUT));
+  PR_Unlock(lock2);
+  PR_JoinThread(thread);
+  end = PR_IntervalNow();
+  elapsed_ms = PR_IntervalToMilliseconds((PRIntervalTime)(end - start));
+  /* Allow 100ms imprecision */
+  if (elapsed_ms < LONG_TIMEOUT - 100 || elapsed_ms > LONG_TIMEOUT + 100) {
+    printf("Elapsed time should be %u ms but is %u ms\n", LONG_TIMEOUT,
+           elapsed_ms);
+    printf("FAIL\n");
+    exit(1);
+  }
+  printf("Elapsed time: %u ms, expected time: %u ms\n", LONG_TIMEOUT,
+         elapsed_ms);
+  printf("PASS\n");
+  return 0;
 }

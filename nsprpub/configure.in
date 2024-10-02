@@ -1,5 +1,5 @@
 dnl -*- Mode: Autoconf; tab-width: 4; indent-tabs-mode: nil; -*-
-dnl 
+dnl
 dnl This Source Code Form is subject to the terms of the Mozilla Public
 dnl License, v. 2.0. If a copy of the MPL was not distributed with this
 dnl file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -15,7 +15,7 @@ dnl ========================================================
 dnl = Defaults
 dnl ========================================================
 MOD_MAJOR_VERSION=4
-MOD_MINOR_VERSION=35
+MOD_MINOR_VERSION=36
 MOD_PATCH_VERSION=0
 NSPR_MODNAME=nspr20
 _HAVE_PTHREADS=
@@ -44,7 +44,6 @@ CYGWIN_WRAPPER=
 MACOS_SDK_DIR=
 NEXT_ROOT=
 MT=
-MOZ_OS2_HIGH_MEMORY=1
 PROFILE_GEN_CFLAGS=
 PROFILE_GEN_LDFLAGS=
 PROFILE_USE_CFLAGS=
@@ -379,7 +378,7 @@ AC_ARG_ENABLE(cplus,
     [  --enable-cplus          Enable some c++ api routines],
     [ if test "$enableval" = "yes"; then
 	    USE_CPLUS=1
-      fi]) 
+      fi])
 
 AC_ARG_WITH(arm-kuser,
     [  --with-arm-kuser        Use kuser helpers (Linux/ARM only)
@@ -409,16 +408,8 @@ dnl ========================================================
 case "$target" in
 
 *-aix*)
-    case "${target_os}" in
-    aix3.2*)
-        USE_NSPR_THREADS=1
-        ;;
-    *)
-        USE_PTHREADS=1
-        ;;
-    esac
+    USE_PTHREADS=1
     ;;
-
 esac
 
 dnl ========================================================
@@ -494,7 +485,7 @@ if test -n "$MOZ_DEBUG"; then
     DEFINES="$DEFINES -UNDEBUG"
 
     case "${target_os}" in
-    mks*|cygwin*|mingw*|msys*|os2*)
+    mks*|cygwin*|mingw*|msys*)
         DEFINES="$DEFINES -DDEBUG_`echo ${USERNAME} | sed -e 's| |_|g'`"
         ;;
     *)
@@ -880,10 +871,6 @@ CYGWIN_9*|CYGWIN_ME*)
     OS_ARCH='CYGWIN_NT-4.0'
     OS_TARGET=WIN95
     ;;
-OS_2)
-    OS_ARCH=OS2
-    OS_TARGET=OS2
-    ;;
 esac
 
 #
@@ -948,17 +935,6 @@ if test "$OS_TARGET" = "WIN95"; then
     OS_RELEASE="4.0"
 fi
 OS_CONFIG="${OS_TARGET}${OS_RELEASE}"
-
-dnl ========================================================
-dnl Enable high-memory support on OS/2 by default.
-dnl ========================================================
-AC_ARG_ENABLE(os2-high-mem,
-    [  --disable-os2-high-mem  Disable high-memory support on OS/2],
-    [ if test "$enableval" = "no"; then
-        MOZ_OS2_HIGH_MEMORY=
-      else
-        MOZ_OS2_HIGH_MEMORY=1
-      fi ])
 
 dnl ========================================================
 dnl = ARM toolchain tweaks
@@ -1164,8 +1140,6 @@ case "$host" in
         CYGWIN_WRAPPER='sh $(topsrcdir)/build/cygwin-wrapper'
     fi
     ;;
-*os2*)
-    ;;
 *)
     HOST_CFLAGS="$HOST_CFLAGS -DXP_UNIX"
     ;;
@@ -1235,72 +1209,6 @@ case "$target" in
     PR_MD_CSRCS=aix.c
     RESOLVE_LINK_SYMBOLS=1
     ;;
-        
-*-bsdi*)
-    AC_DEFINE(XP_UNIX)
-    AC_DEFINE(BSDI)
-    AC_DEFINE(NEED_BSDREGEX)
-
-    CFLAGS="$CFLAGS -Wall -Wno-format"
-    CXXFLAGS="$CXXFLAGS -Wall -Wno-format"
-
-    if echo "$OS_TEST" | grep -c 86 >/dev/null; then
-        CPU_ARCH=x86
-    elif echo "$OS_TEST" | grep -c sparc >/dev/null; then 
-        CPU_ARCH=sparc
-    fi
-
-    MDCPUCFG_H=_bsdi.cfg
-    PR_MD_CSRCS=bsdi.c
-
-    DSO_LDOPTS=-r
-
-    case "$target_os" in
-    bsdi1.1*)
-        AC_DEFINE(_PR_BSDI_JMPBUF_IS_ARRAY)
-        AC_DEFINE(_PR_STAT_HAS_ONLY_ST_ATIME)
-        AC_DEFINE(_PR_NEED_H_ERRNO)
-        MKSHLIB=
-        DSO_CFLAGS=
-        DSO_LDOPTS=
-        ;;
-
-    bsdi2.1*)
-        AC_DEFINE(_PR_TIMESPEC_HAS_TS_SEC)
-        AC_DEFINE(_PR_BSDI_JMPBUF_IS_ARRAY)
-        AC_DEFINE(HAVE_DLL)
-        AC_DEFINE(USE_DLFCN)
-        AC_DEFINE(_PR_STAT_HAS_ST_ATIMESPEC)
-        PR_MD_ASFILES=os_BSD_OS_386_2.s
-        ;;
-
-    bsdi4.* | bsdi5.*)
-        AC_DEFINE(_PR_SELECT_CONST_TIMEVAL)
-        AC_DEFINE(_PR_BSDI_JMPBUF_IS_STRUCT)
-        AC_DEFINE(HAVE_DLL)
-        AC_DEFINE(USE_DLFCN)
-        AC_DEFINE(_PR_STAT_HAS_ST_ATIMESPEC)
-        MKSHLIB='$(CC) -o $@ $(DSO_LDOPTS)'
-        DSO_CFLAGS=-fPIC
-        DSO_LDOPTS='-shared -Wl,-soname,$(@:$(OBJDIR)/%.so=%.so)'
-        STRIP="$STRIP -d"
-        case "$target_os" in
-        bsdi4.2* | bsdi4.3* | bsdi5.*)
-            AC_DEFINE(_PR_HAVE_GETPROTO_R)
-            AC_DEFINE(_PR_HAVE_GETPROTO_R_POINTER)
-            ;;
-        esac
-        ;;
-    *)
-        AC_DEFINE(_PR_SELECT_CONST_TIMEVAL)
-        AC_DEFINE(_PR_BSDI_JMPBUF_IS_STRUCT)
-        AC_DEFINE(HAVE_DLL)
-        AC_DEFINE(USE_DLFCN)
-        AC_DEFINE(_PR_STAT_HAS_ST_ATIMESPEC)
-        ;;
-    esac
-
-    ;;
 
 *-darwin*)
     AC_DEFINE(XP_UNIX)
@@ -1323,7 +1231,7 @@ case "$target" in
         i*86*|x86_64)
             if test -n "$USE_64"; then
                 CPU_ARCH=x86_64
-            else        
+            else
                 CPU_ARCH=i386
             fi
             ;;
@@ -1503,7 +1411,7 @@ tools are selected during the Xcode/Developer Tools installation.])
     if test "$OS_TEST" = "ia64"; then
         DLL_SUFFIX=so
         DSO_LDOPTS="$DSO_LDOPTS +b '\$\$ORIGIN'"
-        CPU_ARCH_TAG=_$OS_TEST 
+        CPU_ARCH_TAG=_$OS_TEST
         if test -z "$USE_64"; then
             COMPILER_TAG=_32
         fi
@@ -1529,13 +1437,6 @@ tools are selected during the Xcode/Developer Tools installation.])
 
     if test -n "$MOZILLA_CLIENT"; then
         DEFAULT_IMPL_STRATEGY=_EMU
-    fi
-
-    if echo "$OS_RELEASE" | grep ^A.09 >/dev/null; then
-        AC_DEFINE(_PR_NEED_H_ERRNO)
-        AC_DEFINE(HPUX9)
-        DEFAULT_IMPL_STRATEGY=_EMU
-    	USE_NSPR_THREADS=1
     fi
 
     if echo "$OS_RELEASE" | egrep '^(A.09|B.10)' >/dev/null; then
@@ -1713,7 +1614,7 @@ tools are selected during the Xcode/Developer Tools installation.])
             PR_MD_ASFILES=os_Linux_ppc.s
         fi
         ;;
-    esac    
+    esac
     ;;
 
 *-mingw*|*-msys*|*-cygwin*|*-mks*)
@@ -1769,7 +1670,7 @@ tools are selected during the Xcode/Developer Tools installation.])
            AC_DEFINE(_CRT_SECURE_NO_DEPRECATE)
            AC_DEFINE(_CRT_NONSTDC_NO_DEPRECATE)
         elif test $_CC_MAJOR_VERSION -ge 15; then
-           _USE_DYNAMICBASE=1    
+           _USE_DYNAMICBASE=1
            AC_DEFINE(_CRT_SECURE_NO_WARNINGS)
            AC_DEFINE(_CRT_NONSTDC_NO_WARNINGS)
         fi
@@ -1797,7 +1698,7 @@ tools are selected during the Xcode/Developer Tools installation.])
                 AC_MSG_ERROR([Microsoft (R) Manifest Tool must be in your \$PATH.])
             fi
         fi
-        
+
         CFLAGS="$CFLAGS -W3 -nologo -GF -Gy"
         DLLFLAGS="$DLLFLAGS -OUT:\"\$@\""
         _DEBUG_FLAGS=-Zi
@@ -1857,7 +1758,7 @@ tools are selected during the Xcode/Developer Tools installation.])
         if test "$MSC_VER" -le "1200" -a -z "$MOZ_DEBUG_SYMBOLS"; then
             OS_DLLFLAGS="$OS_DLLFLAGS -PDB:NONE"
         fi
-        
+
         if test "$OS_TARGET" = "WINNT"; then
             CFLAGS="$CFLAGS -GT"
             LIBNSPR='$(dist_libdir)/libnspr$(MOD_MAJOR_VERSION).$(LIB_SUFFIX)'
@@ -1907,7 +1808,7 @@ tools are selected during the Xcode/Developer Tools installation.])
     i*86)
 	if test -n "$USE_64"; then
 	    AC_DEFINE(_AMD64_)
-	else		
+	else
 	    AC_DEFINE(_X86_)
             if test -z "$GNU_CC" -a "$MSC_VER" -ge "1700"; then
                 dnl Visual C++ 2012 defaults to -arch:SSE2. Use -arch:IA32
@@ -2024,22 +1925,6 @@ tools are selected during the Xcode/Developer Tools installation.])
     MKSHLIB='$(CC) $(DSO_LDOPTS) -o $@'
     ;;
 
-*-*-sco*)
-    AC_DEFINE(XP_UNIX)
-    AC_DEFINE(SCO)
-    AC_DEFINE(sco)
-    AC_DEFINE(SYSV)
-    AC_DEFINE(_SVID3)
-    AC_DEFINE(_PR_NEED_H_ERRNO)
-    CC='cc -b elf -KPIC'
-    CXX='$(NSDEPTH)/build/hcpp CC +.cpp +w'
-    USE_NSPR_THREADS=1
-    CPU_ARCH=x86
-    DSO_LDOPTS='-b elf -G'
-    MDCPUCFG_H=_scoos.cfg
-    PR_MD_SRCS=scoos.c
-    ;;
-
 *-solaris*)
     if test -z "$USE_NSPR_THREADS"; then
         USE_PTHREADS=1
@@ -2070,7 +1955,7 @@ tools are selected during the Xcode/Developer Tools installation.])
         if `$CC -print-prog-name=ld` -v 2>&1 | grep -c GNU >/dev/null; then
             GCC_USE_GNU_LD=1
         fi
-        DSO_LDOPTS='-shared -Wl,-h,$(notdir $@),-z,combreloc,-z,defs,-z,ignore' 
+        DSO_LDOPTS='-shared -Wl,-h,$(notdir $@),-z,combreloc,-z,defs,-z,ignore'
         if test -n "$USE_B_DIRECT"; then
             DSO_LDOPTS="$DSO_LDOPTS,-Bdirect"
         fi
@@ -2142,7 +2027,7 @@ tools are selected during the Xcode/Developer Tools installation.])
         AC_DEFINE(_PR_NO_LARGE_FILES)
         ;;
     solaris2.5*)
-        AC_DEFINE(SOLARIS2_5)    
+        AC_DEFINE(SOLARIS2_5)
         ;;
     *)
         AC_DEFINE(_PR_HAVE_OFF64_T)
@@ -2188,71 +2073,10 @@ tools are selected during the Xcode/Developer Tools installation.])
     OS_LIBS="$OS_LIBS $_librt"
     ;;
 
-*-sco-sysv5*)
-    AC_DEFINE(XP_UNIX)
-    AC_DEFINE(UNIXWARE)
-    AC_DEFINE(SVR4)
-    AC_DEFINE(SYSV)
-    USE_NSPR_THREADS=1
-    if echo $OS_RELEASE | grep -c 2.1 2>/dev/null; then
-        AC_DEFINE(_PR_NO_LARGE_FILES)
-        CC='$(NSDEPTH)/build/hcc cc'
-        CXX='$(NSDEPTH)/build/hcpp CC'
-        MDCPUCFG_H=_unixware.cfg
-    else
-        AC_DEFINE(_LARGEFILE64_SOURCE)
-        AC_DEFINE(_PR_HAVE_OFF64_T)
-        AC_DEFINE(_PR_HAVE_SOCKADDR_LEN)
-        MDCPUCFG_H=_unixware7.cfg
-    fi
-    PR_MD_CSRCS=unixware.c
-    DSO_LDOPTS=-G
-    CPU_ARCH=x86
-    ;;
-
-*-os2*)
-    AC_DEFINE(XP_OS2)
-    AC_DEFINE(XP_PC)
-    AC_DEFINE(BSD_SELECT)
-    AC_DEFINE(TCPV40HDRS)
-    LIB_SUFFIX=lib
-    DLL_SUFFIX=dll
-    RC=rc.exe
-    PR_MD_ARCH_DIR=os2
-    PROG_SUFFIX=.exe
-    NSINSTALL=nsinstall
-    MDCPUCFG_H=_os2.cfg
-    RESOLVE_LINK_SYMBOLS=1
-
-    AC_DEFINE(OS2)
-    AR=emxomfar
-    AR_FLAGS='r $@'
-    CFLAGS="$CFLAGS -Wall -Zomf"
-    CXXFLAGS="$CFLAGS -Wall -Zomf"
-    MKSHLIB='$(CC) $(DSO_LDOPTS) -o $@'
-    DSO_CFLAGS=
-    DSO_LDOPTS='-Zomf -Zdll'
-    LDFLAGS='-Zmap'
-    _OPTIMIZE_FLAGS="-O2 -s"
-    _DEBUG_FLAGS="-g -fno-inline"
-    if test -n "$MOZ_OPTIMIZE"; then
-      DSO_LDOPTS="$DSO_LDOPTS -Zlinker /EXEPACK:2 -Zlinker /PACKCODE -Zlinker /PACKDATA"
-    fi
-    IMPLIB='emximp -o'
-    FILTER='emxexp -o'
-    if test -n "$MOZ_OS2_HIGH_MEMORY"; then
-      LDFLAGS="$LDFLAGS -Zhigh-mem"
-      AC_DEFINE(MOZ_OS2_HIGH_MEMORY)
-    fi
-
-    # GCC for OS/2 currently predefines these, but we don't want them
-    DEFINES="$DEFINES -Uunix -U__unix -U__unix__"
-    ;;
-
 *)
     AC_DEFINE(XP_UNIX)
     ;;
-   
+
 esac
 
 if test -z "$SKIP_LIBRARY_CHECKS"; then
@@ -2261,13 +2085,13 @@ dnl Check for system libraries
 dnl ========================================================
 
 
-dnl We don't want anything to link with libdl even if it's present on OS X, 
+dnl We don't want anything to link with libdl even if it's present on OS X,
 dnl since it's not used and not part of the default installation.
 dnl The same goes for BeOS.
 dnl OS/2 has dlfcn in libc.
 
 case $target in
-*-darwin*|*-os2*)
+*-darwin*)
     ;;
 *)
     AC_CHECK_LIB(dl, dlopen,
@@ -2331,9 +2155,9 @@ fi
 dnl ========================================================
 dnl =
 dnl = --enable-strip
-dnl = 
+dnl =
 dnl = Enable stripping of libs and executables
-dnl = 
+dnl =
 dnl ========================================================
 AC_ARG_ENABLE(strip,
     [  --enable-strip          Enable stripping of shared libs and programs],
@@ -2397,7 +2221,7 @@ AC_ARG_WITH(pthreads,
     [  --with-pthreads         Use system pthreads library as thread subsystem],
     [ if test "$withval" = "yes"; then
 	    if test -n "$_HAVE_PTHREADS"; then
-		    USE_PTHREADS=1 
+		    USE_PTHREADS=1
 		    USE_USER_PTHREADS=
 		    USE_NSPR_THREADS=
 	    else
@@ -2507,13 +2331,6 @@ if test -n "$USE_PTHREADS"; then
 	        _PTHREAD_LDFLAGS="-pthread"
 	    fi
 	    ;;
-    *-bsdi*)
-	    AC_DEFINE(_THREAD_SAFE)
-	    dnl -pthread links in -lc_r, so don't specify it explicitly.
-	    if test "$ac_cv_have_dash_pthread" = "yes"; then
-	        _PTHREAD_LDFLAGS=
-	    fi
-	    ;;
     *-openbsd*)
         if test "$ac_cv_have_dash_pthread" = "yes"; then
             _PTHREAD_LDFLAGS=-pthread
@@ -2524,7 +2341,7 @@ if test -n "$USE_PTHREADS"; then
         ;;
     esac
 
-else 
+else
     if test -n "$USE_USER_PTHREADS"; then
 	    USE_PTHREADS=
 	    USE_NSPR_THREADS=
@@ -2568,11 +2385,6 @@ case "$target" in
         ;;
     esac
     ;;
-*-bsdi*)
-    if test -n "$USE_PTHREADS"; then
-        AC_DEFINE(_PR_NEED_PTHREAD_INIT)
-    fi
-    ;;
 *-freebsd*)
     if test -n "$USE_NSPR_THREADS"; then
         AC_DEFINE(_PR_LOCAL_THREADS_ONLY)
@@ -2581,7 +2393,7 @@ case "$target" in
 *-hpux*)
     if test -n "$USE_NSPR_THREADS"; then
         AC_DEFINE(_PR_LOCAL_THREADS_ONLY)
-    fi 
+    fi
     if test "$USE_PTHREADS"; then
         AC_DEFINE_UNQUOTED(_POSIX_C_SOURCE,199506L)
         AC_DEFINE(_PR_HAVE_THREADSAFE_GETHOST)
@@ -2595,8 +2407,8 @@ case "$target" in
         AC_DEFINE(_PR_LOCAL_THREADS_ONLY)
     fi
     ;;
-*-mingw*|*-msys*|*-cygwin*|*-mks*|*-os2*)
-    dnl win32, os2 cannot use pthreads
+*-mingw*|*-msys*|*-cygwin*|*-mks*)
+    dnl win32 cannot use pthreads
     USE_PTHREADS=
     _PTHREAD_LDFLAGS=
     USE_USER_PTHREADS=

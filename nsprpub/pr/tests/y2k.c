@@ -26,78 +26,63 @@
 
 #define PRINT_DETAILS
 
-int failed_already=0;
+int failed_already = 0;
 PRBool debug_mode = PR_FALSE;
 
-static char *dayOfWeek[] =
-{ "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "???" };
-static char *month[] =
-{   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", "???"
-};
+static char* dayOfWeek[] = {"Sun", "Mon", "Tue", "Wed",
+                            "Thu", "Fri", "Sat", "???"};
+static char* month[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
+                        "Aug", "Sep", "Oct", "Nov", "Dec", "???"};
 
-PRLogModuleInfo *lm;
+PRLogModuleInfo* lm;
 
-static void PrintExplodedTime(const PRExplodedTime *et) {
-    PRInt32 totalOffset;
-    PRInt32 hourOffset, minOffset;
-    const char *sign;
+static void PrintExplodedTime(const PRExplodedTime* et) {
+  PRInt32 totalOffset;
+  PRInt32 hourOffset, minOffset;
+  const char* sign;
 
-    /* Print day of the week, month, day, hour, minute, and second */
-    printf("%s %s %2ld %02ld:%02ld:%02ld ",
-           dayOfWeek[et->tm_wday], month[et->tm_month], et->tm_mday,
-           et->tm_hour, et->tm_min, et->tm_sec);
+  /* Print day of the week, month, day, hour, minute, and second */
+  printf("%s %s %2ld %02ld:%02ld:%02ld ", dayOfWeek[et->tm_wday],
+         month[et->tm_month], et->tm_mday, et->tm_hour, et->tm_min, et->tm_sec);
 
-    /* Print year */
-    printf("%hd ", et->tm_year);
+  /* Print year */
+  printf("%hd ", et->tm_year);
 
-    /* Print time zone */
-    totalOffset = et->tm_params.tp_gmt_offset + et->tm_params.tp_dst_offset;
-    if (totalOffset == 0) {
-        printf("UTC ");
-    } else {
-        sign = "+";
-        if (totalOffset < 0) {
-            totalOffset = -totalOffset;
-            sign = "-";
-        }
-        hourOffset = totalOffset / 3600;
-        minOffset = (totalOffset % 3600) / 60;
-        printf("%s%02ld%02ld ", sign, hourOffset, minOffset);
+  /* Print time zone */
+  totalOffset = et->tm_params.tp_gmt_offset + et->tm_params.tp_dst_offset;
+  if (totalOffset == 0) {
+    printf("UTC ");
+  } else {
+    sign = "+";
+    if (totalOffset < 0) {
+      totalOffset = -totalOffset;
+      sign = "-";
     }
+    hourOffset = totalOffset / 3600;
+    minOffset = (totalOffset % 3600) / 60;
+    printf("%s%02ld%02ld ", sign, hourOffset, minOffset);
+  }
 #ifdef PRINT_DETAILS
-    printf("{%d, %d, %d, %d, %d, %d, %d, %d, %d, { %d, %d}}\n",et->tm_usec,
-           et->tm_sec,
-           et->tm_min,
-           et->tm_hour,
-           et->tm_mday,
-           et->tm_month,
-           et->tm_year,
-           et->tm_wday,
-           et->tm_yday,
-           et->tm_params.tp_gmt_offset,
-           et->tm_params.tp_dst_offset);
+  printf("{%d, %d, %d, %d, %d, %d, %d, %d, %d, { %d, %d}}\n", et->tm_usec,
+         et->tm_sec, et->tm_min, et->tm_hour, et->tm_mday, et->tm_month,
+         et->tm_year, et->tm_wday, et->tm_yday, et->tm_params.tp_gmt_offset,
+         et->tm_params.tp_dst_offset);
 #endif
 }
 
-static int ExplodedTimeIsEqual(const PRExplodedTime *et1,
-                               const PRExplodedTime *et2)
-{
-    if (et1->tm_usec == et2->tm_usec &&
-        et1->tm_sec == et2->tm_sec &&
-        et1->tm_min == et2->tm_min &&
-        et1->tm_hour == et2->tm_hour &&
-        et1->tm_mday == et2->tm_mday &&
-        et1->tm_month == et2->tm_month &&
-        et1->tm_year == et2->tm_year &&
-        et1->tm_wday == et2->tm_wday &&
-        et1->tm_yday == et2->tm_yday &&
-        et1->tm_params.tp_gmt_offset == et2->tm_params.tp_gmt_offset &&
-        et1->tm_params.tp_dst_offset == et2->tm_params.tp_dst_offset) {
-        return 1;
-    } else {
-        return 0;
-    }
+static int ExplodedTimeIsEqual(const PRExplodedTime* et1,
+                               const PRExplodedTime* et2) {
+  if (et1->tm_usec == et2->tm_usec && et1->tm_sec == et2->tm_sec &&
+      et1->tm_min == et2->tm_min && et1->tm_hour == et2->tm_hour &&
+      et1->tm_mday == et2->tm_mday && et1->tm_month == et2->tm_month &&
+      et1->tm_year == et2->tm_year && et1->tm_wday == et2->tm_wday &&
+      et1->tm_yday == et2->tm_yday &&
+      et1->tm_params.tp_gmt_offset == et2->tm_params.tp_gmt_offset &&
+      et1->tm_params.tp_dst_offset == et2->tm_params.tp_dst_offset) {
+    return 1;
+  } else {
+    return 0;
+  }
 }
 
 /*
@@ -135,48 +120,52 @@ static int ExplodedTimeIsEqual(const PRExplodedTime *et1,
  */
 
 static PRTime prt[] = {
-    LL_INIT(220405, 2133125120),  /* 946634400000000 */
-    LL_INIT(220425, 2633779200),  /* 946720800000000 */
-    LL_INIT(221612, 2107598848),  /* 951818400000000 */
+    LL_INIT(220405, 2133125120), /* 946634400000000 */
+    LL_INIT(220425, 2633779200), /* 946720800000000 */
+    LL_INIT(221612, 2107598848), /* 951818400000000 */
     LL_INIT(228975, 663398400),  /* 983440800000000 */
-    LL_INIT(258365, 1974568960),  /* 1109671200000000 */
-    LL_INIT(218132, 1393788928),  /* 936871200000000 */
+    LL_INIT(258365, 1974568960), /* 1109671200000000 */
+    LL_INIT(218132, 1393788928), /* 936871200000000 */
     /* Sun's dates follow */
-    LL_INIT( 213062, 4077979648 ), /* Dec 31 1998 10:00:00 */
-    LL_INIT( 218152, 1894443008 ), /* Sep 10 1999 10:00:00 */
-    LL_INIT( 221592, 1606944768 ), /* Feb 28 2000 10:00:00 */
-    LL_INIT( 227768, 688924672 ), /* Dec 31 2000 10:00:00 */
-    LL_INIT( 227788, 1189578752 ), /* Jan 1  2001 10:00:00 */
+    LL_INIT(213062, 4077979648), /* Dec 31 1998 10:00:00 */
+    LL_INIT(218152, 1894443008), /* Sep 10 1999 10:00:00 */
+    LL_INIT(221592, 1606944768), /* Feb 28 2000 10:00:00 */
+    LL_INIT(227768, 688924672),  /* Dec 31 2000 10:00:00 */
+    LL_INIT(227788, 1189578752), /* Jan 1  2001 10:00:00 */
 };
 
 static PRExplodedTime gmt[] = {
-    { 0, 0, 0, 10, 31, 11, 1999, 5, 364, {0, 0}}, /* 1999/12/31 10:00:00 GMT */
-    { 0, 0, 0, 10, 1, 0, 2000, 6, 0, {0, 0}}, /* 2000/01/01 10:00:00 GMT */
-    { 0, 0, 0, 10, 29, 1, 2000, 2, 59, {0, 0}}, /* 2000/02/29 10:00:00 GMT */
-    { 0, 0, 0, 10, 1, 2, 2001, 4, 59, {0, 0}}, /* 2001/3/1 10:00:00 GMT */
-    { 0, 0, 0, 10, 1, 2, 2005, 2, 59, {0, 0}}, /* 2005/3/1 10:00:00 GMT */
-    { 0, 0, 0, 10, 9, 8, 1999, 4, 251, {0, 0}},  /* 1999/9/9 10:00:00 GMT */
+    {0, 0, 0, 10, 31, 11, 1999, 5, 364, {0, 0}}, /* 1999/12/31 10:00:00 GMT */
+    {0, 0, 0, 10, 1, 0, 2000, 6, 0, {0, 0}},     /* 2000/01/01 10:00:00 GMT */
+    {0, 0, 0, 10, 29, 1, 2000, 2, 59, {0, 0}},   /* 2000/02/29 10:00:00 GMT */
+    {0, 0, 0, 10, 1, 2, 2001, 4, 59, {0, 0}},    /* 2001/3/1 10:00:00 GMT */
+    {0, 0, 0, 10, 1, 2, 2005, 2, 59, {0, 0}},    /* 2005/3/1 10:00:00 GMT */
+    {0, 0, 0, 10, 9, 8, 1999, 4, 251, {0, 0}},   /* 1999/9/9 10:00:00 GMT */
     /* Sun's dates follow */
-    { 0, 0, 0, 10, 31, 11, 1998, 4, 364, {0, 0}},  /* 12/31/1998 10:00:00 GMT */
-    { 0, 0, 0, 10, 10, 8, 1999, 5, 252, {0, 0}},  /* 9/10/1999 10:00:00 GMT */
-    { 0, 0, 0, 10, 28, 1, 2000, 1, 58, {0, 0}},  /* 2/28/2000 10:00:00 GMT */
-    { 0, 0, 0, 10, 31, 11, 2000, 0, 365, {0, 0}},  /* 12/31/2000 10:00:00 GMT */
-    { 0, 0, 0, 10, 1, 0, 2001, 1, 0, {0, 0}}  /* 1/1/2001 10:00:00 GMT */
+    {0, 0, 0, 10, 31, 11, 1998, 4, 364, {0, 0}}, /* 12/31/1998 10:00:00 GMT */
+    {0, 0, 0, 10, 10, 8, 1999, 5, 252, {0, 0}},  /* 9/10/1999 10:00:00 GMT */
+    {0, 0, 0, 10, 28, 1, 2000, 1, 58, {0, 0}},   /* 2/28/2000 10:00:00 GMT */
+    {0, 0, 0, 10, 31, 11, 2000, 0, 365, {0, 0}}, /* 12/31/2000 10:00:00 GMT */
+    {0, 0, 0, 10, 1, 0, 2001, 1, 0, {0, 0}}      /* 1/1/2001 10:00:00 GMT */
 };
 
 static PRExplodedTime uspt[] = {
-    { 0, 0, 0, 2, 31, 11, 1999, 5, 364, {-28800, 0}}, /* 1999/12/31 2:00:00 PST */
-    { 0, 0, 0, 2, 1, 0, 2000, 6, 0, {-28800, 0}}, /* 2000/01/01 2:00:00 PST */
-    { 0, 0, 0, 2, 29, 1, 2000, 2, 59, {-28800, 0}}, /* 2000/02/29 2:00:00 PST */
-    { 0, 0, 0, 2, 1, 2, 2001, 4, 59, {-28800, 0}}, /* 2001/3/1 2:00:00 PST */
-    { 0, 0, 0, 2, 1, 2, 2005, 2, 59, {-28800, 0}}, /* 2005/3/1 2:00:00 PST */
-    { 0, 0, 0, 3, 9, 8, 1999, 4, 251, {-28800, 3600}},  /* 1999/9/9 3:00:00 PDT */
+    {0, 0, 0, 2, 31, 11, 1999, 5, 364, {-28800, 0}}, /* 1999/12/31 2:00:00 PST
+                                                      */
+    {0, 0, 0, 2, 1, 0, 2000, 6, 0, {-28800, 0}},   /* 2000/01/01 2:00:00 PST */
+    {0, 0, 0, 2, 29, 1, 2000, 2, 59, {-28800, 0}}, /* 2000/02/29 2:00:00 PST */
+    {0, 0, 0, 2, 1, 2, 2001, 4, 59, {-28800, 0}},  /* 2001/3/1 2:00:00 PST */
+    {0, 0, 0, 2, 1, 2, 2005, 2, 59, {-28800, 0}},  /* 2005/3/1 2:00:00 PST */
+    {0, 0, 0, 3, 9, 8, 1999, 4, 251, {-28800, 3600}}, /* 1999/9/9 3:00:00 PDT */
     /* Sun's dates follow */
-    { 0, 0, 0, 2, 31, 11, 1998, 4, 364, {-28800, 0}},  /* 12/31/1998 00:00:00 GMT */
-    { 0, 0, 0, 3, 10, 8, 1999, 5, 252, {-28800, 3600}},  /* 9/10/1999 00:00:00 GMT */
-    { 0, 0, 0, 2, 28, 1, 2000, 1, 58, {-28800, 0}},  /* 2/28/2000 00:00:00 GMT */
-    { 0, 0, 0, 2, 31, 11, 2000, 0, 365, {-28800, 0}},  /* 12/31/2000 00:00:00 GMT */
-    { 0, 0, 0, 2, 1, 0, 2001, 1, 0, {-28800, 0}}  /* 1/1/2001 00:00:00 GMT */
+    {0, 0, 0, 2, 31, 11, 1998, 4, 364, {-28800, 0}}, /* 12/31/1998 00:00:00 GMT
+                                                      */
+    {0, 0, 0, 3, 10, 8, 1999, 5, 252, {-28800, 3600}}, /* 9/10/1999 00:00:00 GMT
+                                                        */
+    {0, 0, 0, 2, 28, 1, 2000, 1, 58, {-28800, 0}}, /* 2/28/2000 00:00:00 GMT */
+    {0, 0, 0, 2, 31, 11, 2000, 0, 365, {-28800, 0}}, /* 12/31/2000 00:00:00 GMT
+                                                      */
+    {0, 0, 0, 2, 1, 0, 2001, 1, 0, {-28800, 0}}      /* 1/1/2001 00:00:00 GMT */
 };
 
 /*
@@ -187,140 +176,147 @@ static PRExplodedTime uspt[] = {
  * Zone is provided as an example.
  */
 static PRExplodedTime localt[] = {
-    { 0, 0, 0, 2, 31, 11, 1999, 5, 364, {-28800, 0}}, /* 1999/12/31 2:00:00 PST */
-    { 0, 0, 0, 2, 1, 0, 2000, 6, 0, {-28800, 0}}, /* 2000/01/01 2:00:00 PST */
-    { 0, 0, 0, 2, 29, 1, 2000, 2, 59, {-28800, 0}}, /* 2000/02/29 2:00:00 PST */
-    { 0, 0, 0, 2, 1, 2, 2001, 4, 59, {-28800, 0}}, /* 2001/3/1 2:00:00 PST */
-    { 0, 0, 0, 2, 1, 2, 2005, 2, 59, {-28800, 0}}, /* 2005/3/1 2:00:00 PST */
-    { 0, 0, 0, 3, 9, 8, 1999, 4, 251, {-28800, 3600}},  /* 1999/9/9 3:00:00 PDT */
+    {0, 0, 0, 2, 31, 11, 1999, 5, 364, {-28800, 0}}, /* 1999/12/31 2:00:00 PST
+                                                      */
+    {0, 0, 0, 2, 1, 0, 2000, 6, 0, {-28800, 0}},   /* 2000/01/01 2:00:00 PST */
+    {0, 0, 0, 2, 29, 1, 2000, 2, 59, {-28800, 0}}, /* 2000/02/29 2:00:00 PST */
+    {0, 0, 0, 2, 1, 2, 2001, 4, 59, {-28800, 0}},  /* 2001/3/1 2:00:00 PST */
+    {0, 0, 0, 2, 1, 2, 2005, 2, 59, {-28800, 0}},  /* 2005/3/1 2:00:00 PST */
+    {0, 0, 0, 3, 9, 8, 1999, 4, 251, {-28800, 3600}}, /* 1999/9/9 3:00:00 PDT */
     /* Sun's dates follow */
-    { 0, 0, 0, 2, 31, 11, 1998, 4, 364, {-28800, 0}},  /* 12/31/1998 00:00:00 GMT */
-    { 0, 0, 0, 3, 10, 8, 1999, 5, 252, {-28800, 3600}},  /* 9/10/1999 00:00:00 GMT */
-    { 0, 0, 0, 2, 28, 1, 2000, 1, 58, {-28800, 0}},  /* 2/28/2000 00:00:00 GMT */
-    { 0, 0, 0, 2, 31, 11, 2000, 0, 365, {-28800, 0}},  /* 12/31/2000 00:00:00 GMT */
-    { 0, 0, 0, 2, 1, 0, 2001, 1, 0, {-28800, 0}}  /* 1/1/2001 00:00:00 GMT */
+    {0, 0, 0, 2, 31, 11, 1998, 4, 364, {-28800, 0}}, /* 12/31/1998 00:00:00 GMT
+                                                      */
+    {0, 0, 0, 3, 10, 8, 1999, 5, 252, {-28800, 3600}}, /* 9/10/1999 00:00:00 GMT
+                                                        */
+    {0, 0, 0, 2, 28, 1, 2000, 1, 58, {-28800, 0}}, /* 2/28/2000 00:00:00 GMT */
+    {0, 0, 0, 2, 31, 11, 2000, 0, 365, {-28800, 0}}, /* 12/31/2000 00:00:00 GMT
+                                                      */
+    {0, 0, 0, 2, 1, 0, 2001, 1, 0, {-28800, 0}}      /* 1/1/2001 00:00:00 GMT */
 };
 
 #ifdef US_EASTERN_TIME
 static PRExplodedTime localt[] = {
-    { 0, 0, 0, 5, 31, 11, 1999, 5, 364, {-18000, 0}}, /* 1999/12/31 2:00:00 EST */
-    { 0, 0, 0, 5, 1, 0, 2000, 6, 0, {-18000, 0}}, /* 2000/01/01 2:00:00 EST */
-    { 0, 0, 0, 5, 29, 1, 2000, 2, 59, {-18000, 0}}, /* 2000/02/29 2:00:00 EST */
-    { 0, 0, 0, 5, 1, 2, 2001, 4, 59, {-18000, 0}}, /* 2001/3/1 2:00:00 EST */
-    { 0, 0, 0, 5, 1, 2, 2005, 2, 59, {-18000, 0}}, /* 2005/3/1 2:00:00 EST */
-    { 0, 0, 0, 6, 9, 8, 1999, 4, 251, {-18000, 3600}},  /* 1999/9/9 3:00:00 EDT */
+    {0, 0, 0, 5, 31, 11, 1999, 5, 364, {-18000, 0}}, /* 1999/12/31 2:00:00 EST
+                                                      */
+    {0, 0, 0, 5, 1, 0, 2000, 6, 0, {-18000, 0}},   /* 2000/01/01 2:00:00 EST */
+    {0, 0, 0, 5, 29, 1, 2000, 2, 59, {-18000, 0}}, /* 2000/02/29 2:00:00 EST */
+    {0, 0, 0, 5, 1, 2, 2001, 4, 59, {-18000, 0}},  /* 2001/3/1 2:00:00 EST */
+    {0, 0, 0, 5, 1, 2, 2005, 2, 59, {-18000, 0}},  /* 2005/3/1 2:00:00 EST */
+    {0, 0, 0, 6, 9, 8, 1999, 4, 251, {-18000, 3600}}, /* 1999/9/9 3:00:00 EDT */
     /* Sun's dates follow */
-    { 0, 0, 0, 5, 31, 11, 1998, 4, 364, {-18000 0}},  /* 12/31/1998 00:00:00 GMT */
-    { 0, 0, 0, 6, 10, 8, 1999, 5, 252, {-18000 3600}},  /* 9/10/1999 00:00:00 GMT */
-    { 0, 0, 0, 5, 28, 1, 2000, 1, 58, {-18000 0}},  /* 2/28/2000 00:00:00 GMT */
-    { 0, 0, 0, 5, 31, 11, 2000, 0, 365, {-18000 0}},  /* 12/31/2000 00:00:00 GMT */
-    { 0, 0, 0, 5, 1, 0, 2001, 1, 0, {-18000 0}}  /* 1/1/2001 00:00:00 GMT */
+    {0, 0, 0, 5, 31, 11, 1998, 4, 364, {-18000 0}},   /* 12/31/1998 00:00:00 GMT
+                                                       */
+    {0, 0, 0, 6, 10, 8, 1999, 5, 252, {-18000 3600}}, /* 9/10/1999 00:00:00 GMT
+                                                       */
+    {0, 0, 0, 5, 28, 1, 2000, 1, 58, {-18000 0}},   /* 2/28/2000 00:00:00 GMT */
+    {0, 0, 0, 5, 31, 11, 2000, 0, 365, {-18000 0}}, /* 12/31/2000 00:00:00 GMT
+                                                     */
+    {0, 0, 0, 5, 1, 0, 2001, 1, 0, {-18000 0}}      /* 1/1/2001 00:00:00 GMT */
 };
 #endif
 
-static PRStatus TestExplodeImplodeTime(void)
-{
-    PRTime prt_tmp;
-    PRTime now;
-    int idx;
-    int array_size = sizeof(prt) / sizeof(PRTime);
-    PRExplodedTime et_tmp;
-    char buf[1024];
+static PRStatus TestExplodeImplodeTime(void) {
+  PRTime prt_tmp;
+  PRTime now;
+  int idx;
+  int array_size = sizeof(prt) / sizeof(PRTime);
+  PRExplodedTime et_tmp;
+  char buf[1024];
 
-    for (idx = 0; idx < array_size; idx++) {
-        PR_snprintf(buf, sizeof(buf), "%lld", prt[idx]);
-        if (debug_mode) {
-            printf("Time stamp %s\n", buf);
-        }
-        PR_ExplodeTime(prt[idx], PR_GMTParameters, &et_tmp);
-        if (!ExplodedTimeIsEqual(&et_tmp, &gmt[idx])) {
-            fprintf(stderr, "GMT not equal\n");
-            PrintExplodedTime(&et_tmp);
-            PrintExplodedTime(&gmt[idx]);
-            exit(1);
-        }
-        prt_tmp = PR_ImplodeTime(&et_tmp);
-        if (LL_NE(prt_tmp, prt[idx])) {
-            fprintf(stderr, "PRTime not equal\n");
-            exit(1);
-        }
-        if (debug_mode) {
-            printf("GMT: ");
-            PrintExplodedTime(&et_tmp);
-            printf("\n");
-        }
-
-        PR_ExplodeTime(prt[idx], PR_USPacificTimeParameters, &et_tmp);
-        if (!ExplodedTimeIsEqual(&et_tmp, &uspt[idx])) {
-            fprintf(stderr, "US Pacific Time not equal\n");
-            PrintExplodedTime(&et_tmp);
-            PrintExplodedTime(&uspt[idx]);
-            exit(1);
-        }
-        prt_tmp = PR_ImplodeTime(&et_tmp);
-        if (LL_NE(prt_tmp, prt[idx])) {
-            fprintf(stderr, "PRTime not equal\n");
-            exit(1);
-        }
-        if (debug_mode) {
-            printf("US Pacific Time: ");
-            PrintExplodedTime(&et_tmp);
-            printf("\n");
-        }
-
-        PR_ExplodeTime(prt[idx], PR_LocalTimeParameters, &et_tmp);
-        if (!ExplodedTimeIsEqual(&et_tmp, &localt[idx])) {
-            fprintf(stderr, "not equal\n");
-            PrintExplodedTime(&et_tmp);
-            PrintExplodedTime(&localt[idx]);
-            exit(1);
-        }
-        prt_tmp = PR_ImplodeTime(&et_tmp);
-        if (LL_NE(prt_tmp, prt[idx])) {
-            fprintf(stderr, "not equal\n");
-            exit(1);
-        }
-        if (debug_mode) {
-            printf("Local time:");
-            PrintExplodedTime(&et_tmp);
-            printf("\n\n");
-        }
-    }
-
-    now = PR_Now();
-    PR_ExplodeTime(now, PR_GMTParameters, &et_tmp);
-    printf("Current GMT is ");
-    PrintExplodedTime(&et_tmp);
-    printf("\n");
-    prt_tmp = PR_ImplodeTime(&et_tmp);
-    if (LL_NE(prt_tmp, now)) {
-        fprintf(stderr, "not equal\n");
-        exit(1);
-    }
-    PR_ExplodeTime(now, PR_USPacificTimeParameters, &et_tmp);
-    printf("Current US Pacific Time is ");
-    PrintExplodedTime(&et_tmp);
-    printf("\n");
-    prt_tmp = PR_ImplodeTime(&et_tmp);
-    if (LL_NE(prt_tmp, now)) {
-        fprintf(stderr, "not equal\n");
-        exit(1);
-    }
-    PR_ExplodeTime(now, PR_LocalTimeParameters, &et_tmp);
-    printf("Current local time is ");
-    PrintExplodedTime(&et_tmp);
-    printf("\n");
-    prt_tmp = PR_ImplodeTime(&et_tmp);
-    if (LL_NE(prt_tmp, now)) {
-        fprintf(stderr, "not equal\n");
-        exit(1);
-    }
-    printf("Please verify the results\n\n");
-
+  for (idx = 0; idx < array_size; idx++) {
+    PR_snprintf(buf, sizeof(buf), "%lld", prt[idx]);
     if (debug_mode) {
-        printf("Test 1 passed\n");
+      printf("Time stamp %s\n", buf);
     }
-    return PR_SUCCESS;
+    PR_ExplodeTime(prt[idx], PR_GMTParameters, &et_tmp);
+    if (!ExplodedTimeIsEqual(&et_tmp, &gmt[idx])) {
+      fprintf(stderr, "GMT not equal\n");
+      PrintExplodedTime(&et_tmp);
+      PrintExplodedTime(&gmt[idx]);
+      exit(1);
+    }
+    prt_tmp = PR_ImplodeTime(&et_tmp);
+    if (LL_NE(prt_tmp, prt[idx])) {
+      fprintf(stderr, "PRTime not equal\n");
+      exit(1);
+    }
+    if (debug_mode) {
+      printf("GMT: ");
+      PrintExplodedTime(&et_tmp);
+      printf("\n");
+    }
+
+    PR_ExplodeTime(prt[idx], PR_USPacificTimeParameters, &et_tmp);
+    if (!ExplodedTimeIsEqual(&et_tmp, &uspt[idx])) {
+      fprintf(stderr, "US Pacific Time not equal\n");
+      PrintExplodedTime(&et_tmp);
+      PrintExplodedTime(&uspt[idx]);
+      exit(1);
+    }
+    prt_tmp = PR_ImplodeTime(&et_tmp);
+    if (LL_NE(prt_tmp, prt[idx])) {
+      fprintf(stderr, "PRTime not equal\n");
+      exit(1);
+    }
+    if (debug_mode) {
+      printf("US Pacific Time: ");
+      PrintExplodedTime(&et_tmp);
+      printf("\n");
+    }
+
+    PR_ExplodeTime(prt[idx], PR_LocalTimeParameters, &et_tmp);
+    if (!ExplodedTimeIsEqual(&et_tmp, &localt[idx])) {
+      fprintf(stderr, "not equal\n");
+      PrintExplodedTime(&et_tmp);
+      PrintExplodedTime(&localt[idx]);
+      exit(1);
+    }
+    prt_tmp = PR_ImplodeTime(&et_tmp);
+    if (LL_NE(prt_tmp, prt[idx])) {
+      fprintf(stderr, "not equal\n");
+      exit(1);
+    }
+    if (debug_mode) {
+      printf("Local time:");
+      PrintExplodedTime(&et_tmp);
+      printf("\n\n");
+    }
+  }
+
+  now = PR_Now();
+  PR_ExplodeTime(now, PR_GMTParameters, &et_tmp);
+  printf("Current GMT is ");
+  PrintExplodedTime(&et_tmp);
+  printf("\n");
+  prt_tmp = PR_ImplodeTime(&et_tmp);
+  if (LL_NE(prt_tmp, now)) {
+    fprintf(stderr, "not equal\n");
+    exit(1);
+  }
+  PR_ExplodeTime(now, PR_USPacificTimeParameters, &et_tmp);
+  printf("Current US Pacific Time is ");
+  PrintExplodedTime(&et_tmp);
+  printf("\n");
+  prt_tmp = PR_ImplodeTime(&et_tmp);
+  if (LL_NE(prt_tmp, now)) {
+    fprintf(stderr, "not equal\n");
+    exit(1);
+  }
+  PR_ExplodeTime(now, PR_LocalTimeParameters, &et_tmp);
+  printf("Current local time is ");
+  PrintExplodedTime(&et_tmp);
+  printf("\n");
+  prt_tmp = PR_ImplodeTime(&et_tmp);
+  if (LL_NE(prt_tmp, now)) {
+    fprintf(stderr, "not equal\n");
+    exit(1);
+  }
+  printf("Please verify the results\n\n");
+
+  if (debug_mode) {
+    printf("Test 1 passed\n");
+  }
+  return PR_SUCCESS;
 }
 /* End of Test 1: TestExplodeImplodeTime */
 
@@ -332,10 +328,10 @@ static PRStatus TestExplodeImplodeTime(void)
  * time increment for addition to PRExplodeTime
  */
 typedef struct time_increment {
-    PRInt32 ti_usec;
-    PRInt32 ti_sec;
-    PRInt32 ti_min;
-    PRInt32 ti_hour;
+  PRInt32 ti_usec;
+  PRInt32 ti_sec;
+  PRInt32 ti_min;
+  PRInt32 ti_hour;
 } time_increment_t;
 
 /*
@@ -344,12 +340,11 @@ typedef struct time_increment {
  *      Time zone.
  */
 typedef struct normalize_test_data {
-    PRExplodedTime      base_time;
-    time_increment_t    increment;
-    PRExplodedTime      expected_gmt_time;
-    PRExplodedTime      expected_uspt_time;
+  PRExplodedTime base_time;
+  time_increment_t increment;
+  PRExplodedTime expected_gmt_time;
+  PRExplodedTime expected_uspt_time;
 } normalize_test_data_t;
-
 
 /*
  * Test data -  the base time values cover dates of interest including y2k - 1,
@@ -360,80 +355,91 @@ normalize_test_data_t normalize_test_array[] = {
     /*usec sec min hour  mday  mo  year  wday yday {gmtoff, dstoff }*/
 
     /* Fri 12/31/1999 19:32:48 PST */
-    {   {0, 48, 32, 19, 31, 11, 1999, 5, 364, { -28800, 0}},
+    {
+        {0, 48, 32, 19, 31, 11, 1999, 5, 364, {-28800, 0}},
         {0, 0, 30, 20},
-        {0, 48, 2, 0, 2, 0, 2000, 0, 1, { 0, 0}},   /*Sun Jan 2 00:02:48 UTC 2000*/
-        {0, 48, 2, 16, 1, 0, 2000, 6, 0, { -28800, 0}},/* Sat Jan 1 16:02:48
+        {0, 48, 2, 0, 2, 0, 2000, 0, 1, {0, 0}}, /*Sun Jan 2 00:02:48 UTC 2000*/
+        {0, 48, 2, 16, 1, 0, 2000, 6, 0, {-28800, 0}}, /* Sat Jan 1 16:02:48
                                                         PST 2000*/
     },
     /* Fri 99-12-31 23:59:02 GMT */
-    {   {0, 2, 59, 23, 31, 11, 1999, 5, 364, { 0, 0}},
+    {
+        {0, 2, 59, 23, 31, 11, 1999, 5, 364, {0, 0}},
         {0, 0, 45, 0},
-        {0, 2, 44, 0, 1, 0, 2000, 6, 0, { 0, 0}},/* Sat Jan 1 00:44:02 UTC 2000*/
-        {0, 2, 44, 16, 31, 11, 1999, 5, 364, { -28800, 0}}/*Fri Dec 31 16:44:02
+        {0, 2, 44, 0, 1, 0, 2000, 6, 0, {0, 0}}, /* Sat Jan 1 00:44:02 UTC
+                                                    2000*/
+        {0, 2, 44, 16, 31, 11, 1999, 5, 364, {-28800, 0}} /*Fri Dec 31 16:44:02
                                                         PST 1999*/
     },
     /* 99-12-25 12:00:00 GMT */
-    {   {0, 0, 0, 12, 25, 11, 1999, 6, 358, { 0, 0}},
+    {
+        {0, 0, 0, 12, 25, 11, 1999, 6, 358, {0, 0}},
         {0, 0, 0, 364 * 24},
-        {0, 0, 0, 12, 23, 11, 2000, 6, 357, { 0, 0}},/*Sat Dec 23 12:00:00
-                                                    2000 UTC*/
-        {0, 0, 0, 4, 23, 11, 2000, 6, 357, { -28800, 0}}/*Sat Dec 23 04:00:00
+        {0, 0, 0, 12, 23, 11, 2000, 6, 357, {0, 0}},    /*Sat Dec 23 12:00:00
+                                                       2000 UTC*/
+        {0, 0, 0, 4, 23, 11, 2000, 6, 357, {-28800, 0}} /*Sat Dec 23 04:00:00
                                                         2000 -0800*/
     },
     /* 00-01-1 00:00:00 PST */
-    {   {0, 0, 0, 0, 1, 0, 2000, 6, 0, { -28800, 0}},
+    {
+        {0, 0, 0, 0, 1, 0, 2000, 6, 0, {-28800, 0}},
         {0, 0, 0, 48},
-        {0, 0, 0, 8, 3, 0, 2000, 1, 2, { 0, 0}},/*Mon Jan  3 08:00:00 2000 UTC*/
-        {0, 0, 0, 0, 3, 0, 2000, 1, 2, { -28800, 0}}/*Mon Jan  3 00:00:00 2000
+        {0, 0, 0, 8, 3, 0, 2000, 1, 2, {0, 0}}, /*Mon Jan  3 08:00:00 2000 UTC*/
+        {0, 0, 0, 0, 3, 0, 2000, 1, 2, {-28800, 0}} /*Mon Jan  3 00:00:00 2000
                                                                 -0800*/
     },
     /* 00-01-10 12:00:00 PST */
-    {   {0, 0, 0, 12, 10, 0, 2000, 1, 9, { -28800, 0}},
+    {
+        {0, 0, 0, 12, 10, 0, 2000, 1, 9, {-28800, 0}},
         {0, 0, 0, 364 * 5 * 24},
-        {0, 0, 0, 20, 3, 0, 2005, 1, 2, { 0, 0}},/*Mon Jan  3 20:00:00 2005 UTC */
-        {0, 0, 0, 12, 3, 0, 2005, 1, 2, { -28800, 0}}/*Mon Jan  3 12:00:00
+        {0, 0, 0, 20, 3, 0, 2005, 1, 2, {0, 0}}, /*Mon Jan  3 20:00:00 2005 UTC
+                                                  */
+        {0, 0, 0, 12, 3, 0, 2005, 1, 2, {-28800, 0}} /*Mon Jan  3 12:00:00
                                                         2005 -0800*/
     },
     /* 00-02-28 15:39 GMT */
-    {   {0, 0, 39, 15, 28, 1, 2000, 1, 58, { 0, 0}},
-        {0,  0, 0, 24},
-        {0, 0, 39, 15, 29, 1, 2000, 2, 59, { 0, 0}}, /*Tue Feb 29 15:39:00 2000
-                                                        UTC*/
-        {0, 0, 39, 7, 29, 1, 2000, 2, 59, { -28800, 0}}/*Tue Feb 29 07:39:00
+    {
+        {0, 0, 39, 15, 28, 1, 2000, 1, 58, {0, 0}},
+        {0, 0, 0, 24},
+        {0, 0, 39, 15, 29, 1, 2000, 2, 59, {0, 0}}, /*Tue Feb 29 15:39:00 2000
+                                                       UTC*/
+        {0, 0, 39, 7, 29, 1, 2000, 2, 59, {-28800, 0}} /*Tue Feb 29 07:39:00
                                                         2000 -0800*/
     },
     /* 01-03-01 12:00 PST */
-    {   {0, 0, 0, 12, 3, 0, 2001, 3, 2, { -28800, 0}},/*Wed Jan 3 12:00:00
+    {
+        {0, 0, 0, 12, 3, 0, 2001, 3, 2, {-28800, 0}}, /*Wed Jan 3 12:00:00
                                                     -0800 2001*/
-        {0, 30, 30,45},
-        {0, 30, 30, 17, 5, 0, 2001, 5, 4, { 0, 0}}, /*Fri Jan  5 17:30:30 2001
-                                                    UTC*/
-        {0, 30, 30, 9, 5, 0, 2001, 5, 4, { -28800, 0}} /*Fri Jan  5 09:30:30
-                                                        2001 -0800*/
+        {0, 30, 30, 45},
+        {0, 30, 30, 17, 5, 0, 2001, 5, 4, {0, 0}},    /*Fri Jan  5 17:30:30 2001
+                                                      UTC*/
+        {0, 30, 30, 9, 5, 0, 2001, 5, 4, {-28800, 0}} /*Fri Jan  5 09:30:30
+                                                       2001 -0800*/
     },
     /* 2004-04-26 12:00 GMT */
-    {   {0, 0, 0, 20, 3, 0, 2001, 3, 2, { 0, 0}},
-        {0, 0, 30,0},
-        {0, 0, 30, 20, 3, 0, 2001, 3, 2, { 0, 0}},/*Wed Jan  3 20:30:00 2001 UTC*/
-        {0, 0, 30, 12, 3, 0, 2001, 3, 2, { -28800, 0}}/*Wed Jan  3 12:30:00
+    {
+        {0, 0, 0, 20, 3, 0, 2001, 3, 2, {0, 0}},
+        {0, 0, 30, 0},
+        {0, 0, 30, 20, 3, 0, 2001, 3, 2, {0, 0}},     /*Wed Jan  3 20:30:00 2001
+                                                         UTC*/
+        {0, 0, 30, 12, 3, 0, 2001, 3, 2, {-28800, 0}} /*Wed Jan  3 12:30:00
                                                         2001 -0800*/
     },
     /* 99-09-09 00:00 GMT */
-    {   {0, 0, 0, 0, 9, 8, 1999, 4, 251, { 0, 0}},
+    {
+        {0, 0, 0, 0, 9, 8, 1999, 4, 251, {0, 0}},
         {0, 0, 0, 12},
-        {0, 0, 0, 12, 9, 8, 1999, 4, 251, { 0, 0}},/*Thu Sep  9 12:00:00 1999 UTC*/
-        {0, 0, 0, 5, 9, 8, 1999, 4, 251, { -28800, 3600}}/*Thu Sep  9 05:00:00
+        {0, 0, 0, 12, 9, 8, 1999, 4, 251, {0, 0}}, /*Thu Sep  9 12:00:00 1999
+                                                      UTC*/
+        {0, 0, 0, 5, 9, 8, 1999, 4, 251, {-28800, 3600}} /*Thu Sep  9 05:00:00
                                                         1999 -0700*/
-    }
-};
+    }};
 
-void add_time_increment(PRExplodedTime *et1, time_increment_t *it)
-{
-    et1->tm_usec += it->ti_usec;
-    et1->tm_sec += it->ti_sec;
-    et1->tm_min += it->ti_min;
-    et1->tm_hour += it->ti_hour;
+void add_time_increment(PRExplodedTime* et1, time_increment_t* it) {
+  et1->tm_usec += it->ti_usec;
+  et1->tm_sec += it->ti_sec;
+  et1->tm_min += it->ti_min;
+  et1->tm_hour += it->ti_hour;
 }
 
 /*
@@ -444,229 +450,338 @@ void add_time_increment(PRExplodedTime *et1, time_increment_t *it)
 **      should match the expected values in the data item.
 **
 */
-PRStatus TestNormalizeTime(void)
-{
-    int idx, count;
-    normalize_test_data_t *itemp;
-    time_increment_t *itp;
+PRStatus TestNormalizeTime(void) {
+  int idx, count;
+  normalize_test_data_t* itemp;
+  time_increment_t* itp;
 
-    count = sizeof(normalize_test_array)/sizeof(normalize_test_array[0]);
-    for (idx = 0; idx < count; idx++) {
-        itemp = &normalize_test_array[idx];
-        if (debug_mode) {
-            printf("%2d. %15s",idx +1,"Base time: ");
-            PrintExplodedTime(&itemp->base_time);
-            printf("\n");
-        }
-        itp = &itemp->increment;
-        if (debug_mode) {
-            printf("%20s %2d hrs %2d min %3d sec\n","Add",itp->ti_hour,
-                   itp->ti_min, itp->ti_sec);
-        }
-        add_time_increment(&itemp->base_time, &itemp->increment);
-        PR_NormalizeTime(&itemp->base_time, PR_LocalTimeParameters);
-        if (debug_mode) {
-            printf("%19s","PST time: ");
-            PrintExplodedTime(&itemp->base_time);
-            printf("\n");
-        }
-        if (!ExplodedTimeIsEqual(&itemp->base_time,
-                                 &itemp->expected_uspt_time)) {
-            printf("PR_NormalizeTime failed\n");
-            if (debug_mode) {
-                PrintExplodedTime(&itemp->expected_uspt_time);
-            }
-            return PR_FAILURE;
-        }
-        PR_NormalizeTime(&itemp->base_time, PR_GMTParameters);
-        if (debug_mode) {
-            printf("%19s","GMT time: ");
-            PrintExplodedTime(&itemp->base_time);
-            printf("\n");
-        }
-
-        if (!ExplodedTimeIsEqual(&itemp->base_time,
-                                 &itemp->expected_gmt_time)) {
-            printf("PR_NormalizeTime failed\n");
-            return PR_FAILURE;
-        }
+  count = sizeof(normalize_test_array) / sizeof(normalize_test_array[0]);
+  for (idx = 0; idx < count; idx++) {
+    itemp = &normalize_test_array[idx];
+    if (debug_mode) {
+      printf("%2d. %15s", idx + 1, "Base time: ");
+      PrintExplodedTime(&itemp->base_time);
+      printf("\n");
     }
-    return PR_SUCCESS;
-}
+    itp = &itemp->increment;
+    if (debug_mode) {
+      printf("%20s %2d hrs %2d min %3d sec\n", "Add", itp->ti_hour, itp->ti_min,
+             itp->ti_sec);
+    }
+    add_time_increment(&itemp->base_time, &itemp->increment);
+    PR_NormalizeTime(&itemp->base_time, PR_LocalTimeParameters);
+    if (debug_mode) {
+      printf("%19s", "PST time: ");
+      PrintExplodedTime(&itemp->base_time);
+      printf("\n");
+    }
+    if (!ExplodedTimeIsEqual(&itemp->base_time, &itemp->expected_uspt_time)) {
+      printf("PR_NormalizeTime failed\n");
+      if (debug_mode) {
+        PrintExplodedTime(&itemp->expected_uspt_time);
+      }
+      return PR_FAILURE;
+    }
+    PR_NormalizeTime(&itemp->base_time, PR_GMTParameters);
+    if (debug_mode) {
+      printf("%19s", "GMT time: ");
+      PrintExplodedTime(&itemp->base_time);
+      printf("\n");
+    }
 
+    if (!ExplodedTimeIsEqual(&itemp->base_time, &itemp->expected_gmt_time)) {
+      printf("PR_NormalizeTime failed\n");
+      return PR_FAILURE;
+    }
+  }
+  return PR_SUCCESS;
+}
 
 /*
 ** ParseTest. Structure defining a string time and a matching exploded time
 **
 */
-typedef struct ParseTest
-{
-    char            *sDate;     /* string to be converted using PR_ParseTimeString() */
-    PRExplodedTime  et;         /* expected result of the conversion */
+typedef struct ParseTest {
+  char* sDate;       /* string to be converted using PR_ParseTimeString() */
+  PRExplodedTime et; /* expected result of the conversion */
 } ParseTest;
 
-static ParseTest parseArray[] =
-{
-    /*                                  |<----- expected result ------------------------------------------->| */
-    /* "string to test"                   usec     sec min hour   day  mo  year  wday julian {gmtoff, dstoff }*/
-    { "Thursday 1 Jan 1970 00:00:00",   { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "1 Jan 1970 00:00:00",            { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "1-Jan-1970 00:00:00",            { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "01-Jan-1970 00:00:00",           { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "January 1, 1970",                { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "January 1, 1970 00:00",          { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "January 01, 1970 00:00",         { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "January 01 1970 00:00",          { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "January 01 1970 00:00:00",       { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "01-01-1970",                     { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "01/01/1970",                     { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "01/01/70",                       { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "01/01/70 00:00:00",              { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "70/01/01 00:00:00",              { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "70/1/1 00:00:",                  { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "00:00 Thursday, January 1, 1970",{ 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "1-Jan-70 00:00:00",              { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "70-01-01 00:00:00",              { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
-    { "70/01/01 00:00:00",              { 000000,  00, 00, 00,     1,   0, 1970, 4,     0,   {-28800, 0 }}},
+static ParseTest parseArray[] = {
+    /*                                  |<----- expected result
+       ------------------------------------------->| */
+    /* "string to test"                   usec     sec min hour   day  mo  year
+       wday julian {gmtoff, dstoff }*/
+    {"Thursday 1 Jan 1970 00:00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"1 Jan 1970 00:00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"1-Jan-1970 00:00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"01-Jan-1970 00:00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"January 1, 1970", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"January 1, 1970 00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"January 01, 1970 00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"January 01 1970 00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"January 01 1970 00:00:00",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"01-01-1970", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"01/01/1970", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"01/01/70", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"01/01/70 00:00:00", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"70/01/01 00:00:00", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"70/1/1 00:00:", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"00:00 Thursday, January 1, 1970",
+     {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"1-Jan-70 00:00:00", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"70-01-01 00:00:00", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
+    {"70/01/01 00:00:00", {000000, 00, 00, 00, 1, 0, 1970, 4, 0, {-28800, 0}}},
 
     /* 31-Dec-1969 */
-    { "Wed 31 Dec 1969 00:00:00",       { 000000,  00, 00, 00,    31,  11, 1969, 3,   364,   {-28800, 0 }}},
-    { "31 Dec 1969 00:00:00",           { 000000,  00, 00, 00,    31,  11, 1969, 3,   364,   {-28800, 0 }}},
-    { "12/31/69    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2069, 2,   364,   {-28800, 0 }}},
-    { "12/31/1969  00:00:00",           { 000000,  00, 00, 00,    31,  11, 1969, 3,   364,   {-28800, 0 }}},
-    { "12-31-69    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2069, 2,   364,   {-28800, 0 }}},
-    { "12-31-1969  00:00:00",           { 000000,  00, 00, 00,    31,  11, 1969, 3,   364,   {-28800, 0 }}},
-    { "69-12-31    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2069, 2,   364,   {-28800, 0 }}},
-    { "69/12/31    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2069, 2,   364,   {-28800, 0 }}},
+    {"Wed 31 Dec 1969 00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1969, 3, 364, {-28800, 0}}},
+    {"31 Dec 1969 00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1969, 3, 364, {-28800, 0}}},
+    {"12/31/69    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2069, 2, 364, {-28800, 0}}},
+    {"12/31/1969  00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1969, 3, 364, {-28800, 0}}},
+    {"12-31-69    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2069, 2, 364, {-28800, 0}}},
+    {"12-31-1969  00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1969, 3, 364, {-28800, 0}}},
+    {"69-12-31    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2069, 2, 364, {-28800, 0}}},
+    {"69/12/31    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2069, 2, 364, {-28800, 0}}},
 
     /* "Sun". 31-Dec-1998 (?) */
-    { "Thu 31 Dec 1998 00:00:00",        { 00000,  00, 00, 00,    31,  11, 1998, 4,   364,    {-28800, 0 }}},
-    { "12/31/98    00:00:00",            { 00000,  00, 00, 00,    31,  11, 1998, 4,   364,    {-28800, 0 }}},
-    { "12/31/1998  00:00:00",            { 00000,  00, 00, 00,    31,  11, 1998, 4,   364,    {-28800, 0 }}},
-    { "12-31-98    00:00:00",            { 00000,  00, 00, 00,    31,  11, 1998, 4,   364,    {-28800, 0 }}},
-    { "12-31-1998  00:00:00",            { 00000,  00, 00, 00,    31,  11, 1998, 4,   364,    {-28800, 0 }}},
-    { "98-12-31    00:00:00",            { 00000,  00, 00, 00,    31,  11, 1998, 4,   364,    {-28800, 0 }}},
-    { "98/12/31    00:00:00",            { 00000,  00, 00, 00,    31,  11, 1998, 4,   364,    {-28800, 0 }}},
+    {"Thu 31 Dec 1998 00:00:00",
+     {00000, 00, 00, 00, 31, 11, 1998, 4, 364, {-28800, 0}}},
+    {"12/31/98    00:00:00",
+     {00000, 00, 00, 00, 31, 11, 1998, 4, 364, {-28800, 0}}},
+    {"12/31/1998  00:00:00",
+     {00000, 00, 00, 00, 31, 11, 1998, 4, 364, {-28800, 0}}},
+    {"12-31-98    00:00:00",
+     {00000, 00, 00, 00, 31, 11, 1998, 4, 364, {-28800, 0}}},
+    {"12-31-1998  00:00:00",
+     {00000, 00, 00, 00, 31, 11, 1998, 4, 364, {-28800, 0}}},
+    {"98-12-31    00:00:00",
+     {00000, 00, 00, 00, 31, 11, 1998, 4, 364, {-28800, 0}}},
+    {"98/12/31    00:00:00",
+     {00000, 00, 00, 00, 31, 11, 1998, 4, 364, {-28800, 0}}},
 
     /* 09-Sep-1999. Interesting because of its use as an eof marker? */
-    { "09 Sep 1999 00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
-    { "9/9/99      00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
-    { "9/9/1999    00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
-    { "9-9-99      00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
-    { "9-9-1999    00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
-    { "09-09-99    00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
-    { "09-09-1999  00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
-    { "99-09-09    00:00:00",           { 000000,  00, 00, 00,     9,   8, 1999, 4,   251,   {-28800, 3600 }}},
+    {"09 Sep 1999 00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
+    {"9/9/99      00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
+    {"9/9/1999    00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
+    {"9-9-99      00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
+    {"9-9-1999    00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
+    {"09-09-99    00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
+    {"09-09-1999  00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
+    {"99-09-09    00:00:00",
+     {000000, 00, 00, 00, 9, 8, 1999, 4, 251, {-28800, 3600}}},
 
     /* "Sun". 10-Sep-1999. Because Sun said so. */
-    { "10 Sep 1999 00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
-    { "9/10/99     00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
-    { "9/10/1999   00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
-    { "9-10-99     00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
-    { "9-10-1999   00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
-    { "09-10-99    00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
-    { "09-10-1999  00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
-    { "99-09-10    00:00:00",           { 000000,  00, 00, 00,    10,   8, 1999, 5,   252,   {-28800, 3600 }}},
+    {"10 Sep 1999 00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
+    {"9/10/99     00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
+    {"9/10/1999   00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
+    {"9-10-99     00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
+    {"9-10-1999   00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
+    {"09-10-99    00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
+    {"09-10-1999  00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
+    {"99-09-10    00:00:00",
+     {000000, 00, 00, 00, 10, 8, 1999, 5, 252, {-28800, 3600}}},
 
     /* 31-Dec-1999 */
-    { "31 Dec 1999 00:00:00",           { 000000,  00, 00, 00,    31,  11, 1999, 5,   364,   {-28800, 0 }}},
-    { "12/31/99    00:00:00",           { 000000,  00, 00, 00,    31,  11, 1999, 5,   364,   {-28800, 0 }}},
-    { "12/31/1999  00:00:00",           { 000000,  00, 00, 00,    31,  11, 1999, 5,   364,   {-28800, 0 }}},
-    { "12-31-99    00:00:00",           { 000000,  00, 00, 00,    31,  11, 1999, 5,   364,   {-28800, 0 }}},
-    { "12-31-1999  00:00:00",           { 000000,  00, 00, 00,    31,  11, 1999, 5,   364,   {-28800, 0 }}},
-    { "99-12-31    00:00:00",           { 000000,  00, 00, 00,    31,  11, 1999, 5,   364,   {-28800, 0 }}},
-    { "99/12/31    00:00:00",           { 000000,  00, 00, 00,    31,  11, 1999, 5,   364,   {-28800, 0 }}},
+    {"31 Dec 1999 00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1999, 5, 364, {-28800, 0}}},
+    {"12/31/99    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1999, 5, 364, {-28800, 0}}},
+    {"12/31/1999  00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1999, 5, 364, {-28800, 0}}},
+    {"12-31-99    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1999, 5, 364, {-28800, 0}}},
+    {"12-31-1999  00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1999, 5, 364, {-28800, 0}}},
+    {"99-12-31    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1999, 5, 364, {-28800, 0}}},
+    {"99/12/31    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 1999, 5, 364, {-28800, 0}}},
 
     /* 01-Jan-2000 */
-    { "01 Jan 2000 00:00:00",           { 000000,  00, 00, 00,     1,   0, 2000, 6,     0,   {-28800, 0 }}},
-    { "1/1/00      00:00:00",           { 000000,  00, 00, 00,     1,   0, 2000, 6,     0,   {-28800, 0 }}},
-    { "1/1/2000    00:00:00",           { 000000,  00, 00, 00,     1,   0, 2000, 6,     0,   {-28800, 0 }}},
-    { "1-1-00      00:00:00",           { 000000,  00, 00, 00,     1,   0, 2000, 6,     0,   {-28800, 0 }}},
-    { "1-1-2000    00:00:00",           { 000000,  00, 00, 00,     1,   0, 2000, 6,     0,   {-28800, 0 }}},
-    { "01-01-00    00:00:00",           { 000000,  00, 00, 00,     1,   0, 2000, 6,     0,   {-28800, 0 }}},
-    { "Saturday 01-01-2000  00:00:00",  { 000000,  00, 00, 00,     1,   0, 2000, 6,     0,   {-28800, 0 }}},
+    {"01 Jan 2000 00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2000, 6, 0, {-28800, 0}}},
+    {"1/1/00      00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2000, 6, 0, {-28800, 0}}},
+    {"1/1/2000    00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2000, 6, 0, {-28800, 0}}},
+    {"1-1-00      00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2000, 6, 0, {-28800, 0}}},
+    {"1-1-2000    00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2000, 6, 0, {-28800, 0}}},
+    {"01-01-00    00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2000, 6, 0, {-28800, 0}}},
+    {"Saturday 01-01-2000  00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2000, 6, 0, {-28800, 0}}},
 
     /* "Sun". 28-Feb-2000 */
-    { "28 Feb 2000 00:00:00",           { 000000,  00, 00, 00,    28,   1, 2000, 1,    58,   {-28800, 0 }}},
-    { "2/28/00     00:00:00",           { 000000,  00, 00, 00,    28,   1, 2000, 1,    58,   {-28800, 0 }}},
-    { "2/28/2000   00:00:00",           { 000000,  00, 00, 00,    28,   1, 2000, 1,    58,   {-28800, 0 }}},
-    { "2-28-00     00:00:00",           { 000000,  00, 00, 00,    28,   1, 2000, 1,    58,   {-28800, 0 }}},
-    { "2-28-2000   00:00:00",           { 000000,  00, 00, 00,    28,   1, 2000, 1,    58,   {-28800, 0 }}},
-    { "02-28-00    00:00:00",           { 000000,  00, 00, 00,    28,   1, 2000, 1,    58,   {-28800, 0 }}},
-    { "02-28-2000  00:00:00",           { 000000,  00, 00, 00,    28,   1, 2000, 1,    58,   {-28800, 0 }}},
+    {"28 Feb 2000 00:00:00",
+     {000000, 00, 00, 00, 28, 1, 2000, 1, 58, {-28800, 0}}},
+    {"2/28/00     00:00:00",
+     {000000, 00, 00, 00, 28, 1, 2000, 1, 58, {-28800, 0}}},
+    {"2/28/2000   00:00:00",
+     {000000, 00, 00, 00, 28, 1, 2000, 1, 58, {-28800, 0}}},
+    {"2-28-00     00:00:00",
+     {000000, 00, 00, 00, 28, 1, 2000, 1, 58, {-28800, 0}}},
+    {"2-28-2000   00:00:00",
+     {000000, 00, 00, 00, 28, 1, 2000, 1, 58, {-28800, 0}}},
+    {"02-28-00    00:00:00",
+     {000000, 00, 00, 00, 28, 1, 2000, 1, 58, {-28800, 0}}},
+    {"02-28-2000  00:00:00",
+     {000000, 00, 00, 00, 28, 1, 2000, 1, 58, {-28800, 0}}},
 
     /* 29-Feb-2000 */
-    { "29 Feb 2000 00:00:00",           { 000000,  00, 00, 00,    29,   1, 2000, 2,    59,   {-28800, 0 }}},
-    { "2/29/00     00:00:00",           { 000000,  00, 00, 00,    29,   1, 2000, 2,    59,   {-28800, 0 }}},
-    { "2/29/2000   00:00:00",           { 000000,  00, 00, 00,    29,   1, 2000, 2,    59,   {-28800, 0 }}},
-    { "2-29-00     00:00:00",           { 000000,  00, 00, 00,    29,   1, 2000, 2,    59,   {-28800, 0 }}},
-    { "2-29-2000   00:00:00",           { 000000,  00, 00, 00,    29,   1, 2000, 2,    59,   {-28800, 0 }}},
-    { "02-29-00    00:00:00",           { 000000,  00, 00, 00,    29,   1, 2000, 2,    59,   {-28800, 0 }}},
-    { "02-29-2000  00:00:00",           { 000000,  00, 00, 00,    29,   1, 2000, 2,    59,   {-28800, 0 }}},
+    {"29 Feb 2000 00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2000, 2, 59, {-28800, 0}}},
+    {"2/29/00     00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2000, 2, 59, {-28800, 0}}},
+    {"2/29/2000   00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2000, 2, 59, {-28800, 0}}},
+    {"2-29-00     00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2000, 2, 59, {-28800, 0}}},
+    {"2-29-2000   00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2000, 2, 59, {-28800, 0}}},
+    {"02-29-00    00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2000, 2, 59, {-28800, 0}}},
+    {"02-29-2000  00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2000, 2, 59, {-28800, 0}}},
 
     /* 01-Mar-2000 */
-    { "01 Mar 2000 00:00:00",           { 000000,  00, 00, 00,     1,   2, 2000, 3,    60,   {-28800, 0 }}},
-    { "3/1/00      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2000, 3,    60,   {-28800, 0 }}},
-    { "3/1/2000    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2000, 3,    60,   {-28800, 0 }}},
-    { "3-1-00      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2000, 3,    60,   {-28800, 0 }}},
-    { "03-01-00    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2000, 3,    60,   {-28800, 0 }}},
-    { "03-01-2000  00:00:00",           { 000000,  00, 00, 00,     1,   2, 2000, 3,    60,   {-28800, 0 }}},
+    {"01 Mar 2000 00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2000, 3, 60, {-28800, 0}}},
+    {"3/1/00      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2000, 3, 60, {-28800, 0}}},
+    {"3/1/2000    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2000, 3, 60, {-28800, 0}}},
+    {"3-1-00      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2000, 3, 60, {-28800, 0}}},
+    {"03-01-00    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2000, 3, 60, {-28800, 0}}},
+    {"03-01-2000  00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2000, 3, 60, {-28800, 0}}},
 
     /* "Sun". 31-Dec-2000 */
-    { "31 Dec 2000 00:00:00",           { 000000,  00, 00, 00,    31,  11, 2000, 0,   365,   {-28800, 0 }}},
-    { "12/31/00    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2000, 0,   365,   {-28800, 0 }}},
-    { "12/31/2000  00:00:00",           { 000000,  00, 00, 00,    31,  11, 2000, 0,   365,   {-28800, 0 }}},
-    { "12-31-00    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2000, 0,   365,   {-28800, 0 }}},
-    { "12-31-2000  00:00:00",           { 000000,  00, 00, 00,    31,  11, 2000, 0,   365,   {-28800, 0 }}},
-    { "00-12-31    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2000, 0,   365,   {-28800, 0 }}},
-    { "00/12/31    00:00:00",           { 000000,  00, 00, 00,    31,  11, 2000, 0,   365,   {-28800, 0 }}},
+    {"31 Dec 2000 00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2000, 0, 365, {-28800, 0}}},
+    {"12/31/00    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2000, 0, 365, {-28800, 0}}},
+    {"12/31/2000  00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2000, 0, 365, {-28800, 0}}},
+    {"12-31-00    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2000, 0, 365, {-28800, 0}}},
+    {"12-31-2000  00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2000, 0, 365, {-28800, 0}}},
+    {"00-12-31    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2000, 0, 365, {-28800, 0}}},
+    {"00/12/31    00:00:00",
+     {000000, 00, 00, 00, 31, 11, 2000, 0, 365, {-28800, 0}}},
 
     /* "Sun". 01-Jan-2001 */
-    { "01 Jan 2001 00:00:00",           { 000000,  00, 00, 00,     1,   0, 2001, 1,     0,   {-28800, 0 }}},
-    { "1/1/01      00:00:00",           { 000000,  00, 00, 00,     1,   0, 2001, 1,     0,   {-28800, 0 }}},
-    { "1/1/2001    00:00:00",           { 000000,  00, 00, 00,     1,   0, 2001, 1,     0,   {-28800, 0 }}},
-    { "1-1-01      00:00:00",           { 000000,  00, 00, 00,     1,   0, 2001, 1,     0,   {-28800, 0 }}},
-    { "1-1-2001    00:00:00",           { 000000,  00, 00, 00,     1,   0, 2001, 1,     0,   {-28800, 0 }}},
-    { "01-01-01    00:00:00",           { 000000,  00, 00, 00,     1,   0, 2001, 1,     0,   {-28800, 0 }}},
-    { "Saturday 01-01-2001  00:00:00",  { 000000,  00, 00, 00,     1,   0, 2001, 1,     0,   {-28800, 0 }}},
+    {"01 Jan 2001 00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2001, 1, 0, {-28800, 0}}},
+    {"1/1/01      00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2001, 1, 0, {-28800, 0}}},
+    {"1/1/2001    00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2001, 1, 0, {-28800, 0}}},
+    {"1-1-01      00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2001, 1, 0, {-28800, 0}}},
+    {"1-1-2001    00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2001, 1, 0, {-28800, 0}}},
+    {"01-01-01    00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2001, 1, 0, {-28800, 0}}},
+    {"Saturday 01-01-2001  00:00:00",
+     {000000, 00, 00, 00, 1, 0, 2001, 1, 0, {-28800, 0}}},
 
     /* 01-Mar-2001 */
-    { "01 Mar 2001 00:00:00",           { 000000,  00, 00, 00,     1,   2, 2001, 4,    59,   {-28800, 0 }}},
-    { "3/1/01      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2001, 4,    59,   {-28800, 0 }}},
-    { "3/1/2001    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2001, 4,    59,   {-28800, 0 }}},
-    { "3-1-01      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2001, 4,    59,   {-28800, 0 }}},
-    { "3-1-2001    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2001, 4,    59,   {-28800, 0 }}},
-    { "03-01-01    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2001, 4,    59,   {-28800, 0 }}},
-    { "03-01-2001  00:00:00",           { 000000,  00, 00, 00,     1,   2, 2001, 4,    59,   {-28800, 0 }}},
+    {"01 Mar 2001 00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2001, 4, 59, {-28800, 0}}},
+    {"3/1/01      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2001, 4, 59, {-28800, 0}}},
+    {"3/1/2001    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2001, 4, 59, {-28800, 0}}},
+    {"3-1-01      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2001, 4, 59, {-28800, 0}}},
+    {"3-1-2001    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2001, 4, 59, {-28800, 0}}},
+    {"03-01-01    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2001, 4, 59, {-28800, 0}}},
+    {"03-01-2001  00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2001, 4, 59, {-28800, 0}}},
 
     /* 29-Feb-2004 */
-    { "29 Feb 2004 00:00:00",           { 000000,  00, 00, 00,    29,   1, 2004, 0,    59,   {-28800, 0 }}},
-    { "2/29/04     00:00:00",           { 000000,  00, 00, 00,    29,   1, 2004, 0,    59,   {-28800, 0 }}},
-    { "2/29/2004   00:00:00",           { 000000,  00, 00, 00,    29,   1, 2004, 0,    59,   {-28800, 0 }}},
-    { "2-29-04     00:00:00",           { 000000,  00, 00, 00,    29,   1, 2004, 0,    59,   {-28800, 0 }}},
-    { "2-29-2004   00:00:00",           { 000000,  00, 00, 00,    29,   1, 2004, 0,    59,   {-28800, 0 }}},
+    {"29 Feb 2004 00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2004, 0, 59, {-28800, 0}}},
+    {"2/29/04     00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2004, 0, 59, {-28800, 0}}},
+    {"2/29/2004   00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2004, 0, 59, {-28800, 0}}},
+    {"2-29-04     00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2004, 0, 59, {-28800, 0}}},
+    {"2-29-2004   00:00:00",
+     {000000, 00, 00, 00, 29, 1, 2004, 0, 59, {-28800, 0}}},
 
     /* 01-Mar-2004 */
-    { "01 Mar 2004 00:00:00",           { 000000,  00, 00, 00,     1,   2, 2004, 1,    60,   {-28800, 0 }}},
-    { "3/1/04      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2004, 1,    60,   {-28800, 0 }}},
-    { "3/1/2004    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2004, 1,    60,   {-28800, 0 }}},
-    { "3-1-04      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2004, 1,    60,   {-28800, 0 }}},
-    { "3-1-2004    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2004, 1,    60,   {-28800, 0 }}},
-    { "03-01-04    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2004, 1,    60,   {-28800, 0 }}},
-    { "03-01-2004  00:00:00",           { 000000,  00, 00, 00,     1,   2, 2004, 1,    60,   {-28800, 0 }}},
+    {"01 Mar 2004 00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2004, 1, 60, {-28800, 0}}},
+    {"3/1/04      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2004, 1, 60, {-28800, 0}}},
+    {"3/1/2004    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2004, 1, 60, {-28800, 0}}},
+    {"3-1-04      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2004, 1, 60, {-28800, 0}}},
+    {"3-1-2004    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2004, 1, 60, {-28800, 0}}},
+    {"03-01-04    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2004, 1, 60, {-28800, 0}}},
+    {"03-01-2004  00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2004, 1, 60, {-28800, 0}}},
 
     /* 01-Mar-2005 */
-    { "01 Mar 2005 00:00:00",           { 000000,  00, 00, 00,     1,   2, 2005, 2,    59,   {-28800, 0 }}},
-    { "3/1/05      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2005, 2,    59,   {-28800, 0 }}},
-    { "3/1/2005    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2005, 2,    59,   {-28800, 0 }}},
-    { "3-1-05      00:00:00",           { 000000,  00, 00, 00,     1,   2, 2005, 2,    59,   {-28800, 0 }}},
-    { "3-1-2005    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2005, 2,    59,   {-28800, 0 }}},
-    { "03-01-05    00:00:00",           { 000000,  00, 00, 00,     1,   2, 2005, 2,    59,   {-28800, 0 }}},
-    { "03-01-2005  00:00:00",           { 000000,  00, 00, 00,     1,   2, 2005, 2,    59,   {-28800, 0 }}},
+    {"01 Mar 2005 00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2005, 2, 59, {-28800, 0}}},
+    {"3/1/05      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2005, 2, 59, {-28800, 0}}},
+    {"3/1/2005    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2005, 2, 59, {-28800, 0}}},
+    {"3-1-05      00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2005, 2, 59, {-28800, 0}}},
+    {"3-1-2005    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2005, 2, 59, {-28800, 0}}},
+    {"03-01-05    00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2005, 2, 59, {-28800, 0}}},
+    {"03-01-2005  00:00:00",
+     {000000, 00, 00, 00, 1, 2, 2005, 2, 59, {-28800, 0}}},
 
     /* last element. string must be null */
-    { NULL }
-}; /* end array of ParseTest */
+    {NULL}}; /* end array of ParseTest */
 
 /*
 ** TestParseTime() -- Test PR_ParseTimeString() for y2k compliance
@@ -682,118 +797,97 @@ static ParseTest parseArray[] =
 **
 **
 */
-static PRStatus TestParseTime( void )
-{
-    ParseTest       *ptp = parseArray;
-    PRTime          ct;
-    PRExplodedTime  cet;
-    char            *sp = ptp->sDate;
-    PRStatus        rc;
-    PRStatus        rv = PR_SUCCESS;
+static PRStatus TestParseTime(void) {
+  ParseTest* ptp = parseArray;
+  PRTime ct;
+  PRExplodedTime cet;
+  char* sp = ptp->sDate;
+  PRStatus rc;
+  PRStatus rv = PR_SUCCESS;
 
-    while ( sp != NULL)
-    {
-        rc = PR_ParseTimeString( sp, PR_FALSE, &ct );
-        if ( PR_FAILURE == rc )
-        {
-            printf("TestParseTime(): PR_ParseTimeString() failed to convert: %s\n", sp );
-            rv = PR_FAILURE;
-            failed_already = 1;
-        }
-        else
-        {
-            PR_ExplodeTime( ct, PR_LocalTimeParameters, &cet );
+  while (sp != NULL) {
+    rc = PR_ParseTimeString(sp, PR_FALSE, &ct);
+    if (PR_FAILURE == rc) {
+      printf("TestParseTime(): PR_ParseTimeString() failed to convert: %s\n",
+             sp);
+      rv = PR_FAILURE;
+      failed_already = 1;
+    } else {
+      PR_ExplodeTime(ct, PR_LocalTimeParameters, &cet);
 
-            if ( !ExplodedTimeIsEqual( &cet, &ptp->et ))
-            {
-                printf("TestParseTime(): Exploded time compare failed: %s\n", sp );
-                if ( debug_mode )
-                {
-                    PrintExplodedTime( &cet );
-                    printf("\n");
-                    PrintExplodedTime( &ptp->et );
-                    printf("\n");
-                }
-
-                rv = PR_FAILURE;
-                failed_already = 1;
-            }
+      if (!ExplodedTimeIsEqual(&cet, &ptp->et)) {
+        printf("TestParseTime(): Exploded time compare failed: %s\n", sp);
+        if (debug_mode) {
+          PrintExplodedTime(&cet);
+          printf("\n");
+          PrintExplodedTime(&ptp->et);
+          printf("\n");
         }
 
-        /* point to next element in array, keep going */
-        ptp++;
-        sp = ptp->sDate;
-    } /* end while() */
+        rv = PR_FAILURE;
+        failed_already = 1;
+      }
+    }
 
-    return( rv );
+    /* point to next element in array, keep going */
+    ptp++;
+    sp = ptp->sDate;
+  } /* end while() */
+
+  return (rv);
 } /* end TestParseTime() */
 
-int main(int argc, char** argv)
-{
-    /* The command line argument: -d is used to determine if the test is being run
-    in debug mode. The regress tool requires only one line output:PASS or FAIL.
-    All of the printfs associated with this test has been handled with a if (debug_mode)
-    test.
-    Usage: test_name -d
-    */
-    PLOptStatus os;
-    PLOptState *opt;
+int main(int argc, char** argv) {
+  /* The command line argument: -d is used to determine if the test is being run
+  in debug mode. The regress tool requires only one line output:PASS or FAIL.
+  All of the printfs associated with this test has been handled with a if
+  (debug_mode) test. Usage: test_name -d
+  */
+  PLOptStatus os;
+  PLOptState* opt;
 
-    PR_STDIO_INIT();
-    opt = PL_CreateOptState(argc, argv, "d");
-    while (PL_OPT_EOL != (os = PL_GetNextOpt(opt)))
-    {
-        if (PL_OPT_BAD == os) {
-            continue;
-        }
-        switch (opt->option)
-        {
-            case 'd':  /* debug mode */
-                debug_mode = PR_TRUE;
-                break;
-            default:
-                break;
-        }
+  PR_STDIO_INIT();
+  opt = PL_CreateOptState(argc, argv, "d");
+  while (PL_OPT_EOL != (os = PL_GetNextOpt(opt))) {
+    if (PL_OPT_BAD == os) {
+      continue;
     }
-    PL_DestroyOptState(opt);
+    switch (opt->option) {
+      case 'd': /* debug mode */
+        debug_mode = PR_TRUE;
+        break;
+      default:
+        break;
+    }
+  }
+  PL_DestroyOptState(opt);
 
-    /* main test */
+  /* main test */
 
-    PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
-    lm = PR_NewLogModule("test");
+  PR_Init(PR_USER_THREAD, PR_PRIORITY_NORMAL, 0);
+  lm = PR_NewLogModule("test");
 
-    if ( PR_FAILURE == TestExplodeImplodeTime())
-    {
-        PR_LOG( lm, PR_LOG_ERROR,
-                ("TestExplodeImplodeTime() failed"));
-    }
-    else {
-        printf("Test 1: Calendar Time Test passed\n");
-    }
+  if (PR_FAILURE == TestExplodeImplodeTime()) {
+    PR_LOG(lm, PR_LOG_ERROR, ("TestExplodeImplodeTime() failed"));
+  } else {
+    printf("Test 1: Calendar Time Test passed\n");
+  }
 
-    if ( PR_FAILURE == TestNormalizeTime())
-    {
-        PR_LOG( lm, PR_LOG_ERROR,
-                ("TestNormalizeTime() failed"));
-    }
-    else {
-        printf("Test 2: Normalize Time Test passed\n");
-    }
+  if (PR_FAILURE == TestNormalizeTime()) {
+    PR_LOG(lm, PR_LOG_ERROR, ("TestNormalizeTime() failed"));
+  } else {
+    printf("Test 2: Normalize Time Test passed\n");
+  }
 
-    if ( PR_FAILURE == TestParseTime())
-    {
-        PR_LOG( lm, PR_LOG_ERROR,
-                ("TestParseTime() failed"));
-    }
-    else {
-        printf("Test 3: Parse Time Test passed\n");
-    }
+  if (PR_FAILURE == TestParseTime()) {
+    PR_LOG(lm, PR_LOG_ERROR, ("TestParseTime() failed"));
+  } else {
+    printf("Test 3: Parse Time Test passed\n");
+  }
 
-    if (failed_already) {
-        return 1;
-    }
-    else {
-        return 0;
-    }
+  if (failed_already) {
+    return 1;
+  } else {
+    return 0;
+  }
 } /* end main() y2k.c */
-

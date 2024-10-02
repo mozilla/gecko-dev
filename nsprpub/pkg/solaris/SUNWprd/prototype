@@ -79,7 +79,7 @@ f none usr/include/mps/prtpool.h 0644 root bin
 f none usr/include/mps/prtrace.h 0644 root bin
 f none usr/include/mps/prtypes.h 0644 root bin
 f none usr/include/mps/prvrsion.h 0644 root bin
-f none usr/include/mps/prwin16.h 0644 root bin
+f none usr/include/mps/prwin.h 0644 root bin
 f none usr/include/mps/plarenas.h 0644 root bin
 f none usr/include/mps/plarena.h 0644 root bin
 f none usr/include/mps/plbase64.h 0644 root bin

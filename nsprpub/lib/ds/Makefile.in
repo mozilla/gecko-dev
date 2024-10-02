@@ -61,12 +61,6 @@ endif
 MKSHLIB += -R '$$ORIGIN'
 endif
 
-ifeq ($(OS_ARCH),OS2)
-MAPFILE = $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).def
-GARBAGE += $(MAPFILE)
-MKSHLIB += $(MAPFILE)
-endif
-
 EXTRA_LIBS = $(LIBNSPR)
 
 # On SCOOS, we can't link with extra libraries when

@@ -28,98 +28,97 @@
 #define FD_CACHE_SIZE 1024
 #define NUM_FDS 20
 
-int main(int argc, char **argv)
-{
-    int i;
-    PRFileDesc *fds[NUM_FDS];
-    PRFileDesc *savefds[NUM_FDS];
-    int numfds = sizeof(fds)/sizeof(fds[0]);
+int main(int argc, char** argv) {
+  int i;
+  PRFileDesc* fds[NUM_FDS];
+  PRFileDesc* savefds[NUM_FDS];
+  int numfds = sizeof(fds) / sizeof(fds[0]);
 
-    PR_SetFDCacheSize(0, FD_CACHE_SIZE);
+  PR_SetFDCacheSize(0, FD_CACHE_SIZE);
 
-    /* Add some fd's to the fd cache. */
-    for (i = 0; i < numfds; i++) {
-        savefds[i] = PR_NewTCPSocket();
-        if (NULL == savefds[i]) {
-            fprintf(stderr, "PR_NewTCPSocket failed\n");
-            exit(1);
-        }
+  /* Add some fd's to the fd cache. */
+  for (i = 0; i < numfds; i++) {
+    savefds[i] = PR_NewTCPSocket();
+    if (NULL == savefds[i]) {
+      fprintf(stderr, "PR_NewTCPSocket failed\n");
+      exit(1);
     }
-    for (i = 0; i < numfds; i++) {
-        if (PR_Close(savefds[i]) == PR_FAILURE) {
-            fprintf(stderr, "PR_Close failed\n");
-            exit(1);
-        }
+  }
+  for (i = 0; i < numfds; i++) {
+    if (PR_Close(savefds[i]) == PR_FAILURE) {
+      fprintf(stderr, "PR_Close failed\n");
+      exit(1);
     }
+  }
 
-    /*
-     * Create some fd's.  These fd's should come from
-     * the fd cache.  Verify the FIFO ordering of the fd
-     * cache.
-     */
-    for (i = 0; i < numfds; i++) {
-        fds[i] = PR_NewTCPSocket();
-        if (NULL == fds[i]) {
-            fprintf(stderr, "PR_NewTCPSocket failed\n");
-            exit(1);
-        }
-        if (fds[i] != savefds[i]) {
-            fprintf(stderr, "fd cache malfunctioned\n");
-            exit(1);
-        }
+  /*
+   * Create some fd's.  These fd's should come from
+   * the fd cache.  Verify the FIFO ordering of the fd
+   * cache.
+   */
+  for (i = 0; i < numfds; i++) {
+    fds[i] = PR_NewTCPSocket();
+    if (NULL == fds[i]) {
+      fprintf(stderr, "PR_NewTCPSocket failed\n");
+      exit(1);
     }
-    /* Put the fd's back to the fd cache. */
-    for (i = 0; i < numfds; i++) {
-        if (PR_Close(savefds[i]) == PR_FAILURE) {
-            fprintf(stderr, "PR_Close failed\n");
-            exit(1);
-        }
+    if (fds[i] != savefds[i]) {
+      fprintf(stderr, "fd cache malfunctioned\n");
+      exit(1);
     }
+  }
+  /* Put the fd's back to the fd cache. */
+  for (i = 0; i < numfds; i++) {
+    if (PR_Close(savefds[i]) == PR_FAILURE) {
+      fprintf(stderr, "PR_Close failed\n");
+      exit(1);
+    }
+  }
 
-    /* Switch to the fd cache. */
-    PR_SetFDCacheSize(0, FD_CACHE_SIZE);
+  /* Switch to the fd cache. */
+  PR_SetFDCacheSize(0, FD_CACHE_SIZE);
 
-    for (i = 0; i < numfds; i++) {
-        fds[i] = PR_NewTCPSocket();
-        if (NULL == fds[i]) {
-            fprintf(stderr, "PR_NewTCPSocket failed\n");
-            exit(1);
-        }
+  for (i = 0; i < numfds; i++) {
+    fds[i] = PR_NewTCPSocket();
+    if (NULL == fds[i]) {
+      fprintf(stderr, "PR_NewTCPSocket failed\n");
+      exit(1);
+    }
 #ifdef ORDER_PRESERVED
-        if (fds[i] != savefds[i]) {
-            fprintf(stderr, "fd cache malfunctioned\n");
-            exit(1);
-        }
+    if (fds[i] != savefds[i]) {
+      fprintf(stderr, "fd cache malfunctioned\n");
+      exit(1);
+    }
 #else
-        savefds[i] = fds[i];
+    savefds[i] = fds[i];
 #endif
+  }
+  for (i = 0; i < numfds; i++) {
+    if (PR_Close(savefds[i]) == PR_FAILURE) {
+      fprintf(stderr, "PR_Close failed\n");
+      exit(1);
     }
-    for (i = 0; i < numfds; i++) {
-        if (PR_Close(savefds[i]) == PR_FAILURE) {
-            fprintf(stderr, "PR_Close failed\n");
-            exit(1);
-        }
-    }
+  }
 
-    for (i = 0; i < numfds; i++) {
-        fds[i] = PR_NewTCPSocket();
-        if (NULL == fds[i]) {
-            fprintf(stderr, "PR_NewTCPSocket failed\n");
-            exit(1);
-        }
-        if (fds[i] != savefds[i]) {
-            fprintf(stderr, "fd cache malfunctioned\n");
-            exit(1);
-        }
+  for (i = 0; i < numfds; i++) {
+    fds[i] = PR_NewTCPSocket();
+    if (NULL == fds[i]) {
+      fprintf(stderr, "PR_NewTCPSocket failed\n");
+      exit(1);
     }
-    for (i = 0; i < numfds; i++) {
-        if (PR_Close(savefds[i]) == PR_FAILURE) {
-            fprintf(stderr, "PR_Close failed\n");
-            exit(1);
-        }
+    if (fds[i] != savefds[i]) {
+      fprintf(stderr, "fd cache malfunctioned\n");
+      exit(1);
     }
+  }
+  for (i = 0; i < numfds; i++) {
+    if (PR_Close(savefds[i]) == PR_FAILURE) {
+      fprintf(stderr, "PR_Close failed\n");
+      exit(1);
+    }
+  }
 
-    PR_Cleanup();
-    printf("PASS\n");
-    return 0;
+  PR_Cleanup();
+  printf("PASS\n");
+  return 0;
 }

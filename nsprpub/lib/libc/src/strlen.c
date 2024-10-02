@@ -9,39 +9,35 @@
 #include <string.h>
 
 PR_IMPLEMENT(PRUint32)
-PL_strlen(const char *str)
-{
-    size_t l;
+PL_strlen(const char* str) {
+  size_t l;
 
-    if( (const char *)0 == str ) {
-        return 0;
+  if ((const char*)0 == str) {
+    return 0;
+  }
+
+  l = strlen(str);
+
+  /* error checking in case we have a 64-bit platform -- make sure
+   * we don't have ultra long strings that overflow an int32
+   */
+  if (sizeof(PRUint32) < sizeof(size_t)) {
+    if (l > PR_INT32_MAX) {
+      PR_Assert("l <= PR_INT32_MAX", __FILE__, __LINE__);
     }
+  }
 
-    l = strlen(str);
-
-    /* error checking in case we have a 64-bit platform -- make sure
-     * we don't have ultra long strings that overflow an int32
-     */
-    if( sizeof(PRUint32) < sizeof(size_t) )
-    {
-        if( l > PR_INT32_MAX ) {
-            PR_Assert("l <= PR_INT32_MAX", __FILE__, __LINE__);
-        }
-    }
-
-    return (PRUint32)l;
+  return (PRUint32)l;
 }
 
 PR_IMPLEMENT(PRUint32)
-PL_strnlen(const char *str, PRUint32 max)
-{
-    register const char *s;
+PL_strnlen(const char* str, PRUint32 max) {
+  register const char* s;
 
-    if( (const char *)0 == str ) {
-        return 0;
-    }
-    for( s = str; max && *s; s++, max-- )
-        ;
+  if ((const char*)0 == str) {
+    return 0;
+  }
+  for (s = str; max && *s; s++, max--);
 
-    return (PRUint32)(s - str);
+  return (PRUint32)(s - str);
 }

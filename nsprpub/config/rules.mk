@@ -74,13 +74,13 @@ endif
 #
 
 ifdef LIBRARY_NAME
-ifeq (,$(filter-out WINNT WINCE OS2,$(OS_ARCH)))
+ifeq (,$(filter-out WINNT WINCE,$(OS_ARCH)))
 
 #
 # Win95 and OS/2 require library names conforming to the 8.3 rule.
 # other platforms do not.
 #
-ifeq (,$(filter-out WIN95 WINCE WINMO OS2,$(OS_TARGET)))
+ifeq (,$(filter-out WIN95 WINCE WINMO,$(OS_TARGET)))
 SHARED_LIBRARY	= $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).$(DLL_SUFFIX)
 SHARED_LIB_PDB	= $(OBJDIR)/$(LIBRARY_NAME)$(LIBRARY_VERSION).pdb
 ifdef MSC_VER
@@ -112,7 +112,7 @@ endif
 endif
 
 ifndef TARGETS
-ifeq (,$(filter-out WINNT WINCE OS2,$(OS_ARCH)))
+ifeq (,$(filter-out WINNT WINCE,$(OS_ARCH)))
 TARGETS		= $(LIBRARY) $(SHARED_LIBRARY) $(IMPORT_LIBRARY)
 ifdef MOZ_DEBUG_SYMBOLS
 ifdef MSC_VER
@@ -289,17 +289,11 @@ $(LIBRARY): $(STATICLIB_OBJS)
 	$(AR) $(AR_FLAGS) $(STATICLIB_OBJS) $(AR_EXTRA_ARGS)
 	$(RANLIB) $@
 
-ifeq ($(OS_TARGET), OS2)
-$(IMPORT_LIBRARY): $(MAPFILE)
-	rm -f $@
-	$(IMPLIB) $@ $(MAPFILE)
-else
 ifeq (,$(filter-out WIN95 WINCE WINMO,$(OS_TARGET)))
 # PDBs and import libraries need to depend on the shared library to
 # order dependencies properly.
 $(IMPORT_LIBRARY): $(SHARED_LIBRARY)
 $(SHARED_LIB_PDB): $(SHARED_LIBRARY)
-endif
 endif
 
 $(SHARED_LIBRARY): $(OBJS) $(RES) $(MAPFILE)
@@ -396,24 +390,13 @@ ifeq ($(OS_ARCH),SunOS)
 	grep -v ';-' $< | \
 	sed -e 's,;+,,' -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,;,' > $@
 endif
-ifeq ($(OS_ARCH),OS2)
-	echo LIBRARY $(LIBRARY_NAME)$(LIBRARY_VERSION) INITINSTANCE TERMINSTANCE > $@
-	echo PROTMODE >> $@
-	echo CODE    LOADONCALL MOVEABLE DISCARDABLE >> $@
-	echo DATA    PRELOAD MOVEABLE MULTIPLE NONSHARED >> $@
-	echo EXPORTS >> $@
-	grep -v ';+' $< | grep -v ';-' | \
-	sed -e 's; DATA ;;' -e 's,;;,,' -e 's,;.*,,' -e 's,\([\t ]*\),\1_,' | \
-	awk 'BEGIN {ord=1;} { print($$0 " @" ord " RESIDENTNAME"); ord++;}'	>> $@
-	$(ADD_TO_DEF_FILE)
-endif
 
 #
 # Translate source filenames to absolute paths. This is required for
-# debuggers under Windows and OS/2 to find source files automatically.
+# debuggers under Windows to find source files automatically.
 #
 
-ifeq (,$(filter-out AIX OS2,$(OS_ARCH)))
+ifeq (,$(filter-out AIX,$(OS_ARCH)))
 NEED_ABSOLUTE_PATH = 1
 endif
 

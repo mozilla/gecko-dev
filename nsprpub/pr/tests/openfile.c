@@ -17,97 +17,95 @@
 
 #define TEMPLATE_FILE_NAME "template.txt"
 
-int main(int argc, char **argv)
-{
-    FILE *template;
-    char buf[32];
-    PRInt32 nbytes;
-    PRFileDesc *fd;
+int main(int argc, char** argv) {
+  FILE* template;
+  char buf[32];
+  PRInt32 nbytes;
+  PRFileDesc* fd;
 
+  /* Write in text mode.  Let stdio deal with line endings. */
+  template = fopen(TEMPLATE_FILE_NAME, "w");
+  fputs("line 1\nline 2\n", template);
+  fclose(template);
 
-    /* Write in text mode.  Let stdio deal with line endings. */
-    template = fopen(TEMPLATE_FILE_NAME, "w");
-    fputs("line 1\nline 2\n", template);
-    fclose(template);
+  /* Read in binary mode */
+  fd = PR_OpenFile(TEMPLATE_FILE_NAME, PR_RDONLY, 0666);
+  nbytes = PR_Read(fd, buf, sizeof(buf));
+  PR_Close(fd);
+  PR_Delete(TEMPLATE_FILE_NAME);
 
-    /* Read in binary mode */
-    fd = PR_OpenFile(TEMPLATE_FILE_NAME, PR_RDONLY, 0666);
-    nbytes = PR_Read(fd, buf, sizeof(buf));
-    PR_Close(fd);
-    PR_Delete(TEMPLATE_FILE_NAME);
+  fd = PR_OpenFile("tfil0700.txt", PR_RDWR | PR_CREATE_FILE, 0700);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0700.txt", PR_RDWR | PR_CREATE_FILE, 0700);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
+  fd = PR_OpenFile("tfil0500.txt", PR_RDWR | PR_CREATE_FILE, 0500);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0500.txt", PR_RDWR | PR_CREATE_FILE, 0500);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
+  fd = PR_OpenFile("tfil0400.txt", PR_RDWR | PR_CREATE_FILE, 0400);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0400.txt", PR_RDWR | PR_CREATE_FILE, 0400);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
+  fd = PR_OpenFile("tfil0644.txt", PR_RDWR | PR_CREATE_FILE, 0644);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0644.txt", PR_RDWR | PR_CREATE_FILE, 0644);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
+  fd = PR_OpenFile("tfil0664.txt", PR_RDWR | PR_CREATE_FILE, 0664);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0664.txt", PR_RDWR | PR_CREATE_FILE, 0664);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
+  fd = PR_OpenFile("tfil0660.txt", PR_RDWR | PR_CREATE_FILE, 0660);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0660.txt", PR_RDWR | PR_CREATE_FILE, 0660);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
+  fd = PR_OpenFile("tfil0666.txt", PR_RDWR | PR_CREATE_FILE, 0666);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0666.txt", PR_RDWR | PR_CREATE_FILE, 0666);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
+  fd = PR_OpenFile("tfil0640.txt", PR_RDWR | PR_CREATE_FILE, 0640);
+  if (NULL == fd) {
+    fprintf(stderr, "PR_OpenFile failed (%d, %d)\n", PR_GetError(),
+            PR_GetOSError());
+    exit(1);
+  }
+  PR_Write(fd, buf, nbytes);
+  PR_Close(fd);
 
-    fd = PR_OpenFile("tfil0640.txt", PR_RDWR | PR_CREATE_FILE, 0640);
-    if (NULL == fd) {
-        fprintf(stderr, "PR_OpenFile failed (%d, %d)\n",
-                PR_GetError(), PR_GetOSError());
-        exit(1);
-    }
-    PR_Write(fd, buf, nbytes);
-    PR_Close(fd);
-
-    PR_Cleanup();
-    return 0;
+  PR_Cleanup();
+  return 0;
 }

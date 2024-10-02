@@ -14,11 +14,6 @@ include $(MOD_DEPTH)/config/autoconf.mk
 
 include $(topsrcdir)/config/config.mk
 
-ifeq ($(OS_TARGET), WIN16)
-OS_CFLAGS = $(OS_EXE_CFLAGS)
-endif
-
-
 DIRS =
 
 CSRCS =             \
@@ -26,7 +21,7 @@ CSRCS =             \
 	tail.c		    \
 	$(NULL)
 
-ifeq (,$(filter-out WINNT OS2,$(OS_ARCH)))
+ifeq (,$(filter-out WINNT,$(OS_ARCH)))
 PROG_SUFFIX = .exe
 else
 PROG_SUFFIX =
@@ -36,7 +31,7 @@ PROGS = $(addprefix $(OBJDIR)/, $(CSRCS:.c=$(PROG_SUFFIX)))
 
 TARGETS = $(PROGS)
 
-INCLUDES = -I$(dist_includedir) 
+INCLUDES = -I$(dist_includedir)
 
 NSPR_VERSION = 3
 
@@ -47,18 +42,9 @@ LIBPR = -lnspr$(NSPR_VERSION)
 LIBPLC = -lplc$(NSPR_VERSION)
 
 ifeq ($(OS_ARCH), WINNT)
-ifeq ($(OS_TARGET), WIN16)
-  LIBPR = $(dist_libdir)/nspr$(NSPR_VERSION).lib
-  LIBPLC= $(dist_libdir)/plc$(NSPR_VERSION).lib
-else
 LDOPTS = -NOLOGO -DEBUG -INCREMENTAL:NO
 LIBPR = $(dist_libdir)/libnspr$(NSPR_VERSION).$(LIB_SUFFIX)
 LIBPLC= $(dist_libdir)/libplc$(NSPR_VERSION).$(LIB_SUFFIX)
-endif
-endif
-
-ifeq ($(OS_ARCH),OS2)
-LDOPTS += -Zomf -Zlinker /PM:VIO
 endif
 
 ifneq ($(OS_ARCH), WINNT)
@@ -144,29 +130,9 @@ else
 $(OBJDIR)/%$(PROG_SUFFIX): $(OBJDIR)/%.$(OBJ_SUFFIX)
 	@$(MAKE_OBJDIR)
 ifeq ($(OS_ARCH), WINNT)
-ifeq ($(OS_TARGET),WIN16)
-	echo system windows >w16link
-	echo option map >>w16link
-	echo option stack=10K >>w16link
-	echo option heapsize=32K >>w16link
-	echo debug $(DEBUGTYPE) all >>w16link
-	echo name $@  >>w16link
-	echo file >>w16link
-	echo $<  >>w16link
-	echo library  >>w16link
-	echo $(LIBPR),	     >>w16link
-	echo $(LIBPLC),		 >>w16link
-	echo winsock.lib     >>w16link
-	wlink @w16link.
-else
 	link $(LDOPTS) $< $(LIBPR) $(LIBPLC) ws2_32.lib -out:$@
-endif
-else
-ifeq ($(OS_ARCH),OS2)
-	$(LINK) $(LDOPTS) $< $(LIBPR) $(LIBPLC) $(OS_LIBS) $(EXTRA_LIBS) -o $@
 else
 	$(CC) $(XCFLAGS) $< $(LDOPTS) $(LIBPR) $(LIBPLC) $(EXTRA_LIBS) -o $@
-endif
 endif
 endif
 

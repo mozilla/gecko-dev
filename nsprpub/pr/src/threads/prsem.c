@@ -11,34 +11,33 @@
 /*
 ** Create a new semaphore.
 */
-PR_IMPLEMENT(PRSemaphore*) PR_NewSem(PRUintn value)
-{
-    PRSemaphore *sem;
-    PRCondVar *cvar;
-    PRLock *lock;
+PR_IMPLEMENT(PRSemaphore*) PR_NewSem(PRUintn value) {
+  PRSemaphore* sem;
+  PRCondVar* cvar;
+  PRLock* lock;
 
-    sem = PR_NEWZAP(PRSemaphore);
-    if (sem) {
+  sem = PR_NEWZAP(PRSemaphore);
+  if (sem) {
 #ifdef HAVE_CVAR_BUILT_ON_SEM
-        _PR_MD_NEW_SEM(&sem->md, value);
+    _PR_MD_NEW_SEM(&sem->md, value);
 #else
-        lock = PR_NewLock();
-        if (!lock) {
-            PR_DELETE(sem);
-            return NULL;
-        }
-
-        cvar = PR_NewCondVar(lock);
-        if (!cvar) {
-            PR_DestroyLock(lock);
-            PR_DELETE(sem);
-            return NULL;
-        }
-        sem->cvar = cvar;
-        sem->count = value;
-#endif
+    lock = PR_NewLock();
+    if (!lock) {
+      PR_DELETE(sem);
+      return NULL;
     }
-    return sem;
+
+    cvar = PR_NewCondVar(lock);
+    if (!cvar) {
+      PR_DestroyLock(lock);
+      PR_DELETE(sem);
+      return NULL;
+    }
+    sem->cvar = cvar;
+    sem->count = value;
+#endif
+  }
+  return sem;
 }
 
 /*
@@ -46,17 +45,16 @@ PR_IMPLEMENT(PRSemaphore*) PR_NewSem(PRUintn value)
 ** The caller is responsible for guaranteeing that the semaphore is
 ** no longer in use.
 */
-PR_IMPLEMENT(void) PR_DestroySem(PRSemaphore *sem)
-{
+PR_IMPLEMENT(void) PR_DestroySem(PRSemaphore* sem) {
 #ifdef HAVE_CVAR_BUILT_ON_SEM
-    _PR_MD_DESTROY_SEM(&sem->md);
+  _PR_MD_DESTROY_SEM(&sem->md);
 #else
-    PR_ASSERT(sem->waiters == 0);
+  PR_ASSERT(sem->waiters == 0);
 
-    PR_DestroyLock(sem->cvar->lock);
-    PR_DestroyCondVar(sem->cvar);
+  PR_DestroyLock(sem->cvar->lock);
+  PR_DestroyCondVar(sem->cvar);
 #endif
-    PR_DELETE(sem);
+  PR_DELETE(sem);
 }
 
 /*
@@ -73,29 +71,28 @@ PR_IMPLEMENT(void) PR_DestroySem(PRSemaphore *sem)
 ** This routine can return PR_PENDING_INTERRUPT if the waiting thread
 ** has been interrupted.
 */
-PR_IMPLEMENT(PRStatus) PR_WaitSem(PRSemaphore *sem)
-{
-    PRStatus status = PR_SUCCESS;
+PR_IMPLEMENT(PRStatus) PR_WaitSem(PRSemaphore* sem) {
+  PRStatus status = PR_SUCCESS;
 
 #ifdef HAVE_CVAR_BUILT_ON_SEM
-    return _PR_MD_WAIT_SEM(&sem->md);
+  return _PR_MD_WAIT_SEM(&sem->md);
 #else
-    PR_Lock(sem->cvar->lock);
-    while (sem->count == 0) {
-        sem->waiters++;
-        status = PR_WaitCondVar(sem->cvar, PR_INTERVAL_NO_TIMEOUT);
-        sem->waiters--;
-        if (status != PR_SUCCESS) {
-            break;
-        }
+  PR_Lock(sem->cvar->lock);
+  while (sem->count == 0) {
+    sem->waiters++;
+    status = PR_WaitCondVar(sem->cvar, PR_INTERVAL_NO_TIMEOUT);
+    sem->waiters--;
+    if (status != PR_SUCCESS) {
+      break;
     }
-    if (status == PR_SUCCESS) {
-        sem->count--;
-    }
-    PR_Unlock(sem->cvar->lock);
+  }
+  if (status == PR_SUCCESS) {
+    sem->count--;
+  }
+  PR_Unlock(sem->cvar->lock);
 #endif
 
-    return (status);
+  return (status);
 }
 
 /*
@@ -103,17 +100,16 @@ PR_IMPLEMENT(PRStatus) PR_WaitSem(PRSemaphore *sem)
 ** are blocked for the semaphore, then the scheduler will determine which ONE
 ** thread will be unblocked.
 */
-PR_IMPLEMENT(void) PR_PostSem(PRSemaphore *sem)
-{
+PR_IMPLEMENT(void) PR_PostSem(PRSemaphore* sem) {
 #ifdef HAVE_CVAR_BUILT_ON_SEM
-    _PR_MD_POST_SEM(&sem->md);
+  _PR_MD_POST_SEM(&sem->md);
 #else
-    PR_Lock(sem->cvar->lock);
-    if (sem->waiters) {
-        PR_NotifyCondVar(sem->cvar);
-    }
-    sem->count++;
-    PR_Unlock(sem->cvar->lock);
+  PR_Lock(sem->cvar->lock);
+  if (sem->waiters) {
+    PR_NotifyCondVar(sem->cvar);
+  }
+  sem->count++;
+  PR_Unlock(sem->cvar->lock);
 #endif
 }
 
@@ -124,18 +120,17 @@ PR_IMPLEMENT(void) PR_PostSem(PRSemaphore *sem)
 ** at the time of the call, but may not be the actual value when the
 ** caller inspects it. (FOR DEBUGGING ONLY)
 */
-PR_IMPLEMENT(PRUintn) PR_GetValueSem(PRSemaphore *sem)
-{
-    PRUintn rv;
+PR_IMPLEMENT(PRUintn) PR_GetValueSem(PRSemaphore* sem) {
+  PRUintn rv;
 
-#ifdef HAVE_CVAR_BUILT_ON_SEM
-    rv = _PR_MD_GET_VALUE_SEM(&sem->md);
-#else
-    PR_Lock(sem->cvar->lock);
-    rv = sem->count;
-    PR_Unlock(sem->cvar->lock);
-#endif
+#  ifdef HAVE_CVAR_BUILT_ON_SEM
+  rv = _PR_MD_GET_VALUE_SEM(&sem->md);
+#  else
+  PR_Lock(sem->cvar->lock);
+  rv = sem->count;
+  PR_Unlock(sem->cvar->lock);
+#  endif
 
-    return rv;
+  return rv;
 }
 #endif

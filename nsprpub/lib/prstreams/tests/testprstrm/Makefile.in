@@ -20,7 +20,7 @@ CXXSRCS =           \
 
 OBJS = $(addprefix $(OBJDIR)/,$(CXXSRCS:.cpp=.$(OBJ_SUFFIX)))
 
-ifeq (,$(filter-out WINNT OS2,$(OS_ARCH)))
+ifeq (,$(filter-out WINNT,$(OS_ARCH)))
 PROG_SUFFIX = .exe
 else
 PROG_SUFFIX =
@@ -47,10 +47,6 @@ ifeq ($(OS_ARCH), WINNT)
     LIBPR = $(dist_libdir)/libnspr$(MOD_MAJOR_VERSION).$(LIB_SUFFIX)
     LIBPRSTRMS = $(dist_libdir)/libprstrms$(MOD_MAJOR_VERSION).$(LIB_SUFFIX)
   endif
-endif
-
-ifeq ($(OS_ARCH),OS2)
-LDOPTS += -Zomf -Zlinker /PM:VIO -lstdcpp
 endif
 
 ifneq ($(OS_ARCH), WINNT)
@@ -97,10 +93,6 @@ EXTRA_LIBS = -lsocket
 export LD_RUN_PATH = $(PWD)/$(dist_libdir)
 endif
 
-ifeq ($(OS_ARCH), UNIXWARE)
-export LD_RUN_PATH = $(PWD)/$(dist_libdir)
-endif
-
 #####################################################
 #
 # The rules
@@ -144,11 +136,7 @@ $(OBJDIR)/%$(PROG_SUFFIX): $(OBJDIR)/%.$(OBJ_SUFFIX)
 ifeq ($(OS_ARCH), WINNT)
 	link $(LDOPTS) $< $(LIBPR) $(LIBPRSTRMS) ws2_32.lib -out:$@
 else
-ifeq ($(OS_ARCH),OS2)
-	$(LINK) $(EXEFLAGS) $(LDOPTS) $< $(LIBPR) $(LIBPRSTRMS) $(OS_LIBS) $(EXTRA_LIBS)
-else
 	$(CCC) $(XCFLAGS) $< $(LDOPTS) $(LIBPR) $(LIBPRSTRMS) $(EXTRA_LIBS) -o $@
-endif
 endif
 endif
 

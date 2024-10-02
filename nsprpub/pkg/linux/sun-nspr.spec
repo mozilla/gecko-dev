@@ -1,10 +1,10 @@
-Summary: Netscape Portable Runtime
-Name: %{name}
-Vendor: Sun Microsystems, Inc.
-Version: %{version}
-Release: %{release}
-Copyright: Copyright 2005 Sun Microsystems, Inc.  All rights reserved.  Use is subject to license terms.  Also under other license(s) as shown at the Description field.
-Distribution: Sun Java(TM) Enterprise System
+Summary : Netscape Portable Runtime Name : % {name} Vendor : Sun Microsystems,
+    Inc.Version : % {version} Release : %
+                                        {release} Copyright
+    : Copyright 2005 Sun Microsystems,
+    Inc.All rights reserved.Use is subject to license terms.Also under other
+    license(s)
+as shown at the Description field.Distribution : Sun Java(TM) Enterprise System
 URL: http://www.sun.com
 Group: System Environment/Base
 Source: %{name}-%{version}.tar.gz
