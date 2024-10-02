@@ -142,7 +142,7 @@ class VideoSink : public MediaSink {
   bool mHasVideo;
 
   // Used to trigger another update of rendered frames in next round.
-  DelayedScheduler<TimeStamp> mUpdateScheduler;
+  DelayedScheduler mUpdateScheduler;
 
   // Max frame number sent to compositor at a time.
   // Based on the pref value obtained in MDSM.

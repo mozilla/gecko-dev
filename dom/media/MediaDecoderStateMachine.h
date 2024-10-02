@@ -410,7 +410,7 @@ class MediaDecoderStateMachine
   bool mDispatchedStateMachine;
 
   // Used to dispatch another round schedule with specific target time.
-  DelayedScheduler<TimeStamp> mDelayedScheduler;
+  DelayedScheduler mDelayedScheduler;
 
   // Queue of audio frames. This queue is threadsafe, and is accessed from
   // the audio, decoder, state machine, and main threads.
@@ -484,7 +484,7 @@ class MediaDecoderStateMachine
   bool mVideoDecodeSuspended;
 
   // Track enabling video decode suspension via timer
-  DelayedScheduler<TimeStamp> mVideoDecodeSuspendTimer;
+  DelayedScheduler mVideoDecodeSuspendTimer;
 
   // Track the current video decode mode.
   VideoDecodeMode mVideoDecodeMode;

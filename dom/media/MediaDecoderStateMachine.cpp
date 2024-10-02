@@ -820,7 +820,7 @@ class MediaDecoderStateMachine::DecodingState
   bool mIsPrerolling = true;
 
   // Fired when playback is paused for a while to enter dormant.
-  DelayedScheduler<TimeStamp> mDormantTimer;
+  DelayedScheduler mDormantTimer;
 
   MediaEventListener mOnAudioPopped;
   MediaEventListener mOnVideoPopped;
