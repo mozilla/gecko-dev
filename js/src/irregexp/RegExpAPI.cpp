@@ -114,10 +114,7 @@ static uint32_t ErrorNumber(RegExpError err) {
     case RegExpError::kInvalidFlagGroup:
       return JSMSG_INVALID_FLAG_GROUP;
     case RegExpError::kMultipleFlagDashes:
-      // V8 contains experimental support for turning regexp flags on
-      // and off in the middle of a regular expression. Unless it
-      // becomes standardized, SM does not support this feature.
-      MOZ_CRASH("Mode modifiers not supported");
+      return JSMSG_MULTIPLE_FLAG_DASHES;
     case RegExpError::kNotLinear:
       // V8 has an experimental non-backtracking engine. We do not
       // support it yet.
