@@ -305,7 +305,7 @@ void PreloaderBase::CancelUsageTimer() {
 }
 
 void PreloaderBase::ReportUsageTelemetry() {
-  if (mUsageTelementryReported) {
+  if (mUsageTelementryReported || !XRE_IsContentProcess()) {
     return;
   }
   mUsageTelementryReported = true;

@@ -43,7 +43,11 @@ void StartupTimeline::RecordOnce(Event ev, const TimeStamp& aWhen) {
 
   Record(ev, aWhen);
 
-  // Record first paint timestamp as a scalar.
+  // Record first paint timestamp as a scalar in the parent process.
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+
   if (ev == FIRST_PAINT || ev == FIRST_PAINT2) {
     uint32_t firstPaintTime =
         (uint32_t)(aWhen - TimeStamp::ProcessCreation()).ToMilliseconds();

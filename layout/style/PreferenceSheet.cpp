@@ -270,6 +270,11 @@ void PreferenceSheet::Initialize() {
     }
   }
 
+  // Telemetry for these preferences is only collected on the parent process.
+  if (!XRE_IsParentProcess()) {
+    return;
+  }
+
   nsAutoString useDocumentColorPref;
   switch (StaticPrefs::browser_display_document_color_use()) {
     case 1:
