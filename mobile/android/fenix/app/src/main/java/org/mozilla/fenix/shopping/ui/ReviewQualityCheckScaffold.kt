@@ -94,7 +94,7 @@ fun ReviewQualityCheckScaffold(
 @Composable
 private fun Header() {
     val reviewCheckerFeatureName = stringResource(R.string.review_quality_check_feature_name_2)
-    val betaText = stringResource(R.string.review_quality_check_beta_flag)
+    val betaText = stringResource(R.string.beta_feature)
     val titleContentDescription = headingResource("$reviewCheckerFeatureName, $betaText")
 
     Row(

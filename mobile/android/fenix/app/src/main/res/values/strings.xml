@@ -108,8 +108,6 @@
     <!-- Text for the title displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_title">Browse faster with new navigation</string>
     <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
-    <string name="navbar_cfr_message" moz:removedIn="130" tools:ignore="UnusedResources">This bar tucks away as you scroll down for extra browsing space.</string>
-    <!-- Text for the message displayed in the contextual feature recommendation popup promoting the navigation bar. -->
     <string name="navbar_cfr_message_2">On a website, this bar tucks away as you scroll down for extra browsing space.</string>
     <!-- Text for the message displayed for the popup promoting the long press of navigation in the navigation bar. -->
     <string name="navbar_navigation_buttons_cfr_message">Tap and hold the arrows to jump between pages in this tab’s history.</string>
@@ -1090,8 +1088,6 @@
     <string name="collection_open_tabs">Open tabs</string>
     <!-- Hint for adding name of a collection -->
     <string name="collection_name_hint">Collection name</string>
-    <!-- Text for the menu button to rename a top site -->
-    <string name="rename_top_site" moz:removedIn="130" tools:ignore="UnusedResources">Rename</string>
     <!-- Text for the menu button to remove a top site -->
     <string name="remove_top_site">Remove</string>
     <!-- Text for the menu button to delete a top site from history -->
@@ -1243,8 +1239,6 @@
     <string name ="bookmark_navigate_back_button_content_description">Navigate back</string>
     <!-- Content description for the bookmark list new folder navigation bar button -->
     <string name ="bookmark_add_new_folder_button_content_description">Add a new folder</string>
-    <!-- Content description for the bookmark navigation bar close button -->
-    <string name ="bookmark_close_button_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Close bookmarks</string>
     <!-- Content description for bookmark search floating action button -->
     <string name ="bookmark_search_button_content_description">Search bookmarks</string>
     <!-- Content description for icon to open the overflow menu for selected bookmarks -->
@@ -1450,17 +1444,6 @@
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active. -->
     <string name="notification_pbm_delete_text_2">Close private tabs</string>
 
-    <!-- Text for option one, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_0" tools:ignore="UnusedResources" moz:removedIn="130">Neutral</string>
-    <!-- Text for option two, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_1" tools:ignore="UnusedResources" moz:removedIn="130">Very Dissatisfied</string>
-    <!-- Text for option three, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_2" tools:ignore="UnusedResources" moz:removedIn="130">Dissatisfied</string>
-    <!-- Text for option four, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_3" tools:ignore="UnusedResources" moz:removedIn="130">Satisfied</string>
-    <!-- Text for option five, shown in microsurvey.-->
-    <string name="microsurvey_survey_5_point_option_4" tools:ignore="UnusedResources" moz:removedIn="130">Very Satisfied</string>
-
     <!-- Text shown in the notification that pops up to remind the user that a private browsing session is active for Android 14+ -->
     <string name="notification_erase_title_android_14">Close private tabs?</string>
     <string name="notification_erase_text_android_14">Tap or swipe this notification to close private tabs.</string>
@@ -1539,8 +1522,6 @@
     <string name="tab_collection_dialog_message">Are you sure you want to delete %1$s?</string>
     <!-- Tab collection deletion prompt dialog option to delete the collection -->
     <string name="tab_collection_dialog_positive">Delete</string>
-    <!-- Text displayed in a notification when the user enters full screen mode -->
-    <string name="full_screen_notification" moz:removedIn="130" tools:ignore="UnusedResources">Entering full screen mode</string>
     <!-- Message for copying the URL via long press on the toolbar -->
     <string name="url_copied">URL copied</string>
     <!-- Sample text for accessibility font size -->
@@ -2182,8 +2163,6 @@
     <string name="shortcut_name_hint">Shortcut name</string>
     <!-- Hint for editing URL of a shortcut. -->
     <string name="shortcut_url_hint">Shortcut URL</string>
-    <!-- Button caption to confirm the renaming of the top site. -->
-    <string name="top_sites_rename_dialog_ok" moz:removedIn="130" tools:ignore="UnusedResources">OK</string>
     <!-- Dialog button text for canceling the rename top site prompt. -->
     <string name="top_sites_rename_dialog_cancel">Cancel</string>
     <!-- Text for the menu button to open the homepage settings. -->
@@ -2403,8 +2382,6 @@
     <string name="review_quality_check_second_cfr_message" moz:removedIn="132" tools:ignore="UnusedResources">Are these reviews reliable? Check now to see an adjusted rating.</string>
     <!-- Text displayed in the second CFR presenting the review quality check feature that opens the review checker when clicked. -->
     <string name="review_quality_check_second_cfr_action" moz:removedIn="132" tools:ignore="UnusedResources">Open review checker</string>
-    <!-- Flag showing that the review quality check feature is work in progress. -->
-    <string name="review_quality_check_beta_flag" moz:removedIn="130" tools:ignore="UnusedResources">Beta</string>
     <!-- Content description (not visible, for screen readers etc.) for opening browser menu button to open review quality check bottom sheet. -->
     <string name="review_quality_check_open_handle_content_description">Open review checker</string>
     <!-- Content description (not visible, for screen readers etc.) for closing browser menu button to open review quality check bottom sheet. -->
@@ -2585,8 +2562,6 @@
     <string name="never_translate_site_dialog_cancel_preference">Cancel</string>
 
     <!-- Download languages preference screen -->
-    <!-- Title of the download languages preference screen toolbar.-->
-    <string name="download_languages_toolbar_title_preference" moz:removedIn="130" tools:ignore="UnusedResources">Download Languages</string>
     <!-- Title of the toolbar for the translation feature screen where users may download different languages for translation. -->
     <string name="download_languages_translations_toolbar_title_preference">Download languages</string>
     <!-- Screen header presenting the download language preference feature. It will appear under the toolbar.The first parameter is "Learn More," a clickable text with a link. Talkback will append this to say "Double tap to open link to learn more". -->
@@ -2642,14 +2617,6 @@
     <string name="delete_language_file_dialog_positive_button_text">Delete</string>
     <!-- Button text on the dialog used by the translations feature to cancel deleting a language. -->
     <string name="delete_language_file_dialog_negative_button_text">Cancel</string>
-
-    <!-- Title for the dialog used by the translations feature to confirm canceling a download in progress for a language file.
-    The first parameter is the name of the language, for example, "Spanish". -->
-    <string name="cancel_download_language_file_dialog_title" moz:removedIn="130" tools:ignore="UnusedResources">Cancel %1$s download?</string>
-    <!-- Button text on the dialog used by the translations feature confirms canceling a download in progress for a language file. -->
-    <string name="cancel_download_language_file_dialog_positive_button_text" moz:removedIn="130" tools:ignore="UnusedResources">Yes</string>
-    <!-- Button text on the dialog used by the translations feature to dismiss the dialog. -->
-    <string name="cancel_download_language_file_negative_button_text" moz:removedIn="130" tools:ignore="UnusedResources">No</string>
 
     <!-- Title for the data saving mode warning dialog used by the translations feature.
     This dialog will be presented when the user attempts to download a language or perform
@@ -2742,8 +2709,6 @@
     <string name="likert_scale_option_7" tools:ignore="BrandUsage,UnusedResources">I don’t use search on Firefox</string>
     <!-- Option for likert scale -->
     <string name="likert_scale_option_8" tools:ignore="UnusedResources">I don’t use sync</string>
-    <!-- Text shown in prompt for homepage microsurvey. Note: The word "Firefox" should NOT be translated. -->
-    <string name="microsurvey_prompt_homepage_title" tools:ignore="BrandUsage,UnusedResources" moz:removedIn="130">How satisfied are you with your Firefox homepage?</string>
     <!-- Text shown in prompt for printing microsurvey. "sec" It's an abbreviation for "second". Note: The word "Firefox" should NOT be translated. -->
     <string name="microsurvey_prompt_printing_title" tools:ignore="BrandUsage,UnusedResources">Help make printing in Firefox better. It only takes a sec</string>
     <!-- Text shown in prompt for search microsurvey. Note: The word "Firefox" should NOT be translated. -->
@@ -2763,8 +2728,6 @@
     <string name="microsurvey_app_icon_content_description" tools:ignore="BrandUsage">Firefox logo</string>
     <!-- Content description for the survey feature icon. -->
     <string name="microsurvey_feature_icon_content_description">Survey feature icon</string>
-    <!-- Content description (not visible, for screen readers etc.) for opening microsurvey bottom sheet. -->
-    <string name="microsurvey_open_handle_content_description" tools:ignore="UnusedResources" moz:removedIn="130">Open survey</string>
     <!-- Content description (not visible, for screen readers etc.) for closing microsurvey bottom sheet. -->
     <string name="microsurvey_close_handle_content_description">Close survey</string>
     <!-- Content description for "X" button that is closing microsurvey. -->
