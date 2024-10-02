@@ -98,7 +98,7 @@ extern const JSClass ReflectClass;
 
 }  // namespace js
 
-static const JSClass* const protoTable[JSProto_LIMIT] = {
+static constexpr const JSClass* const protoTable[JSProto_LIMIT] = {
 #define INIT_FUNC(name, clasp) clasp,
 #define INIT_FUNC_DUMMY(name, clasp) nullptr,
     JS_FOR_PROTOTYPES(INIT_FUNC, INIT_FUNC_DUMMY)

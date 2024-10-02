@@ -3549,14 +3549,6 @@ const JSClass TypedArrayObject::anyClasses[2][Scalar::MaxTypedArrayViewType] = {
     },
 };
 
-const JSClass (
-    &TypedArrayObject::fixedLengthClasses)[Scalar::MaxTypedArrayViewType] =
-    TypedArrayObject::anyClasses[0];
-
-const JSClass (
-    &TypedArrayObject::resizableClasses)[Scalar::MaxTypedArrayViewType] =
-    TypedArrayObject::anyClasses[1];
-
 // The various typed array prototypes are supposed to 1) be normal objects,
 // 2) stringify to "[object <name of constructor>]", and 3) (Gecko-specific)
 // be xrayable.  The first and second requirements mandate (in the absence of
