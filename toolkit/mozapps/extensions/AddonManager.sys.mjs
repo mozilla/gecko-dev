@@ -2177,7 +2177,9 @@ var AddonManagerInternal = {
     // we won't get any further events, detect those cases now.
     if (
       install.state == AddonManager.STATE_DOWNLOADED &&
-      install.addon.appDisabled
+      (install.addon.appDisabled ||
+        install.addon.blocklistState !=
+          Ci.nsIBlocklistService.STATE_NOT_BLOCKED)
     ) {
       install.cancel();
       this.installNotifyObservers(
@@ -2206,8 +2208,11 @@ var AddonManagerInternal = {
       },
 
       onDownloadEnded() {
-        if (install.addon.appDisabled) {
-          // App disabled items are not compatible and so fail to install.
+        if (
+          install.addon.appDisabled ||
+          install.addon.blocklistState !=
+            Ci.nsIBlocklistService.STATE_NOT_BLOCKED
+        ) {
           install.removeListener(listener);
           install.cancel();
           self.installNotifyObservers(
@@ -3459,8 +3464,11 @@ var AddonManagerInternal = {
               ) {
                 reject({ message: "install cancelled" });
               } else if (event == "onDownloadEnded") {
-                if (install.addon.appDisabled) {
-                  // App disabled items are not compatible and so fail to install
+                if (
+                  install.addon.appDisabled ||
+                  install.addon.blocklistState !=
+                    Ci.nsIBlocklistService.STATE_NOT_BLOCKED
+                ) {
                   install.cancel();
                   AddonManagerInternal.installNotifyObservers(
                     "addon-install-failed",
@@ -4008,6 +4016,8 @@ export var AddonManager = {
     ["ERROR_UNSUPPORTED_ADDON_TYPE", -12],
     // The add-on can only be installed via enterprise policy.
     ["ERROR_ADMIN_INSTALL_ONLY", -13],
+    // The add-on is soft-blocked (and so new installation are expected to fail).
+    ["ERROR_SOFT_BLOCKED", -14],
   ]),
   // The update check timed out
   ERROR_TIMEOUT: -1,

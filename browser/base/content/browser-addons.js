@@ -85,6 +85,10 @@ const ERROR_L10N_IDS = new Map([
       "addon-install-error-admin-install-only",
     ],
   ],
+  [
+    -14,
+    ["addon-install-error-soft-blocked", "addon-install-error-soft-blocked"],
+  ],
 ]);
 
 customElements.define(

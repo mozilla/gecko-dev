@@ -38,6 +38,12 @@ const useMLBF = Services.prefs.getBoolPref(
   true
 );
 
+// Enable soft-blocks support on MLBF blocklist by default while running
+// this test file.
+if (useMLBF) {
+  Services.prefs.setBoolPref("extensions.blocklist.softblock.enabled", true);
+}
+
 var testserver = createHttpServer({ hosts: ["example.com"] });
 
 function permissionPromptHandler(subject) {
@@ -241,11 +247,11 @@ const BLOCKLIST_DATA = {
 };
 
 // Blocklist v3 (useMLBF) only supports hard blocks by guid+version. Version
-// ranges, regexps and soft blocks are not supported. So adjust expectations to
+// ranges, regexps and soft-blocks are not supported. So adjust expectations to
 // ensure that the test passes even if useMLBF=true, by:
-// - soft blocks are converted to hard blocks.
-// - hard blocks are accepted as-is.
-// - regexps blocks are converted to hard blocks.
+// - soft-blocks are converted to hard blocks.
+// - hard-blocks are accepted as-is.
+// - regexps blocks are converted to hard-blocks.
 // - Version ranges are expanded to cover all known versions.
 if (useMLBF) {
   for (let [key, blocks] of Object.entries(BLOCKLIST_DATA)) {
@@ -270,7 +276,14 @@ if (useMLBF) {
           filter_expression: targetApplication && BLOCK_APP_FILTER_EXPRESSION,
           stash: {
             // XPI files use version `${v}.0`, update manifests use `${v}`.
-            blocked: [`${guid}:${v}.0`, `${guid}:${v}`],
+            // NOTE: test extension with an addon-id that starts with "soft" are
+            // expected to be softblocked.
+            softblocked: guid.startsWith("soft")
+              ? [`${guid}:${v}.0`, `${guid}:${v}`]
+              : [],
+            blocked: !guid.startsWith("soft")
+              ? [`${guid}:${v}.0`, `${guid}:${v}`]
+              : [],
             unblocked: [],
           },
         });
@@ -422,20 +435,6 @@ function check_addon(
   aExpectedSoftDisabled,
   aExpectedState
 ) {
-  if (useMLBF) {
-    if (aAddon.id.startsWith("soft")) {
-      if (aExpectedState === Ci.nsIBlocklistService.STATE_SOFTBLOCKED) {
-        // The whole test file assumes that an add-on is "user-disabled" after
-        // an explicit disable(), or after a soft block (without enable()).
-        // With useMLBF, soft blocks are not supported, so the "user-disabled"
-        // state matches the usual behavior of "userDisabled" (=disable()).
-        aExpectedUserDisabled = aAddon.userDisabled;
-        aExpectedSoftDisabled = false;
-        aExpectedState = Ci.nsIBlocklistService.STATE_BLOCKED;
-      }
-    }
-  }
-
   Assert.notEqual(aAddon, null);
   info(
     "Testing " +
@@ -1254,12 +1253,17 @@ add_task(async function run_manual_update_test() {
 
   [s1, s2, s3, s4, h, r] = await promiseAddonsByIDs(ADDON_IDS);
 
-  // With useMLBF, s1/s2/s3 are hard blocks, so they cannot update.
-  const sv2 = useMLBF ? "1.0" : "2.0";
-  check_addon(s1, sv2, true, true, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
-  check_addon(s2, sv2, true, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
-  check_addon(s3, sv2, false, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
-  check_addon(s4, sv2, true, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
+  // Both soft and hard blocked addons cannot be updated to another hard or soft-blocked version.
+  check_addon(s1, "1.0", true, true, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
+  check_addon(s2, "1.0", true, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
+  check_addon(
+    s3,
+    "1.0",
+    false,
+    false,
+    Ci.nsIBlocklistService.STATE_SOFTBLOCKED
+  );
+  check_addon(s4, "1.0", true, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
   // Can't manually update to a hardblocked add-on
   check_addon(h, "1.0", false, false, Ci.nsIBlocklistService.STATE_BLOCKED);
   check_addon(r, "1.0", false, false, Ci.nsIBlocklistService.STATE_BLOCKED);
@@ -1325,11 +1329,16 @@ add_task(async function run_manual_update_2_test() {
 
   [s1, s2, s3, s4, h, r] = await promiseAddonsByIDs(ADDON_IDS);
 
-  // With useMLBF, s1/s2/s3 are hard blocks, so they cannot update.
-  const sv2 = useMLBF ? "1.0" : "2.0";
-  check_addon(s1, sv2, true, true, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
-  check_addon(s2, sv2, true, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
-  check_addon(s3, sv2, false, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
+  // Both soft and hard blocked addons cannot be updated to another hard or soft-blocked version.
+  check_addon(s1, "1.0", true, true, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
+  check_addon(s2, "1.0", true, false, Ci.nsIBlocklistService.STATE_SOFTBLOCKED);
+  check_addon(
+    s3,
+    "1.0",
+    false,
+    false,
+    Ci.nsIBlocklistService.STATE_SOFTBLOCKED
+  );
   // Can't manually update to a hardblocked add-on
   check_addon(h, "1.0", false, false, Ci.nsIBlocklistService.STATE_BLOCKED);
   check_addon(r, "1.0", false, false, Ci.nsIBlocklistService.STATE_BLOCKED);

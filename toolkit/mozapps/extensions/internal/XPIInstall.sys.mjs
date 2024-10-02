@@ -2260,8 +2260,18 @@ var LocalAddonInstall = class extends AddonInstall {
       this.addon.recordAddonBlockChangeTelemetry("addon_install");
     }
 
+    // TODO:(Bug 1917859) record changes between hard and soft blocked, and from soft blocked to unblocked?
+
     if (this.addon.blocklistState === nsIBlocklistService.STATE_BLOCKED) {
       this.error = AddonManager.ERROR_BLOCKLISTED;
+    }
+
+    if (this.addon.blocklistState === nsIBlocklistService.STATE_SOFTBLOCKED) {
+      // We show a different error message to the user and so we need a separate
+      // error code (translated into the related localized error message from
+      // browser-addons.js on Firefox Desktop and from WebExtensionPromptFeature.kt
+      // on Firefox for Android).
+      this.error = AddonManager.ERROR_SOFT_BLOCKED;
     }
 
     if (!this.addon.isCompatible) {
@@ -2762,6 +2772,14 @@ var DownloadAddonInstall = class extends AddonInstall {
 
     if (this.addon.blocklistState === nsIBlocklistService.STATE_BLOCKED) {
       this.error = AddonManager.ERROR_BLOCKLISTED;
+    } else if (
+      this.addon.blocklistState === nsIBlocklistService.STATE_SOFTBLOCKED
+    ) {
+      // We show a different error message to the user and so we need a separate
+      // error code (translated into the related localized error message from
+      // browser-addons.js on Firefox Desktop and from WebExtensionPromptFeature.kt
+      // on Firefox for Android).
+      this.error = AddonManager.ERROR_SOFT_BLOCKED;
     } else if (!this.addon.isCompatible) {
       this.error = AddonManager.ERROR_INCOMPATIBLE;
     }

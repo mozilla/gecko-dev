@@ -181,6 +181,8 @@ CO01:
         - webext-perms-description-management
         # toolkit/locales/en-US/toolkit/global/processTypes.ftl
         - process-type-privilegedmozilla
+        # browser/locales/en-US/browser/addonNotifications.ftl
+        - addon-install-error-soft-blocked
     files:
         - browser/components/ion/content/ion.ftl
         - browser/locales/en-US/browser/profile/default-bookmarks.ftl

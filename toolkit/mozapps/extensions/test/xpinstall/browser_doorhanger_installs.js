@@ -12,6 +12,14 @@ const { Management } = ChromeUtils.importESModule(
   "resource://gre/modules/Extension.sys.mjs"
 );
 
+const lazy = {};
+ChromeUtils.defineLazyGetter(lazy, "l10n", function () {
+  return new Localization(
+    ["browser/addonNotifications.ftl", "branding/brand.ftl"],
+    true
+  );
+});
+
 const SECUREROOT =
   "https://example.com/browser/toolkit/mozapps/extensions/test/xpinstall/";
 const PROGRESS_NOTIFICATION = "addon-progress";
@@ -19,6 +27,23 @@ const PROGRESS_NOTIFICATION = "addon-progress";
 const CHROMEROOT = extractChromeRoot(gTestPath);
 
 AddonTestUtils.initMochitest(this);
+
+let needsCleanupBlocklist = true;
+
+const cleanupBlocklist = async () => {
+  if (!needsCleanupBlocklist) {
+    return;
+  }
+  await AddonTestUtils.loadBlocklistRawData({
+    extensionsMLBF: [
+      {
+        stash: { blocked: [], unblocked: [] },
+        stash_time: 0,
+      },
+    ],
+  });
+  needsCleanupBlocklist = false;
+};
 
 function waitForTick() {
   return new Promise(resolve => executeSoon(resolve));
@@ -945,6 +970,69 @@ var TESTS = [
     await removeTabAndWaitForNotificationClose();
   },
 
+  async function test_blocklisted() {
+    let addonName = "XPI Test";
+    let id = "amosigned-xpi@tests.mozilla.org";
+    let version = "2.2";
+
+    info("Verify addon-install-failed on hard-blocked addon");
+    await testBlocklistedAddon({
+      stash: { blocked: [`${id}:${version}`], unblocked: [] },
+      expectedFluentId: "addon-install-error-blocklisted",
+    });
+
+    info("Verify addon-install-failed on soft-blocked blocked addon");
+    await SpecialPowers.pushPrefEnv({
+      set: [["extensions.blocklist.softblock.enabled", true]],
+    });
+    await testBlocklistedAddon({
+      stash: { softblocked: [`${id}:${version}`], blocked: [], unblocked: [] },
+      expectedFluentId: "addon-install-error-soft-blocked",
+    });
+    await SpecialPowers.popPrefEnv();
+
+    async function testBlocklistedAddon({ stash, expectedFluentId }) {
+      await AddonTestUtils.loadBlocklistRawData({
+        extensionsMLBF: [{ stash, stash_time: 0 }],
+      });
+      needsCleanupBlocklist = true;
+      registerCleanupFunction(cleanupBlocklist);
+
+      PermissionTestUtils.add(
+        "http://example.com/",
+        "install",
+        Services.perms.ALLOW_ACTION
+      );
+
+      let progressPromise = waitForProgressNotification();
+      let failPromise = waitForNotification("addon-install-failed");
+      let triggers = encodeURIComponent(
+        JSON.stringify({
+          XPI: "amosigned.xpi",
+        })
+      );
+      BrowserTestUtils.openNewForegroundTab(
+        gBrowser,
+        TESTROOT + "installtrigger.html?" + triggers
+      );
+      await progressPromise;
+      info("Wait for addon-install-failed notification");
+      let panel = await failPromise;
+
+      let notification = panel.childNodes[0];
+      let message = lazy.l10n.formatValueSync(expectedFluentId, { addonName });
+      is(
+        notification.getAttribute("label"),
+        message,
+        "Should have seen the right message"
+      );
+
+      await cleanupBlocklist();
+      PermissionTestUtils.remove("http://example.com/", "install");
+      await removeTabAndWaitForNotificationClose();
+    }
+  },
+
   async function test_localFile() {
     let cr = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(
       Ci.nsIChromeRegistry
@@ -1555,7 +1643,7 @@ const runTestCases = async () => {
     let installs = await AddonManager.getAllInstalls();
 
     is(installs.length, 0, "Should be no active installs");
-    info("Running " + TESTS[i].name);
+    info("===== Running test case: " + TESTS[i].name);
     gTestStart = Date.now();
     await TESTS[i]();
   }

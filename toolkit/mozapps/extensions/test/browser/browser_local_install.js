@@ -64,14 +64,11 @@ AddonTestUtils.registerJSON(server, "/updates-now-compatible.json", {
   },
 });
 
-add_task(async function test_local_install_blocklisted() {
-  let id = "amosigned-xpi@tests.mozilla.org";
-  let version = "2.2";
-
+async function test_local_install_blocked({ id, stash, expectedError }) {
   await AddonTestUtils.loadBlocklistRawData({
     extensionsMLBF: [
       {
-        stash: { blocked: [`${id}:${version}`], unblocked: [] },
+        stash,
         stash_time: 0,
       },
     ],
@@ -99,6 +96,11 @@ add_task(async function test_local_install_blocklisted() {
   ok(xpiFile.exists(), "Expect the xpi file to exist");
   const xpiFileURI = Services.io.newFileURI(xpiFile);
 
+  const promiseInstallCancelled = AddonTestUtils.promiseInstallEvent(
+    "onDownloadCancelled",
+    install => install.addon.id === id
+  );
+
   let install = await AddonManager.getInstallForURL(xpiFileURI.spec, {
     telemetryInfo: { source: "file-url" },
   });
@@ -120,11 +122,47 @@ add_task(async function test_local_install_blocklisted() {
   await promiseInstallFailed;
   Assert.equal(
     install.error,
-    AddonManager.ERROR_BLOCKLISTED,
+    expectedError,
     "LocalInstall cancelled with the expected error"
   );
 
+  info("Wait for onDownloadCancelled to be notified");
+  await promiseInstallCancelled;
+  Assert.equal(
+    install.state,
+    AddonManager.STATE_CANCELLED,
+    "Expect the install.state to be STATE_CANCELLED"
+  );
+
   await cleanupBlocklist();
+}
+
+add_task(async function test_local_install_hard_blocked() {
+  let id = "amosigned-xpi@tests.mozilla.org";
+  let version = "2.2";
+
+  await test_local_install_blocked({
+    id,
+    stash: { blocked: [`${id}:${version}`], unblocked: [] },
+    expectedError: AddonManager.ERROR_BLOCKLISTED,
+  });
+});
+
+add_task(async function test_local_install_soft_blocked() {
+  let id = "amosigned-xpi@tests.mozilla.org";
+  let version = "2.2";
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.blocklist.softblock.enabled", true]],
+  });
+
+  await test_local_install_blocked({
+    id,
+    stash: { softblocked: [`${id}:${version}`], blocked: [], unblocked: [] },
+    expectedError: AddonManager.ERROR_SOFT_BLOCKED,
+  });
+
+  await SpecialPowers.popPrefEnv();
 });
 
 add_task(async function test_local_install_incompatible() {

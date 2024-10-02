@@ -538,19 +538,27 @@ add_task(
   })
 );
 
-add_task(
-  makeInstallTest(async function (browser) {
-    let id = "amosigned-xpi@tests.mozilla.org";
-    let version = "2.2";
-
+function test_blocklisted_install({ id, stash, expectedError }) {
+  return makeInstallTest(async function (browser) {
     await AddonTestUtils.loadBlocklistRawData({
-      extensionsMLBF: [
-        {
-          stash: { blocked: [`${id}:${version}`], unblocked: [] },
-          stash_time: 0,
-        },
-      ],
+      extensionsMLBF: [{ stash, stash_time: 0 }],
     });
+    let needsCleanupBlocklist = true;
+    const cleanupBlocklist = async () => {
+      if (!needsCleanupBlocklist) {
+        return;
+      }
+      await AddonTestUtils.loadBlocklistRawData({
+        extensionsMLBF: [
+          {
+            stash: { blocked: [], unblocked: [] },
+            stash_time: 0,
+          },
+        ],
+      });
+      needsCleanupBlocklist = false;
+    };
+    registerCleanupFunction(cleanupBlocklist);
 
     let steps = [
       { action: "install", expectError: true },
@@ -559,7 +567,7 @@ add_task(
       { event: "onDownloadEnded" },
       {
         event: "onDownloadCancelled",
-        props: { state: "STATE_CANCELLED", error: "ERROR_BLOCKLISTED" },
+        props: { state: "STATE_CANCELLED", error: expectedError },
       },
     ];
 
@@ -573,17 +581,37 @@ add_task(
     let addons = await promiseAddonsByIDs([id]);
     is(addons[0], null, "The addon was not installed");
 
-    // Clear the blocklist.
-    await AddonTestUtils.loadBlocklistRawData({
-      extensionsMLBF: [
-        {
-          stash: { blocked: [], unblocked: [] },
-          stash_time: 0,
-        },
-      ],
-    });
-  })
-);
+    await cleanupBlocklist();
+  });
+}
+
+add_task(function test_webapi_install_hard_blocked() {
+  let id = "amosigned-xpi@tests.mozilla.org";
+  let version = "2.2";
+
+  return test_blocklisted_install({
+    id,
+    stash: { blocked: [`${id}:${version}`], unblocked: [] },
+    expectedError: "ERROR_BLOCKLISTED",
+  })();
+});
+
+add_task(async function test_webapi_install_soft_blocked() {
+  let id = "amosigned-xpi@tests.mozilla.org";
+  let version = "2.2";
+
+  await SpecialPowers.pushPrefEnv({
+    set: [["extensions.blocklist.softblock.enabled", true]],
+  });
+
+  await test_blocklisted_install({
+    id,
+    stash: { softblocked: [`${id}:${version}`], blocked: [], unblocked: [] },
+    expectedError: "ERROR_SOFT_BLOCKED",
+  })();
+
+  await SpecialPowers.popPrefEnv();
+});
 
 add_task(
   makeInstallTest(async function (browser) {
