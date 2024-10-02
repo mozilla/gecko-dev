@@ -774,6 +774,10 @@ function makeSearchResult(
     payload.isGeneralPurposeEngine = false;
   }
 
+  if (providerName == "TokenAliasEngines") {
+    payload.keywords = alias?.toLowerCase();
+  }
+
   let result = new UrlbarResult(
     type,
     source,

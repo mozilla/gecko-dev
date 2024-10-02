@@ -421,9 +421,20 @@ add_task(async function clickAndFillAlias() {
     let details = await UrlbarTestUtils.getDetailsOfResultAt(window, i);
 
     if (details.result.type == UrlbarUtils.RESULT_TYPE.RESTRICT) {
+      let category = details.result.payload.l10nRestrictKeyword;
+      let keyword = `@${category.toLowerCase()}`;
+
       Assert.equal(
         details.displayed.title,
-        `Search with ${details.result.payload.l10nRestrictKeyword}`,
+        `${keyword} - Search ${category}`,
+        "The result's title is set correctly."
+      );
+    } else if (
+      UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")
+    ) {
+      Assert.equal(
+        details.displayed.title,
+        `${details.result.payload.keywords} - Search with ${details.searchParams.engine}`,
         "The result's title is set correctly."
       );
     } else {
@@ -667,6 +678,17 @@ add_task(async function hiddenEngine() {
  * alias in the search bar.
  */
 add_task(async function nonPrefixedKeyword() {
+  if (UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")) {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        // Restrict keyword results adds 4 rows to the result panel, reaching
+        // the maximum number of results displayed.
+        // We need to increase the result limit to ensure the custom engine is
+        // visible and not hidden.
+        ["browser.urlbar.maxRichResults", 99],
+      ],
+    });
+  }
   let name = "Custom";
   let alias = "customkeyword";
   let extension = await SearchTestUtils.installSearchExtension(
@@ -714,6 +736,9 @@ add_task(async function nonPrefixedKeyword() {
   );
 
   await extension.unload();
+  if (UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")) {
+    await SpecialPowers.popPrefEnv();
+  }
 });
 
 // Tests that we show all engines with a token alias that match the search

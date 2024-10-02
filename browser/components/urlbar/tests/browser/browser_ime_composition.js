@@ -235,6 +235,17 @@ async function test_composition(keepPanelOpenDuringImeComposition) {
 async function test_composition_searchMode_preview(
   keepPanelOpenDuringImeComposition
 ) {
+  if (UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")) {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        // Restrict keyword results adds 4 rows to the result panel, reaching
+        // the maximum number of results displayed.
+        // We need to increase the result limit to ensure the custom engine is
+        // visible and not hidden.
+        ["browser.urlbar.maxRichResults", 99],
+      ],
+    });
+  }
   info("Check Search Mode preview is retained by composition");
 
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
@@ -262,6 +273,9 @@ async function test_composition_searchMode_preview(
     entry: "keywordoffer",
   });
   await UrlbarTestUtils.exitSearchMode(window);
+  if (UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")) {
+    await SpecialPowers.popPrefEnv();
+  }
 }
 
 async function test_composition_tabToSearch(keepPanelOpenDuringImeComposition) {

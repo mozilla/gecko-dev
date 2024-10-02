@@ -29,11 +29,14 @@ async function getRestrictKeywordResult(window, restrictToken) {
 
   for (let index = 0; !restrictResult && index < resultCount; index++) {
     let details = await UrlbarTestUtils.getDetailsOfResultAt(window, index);
+    let category = details.result.payload.l10nRestrictKeyword;
+    let keyword = `@${category?.toLowerCase()}`;
+    let symbol = details.result.payload.keyword;
 
-    if (details.result.payload.keyword == restrictToken) {
+    if (symbol == restrictToken) {
       Assert.equal(
         details.displayed.title,
-        `Search with ${details.result.payload.l10nRestrictKeyword}`,
+        `${keyword} - Search ${category}`,
         "The result's title is set correctly."
       );
 

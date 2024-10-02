@@ -18,6 +18,17 @@ add_setup(async function () {
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.suggest.quickactions", false]],
   });
+  if (UrlbarPrefs.getScotchBonnetPref("searchRestrictKeywords.featureGate")) {
+    await SpecialPowers.pushPrefEnv({
+      set: [
+        // Restrict keyword results adds 4 rows to the result panel, reaching
+        // the maximum number of results displayed.
+        // We need to increase the result limit to ensure the installed engines
+        // in the test are visible and not hidden.
+        ["browser.urlbar.maxRichResults", 99],
+      ],
+    });
+  }
 
   registerCleanupFunction(async () => {
     await PlacesUtils.history.clear();

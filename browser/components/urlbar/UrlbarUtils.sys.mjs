@@ -1803,6 +1803,9 @@ UrlbarUtils.RESULT_PAYLOAD_SCHEMA = {
       keyword: {
         type: "string",
       },
+      keywords: {
+        type: "string",
+      },
       lowerCaseSuggestion: {
         type: "string",
       },
