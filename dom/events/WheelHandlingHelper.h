@@ -27,9 +27,9 @@ class ScrollContainerFrame;
  */
 
 struct DeltaValues {
-  DeltaValues() : deltaX(0.0), deltaY(0.0) {}
+  constexpr DeltaValues() : deltaX(0.0), deltaY(0.0) {}
 
-  DeltaValues(double aDeltaX, double aDeltaY)
+  constexpr DeltaValues(double aDeltaX, double aDeltaY)
       : deltaX(aDeltaX), deltaY(aDeltaY) {}
 
   explicit DeltaValues(WidgetWheelEvent* aEvent);
@@ -92,7 +92,9 @@ class ScrollbarsForWheel {
 
  protected:
   static const size_t kNumberOfTargets = 4;
-  static const DeltaValues directions[kNumberOfTargets];
+  static constexpr DeltaValues directions[kNumberOfTargets] = {
+      DeltaValues(-1, 0), DeltaValues(+1, 0), DeltaValues(0, -1),
+      DeltaValues(0, +1)};
   static AutoWeakFrame sActiveOwner;
   static AutoWeakFrame sActivatedScrollTargets[kNumberOfTargets];
   static bool sHadWheelStart;
