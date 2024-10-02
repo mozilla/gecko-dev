@@ -3286,10 +3286,14 @@ class _DSCard extends (external_React_default()).PureComponent {
         className: "card-stp-button",
         onClick: this.onSaveClick
       }, this.props.context_type === "pocket" ? /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("span", {
+        "data-l10n-id": "newtab-pocket-image",
+        role: "img",
         className: "story-badge-icon icon icon-pocket"
       }), /*#__PURE__*/external_React_default().createElement("span", {
         "data-l10n-id": "newtab-pocket-saved"
       })) : /*#__PURE__*/external_React_default().createElement((external_React_default()).Fragment, null, /*#__PURE__*/external_React_default().createElement("span", {
+        "data-l10n-id": "newtab-pocket-image",
+        role: "img",
         className: "story-badge-icon icon icon-pocket-save"
       }), /*#__PURE__*/external_React_default().createElement("span", {
         "data-l10n-id": "newtab-pocket-save"

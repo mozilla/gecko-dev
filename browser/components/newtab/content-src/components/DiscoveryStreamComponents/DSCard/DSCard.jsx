@@ -608,12 +608,20 @@ export class _DSCard extends React.PureComponent {
         <button className="card-stp-button" onClick={this.onSaveClick}>
           {this.props.context_type === "pocket" ? (
             <>
-              <span className="story-badge-icon icon icon-pocket" />
+              <span
+                data-l10n-id="newtab-pocket-image"
+                role="img"
+                className="story-badge-icon icon icon-pocket"
+              />
               <span data-l10n-id="newtab-pocket-saved" />
             </>
           ) : (
             <>
-              <span className="story-badge-icon icon icon-pocket-save" />
+              <span
+                data-l10n-id="newtab-pocket-image"
+                role="img"
+                className="story-badge-icon icon icon-pocket-save"
+              />
               <span data-l10n-id="newtab-pocket-save" />
             </>
           )}
