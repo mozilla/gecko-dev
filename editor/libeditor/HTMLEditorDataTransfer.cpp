@@ -44,6 +44,7 @@
 #include "mozilla/OwningNonNull.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Result.h"
+#include "mozilla/TextComposition.h"
 #include "nsAString.h"
 #include "nsCOMPtr.h"
 #include "nsCRTGlue.h"  // for CRLF
@@ -290,6 +291,54 @@ nsresult HTMLEditor::InsertHTMLAsAction(const nsAString& aInString,
     return EditorBase::ToGenericNSResult(rv);
   }
 
+  const RefPtr<Element> editingHost =
+      ComputeEditingHost(LimitInBodyElement::No);
+  if (NS_WARN_IF(!editingHost)) {
+    return NS_ERROR_FAILURE;
+  }
+
+  if (editingHost->IsContentEditablePlainTextOnly()) {
+    nsAutoString plaintextString;
+    nsresult rv = nsContentUtils::ConvertToPlainText(
+        aInString, plaintextString, nsIDocumentEncoder::OutputLFLineBreak,
+        0u /* never wrap lines*/);
+    if (NS_FAILED(rv)) {
+      NS_WARNING("nsContentUtils::ConvertToPlainText() failed");
+      return EditorBase::ToGenericNSResult(rv);
+    }
+    Maybe<AutoPlaceholderBatch> treatAsOneTransaction;
+    const auto EnsureAutoPlaceholderBatch = [&]() {
+      if (treatAsOneTransaction.isNothing()) {
+        treatAsOneTransaction.emplace(*this, ScrollSelectionIntoView::Yes,
+                                      __FUNCTION__);
+      }
+    };
+    if (mComposition &&
+        mComposition->CanRequsetIMEToCommitOrCancelComposition()) {
+      EnsureAutoPlaceholderBatch();
+      CommitComposition();
+      if (NS_WARN_IF(Destroyed())) {
+        return EditorBase::ToGenericNSResult(NS_ERROR_EDITOR_DESTROYED);
+      }
+      if (NS_WARN_IF(editingHost !=
+                     ComputeEditingHost(LimitInBodyElement::No))) {
+        return EditorBase::ToGenericNSResult(
+            NS_ERROR_EDITOR_UNEXPECTED_DOM_TREE);
+      }
+    }
+    if (MOZ_LIKELY(!plaintextString.IsEmpty())) {
+      EnsureAutoPlaceholderBatch();
+      rv = InsertTextAsSubAction(plaintextString, SelectionHandling::Delete);
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                           "EditorBase::InsertTextAsSubAction() failed");
+    } else if (!SelectionRef().IsCollapsed()) {
+      EnsureAutoPlaceholderBatch();
+      rv = DeleteSelectionAsSubAction(nsIEditor::eNone, nsIEditor::eNoStrip);
+      NS_WARNING_ASSERTION(NS_SUCCEEDED(rv),
+                           "EditorBase::DeleteSelectionAsSubAction() failed");
+    }
+    return EditorBase::ToGenericNSResult(rv);
+  }
   AutoPlaceholderBatch treatAsOneTransaction(
       *this, ScrollSelectionIntoView::Yes, __FUNCTION__);
   rv = InsertHTMLWithContextAsSubAction(aInString, u""_ns, u""_ns, u""_ns,

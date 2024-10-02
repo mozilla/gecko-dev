@@ -189,6 +189,19 @@ class TextComposition final {
   bool IsComposing() const { return mIsComposing; }
 
   /**
+   * If we're requesting IME to commit or cancel composition, or we've already
+   * requested it, or we've already known this composition has been ended in
+   * IME, we don't need to request commit nor cancel composition anymore and
+   * shouldn't do so if we're in content process for not committing/canceling
+   * "current" composition in native IME.  So, when this returns true,
+   * RequestIMEToCommit() does nothing.
+   */
+  [[nodiscard]] bool CanRequsetIMEToCommitOrCancelComposition() const {
+    return !mIsRequestingCommit && !mIsRequestingCancel &&
+           !mRequestedToCommitOrCancel && !mHasReceivedCommitEvent;
+  }
+
+  /**
    * Returns true if editor has started or already ended handling an event which
    * is modifying the composition string and/or IME selections.
    */
@@ -411,19 +424,6 @@ class TextComposition final {
   // mWasCompositionStringEmpty is true if the composition string was empty
   // when DispatchCompositionEvent() is called.
   bool mWasCompositionStringEmpty;
-
-  /**
-   * If we're requesting IME to commit or cancel composition, or we've already
-   * requested it, or we've already known this composition has been ended in
-   * IME, we don't need to request commit nor cancel composition anymore and
-   * shouldn't do so if we're in content process for not committing/canceling
-   * "current" composition in native IME.  So, when this returns true,
-   * RequestIMEToCommit() does nothing.
-   */
-  bool CanRequsetIMEToCommitOrCancelComposition() const {
-    return !mIsRequestingCommit && !mIsRequestingCancel &&
-           !mRequestedToCommitOrCancel && !mHasReceivedCommitEvent;
-  }
 
   /**
    * GetEditorBase() returns EditorBase pointer of mEditorBaseWeak.
