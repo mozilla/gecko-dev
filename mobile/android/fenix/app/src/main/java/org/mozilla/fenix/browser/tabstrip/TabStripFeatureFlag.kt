@@ -23,7 +23,8 @@ private fun Context.isTabStripEligible(): Boolean =
     // Tab Strip is currently disabled on foldable devices, while we work on improving the
     // Homescreen / Toolbar / Browser screen to better support the feature. There is also
     // an emulator bug that causes the doesDeviceHaveHinge check to return true on emulators,
-    // causing it to be disabled on emulator tablets.
+    // causing it to be disabled on emulator tablets for API 34 and below.
+    // https://issuetracker.google.com/issues/296162661
     isLargeScreenSize() && !doesDeviceHaveHinge()
 
 /**
