@@ -90,6 +90,10 @@ var gTabsPanel = {
       closeDuplicateTabsItem.hidden = !closeDuplicateEnabled;
       closeDuplicateTabsItem.disabled =
         !closeDuplicateEnabled || !gBrowser.getAllDuplicateTabsToClose().length;
+
+      let syncedTabs = document.getElementById("allTabsMenu-syncedTabs");
+      syncedTabs.hidden =
+        !PlacesUIUtils.shouldShowTabsFromOtherComputersMenuitem();
     });
 
     this.allTabsView.addEventListener("ViewShown", () =>
@@ -113,6 +117,9 @@ var gTabsPanel = {
           break;
         case "allTabsMenu-hiddenTabsButton":
           PanelUI.showSubView(this.kElements.hiddenTabsView, target);
+          break;
+        case "allTabsMenu-syncedTabs":
+          SidebarController.show("viewTabsSidebar");
           break;
       }
     });
