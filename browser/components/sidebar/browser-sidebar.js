@@ -596,13 +596,17 @@ var SidebarController = {
       // the launcher should be on the right of the sidebar-box
       sidebarContainer.style.order = parseInt(this._box.style.order) + 1;
       // Indicate we've switched ordering to the box
-      this._box.setAttribute("positionend", true);
-      sidebarMain.setAttribute("positionend", true);
-      sidebarContainer.setAttribute("positionend", true);
+      this._box.toggleAttribute("positionend", true);
+      sidebarMain.toggleAttribute("positionend", true);
+      sidebarContainer.toggleAttribute("positionend", true);
+      this.toolbarButton &&
+        this.toolbarButton.toggleAttribute("positionend", true);
     } else {
-      this._box.removeAttribute("positionend");
-      sidebarMain.removeAttribute("positionend");
-      sidebarContainer.removeAttribute("positionend");
+      this._box.toggleAttribute("positionend", false);
+      sidebarMain.toggleAttribute("positionend", false);
+      sidebarContainer.toggleAttribute("positionend", false);
+      this.toolbarButton &&
+        this.toolbarButton.toggleAttribute("positionend", false);
     }
 
     this.hideSwitcherPanel();
@@ -982,10 +986,9 @@ var SidebarController = {
         if (!isHidden && this.isOpen) {
           // Sidebar is currently visible, but now we want to hide it.
           this.hide();
-        } else if (isHidden) {
-          // Sidebar is currently hidden, but now we want to show it.
-          this.toggleExpanded(true);
         }
+        // Sidebar is currently hidden, but now we want to show it.
+        this.toggleExpanded(isHidden);
         this.sidebarContainer.hidden = !isHidden;
         this.updateToolbarButton();
         break;
@@ -1001,6 +1004,11 @@ var SidebarController = {
       // For the non-revamped sidebar, this is handled by CustomizableWidgets.
       return;
     }
+    this.toolbarButton.toggleAttribute("expanded", this.sidebarMain.expanded);
+    this.toolbarButton.toggleAttribute(
+      "open",
+      this._box.hasAttribute("checked")
+    );
     switch (this.sidebarRevampVisibility) {
       case "always-show":
         // Toolbar button controls expanded state.
