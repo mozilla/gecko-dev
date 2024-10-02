@@ -47,6 +47,15 @@ class FileUploadsDirCleaner(
      * Remove all the temporary file uploads.
      */
     internal fun cleanRecentUploads() {
+        // Don't do anything if we don't have any files to delete.
+        if (fileNamesToBeDeleted.isEmpty()) {
+            return
+        }
+        performCleanRecentUploads()
+    }
+
+    @VisibleForTesting
+    internal fun performCleanRecentUploads() {
         scope.launch(dispatcher) {
             val cacheUploadDirectory = File(getCacheDir(), DEFAULT_UPLOADS_DIR_NAME)
             fileNamesToBeDeleted = fileNamesToBeDeleted.filter { fileName ->
