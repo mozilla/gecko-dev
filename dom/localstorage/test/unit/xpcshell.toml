@@ -55,6 +55,8 @@ run-sequentially = "test_databaseShadowing_clearOriginsByPrefix2.js depends on a
 ["test_databaseShadowing_clearOriginsByPrefix2.js"]
 run-sequentially = "this test depends on a file produced by test_databaseShadowing_clearOriginsByPrefix1.js"
 
+["test_databaseWorkStarted.js"]
+
 ["test_eviction.js"]
 
 ["test_flushing.js"]

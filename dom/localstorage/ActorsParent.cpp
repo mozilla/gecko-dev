@@ -96,6 +96,7 @@
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/storage/Variant.h"
+#include "NotifyUtils.h"
 #include "nsBaseHashtable.h"
 #include "nsCOMPtr.h"
 #include "nsClassHashtable.h"
@@ -6888,6 +6889,8 @@ void PrepareDatastoreOp::SendToIOThread() {
 
   MOZ_ALWAYS_SUCCEEDS(
       quotaManager->IOThread()->Dispatch(this, NS_DISPATCH_NORMAL));
+
+  localstorage::NotifyDatabaseWorkStarted();
 }
 
 nsresult PrepareDatastoreOp::DatabaseWork() {

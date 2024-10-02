@@ -53,6 +53,7 @@ UNIFIED_SOURCES += [
     "LSSnapshot.cpp",
     "LSValue.cpp",
     "LSWriteOptimizer.cpp",
+    "NotifyUtils.cpp",
     "ReportInternalError.cpp",
     "SnappyUtils.cpp",
 ]
