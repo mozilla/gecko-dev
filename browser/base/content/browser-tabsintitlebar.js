@@ -84,7 +84,6 @@ var TabsInTitlebar = {
     }
 
     ToolbarIconColor.inferFromText("tabsintitlebar", allowed);
-    TabBarVisibility.update(true);
   },
 
   uninit() {

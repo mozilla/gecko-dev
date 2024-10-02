@@ -133,7 +133,6 @@ add_task(async function test_manage_preferences_navigation() {
     customizeDocument.querySelector("sidebar-customize");
   let manageSettings =
     customizeComponent.shadowRoot.getElementById("manage-settings");
-  manageSettings.querySelector("a").scrollIntoView();
 
   EventUtils.synthesizeMouseAtCenter(
     manageSettings.querySelector("a"),

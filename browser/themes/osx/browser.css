@@ -49,7 +49,7 @@
 
 /** Begin titlebar **/
 
-.browser-titlebar {
+#titlebar {
   /* Centrally align content items vertically */
   justify-content: center;
 }
