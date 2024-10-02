@@ -20,6 +20,8 @@ SpeculativeTransaction::SpeculativeTransaction(
     : NullHttpTransaction(aConnInfo, aCallbacks, aCaps),
       mCloseCallback(std::move(aCallback)) {}
 
+SpeculativeTransaction::~SpeculativeTransaction() = default;
+
 already_AddRefed<SpeculativeTransaction>
 SpeculativeTransaction::CreateWithNewConnInfo(nsHttpConnectionInfo* aConnInfo) {
   RefPtr<SpeculativeTransaction> trans =
@@ -35,17 +37,25 @@ nsresult SpeculativeTransaction::FetchHTTPSRR() {
   LOG(("SpeculativeTransaction::FetchHTTPSRR [this=%p]", this));
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
 
-  RefPtr<HTTPSRecordResolver> resolver = new HTTPSRecordResolver(this);
+  mResolver = new HTTPSRecordResolver(this);
   nsCOMPtr<nsICancelable> dnsRequest;
-  return resolver->FetchHTTPSRRInternal(GetCurrentSerialEventTarget(),
-                                        getter_AddRefs(dnsRequest));
+  nsresult rv = mResolver->FetchHTTPSRRInternal(GetCurrentSerialEventTarget(),
+                                                getter_AddRefs(dnsRequest));
+  if (NS_FAILED(rv)) {
+    mResolver->Close();
+    mResolver = nullptr;
+  }
+
+  return rv;
 }
 
 nsresult SpeculativeTransaction::OnHTTPSRRAvailable(
     nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-    nsISVCBRecord* aHighestPriorityRecord) {
+    nsISVCBRecord* aHighestPriorityRecord, const nsACString& aCname) {
   MOZ_ASSERT(OnSocketThread(), "not on socket thread");
   LOG(("SpeculativeTransaction::OnHTTPSRRAvailable [this=%p]", this));
+
+  RefPtr<HTTPSRecordResolver> resolver = std::move(mResolver);
 
   if (!aHTTPSSVCRecord || !aHighestPriorityRecord) {
     gHttpHandler->ConnMgr()->DoSpeculativeConnection(this, false);
@@ -73,6 +83,10 @@ void SpeculativeTransaction::Close(nsresult aReason) {
   LOG(("SpeculativeTransaction::Close %p aReason=%" PRIx32, this,
        static_cast<uint32_t>(aReason)));
   NullHttpTransaction::Close(aReason);
+  if (mResolver) {
+    mResolver->Close();
+    mResolver = nullptr;
+  }
 
   if (aReason == NS_BASE_STREAM_CLOSED) {
     aReason = NS_OK;

@@ -418,13 +418,21 @@ nsDNSByTypeRecord::GetServiceModeRecord(bool aNoHttp2, bool aNoHttp3,
 }
 
 NS_IMETHODIMP
+nsDNSByTypeRecord::GetServiceModeRecordWithCname(bool aNoHttp2, bool aNoHttp3,
+                                                 const nsACString& aCname,
+                                                 nsISVCBRecord** aRecord) {
+  return mHostRecord->GetServiceModeRecordWithCname(aNoHttp2, aNoHttp3, aCname,
+                                                    aRecord);
+}
+
+NS_IMETHODIMP
 nsDNSByTypeRecord::GetAllRecordsWithEchConfig(
-    bool aNoHttp2, bool aNoHttp3, bool* aAllRecordsHaveEchConfig,
-    bool* aAllRecordsInH3ExcludedList,
+    bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
+    bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,
     nsTArray<RefPtr<nsISVCBRecord>>& aResult) {
   return mHostRecord->GetAllRecordsWithEchConfig(
-      aNoHttp2, aNoHttp3, aAllRecordsHaveEchConfig, aAllRecordsInH3ExcludedList,
-      aResult);
+      aNoHttp2, aNoHttp3, aCname, aAllRecordsHaveEchConfig,
+      aAllRecordsInH3ExcludedList, aResult);
 }
 
 NS_IMETHODIMP

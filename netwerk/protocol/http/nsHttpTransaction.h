@@ -188,9 +188,9 @@ class nsHttpTransaction final : public nsAHttpTransaction,
 
   void SetClassOfService(ClassOfService cos);
 
-  virtual nsresult OnHTTPSRRAvailable(
-      nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-      nsISVCBRecord* aHighestPriorityRecord) override;
+  virtual nsresult OnHTTPSRRAvailable(nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
+                                      nsISVCBRecord* aHighestPriorityRecord,
+                                      const nsACString& aCname) override;
 
   void GetHashKeyOfConnectionEntry(nsACString& aResult);
 
@@ -594,6 +594,8 @@ class nsHttpTransaction final : public nsAHttpTransaction,
   // be associated with the connection entry whose hash key is not the same as
   // this transaction's.
   nsCString mHashKeyOfConnectionEntry;
+  // The CNAME of the host, or empty if none.
+  nsCString mCname;
 
   nsCOMPtr<WebTransportSessionEventListener> mWebTransportSessionEventListener;
 

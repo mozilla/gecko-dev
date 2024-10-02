@@ -111,6 +111,9 @@ interface nsIDNSHTTPSSVCRecord : nsISupports
 {
   readonly attribute Array<nsISVCBRecord> records;
   nsISVCBRecord GetServiceModeRecord(in boolean aNoHttp2, in boolean aNoHttp3);
+  nsISVCBRecord GetServiceModeRecordWithCname(in boolean aNoHttp2,
+                                              in boolean aNoHttp3,
+                                              in ACString aCName);
   /**
    * Returns true if one of SVCB records has IPv4 or IPv6 hint addresses.
    */
@@ -128,6 +131,7 @@ interface nsIDNSHTTPSSVCRecord : nsISupports
 
   Array<nsISVCBRecord> GetAllRecordsWithEchConfig(in boolean aNoHttp2,
                                                   in boolean aNoHttp3,
+                                                  in ACString aCName,
                                                   out boolean aAllRecordsHaveEchConfig,
                                                   out boolean aAllRecordsInH3ExcludedList);
 };

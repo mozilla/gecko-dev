@@ -26,9 +26,9 @@ class SpeculativeTransaction : public NullHttpTransaction {
 
   virtual nsresult FetchHTTPSRR() override;
 
-  virtual nsresult OnHTTPSRRAvailable(
-      nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
-      nsISVCBRecord* aHighestPriorityRecord) override;
+  virtual nsresult OnHTTPSRRAvailable(nsIDNSHTTPSSVCRecord* aHTTPSSVCRecord,
+                                      nsISVCBRecord* aHighestPriorityRecord,
+                                      const nsACString& aCname) override;
 
   void SetParallelSpeculativeConnectLimit(uint32_t aLimit) {
     mParallelSpeculativeConnectLimit.emplace(aLimit);
@@ -52,7 +52,7 @@ class SpeculativeTransaction : public NullHttpTransaction {
   void InvokeCallback();
 
  protected:
-  virtual ~SpeculativeTransaction() = default;
+  virtual ~SpeculativeTransaction();
 
  private:
   Maybe<uint32_t> mParallelSpeculativeConnectLimit;
@@ -62,6 +62,7 @@ class SpeculativeTransaction : public NullHttpTransaction {
 
   bool mTriedToWrite = false;
   std::function<void(bool)> mCloseCallback;
+  RefPtr<HTTPSRecordResolver> mResolver;
 };
 
 }  // namespace net
