@@ -1509,7 +1509,7 @@ def test_max_perf_tasks(
     "try_config, selected_tasks, expected_try_config",
     [
         (
-            {"use-artifact-builds": True},
+            {"use-artifact-builds": True, "disable-pgo": True},
             ["some-android-task"],
             {"use-artifact-builds": False},
         ),
@@ -1524,7 +1524,7 @@ def test_max_perf_tasks(
             {"use-artifact-builds": False},
         ),
         (
-            {"use-artifact-builds": True},
+            {"use-artifact-builds": True, "disable-pgo": True},
             ["some-desktop-task", "some-android-task"],
             {"use-artifact-builds": False},
         ),

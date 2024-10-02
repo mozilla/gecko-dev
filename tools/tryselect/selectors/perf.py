@@ -1170,6 +1170,12 @@ class PerfParser(CompareParser):
             try_config["use-artifact-builds"] = False
             print("Disabling artifact mode due to android task selection")
 
+            if try_config.get("disable-pgo", False):
+                print(
+                    "WARNING: PGO builds are disabled as artifact mode is "
+                    "enabled by default from your mozconfig."
+                )
+
     def get_majority_framework(selected_tasks):
         suite_counts = {suite: 0 for suite in PerfParser.suites.keys()}
 
