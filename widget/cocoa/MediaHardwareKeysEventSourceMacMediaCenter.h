@@ -32,6 +32,7 @@ class MediaHardwareKeysEventSourceMacMediaCenter final
   MediaCenterEventHandler CreatePreviousTrackHandler();
   MediaCenterEventHandler CreatePlayHandler();
   MediaCenterEventHandler CreatePauseHandler();
+  MediaCenterEventHandler CreateChangePlaybackPositionHandler();
 
   bool Open() override;
   void Close() override;
@@ -40,20 +41,24 @@ class MediaHardwareKeysEventSourceMacMediaCenter final
   void SetMediaMetadata(const dom::MediaMetadataBase& aMetadata) override;
   // Currently we don't support showing supported keys on the touch bar.
   void SetSupportedMediaKeys(const MediaKeysArray& aSupportedKeys) override {}
+  void SetPositionState(const Maybe<dom::PositionState>& aState) override;
 
  private:
   ~MediaHardwareKeysEventSourceMacMediaCenter();
   void BeginListeningForEvents();
   void EndListeningForEvents();
-  void HandleEvent(dom::MediaControlKey aKey);
+  void HandleEvent(const dom::MediaControlAction& aAction);
+  void UpdatePositionInfo();
 
   bool mOpened = false;
+  Maybe<dom::PositionState> mPositionState;
 
   MediaCenterEventHandler mPlayPauseHandler;
   MediaCenterEventHandler mNextTrackHandler;
   MediaCenterEventHandler mPreviousTrackHandler;
   MediaCenterEventHandler mPauseHandler;
   MediaCenterEventHandler mPlayHandler;
+  MediaCenterEventHandler mChangePlaybackPositionHandler;
 };
 
 }  // namespace widget

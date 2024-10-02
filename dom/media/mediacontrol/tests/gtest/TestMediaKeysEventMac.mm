@@ -87,13 +87,13 @@ TEST(MediaHardwareKeysEventSourceMac, TestKeyPressedMediaKeysEvent)
   ASSERT_TRUE(!listener->IsReceivedResult());
 
   NotifyKeyPressedMediaKey(source, MediaControlKey::Playpause);
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Playpause));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Playpause));
 
   NotifyKeyPressedMediaKey(source, MediaControlKey::Nexttrack);
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Nexttrack));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Nexttrack));
 
   NotifyKeyPressedMediaKey(source, MediaControlKey::Previoustrack);
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Previoustrack));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Previoustrack));
 
   source->RemoveListener(listener);
   ASSERT_TRUE(source->GetListenersNum() == 0);

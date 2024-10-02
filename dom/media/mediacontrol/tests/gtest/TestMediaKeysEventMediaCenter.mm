@@ -6,6 +6,7 @@
 #include "gtest/gtest.h"
 #include "MediaHardwareKeysEventSourceMacMediaCenter.h"
 #include "MediaKeyListenerTest.h"
+#include "mozilla/TimeStamp.h"
 #include "nsCocoaUtils.h"
 #include "prinrval.h"
 #include "prthread.h"
@@ -38,14 +39,14 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayPauseEvent)
   playPauseHandler(nil);
 
   ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePaused);
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Playpause));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Playpause));
 
   listener->Clear();  // Reset stored media key
 
   playPauseHandler(nil);
 
   ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Playpause));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Playpause));
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayEvent)
@@ -74,7 +75,7 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPlayEvent)
   playHandler(nil);
 
   ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePlaying);
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Play));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Play));
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPauseEvent)
@@ -101,7 +102,7 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPauseEvent)
   pauseHandler(nil);
 
   ASSERT_TRUE(center.playbackState == MPNowPlayingPlaybackStatePaused);
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Pause));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Pause));
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPrevNextEvent)
@@ -121,14 +122,55 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterPrevNextEvent)
 
   nextHandler(nil);
 
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Nexttrack));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Nexttrack));
 
   MediaCenterEventHandler previousHandler =
       source->CreatePreviousTrackHandler();
 
   previousHandler(nil);
 
-  ASSERT_TRUE(listener->IsResultEqualTo(MediaControlKey::Previoustrack));
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Previoustrack));
+}
+
+@interface MockChangePlaybackPositionCommandEvent : MPRemoteCommandEvent
+@property(nonatomic, assign) NSTimeInterval positionTime;
+@end
+
+@implementation MockChangePlaybackPositionCommandEvent
+
+- (instancetype)initWithPositionTime:(NSTimeInterval)time {
+  _positionTime = time;
+  return self;
+}
+
+@end
+
+TEST(MediaHardwareKeysEventSourceMacMediaCenter,
+     TestMediaCenterChangePlaybackPositionEvent)
+{
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
+      new MediaHardwareKeysEventSourceMacMediaCenter();
+
+  ASSERT_TRUE(source->GetListenersNum() == 0);
+
+  RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
+
+  source->AddListener(listener.get());
+
+  ASSERT_TRUE(source->Open());
+
+  MediaCenterEventHandler changePositionHandler =
+      source->CreateChangePlaybackPositionHandler();
+
+  double seekPosition = 5.0;
+  MockChangePlaybackPositionCommandEvent* event =
+      [[MockChangePlaybackPositionCommandEvent alloc]
+          initWithPositionTime:seekPosition];
+  changePositionHandler(event);
+
+  ASSERT_TRUE(listener->IsKeyEqualTo(MediaControlKey::Seekto));
+  mozilla::Maybe<SeekDetails> seekDetails = listener->GetSeekDetails();
+  ASSERT_TRUE(seekDetails->mAbsolute->mSeekTime == seekPosition);
 }
 
 TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestSetMetadata)
@@ -164,6 +206,44 @@ TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestSetMetadata)
   source->Close();
   PR_Sleep(PR_SecondsToInterval(1));
   ASSERT_TRUE(center.nowPlayingInfo == nil);
+}
+
+TEST(MediaHardwareKeysEventSourceMacMediaCenter, TestMediaCenterSetPosition)
+{
+  RefPtr<MediaHardwareKeysEventSourceMacMediaCenter> source =
+      new MediaHardwareKeysEventSourceMacMediaCenter();
+
+  ASSERT_TRUE(source->GetListenersNum() == 0);
+
+  RefPtr<MediaKeyListenerTest> listener = new MediaKeyListenerTest();
+
+  source->AddListener(listener.get());
+
+  ASSERT_TRUE(source->Open());
+
+  PositionState positionState;
+  positionState.mDuration = 10.0;
+  positionState.mPlaybackRate = 1.0;
+  positionState.mLastReportedPlaybackPosition = 5.0;
+  positionState.mPositionUpdatedTime = mozilla::TimeStamp::Now();
+  source->SetPositionState(mozilla::Some(positionState));
+
+  PR_Sleep(PR_SecondsToInterval(1));
+  MPNowPlayingInfoCenter* center = [MPNowPlayingInfoCenter defaultCenter];
+  ASSERT_TRUE([center.nowPlayingInfo[MPMediaItemPropertyPlaybackDuration]
+      isEqualToNumber:@10.0]);
+  ASSERT_TRUE(
+      fabs([center.nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime]
+               doubleValue] -
+           5.0) < 0.1);
+  ASSERT_TRUE([center.nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate]
+      isEqualToNumber:@1.0]);
+
+  source->SetPlaybackState(MediaSessionPlaybackState::Paused);
+
+  PR_Sleep(PR_SecondsToInterval(1));
+  ASSERT_TRUE([center.nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate]
+      isEqualToNumber:@0.0]);
 }
 
 NS_ASSUME_NONNULL_END

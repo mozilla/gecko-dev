@@ -15,22 +15,30 @@ class MediaKeyListenerTest : public MediaControlKeyListener {
  public:
   NS_INLINE_DECL_REFCOUNTING(MediaKeyListenerTest, override)
 
-  void Clear() { mReceivedKey = mozilla::Nothing(); }
+  void Clear() { mReceivedAction = mozilla::Nothing(); }
 
   void OnActionPerformed(const MediaControlAction& aAction) override {
-    mReceivedKey = aAction.mKey;
+    mReceivedAction = Some(aAction);
   }
-  bool IsResultEqualTo(MediaControlKey aResult) const {
-    if (mReceivedKey) {
-      return *mReceivedKey == aResult;
+  bool IsKeyEqualTo(MediaControlKey aResult) const {
+    if (mReceivedAction.isSome() && mReceivedAction->mKey.isSome()) {
+      return mReceivedAction->mKey.value() == aResult;
     }
     return false;
   }
-  bool IsReceivedResult() const { return mReceivedKey.isSome(); }
+
+  mozilla::Maybe<SeekDetails> GetSeekDetails() const {
+    if (mReceivedAction.isSome()) {
+      return mReceivedAction->mDetails;
+    }
+    return Nothing();
+  }
+
+  bool IsReceivedResult() const { return mReceivedAction.isSome(); }
 
  private:
   ~MediaKeyListenerTest() = default;
-  mozilla::Maybe<MediaControlKey> mReceivedKey;
+  mozilla::Maybe<MediaControlAction> mReceivedAction;
 };
 
 }  // namespace dom
