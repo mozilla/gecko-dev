@@ -308,6 +308,7 @@ export const CustomizableWidgets = [
         let obPosition = doc.createXULElement("observes");
         obPosition.setAttribute("element", "sidebar-box");
         obPosition.setAttribute("attribute", "positionend");
+
         aNode.appendChild(obChecked);
         aNode.appendChild(obPosition);
       }
