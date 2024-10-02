@@ -65,7 +65,6 @@
                 <toolbarbutton id="tabs-newtab-button"
                                class="toolbarbutton-1"
                                command="cmd_newNavigatorTab"
-                               onclick="gBrowser.handleNewTabMiddleClick(this, event);"
                                tooltip="dynamic-shortcut-tooltip"
                                data-l10n-id="tabs-toolbar-new-tab"/>
                 <spacer class="closing-tabs-spacer" style="width: 0;"/>
@@ -74,7 +73,6 @@
             <toolbarbutton id="vertical-tabs-newtab-button"
                                 class="toolbarbutton-1"
                                 command="cmd_newNavigatorTab"
-                                onclick="gBrowser.handleNewTabMiddleClick(this, event);"
                                 tooltip="dynamic-shortcut-tooltip"
                                 data-l10n-id="tabs-toolbar-new-tab"/>
             <html:span id="tabbrowser-tab-a11y-desc" hidden="true"/>
@@ -84,7 +82,6 @@
                          class="toolbarbutton-1 chromeclass-toolbar-additional"
                          data-l10n-id="tabs-toolbar-new-tab"
                          command="cmd_newNavigatorTab"
-                         onclick="gBrowser.handleNewTabMiddleClick(this, event);"
                          tooltip="dynamic-shortcut-tooltip"
                          ondrop="newTabButtonObserver.onDrop(event)"
                          ondragover="newTabButtonObserver.onDragOver(event)"
@@ -138,7 +135,6 @@
                      removable="false" overflows="false"
                      keepbroadcastattributeswhencustomizing="true"
                      command="Browser:BackOrBackDuplicate"
-                     onclick="checkForMiddleClick(this, event);"
                      tooltip="back-button-tooltip"
                      context="backForwardMenu"/>
       <toolbarbutton id="forward-button" class="toolbarbutton-1 chromeclass-toolbar-additional"
@@ -146,7 +142,6 @@
                      removable="false" overflows="false"
                      keepbroadcastattributeswhencustomizing="true"
                      command="Browser:ForwardOrForwardDuplicate"
-                     onclick="checkForMiddleClick(this, event);"
                      tooltip="forward-button-tooltip"
                      context="backForwardMenu"/>
       <toolbaritem id="stop-reload-button" class="chromeclass-toolbar-additional"
@@ -155,7 +150,6 @@
         <toolbarbutton id="reload-button" class="toolbarbutton-1"
                        data-l10n-id="toolbar-button-reload"
                        command="Browser:ReloadOrDuplicate"
-                       onclick="checkForMiddleClick(this, event);"
                        tooltip="dynamic-shortcut-tooltip">
           <box class="toolbarbutton-animatable-box">
             <image class="toolbarbutton-animatable-image"/>
@@ -365,10 +359,9 @@
                      role="button"
                      data-l10n-id="urlbar-revert-button"/>
             </hbox>
-            <image class="urlbar-icon urlbar-go-button"
+            <image id="urlbar-go-button"
+                   class="urlbar-icon urlbar-go-button"
                    role="button"
-                   keyNav="false"
-                   onclick="gURLBar.handleCommand(event);"
                    data-l10n-id="urlbar-go-button"/>
             <hbox id="page-action-buttons" context="pageActionContextMenu" align="center">
               <toolbartabstop/>
@@ -391,16 +384,14 @@
                     role="button"
                     data-l10n-id="reader-view-enter-button"
                     hidden="true"
-                    tooltip="dynamic-shortcut-tooltip"
-                    onclick="AboutReaderParent.buttonClick(event);">
+                    tooltip="dynamic-shortcut-tooltip">
                 <image id="reader-mode-button-icon"
                        class="urlbar-icon"/>
               </hbox>
               <hbox id="picture-in-picture-button"
                     class="urlbar-page-action"
                     role="button"
-                    hidden="true"
-                    onclick="PictureInPicture.toggleUrlbar(event)">
+                    hidden="true">
                 <image id="picture-in-picture-button-icon"
                        class="urlbar-icon"/>
               </hbox>
@@ -419,13 +410,11 @@
                   class="urlbar-page-action"
                   role="button"
                   data-l10n-id="shopping-sidebar-open-button2"
-                  hidden="true"
-                  onclick="ShoppingSidebarParent.urlbarButtonClick(event);">
+                  hidden="true">
                 <image id="shopping-sidebar-button-icon"
                        class="urlbar-icon"/>
               </hbox>
               <toolbarbutton id="urlbar-zoom-button"
-                     onclick="FullZoom.resetFromURLBar(event);"
                      tooltip="dynamic-shortcut-tooltip"
                      hidden="true"/>
               <hbox id="pageActionButton"
@@ -438,8 +427,7 @@
               <hbox id="star-button-box"
                     hidden="true"
                     role="button"
-                    class="urlbar-page-action"
-                    onclick="BrowserPageActions.doCommandForAction(PageActions.actionForID('bookmark'), event, this);">
+                    class="urlbar-page-action">
                 <image id="star-button"
                        class="urlbar-icon"/>
               </hbox>
@@ -538,7 +526,6 @@
     <hbox id="personal-toolbar-empty" skipintoolbarset="true" removable="false" hidden="true" role="alert">
       <description id="personal-toolbar-empty-description"
                    data-l10n-id="bookmarks-toolbar-empty-message"
-                   onclick="BookmarkingUI.openLibraryIfLinkClicked(event);"
                    onkeydown="BookmarkingUI.openLibraryIfLinkClicked(event);">
         <html:a data-l10n-name="manage-bookmarks" class="text-link" tabindex="0" role="link"/>
       </description>
@@ -708,7 +695,6 @@
                    ondragenter="homeButtonObserver.onDragOver(event)"
                    ondrop="homeButtonObserver.onDrop(event)"
                    key="goHome"
-                   onclick="BrowserCommands.home(event);"
                    cui-areatype="toolbar"/>
 
     <toolbarbutton id="library-button" class="toolbarbutton-1 chromeclass-toolbar-additional subviewbutton-nav"

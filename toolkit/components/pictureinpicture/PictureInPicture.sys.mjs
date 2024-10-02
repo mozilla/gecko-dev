@@ -620,10 +620,6 @@ export var PictureInPicture = {
    * @param {Event} event Event from clicking the PiP urlbar button
    */
   toggleUrlbar(event) {
-    if (event.button !== 0) {
-      return;
-    }
-
     let win = event.target.ownerGlobal;
     let browser = win.gBrowser.selectedBrowser;
 

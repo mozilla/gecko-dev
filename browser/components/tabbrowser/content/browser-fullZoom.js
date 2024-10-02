@@ -484,13 +484,8 @@ var FullZoom = {
 
   /**
    * Called from the URL bar's inline zoom reset indicator button.
-   *
-   * @param {Event} event the click/keyboard event that triggered the call.
    */
-  resetFromURLBar(event) {
-    if (event.button > 0) {
-      return;
-    }
+  resetFromURLBar() {
     this.reset();
     this.resetScalingZoom();
   },

@@ -213,13 +213,6 @@ export class AboutReaderParent extends JSWindowActorParent {
     AboutReaderParent.updateReaderButton(browser);
   }
 
-  static buttonClick(event) {
-    if (event.button != 0) {
-      return;
-    }
-    AboutReaderParent.toggleReaderMode(event);
-  }
-
   static toggleReaderMode(event) {
     let win = event.target.ownerGlobal;
     if (win.gBrowser) {

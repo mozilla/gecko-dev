@@ -74,10 +74,6 @@ export class ShoppingSidebarParent extends JSWindowActorParent {
    * Called when the user clicks the URL bar button.
    */
   static async urlbarButtonClick(event) {
-    if (event.button > 0) {
-      return;
-    }
-
     if (
       lazy.AUTO_OPEN_SIDEBAR_ENABLED &&
       lazy.AUTO_OPEN_SIDEBAR_USER_ENABLED &&

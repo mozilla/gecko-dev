@@ -155,6 +155,158 @@ document.addEventListener(
     }
     navigatorToolbox.addEventListener("mousedown", onMouseDown);
     widgetOverflow.addEventListener("mousedown", onMouseDown);
+
+    function onClick(event) {
+      const isLeftClick = event.button === 0;
+
+      let element = event.target.closest(`
+        #vertical-tabs-newtab-button,
+        #tabs-newtab-button,
+        #new-tab-button,
+        #back-button,
+        #forward-button,
+        #reload-button ,
+        #urlbar-go-button,
+        #reader-mode-button,
+        #picture-in-picture-button,
+        #shopping-sidebar-button,
+        #urlbar-zoom-button,
+        #star-button-box,
+        #personal-toolbar-empty-description,
+        #home-button
+        `);
+      if (!element) {
+        return;
+      }
+
+      switch (element.id) {
+        case "vertical-tabs-newtab-button":
+        case "tabs-newtab-button":
+        case "new-tab-button":
+          gBrowser.handleNewTabMiddleClick(element, event);
+          break;
+
+        case "back-button":
+        case "forward-button":
+        case "reload-button":
+          checkForMiddleClick(element, event);
+          break;
+
+        case "urlbar-go-button":
+          gURLBar.handleCommand(event);
+          break;
+
+        case "reader-mode-button":
+          if (isLeftClick) {
+            AboutReaderParent.toggleReaderMode(event);
+          }
+          break;
+
+        case "picture-in-picture-button":
+          if (isLeftClick) {
+            PictureInPicture.toggleUrlbar(event);
+          }
+          break;
+
+        case "shopping-sidebar-button":
+          if (isLeftClick) {
+            ShoppingSidebarParent.urlbarButtonClick(event);
+          }
+          break;
+
+        case "urlbar-zoom-button":
+          if (isLeftClick) {
+            FullZoom.resetFromURLBar();
+          }
+          break;
+
+        case "star-button-box":
+          BrowserPageActions.doCommandForAction(
+            PageActions.actionForID("bookmark"),
+            event,
+            element
+          );
+          break;
+
+        case "personal-toolbar-empty-description":
+          BookmarkingUI.openLibraryIfLinkClicked(event);
+          break;
+
+        case "home-button":
+          BrowserCommands.home(event);
+          break;
+
+        default:
+          throw new Error(`Missing case for #${element.id}`);
+      }
+    }
+    navigatorToolbox.addEventListener("click", onClick);
+    widgetOverflow.addEventListener("click", onClick);
+
+    function onKeyPress(event) {
+      const isLikeLeftClick = event.key === "Enter" || event.key === " ";
+
+      let element = event.target.closest(`
+        #reader-mode-button,
+        #picture-in-picture-button,
+        #shopping-sidebar-button,
+        #urlbar-zoom-button,
+        #star-button-box,
+        #home-button
+      `);
+      if (!element) {
+        return;
+      }
+
+      switch (element.id) {
+        case "reader-mode-button":
+          if (isLikeLeftClick) {
+            AboutReaderParent.toggleReaderMode(event);
+          }
+          break;
+
+        case "picture-in-picture-button":
+          if (isLikeLeftClick) {
+            PictureInPicture.toggleUrlbar(event);
+          }
+          break;
+
+        case "shopping-sidebar-button":
+          if (isLikeLeftClick) {
+            ShoppingSidebarParent.urlbarButtonClick(event);
+          }
+          break;
+
+        case "urlbar-zoom-button":
+          if (isLikeLeftClick) {
+            FullZoom.resetFromURLBar();
+          }
+          break;
+
+        case "star-button-box":
+          // This already handles checking for enter and space.
+          BrowserPageActions.doCommandForAction(
+            PageActions.actionForID("bookmark"),
+            event,
+            element
+          );
+          break;
+
+        case "home-button":
+          if (isLikeLeftClick) {
+            BrowserCommands.home(event);
+          }
+          break;
+
+        default:
+          throw new Error(`Missing case for #${element.id}`);
+      }
+    }
+    // Make sure this preempts browser-toolbarKeyNav.js.
+    navigatorToolbox.addEventListener("keypress", onKeyPress, {
+      capture: true,
+    });
+    widgetOverflow.addEventListener("keypress", onKeyPress, { capture: true });
   },
   { once: true }
 );
