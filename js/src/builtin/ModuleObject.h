@@ -256,7 +256,7 @@ class ModuleNamespaceObject : public ProxyObject {
 
  private:
   struct ProxyHandler : public BaseProxyHandler {
-    ProxyHandler();
+    constexpr ProxyHandler() : BaseProxyHandler(&family, false) {}
 
     bool getOwnPropertyDescriptor(
         JSContext* cx, HandleObject proxy, HandleId id,

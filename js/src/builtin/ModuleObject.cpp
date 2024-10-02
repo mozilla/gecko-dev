@@ -356,7 +356,8 @@ bool IndirectBindingMap::lookup(jsid name, ModuleEnvironmentObject** envOut,
 // ModuleNamespaceObject
 
 /* static */
-const ModuleNamespaceObject::ProxyHandler ModuleNamespaceObject::proxyHandler;
+constexpr ModuleNamespaceObject::ProxyHandler
+    ModuleNamespaceObject::proxyHandler;
 
 /* static */
 bool ModuleNamespaceObject::isInstance(HandleValue value) {
@@ -435,10 +436,7 @@ bool ModuleNamespaceObject::addBinding(JSContext* cx,
   return bindings().put(cx, exportedNameId, environment, targetNameId);
 }
 
-const char ModuleNamespaceObject::ProxyHandler::family = 0;
-
-ModuleNamespaceObject::ProxyHandler::ProxyHandler()
-    : BaseProxyHandler(&family, false) {}
+constexpr char ModuleNamespaceObject::ProxyHandler::family = 0;
 
 bool ModuleNamespaceObject::ProxyHandler::getPrototype(
     JSContext* cx, HandleObject proxy, MutableHandleObject protop) const {
