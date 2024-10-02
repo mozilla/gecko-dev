@@ -2708,12 +2708,6 @@ package org.mozilla.geckoview {
     field @NonNull public final String version;
   }
 
-  public static class WebExtension.PermissionPromptResponse {
-    ctor public PermissionPromptResponse(@Nullable Boolean, @Nullable Boolean);
-    field @Nullable public final Boolean isPermissionsGranted;
-    field @Nullable public final Boolean isPrivateModeGranted;
-  }
-
   @UiThread public static class WebExtension.Port {
     ctor protected Port();
     method public void disconnect();
@@ -2835,8 +2829,7 @@ package org.mozilla.geckoview {
 
   @UiThread public static interface WebExtensionController.PromptDelegate {
     method @Deprecated @DeprecationSchedule(id="web-extension-required-permissions",version=133) @Nullable default public GeckoResult<AllowOrDeny> onInstallPrompt(@NonNull WebExtension);
-    method @Deprecated @DeprecationSchedule(id="web-extension-on-install-prompt",version=134) @Nullable default public GeckoResult<AllowOrDeny> onInstallPrompt(@NonNull WebExtension, @NonNull String[], @NonNull String[]);
-    method @Nullable default public GeckoResult<WebExtension.PermissionPromptResponse> onInstallPromptRequest(@NonNull WebExtension, @NonNull String[], @NonNull String[]);
+    method @Nullable default public GeckoResult<AllowOrDeny> onInstallPrompt(@NonNull WebExtension, @NonNull String[], @NonNull String[]);
     method @Nullable default public GeckoResult<AllowOrDeny> onOptionalPrompt(@NonNull WebExtension, @NonNull String[], @NonNull String[]);
     method @Nullable default public GeckoResult<AllowOrDeny> onUpdatePrompt(@NonNull WebExtension, @NonNull WebExtension, @NonNull String[], @NonNull String[]);
   }

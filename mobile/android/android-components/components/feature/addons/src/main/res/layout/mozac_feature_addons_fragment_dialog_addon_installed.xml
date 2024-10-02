@@ -52,12 +52,24 @@
         android:textColor="?android:attr/textColorPrimary"
         tools:text="@string/mozac_feature_addons_installed_dialog_description_2" />
 
+    <androidx.appcompat.widget.AppCompatCheckBox
+        android:id="@+id/allow_in_private_browsing"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/description"
+        android:layout_alignStart="@id/title"
+        android:layout_marginTop="16dp"
+        android:paddingStart="5dp"
+        android:paddingTop="4dp"
+        android:paddingEnd="5dp"
+        android:text="@string/mozac_feature_addons_settings_allow_in_private_browsing"
+        android:textColor="?android:attr/textColorPrimary" />
 
     <Button
         android:id="@+id/confirm_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@id/description"
+        android:layout_below="@id/allow_in_private_browsing"
         android:layout_alignParentEnd="true"
         android:layout_marginStart="8dp"
         android:layout_marginTop="16dp"

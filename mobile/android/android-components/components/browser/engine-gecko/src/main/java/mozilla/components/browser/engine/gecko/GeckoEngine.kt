@@ -81,8 +81,6 @@ import org.mozilla.geckoview.WebExtensionController
 import org.mozilla.geckoview.WebNotification
 import java.lang.ref.WeakReference
 
-typealias NativePermissionPromptResponse = org.mozilla.geckoview.WebExtension.PermissionPromptResponse
-
 /**
  * Gecko-based implementation of Engine interface.
  */
@@ -344,26 +342,20 @@ class GeckoEngine(
         this.webExtensionDelegate = webExtensionDelegate
 
         val promptDelegate = object : WebExtensionController.PromptDelegate {
-
-            override fun onInstallPromptRequest(
+            override fun onInstallPrompt(
                 ext: org.mozilla.geckoview.WebExtension,
                 permissions: Array<out String>,
                 origins: Array<out String>,
-            ): GeckoResult<NativePermissionPromptResponse>? {
-                val result = GeckoResult<NativePermissionPromptResponse>()
+            ): GeckoResult<AllowOrDeny>? {
+                val result = GeckoResult<AllowOrDeny>()
 
                 webExtensionDelegate.onInstallPermissionRequest(
                     GeckoWebExtension(ext, runtime),
                     // We pass both permissions and origins as a single list of
                     // permissions to be shown to the user.
                     permissions.toList() + origins.toList(),
-                ) { data ->
-                    result.complete(
-                        NativePermissionPromptResponse(
-                            data.isPermissionsGranted,
-                            data.isPrivateModeGranted,
-                        ),
-                    )
+                ) { allow ->
+                    if (allow) result.complete(AllowOrDeny.ALLOW) else result.complete(AllowOrDeny.DENY)
                 }
 
                 return result
