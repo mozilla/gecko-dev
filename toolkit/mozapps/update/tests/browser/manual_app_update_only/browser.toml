@@ -11,7 +11,7 @@ support-files = [
   "../../data/app_update.sjs",
   "../testConstants.js",
 ]
-skip-if = ["os == 'win' && msix"] # Updater is disabled in MSIX builds
+run-if = ["!msix"] # Updater is disabled in MSIX builds
 
 ["browser_aboutDialog_fc_autoUpdateFalse.js"]
 

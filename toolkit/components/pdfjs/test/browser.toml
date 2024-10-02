@@ -6,13 +6,13 @@ support-files = [
 ]
 
 ["browser_pdfjs_alttext_load_engine.js"]
-skip-if = ["!nightly_build"] # Bug 1890946
+run-if = ["nightly_build"] # Bug 1890946
 
 ["browser_pdfjs_alttext_telemetry.js"]
-skip-if = ["!nightly_build"] # Bug 1890946
+run-if = ["nightly_build"] # Bug 1890946
 
 ["browser_pdfjs_alttext_two_tabs.js"]
-skip-if = ["!nightly_build"] # Bug 1890946
+run-if = ["nightly_build"] # Bug 1890946
 
 ["browser_pdfjs_caret_browsing_mode.js"]
 
@@ -21,7 +21,7 @@ skip-if = ["!nightly_build"] # Bug 1890946
 ["browser_pdfjs_download_button.js"]
 
 ["browser_pdfjs_editing_contextmenu.js"]
-skip-if = ["headless"] # the headless clipboard only recognizes unicode mime type
+run-if = ["!headless"] # the headless clipboard only recognizes unicode mime type
 
 ["browser_pdfjs_editing_telemetry.js"]
 
@@ -71,7 +71,6 @@ support-files = [
 ]
 
 ["browser_pdfjs_octet_stream.js"]
-skip-if = ["os == 'linux' && bits == 64"] # Bug 1773830
 support-files = [
   "file_pdfjs_object_stream.pdf",
   "file_pdfjs_object_stream.pdf^headers^",
@@ -96,7 +95,6 @@ support-files = ["moz.png"]
 ["browser_pdfjs_unload_dialog.js"]
 
 ["browser_pdfjs_update_preferences.js"]
-skip-if = ["os == 'android'"]
 
 ["browser_pdfjs_views.js"]
 

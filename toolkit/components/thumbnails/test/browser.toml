@@ -61,7 +61,6 @@ skip-if = ["verify && debug && os == 'linux'"]
 ["browser_thumbnails_capture.js"]
 
 ["browser_thumbnails_capture_parent_process.js"]
-skip-if = ["true"] # bug 1314039 # Bug 1345418
 
 ["browser_thumbnails_expiration.js"]
 
@@ -81,4 +80,3 @@ skip-if = ["true"] # bug 1314039 # Bug 1345418
 skip-if = ["true"] # Bug 1592079
 
 ["browser_thumbnails_update.js"]
-skip-if = ["os == 'win'"] #Bug 1539947

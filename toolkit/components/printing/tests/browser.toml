@@ -58,9 +58,7 @@ skip-if = ["verify && os == 'mac'"] # bug 1675609
 
 ["browser_print_in_container.js"]
 skip-if = [
-  "tsan", # Bug 1683730
-  "os == 'linux' && bits == 64 && debug", # Bug 1683279
-  "os == 'linux' && asan", # Bug 1683279
+  "os == 'linux' && os_version == '18.04' && processor == 'x86_64' && swgl && tsan", # Bug 1683730
 ]
 
 ["browser_print_margins.js"]

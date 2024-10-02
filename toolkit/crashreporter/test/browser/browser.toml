@@ -11,11 +11,8 @@ https_first_disabled = true
 ["browser_clearReports.js"]
 
 ["browser_cpu_microcode.js"]
-skip-if = ["os != 'win'"]
+run-if = ["os == 'win'"]
 reason = "Windows-specific crash annotation"
 
 ["browser_sandbox_crash.js"]
-skip-if = [
-  "os != 'linux'", # Linux-specific crash type
-  "release_or_beta", # release/beta builds do not crash on sandbox violations
-]
+run-if = ["os == 'linux' && !release_or_beta"] # Linux-specific crash type, release/beta builds do not crash on sandbox violations

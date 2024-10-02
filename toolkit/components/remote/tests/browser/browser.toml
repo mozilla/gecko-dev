@@ -1,6 +1,6 @@
 [DEFAULT]
 
 ["browser_runtime_remote.js"]
-skip-if = ["toolkit == 'gtk'"] # Linux clients cannot remote themselves.
+run-if = ["os != 'linux'"] # Linux clients cannot remote themselves.
 
 ["browser_startup_remote.js"]
