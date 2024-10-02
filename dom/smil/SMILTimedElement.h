@@ -8,6 +8,7 @@
 #define DOM_SMIL_SMILTIMEDELEMENT_H_
 
 #include <utility>
+#include <limits>
 
 #include "mozilla/EventForwards.h"
 #include "mozilla/SMILInstanceTime.h"
@@ -585,7 +586,8 @@ class SMILTimedElement {
   IntervalList mOldIntervals;
   uint32_t mCurrentRepeatIteration;
   SMILMilestone mPrevRegisteredMilestone;
-  static const SMILMilestone sMaxMilestone;
+  static constexpr SMILMilestone sMaxMilestone = {
+      std::numeric_limits<SMILTime>::max(), false};
   static const uint8_t sMaxNumIntervals;
   static const uint8_t sMaxNumInstanceTimes;
 
