@@ -23,12 +23,15 @@ class AwakeTimeDuration;
 //
 // Some arithmetic and ordering operations are supported, when they make sense.
 //
-// This timestamp shouldn't be considered to be high-resolution, and is suitable
-// to measure time from a hundred of milliseconds (because of Windows
-// limitations).
+// When using NowLoRes(), the timestamp shouldn't be considered to be
+// high-resolution, and is suitable to measure time from a hundred of
+// milliseconds (because of Windows limitations).
+// Now() can be a bit more expensive on Windows, and is precise. Both
+// methods are equivalent on non-Windows.
 class AwakeTimeStamp {
  public:
   MFBT_API static AwakeTimeStamp NowLoRes();
+  MFBT_API static AwakeTimeStamp Now();
   MFBT_API void operator+=(const AwakeTimeDuration& aOther);
   MFBT_API void operator-=(const AwakeTimeDuration& aOther);
   MFBT_API bool operator<(const AwakeTimeStamp& aOther) const {
