@@ -1088,6 +1088,7 @@ void Context::OnQuotaInit(
   // is ensured by NS_FAILED(aRv) above
   MOZ_DIAGNOSTIC_ASSERT(mDirectoryMetadata);
   MOZ_DIAGNOSTIC_ASSERT(mDirectoryLock);
+  MOZ_DIAGNOSTIC_ASSERT(!mDirectoryLock->Invalidated());
   MOZ_DIAGNOSTIC_ASSERT_IF(mDirectoryMetadata->mIsPrivate, mCipherKeyManager);
 
   MOZ_DIAGNOSTIC_ASSERT(mState == STATE_CONTEXT_INIT);
