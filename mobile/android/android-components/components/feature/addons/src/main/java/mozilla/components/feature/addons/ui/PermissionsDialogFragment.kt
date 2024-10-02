@@ -20,7 +20,9 @@ import android.widget.Button
 import android.widget.LinearLayout.LayoutParams
 import android.widget.TextView
 import androidx.annotation.VisibleForTesting
+import androidx.appcompat.widget.AppCompatCheckBox
 import androidx.core.content.ContextCompat
+import androidx.core.view.isVisible
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import mozilla.components.feature.addons.Addon
@@ -43,9 +45,10 @@ private const val DEFAULT_VALUE = Int.MAX_VALUE
 class PermissionsDialogFragment : AddonDialogFragment() {
 
     /**
-     * A lambda called when the allow button is clicked.
+     * A lambda called when the allow button is clicked which contains the [Addon] and
+     * whether the addon is allowed in private browsing mode.
      */
-    var onPositiveButtonClicked: ((Addon) -> Unit)? = null
+    var onPositiveButtonClicked: ((Addon, Boolean) -> Unit)? = null
 
     /**
      * A lambda called when the deny button is clicked.
@@ -160,6 +163,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
         val permissionsRecyclerView = rootView.findViewById<RecyclerView>(R.id.permissions)
         val positiveButton = rootView.findViewById<Button>(R.id.allow_button)
         val negativeButton = rootView.findViewById<Button>(R.id.deny_button)
+        val allowedInPrivateBrowsing = rootView.findViewById<AppCompatCheckBox>(R.id.allow_in_private_browsing)
 
         permissionsRecyclerView.adapter = RequiredPermissionsAdapter(listPermissions)
         permissionsRecyclerView.layoutManager = LinearLayoutManager(context)
@@ -169,8 +173,12 @@ class PermissionsDialogFragment : AddonDialogFragment() {
             negativeButton.text = requireContext().getString(R.string.mozac_feature_addons_permissions_dialog_deny)
         }
 
+        if (addon.incognito == Addon.Incognito.NOT_ALLOWED) {
+            allowedInPrivateBrowsing.isVisible = false
+        }
+
         positiveButton.setOnClickListener {
-            onPositiveButtonClicked?.invoke(addon)
+            onPositiveButtonClicked?.invoke(addon, allowedInPrivateBrowsing.isChecked)
             dismiss()
         }
 
@@ -244,7 +252,7 @@ class PermissionsDialogFragment : AddonDialogFragment() {
                 gravity = Gravity.BOTTOM,
                 shouldWidthMatchParent = true,
             ),
-            onPositiveButtonClicked: ((Addon) -> Unit)? = null,
+            onPositiveButtonClicked: ((Addon, Boolean) -> Unit)? = null,
             onNegativeButtonClicked: (() -> Unit)? = null,
         ): PermissionsDialogFragment {
             val fragment = PermissionsDialogFragment()

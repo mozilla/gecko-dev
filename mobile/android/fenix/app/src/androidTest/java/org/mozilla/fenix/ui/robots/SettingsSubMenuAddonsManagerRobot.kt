@@ -144,7 +144,6 @@ class SettingsSubMenuAddonsManagerRobot {
                 withParent(instanceOf(RelativeLayout::class.java)),
                 hasSibling(withText("$addonName has been added to $appName")),
                 hasSibling(withText("Access $addonName from the $appName menu.")),
-                hasSibling(withText("Allow in private browsing")),
             ),
         )
             .check(matches(withEffectiveVisibility(Visibility.VISIBLE)))
@@ -237,6 +236,18 @@ class SettingsSubMenuAddonsManagerRobot {
         }.openAddonsManagerMenu {
             clickInstallAddon(addonName)
             verifyAddonPermissionPrompt(addonName)
+            acceptPermissionToInstallAddon()
+            verifyAddonInstallCompleted(addonName, activityTestRule)
+        }
+    }
+
+    fun installAddonInPrivateMode(addonName: String, activityTestRule: HomeActivityIntentTestRule) {
+        homeScreen {
+        }.openThreeDotMenu {
+        }.openAddonsManagerMenu {
+            clickInstallAddon(addonName)
+            verifyAddonPermissionPrompt(addonName)
+            selectAllowInPrivateBrowsing()
             acceptPermissionToInstallAddon()
             verifyAddonInstallCompleted(addonName, activityTestRule)
         }

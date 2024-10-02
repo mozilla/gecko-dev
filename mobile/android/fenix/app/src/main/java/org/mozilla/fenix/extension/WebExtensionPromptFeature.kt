@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import mozilla.components.browser.state.action.WebExtensionAction
 import mozilla.components.browser.state.state.extension.WebExtensionPromptRequest
 import mozilla.components.browser.state.store.BrowserStore
+import mozilla.components.concept.engine.webextension.PermissionPromptResponse
 import mozilla.components.concept.engine.webextension.WebExtensionInstallException
 import mozilla.components.feature.addons.Addon
 import mozilla.components.feature.addons.AddonManager
@@ -29,7 +30,6 @@ import mozilla.components.ui.widgets.withCenterAlignedButtons
 import org.mozilla.fenix.R
 import org.mozilla.fenix.ext.components
 import org.mozilla.fenix.theme.ThemeManager
-import java.lang.ref.WeakReference
 
 /**
  * Feature implementation for handling [WebExtensionPromptRequest] and showing the respective UI.
@@ -133,7 +133,7 @@ class WebExtensionPromptFeature(
 
         // If we don't have any promptable permissions, just proceed.
         if (shouldGrantWithoutPrompt) {
-            handlePermissions(promptRequest, granted = true)
+            handlePermissions(promptRequest, granted = true, privateBrowsingAllowed = false)
             return
         }
 
@@ -247,8 +247,20 @@ class WebExtensionPromptFeature(
                 confirmButtonRadius =
                 (context.resources.getDimensionPixelSize(R.dimen.tab_corner_radius)).toFloat(),
             ),
-            onPositiveButtonClicked = { handlePermissions(promptRequest, granted = true) },
-            onNegativeButtonClicked = { handlePermissions(promptRequest, granted = false) },
+            onPositiveButtonClicked = { _, privateBrowsingAllowed ->
+                handlePermissions(
+                    promptRequest,
+                    granted = true,
+                    privateBrowsingAllowed,
+                )
+            },
+            onNegativeButtonClicked = {
+                handlePermissions(
+                    promptRequest,
+                    granted = false,
+                    privateBrowsingAllowed = false,
+                )
+            },
         )
         dialog.show(
             fragmentManager,
@@ -258,38 +270,25 @@ class WebExtensionPromptFeature(
 
     private fun tryToReAttachButtonHandlersToPreviousDialog() {
         findPreviousPermissionDialogFragment()?.let { dialog ->
-            dialog.onPositiveButtonClicked = { addon ->
+            dialog.onPositiveButtonClicked = { addon, privateBrowsingAllowed ->
                 store.state.webExtensionPromptRequest?.let { promptRequest ->
                     if (promptRequest is WebExtensionPromptRequest.AfterInstallation.Permissions &&
                         addon.id == promptRequest.extension.id
                     ) {
-                        handlePermissions(promptRequest, granted = true)
+                        handlePermissions(promptRequest, granted = true, privateBrowsingAllowed)
                     }
                 }
             }
             dialog.onNegativeButtonClicked = {
                 store.state.webExtensionPromptRequest?.let { promptRequest ->
                     if (promptRequest is WebExtensionPromptRequest.AfterInstallation.Permissions) {
-                        handlePermissions(promptRequest, granted = false)
+                        handlePermissions(promptRequest, granted = false, privateBrowsingAllowed = false)
                     }
                 }
             }
         }
 
         findPreviousPostInstallationDialogFragment()?.let { dialog ->
-            dialog.onConfirmButtonClicked = { addon, allowInPrivateBrowsing ->
-                store.state.webExtensionPromptRequest?.let { promptRequest ->
-                    if (promptRequest is WebExtensionPromptRequest.AfterInstallation.PostInstallation &&
-                        addon.id == promptRequest.extension.id
-                    ) {
-                        handlePostInstallationButtonClicked(
-                            allowInPrivateBrowsing = allowInPrivateBrowsing,
-                            context = WeakReference(context),
-                            addon = addon,
-                        )
-                    }
-                }
-            }
             dialog.onDismissed = {
                 store.state.webExtensionPromptRequest?.let { _ ->
                     consumePromptRequest()
@@ -301,8 +300,21 @@ class WebExtensionPromptFeature(
     private fun handlePermissions(
         promptRequest: WebExtensionPromptRequest.AfterInstallation.Permissions,
         granted: Boolean,
+        privateBrowsingAllowed: Boolean,
     ) {
-        promptRequest.onConfirm(granted)
+        when (promptRequest) {
+            is WebExtensionPromptRequest.AfterInstallation.Permissions.Optional -> {
+                promptRequest.onConfirm(granted)
+            }
+
+            is WebExtensionPromptRequest.AfterInstallation.Permissions.Required -> {
+                val response = PermissionPromptResponse(
+                    permissionsGranted = granted,
+                    privateModeGranted = privateBrowsingAllowed,
+                )
+                promptRequest.onConfirm(response)
+            }
+        }
         consumePromptRequest()
     }
 
@@ -332,13 +344,6 @@ class WebExtensionPromptFeature(
 
     private fun showPostInstallationDialog(addon: Addon) {
         if (!isInstallationInProgress && !hasExistingAddonPostInstallationDialogFragment()) {
-            // Fragment may not be attached to the context anymore during onConfirmButtonClicked handling,
-            // but we still want to be able to process user selection of the 'allowInPrivateBrowsing' pref.
-            // This is a best-effort attempt to do so - retain a weak reference to the application context
-            // (to avoid a leak), which we attempt to use to access addonManager.
-            // See https://github.com/mozilla-mobile/fenix/issues/15816
-            val weakApplicationContext: WeakReference<Context> = WeakReference(context)
-
             val dialog = AddonInstallationDialogFragment.newInstance(
                 addon = addon,
                 promptsStyling = AddonDialogFragment.PromptsStyling(
@@ -358,33 +363,12 @@ class WebExtensionPromptFeature(
                 onDismissed = {
                     consumePromptRequest()
                 },
-                onConfirmButtonClicked = { _, allowInPrivateBrowsing ->
-                    handlePostInstallationButtonClicked(
-                        addon = addon,
-                        context = weakApplicationContext,
-                        allowInPrivateBrowsing = allowInPrivateBrowsing,
-                    )
+                onConfirmButtonClicked = { _ ->
+                    consumePromptRequest()
                 },
             )
             dialog.show(fragmentManager, POST_INSTALLATION_DIALOG_FRAGMENT_TAG)
         }
-    }
-
-    private fun handlePostInstallationButtonClicked(
-        context: WeakReference<Context>,
-        allowInPrivateBrowsing: Boolean,
-        addon: Addon,
-    ) {
-        if (allowInPrivateBrowsing) {
-            context.get()?.components?.addonManager?.setAddonAllowedInPrivateBrowsing(
-                addon = addon,
-                allowed = true,
-                onSuccess = { updatedAddon ->
-                    onAddonChanged(updatedAddon)
-                },
-            )
-        }
-        consumePromptRequest()
     }
 
     @VisibleForTesting

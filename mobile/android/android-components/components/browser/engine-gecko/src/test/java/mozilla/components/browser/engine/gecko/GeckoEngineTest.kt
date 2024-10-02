@@ -36,6 +36,7 @@ import mozilla.components.concept.engine.translate.OperationLevel
 import mozilla.components.concept.engine.utils.EngineReleaseChannel
 import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.engine.webextension.InstallationMethod
+import mozilla.components.concept.engine.webextension.PermissionPromptResponse
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.concept.engine.webextension.WebExtensionDelegate
 import mozilla.components.concept.engine.webextension.WebExtensionException
@@ -1384,10 +1385,11 @@ class GeckoEngineTest {
         val geckoDelegateCaptor = argumentCaptor<WebExtensionController.PromptDelegate>()
         verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
 
-        val result = geckoDelegateCaptor.value.onInstallPrompt(extension, permissions, origins)
+        val result =
+            geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins)
 
         val extensionCaptor = argumentCaptor<WebExtension>()
-        val onConfirmCaptor = argumentCaptor<((Boolean) -> Unit)>()
+        val onConfirmCaptor = argumentCaptor<((PermissionPromptResponse) -> Unit)>()
 
         verify(webExtensionsDelegate).onInstallPermissionRequest(
             extensionCaptor.capture(),
@@ -1395,9 +1397,66 @@ class GeckoEngineTest {
             onConfirmCaptor.capture(),
         )
 
-        onConfirmCaptor.value(true)
+        onConfirmCaptor.value(
+            PermissionPromptResponse(
+                isPermissionsGranted = true,
+                isPrivateModeGranted = false,
+            ),
+        )
 
-        assertEquals(GeckoResult.allow(), result)
+        var nativePermissionPromptResponse: NativePermissionPromptResponse? = null
+        result!!.accept {
+            nativePermissionPromptResponse = it
+        }
+
+        shadowOf(getMainLooper()).idle()
+        assertTrue(nativePermissionPromptResponse!!.permissionsGranted!!)
+        assertFalse(nativePermissionPromptResponse!!.privateModeGranted!!)
+    }
+
+    @Test
+    fun `GIVEN permissions granted AND private mode granted WHEN onInstallPermissionRequest THEN delegate is called with all modes allowed`() {
+        val runtime: GeckoRuntime = mock()
+        val webExtensionController: WebExtensionController = mock()
+        whenever(runtime.webExtensionController).thenReturn(webExtensionController)
+
+        val extension = mockNativeWebExtension("test", "uri")
+        val permissions = arrayOf("some", "permissions")
+        val origins = arrayOf("and some", "origins")
+        val webExtensionsDelegate: WebExtensionDelegate = mock()
+        val engine = GeckoEngine(context, runtime = runtime)
+
+        engine.registerWebExtensionDelegate(webExtensionsDelegate)
+
+        val geckoDelegateCaptor = argumentCaptor<WebExtensionController.PromptDelegate>()
+        verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
+
+        val result = geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins)
+
+        val extensionCaptor = argumentCaptor<WebExtension>()
+        val onConfirmCaptor = argumentCaptor<((PermissionPromptResponse) -> Unit)>()
+
+        verify(webExtensionsDelegate).onInstallPermissionRequest(
+            extensionCaptor.capture(),
+            eq(permissions.asList() + origins.asList()),
+            onConfirmCaptor.capture(),
+        )
+
+        onConfirmCaptor.value(
+            PermissionPromptResponse(
+                isPermissionsGranted = true,
+                isPrivateModeGranted = true,
+            ),
+        )
+
+        var nativePermissionPromptResponse: NativePermissionPromptResponse? = null
+        result!!.accept {
+            nativePermissionPromptResponse = it
+        }
+
+        shadowOf(getMainLooper()).idle()
+        assertTrue(nativePermissionPromptResponse!!.permissionsGranted!!)
+        assertTrue(nativePermissionPromptResponse!!.privateModeGranted!!)
     }
 
     @Test
@@ -1417,10 +1476,11 @@ class GeckoEngineTest {
         val geckoDelegateCaptor = argumentCaptor<WebExtensionController.PromptDelegate>()
         verify(webExtensionController).promptDelegate = geckoDelegateCaptor.capture()
 
-        val result = geckoDelegateCaptor.value.onInstallPrompt(extension, permissions, origins)
+        val result =
+            geckoDelegateCaptor.value.onInstallPromptRequest(extension, permissions, origins)
 
         val extensionCaptor = argumentCaptor<WebExtension>()
-        val onConfirmCaptor = argumentCaptor<((Boolean) -> Unit)>()
+        val onConfirmCaptor = argumentCaptor<((PermissionPromptResponse) -> Unit)>()
 
         verify(webExtensionsDelegate).onInstallPermissionRequest(
             extensionCaptor.capture(),
@@ -1428,9 +1488,21 @@ class GeckoEngineTest {
             onConfirmCaptor.capture(),
         )
 
-        onConfirmCaptor.value(false)
+        onConfirmCaptor.value(
+            PermissionPromptResponse(
+                isPermissionsGranted = false,
+                isPrivateModeGranted = false,
+            ),
+        )
 
-        assertEquals(GeckoResult.deny(), result)
+        var nativePermissionPromptResponse: NativePermissionPromptResponse? = null
+        result!!.accept {
+            nativePermissionPromptResponse = it
+        }
+
+        shadowOf(getMainLooper()).idle()
+        assertFalse(nativePermissionPromptResponse!!.permissionsGranted!!)
+        assertFalse(nativePermissionPromptResponse!!.privateModeGranted!!)
     }
 
     @Test
