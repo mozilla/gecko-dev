@@ -43,16 +43,6 @@ add_tasks_with_rust(async function () {
       scalars: {
         [TELEMETRY_SCALARS.IMPRESSION_DYNAMIC_WIKIPEDIA]: position,
       },
-      event: {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "impression_only",
-        extra: {
-          suggestion_type,
-          match_type,
-          position: position.toString(),
-        },
-      },
     },
     // click
     click: {
@@ -60,16 +50,6 @@ add_tasks_with_rust(async function () {
         [TELEMETRY_SCALARS.IMPRESSION_DYNAMIC_WIKIPEDIA]: position,
         [TELEMETRY_SCALARS.CLICK_DYNAMIC_WIKIPEDIA]: position,
         "urlbar.picked.dynamic_wikipedia": index.toString(),
-      },
-      event: {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "click",
-        extra: {
-          suggestion_type,
-          match_type,
-          position: position.toString(),
-        },
       },
     },
     commands: [
@@ -79,16 +59,6 @@ add_tasks_with_rust(async function () {
         scalars: {
           [TELEMETRY_SCALARS.IMPRESSION_DYNAMIC_WIKIPEDIA]: position,
           [TELEMETRY_SCALARS.BLOCK_DYNAMIC_WIKIPEDIA]: position,
-        },
-        event: {
-          category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-          method: "engagement",
-          object: "block",
-          extra: {
-            suggestion_type,
-            match_type,
-            position: position.toString(),
-          },
         },
       },
     ],

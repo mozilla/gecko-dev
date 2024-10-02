@@ -48,7 +48,6 @@ add_task(async function notMatched_clickHeuristic() {
       [TELEMETRY_SCALARS.IMPRESSION_NAV_NOTMATCHED]: "search_engine",
       [TELEMETRY_SCALARS.CLICK_NAV_NOTMATCHED]: "search_engine",
     },
-    events: [],
   });
 });
 
@@ -62,7 +61,6 @@ add_task(async function notMatched_clickOther() {
     scalars: {
       [TELEMETRY_SCALARS.IMPRESSION_NAV_NOTMATCHED]: "search_engine",
     },
-    events: [],
   });
 });
 
@@ -76,19 +74,6 @@ add_task(async function shown_clickHeuristic() {
       [TELEMETRY_SCALARS.IMPRESSION_NAV_SHOWN]: "search_engine",
       [TELEMETRY_SCALARS.CLICK_NAV_SHOWN_HEURISTIC]: "search_engine",
     },
-    events: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "impression_only",
-        extra: {
-          suggestion_type,
-          match_type: "best-match",
-          position: position.toString(),
-          source: "merino",
-        },
-      },
-    ],
   });
 });
 
@@ -103,19 +88,6 @@ add_task(async function shown_clickNavSuggestion() {
       [TELEMETRY_SCALARS.CLICK_NAV_SHOWN_NAV]: "search_engine",
       "urlbar.picked.navigational": "1",
     },
-    events: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "click",
-        extra: {
-          suggestion_type,
-          match_type: "best-match",
-          position: position.toString(),
-          source: "merino",
-        },
-      },
-    ],
   });
 });
 
@@ -130,19 +102,6 @@ add_task(async function shown_clickOther() {
     scalars: {
       [TELEMETRY_SCALARS.IMPRESSION_NAV_SHOWN]: "search_engine",
     },
-    events: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "impression_only",
-        extra: {
-          suggestion_type,
-          match_type: "best-match",
-          position: position.toString(),
-          source: "merino",
-        },
-      },
-    ],
   });
 });
 
@@ -167,7 +126,6 @@ add_task(async function duped_clickHeuristic() {
       [TELEMETRY_SCALARS.IMPRESSION_NAV_SUPERCEDED]: "autofill_origin",
       [TELEMETRY_SCALARS.CLICK_NAV_SUPERCEDED]: "autofill_origin",
     },
-    events: [],
   });
 });
 
@@ -194,7 +152,6 @@ add_task(async function duped_clickOther() {
     scalars: {
       [TELEMETRY_SCALARS.IMPRESSION_NAV_SUPERCEDED]: "autofill_origin",
     },
-    events: [],
   });
 });
 
@@ -209,21 +166,6 @@ add_task(async function recordNavigationalSuggestionTelemetry_false() {
     shouldBeShown: true,
     pickRowIndex: index,
     scalars: {},
-    events: [
-      // The legacy engagement event should still be recorded as it is for all
-      // quick suggest results.
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "click",
-        extra: {
-          suggestion_type,
-          match_type: "best-match",
-          position: position.toString(),
-          source: "merino",
-        },
-      },
-    ],
   });
 });
 
@@ -236,21 +178,6 @@ add_task(async function recordNavigationalSuggestionTelemetry_undefined() {
     shouldBeShown: true,
     pickRowIndex: index,
     scalars: {},
-    events: [
-      // The legacy engagement event should still be recorded as it is for all
-      // quick suggest results.
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "click",
-        extra: {
-          suggestion_type,
-          match_type: "best-match",
-          position: position.toString(),
-          source: "merino",
-        },
-      },
-    ],
   });
 });
 
@@ -275,9 +202,6 @@ add_task(async function recordNavigationalSuggestionTelemetry_undefined() {
  * @param {object} options.scalars
  *   An object that specifies the nav suggest keyed scalars that are expected to
  *   be recorded.
- * @param {Array} options.events
- *   An object that specifies the legacy engagement events that are expected to
- *   be recorded.
  * @param {object} options.valueOverrides
  *   The Nimbus variables to use.
  */
@@ -286,7 +210,6 @@ async function doTest({
   shouldBeShown,
   pickRowIndex,
   scalars,
-  events,
   valueOverrides = {
     recordNavigationalSuggestionTelemetry: true,
   },
@@ -295,8 +218,6 @@ async function doTest({
   MerinoTestUtils.server.response.body.suggestions = suggestion
     ? [suggestion]
     : [];
-
-  Services.telemetry.clearEvents();
 
   await QuickSuggestTestUtils.withExperiment({
     valueOverrides,
@@ -337,9 +258,6 @@ async function doTest({
 
   info("Checking scalars");
   QuickSuggestTestUtils.assertScalars(scalars);
-
-  info("Checking events");
-  QuickSuggestTestUtils.assertEvents(events);
 
   await PlacesUtils.history.clear();
   MerinoTestUtils.server.response.body.suggestions = [MERINO_SUGGESTION];

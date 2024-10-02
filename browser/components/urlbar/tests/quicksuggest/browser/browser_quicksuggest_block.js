@@ -48,7 +48,6 @@ add_setup(async function () {
   await QuickSuggest.blockedSuggestions.clear();
 
   Services.telemetry.clearScalars();
-  Services.telemetry.clearEvents();
 
   await QuickSuggestTestUtils.ensureQuickSuggestInit({
     remoteSettingsRecords: [
@@ -191,20 +190,6 @@ async function doOneBasicBlockTest({ result, block }) {
     scalars[TELEMETRY_SCALARS.BLOCK_NONSPONSORED] = index;
   }
   QuickSuggestTestUtils.assertScalars(scalars);
-
-  // Check the engagement event.
-  QuickSuggestTestUtils.assertEvents([
-    {
-      category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-      method: "engagement",
-      object: "block",
-      extra: {
-        match_type,
-        position: String(index),
-        suggestion_type: isSponsored ? "sponsored" : "nonsponsored",
-      },
-    },
-  ]);
 
   await UrlbarTestUtils.promisePopupClose(window);
   await QuickSuggest.blockedSuggestions.clear();

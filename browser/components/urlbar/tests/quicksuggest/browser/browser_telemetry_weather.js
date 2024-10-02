@@ -78,16 +78,6 @@ add_tasks_with_rust(async function () {
         : {
             [WEATHER_SCALARS.IMPRESSION]: position,
           },
-      event: {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "impression_only",
-        extra: {
-          suggestion_type,
-          match_type,
-          position: position.toString(),
-        },
-      },
     },
     // click
     click: {
@@ -97,16 +87,6 @@ add_tasks_with_rust(async function () {
             [WEATHER_SCALARS.IMPRESSION]: position,
             [WEATHER_SCALARS.CLICK]: position,
           },
-      event: {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "click",
-        extra: {
-          suggestion_type,
-          match_type,
-          position: position.toString(),
-        },
-      },
     },
     commands: [
       // not relevant
@@ -120,16 +100,6 @@ add_tasks_with_rust(async function () {
           : {
               [WEATHER_SCALARS.IMPRESSION]: position,
             },
-        event: {
-          category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-          method: "engagement",
-          object: "other",
-          extra: {
-            suggestion_type,
-            match_type,
-            position: position.toString(),
-          },
-        },
       },
     ],
   });

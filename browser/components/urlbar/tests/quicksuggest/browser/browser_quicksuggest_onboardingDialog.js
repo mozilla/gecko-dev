@@ -97,18 +97,6 @@ add_task(async function escKey_focusInsideDialog() {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "dismiss_2",
-      },
-    ],
   });
 });
 
@@ -137,18 +125,6 @@ add_task(async function escKey_focusOutsideDialog() {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "dismiss_2",
-      },
-    ],
   });
 });
 
@@ -205,18 +181,6 @@ async function doQueuedEscKeyTest(otherDialogKey) {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "dismiss_1",
-      },
-    ],
   });
 }
 
@@ -233,18 +197,6 @@ add_task(async function dismissed_other_on_introduction() {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "dismiss_1",
-      },
-    ],
   });
 });
 
@@ -1019,18 +971,6 @@ async function onboardingClose(variation) {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "close_1",
-      },
-    ],
   });
 }
 
@@ -1070,18 +1010,6 @@ async function onboardingNext(variation) {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "dismiss_2",
-      },
-    ],
   });
 }
 
@@ -1115,18 +1043,6 @@ async function onboardingAccept(variation, skipIntroduction) {
       "quicksuggest.onboardingDialogVersion": JSON.stringify({ version: 1 }),
       "quicksuggest.dataCollection.enabled": true,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "enabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "accept_2",
-      },
-    ],
   });
 }
 
@@ -1159,18 +1075,6 @@ async function onboardingReject(variation, skipIntroduction) {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "reject_2",
-      },
-    ],
   });
 }
 
@@ -1206,18 +1110,6 @@ async function onboardingSkipLink(variation, skipIntroduction) {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "not_now_2",
-      },
-    ],
   });
 }
 
@@ -1281,18 +1173,6 @@ async function doLearnMoreTest(variation, skipIntroduction, target, telemetry) {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: telemetry,
-      },
-    ],
   });
 }
 
@@ -1303,7 +1183,6 @@ async function doActionTest({
   onboardingDialogVersion,
   onboardingDialogChoice,
   expectedUserBranchPrefs,
-  telemetryEvents,
 }) {
   const userClick = target => {
     info("Click on the target");
@@ -1343,7 +1222,6 @@ async function doActionTest({
           onboardingDialogVersion,
           onboardingDialogChoice,
           expectedUserBranchPrefs,
-          telemetryEvents,
         });
       },
     });
@@ -1354,7 +1232,6 @@ async function doDialogTest({
   callback,
   onboardingDialogVersion,
   onboardingDialogChoice,
-  telemetryEvents,
   expectedUserBranchPrefs,
 }) {
   setDialogPrereqPrefs();
@@ -1367,10 +1244,6 @@ async function doDialogTest({
     gDefaultBranch.setBoolPref(name, value);
     gUserBranch.clearUserPref(name);
   }
-
-  // Setting the prefs just now triggered telemetry events, so clear them
-  // before calling the callback.
-  Services.telemetry.clearEvents();
 
   // Call the callback, which should trigger the dialog and interact with it.
   await BrowserTestUtils.withNewTab("about:blank", async () => {
@@ -1426,8 +1299,6 @@ async function doDialogTest({
     onboardingDialogChoice,
     "onboardingDialogChoice is correct in TelemetryEnvironment"
   );
-
-  QuickSuggestTestUtils.assertEvents(telemetryEvents);
 
   Assert.ok(
     UrlbarPrefs.get("quicksuggest.showedOnboardingDialog"),
@@ -1548,18 +1419,6 @@ async function canTabMoveFocus() {
     expectedUserBranchPrefs: {
       "quicksuggest.dataCollection.enabled": false,
     },
-    telemetryEvents: [
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: "disabled",
-      },
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "opt_in_dialog",
-        object: "dismiss_2",
-      },
-    ],
   });
 
   return canMove;

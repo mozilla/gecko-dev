@@ -221,39 +221,19 @@ class ProviderWeather extends UrlbarProvider {
 
     // scalars related to clicking the result and other elements in its row
     let clickScalars = [];
-    let eventObject;
     switch (selType) {
       case "weather":
         clickScalars.push(TELEMETRY_SCALARS.CLICK);
-        eventObject = "click";
         break;
       case "dismiss":
         clickScalars.push(TELEMETRY_SCALARS.BLOCK);
-        eventObject = "block";
         break;
       default:
-        if (selType) {
-          eventObject = "other";
-        }
         break;
     }
     for (let scalar of clickScalars) {
       Services.telemetry.keyedScalarAdd(scalar, telemetryResultIndex, 1);
     }
-
-    // engagement event
-    Services.telemetry.recordEvent(
-      lazy.QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-      "engagement",
-      eventObject || "impression_only",
-      "",
-      {
-        match_type: "firefox-suggest",
-        position: String(telemetryResultIndex),
-        suggestion_type: "weather",
-        source: result.payload.source,
-      }
-    );
   }
 
   #handlePossibleCommand(view, result, selType) {

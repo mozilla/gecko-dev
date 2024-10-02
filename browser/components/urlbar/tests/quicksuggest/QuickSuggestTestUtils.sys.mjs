@@ -1009,31 +1009,6 @@ class _QuickSuggestTestUtils {
   }
 
   /**
-   * Checks quick suggest telemetry events. This is the same as
-   * `TelemetryTestUtils.assertEvents()` except it filters in only quick suggest
-   * events by default. If you are expecting events that are not in the quick
-   * suggest category, use `TelemetryTestUtils.assertEvents()` directly or pass
-   * in a filter override for `category`.
-   *
-   * @param {Array} expectedEvents
-   *   List of expected telemetry events.
-   * @param {object} filterOverrides
-   *   Extra properties to set in the filter object.
-   * @param {object} options
-   *   The options object to pass to `TelemetryTestUtils.assertEvents()`.
-   */
-  assertEvents(expectedEvents, filterOverrides = {}, options = undefined) {
-    lazy.TelemetryTestUtils.assertEvents(
-      expectedEvents,
-      {
-        category: lazy.QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        ...filterOverrides,
-      },
-      options
-    );
-  }
-
-  /**
    * Asserts that URLs in a result's payload have the timestamp template
    * substring replaced with real timestamps.
    *

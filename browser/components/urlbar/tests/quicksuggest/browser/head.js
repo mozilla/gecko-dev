@@ -136,8 +136,6 @@ async function setUpTelemetryTest({
  *   the following properties:
  *     {object} scalars
  *       An object that maps expected scalar names to values.
- *     {object} event
- *       The expected recorded event.
  *     {object} ping
  *       The expected recorded custom telemetry ping. If no ping is expected,
  *       leave this undefined or pass null.
@@ -155,8 +153,6 @@ async function setUpTelemetryTest({
  *       arg, so see its documentation for details.
  *     {object} scalars
  *       An object that maps expected scalar names to values.
- *     {object} event
- *       The expected recorded event.
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
  *       expected, pass an empty array.
@@ -190,7 +186,6 @@ async function doTelemetryTest({
     }),
 }) {
   Services.telemetry.clearScalars();
-  Services.telemetry.clearEvents();
 
   await doImpressionOnlyTest({
     index,
@@ -243,8 +238,6 @@ async function doTelemetryTest({
  *   the following properties:
  *     {object} scalars
  *       An object that maps expected scalar names to values.
- *     {object} event
- *       The expected recorded event.
  *     {object} ping
  *       The expected recorded custom telemetry ping. If no ping is expected,
  *       leave this undefined or pass null.
@@ -259,8 +252,6 @@ async function doImpressionOnlyTest({
   showSuggestion,
 }) {
   info("Starting impression-only test");
-
-  Services.telemetry.clearEvents();
 
   let expectedPings = expected.ping ? [expected.ping] : [];
   let gleanPingCount = watchGleanPings(expectedPings);
@@ -327,9 +318,6 @@ async function doImpressionOnlyTest({
   info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
   QuickSuggestTestUtils.assertScalars(expected.scalars);
 
-  info("Checking events. Expected: " + JSON.stringify([expected.event]));
-  QuickSuggestTestUtils.assertEvents([expected.event]);
-
   Assert.equal(
     expectedPings.length,
     gleanPingCount.value,
@@ -361,8 +349,6 @@ async function doImpressionOnlyTest({
  *   selectable element is picked. It must have the following properties:
  *     {object} scalars
  *       An object that maps expected scalar names to values.
- *     {object} event
- *       The expected recorded event.
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
  *       expected, leave this undefined or pass an empty array.
@@ -377,8 +363,6 @@ async function doClickTest({
   showSuggestion,
 }) {
   info("Starting click test");
-
-  Services.telemetry.clearEvents();
 
   let expectedPings = expected.pings ?? [];
   let gleanPingCount = watchGleanPings(expectedPings);
@@ -404,9 +388,6 @@ async function doClickTest({
 
   info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
   QuickSuggestTestUtils.assertScalars(expected.scalars);
-
-  info("Checking events. Expected: " + JSON.stringify([expected.event]));
-  QuickSuggestTestUtils.assertEvents([expected.event]);
 
   Assert.equal(
     expectedPings.length,
@@ -441,8 +422,6 @@ async function doClickTest({
  *   selectable element is picked. It must have the following properties:
  *     {object} scalars
  *       An object that maps expected scalar names to values.
- *     {object} event
- *       The expected recorded event.
  *     {Array} pings
  *       A list of expected recorded custom telemetry pings. If no pings are
  *       expected, leave this undefined or pass an empty array.
@@ -458,8 +437,6 @@ async function doCommandTest({
   showSuggestion,
 }) {
   info("Starting command test: " + JSON.stringify({ commandOrArray }));
-
-  Services.telemetry.clearEvents();
 
   let expectedPings = expected.pings ?? [];
   let gleanPingCount = watchGleanPings(expectedPings);
@@ -502,9 +479,6 @@ async function doCommandTest({
 
   info("Checking scalars. Expected: " + JSON.stringify(expected.scalars));
   QuickSuggestTestUtils.assertScalars(expected.scalars);
-
-  info("Checking events. Expected: " + JSON.stringify([expected.event]));
-  QuickSuggestTestUtils.assertEvents([expected.event]);
 
   Assert.equal(
     expectedPings.length,

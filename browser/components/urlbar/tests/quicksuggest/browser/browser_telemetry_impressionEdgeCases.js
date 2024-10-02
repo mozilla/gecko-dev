@@ -30,7 +30,6 @@ add_setup(async function () {
   await UrlbarTestUtils.formHistory.clear();
 
   Services.telemetry.clearScalars();
-  Services.telemetry.clearEvents();
 
   // Add a mock engine so we don't hit the network.
   await SearchTestUtils.installSearchExtension({}, { setAsDefault: true });
@@ -48,7 +47,6 @@ add_setup(async function () {
 // Makes sure impression telemetry is not recorded when the urlbar engagement is
 // abandoned.
 add_tasks_with_rust(async function abandonment() {
-  Services.telemetry.clearEvents();
   await UrlbarTestUtils.promiseAutocompleteResultPopup({
     window,
     value: "sponsored",
@@ -62,14 +60,12 @@ add_tasks_with_rust(async function abandonment() {
     gURLBar.blur();
   });
   QuickSuggestTestUtils.assertScalars({});
-  QuickSuggestTestUtils.assertEvents([]);
 });
 
 // Makes sure impression telemetry is not recorded when a quick suggest result
 // is not present.
 add_tasks_with_rust(async function noQuickSuggestResult() {
   await BrowserTestUtils.withNewTab("about:blank", async () => {
-    Services.telemetry.clearEvents();
     await UrlbarTestUtils.promiseAutocompleteResultPopup({
       window,
       value: "noImpression_noQuickSuggestResult",
@@ -80,7 +76,6 @@ add_tasks_with_rust(async function noQuickSuggestResult() {
       EventUtils.synthesizeKey("KEY_Enter");
     });
     QuickSuggestTestUtils.assertScalars({});
-    QuickSuggestTestUtils.assertEvents([]);
   });
   await PlacesUtils.history.clear();
 });
@@ -88,8 +83,6 @@ add_tasks_with_rust(async function noQuickSuggestResult() {
 // When a quick suggest result is added to the view but hidden during the view
 // update, impression telemetry should not be recorded for it.
 add_tasks_with_rust(async function hiddenRow() {
-  Services.telemetry.clearEvents();
-
   // Increase the timeout of the remove-stale-rows timer so that it doesn't
   // interfere with this task.
   let originalRemoveStaleRowsTimeout = UrlbarView.removeStaleRowsTimeout;
@@ -215,7 +208,6 @@ add_tasks_with_rust(async function hiddenRow() {
   // The quick suggest provider added a result but it wasn't visible in the
   // view. No impression telemetry should be recorded for it.
   QuickSuggestTestUtils.assertScalars({});
-  QuickSuggestTestUtils.assertEvents([]);
 
   BrowserTestUtils.removeTab(tab);
   UrlbarProvidersManager.unregisterProvider(provider);
@@ -227,8 +219,6 @@ add_tasks_with_rust(async function hiddenRow() {
 // telemetry should not be recorded for it even if it's the result most recently
 // returned by the provider.
 add_tasks_with_rust(async function notAddedToView() {
-  Services.telemetry.clearEvents();
-
   // Open a new tab since we'll load a page.
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     // Do an initial search that doesn't match any suggestions to make sure
@@ -251,7 +241,6 @@ add_tasks_with_rust(async function notAddedToView() {
     // view, and no other quick suggest results were visible in the view. No
     // impression telemetry should be recorded.
     QuickSuggestTestUtils.assertScalars({});
-    QuickSuggestTestUtils.assertEvents([]);
   });
 });
 
@@ -259,8 +248,6 @@ add_tasks_with_rust(async function notAddedToView() {
 // should be recorded for it even if it's not the result most recently returned
 // by the provider.
 add_tasks_with_rust(async function previousResultStillVisible() {
-  Services.telemetry.clearEvents();
-
   // Open a new tab since we'll load a page.
   await BrowserTestUtils.withNewTab("about:blank", async () => {
     // Do a search for the first suggestion.
@@ -315,18 +302,6 @@ add_tasks_with_rust(async function previousResultStillVisible() {
     QuickSuggestTestUtils.assertScalars({
       [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: index + 1,
     });
-    QuickSuggestTestUtils.assertEvents([
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "impression_only",
-        extra: {
-          match_type: "firefox-suggest",
-          position: String(index + 1),
-          suggestion_type: "sponsored",
-        },
-      },
-    ]);
     Assert.ok(pingSubmitted, "Glean ping was submitted");
   });
 });

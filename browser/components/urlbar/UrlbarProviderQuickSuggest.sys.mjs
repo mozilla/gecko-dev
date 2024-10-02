@@ -510,9 +510,8 @@ class ProviderQuickSuggest extends UrlbarProvider {
         result.payload.isSponsored ? "sponsored" : "nonsponsored"
       );
 
-      // Record engagement scalars, event, and pings.
+      // Record engagement scalars and pings.
       this.#recordEngagementScalars({ result, resultSelType, resultClicked });
-      this.#recordEngagementEvent({ result, resultSelType, resultClicked });
       if (!queryContext.isPrivate) {
         this.#recordEngagementPings({ result, resultSelType, resultClicked });
       }
@@ -607,74 +606,6 @@ class ProviderQuickSuggest extends UrlbarProvider {
     for (let scalar of scalars) {
       Services.telemetry.keyedScalarAdd(scalar, telemetryResultIndex, 1);
     }
-  }
-
-  /**
-   * Helper for engagement telemetry that records the legacy engagement event.
-   *
-   * @param {object} options
-   *   Options object
-   * @param {UrlbarResult} options.result
-   *   The quick suggest result related to the engagement. Must not be null.
-   * @param {string} options.resultSelType
-   *   If an element in the result's row was clicked, this should be its
-   *   `selType`. Otherwise it should be an empty string.
-   * @param {boolean} options.resultClicked
-   *   True if the main part of the result's row was clicked; false if a button
-   *   like help or dismiss was clicked or if no part of the row was clicked.
-   */
-  #recordEngagementEvent({ result, resultSelType, resultClicked }) {
-    let eventType;
-    if (resultClicked) {
-      eventType = "click";
-    } else if (!resultSelType) {
-      eventType = "impression_only";
-    } else {
-      switch (resultSelType) {
-        case "dismiss":
-          eventType = "block";
-          break;
-        case "help":
-          eventType = "help";
-          break;
-        default:
-          eventType = "other";
-          break;
-      }
-    }
-
-    let suggestion_type;
-    switch (result.payload.telemetryType) {
-      case "adm_nonsponsored":
-        suggestion_type = "nonsponsored";
-        break;
-      case "adm_sponsored":
-        suggestion_type = "sponsored";
-        break;
-      case "top_picks":
-        suggestion_type = "navigational";
-        break;
-      case "wikipedia":
-        suggestion_type = "dynamic-wikipedia";
-        break;
-      default:
-        suggestion_type = result.payload.telemetryType;
-        break;
-    }
-
-    Services.telemetry.recordEvent(
-      lazy.QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-      "engagement",
-      eventType,
-      "",
-      {
-        suggestion_type,
-        match_type: result.isBestMatch ? "best-match" : "firefox-suggest",
-        // Quick suggest telemetry indexes are 1-based but `rowIndex` is 0-based
-        position: String(result.rowIndex + 1),
-        source: result.payload.source,
-      }
-    );
   }
 
   /**

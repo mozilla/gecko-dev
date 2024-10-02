@@ -40,8 +40,6 @@ const TIMESTAMP_TEMPLATE = "%YYYYMMDDHH%";
 const TIMESTAMP_LENGTH = 10;
 const TIMESTAMP_REGEXP = /^\d{10}$/;
 
-const TELEMETRY_EVENT_CATEGORY = "contextservices.quicksuggest";
-
 // Values returned by the onboarding dialog depending on the user's response.
 // These values are used in telemetry events, so be careful about changing them.
 const ONBOARDING_CHOICE = {
@@ -63,14 +61,6 @@ const ONBOARDING_URI =
  * related helpers.
  */
 class _QuickSuggest {
-  /**
-   * @returns {string}
-   *   The name of the quick suggest telemetry event category.
-   */
-  get TELEMETRY_EVENT_CATEGORY() {
-    return TELEMETRY_EVENT_CATEGORY;
-  }
-
   /**
    * @returns {string}
    *   The timestamp template string used in quick suggest URLs.
@@ -271,36 +261,6 @@ class _QuickSuggest {
       for (let f of features) {
         f.update();
       }
-    }
-
-    switch (pref) {
-      case "quicksuggest.dataCollection.enabled":
-        if (!lazy.UrlbarPrefs.updatingFirefoxSuggestScenario) {
-          Services.telemetry.recordEvent(
-            TELEMETRY_EVENT_CATEGORY,
-            "data_collect_toggled",
-            lazy.UrlbarPrefs.get(pref) ? "enabled" : "disabled"
-          );
-        }
-        break;
-      case "suggest.quicksuggest.nonsponsored":
-        if (!lazy.UrlbarPrefs.updatingFirefoxSuggestScenario) {
-          Services.telemetry.recordEvent(
-            TELEMETRY_EVENT_CATEGORY,
-            "enable_toggled",
-            lazy.UrlbarPrefs.get(pref) ? "enabled" : "disabled"
-          );
-        }
-        break;
-      case "suggest.quicksuggest.sponsored":
-        if (!lazy.UrlbarPrefs.updatingFirefoxSuggestScenario) {
-          Services.telemetry.recordEvent(
-            TELEMETRY_EVENT_CATEGORY,
-            "sponsored_toggled",
-            lazy.UrlbarPrefs.get(pref) ? "enabled" : "disabled"
-          );
-        }
-        break;
     }
   }
 
@@ -510,12 +470,6 @@ class _QuickSuggest {
 
     lazy.UrlbarPrefs.set("quicksuggest.onboardingDialogChoice", params.choice);
 
-    Services.telemetry.recordEvent(
-      "contextservices.quicksuggest",
-      "opt_in_dialog",
-      params.choice
-    );
-
     return true;
   }
 
@@ -531,13 +485,6 @@ class _QuickSuggest {
     for (let feature of Object.values(this.#features)) {
       feature.update();
     }
-
-    // Update state related to quick suggest as a whole.
-    let enabled = lazy.UrlbarPrefs.get("quickSuggestEnabled");
-    Services.telemetry.setEventRecordingEnabled(
-      TELEMETRY_EVENT_CATEGORY,
-      enabled
-    );
   }
 
   // Maps from Suggest feature class names to feature instances.

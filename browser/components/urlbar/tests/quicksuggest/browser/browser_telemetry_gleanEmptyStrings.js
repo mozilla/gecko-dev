@@ -51,16 +51,6 @@ add_tasks_with_rust(async function sponsored() {
       scalars: {
         [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
       },
-      event: {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "impression_only",
-        extra: {
-          suggestion_type,
-          match_type,
-          position: position.toString(),
-        },
-      },
       ping: {
         type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
         payload: {
@@ -82,16 +72,6 @@ add_tasks_with_rust(async function sponsored() {
       scalars: {
         [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
         [TELEMETRY_SCALARS.CLICK_SPONSORED]: position,
-      },
-      event: {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "engagement",
-        object: "click",
-        extra: {
-          suggestion_type,
-          match_type,
-          position: position.toString(),
-        },
       },
       pings: [
         {
@@ -133,16 +113,6 @@ add_tasks_with_rust(async function sponsored() {
           [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
           [TELEMETRY_SCALARS.BLOCK_SPONSORED]: position,
         },
-        event: {
-          category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-          method: "engagement",
-          object: "block",
-          extra: {
-            suggestion_type,
-            match_type,
-            position: position.toString(),
-          },
-        },
         pings: [
           {
             type: CONTEXTUAL_SERVICES_PING_TYPES.QS_IMPRESSION,
@@ -181,16 +151,6 @@ add_tasks_with_rust(async function sponsored() {
         command: "manage",
         scalars: {
           [TELEMETRY_SCALARS.IMPRESSION_SPONSORED]: position,
-        },
-        event: {
-          category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-          method: "engagement",
-          object: "other",
-          extra: {
-            suggestion_type,
-            match_type,
-            position: position.toString(),
-          },
         },
         pings: [
           {

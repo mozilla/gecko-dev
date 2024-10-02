@@ -833,7 +833,11 @@ Changelog
   Firefox 94.0.2
     Introduced. [Bug 1735976_]
 
+  Firefox 133.0
+    Removed. [Bug 1921748_]
+
 .. _1735976: https://bugzilla.mozilla.org/show_bug.cgi?id=1735976
+.. _1921748: https://bugzilla.mozilla.org/show_bug.cgi?id=1921748
 
 contextservices.quicksuggest.enable_toggled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -867,9 +871,13 @@ Changelog
     modal dialog since the ``browser.urlbar.suggest.quicksuggest.nonsponsored``
     pref is no longer set when the user opts in or out. [Bug 1740965_]
 
+  Firefox 133.0
+    Removed. [Bug 1921748_]
+
 .. _1693126: https://bugzilla.mozilla.org/show_bug.cgi?id=1693126
 .. _1735976: https://bugzilla.mozilla.org/show_bug.cgi?id=1735976
 .. _1740965: https://bugzilla.mozilla.org/show_bug.cgi?id=1740965
+.. _1921748: https://bugzilla.mozilla.org/show_bug.cgi?id=1921748
 
 contextservices.quicksuggest.engagement
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -925,10 +933,14 @@ Changelog
   Firefox 114.0
     ``other`` is added as a value of the event object. [Bug 1827943_]
 
+  Firefox 133.0
+    Removed. [Bug 1921748_]
+
 .. _1761059: https://bugzilla.mozilla.org/show_bug.cgi?id=1761059
 .. _1800993: https://bugzilla.mozilla.org/show_bug.cgi?id=1800993
 .. _1819797: https://bugzilla.mozilla.org/show_bug.cgi?id=1819797
 .. _1827943: https://bugzilla.mozilla.org/show_bug.cgi?id=1827943
+.. _1921748: https://bugzilla.mozilla.org/show_bug.cgi?id=1921748
 
 contextservices.quicksuggest.impression_cap
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -984,8 +996,12 @@ Changelog
   Firefox 101.0
     Introduced. [Bug 1761058_, 1765881_]
 
+  Firefox 133.0
+    Removed. [Bug 1921748_]
+
 .. _1761058: https://bugzilla.mozilla.org/show_bug.cgi?id=1761058
 .. _1765881: https://bugzilla.mozilla.org/show_bug.cgi?id=1765881
+.. _1921748: https://bugzilla.mozilla.org/show_bug.cgi?id=1921748
 
 contextservices.quicksuggest.opt_in_dialog
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1061,10 +1077,14 @@ Changelog
     ``dismiss_2``.
     [Bug 1761171_]
 
+  Firefox 133.0
+    Removed. [Bug 1921748_]
+
 .. _1723860: https://bugzilla.mozilla.org/show_bug.cgi?id=1723860
 .. _1733687: https://bugzilla.mozilla.org/show_bug.cgi?id=1733687
 .. _1745026: https://bugzilla.mozilla.org/show_bug.cgi?id=1745026
 .. _1761171: https://bugzilla.mozilla.org/show_bug.cgi?id=1761171
+.. _1921748: https://bugzilla.mozilla.org/show_bug.cgi?id=1921748
 
 contextservices.quicksuggest.sponsored_toggled
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1092,8 +1112,12 @@ Changelog
     modal dialog since the ``browser.urlbar.suggest.quicksuggest.sponsored``
     pref is no longer set when the user opts in or out. [Bug 1740965_]
 
+  Firefox 133.0
+    Removed. [Bug 1921748_]
+
 .. _1728430: https://bugzilla.mozilla.org/show_bug.cgi?id=1728430
 .. _1740965: https://bugzilla.mozilla.org/show_bug.cgi?id=1740965
+.. _1921748: https://bugzilla.mozilla.org/show_bug.cgi?id=1921748
 
 Environment
 -----------

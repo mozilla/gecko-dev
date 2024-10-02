@@ -30,7 +30,6 @@ add_setup(async function () {
   await UrlbarTestUtils.formHistory.clear();
 
   Services.telemetry.clearScalars();
-  Services.telemetry.clearEvents();
 
   // Add a mock engine so we don't hit the network.
   await SearchTestUtils.installSearchExtension({}, { setAsDefault: true });
@@ -47,24 +46,13 @@ add_setup(async function () {
 
 // Tests telemetry recorded when toggling the
 // `suggest.quicksuggest.nonsponsored` pref:
-// * contextservices.quicksuggest enable_toggled event telemetry
 // * TelemetryEnvironment
 add_task(async function enableToggled() {
-  Services.telemetry.clearEvents();
-
-  // Toggle the suggest.quicksuggest.nonsponsored pref twice. We should get two
-  // events.
+  // Toggle the suggest.quicksuggest.nonsponsored pref twice.
   let enabled = UrlbarPrefs.get("suggest.quicksuggest.nonsponsored");
   for (let i = 0; i < 2; i++) {
     enabled = !enabled;
     UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", enabled);
-    QuickSuggestTestUtils.assertEvents([
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "enable_toggled",
-        object: enabled ? "enabled" : "disabled",
-      },
-    ]);
     Assert.equal(
       TelemetryEnvironment.currentEnvironment.settings.userPrefs[
         "browser.urlbar.suggest.quicksuggest.nonsponsored"
@@ -75,13 +63,12 @@ add_task(async function enableToggled() {
   }
 
   // Set the main quicksuggest.enabled pref to false and toggle the
-  // suggest.quicksuggest.nonsponsored pref again.  We shouldn't get any events.
+  // suggest.quicksuggest.nonsponsored pref again.
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.quicksuggest.enabled", false]],
   });
   enabled = !enabled;
   UrlbarPrefs.set("suggest.quicksuggest.nonsponsored", enabled);
-  QuickSuggestTestUtils.assertEvents([]);
   await SpecialPowers.popPrefEnv();
 
   // Set the pref back to what it was at the start of the task.
@@ -93,21 +80,11 @@ add_task(async function enableToggled() {
 // * contextservices.quicksuggest enable_toggled event telemetry
 // * TelemetryEnvironment
 add_task(async function sponsoredToggled() {
-  Services.telemetry.clearEvents();
-
-  // Toggle the suggest.quicksuggest.sponsored pref twice. We should get two
-  // events.
+  // Toggle the suggest.quicksuggest.sponsored pref twice.
   let enabled = UrlbarPrefs.get("suggest.quicksuggest.sponsored");
   for (let i = 0; i < 2; i++) {
     enabled = !enabled;
     UrlbarPrefs.set("suggest.quicksuggest.sponsored", enabled);
-    QuickSuggestTestUtils.assertEvents([
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "sponsored_toggled",
-        object: enabled ? "enabled" : "disabled",
-      },
-    ]);
     Assert.equal(
       TelemetryEnvironment.currentEnvironment.settings.userPrefs[
         "browser.urlbar.suggest.quicksuggest.sponsored"
@@ -118,13 +95,12 @@ add_task(async function sponsoredToggled() {
   }
 
   // Set the main quicksuggest.enabled pref to false and toggle the
-  // suggest.quicksuggest.sponsored pref again. We shouldn't get any events.
+  // suggest.quicksuggest.sponsored pref again.
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.quicksuggest.enabled", false]],
   });
   enabled = !enabled;
   UrlbarPrefs.set("suggest.quicksuggest.sponsored", enabled);
-  QuickSuggestTestUtils.assertEvents([]);
   await SpecialPowers.popPrefEnv();
 
   // Set the pref back to what it was at the start of the task.
@@ -133,24 +109,13 @@ add_task(async function sponsoredToggled() {
 
 // Tests telemetry recorded when toggling the
 // `quicksuggest.dataCollection.enabled` pref:
-// * contextservices.quicksuggest data_collect_toggled event telemetry
 // * TelemetryEnvironment
 add_task(async function dataCollectionToggled() {
-  Services.telemetry.clearEvents();
-
-  // Toggle the quicksuggest.dataCollection.enabled pref twice. We should get
-  // two events.
+  // Toggle the quicksuggest.dataCollection.enabled pref twice.
   let enabled = UrlbarPrefs.get("quicksuggest.dataCollection.enabled");
   for (let i = 0; i < 2; i++) {
     enabled = !enabled;
     UrlbarPrefs.set("quicksuggest.dataCollection.enabled", enabled);
-    QuickSuggestTestUtils.assertEvents([
-      {
-        category: QuickSuggest.TELEMETRY_EVENT_CATEGORY,
-        method: "data_collect_toggled",
-        object: enabled ? "enabled" : "disabled",
-      },
-    ]);
     Assert.equal(
       TelemetryEnvironment.currentEnvironment.settings.userPrefs[
         "browser.urlbar.quicksuggest.dataCollection.enabled"
@@ -161,13 +126,12 @@ add_task(async function dataCollectionToggled() {
   }
 
   // Set the main quicksuggest.enabled pref to false and toggle the data
-  // collection pref again. We shouldn't get any events.
+  // collection pref again.
   await SpecialPowers.pushPrefEnv({
     set: [["browser.urlbar.quicksuggest.enabled", false]],
   });
   enabled = !enabled;
   UrlbarPrefs.set("quicksuggest.dataCollection.enabled", enabled);
-  QuickSuggestTestUtils.assertEvents([]);
   await SpecialPowers.popPrefEnv();
 
   // Set the pref back to what it was at the start of the task.
