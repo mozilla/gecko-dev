@@ -70,6 +70,12 @@ function checkInputEvent(aEvent, aExpectedTarget, aInputType, aData, aDataTransf
 
 // eslint-disable-next-line complexity
 async function doTest() {
+  await SpecialPowers.pushPrefEnv({
+    set: [
+      ["dom.element.contenteditable.plaintext-only.enabled", true],
+    ],
+  });
+
   const container = document.getElementById("container");
   const dropZone = document.getElementById("dropZone");
 
@@ -3461,6 +3467,68 @@ async function doTest() {
     }
     document.removeEventListener("dragend", onDragEnd, {capture: true});
   })();
+
+  // -------- Test dragging contenteditable to contenteditable=plaintext-only
+  await (async function test_dragging_from_contenteditable_to_contenteditable_plaintext_only() {
+    const description = "dragging text in contenteditable to contenteditable=plaintext-only";
+    container.innerHTML = '<div contenteditable><b>bold</b></div><hr><div contenteditable="plaintext-only" style="min-height: 3em;"></div>';
+    const contenteditable = document.querySelector("div#container > div");
+    const b = document.querySelector("div#container > div > b");
+    const otherContenteditable = document.querySelector("div#container > div ~ div");
+    const selectionContainers = [b.firstChild, b.firstChild];
+    selection.setBaseAndExtent(selectionContainers[0], 1, selectionContainers[1], 3);
+    beforeinputEvents = [];
+    inputEvents = [];
+    dragEvents = [];
+    const onDrop = aEvent => {
+      dragEvents.push(aEvent);
+      is(aEvent.dataTransfer.getData("text/plain"), "ol",
+        `${description}: dataTransfer should have selected text as "text/plain"`);
+      is(aEvent.dataTransfer.getData("text/html"), "<b>ol</b>",
+        `${description}: dataTransfer should have selected nodes as "text/html"`);
+    };
+    document.addEventListener("drop", onDrop);
+    if (
+      await trySynthesizePlainDragAndDrop(
+        description,
+        {
+          srcSelection: selection,
+          destElement: otherContenteditable,
+        }
+      )
+    ) {
+      is(contenteditable.innerHTML, "<b>bd</b>",
+        `${description}: dragged range should be removed from contenteditable`);
+      is(otherContenteditable.innerHTML, "ol",
+        `${description}: dragged content should be inserted into other contenteditable without formatting`);
+      is(beforeinputEvents.length, 2,
+        `${description}: 2 "beforeinput" events should be fired on contenteditable`);
+      checkInputEvent(beforeinputEvents[0], contenteditable, "deleteByDrag", null, null,
+                      [{startContainer: selectionContainers[0], startOffset: 1,
+                        endContainer: selectionContainers[1], endOffset: 3}],
+                      description);
+      checkInputEvent(beforeinputEvents[1], otherContenteditable, "insertFromDrop", null,
+                      [{type: "text/html", data: "<b>ol</b>"},
+                      {type: "text/plain", data: "ol"}],
+                      [{startContainer: otherContenteditable, startOffset: 0,
+                        endContainer: otherContenteditable, endOffset: 0}],
+                      description);
+      is(inputEvents.length, 2,
+        `${description}: 2 "input" events should be fired on contenteditable`);
+      checkInputEvent(inputEvents[0], contenteditable, "deleteByDrag", null, null, [], description);
+      checkInputEvent(inputEvents[1], otherContenteditable, "insertFromDrop", null,
+                      [{type: "text/html", data: "<b>ol</b>"},
+                      {type: "text/plain", data: "ol"}],
+                      [],
+                      description);
+      is(dragEvents.length, 1,
+        `${description}: only one "drop" event should be fired on other contenteditable`);
+    }
+    document.removeEventListener("drop", onDrop);
+  })();
+
+  // We need to clean up contenteditable=plaintext-only before the pref enabling it is cleared.
+  container.innerHTML = "";
 
   document.removeEventListener("beforeinput", onBeforeinput);
   document.removeEventListener("input", onInput);

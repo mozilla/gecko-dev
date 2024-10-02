@@ -3142,9 +3142,10 @@ class HTMLEditor final : public EditorBase,
    *
    * @param aClipboardType      nsIClipboard::kGlobalClipboard or
    *                            nsIClipboard::kSelectionClipboard.
+   * @param aEditingHost        The editing host.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult
-  PasteInternal(nsIClipboard::ClipboardType aClipboardType);
+  MOZ_CAN_RUN_SCRIPT nsresult PasteInternal(
+      nsIClipboard::ClipboardType aClipboardType, const Element& aEditingHost);
 
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult
   InsertWithQuotationsAsSubAction(const nsAString& aQuotedText) final;
@@ -3198,8 +3199,8 @@ class HTMLEditor final : public EditorBase,
    * with <span _moz_quote="true">, and each chunk not starting with ">" is
    * inserted as normal text.
    */
-  MOZ_CAN_RUN_SCRIPT nsresult
-  InsertTextWithQuotationsInternal(const nsAString& aStringToInsert);
+  MOZ_CAN_RUN_SCRIPT nsresult InsertTextWithQuotationsInternal(
+      const nsAString& aStringToInsert, const Element& aEditingHost);
 
   /**
    * ReplaceContainerWithTransactionInternal() is implementation of
@@ -3722,20 +3723,23 @@ class HTMLEditor final : public EditorBase,
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult SetSelectionAtDocumentStart();
 
   // Methods for handling plaintext quotations
-  MOZ_CAN_RUN_SCRIPT nsresult
-  PasteAsPlaintextQuotation(nsIClipboard::ClipboardType aSelectionType);
+  MOZ_CAN_RUN_SCRIPT nsresult PasteAsPlaintextQuotation(
+      nsIClipboard::ClipboardType aSelectionType, const Element& aEditingHost);
 
+  enum class AddCites { No, Yes };
   /**
    * Insert a string as quoted text, replacing the selected text (if any).
    * @param aQuotedText     The string to insert.
    * @param aAddCites       Whether to prepend extra ">" to each line
    *                        (usually true, unless those characters
    *                        have already been added.)
+   * @param aEditingHost    The editing host.
    * @return aNodeInserted  The node spanning the insertion, if applicable.
    *                        If aAddCites is false, this will be null.
    */
   [[nodiscard]] MOZ_CAN_RUN_SCRIPT nsresult InsertAsPlaintextQuotation(
-      const nsAString& aQuotedText, bool aAddCites, nsINode** aNodeInserted);
+      const nsAString& aQuotedText, AddCites aAddCites,
+      const Element& aEditingHost, nsINode** aNodeInserted = nullptr);
 
   /**
    * InsertObject() inserts given object at aPointToInsert.
@@ -3749,7 +3753,8 @@ class HTMLEditor final : public EditorBase,
       DeleteSelectedContent aDeleteSelectedContent);
 
   class HTMLTransferablePreparer;
-  nsresult PrepareHTMLTransferable(nsITransferable** aTransferable) const;
+  nsresult PrepareHTMLTransferable(nsITransferable** aTransferable,
+                                   const Element* aEditingHost) const;
 
   enum class HavePrivateHTMLFlavor { No, Yes };
   MOZ_CAN_RUN_SCRIPT nsresult InsertFromTransferableAtSelection(
@@ -3765,7 +3770,8 @@ class HTMLEditor final : public EditorBase,
   MOZ_CAN_RUN_SCRIPT nsresult InsertFromDataTransfer(
       const dom::DataTransfer* aDataTransfer, uint32_t aIndex,
       nsIPrincipal* aSourcePrincipal, const EditorDOMPoint& aDroppedAt,
-      DeleteSelectedContent aDeleteSelectedContent);
+      DeleteSelectedContent aDeleteSelectedContent,
+      const Element& aEditingHost);
 
   static HavePrivateHTMLFlavor ClipboardHasPrivateHTMLFlavor(
       nsIClipboard* clipboard);

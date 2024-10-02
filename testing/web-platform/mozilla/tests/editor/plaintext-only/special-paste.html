@@ -1,0 +1,129 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<meta name="variant" content="?white-space=normal">
+<meta name="variant" content="?white-space=pre">
+<meta name="variant" content="?white-space=pre-line">
+<meta name="variant" content="?white-space=pre-wrap">
+<title>Pasting rich text into contenteditable=plaintext-only</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../../editing/include/editor-test-utils.js"></script>
+<script>
+"use strict";
+
+const searchParams = new URLSearchParams(document.location.search);
+const whiteSpace = searchParams.get("white-space");
+const useBR = whiteSpace == "normal";
+const isMac = navigator.platform.includes("Mac");
+
+addEventListener("load", () => {
+  const placeholderForCopy = document.createElement("div");
+  document.body.appendChild(placeholderForCopy);
+  const editingHost = document.createElement("div");
+  editingHost.style.whiteSpace = whiteSpace;
+  editingHost.contentEditable = "plaintext-only";
+  document.body.appendChild(editingHost);
+  editingHost.focus();
+  editingHost.getBoundingClientRect();
+  const utils = new EditorTestUtils(editingHost);
+  let lastBeforeInput;
+  editingHost.addEventListener("beforeinput", event => lastBeforeInput = event);
+
+  promise_test(async t => {
+    placeholderForCopy.innerHTML = "<b>abc</b>";
+    document.activeElement?.blur();
+    getSelection().selectAllChildren(placeholderForCopy);
+    await utils.sendCopyShortcutKey();
+    utils.setupEditingHost("A[]B");
+    lastBeforeInput = undefined;
+    await new test_driver.Actions()
+      .keyDown(isMac ? utils.kMeta : utils.kControl)
+      .keyDown(utils.kShift)
+      .keyDown("v")
+      .keyUp("v")
+      .keyUp(utils.kShift)
+      .keyUp(isMac ? utils.kMeta : utils.kControl)
+      .send();
+    test(() => {
+      assert_equals(lastBeforeInput?.inputType, "insertFromPaste", `inputType should be "insertFromPaste"`);
+      assert_equals(lastBeforeInput?.data, null, `data should be null`);
+      assert_true(
+        String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+        `dataTransfer should have the copied HTML source`
+      );
+    }, `${t.name}: beforeinput`);
+    test(() => {
+      assert_equals(editingHost.innerHTML, "AabcB", "<b> should not be pasted");
+    }, `${t.name}: pasted result`);
+  }, "Pasting without format");
+
+  // FIXME: I don't know why Ctrl-middle click fails on macOS (it's not Command).
+  if (!navigator.platform.includes("Mac")) {
+    promise_test(async t => {
+      placeholderForCopy.innerHTML = "<b>abc</b>";
+      document.activeElement?.blur();
+      getSelection().selectAllChildren(placeholderForCopy);
+      await utils.sendCopyShortcutKey();
+      // For primary selection on Linux, we need to select text with user input emulation.
+      getSelection().collapse(placeholderForCopy, 0);
+      const arrowRight = "\uE014";
+      await new test_driver.Actions()
+        .keyDown(utils.kShift)
+        .keyDown(arrowRight)
+        .keyUp(arrowRight)
+        .keyDown(arrowRight)
+        .keyUp(arrowRight)
+        .keyDown(arrowRight)
+        .keyUp(arrowRight)
+        .keyUp(utils.kShift)
+        .send();
+      utils.setupEditingHost("{}<br>");
+      lastBeforeInput = undefined;
+      const actions = new test_driver.Actions();
+      await actions
+        .pointerMove(1, 1, {origin: "viewport"})
+        .pointerMove(0, 0, {origin: editingHost})
+        .keyDown(utils.kControl)
+        .pointerDown({button: actions.ButtonType.MIDDLE})
+        .pointerUp({button: actions.ButtonType.MIDDLE})
+        .keyUp(utils.kControl)
+        .send();
+      test(() => {
+        assert_equals(
+          lastBeforeInput?.inputType,
+          "insertFromPasteAsQuotation",
+          `inputType should be "insertFromPasteAsQuotation"`
+        );
+        assert_equals(lastBeforeInput?.data, null, `data should be null`);
+        assert_true(
+          String(lastBeforeInput?.dataTransfer?.getData("text/html")).includes(placeholderForCopy.innerHTML),
+          `dataTransfer should have the copied HTML source`
+        );
+      }, `${t.name}: beforeinput`);
+      test(() => {
+        if (useBR) {
+          assert_equals(editingHost.innerHTML, "&gt; abc<br><br><br>", "<b> should not be pasted");
+        } else {
+          assert_in_array(
+            editingHost.innerHTML,
+            [
+              "&gt; abc<br><br><br>",
+              "&gt; abc\n\n\n",
+            ],
+            "<b> should not be pasted"
+          );
+        }
+      }, `${t.name}: pasted result`);
+    }, "Pasting as quotation");
+  }
+}, {once: true});
+</script>
+</head>
+<body></body>
+</html>
