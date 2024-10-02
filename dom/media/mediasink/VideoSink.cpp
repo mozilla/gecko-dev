@@ -203,7 +203,11 @@ void VideoSink::SetPlaying(bool aPlaying) {
     // Since playback is paused, tell compositor to render only current frame.
     TimeStamp nowTime;
     const auto clockTime = mAudioSink->GetPosition(&nowTime);
-    RenderVideoFrames(1, clockTime.ToMicroseconds(), nowTime);
+    RefPtr<VideoData> currentFrame = VideoQueue().PeekFront();
+    if (currentFrame) {
+      RenderVideoFrames(Span(&currentFrame, 1), clockTime.ToMicroseconds(),
+                        nowTime);
+    }
     if (mContainer) {
       mContainer->ClearCachedResources();
     }
@@ -428,14 +432,13 @@ void VideoSink::DisconnectListener() {
   mFinishListener.Disconnect();
 }
 
-void VideoSink::RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime,
+void VideoSink::RenderVideoFrames(Span<const RefPtr<VideoData>> aFrames,
+                                  int64_t aClockTime,
                                   const TimeStamp& aClockTimeStamp) {
   AUTO_PROFILER_LABEL("VideoSink::RenderVideoFrames", MEDIA_PLAYBACK);
   AssertOwnerThread();
 
-  AutoTArray<RefPtr<VideoData>, 16> frames;
-  VideoQueue().GetFirstElements(aMaxFrames, &frames);
-  if (frames.IsEmpty() || !mContainer) {
+  if (aFrames.IsEmpty() || !mContainer) {
     return;
   }
 
@@ -445,8 +448,8 @@ void VideoSink::RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime,
   AutoTArray<ImageContainer::NonOwningImage, 16> images;
   TimeStamp lastFrameTime;
   double playbackRate = mAudioSink->PlaybackRate();
-  for (uint32_t i = 0; i < frames.Length(); ++i) {
-    VideoData* frame = frames[i];
+  for (uint32_t i = 0; i < aFrames.Length(); ++i) {
+    VideoData* frame = aFrames[i];
     bool wasSent = frame->IsSentToCompositor();
     frame->MarkSentToCompositor();
 
@@ -497,10 +500,10 @@ void VideoSink::RenderVideoFrames(int32_t aMaxFrames, int64_t aClockTime,
   }
 
   if (images.Length() > 0) {
-    mContainer->SetCurrentFrames(frames[0]->mDisplay, images);
+    mContainer->SetCurrentFrames(aFrames[0]->mDisplay, images);
 
     if (mSecondaryContainer) {
-      mSecondaryContainer->SetCurrentFrames(frames[0]->mDisplay, images);
+      mSecondaryContainer->SetCurrentFrames(aFrames[0]->mDisplay, images);
     }
   }
 }
@@ -522,10 +525,12 @@ void VideoSink::UpdateRenderedVideoFrames() {
   // At least the last frame is retained, even when out of date, because it
   // will be used if no more frames are received before the queue finishes or
   // the video is paused.
+  RefPtr<VideoData> lastExpiredFrameInCompositor;
   while (VideoQueue().GetSize() > 1 &&
          clockTime >= VideoQueue().PeekFront()->GetEndTime()) {
     RefPtr<VideoData> frame = VideoQueue().PopFront();
     if (frame->IsSentToCompositor()) {
+      lastExpiredFrameInCompositor = frame;
       sentToCompositorCount++;
     } else {
       droppedInSink++;
@@ -583,6 +588,7 @@ void VideoSink::UpdateRenderedVideoFrames() {
                             droppedInSink, droppedInCompositor});
   }
 
+  AutoTArray<RefPtr<VideoData>, 16> frames;
   RefPtr<VideoData> currentFrame = VideoQueue().PeekFront();
   if (currentFrame) {
     // The presentation end time of the last video frame consumed is the end
@@ -598,15 +604,33 @@ void VideoSink::UpdateRenderedVideoFrames() {
     // then the effect is stalled playback (bug 1316571) instead of poor A/V
     // sync (bug 1258870).  Perhaps the reduced number of frames composited
     // might free up some resources for decode.
-    if (currentFrame->GetEndTime() >= clockTime ||
+    if (  // currentFrame is on time, or almost so, or
+        currentFrame->GetEndTime() >= clockTime ||
+        // there is only one frame in the VideoQueue() because the current
+        // frame would have otherwise been removed above.  Send this frame if
+        // it has already been sent to the compositor because it has not been
+        // dropped and sending it again now, without any preceding frames, will
+        // drop references to any preceding frames and update the intrinsic
+        // size on the VideoFrameContainer.
+        currentFrame->IsSentToCompositor() ||
         // Talos tests for the compositor require that the most recently
         // decoded frame is passed to the compositor so that the compositor
         // has something to composite during the talos test when the decode is
         // stressed.
         StaticPrefs::media_ruin_av_sync_enabled()) {
-      RenderVideoFrames(mVideoQueueSendToCompositorSize,
-                        clockTime.ToMicroseconds(), nowTime);
+      VideoQueue().GetFirstElements(
+          std::max(2u, mVideoQueueSendToCompositorSize), &frames);
+    } else if (lastExpiredFrameInCompositor) {
+      // Release references to all but the last frame passed to the
+      // compositor.  Passing this frame to RenderVideoFrames() as the first
+      // in frames also updates the intrinsic size on the VideoFrameContainer
+      // to that of this frame.
+      frames.AppendElement(lastExpiredFrameInCompositor);
     }
+    RenderVideoFrames(Span(frames.Elements(),
+                           std::min<size_t>(frames.Length(),
+                                            mVideoQueueSendToCompositorSize)),
+                      clockTime.ToMicroseconds(), nowTime);
   }
 
   MaybeResolveEndPromise();
@@ -614,8 +638,6 @@ void VideoSink::UpdateRenderedVideoFrames() {
   // Get the timestamp of the next frame. Schedule the next update at
   // the start time of the next frame. If we don't have a next frame,
   // we will run render loops again upon incoming frames.
-  nsTArray<RefPtr<VideoData>> frames;
-  VideoQueue().GetFirstElements(2, &frames);
   if (frames.Length() < 2) {
     return;
   }
@@ -641,13 +663,13 @@ void VideoSink::MaybeResolveEndPromise() {
     const auto clockTime = mAudioSink->GetPosition(&nowTime);
 
     if (VideoQueue().GetSize() == 1) {
+      // The last frame is no longer required in the VideoQueue().
+      RefPtr<VideoData> frame = VideoQueue().PopFront();
       // Ensure that the last frame and its dimensions have been set on the
       // VideoFrameContainer, even if the frame was decoded late.  This also
       // removes references to any other frames currently held by the
       // VideoFrameContainer.
-      RenderVideoFrames(1, clockTime.ToMicroseconds(), nowTime);
-      // Remove the last frame since we have sent it to compositor.
-      RefPtr<VideoData> frame = VideoQueue().PopFront();
+      RenderVideoFrames(Span(&frame, 1), clockTime.ToMicroseconds(), nowTime);
       if (mPendingDroppedCount > 0) {
         mFrameStats.Accumulate({0, 0, 0, 0, 0, 1});
         mPendingDroppedCount--;
