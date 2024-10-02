@@ -36,7 +36,7 @@ class ClippedImage : public ImageWrapper {
   NS_IMETHOD GetWidth(int32_t* aWidth) override;
   NS_IMETHOD GetHeight(int32_t* aHeight) override;
   NS_IMETHOD GetIntrinsicSize(nsSize* aSize) override;
-  Maybe<AspectRatio> GetIntrinsicRatio() override;
+  AspectRatio GetIntrinsicRatio() override;
   NS_IMETHOD_(already_AddRefed<SourceSurface>)
   GetFrame(uint32_t aWhichFrame, uint32_t aFlags) override;
   NS_IMETHOD_(already_AddRefed<SourceSurface>)

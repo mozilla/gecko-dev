@@ -596,10 +596,9 @@ class ImageSurfaceCache {
       // available. If our guess was too small, don't use factor-of-scaling.
       MOZ_ASSERT(mIsVectorImage);
       factorSize = IntSize(100, 100);
-      Maybe<AspectRatio> aspectRatio = image->GetIntrinsicRatio();
-      if (aspectRatio && *aspectRatio) {
+      if (AspectRatio aspectRatio = image->GetIntrinsicRatio()) {
         factorSize.width =
-            NSToIntRound(aspectRatio->ApplyToFloat(float(factorSize.height)));
+            NSToIntRound(aspectRatio.ApplyToFloat(float(factorSize.height)));
         if (factorSize.IsEmpty()) {
           return aSize;
         }

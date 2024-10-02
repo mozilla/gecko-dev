@@ -119,7 +119,7 @@ ImageWrapper::GetIntrinsicSize(nsSize* aSize) {
   return mInnerImage->GetIntrinsicSize(aSize);
 }
 
-Maybe<AspectRatio> ImageWrapper::GetIntrinsicRatio() {
+AspectRatio ImageWrapper::GetIntrinsicRatio() {
   return mInnerImage->GetIntrinsicRatio();
 }
 

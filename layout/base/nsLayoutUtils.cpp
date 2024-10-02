@@ -6216,8 +6216,7 @@ void nsLayoutUtils::ComputeSizeForDrawing(
     /* outparam */ bool& aGotHeight) {
   aGotWidth = NS_SUCCEEDED(aImage->GetWidth(&aImageSize.width));
   aGotHeight = NS_SUCCEEDED(aImage->GetHeight(&aImageSize.height));
-  Maybe<AspectRatio> intrinsicRatio = aImage->GetIntrinsicRatio();
-  aIntrinsicRatio = intrinsicRatio.valueOr(AspectRatio());
+  aIntrinsicRatio = aImage->GetIntrinsicRatio();
 
   if (aGotWidth) {
     aResolution.ApplyXTo(aImageSize.width);
@@ -6226,7 +6225,7 @@ void nsLayoutUtils::ComputeSizeForDrawing(
     aResolution.ApplyYTo(aImageSize.height);
   }
 
-  if (!(aGotWidth && aGotHeight) && intrinsicRatio.isNothing()) {
+  if (!(aGotWidth && aGotHeight) && !aIntrinsicRatio) {
     // We hit an error (say, because the image failed to load or couldn't be
     // decoded) and should return zero size.
     aGotWidth = aGotHeight = true;

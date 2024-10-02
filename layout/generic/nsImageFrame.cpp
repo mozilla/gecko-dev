@@ -924,8 +924,8 @@ AspectRatio nsImageFrame::ComputeIntrinsicRatioForImage(
   }
 
   if (aImage) {
-    if (Maybe<AspectRatio> fromImage = aImage->GetIntrinsicRatio()) {
-      return *fromImage;
+    if (AspectRatio fromImage = aImage->GetIntrinsicRatio()) {
+      return fromImage;
     }
   }
   if (ShouldUseMappedAspectRatio()) {

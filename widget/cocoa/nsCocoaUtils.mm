@@ -515,16 +515,16 @@ nsresult nsCocoaUtils::CreateNSImageFromImageContainer(
   {
     const bool gotWidth = NS_SUCCEEDED(aImage->GetWidth(&width));
     const bool gotHeight = NS_SUCCEEDED(aImage->GetHeight(&height));
-    if (auto ratio = aImage->GetIntrinsicRatio(); ratio && *ratio) {
+    if (auto ratio = aImage->GetIntrinsicRatio()) {
       if (gotWidth != gotHeight) {
         if (gotWidth) {
-          height = ratio->Inverted().ApplyTo(width);
+          height = ratio.Inverted().ApplyTo(width);
         } else {
-          width = ratio->ApplyTo(height);
+          width = ratio.ApplyTo(height);
         }
       } else if (!gotWidth) {
         height = std::ceil(aPreferredSize.height);
-        width = ratio->ApplyTo(height);
+        width = ratio.ApplyTo(height);
       }
     }
   }
