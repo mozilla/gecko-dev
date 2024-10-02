@@ -378,7 +378,8 @@ open class MainActivity : LocaleAwareAppCompatActivity() {
             return
         }
 
-        super.onBackPressedDispatcher.onBackPressed()
+        // If no fragments are handling the back press, finish the activity.
+        finish()
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
