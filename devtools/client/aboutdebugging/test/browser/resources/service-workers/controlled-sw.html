@@ -30,6 +30,10 @@ window.installServiceWorker = function() {
   registration.installing.postMessage("install-service-worker");
 };
 
+window.installServiceWorkerAndPause = function() {
+  registration.installing.postMessage("install-service-worker-and-pause");
+};
+
 // Register the service worker.
 registerServiceWorker();
 
