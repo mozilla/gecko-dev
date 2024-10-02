@@ -242,7 +242,7 @@ EXPORTS.nspr += [
     "/nsprpub/pr/include/prtrace.h",
     "/nsprpub/pr/include/prtypes.h",
     "/nsprpub/pr/include/prvrsion.h",
-    "/nsprpub/pr/include/prwin16.h",
+    "/nsprpub/pr/include/prwin.h",
 ]
 
 EXPORTS.nspr.md += [
