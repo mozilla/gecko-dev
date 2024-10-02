@@ -32,7 +32,6 @@ struct IPCTypeRecord {
   explicit IPCTypeRecord() : mData(Nothing{}) {}
   TypeRecordResultType mData;
   uint32_t mTTL = 0;
-  bool mIsTRR = false;
 };
 
 }  // namespace net
@@ -48,7 +47,6 @@ struct IPDLParamTraits<mozilla::net::IPCTypeRecord> {
                     const paramType& aParam) {
     WriteIPDLParam(aWriter, aActor, aParam.mData);
     WriteIPDLParam(aWriter, aActor, aParam.mTTL);
-    WriteIPDLParam(aWriter, aActor, aParam.mIsTRR);
   }
 
   static bool Read(IPC::MessageReader* aReader, IProtocol* aActor,
@@ -57,9 +55,6 @@ struct IPDLParamTraits<mozilla::net::IPCTypeRecord> {
       return false;
     }
     if (!ReadIPDLParam(aReader, aActor, &aResult->mTTL)) {
-      return false;
-    }
-    if (!ReadIPDLParam(aReader, aActor, &aResult->mIsTRR)) {
       return false;
     }
     return true;

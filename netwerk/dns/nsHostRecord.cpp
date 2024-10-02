@@ -515,13 +515,6 @@ TypeHostRecord::GetRecords(nsTArray<RefPtr<nsISVCBRecord>>& aRecords) {
 NS_IMETHODIMP
 TypeHostRecord::GetServiceModeRecord(bool aNoHttp2, bool aNoHttp3,
                                      nsISVCBRecord** aRecord) {
-  return GetServiceModeRecordWithCname(aNoHttp2, aNoHttp3, ""_ns, aRecord);
-}
-
-NS_IMETHODIMP
-TypeHostRecord::GetServiceModeRecordWithCname(bool aNoHttp2, bool aNoHttp3,
-                                              const nsACString& aCname,
-                                              nsISVCBRecord** aRecord) {
   MutexAutoLock lock(mResultsLock);
   if (!mResults.is<TypeRecordHTTPSSVC>()) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -529,7 +522,7 @@ TypeHostRecord::GetServiceModeRecordWithCname(bool aNoHttp2, bool aNoHttp3,
 
   auto& results = mResults.as<TypeRecordHTTPSSVC>();
   nsCOMPtr<nsISVCBRecord> result = GetServiceModeRecordInternal(
-      aNoHttp2, aNoHttp3, results, mAllRecordsExcluded, true, aCname);
+      aNoHttp2, aNoHttp3, results, mAllRecordsExcluded);
   if (!result) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -539,15 +532,9 @@ TypeHostRecord::GetServiceModeRecordWithCname(bool aNoHttp2, bool aNoHttp3,
 }
 
 NS_IMETHODIMP
-TypeHostRecord::IsTRR(bool* aResult) {
-  *aResult = (mResolverType == DNSResolverType::TRR);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 TypeHostRecord::GetAllRecordsWithEchConfig(
-    bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
-    bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,
+    bool aNoHttp2, bool aNoHttp3, bool* aAllRecordsHaveEchConfig,
+    bool* aAllRecordsInH3ExcludedList,
     nsTArray<RefPtr<nsISVCBRecord>>& aResult) {
   MutexAutoLock lock(mResultsLock);
   if (!mResults.is<TypeRecordHTTPSSVC>()) {
@@ -555,7 +542,7 @@ TypeHostRecord::GetAllRecordsWithEchConfig(
   }
 
   auto& records = mResults.as<TypeRecordHTTPSSVC>();
-  GetAllRecordsWithEchConfigInternal(aNoHttp2, aNoHttp3, aCname, records,
+  GetAllRecordsWithEchConfigInternal(aNoHttp2, aNoHttp3, records,
                                      aAllRecordsHaveEchConfig,
                                      aAllRecordsInH3ExcludedList, aResult);
   return NS_OK;

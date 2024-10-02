@@ -389,8 +389,9 @@ nsresult TRR::SendHTTPRequest() {
 
   // If the asyncOpen succeeded we can say that we actually attempted to
   // use the TRR connection.
-  if (mRec) {
-    mRec->mResolverType = ResolverType();
+  RefPtr<AddrHostRecord> addrRec = do_QueryObject(mRec);
+  if (addrRec) {
+    addrRec->mResolverType = ResolverType();
   }
 
   NS_NewTimerWithCallback(

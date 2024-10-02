@@ -1218,13 +1218,6 @@ skip-if = [
 ]
 run-sequentially = "node server exceptions dont replay well"
 
-["test_trr_https_rr_with_cname.js"]
-skip-if = [
-  "os == 'android'",
-  "os == 'win' && msix", # https://bugzilla.mozilla.org/show_bug.cgi?id=1808049
-]
-run-sequentially = "node server exceptions dont replay well"
-
 ["test_trr_httpssvc.js"]
 run-sequentially = "node server exceptions dont replay well"
 

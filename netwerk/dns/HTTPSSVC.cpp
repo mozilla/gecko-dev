@@ -4,7 +4,6 @@
 
 #include "HTTPSSVC.h"
 #include "mozilla/net/DNS.h"
-#include "mozilla/StaticPrefs_network.h"
 #include "nsHttp.h"
 #include "nsHttpHandler.h"
 #include "nsNetAddr.h"
@@ -280,16 +279,6 @@ NS_IMETHODIMP SVCBRecord::GetHasIPHintAddress(bool* aHasIPHintAddress) {
   return NS_OK;
 }
 
-static bool CheckRecordIsUsableWithCname(const SVCB& aRecord,
-                                         const nsACString& aCname) {
-  if (StaticPrefs::network_dns_https_rr_check_record_with_cname() &&
-      !aCname.IsEmpty() && !aRecord.mSvcDomainName.Equals(aCname)) {
-    return false;
-  }
-
-  return true;
-}
-
 static bool CheckRecordIsUsable(const SVCB& aRecord, nsIDNSService* aDNSService,
                                 const nsACString& aHost,
                                 uint32_t& aExcludedCount) {
@@ -362,8 +351,7 @@ static nsTArray<SVCBWrapper> FlattenRecords(const nsTArray<SVCB>& aRecords) {
 already_AddRefed<nsISVCBRecord>
 DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
     bool aNoHttp2, bool aNoHttp3, const nsTArray<SVCB>& aRecords,
-    bool& aRecordsAllExcluded, bool aCheckHttp3ExcludedList,
-    const nsACString& aCname) {
+    bool& aRecordsAllExcluded, bool aCheckHttp3ExcludedList) {
   RefPtr<SVCBRecord> selectedRecord;
   RefPtr<SVCBRecord> h3RecordWithEchConfig;
   uint32_t recordHasNoDefaultAlpnCount = 0;
@@ -385,10 +373,6 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
 
     if (!CheckRecordIsUsable(record.mRecord, dns, mHost, recordExcludedCount)) {
       // Skip if this record is not usable.
-      continue;
-    }
-
-    if (!CheckRecordIsUsableWithCname(record.mRecord, aCname)) {
       continue;
     }
 
@@ -439,7 +423,7 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
     // excluded list. This is better than returning nothing.
     if (h3ExcludedCount == records.Length() && aCheckHttp3ExcludedList) {
       return GetServiceModeRecordInternal(aNoHttp2, aNoHttp3, aRecords,
-                                          aRecordsAllExcluded, false, aCname);
+                                          aRecordsAllExcluded, false);
     }
   }
 
@@ -455,10 +439,9 @@ DNSHTTPSSVCRecordBase::GetServiceModeRecordInternal(
 }
 
 void DNSHTTPSSVCRecordBase::GetAllRecordsWithEchConfigInternal(
-    bool aNoHttp2, bool aNoHttp3, const nsACString& aCname,
-    const nsTArray<SVCB>& aRecords, bool* aAllRecordsHaveEchConfig,
-    bool* aAllRecordsInH3ExcludedList, nsTArray<RefPtr<nsISVCBRecord>>& aResult,
-    bool aCheckHttp3ExcludedList) {
+    bool aNoHttp2, bool aNoHttp3, const nsTArray<SVCB>& aRecords,
+    bool* aAllRecordsHaveEchConfig, bool* aAllRecordsInH3ExcludedList,
+    nsTArray<RefPtr<nsISVCBRecord>>& aResult, bool aCheckHttp3ExcludedList) {
   if (aRecords.IsEmpty()) {
     return;
   }
@@ -489,10 +472,6 @@ void DNSHTTPSSVCRecordBase::GetAllRecordsWithEchConfigInternal(
       return;
     }
 
-    if (!CheckRecordIsUsableWithCname(record.mRecord, aCname)) {
-      continue;
-    }
-
     Maybe<uint16_t> port = record.mRecord.GetPort();
     if (port && *port == 0) {
       // Found an unsafe port, skip this record.
@@ -516,7 +495,7 @@ void DNSHTTPSSVCRecordBase::GetAllRecordsWithEchConfigInternal(
   // excluded list. This is better than returning nothing.
   if (h3ExcludedCount == records.Length() && aCheckHttp3ExcludedList) {
     GetAllRecordsWithEchConfigInternal(
-        aNoHttp2, aNoHttp3, aCname, aRecords, aAllRecordsHaveEchConfig,
+        aNoHttp2, aNoHttp3, aRecords, aAllRecordsHaveEchConfig,
         aAllRecordsInH3ExcludedList, aResult, false);
     *aAllRecordsInH3ExcludedList = true;
   }

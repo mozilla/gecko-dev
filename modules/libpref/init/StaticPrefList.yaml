@@ -13961,13 +13961,6 @@
   value: false
   mirror: always
 
-# When true, we check if the cname is the same as the target name of the record.
-# If not, the record will not be used.
-- name: network.dns.https_rr.check_record_with_cname
-  type: RelaxedAtomicBool
-  value: false
-  mirror: always
-
 # This preference can be used to turn off IPv6 name lookups. See bug 68796.
 - name: network.dns.disableIPv6
   type: RelaxedAtomicBool
