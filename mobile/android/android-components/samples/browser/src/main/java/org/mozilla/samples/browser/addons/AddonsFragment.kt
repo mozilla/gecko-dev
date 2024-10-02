@@ -68,6 +68,10 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
         findPreviousPermissionDialogFragment()?.let { dialog ->
             dialog.onPositiveButtonClicked = onConfirmPermissionButtonClicked
         }
+
+        findPreviousInstallationDialogFragment()?.let { dialog ->
+            dialog.onConfirmButtonClicked = onConfirmInstallationButtonClicked
+        }
     }
 
     private fun bindRecyclerView(rootView: View) {
@@ -170,6 +174,7 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
         }
         val dialog = AddonInstallationDialogFragment.newInstance(
             addon = addon,
+            onConfirmButtonClicked = onConfirmInstallationButtonClicked,
         )
 
         if (!isAlreadyADialogCreated() && isAdded) {
@@ -177,7 +182,16 @@ class AddonsFragment : Fragment(), AddonsManagerAdapterDelegate {
         }
     }
 
-    private val onConfirmPermissionButtonClicked: ((Addon, Boolean) -> Unit) = { addon, _ ->
+    private val onConfirmInstallationButtonClicked: ((Addon, Boolean) -> Unit) = { addon, allowInPrivateBrowsing ->
+        if (allowInPrivateBrowsing) {
+            requireContext().components.addonManager.setAddonAllowedInPrivateBrowsing(
+                addon,
+                allowInPrivateBrowsing,
+            )
+        }
+    }
+
+    private val onConfirmPermissionButtonClicked: ((Addon) -> Unit) = { addon ->
         val includedBinding = OverlayAddOnProgressBinding.bind(binding.addonProgressOverlay.addonProgressOverlay)
 
         includedBinding.root.visibility = View.VISIBLE

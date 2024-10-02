@@ -520,15 +520,6 @@ enum class EnableSource(val id: Int) {
 }
 
 /**
- * Holds all the information which the user has submitted
- * as part of a confirmation of a permissions prompt request.
- */
-data class PermissionPromptResponse(
-    val isPermissionsGranted: Boolean,
-    val isPrivateModeGranted: Boolean = false,
-)
-
-/**
  * Flags to check for different reasons why an extension is disabled.
  */
 class DisabledFlags internal constructor(val value: Int) {

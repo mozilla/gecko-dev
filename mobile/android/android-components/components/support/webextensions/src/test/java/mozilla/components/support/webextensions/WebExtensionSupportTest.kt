@@ -23,7 +23,6 @@ import mozilla.components.concept.engine.webextension.Action
 import mozilla.components.concept.engine.webextension.ActionHandler
 import mozilla.components.concept.engine.webextension.Incognito
 import mozilla.components.concept.engine.webextension.Metadata
-import mozilla.components.concept.engine.webextension.PermissionPromptResponse
 import mozilla.components.concept.engine.webextension.TabHandler
 import mozilla.components.concept.engine.webextension.WebExtension
 import mozilla.components.concept.engine.webextension.WebExtensionDelegate
@@ -444,7 +443,7 @@ class WebExtensionSupportTest {
         val store = spy(BrowserStore())
         val engine: Engine = mock()
         val ext: WebExtension = mock()
-        val onPermissionsGranted: ((PermissionPromptResponse) -> Unit) = mock()
+        val onPermissionsGranted: ((Boolean) -> Unit) = mock()
         val permissions = listOf("permissions")
 
         val delegateCaptor = argumentCaptor<WebExtensionDelegate>()
