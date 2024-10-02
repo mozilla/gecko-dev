@@ -106,7 +106,8 @@ class ScaffoldingConverter {
   // This inputs an r-value reference since we may want to move data out of
   // this type.
   static void IntoJs(JSContext* aContext, IntermediateType&& aValue,
-                     dom::UniFFIScaffoldingValue* aDest, ErrorResult& aError) {
+                     dom::Optional<dom::UniFFIScaffoldingValue>& aDest,
+                     ErrorResult& aError) {
     if constexpr (std::is_same<RustType, int64_t>::value ||
                   std::is_same<RustType, uint64_t>::value) {
       // Check that the value can fit in a double (only needed for 64 bit types)
@@ -123,7 +124,7 @@ class ScaffoldingConverter {
         return;
       }
     }
-    aDest->SetAsDouble() = aValue;
+    aDest.Construct().SetAsDouble() = aValue;
   }
 };
 
@@ -151,13 +152,14 @@ class ScaffoldingConverter<RustBuffer> {
   }
 
   static void IntoJs(JSContext* aContext, OwnedRustBuffer&& aValue,
-                     dom::UniFFIScaffoldingValue* aDest, ErrorResult& aError) {
+                     dom::Optional<dom::UniFFIScaffoldingValue>& aDest,
+                     ErrorResult& aError) {
     JS::Rooted<JSObject*> obj(aContext);
     aValue.IntoArrayBuffer(aContext, &obj, aError);
     if (aError.Failed()) {
       return;
     }
-    aDest->SetAsArrayBuffer().Init(obj);
+    aDest.Construct().SetAsArrayBuffer().Init(obj);
   }
 };
 
@@ -187,8 +189,9 @@ class ScaffoldingObjectConverter {
   static void* FromRust(void* aValue) { return aValue; }
 
   static void IntoJs(JSContext* aContext, void* aValue,
-                     dom::UniFFIScaffoldingValue* aDest, ErrorResult& aError) {
-    aDest->SetAsUniFFIPointer() =
+                     dom::Optional<dom::UniFFIScaffoldingValue>& aDest,
+                     ErrorResult& aError) {
+    aDest.Construct().SetAsUniFFIPointer() =
         dom::UniFFIPointer::Create(aValue, PointerType);
   }
 };

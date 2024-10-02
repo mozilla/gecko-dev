@@ -33,11 +33,6 @@ struct RustBuffer {
   uint8_t* data;
 };
 
-struct ForeignBytes {
-  int32_t len;
-  uint8_t* data;
-};
-
 struct RustCallStatus {
   int8_t code;
   RustBuffer error_buf;

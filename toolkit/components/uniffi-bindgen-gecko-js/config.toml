@@ -41,9 +41,6 @@ main = [
 [uniffi_fixture_refcounts.receiver_thread]
 default = "main"
 
-[uniffi_trait_interfaces.receiver_thread]
-default = "main"
-
 # Temporarily disabled until we can re-enable callback support
 #
 # I think this can be done when we implement https://bugzilla.mozilla.org/show_bug.cgi?id=1888668
