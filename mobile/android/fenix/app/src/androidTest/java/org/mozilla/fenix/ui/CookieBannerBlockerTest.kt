@@ -5,6 +5,7 @@
 package org.mozilla.fenix.ui
 
 import androidx.core.net.toUri
+import org.junit.Ignore
 import org.junit.Rule
 import org.junit.Test
 import org.mozilla.fenix.customannotations.SmokeTest
@@ -40,6 +41,7 @@ class CookieBannerBlockerTest : TestSetup() {
     }
 
     // TestRail link: https://mozilla.testrail.io/index.php?/cases/view/2419273
+    @Ignore("Failing frequently, see: https://bugzilla.mozilla.org/show_bug.cgi?id=1878838")
     @SmokeTest
     @Test
     fun verifyCFRAfterBlockingTheCookieBanner() {
