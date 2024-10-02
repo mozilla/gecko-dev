@@ -912,7 +912,10 @@ void Context::CancelAll() {
   }
 
   mState = STATE_CONTEXT_CANCELED;
-  mPendingActions.Clear();
+  // Allow completion of pending actions in Context::OnQuotaInit
+  if (!mInitRunnable) {
+    mPendingActions.Clear();
+  }
   for (const auto& activity : mActivityList.ForwardRange()) {
     activity->Cancel();
   }
