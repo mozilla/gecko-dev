@@ -7428,6 +7428,9 @@ void PrepareDatastoreOp::GetResponse(LSRequestResponse& aResponse) {
       }
     }
 
+    MOZ_ASSERT(mDirectoryLock);
+    MOZ_ASSERT_IF(mDirectoryLock->Invalidated(), mInvalidated);
+
     mDatastore = new Datastore(
         mOriginMetadata, mPrivateBrowsingId, mUsage, mSizeOfKeys, mSizeOfItems,
         std::move(mDirectoryLock), std::move(mConnection),
