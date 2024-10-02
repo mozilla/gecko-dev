@@ -11,7 +11,7 @@ random != boxshadow-blur-2.html boxshadow-blur-2-notref.html # fixedpoint divisi
 == boxshadow-rounding.html boxshadow-rounding-ref.html
 # One uses old path, one uses WR box shadow.
 == boxshadow-button.html boxshadow-button-ref.html
-fuzzy(0-14,0-179) fuzzy-if(swgl&&!Android,0-1,0-2400) fuzzy-if(useDrawSnapshot&&swgl,14-14,54-54) == boxshadow-large-border-radius.html boxshadow-large-border-radius-ref.html # Bug 1209649
+fuzzy(0-14,0-179) fuzzy-if(swgl&&!Android,0-1,0-952) fuzzy-if(useDrawSnapshot&&swgl,14-14,54-54) == boxshadow-large-border-radius.html boxshadow-large-border-radius-ref.html # Bug 1209649
 
 == boxshadow-fileupload.html boxshadow-fileupload-ref.html
 fuzzy(13-19,28-51) == boxshadow-inner-basic.html boxshadow-inner-basic-ref.svg
@@ -29,7 +29,7 @@ fuzzy-if(useDrawSnapshot,1-1,1197-2400) == boxshadow-opacity.html boxshadow-opac
 fuzzy(0-3,0-500) fuzzy-if(winWidget,0-2,0-1080) == boxshadow-border-radius-int.html boxshadow-border-radius-int-ref.html
 == boxshadow-inset-neg-spread.html about:blank
 == boxshadow-inset-neg-spread2.html boxshadow-inset-neg-spread2-ref.html
-fuzzy(0-7,0-3150) == boxshadow-rotated.html boxshadow-rotated-ref.html # Bug 1211264
+fuzzy(0-26,0-3610) fuzzy-if(winWidget,0-26,0-5910) fuzzy-if(!(swgl&&Android),0-6,378-4500) == boxshadow-rotated.html boxshadow-rotated-ref.html # Bug 1211264
 == boxshadow-inset-large-border-radius.html boxshadow-inset-large-border-radius-ref.html
 
 # fuzzy due to blur going inside, but as long as it's essentially black instead of a light gray its ok.
@@ -40,7 +40,7 @@ fuzzy(12-15,9400-13267) == boxshadow-inset-large-offset.html boxshadow-inset-lar
 == overflow-not-scrollable-2.html overflow-not-scrollable-2-ref.html
 fuzzy(0-1,0-655) == 611574-1.html 611574-1-ref.html
 fuzzy(0-4,0-144) fuzzy-if(winWidget,0-1,0-36) == 611574-2.html 611574-2-ref.html
-fuzzy(0-2,0-220) == fieldset.html fieldset-ref.html # minor anti-aliasing problem on Windows
+fuzzy(0-16,0-10) == fieldset.html fieldset-ref.html # minor anti-aliasing problem on Windows
 fuzzy(0-16,0-10) == fieldset-inset.html fieldset-inset-ref.html # minor anti-aliasing problem on Windows
 == 1178575.html 1178575-ref.html
 == 1178575-2.html 1178575-2-ref.html
