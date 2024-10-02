@@ -5,7 +5,6 @@
 package org.mozilla.fenix.components.menu
 
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import androidx.navigation.NavOptions
 import io.mockk.coVerify
 import io.mockk.every
@@ -32,9 +31,6 @@ import org.mozilla.fenix.browser.browsingmode.BrowsingModeManager
 import org.mozilla.fenix.browser.browsingmode.SimpleBrowsingModeManager
 import org.mozilla.fenix.collections.SaveCollectionStep
 import org.mozilla.fenix.components.accounts.FenixFxAEntryPoint
-import org.mozilla.fenix.components.menu.compose.EXTENSIONS_MENU_ROUTE
-import org.mozilla.fenix.components.menu.compose.SAVE_MENU_ROUTE
-import org.mozilla.fenix.components.menu.compose.TOOLS_MENU_ROUTE
 import org.mozilla.fenix.components.menu.middleware.MenuNavigationMiddleware
 import org.mozilla.fenix.components.menu.store.BookmarkState
 import org.mozilla.fenix.components.menu.store.BrowserMenuState
@@ -54,7 +50,6 @@ class MenuNavigationMiddlewareTest {
     private val scope = coroutinesTestRule.scope
 
     private val navController: NavController = mockk(relaxed = true)
-    private val navHostController: NavHostController = mockk(relaxed = true)
     private val webAppUseCases: WebAppUseCases = mockk(relaxed = true)
     private val settings: Settings = mockk(relaxed = true)
 
@@ -229,44 +224,6 @@ class MenuNavigationMiddlewareTest {
         store.dispatch(MenuAction.Navigate.ReleaseNotes).join()
 
         assertEquals(SupportUtils.WHATS_NEW_URL, params?.url)
-    }
-
-    @Test
-    fun `WHEN navigate to tools action is dispatched THEN navigate to tools submenu route`() = runTest {
-        val store = createStore()
-        store.dispatch(MenuAction.Navigate.Tools).join()
-
-        verify {
-            navHostController.navigate(route = TOOLS_MENU_ROUTE)
-        }
-    }
-
-    @Test
-    fun `WHEN navigate to save action is dispatched THEN navigate to save submenu route`() = runTest {
-        val store = createStore()
-        store.dispatch(MenuAction.Navigate.Save).join()
-
-        verify {
-            navHostController.navigate(route = SAVE_MENU_ROUTE)
-        }
-    }
-
-    @Test
-    fun `WHEN navigate to extensions action is dispatched THEN navigate to extensions submenu route`() = runTest {
-        val store = createStore()
-        store.dispatch(MenuAction.Navigate.Extensions).join()
-
-        verify {
-            navHostController.navigate(route = EXTENSIONS_MENU_ROUTE)
-        }
-    }
-
-    @Test
-    fun `WHEN navigate back action is dispatched THEN pop back stack`() = runTest {
-        val store = createStore()
-        store.dispatch(MenuAction.Navigate.Back).join()
-
-        verify { navHostController.popBackStack() }
     }
 
     @Test
@@ -600,7 +557,6 @@ class MenuNavigationMiddlewareTest {
         middleware = listOf(
             MenuNavigationMiddleware(
                 navController = navController,
-                navHostController = navHostController,
                 browsingModeManager = browsingModeManager,
                 openToBrowser = openToBrowser,
                 webAppUseCases = webAppUseCases,
