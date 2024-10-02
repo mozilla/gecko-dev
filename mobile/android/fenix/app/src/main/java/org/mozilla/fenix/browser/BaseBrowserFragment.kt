@@ -2367,6 +2367,7 @@ abstract class BaseBrowserFragment :
                 isVisible = false
             }
             val browserEngine = binding.swipeRefresh.layoutParams as CoordinatorLayout.LayoutParams
+            browserEngine.behavior = null
             browserEngine.bottomMargin = 0
             browserEngine.topMargin = 0
             binding.swipeRefresh.translationY = 0f
