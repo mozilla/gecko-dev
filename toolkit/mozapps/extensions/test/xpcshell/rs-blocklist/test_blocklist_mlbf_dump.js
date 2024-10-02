@@ -76,33 +76,74 @@ async function verifyBlocklistWorksWithDump() {
 
 add_task(async function verify_dump_first_run() {
   await verifyBlocklistWorksWithDump();
-  Assert.equal(observed.length, 1, "expected number of MLBF download requests");
-
-  const { inputRecord, downloadPromise } = observed.pop();
-
-  Assert.ok(inputRecord, "addons-bloomfilters collection dump exists");
-
-  const downloadResult = await downloadPromise;
-
-  // Verify that the "download" result really originates from the local dump.
-  // "dump_match" means that the record exists in the collection and that an
-  // attachment was found.
-  //
-  // If this fails:
-  // - "dump_fallback" means that the MLBF attachment is out of sync with the
-  //   collection data.
-  // - undefined could mean that the implementation of Attachments.sys.mjs changed.
   Assert.equal(
-    downloadResult._source,
-    "dump_match",
-    "MLBF attachment should match the RemoteSettings collection"
+    observed.length,
+    Blocklist.isSoftBlockEnabled ? 2 : 1,
+    "expected number of MLBF download requests"
   );
 
-  Assert.equal(
-    await sha256(downloadResult.buffer),
-    inputRecord.attachment.hash,
-    "The content of the attachment should actually matches the record"
-  );
+  const observedSoftBlock = Blocklist.isSoftBlockEnabled
+    ? observed.pop()
+    : undefined;
+  const observedHardBlock = observed.pop();
+
+  info("Verify the hard mocks mlbf dump");
+
+  {
+    // Hard blocks are enabled by default and packaged with desktop.
+    // On Android, dumps are not included, see test_android_blocklist_dump.js instead.
+    const { inputRecord, downloadPromise } = observedHardBlock;
+    Assert.ok(
+      inputRecord,
+      "addons-bloomfilters collection hard-blocks dump exists"
+    );
+
+    Assert.equal(
+      inputRecord.attachment_type,
+      ExtensionBlocklistMLBF.RS_ATTACHMENT_TYPE,
+      "hard-blocks attachment record has the expected attachment_type"
+    );
+
+    const downloadResult = await downloadPromise;
+
+    // Verify that the "download" result really originates from the local dump.
+    // "dump_match" means that the record exists in the collection and that an
+    // attachment was found.
+    //
+    // If this fails:
+    // - "dump_fallback" means that the MLBF attachment is out of sync with the
+    //   collection data.
+    // - undefined could mean that the implementation of Attachments.sys.mjs changed.
+    Assert.equal(
+      downloadResult._source,
+      "dump_match",
+      "MLBF attachment should match the RemoteSettings collection"
+    );
+
+    Assert.equal(
+      await sha256(downloadResult.buffer),
+      inputRecord.attachment.hash,
+      "The content of the attachment should actually matches the record"
+    );
+  }
+
+  if (Blocklist.isSoftBlockEnabled) {
+    info("Verify the soft mocks mlbf dump");
+
+    // TODO: (Bug 1922308) this check would be technically failing when we
+    // will have a dump of the soft-blocks MLBF attachment and it should
+    // become the same as the hard-blocks dump right above.
+    const { inputRecord, downloadPromise } = observedSoftBlock;
+    Assert.ok(
+      !inputRecord,
+      "addons-bloomfilters collection's soft-blocks dump does not exist"
+    );
+    await Assert.rejects(
+      downloadPromise,
+      /Could not download softblocks-addons-mlbf.bin/,
+      "Got the expected DownloadError for the soft-blocks MLBF data"
+    );
+  }
 });
 
 add_task(async function use_dump_fallback_when_collection_is_out_of_sync() {
@@ -110,7 +151,15 @@ add_task(async function use_dump_fallback_when_collection_is_out_of_sync() {
     // last_modified higher than any value in addons-bloomfilters.json.
     extensionsMLBF: [{ last_modified: Date.now() }],
   });
-  Assert.equal(observed.length, 1, "Expected new download on update");
+  Assert.equal(
+    observed.length,
+    Blocklist.isSoftBlockEnabled ? 2 : 1,
+    "Expected new download on update"
+  );
+
+  if (Blocklist.isSoftBlockEnabled) {
+    observed.pop(); // soft-blocks dump.
+  }
 
   const { inputRecord, downloadPromise } = observed.pop();
   Assert.equal(inputRecord, null, "No MLBF record found");
@@ -136,9 +185,18 @@ add_task(async function verify_dump_supersedes_old_dump() {
 
   await AddonTestUtils.loadBlocklistRawData({
     // last_modified lower than any value in addons-bloomfilters.json.
-    extensionsMLBF: [{ last_modified: 1 }],
+    extensionsMLBF: [{ last_modified: 2 }],
   });
-  Assert.equal(observed.length, 1, "Expected new download on update");
+
+  Assert.equal(
+    observed.length,
+    Blocklist.isSoftBlockEnabled ? 2 : 1,
+    "Expected new download on update"
+  );
+
+  if (Blocklist.isSoftBlockEnabled) {
+    observed.pop(); // soft-blocks dump.
+  }
 
   const { inputRecord, downloadPromise } = observed.pop();
   Assert.ok(inputRecord, "should have read from addons-bloomfilters dump");

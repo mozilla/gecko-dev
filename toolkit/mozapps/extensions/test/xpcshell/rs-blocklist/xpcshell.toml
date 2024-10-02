@@ -29,6 +29,8 @@ skip-if = ["os == 'android'"] # blocklist v3 is not bundled with Android builds,
 
 ["test_blocklist_mlbf_fetch.js"]
 
+["test_blocklist_mlbf_softblocks.js"]
+
 ["test_blocklist_mlbf_stashes.js"]
 
 ["test_blocklist_mlbf_telemetry.js"]

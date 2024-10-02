@@ -125,6 +125,8 @@ const TOOLKIT_ID = "toolkit@mozilla.org";
 const PREF_BLOCKLIST_ITEM_URL = "extensions.blocklist.itemURL";
 const PREF_BLOCKLIST_ADDONITEM_URL = "extensions.blocklist.addonItemURL";
 const PREF_BLOCKLIST_ENABLED = "extensions.blocklist.enabled";
+const PREF_BLOCKLIST_SOFTBLOCK_ENABLED =
+  "extensions.blocklist.softblock.enabled";
 const PREF_BLOCKLIST_LEVEL = "extensions.blocklist.level";
 const PREF_BLOCKLIST_USE_MLBF = "extensions.blocklist.useMLBF";
 const PREF_EM_LOGGING_ENABLED = "extensions.logging.enabled";
@@ -777,13 +779,13 @@ const ExtensionBlocklistRS = {
         continue;
       }
 
-      // Ensure that softDisabled is false if the add-on is not soft blocked
+      // Ensure that softDisabled is false if the add-on is not soft-blocked
       if (state != Ci.nsIBlocklistService.STATE_SOFTBLOCKED) {
         await addon.setSoftDisabled(false);
       }
 
-      // If an add-on has dropped from hard to soft blocked just mark it as
-      // soft disabled and don't warn about it.
+      // If an add-on has dropped from hard-blocked to soft-blocked just mark it as
+      // softDisabled and don't warn about it.
       if (
         state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED &&
         oldState == Ci.nsIBlocklistService.STATE_BLOCKED
@@ -795,7 +797,7 @@ const ExtensionBlocklistRS = {
         state == Ci.nsIBlocklistService.STATE_BLOCKED ||
         state == Ci.nsIBlocklistService.STATE_SOFTBLOCKED
       ) {
-        // Mark it as softblocked if necessary. Note that we avoid setting
+        // Mark it as soft-blocked if necessary. Note that we avoid setting
         // softDisabled at the same time as userDisabled to make it clear
         // which was the original cause of the add-on becoming disabled in a
         // way that the user can change.
@@ -895,9 +897,9 @@ const ExtensionBlocklistRS = {
  * add-ons are identified by their signature date being newer than the MLBF's
  * generation time, and they are considered to not be blocked.
  *
- * Legacy blocklists used to distinguish between "soft block" and "hard block",
- * but the current blocklist only supports one type of block ("hard block").
- * After checking the blocklist states, any previous "soft blocked" addons will
+ * Legacy blocklists used to distinguish between "soft-block" and "hard-block",
+ * but the current blocklist only supports one type of block ("hard-block").
+ * After checking the blocklist states, any previous "soft-blocked" addons will
  * either be (hard) blocked or unblocked based on the blocklist.
  *
  * The MLBF is attached to a RemoteSettings record, as follows:
@@ -921,13 +923,19 @@ const ExtensionBlocklistRS = {
  * to be downloaded again. These stashes are applied on top of the base MLBF.
  */
 const ExtensionBlocklistMLBF = {
+  // ID to identify cached or bundled attachment. Supersedes the id from
+  // the record to ensure that there is only one cached entry, and enables
+  // lookup of cached attachments even without record.
   RS_ATTACHMENT_ID: "addons-mlbf.bin",
+  RS_ATTACHMENT_TYPE: "bloomfilter-base",
+  RS_SOFTBLOCKS_ATTACHMENT_ID: "softblocks-addons-mlbf.bin",
+  RS_SOFTBLOCKS_ATTACHMENT_TYPE: "softblocks-bloomfilter-base",
 
-  async _fetchMLBF(record) {
+  async _getMLBFData(record, attachmentId, mlbfData) {
     // |record| may be unset. In that case, the MLBF dump is used instead
     // (provided that the client has been built with it included).
     let hash = record?.attachment.hash;
-    if (this._mlbfData && hash && this._mlbfData.cascadeHash === hash) {
+    if (mlbfData && hash && mlbfData.cascadeHash === hash) {
       // MLBF not changed, save the efforts of downloading the data again.
 
       // Although the MLBF has not changed, the time in the record has. This
@@ -935,17 +943,17 @@ const ExtensionBlocklistMLBF = {
       // that were signed after the previously known date (but before the newly
       // given date). To ensure that add-ons in this time range are also blocked
       // as expected, update the cached generationTime.
-      if (record.generation_time > this._mlbfData.generationTime) {
-        this._mlbfData.generationTime = record.generation_time;
+      if (record.generation_time > mlbfData.generationTime) {
+        mlbfData.generationTime = record.generation_time;
       }
-      return this._mlbfData;
+      return mlbfData;
     }
     const {
       buffer,
       record: actualRecord,
       _source: rsAttachmentSource,
     } = await this._client.attachments.download(record, {
-      attachmentId: this.RS_ATTACHMENT_ID,
+      attachmentId,
       fallbackToCache: true,
       fallbackToDump: true,
     });
@@ -962,6 +970,36 @@ const ExtensionBlocklistMLBF = {
     };
   },
 
+  async _fetchMLBF(recordHardBlocks, recordSoftBlocks) {
+    const [mlbfRes, mlbfSoftBlocksRes] = await Promise.allSettled([
+      this._getMLBFData(
+        recordHardBlocks,
+        this.RS_ATTACHMENT_ID,
+        this._mlbfData
+      ),
+      gBlocklistSoftBlockEnabled
+        ? this._getMLBFData(
+            recordSoftBlocks,
+            this.RS_SOFTBLOCKS_ATTACHMENT_ID,
+            this._mlbfDataSoftBlocks
+          )
+        : undefined,
+    ]);
+
+    if (mlbfRes.reason) {
+      throw mlbfRes.reason;
+    }
+
+    if (mlbfSoftBlocksRes.reason) {
+      // Allow the soft-blocks mlbf attachment to fail to be retrieved.
+      Cu.reportError(mlbfSoftBlocksRes.reason);
+    }
+    return {
+      mlbf: mlbfRes.value,
+      mlbfSoftBlocks: mlbfSoftBlocksRes.value,
+    };
+  },
+
   async _updateMLBF(forceUpdate = false) {
     // The update process consists of fetching the collection, followed by
     // potentially multiple network requests. As long as the collection has not
@@ -975,8 +1013,12 @@ const ExtensionBlocklistMLBF = {
     const updatePromise = (async () => {
       if (!gBlocklistEnabled) {
         this._mlbfData = null;
+        this._mlbfDataSoftBlocks = null;
         this._stashes = null;
         return;
+      }
+      if (!gBlocklistSoftBlockEnabled) {
+        this._mlbfDataSoftBlocks = null;
       }
       let records = await this._client.get();
       if (isUpdateReplaced()) {
@@ -988,8 +1030,14 @@ const ExtensionBlocklistMLBF = {
         // Newest attachments first.
         .sort((a, b) => b.generation_time - a.generation_time);
       const mlbfRecord = mlbfRecords.find(
-        r => r.attachment_type == "bloomfilter-base"
+        r => r.attachment_type == this.RS_ATTACHMENT_TYPE
       );
+      const mlbfRecordSoftBlocks = gBlocklistSoftBlockEnabled
+        ? mlbfRecords.find(
+            r => r.attachment_type == this.RS_SOFTBLOCKS_ATTACHMENT_TYPE
+          )
+        : undefined;
+
       this._stashes = records
         .filter(({ stash }) => {
           return (
@@ -997,7 +1045,10 @@ const ExtensionBlocklistMLBF = {
             stash &&
             // Sanity check for type.
             Array.isArray(stash.blocked) &&
-            Array.isArray(stash.unblocked)
+            Array.isArray(stash.unblocked) &&
+            // NOTE: `softblocked` property is expected to not be
+            // available for old existing records.
+            (!stash.softblocked || Array.isArray(stash.softblocked))
           );
         })
         // Sort by stash time - newest first.
@@ -1005,16 +1056,23 @@ const ExtensionBlocklistMLBF = {
         .map(({ stash, stash_time }) => ({
           blocked: new Set(stash.blocked),
           unblocked: new Set(stash.unblocked),
+          softblocked: new Set(
+            (gBlocklistSoftBlockEnabled && stash.softblocked) || []
+          ),
           stash_time,
         }));
 
-      let mlbf = await this._fetchMLBF(mlbfRecord);
+      let { mlbf, mlbfSoftBlocks } = await this._fetchMLBF(
+        mlbfRecord,
+        mlbfRecordSoftBlocks
+      );
       // When a MLBF dump is packaged with the browser, mlbf will always be
       // non-null at this point.
       if (isUpdateReplaced()) {
         return;
       }
       this._mlbfData = mlbf;
+      this._mlbfDataSoftBlocks = mlbfSoftBlocks;
     })()
       .catch(e => {
         Cu.reportError(e);
@@ -1032,6 +1090,7 @@ const ExtensionBlocklistMLBF = {
 
   // Update the telemetry of the blocklist. This is always called, even if
   // the update request failed (e.g. due to network errors or data corruption).
+  // TODO: (Bug 1917859) telemetry for the softblocks.
   _recordPostUpdateTelemetry() {
     BlocklistTelemetry.recordRSBlocklistLastModified(
       "addons_mlbf",
@@ -1070,6 +1129,7 @@ const ExtensionBlocklistMLBF = {
   },
 
   // Used by BlocklistTelemetry.recordAddonBlockChangeTelemetry.
+  // TODO: (Bug 1917859) add telemetry for the softblocks.
   getBlocklistMetadataForTelemetry() {
     // Blocklist telemetry can only be reported when a blocklist decision
     // has been made. That implies that the blocklist has been loaded, so
@@ -1096,7 +1156,10 @@ const ExtensionBlocklistMLBF = {
       bucketName: BLOCKLIST_BUCKET,
       // Prevent the attachment for being pruned, since its ID does
       // not match any record.
-      keepAttachmentsIds: [this.RS_ATTACHMENT_ID],
+      keepAttachmentsIds: [
+        this.RS_ATTACHMENT_ID,
+        this.RS_SOFTBLOCKS_ATTACHMENT_ID,
+      ],
     });
     this._onUpdate = this._onUpdate.bind(this);
     this._client.on("sync", this._onUpdate);
@@ -1124,7 +1187,7 @@ const ExtensionBlocklistMLBF = {
     let addons = await lazy.AddonManager.getAddonsByTypes(lazy.kXPIAddonTypes);
     for (let addon of addons) {
       let oldState = addon.blocklistState;
-      await addon.updateBlocklistState(false);
+      await addon.updateBlocklistState(true /* applySoftBlock */);
       let state = addon.blocklistState;
 
       LOG(
@@ -1136,15 +1199,8 @@ const ExtensionBlocklistMLBF = {
           state
       );
 
-      // We don't want to re-warn about add-ons
       if (state == oldState) {
         continue;
-      }
-
-      // Ensure that softDisabled is false if the add-on is not soft blocked
-      // (by a previous implementation of the blocklist).
-      if (state != Ci.nsIBlocklistService.STATE_SOFTBLOCKED) {
-        await addon.setSoftDisabled(false);
       }
 
       BlocklistTelemetry.recordAddonBlockChangeTelemetry(
@@ -1173,45 +1229,108 @@ const ExtensionBlocklistMLBF = {
 
     let blockKey = addon.id + ":" + addon.version;
 
+    let blockTimestamp = -Infinity;
+    let blockState;
+    let blockSource;
+
     // _stashes will be unset if !gBlocklistEnabled.
     if (this._stashes) {
       // Stashes are ordered by newest first.
       for (let stash of this._stashes) {
-        // blocked and unblocked do not have overlapping entries.
+        // hard-blocked and soft-blocked/not-blocked do not have overlapping entries.
         if (stash.blocked.has(blockKey)) {
-          return this._createBlockEntry(addon);
+          blockState = Ci.nsIBlocklistService.STATE_BLOCKED;
+          blockTimestamp = stash.stash_time;
+          blockSource = "stash";
+          break;
+        }
+        if (stash.softblocked.has(blockKey)) {
+          blockState = Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
+          blockTimestamp = stash.stash_time;
+          blockSource = "stash";
+          break;
         }
         if (stash.unblocked.has(blockKey)) {
-          return null;
+          blockState = Ci.nsIBlocklistService.STATE_NOT_BLOCKED;
+          blockTimestamp = stash.stash_time;
+          blockSource = "stash";
+          break;
         }
       }
     }
 
+    // Determine if the hard-blocks MLBF data has a more recent
+    // STATE_BLOCKED blocklist state.
+    if (
+      this._mlbfData?.generationTime > blockTimestamp &&
+      this._isAddonInMLBFData(addon, this._mlbfData)
+    ) {
+      blockState = Ci.nsIBlocklistService.STATE_BLOCKED;
+      blockSource = this.RS_ATTACHMENT_TYPE;
+      blockTimestamp = this._mlbfData.generationTime;
+    }
+
+    // Determine if the soft-blocks MLBF data has a more recent
+    // STATE_SOFTBLOCKED blocklist state.
+    if (
+      this._mlbfDataSoftBlocks?.generationTime > blockTimestamp &&
+      this._isAddonInMLBFData(addon, this._mlbfDataSoftBlocks)
+    ) {
+      blockState = Ci.nsIBlocklistService.STATE_SOFTBLOCKED;
+      blockSource = this.RS_SOFTBLOCKS_ATTACHMENT_TYPE;
+      blockTimestamp = this._mlbfDataSoftBlocks.generationTime;
+    }
+
+    if (blockSource) {
+      LOG(
+        `ExtensionBlocklistMLBF.getEntry: block entry for ${blockKey} - ` +
+          `state ${blockState}, source ${blockSource}, timestamp ${blockTimestamp}`
+      );
+    }
+
+    if (blockState === Ci.nsIBlocklistService.STATE_BLOCKED) {
+      return this._createBlockEntry({ addon });
+    }
+
+    if (blockState === Ci.nsIBlocklistService.STATE_SOFTBLOCKED) {
+      return this._createBlockEntry({ addon, softBlock: true });
+    }
+
+    return null;
+  },
+
+  _isAddonInMLBFData(addon, mlbfData) {
     // signedDate is a Date if the add-on is signed, null if not signed,
     // undefined if it's an addon update descriptor instead of an addon wrapper.
     let { signedDate } = addon;
     if (!signedDate) {
       // The MLBF does not apply to unsigned add-ons.
-      return null;
+      return false;
     }
 
-    if (!this._mlbfData) {
+    if (!mlbfData) {
       // This could happen in theory in any of the following cases:
       // - the blocklist is disabled.
       // - The RemoteSettings backend served a malformed MLBF.
       // - The RemoteSettings backend is unreachable, and this client was built
       //   without including a dump of the MLBF.
       //
-      // ... in other words, this is unlikely to happen in practice.
-      return null;
+      // ... in other words, this is unlikely to happen for hard-blocks in practice.
+      //
+      // For soft-blocks MLBF data may be missing if the volume of the soft-blocks
+      // is being low enough to fit into the stashes.
+      return false;
     }
-    let { cascadeFilter, generationTime } = this._mlbfData;
-    if (!cascadeFilter.has(blockKey)) {
-      // Add-on not blocked or unknown.
-      return null;
-    }
-    // Add-on blocked, or unknown add-on inadvertently labeled as blocked.
 
+    let blockKey = addon.id + ":" + addon.version;
+    let { cascadeFilter, generationTime } = mlbfData;
+    if (!cascadeFilter.has(blockKey)) {
+      // Add-on was not blocked when this MLBF was generated,
+      // or add-on unknown at generation time of this MLBF.
+      return false;
+    }
+
+    // Add-on blocked, or unknown add-on inadvertently labeled as blocked.
     let { signedState } = addon;
     if (
       signedState !== lazy.AddonManager.SIGNEDSTATE_PRELIMINARY &&
@@ -1230,14 +1349,14 @@ const ExtensionBlocklistMLBF = {
       //   means that the signature cannot be relied upon. It is equivalent to
       //   removing the signature from the XPI file, which already causes them
       //   to be disabled on release builds (where MOZ_REQUIRE_SIGNING=true).
-      return null;
+      return false;
     }
 
     if (signedDate.getTime() > generationTime) {
       // The bloom filter only reports 100% accurate results for known add-ons.
       // Since the add-on was unknown when the bloom filter was generated, the
       // block decision is incorrect and should be treated as unblocked.
-      return null;
+      return false;
     }
 
     if (AppConstants.NIGHTLY_BUILD && addon.type === "locale") {
@@ -1246,15 +1365,19 @@ const ExtensionBlocklistMLBF = {
       // DevEd does not support external langpacks (bug 1563923), only builtins.
       //   (and built-in addons are not subjected to the blocklist).
       // Langpacks for Nightly are not known to AMO, so the MLBF cannot be used.
-      return null;
+      return false;
     }
 
-    return this._createBlockEntry(addon);
+    // Addon found in the mlbfData and not exempted from blocks due to
+    // signature type and datetime, nor a langpack xpi installed on Nightly builds.
+    return true;
   },
 
-  _createBlockEntry(addon) {
+  _createBlockEntry({ addon, softBlock = false }) {
     return {
-      state: Ci.nsIBlocklistService.STATE_BLOCKED,
+      state: softBlock
+        ? Ci.nsIBlocklistService.STATE_SOFTBLOCKED
+        : Ci.nsIBlocklistService.STATE_BLOCKED,
       url: this.createBlocklistURL(addon.id, addon.version),
     };
   },
@@ -1275,6 +1398,7 @@ const EXTENSION_BLOCK_FILTERS = [
 
 var gLoggingEnabled = null;
 var gBlocklistEnabled = true;
+var gBlocklistSoftBlockEnabled = true;
 var gBlocklistLevel = DEFAULT_LEVEL;
 
 /**
@@ -1342,11 +1466,23 @@ function LOG(string) {
 }
 
 export let Blocklist = {
+  get isEnabled() {
+    return gBlocklistEnabled;
+  },
+
+  get isSoftBlockEnabled() {
+    return gBlocklistSoftBlockEnabled;
+  },
+
   _init() {
     Services.obs.addObserver(this, "xpcom-shutdown");
     gLoggingEnabled = Services.prefs.getBoolPref(
       PREF_EM_LOGGING_ENABLED,
       false
+    );
+    gBlocklistSoftBlockEnabled = Services.prefs.getBoolPref(
+      PREF_BLOCKLIST_SOFTBLOCK_ENABLED,
+      true
     );
     gBlocklistEnabled = Services.prefs.getBoolPref(
       PREF_BLOCKLIST_ENABLED,
@@ -1391,6 +1527,13 @@ export let Blocklist = {
             );
             this._blocklistUpdated();
             break;
+          case PREF_BLOCKLIST_SOFTBLOCK_ENABLED:
+            gBlocklistSoftBlockEnabled = Services.prefs.getBoolPref(
+              PREF_BLOCKLIST_SOFTBLOCK_ENABLED,
+              true
+            );
+            this._blocklistUpdated();
+            break;
           case PREF_BLOCKLIST_LEVEL:
             gBlocklistLevel = Math.min(
               Services.prefs.getIntPref(PREF_BLOCKLIST_LEVEL, DEFAULT_LEVEL),
@@ -1398,7 +1541,7 @@ export let Blocklist = {
             );
             this._blocklistUpdated();
             break;
-          case PREF_BLOCKLIST_USE_MLBF:
+          case PREF_BLOCKLIST_USE_MLBF: {
             let oldImpl = this.ExtensionBlocklist;
             this._chooseExtensionBlocklistImplementationFromPref();
             // The implementation may be unchanged when the pref is ignored.
@@ -1408,6 +1551,7 @@ export let Blocklist = {
               this.ExtensionBlocklist._onUpdate();
             } // else neither has been initialized yet. Wait for it to happen.
             break;
+          }
         }
         break;
     }

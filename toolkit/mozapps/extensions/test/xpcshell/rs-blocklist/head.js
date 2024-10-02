@@ -20,6 +20,19 @@ const MLBF_RECORD = {
   generation_time: 1577833200000,
 };
 
+const MLBF_SOFTBLOCK_RECORD = {
+  id: "soft-blocks MLBF attachment file record",
+  // Higher than any last_modified in addons-bloomfilters.json:
+  last_modified: Date.now(),
+  attachment: {
+    size: 222,
+    hash: "26133258c5e7eeeac3bfe82a5f352dcf489af7feb1bcef0227acab5867201005",
+    filename: "does-not-matter.bin",
+  },
+  attachment_type: "softblocks-bloomfilter-base",
+  generation_time: 1577833200000,
+};
+
 function enable_blocklist_v2_instead_of_useMLBF() {
   Blocklist.allowDeprecatedBlocklistV2 = true;
   Services.prefs.setBoolPref("extensions.blocklist.useMLBF", false);
@@ -34,10 +47,10 @@ function enable_blocklist_v2_instead_of_useMLBF() {
   );
 }
 
-async function load_mlbf_record_as_blob() {
-  const url = Services.io.newFileURI(
-    do_get_file("../data/mlbf-blocked1-unblocked2.bin")
-  ).spec;
+async function load_mlbf_record_as_blob(
+  fileName = "mlbf-blocked1-unblocked2.bin"
+) {
+  const url = Services.io.newFileURI(do_get_file(`../data/${fileName}`)).spec;
   return (await fetch(url)).blob();
 }
 

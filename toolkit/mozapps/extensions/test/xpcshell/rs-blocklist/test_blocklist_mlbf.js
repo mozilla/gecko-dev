@@ -21,18 +21,22 @@ function mockMLBF({ blocked = [], notblocked = [], generationTime }) {
   // Mock _fetchMLBF to be able to have a deterministic cascade filter.
   ExtensionBlocklistMLBF._fetchMLBF = async () => {
     return {
-      cascadeFilter: {
-        has(blockKey) {
-          if (blocked.includes(blockKey)) {
-            return true;
-          }
-          if (notblocked.includes(blockKey)) {
-            return false;
-          }
-          throw new Error(`Block entry must explicitly be listed: ${blockKey}`);
+      mlbf: {
+        cascadeFilter: {
+          has(blockKey) {
+            if (blocked.includes(blockKey)) {
+              return true;
+            }
+            if (notblocked.includes(blockKey)) {
+              return false;
+            }
+            throw new Error(
+              `Block entry must explicitly be listed: ${blockKey}`
+            );
+          },
         },
+        generationTime,
       },
-      generationTime,
     };
   };
 }

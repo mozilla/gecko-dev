@@ -51,13 +51,13 @@ add_task(async function fetch_valid_mlbf() {
     { record: MLBF_RECORD, blob: await load_mlbf_record_as_blob() }
   );
 
-  const result = await ExtensionBlocklistMLBF._fetchMLBF(MLBF_RECORD);
+  const { mlbf: result } = await ExtensionBlocklistMLBF._fetchMLBF(MLBF_RECORD);
   Assert.equal(result.cascadeHash, MLBF_RECORD.attachment.hash, "hash OK");
   Assert.equal(result.generationTime, MLBF_RECORD.generation_time, "time OK");
   Assert.ok(result.cascadeFilter.has("@blocked:1"), "item blocked");
   Assert.ok(!result.cascadeFilter.has("@unblocked:2"), "item not blocked");
 
-  const result2 = await ExtensionBlocklistMLBF._fetchMLBF({
+  const { mlbf: result2 } = await ExtensionBlocklistMLBF._fetchMLBF({
     attachment: { size: 1, hash: "invalid" },
     generation_time: Date.now(),
   });
