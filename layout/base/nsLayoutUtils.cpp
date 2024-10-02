@@ -2059,11 +2059,10 @@ static bool TransformGfxPointFromAncestor(RelativeTo aFrame,
     auto matrix = nsLayoutUtils::GetTransformToAncestor(
         RelativeTo{text ? text : aFrame.mFrame, aFrame.mViewportType},
         aAncestor);
-    if (matrix.IsSingular()) {
+    aMatrixCache = matrix.MaybeInverse();
+    if (aMatrixCache.isNothing()) {
       return false;
     }
-    matrix.Invert();
-    aMatrixCache.emplace(matrix);
   }
 
   const Matrix4x4Flagged& ctm = *aMatrixCache;
@@ -2211,10 +2210,10 @@ nsLayoutUtils::TransformResult nsLayoutUtils::TransformRect(
   }
   Matrix4x4Flagged downToDest = GetTransformToAncestor(
       RelativeTo{aToFrame}, RelativeTo{nearestCommonAncestor});
-  if (downToDest.IsSingular()) {
+  // invert downToDest in place
+  if (!downToDest.Invert()) {
     return NONINVERTIBLE_TRANSFORM;
   }
-  downToDest.Invert();
   aRect = TransformFrameRectToAncestor(aFromFrame, aRect,
                                        RelativeTo{nearestCommonAncestor});
 

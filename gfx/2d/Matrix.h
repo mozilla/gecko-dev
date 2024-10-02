@@ -2227,6 +2227,15 @@ class Matrix4x4TypedFlagged
     return clone;
   }
 
+  Maybe<Matrix4x4TypedFlagged<TargetUnits, SourceUnits>> MaybeInverse() const {
+    typedef Matrix4x4TypedFlagged<TargetUnits, SourceUnits> InvertedMatrix;
+    InvertedMatrix clone = Cast<InvertedMatrix>();
+    if (clone.Invert()) {
+      return Some(clone);
+    }
+    return Nothing();
+  }
+
   template <typename NewTargetUnits>
   bool operator==(
       const Matrix4x4TypedFlagged<TargetUnits, NewTargetUnits>& aMatrix) const {

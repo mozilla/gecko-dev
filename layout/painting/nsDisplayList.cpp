@@ -7239,7 +7239,8 @@ bool nsDisplayTransform::UntransformRect(const nsRect& aTransformedBounds,
                                          const Matrix4x4& aMatrix,
                                          float aAppUnitsPerPixel,
                                          nsRect* aOutRect) {
-  if (aMatrix.IsSingular()) {
+  Maybe<Matrix4x4> inverse = aMatrix.MaybeInverse();
+  if (inverse.isNothing()) {
     return false;
   }
 
@@ -7255,7 +7256,7 @@ bool nsDisplayTransform::UntransformRect(const nsRect& aTransformedBounds,
       NSAppUnitsToFloatPixels(aChildBounds.width, aAppUnitsPerPixel),
       NSAppUnitsToFloatPixels(aChildBounds.height, aAppUnitsPerPixel));
 
-  result = aMatrix.Inverse().ProjectRectBounds(result, childGfxBounds);
+  result = inverse->ProjectRectBounds(result, childGfxBounds);
   *aOutRect = nsLayoutUtils::RoundGfxRectToAppRect(ThebesRect(result),
                                                    aAppUnitsPerPixel);
   return true;
