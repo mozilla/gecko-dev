@@ -7274,9 +7274,13 @@ urlbar.searchmode:
   keywordoffer:
     bug_numbers:
       - 1654680
+      - 1919180
     description: >
       A keyed uint recording how many times the user entered a particular search
-      mode after selecting a keyword offer result.
+      mode after selecting a keyword offer result. The scalar key for local
+      search modes entered using a restrict keyword will be suffixed with
+      "keyword". For example: tabs_keyword, bookmarks_keyword, history_keyword,
+      and actions_keyword.
     expires: never
     kind: uint
     keyed: true
@@ -7434,9 +7438,15 @@ urlbar.searchmode:
   typed:
     bug_numbers:
       - 1654680
+      - 1919180
     description: >
       A keyed uint recording how many times the user entered a particular search
-      mode after typing an alias.
+      mode after typing an alias. The scalar keys for local search modes entered
+      by typing a restrict keyword will be suffixed with "keyword". For example:
+      tabs_keyword, bookmarks_keyword, history_keyword, and actions_keyword.
+      If instead search mode was entered by typing a restrict symbol the key
+      will be suffixed with "symbol" (e.g. typing "%" will generate
+      "tabs_symbol").
     expires: never
     kind: uint
     keyed: true

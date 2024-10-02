@@ -289,6 +289,7 @@ add_task(async function fallback_searchRestrictionToken() {
         await UrlbarTestUtils.assertSearchMode(window, {
           engineName: "Example",
           entry: "typed",
+          restrictType: "symbol",
         });
 
         // Check the other visit results.
