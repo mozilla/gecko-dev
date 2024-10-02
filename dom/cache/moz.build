@@ -66,6 +66,7 @@ UNIFIED_SOURCES += [
     "FileUtils.cpp",
     "Manager.cpp",
     "ManagerId.cpp",
+    "NotifyUtils.cpp",
     "PrincipalVerifier.cpp",
     "QuotaClient.cpp",
     "ReadStream.cpp",

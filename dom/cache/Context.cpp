@@ -21,6 +21,7 @@
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/Maybe.h"
 #include "mozIStorageConnection.h"
+#include "NotifyUtils.h"
 #include "nsIPrincipal.h"
 #include "nsIRunnable.h"
 #include "nsIThread.h"
@@ -253,6 +254,8 @@ void Context::QuotaInitRunnable::DirectoryLockAcquired(DirectoryLock* aLock) {
     Complete(rv);
     return;
   }
+
+  NotifyDatabaseWorkStarted();
 }
 
 void Context::QuotaInitRunnable::DirectoryLockFailed() {

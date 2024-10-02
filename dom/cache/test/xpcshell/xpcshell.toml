@@ -12,6 +12,8 @@ skip-if = ["true"]
 
 ["test_bug1425146.js"]
 
+["test_databaseWorkStarted.js"]
+
 ["test_empty_directories.js"]
 
 ["test_migration.js"]
