@@ -14,10 +14,9 @@ import six
 from six import StringIO, string_types
 
 try:
-    from configparser import SafeConfigParser as ConfigParser
+    from six.moves.configparser import SafeConfigParser as ConfigParser
 except ImportError:  # SafeConfigParser was removed in 3.12
     from configparser import ConfigParser
-
 try:
     ConfigParser.read_file
 except AttributeError:  # read_file was added in 3.2, readfp removed in 3.12

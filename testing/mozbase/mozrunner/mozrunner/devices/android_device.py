@@ -13,12 +13,12 @@ import subprocess
 import sys
 import telnetlib
 import time
-import urllib
 from collections import namedtuple
 from enum import Enum
 
 import six
 from mozdevice import ADBDeviceFactory, ADBHost
+from six.moves import input, urllib
 
 MOZBUILD_PATH = os.environ.get(
     "MOZBUILD_STATE_PATH", os.path.expanduser(os.path.join("~", ".mozbuild"))

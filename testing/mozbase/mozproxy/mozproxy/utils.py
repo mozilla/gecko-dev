@@ -11,9 +11,9 @@ import socket
 import sys
 import time
 from subprocess import PIPE, Popen
-from urllib.request import urlretrieve
 
 from redo import retriable, retry
+from six.moves.urllib.request import urlretrieve
 
 try:
     import zstandard

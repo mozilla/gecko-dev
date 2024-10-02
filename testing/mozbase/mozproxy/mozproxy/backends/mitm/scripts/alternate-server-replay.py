@@ -14,7 +14,6 @@ import os
 import signal
 import time
 import typing
-import urllib
 from collections import defaultdict
 
 from mitmproxy import ctx, exceptions, http, io
@@ -22,6 +21,7 @@ from mitmproxy import ctx, exceptions, http, io
 # PATCHING AREA  - ALLOWS HTTP/2 WITH NO CERT SNIFFING
 from mitmproxy.proxy.protocol import tls
 from mitmproxy.proxy.protocol.http2 import Http2Layer, SafeH2Connection
+from six.moves import urllib
 
 _PROTO = {}
 

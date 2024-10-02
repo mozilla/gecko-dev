@@ -12,7 +12,6 @@ import subprocess
 import sys
 import tempfile
 import traceback
-import urllib
 import zipfile
 from collections import namedtuple
 
@@ -291,7 +290,7 @@ class CrashInfo(object):
             self.remove_symbols = True
             self.logger.info("Downloading symbols from: %s" % self.symbols_path)
             # Get the symbols and write them to a temporary zipfile
-            data = urllib.request.urlopen(self.symbols_path)
+            data = six.moves.urllib.request.urlopen(self.symbols_path)
             with tempfile.TemporaryFile() as symbols_file:
                 symbols_file.write(data.read())
                 # extract symbols to a temporary directory (which we'll delete after
