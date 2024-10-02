@@ -1284,6 +1284,8 @@ def _create_venv_with_pthfile(
     )
 
     if process.returncode != 0:
+        # Clean up what we've made on failure so that we're not in an incomplete state
+        shutil.rmtree(virtualenv_root)
         if "No module named venv" in process.stderr:
             raise VenvModuleNotFoundException()
         else:
