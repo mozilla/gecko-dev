@@ -15,8 +15,10 @@ exclude: true
 
 ## v133
 - Added [`GeckoSession.getWebCompatInfo`][133.1] that returns a `GeckoResult<JSONObject>` for web compatability information. ([bug 1917273]({{bugzilla}}1917273)).
+-Added [`isInteractiveWidgetDefaultResizesVisual`][133.2] to tell the preference value of "dom.interactive_widget_default_resizes_visual".
 
 [133.1]: {{javadoc_uri}}/GeckoSession.html#getWebCompatInfo()
+[133.2]: {{javadoc_uri}}/GeckoRuntime.html#isInteractiveWidgetDefaultResizesVisual()
 
 ## v132
 -Added [`getDisableShip`][132.1] to get the setting for Session History in Parent (SHIP)) and [`disableShip`][132.2] to set the status of SHIP on the `GeckoRuntimeSettings` builder.
@@ -1620,4 +1622,4 @@ to allow adding gecko profiler markers.
 [65.24]: {{javadoc_uri}}/CrashReporter.html#sendCrashReport(android.content.Context,android.os.Bundle,java.lang.String)
 [65.25]: {{javadoc_uri}}/GeckoResult.html
 
-[api-version]: 6119ce6c4972365f5df1ad491ca80b5071f18128
+[api-version]: 39fcf644fe97ddf83f54acd333e98062d1d1f0e7

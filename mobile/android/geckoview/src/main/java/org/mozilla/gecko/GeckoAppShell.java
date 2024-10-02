@@ -1598,6 +1598,9 @@ public class GeckoAppShell {
   @WrapForJNI
   public static native boolean isGpuProcessEnabled();
 
+  @WrapForJNI
+  public static native boolean isInteractiveWidgetDefaultResizesVisual();
+
   @SuppressLint("NewApi")
   public static boolean isIsolatedProcess() {
     // This method was added in SDK 16 but remained hidden until SDK 28, meaning we are okay to call

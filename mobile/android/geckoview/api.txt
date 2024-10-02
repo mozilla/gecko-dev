@@ -820,6 +820,7 @@ package org.mozilla.geckoview {
     method @NonNull @UiThread public WebExtensionController getWebExtensionController();
     method @Nullable @UiThread public WebNotificationDelegate getWebNotificationDelegate();
     method @NonNull @UiThread public WebPushController getWebPushController();
+    method @AnyThread public boolean isInteractiveWidgetDefaultResizesVisual();
     method @UiThread public void orientationChanged();
     method @UiThread public void orientationChanged(int);
     method @AnyThread public void readFromParcel(@NonNull Parcel);
