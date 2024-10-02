@@ -34,7 +34,7 @@ class Pacer {
   Pacer(RefPtr<TaskQueue> aTaskQueue, TimeDuration aDuplicationInterval)
       : mTaskQueue(std::move(aTaskQueue)),
         mDuplicationInterval(aDuplicationInterval),
-        mTimer(MakeAndAddRef<MediaTimer>()) {}
+        mTimer(MakeAndAddRef<MediaTimer<TimeStamp>>()) {}
 
   /**
    * Enqueues an item and schedules a timer to pass it on to PacedItemEvent() at
@@ -148,7 +148,7 @@ class Pacer {
   nsRefPtrDeque<QueueItem> mQueue;
 
   // Accessed on mTaskQueue.
-  RefPtr<MediaTimer> mTimer;
+  RefPtr<MediaTimer<TimeStamp>> mTimer;
 
   // Accessed on mTaskQueue.
   Maybe<TimeStamp> mCurrentTimerTarget;

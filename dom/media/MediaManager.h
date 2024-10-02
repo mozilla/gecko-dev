@@ -49,8 +49,9 @@ namespace mozilla {
 class MediaEngine;
 class MediaEngineSource;
 class TaskQueue;
-class MediaTimer;
 class MediaTrack;
+template <typename T>
+class MediaTimer;
 namespace dom {
 struct AudioOutputOptions;
 struct MediaStreamConstraints;
@@ -446,7 +447,7 @@ class MediaManager final : public nsIMediaManagerService,
       mPendingDevicesPromises;
   RefPtr<MediaDeviceSetRefCnt> mPhysicalDevices;
   TimeStamp mUnhandledDeviceChangeTime;
-  RefPtr<MediaTimer> mDeviceChangeTimer;
+  RefPtr<MediaTimer<TimeStamp>> mDeviceChangeTimer;
   bool mCamerasMuted = false;
   bool mMicrophonesMuted = false;
 

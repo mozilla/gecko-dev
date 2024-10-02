@@ -13,6 +13,7 @@
 #include "TimeUnits.h"
 #include "mozilla/SPSCQueue.h"
 #include "mozilla/StateMirroring.h"
+#include "mozilla/TimeStamp.h"
 #include "nsISerialEventTarget.h"
 
 namespace mozilla {
@@ -185,7 +186,7 @@ class AudioDecoderInputTrack final : public ProcessedMediaTrack {
   uint32_t mResamplerChannelCount;
   const uint32_t mInitialInputChannels;
   TrackRate mInputSampleRate;
-  DelayedScheduler mDelayedScheduler;
+  DelayedScheduler<TimeStamp> mDelayedScheduler;
   bool mShutdownSPSCQueue = false;
 
   // These attributes are ONLY used in the graph thread.
