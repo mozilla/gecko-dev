@@ -1398,7 +1398,7 @@ RefPtr<ProcessHandlePromise> IosProcessLauncher::DoLaunch() {
   DarwinObjectPtr<xpc_object_t> fdsArray =
       AdoptDarwinObject(xpc_array_create_empty());
   for (auto& file : mChildArgs.mFiles) {
-    xpc_array_set_fd(bootstrapMessage.get(), XPC_ARRAY_APPEND, file.get());
+    xpc_array_set_fd(fdsArray.get(), XPC_ARRAY_APPEND, file.get());
   }
   MOZ_ASSERT(xpc_array_get_count(fdsArray.get()) == mChildArgs.mFiles.size());
   xpc_dictionary_set_value(bootstrapMessage.get(), "fds", fdsArray.get());
