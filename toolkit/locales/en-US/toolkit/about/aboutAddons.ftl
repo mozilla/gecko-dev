@@ -531,15 +531,12 @@ addon-page-options-button =
 #   $version (string) - Application version.
 details-notification-incompatible2 =
     .message = { $name } is incompatible with { -brand-short-name } { $version }.
-details-notification-incompatible-link = More Information
 
 details-notification-unsigned-and-disabled2 =
     .message = { $name } could not be verified for use in { -brand-short-name } and has been disabled.
-details-notification-unsigned-and-disabled-link = More Information
 
 details-notification-unsigned2 =
     .message = { $name } could not be verified for use in { -brand-short-name }. Proceed with caution.
-details-notification-unsigned-link = More Information
 
 details-notification-blocked2 =
     .message = { $name } has been disabled due to security or stability issues.

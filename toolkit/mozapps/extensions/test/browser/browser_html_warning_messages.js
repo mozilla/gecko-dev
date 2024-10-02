@@ -24,7 +24,7 @@ async function checkMessageState(id, addonType, expected) {
     if (!expected) {
       ok(messageBar.hidden, "message is hidden");
     } else {
-      const { linkUrl, text, type } = expected;
+      const { linkUrl, linkIsSumo, text, type } = expected;
 
       await BrowserTestUtils.waitForMutationCondition(
         messageBar,
@@ -36,23 +36,28 @@ async function checkMessageState(id, addonType, expected) {
       is(messageBar.getAttribute("type"), type, "message has the right type");
       Assert.deepEqual(
         document.l10n.getAttributes(messageBar),
-        { id: `${text.id}2`, args: text.args },
+        { id: text.id, args: text.args },
         "message l10n data is set correctly"
       );
 
-      const link = messageBar.querySelector("button");
+      const link = messageBar.querySelector(
+        linkIsSumo ? `a[slot=support-link]` : `button[slot=actions]`
+      );
+
       if (linkUrl) {
-        ok(!link.hidden, "link is visible");
+        ok(link, "Link element found");
+        ok(BrowserTestUtils.isVisible(link), "Link is visible");
         is(
           link.getAttribute("data-l10n-id"),
-          `${text.id}-link`,
+          linkIsSumo ? "moz-support-link-text" : text.linkId,
           "link l10n id is correct"
         );
         const newTab = BrowserTestUtils.waitForNewTab(gBrowser, linkUrl);
         link.click();
         BrowserTestUtils.removeTab(await newTab);
       } else {
-        ok(link.hidden, "link is hidden");
+        ok(!link, "Expect no slotted link element");
+        is(messageBar.childElementCount, 0, "Expect no child element");
       }
     }
 
@@ -122,7 +127,11 @@ add_task(async function testBlocked() {
   ]);
   await checkMessageState(id, "extension", {
     linkUrl,
-    text: { id: "details-notification-blocked", args: { name } },
+    text: {
+      id: "details-notification-blocked2",
+      args: { name },
+      linkId: "details-notification-blocked-link",
+    },
     type: "error",
   });
 });
@@ -148,7 +157,11 @@ add_task(async function testUnsignedDisabled() {
   ]);
   await checkMessageState(id, "extension", {
     linkUrl: SUPPORT_URL + "unsigned-addons",
-    text: { id: "details-notification-unsigned-and-disabled", args: { name } },
+    linkIsSumo: true,
+    text: {
+      id: "details-notification-unsigned-and-disabled2",
+      args: { name },
+    },
     type: "error",
   });
 
@@ -182,7 +195,11 @@ add_task(async function testUnsignedLangpackDisabled() {
   ]);
   await checkMessageState(id, "locale", {
     linkUrl: SUPPORT_URL + "unsigned-addons",
-    text: { id: "details-notification-unsigned-and-disabled", args: { name } },
+    linkIsSumo: true,
+    text: {
+      id: "details-notification-unsigned-and-disabled2",
+      args: { name },
+    },
     type: "error",
   });
 });
@@ -201,7 +218,7 @@ add_task(async function testIncompatible() {
   ]);
   await checkMessageState(id, "extension", {
     text: {
-      id: "details-notification-incompatible",
+      id: "details-notification-incompatible2",
       args: { name, version: appVersion },
     },
     type: "error",
@@ -220,7 +237,8 @@ add_task(async function testUnsignedEnabled() {
   ]);
   await checkMessageState(id, "extension", {
     linkUrl: SUPPORT_URL + "unsigned-addons",
-    text: { id: "details-notification-unsigned", args: { name } },
+    linkIsSumo: true,
+    text: { id: "details-notification-unsigned2", args: { name } },
     type: "warning",
   });
 });
@@ -242,7 +260,8 @@ add_task(async function testUnsignedLangpackEnabled() {
   ]);
   await checkMessageState(id, "locale", {
     linkUrl: SUPPORT_URL + "unsigned-addons",
-    text: { id: "details-notification-unsigned", args: { name } },
+    linkIsSumo: true,
+    text: { id: "details-notification-unsigned2", args: { name } },
     type: "warning",
   });
 
@@ -265,7 +284,11 @@ add_task(async function testSoftBlocked() {
   ]);
   await checkMessageState(id, "extension", {
     linkUrl,
-    text: { id: "details-notification-softblocked", args: { name } },
+    text: {
+      id: "details-notification-softblocked2",
+      args: { name },
+      linkId: "details-notification-softblocked-link",
+    },
     type: "warning",
   });
 });
@@ -284,7 +307,7 @@ add_task(async function testPluginInstalling() {
     },
   ]);
   await checkMessageState(id, "plugin", {
-    text: { id: "details-notification-gmp-pending", args: { name } },
+    text: { id: "details-notification-gmp-pending2", args: { name } },
     type: "warning",
   });
 });

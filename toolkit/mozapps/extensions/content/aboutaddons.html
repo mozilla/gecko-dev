@@ -425,7 +425,11 @@
           ></button>
         </moz-message-bar>
         <moz-message-bar class="addon-card-message" align="center" hidden>
-          <button action="link"></button>
+          <!-- A button or a SUMO page link are going to be slotted into this messagebar
+               (e.g. a button is used for non-SUMO links, like blocklist urls).
+               See addon-card custom element's updateMessage method and
+               getAddonMessageInfo helper defined in aboutaddons.js.
+           -->
         </moz-message-bar>
       </div>
     </template>
