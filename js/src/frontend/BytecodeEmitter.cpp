@@ -5248,7 +5248,21 @@ MOZ_NEVER_INLINE bool BytecodeEmitter::emitLexicalScope(
     kind = lexicalScope->kind();
   }
 
-  if (!lse.emitScope(kind, lexicalScope->scopeBindings())) {
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+  EmitterScope::BlockKind blockKind = EmitterScope::BlockKind::Other;
+  if (body->isKind(ParseNodeKind::ForStmt) &&
+      body->as<ForNode>().head()->isKind(ParseNodeKind::ForOf)) {
+    MOZ_ASSERT(kind == ScopeKind::Lexical);
+    blockKind = EmitterScope::BlockKind::ForOf;
+  }
+#endif
+
+  if (!lse.emitScope(kind, lexicalScope->scopeBindings()
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+                               ,
+                     blockKind
+#endif
+                     )) {
     return false;
   }
 

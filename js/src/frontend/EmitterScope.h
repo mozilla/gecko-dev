@@ -55,10 +55,10 @@ class EmitterScope : public Nestable<EmitterScope> {
   mozilla::Maybe<UsingEmitter> usingEmitter_;
 
  public:
-  enum class IsSwitchBlock : uint8_t { No, Yes };
+  enum class BlockKind : uint8_t { Switch, ForOf, Other };
 
  private:
-  IsSwitchBlock isSwitchBlock_ = IsSwitchBlock::No;
+  BlockKind blockKind_ = BlockKind::Other;
 #endif
 
   // The number of enclosing environments. Used for error checking.
@@ -134,11 +134,11 @@ class EmitterScope : public Nestable<EmitterScope> {
 
   void dump(BytecodeEmitter* bce);
 
-  [[nodiscard]] bool enterLexical(
-      BytecodeEmitter* bce, ScopeKind kind, LexicalScope::ParserData* bindings
+  [[nodiscard]] bool enterLexical(BytecodeEmitter* bce, ScopeKind kind,
+                                  LexicalScope::ParserData* bindings
 #ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
-      ,
-      IsSwitchBlock isSwitchBlock = IsSwitchBlock::No
+                                  ,
+                                  BlockKind blockKind = BlockKind::Other
 #endif
   );
   [[nodiscard]] bool enterClassBody(BytecodeEmitter* bce, ScopeKind kind,

@@ -81,8 +81,13 @@ class MOZ_STACK_CLASS LexicalScopeEmitter {
   // Returns the scope object for non-empty scope.
   const EmitterScope& emitterScope() const { return *emitterScope_; }
 
-  [[nodiscard]] bool emitScope(ScopeKind kind,
-                               LexicalScope::ParserData* bindings);
+  [[nodiscard]] bool emitScope(
+      ScopeKind kind, LexicalScope::ParserData* bindings
+#ifdef ENABLE_EXPLICIT_RESOURCE_MANAGEMENT
+      ,
+      EmitterScope::BlockKind blockKind = EmitterScope::BlockKind::Other
+#endif
+  );
   [[nodiscard]] bool emitEmptyScope();
 
   [[nodiscard]] bool emitEnd();
