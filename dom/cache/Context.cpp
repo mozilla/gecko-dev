@@ -1072,6 +1072,9 @@ void Context::OnQuotaInit(
   }
 
   if (mState == STATE_CONTEXT_CANCELED) {
+    if (NS_SUCCEEDED(aRv)) {
+      aRv = NS_ERROR_ABORT;
+    }
     for (uint32_t i = 0; i < mPendingActions.Length(); ++i) {
       mPendingActions[i].mAction->CompleteOnInitiatingThread(aRv);
     }
