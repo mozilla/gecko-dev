@@ -20,17 +20,13 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
-import androidx.compose.material.TextField
-import androidx.compose.material.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -44,6 +40,7 @@ import mozilla.components.browser.state.store.BrowserStore
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.Divider
+import org.mozilla.fenix.compose.TextField
 import org.mozilla.fenix.compose.annotation.LightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.ext.toLocaleString
@@ -215,7 +212,6 @@ private fun TabCountRow(
 
 private const val DEFAULT_TABS_TO_ADD = 1
 
-@OptIn(ExperimentalComposeUiApi::class)
 @Suppress("LongMethod")
 @Composable
 private fun TabCreationTool(
@@ -234,6 +230,8 @@ private fun TabCreationTool(
             style = FirefoxTheme.typography.headline5,
         )
 
+        Spacer(modifier = Modifier.height(8.dp))
+
         TextField(
             value = tabQuantityToCreate,
             onValueChange = {
@@ -241,15 +239,19 @@ private fun TabCreationTool(
                 textErrorID = validateTextField(it)
                 hasError = textErrorID != null
             },
-            modifier = Modifier.fillMaxWidth(),
-            textStyle = FirefoxTheme.typography.subtitle1,
-            label = {
-                Text(
-                    text = stringResource(R.string.debug_drawer_tab_tools_tab_creation_tool_text_field_label),
-                    color = FirefoxTheme.colors.textPrimary,
-                    style = FirefoxTheme.typography.caption,
-                )
+            placeholder = "",
+            errorText = when (textErrorID) {
+                null -> {
+                    ""
+                }
+                R.string.debug_drawer_tab_tools_tab_quantity_exceed_max_error -> {
+                    stringResource(id = textErrorID!!, MAX_TABS_GENERATED)
+                }
+                else -> {
+                    stringResource(id = textErrorID!!)
+                }
             },
+            label = stringResource(R.string.debug_drawer_tab_tools_tab_creation_tool_text_field_label),
             isError = hasError,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
@@ -259,31 +261,7 @@ private fun TabCreationTool(
                     keyboardController?.hide()
                 },
             ),
-            singleLine = true,
-            colors = TextFieldDefaults.textFieldColors(
-                textColor = FirefoxTheme.colors.textPrimary,
-                backgroundColor = Color.Transparent,
-                cursorColor = FirefoxTheme.colors.borderFormDefault,
-                errorCursorColor = FirefoxTheme.colors.borderCritical,
-                focusedIndicatorColor = FirefoxTheme.colors.borderPrimary,
-                unfocusedIndicatorColor = FirefoxTheme.colors.borderPrimary,
-                errorIndicatorColor = FirefoxTheme.colors.borderCritical,
-            ),
         )
-
-        textErrorID?.let {
-            Spacer(modifier = Modifier.height(4.dp))
-
-            Text(
-                text = if (textErrorID == R.string.debug_drawer_tab_tools_tab_quantity_exceed_max_error) {
-                    stringResource(id = it, MAX_TABS_GENERATED)
-                } else {
-                    stringResource(id = it)
-                },
-                color = FirefoxTheme.colors.textCritical,
-                style = FirefoxTheme.typography.caption,
-            )
-        }
 
         Spacer(modifier = Modifier.height(8.dp))
 

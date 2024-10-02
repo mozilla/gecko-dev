@@ -39,8 +39,6 @@ import androidx.compose.material.SnackbarHostState
 import androidx.compose.material.SnackbarResult
 import androidx.compose.material.Text
 import androidx.compose.material.TextButton
-import androidx.compose.material.TextField
-import androidx.compose.material.TextFieldDefaults
 import androidx.compose.material.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -67,6 +65,8 @@ import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.ContextualMenu
 import org.mozilla.fenix.compose.Favicon
 import org.mozilla.fenix.compose.MenuItem
+import org.mozilla.fenix.compose.TextField
+import org.mozilla.fenix.compose.TextFieldColors
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.FloatingActionButton
 import org.mozilla.fenix.compose.list.IconListItem
@@ -812,14 +812,14 @@ private fun EditFolderScreen(
             TextField(
                 value = editState?.folder?.title ?: "",
                 onValueChange = { newText -> store.dispatch(EditFolderAction.TitleChanged(newText)) },
-                label = {
-                    Text(
-                        stringResource(R.string.bookmark_name_label_normal_case),
-                        color = FirefoxTheme.colors.textPrimary,
-                    )
-                },
-                colors = TextFieldDefaults.textFieldColors(textColor = FirefoxTheme.colors.textPrimary),
-                modifier = Modifier.padding(start = 16.dp, top = 32.dp),
+                placeholder = "",
+                errorText = "",
+                modifier = Modifier.padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 32.dp,
+                ),
+                label = stringResource(R.string.bookmark_name_label_normal_case),
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -888,14 +888,14 @@ private fun AddFolderScreen(
             TextField(
                 value = state?.folderBeingAddedTitle ?: "",
                 onValueChange = { newText -> store.dispatch(AddFolderAction.TitleChanged(newText)) },
-                label = {
-                    Text(
-                        stringResource(R.string.bookmark_name_label_normal_case),
-                        color = FirefoxTheme.colors.textPrimary,
-                    )
-                },
-                colors = TextFieldDefaults.textFieldColors(textColor = FirefoxTheme.colors.textPrimary),
-                modifier = Modifier.padding(start = 16.dp, top = 32.dp),
+                placeholder = "",
+                errorText = "",
+                modifier = Modifier.padding(
+                    start = 16.dp,
+                    end = 16.dp,
+                    top = 32.dp,
+                ),
+                label = stringResource(R.string.bookmark_name_label_normal_case),
             )
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -994,6 +994,9 @@ private fun BookmarkEditor(
                 onValueChange = onTitleChanged,
                 placeholder = stringResource(R.string.bookmark_name_label_normal_case),
             )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             ClearableTextField(
                 value = bookmarkItem.url,
                 onValueChange = onURLChanged,
@@ -1049,33 +1052,26 @@ private fun ClearableTextField(
     TextField(
         value = value,
         onValueChange = onValueChange,
-        placeholder = {
-            Text(
-                text = placeholder,
-                color = FirefoxTheme.colors.textPrimary,
-                style = FirefoxTheme.typography.subtitle1,
-            )
-        },
-        singleLine = true,
+        placeholder = placeholder,
+        errorText = "",
+        modifier = modifier
+            .onFocusChanged { isFocused = it.isFocused }
+            .padding(0.dp)
+            .paddingFromBaseline(0.dp),
         trailingIcon = {
             if (isFocused && value.isNotEmpty()) {
                 IconButton(onClick = { onValueChange("") }) {
                     Icon(
-                        painter = painterResource(id = iconsR.drawable.mozac_ic_cross_circle_fill_20),
+                        painter = painterResource(id = iconsR.drawable.mozac_ic_cross_circle_fill_24),
                         contentDescription = null,
                         tint = FirefoxTheme.colors.textPrimary,
                     )
                 }
             }
         },
-        modifier = modifier
-            .onFocusChanged { isFocused = it.isFocused }
-            .padding(0.dp)
-            .paddingFromBaseline(0.dp),
-        colors = TextFieldDefaults.textFieldColors(
-            backgroundColor = FirefoxTheme.colors.layer1,
-            textColor = FirefoxTheme.colors.textPrimary,
-            unfocusedIndicatorColor = FirefoxTheme.colors.textPrimary,
+        trailingIconHeight = 48.dp,
+        colors = TextFieldColors.default(
+            placeholderColor = FirefoxTheme.colors.textPrimary,
         ),
     )
 }
