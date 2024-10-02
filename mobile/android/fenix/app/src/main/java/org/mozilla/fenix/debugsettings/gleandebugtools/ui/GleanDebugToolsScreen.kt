@@ -16,18 +16,16 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Text
-import androidx.compose.material.TextField
-import androidx.compose.material.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import mozilla.components.lib.state.ext.observeAsState
 import org.mozilla.fenix.R
 import org.mozilla.fenix.compose.SwitchWithLabel
+import org.mozilla.fenix.compose.TextField
 import org.mozilla.fenix.compose.annotation.FlexibleWindowLightDarkPreview
 import org.mozilla.fenix.compose.button.PrimaryButton
 import org.mozilla.fenix.compose.list.TextListItem
@@ -120,6 +118,8 @@ private fun GleanDebugViewSection(
 
     GleanDebugSectionTitle(text = stringResource(id = R.string.glean_debug_tools_debug_view_title))
 
+    Spacer(modifier = Modifier.height(FirefoxTheme.space.small))
+
     TextField(
         value = debugViewTag,
         onValueChange = {
@@ -127,17 +127,15 @@ private fun GleanDebugViewSection(
                 onDebugViewTagChanged(it)
             }
         },
+        placeholder = stringResource(R.string.glean_debug_tools_debug_view_tag_placeholder),
+        errorText = stringResource(
+            R.string.glean_debug_tools_debug_view_tag_error,
+            GleanDebugToolsState.DEBUG_VIEW_TAG_MAX_LENGTH,
+        ),
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = FirefoxTheme.space.small),
-        textStyle = FirefoxTheme.typography.subtitle1,
         isError = hasDebugViewTagError,
-        placeholder = {
-            Text(
-                text = stringResource(R.string.glean_debug_tools_debug_view_tag_placeholder),
-                color = FirefoxTheme.colors.textSecondary,
-            )
-        },
         keyboardOptions = KeyboardOptions(
             keyboardType = KeyboardType.Ascii,
         ),
@@ -146,28 +144,7 @@ private fun GleanDebugViewSection(
                 keyboardController?.hide()
             },
         ),
-        colors = TextFieldDefaults.textFieldColors(
-            textColor = FirefoxTheme.colors.textPrimary,
-            backgroundColor = Color.Transparent,
-            cursorColor = FirefoxTheme.colors.borderFormDefault,
-            errorCursorColor = FirefoxTheme.colors.borderCritical,
-            focusedIndicatorColor = FirefoxTheme.colors.borderPrimary,
-            unfocusedIndicatorColor = FirefoxTheme.colors.borderPrimary,
-            errorIndicatorColor = FirefoxTheme.colors.borderCritical,
-        ),
     )
-
-    if (hasDebugViewTagError) {
-        Text(
-            text = stringResource(
-                R.string.glean_debug_tools_debug_view_tag_error,
-                GleanDebugToolsState.DEBUG_VIEW_TAG_MAX_LENGTH,
-            ),
-            modifier = Modifier.padding(start = FirefoxTheme.space.small),
-            color = FirefoxTheme.colors.textCritical,
-            style = FirefoxTheme.typography.caption,
-        )
-    }
 
     if (buttonsEnabled) {
         GleanDebugButton(
