@@ -4,6 +4,7 @@
 
 import json
 
+from marionette_driver.by import By
 from marionette_harness import MarionetteTestCase
 
 vertical_parent_id = "vertical-tabs"
@@ -40,6 +41,61 @@ class TestInitializeVerticalTabs(MarionetteTestCase):
             f"return CustomizableUI.getWidgetIdsInArea(CustomizableUI.{area})"
         )
 
+    def check_tabs_toolbar_visibilities(self, orientation="vertical"):
+        self.marionette.set_context("chrome")
+        h_tabstoolbar = self.marionette.find_element(By.ID, "TabsToolbar")
+        v_tabstoolbar = self.marionette.find_element(By.ID, "vertical-tabs")
+
+        h_collapsed = self.marionette.execute_script(
+            "return document.getElementById(CustomizableUI.AREA_TABSTRIP).getAttribute('collapsed')"
+        )
+        v_collapsed = self.marionette.execute_script(
+            "return document.getElementById(CustomizableUI.AREA_VERTICAL_TABSTRIP).getAttribute('collapsed')"
+        )
+
+        if orientation == "vertical":
+            self.assertEqual(
+                h_collapsed,
+                "true",
+                "Horizontal tab strip has expected collapsed attribute value",
+            )
+            self.assertEqual(
+                v_collapsed,
+                "false",
+                "Vertical tab strip has expected collapsed attribute value",
+            )
+
+            self.assertFalse(
+                h_tabstoolbar.is_displayed(), "Horizontal tab strip is not displayed"
+            )
+
+            self.assertTrue(
+                v_tabstoolbar.is_displayed(), "Vertical tab strip is displayed"
+            )
+            self.assertTrue(
+                v_tabstoolbar.rect["width"] > 0, "Vertical tab strip has > 0 width"
+            )
+        else:
+            self.assertEqual(
+                v_collapsed,
+                "true",
+                "Vertical tab strip has expected collapsed attribute value",
+            )
+
+            self.assertTrue(
+                h_tabstoolbar.is_displayed(), "Horizontal tab strip is displayed"
+            )
+            self.assertTrue(
+                h_tabstoolbar.rect["height"] > 0, "Horizontal tab strip has > 0 height"
+            )
+
+            self.assertFalse(
+                v_tabstoolbar.is_displayed(), "Vertical tab strip is not displayed"
+            )
+            self.assertEqual(
+                v_tabstoolbar.rect["width"], 0, "Vertical tab strip has 0 width"
+            )
+
     def test_vertical_widgets_in_area(self):
         # A clean startup in verticalTabs mode; we should get all the defaults
         self.restart_with_prefs(
@@ -64,12 +120,16 @@ class TestInitializeVerticalTabs(MarionetteTestCase):
             msg="The vertical tabstrip area has a single widget in it",
         )
 
+        self.check_tabs_toolbar_visibilities("vertical")
+
         # Check we're able to recover if we initialize with vertical tabs enabled
         # and no saved pref for the horizontal tab strip placements
         self.marionette.set_pref("sidebar.verticalTabs", False)
 
         horiz_tab_ids = self.get_area_widgets("AREA_TABSTRIP")
         vertical_tab_ids = self.get_area_widgets("AREA_VERTICAL_TABSTRIP")
+
+        self.check_tabs_toolbar_visibilities("horizontal")
 
         # Make sure we ended up with sensible defaults
         self.assertEqual(
@@ -127,6 +187,8 @@ class TestInitializeVerticalTabs(MarionetteTestCase):
 
         saved_state = json.loads(self.marionette.get_pref(customization_pref))
 
+        self.check_tabs_toolbar_visibilities("vertical")
+
         horiz_tab_ids = self.get_area_widgets("AREA_TABSTRIP")
         nav_bar_ids = self.get_area_widgets("AREA_NAVBAR")
 
@@ -144,6 +206,8 @@ class TestInitializeVerticalTabs(MarionetteTestCase):
         # without needing user-input to trigger the orientation change
         fixture_prefs["sidebar.verticalTabs"] = False
         self.restart_with_prefs(fixture_prefs)
+
+        self.check_tabs_toolbar_visibilities("horizontal")
 
         horiz_tab_ids = self.get_area_widgets("AREA_TABSTRIP")
 

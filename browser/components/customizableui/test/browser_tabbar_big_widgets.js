@@ -6,7 +6,7 @@ const kButtonId = "test-tabbar-size-with-large-buttons";
 
 function test() {
   registerCleanupFunction(cleanup);
-  let titlebar = document.getElementById("titlebar");
+  let titlebar = document.getElementById("TabsToolbar");
   let originalHeight = titlebar.getBoundingClientRect().height;
   let button = document.createXULElement("toolbarbutton");
   button.id = kButtonId;

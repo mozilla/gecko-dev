@@ -2673,6 +2673,16 @@ var CustomizableUIInternal = {
     this.saveState();
     gDirtyAreaCache.add(oldPlacement.area);
 
+    // If we're in vertical tabs, ensure we don't restore the widget when we toggle back
+    // to horizontal tabs.
+    if (
+      !gInBatchStack &&
+      CustomizableUI.verticalTabsEnabled &&
+      oldPlacement.area == CustomizableUI.AREA_TABSTRIP
+    ) {
+      this.deleteWidgetInSavedHorizontalTabStripState(aWidgetId);
+    }
+
     this.notifyListeners("onWidgetRemoved", aWidgetId, oldPlacement.area);
   },
 
@@ -2896,6 +2906,15 @@ var CustomizableUIInternal = {
     }
 
     this.endBatchUpdate();
+  },
+
+  deleteWidgetInSavedHorizontalTabStripState(aWidgetId) {
+    const savedPlacements = this.getSavedHorizontalSnapshotState();
+    let position = savedPlacements.indexOf(aWidgetId);
+    if (position != -1) {
+      savedPlacements.splice(position, 1);
+      this.saveHorizontalTabStripState(savedPlacements);
+    }
   },
 
   saveHorizontalTabStripState(placements = []) {
@@ -4240,14 +4259,17 @@ var CustomizableUIInternal = {
       isVertical: toVertical,
     });
 
-    lazy.log.debug("Reverting widgets to be non-removable");
-    changeWidgetRemovability("tabbrowser-tabs", false);
-    changeWidgetRemovability("alltabs-button", false);
-
     this.setToolbarVisibility(
       CustomizableUI.AREA_VERTICAL_TABSTRIP,
       toVertical
     );
+    this.setToolbarVisibility(CustomizableUI.AREA_TABSTRIP, !toVertical);
+    changeWidgetRemovability("tabbrowser-tabs", false);
+    changeWidgetRemovability("alltabs-button", false);
+
+    for (let [win] of gBuildWindows) {
+      win.TabBarVisibility.update(true);
+    }
   },
 };
 Object.freeze(CustomizableUIInternal);

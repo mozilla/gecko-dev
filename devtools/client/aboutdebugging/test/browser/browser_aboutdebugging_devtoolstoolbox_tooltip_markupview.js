@@ -58,7 +58,7 @@ add_task(async function () {
   await checkTooltipVisibility(
     inspector,
     eventBadge,
-    rootDocument.querySelector("#titlebar")
+    rootDocument.querySelector("#TabsToolbar")
   );
 
   await closeAboutDevtoolsToolbox(document, devtoolsTab, window);

@@ -117,6 +117,12 @@ body {
 #navigator-toolbox {
   appearance: none;
 
+  /* stylelint-disable-next-line media-query-no-invalid */
+  @media (-moz-bool-pref: "sidebar.verticalTabs") {
+    /* Should paint on top of our sibling #browser (even when preceding it in the DOM) */
+    z-index: var(--browser-area-z-index-toolbox);
+  }
+
   background-color: var(--toolbox-non-lwt-bgcolor);
   color: var(--toolbox-non-lwt-textcolor);
 
@@ -171,7 +177,7 @@ body {
 
 /* Title bar */
 
-#titlebar {
+.browser-titlebar {
   -moz-window-dragging: drag;
 
   :root[tabsintitlebar] & {
@@ -199,7 +205,7 @@ body {
     }
   }
 
-  #toolbar-menubar[autohide="true"]:not([inactive]) + #TabsToolbar > & {
+  #toolbar-menubar[autohide="true"]:not([inactive]) ~ :is(#TabsToolbar, #nav-bar) > & {
     visibility: hidden;
   }
 
@@ -235,10 +241,15 @@ body {
   }
 }
 
-/* Hide the TabsToolbar titlebar controls if the menubar is permanently shown.
+/* Hide the TabsToolbar/nav-bar titlebar controls if the menubar is permanently shown.
  * (That is, if the menu bar doesn't autohide, and we're not in a fullscreen or
  * popup window.) */
-:root:not([chromehidden~="menubar"], [inFullscreen]) #toolbar-menubar[autohide="false"] + #TabsToolbar > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
+:root:not([chromehidden~="menubar"], [inFullscreen]) #toolbar-menubar[autohide="false"] ~ :is(#TabsToolbar, #nav-bar) > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
+  display: none;
+}
+
+/* Only show the titlebar buttons and spacers in the first visible toolbar */
+#nav-bar:not([tabs-hidden]) > :is(.titlebar-buttonbox-container, .titlebar-spacer) {
   display: none;
 }
 
