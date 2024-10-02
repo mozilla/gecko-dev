@@ -8,7 +8,7 @@
 # documentation and how to modify this file.
 repo: mozilla-central
 created_at: '2021-10-14T12:50:40.073465'
-updated_at: '2024-10-02T13:02:32.808243+00:00'
+updated_at: '2024-10-02T13:57:00.099607+00:00'
 export:
   path: ./docs/mots/index.rst
   format: rst
@@ -4323,10 +4323,10 @@ modules:
         description: Compatibility interventions (webcompat system addon) and bug
           reporting capabilities (Report Site Issue addon).
         includes:
-          - browser/extensions/webcompat
           - browser/extensions/report-site-issue
-          - mobile/android/extensions/webcompat
-          - mobile/android/extensions/report-site-issue
+          - browser/extensions/webcompat
+          - mobile/android/android-components/components/feature/webcompat
+          - mobile/android/android-components/components/feature/webcompat-reporter
           - toolkit/components/reportbrokensite
           - https://github.com/mozilla-extensions/webcompat-addon
         meta:
@@ -4403,5 +4403,5 @@ modules:
         - Ryan Tilder
       group: dev-platform
 hashes:
-  config: 49e5007f7ab2212f83ed59b912ec9b4cda95470d
-  export: bf7c97134884870f26d69b1d6c59fd977f9104f4
+  config: 8f0912d29beb3dfc1128c5bea212816e70a4b069
+  export: ced594b446555ffd071183f39b9599540246d445
