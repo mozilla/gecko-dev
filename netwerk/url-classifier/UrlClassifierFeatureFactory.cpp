@@ -308,10 +308,10 @@ struct BlockingErrorCode {
   nsresult mErrorCode;
   uint32_t mBlockingEventCode;
   const char* mConsoleMessage;
-  nsCString mConsoleCategory;
+  nsLiteralCString mConsoleCategory;
 };
 
-static const BlockingErrorCode sBlockingErrorCodes[] = {
+static constexpr BlockingErrorCode sBlockingErrorCodes[] = {
     {NS_ERROR_TRACKING_URI,
      nsIWebProgressListener::STATE_BLOCKED_TRACKING_CONTENT,
      "TrackerUriBlocked", "Tracking Protection"_ns},
