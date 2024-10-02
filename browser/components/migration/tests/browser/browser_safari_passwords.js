@@ -22,9 +22,6 @@ add_setup(async function () {
   registerCleanupFunction(() => {
     MockFilePicker.cleanup();
   });
-  await SpecialPowers.pushPrefEnv({
-    set: [["signon.management.page.fileImport.enabled", true]],
-  });
 });
 
 /**
@@ -409,60 +406,4 @@ add_task(async function test_safari_password_skip() {
       ]);
     }
   );
-});
-
-/**
- * Tests that importing from passwords for Safari doesn't exist if
- * signon.management.page.fileImport.enabled is false.
- */
-add_task(async function test_safari_password_disabled() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["signon.management.page.fileImport.enabled", false]],
-  });
-
-  let sandbox = sinon.createSandbox();
-  registerCleanupFunction(() => {
-    sandbox.restore();
-  });
-
-  let safariMigrator = new SafariProfileMigrator();
-  sandbox.stub(MigrationUtils, "getMigrator").resolves(safariMigrator);
-
-  // We're not testing the permission flow here, so let's pretend that we
-  // always have permission to read resources from the disk.
-  sandbox
-    .stub(SafariProfileMigrator.prototype, "hasPermissions")
-    .resolves(true);
-
-  // Have the migrator claim that only BOOKMARKS are only available.
-  sandbox
-    .stub(SafariProfileMigrator.prototype, "getMigrateData")
-    .resolves(MigrationUtils.resourceTypes.BOOKMARKS);
-
-  await withMigrationWizardDialog(async prefsWin => {
-    let dialogBody = prefsWin.document.body;
-    let wizard = dialogBody.querySelector("migration-wizard");
-
-    let shadow = wizard.openOrClosedShadowRoot;
-
-    info("Choosing Safari");
-    let panelItem = shadow.querySelector(
-      `panel-item[key="${SafariProfileMigrator.key}"]`
-    );
-    panelItem.click();
-
-    let resourceTypeList = shadow.querySelector("#resource-type-list");
-
-    // Let's make sure that PASSWORDS is displayed despite the migrator only
-    // (currently) returning BOOKMARKS as an available resource to migrate.
-    let passwordsNode = resourceTypeList.querySelector(
-      `label[data-resource-type="${MigrationWizardConstants.DISPLAYED_RESOURCE_TYPES.PASSWORDS}"]`
-    );
-    Assert.ok(
-      passwordsNode.hidden,
-      "PASSWORDS should not be available to import from."
-    );
-  });
-
-  await SpecialPowers.popPrefEnv();
 });

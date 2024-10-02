@@ -1398,18 +1398,6 @@ password-autocomplete:
       type: boolean
       description: Enable direct migration?
 
-cm-csv-import:
-  description: Importing logins from CSV files
-  owner: issozi@mozilla.com
-  hasExposure: false
-  variables:
-    csvImport:
-      type: boolean
-      description: Can show CSV Import in about:logins or Migration Wizard
-      setPref:
-        branch: default
-        pref: "signon.management.page.fileImport.enabled"
-
 # This feature flag mirrors the one used for ios
 # https://github.com/mozilla-mobile/firefox-ios/blob/main/nimbus-features/addressAutofillFeature.yaml
 address-autofill-feature:

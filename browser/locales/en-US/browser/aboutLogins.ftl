@@ -90,7 +90,6 @@ login-intro-description2 = All passwords you save to { -brand-product-name } are
 login-intro-instructions-fxa2 = Create or sign in to your account on the device where your logins are saved.
 login-intro-instructions-fxa-settings = Go to Settings > Sync > Turn on syncing… Select the Logins and passwords checkbox.
 login-intro-instructions-fxa-passwords-help = Visit <a data-l10n-name="passwords-help-link">passwords support</a> for more help.
-about-logins-intro-browser-only-import = If your logins are saved in another browser, you can <a data-l10n-name="import-link">import them into { -brand-product-name }</a>
 about-logins-intro-import3 = Select the plus sign button above to add a password now. You can also <a data-l10n-name="import-browser-link">import passwords from another browser</a> or <a data-l10n-name="import-file-link">from a file</a>.
 
 ## Login

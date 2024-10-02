@@ -65,12 +65,7 @@ class CsvImportHelper {
 
     function getImportMenuItem() {
       let menuButton = window.document.querySelector("menu-button");
-      let importButton = menuButton.shadowRoot.querySelector(
-        ".menuitem-import-file"
-      );
-      // Force the menu item to be visible for the test.
-      importButton.hidden = false;
-      return importButton;
+      return menuButton.shadowRoot.querySelector(".menuitem-import-file");
     }
 
     BrowserTestUtils.synthesizeMouseAtCenter(getImportMenuItem, {}, browser);

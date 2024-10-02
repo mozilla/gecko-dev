@@ -165,10 +165,7 @@ export class PasswordFileMigrator extends FileMigratorBase {
   }
 
   get enabled() {
-    return Services.prefs.getBoolPref(
-      "signon.management.page.fileImport.enabled",
-      false
-    );
+    return true;
   }
 
   get displayedResourceTypes() {

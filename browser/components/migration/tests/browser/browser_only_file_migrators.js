@@ -8,10 +8,6 @@
  * selection page when only file migrators are found.
  */
 add_task(async function test_only_file_migrators() {
-  await SpecialPowers.pushPrefEnv({
-    set: [["signon.management.page.fileImport.enabled", true]],
-  });
-
   let sandbox = sinon.createSandbox();
   registerCleanupFunction(() => {
     sandbox.restore();

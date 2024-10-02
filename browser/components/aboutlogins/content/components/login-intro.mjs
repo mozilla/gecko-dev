@@ -54,10 +54,9 @@ export default class LoginIntro extends HTMLElement {
       .querySelector(".intro-help-link")
       .setAttribute("href", supportURL);
 
-    let importClass = window.AboutLoginsUtils.fileImportEnabled
-      ? ".intro-import-text.file-import"
-      : ".intro-import-text.no-file-import";
-    let importText = this.shadowRoot.querySelector(importClass);
+    let importText = this.shadowRoot.querySelector(
+      ".intro-import-text.file-import"
+    );
     importText.addEventListener("click", this);
     importText.hidden = !window.AboutLoginsUtils.importVisible;
   }

@@ -2494,8 +2494,6 @@ pref("extensions.pocket.refresh.emailButton.enabled", false);
 // Hides the recently saved section in the home panel.
 pref("extensions.pocket.refresh.hideRecentSaves.enabled", false);
 
-pref("signon.management.page.fileImport.enabled", true);
-
 // "available"      - user can see feature offer.
 // "offered"        - we have offered feature to user and they have not yet made a decision.
 // "enabled"        - user opted in to the feature.

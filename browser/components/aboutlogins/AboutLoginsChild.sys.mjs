@@ -131,9 +131,6 @@ export class AboutLoginsChild extends JSWindowActorChild {
 
         return gPrimaryPasswordPromise;
       },
-      fileImportEnabled: Services.prefs.getBoolPref(
-        "signon.management.page.fileImport.enabled"
-      ),
       // Default to enabled just in case a search is attempted before we get a response.
       primaryPasswordEnabled: true,
       passwordRevealVisible: true,

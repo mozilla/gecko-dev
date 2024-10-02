@@ -84,11 +84,7 @@ add_task(async function test_no_logins_class() {
         "When logged in the message should update"
       );
 
-      let importClass = Services.prefs.getBoolPref(
-        "signon.management.page.fileImport.enabled"
-      )
-        ? ".intro-import-text.file-import"
-        : ".intro-import-text.no-file-import";
+      const importClass = ".intro-import-text.file-import";
       Assert.equal(
         ContentTaskUtils.isHidden(
           loginIntro.shadowRoot.querySelector(importClass)

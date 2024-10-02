@@ -16,13 +16,6 @@ const { MigrationWizardConstants } = ChromeUtils.importESModule(
   "chrome://browser/content/migration/migration-wizard-constants.mjs"
 );
 
-add_setup(async function () {
-  Services.prefs.setBoolPref("signon.management.page.fileImport.enabled", true);
-  registerCleanupFunction(() => {
-    Services.prefs.clearUserPref("signon.management.page.fileImport.enabled");
-  });
-});
-
 /**
  * Tests that the PasswordFileMigrator properly subclasses FileMigratorBase
  * and delegates to the LoginCSVImport module.
