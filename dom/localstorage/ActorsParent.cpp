@@ -87,6 +87,7 @@
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/QuotaObject.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/dom/quota/UsageInfo.h"
 #include "mozilla/glean/GleanMetrics.h"
 #include "mozilla/ipc/BackgroundChild.h"
@@ -7165,6 +7166,9 @@ nsresult PrepareDatastoreOp::DatabaseWork() {
     if (shadowConnection) {
       MOZ_ALWAYS_SUCCEEDS(shadowConnection->Close());
     }
+
+    SleepIfEnabled(
+        StaticPrefs::dom_storage_databaseInitialization_pauseOnIOThreadMs());
 
     // Must set this before dispatching otherwise we will race with the owning
     // thread.
