@@ -165,6 +165,10 @@ CO01:
         - addon-badge-line3
         - recommended-theme-1
         - plugins-openh264-description
+        - details-notification-softblocked-extension-disabled
+        - details-notification-softblocked-extension-enabled
+        - details-notification-softblocked-other-disabled
+        - details-notification-softblocked-other-enabled
         # toolkit/locales/en-US/toolkit/about/aboutGlean.ftl
         - about-glean-description
         # toolkit/locales/en-US/toolkit/about/aboutRights.ftl

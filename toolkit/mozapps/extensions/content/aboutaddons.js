@@ -239,14 +239,17 @@ function isInState(install, state) {
   return install.state == AddonManager["STATE_" + state.toUpperCase()];
 }
 
-async function getAddonMessageInfo(addon) {
+async function getAddonMessageInfo(
+  addon,
+  { isCardExpanded, isInDisabledSection }
+) {
   const { name } = addon;
   const { STATE_BLOCKED, STATE_SOFTBLOCKED } = Ci.nsIBlocklistService;
 
   if (addon.blocklistState === STATE_BLOCKED) {
     return {
       linkUrl: await addon.getBlocklistURL(),
-      linkId: "details-notification-blocked-link",
+      linkId: "details-notification-blocked-link2",
       messageId: "details-notification-blocked2",
       messageArgs: { name },
       type: "error",
@@ -279,12 +282,24 @@ async function getAddonMessageInfo(addon) {
       type: "warning",
     };
   } else if (addon.blocklistState === STATE_SOFTBLOCKED) {
+    const fluentBaseId = "details-notification-softblocked";
+    let typeSuffix = addon.type === "extension" ? "extension" : "other";
+    let stateSuffix;
+    // If the Addon Card is not expanded, delay changing the messagebar
+    // string to when the Addon card is refreshed as part of moving
+    // it between the enabled and disabled sections.
+    if (isCardExpanded) {
+      stateSuffix = addon.isActive ? "enabled" : "disabled";
+    } else {
+      stateSuffix = !isInDisabledSection ? "enabled" : "disabled";
+    }
+    let messageId = `${fluentBaseId}-${typeSuffix}-${stateSuffix}`;
+
     return {
       linkUrl: await addon.getBlocklistURL(),
-      linkId: "details-notification-softblocked-link",
-      messageId: "details-notification-softblocked2",
-      messageArgs: { name },
-      type: "warning",
+      linkId: "details-notification-softblocked-link2",
+      messageId,
+      type: "error",
     };
   } else if (addon.isGMPlugin && !addon.isInstalled && addon.isActive) {
     return {
@@ -2813,7 +2828,12 @@ class AddonCard extends HTMLElement {
       messageId,
       messageArgs,
       type = "",
-    } = await getAddonMessageInfo(this.addon);
+    } = await getAddonMessageInfo(this.addon, {
+      isCardExpanded: this.expanded,
+      isInDisabledSection:
+        !this.expanded &&
+        !!this.closest(`section.${this.addon.type}-disabled-section`),
+    });
 
     if (messageId) {
       document.l10n.pauseObserving();

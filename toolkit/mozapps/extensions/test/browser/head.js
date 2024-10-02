@@ -633,10 +633,23 @@ function addCertOverrides() {
 
 /** *** Mock Provider *****/
 
-function MockProvider(addonTypes) {
+function MockProvider(
+  addonTypes,
+  { supportsOperationsRequiringRestart = false } = {}
+) {
   this.addons = [];
   this.installs = [];
   this.addonTypes = addonTypes ?? ["extension"];
+  // NOTE: operationsRequiringRestart is an historical feature of the
+  // XPIProvider, which is not supported anymore, there may still be
+  // tests making assumptions about MockProvider behaviors related to
+  // it, and so this is a temporary measure to gradually remove the
+  // remaining bits of the deprecated feature from the MockProvider
+  // test helpers.
+  //
+  // TODO: (Bug 1921875) Remove operationsRequiringRestart-related
+  // behaviors from MockProvider.
+  this.supportsOperationsRequiringRestart = supportsOperationsRequiringRestart;
 
   var self = this;
   registerCleanupFunction(function () {
@@ -713,10 +726,11 @@ MockProvider.prototype = {
       return;
     }
 
-    let requiresRestart =
-      (aAddon.operationsRequiringRestart &
-        AddonManager.OP_NEEDS_RESTART_INSTALL) !=
-      0;
+    let requiresRestart = this.supportsOperationsRequiringRestart
+      ? (aAddon.operationsRequiringRestart &
+          AddonManager.OP_NEEDS_RESTART_INSTALL) !=
+        0
+      : false;
     AddonManagerPrivate.callInstallListeners(
       "onExternalInstall",
       null,
@@ -794,6 +808,14 @@ MockProvider.prototype = {
   createAddons: function MP_createAddons(aAddonProperties) {
     var newAddons = [];
     for (let addonProp of aAddonProperties) {
+      if (!this.supportsOperationsRequiringRestart) {
+        if (addonProp.operationsRequiringRestart !== undefined) {
+          throw new Error(
+            `Unexpected operationsRequiringRestart set on MockAddon ${addonProp.id}. MockProvider instance does not support operationsRequiringRestart.`
+          );
+        }
+        addonProp.operationsRequiringRestart = 0;
+      }
       let addon = new MockAddon(addonProp.id);
       for (let prop in addonProp) {
         if (prop == "id") {
@@ -805,6 +827,8 @@ MockProvider.prototype = {
           addon._appDisabled = addonProp[prop];
         } else if (prop == "userDisabled") {
           addon.setUserDisabled(addonProp[prop]);
+        } else if (prop == "softDisabled") {
+          addon.setSoftDisabled(addonProp[prop]);
         } else {
           addon[prop] = addonProp[prop];
         }
@@ -1057,6 +1081,7 @@ MockAddon.prototype = {
     return (
       !this.appDisabled &&
       !this._userDisabled &&
+      !this._softDisabled &&
       !(this.pendingOperations & AddonManager.PENDING_UNINSTALL)
     );
   },
@@ -1081,15 +1106,27 @@ MockAddon.prototype = {
   },
 
   get userDisabled() {
-    return this._userDisabled;
+    // NOTE: the logic here should reseamble the logic
+    // from the AddonInstall getter with the same name.
+    return this._softDisabled || this._userDisabled;
   },
 
   set userDisabled(val) {
     throw new Error("No. Bad.");
   },
 
+  get softDisabled() {
+    return this._softDisabled;
+  },
+
+  set softDisabled(val) {
+    throw new Error("No. Bad.");
+  },
+
   setUserDisabled(val) {
-    if (val == this._userDisabled) {
+    // NOTE: the logic here should reseamble the logic
+    // from the AddonInstall method with the same name.
+    if (val == (this._userDisabled || this._softDisabled)) {
       return;
     }
 
@@ -1099,10 +1136,26 @@ MockAddon.prototype = {
     this._updateActiveState(currentActive, newActive);
   },
 
+  setSoftDisabled(val) {
+    // NOTE: the logic here should reseamble the logic
+    // from the AddonInstall method with the same name.
+    if (val == this._softDisabled) {
+      return;
+    }
+
+    var currentActive = this.shouldBeActive;
+    if (!this._userDisabled) {
+      this._softDisabled = val;
+    }
+    var newActive = this.shouldBeActive;
+    this._updateActiveState(currentActive, newActive);
+  },
+
   async enable() {
     await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
 
     this.setUserDisabled(false);
+    this.setSoftDisabled(false);
   },
   async disable() {
     await new Promise(resolve => Services.tm.dispatchToMainThread(resolve));
@@ -1112,10 +1165,8 @@ MockAddon.prototype = {
 
   get permissions() {
     let permissions = this._permissions;
-    if (this.appDisabled || !this._userDisabled) {
+    if (this.appDisabled) {
       permissions &= ~AddonManager.PERM_CAN_ENABLE;
-    }
-    if (this.appDisabled || this._userDisabled) {
       permissions &= ~AddonManager.PERM_CAN_DISABLE;
     }
     return permissions;
@@ -1297,7 +1348,7 @@ MockInstall.prototype = {
         this.state = AddonManager.STATE_DOWNLOADED;
         this.callListeners("onDownloadEnded");
       // fall through
-      case AddonManager.STATE_DOWNLOADED:
+      case AddonManager.STATE_DOWNLOADED: {
         this.state = AddonManager.STATE_INSTALLING;
         if (!this.callListeners("onInstallStarted")) {
           this.state = AddonManager.STATE_CANCELLED;
@@ -1305,9 +1356,10 @@ MockInstall.prototype = {
           return;
         }
 
-        let needsRestart =
-          this.operationsRequiringRestart &
-          AddonManager.OP_NEEDS_RESTART_INSTALL;
+        let needsRestart = this._provider?.supportsOperationsRequiringRestart
+          ? this.operationsRequiringRestart &
+            AddonManager.OP_NEEDS_RESTART_INSTALL
+          : false;
         AddonManagerPrivate.callAddonListeners(
           "onInstalling",
           this.addon,
@@ -1320,6 +1372,7 @@ MockInstall.prototype = {
         this.state = AddonManager.STATE_INSTALLED;
         this.callListeners("onInstallEnded");
         break;
+      }
       case AddonManager.STATE_DOWNLOADING:
       case AddonManager.STATE_CHECKING_UPDATE:
       case AddonManager.STATE_INSTALLING:

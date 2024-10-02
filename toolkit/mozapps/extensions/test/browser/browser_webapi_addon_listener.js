@@ -18,7 +18,9 @@ const RESTARTLESS_ID = "restartless@tests.mozilla.org";
 const INSTALL_ID = "install@tests.mozilla.org";
 const CANCEL_ID = "cancel@tests.mozilla.org";
 
-let provider = new MockProvider();
+let provider = new MockProvider(["extension"], {
+  supportsOperationsRequiringRestart: true,
+});
 provider.createAddons([
   {
     id: RESTARTLESS_ID,

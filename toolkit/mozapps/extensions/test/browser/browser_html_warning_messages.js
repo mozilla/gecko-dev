@@ -111,7 +111,7 @@ add_task(async function testNoMessageLangpack() {
   await checkMessageState(id, "locale", null);
 });
 
-add_task(async function testBlocked() {
+add_task(async function testHardBlocked() {
   const id = "blocked@mochi.test";
   const linkUrl = "https://example.com/addon-blocked";
   const name = "Blocked";
@@ -121,7 +121,6 @@ add_task(async function testBlocked() {
       blocklistState: STATE_BLOCKED,
       blocklistURL: linkUrl,
       id,
-      isActive: false,
       name,
     },
   ]);
@@ -130,9 +129,75 @@ add_task(async function testBlocked() {
     text: {
       id: "details-notification-blocked2",
       args: { name },
-      linkId: "details-notification-blocked-link",
+      linkId: "details-notification-blocked-link2",
     },
     type: "error",
+  });
+});
+
+add_task(async function testSoftBlocked() {
+  async function testSoftBlockedAddon({ mockAddon, expectedFluentId }) {
+    const [testAddon] = gProvider.createAddons([
+      {
+        appDisabled: false,
+        blocklistState: STATE_SOFTBLOCKED,
+        ...mockAddon,
+      },
+    ]);
+    await checkMessageState(mockAddon.id, mockAddon.type ?? "extension", {
+      linkUrl: mockAddon.blocklistURL,
+      text: {
+        id: expectedFluentId,
+        args: null,
+        linkId: "details-notification-softblocked-link2",
+      },
+      type: "error",
+    });
+    await testAddon.uninstall();
+  }
+
+  // Verify soft-block message on a softdisabled extension and theme.
+  await testSoftBlockedAddon({
+    expectedFluentId: "details-notification-softblocked-extension-disabled",
+    mockAddon: {
+      id: "softblocked-extension@mochi.test",
+      name: "Soft-Blocked Extension",
+      type: "extension",
+      blocklistURL: "https://example.com/addon-blocked",
+      softDisabled: true,
+    },
+  });
+  await testSoftBlockedAddon({
+    expectedFluentId: "details-notification-softblocked-other-disabled",
+    mockAddon: {
+      id: "softblocked-theme@mochi.test",
+      name: "Soft-Blocked Theme",
+      type: "theme",
+      blocklistURL: "https://example.com/addon-blocked",
+      softDisabled: true,
+    },
+  });
+
+  // Verify soft-block message on a re-enabled extension and theme.
+  await testSoftBlockedAddon({
+    expectedFluentId: "details-notification-softblocked-extension-enabled",
+    mockAddon: {
+      id: "softblocked-extension@mochi.test",
+      name: "Soft-Blocked Extension",
+      type: "extension",
+      blocklistURL: "https://example.com/addon-blocked",
+      userDisabled: false,
+    },
+  });
+  await testSoftBlockedAddon({
+    expectedFluentId: "details-notification-softblocked-other-enabled",
+    mockAddon: {
+      id: "softblocked-theme@mochi.test",
+      name: "Soft-Blocked Theme",
+      type: "theme",
+      blocklistURL: "https://example.com/addon-blocked",
+      userDisabled: false,
+    },
   });
 });
 
@@ -266,31 +331,6 @@ add_task(async function testUnsignedLangpackEnabled() {
   });
 
   await SpecialPowers.popPrefEnv();
-});
-
-add_task(async function testSoftBlocked() {
-  const id = "softblocked@mochi.test";
-  const linkUrl = "https://example.com/addon-blocked";
-  const name = "Soft Blocked";
-  gProvider.createAddons([
-    {
-      appDisabled: true,
-      blocklistState: STATE_SOFTBLOCKED,
-      blocklistURL: linkUrl,
-      id,
-      isActive: false,
-      name,
-    },
-  ]);
-  await checkMessageState(id, "extension", {
-    linkUrl,
-    text: {
-      id: "details-notification-softblocked2",
-      args: { name },
-      linkId: "details-notification-softblocked-link",
-    },
-    type: "warning",
-  });
 });
 
 add_task(async function testPluginInstalling() {

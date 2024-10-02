@@ -540,11 +540,17 @@ details-notification-unsigned2 =
 
 details-notification-blocked2 =
     .message = { $name } has been disabled due to security or stability issues.
-details-notification-blocked-link = More Information
+details-notification-blocked-link2 = See Details
 
-details-notification-softblocked2 =
-    .message = { $name } is known to cause security or stability issues.
-details-notification-softblocked-link = More Information
+details-notification-softblocked-extension-disabled =
+    .message = This extension violates Mozilla’s policies and has been disabled. You can enable it, but this may be risky.
+details-notification-softblocked-extension-enabled =
+    .message = This extension violates Mozilla’s policies. Using it may be risky.
+details-notification-softblocked-other-disabled =
+    .message = This add-on violates Mozilla’s policies and has been disabled. You can enable it, but this may be risky.
+details-notification-softblocked-other-enabled =
+    .message = This add-on violates Mozilla’s policies. Using it may be risky.
+details-notification-softblocked-link2 = See Details
 
 details-notification-gmp-pending2 =
     .message = { $name } will be installed shortly.
