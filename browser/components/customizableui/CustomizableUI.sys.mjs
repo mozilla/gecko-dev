@@ -2934,7 +2934,7 @@ var CustomizableUIInternal = {
   getAreaPlacementsForSaving(area) {
     // An early call to saveState can occur before all the lazy-area building is complete
     let placements;
-    if (this.isAreaLazy(area) && gFuturePlacements.has(area)) {
+    if (this.isAreaLazy(area) && gFuturePlacements.get(area)?.size) {
       placements = [...gFuturePlacements.get(area)];
     } else if (gPlacements.has(area)) {
       placements = gPlacements.get(area);
