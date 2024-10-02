@@ -415,11 +415,16 @@ const query = function* (detailsIn, props, context, allowPattern) {
   if (host && !isPattern) {
     // getCookiesFromHost is more efficient than getCookiesWithOriginAttributes
     // if the host and all origin attributes are known.
-    cookies = Services.cookies.getCookiesFromHost(host, originAttributes);
+    cookies = Services.cookies.getCookiesFromHost(
+      host,
+      originAttributes,
+      /* sorted: */ true
+    );
   } else {
     cookies = Services.cookies.getCookiesWithOriginAttributes(
       JSON.stringify(originAttributes),
-      host
+      host,
+      /* sorted: */ true
     );
   }
 
@@ -617,7 +622,6 @@ this.cookies = class extends ExtensionAPIPersistent {
         get: function (details) {
           validateFirstPartyDomain(details);
 
-          // TODO bug 1818968: We don't sort by length of path and creation time.
           let allowed = ["url", "name"];
           for (let cookie of query(details, allowed, context)) {
             return Promise.resolve(convertCookie(cookie));

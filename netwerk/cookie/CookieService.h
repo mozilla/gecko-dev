@@ -111,7 +111,7 @@ class CookieService final : public nsICookieService,
 
   nsresult GetCookiesWithOriginAttributes(
       const OriginAttributesPattern& aPattern, const nsCString& aBaseDomain,
-      nsTArray<RefPtr<nsICookie>>& aResult);
+      bool aSorted, nsTArray<RefPtr<nsICookie>>& aResult);
   nsresult RemoveCookiesWithOriginAttributes(
       const OriginAttributesPattern& aPattern, const nsCString& aBaseDomain);
 

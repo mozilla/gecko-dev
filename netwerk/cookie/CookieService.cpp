@@ -1268,19 +1268,19 @@ CookieService::CountCookiesFromHost(const nsACString& aHost,
 NS_IMETHODIMP
 CookieService::GetCookiesFromHost(const nsACString& aHost,
                                   JS::Handle<JS::Value> aOriginAttributes,
-                                  JSContext* aCx,
+                                  bool aSorted, JSContext* aCx,
                                   nsTArray<RefPtr<nsICookie>>& aResult) {
   OriginAttributes attrs;
   if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  return GetCookiesFromHostNative(aHost, &attrs, aResult);
+  return GetCookiesFromHostNative(aHost, &attrs, aSorted, aResult);
 }
 
 NS_IMETHODIMP
 CookieService::GetCookiesFromHostNative(const nsACString& aHost,
-                                        OriginAttributes* aAttrs,
+                                        OriginAttributes* aAttrs, bool aSorted,
                                         nsTArray<RefPtr<nsICookie>>& aResult) {
   // first, normalize the hostname, and fail if it contains illegal characters.
   nsAutoCString host(aHost);
@@ -1309,12 +1309,16 @@ CookieService::GetCookiesFromHostNative(const nsACString& aHost,
     aResult.AppendElement(cookie);
   }
 
+  if (aSorted) {
+    aResult.Sort(CompareCookiesForSending());
+  }
+
   return NS_OK;
 }
 
 NS_IMETHODIMP
 CookieService::GetCookiesWithOriginAttributes(
-    const nsAString& aPattern, const nsACString& aHost,
+    const nsAString& aPattern, const nsACString& aHost, const bool aSorted,
     nsTArray<RefPtr<nsICookie>>& aResult) {
   OriginAttributesPattern pattern;
   if (!pattern.Init(aPattern)) {
@@ -1329,14 +1333,15 @@ CookieService::GetCookiesWithOriginAttributes(
   rv = CookieCommons::GetBaseDomainFromHost(mTLDService, host, baseDomain);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  return GetCookiesWithOriginAttributes(pattern, baseDomain, aResult);
+  return GetCookiesWithOriginAttributes(pattern, baseDomain, aSorted, aResult);
 }
 
 nsresult CookieService::GetCookiesWithOriginAttributes(
     const OriginAttributesPattern& aPattern, const nsCString& aBaseDomain,
-    nsTArray<RefPtr<nsICookie>>& aResult) {
+    bool aSorted, nsTArray<RefPtr<nsICookie>>& aResult) {
   CookieStorage* storage = PickStorage(aPattern);
-  storage->GetCookiesWithOriginAttributes(aPattern, aBaseDomain, aResult);
+  storage->GetCookiesWithOriginAttributes(aPattern, aBaseDomain, aSorted,
+                                          aResult);
 
   return NS_OK;
 }

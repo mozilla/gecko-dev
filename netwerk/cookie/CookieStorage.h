@@ -104,6 +104,7 @@ class CookieStorage : public nsIObserver, public nsSupportsWeakReference {
 
   void GetCookiesWithOriginAttributes(const OriginAttributesPattern& aPattern,
                                       const nsACString& aBaseDomain,
+                                      bool aSorted,
                                       nsTArray<RefPtr<nsICookie>>& aResult);
 
   void RemoveCookie(const nsACString& aBaseDomain,

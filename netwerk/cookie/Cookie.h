@@ -38,6 +38,14 @@ class Cookie final : public nsICookie {
   NS_DECL_ISUPPORTS
   NS_DECL_NSICOOKIE
 
+  static Cookie* Cast(nsICookie* aCookie) {
+    return static_cast<Cookie*>(aCookie);
+  }
+
+  static const Cookie* Cast(const nsICookie* aCookie) {
+    return static_cast<const Cookie*>(aCookie);
+  }
+
  private:
   // for internal use only. see Cookie::Create().
   Cookie(const CookieStruct& aCookieData,
@@ -143,21 +151,25 @@ class Cookie final : public nsICookie {
 // Comparator class for sorting cookies before sending to a server.
 class CompareCookiesForSending {
  public:
-  bool Equals(const Cookie* aCookie1, const Cookie* aCookie2) const {
-    return aCookie1->CreationTime() == aCookie2->CreationTime() &&
-           aCookie2->Path().Length() == aCookie1->Path().Length();
+  bool Equals(const nsICookie* aCookie1, const nsICookie* aCookie2) const {
+    return Cookie::Cast(aCookie1)->CreationTime() ==
+               Cookie::Cast(aCookie2)->CreationTime() &&
+           Cookie::Cast(aCookie2)->Path().Length() ==
+               Cookie::Cast(aCookie1)->Path().Length();
   }
 
-  bool LessThan(const Cookie* aCookie1, const Cookie* aCookie2) const {
+  bool LessThan(const nsICookie* aCookie1, const nsICookie* aCookie2) const {
     // compare by cookie path length in accordance with RFC2109
-    int32_t result = aCookie2->Path().Length() - aCookie1->Path().Length();
+    int32_t result = Cookie::Cast(aCookie2)->Path().Length() -
+                     Cookie::Cast(aCookie1)->Path().Length();
     if (result != 0) return result < 0;
 
     // when path lengths match, older cookies should be listed first.  this is
     // required for backwards compatibility since some websites erroneously
     // depend on receiving cookies in the order in which they were sent to the
     // browser!  see bug 236772.
-    return aCookie1->CreationTime() < aCookie2->CreationTime();
+    return Cookie::Cast(aCookie1)->CreationTime() <
+           Cookie::Cast(aCookie2)->CreationTime();
   }
 };
 

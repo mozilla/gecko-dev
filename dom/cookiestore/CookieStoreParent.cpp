@@ -317,7 +317,8 @@ bool CookieStoreParent::DeleteRequestOnMainThread(
 
   OriginAttributes attrs(aOriginAttributes);
   nsTArray<RefPtr<nsICookie>> results;
-  nsresult rv = service->GetCookiesFromHostNative(domain, &attrs, results);
+  nsresult rv =
+      service->GetCookiesFromHostNative(domain, &attrs, false, results);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return false;
   }

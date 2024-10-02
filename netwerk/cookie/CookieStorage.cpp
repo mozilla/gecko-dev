@@ -294,7 +294,7 @@ void CookieStorage::GetCookiesFromHost(
 
 void CookieStorage::GetCookiesWithOriginAttributes(
     const OriginAttributesPattern& aPattern, const nsACString& aBaseDomain,
-    nsTArray<RefPtr<nsICookie>>& aResult) {
+    bool aSorted, nsTArray<RefPtr<nsICookie>>& aResult) {
   for (auto iter = mHostTable.Iter(); !iter.Done(); iter.Next()) {
     CookieEntry* entry = iter.Get();
 
@@ -311,6 +311,10 @@ void CookieStorage::GetCookiesWithOriginAttributes(
     for (CookieEntry::IndexType i = 0; i < entryCookies.Length(); ++i) {
       aResult.AppendElement(entryCookies[i]);
     }
+  }
+
+  if (aSorted) {
+    aResult.Sort(CompareCookiesForSending());
   }
 }
 

@@ -204,6 +204,8 @@ skip-if = [
 
 ["test_ext_cookies_samesite.js"]
 
+["test_ext_cookies_sort.js"]
+
 ["test_ext_cors_mozextension.js"]
 
 ["test_ext_csp_frame_ancestors.js"]
