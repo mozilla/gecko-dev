@@ -433,7 +433,8 @@ nsIContent* nsParentNodeChildContentList::Item(uint32_t aIndex) {
     if (aIndex == 0) {
       return mNode->GetFirstChild();
     }
-    if (aIndex - 1 == mNode->GetChildCount()) {
+    // This is correct even if the addition overflows.
+    if (aIndex + 1 == mNode->GetChildCount()) {
       return mNode->GetLastChild();
     }
     ValidateCache();
