@@ -35,7 +35,7 @@ class UniFFICallbackHandler {
         this.#methodHandlers = methodHandlers;
         this.#allowNewCallbacks = true;
 
-        UniFFIScaffolding.registerCallbackHandler(this.#interfaceId, this.invokeCallback.bind(this));
+        UniFFIScaffolding.registerCallbackHandler(this.#interfaceId, this);
         Services.obs.addObserver(this, "xpcom-shutdown");
      }
 
@@ -92,17 +92,23 @@ class UniFFICallbackHandler {
     /**
      * Invoke a method on a stored callback object
      * @param {int} handle - Object handle
-     * @param {int} methodId - Method identifier.  This the 1-based index of
-     *   the method from the UDL file.  0 is the special drop method, which
-     *   removes the callback object from the handle map.
+     * @param {int} methodId - Method index (0-based)
      * @param {ArrayBuffer} argsArrayBuffer - Arguments to pass to the method, packed in an ArrayBuffer
      */
-    invokeCallback(handle, methodId, argsArrayBuffer) {
+    call(handle, methodId, argsArrayBuffer) {
         try {
             this.#invokeCallbackInner(handle, methodId, argsArrayBuffer);
         } catch (e) {
             console.error(`internal error invoking callback: ${e}`)
         }
+    }
+
+    /**
+     * Free a stored callback object
+     * @param {int} handle - Object handle
+     */
+    free(handle) {
+        this.#handleMap.delete(handle);
     }
 
     #invokeCallbackInner(handle, methodId, argsArrayBuffer) {
@@ -111,15 +117,8 @@ class UniFFICallbackHandler {
             throw new UniFFIError(`${this.#name}: invalid callback handle id: ${handle}`);
         }
 
-        // Special-cased drop method, remove the object from the handle map and
-        // return an empty array buffer
-        if (methodId == 0) {
-            this.#handleMap.delete(handle);
-            return;
-        }
-
         // Get the method data, converting from 1-based indexing
-        const methodHandler = this.#methodHandlers[methodId - 1];
+        const methodHandler = this.#methodHandlers[methodId];
         if (methodHandler === undefined) {
             throw new UniFFIError(`${this.#name}: invalid method id: ${methodId}`)
         }
@@ -174,10 +173,9 @@ class UniFFICallbackMethodHandler {
      * @param {obj} callbackObj -- Object implementing the callback interface for this method
      * @param {ArrayBuffer} argsArrayBuffer -- Arguments for the method, packed in an ArrayBuffer
      */
-     call(callbackObj, argsArrayBuffer) {
-        const argsStream = new ArrayBufferDataStream(argsArrayBuffer);
-        const args = this.#argsConverters.map(converter => converter.read(argsStream));
-        callbackObj[this.#name](...args);
+     call(callbackObj, ...args) {
+        const convertedArgs = this.#argsConverters.map((converter, i) => converter.lift(args[i]));
+        return callbackObj[this.#name](...convertedArgs);
     }
 }
 
