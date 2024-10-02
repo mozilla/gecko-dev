@@ -37,6 +37,13 @@ typedef void (*ConvolveFunc)(const uint8_t *src, ptrdiff_t src_stride,
                              const InterpKernel *filter, int x0_q4,
                              int x_step_q4, int y0_q4, int y_step_q4, int w,
                              int h);
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+typedef void (*ConvolveFunc12Tap)(const uint8_t *src, ptrdiff_t src_stride,
+                                  uint8_t *dst, ptrdiff_t dst_stride,
+                                  const InterpKernel12 *filter, int x0_q4,
+                                  int x_step_q4, int y0_q4, int y_step_q4,
+                                  int w, int h);
+#endif
 
 typedef void (*WrapperFilterBlock2d8Func)(
     const uint8_t *src_ptr, const unsigned int src_stride,
@@ -80,6 +87,27 @@ struct ConvolveFunctions {
 
 typedef std::tuple<int, int, const ConvolveFunctions *> ConvolveParam;
 
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+struct ConvolveFunctions12Tap {
+  ConvolveFunctions12Tap(ConvolveFunc12Tap copy12, ConvolveFunc12Tap h12,
+                         ConvolveFunc12Tap v12, ConvolveFunc12Tap hv12, int bd)
+      : use_highbd_(bd) {
+    copy12_ = copy12;
+    h12_ = h12;
+    v12_ = v12;
+    hv12_ = hv12;
+  }
+
+  ConvolveFunc12Tap copy12_;
+  ConvolveFunc12Tap h12_;
+  ConvolveFunc12Tap v12_;
+  ConvolveFunc12Tap hv12_;
+  int use_highbd_;  // 0 if high bitdepth not used, else the actual bit depth.
+};
+
+typedef std::tuple<int, int, const ConvolveFunctions12Tap *> Convolve12TapParam;
+#endif
+
 #define ALL_SIZES(convolve_fn)                                            \
   make_tuple(4, 4, &convolve_fn), make_tuple(8, 4, &convolve_fn),         \
       make_tuple(4, 8, &convolve_fn), make_tuple(8, 8, &convolve_fn),     \
@@ -88,7 +116,13 @@ typedef std::tuple<int, int, const ConvolveFunctions *> ConvolveParam;
       make_tuple(16, 32, &convolve_fn), make_tuple(32, 32, &convolve_fn), \
       make_tuple(64, 32, &convolve_fn), make_tuple(32, 64, &convolve_fn), \
       make_tuple(64, 64, &convolve_fn)
-
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+#define ALL_SIZES_12TAP(convolve_fn)                                      \
+  make_tuple(8, 8, &convolve_fn), make_tuple(16, 8, &convolve_fn),        \
+      make_tuple(8, 16, &convolve_fn), make_tuple(16, 16, &convolve_fn),  \
+      make_tuple(32, 16, &convolve_fn), make_tuple(16, 32, &convolve_fn), \
+      make_tuple(32, 32, &convolve_fn)
+#endif
 // Reference 8-tap subpixel filter, slightly modified to fit into this test.
 #define VP9_FILTER_WEIGHT 128
 #define VP9_FILTER_SHIFT 7
@@ -548,6 +582,315 @@ uint8_t *ConvolveTest::output_ref_ = nullptr;
 uint16_t *ConvolveTest::input16_ = nullptr;
 uint16_t *ConvolveTest::output16_ = nullptr;
 uint16_t *ConvolveTest::output16_ref_ = nullptr;
+#endif
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+class ConvolveTest12Tap : public ::testing::TestWithParam<Convolve12TapParam> {
+ public:
+  static void SetUpTestSuite() {
+    // Force input_ to be unaligned, output to be 16 byte aligned.
+    input_ = reinterpret_cast<uint8_t *>(
+                 vpx_memalign(kDataAlignment, kInputBufferSize + 1)) +
+             1;
+    output_ = reinterpret_cast<uint8_t *>(
+        vpx_memalign(kDataAlignment, kOutputBufferSize));
+  }
+
+  void TearDown() override { libvpx_test::ClearSystemState(); }
+
+  static void TearDownTestSuite() {
+    vpx_free(input_ - 1);
+    input_ = nullptr;
+    vpx_free(output_);
+    output_ = nullptr;
+  }
+
+ protected:
+  static const int kDataAlignment = 16;
+  static const int kOuterBlockSize = 256;
+  static const int kInputStride = kOuterBlockSize;
+  static const int kOutputStride = kOuterBlockSize;
+  static const int kInputBufferSize = kOuterBlockSize * kOuterBlockSize;
+  static const int kOutputBufferSize = kOuterBlockSize * kOuterBlockSize;
+
+  int Width() const { return GET_PARAM(0); }
+  int Height() const { return GET_PARAM(1); }
+  int BorderLeft() const {
+    const int center = (kOuterBlockSize - Width()) / 2;
+    return (center + (kDataAlignment - 1)) & ~(kDataAlignment - 1);
+  }
+  int BorderTop() const { return (kOuterBlockSize - Height()) / 2; }
+
+  bool IsIndexInBorder(int i) {
+    return (i < BorderTop() * kOuterBlockSize ||
+            i >= (BorderTop() + Height()) * kOuterBlockSize ||
+            i % kOuterBlockSize < BorderLeft() ||
+            i % kOuterBlockSize >= (BorderLeft() + Width()));
+  }
+
+  void SetUp() override {
+    UUT_ = GET_PARAM(2);
+    /* Set up guard blocks for an inner block centered in the outer block */
+    for (int i = 0; i < kOutputBufferSize; ++i) {
+      if (IsIndexInBorder(i)) {
+        output_[i] = 255;
+      } else {
+        output_[i] = 0;
+      }
+    }
+
+    ::libvpx_test::ACMRandom prng;
+    for (int i = 0; i < kInputBufferSize; ++i) {
+      if (i & 1) {
+        input_[i] = 255;
+      } else {
+        input_[i] = prng.Rand8Extremes();
+      }
+    }
+  }
+
+  void SetConstantInput(int value) { memset(input_, value, kInputBufferSize); }
+
+  void CheckGuardBlocks() {
+    for (int i = 0; i < kOutputBufferSize; ++i) {
+      if (IsIndexInBorder(i)) {
+        EXPECT_EQ(255, output_[i]);
+      }
+    }
+  }
+
+  uint8_t *input() const {
+    const int offset = BorderTop() * kOuterBlockSize + BorderLeft();
+    return input_ + offset;
+  }
+
+  uint8_t *output() const {
+    const int offset = BorderTop() * kOuterBlockSize + BorderLeft();
+    return output_ + offset;
+  }
+
+  uint16_t lookup(uint8_t *list, int index) const { return list[index]; }
+
+  void assign_val(uint8_t *list, int index, uint16_t val) const {
+    list[index] = (uint8_t)val;
+  }
+
+  const ConvolveFunctions12Tap *UUT_;
+  static uint8_t *input_;
+  static uint8_t *output_;
+};
+
+uint8_t *ConvolveTest12Tap::input_ = nullptr;
+uint8_t *ConvolveTest12Tap::output_ = nullptr;
+
+TEST_P(ConvolveTest12Tap, MatchesReferenceSubpixelFilter) {
+  uint8_t *const in = input();
+  uint8_t *const out = output();
+  uint8_t ref[kOutputStride * kMaxDimension];
+
+  // Populate ref and out with some random data
+  ::libvpx_test::ACMRandom prng;
+  for (int y = 0; y < Height(); ++y) {
+    for (int x = 0; x < Width(); ++x) {
+      uint16_t r;
+      r = prng.Rand8Extremes();
+      assign_val(out, y * kOutputStride + x, r);
+      assign_val(ref, y * kOutputStride + x, r);
+    }
+  }
+
+  const InterpKernel12 *filters = sub_pel_filters_12;
+  for (int filter_x = 0; filter_x < 16; ++filter_x) {
+    for (int filter_y = 0; filter_y < 16; ++filter_y) {
+      vpx_convolve8_12_c(in, kInputStride, ref, kOutputStride, filters,
+                         filter_x, 16, filter_y, 16, Width(), Height());
+      if (filter_x && filter_y)
+        ASM_REGISTER_STATE_CHECK(
+            UUT_->hv12_(in, kInputStride, out, kOutputStride, filters, filter_x,
+                        16, filter_y, 16, Width(), Height()));
+      else if (filter_y)
+        ASM_REGISTER_STATE_CHECK(UUT_->v12_(in, kInputStride, out,
+                                            kOutputStride, filters, 0, 16,
+                                            filter_y, 16, Width(), Height()));
+      else if (filter_x)
+        ASM_REGISTER_STATE_CHECK(UUT_->h12_(in, kInputStride, out,
+                                            kOutputStride, filters, filter_x,
+                                            16, 0, 16, Width(), Height()));
+      else
+        ASM_REGISTER_STATE_CHECK(UUT_->copy12_(in, kInputStride, out,
+                                               kOutputStride, nullptr, 0, 0, 0,
+                                               0, Width(), Height()));
+
+      CheckGuardBlocks();
+
+      for (int y = 0; y < Height(); ++y) {
+        for (int x = 0; x < Width(); ++x)
+          ASSERT_EQ(lookup(ref, y * kOutputStride + x),
+                    lookup(out, y * kOutputStride + x))
+              << "mismatch at (" << x << "," << y << "), "
+              << "filters ("
+              << "," << filter_x << "," << filter_y << ")";
+      }
+    }
+  }
+}
+
+TEST_P(ConvolveTest12Tap, FilterExtremes) {
+  uint8_t *const in = input();
+  uint8_t *const out = output();
+  uint8_t ref[kOutputStride * kMaxDimension];
+
+  // Populate ref and out with some random data
+  ::libvpx_test::ACMRandom prng;
+  for (int y = 0; y < Height(); ++y) {
+    for (int x = 0; x < Width(); ++x) {
+      uint16_t r;
+      r = prng.Rand8Extremes();
+      assign_val(out, y * kOutputStride + x, r);
+      assign_val(ref, y * kOutputStride + x, r);
+    }
+  }
+
+  for (int axis = 0; axis < 2; axis++) {
+    int seed_val = 0;
+    while (seed_val < 256) {
+      for (int y = 0; y < 8; ++y) {
+        for (int x = 0; x < 8; ++x) {
+          assign_val(in, y * kOutputStride + x - MAX_FILTER_TAP / 2 + 1,
+                     ((seed_val >> (axis ? y : x)) & 1) * 255);
+          if (axis) seed_val++;
+        }
+        if (axis) {
+          seed_val -= 8;
+        } else {
+          seed_val++;
+        }
+      }
+      if (axis) seed_val += 8;
+
+      const InterpKernel12 *filters = sub_pel_filters_12;
+      for (int filter_x = 0; filter_x < 16; ++filter_x) {
+        for (int filter_y = 0; filter_y < 16; ++filter_y) {
+          vpx_convolve8_12_c(in, kInputStride, ref, kOutputStride, filters,
+                             filter_x, 16, filter_y, 16, Width(), Height());
+          if (filter_x && filter_y)
+            ASM_REGISTER_STATE_CHECK(
+                UUT_->hv12_(in, kInputStride, out, kOutputStride, filters,
+                            filter_x, 16, filter_y, 16, Width(), Height()));
+          else if (filter_y)
+            ASM_REGISTER_STATE_CHECK(
+                UUT_->v12_(in, kInputStride, out, kOutputStride, filters, 0, 16,
+                           filter_y, 16, Width(), Height()));
+          else if (filter_x)
+            ASM_REGISTER_STATE_CHECK(
+                UUT_->h12_(in, kInputStride, out, kOutputStride, filters,
+                           filter_x, 16, 0, 16, Width(), Height()));
+          else
+            ASM_REGISTER_STATE_CHECK(UUT_->copy12_(in, kInputStride, out,
+                                                   kOutputStride, nullptr, 0, 0,
+                                                   0, 0, Width(), Height()));
+
+          for (int y = 0; y < Height(); ++y) {
+            for (int x = 0; x < Width(); ++x)
+              ASSERT_EQ(lookup(ref, y * kOutputStride + x),
+                        lookup(out, y * kOutputStride + x))
+                  << "mismatch at (" << x << "," << y << "), "
+                  << "filters ("
+                  << "," << filter_x << "," << filter_y << ")";
+          }
+        }
+      }
+    }
+  }
+}
+
+TEST_P(ConvolveTest12Tap, DISABLED_12Tap_Speed) {
+  const uint8_t *const in = input();
+  uint8_t *const out = output();
+  const InterpKernel12 *const twelvetap = sub_pel_filters_12;
+  const int kNumTests = 5000000;
+  const int width = Width();
+  const int height = Height();
+  vpx_usec_timer timer;
+
+  SetConstantInput(127);
+
+  vpx_usec_timer_start(&timer);
+  for (int n = 0; n < kNumTests; ++n) {
+    UUT_->hv12_(in, kInputStride, out, kOutputStride, twelvetap, 8, 16, 8, 16,
+                width, height);
+  }
+  vpx_usec_timer_mark(&timer);
+
+  const int elapsed_time = static_cast<int>(vpx_usec_timer_elapsed(&timer));
+  printf("convolve12_%dx%d_%d: %d us\n", width, height,
+         UUT_->use_highbd_ ? UUT_->use_highbd_ : 8, elapsed_time);
+}
+
+TEST_P(ConvolveTest12Tap, DISABLED_12Tap_Copy_Speed) {
+  const uint8_t *const in = input();
+  uint8_t *const out = output();
+  const int kNumTests = 5000000;
+  const int width = Width();
+  const int height = Height();
+  vpx_usec_timer timer;
+
+  vpx_usec_timer_start(&timer);
+  for (int n = 0; n < kNumTests; ++n) {
+    UUT_->copy12_(in, kInputStride, out, kOutputStride, nullptr, 0, 0, 0, 0,
+                  width, height);
+  }
+  vpx_usec_timer_mark(&timer);
+
+  const int elapsed_time = static_cast<int>(vpx_usec_timer_elapsed(&timer));
+  printf("convolve12_copy_%dx%d_%d: %d us\n", width, height,
+         UUT_->use_highbd_ ? UUT_->use_highbd_ : 8, elapsed_time);
+}
+
+TEST_P(ConvolveTest12Tap, DISABLED_12Tap_Horiz_Speed) {
+  const uint8_t *const in = input();
+  uint8_t *const out = output();
+  const InterpKernel12 *const twelvetap = sub_pel_filters_12;
+  const int kNumTests = 5000000;
+  const int width = Width();
+  const int height = Height();
+  vpx_usec_timer timer;
+
+  SetConstantInput(127);
+
+  vpx_usec_timer_start(&timer);
+  for (int n = 0; n < kNumTests; ++n) {
+    UUT_->h12_(in, kInputStride, out, kOutputStride, twelvetap, 8, 16, 8, 16,
+               width, height);
+  }
+  vpx_usec_timer_mark(&timer);
+
+  const int elapsed_time = static_cast<int>(vpx_usec_timer_elapsed(&timer));
+  printf("convolve12_horiz_%dx%d_%d: %d us\n", width, height,
+         UUT_->use_highbd_ ? UUT_->use_highbd_ : 8, elapsed_time);
+}
+
+TEST_P(ConvolveTest12Tap, DISABLED_12Tap_Vert_Speed) {
+  const uint8_t *const in = input();
+  uint8_t *const out = output();
+  const InterpKernel12 *const twelvetap = sub_pel_filters_12;
+  const int kNumTests = 5000000;
+  const int width = Width();
+  const int height = Height();
+  vpx_usec_timer timer;
+
+  SetConstantInput(127);
+
+  vpx_usec_timer_start(&timer);
+  for (int n = 0; n < kNumTests; ++n) {
+    UUT_->v12_(in, kInputStride, out, kOutputStride, twelvetap, 8, 16, 8, 16,
+               width, height);
+  }
+  vpx_usec_timer_mark(&timer);
+
+  const int elapsed_time = static_cast<int>(vpx_usec_timer_elapsed(&timer));
+  printf("convolve12_vert_%dx%d_%d: %d us\n", width, height,
+         UUT_->use_highbd_ ? UUT_->use_highbd_ : 8, elapsed_time);
+}
 #endif
 
 TEST_P(ConvolveTest, GuardBlocks) { CheckGuardBlocks(); }
@@ -1304,6 +1647,17 @@ const ConvolveParam kArrayConvolve_c[] = { ALL_SIZES(convolve8_c) };
 #endif
 INSTANTIATE_TEST_SUITE_P(C, ConvolveTest,
                          ::testing::ValuesIn(kArrayConvolve_c));
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+const ConvolveFunctions12Tap convolve12Tap_c(vpx_convolve_copy_12_c,
+                                             vpx_convolve_horiz_12_c,
+                                             vpx_convolve_vert_12_c,
+                                             vpx_convolve8_12_c, 0);
+const Convolve12TapParam kArrayConvolve12Tap_c[] = { ALL_SIZES_12TAP(
+    convolve12Tap_c) };
+
+INSTANTIATE_TEST_SUITE_P(C, ConvolveTest12Tap,
+                         ::testing::ValuesIn(kArrayConvolve12Tap_c));
+#endif
 
 #if HAVE_SSE2 && VPX_ARCH_X86_64
 #if CONFIG_VP9_HIGHBITDEPTH
@@ -1402,6 +1756,18 @@ const ConvolveParam kArrayConvolve8_avx2[] = { ALL_SIZES(convolve8_avx2) };
 INSTANTIATE_TEST_SUITE_P(AVX2, ConvolveTest,
                          ::testing::ValuesIn(kArrayConvolve8_avx2));
 #endif  // CONFIG_VP9_HIGHBITDEPTH
+
+#if !CONFIG_REALTIME_ONLY && CONFIG_VP9_ENCODER
+const ConvolveFunctions12Tap convolve12Tap_avx2(vpx_convolve_copy_12_avx2,
+                                                vpx_convolve_horiz_12_avx2,
+                                                vpx_convolve_vert_12_avx2,
+                                                vpx_convolve8_12_avx2, 0);
+const Convolve12TapParam kArrayConvolve12Tap_avx2[] = { ALL_SIZES_12TAP(
+    convolve12Tap_avx2) };
+
+INSTANTIATE_TEST_SUITE_P(AVX2, ConvolveTest12Tap,
+                         ::testing::ValuesIn(kArrayConvolve12Tap_avx2));
+#endif
 #endif  // HAVE_AVX2
 
 #if HAVE_NEON

@@ -53,13 +53,13 @@ static INLINE void transpose_concat_4x4(const int16x4_t s0, const int16x4_t s1,
   int16x8_t s2q = vcombine_s16(s2, vdup_n_s16(0));
   int16x8_t s3q = vcombine_s16(s3, vdup_n_s16(0));
 
-  int32x4_t s01 = vreinterpretq_s32_s16(vzip1q_s16(s0q, s1q));
-  int32x4_t s23 = vreinterpretq_s32_s16(vzip1q_s16(s2q, s3q));
+  int16x8_t s02 = vzip1q_s16(s0q, s2q);
+  int16x8_t s13 = vzip1q_s16(s1q, s3q);
 
-  int32x4x2_t t0123 = vzipq_s32(s01, s23);
+  int16x8x2_t s0123 = vzipq_s16(s02, s13);
 
-  res[0] = vreinterpretq_s16_s32(t0123.val[0]);
-  res[1] = vreinterpretq_s16_s32(t0123.val[1]);
+  res[0] = s0123.val[0];
+  res[1] = s0123.val[1];
 }
 
 static INLINE void transpose_concat_8x4(const int16x8_t s0, const int16x8_t s1,
@@ -76,18 +76,16 @@ static INLINE void transpose_concat_8x4(const int16x8_t s0, const int16x8_t s1,
   // res[2]: 04 14 24 34 05 15 25 35
   // res[3]: 06 16 26 36 07 17 27 37
 
-  int16x8x2_t s01 = vzipq_s16(s0, s1);
-  int16x8x2_t s23 = vzipq_s16(s2, s3);
+  int16x8x2_t s02 = vzipq_s16(s0, s2);
+  int16x8x2_t s13 = vzipq_s16(s1, s3);
 
-  int32x4x2_t t0123_lo = vzipq_s32(vreinterpretq_s32_s16(s01.val[0]),
-                                   vreinterpretq_s32_s16(s23.val[0]));
-  int32x4x2_t t0123_hi = vzipq_s32(vreinterpretq_s32_s16(s01.val[1]),
-                                   vreinterpretq_s32_s16(s23.val[1]));
+  int16x8x2_t s0123_lo = vzipq_s16(s02.val[0], s13.val[0]);
+  int16x8x2_t s0123_hi = vzipq_s16(s02.val[1], s13.val[1]);
 
-  res[0] = vreinterpretq_s16_s32(t0123_lo.val[0]);
-  res[1] = vreinterpretq_s16_s32(t0123_lo.val[1]);
-  res[2] = vreinterpretq_s16_s32(t0123_hi.val[0]);
-  res[3] = vreinterpretq_s16_s32(t0123_hi.val[1]);
+  res[0] = s0123_lo.val[0];
+  res[1] = s0123_lo.val[1];
+  res[2] = s0123_hi.val[0];
+  res[3] = s0123_hi.val[1];
 }
 
 static INLINE void vpx_tbl2x4_s16(int16x8_t s0[4], int16x8_t s1[4],
@@ -759,8 +757,8 @@ void vpx_highbd_convolve8_avg_sve2(const uint16_t *src, ptrdiff_t src_stride,
                                    int x_step_q4, int y0_q4, int y_step_q4,
                                    int w, int h, int bd) {
   if (x_step_q4 != 16 || y_step_q4 != 16) {
-    vpx_highbd_convolve8_c(src, src_stride, dst, dst_stride, filter, x0_q4,
-                           x_step_q4, y0_q4, y_step_q4, w, h, bd);
+    vpx_highbd_convolve8_avg_c(src, src_stride, dst, dst_stride, filter, x0_q4,
+                               x_step_q4, y0_q4, y_step_q4, w, h, bd);
     return;
   }
 

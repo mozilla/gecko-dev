@@ -232,7 +232,7 @@ typedef struct {
   int64_t bits_off_target;
 
   int64_t total_actual_bits;
-  int total_target_vs_actual;
+  int64_t total_target_vs_actual;
 
   int worst_quality;
   int active_worst_quality;
@@ -413,7 +413,7 @@ typedef struct VP8_COMP {
   int long_rolling_actual_bits;
 
   int64_t total_actual_bits;
-  int total_target_vs_actual; /* debug stats */
+  int64_t total_target_vs_actual; /* debug stats */
 
   int worst_quality;
   int active_worst_quality;
