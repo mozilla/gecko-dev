@@ -8,6 +8,7 @@
 #include "CacheCommon.h"
 
 #include "mozilla/AutoRestore.h"
+#include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/SafeRefPtr.h"
 #include "mozilla/dom/cache/Action.h"
 #include "mozilla/dom/cache/FileUtils.h"
@@ -18,6 +19,7 @@
 #include "mozilla/dom/quota/DirectoryLockInlines.h"
 #include "mozilla/dom/quota/QuotaManager.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
+#include "mozilla/dom/quota/ThreadUtils.h"
 #include "mozilla/ipc/PBackgroundSharedTypes.h"
 #include "mozilla/Maybe.h"
 #include "mozIStorageConnection.h"
@@ -56,6 +58,7 @@ using mozilla::dom::quota::DirectoryLock;
 using mozilla::dom::quota::PERSISTENCE_TYPE_DEFAULT;
 using mozilla::dom::quota::PersistenceType;
 using mozilla::dom::quota::QuotaManager;
+using mozilla::dom::quota::SleepIfEnabled;
 
 class Context::Data final : public Action::Data {
  public:
@@ -417,6 +420,9 @@ Context::QuotaInitRunnable::Run() {
 
         mCipherKeyManager =
             cacheQuotaClient->GetOrCreateCipherKeyManager(*mDirectoryMetadata);
+
+        SleepIfEnabled(
+            StaticPrefs::dom_cache_databaseInitialization_pauseOnIOThreadMs());
 
         mState = STATE_RUN_ON_TARGET;
 

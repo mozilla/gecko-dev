@@ -2306,6 +2306,12 @@
   value: false
   mirror: always
 
+# A pref that is used to slow down database initialization for testing purposes.
+- name: dom.cache.databaseInitialization.pauseOnIOThreadMs
+  type: RelaxedAtomicUint32
+  value: 0
+  mirror: always
+
 # Disable capture attribute for input elements; only supported on GeckoView.
 - name: dom.capture.enabled
   type: bool
