@@ -55,6 +55,11 @@ To Setup Firefox On Windows
     $ mkdir mozilla-source
     $ cd mozilla-source
     $ wget https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py
+
+    # To use Git as your VCS
+    $ python3 bootstrap.py --vcs=git
+
+    # To use Mercurial as your VCS
     $ python3 bootstrap.py
 
 More information on :ref:`building Firefox for Windows <Building Firefox On Windows>`.
@@ -65,6 +70,11 @@ To Setup Firefox On macOS and Linux
 .. code-block:: shell
 
     $ curl https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
+
+    # To use Git as your VCS
+    $ python3 bootstrap.py --vcs=git
+
+    # To use Mercurial as your VCS
     $ python3 bootstrap.py
 
 More information on :ref:`building Firefox for Linux <Building Firefox On Linux>` and :ref:`building Firefox for MacOS <Building Firefox On MacOS>`.
@@ -75,6 +85,11 @@ To Setup Firefox for Android
 .. code-block:: shell
 
     $ curl https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py -O
+
+    # To use Git as your VCS
+    $ python3 bootstrap.py --vcs=git
+
+    # To use Mercurial as your VCS
     $ python3 bootstrap.py
 
 More information on :ref:`building Firefox for Android <Firefox for Android>`

@@ -75,6 +75,11 @@ the interactive setup process.
     mkdir mozilla-source
     cd mozilla-source
     wget https://hg.mozilla.org/mozilla-central/raw-file/default/python/mozboot/bin/bootstrap.py
+
+    # To use Git as your VCS
+    python3 bootstrap.py --vcs=git
+
+    # To use Mercurial as your VCS
     python3 bootstrap.py
 .. note::
 
