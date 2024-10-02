@@ -66,10 +66,10 @@ OrientedImage::GetIntrinsicSize(nsSize* aSize) {
   return rv;
 }
 
-AspectRatio OrientedImage::GetIntrinsicRatio() {
-  AspectRatio ratio = InnerImage()->GetIntrinsicRatio();
+Maybe<AspectRatio> OrientedImage::GetIntrinsicRatio() {
+  Maybe<AspectRatio> ratio = InnerImage()->GetIntrinsicRatio();
   if (ratio && mOrientation.SwapsWidthAndHeight()) {
-    ratio = ratio.Inverted();
+    ratio = Some(ratio->Inverted());
   }
   return ratio;
 }

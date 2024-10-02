@@ -249,6 +249,7 @@ bool SVGImageFrame::GetIntrinsicImageDimensions(
   }
 
   ImageResolution resolution = mImageContainer->GetResolution();
+
   int32_t width, height;
   if (NS_FAILED(mImageContainer->GetWidth(&width))) {
     aSize.width = -1;
@@ -264,7 +265,9 @@ bool SVGImageFrame::GetIntrinsicImageDimensions(
     resolution.ApplyYTo(aSize.height);
   }
 
-  aAspectRatio = mImageContainer->GetIntrinsicRatio();
+  Maybe<AspectRatio> asp = mImageContainer->GetIntrinsicRatio();
+  aAspectRatio = asp.valueOr(AspectRatio{});
+
   return true;
 }
 

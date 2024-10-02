@@ -256,11 +256,12 @@ RasterImage::GetIntrinsicSize(nsSize* aSize) {
 }
 
 //******************************************************************************
-AspectRatio RasterImage::GetIntrinsicRatio() {
+Maybe<AspectRatio> RasterImage::GetIntrinsicRatio() {
   if (mError) {
-    return {};
+    return Nothing();
   }
-  return AspectRatio::FromSize(mSize.width, mSize.height);
+
+  return Some(AspectRatio::FromSize(mSize.width, mSize.height));
 }
 
 NS_IMETHODIMP_(Orientation)

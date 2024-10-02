@@ -205,11 +205,12 @@ ClippedImage::GetIntrinsicSize(nsSize* aSize) {
   return NS_OK;
 }
 
-AspectRatio ClippedImage::GetIntrinsicRatio() {
+Maybe<AspectRatio> ClippedImage::GetIntrinsicRatio() {
   if (!ShouldClip()) {
     return InnerImage()->GetIntrinsicRatio();
   }
-  return AspectRatio::FromSize(mClip.Width(), mClip.Height());
+
+  return Some(AspectRatio::FromSize(mClip.Width(), mClip.Height()));
 }
 
 NS_IMETHODIMP_(already_AddRefed<SourceSurface>)

@@ -104,9 +104,9 @@ DynamicImage::GetIntrinsicSize(nsSize* aSize) {
   return NS_OK;
 }
 
-AspectRatio DynamicImage::GetIntrinsicRatio() {
+Maybe<AspectRatio> DynamicImage::GetIntrinsicRatio() {
   auto size = mDrawable->Size();
-  return AspectRatio::FromSize(size.width, size.height);
+  return Some(AspectRatio::FromSize(size.width, size.height));
 }
 
 NS_IMETHODIMP_(Orientation)
