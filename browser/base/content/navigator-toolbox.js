@@ -173,7 +173,13 @@ document.addEventListener(
         #urlbar-zoom-button,
         #star-button-box,
         #personal-toolbar-empty-description,
-        #home-button
+        #home-button,
+        #PlacesToolbar,
+        #BMB_bookmarksPopup,
+        #tracking-protection-icon-container,
+        #identity-icon-box,
+        #identity-permission-box,
+        #translations-button
         `);
       if (!element) {
         return;
@@ -236,6 +242,32 @@ document.addEventListener(
           BrowserCommands.home(event);
           break;
 
+        case "PlacesToolbar":
+          BookmarksEventHandler.onClick(event, element._placesView);
+          break;
+
+        case "BMB_bookmarksPopup":
+          BookmarksEventHandler.onClick(event, element.parentNode._placesView);
+          break;
+
+        case "tracking-protection-icon-container":
+          gProtectionsHandler.handleProtectionsButtonEvent(event);
+          break;
+
+        case "identity-icon-box":
+          gIdentityHandler.handleIdentityButtonEvent(event);
+          PageProxyClickHandler(event);
+          break;
+
+        case "identity-permission-box":
+          gPermissionPanel.handleIdentityButtonEvent(event);
+          PageProxyClickHandler(event);
+          break;
+
+        case "translations-button":
+          FullPageTranslationsPanel.open(event);
+          break;
+
         default:
           throw new Error(`Missing case for #${element.id}`);
       }
@@ -252,7 +284,11 @@ document.addEventListener(
         #shopping-sidebar-button,
         #urlbar-zoom-button,
         #star-button-box,
-        #home-button
+        #home-button,
+        #tracking-protection-icon-container,
+        #identity-icon-box,
+        #identity-permission-box,
+        #translations-button
       `);
       if (!element) {
         return;
@@ -296,6 +332,22 @@ document.addEventListener(
           if (isLikeLeftClick) {
             BrowserCommands.home(event);
           }
+          break;
+
+        case "tracking-protection-icon-container":
+          gProtectionsHandler.handleProtectionsButtonEvent(event);
+          break;
+
+        case "identity-icon-box":
+          gIdentityHandler.handleIdentityButtonEvent(event);
+          break;
+
+        case "identity-permission-box":
+          gPermissionPanel.handleIdentityButtonEvent(event);
+          break;
+
+        case "translations-button":
+          FullPageTranslationsPanel.open(event);
           break;
 
         default:

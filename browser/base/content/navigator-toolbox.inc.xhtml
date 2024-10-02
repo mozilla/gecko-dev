@@ -188,8 +188,6 @@
                  code fires onmousedown, and hence eats our favicon drag events. -->
             <box id="tracking-protection-icon-container" align="center"
                  role="button"
-                 onclick="gProtectionsHandler.handleProtectionsButtonEvent(event);"
-                 onkeypress="gProtectionsHandler.handleProtectionsButtonEvent(event);"
                  onmouseover="gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();"
                  onfocus="gProtectionsHandler.onTrackingProtectionIconHoveredOrFocused();"
                  tooltip="tracking-protection-icon-tooltip">
@@ -208,9 +206,7 @@
                    role="button"
                    align="center"
                    data-l10n-id="urlbar-identity-button"
-                   class="identity-box-button"
-                   onclick="gIdentityHandler.handleIdentityButtonEvent(event); PageProxyClickHandler(event);"
-                   onkeypress="gIdentityHandler.handleIdentityButtonEvent(event);">
+                   class="identity-box-button">
                 <image id="identity-icon"/>
                 <label id="identity-icon-label" crop="center" flex="1"/>
               </box>
@@ -218,9 +214,7 @@
                    data-l10n-id="urlbar-permissions-granted"
                    role="button"
                    align="center"
-                   class="identity-box-button"
-                   onclick="gPermissionPanel.handleIdentityButtonEvent(event); PageProxyClickHandler(event);"
-                   onkeypress="gPermissionPanel.handleIdentityButtonEvent(event);">
+                   class="identity-box-button">
                 <image id="permissions-granted-icon"/>
                 <box style="pointer-events: none;">
                     <image class="sharing-icon" id="webrtc-sharing-icon"/>
@@ -399,9 +393,7 @@
                     class="urlbar-page-action"
                     role="button"
                     data-l10n-id="urlbar-translations-button2"
-                    hidden="true"
-                    onclick="FullPageTranslationsPanel.open(event);"
-                    onkeypress="FullPageTranslationsPanel.open(event);">
+                    hidden="true">
                 <image class="urlbar-icon" id="translations-button-icon" />
                 <image class="urlbar-icon" id="translations-button-circle-arrows" />
                 <html:span id="translations-button-locale" aria-hidden="true" />
@@ -547,7 +539,6 @@
             id="PlacesToolbar"
             context="placesContext"
             onmouseup="BookmarksEventHandler.onMouseUp(event);"
-            onclick="BookmarksEventHandler.onClick(event, this._placesView);"
             tooltip="bhTooltip"
             popupsinherittooltip="true">
         <hbox id="PlacesToolbarDropIndicatorHolder" align="center" collapsed="true">
@@ -616,7 +607,6 @@
                  openInTabs="children"
                  side="top"
                  onmouseup="BookmarksEventHandler.onMouseUp(event);"
-                 onclick="BookmarksEventHandler.onClick(event, this.parentNode._placesView);"
                  tooltip="bhTooltip" popupsinherittooltip="true">
         <menuitem id="BMB_viewBookmarksSidebar"
                   data-l10n-id="bookmarks-tools-sidebar-visibility"
