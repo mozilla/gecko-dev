@@ -2149,7 +2149,15 @@ abstract class BaseBrowserFragment :
         if (findInPageIntegration.get()?.isFeatureActive == true) return
         val toolbarHeights = view?.let { probeToolbarHeights(it) } ?: return
 
-        getEngineView().setDynamicToolbarMaxHeight(toolbarHeights.first + toolbarHeights.second)
+        context?.let {
+            if (isToolbarDynamic(it)) {
+                getEngineView().setDynamicToolbarMaxHeight(toolbarHeights.first + toolbarHeights.second)
+            } else {
+                (getSwipeRefreshLayout().layoutParams as? CoordinatorLayout.LayoutParams)?.apply {
+                    bottomMargin = toolbarHeights.second
+                }
+            }
+        }
     }
 
     /**
@@ -2157,9 +2165,8 @@ abstract class BaseBrowserFragment :
      */
     private fun probeToolbarHeights(rootView: View): Pair<Int, Int> {
         val context = rootView.context
-        // Avoid any change for scenarios where the toolbar is not shown / not dynamic
+        // Avoid any change for scenarios where the toolbar is not shown
         if (fullScreenFeature.get()?.isFullScreen == true) return 0 to 0
-        if (!isToolbarDynamic(context)) return 0 to 0
 
         val topToolbarHeight = context.settings().getTopToolbarHeight(
             includeTabStrip = customTabSessionId == null && context.isTabStripEnabled(),

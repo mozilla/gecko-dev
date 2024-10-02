@@ -57,6 +57,7 @@ class BaseBrowserFragmentTest {
         every { testContext.settings() } returns settings
         every { fragment.isAdded } returns true
         every { fragment.activity } returns mockk()
+        every { fragment.context } returns testContext
         every { fragment.requireContext() } returns testContext
         every { fragment.getEngineView() } returns engineView
         every { fragment.getSwipeRefreshLayout() } returns swipeRefreshLayout
@@ -317,7 +318,7 @@ class BaseBrowserFragmentTest {
     }
 
     @Test
-    fun `GIVEN fixed toolbar WHEN setting engine view insets THEN set none`() {
+    fun `GIVEN fixed toolbar WHEN setting engine view insets THEN use bottom toolbar's height as bottom margin`() {
         val currentTab = createTab("https://example.com")
         every { testContext.components.core.store.state } returns BrowserState(
             tabs = listOf(currentTab),
@@ -326,10 +327,21 @@ class BaseBrowserFragmentTest {
         every { fragment.view } returns mockk {
             every { context } returns testContext
         }
+        every { settings.getTopToolbarHeight(any()) } returns 11
+        every { settings.getBottomToolbarHeight(any()) } returns 5
+        every { settings.isDynamicToolbarEnabled } returns false
 
-        fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        safeMockkStatic(
+            View::isKeyboardVisible,
+            Context::isTabStripEnabled,
+        ) {
+            every { any<View>().isKeyboardVisible() } returns false
+            every { testContext.isTabStripEnabled() } returns false
 
-        verify { engineView.setDynamicToolbarMaxHeight(0) }
+            fragment.configureEngineViewWithDynamicToolbarsMaxHeight()
+        }
+
+        verify { (swipeRefreshLayout.layoutParams as CoordinatorLayout.LayoutParams).bottomMargin = 5 }
     }
 
     @Test
@@ -345,6 +357,7 @@ class BaseBrowserFragmentTest {
         every { settings.getTopToolbarHeight(any()) } returns 11
         every { settings.getBottomToolbarHeight(any()) } returns 0
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
 
         safeMockkStatic(
             View::isKeyboardVisible,
@@ -377,6 +390,7 @@ class BaseBrowserFragmentTest {
         every { settings.getTopToolbarHeight(any()) } returns 11
         every { settings.getBottomToolbarHeight(any()) } returns 0
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
 
         safeMockkStatic(
             View::isKeyboardVisible,
@@ -412,6 +426,7 @@ class BaseBrowserFragmentTest {
         every { settings.getTopToolbarHeight(any()) } returns 11
         every { settings.getBottomToolbarHeight(any()) } returns 0
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
 
         safeMockkStatic(
             View::isKeyboardVisible,
@@ -439,6 +454,7 @@ class BaseBrowserFragmentTest {
         every { settings.getTopToolbarHeight(any()) } returns 0
         every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
 
         safeMockkStatic(
             View::isKeyboardVisible,
@@ -466,6 +482,7 @@ class BaseBrowserFragmentTest {
         every { settings.getTopToolbarHeight(any()) } returns 11
         every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
         every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
 
         safeMockkStatic(
@@ -494,6 +511,7 @@ class BaseBrowserFragmentTest {
         every { settings.getTopToolbarHeight(any()) } returns 11
         every { settings.getBottomToolbarHeight(any()) } returns 22
         every { settings.isDynamicToolbarEnabled } returns true
+        every { settings.shouldUseFixedTopToolbar } returns false
         every { testContext.resources.getDimensionPixelSize(R.dimen.browser_navbar_height) } returns 10
 
         safeMockkStatic(
