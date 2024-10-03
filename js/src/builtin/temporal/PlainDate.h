@@ -136,12 +136,6 @@ bool CreateTemporalDate(JSContext* cx, const PlainDate& date,
                         JS::Handle<CalendarValue> calendar,
                         JS::MutableHandle<PlainDateWithCalendar> result);
 
-/**
- * RegulateISODate ( year, month, day, overflow )
- */
-bool RegulateISODate(JSContext* cx, const PlainDate& date,
-                     TemporalOverflow overflow, PlainDate* result);
-
 struct RegulatedISODate final {
   double year = 0;
   int32_t month = 0;
@@ -160,13 +154,6 @@ bool RegulateISODate(JSContext* cx, double year, double month, double day,
 bool AddISODate(JSContext* cx, const PlainDate& date,
                 const DateDuration& duration, TemporalOverflow overflow,
                 PlainDate* result);
-
-/**
- * AddDate ( plainDate, duration, overflow )
- */
-bool AddDate(JSContext* cx, JS::Handle<CalendarValue> calendar,
-             const PlainDate& date, const Duration& duration,
-             TemporalOverflow overflow, PlainDate* result);
 
 /**
  * AddDate ( plainDate, duration, overflow )

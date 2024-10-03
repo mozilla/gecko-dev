@@ -209,9 +209,8 @@ static PlainDate ConstrainISODate(const PlainDate& date) {
 /**
  * RegulateISODate ( year, month, day, overflow )
  */
-bool js::temporal::RegulateISODate(JSContext* cx, const PlainDate& date,
-                                   TemporalOverflow overflow,
-                                   PlainDate* result) {
+static bool RegulateISODate(JSContext* cx, const PlainDate& date,
+                            TemporalOverflow overflow, PlainDate* result) {
   // Step 1.
   if (overflow == TemporalOverflow::Constrain) {
     *result = ::ConstrainISODate(date);
@@ -888,11 +887,15 @@ static bool HasYearsMonthsOrWeeks(const DateDuration& duration) {
 /**
  * AddDate ( plainDate, duration, overflow )
  */
-bool js::temporal::AddDate(JSContext* cx, Handle<CalendarValue> calendar,
-                           const PlainDate& date, const Duration& duration,
-                           TemporalOverflow overflow, PlainDate* result) {
+static bool AddDate(JSContext* cx, Handle<CalendarValue> calendar,
+                    const PlainDate& date, const Duration& duration,
+                    TemporalOverflow overflow, PlainDate* result) {
   MOZ_ASSERT(ISODateTimeWithinLimits(date));
   MOZ_ASSERT(IsValidDuration(duration));
+
+  // FIXME: spec issue - move balancing time duration here, so it doesn't need
+  // to be duplicated here and in CalendarDateAdd. Then change CalendarDateAdd
+  // to accept a DateDuration record only.
 
   // Step 1.
   if (HasYearsMonthsOrWeeks(duration)) {
