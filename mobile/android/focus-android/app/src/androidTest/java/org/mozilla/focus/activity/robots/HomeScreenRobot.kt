@@ -29,8 +29,6 @@ class HomeScreenRobot {
 
     fun skipFirstRun() = onView(withId(R.id.skip)).perform(click())
 
-    fun closeOnboarding() = onboardingCloseButton.clickAndWaitForNewWindow(waitingTime)
-
     fun verifyOnboardingFirstSlide() = assertTrue(firstSlideTitle.waitForExists(waitingTime))
 
     fun verifyOnboardingSecondSlide() = assertTrue(secondSlideTitle.waitForExists(waitingTime))
@@ -77,7 +75,6 @@ class HomeScreenRobot {
     }
 
     fun verifyFirstOnboardingScreenItems() {
-        assertTrue(onboardingCloseButton.waitForExists(waitingTime))
         assertTrue(onboardingLogo.waitForExists(waitingTime))
         assertTrue(onboardingFirstScreenTitle.waitForExists(waitingTime))
         assertTrue(onboardingFirstScreenSubtitle.waitForExists(waitingTime))
@@ -85,7 +82,6 @@ class HomeScreenRobot {
     }
 
     fun verifySecondOnboardingScreenItems() {
-        assertTrue(onboardingCloseButton.waitForExists(waitingTime))
         assertTrue(onboardingLogo.waitForExists(waitingTime))
         assertTrue(onboardingSecondScreenTitle.waitForExists(waitingTime))
         assertTrue(onboardingSecondScreenFirstSubtitle.waitForExists(waitingTime))
@@ -169,12 +165,6 @@ private val finishButton = mDevice.findObject(
 private val topSitesList = mDevice.findObject(UiSelector().resourceId("$packageName:id/topSites"))
 
 /** New onboarding elements **/
-
-private val onboardingCloseButton =
-    mDevice.findObject(
-        UiSelector()
-            .descriptionContains(getStringResource(R.string.onboarding_close_button_content_description)),
-    )
 
 private val onboardingLogo =
     mDevice.findObject(
