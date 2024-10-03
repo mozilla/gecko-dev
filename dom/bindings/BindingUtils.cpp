@@ -626,10 +626,8 @@ void TErrorResult<CleanupPolicy>::SetPendingException(JSContext* cx,
                                                       const char* context) {
   AssertInOwningThread();
   if (IsUncatchableException()) {
-    // Nuke any existing exception on cx, to make sure we're uncatchable.
-    JS_ClearPendingException(cx);
-    // Don't do any reporting.  Just return, to create an
-    // uncatchable exception.
+    // Note: ReportUncatchableException will clear any existing exception on cx.
+    JS::ReportUncatchableException(cx);
     mResult = NS_OK;
     return;
   }
