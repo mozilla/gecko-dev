@@ -8,6 +8,6 @@
 enable_blocklist_v2_instead_of_useMLBF();
 
 Services.scriptloader.loadSubScript(
-  Services.io.newFileURI(do_get_file("test_blocklistchange.js")).spec,
+  Services.io.newFileURI(do_get_file("test_blocklist_severities.js")).spec,
   this
 );

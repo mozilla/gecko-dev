@@ -47,6 +47,8 @@ skip-if = ["os == 'android' && verify"] # times out
 
 ["test_blocklist_severities.js"]
 
+["test_blocklist_severities_v2.js"]
+
 ["test_blocklist_statechange_telemetry.js"]
 skip-if = ["appname == 'thunderbird'"] # Data irrelevant to Thunderbird. Bug 1641400.
 
@@ -102,3 +104,5 @@ skip-if = ["os == 'android' && verify"] # times out in chaos mode on Android bec
 skip-if = ["true"]
 
 ["test_softblocked.js"]
+
+["test_softblocked_v2.js"]
