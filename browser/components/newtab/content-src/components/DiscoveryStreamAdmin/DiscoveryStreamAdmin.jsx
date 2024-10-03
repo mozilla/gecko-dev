@@ -295,9 +295,20 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
 
   renderSpocs() {
     const { spocs } = this.props.state.DiscoveryStream;
+
+    const unifiedAdsSpocsEnabled =
+      this.props.otherPrefs["unifiedAds.spocs.enabled"];
+
+    const unifiedAdsEndpoint = this.props.otherPrefs["unifiedAds.endpoint"];
+
     let spocsData = [];
-    if (spocs.data && spocs.data.spocs && spocs.data.spocs.items) {
-      spocsData = spocs.data.spocs.items || [];
+
+    if (
+      spocs.data &&
+      spocs.data.newtab_spocs &&
+      spocs.data.newtab_spocs.items
+    ) {
+      spocsData = spocs.data.newtab_spocs.items || [];
     }
 
     return (
@@ -306,7 +317,11 @@ export class DiscoveryStreamAdminUI extends React.PureComponent {
           <tbody>
             <Row>
               <td className="min">spocs_endpoint</td>
-              <td>{spocs.spocs_endpoint}</td>
+              <td>
+                {unifiedAdsSpocsEnabled
+                  ? unifiedAdsEndpoint
+                  : spocs.spocs_endpoint}
+              </td>
             </Row>
             <Row>
               <td className="min">Data last fetched</td>

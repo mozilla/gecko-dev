@@ -81,7 +81,7 @@ describe("DiscoveryStreamAdmin", () => {
       state.spocs = {
         frequency_caps: [],
         data: {
-          spocs: {
+          newtab_spocs: {
             items: [
               {
                 id: 12345,

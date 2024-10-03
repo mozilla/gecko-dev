@@ -3428,7 +3428,7 @@ main section {
   inset-inline-end: var(--space-xlarge);
   border: 0;
   background: none;
-  z-index: 1;
+  z-index: 2;
   border-radius: 2px;
 }
 .discoverystream-admin-toggle .icon-devtools {
@@ -3457,6 +3457,7 @@ main section {
   font-size: 14px;
   padding-inline-start: 240px;
   color: var(--newtab-text-primary-color);
+  z-index: 1;
 }
 .discoverystream-admin.collapsed {
   display: none;
