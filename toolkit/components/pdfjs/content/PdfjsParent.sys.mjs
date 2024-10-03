@@ -15,6 +15,7 @@
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
 import { PdfJsTelemetry } from "resource://pdf.js/PdfJsTelemetry.sys.mjs";
+import { playNotFoundSound } from "resource://gre/modules/FinderSound.sys.mjs";
 
 const lazy = {};
 
@@ -69,6 +70,7 @@ export class PdfjsParent extends JSWindowActorParent {
     super();
     this._boundToFindbar = null;
     this._findFailedString = null;
+    this._lastNotFoundStringLength = 0;
 
     this._updatedPreference();
   }
@@ -412,6 +414,23 @@ export class PdfjsParent extends JSWindowActorParent {
       } else if (!this._findFailedString) {
         this._findFailedString = data.rawQuery;
         lazy.SetClipboardSearchString(data.rawQuery);
+      }
+
+      let searchLengthened;
+      switch (data.result) {
+        case Ci.nsITypeAheadFind.FIND_NOTFOUND:
+          searchLengthened =
+            data.rawQuery.length > this._lastNotFoundStringLength;
+          this._lastNotFoundStringLength = data.rawQuery.length;
+
+          if (searchLengthened && !data.entireWord) {
+            playNotFoundSound();
+          }
+          break;
+        case Ci.nsITypeAheadFind.FIND_PENDING:
+          break;
+        default:
+          this._lastNotFoundStringLength = 0;
       }
 
       const matchesCount = this._requestMatchesCount(data.matchesCount);

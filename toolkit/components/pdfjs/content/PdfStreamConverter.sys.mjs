@@ -525,11 +525,17 @@ class ChromeActions {
     if (typeof data.rawQuery === "string") {
       rawQuery = data.rawQuery;
     }
+    // Same for the `entireWord` property.
+    let entireWord = false;
+    if (typeof data.entireWord === "boolean") {
+      entireWord = data.entireWord;
+    }
 
     let actor = getActor(this.domWindow);
     actor?.sendAsyncMessage("PDFJS:Parent:updateControlState", {
       result,
       findPrevious,
+      entireWord,
       matchesCount,
       rawQuery,
     });
