@@ -19,6 +19,8 @@
 #include "wasm/WasmPI.h"
 
 #include "builtin/Promise.h"
+#include "debugger/DebugAPI.h"
+#include "debugger/Debugger.h"
 #include "jit/arm/Simulator-arm.h"
 #include "jit/MIRGenerator.h"
 #include "js/CallAndConstruct.h"
@@ -403,6 +405,20 @@ void SuspenderObject::suspend(JSContext* cx) {
   cx->wasm().promiseIntegration.suspendedStacks_.pushFront(data());
   data()->setSuspendedBy(&cx->wasm().promiseIntegration);
   cx->wasm().promiseIntegration.setActiveSuspender(nullptr);
+
+  if (cx->realm()->isDebuggee()) {
+    WasmFrameIter iter(cx->activation()->asJit());
+    while (true) {
+      MOZ_ASSERT(!iter.done());
+      if (iter.debugEnabled()) {
+        DebugAPI::onSuspendWasmFrame(cx, iter.debugFrame());
+      }
+      ++iter;
+      if (iter.stackSwitched()) {
+        break;
+      }
+    }
+  }
 }
 
 void SuspenderObject::resume(JSContext* cx) {
@@ -411,6 +427,21 @@ void SuspenderObject::resume(JSContext* cx) {
   setActive(cx);
   data()->setSuspendedBy(nullptr);
   cx->wasm().promiseIntegration.suspendedStacks_.remove(data());
+
+  if (cx->realm()->isDebuggee()) {
+    for (FrameIter iter(cx);; ++iter) {
+      MOZ_RELEASE_ASSERT(!iter.done(), "expecting stackSwitched()");
+      if (iter.isWasm()) {
+        WasmFrameIter& wasmIter = iter.wasmFrame();
+        if (wasmIter.stackSwitched()) {
+          break;
+        }
+        if (wasmIter.debugEnabled()) {
+          DebugAPI::onResumeWasmFrame(cx, iter);
+        }
+      }
+    }
+  }
 }
 
 void SuspenderObject::leave(JSContext* cx) {
