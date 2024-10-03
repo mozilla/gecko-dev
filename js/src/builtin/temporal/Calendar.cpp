@@ -736,24 +736,6 @@ bool js::temporal::ToTemporalCalendar(JSContext* cx,
 }
 
 /**
- * ToTemporalCalendarSlotValue ( temporalCalendarLike [ , default ] )
- *
- * When called with `default = "iso8601"`.
- */
-bool js::temporal::ToTemporalCalendarWithISODefault(
-    JSContext* cx, Handle<Value> temporalCalendarLike,
-    MutableHandle<CalendarValue> result) {
-  // Step 1.
-  if (temporalCalendarLike.isUndefined()) {
-    result.set(CalendarValue(CalendarId::ISO8601));
-    return true;
-  }
-
-  // Steps 2-6.
-  return ToTemporalCalendar(cx, temporalCalendarLike, result);
-}
-
-/**
  * GetTemporalCalendarSlotValueWithISODefault ( item )
  */
 bool js::temporal::GetTemporalCalendarWithISODefault(
@@ -777,8 +759,17 @@ bool js::temporal::GetTemporalCalendarWithISODefault(
     return false;
   }
 
+  // FIXME: spec issue - handle `undefined` case here and then remove optional
+  // `default` parameter from ToTemporalCalendarSlotValue.
+  //
+  // https://github.com/tc39/proposal-temporal/pull/2913
+
   // Step 3.
-  return ToTemporalCalendarWithISODefault(cx, calendarValue, result);
+  if (calendarValue.isUndefined()) {
+    result.set(CalendarValue(CalendarId::ISO8601));
+    return true;
+  }
+  return ToTemporalCalendar(cx, calendarValue, result);
 }
 
 /**

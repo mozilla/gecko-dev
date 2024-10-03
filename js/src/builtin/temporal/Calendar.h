@@ -230,13 +230,6 @@ bool ToTemporalCalendar(JSContext* cx,
                         JS::MutableHandle<CalendarValue> result);
 
 /**
- * ToTemporalCalendarSlotValue ( temporalCalendarLike [ , default ] )
- */
-bool ToTemporalCalendarWithISODefault(
-    JSContext* cx, JS::Handle<JS::Value> temporalCalendarLike,
-    JS::MutableHandle<CalendarValue> result);
-
-/**
  * GetTemporalCalendarWithISODefault ( item )
  */
 bool GetTemporalCalendarWithISODefault(JSContext* cx,

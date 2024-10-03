@@ -189,23 +189,6 @@ bool js::temporal::CreateTemporalMonthDay(
   return true;
 }
 
-template <typename T, typename... Ts>
-static bool ToTemporalCalendarForMonthDay(JSContext* cx,
-                                          Handle<JSObject*> object,
-                                          MutableHandle<CalendarValue> result) {
-  if (auto* unwrapped = object->maybeUnwrapIf<T>()) {
-    result.set(unwrapped->calendar());
-    return result.wrap(cx);
-  }
-
-  if constexpr (sizeof...(Ts) > 0) {
-    return ToTemporalCalendarForMonthDay<Ts...>(cx, object, result);
-  }
-
-  result.set(CalendarValue());
-  return true;
-}
-
 /**
  * ToTemporalMonthDay ( item [ , overflow ] )
  */
@@ -225,25 +208,14 @@ static bool ToTemporalMonthDay(
     return true;
   }
 
+  // FIXME: spec issue - call GetTemporalCalendarSlotValueWithISODefault here
+  //
+  // https://github.com/tc39/proposal-temporal/pull/2913
+
   // Steps 2.b-c.
   Rooted<CalendarValue> calendar(cx);
-  if (!::ToTemporalCalendarForMonthDay<PlainDateObject, PlainDateTimeObject,
-                                       PlainYearMonthObject,
-                                       ZonedDateTimeObject>(cx, item,
-                                                            &calendar)) {
+  if (!GetTemporalCalendarWithISODefault(cx, item, &calendar)) {
     return false;
-  }
-  if (!calendar) {
-    // Step 2.c.i.
-    Rooted<Value> calendarLike(cx);
-    if (!GetProperty(cx, item, item, cx->names().calendar, &calendarLike)) {
-      return false;
-    }
-
-    // Step 2.c.ii.
-    if (!ToTemporalCalendarWithISODefault(cx, calendarLike, &calendar)) {
-      return false;
-    }
   }
 
   // Step 2.d.
