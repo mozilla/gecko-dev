@@ -1588,10 +1588,6 @@ static bool UnbalanceDateDurationRelative(
     return true;
   }
 
-  // Step 2.
-  MOZ_ASSERT(
-      CalendarMethodsRecordHasLookedUp(calendar, CalendarMethod::DateAdd));
-
   // Step 3.
   auto yearsMonthsWeeksDuration = DateDuration{years, months, weeks};
 
@@ -1942,12 +1938,7 @@ static bool GetTemporalRelativeToOption(
 
     // Step 5.e.
     Rooted<CalendarRecord> calendarRec(cx);
-    if (!CreateCalendarMethodsRecord(cx, calendar,
-                                     {
-                                         CalendarMethod::DateFromFields,
-                                         CalendarMethod::Fields,
-                                     },
-                                     &calendarRec)) {
+    if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
       return false;
     }
 
@@ -2144,12 +2135,10 @@ static bool GetTemporalRelativeToOption(
 static bool CreateCalendarMethodsRecordFromRelativeTo(
     JSContext* cx, Handle<Wrapped<PlainDateObject*>> plainRelativeTo,
     Handle<ZonedDateTime> zonedRelativeTo,
-    mozilla::EnumSet<CalendarMethod> methods,
     MutableHandle<CalendarRecord> result) {
   // Step 1.
   if (zonedRelativeTo) {
-    return CreateCalendarMethodsRecord(cx, zonedRelativeTo.calendar(), methods,
-                                       result);
+    return CreateCalendarMethodsRecord(cx, zonedRelativeTo.calendar(), result);
   }
 
   // Step 2.
@@ -2164,7 +2153,7 @@ static bool CreateCalendarMethodsRecordFromRelativeTo(
       return false;
     }
 
-    return CreateCalendarMethodsRecord(cx, calendar, methods, result);
+    return CreateCalendarMethodsRecord(cx, calendar, result);
   }
 
   // Step 3.
@@ -3532,11 +3521,7 @@ static bool Duration_compare(JSContext* cx, unsigned argc, Value* vp) {
   // Step 11.
   Rooted<CalendarRecord> calendar(cx);
   if (!CreateCalendarMethodsRecordFromRelativeTo(cx, plainRelativeTo,
-                                                 zonedRelativeTo,
-                                                 {
-                                                     CalendarMethod::DateAdd,
-                                                 },
-                                                 &calendar)) {
+                                                 zonedRelativeTo, &calendar)) {
     return false;
   }
 
@@ -4211,12 +4196,7 @@ static bool Duration_round(JSContext* cx, const CallArgs& args) {
   // Step 35.
   Rooted<CalendarRecord> calendar(cx);
   if (!CreateCalendarMethodsRecordFromRelativeTo(cx, plainRelativeTo,
-                                                 zonedRelativeTo,
-                                                 {
-                                                     CalendarMethod::DateAdd,
-                                                     CalendarMethod::DateUntil,
-                                                 },
-                                                 &calendar)) {
+                                                 zonedRelativeTo, &calendar)) {
     return false;
   }
 
@@ -4458,12 +4438,7 @@ static bool Duration_total(JSContext* cx, const CallArgs& args) {
   // Step 15.
   Rooted<CalendarRecord> calendar(cx);
   if (!CreateCalendarMethodsRecordFromRelativeTo(cx, plainRelativeTo,
-                                                 zonedRelativeTo,
-                                                 {
-                                                     CalendarMethod::DateAdd,
-                                                     CalendarMethod::DateUntil,
-                                                 },
-                                                 &calendar)) {
+                                                 zonedRelativeTo, &calendar)) {
     return false;
   }
 

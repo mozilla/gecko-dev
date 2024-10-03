@@ -435,10 +435,6 @@ bool js::temporal::InterpretTemporalDateTimeFields(
     Handle<PlainObject*> options, PlainDateTime* result) {
   // Step 1. (Not applicable in our implementation.)
 
-  // Step 2.
-  MOZ_ASSERT(CalendarMethodsRecordHasLookedUp(calendar,
-                                              CalendarMethod::DateFromFields));
-
   // Step 3.
   TemporalTimeLike timeResult;
   if (!ToTemporalTimeRecord(cx, fields, &timeResult)) {
@@ -581,12 +577,7 @@ static Wrapped<PlainDateTimeObject*> ToTemporalDateTime(
 
     // Step 3.e.
     Rooted<CalendarRecord> calendarRec(cx);
-    if (!CreateCalendarMethodsRecord(cx, calendar,
-                                     {
-                                         CalendarMethod::DateFromFields,
-                                         CalendarMethod::Fields,
-                                     },
-                                     &calendarRec)) {
+    if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
       return nullptr;
     }
 
@@ -787,11 +778,6 @@ static bool DifferenceISODateTime(JSContext* cx, const PlainDateTime& one,
   MOZ_ASSERT(IsValidISODateTime(two));
   MOZ_ASSERT(ISODateTimeWithinLimits(one));
   MOZ_ASSERT(ISODateTimeWithinLimits(two));
-
-  // Step 3.
-  MOZ_ASSERT_IF(
-      one.date != two.date && largestUnit < TemporalUnit::Day,
-      CalendarMethodsRecordHasLookedUp(calendar, CalendarMethod::DateUntil));
 
   // Step 4.
   auto timeDuration = DifferenceTime(one.time, two.time);
@@ -1133,12 +1119,7 @@ static bool DifferenceTemporalPlainDateTime(JSContext* cx,
 
   // Step 9.
   Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, dateTime.calendar(),
-                                   {
-                                       CalendarMethod::DateAdd,
-                                       CalendarMethod::DateUntil,
-                                   },
-                                   &calendar)) {
+  if (!CreateCalendarMethodsRecord(cx, dateTime.calendar(), &calendar)) {
     return false;
   }
 
@@ -1199,11 +1180,7 @@ static bool AddDurationToOrSubtractDurationFromPlainDateTime(
 
   // Step 4.
   Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, dateTime.calendar(),
-                                   {
-                                       CalendarMethod::DateAdd,
-                                   },
-                                   &calendar)) {
+  if (!CreateCalendarMethodsRecord(cx, dateTime.calendar(), &calendar)) {
     return false;
   }
 
@@ -1928,13 +1905,7 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
   // Step 5.
   Rooted<CalendarValue> calendarValue(cx, dateTime->calendar());
   Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendarValue,
-                                   {
-                                       CalendarMethod::DateFromFields,
-                                       CalendarMethod::Fields,
-                                       CalendarMethod::MergeFields,
-                                   },
-                                   &calendar)) {
+  if (!CreateCalendarMethodsRecord(cx, calendarValue, &calendar)) {
     return false;
   }
 

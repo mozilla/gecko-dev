@@ -184,33 +184,8 @@ class MOZ_STACK_CLASS CalendarValue final {
   JS::Value const* valueDoNotUse() const { return &value_; }
 };
 
-enum class CalendarMethod {
-  DateAdd,
-  DateFromFields,
-  DateUntil,
-  Day,
-  Fields,
-  MergeFields,
-  MonthDayFromFields,
-  YearMonthFromFields,
-};
-
 class MOZ_STACK_CLASS CalendarRecord final {
   CalendarValue receiver_;
-
-  // Null unless non-builtin calendar methods are used.
-  JSObject* dateAdd_ = nullptr;
-  JSObject* dateFromFields_ = nullptr;
-  JSObject* dateUntil_ = nullptr;
-  JSObject* day_ = nullptr;
-  JSObject* fields_ = nullptr;
-  JSObject* mergeFields_ = nullptr;
-  JSObject* monthDayFromFields_ = nullptr;
-  JSObject* yearMonthFromFields_ = nullptr;
-
-#ifdef DEBUG
-  mozilla::EnumSet<CalendarMethod> lookedUp_{};
-#endif
 
  public:
   /**
@@ -222,38 +197,9 @@ class MOZ_STACK_CLASS CalendarRecord final {
       : receiver_(receiver) {}
 
   const auto& receiver() const { return receiver_; }
-  auto* dateAdd() const { return dateAdd_; }
-  auto* dateFromFields() const { return dateFromFields_; }
-  auto* dateUntil() const { return dateUntil_; }
-  auto* day() const { return day_; }
-  auto* fields() const { return fields_; }
-  auto* mergeFields() const { return mergeFields_; }
-  auto* monthDayFromFields() const { return monthDayFromFields_; }
-  auto* yearMonthFromFields() const { return yearMonthFromFields_; }
-
-#ifdef DEBUG
-  auto& lookedUp() const { return lookedUp_; }
-  auto& lookedUp() { return lookedUp_; }
-#endif
 
   // Helper methods for (Mutable)WrappedPtrOperations.
   auto* receiverDoNotUse() const { return &receiver_; }
-  auto* dateAddDoNotUse() const { return &dateAdd_; }
-  auto* dateAddDoNotUse() { return &dateAdd_; }
-  auto* dateFromFieldsDoNotUse() const { return &dateFromFields_; }
-  auto* dateFromFieldsDoNotUse() { return &dateFromFields_; }
-  auto* dateUntilDoNotUse() const { return &dateUntil_; }
-  auto* dateUntilDoNotUse() { return &dateUntil_; }
-  auto* dayDoNotUse() const { return &day_; }
-  auto* dayDoNotUse() { return &day_; }
-  auto* fieldsDoNotUse() const { return &fields_; }
-  auto* fieldsDoNotUse() { return &fields_; }
-  auto* mergeFieldsDoNotUse() const { return &mergeFields_; }
-  auto* mergeFieldsDoNotUse() { return &mergeFields_; }
-  auto* monthDayFromFieldsDoNotUse() const { return &monthDayFromFields_; }
-  auto* monthDayFromFieldsDoNotUse() { return &monthDayFromFields_; }
-  auto* yearMonthFromFieldsDoNotUse() const { return &yearMonthFromFields_; }
-  auto* yearMonthFromFieldsDoNotUse() { return &yearMonthFromFields_; }
 
   // Trace implementation.
   void trace(JSTracer* trc);
@@ -924,19 +870,7 @@ bool CalendarEqualsOrThrow(JSContext* cx, JS::Handle<CalendarValue> one,
  */
 bool CreateCalendarMethodsRecord(JSContext* cx,
                                  JS::Handle<CalendarValue> calendar,
-                                 mozilla::EnumSet<CalendarMethod> methods,
                                  JS::MutableHandle<CalendarRecord> result);
-
-#ifdef DEBUG
-/**
- * CalendarMethodsRecordHasLookedUp ( calendarRec, methodName )
- */
-inline bool CalendarMethodsRecordHasLookedUp(const CalendarRecord& calendar,
-                                             CalendarMethod methodName) {
-  // Steps 1-10.
-  return calendar.lookedUp().contains(methodName);
-}
-#endif
 
 /**
  * CalendarMethodsRecordIsBuiltin ( calendarRec )
@@ -1008,78 +942,6 @@ class WrappedPtrOperations<temporal::CalendarRecord, Wrapper> {
   JS::Handle<temporal::CalendarValue> receiver() const {
     return JS::Handle<temporal::CalendarValue>::fromMarkedLocation(
         container().receiverDoNotUse());
-  }
-
-  JS::Handle<JSObject*> dateAdd() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().dateAddDoNotUse());
-  }
-  JS::Handle<JSObject*> dateFromFields() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().dateFromFieldsDoNotUse());
-  }
-  JS::Handle<JSObject*> dateUntil() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().dateUntilDoNotUse());
-  }
-  JS::Handle<JSObject*> day() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(container().dayDoNotUse());
-  }
-  JS::Handle<JSObject*> fields() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().fieldsDoNotUse());
-  }
-  JS::Handle<JSObject*> mergeFields() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().mergeFieldsDoNotUse());
-  }
-  JS::Handle<JSObject*> monthDayFromFields() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().monthDayFromFieldsDoNotUse());
-  }
-  JS::Handle<JSObject*> yearMonthFromFields() const {
-    return JS::Handle<JSObject*>::fromMarkedLocation(
-        container().yearMonthFromFieldsDoNotUse());
-  }
-};
-
-template <typename Wrapper>
-class MutableWrappedPtrOperations<temporal::CalendarRecord, Wrapper>
-    : public WrappedPtrOperations<temporal::CalendarRecord, Wrapper> {
-  auto& container() { return static_cast<Wrapper*>(this)->get(); }
-
- public:
-  JS::MutableHandle<JSObject*> dateAdd() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().dateAddDoNotUse());
-  }
-  JS::MutableHandle<JSObject*> dateFromFields() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().dateFromFieldsDoNotUse());
-  }
-  JS::MutableHandle<JSObject*> dateUntil() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().dateUntilDoNotUse());
-  }
-  JS::MutableHandle<JSObject*> day() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().dayDoNotUse());
-  }
-  JS::MutableHandle<JSObject*> fields() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().fieldsDoNotUse());
-  }
-  JS::MutableHandle<JSObject*> mergeFields() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().mergeFieldsDoNotUse());
-  }
-  JS::MutableHandle<JSObject*> monthDayFromFields() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().monthDayFromFieldsDoNotUse());
-  }
-  JS::MutableHandle<JSObject*> yearMonthFromFields() {
-    return JS::MutableHandle<JSObject*>::fromMarkedLocation(
-        container().yearMonthFromFieldsDoNotUse());
   }
 };
 

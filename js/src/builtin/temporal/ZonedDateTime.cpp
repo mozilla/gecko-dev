@@ -268,12 +268,7 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
 
     // Step 5.c.
     Rooted<CalendarRecord> calendarRec(cx);
-    if (!CreateCalendarMethodsRecord(cx, calendar,
-                                     {
-                                         CalendarMethod::DateFromFields,
-                                         CalendarMethod::Fields,
-                                     },
-                                     &calendarRec)) {
+    if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
       return false;
     }
 
@@ -710,10 +705,6 @@ static bool AddZonedDateTime(JSContext* cx, const Instant& epochNanoseconds,
     // Step 10.c.
     return AddInstant(cx, intermediate, duration.time, result);
   }
-
-  // Step 11.
-  MOZ_ASSERT(
-      CalendarMethodsRecordHasLookedUp(calendar, CalendarMethod::DateAdd));
 
   // Step 12.
   const auto& datePart = date;
@@ -1267,12 +1258,7 @@ static bool DifferenceTemporalZonedDateTime(JSContext* cx,
 
   // Step 11.
   Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(),
-                                   {
-                                       CalendarMethod::DateAdd,
-                                       CalendarMethod::DateUntil,
-                                   },
-                                   &calendar)) {
+  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(), &calendar)) {
     return false;
   }
 
@@ -1343,11 +1329,7 @@ static bool AddDurationToOrSubtractDurationFromZonedDateTime(
 
   // Step 5.
   Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(),
-                                   {
-                                       CalendarMethod::DateAdd,
-                                   },
-                                   &calendar)) {
+  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(), &calendar)) {
     return false;
   }
 
@@ -1720,11 +1702,7 @@ static bool ZonedDateTime_day(JSContext* cx, const CallArgs& args) {
 
   // Step 4. (Reordered)
   Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(),
-                                   {
-                                       CalendarMethod::Day,
-                                   },
-                                   &calendar)) {
+  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(), &calendar)) {
     return false;
   }
 
@@ -2411,13 +2389,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
 
   // Step 5.
   Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(),
-                                   {
-                                       CalendarMethod::DateFromFields,
-                                       CalendarMethod::Fields,
-                                       CalendarMethod::MergeFields,
-                                   },
-                                   &calendar)) {
+  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(), &calendar)) {
     return false;
   }
 
