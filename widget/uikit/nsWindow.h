@@ -13,21 +13,31 @@
 
 #include "nsTArray.h"
 
-@class UIWindow;
-@class UIView;
+#ifdef __OBJC__
 @class ChildView;
+#else
+typedef struct objc_object ChildView;
+#endif
 
 namespace mozilla::widget {
+class EventDispatcher;
 class TextInputHandler;
-}
+}  // namespace mozilla::widget
+
+#define NS_WINDOW_IID                                \
+  {                                                  \
+    0x5e6fd559, 0xb3f9, 0x40c9, {                    \
+      0x92, 0xd1, 0xef, 0x80, 0xb4, 0xf9, 0x69, 0xe9 \
+    }                                                \
+  }
 
 class nsWindow final : public nsBaseWidget {
-  typedef nsBaseWidget Inherited;
-
  public:
   nsWindow();
 
-  NS_INLINE_DECL_REFCOUNTING_INHERITED(nsWindow, Inherited)
+  NS_DECLARE_STATIC_IID_ACCESSOR(NS_WINDOW_IID)
+
+  NS_DECL_ISUPPORTS_INHERITED
 
   //
   // nsIWidget
@@ -100,6 +110,10 @@ class nsWindow final : public nsBaseWidget {
                       void* aCallbackData) override;
   */
 
+  mozilla::widget::EventDispatcher* GetEventDispatcher() const;
+
+  static already_AddRefed<nsWindow> From(nsIWidget* aWidget);
+
  protected:
   virtual ~nsWindow();
   void BringToFront();
@@ -125,5 +139,7 @@ class nsWindow final : public nsBaseWidget {
   static void DumpWindows(const nsTArray<nsWindow*>& wins, int indent = 0);
   static void LogWindow(nsWindow* win, int index, int indent);
 };
+
+NS_DEFINE_STATIC_IID_ACCESSOR(nsWindow, NS_WINDOW_IID)
 
 #endif /* NSWINDOW_H_ */

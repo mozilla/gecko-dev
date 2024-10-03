@@ -33,6 +33,7 @@
 #include "gfxImageSurface.h"
 #include "gfxContext.h"
 #include "nsObjCExceptions.h"
+#include "nsQueryObject.h"
 #include "nsRegion.h"
 #include "nsTArray.h"
 #include "TextInputHandler.h"
@@ -668,6 +669,8 @@ class nsAutoRetainUIKitObject {
 
 @end
 
+NS_IMPL_ISUPPORTS_INHERITED(nsWindow, nsBaseWidget, nsWindow);
+
 nsWindow::nsWindow()
     : mNativeView(nullptr),
       mVisible(false),
@@ -718,7 +721,7 @@ nsresult nsWindow::Create(nsIWidget* aParent, nsNativeWidget aNativeParent,
   mWindowType = WindowType::TopLevel;
   mBorderStyle = BorderStyle::Default;
 
-  Inherited::BaseCreate(aParent, aInitData);
+  nsBaseWidget::BaseCreate(aParent, aInitData);
 
   NS_ASSERTION(IsTopLevel() || parent,
                "non top level window doesn't have a parent!");
@@ -1057,6 +1060,10 @@ int32_t nsWindow::RoundsWidgetCoordinatesTo() {
   return 1;
 }
 
+mozilla::widget::EventDispatcher* nsWindow::GetEventDispatcher() const {
+  return nullptr;
+}
+
 already_AddRefed<nsIWidget> nsIWidget::CreateTopLevelWindow() {
   nsCOMPtr<nsIWidget> window = new nsWindow();
   return window.forget();
@@ -1064,5 +1071,11 @@ already_AddRefed<nsIWidget> nsIWidget::CreateTopLevelWindow() {
 
 already_AddRefed<nsIWidget> nsIWidget::CreateChildWindow() {
   nsCOMPtr<nsIWidget> window = new nsWindow();
+  return window.forget();
+}
+
+/* static */
+already_AddRefed<nsWindow> nsWindow::From(nsIWidget* aWidget) {
+  RefPtr<nsWindow> window = do_QueryObject(aWidget);
   return window.forget();
 }

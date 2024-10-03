@@ -4,7 +4,9 @@
 
 #include "GeckoViewHistory.h"
 
-#include "JavaBuiltins.h"
+#ifdef MOZ_WIDGET_ANDROID
+#  include "JavaBuiltins.h"
+#endif
 #include "jsapi.h"
 #include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
 #include "js/PropertyAndElement.h"  // JS_GetElement
@@ -276,6 +278,7 @@ GeckoViewHistory::VisitURI(nsIWidget* aWidget, nsIURI* aURI,
     return NS_OK;
   }
 
+#ifdef MOZ_WIDGET_ANDROID
   AutoTArray<jni::String::LocalRef, 3> keys;
   AutoTArray<jni::Object::LocalRef, 3> values;
 
@@ -336,6 +339,7 @@ GeckoViewHistory::VisitURI(nsIWidget* aWidget, nsIURI* aURI,
 
   Unused << NS_WARN_IF(
       NS_FAILED(dispatcher->Dispatch(kOnVisitedMessage, bundle, callback)));
+#endif
 
   return NS_OK;
 }
@@ -462,6 +466,7 @@ void GeckoViewHistory::QueryVisitedState(nsIWidget* aWidget,
     return;
   }
 
+#ifdef MOZ_WIDGET_ANDROID
   // Assemble a bundle like `{ urls: ["http://example.com/1", ...] }`.
   auto uris = jni::ObjectArray::New<jni::String>(aURIs.Length());
   for (size_t i = 0; i < aURIs.Length(); ++i) {
@@ -488,6 +493,7 @@ void GeckoViewHistory::QueryVisitedState(nsIWidget* aWidget,
 
   Unused << NS_WARN_IF(
       NS_FAILED(dispatcher->Dispatch(kGetVisitedMessage, bundle, callback)));
+#endif
 }
 
 /**
