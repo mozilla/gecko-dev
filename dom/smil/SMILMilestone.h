@@ -38,9 +38,10 @@ namespace mozilla {
  */
 class SMILMilestone {
  public:
-  SMILMilestone(SMILTime aTime, bool aIsEnd) : mTime(aTime), mIsEnd(aIsEnd) {}
+  constexpr SMILMilestone(SMILTime aTime, bool aIsEnd)
+      : mTime(aTime), mIsEnd(aIsEnd) {}
 
-  SMILMilestone() : mTime(0), mIsEnd(false) {}
+  constexpr SMILMilestone() : mTime(0), mIsEnd(false) {}
 
   bool operator==(const SMILMilestone& aOther) const {
     return mTime == aOther.mTime && mIsEnd == aOther.mIsEnd;
