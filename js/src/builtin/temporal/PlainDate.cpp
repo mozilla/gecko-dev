@@ -1746,25 +1746,32 @@ static bool PlainDate_inLeapYear(JSContext* cx, unsigned argc, Value* vp) {
 static bool PlainDate_toPlainYearMonth(JSContext* cx, const CallArgs& args) {
   Rooted<PlainDateObject*> temporalDate(
       cx, &args.thisv().toObject().as<PlainDateObject>());
-  Rooted<CalendarValue> calendarValue(cx, temporalDate->calendar());
 
   // Step 3.
-  Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendarValue, &calendar)) {
+  Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
+
+  Rooted<CalendarRecord> calendarRec(cx);
+  if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
     return false;
   }
 
   // Step 4.
   Rooted<PlainObject*> fields(
       cx,
-      PrepareCalendarFields(cx, calendar, temporalDate,
+      PrepareCalendarFields(cx, calendarRec, temporalDate,
                             {CalendarField::MonthCode, CalendarField::Year}));
   if (!fields) {
     return false;
   }
 
   // Steps 5-6.
-  auto obj = CalendarYearMonthFromFields(cx, calendar, fields);
+  Rooted<PlainYearMonthWithCalendar> result(cx);
+  if (!CalendarYearMonthFromFields(cx, calendar, fields,
+                                   TemporalOverflow::Constrain, &result)) {
+    return false;
+  }
+
+  auto* obj = CreateTemporalYearMonth(cx, result);
   if (!obj) {
     return false;
   }

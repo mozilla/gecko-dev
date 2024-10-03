@@ -3857,57 +3857,6 @@ bool js::temporal::CalendarYearMonthFromFields(
 }
 
 /**
- * CalendarYearMonthFromFields ( calendarRec, fields [ , options ] )
- */
-static Wrapped<PlainYearMonthObject*> CalendarYearMonthFromFields(
-    JSContext* cx, Handle<CalendarRecord> calendar, Handle<JSObject*> fields,
-    Handle<PlainObject*> maybeOptions) {
-  auto overflow = TemporalOverflow::Constrain;
-  if (maybeOptions) {
-    if (!GetTemporalOverflowOption(cx, maybeOptions, &overflow)) {
-      return nullptr;
-    }
-  }
-
-  Rooted<PlainYearMonthWithCalendar> result(cx);
-  if (!CalendarYearMonthFromFields(cx, calendar.receiver(), fields, overflow,
-                                   &result)) {
-    return nullptr;
-  }
-  return CreateTemporalYearMonth(cx, result.date(), result.calendar());
-}
-
-/**
- * CalendarYearMonthFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainYearMonthObject*> js::temporal::CalendarYearMonthFromFields(
-    JSContext* cx, Handle<CalendarRecord> calendar,
-    Handle<PlainObject*> fields) {
-  // Steps 1-4.
-  return ::CalendarYearMonthFromFields(cx, calendar, fields, nullptr);
-}
-
-/**
- * CalendarYearMonthFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainYearMonthObject*> js::temporal::CalendarYearMonthFromFields(
-    JSContext* cx, Handle<CalendarRecord> calendar,
-    Handle<PlainYearMonthObject*> fields) {
-  // Steps 1-4.
-  return ::CalendarYearMonthFromFields(cx, calendar, fields, nullptr);
-}
-
-/**
- * CalendarYearMonthFromFields ( calendarRec, fields [ , options ] )
- */
-Wrapped<PlainYearMonthObject*> js::temporal::CalendarYearMonthFromFields(
-    JSContext* cx, Handle<CalendarRecord> calendar, Handle<PlainObject*> fields,
-    Handle<PlainObject*> options) {
-  // Steps 1-4.
-  return ::CalendarYearMonthFromFields(cx, calendar, fields, options);
-}
-
-/**
  * ISOMonthDayFromFields ( fields, overflow )
  */
 static bool ISOMonthDayFromFields(JSContext* cx, Handle<TemporalFields> fields,

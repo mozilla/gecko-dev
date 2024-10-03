@@ -200,7 +200,7 @@ PlainYearMonthObject* js::temporal::CreateTemporalYearMonth(
  * CreateTemporalYearMonth ( isoYear, isoMonth, calendar, referenceISODay [ ,
  * newTarget ] )
  */
-static auto* CreateTemporalYearMonth(
+PlainYearMonthObject* js::temporal::CreateTemporalYearMonth(
     JSContext* cx, Handle<PlainYearMonthWithCalendar> yearMonth) {
   MOZ_ASSERT(
       ISOYearMonthWithinLimits(yearMonth.date().year, yearMonth.date().month));
