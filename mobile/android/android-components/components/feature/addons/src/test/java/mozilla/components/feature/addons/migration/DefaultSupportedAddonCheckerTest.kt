@@ -62,8 +62,8 @@ class DefaultSupportedAddonCheckerTest {
 
         val workId = CHECKER_UNIQUE_PERIODIC_WORK_NAME
 
-        val workManger = WorkManager.getInstance(testContext)
-        val workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        val workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertTrue(workData.isEmpty())
 
@@ -71,7 +71,7 @@ class DefaultSupportedAddonCheckerTest {
 
         assertExtensionIsRegisteredForChecks()
         // Cleaning work manager
-        workManger.cancelUniqueWork(workId)
+        workManager.cancelUniqueWork(workId)
     }
 
     @Test
@@ -81,8 +81,8 @@ class DefaultSupportedAddonCheckerTest {
 
         val workId = CHECKER_UNIQUE_PERIODIC_WORK_NAME
 
-        val workManger = WorkManager.getInstance(testContext)
-        var workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        var workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertTrue(workData.isEmpty())
 
@@ -92,15 +92,15 @@ class DefaultSupportedAddonCheckerTest {
 
         checker.unregisterForChecks()
 
-        workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertEquals(WorkInfo.State.CANCELLED, workData.first().state)
     }
 
     private suspend fun assertExtensionIsRegisteredForChecks() {
         val workId = CHECKER_UNIQUE_PERIODIC_WORK_NAME
-        val workManger = WorkManager.getInstance(testContext)
-        val workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        val workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertFalse(workData.isEmpty())
 

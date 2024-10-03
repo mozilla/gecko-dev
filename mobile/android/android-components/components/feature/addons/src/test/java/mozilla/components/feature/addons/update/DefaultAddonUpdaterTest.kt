@@ -66,20 +66,20 @@ class DefaultAddonUpdaterTest {
 
         val workId = updater.getUniquePeriodicWorkName(addonId)
 
-        val workManger = WorkManager.getInstance(testContext)
-        var workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        var workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertTrue(workData.isEmpty())
 
         updater.registerForFutureUpdates(addonId)
-        workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertFalse(workData.isEmpty())
 
         assertExtensionIsRegisteredFoUpdates(updater, addonId)
 
         // Cleaning work manager
-        workManger.cancelUniqueWork(workId)
+        workManager.cancelUniqueWork(workId)
     }
 
     @Test
@@ -92,13 +92,13 @@ class DefaultAddonUpdaterTest {
 
         val workId = updater.getUniqueImmediateWorkName(addonId)
 
-        val workManger = WorkManager.getInstance(testContext)
-        var workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        var workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertTrue(workData.isEmpty())
 
         updater.update(addonId)
-        workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertFalse(workData.isEmpty())
 
@@ -109,7 +109,7 @@ class DefaultAddonUpdaterTest {
         assertTrue(work.tags.contains(WORK_TAG_IMMEDIATE))
 
         // Cleaning work manager
-        workManger.cancelUniqueWork(workId)
+        workManager.cancelUniqueWork(workId)
     }
 
     @Test
@@ -312,13 +312,13 @@ class DefaultAddonUpdaterTest {
 
         val workId = updater.getUniquePeriodicWorkName(addonId)
 
-        val workManger = WorkManager.getInstance(testContext)
-        var workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        var workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertTrue(workData.isEmpty())
 
         updater.registerForFutureUpdates(addonId)
-        workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        workData = workManager.getWorkInfosForUniqueWork(workId).await()
 
         assertFalse(workData.isEmpty())
 
@@ -326,7 +326,7 @@ class DefaultAddonUpdaterTest {
 
         updater.unregisterForFutureUpdates(addonId)
 
-        workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        workData = workManager.getWorkInfosForUniqueWork(workId).await()
         assertEquals(WorkInfo.State.CANCELLED, workData.first().state)
         verify(updater.updateAttempStorage).remove(addonId)
     }
@@ -404,8 +404,8 @@ class DefaultAddonUpdaterTest {
 
     private suspend fun assertExtensionIsRegisteredFoUpdates(updater: DefaultAddonUpdater, extId: String) {
         val workId = updater.getUniquePeriodicWorkName(extId)
-        val workManger = WorkManager.getInstance(testContext)
-        val workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        val workData = workManager.getWorkInfosForUniqueWork(workId).await()
         val work = workData.first()
 
         assertEquals(WorkInfo.State.ENQUEUED, work.state)
@@ -415,8 +415,8 @@ class DefaultAddonUpdaterTest {
 
     private suspend fun assertExtensionIsNotRegisteredFoUpdates(updater: DefaultAddonUpdater, extId: String) {
         val workId = updater.getUniquePeriodicWorkName(extId)
-        val workManger = WorkManager.getInstance(testContext)
-        val workData = workManger.getWorkInfosForUniqueWork(workId).await()
+        val workManager = WorkManager.getInstance(testContext)
+        val workData = workManager.getWorkInfosForUniqueWork(workId).await()
         assertTrue("$extId should not have been registered for updates", workData.isEmpty())
     }
 
