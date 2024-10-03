@@ -63,6 +63,11 @@ subprojects {
         kotlinOptions.allWarningsAsErrors = true
     }
 
+    // Prevent some dependencies from being used in AC.
+    project.configurations.all {
+        exclude group: 'io.mockk', module: 'mockk'
+    }
+
     project.configurations.configureEach {
         // Dependencies can't depend on a different major version of Glean than A-C itself.
         resolutionStrategy.eachDependency { details ->
