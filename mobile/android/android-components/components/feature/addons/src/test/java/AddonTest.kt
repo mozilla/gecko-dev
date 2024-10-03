@@ -541,4 +541,20 @@ class AddonTest {
         assertNotNull(addonWithInstalledStateIcon.installedState?.icon)
         assertNotNull(addonWithInstalledStateIcon.provideIcon())
     }
+
+    @Test
+    fun `isSoftBlocked - true if installed state disabled status equals to SOFT_BLOCKED and otherwise false`() {
+        val addon = Addon(id = "id")
+        val softBlockedAddon = addon.copy(
+            installedState = Addon.InstalledState(
+                id = "id",
+                version = "1.0",
+                optionsPageUrl = "",
+                disabledReason = Addon.DisabledReason.SOFT_BLOCKED,
+            ),
+        )
+
+        assertFalse(addon.isSoftBlocked())
+        assertTrue(softBlockedAddon.isSoftBlocked())
+    }
 }

@@ -338,8 +338,21 @@ class AddonsManagerAdapter(
         val statusErrorLearnMoreLink = holder.statusErrorView.findViewById<TextView>(
             R.id.add_on_status_error_learn_more_link,
         )
-        if (addon.isDisabledAsBlocklisted()) {
-            statusErrorMessage.text = context.getString(R.string.mozac_feature_addons_status_blocklisted, addonName)
+        if (addon.isDisabledAsBlocklisted() || addon.isSoftBlocked()) {
+            statusErrorMessage.text = context.getString(
+                // Hard-blocked add-ons cannot be re-enabled, but soft-blocked ones can. That's why we check
+                // whether the add-on is enabled first if it isn't hard blocked ("disabled as blocklisted").
+                if (addon.isDisabledAsBlocklisted()) {
+                    R.string.mozac_feature_addons_status_blocklisted
+                } else if (addon.isEnabled()) {
+                    R.string.mozac_feature_addons_status_softblocked_re_enabled
+                } else {
+                    R.string.mozac_feature_addons_status_softblocked
+                },
+                addonName,
+            )
+            // We need to adjust the link text because the BLOCKLISTED_ADDON link isn't a SUMO page.
+            statusErrorLearnMoreLink.text = context.getString(R.string.mozac_feature_addons_status_see_details)
             statusErrorLearnMoreLink.setOnClickListener {
                 addonsManagerDelegate.onLearnMoreLinkClicked(
                     AddonsManagerAdapterDelegate.LearnMoreLinks.BLOCKLISTED_ADDON,

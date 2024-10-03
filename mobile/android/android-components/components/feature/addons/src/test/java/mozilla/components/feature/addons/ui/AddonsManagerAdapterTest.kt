@@ -618,6 +618,9 @@ class AddonsManagerAdapterTest {
         verify(statusErrorView).isVisible = true
         verify(messageTextView).text = "$addonName has been disabled due to security or stability issues."
 
+        // Since we link to a non-SUMO page, we should update the text for this link.
+        assertEquals(learnMoreTextView.text, "See details")
+
         // Verify that a click on the "learn more" link actually does something.
         learnMoreTextView.performClick()
         verify(addonsManagerAdapterDelegate).onLearnMoreLinkClicked(
@@ -838,6 +841,74 @@ class AddonsManagerAdapterTest {
         verify(statusErrorView).isVisible = true
         verify(messageTextView).text = "${addon.id} is not compatible with your version of $appName (version $appVersion)."
         verify(learnMoreTextView).isVisible = false
+    }
+
+    @Test
+    fun `bind soft-blocked add-on`() {
+        val addon = makeDisabledAddon(Addon.DisabledReason.SOFT_BLOCKED)
+        whenever(addon.isEnabled()).thenReturn(false)
+        val expectedMessage =
+            "This extension violates Mozilla’s policies and has been disabled. You can enable it, but this may be risky."
+
+        bindSoftBlockedAddon(addon, expectedMessage)
+    }
+
+    @Test
+    fun `bind soft-blocked add-on that has been re-enabled by user`() {
+        val addon = makeDisabledAddon(Addon.DisabledReason.SOFT_BLOCKED)
+        whenever(addon.isEnabled()).thenReturn(true)
+        val expectedMessage = "This extension violates Mozilla’s policies. Using it may be risky."
+
+        bindSoftBlockedAddon(addon, expectedMessage)
+    }
+
+    private fun bindSoftBlockedAddon(addon: Addon, expectedMessage: String) {
+        val addonsManagerAdapterDelegate: AddonsManagerAdapterDelegate = mock()
+        val titleView: TextView = mock()
+        whenever(titleView.context).thenReturn(testContext)
+        val summaryView: TextView = mock()
+        whenever(summaryView.context).thenReturn(testContext)
+        val statusErrorView: View = mock()
+        val messageTextView: TextView = mock()
+        val learnMoreTextView = TextView(testContext)
+        whenever(statusErrorView.findViewById<TextView>(R.id.add_on_status_error_message)).thenReturn(
+            messageTextView,
+        )
+        whenever(statusErrorView.findViewById<TextView>(R.id.add_on_status_error_learn_more_link)).thenReturn(
+            learnMoreTextView,
+        )
+        val iconView = mock<ImageView>()
+        whenever(iconView.context).thenReturn(testContext)
+        val addonViewHolder = CustomViewHolder.AddonViewHolder(
+            view = View(testContext),
+            contentWrapperView = mock(),
+            iconView = iconView,
+            titleView = titleView,
+            summaryView = summaryView,
+            ratingView = mock(),
+            ratingAccessibleView = mock(),
+            reviewCountView = mock(),
+            addButton = mock(),
+            allowedInPrivateBrowsingLabel = mock(),
+            statusErrorView = statusErrorView,
+        )
+        val adapter = AddonsManagerAdapter(addonsManagerAdapterDelegate, emptyList(), mock(), emptyList(), mock())
+
+        adapter.bindAddon(addonViewHolder, addon, appName, appVersion)
+
+        verify(statusErrorView).isVisible = true
+        verify(messageTextView).text = expectedMessage
+
+        // Since we link to a non-SUMO page, we should update the text for this link.
+        assertEquals(learnMoreTextView.text, "See details")
+
+        // Verify that a click on the "see details" link actually does something.
+        learnMoreTextView.performClick()
+        verify(addonsManagerAdapterDelegate).onLearnMoreLinkClicked(
+            // This is the same link for both hard and soft blocked add-ons.
+            AddonsManagerAdapterDelegate.LearnMoreLinks.BLOCKLISTED_ADDON,
+            addon,
+        )
     }
 
     private fun makeDisabledAddon(disabledReason: Addon.DisabledReason, name: String? = null): Addon {

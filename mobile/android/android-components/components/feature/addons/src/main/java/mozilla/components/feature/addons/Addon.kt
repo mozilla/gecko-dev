@@ -271,6 +271,12 @@ data class Addon(
     fun isDisabledAsBlocklisted() = installedState?.disabledReason == DisabledReason.BLOCKLISTED
 
     /**
+     * Returns whether this [Addon] is currently soft-blocked. While we're cheking the
+     * disabled reason, the user still has the opportunity to re-enable the [Addon].
+     */
+    fun isSoftBlocked() = installedState?.disabledReason == DisabledReason.SOFT_BLOCKED
+
+    /**
      * Returns whether this [Addon] is currently disabled because it isn't correctly signed.
      */
     fun isDisabledAsNotCorrectlySigned() = installedState?.disabledReason == DisabledReason.NOT_CORRECTLY_SIGNED
