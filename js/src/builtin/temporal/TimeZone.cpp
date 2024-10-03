@@ -761,97 +761,26 @@ JSString* js::temporal::GetOffsetStringFor(JSContext* cx,
 /**
  * TimeZoneEquals ( one, two )
  */
-bool js::temporal::TimeZoneEquals(JSContext* cx, Handle<JSString*> one,
-                                  Handle<JSString*> two, bool* equals) {
-  // Steps 1-3. (Not applicable)
+bool js::temporal::TimeZoneEquals(JSContext* cx, Handle<TimeZoneValue> one,
+                                  Handle<TimeZoneValue> two, bool* equals) {
+  // Steps 1-3. (Not applicable in our implementation.)
 
   // Step 4.
-  if (!EqualStrings(cx, one, two, equals)) {
-    return false;
-  }
-  if (*equals) {
-    return true;
+  if (!one.isOffset() && !two.isOffset()) {
+    // NOTE: The identifiers are already canonicalized in our implementation, so
+    // we only need to compare both strings for equality.
+    return EqualStrings(cx, one.identifier(), two.identifier(), equals);
   }
 
   // Step 5.
-  Rooted<ParsedTimeZone> timeZoneOne(cx);
-  if (!ParseTimeZoneIdentifier(cx, one, &timeZoneOne)) {
-    return false;
-  }
-
-  // Step 6.
-  Rooted<ParsedTimeZone> timeZoneTwo(cx);
-  if (!ParseTimeZoneIdentifier(cx, two, &timeZoneTwo)) {
-    return false;
-  }
-
-  // Step 7.
-  if (timeZoneOne.name() && timeZoneTwo.name()) {
-    // Step 7.a.
-    Rooted<JSAtom*> validTimeZoneOne(cx);
-    if (!IsValidTimeZoneName(cx, timeZoneOne.name(), &validTimeZoneOne)) {
-      return false;
-    }
-    if (!validTimeZoneOne) {
-      *equals = false;
-      return true;
-    }
-
-    // Step 7.b.
-    Rooted<JSAtom*> validTimeZoneTwo(cx);
-    if (!IsValidTimeZoneName(cx, timeZoneTwo.name(), &validTimeZoneTwo)) {
-      return false;
-    }
-    if (!validTimeZoneTwo) {
-      *equals = false;
-      return true;
-    }
-
-    // Step 7.c and 9.
-    Rooted<JSString*> canonicalOne(
-        cx, CanonicalizeTimeZoneName(cx, validTimeZoneOne));
-    if (!canonicalOne) {
-      return false;
-    }
-
-    JSString* canonicalTwo = CanonicalizeTimeZoneName(cx, validTimeZoneTwo);
-    if (!canonicalTwo) {
-      return false;
-    }
-
-    return EqualStrings(cx, canonicalOne, canonicalTwo, equals);
-  }
-
-  // Step 8.a.
-  if (!timeZoneOne.name() && !timeZoneTwo.name()) {
-    *equals = (timeZoneOne.offset() == timeZoneTwo.offset());
+  if (one.isOffset() && two.isOffset()) {
+    *equals = one.offsetMinutes() == two.offsetMinutes();
     return true;
   }
 
-  // Step 9.
+  // Step 6.
   *equals = false;
   return true;
-}
-
-/**
- * TimeZoneEquals ( one, two )
- */
-bool js::temporal::TimeZoneEquals(JSContext* cx, Handle<TimeZoneValue> one,
-                                  Handle<TimeZoneValue> two, bool* equals) {
-  // Step 2.
-  Rooted<JSString*> timeZoneOne(cx, ToTemporalTimeZoneIdentifier(cx, one));
-  if (!timeZoneOne) {
-    return false;
-  }
-
-  // Step 3.
-  Rooted<JSString*> timeZoneTwo(cx, ToTemporalTimeZoneIdentifier(cx, two));
-  if (!timeZoneTwo) {
-    return false;
-  }
-
-  // Steps 4-9.
-  return TimeZoneEquals(cx, timeZoneOne, timeZoneTwo, equals);
 }
 
 // ES2019 draft rev 0ceb728a1adbffe42b26972a6541fd7f398b1557

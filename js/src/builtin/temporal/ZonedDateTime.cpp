@@ -963,44 +963,6 @@ bool js::temporal::DifferenceZonedDateTime(JSContext* cx, const Instant& ns1,
 }
 
 /**
- * TimeZoneEquals ( one, two )
- */
-static bool TimeZoneEqualsOrThrow(JSContext* cx, Handle<TimeZoneValue> one,
-                                  Handle<TimeZoneValue> two) {
-  // Step 2.
-  Rooted<JSString*> timeZoneOne(cx, ToTemporalTimeZoneIdentifier(cx, one));
-  if (!timeZoneOne) {
-    return false;
-  }
-
-  // Step 3.
-  Rooted<JSString*> timeZoneTwo(cx, ToTemporalTimeZoneIdentifier(cx, two));
-  if (!timeZoneTwo) {
-    return false;
-  }
-
-  // Steps 4-9.
-  bool equals;
-  if (!TimeZoneEquals(cx, timeZoneOne, timeZoneTwo, &equals)) {
-    return false;
-  }
-  if (equals) {
-    return true;
-  }
-
-  // Throw an error when the time zone identifiers don't match. Used when
-  // unequal time zones throw a RangeError.
-  if (auto charsOne = QuoteString(cx, timeZoneOne)) {
-    if (auto charsTwo = QuoteString(cx, timeZoneTwo)) {
-      JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
-                               JSMSG_TEMPORAL_TIMEZONE_INCOMPATIBLE,
-                               charsOne.get(), charsTwo.get());
-    }
-  }
-  return false;
-}
-
-/**
  * DifferenceZonedDateTimeWithRounding ( ns1, ns2, calendarRec, timeZoneRec,
  * precalculatedPlainDateTime, resolvedOptions, largestUnit, roundingIncrement,
  * smallestUnit, roundingMode )
@@ -1273,7 +1235,19 @@ static bool DifferenceTemporalZonedDateTime(JSContext* cx,
   }
 
   // Steps 7-8.
-  if (!TimeZoneEqualsOrThrow(cx, zonedDateTime.timeZone(), other.timeZone())) {
+  bool equalTimeZone;
+  if (!TimeZoneEquals(cx, zonedDateTime.timeZone(), other.timeZone(),
+                      &equalTimeZone)) {
+    return false;
+  }
+  if (!equalTimeZone) {
+    if (auto one = QuoteString(cx, zonedDateTime.timeZone().identifier())) {
+      if (auto two = QuoteString(cx, other.timeZone().identifier())) {
+        JS_ReportErrorNumberUTF8(cx, GetErrorMessage, nullptr,
+                                 JSMSG_TEMPORAL_TIMEZONE_INCOMPATIBLE,
+                                 one.get(), two.get());
+      }
+    }
     return false;
   }
 
