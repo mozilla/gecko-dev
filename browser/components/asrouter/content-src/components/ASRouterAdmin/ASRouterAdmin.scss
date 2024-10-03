@@ -417,6 +417,14 @@
     margin: 0;
   }
 
+  .targeting-editor {
+    resize: vertical;
+
+    &.small {
+      white-space: nowrap;
+    }
+  }
+
   .impressions-section {
     display: flex;
     flex-direction: column;

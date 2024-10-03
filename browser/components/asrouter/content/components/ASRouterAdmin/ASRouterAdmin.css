@@ -325,6 +325,12 @@
 .asrouter-admin p .no-margins {
   margin: 0;
 }
+.asrouter-admin .targeting-editor {
+  resize: vertical;
+}
+.asrouter-admin .targeting-editor.small {
+  white-space: nowrap;
+}
 .asrouter-admin .impressions-section {
   display: flex;
   flex-direction: column;

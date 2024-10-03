@@ -1040,30 +1040,21 @@ export class ASRouterAdminInner extends React.PureComponent {
                 const errorState =
                   this.state.targetingParametersError &&
                   this.state.targetingParametersError.id === param;
-                const className = `monospace no-margins${
+                const largeEditor = value?.length > 30 || value?.match(/[\nR]/);
+                const className = `monospace no-margins targeting-editor${
                   errorState ? " errorState" : ""
-                }`;
-                const inputComp =
-                  (value && value.length) > 30 ? (
-                    <textarea
-                      name={param}
-                      className={className}
-                      value={value}
-                      rows="10"
-                      cols="60"
-                      onChange={this.onChangeTargetingParameters}
-                      spellCheck="false"
-                    />
-                  ) : (
-                    <input
-                      type="text"
-                      size="30"
-                      name={param}
-                      className={className}
-                      value={value}
-                      onChange={this.onChangeTargetingParameters}
-                    />
-                  );
+                }${largeEditor ? " large" : " small"}`;
+                const inputComp = (
+                  <textarea
+                    name={param}
+                    className={className}
+                    value={value}
+                    rows={largeEditor ? "10" : "1"}
+                    cols={largeEditor ? "60" : "28"}
+                    onChange={this.onChangeTargetingParameters}
+                    spellCheck="false"
+                  />
+                );
 
                 return (
                   <tr key={i}>
