@@ -329,7 +329,7 @@ webrender-sw:
 wmf-media-engine:
     description: "{description} with Windows Media Foundation media engine enabled"
     component: "Core::Audio/Video: Playback"
-    expiration: "2024-10-10"
+    expiration: "never"
     when:
         $eval: '"windows1" in task["test-platform"]'
     suffix: "wmfme"
