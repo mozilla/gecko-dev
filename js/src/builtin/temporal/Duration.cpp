@@ -2583,8 +2583,8 @@ static bool NudgeToCalendarUnit(
 
     // Steps 3.e-g.
     DateDuration untilResult;
-    if (!DifferenceDate(cx, calendar, weeksStart, weeksEnd, TemporalUnit::Week,
-                        &untilResult)) {
+    if (!CalendarDateUntil(cx, calendar.receiver(), weeksStart, weeksEnd,
+                           TemporalUnit::Week, &untilResult)) {
       return false;
     }
 
