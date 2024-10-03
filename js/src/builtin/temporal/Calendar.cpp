@@ -3942,74 +3942,64 @@ static bool ISOMonthDayFromFields(JSContext* cx, Handle<TemporalFields> fields,
 }
 
 /**
- * Temporal.Calendar.prototype.monthDayFromFields ( fields [ , options ] )
+ * CalendarMonthDayFromFields ( calendar, fields, overflow )
  */
-static PlainMonthDayObject* BuiltinCalendarMonthDayFromFields(
-    JSContext* cx, CalendarId calendarId, Handle<JSObject*> fields,
-    Handle<JSObject*> maybeOptions) {
-  // Steps 1-4. (Not applicable)
+bool js::temporal::CalendarMonthDayFromFields(
+    JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
+    TemporalOverflow overflow,
+    MutableHandle<PlainMonthDayWithCalendar> result) {
+  auto calendarId = calendar.identifier();
 
-  // Step 5.
+  // Step 1.
   auto relevantFieldNames = {TemporalField::Day, TemporalField::Month,
                              TemporalField::MonthCode, TemporalField::Year};
 
-  // Steps 6-7.
-  Rooted<TemporalFields> dateFields(cx);
+  // Steps 2-3.
+  PlainDate date;
   if (calendarId == CalendarId::ISO8601) {
-    // Step 6.a.
+    // Step 2.a.
+    Rooted<TemporalFields> dateFields(cx);
     if (!PrepareTemporalFields(cx, fields, relevantFieldNames,
                                {TemporalField::Day}, &dateFields)) {
-      return nullptr;
+      return false;
+    }
+
+    // Step 2.b.
+    if (!ISOResolveMonth(cx, &dateFields)) {
+      return false;
+    }
+
+    // Step 2.c.
+    if (!ISOMonthDayFromFields(cx, dateFields, overflow, &date)) {
+      return false;
     }
   } else {
-    // Step 7.a.
+    // Step 3.a.
     auto calendarRelevantFieldDescriptors =
         CalendarFieldDescriptors(calendarId, FieldType::MonthDay);
 
-    // Step 7.b.
+    // Step 3.b.
+    Rooted<TemporalFields> dateFields(cx);
     if (!PrepareTemporalFields(cx, fields, relevantFieldNames, {},
                                calendarRelevantFieldDescriptors, &dateFields)) {
-      return nullptr;
-    }
-  }
-
-  // Step 8.
-  auto overflow = TemporalOverflow::Constrain;
-  if (maybeOptions) {
-    if (!GetTemporalOverflowOption(cx, maybeOptions, &overflow)) {
-      return nullptr;
-    }
-  }
-
-  // Steps 9-10.
-  PlainDate result;
-  if (calendarId == CalendarId::ISO8601) {
-    // Step 9.a.
-    if (!ISOResolveMonth(cx, &dateFields)) {
-      return nullptr;
+      return false;
     }
 
-    // Step 9.b.
-    if (!ISOMonthDayFromFields(cx, dateFields, overflow, &result)) {
-      return nullptr;
-    }
-  } else {
-    // Step 10.a.
+    // Step 3.c.
     if (!CalendarResolveFields(cx, calendarId, dateFields,
                                FieldType::MonthDay)) {
-      return nullptr;
+      return false;
     }
 
-    // Step 10.b.
+    // Step 3.d.
     if (!CalendarMonthDayToISOReferenceDate(cx, calendarId, dateFields,
-                                            overflow, &result)) {
-      return nullptr;
+                                            overflow, &date)) {
+      return false;
     }
   }
 
-  // Step 11.
-  Rooted<CalendarValue> calendar(cx, CalendarValue(calendarId));
-  return CreateTemporalMonthDay(cx, result, calendar);
+  // Step 4.
+  return CreateTemporalMonthDay(cx, date, calendar, result);
 }
 
 /**
@@ -4018,9 +4008,19 @@ static PlainMonthDayObject* BuiltinCalendarMonthDayFromFields(
 static Wrapped<PlainMonthDayObject*> CalendarMonthDayFromFields(
     JSContext* cx, Handle<CalendarRecord> calendar, Handle<JSObject*> fields,
     Handle<PlainObject*> maybeOptions) {
-  auto calendarId = BuiltinCalendarId(calendar.receiver());
-  return BuiltinCalendarMonthDayFromFields(cx, calendarId, fields,
-                                           maybeOptions);
+  auto overflow = TemporalOverflow::Constrain;
+  if (maybeOptions) {
+    if (!GetTemporalOverflowOption(cx, maybeOptions, &overflow)) {
+      return nullptr;
+    }
+  }
+
+  Rooted<PlainMonthDayWithCalendar> result(cx);
+  if (!CalendarMonthDayFromFields(cx, calendar.receiver(), fields, overflow,
+                                  &result)) {
+    return nullptr;
+  }
+  return CreateTemporalMonthDay(cx, result.date(), result.calendar());
 }
 
 /**

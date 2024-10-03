@@ -199,6 +199,7 @@ class PlainDateTimeObject;
 class PlainMonthDayObject;
 class PlainYearMonthObject;
 class PlainDateWithCalendar;
+class PlainMonthDayWithCalendar;
 enum class ShowCalendar;
 enum class TemporalOverflow;
 enum class TemporalUnit;
@@ -556,6 +557,14 @@ Wrapped<PlainMonthDayObject*> CalendarMonthDayFromFields(
 Wrapped<PlainMonthDayObject*> CalendarMonthDayFromFields(
     JSContext* cx, JS::Handle<CalendarRecord> calendar,
     JS::Handle<PlainObject*> fields, JS::Handle<PlainObject*> options);
+
+/**
+ * CalendarMonthDayFromFields ( calendar, fields, overflow )
+ */
+bool CalendarMonthDayFromFields(
+    JSContext* cx, JS::Handle<CalendarValue> calendar,
+    JS::Handle<JSObject*> fields, TemporalOverflow overflow,
+    JS::MutableHandle<PlainMonthDayWithCalendar> result);
 
 /**
  * CalendarEquals ( one, two )
