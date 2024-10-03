@@ -7539,6 +7539,7 @@ void PrepareDatastoreOp::GetResponse(LSRequestResponse& aResponse) {
       LSRequestPrepareDatastoreResponse prepareDatastoreResponse;
       prepareDatastoreResponse.databaseChildEndpoint() =
           std::move(childEndpoint);
+      prepareDatastoreResponse.invalidated() = mInvalidated;
 
       aResponse = std::move(prepareDatastoreResponse);
     }

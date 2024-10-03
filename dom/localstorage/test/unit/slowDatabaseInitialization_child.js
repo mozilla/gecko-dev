@@ -16,6 +16,11 @@ add_task(async function testSteps() {
 
   const storage = LocalStorageUtils.createStorage(principal);
 
-  // XXX This should throw!
-  storage.getItem("foo");
+  try {
+    storage.getItem("foo");
+    ok(false, "Should have thrown");
+  } catch (e) {
+    ok(true, "Should have thrown");
+    Assert.strictEqual(e.result, Cr.NS_ERROR_ABORT, "Threw right result code");
+  }
 });

@@ -946,6 +946,11 @@ nsresult LSObject::EnsureDatabase() {
   glean::ls_preparelsdatabase::processing_time.StopAndAccumulate(
       std::move(latencyTimerId));
 
+  if (prepareDatastoreResponse.invalidated()) {
+    database->RequestAllowToClose();
+    return NS_ERROR_ABORT;
+  }
+
   mDatabase = std::move(database);
 
   return NS_OK;

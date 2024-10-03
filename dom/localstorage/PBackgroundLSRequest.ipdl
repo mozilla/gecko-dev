@@ -18,6 +18,7 @@ struct LSRequestPreloadDatastoreResponse
 struct LSRequestPrepareDatastoreResponse
 {
   Endpoint<PBackgroundLSDatabaseChild> databaseChildEndpoint;
+  bool invalidated;
 };
 
 struct LSRequestPrepareObserverResponse
