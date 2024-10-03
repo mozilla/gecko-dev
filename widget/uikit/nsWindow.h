@@ -6,6 +6,8 @@
 #ifndef NSWINDOW_H_
 #define NSWINDOW_H_
 
+#include <CoreFoundation/CoreFoundation.h>
+
 #include "nsBaseWidget.h"
 #include "gfxPoint.h"
 
