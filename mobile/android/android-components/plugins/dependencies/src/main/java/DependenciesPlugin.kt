@@ -33,7 +33,7 @@ object Versions {
     // This has to be synced to the gradlew plugin version. See
     // http://googlesamples.github.io/android-custom-lint-rules/api-guide/example.md.html#example:samplelintcheckgithubproject/lintversion?
     const val lint = "31.6.1"
-    const val detekt = "1.23.6"
+    const val detekt = "1.23.7"
     const val ktlint = "0.49.1"
 
     const val sentry = "7.14.0"
