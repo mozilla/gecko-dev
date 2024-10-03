@@ -11,10 +11,11 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumSet.h"
 
+#include <array>
 #include <stddef.h>
 #include <stdint.h>
 
-#include "builtin/temporal/Wrapped.h"
+#include "builtin/temporal/TemporalTypes.h"
 #include "js/GCVector.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
@@ -192,13 +193,46 @@ class MOZ_STACK_CLASS TimeZoneValue final {
   void trace(JSTracer* trc);
 };
 
-struct Instant;
+class PossibleInstants final {
+  // GetPossibleInstantsFor can return up-to two elements.
+  static constexpr size_t MaxLength = 2;
+
+  std::array<Instant, MaxLength> array_ = {};
+  size_t length_ = 0;
+
+  void append(const Instant& instant) { array_[length_++] = instant; }
+
+ public:
+  PossibleInstants() = default;
+
+  explicit PossibleInstants(const Instant& instant) { append(instant); }
+
+  explicit PossibleInstants(const Instant& earlier, const Instant& later) {
+    MOZ_ASSERT(earlier <= later);
+    append(earlier);
+    append(later);
+  }
+
+  size_t length() const { return length_; }
+  bool empty() const { return length_ == 0; }
+
+  const auto& operator[](size_t i) const { return array_[i]; }
+
+  auto begin() const { return array_.begin(); }
+  auto end() const { return array_.begin() + length_; }
+
+  const auto& front() const {
+    MOZ_ASSERT(length_ > 0);
+    return array_[0];
+  }
+  const auto& back() const {
+    MOZ_ASSERT(length_ > 0);
+    return array_[length_ - 1];
+  }
+};
+
 struct ParsedTimeZone;
 struct PlainDateTime;
-class CalendarValue;
-class InstantObject;
-class PlainDateTimeObject;
-class PlainDateTimeWithCalendar;
 enum class TemporalDisambiguation;
 
 /**
@@ -263,23 +297,6 @@ bool TimeZoneEquals(JSContext* cx, JS::Handle<TimeZoneValue> one,
  * GetPlainDateTimeFor ( timeZoneRec, instant, calendar [ ,
  * precalculatedOffsetNanoseconds ] )
  */
-PlainDateTimeObject* GetPlainDateTimeFor(JSContext* cx,
-                                         JS::Handle<TimeZoneValue> timeZone,
-                                         const Instant& instant,
-                                         JS::Handle<CalendarValue> calendar);
-
-/**
- * GetPlainDateTimeFor ( timeZoneRec, instant, calendar [ ,
- * precalculatedOffsetNanoseconds ] )
- */
-PlainDateTimeObject* GetPlainDateTimeFor(JSContext* cx, const Instant& instant,
-                                         JS::Handle<CalendarValue> calendar,
-                                         int64_t offsetNanoseconds);
-
-/**
- * GetPlainDateTimeFor ( timeZoneRec, instant, calendar [ ,
- * precalculatedOffsetNanoseconds ] )
- */
 PlainDateTime GetPlainDateTimeFor(const Instant& instant,
                                   int64_t offsetNanoseconds);
 
@@ -294,14 +311,7 @@ bool GetPlainDateTimeFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
  * GetInstantFor ( timeZoneRec, dateTime, disambiguation )
  */
 bool GetInstantFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                   JS::Handle<PlainDateTimeObject*> dateTime,
-                   TemporalDisambiguation disambiguation, Instant* result);
-
-/**
- * GetInstantFor ( timeZoneRec, dateTime, disambiguation )
- */
-bool GetInstantFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                   JS::Handle<PlainDateTimeWithCalendar> dateTime,
+                   const PlainDateTime& dateTime,
                    TemporalDisambiguation disambiguation, Instant* result);
 
 /**
@@ -316,43 +326,29 @@ JSString* GetOffsetStringFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
                              const Instant& instant);
 
 /**
- * GetOffsetStringFor ( timeZoneRec, instant )
- */
-JSString* GetOffsetStringFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                             JS::Handle<Wrapped<InstantObject*>> instant);
-
-/**
- * GetOffsetNanosecondsFor ( timeZoneRec, instant )
- */
-bool GetOffsetNanosecondsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                             JS::Handle<Wrapped<InstantObject*>> instant,
-                             int64_t* offsetNanoseconds);
-
-/**
  * GetOffsetNanosecondsFor ( timeZoneRec, instant )
  */
 bool GetOffsetNanosecondsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
                              const Instant& instant,
                              int64_t* offsetNanoseconds);
 
-using InstantVector = JS::StackGCVector<Wrapped<InstantObject*>>;
-
 /**
  * GetPossibleInstantsFor ( timeZoneRec, dateTime )
  */
 bool GetPossibleInstantsFor(JSContext* cx, JS::Handle<TimeZoneValue> timeZone,
-                            JS::Handle<PlainDateTimeWithCalendar> dateTime,
-                            JS::MutableHandle<InstantVector> list);
+                            const PlainDateTime& dateTime,
+                            PossibleInstants* result);
 
 /**
  * DisambiguatePossibleInstants ( possibleInstants, timeZoneRec, dateTime,
  * disambiguation )
  */
-bool DisambiguatePossibleInstants(
-    JSContext* cx, JS::Handle<InstantVector> possibleInstants,
-    JS::Handle<TimeZoneValue> timeZone, const PlainDateTime& dateTime,
-    TemporalDisambiguation disambiguation,
-    JS::MutableHandle<Wrapped<InstantObject*>> result);
+bool DisambiguatePossibleInstants(JSContext* cx,
+                                  const PossibleInstants& possibleInstants,
+                                  JS::Handle<TimeZoneValue> timeZone,
+                                  const PlainDateTime& dateTime,
+                                  TemporalDisambiguation disambiguation,
+                                  Instant* result);
 
 /**
  * GetNamedTimeZoneNextTransition ( timeZoneIdentifier, epochNanoseconds )

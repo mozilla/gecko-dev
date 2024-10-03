@@ -28,8 +28,7 @@ struct PlainTime;
 /**
  * TemporalInstantToString ( instant, timeZone, precision )
  */
-JSString* TemporalInstantToString(JSContext* cx,
-                                  JS::Handle<InstantObject*> instant,
+JSString* TemporalInstantToString(JSContext* cx, const Instant& instant,
                                   JS::Handle<TimeZoneValue> timeZone,
                                   Precision precision);
 
