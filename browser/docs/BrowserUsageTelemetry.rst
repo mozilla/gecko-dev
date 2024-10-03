@@ -37,6 +37,7 @@ For the purposes of this telemetry a set of areas are defined:
   * ``menu-toolbar`` - The normally hidden toolbar that holds the main menu.
   * ``titlebar`` - The optional title bar.
   * ``tabs-bar`` - The area where tabs are displayed.
+  * ``vertical-tabs-container`` - The area where vertical tabs are displayed.
   * ``bookmarks-bar`` - The bookmarks toolbar.
   * ``app-menu`` - The main application (hamburger) menu.
   * ``tabs-context`` - The context menu shown from right-clicking a tab.

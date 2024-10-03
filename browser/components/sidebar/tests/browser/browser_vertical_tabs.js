@@ -6,18 +6,26 @@
 const { TelemetryTestUtils } = ChromeUtils.importESModule(
   "resource://testing-common/TelemetryTestUtils.sys.mjs"
 );
+const { SessionStoreTestUtils } = ChromeUtils.importESModule(
+  "resource://testing-common/SessionStoreTestUtils.sys.mjs"
+);
+const { NonPrivateTabs } = ChromeUtils.importESModule(
+  "resource:///modules/OpenTabs.sys.mjs"
+);
 
 add_setup(async () => {
   await SpecialPowers.pushPrefEnv({
     set: [["sidebar.verticalTabs", false]],
   });
   Services.telemetry.clearScalars();
+  SessionStoreTestUtils.init(this, window);
 });
 registerCleanupFunction(async () => {
   await SpecialPowers.popPrefEnv();
   while (gBrowser.tabs.length > 1) {
     BrowserTestUtils.removeTab(gBrowser.tabs.at(-1));
   }
+  NonPrivateTabs.stop();
 });
 
 function getTelemetryScalars(names) {
@@ -31,7 +39,7 @@ function checkTelemetryScalar(name, value) {
   return TestUtils.waitForCondition(() => {
     const scalars = TelemetryTestUtils.getProcessScalars("parent");
     return scalars[name] == value;
-  }, `Scalar ${name} has the correct value.`);
+  }, `Scalar ${name} has value: ${value}`);
 }
 
 function getExpectedElements(win, tabstripOrientation = "horizontal") {
@@ -158,7 +166,7 @@ add_task(async function test_toggle_vertical_tabs() {
     document.getElementById("context_openANewTab").click();
   });
 
-  const keyedScalars = TelemetryTestUtils.getProcessScalars("parent", true);
+  let keyedScalars = TelemetryTestUtils.getProcessScalars("parent", true);
   TelemetryTestUtils.assertKeyedScalar(
     keyedScalars,
     "browser.ui.interaction.tabs_context_entrypoint",
@@ -276,9 +284,23 @@ add_task(async function test_toggle_vertical_tabs() {
     }
   );
 
+  info("Open a new tab using the new tab button.");
+  EventUtils.synthesizeMouseAtCenter(
+    document.getElementById("tabs-newtab-button"),
+    {}
+  );
+
+  keyedScalars = TelemetryTestUtils.getProcessScalars("parent", true);
+  TelemetryTestUtils.assertKeyedScalar(
+    keyedScalars,
+    "browser.ui.interaction.vertical_tabs_container",
+    "tabs-newtab-button",
+    1
+  );
+
   await checkTelemetryScalar(
     "browser.engagement.max_concurrent_vertical_tab_count",
-    4
+    5
   );
 
   // flip the pref to move the tabstrip horizontally
@@ -306,7 +328,7 @@ add_task(async function test_toggle_vertical_tabs() {
   TelemetryTestUtils.assertScalar(
     scalars,
     "browser.engagement.max_concurrent_tab_count",
-    4
+    5
   );
   TelemetryTestUtils.assertScalar(
     scalars,
@@ -334,5 +356,49 @@ add_task(async function test_enabling_vertical_tabs_enables_sidebar_revamp() {
   ok(
     Services.prefs.getBoolPref("sidebar.revamp", false),
     "sidebar.revamp pref is also enabled after we've enabled vertical tabs."
+  );
+});
+
+add_task(async function test_vertical_tabs_overflow() {
+  const numTabs = 50;
+  const winData = {
+    tabs: Array.from({ length: numTabs }, (_, i) => ({
+      entries: [
+        {
+          url: `data:,Tab${i}`,
+          triggeringPrincipal_base64: E10SUtils.SERIALIZED_SYSTEMPRINCIPAL,
+        },
+      ],
+    })),
+    selected: numTabs,
+  };
+  const browserState = { windows: [winData] };
+
+  // use Session restore to batch-open tabs
+  info(`Restoring to browserState: ${JSON.stringify(browserState, null, 2)}`);
+  await SessionStoreTestUtils.promiseBrowserState(browserState);
+  info("Windows and tabs opened, waiting for readyWindowsPromise");
+  await NonPrivateTabs.readyWindowsPromise;
+  info("readyWindowsPromise resolved");
+
+  info("Open a new tab using the new tab button.");
+  const newTabButton = document.getElementById("vertical-tabs-newtab-button");
+  ok(
+    BrowserTestUtils.isVisible(newTabButton),
+    "New tab button is visible while tabs are overflowing."
+  );
+  EventUtils.synthesizeMouseAtCenter(newTabButton, {});
+
+  is(
+    gBrowser.tabs.length,
+    numTabs + 1,
+    `Tabstrip now has ${numTabs + 1} tabs.`
+  );
+  const keyedScalars = TelemetryTestUtils.getProcessScalars("parent", true);
+  TelemetryTestUtils.assertKeyedScalar(
+    keyedScalars,
+    "browser.ui.interaction.vertical_tabs_container",
+    "vertical-tabs-newtab-button",
+    1
   );
 });

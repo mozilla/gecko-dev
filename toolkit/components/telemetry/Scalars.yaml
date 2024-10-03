@@ -1414,6 +1414,23 @@ browser.ui.interaction:
     record_in_processes:
       - 'main'
 
+  vertical_tabs_container:
+    bug_numbers:
+      - 1921789
+    description: >
+      Records a count of interactions with items in the vertical tab bar.
+      See https://firefox-source-docs.mozilla.org/browser/BrowserUsageTelemetry.html
+    expires: never
+    kind: uint
+    keyed: true
+    notification_emails:
+      - vsabino@mozilla.com
+    release_channel_collection: opt-out
+    products:
+      - 'firefox'
+    record_in_processes:
+      - 'main'
+
   nav_bar:
     bug_numbers:
       - 1620358
