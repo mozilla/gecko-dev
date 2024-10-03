@@ -28,14 +28,14 @@ class StyleSheetsActor extends Actor {
   constructor(conn, targetActor) {
     super(conn, styleSheetsSpec);
 
-    this.parentActor = targetActor;
+    this.targetActor = targetActor;
   }
 
   /**
    * The window we work with, taken from the parent actor.
    */
   get window() {
-    return this.parentActor.window;
+    return this.targetActor.window;
   }
 
   /**
@@ -52,7 +52,7 @@ class StyleSheetsActor extends Actor {
   }
 
   destroy() {
-    for (const win of this.parentActor.windows) {
+    for (const win of this.targetActor.windows) {
       // This flag only exists for devtools, so we are free to clear
       // it when we're done.
       win.document.styleSheetChangeEventsEnabled = false;
@@ -78,7 +78,7 @@ class StyleSheetsActor extends Actor {
   }
 
   _getStyleSheetsManager() {
-    return this.parentActor.getStyleSheetsManager();
+    return this.targetActor.getStyleSheetsManager();
   }
 
   toggleDisabled(resourceId) {
