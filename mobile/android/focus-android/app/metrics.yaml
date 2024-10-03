@@ -1814,19 +1814,6 @@ context_menu:
         type: string
 
 onboarding:
-  first_screen_close_button:
-    type: event
-    description: The user has tapped on close button from the first screen.
-    bugs:
-      - https://github.com/mozilla-mobile/focus-android/issues/7500
-    data_reviews:
-      - https://github.com/mozilla-mobile/focus-android/pull/7566#issuecomment-1235551604
-      - https://github.com/mozilla-mobile/firefox-android/pull/3320
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
   get_started_button:
     type: event
     description: The user has tapped on get started button.
@@ -1856,19 +1843,6 @@ onboarding:
   skip_button:
     type: event
     description: The user has tapped on skip button.
-    bugs:
-      - https://github.com/mozilla-mobile/focus-android/issues/7500
-    data_reviews:
-      - https://github.com/mozilla-mobile/focus-android/pull/7566#issuecomment-1235551604
-      - https://github.com/mozilla-mobile/firefox-android/pull/3320
-    data_sensitivity:
-      - interaction
-    notification_emails:
-      - android-probes@mozilla.com
-    expires: never
-  second_screen_close_button:
-    type: event
-    description: The user has tapped on close button from the second screen.
     bugs:
       - https://github.com/mozilla-mobile/focus-android/issues/7500
     data_reviews:
