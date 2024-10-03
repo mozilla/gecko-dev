@@ -1939,7 +1939,7 @@ static bool GetTemporalRelativeToOption(
 
     // Step 5.e.
     Rooted<PlainObject*> fields(
-        cx, PrepareCalendarFields(cx, calendarRec, obj,
+        cx, PrepareCalendarFields(cx, calendar, obj,
                                   {
                                       CalendarField::Day,
                                       CalendarField::Month,

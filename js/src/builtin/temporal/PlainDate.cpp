@@ -462,14 +462,9 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
     return false;
   }
 
-  Rooted<CalendarRecord> calendarRec(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
-    return false;
-  }
-
   // Step 2.e.
   Rooted<PlainObject*> fields(
-      cx, PrepareCalendarFields(cx, calendarRec, item,
+      cx, PrepareCalendarFields(cx, calendar, item,
                                 {
                                     CalendarField::Day,
                                     CalendarField::Month,
@@ -1750,15 +1745,10 @@ static bool PlainDate_toPlainYearMonth(JSContext* cx, const CallArgs& args) {
   // Step 3.
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
-  Rooted<CalendarRecord> calendarRec(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
-    return false;
-  }
-
   // Step 4.
   Rooted<PlainObject*> fields(
       cx,
-      PrepareCalendarFields(cx, calendarRec, temporalDate,
+      PrepareCalendarFields(cx, calendar, temporalDate,
                             {CalendarField::MonthCode, CalendarField::Year}));
   if (!fields) {
     return false;
@@ -1797,18 +1787,14 @@ static bool PlainDate_toPlainYearMonth(JSContext* cx, unsigned argc,
 static bool PlainDate_toPlainMonthDay(JSContext* cx, const CallArgs& args) {
   Rooted<PlainDateObject*> temporalDate(
       cx, &args.thisv().toObject().as<PlainDateObject>());
-  Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
   // Step 3.
-  Rooted<CalendarRecord> calendarRec(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
-    return false;
-  }
+  Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
   // Step 4.
   Rooted<PlainObject*> fields(
       cx,
-      PrepareCalendarFields(cx, calendarRec, temporalDate,
+      PrepareCalendarFields(cx, calendar, temporalDate,
                             {CalendarField::Day, CalendarField::MonthCode}));
   if (!fields) {
     return false;
@@ -2025,15 +2011,11 @@ static bool PlainDate_with(JSContext* cx, const CallArgs& args) {
 
   // Step 6.
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
-  Rooted<CalendarRecord> calendarRec(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
-    return false;
-  }
 
   // Step 7.
   Rooted<PlainObject*> fields(cx);
   JS::RootedVector<PropertyKey> fieldNames(cx);
-  if (!PrepareCalendarFieldsAndFieldNames(cx, calendarRec, temporalDate,
+  if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, temporalDate,
                                           {
                                               CalendarField::Day,
                                               CalendarField::Month,

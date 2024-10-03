@@ -697,12 +697,41 @@ PlainObject* js::temporal::PreparePartialTemporalFields(
   return result;
 }
 
+using CalendarFieldNames = JS::StackGCVector<JS::PropertyKey>;
+
 /**
- * PrepareCalendarFieldsAndFieldNames ( calendarRec, fields, calendarFieldNames
- * [ , nonCalendarFieldNames [ , requiredFieldNames ] ] )
+ * CalendarFields ( calendar, fieldNames )
+ */
+static bool CalendarFields(JSContext* cx, Handle<CalendarValue> calendar,
+                           mozilla::EnumSet<CalendarField> fieldNames,
+                           MutableHandle<CalendarFieldNames> result) {
+  MOZ_ASSERT(result.empty());
+
+  // Steps 1-2. (Not applicable.)
+
+  // Steps 3-4.
+  auto temporalFields = CalendarFields(calendar, fieldNames);
+
+  // Reserve space for the append operation.
+  if (!result.reserve(temporalFields.size())) {
+    return false;
+  }
+
+  // Append all fields, sorted.
+  for (auto field : SortedTemporalFields{temporalFields}) {
+    auto* name = ToPropertyName(cx, field);
+    result.infallibleAppend(NameToId(name));
+  }
+
+  return true;
+}
+
+/**
+ * PrepareCalendarFieldsAndFieldNames ( calendar, fields, calendarFieldNames [ ,
+ * nonCalendarFieldNames [ , requiredFieldNames ] ] )
  */
 static bool PrepareCalendarFieldsAndFieldNames(
-    JSContext* cx, Handle<CalendarRecord> calendar, Handle<JSObject*> fields,
+    JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
     mozilla::EnumSet<CalendarField> calendarFieldNames,
     mozilla::EnumSet<TemporalField> nonCalendarFieldNames,
     mozilla::EnumSet<TemporalField> requiredFieldNames,
@@ -737,11 +766,11 @@ static bool PrepareCalendarFieldsAndFieldNames(
 }
 
 /**
- * PrepareCalendarFieldsAndFieldNames ( calendarRec, fields, calendarFieldNames
- * [ , nonCalendarFieldNames [ , requiredFieldNames ] ] )
+ * PrepareCalendarFieldsAndFieldNames ( calendar, fields, calendarFieldNames [ ,
+ * nonCalendarFieldNames [ , requiredFieldNames ] ] )
  */
 bool js::temporal::PrepareCalendarFieldsAndFieldNames(
-    JSContext* cx, Handle<CalendarRecord> calendar, Handle<JSObject*> fields,
+    JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
     mozilla::EnumSet<CalendarField> calendarFieldNames,
     MutableHandle<PlainObject*> resultFields,
     MutableHandle<TemporalFieldNames> resultFieldNames) {
@@ -778,11 +807,11 @@ static constexpr mozilla::EnumSet<TemporalField> NonCalendarFieldNames = {
 #endif
 
 /**
- * PrepareCalendarFields ( calendarRec, fields, calendarFieldNames,
+ * PrepareCalendarFields ( calendar, fields, calendarFieldNames,
  * nonCalendarFieldNames, requiredFieldNames )
  */
 PlainObject* js::temporal::PrepareCalendarFields(
-    JSContext* cx, Handle<CalendarRecord> calendar, Handle<JSObject*> fields,
+    JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
     mozilla::EnumSet<CalendarField> calendarFieldNames,
     mozilla::EnumSet<TemporalField> nonCalendarFieldNames,
     mozilla::EnumSet<TemporalField> requiredFieldNames) {

@@ -254,14 +254,9 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
       return false;
     }
 
-    Rooted<CalendarRecord> calendarRec(cx);
-    if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
-      return false;
-    }
-
     // Step 3.c.
     Rooted<PlainObject*> fields(
-        cx, PrepareCalendarFields(cx, calendarRec, itemObj,
+        cx, PrepareCalendarFields(cx, calendar, itemObj,
                                   {
                                       CalendarField::Day,
                                       CalendarField::Month,
@@ -2175,11 +2170,6 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   // Step 6.
   auto calendar = zonedDateTime.calendar();
 
-  Rooted<CalendarRecord> calendarRec(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
-    return false;
-  }
-
   // Step 7.
   const auto& instant = zonedDateTime.instant();
 
@@ -2203,7 +2193,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   // Step 10.
   Rooted<PlainObject*> fields(cx);
   JS::RootedVector<PropertyKey> fieldNames(cx);
-  if (!PrepareCalendarFieldsAndFieldNames(cx, calendarRec, dateTimeObj,
+  if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, dateTimeObj,
                                           {
                                               CalendarField::Day,
                                               CalendarField::Month,

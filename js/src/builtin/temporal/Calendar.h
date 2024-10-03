@@ -195,6 +195,7 @@ struct PlainDateTime;
 class PlainDateWithCalendar;
 class PlainMonthDayWithCalendar;
 class PlainYearMonthWithCalendar;
+enum class TemporalField;
 enum class TemporalOverflow;
 enum class TemporalUnit;
 
@@ -279,14 +280,11 @@ enum class CalendarField {
   Day,
 };
 
-using CalendarFieldNames = JS::StackGCVector<JS::PropertyKey>;
-
 /**
- * CalendarFields ( calendarRec, fieldNames )
+ * CalendarFields ( calendar, fieldNames )
  */
-bool CalendarFields(JSContext* cx, JS::Handle<CalendarRecord> calendar,
-                    mozilla::EnumSet<CalendarField> fieldNames,
-                    JS::MutableHandle<CalendarFieldNames> result);
+mozilla::EnumSet<TemporalField> CalendarFields(
+    const CalendarValue& calendar, mozilla::EnumSet<CalendarField> fieldNames);
 
 /**
  * CalendarMergeFields ( calendar, fields, additionalFields )
