@@ -19,9 +19,15 @@ function ok(cond, msg) {
 add_setup(function () {
   do_get_profile();
 
-  enableTesting();
+  const { ProcessUtils } = ChromeUtils.importESModule(
+    "resource://testing-common/dom/quota/test/modules/ProcessUtils.sys.mjs"
+  );
 
-  registerCleanupFunction(resetTesting);
+  if (ProcessUtils.isInParentProcess()) {
+    enableTesting();
+
+    registerCleanupFunction(resetTesting);
+  }
 });
 
 function returnToEventLoop() {

@@ -9,6 +9,7 @@ support-files = [
   "migration_profile.zip",
   "schema3upgrade_profile.zip",
   "schema4upgrade_profile.zip",
+  "slowDatabaseInitialization_child.js",
   "somedata_profile.zip",
   "stringLength2_profile.zip",
   "stringLength_profile.zip",

@@ -72,3 +72,51 @@ add_task(
     Assert.equal(isPreloaded, false, "Datastore is not preloaded");
   }
 );
+
+add_task(
+  {
+    pref_set: [["dom.storage.databaseInitialization.pauseOnIOThreadMs", 2000]],
+  },
+  async function testStepsChild() {
+    const principal = PrincipalUtils.createPrincipal("https://example.com");
+
+    info("Clearing");
+
+    {
+      const request = Services.qms.clear();
+      await QuotaUtils.requestFinished(request);
+    }
+
+    info("Installing package");
+
+    installPackage("somedata_profile");
+
+    info("Starting database opening");
+
+    const openPromise = run_test_in_child(
+      "slowDatabaseInitialization_child.js"
+    );
+
+    info("Waiting for database work to start");
+
+    await TestUtils.topicObserved("LocalStorage::DatabaseWorkStarted");
+
+    info("Starting origin clearing");
+
+    const clearPromise = (async function () {
+      const request = Services.qms.clearStoragesForPrincipal(principal);
+      const promise = QuotaUtils.requestFinished(request);
+      return promise;
+    })();
+
+    info("Waiting for database to finish opening");
+
+    // The abort error is checked in the child test, so this shouldn't throw.
+    // We just wait for the child test to finish here.
+    await openPromise;
+
+    info("Waiting for origin to finish clearing");
+
+    await clearPromise;
+  }
+);
