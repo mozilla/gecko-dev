@@ -2280,18 +2280,6 @@ static bool PlainDate_toPlainMonthDay(JSContext* cx, const CallArgs& args) {
         CalendarField::Day, CalendarField::MonthCode};
 
     // Step 5.
-    if (calendarValue.isObject()) {
-      Rooted<JSObject*> calendarObj(cx, calendarValue.toObject());
-      if (!calendarObj->is<CalendarObject>()) {
-        break;
-      }
-      auto builtinCalendar = calendarObj.as<CalendarObject>();
-
-      // Step 5.
-      if (!IsBuiltinAccess(cx, builtinCalendar, fieldNames)) {
-        break;
-      }
-    }
     if (!IsBuiltinAccess(cx, temporalDate, fieldNames)) {
       break;
     }

@@ -402,9 +402,7 @@ static void AssignFromFallback(TemporalField fieldName,
 //
 // When the following conditions are true:
 // 1. The `plainDate` is a Temporal.PlainDate instance and has no overridden methods.
-// 2. The `calendar` is a Temporal.Calendar instance and has no overridden methods.
-// 3. Temporal.PlainDate.prototype and Temporal.Calendar.prototype are in their initial state.
-// 4. Array iteration is still in its initial state. (Required by CalendarFields)
+// 2. Temporal.PlainDate.prototype is in its initial state.
 //
 // PlainDate_toPlainMonthDay has an example implementation for this optimisation.
 //

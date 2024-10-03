@@ -952,13 +952,6 @@ inline bool CalendarMethodsRecordIsBuiltin(const CalendarRecord& calendar) {
   return calendar.receiver().isString();
 }
 
-/**
- * Return true when accessing the calendar fields |fieldNames| can be optimized.
- * Otherwise returns false.
- */
-bool IsBuiltinAccess(JSContext* cx, JS::Handle<CalendarObject*> calendar,
-                     std::initializer_list<CalendarField> fieldNames);
-
 // Helper for MutableWrappedPtrOperations.
 bool WrapCalendarValue(JSContext* cx, JS::MutableHandle<JS::Value> calendar);
 
