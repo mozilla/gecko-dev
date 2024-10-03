@@ -1,10 +1,6 @@
 Configuring Build Options
 =========================
 
-+--------------------------------------------------------------------+
-| This page is an import from MDN and the contents might be outdated |
-+--------------------------------------------------------------------+
-
 This document details how to configure Firefox builds.
 Most of the time a ``mozconfig`` file is not required. The default
 options are the most well-supported, so it is preferable to add as few
@@ -281,25 +277,6 @@ Building as Beta or Release
    - ``late-beta``
    - ``release``
 
-Extensions
-^^^^^^^^^^
-
-``ac_add_options --enable-extensions=default|all|ext1,ext2,-skipext3``
-   There are many optional pieces of code that live in {{
-   Source("extensions/") }}. Many of these extensions are now considered
-   an integral part of the browsing experience. There is a default list
-   of extensions for the suite, and each app-specific ``mozconfig``
-   specifies a different default set. Some extensions are not compatible
-   with all apps, for example:
-
-   - ``cookie`` is not compatible with thunderbird
-   - ``typeaheadfind`` is not compatible with any toolkit app (Firefox,
-      Thunderbird)
-
-   Unless you know which extensions are compatible with which apps, do
-   not use the ``--enable-extensions`` option; the build system will
-   automatically select the proper default set of extensions.
-
 Tests
 ^^^^^
 
@@ -417,3 +394,38 @@ they live or which ones you've created. It also saves you from having to
 export the MOZCONFIG variable each time. For information on installing
 and configuring mozconfigwrapper, see
 https://github.com/ahal/mozconfigwrapper.
+
+Changing build options per directory -- the moz.build hook
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Adding a statement like the following to a ``mozconfig`` file:
+
+.. code::
+
+    ac_add_options MOZ_BUILD_HOOK=/absolute/path/to/file/buildhook.py
+
+will cause this file to be appended to each ``moz.build`` file of the tree. It
+is recommended to place this file outside of the tree, so that it is not wiped
+when cleaning up the tree via ``hg clean`` or ``git clean``.
+
+This hook file is written in the same subset of Python as ``moz.build`` files.
+
+Possibilities are endless, but this is particularly useful to tweak compiler
+options for selected directories, such as disabling optimizations to have a
+better debugging experience without having the entire browser being very slow:
+
+.. code:: python
+
+    nonopt = [
+        "dom/media/",
+        "media/ffvpx/",
+        "media/libcubeb/"
+    ]
+    if RELATIVEDIR.startswith(nonopt):
+        COMPILE_FLAGS["OPTIMIZE"] = []
+
+will make all compilation units at or under those three paths have no
+optimization.
+
+Another useful thing to set per directory is ``FILES_PER_UNIFIED_FILE=1`` to
+disable :ref:`unified builds<unified_builds>`.
