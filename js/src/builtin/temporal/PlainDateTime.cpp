@@ -1815,8 +1815,8 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 16.
-  Rooted<JSObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendarRec, fields, partialDateTime));
+  Rooted<PlainObject*> mergedFields(
+      cx, CalendarMergeFields(cx, calendar, fields, partialDateTime));
   if (!mergedFields) {
     return false;
   }

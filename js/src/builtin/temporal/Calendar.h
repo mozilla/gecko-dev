@@ -296,12 +296,12 @@ bool CalendarFields(JSContext* cx, JS::Handle<CalendarRecord> calendar,
                     JS::MutableHandle<CalendarFieldNames> result);
 
 /**
- * CalendarMergeFields ( calendarRec, fields, additionalFields )
+ * CalendarMergeFields ( calendar, fields, additionalFields )
  */
-JSObject* CalendarMergeFields(JSContext* cx,
-                              JS::Handle<CalendarRecord> calendar,
-                              JS::Handle<PlainObject*> fields,
-                              JS::Handle<PlainObject*> additionalFields);
+PlainObject* CalendarMergeFields(JSContext* cx,
+                                 JS::Handle<CalendarValue> calendar,
+                                 JS::Handle<PlainObject*> fields,
+                                 JS::Handle<PlainObject*> additionalFields);
 
 /**
  * CalendarDateAdd ( calendarRec, date, duration [ , options ] )

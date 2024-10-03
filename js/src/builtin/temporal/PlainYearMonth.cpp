@@ -1103,8 +1103,8 @@ static bool PlainYearMonth_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 9.
-  Rooted<JSObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendarRec, fields, partialYearMonth));
+  Rooted<PlainObject*> mergedFields(
+      cx, CalendarMergeFields(cx, calendar, fields, partialYearMonth));
   if (!mergedFields) {
     return false;
   }
@@ -1368,16 +1368,17 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 4.
-  Rooted<CalendarValue> calendarValue(cx, yearMonth->calendar());
-  Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, calendarValue, &calendar)) {
+  Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
+
+  Rooted<CalendarRecord> calendarRec(cx);
+  if (!CreateCalendarMethodsRecord(cx, calendar, &calendarRec)) {
     return false;
   }
 
   // Step 5.
   Rooted<PlainObject*> receiverFields(cx);
   JS::RootedVector<PropertyKey> receiverFieldNames(cx);
-  if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
+  if (!PrepareCalendarFieldsAndFieldNames(cx, calendarRec, yearMonth,
                                           {
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
@@ -1390,7 +1391,7 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
   // Step 6.
   Rooted<PlainObject*> inputFields(cx);
   JS::RootedVector<PropertyKey> inputFieldNames(cx);
-  if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, item,
+  if (!PrepareCalendarFieldsAndFieldNames(cx, calendarRec, item,
                                           {
                                               CalendarField::Day,
                                           },
@@ -1420,7 +1421,13 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 10.
-  auto obj = CalendarDateFromFields(cx, calendar, mergedFromConcatenatedFields);
+  Rooted<PlainDateWithCalendar> result(cx);
+  if (!CalendarDateFromFields(cx, calendar, mergedFromConcatenatedFields,
+                              TemporalOverflow::Constrain, &result)) {
+    return false;
+  }
+
+  auto* obj = CreateTemporalDate(cx, result);
   if (!obj) {
     return false;
   }

@@ -2195,7 +2195,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   auto dateTime = GetPlainDateTimeFor(instant, offsetNanoseconds);
   MOZ_ASSERT(ISODateTimeWithinLimits(dateTime));
   Rooted<PlainDateTimeObject*> dateTimeObj(
-      cx, CreateTemporalDateTime(cx, dateTime, calendarRec.receiver()));
+      cx, CreateTemporalDateTime(cx, dateTime, calendar));
   if (!dateTimeObj) {
     return false;
   }
@@ -2273,8 +2273,8 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 20.
-  Rooted<JSObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendarRec, fields, partialZonedDateTime));
+  Rooted<PlainObject*> mergedFields(
+      cx, CalendarMergeFields(cx, calendar, fields, partialZonedDateTime));
   if (!mergedFields) {
     return false;
   }

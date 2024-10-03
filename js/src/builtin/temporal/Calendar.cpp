@@ -4111,17 +4111,20 @@ static bool IsPlainDataObject(PlainObject* obj) {
 #endif
 
 /**
- * Temporal.Calendar.prototype.mergeFields ( fields, additionalFields )
+ * CalendarMergeFields ( calendar, fields, additionalFields )
  */
-static PlainObject* BuiltinCalendarMergeFields(
-    JSContext* cx, CalendarId calendarId, Handle<PlainObject*> fields,
+PlainObject* js::temporal::CalendarMergeFields(
+    JSContext* cx, Handle<CalendarValue> calendar, Handle<PlainObject*> fields,
     Handle<PlainObject*> additionalFields) {
+  auto calendarId = calendar.identifier();
+
+  // FIXME: spec issue - is copying still needed? what about `undefined` values?
+
+  // Steps 1-3. (Not applicable in our implementation.)
   MOZ_ASSERT(IsPlainDataObject(fields));
   MOZ_ASSERT(IsPlainDataObject(additionalFields));
 
-  // Steps 1-4. (Not applicable in our implementation.)
-
-  // Steps 5-6.
+  // Steps 4.
   //
   // |additionalFields| contains no non-enumerable properties, so we don't need
   // to pass JSITER_HIDDEN.
@@ -4131,7 +4134,7 @@ static PlainObject* BuiltinCalendarMergeFields(
     return nullptr;
   }
 
-  // Steps 7-8.
+  // Steps 5-6.
   mozilla::EnumSet<TemporalField> additionalFieldKeys;
   for (const auto& additionalKey : additionalKeys) {
     auto field = ToTemporalField(cx, additionalKey);
@@ -4161,13 +4164,13 @@ static PlainObject* BuiltinCalendarMergeFields(
     }
   }
 
-  // Step 9.
+  // Step 7.
   Rooted<PlainObject*> merged(cx, NewPlainObjectWithProto(cx, nullptr));
   if (!merged) {
     return nullptr;
   }
 
-  // Steps 10-11.
+  // Steps 8-9.
   //
   // See above why JSITER_HIDDEN isn't needed.
   JS::RootedVector<PropertyKey> fieldsKeys(cx);
@@ -4176,12 +4179,12 @@ static PlainObject* BuiltinCalendarMergeFields(
     return nullptr;
   }
 
-  // Step 12.
+  // Step 10.
   Rooted<Value> propValue(cx);
   for (size_t i = 0; i < fieldsKeys.length(); i++) {
     Handle<PropertyKey> key = fieldsKeys[i];
 
-    // Steps 12.a-b.
+    // Steps 10.a-b.
     if (overriddenKeys.has(key)) {
       if (!GetProperty(cx, additionalFields, additionalFields, key,
                        &propValue)) {
@@ -4193,7 +4196,7 @@ static PlainObject* BuiltinCalendarMergeFields(
       }
     }
 
-    // Step 12.c.
+    // Step 10.c.
     if (!propValue.isUndefined()) {
       if (!DefineDataProperty(cx, merged, key, propValue)) {
         return nullptr;
@@ -4201,23 +4204,13 @@ static PlainObject* BuiltinCalendarMergeFields(
     }
   }
 
-  // Step 13.
+  // Step 11.
   if (!CopyDataProperties(cx, merged, additionalFields)) {
     return nullptr;
   }
 
-  // Step 14.
+  // Step 12.
   return merged;
-}
-
-/**
- * CalendarMergeFields ( calendarRec, fields, additionalFields )
- */
-JSObject* js::temporal::CalendarMergeFields(
-    JSContext* cx, Handle<CalendarRecord> calendar, Handle<PlainObject*> fields,
-    Handle<PlainObject*> additionalFields) {
-  auto calendarId = BuiltinCalendarId(calendar.receiver());
-  return BuiltinCalendarMergeFields(cx, calendarId, fields, additionalFields);
 }
 
 /**
