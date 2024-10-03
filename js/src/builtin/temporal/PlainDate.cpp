@@ -463,15 +463,15 @@ static bool ToTemporalDate(JSContext* cx, Handle<JSObject*> item,
   }
 
   // Step 2.e.
-  Rooted<PlainObject*> fields(
-      cx, PrepareCalendarFields(cx, calendar, item,
-                                {
-                                    CalendarField::Day,
-                                    CalendarField::Month,
-                                    CalendarField::MonthCode,
-                                    CalendarField::Year,
-                                }));
-  if (!fields) {
+  Rooted<TemporalFields> fields(cx);
+  if (!PrepareCalendarFields(cx, calendar, item,
+                             {
+                                 CalendarField::Day,
+                                 CalendarField::Month,
+                                 CalendarField::MonthCode,
+                                 CalendarField::Year,
+                             },
+                             &fields)) {
     return false;
   }
 
@@ -1746,11 +1746,10 @@ static bool PlainDate_toPlainYearMonth(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
   // Step 4.
-  Rooted<PlainObject*> fields(
-      cx,
-      PrepareCalendarFields(cx, calendar, temporalDate,
-                            {CalendarField::MonthCode, CalendarField::Year}));
-  if (!fields) {
+  Rooted<TemporalFields> fields(cx);
+  if (!PrepareCalendarFields(cx, calendar, temporalDate,
+                             {CalendarField::MonthCode, CalendarField::Year},
+                             &fields)) {
     return false;
   }
 
@@ -1792,11 +1791,10 @@ static bool PlainDate_toPlainMonthDay(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
   // Step 4.
-  Rooted<PlainObject*> fields(
-      cx,
-      PrepareCalendarFields(cx, calendar, temporalDate,
-                            {CalendarField::Day, CalendarField::MonthCode}));
-  if (!fields) {
+  Rooted<TemporalFields> fields(cx);
+  if (!PrepareCalendarFields(cx, calendar, temporalDate,
+                             {CalendarField::Day, CalendarField::MonthCode},
+                             &fields)) {
     return false;
   }
 
@@ -2013,8 +2011,7 @@ static bool PlainDate_with(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, temporalDate->calendar());
 
   // Step 7.
-  Rooted<PlainObject*> fields(cx);
-  mozilla::EnumSet<TemporalField> fieldNames{};
+  Rooted<TemporalFields> fields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, temporalDate,
                                           {
                                               CalendarField::Day,
@@ -2022,27 +2019,24 @@ static bool PlainDate_with(JSContext* cx, const CallArgs& args) {
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
                                           },
-                                          &fields, &fieldNames)) {
+                                          &fields)) {
     return false;
   }
 
   // Step 8.
-  Rooted<PlainObject*> partialDate(
-      cx, PreparePartialTemporalFields(cx, temporalDateLike, fieldNames));
-  if (!partialDate) {
+  Rooted<TemporalFields> partialDate(cx);
+  if (!PreparePartialTemporalFields(cx, temporalDateLike, fields.keys(),
+                                    &partialDate)) {
     return false;
   }
+  MOZ_ASSERT(!partialDate.keys().isEmpty());
 
   // Step 9.
-  Rooted<PlainObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendar, fields, partialDate));
-  if (!mergedFields) {
-    return false;
-  }
+  Rooted<TemporalFields> mergedFields(
+      cx, CalendarMergeFields(calendar, fields, partialDate));
 
   // Step 10.
-  fields = PrepareTemporalFields(cx, mergedFields, fieldNames);
-  if (!fields) {
+  if (!PrepareTemporalFields(cx, mergedFields, fields.keys(), &fields)) {
     return false;
   }
 

@@ -71,7 +71,6 @@
 #include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
-#include "vm/PlainObject.h"
 #include "vm/Runtime.h"
 #include "vm/StringType.h"
 

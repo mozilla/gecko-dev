@@ -1932,25 +1932,25 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Step 5.e.
-    Rooted<PlainObject*> fields(
-        cx, PrepareCalendarFields(cx, calendar, obj,
-                                  {
-                                      CalendarField::Day,
-                                      CalendarField::Month,
-                                      CalendarField::MonthCode,
-                                      CalendarField::Year,
-                                  },
-                                  {
-                                      TemporalField::Hour,
-                                      TemporalField::Microsecond,
-                                      TemporalField::Millisecond,
-                                      TemporalField::Minute,
-                                      TemporalField::Nanosecond,
-                                      TemporalField::Offset,
-                                      TemporalField::Second,
-                                      TemporalField::TimeZone,
-                                  }));
-    if (!fields) {
+    Rooted<TemporalFields> fields(cx);
+    if (!PrepareCalendarFields(cx, calendar, obj,
+                               {
+                                   CalendarField::Day,
+                                   CalendarField::Month,
+                                   CalendarField::MonthCode,
+                                   CalendarField::Year,
+                               },
+                               {
+                                   TemporalField::Hour,
+                                   TemporalField::Microsecond,
+                                   TemporalField::Millisecond,
+                                   TemporalField::Minute,
+                                   TemporalField::Nanosecond,
+                                   TemporalField::Offset,
+                                   TemporalField::Second,
+                                   TemporalField::TimeZone,
+                               },
+                               &fields)) {
       return false;
     }
 
@@ -1961,17 +1961,10 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Step 5.g.
-    Rooted<Value> offset(cx);
-    if (!GetProperty(cx, fields, fields, cx->names().offset, &offset)) {
-      return false;
-    }
+    Handle<JSString*> offset = fields.offset();
 
     // Step 5.h.
-    Rooted<Value> timeZoneValue(cx);
-    if (!GetProperty(cx, fields, fields, cx->names().timeZone,
-                     &timeZoneValue)) {
-      return false;
-    }
+    Handle<Value> timeZoneValue = fields.timeZone();
 
     // Step 5.i.
     if (!timeZoneValue.isUndefined()) {
@@ -1981,24 +1974,15 @@ static bool GetTemporalRelativeToOption(
     }
 
     // Step 5.j.
-    if (offset.isUndefined()) {
+    if (!offset) {
       offsetBehaviour = OffsetBehaviour::Wall;
     }
 
     // Steps 8-9.
     if (timeZone) {
       if (offsetBehaviour == OffsetBehaviour::Option) {
-        MOZ_ASSERT(!offset.isUndefined());
-        MOZ_ASSERT(offset.isString());
-
         // Step 8.a.
-        Rooted<JSString*> offsetString(cx, offset.toString());
-        if (!offsetString) {
-          return false;
-        }
-
-        // Step 8.b.
-        if (!ParseDateTimeUTCOffset(cx, offsetString, &offsetNs)) {
+        if (!ParseDateTimeUTCOffset(cx, offset, &offsetNs)) {
           return false;
         }
       } else {

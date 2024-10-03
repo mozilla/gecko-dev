@@ -255,35 +255,30 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
     }
 
     // Step 3.c.
-    Rooted<PlainObject*> fields(
-        cx, PrepareCalendarFields(cx, calendar, itemObj,
-                                  {
-                                      CalendarField::Day,
-                                      CalendarField::Month,
-                                      CalendarField::MonthCode,
-                                      CalendarField::Year,
-                                  },
-                                  {
-                                      TemporalField::Hour,
-                                      TemporalField::Microsecond,
-                                      TemporalField::Millisecond,
-                                      TemporalField::Minute,
-                                      TemporalField::Nanosecond,
-                                      TemporalField::Offset,
-                                      TemporalField::Second,
-                                      TemporalField::TimeZone,
-                                  },
-                                  {TemporalField::TimeZone}));
-    if (!fields) {
+    Rooted<TemporalFields> fields(cx);
+    if (!PrepareCalendarFields(cx, calendar, itemObj,
+                               {
+                                   CalendarField::Day,
+                                   CalendarField::Month,
+                                   CalendarField::MonthCode,
+                                   CalendarField::Year,
+                               },
+                               {
+                                   TemporalField::Hour,
+                                   TemporalField::Microsecond,
+                                   TemporalField::Millisecond,
+                                   TemporalField::Minute,
+                                   TemporalField::Nanosecond,
+                                   TemporalField::Offset,
+                                   TemporalField::Second,
+                                   TemporalField::TimeZone,
+                               },
+                               {TemporalField::TimeZone}, &fields)) {
       return false;
     }
 
     // Step 3.d.
-    Rooted<Value> timeZoneValue(cx);
-    if (!GetProperty(cx, fields, fields, cx->names().timeZone,
-                     &timeZoneValue)) {
-      return false;
-    }
+    Handle<Value> timeZoneValue = fields.timeZone();
 
     // Step 3.e.
     if (!ToTemporalTimeZone(cx, timeZoneValue, &timeZone)) {
@@ -291,19 +286,12 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
     }
 
     // Step 3.f.
-    Rooted<Value> offsetValue(cx);
-    if (!GetProperty(cx, fields, fields, cx->names().offset, &offsetValue)) {
-      return false;
-    }
+    Handle<JSString*> offset = fields.offset();
 
-    // Step 3.g.
-    MOZ_ASSERT(offsetValue.isString() || offsetValue.isUndefined());
+    // Step 3.g. (Not applicable in our implementation.)
 
     // Step 3.h.
-    Rooted<JSString*> offsetString(cx);
-    if (offsetValue.isString()) {
-      offsetString = offsetValue.toString();
-    } else {
+    if (!offset) {
       offsetBehaviour = OffsetBehaviour::Wall;
     }
 
@@ -315,7 +303,7 @@ static bool ToTemporalZonedDateTime(JSContext* cx, Handle<Value> item,
 
     // Step 6.
     if (offsetBehaviour == OffsetBehaviour::Option) {
-      if (!ParseDateTimeUTCOffset(cx, offsetString, &offsetNanoseconds)) {
+      if (!ParseDateTimeUTCOffset(cx, offset, &offsetNanoseconds)) {
         return false;
       }
     }
@@ -2191,8 +2179,7 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 10.
-  Rooted<PlainObject*> fields(cx);
-  mozilla::EnumSet<TemporalField> fieldNames{};
+  Rooted<TemporalFields> fields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, dateTimeObj,
                                           {
                                               CalendarField::Day,
@@ -2200,73 +2187,38 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
                                           },
-                                          &fields, &fieldNames)) {
+                                          &fields)) {
     return false;
   }
 
-  // Steps 11-16.
-  struct TimeField {
-    using FieldName = ImmutableTenuredPtr<PropertyName*> JSAtomState::*;
-
-    FieldName name;
-    int32_t value;
-  } timeFields[] = {
-      {&JSAtomState::hour, dateTime.time.hour},
-      {&JSAtomState::minute, dateTime.time.minute},
-      {&JSAtomState::second, dateTime.time.second},
-      {&JSAtomState::millisecond, dateTime.time.millisecond},
-      {&JSAtomState::microsecond, dateTime.time.microsecond},
-      {&JSAtomState::nanosecond, dateTime.time.nanosecond},
-  };
-
-  Rooted<Value> timeFieldValue(cx);
-  for (const auto& timeField : timeFields) {
-    Handle<PropertyName*> name = cx->names().*(timeField.name);
-    timeFieldValue.setInt32(timeField.value);
-
-    if (!DefineDataProperty(cx, fields, name, timeFieldValue)) {
-      return false;
-    }
-  }
-
-  // Step 17.
+  // Steps 11-18.
   JSString* fieldsOffset = FormatUTCOffsetNanoseconds(cx, offsetNanoseconds);
   if (!fieldsOffset) {
     return false;
   }
-
-  timeFieldValue.setString(fieldsOffset);
-  if (!DefineDataProperty(cx, fields, cx->names().offset, timeFieldValue)) {
-    return false;
-  }
-
-  // Step 18.
-  fieldNames += {
-      TemporalField::Hour,        TemporalField::Minute,
-      TemporalField::Second,      TemporalField::Millisecond,
-      TemporalField::Microsecond, TemporalField::Nanosecond,
-      TemporalField::Offset,
-  };
+  fields.setHour(dateTime.time.hour);
+  fields.setMinute(dateTime.time.minute);
+  fields.setSecond(dateTime.time.second);
+  fields.setMillisecond(dateTime.time.millisecond);
+  fields.setMicrosecond(dateTime.time.microsecond);
+  fields.setNanosecond(dateTime.time.nanosecond);
+  fields.setOffset(fieldsOffset);
 
   // Step 19.
-  Rooted<PlainObject*> partialZonedDateTime(
-      cx,
-      PreparePartialTemporalFields(cx, temporalZonedDateTimeLike, fieldNames));
-  if (!partialZonedDateTime) {
+  Rooted<TemporalFields> partialZonedDateTime(cx);
+  if (!PreparePartialTemporalFields(cx, temporalZonedDateTimeLike,
+                                    fields.keys(), &partialZonedDateTime)) {
     return false;
   }
+  MOZ_ASSERT(!partialZonedDateTime.keys().isEmpty());
 
   // Step 20.
-  Rooted<PlainObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendar, fields, partialZonedDateTime));
-  if (!mergedFields) {
-    return false;
-  }
+  Rooted<TemporalFields> mergedFields(
+      cx, CalendarMergeFields(calendar, fields, partialZonedDateTime));
 
   // Step 21.
-  fields = PrepareTemporalFields(cx, mergedFields, fieldNames,
-                                 {TemporalField::Offset});
-  if (!fields) {
+  if (!PrepareTemporalFields(cx, mergedFields, fields.keys(),
+                             {TemporalField::Offset}, &fields)) {
     return false;
   }
 
@@ -2299,18 +2251,14 @@ static bool ZonedDateTime_with(JSContext* cx, const CallArgs& args) {
   }
 
   // Step 26.
-  Rooted<Value> offsetString(cx);
-  if (!GetProperty(cx, fields, fields, cx->names().offset, &offsetString)) {
-    return false;
-  }
+  Handle<JSString*> offsetString = fields.offset();
 
   // Step 27.
-  MOZ_ASSERT(offsetString.isString());
+  MOZ_ASSERT(offsetString);
 
   // Step 28.
-  Rooted<JSString*> offsetStr(cx, offsetString.toString());
   int64_t newOffsetNanoseconds;
-  if (!ParseDateTimeUTCOffset(cx, offsetStr, &newOffsetNanoseconds)) {
+  if (!ParseDateTimeUTCOffset(cx, offsetString, &newOffsetNanoseconds)) {
     return false;
   }
 

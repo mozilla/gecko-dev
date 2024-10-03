@@ -259,14 +259,14 @@ static bool ToTemporalYearMonth(
   }
 
   // Step 2.c.
-  Rooted<PlainObject*> fields(
-      cx, PrepareCalendarFields(cx, calendar, item,
-                                {
-                                    CalendarField::Month,
-                                    CalendarField::MonthCode,
-                                    CalendarField::Year,
-                                }));
-  if (!fields) {
+  Rooted<TemporalFields> fields(cx);
+  if (!PrepareCalendarFields(cx, calendar, item,
+                             {
+                                 CalendarField::Month,
+                                 CalendarField::MonthCode,
+                                 CalendarField::Year,
+                             },
+                             &fields)) {
     return false;
   }
 
@@ -317,6 +317,8 @@ static bool ToTemporalYearMonth(
   if (!obj) {
     return false;
   }
+
+  // FIXME: spec issue - |obj| should be unobservable.
 
   // Steps 10-11.
   return CalendarYearMonthFromFields(cx, calendar, obj,
@@ -412,23 +414,22 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   }
 
   // Step 8.
-  Rooted<PlainObject*> thisFields(cx);
-  mozilla::EnumSet<TemporalField> thisFieldNames{};
+  Rooted<TemporalFields> thisFields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
                                           },
-                                          &thisFields, &thisFieldNames)) {
+                                          &thisFields)) {
     return false;
   }
 
+  // Remember field names of unmodified |thisFields|.
+  auto thisFieldNames = thisFields.keys();
+
   // Step 9.
-  Value one = Int32Value(1);
-  auto handleOne = Handle<Value>::fromMarkedLocation(&one);
-  if (!DefineDataProperty(cx, thisFields, cx->names().day, handleOne)) {
-    return false;
-  }
+  MOZ_ASSERT(!thisFields.has(TemporalField::Day));
+  thisFields.setDay(1);
 
   // Step 10.
   Rooted<PlainDateWithCalendar> thisDate(cx);
@@ -438,16 +439,15 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   }
 
   // Step 11.
-  Rooted<PlainObject*> otherFields(
-      cx, PrepareTemporalFields(cx, otherYearMonth, thisFieldNames));
-  if (!otherFields) {
+  Rooted<TemporalFields> otherFields(cx);
+  if (!PrepareTemporalFields(cx, otherYearMonth, thisFieldNames,
+                             &otherFields)) {
     return false;
   }
 
   // Step 12.
-  if (!DefineDataProperty(cx, otherFields, cx->names().day, handleOne)) {
-    return false;
-  }
+  MOZ_ASSERT(!otherFields.has(TemporalField::Day));
+  otherFields.setDay(1);
 
   // Step 13.
   Rooted<PlainDateWithCalendar> otherDate(cx);
@@ -572,31 +572,25 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
   // Step 10.
-  Rooted<PlainObject*> fields(cx);
-  mozilla::EnumSet<TemporalField> fieldNames{};
+  Rooted<TemporalFields> fields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
                                           },
-                                          &fields, &fieldNames)) {
+                                          &fields)) {
     return false;
   }
 
-  // FIXME: spec issue - SnapshotOwnProperties no longer needed.
+  // Remember field names of unmodified |fields|.
+  auto fieldNames = fields.keys();
 
   // Step 11.
-  Rooted<PlainObject*> fieldsCopy(cx, SnapshotOwnProperties(cx, fields));
-  if (!fieldsCopy) {
-    return false;
-  }
+  Rooted<TemporalFields> fieldsCopy(cx, TemporalFields{fields});
 
   // Step 12.
-  Value one = Int32Value(1);
-  auto handleOne = Handle<Value>::fromMarkedLocation(&one);
-  if (!DefineDataProperty(cx, fields, cx->names().day, handleOne)) {
-    return false;
-  }
+  MOZ_ASSERT(!fields.has(TemporalField::Day));
+  fields.setDay(1);
 
   // Step 13.
   Rooted<PlainDateWithCalendar> intermediateDate(cx);
@@ -647,11 +641,11 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
     if (!CalendarDay(cx, calendar, endOfMonth.date(), &day)) {
       return false;
     }
+    MOZ_ASSERT(day.isInt32());
 
     // Step 14.f.
-    if (!DefineDataProperty(cx, fieldsCopy, cx->names().day, day)) {
-      return false;
-    }
+    MOZ_ASSERT(!fieldsCopy.has(TemporalField::Day));
+    fieldsCopy.setDay(day.toInt32());
 
     // Step 14.g.
     if (!CalendarDateFromFields(cx, calendar, fieldsCopy,
@@ -680,9 +674,8 @@ static bool AddDurationToOrSubtractDurationFromPlainYearMonth(
   }
 
   // Step 18.
-  Rooted<PlainObject*> addedDateFields(
-      cx, PrepareTemporalFields(cx, addedDateObj, fieldNames));
-  if (!addedDateFields) {
+  Rooted<TemporalFields> addedDateFields(cx);
+  if (!PrepareTemporalFields(cx, addedDateObj, fieldNames, &addedDateFields)) {
     return false;
   }
 
@@ -1065,35 +1058,31 @@ static bool PlainYearMonth_with(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
   // Step 7.
-  Rooted<PlainObject*> fields(cx);
-  mozilla::EnumSet<TemporalField> fieldNames{};
+  Rooted<TemporalFields> fields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::Month,
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
                                           },
-                                          &fields, &fieldNames)) {
+                                          &fields)) {
     return false;
   }
 
   // Step 8.
-  Rooted<PlainObject*> partialYearMonth(
-      cx, PreparePartialTemporalFields(cx, temporalYearMonthLike, fieldNames));
-  if (!partialYearMonth) {
+  Rooted<TemporalFields> partialYearMonth(cx);
+  if (!PreparePartialTemporalFields(cx, temporalYearMonthLike, fields.keys(),
+                                    &partialYearMonth)) {
     return false;
   }
+  MOZ_ASSERT(!partialYearMonth.keys().isEmpty());
 
   // Step 9.
-  Rooted<PlainObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendar, fields, partialYearMonth));
-  if (!mergedFields) {
-    return false;
-  }
+  Rooted<TemporalFields> mergedFields(
+      cx, CalendarMergeFields(calendar, fields, partialYearMonth));
 
   // Step 10.
-  fields = PrepareTemporalFields(cx, mergedFields, fieldNames);
-  if (!fields) {
+  if (!PrepareTemporalFields(cx, mergedFields, fields.keys(), &fields)) {
     return false;
   }
 
@@ -1353,49 +1342,42 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
   // Step 5.
-  Rooted<PlainObject*> receiverFields(cx);
-  mozilla::EnumSet<TemporalField> receiverFieldNames{};
+  Rooted<TemporalFields> receiverFields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, yearMonth,
                                           {
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
                                           },
-                                          &receiverFields,
-                                          &receiverFieldNames)) {
+                                          &receiverFields)) {
     return false;
   }
 
   // Step 6.
-  Rooted<PlainObject*> inputFields(cx);
-  mozilla::EnumSet<TemporalField> inputFieldNames{};
+  Rooted<TemporalFields> inputFields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, item,
                                           {
                                               CalendarField::Day,
                                           },
-                                          &inputFields, &inputFieldNames)) {
+                                          &inputFields)) {
     return false;
   }
 
   // Step 7.
-  Rooted<JSObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendar, receiverFields, inputFields));
-  if (!mergedFields) {
-    return false;
-  }
+  Rooted<TemporalFields> mergedFields(
+      cx, CalendarMergeFields(calendar, receiverFields, inputFields));
 
   // Step 8.
-  auto concatenatedFieldNames = receiverFieldNames + inputFieldNames;
+  auto concatenatedFieldNames = receiverFields.keys() + inputFields.keys();
 
   // Step 9.
-  Rooted<PlainObject*> mergedFromConcatenatedFields(
-      cx, PrepareTemporalFields(cx, mergedFields, concatenatedFieldNames));
-  if (!mergedFromConcatenatedFields) {
+  if (!PrepareTemporalFields(cx, mergedFields, concatenatedFieldNames,
+                             &mergedFields)) {
     return false;
   }
 
   // Step 10.
   Rooted<PlainDateWithCalendar> result(cx);
-  if (!CalendarDateFromFields(cx, calendar, mergedFromConcatenatedFields,
+  if (!CalendarDateFromFields(cx, calendar, mergedFields,
                               TemporalOverflow::Constrain, &result)) {
     return false;
   }

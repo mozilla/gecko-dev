@@ -24,7 +24,6 @@ class JS_PUBLIC_API JSTracer;
 
 namespace js {
 struct ClassSpec;
-class PlainObject;
 }  // namespace js
 
 namespace js::temporal {
@@ -172,8 +171,11 @@ struct Duration;
 struct PlainDate;
 struct PlainDateTime;
 class PlainDateWithCalendar;
+class PlainMonthDayObject;
 class PlainMonthDayWithCalendar;
+class PlainYearMonthObject;
 class PlainYearMonthWithCalendar;
+class TemporalFields;
 enum class TemporalField;
 enum class TemporalOverflow;
 enum class TemporalUnit;
@@ -268,10 +270,9 @@ mozilla::EnumSet<TemporalField> CalendarFieldDescriptors(
 /**
  * CalendarMergeFields ( calendar, fields, additionalFields )
  */
-PlainObject* CalendarMergeFields(JSContext* cx,
-                                 JS::Handle<CalendarValue> calendar,
-                                 JS::Handle<PlainObject*> fields,
-                                 JS::Handle<PlainObject*> additionalFields);
+TemporalFields CalendarMergeFields(const CalendarValue& calendar,
+                                   const TemporalFields& fields,
+                                   const TemporalFields& additionalFields);
 
 /**
  * CalendarDateAdd ( date, duration, overflow )
@@ -398,7 +399,7 @@ bool CalendarInLeapYear(JSContext* cx, JS::Handle<CalendarValue> calendar,
  * CalendarDateFromFields ( calendar, fields, overflow )
  */
 bool CalendarDateFromFields(JSContext* cx, JS::Handle<CalendarValue> calendar,
-                            JS::Handle<PlainObject*> fields,
+                            JS::Handle<TemporalFields> fields,
                             TemporalOverflow overflow,
                             MutableHandle<PlainDateWithCalendar> result);
 
@@ -407,7 +408,15 @@ bool CalendarDateFromFields(JSContext* cx, JS::Handle<CalendarValue> calendar,
  */
 bool CalendarYearMonthFromFields(
     JSContext* cx, JS::Handle<CalendarValue> calendar,
-    JS::Handle<JSObject*> fields, TemporalOverflow overflow,
+    JS::Handle<PlainYearMonthObject*> fields, TemporalOverflow overflow,
+    JS::MutableHandle<PlainYearMonthWithCalendar> result);
+
+/**
+ * CalendarYearMonthFromFields ( calendar, fields, overflow )
+ */
+bool CalendarYearMonthFromFields(
+    JSContext* cx, JS::Handle<CalendarValue> calendar,
+    JS::Handle<TemporalFields> fields, TemporalOverflow overflow,
     JS::MutableHandle<PlainYearMonthWithCalendar> result);
 
 /**
@@ -415,7 +424,15 @@ bool CalendarYearMonthFromFields(
  */
 bool CalendarMonthDayFromFields(
     JSContext* cx, JS::Handle<CalendarValue> calendar,
-    JS::Handle<JSObject*> fields, TemporalOverflow overflow,
+    JS::Handle<PlainMonthDayObject*> fields, TemporalOverflow overflow,
+    JS::MutableHandle<PlainMonthDayWithCalendar> result);
+
+/**
+ * CalendarMonthDayFromFields ( calendar, fields, overflow )
+ */
+bool CalendarMonthDayFromFields(
+    JSContext* cx, JS::Handle<CalendarValue> calendar,
+    JS::Handle<TemporalFields> fields, TemporalOverflow overflow,
     JS::MutableHandle<PlainMonthDayWithCalendar> result);
 
 /**

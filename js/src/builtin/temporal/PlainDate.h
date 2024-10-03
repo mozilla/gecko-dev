@@ -26,7 +26,6 @@ class JS_PUBLIC_API JSTracer;
 
 namespace js {
 struct ClassSpec;
-class PlainObject;
 }  // namespace js
 
 namespace js::temporal {

@@ -22,7 +22,6 @@
 
 namespace js {
 struct ClassSpec;
-class PlainObject;
 class PropertyName;
 }  // namespace js
 
@@ -357,25 +356,6 @@ bool ToIntegerWithTruncation(JSContext* cx, JS::Handle<JS::Value> value,
  */
 JSObject* GetMethod(JSContext* cx, JS::Handle<JSObject*> object,
                     JS::Handle<PropertyName*> name);
-
-/**
- * SnapshotOwnProperties ( source, proto [ , excludedKeys [ , excludedValues ] ]
- * )
- */
-PlainObject* SnapshotOwnProperties(JSContext* cx, JS::Handle<JSObject*> source);
-
-/**
- * SnapshotOwnProperties ( source, proto [ , excludedKeys [ , excludedValues ] ]
- * )
- */
-PlainObject* SnapshotOwnPropertiesIgnoreUndefined(JSContext* cx,
-                                                  JS::Handle<JSObject*> source);
-
-/**
- * CopyDataProperties ( target, source, excludedKeys [ , excludedValues ] )
- */
-bool CopyDataProperties(JSContext* cx, JS::Handle<PlainObject*> target,
-                        JS::Handle<JSObject*> source);
 
 enum class TemporalDifference { Since, Until };
 

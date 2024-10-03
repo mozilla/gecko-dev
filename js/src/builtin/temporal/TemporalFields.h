@@ -11,7 +11,6 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/FloatingPoint.h"
-#include "mozilla/Maybe.h"
 
 #include "jstypes.h"
 
@@ -21,10 +20,6 @@
 #include "js/Value.h"
 
 class JS_PUBLIC_API JSTracer;
-
-namespace js {
-class PlainObject;
-}
 
 namespace js::temporal {
 enum class TemporalField {
@@ -63,24 +58,150 @@ struct FieldDescriptors {
 // NaN whereas pointer fields use nullptr.
 //
 // [1] <https://tc39.es/proposal-temporal/#table-temporal-field-requirements>
-struct MOZ_STACK_CLASS TemporalFields final {
-  double year = mozilla::UnspecifiedNaN<double>();
-  double month = mozilla::UnspecifiedNaN<double>();
-  JSString* monthCode = nullptr;
-  double day = mozilla::UnspecifiedNaN<double>();
-  double hour = 0;
-  double minute = 0;
-  double second = 0;
-  double millisecond = 0;
-  double microsecond = 0;
-  double nanosecond = 0;
-  JSString* offset = nullptr;
-  JSString* era = nullptr;
-  double eraYear = mozilla::UnspecifiedNaN<double>();
-  JS::Value timeZone = JS::UndefinedValue();
+class MOZ_STACK_CLASS TemporalFields final {
+  mozilla::EnumSet<TemporalField> fields_ = {};
 
+  double year_ = mozilla::UnspecifiedNaN<double>();
+  double month_ = mozilla::UnspecifiedNaN<double>();
+  JSString* monthCode_ = nullptr;
+  double day_ = mozilla::UnspecifiedNaN<double>();
+  double hour_ = 0;
+  double minute_ = 0;
+  double second_ = 0;
+  double millisecond_ = 0;
+  double microsecond_ = 0;
+  double nanosecond_ = 0;
+  JSString* offset_ = nullptr;
+  JSString* era_ = nullptr;
+  double eraYear_ = mozilla::UnspecifiedNaN<double>();
+  JS::Value timeZone_ = JS::UndefinedValue();
+
+  /**
+   * Mark the field as assigned. Each field should be assigned exactly once.
+   */
+  void setAssigned(TemporalField field) {
+    MOZ_ASSERT(!fields_.contains(field));
+    fields_ += field;
+  }
+
+  void setOverride(TemporalField field) { fields_ += field; }
+
+ public:
   TemporalFields() = default;
+  TemporalFields(const TemporalFields&) = default;
 
+  auto year() const { return year_; }
+  auto month() const { return month_; }
+  auto* monthCode() const { return monthCode_; }
+  auto day() const { return day_; }
+  auto hour() const { return hour_; }
+  auto minute() const { return minute_; }
+  auto second() const { return second_; }
+  auto millisecond() const { return millisecond_; }
+  auto microsecond() const { return microsecond_; }
+  auto nanosecond() const { return nanosecond_; }
+  auto* offset() const { return offset_; }
+  auto* era() const { return era_; }
+  auto eraYear() const { return eraYear_; }
+  auto timeZone() const { return timeZone_; }
+
+  void setYear(double year) {
+    setAssigned(TemporalField::Year);
+    year_ = year;
+  }
+  void setMonth(double month) {
+    setAssigned(TemporalField::Month);
+    month_ = month;
+  }
+  void setMonthCode(JSString* monthCode) {
+    setAssigned(TemporalField::MonthCode);
+    monthCode_ = monthCode;
+  }
+  void setDay(double day) {
+    setAssigned(TemporalField::Day);
+    day_ = day;
+  }
+  void setHour(double hour) {
+    setAssigned(TemporalField::Hour);
+    hour_ = hour;
+  }
+  void setMinute(double minute) {
+    setAssigned(TemporalField::Minute);
+    minute_ = minute;
+  }
+  void setSecond(double second) {
+    setAssigned(TemporalField::Second);
+    second_ = second;
+  }
+  void setMillisecond(double millisecond) {
+    setAssigned(TemporalField::Millisecond);
+    millisecond_ = millisecond;
+  }
+  void setMicrosecond(double microsecond) {
+    setAssigned(TemporalField::Microsecond);
+    microsecond_ = microsecond;
+  }
+  void setNanosecond(double nanosecond) {
+    setAssigned(TemporalField::Nanosecond);
+    nanosecond_ = nanosecond;
+  }
+  void setOffset(JSString* offset) {
+    setAssigned(TemporalField::Offset);
+    offset_ = offset;
+  }
+  void setEra(JSString* era) {
+    setAssigned(TemporalField::Era);
+    era_ = era;
+  }
+  void setEraYear(double eraYear) {
+    setAssigned(TemporalField::EraYear);
+    eraYear_ = eraYear;
+  }
+  void setTimeZone(const Value& timeZone) {
+    setAssigned(TemporalField::TimeZone);
+    timeZone_ = timeZone;
+  }
+
+  void setMonthOverride(double month) {
+    setOverride(TemporalField::Month);
+    month_ = month;
+  }
+
+  /**
+   * Return `true` if the field is present.
+   */
+  bool has(TemporalField field) const { return fields_.contains(field); }
+
+  /**
+   * Return `true` if the field's value is `undefined`. The field must be
+   * present.
+   */
+  bool isUndefined(TemporalField field) const;
+
+  /**
+   * Return the set of all present fields.
+   */
+  mozilla::EnumSet<TemporalField> keys() const { return fields_; }
+
+  /**
+   * Mark that `field` is present, but uses its default value. The field must
+   * not already be present in `this`.
+   */
+  void setDefault(TemporalField field) { setAssigned(field); }
+
+  /**
+   * Set `field` from `source`. The field must be present and not undefined in
+   * `source` and must not already be present in `this`.
+   */
+  void setFrom(TemporalField field, const TemporalFields& source);
+
+  // Helper methods for WrappedPtrOperations.
+  auto monthCodeDoNotUse() const { return &monthCode_; }
+  auto offsetDoNotUse() const { return &offset_; }
+  auto eraDoNotUse() const { return &era_; }
+  auto timeZoneDoNotUse() const { return &timeZone_; }
+
+  // Trace implementation.
   void trace(JSTracer* trc);
 };
 }  // namespace js::temporal
@@ -89,67 +210,82 @@ namespace js {
 
 template <typename Wrapper>
 class WrappedPtrOperations<temporal::TemporalFields, Wrapper> {
-  const temporal::TemporalFields& fields() const {
+  const temporal::TemporalFields& container() const {
     return static_cast<const Wrapper*>(this)->get();
   }
 
  public:
-  double year() const { return fields().year; }
-  double month() const { return fields().month; }
-  double day() const { return fields().day; }
-  double hour() const { return fields().hour; }
-  double minute() const { return fields().minute; }
-  double second() const { return fields().second; }
-  double millisecond() const { return fields().millisecond; }
-  double microsecond() const { return fields().microsecond; }
-  double nanosecond() const { return fields().nanosecond; }
-  double eraYear() const { return fields().eraYear; }
+  double year() const { return container().year(); }
+  double month() const { return container().month(); }
+  double day() const { return container().day(); }
+  double hour() const { return container().hour(); }
+  double minute() const { return container().minute(); }
+  double second() const { return container().second(); }
+  double millisecond() const { return container().millisecond(); }
+  double microsecond() const { return container().microsecond(); }
+  double nanosecond() const { return container().nanosecond(); }
+  double eraYear() const { return container().eraYear(); }
 
   JS::Handle<JSString*> monthCode() const {
-    return JS::Handle<JSString*>::fromMarkedLocation(&fields().monthCode);
+    return JS::Handle<JSString*>::fromMarkedLocation(
+        container().monthCodeDoNotUse());
   }
   JS::Handle<JSString*> offset() const {
-    return JS::Handle<JSString*>::fromMarkedLocation(&fields().offset);
+    return JS::Handle<JSString*>::fromMarkedLocation(
+        container().offsetDoNotUse());
   }
   JS::Handle<JSString*> era() const {
-    return JS::Handle<JSString*>::fromMarkedLocation(&fields().era);
+    return JS::Handle<JSString*>::fromMarkedLocation(container().eraDoNotUse());
   }
   JS::Handle<JS::Value> timeZone() const {
-    return JS::Handle<JS::Value>::fromMarkedLocation(&fields().timeZone);
+    return JS::Handle<JS::Value>::fromMarkedLocation(
+        container().timeZoneDoNotUse());
   }
+
+  bool has(temporal::TemporalField field) const {
+    return container().has(field);
+  }
+  bool isUndefined(temporal::TemporalField field) const {
+    return container().isUndefined(field);
+  }
+  auto keys() const { return container().keys(); }
 };
 
 template <typename Wrapper>
 class MutableWrappedPtrOperations<temporal::TemporalFields, Wrapper>
     : public WrappedPtrOperations<temporal::TemporalFields, Wrapper> {
-  temporal::TemporalFields& fields() {
+  temporal::TemporalFields& container() {
     return static_cast<Wrapper*>(this)->get();
   }
 
  public:
-  double& year() { return fields().year; }
-  double& month() { return fields().month; }
-  double& day() { return fields().day; }
-  double& hour() { return fields().hour; }
-  double& minute() { return fields().minute; }
-  double& second() { return fields().second; }
-  double& millisecond() { return fields().millisecond; }
-  double& microsecond() { return fields().microsecond; }
-  double& nanosecond() { return fields().nanosecond; }
-  double& eraYear() { return fields().eraYear; }
+  void setYear(double year) { container().setYear(year); }
+  void setMonth(double month) { container().setMonth(month); }
+  void setMonthCode(JSString* monthCode) {
+    container().setMonthCode(monthCode);
+  }
+  void setDay(double day) { container().setDay(day); }
+  void setHour(double hour) { container().setHour(hour); }
+  void setMinute(double minute) { container().setMinute(minute); }
+  void setSecond(double second) { container().setSecond(second); }
+  void setMillisecond(double millisecond) {
+    container().setMillisecond(millisecond);
+  }
+  void setMicrosecond(double microsecond) {
+    container().setMicrosecond(microsecond);
+  }
+  void setNanosecond(double nanosecond) {
+    container().setNanosecond(nanosecond);
+  }
+  void setOffset(JSString* offset) { container().setOffset(offset); }
+  void setEra(JSString* era) { container().setEra(era); }
+  void setEraYear(double eraYear) { container().setEraYear(eraYear); }
+  void setTimeZone(const Value& timeZone) { container().setTimeZone(timeZone); }
 
-  JS::MutableHandle<JSString*> monthCode() {
-    return JS::MutableHandle<JSString*>::fromMarkedLocation(
-        &fields().monthCode);
-  }
-  JS::MutableHandle<JSString*> offset() {
-    return JS::MutableHandle<JSString*>::fromMarkedLocation(&fields().offset);
-  }
-  JS::MutableHandle<JSString*> era() {
-    return JS::MutableHandle<JSString*>::fromMarkedLocation(&fields().era);
-  }
-  JS::MutableHandle<JS::Value> timeZone() {
-    return JS::MutableHandle<JS::Value>::fromMarkedLocation(&fields().timeZone);
+  void setMonthOverride(double month) { container().setMonthOverride(month); }
+
+  void setDefault(temporal::TemporalField field) {
+    container().setDefault(field);
   }
 };
 
@@ -157,10 +293,40 @@ class MutableWrappedPtrOperations<temporal::TemporalFields, Wrapper>
 
 namespace js::temporal {
 
-PropertyName* ToPropertyName(JSContext* cx, TemporalField field);
+/**
+ * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
+ * extraFieldDescriptors [ , duplicateBehaviour ] ] )
+ */
+bool PrepareTemporalFields(JSContext* cx, JS::Handle<TemporalFields> fields,
+                           mozilla::EnumSet<TemporalField> fieldNames,
+                           mozilla::EnumSet<TemporalField> requiredFields,
+                           JS::MutableHandle<TemporalFields> result);
 
-mozilla::Maybe<TemporalField> ToTemporalField(JSContext* cx,
-                                              PropertyKey property);
+/**
+ * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
+ * extraFieldDescriptors [ , duplicateBehaviour ] ] )
+ */
+inline bool PrepareTemporalFields(JSContext* cx,
+                                  JS::Handle<TemporalFields> fields,
+                                  mozilla::EnumSet<TemporalField> fieldNames,
+                                  JS::MutableHandle<TemporalFields> result) {
+  return PrepareTemporalFields(cx, fields, fieldNames, {}, result);
+}
+
+/**
+ * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
+ * extraFieldDescriptors [ , duplicateBehaviour ] ] )
+ */
+inline bool PrepareTemporalFields(
+    JSContext* cx, JS::Handle<TemporalFields> fields,
+    mozilla::EnumSet<TemporalField> fieldNames,
+    mozilla::EnumSet<TemporalField> requiredFields,
+    const FieldDescriptors& extraFieldDescriptors,
+    JS::MutableHandle<TemporalFields> result) {
+  return PrepareTemporalFields(
+      cx, fields, fieldNames + extraFieldDescriptors.relevant,
+      requiredFields + extraFieldDescriptors.required, result);
+}
 
 /**
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
@@ -170,6 +336,16 @@ bool PrepareTemporalFields(JSContext* cx, JS::Handle<JSObject*> fields,
                            mozilla::EnumSet<TemporalField> fieldNames,
                            mozilla::EnumSet<TemporalField> requiredFields,
                            JS::MutableHandle<TemporalFields> result);
+
+/**
+ * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
+ * extraFieldDescriptors [ , duplicateBehaviour ] ] )
+ */
+inline bool PrepareTemporalFields(JSContext* cx, JS::Handle<JSObject*> fields,
+                                  mozilla::EnumSet<TemporalField> fieldNames,
+                                  JS::MutableHandle<TemporalFields> result) {
+  return PrepareTemporalFields(cx, fields, fieldNames, {}, result);
+}
 
 /**
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
@@ -190,18 +366,9 @@ inline bool PrepareTemporalFields(
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
  * extraFieldDescriptors [ , duplicateBehaviour ] ] )
  */
-PlainObject* PrepareTemporalFields(
-    JSContext* cx, JS::Handle<JSObject*> fields,
-    mozilla::EnumSet<TemporalField> fieldNames,
-    mozilla::EnumSet<TemporalField> requiredFields = {});
-
-/**
- * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
- * extraFieldDescriptors [ , duplicateBehaviour ] ] )
- */
-PlainObject* PreparePartialTemporalFields(
-    JSContext* cx, JS::Handle<JSObject*> fields,
-    mozilla::EnumSet<TemporalField> fieldNames);
+bool PreparePartialTemporalFields(JSContext* cx, JS::Handle<JSObject*> fields,
+                                  mozilla::EnumSet<TemporalField> fieldNames,
+                                  JS::MutableHandle<TemporalFields> result);
 
 /**
  * PrepareCalendarFieldsAndFieldNames ( calendar, fields, calendarFieldNames [ ,
@@ -211,19 +378,46 @@ bool PrepareCalendarFieldsAndFieldNames(
     JSContext* cx, JS::Handle<CalendarValue> calendar,
     JS::Handle<JSObject*> fields,
     mozilla::EnumSet<CalendarField> calendarFieldNames,
-    JS::MutableHandle<PlainObject*> resultFields,
-    mozilla::EnumSet<TemporalField>* resultFieldNames);
+    JS::MutableHandle<TemporalFields> result);
 
 /**
  * PrepareCalendarFields ( calendar, fields, calendarFieldNames,
  * nonCalendarFieldNames, requiredFieldNames )
  */
-PlainObject* PrepareCalendarFields(
+bool PrepareCalendarFields(
     JSContext* cx, JS::Handle<CalendarValue> calendar,
     JS::Handle<JSObject*> fields,
     mozilla::EnumSet<CalendarField> calendarFieldNames,
-    mozilla::EnumSet<TemporalField> nonCalendarFieldNames = {},
-    mozilla::EnumSet<TemporalField> requiredFieldNames = {});
+    mozilla::EnumSet<TemporalField> nonCalendarFieldNames,
+    mozilla::EnumSet<TemporalField> requiredFieldNames,
+    JS::MutableHandle<TemporalFields> result);
+
+/**
+ * PrepareCalendarFields ( calendar, fields, calendarFieldNames,
+ * nonCalendarFieldNames, requiredFieldNames )
+ */
+inline bool PrepareCalendarFields(
+    JSContext* cx, JS::Handle<CalendarValue> calendar,
+    JS::Handle<JSObject*> fields,
+    mozilla::EnumSet<CalendarField> calendarFieldNames,
+    mozilla::EnumSet<TemporalField> nonCalendarFieldNames,
+    JS::MutableHandle<TemporalFields> result) {
+  return PrepareCalendarFields(cx, calendar, fields, calendarFieldNames,
+                               nonCalendarFieldNames, {}, result);
+}
+
+/**
+ * PrepareCalendarFields ( calendar, fields, calendarFieldNames,
+ * nonCalendarFieldNames, requiredFieldNames )
+ */
+inline bool PrepareCalendarFields(
+    JSContext* cx, JS::Handle<CalendarValue> calendar,
+    JS::Handle<JSObject*> fields,
+    mozilla::EnumSet<CalendarField> calendarFieldNames,
+    JS::MutableHandle<TemporalFields> result) {
+  return PrepareCalendarFields(cx, calendar, fields, calendarFieldNames, {}, {},
+                               result);
+}
 
 } /* namespace js::temporal */
 

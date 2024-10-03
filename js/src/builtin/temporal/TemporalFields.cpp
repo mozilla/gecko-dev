@@ -56,10 +56,103 @@ using namespace js;
 using namespace js::temporal;
 
 void TemporalFields::trace(JSTracer* trc) {
-  TraceNullableRoot(trc, &monthCode, "TemporalFields::monthCode");
-  TraceNullableRoot(trc, &offset, "TemporalFields::offset");
-  TraceNullableRoot(trc, &era, "TemporalFields::era");
-  TraceRoot(trc, &timeZone, "TemporalFields::timeZone");
+  TraceNullableRoot(trc, &monthCode_, "TemporalFields::monthCode");
+  TraceNullableRoot(trc, &offset_, "TemporalFields::offset");
+  TraceNullableRoot(trc, &era_, "TemporalFields::era");
+  TraceRoot(trc, &timeZone_, "TemporalFields::timeZone");
+}
+
+bool TemporalFields::isUndefined(TemporalField field) const {
+  MOZ_ASSERT(has(field));
+  switch (field) {
+    case TemporalField::Year:
+      return std::isnan(year_);
+    case TemporalField::Month:
+      return std::isnan(month_);
+    case TemporalField::MonthCode:
+      return !monthCode_;
+    case TemporalField::Day:
+      return std::isnan(day_);
+    case TemporalField::Hour:
+      MOZ_ASSERT(!std::isnan(hour_));
+      return false;
+    case TemporalField::Minute:
+      MOZ_ASSERT(!std::isnan(minute_));
+      return false;
+    case TemporalField::Second:
+      MOZ_ASSERT(!std::isnan(second_));
+      return false;
+    case TemporalField::Millisecond:
+      MOZ_ASSERT(!std::isnan(millisecond_));
+      return false;
+    case TemporalField::Microsecond:
+      MOZ_ASSERT(!std::isnan(microsecond_));
+      return false;
+    case TemporalField::Nanosecond:
+      MOZ_ASSERT(!std::isnan(nanosecond_));
+      return false;
+    case TemporalField::Offset:
+      return !offset_;
+    case TemporalField::Era:
+      return !era_;
+    case TemporalField::EraYear:
+      return std::isnan(eraYear_);
+    case TemporalField::TimeZone:
+      return timeZone_.isUndefined();
+  }
+  MOZ_CRASH("invalid temporal field");
+}
+
+void TemporalFields::setFrom(TemporalField field,
+                             const TemporalFields& source) {
+  MOZ_ASSERT(source.has(field));
+  MOZ_ASSERT(!source.isUndefined(field));
+
+  switch (field) {
+    case TemporalField::Year:
+      setYear(source.year());
+      return;
+    case TemporalField::Month:
+      setMonth(source.month());
+      return;
+    case TemporalField::MonthCode:
+      setMonthCode(source.monthCode());
+      return;
+    case TemporalField::Day:
+      setDay(source.day());
+      return;
+    case TemporalField::Hour:
+      setHour(source.hour());
+      return;
+    case TemporalField::Minute:
+      setMinute(source.minute());
+      return;
+    case TemporalField::Second:
+      setSecond(source.second());
+      return;
+    case TemporalField::Millisecond:
+      setMillisecond(source.millisecond());
+      return;
+    case TemporalField::Microsecond:
+      setMicrosecond(source.microsecond());
+      return;
+    case TemporalField::Nanosecond:
+      setNanosecond(source.nanosecond());
+      return;
+    case TemporalField::Offset:
+      setOffset(source.offset());
+      return;
+    case TemporalField::Era:
+      setEra(source.era());
+      return;
+    case TemporalField::EraYear:
+      setEraYear(source.eraYear());
+      return;
+    case TemporalField::TimeZone:
+      setTimeZone(source.timeZone());
+      return;
+  }
+  MOZ_CRASH("invalid temporal field");
 }
 
 template <typename T, const auto& sorted>
@@ -79,19 +172,13 @@ class SortedEnumSet {
       }
     }
 
-    void findPrevious() {
-      while (index_ > 0 && !fields_.contains(sorted[index_])) {
-        index_--;
-      }
-    }
-
    public:
     // Iterator traits.
     using difference_type = ptrdiff_t;
     using value_type = TemporalField;
     using pointer = TemporalField*;
     using reference = TemporalField&;
-    using iterator_category = std::bidirectional_iterator_tag;
+    using iterator_category = std::forward_iterator_tag;
 
     Iterator(mozilla::EnumSet<T> fields, size_t index)
         : fields_(fields), index_(index) {
@@ -123,19 +210,6 @@ class SortedEnumSet {
       ++(*this);
       return result;
     }
-
-    auto& operator--() {
-      MOZ_ASSERT(index_ > 0);
-      index_--;
-      findPrevious();
-      return *this;
-    }
-
-    auto operator--(int) {
-      auto result = *this;
-      --(*this);
-      return result;
-    }
   };
 
   Iterator begin() const { return Iterator{fields_, 0}; };
@@ -143,7 +217,7 @@ class SortedEnumSet {
   Iterator end() const { return Iterator{fields_, sorted.size()}; }
 };
 
-PropertyName* js::temporal::ToPropertyName(JSContext* cx, TemporalField field) {
+static PropertyName* ToPropertyName(JSContext* cx, TemporalField field) {
   switch (field) {
     case TemporalField::Year:
       return cx->names().year;
@@ -240,27 +314,6 @@ static_assert(IsSorted(sortedTemporalFields));
 // landed.
 using SortedTemporalFields = SortedEnumSet<TemporalField, sortedTemporalFields>;
 
-mozilla::Maybe<TemporalField> js::temporal::ToTemporalField(
-    JSContext* cx, PropertyKey property) {
-  static constexpr TemporalField fieldNames[] = {
-      TemporalField::Year,        TemporalField::Month,
-      TemporalField::MonthCode,   TemporalField::Day,
-      TemporalField::Hour,        TemporalField::Minute,
-      TemporalField::Second,      TemporalField::Millisecond,
-      TemporalField::Microsecond, TemporalField::Nanosecond,
-      TemporalField::Offset,      TemporalField::Era,
-      TemporalField::EraYear,     TemporalField::TimeZone,
-  };
-
-  for (const auto& fieldName : fieldNames) {
-    auto* name = ToPropertyName(cx, fieldName);
-    if (property.isAtom(name)) {
-      return mozilla::Some(fieldName);
-    }
-  }
-  return mozilla::Nothing();
-}
-
 static JSString* ToPrimitiveAndRequireString(JSContext* cx,
                                              Handle<Value> value) {
   Rooted<Value> primitive(cx, value);
@@ -273,142 +326,6 @@ static JSString* ToPrimitiveAndRequireString(JSContext* cx,
     return nullptr;
   }
   return primitive.toString();
-}
-
-static Value TemporalFieldDefaultValue(TemporalField field) {
-  switch (field) {
-    case TemporalField::Year:
-    case TemporalField::Month:
-    case TemporalField::MonthCode:
-    case TemporalField::Day:
-    case TemporalField::Offset:
-    case TemporalField::Era:
-    case TemporalField::EraYear:
-    case TemporalField::TimeZone:
-      return UndefinedValue();
-    case TemporalField::Hour:
-    case TemporalField::Minute:
-    case TemporalField::Second:
-    case TemporalField::Millisecond:
-    case TemporalField::Microsecond:
-    case TemporalField::Nanosecond:
-      return Int32Value(0);
-  }
-  MOZ_CRASH("invalid temporal field name");
-}
-
-static bool TemporalFieldConvertValue(JSContext* cx, TemporalField field,
-                                      MutableHandle<Value> value) {
-  const auto* name = ToCString(field);
-  switch (field) {
-    case TemporalField::Year:
-    case TemporalField::Hour:
-    case TemporalField::Minute:
-    case TemporalField::Second:
-    case TemporalField::Millisecond:
-    case TemporalField::Microsecond:
-    case TemporalField::Nanosecond: {
-      double num;
-      if (!ToIntegerWithTruncation(cx, value, name, &num)) {
-        return false;
-      }
-      value.setNumber(num);
-      return true;
-    }
-
-    case TemporalField::EraYear: {
-      // All supported calendar systems with eras require positive era years, so
-      // we require era year to be greater than zero. If ICU4X' Ethiopian
-      // implementation get changed to allow negative era years, we need to
-      // update this code.
-      //
-      // Also see <https://unicode-org.atlassian.net/browse/ICU-21985>.
-      [[fallthrough]];
-    }
-
-    case TemporalField::Month:
-    case TemporalField::Day: {
-      double num;
-      if (!ToPositiveIntegerWithTruncation(cx, value, name, &num)) {
-        return false;
-      }
-      value.setNumber(num);
-      return true;
-    }
-
-    case TemporalField::MonthCode:
-    case TemporalField::Offset:
-    case TemporalField::Era: {
-      JSString* str = ToPrimitiveAndRequireString(cx, value);
-      if (!str) {
-        return false;
-      }
-      value.setString(str);
-      return true;
-    }
-
-    case TemporalField::TimeZone:
-      // FIXME: spec issue - add conversion via ToTemporalTimeZoneSlotValue?
-
-      // NB: timeZone has no conversion function.
-      return true;
-  }
-  MOZ_CRASH("invalid temporal field name");
-}
-
-static void AssignFromFallback(TemporalField fieldName,
-                               MutableHandle<TemporalFields> result) {
-  // `const` can be changed to `constexpr` when we switch to C++20.
-  //
-  // Hazard analysis complains when |FallbackValues| is directly contained in
-  // loop body of |PrepareTemporalFields|. As a workaround the code was moved
-  // into the separate |AssignFromFallback| function.
-  const TemporalFields FallbackValues{};
-
-  switch (fieldName) {
-    case TemporalField::Year:
-      result.year() = FallbackValues.year;
-      break;
-    case TemporalField::Month:
-      result.month() = FallbackValues.month;
-      break;
-    case TemporalField::MonthCode:
-      result.monthCode().set(FallbackValues.monthCode);
-      break;
-    case TemporalField::Day:
-      result.day() = FallbackValues.day;
-      break;
-    case TemporalField::Hour:
-      result.hour() = FallbackValues.hour;
-      break;
-    case TemporalField::Minute:
-      result.minute() = FallbackValues.minute;
-      break;
-    case TemporalField::Second:
-      result.second() = FallbackValues.second;
-      break;
-    case TemporalField::Millisecond:
-      result.millisecond() = FallbackValues.millisecond;
-      break;
-    case TemporalField::Microsecond:
-      result.microsecond() = FallbackValues.microsecond;
-      break;
-    case TemporalField::Nanosecond:
-      result.nanosecond() = FallbackValues.nanosecond;
-      break;
-    case TemporalField::Offset:
-      result.offset().set(FallbackValues.offset);
-      break;
-    case TemporalField::Era:
-      result.era().set(FallbackValues.era);
-      break;
-    case TemporalField::EraYear:
-      result.eraYear() = FallbackValues.eraYear;
-      break;
-    case TemporalField::TimeZone:
-      result.timeZone().set(FallbackValues.timeZone);
-      break;
-  }
 }
 
 // clang-format off
@@ -448,16 +365,72 @@ static void AssignFromFallback(TemporalField fieldName,
 //
 // clang-format on
 
+enum class Partial : bool { No, Yes };
+
 /**
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
  * extraFieldDescriptors [ , duplicateBehaviour ] ] )
  */
 bool js::temporal::PrepareTemporalFields(
-    JSContext* cx, Handle<JSObject*> fields,
+    JSContext* cx, Handle<TemporalFields> fields,
     mozilla::EnumSet<TemporalField> fieldNames,
     mozilla::EnumSet<TemporalField> requiredFields,
     MutableHandle<TemporalFields> result) {
-  // Steps 1-6. (Not applicable in our implementation.)
+  // Step 1. (Not applicable in our implementation.)
+
+  // Step 2.
+  //
+  // Default initialize the result.
+  auto resultFields = TemporalFields{};
+
+  // Steps 3-6. (Not applicable in our implementation.)
+
+  // Step 7.
+  for (auto fieldName : fieldNames) {
+    // Step 7.a. (Not applicable in our implementation.)
+
+    // Step 7.b.i-iii.
+    if (fields.has(fieldName) && !fields.isUndefined(fieldName)) {
+      resultFields.setFrom(fieldName, fields);
+    } else {
+      // Step 7.b.iii.1.
+      if (requiredFields.contains(fieldName)) {
+        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                                  JSMSG_TEMPORAL_MISSING_PROPERTY,
+                                  ToCString(fieldName));
+        return false;
+      }
+
+      // Steps 7.b.iii.2-3. (Not applicable in our implementation.)
+      resultFields.setDefault(fieldName);
+    }
+
+    // Steps 7.c-d. (Not applicable in our implementation.)
+  }
+
+  result.set(resultFields);
+  return true;
+}
+
+/**
+ * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
+ * extraFieldDescriptors [ , duplicateBehaviour ] ] )
+ */
+static bool PrepareTemporalFields(
+    JSContext* cx, Handle<JSObject*> fields,
+    mozilla::EnumSet<TemporalField> fieldNames,
+    mozilla::EnumSet<TemporalField> requiredFields, Partial partial,
+    MutableHandle<TemporalFields> result) {
+  MOZ_ASSERT_IF(partial == Partial::Yes, requiredFields.isEmpty());
+
+  // Step 1. (Not applicable in our implementation.)
+
+  // Step 2.
+  //
+  // Default initialize the result.
+  result.set(TemporalFields{});
+
+  // Steps 3-6. (Not applicable in our implementation.)
 
   // Step 7.
   Rooted<Value> value(cx);
@@ -474,96 +447,128 @@ bool js::temporal::PrepareTemporalFields(
 
     // Steps 7.b.ii-iii.
     if (!value.isUndefined()) {
-      // Step 6.b.ii.1. (Not applicable in our implementation.)
+      // Step 7.b.ii.1. (Not applicable in our implementation.)
 
       // Steps 7.b.ii.2-3.
       switch (fieldName) {
-        case TemporalField::Year:
-          if (!ToIntegerWithTruncation(cx, value, cstr, &result.year())) {
+        case TemporalField::Year: {
+          double year;
+          if (!ToIntegerWithTruncation(cx, value, cstr, &year)) {
             return false;
           }
-          break;
-        case TemporalField::Month:
-          if (!ToPositiveIntegerWithTruncation(cx, value, cstr,
-                                               &result.month())) {
-            return false;
-          }
-          break;
-        case TemporalField::MonthCode: {
-          JSString* str = ToPrimitiveAndRequireString(cx, value);
-          if (!str) {
-            return false;
-          }
-          result.monthCode().set(str);
+          result.setYear(year);
           break;
         }
-        case TemporalField::Day:
-          if (!ToPositiveIntegerWithTruncation(cx, value, cstr,
-                                               &result.day())) {
+        case TemporalField::Month: {
+          double month;
+          if (!ToPositiveIntegerWithTruncation(cx, value, cstr, &month)) {
             return false;
           }
+          result.setMonth(month);
           break;
-        case TemporalField::Hour:
-          if (!ToIntegerWithTruncation(cx, value, cstr, &result.hour())) {
+        }
+        case TemporalField::MonthCode: {
+          JSString* monthCode = ToPrimitiveAndRequireString(cx, value);
+          if (!monthCode) {
             return false;
           }
+          result.setMonthCode(monthCode);
           break;
-        case TemporalField::Minute:
-          if (!ToIntegerWithTruncation(cx, value, cstr, &result.minute())) {
+        }
+        case TemporalField::Day: {
+          double day;
+          if (!ToPositiveIntegerWithTruncation(cx, value, cstr, &day)) {
             return false;
           }
+          result.setDay(day);
           break;
-        case TemporalField::Second:
-          if (!ToIntegerWithTruncation(cx, value, cstr, &result.second())) {
+        }
+        case TemporalField::Hour: {
+          double hour;
+          if (!ToIntegerWithTruncation(cx, value, cstr, &hour)) {
             return false;
           }
+          result.setHour(hour);
           break;
-        case TemporalField::Millisecond:
-          if (!ToIntegerWithTruncation(cx, value, cstr,
-                                       &result.millisecond())) {
+        }
+        case TemporalField::Minute: {
+          double minute;
+          if (!ToIntegerWithTruncation(cx, value, cstr, &minute)) {
             return false;
           }
+          result.setMinute(minute);
           break;
-        case TemporalField::Microsecond:
-          if (!ToIntegerWithTruncation(cx, value, cstr,
-                                       &result.microsecond())) {
+        }
+        case TemporalField::Second: {
+          double second;
+          if (!ToIntegerWithTruncation(cx, value, cstr, &second)) {
             return false;
           }
+          result.setSecond(second);
           break;
-        case TemporalField::Nanosecond:
-          if (!ToIntegerWithTruncation(cx, value, cstr, &result.nanosecond())) {
+        }
+        case TemporalField::Millisecond: {
+          double millisecond;
+          if (!ToIntegerWithTruncation(cx, value, cstr, &millisecond)) {
             return false;
           }
+          result.setMillisecond(millisecond);
           break;
+        }
+        case TemporalField::Microsecond: {
+          double microsecond;
+          if (!ToIntegerWithTruncation(cx, value, cstr, &microsecond)) {
+            return false;
+          }
+          result.setMicrosecond(microsecond);
+          break;
+        }
+        case TemporalField::Nanosecond: {
+          double nanosecond;
+          if (!ToIntegerWithTruncation(cx, value, cstr, &nanosecond)) {
+            return false;
+          }
+          result.setNanosecond(nanosecond);
+          break;
+        }
         case TemporalField::Offset: {
-          JSString* str = ToPrimitiveAndRequireString(cx, value);
-          if (!str) {
+          JSString* offset = ToPrimitiveAndRequireString(cx, value);
+          if (!offset) {
             return false;
           }
-          result.offset().set(str);
+          result.setOffset(offset);
           break;
         }
         case TemporalField::Era: {
-          JSString* str = ToPrimitiveAndRequireString(cx, value);
-          if (!str) {
+          JSString* era = ToPrimitiveAndRequireString(cx, value);
+          if (!era) {
             return false;
           }
-          result.era().set(str);
+          result.setEra(era);
           break;
         }
-        case TemporalField::EraYear:
-          // See TemporalFieldConvertValue why positive era years are required.
-          if (!ToPositiveIntegerWithTruncation(cx, value, cstr,
-                                               &result.eraYear())) {
+        case TemporalField::EraYear: {
+          // All supported calendar systems with eras require positive era
+          // years, so we require era year to be greater than zero. If ICU4X'
+          // Ethiopian implementation get changed to allow negative era years,
+          // we need to update this code.
+          //
+          // Also see <https://unicode-org.atlassian.net/browse/ICU-21985>.
+          double eraYear;
+          if (!ToPositiveIntegerWithTruncation(cx, value, cstr, &eraYear)) {
             return false;
           }
+          result.setEraYear(eraYear);
           break;
+        }
         case TemporalField::TimeZone:
+          // FIXME: spec issue - add conversion via ToTemporalTimeZoneSlotValue?
+
           // NB: TemporalField::TimeZone has no conversion function.
-          result.timeZone().set(value);
+          result.setTimeZone(value);
           break;
       }
-    } else {
+    } else if (partial == Partial::No) {
       // Step 7.b.iii.1.
       if (requiredFields.contains(fieldName)) {
         JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
@@ -571,14 +576,19 @@ bool js::temporal::PrepareTemporalFields(
         return false;
       }
 
-      // Steps 7.b.iii.2-3.
-      AssignFromFallback(fieldName, result);
+      // Steps 7.b.iii.2-3. (Not applicable in our implementation.)
+      result.setDefault(fieldName);
     }
 
     // Steps 7.c-d. (Not applicable in our implementation.)
   }
 
-  // Step 8. (Not applicable in our implementation.)
+  // Step 8.
+  if (partial == Partial::Yes && result.keys().isEmpty()) {
+    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
+                              JSMSG_TEMPORAL_MISSING_TEMPORAL_FIELDS);
+    return false;
+  }
 
   // Step 9.
   return true;
@@ -588,135 +598,25 @@ bool js::temporal::PrepareTemporalFields(
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
  * extraFieldDescriptors [ , duplicateBehaviour ] ] )
  */
-PlainObject* js::temporal::PrepareTemporalFields(
+bool js::temporal::PrepareTemporalFields(
     JSContext* cx, Handle<JSObject*> fields,
     mozilla::EnumSet<TemporalField> fieldNames,
-    mozilla::EnumSet<TemporalField> requiredFields) {
-  // Step 1. (Not applicable in our implementation.)
-
-  // Step 2.
-  Rooted<PlainObject*> result(cx, NewPlainObjectWithProto(cx, nullptr));
-  if (!result) {
-    return nullptr;
-  }
-
-  // Step 3. (Not applicable in our implementation.)
-
-  // Steps 4-6. (Not applicable in our implementation.)
-
-  // Step 7.
-  Rooted<Value> value(cx);
-  Rooted<PropertyKey> property(cx);
-  for (auto fieldName : SortedTemporalFields{fieldNames}) {
-    property = NameToId(ToPropertyName(cx, fieldName));
-
-    // Step 7.a.
-    // FIXME: spec issue - this check is no longer needed
-
-    // Step 7.b.i.
-    if (!GetProperty(cx, fields, fields, property, &value)) {
-      return nullptr;
-    }
-
-    // FIXME: spec issue - all field names should be valid now
-
-    if (!value.isUndefined()) {
-      // Step 7.b.ii.1. (Not applicable in our implementation.)
-
-      // Step 7.b.ii.2.
-      if (!TemporalFieldConvertValue(cx, fieldName, &value)) {
-        return nullptr;
-      }
-    } else {
-      // Step 7.b.iii.1.
-      if (requiredFields.contains(fieldName)) {
-        JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                                  JSMSG_TEMPORAL_MISSING_PROPERTY,
-                                  ToCString(fieldName));
-        return nullptr;
-      }
-
-      // Step 7.b.iii.2.
-      value = TemporalFieldDefaultValue(fieldName);
-    }
-
-    // Steps 7.b.ii.3 and 7.b.iii.3.
-    if (!DefineDataProperty(cx, result, property, value)) {
-      return nullptr;
-    }
-
-    // Steps 7.c-d. (Not applicable in our implementation.)
-  }
-
-  // Step 8. (Not applicable in our implementation.)
-
-  // Step 9.
-  return result;
+    mozilla::EnumSet<TemporalField> requiredFields,
+    MutableHandle<TemporalFields> result) {
+  return PrepareTemporalFields(cx, fields, fieldNames, requiredFields,
+                               Partial::No, result);
 }
 
 /**
  * PrepareTemporalFields ( fields, fieldNames, requiredFields [ ,
  * extraFieldDescriptors [ , duplicateBehaviour ] ] )
  */
-PlainObject* js::temporal::PreparePartialTemporalFields(
+bool js::temporal::PreparePartialTemporalFields(
     JSContext* cx, Handle<JSObject*> fields,
-    mozilla::EnumSet<TemporalField> fieldNames) {
-  // Step 1. (Not applicable in our implementation.)
-
-  // Step 2.
-  Rooted<PlainObject*> result(cx, NewPlainObjectWithProto(cx, nullptr));
-  if (!result) {
-    return nullptr;
-  }
-
-  // Step 3.
-  bool any = false;
-
-  // Steps 4-6. (Not applicable in our implementation.)
-
-  // Step 7.
-  Rooted<Value> value(cx);
-  Rooted<PropertyKey> property(cx);
-  for (auto fieldName : SortedTemporalFields{fieldNames}) {
-    property = NameToId(ToPropertyName(cx, fieldName));
-
-    // Step 7.a.
-    // FIXME: spec issue - this check is no longer needed
-
-    // Step 7.b.i.
-    if (!GetProperty(cx, fields, fields, property, &value)) {
-      return nullptr;
-    }
-
-    // Steps 7.b.ii-iii.
-    if (!value.isUndefined()) {
-      // Step 7.b.ii.1.
-      any = true;
-
-      if (!TemporalFieldConvertValue(cx, fieldName, &value)) {
-        return nullptr;
-      }
-
-      // Steps 7.b.ii.3.
-      if (!DefineDataProperty(cx, result, property, value)) {
-        return nullptr;
-      }
-    } else {
-      // Step 7.b.iii. (Not applicable in our implementation.)
-    }
-
-    // Steps 7.c-d. (Not applicable in our implementation.)
-  }
-
-  // Step 8.
-  if (!any) {
-    JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
-                              JSMSG_TEMPORAL_MISSING_TEMPORAL_FIELDS);
-    return nullptr;
-  }
-
-  // Step 9.
-  return result;
+    mozilla::EnumSet<TemporalField> fieldNames,
+    JS::MutableHandle<TemporalFields> result) {
+  return PrepareTemporalFields(cx, fields, fieldNames, {}, Partial::Yes,
+                               result);
 }
 
 static auto AsTemporalFieldSet(mozilla::EnumSet<CalendarField> values) {
@@ -746,8 +646,7 @@ static bool PrepareCalendarFieldsAndFieldNames(
     mozilla::EnumSet<CalendarField> calendarFieldNames,
     mozilla::EnumSet<TemporalField> nonCalendarFieldNames,
     mozilla::EnumSet<TemporalField> requiredFieldNames,
-    MutableHandle<PlainObject*> resultFields,
-    mozilla::EnumSet<TemporalField>* resultFieldNames) {
+    MutableHandle<TemporalFields> result) {
   auto calendarId = calendar.identifier();
 
   // Steps 1-2. (Not applicable in our implementation.)
@@ -763,17 +662,14 @@ static bool PrepareCalendarFieldsAndFieldNames(
   // Step 5.
   fieldNames += nonCalendarFieldNames;
 
-  // Step 6.
-  auto* flds =
-      PrepareTemporalFields(cx, fields, fieldNames, requiredFieldNames);
-  if (!flds) {
-    return false;
-  }
+  // FIXME: spec issue - `fieldNames` doesn't need to be returned, because it
+  // can be retrieved through the keys of `resultFields`.
 
-  // Step 7.
-  resultFields.set(flds);
-  *resultFieldNames = fieldNames;
-  return true;
+  // FIXME: spec issue - `fields` parameter shadowed.
+
+  // Steps 6-7
+  return PrepareTemporalFields(cx, fields, fieldNames, requiredFieldNames,
+                               result);
 }
 
 /**
@@ -783,11 +679,9 @@ static bool PrepareCalendarFieldsAndFieldNames(
 bool js::temporal::PrepareCalendarFieldsAndFieldNames(
     JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
     mozilla::EnumSet<CalendarField> calendarFieldNames,
-    MutableHandle<PlainObject*> resultFields,
-    mozilla::EnumSet<TemporalField>* resultFieldNames) {
-  return ::PrepareCalendarFieldsAndFieldNames(cx, calendar, fields,
-                                              calendarFieldNames, {}, {},
-                                              resultFields, resultFieldNames);
+    MutableHandle<TemporalFields> result) {
+  return ::PrepareCalendarFieldsAndFieldNames(
+      cx, calendar, fields, calendarFieldNames, {}, {}, result);
 }
 
 #ifdef DEBUG
@@ -803,11 +697,12 @@ static constexpr auto NonCalendarFieldNames = mozilla::EnumSet<TemporalField>{
  * PrepareCalendarFields ( calendar, fields, calendarFieldNames,
  * nonCalendarFieldNames, requiredFieldNames )
  */
-PlainObject* js::temporal::PrepareCalendarFields(
+bool js::temporal::PrepareCalendarFields(
     JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
     mozilla::EnumSet<CalendarField> calendarFieldNames,
     mozilla::EnumSet<TemporalField> nonCalendarFieldNames,
-    mozilla::EnumSet<TemporalField> requiredFieldNames) {
+    mozilla::EnumSet<TemporalField> requiredFieldNames,
+    MutableHandle<TemporalFields> result) {
   // Step 1. (Not applicable in our implementation.)
 
   // Step 2.
@@ -822,12 +717,7 @@ PlainObject* js::temporal::PrepareCalendarFields(
                  .contains(requiredFieldNames));
 
   // Steps 4-5.
-  Rooted<PlainObject*> resultFields(cx);
-  mozilla::EnumSet<TemporalField> resultFieldNames{};
-  if (!::PrepareCalendarFieldsAndFieldNames(
-          cx, calendar, fields, calendarFieldNames, nonCalendarFieldNames,
-          requiredFieldNames, &resultFields, &resultFieldNames)) {
-    return nullptr;
-  }
-  return resultFields;
+  return ::PrepareCalendarFieldsAndFieldNames(
+      cx, calendar, fields, calendarFieldNames, nonCalendarFieldNames,
+      requiredFieldNames, result);
 }

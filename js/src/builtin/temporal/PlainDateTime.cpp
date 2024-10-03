@@ -437,17 +437,41 @@ bool js::temporal::CreateTemporalDateTime(
   return true;
 }
 
+#ifdef DEBUG
+static bool IsPositiveInteger(double value) {
+  return IsInteger(value) && value >= 0;
+}
+#endif
+
+/**
+ * ToTemporalTimeRecord ( temporalTimeLike [ , completeness ] )
+ */
+static auto ToTemporalTimeRecord(const TemporalFields& temporalTimeLike) {
+  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.hour()));
+  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.minute()));
+  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.second()));
+  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.millisecond()));
+  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.microsecond()));
+  MOZ_ASSERT(IsPositiveInteger(temporalTimeLike.nanosecond()));
+
+  return TemporalTimeLike{
+      temporalTimeLike.hour(),        temporalTimeLike.minute(),
+      temporalTimeLike.second(),      temporalTimeLike.millisecond(),
+      temporalTimeLike.microsecond(), temporalTimeLike.nanosecond(),
+  };
+}
+
 /**
  * InterpretTemporalDateTimeFields ( calendar, fields, overflow )
  */
 bool js::temporal::InterpretTemporalDateTimeFields(
-    JSContext* cx, Handle<CalendarValue> calendar, Handle<PlainObject*> fields,
-    TemporalOverflow overflow, PlainDateTime* result) {
+    JSContext* cx, Handle<CalendarValue> calendar,
+    Handle<TemporalFields> fields, TemporalOverflow overflow,
+    PlainDateTime* result) {
+  // FIXME: spec issue - ToTemporalTimeRecord is infallible
+
   // Step 1.
-  TemporalTimeLike timeResult;
-  if (!ToTemporalTimeRecord(cx, fields, &timeResult)) {
-    return false;
-  }
+  auto timeResult = ::ToTemporalTimeRecord(fields);
 
   // Step 2.
   Rooted<PlainDateWithCalendar> temporalDate(cx);
@@ -529,23 +553,23 @@ static bool ToTemporalDateTime(
   }
 
   // Step 2.e.
-  Rooted<PlainObject*> fields(
-      cx, PrepareCalendarFields(cx, calendar, item,
-                                {
-                                    CalendarField::Day,
-                                    CalendarField::Month,
-                                    CalendarField::MonthCode,
-                                    CalendarField::Year,
-                                },
-                                {
-                                    TemporalField::Hour,
-                                    TemporalField::Microsecond,
-                                    TemporalField::Millisecond,
-                                    TemporalField::Minute,
-                                    TemporalField::Nanosecond,
-                                    TemporalField::Second,
-                                }));
-  if (!fields) {
+  Rooted<TemporalFields> fields(cx);
+  if (!PrepareCalendarFields(cx, calendar, item,
+                             {
+                                 CalendarField::Day,
+                                 CalendarField::Month,
+                                 CalendarField::MonthCode,
+                                 CalendarField::Year,
+                             },
+                             {
+                                 TemporalField::Hour,
+                                 TemporalField::Microsecond,
+                                 TemporalField::Millisecond,
+                                 TemporalField::Minute,
+                                 TemporalField::Nanosecond,
+                                 TemporalField::Second,
+                             },
+                             &fields)) {
     return false;
   }
 
@@ -1721,8 +1745,7 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
   Rooted<CalendarValue> calendar(cx, dateTime->calendar());
 
   // Step 7.
-  Rooted<PlainObject*> fields(cx);
-  mozilla::EnumSet<TemporalField> fieldNames{};
+  Rooted<TemporalFields> fields(cx);
   if (!PrepareCalendarFieldsAndFieldNames(cx, calendar, dateTime,
                                           {
                                               CalendarField::Day,
@@ -1730,59 +1753,32 @@ static bool PlainDateTime_with(JSContext* cx, const CallArgs& args) {
                                               CalendarField::MonthCode,
                                               CalendarField::Year,
                                           },
-                                          &fields, &fieldNames)) {
+                                          &fields)) {
     return false;
   }
 
-  // Steps 8-13.
-  struct TimeField {
-    using FieldName = ImmutableTenuredPtr<PropertyName*> JSAtomState::*;
-
-    FieldName name;
-    int32_t value;
-  } timeFields[] = {
-      {&JSAtomState::hour, dateTime->isoHour()},
-      {&JSAtomState::minute, dateTime->isoMinute()},
-      {&JSAtomState::second, dateTime->isoSecond()},
-      {&JSAtomState::millisecond, dateTime->isoMillisecond()},
-      {&JSAtomState::microsecond, dateTime->isoMicrosecond()},
-      {&JSAtomState::nanosecond, dateTime->isoNanosecond()},
-  };
-
-  Rooted<Value> timeFieldValue(cx);
-  for (const auto& timeField : timeFields) {
-    Handle<PropertyName*> name = cx->names().*(timeField.name);
-    timeFieldValue.setInt32(timeField.value);
-
-    if (!DefineDataProperty(cx, fields, name, timeFieldValue)) {
-      return false;
-    }
-  }
-
-  // Step 14.
-  fieldNames += {
-      TemporalField::Hour,        TemporalField::Minute,
-      TemporalField::Second,      TemporalField::Millisecond,
-      TemporalField::Microsecond, TemporalField::Nanosecond,
-  };
+  // Steps 8-14.
+  fields.setHour(dateTime->isoHour());
+  fields.setMinute(dateTime->isoMinute());
+  fields.setSecond(dateTime->isoSecond());
+  fields.setMillisecond(dateTime->isoMillisecond());
+  fields.setMicrosecond(dateTime->isoMicrosecond());
+  fields.setNanosecond(dateTime->isoNanosecond());
 
   // Step 15.
-  Rooted<PlainObject*> partialDateTime(
-      cx, PreparePartialTemporalFields(cx, temporalDateTimeLike, fieldNames));
-  if (!partialDateTime) {
+  Rooted<TemporalFields> partialDateTime(cx);
+  if (!PreparePartialTemporalFields(cx, temporalDateTimeLike, fields.keys(),
+                                    &partialDateTime)) {
     return false;
   }
+  MOZ_ASSERT(!partialDateTime.keys().isEmpty());
 
   // Step 16.
-  Rooted<PlainObject*> mergedFields(
-      cx, CalendarMergeFields(cx, calendar, fields, partialDateTime));
-  if (!mergedFields) {
-    return false;
-  }
+  Rooted<TemporalFields> mergedFields(
+      cx, CalendarMergeFields(calendar, fields, partialDateTime));
 
   // Step 17.
-  fields = PrepareTemporalFields(cx, mergedFields, fieldNames);
-  if (!fields) {
+  if (!PrepareTemporalFields(cx, mergedFields, fields.keys(), &fields)) {
     return false;
   }
 

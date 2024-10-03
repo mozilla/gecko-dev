@@ -94,7 +94,6 @@
 #include "vm/JSAtomState.h"
 #include "vm/JSContext.h"
 #include "vm/JSObject.h"
-#include "vm/PlainObject.h"
 #include "vm/PropertyInfo.h"
 #include "vm/PropertyKey.h"
 #include "vm/Realm.h"
@@ -3466,7 +3465,7 @@ static bool ISOResolveMonth(JSContext* cx,
   }
 
   // Step 15.
-  fields.month() = ordinal;
+  fields.setMonthOverride(ordinal);
 
   // Step 16.
   return true;
@@ -3516,13 +3515,18 @@ static bool ISODateFromFields(JSContext* cx, Handle<TemporalFields> fields,
  * CalendarDateFromFields ( calendar, fields, overflow )
  */
 bool js::temporal::CalendarDateFromFields(
-    JSContext* cx, Handle<CalendarValue> calendar, Handle<PlainObject*> fields,
-    TemporalOverflow overflow, MutableHandle<PlainDateWithCalendar> result) {
+    JSContext* cx, Handle<CalendarValue> calendar,
+    Handle<TemporalFields> fields, TemporalOverflow overflow,
+    MutableHandle<PlainDateWithCalendar> result) {
   auto calendarId = calendar.identifier();
 
   // Step 1.
-  auto relevantFieldNames = {TemporalField::Day, TemporalField::Month,
-                             TemporalField::MonthCode, TemporalField::Year};
+  auto relevantFieldNames = {
+      TemporalField::Day,
+      TemporalField::Month,
+      TemporalField::MonthCode,
+      TemporalField::Year,
+  };
 
   // Steps 2-3.
   PlainDate date;
@@ -3651,15 +3655,19 @@ static bool ISOYearMonthFromFields(JSContext* cx, Handle<TemporalFields> fields,
 /**
  * CalendarYearMonthFromFields ( calendar, fields, overflow )
  */
-bool js::temporal::CalendarYearMonthFromFields(
-    JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
+template <typename T>
+static bool CalendarYearMonthFromFields(
+    JSContext* cx, Handle<CalendarValue> calendar, Handle<T> fields,
     TemporalOverflow overflow,
     MutableHandle<PlainYearMonthWithCalendar> result) {
   auto calendarId = calendar.identifier();
 
   // Step 1.
-  auto relevantFieldNames = {TemporalField::Month, TemporalField::MonthCode,
-                             TemporalField::Year};
+  auto relevantFieldNames = {
+      TemporalField::Month,
+      TemporalField::MonthCode,
+      TemporalField::Year,
+  };
 
   // Steps 2-3
   PlainDate date;
@@ -3696,7 +3704,8 @@ bool js::temporal::CalendarYearMonthFromFields(
     int32_t firstDayIndex = 1;
 
     // Step 3.d.
-    dateFields.day() = firstDayIndex;
+    MOZ_ASSERT(!dateFields.has(TemporalField::Day));
+    dateFields.setDay(firstDayIndex);
 
     // Step 3.e.
     if (!CalendarResolveFields(cx, calendarId, dateFields,
@@ -3712,6 +3721,26 @@ bool js::temporal::CalendarYearMonthFromFields(
 
   // Step 4.
   return CreateTemporalYearMonth(cx, date, calendar, result);
+}
+
+/**
+ * CalendarYearMonthFromFields ( calendar, fields, overflow )
+ */
+bool js::temporal::CalendarYearMonthFromFields(
+    JSContext* cx, Handle<CalendarValue> calendar,
+    Handle<PlainYearMonthObject*> fields, TemporalOverflow overflow,
+    MutableHandle<PlainYearMonthWithCalendar> result) {
+  return ::CalendarYearMonthFromFields(cx, calendar, fields, overflow, result);
+}
+
+/**
+ * CalendarYearMonthFromFields ( calendar, fields, overflow )
+ */
+bool js::temporal::CalendarYearMonthFromFields(
+    JSContext* cx, Handle<CalendarValue> calendar,
+    Handle<TemporalFields> fields, TemporalOverflow overflow,
+    MutableHandle<PlainYearMonthWithCalendar> result) {
+  return ::CalendarYearMonthFromFields(cx, calendar, fields, overflow, result);
 }
 
 /**
@@ -3751,15 +3780,20 @@ static bool ISOMonthDayFromFields(JSContext* cx, Handle<TemporalFields> fields,
 /**
  * CalendarMonthDayFromFields ( calendar, fields, overflow )
  */
-bool js::temporal::CalendarMonthDayFromFields(
-    JSContext* cx, Handle<CalendarValue> calendar, Handle<JSObject*> fields,
+template <typename T>
+static bool CalendarMonthDayFromFields(
+    JSContext* cx, Handle<CalendarValue> calendar, Handle<T> fields,
     TemporalOverflow overflow,
     MutableHandle<PlainMonthDayWithCalendar> result) {
   auto calendarId = calendar.identifier();
 
   // Step 1.
-  auto relevantFieldNames = {TemporalField::Day, TemporalField::Month,
-                             TemporalField::MonthCode, TemporalField::Year};
+  auto relevantFieldNames = {
+      TemporalField::Day,
+      TemporalField::Month,
+      TemporalField::MonthCode,
+      TemporalField::Year,
+  };
 
   // Steps 2-3.
   PlainDate date;
@@ -3809,23 +3843,24 @@ bool js::temporal::CalendarMonthDayFromFields(
   return CreateTemporalMonthDay(cx, date, calendar, result);
 }
 
-using PropertyHashSet = JS::GCHashSet<JS::PropertyKey>;
-using PropertyVector = JS::StackGCVector<JS::PropertyKey>;
+/**
+ * CalendarMonthDayFromFields ( calendar, fields, overflow )
+ */
+bool js::temporal::CalendarMonthDayFromFields(
+    JSContext* cx, Handle<CalendarValue> calendar,
+    Handle<PlainMonthDayObject*> fields, TemporalOverflow overflow,
+    MutableHandle<PlainMonthDayWithCalendar> result) {
+  return ::CalendarMonthDayFromFields(cx, calendar, fields, overflow, result);
+}
 
-static bool SetFromList(JSContext* cx, const PropertyVector& keys,
-                        PropertyHashSet& keysSet) {
-  MOZ_ASSERT(keysSet.empty(), "expected an empty output hashset");
-
-  if (!keysSet.reserve(keys.length())) {
-    return false;
-  }
-
-  for (const auto& key : keys) {
-    if (!keysSet.putNew(key)) {
-      return false;
-    }
-  }
-  return true;
+/**
+ * CalendarMonthDayFromFields ( calendar, fields, overflow )
+ */
+bool js::temporal::CalendarMonthDayFromFields(
+    JSContext* cx, Handle<CalendarValue> calendar,
+    Handle<TemporalFields> fields, TemporalOverflow overflow,
+    MutableHandle<PlainMonthDayWithCalendar> result) {
+  return ::CalendarMonthDayFromFields(cx, calendar, fields, overflow, result);
 }
 
 /**
@@ -3849,120 +3884,52 @@ static auto ISOFieldKeysToIgnore(mozilla::EnumSet<TemporalField> keys) {
   return ignoredKeys;
 }
 
-#ifdef DEBUG
-static bool IsPlainDataObject(PlainObject* obj) {
-  // [[Prototype]] is null.
-  if (obj->staticPrototype() != nullptr) {
-    return false;
-  }
-
-  // All properties are simple data properties.
-  for (ShapePropertyIter<NoGC> iter(obj->shape()); !iter.done(); iter++) {
-    if (iter->flags() != PropertyFlags::defaultDataPropFlags) {
-      return false;
-    }
-  }
-  return true;
-}
-#endif
-
 /**
  * CalendarMergeFields ( calendar, fields, additionalFields )
  */
-PlainObject* js::temporal::CalendarMergeFields(
-    JSContext* cx, Handle<CalendarValue> calendar, Handle<PlainObject*> fields,
-    Handle<PlainObject*> additionalFields) {
+TemporalFields js::temporal::CalendarMergeFields(
+    const CalendarValue& calendar, const TemporalFields& fields,
+    const TemporalFields& additionalFields) {
   auto calendarId = calendar.identifier();
 
   // FIXME: spec issue - is copying still needed? what about `undefined` values?
+  // FIXME: spec issue - CalendarMergeFields is infallible
+  // FIXME: spec issue - iteration order no longer observable
 
   // Steps 1-3. (Not applicable in our implementation.)
-  MOZ_ASSERT(IsPlainDataObject(fields));
-  MOZ_ASSERT(IsPlainDataObject(additionalFields));
 
   // Steps 4.
-  //
-  // |additionalFields| contains no non-enumerable properties, so we don't need
-  // to pass JSITER_HIDDEN.
-  JS::RootedVector<PropertyKey> additionalKeys(cx);
-  if (!GetPropertyKeys(cx, additionalFields, JSITER_OWNONLY | JSITER_SYMBOLS,
-                       &additionalKeys)) {
-    return nullptr;
-  }
+  auto additionalKeys = additionalFields.keys();
 
   // Steps 5-6.
-  mozilla::EnumSet<TemporalField> additionalFieldKeys;
-  for (const auto& additionalKey : additionalKeys) {
-    auto field = ToTemporalField(cx, additionalKey);
-    if (field) {
-      additionalFieldKeys += *field;
-    }
-  }
-
-  mozilla::EnumSet<TemporalField> toIgnore;
+  mozilla::EnumSet<TemporalField> overriddenKeys;
   if (calendarId == CalendarId::ISO8601) {
-    toIgnore = ISOFieldKeysToIgnore(additionalFieldKeys);
+    overriddenKeys = ISOFieldKeysToIgnore(additionalKeys);
   } else {
-    toIgnore = CalendarFieldKeysToIgnore(calendarId, additionalFieldKeys);
+    overriddenKeys = CalendarFieldKeysToIgnore(calendarId, additionalKeys);
   }
-  MOZ_ASSERT(toIgnore.contains(additionalFieldKeys));
-
-  Rooted<PropertyHashSet> overriddenKeys(cx, PropertyHashSet(cx));
-  if (!SetFromList(cx, additionalKeys.get(), overriddenKeys.get())) {
-    return nullptr;
-  }
-
-  auto additionalFieldsToIgnore = toIgnore - additionalFieldKeys;
-  for (auto field : additionalFieldsToIgnore) {
-    auto* fieldName = ToPropertyName(cx, field);
-    if (!overriddenKeys.put(NameToId(fieldName))) {
-      return nullptr;
-    }
-  }
+  MOZ_ASSERT(overriddenKeys.contains(additionalKeys));
 
   // Step 7.
-  Rooted<PlainObject*> merged(cx, NewPlainObjectWithProto(cx, nullptr));
-  if (!merged) {
-    return nullptr;
-  }
+  auto merged = TemporalFields{};
 
-  // Steps 8-9.
-  //
-  // See above why JSITER_HIDDEN isn't needed.
-  JS::RootedVector<PropertyKey> fieldsKeys(cx);
-  if (!GetPropertyKeys(cx, fields, JSITER_OWNONLY | JSITER_SYMBOLS,
-                       &fieldsKeys)) {
-    return nullptr;
-  }
+  // Steps 8-10.
+  for (auto field : fields.keys()) {
+    MOZ_ASSERT(fields.has(field));
 
-  // Step 10.
-  Rooted<Value> propValue(cx);
-  for (size_t i = 0; i < fieldsKeys.length(); i++) {
-    Handle<PropertyKey> key = fieldsKeys[i];
-
-    // Steps 10.a-b.
-    if (overriddenKeys.has(key)) {
-      if (!GetProperty(cx, additionalFields, additionalFields, key,
-                       &propValue)) {
-        return nullptr;
-      }
-    } else {
-      if (!GetProperty(cx, fields, fields, key, &propValue)) {
-        return nullptr;
-      }
-    }
-
-    // Step 10.c.
-    if (!propValue.isUndefined()) {
-      if (!DefineDataProperty(cx, merged, key, propValue)) {
-        return nullptr;
-      }
+    // Steps 10.a-c.
+    if (!overriddenKeys.contains(field) && !fields.isUndefined(field)) {
+      merged.setFrom(field, fields);
     }
   }
 
   // Step 11.
-  if (!CopyDataProperties(cx, merged, additionalFields)) {
-    return nullptr;
+  for (auto field : additionalKeys) {
+    MOZ_ASSERT(additionalFields.has(field));
+
+    if (!additionalFields.isUndefined(field)) {
+      merged.setFrom(field, additionalFields);
+    }
   }
 
   // Step 12.

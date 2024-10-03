@@ -24,7 +24,6 @@ class JS_PUBLIC_API JSTracer;
 
 namespace js {
 struct ClassSpec;
-class PlainObject;
 }  // namespace js
 
 namespace js::temporal {
@@ -107,6 +106,7 @@ inline PlainDateTime ToPlainDateTime(const PlainDateTimeObject* dateTime) {
 
 struct DifferenceSettings;
 class Increment;
+class TemporalFields;
 enum class TemporalOverflow;
 enum class TemporalRoundingMode;
 enum class TemporalUnit;
@@ -203,7 +203,7 @@ bool CreateTemporalDateTime(
  */
 bool InterpretTemporalDateTimeFields(JSContext* cx,
                                      JS::Handle<CalendarValue> calendar,
-                                     JS::Handle<PlainObject*> fields,
+                                     JS::Handle<TemporalFields> fields,
                                      TemporalOverflow overflow,
                                      PlainDateTime* result);
 
