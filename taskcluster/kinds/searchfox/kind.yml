@@ -28,6 +28,9 @@ task-defaults:
     # These builds don't use sccache because otherwise we wouldn't index
     # the files that sccache optimizes away compilation for.
     use-sccache: false
+    run:
+        extra-config:
+            max_build_output_timeout: 3600
 
 tasks:
     linux64-searchfox/debug:
