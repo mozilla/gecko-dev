@@ -1067,7 +1067,11 @@ static bool DifferenceTemporalPlainDateTime(JSContext* cx,
   }
 
   // Step 3.
-  if (!CalendarEqualsOrThrow(cx, dateTime.calendar(), other.calendar())) {
+  if (!CalendarEquals(dateTime.calendar(), other.calendar())) {
+    JS_ReportErrorNumberASCII(
+        cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
+        ToTemporalCalendarIdentifier(dateTime.calendar()).data(),
+        ToTemporalCalendarIdentifier(other.calendar()).data());
     return false;
   }
 
@@ -2249,11 +2253,9 @@ static bool PlainDateTime_equals(JSContext* cx, const CallArgs& args) {
     return false;
   }
 
-  // Steps 4-13.
-  bool equals = dateTime == other.dateTime();
-  if (equals && !CalendarEquals(cx, calendar, other.calendar(), &equals)) {
-    return false;
-  }
+  // Steps 4-6.
+  bool equals = dateTime == other.dateTime() &&
+                CalendarEquals(calendar, other.calendar());
 
   args.rval().setBoolean(equals);
   return true;

@@ -363,7 +363,11 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
   Rooted<CalendarValue> calendar(cx, yearMonth->calendar());
 
   // Step 4.
-  if (!CalendarEqualsOrThrow(cx, calendar, otherCalendar)) {
+  if (!CalendarEquals(calendar, otherCalendar)) {
+    JS_ReportErrorNumberASCII(
+        cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
+        ToTemporalCalendarIdentifier(calendar).data(),
+        ToTemporalCalendarIdentifier(otherCalendar).data());
     return false;
   }
 
@@ -1250,10 +1254,7 @@ static bool PlainYearMonth_equals(JSContext* cx, const CallArgs& args) {
   }
 
   // Steps 4-7.
-  bool equals = date == other;
-  if (equals && !CalendarEquals(cx, calendar, otherCalendar, &equals)) {
-    return false;
-  }
+  bool equals = date == other && CalendarEquals(calendar, otherCalendar);
 
   args.rval().setBoolean(equals);
   return true;

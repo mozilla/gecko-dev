@@ -1158,7 +1158,11 @@ static bool DifferenceTemporalZonedDateTime(JSContext* cx,
   }
 
   // Step 3.
-  if (!CalendarEqualsOrThrow(cx, zonedDateTime.calendar(), other.calendar())) {
+  if (!CalendarEquals(zonedDateTime.calendar(), other.calendar())) {
+    JS_ReportErrorNumberASCII(
+        cx, GetErrorMessage, nullptr, JSMSG_TEMPORAL_CALENDAR_INCOMPATIBLE,
+        ToTemporalCalendarIdentifier(zonedDateTime.calendar()).data(),
+        ToTemporalCalendarIdentifier(other.calendar()).data());
     return false;
   }
 
@@ -3007,9 +3011,8 @@ static bool ZonedDateTime_equals(JSContext* cx, const CallArgs& args) {
                                 &equals)) {
     return false;
   }
-  if (equals && !CalendarEquals(cx, zonedDateTime.calendar(), other.calendar(),
-                                &equals)) {
-    return false;
+  if (equals) {
+    equals = CalendarEquals(zonedDateTime.calendar(), other.calendar());
   }
 
   args.rval().setBoolean(equals);
