@@ -1,5 +1,5 @@
-commit 6f877dbcd7930f92fe8f97929e2ca683e7d443a2
-Author: yumaoka <y.umaoka@gmail.com>
-Date:   Thu Feb 8 15:05:36 2024 -0500
+commit 569233210a81e6a1ff65ed1ac0987dab4054ebcd
+Author: Christopher Chapman <cjchapman@apple.com>
+Date:   Fri Sep 20 15:20:20 2024 -0700
 
-    ICU-22659 tzdata2024a updates in ICU Data repo
+    ICU-22896 updating tzdata to 2024b (#43)
