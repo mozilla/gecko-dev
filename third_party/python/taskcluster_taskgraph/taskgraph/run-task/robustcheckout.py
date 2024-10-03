@@ -337,7 +337,6 @@ def _docheckout(
     @contextlib.contextmanager
     def timeit(op, behavior):
         behaviors.add(behavior)
-        start = 0
         errored = False
         try:
             start = time.time()
@@ -346,7 +345,7 @@ def _docheckout(
             errored = True
             raise
         finally:
-            elapsed = time.time() - start
+            elapsed = time.time() - start  # type: ignore
 
             if errored:
                 op += "_errored"
@@ -673,7 +672,6 @@ def _docheckout(
     # We only pull if we are using symbolic names or the requested revision
     # doesn't exist.
     havewantedrev = False
-    checkoutrevision = None
 
     if revision:
         try:
@@ -750,7 +748,6 @@ def _docheckout(
         # Mercurial 4.3 doesn't purge files outside the sparse checkout.
         # See https://bz.mercurial-scm.org/show_bug.cgi?id=5626. Force
         # purging by monkeypatching the sparse matcher.
-        old_sparse_fn = None
         try:
             old_sparse_fn = getattr(repo.dirstate, "_sparsematchfn", None)
             if old_sparse_fn is not None:
@@ -764,12 +761,12 @@ def _docheckout(
                     abort_on_err=True,
                     # The function expects all arguments to be
                     # defined.
-                    **{"print": None, "print0": None, "dirs": None, "files": None},
+                    **{"print": None, "print0": None, "dirs": None, "files": None}
                 ):
                     raise error.Abort(b"error purging")
         finally:
-            if old_sparse_fn is not None:
-                repo.dirstate._sparsematchfn = old_sparse_fn
+            if old_sparse_fn is not None:  # type: ignore
+                repo.dirstate._sparsematchfn = old_sparse_fn  # type: ignore
 
     # Update the working directory.
 
@@ -784,11 +781,11 @@ def _docheckout(
         # By default, Mercurial will ignore unknown sparse profiles. This could
         # lead to a full checkout. Be more strict.
         try:
-            repo.filectx(sparse_profile, changeid=checkoutrevision).data()
+            repo.filectx(sparse_profile, changeid=checkoutrevision).data()  # type: ignore
         except error.ManifestLookupError:
             raise error.Abort(
                 b"sparse profile %s does not exist at revision "
-                b"%s" % (sparse_profile, checkoutrevision)
+                b"%s" % (sparse_profile, checkoutrevision)  # type: ignore
             )
 
         old_config = sparsemod.parseconfig(
@@ -846,10 +843,10 @@ def _docheckout(
     behavior = "update-sparse" if sparse_profile else "update"
 
     with timeit(op, behavior):
-        if commands.update(ui, repo, rev=checkoutrevision, clean=True):
+        if commands.update(ui, repo, rev=checkoutrevision, clean=True):  # type: ignore
             raise error.Abort(b"error updating")
 
-    ui.write(b"updated to %s\n" % checkoutrevision)
+    ui.write(b"updated to %s\n" % checkoutrevision)  # type: ignore
 
     return None
 

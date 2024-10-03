@@ -88,12 +88,10 @@ def get_filtered_taskgraph(taskgraph, tasksregex, exclude_keys):
                     if regexprogram.match(dep):
                         filterededges.add((key, dep, depname))
 
-        taskgraph = TaskGraph(
-            filteredtasks, Graph(frozenset(filteredtasks), frozenset(filterededges))
-        )
+        taskgraph = TaskGraph(filteredtasks, Graph(set(filteredtasks), filterededges))  # type: ignore
 
     if exclude_keys:
-        for label, task in taskgraph.tasks.items():
+        for label, task in taskgraph.tasks.items():  # type: ignore
             task = task.to_json()
             for key in exclude_keys:
                 obj = task
@@ -864,7 +862,7 @@ def init_taskgraph(options):
     context = {"project_name": root.name, "taskgraph_version": taskgraph.__version__}
 
     try:
-        repo_url = repo.get_url(remote=repo.remote_name)
+        repo_url = repo.get_url(remote=repo.remote_name)  # type: ignore
     except RuntimeError:
         repo_url = ""
 
@@ -897,7 +895,7 @@ def init_taskgraph(options):
         directory="template",
         extra_context=context,
         no_input=options["no_input"],
-        output_dir=str(root.parent),
+        output_dir=root.parent,  # type: ignore
         overwrite_if_exists=True,
     )
 

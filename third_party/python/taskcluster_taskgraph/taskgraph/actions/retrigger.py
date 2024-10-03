@@ -44,7 +44,6 @@ def _should_retrigger(task_graph, label):
     name="retrigger",
     symbol="rt",
     cb_name="retrigger-decision",
-    permission="retrigger-decision",
     description=textwrap.dedent(
         """\
         Create a clone of the task (retriggering decision, action, and cron tasks requires
@@ -75,6 +74,7 @@ def retrigger_decision_action(parameters, graph_config, input, task_group_id, ta
     title="Retrigger",
     name="retrigger",
     symbol="rt",
+    generic=True,
     description=("Create a clone of the task."),
     order=19,  # must be greater than other orders in this file, as this is the fallback version
     context=[{"retrigger": "true"}],
@@ -105,6 +105,7 @@ def retrigger_decision_action(parameters, graph_config, input, task_group_id, ta
     name="retrigger",
     cb_name="retrigger-disabled",
     symbol="rt",
+    generic=True,
     description=(
         "Create a clone of the task.\n\n"
         "This type of task should typically be re-run instead of re-triggered."
@@ -185,6 +186,7 @@ def retrigger_action(parameters, graph_config, input, task_group_id, task_id):
 @register_callback_action(
     title="Rerun",
     name="rerun",
+    generic=True,
     symbol="rr",
     description=(
         "Rerun a task.\n\n"
@@ -225,6 +227,7 @@ def _rerun_task(task_id, label):
     title="Retrigger",
     name="retrigger-multiple",
     symbol="rt",
+    generic=True,
     description=("Create a clone of the task."),
     context=[],
     schema={

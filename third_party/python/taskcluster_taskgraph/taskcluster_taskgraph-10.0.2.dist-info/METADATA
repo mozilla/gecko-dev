@@ -1,11 +1,8 @@
-Metadata-Version: 2.3
+Metadata-Version: 2.1
 Name: taskcluster-taskgraph
-Version: 11.2.1
+Version: 10.0.2
 Summary: Build taskcluster taskgraphs
-Project-URL: Repository, https://github.com/taskcluster/taskgraph
-Project-URL: Issues, https://github.com/taskcluster/taskgraph/issues
-Author-email: Mozilla Release Engineering <release+taskgraph@mozilla.com>
-License-File: LICENSE
+Home-page: https://github.com/taskcluster/taskgraph
 Classifier: Development Status :: 5 - Production/Stable
 Classifier: Environment :: Console
 Classifier: License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)
@@ -15,20 +12,19 @@ Classifier: Programming Language :: Python :: 3.10
 Classifier: Programming Language :: Python :: 3.11
 Classifier: Programming Language :: Python :: 3.12
 Classifier: Topic :: Software Development
-Requires-Python: >=3.8
-Requires-Dist: appdirs>=1.4
-Requires-Dist: cookiecutter~=2.1
-Requires-Dist: json-e>=2.7
+License-File: LICENSE
+Requires-Dist: appdirs >=1.4
+Requires-Dist: cookiecutter ~=2.1
+Requires-Dist: json-e >=2.7
 Requires-Dist: mozilla-repo-urls
-Requires-Dist: pyyaml>=5.3.1
-Requires-Dist: redo>=2.0
-Requires-Dist: requests>=2.25
-Requires-Dist: slugid>=2.0
-Requires-Dist: taskcluster-urls>=11.0
-Requires-Dist: voluptuous>=0.12.1
+Requires-Dist: PyYAML >=5.3.1
+Requires-Dist: redo >=2.0
+Requires-Dist: requests >=2.25
+Requires-Dist: slugid >=2.0
+Requires-Dist: taskcluster-urls >=11.0
+Requires-Dist: voluptuous >=0.12.1
 Provides-Extra: load-image
-Requires-Dist: zstandard; extra == 'load-image'
-Description-Content-Type: text/x-rst
+Requires-Dist: zstandard ; extra == 'load-image'
 
 
 .. image:: https://firefox-ci-tc.services.mozilla.com/api/github/v1/repository/taskcluster/taskgraph/main/badge.svg

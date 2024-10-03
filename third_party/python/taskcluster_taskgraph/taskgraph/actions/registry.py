@@ -19,7 +19,7 @@ from taskgraph.util.python_path import import_sibling_modules
 actions = []
 callbacks = {}
 
-Action = namedtuple("Action", ["order", "cb_name", "permission", "action_builder"])
+Action = namedtuple("Action", ["order", "cb_name", "generic", "action_builder"])
 
 
 def is_json(data):
@@ -56,7 +56,7 @@ def register_callback_action(
     context=[],
     available=lambda parameters: True,
     schema=None,
-    permission="generic",
+    generic=True,
     cb_name=None,
 ):
     """
@@ -113,10 +113,8 @@ def register_callback_action(
         schema (dict):
             JSON schema specifying input accepted by the action.
             This is optional and can be left ``null`` if no input is taken.
-        permission (str):
-            This defaults to ``generic`` and needs to be set for actions that
-            need additional permissions. It appears in fxci-config and various
-            role and hook names.
+        generic (bool)
+            Whether this is a generic action or has its own permissions.
         cb_name (str):
             The name under which this function should be registered, defaulting to
             `name`.  This is used to generation actionPerm for non-generic hook
@@ -134,15 +132,12 @@ def register_callback_action(
     title = title.strip()
     description = description.strip()
 
-    if not cb_name:
-        cb_name = name
-
     # ensure that context is callable
     if not callable(context):
         context_value = context
         context = lambda params: context_value  # noqa
 
-    def register_callback(cb):
+    def register_callback(cb, cb_name=cb_name):
         assert isinstance(name, str), "name must be a string"
         assert isinstance(order, int), "order must be an integer"
         assert callable(schema) or is_json(
@@ -157,11 +152,15 @@ def register_callback_action(
         assert not mem[
             "registered"
         ], "register_callback_action must be used as decorator"
+        if not cb_name:
+            cb_name = name
         assert cb_name not in callbacks, f"callback name {cb_name} is not unique"
 
         def action_builder(parameters, graph_config, decision_task_id):
             if not available(parameters):
                 return None
+
+            actionPerm = "generic" if generic else cb_name
 
             # gather up the common decision-task-supplied data for this action
             repository = {
@@ -214,13 +213,13 @@ def register_callback_action(
             # action was named `myaction/release`, then the `*` in the scope would also
             # match that action.  To prevent such an accident, we prohibit `/` in hook
             # names.
-            if "/" in permission:
+            if "/" in actionPerm:
                 raise Exception("`/` is not allowed in action names; use `-`")
 
             if parameters["tasks_for"].startswith("github-pull-request"):
-                hookId = f"in-tree-pr-action-{level}-{permission}/{tcyml_hash}"
+                hookId = f"in-tree-pr-action-{level}-{actionPerm}/{tcyml_hash}"
             else:
-                hookId = f"in-tree-action-{level}-{permission}/{tcyml_hash}"
+                hookId = f"in-tree-action-{level}-{actionPerm}/{tcyml_hash}"
 
             rv.update(
                 {
@@ -244,14 +243,14 @@ def register_callback_action(
                         },
                     },
                     "extra": {
-                        "actionPerm": permission,
+                        "actionPerm": actionPerm,
                     },
                 }
             )
 
             return rv
 
-        actions.append(Action(order, cb_name, permission, action_builder))
+        actions.append(Action(order, cb_name, generic, action_builder))
 
         mem["registered"] = True
         callbacks[cb_name] = cb
@@ -300,13 +299,13 @@ def sanity_check_task_scope(callback, parameters, graph_config):
     else:
         raise ValueError(f"No action with cb_name {callback}")
 
+    actionPerm = "generic" if action.generic else action.cb_name
+
     raw_url = parameters["base_repository"]
     parsed_url = parse(raw_url)
-    action_scope = (
-        f"assume:{parsed_url.taskcluster_role_prefix}:action:{action.permission}"
-    )
+    action_scope = f"assume:{parsed_url.taskcluster_role_prefix}:action:{actionPerm}"
     pr_action_scope = (
-        f"assume:{parsed_url.taskcluster_role_prefix}:pr-action:{action.permission}"
+        f"assume:{parsed_url.taskcluster_role_prefix}:pr-action:{actionPerm}"
     )
 
     # the scope should appear literally; no need for a satisfaction check. The use of

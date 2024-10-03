@@ -75,6 +75,8 @@ def fill_template(config, tasks):
 
     context_hashes = {}
 
+    tasks = list(tasks)
+
     if not taskgraph.fast and config.write_artifacts:
         if not os.path.isdir(CONTEXTS_DIR):
             os.makedirs(CONTEXTS_DIR)

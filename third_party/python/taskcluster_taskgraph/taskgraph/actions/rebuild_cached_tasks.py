@@ -11,7 +11,6 @@ from .util import create_tasks, fetch_graph_and_labels
     title="Rebuild Cached Tasks",
     symbol="rebuild-cached",
     description="Rebuild cached tasks.",
-    permission="rebuild-cached-tasks",
     order=1000,
     context=[],
 )
@@ -23,7 +22,7 @@ def rebuild_cached_tasks_action(
     )
     cached_tasks = [
         label
-        for label, task in full_task_graph.tasks.items()
+        for label, task in full_task_graph.tasks.items()  # type: ignore
         if task.attributes.get("cached_task", False)
     ]
     if cached_tasks:
