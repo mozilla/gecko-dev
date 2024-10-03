@@ -1517,65 +1517,6 @@ static bool PlainYearMonth_toPlainDate(JSContext* cx, unsigned argc,
       cx, args);
 }
 
-/**
- * Temporal.PlainYearMonth.prototype.getISOFields ( )
- */
-static bool PlainYearMonth_getISOFields(JSContext* cx, const CallArgs& args) {
-  Rooted<PlainYearMonthObject*> yearMonth(
-      cx, &args.thisv().toObject().as<PlainYearMonthObject>());
-  auto calendar = yearMonth->calendar();
-
-  // Step 3.
-  Rooted<IdValueVector> fields(cx, IdValueVector(cx));
-
-  // Step 4.
-  Rooted<Value> cal(cx);
-  if (!ToTemporalCalendar(cx, calendar, &cal)) {
-    return false;
-  }
-  if (!fields.emplaceBack(NameToId(cx->names().calendar), cal)) {
-    return false;
-  }
-
-  // Step 5.
-  if (!fields.emplaceBack(NameToId(cx->names().isoDay),
-                          Int32Value(yearMonth->isoDay()))) {
-    return false;
-  }
-
-  // Step 6.
-  if (!fields.emplaceBack(NameToId(cx->names().isoMonth),
-                          Int32Value(yearMonth->isoMonth()))) {
-    return false;
-  }
-
-  // Step 7.
-  if (!fields.emplaceBack(NameToId(cx->names().isoYear),
-                          Int32Value(yearMonth->isoYear()))) {
-    return false;
-  }
-
-  // Step 8.
-  auto* obj = NewPlainObjectWithUniqueNames(cx, fields);
-  if (!obj) {
-    return false;
-  }
-
-  args.rval().setObject(*obj);
-  return true;
-}
-
-/**
- * Temporal.PlainYearMonth.prototype.getISOFields ( )
- */
-static bool PlainYearMonth_getISOFields(JSContext* cx, unsigned argc,
-                                        Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsPlainYearMonth, PlainYearMonth_getISOFields>(
-      cx, args);
-}
-
 const JSClass PlainYearMonthObject::class_ = {
     "Temporal.PlainYearMonth",
     JSCLASS_HAS_RESERVED_SLOTS(PlainYearMonthObject::SLOT_COUNT) |
@@ -1604,7 +1545,6 @@ static const JSFunctionSpec PlainYearMonth_prototype_methods[] = {
     JS_FN("toJSON", PlainYearMonth_toJSON, 0, 0),
     JS_FN("valueOf", PlainYearMonth_valueOf, 0, 0),
     JS_FN("toPlainDate", PlainYearMonth_toPlainDate, 1, 0),
-    JS_FN("getISOFields", PlainYearMonth_getISOFields, 0, 0),
     JS_FS_END,
 };
 

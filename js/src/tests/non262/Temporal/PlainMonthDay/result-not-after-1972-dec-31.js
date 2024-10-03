@@ -67,7 +67,7 @@ for (let calendar of calendars) {
     }
     assertEq(pmd.monthCode, monthCode);
     assertEq(pmd.day <= day, true);
-    assertEq(pmd.getISOFields().isoYear <= 1972, true);
+    assertEq(ISOFields(pmd).isoYear <= 1972, true);
   }
 }
 

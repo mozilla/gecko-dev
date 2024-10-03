@@ -32,22 +32,6 @@ const monthCodes = [
   "M12",
 ];
 
-function assertSameISOFields(actual, expected) {
-  let actualFields = actual.getISOFields();
-  let expectedFields = expected.getISOFields();
-
-  assertEq(typeof actualFields.isoYear, "number");
-  assertEq(typeof actualFields.isoMonth, "number");
-  assertEq(typeof actualFields.isoDay, "number");
-
-  assertEq(actualFields.isoMonth > 0, true);
-  assertEq(actualFields.isoDay > 0, true);
-
-  assertEq(actualFields.isoYear, expectedFields.isoYear);
-  assertEq(actualFields.isoMonth, expectedFields.isoMonth);
-  assertEq(actualFields.isoDay, expectedFields.isoDay);
-}
-
 const calendar = "chinese";
 
 // Months can have up to 30 days.

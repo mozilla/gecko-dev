@@ -1498,72 +1498,6 @@ static bool PlainTime_equals(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 /**
- * Temporal.PlainTime.prototype.getISOFields ( )
- */
-static bool PlainTime_getISOFields(JSContext* cx, const CallArgs& args) {
-  Rooted<PlainTimeObject*> temporalTime(
-      cx, &args.thisv().toObject().as<PlainTimeObject>());
-  auto time = ToPlainTime(temporalTime);
-
-  // Step 3.
-  Rooted<IdValueVector> fields(cx, IdValueVector(cx));
-
-  // Step 4.
-  if (!fields.emplaceBack(NameToId(cx->names().isoHour),
-                          Int32Value(time.hour))) {
-    return false;
-  }
-
-  // Step 5.
-  if (!fields.emplaceBack(NameToId(cx->names().isoMicrosecond),
-                          Int32Value(time.microsecond))) {
-    return false;
-  }
-
-  // Step 6.
-  if (!fields.emplaceBack(NameToId(cx->names().isoMillisecond),
-                          Int32Value(time.millisecond))) {
-    return false;
-  }
-
-  // Step 7.
-  if (!fields.emplaceBack(NameToId(cx->names().isoMinute),
-                          Int32Value(time.minute))) {
-    return false;
-  }
-
-  // Step 8.
-  if (!fields.emplaceBack(NameToId(cx->names().isoNanosecond),
-                          Int32Value(time.nanosecond))) {
-    return false;
-  }
-
-  // Step 9.
-  if (!fields.emplaceBack(NameToId(cx->names().isoSecond),
-                          Int32Value(time.second))) {
-    return false;
-  }
-
-  // Step 10.
-  auto* obj = NewPlainObjectWithUniqueNames(cx, fields);
-  if (!obj) {
-    return false;
-  }
-
-  args.rval().setObject(*obj);
-  return true;
-}
-
-/**
- * Temporal.PlainTime.prototype.getISOFields ( )
- */
-static bool PlainTime_getISOFields(JSContext* cx, unsigned argc, Value* vp) {
-  // Steps 1-2.
-  CallArgs args = CallArgsFromVp(argc, vp);
-  return CallNonGenericMethod<IsPlainTime, PlainTime_getISOFields>(cx, args);
-}
-
-/**
  * Temporal.PlainTime.prototype.toString ( [ options ] )
  */
 static bool PlainTime_toString(JSContext* cx, const CallArgs& args) {
@@ -1720,7 +1654,6 @@ static const JSFunctionSpec PlainTime_prototype_methods[] = {
     JS_FN("since", PlainTime_since, 1, 0),
     JS_FN("round", PlainTime_round, 1, 0),
     JS_FN("equals", PlainTime_equals, 1, 0),
-    JS_FN("getISOFields", PlainTime_getISOFields, 0, 0),
     JS_FN("toString", PlainTime_toString, 0, 0),
     JS_FN("toLocaleString", PlainTime_toLocaleString, 0, 0),
     JS_FN("toJSON", PlainTime_toJSON, 0, 0),

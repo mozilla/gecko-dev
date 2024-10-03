@@ -18,7 +18,7 @@
   assertEq(pmd.monthCode, "M13");
   assertEq(pmd.day, 6);
 
-  let fields = pmd.getISOFields();
+  let fields = ISOFields(pmd);
   assertEq(fields.calendar, "coptic");
   assertEq(fields.isoYear, 1971);
   assertEq(fields.isoMonth, 9);
