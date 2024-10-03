@@ -53,6 +53,14 @@ add_task(async function run_tests() {
   send(a, "click", checkOpened);
   await window.open.close();
 
+  // dom.block_multiple_popups is true by default, false in testing profile.
+  await SpecialPowers.pushPrefEnv({ set: [["dom.block_multiple_popups", true]] });
+  SpecialPowers.wrap(document).notifyUserGestureActivation();
+  send(a, "click", checkOpened);
+  send(a, "click", checkBlocked);
+  await window.open.close();
+  await SpecialPowers.popPrefEnv();
+
   await SpecialPowers.pushPrefEnv({"set": [["dom.popup_maximum", 3]]});
 });
 
