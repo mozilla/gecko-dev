@@ -79,6 +79,8 @@ class MOZ_STACK_CLASS PlainDateWithCalendar final {
   // Allow implicit conversion to a calendar-less PlainDate.
   operator const PlainDate&() const { return date(); }
 
+  explicit operator bool() const { return !!calendar_; }
+
   void trace(JSTracer* trc) { calendar_.trace(trc); }
 
   const auto* calendarDoNotUse() const { return &calendar_; }
@@ -220,6 +222,8 @@ class WrappedPtrOperations<temporal::PlainDateWithCalendar, Wrapper> {
   }
 
  public:
+  explicit operator bool() const { return bool(container()); }
+
   const auto& date() const { return container().date(); }
 
   JS::Handle<temporal::CalendarValue> calendar() const {
