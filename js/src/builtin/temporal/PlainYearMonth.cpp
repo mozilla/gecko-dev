@@ -25,7 +25,6 @@
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/ToString.h"
-#include "builtin/temporal/Wrapped.h"
 #include "ds/IdValuePair.h"
 #include "gc/AllocKind.h"
 #include "gc/Barrier.h"
@@ -351,7 +350,7 @@ static bool DifferenceTemporalPlainYearMonth(JSContext* cx,
     return false;
   }
 
-  Rooted<Wrapped<PlainYearMonthObject*>> otherYearMonth(cx);
+  Rooted<JSObject*> otherYearMonth(cx);
   if (args.get(0).isObject() &&
       args[0].toObject().canUnwrapAs<PlainYearMonthObject>()) {
     // FIXME: spec issue - this special casing shouldn't be needed.

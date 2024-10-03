@@ -23,7 +23,6 @@
 #include "builtin/temporal/TemporalParser.h"
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/ToString.h"
-#include "builtin/temporal/Wrapped.h"
 #include "builtin/temporal/ZonedDateTime.h"
 #include "ds/IdValuePair.h"
 #include "gc/AllocKind.h"

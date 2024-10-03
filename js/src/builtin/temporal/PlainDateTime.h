@@ -14,7 +14,6 @@
 
 #include "builtin/temporal/Calendar.h"
 #include "builtin/temporal/TemporalTypes.h"
-#include "builtin/temporal/Wrapped.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/Value.h"

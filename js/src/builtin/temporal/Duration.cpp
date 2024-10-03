@@ -38,7 +38,6 @@
 #include "builtin/temporal/TemporalTypes.h"
 #include "builtin/temporal/TemporalUnit.h"
 #include "builtin/temporal/TimeZone.h"
-#include "builtin/temporal/Wrapped.h"
 #include "builtin/temporal/ZonedDateTime.h"
 #include "gc/AllocKind.h"
 #include "gc/Barrier.h"
