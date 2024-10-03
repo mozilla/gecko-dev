@@ -495,6 +495,7 @@ ato.br
 b.br
 barueri.br
 belem.br
+bet.br
 bhz.br
 bib.br
 bio.br
@@ -582,6 +583,7 @@ joinville.br
 jor.br
 jus.br
 leg.br
+leilao.br
 lel.br
 log.br
 londrina.br
@@ -6725,7 +6727,7 @@ org.zw
 
 // newGTLDs
 
-// List of new gTLDs imported from https://www.icann.org/resources/registries/gtlds/v2/gtlds.json on 2024-09-13T15:16:52Z
+// List of new gTLDs imported from https://www.icann.org/resources/registries/gtlds/v2/gtlds.json on 2024-09-26T15:17:07Z
 // This list is auto-generated, don't edit it manually.
 // aaa : American Automobile Association, Inc.
 // https://www.iana.org/domains/root/db/aaa.html
@@ -7670,10 +7672,6 @@ cymru
 // cyou : ShortDot SA
 // https://www.iana.org/domains/root/db/cyou.html
 cyou
-
-// dabur : Dabur India Limited
-// https://www.iana.org/domains/root/db/dabur.html
-dabur
 
 // dad : Charleston Road Registry Inc.
 // https://www.iana.org/domains/root/db/dad.html
@@ -14294,6 +14292,15 @@ routingthecloud.org
 // Submitted by Robert Böttinger <r@minion.systems>
 csx.cc
 
+// Mittwald CM Service GmbH & Co. KG : https://mittwald.de
+// Submitted by Marco Rieger <security@mittwald.de>
+mydbserver.com
+webspaceconfig.de
+mittwald.info
+mittwaldserver.info
+typo3server.info
+project.space
+
 // MODX Systems LLC : https://modx.com
 // Submitted by Elizabeth Southwell <elizabeth@modx.com>
 modx.dev
@@ -15146,12 +15153,6 @@ vipsinaapp.com
 // Siteleaf : https://www.siteleaf.com/
 // Submitted by Skylar Challand <support@siteleaf.com>
 siteleaf.net
-
-// Skyhat : http://www.skyhat.io
-// Submitted by Shante Adam <shante@skyhat.io>
-bounty-full.com
-alpha.bounty-full.com
-beta.bounty-full.com
 
 // Small Technology Foundation : https://small-tech.org
 // Submitted by Aral Balkan <aral@small-tech.org>
