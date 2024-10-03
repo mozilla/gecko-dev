@@ -172,6 +172,7 @@ EXTRA_JS_MODULES += [
     "FinderHighlighter.sys.mjs",
     "FinderIterator.sys.mjs",
     "FinderParent.sys.mjs",
+    "FinderSound.sys.mjs",
     "FirstStartup.sys.mjs",
     "FormLikeFactory.sys.mjs",
     "Geometry.sys.mjs",

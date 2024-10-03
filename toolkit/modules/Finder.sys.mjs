@@ -9,6 +9,8 @@ import { Rect } from "resource://gre/modules/Geometry.sys.mjs";
 
 import { AppConstants } from "resource://gre/modules/AppConstants.sys.mjs";
 
+import { playNotFoundSound } from "resource://gre/modules/FinderSound.sys.mjs";
+
 const lazy = {};
 
 ChromeUtils.defineESModuleGetters(lazy, {
@@ -204,6 +206,9 @@ Finder.prototype = {
    * @param aDrawOutline Puts an outline around matched links.
    */
   fastFind(aSearchString, aLinksOnly, aDrawOutline) {
+    let searchLengthened =
+      aSearchString.length > this._fastFind.searchString.length;
+
     this._lastFindResult = this._fastFind.find(
       aSearchString,
       aLinksOnly,
@@ -224,6 +229,14 @@ Finder.prototype = {
 
     this._setResults(results);
     this.updateHighlightAndMatchCount(results);
+
+    if (
+      searchLengthened &&
+      this._lastFindResult.result == Ci.nsITypeAheadFind.FIND_NOTFOUND &&
+      !this._fastFind.entireWord
+    ) {
+      playNotFoundSound();
+    }
 
     return this._lastFindResult;
   },

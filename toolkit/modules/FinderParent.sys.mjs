@@ -5,10 +5,12 @@
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 const kModalHighlightPref = "findbar.modalHighlight";
-const kSoundEnabledPref = "accessibility.typeaheadfind.enablesound";
-const kNotFoundSoundPref = "accessibility.typeaheadfind.soundURL";
 
 import { XPCOMUtils } from "resource://gre/modules/XPCOMUtils.sys.mjs";
+import {
+  initNotFoundSound,
+  playNotFoundSound,
+} from "resource://gre/modules/FinderSound.sys.mjs";
 
 const lazy = {};
 
@@ -27,20 +29,6 @@ XPCOMUtils.defineLazyPreferenceGetter(
   false
 );
 
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "isSoundEnabled",
-  kSoundEnabledPref,
-  false
-);
-
-XPCOMUtils.defineLazyPreferenceGetter(
-  lazy,
-  "notFoundSoundURL",
-  kNotFoundSoundPref,
-  ""
-);
-
 export function FinderParent(browser) {
   this._listeners = new Set();
   this._searchString = "";
@@ -54,8 +42,6 @@ export function FinderParent(browser) {
 
   this.swapBrowser(browser);
 }
-
-let gSound = null;
 
 FinderParent.prototype = {
   get browsingContext() {
@@ -283,7 +269,7 @@ FinderParent.prototype = {
     let rootBC = this.browsingContext;
     let highlightList = this.gatherBrowsingContexts(rootBC);
 
-    let canPlayNotFoundSound =
+    let searchLengthened =
       aArgs.searchString.length > this._searchString.length;
 
     this._searchString = aArgs.searchString;
@@ -323,12 +309,10 @@ FinderParent.prototype = {
     if (aArgs.useSubFrames) {
       // Use the single frame for the highlight list as well.
       highlightList = searchList;
-      // The typeaheadfind component will play the sound in this case.
-      canPlayNotFoundSound = false;
     }
 
-    if (canPlayNotFoundSound) {
-      this.initNotFoundSound();
+    if (searchLengthened) {
+      initNotFoundSound();
     }
 
     // Add the initial browsing context twice to allow looping around.
@@ -413,12 +397,12 @@ FinderParent.prototype = {
       this.onResultFound(response);
 
       if (
-        canPlayNotFoundSound &&
+        searchLengthened &&
         response.result == Ci.nsITypeAheadFind.FIND_NOTFOUND &&
         !aFindNext &&
         !response.entireWord
       ) {
-        this.playNotFoundSound();
+        playNotFoundSound();
       }
     }
   },
@@ -620,35 +604,5 @@ FinderParent.prototype = {
       altKey: aEvent.altKey,
       shiftKey: aEvent.shiftKey,
     });
-  },
-
-  initNotFoundSound() {
-    if (!gSound && lazy.isSoundEnabled && lazy.notFoundSoundURL) {
-      try {
-        gSound = Cc["@mozilla.org/sound;1"].getService(Ci.nsISound);
-        gSound.init();
-      } catch (ex) {}
-    }
-  },
-
-  playNotFoundSound() {
-    if (!lazy.isSoundEnabled || !lazy.notFoundSoundURL) {
-      return;
-    }
-
-    this.initNotFoundSound();
-    if (!gSound) {
-      return;
-    }
-
-    let soundUrl = lazy.notFoundSoundURL;
-    if (soundUrl == "beep") {
-      gSound.beep();
-    } else {
-      if (soundUrl == "default") {
-        soundUrl = "chrome://global/content/notfound.wav";
-      }
-      gSound.play(Services.io.newURI(soundUrl));
-    }
   },
 };
