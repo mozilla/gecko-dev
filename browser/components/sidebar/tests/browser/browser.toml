@@ -50,4 +50,6 @@ run-if = ["os == 'mac'"] # Mac only feature
 
 ["browser_vertical_tabs_cui_reset.js"]
 
+["browser_vertical_tabs_stacking_context.js"]
+
 ["browser_view_sidebar_menu.js"]
