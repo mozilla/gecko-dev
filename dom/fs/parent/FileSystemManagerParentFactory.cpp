@@ -92,16 +92,42 @@ mozilla::ipc::IPCResult CreateFileSystemManagerParent(
                                                               __func__);
                 })
                 ->Then(GetCurrentSerialEventTarget(), __func__,
-                       [dataManager = dataManager, aResolver](
+                       [dataManager = dataManager](
                            CreateActorPromise::ResolveOrRejectValue&& aValue) {
+                         if (aValue.IsReject()) {
+                           return BoolPromise::CreateAndReject(
+                               aValue.RejectValue(), __func__);
+                         }
+
+                         RefPtr<FileSystemManagerParent> parent =
+                             std::move(aValue.ResolveValue());
+
+                         dataManager->RegisterActor(WrapNotNull(parent));
+
+                         return BoolPromise::CreateAndResolve(true, __func__);
+                       })
+                ->Then(dataManager->MutableIOTaskQueuePtr(), __func__,
+                       [](const BoolPromise::ResolveOrRejectValue& aValue) {
+                         // Hopping to the I/O task queue is needed to avoid
+                         // a potential race triggered by
+                         // FileSystemManagerParent::SendCloseAll called by
+                         // FileSystemManagerParent::RequestAllowToClose called
+                         // by FileSystemDataManager::RegisterActor when the
+                         // directory lock has been invalidated in the
+                         // meantime. The race would cause that the child side
+                         // could sometimes use the child actor for sending
+                         // messages and sometimes not. This extra hop
+                         // guarantees that the created child actor will always
+                         // refuse to send messages.
+                         return BoolPromise::CreateAndResolveOrReject(aValue,
+                                                                      __func__);
+                       })
+                ->Then(GetCurrentSerialEventTarget(), __func__,
+                       [aResolver](
+                           const BoolPromise::ResolveOrRejectValue& aValue) {
                          if (aValue.IsReject()) {
                            aResolver(aValue.RejectValue());
                          } else {
-                           RefPtr<FileSystemManagerParent> parent =
-                               std::move(aValue.ResolveValue());
-
-                           dataManager->RegisterActor(WrapNotNull(parent));
-
                            aResolver(NS_OK);
                          }
                        });
