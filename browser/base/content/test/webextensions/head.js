@@ -1,5 +1,6 @@
 ChromeUtils.defineESModuleGetters(this, {
   AddonTestUtils: "resource://testing-common/AddonTestUtils.sys.mjs",
+  ExtensionsUI: "resource:///modules/ExtensionsUI.sys.mjs",
 });
 
 const BASE = getRootDirectory(gTestPath).replace(
@@ -326,11 +327,15 @@ function checkNotification(
     for (let i in permissions) {
       let [key, param] = permissions[i];
       const expected = formatExtValue(key, param);
-      is(
-        ul.children[i].textContent,
-        expected,
-        `Permission number ${i + 1} is correct`
-      );
+      // If the permissions list entry has a label child element then
+      // we expect the permission string to be set as the label element
+      // value (in particular this is the case when the permission dialog
+      // is going to show multiple host permissions as a single permission
+      // entry and a nested ul listing all those domains).
+      const permDescriptionEl = ul.children[i].querySelector("label")
+        ? ul.children[i].firstElementChild.value
+        : ul.children[i].textContent;
+      is(permDescriptionEl, expected, `Permission number ${i + 1} is correct`);
     }
     if (expectIncognitoCheckbox) {
       const lastEntry = ul.children[permissions.length];
@@ -413,18 +418,37 @@ async function testInstallMethod(installFn) {
 
     let panel = await promisePopupNotificationShown("addon-webext-permissions");
     if (filename == PERMS_XPI) {
+      // Account for both:
+      // - host permissions to be listed as a single permission
+      //   entry (new dialog design, enabled when ExtensionsUI.SHOW_FULL_DOMAINS_LIST
+      //   getter returns true)
+      // - host permissions for wildcard and non wildcards host
+      //   permissions to be listed as separate permissions entries
+      //   (old dialog design, enabled when ExtensionsUI.SHOW_FULL_DOMAINS_LIST
+      //   getter returns false)
+      const hostPermissions = !ExtensionsUI.SHOW_FULL_DOMAINS_LIST
+        ? [
+            [
+              "webext-perms-host-description-wildcard",
+              { domain: "wildcard.domain" },
+            ],
+            [
+              "webext-perms-host-description-one-site",
+              { domain: "singlehost.domain" },
+            ],
+          ]
+        : [
+            [
+              "webext-perms-host-description-multiple-domains",
+              { domainCount: 2 },
+            ],
+          ];
+
       // The icon should come from the extension, don't bother with the precise
       // path, just make sure we've got a jar url pointing to the right path
       // inside the jar.
       checkNotification(panel, /^jar:file:\/\/.*\/icon\.png$/, [
-        [
-          "webext-perms-host-description-wildcard",
-          { domain: "wildcard.domain" },
-        ],
-        [
-          "webext-perms-host-description-one-site",
-          { domain: "singlehost.domain" },
-        ],
+        ...hostPermissions,
         ["webext-perms-description-nativeMessaging"],
         // The below permissions are deliberately in this order as permissions
         // are sorted alphabetically by the permission string to match AMO.
