@@ -92,6 +92,19 @@ using namespace mozilla::dom;
 
 static LazyLogModule sFrameSelectionLog("FrameSelection");
 
+namespace mozilla {
+extern LazyLogModule sSelectionAPILog;
+extern void LogStackForSelectionAPI();
+
+static void LogSelectionAPI(const dom::Selection* aSelection,
+                            const char* aFuncName, const char* aArgName,
+                            const nsIContent* aContent) {
+  MOZ_LOG(sSelectionAPILog, LogLevel::Info,
+          ("%p nsFrameSelection::%s(%s=%s)", aSelection, aFuncName, aArgName,
+           aContent ? ToString(*aContent).c_str() : "<nullptr>"));
+}
+}  // namespace mozilla
+
 // #define DEBUG_TABLE 1
 
 /**
@@ -2995,6 +3008,7 @@ void nsFrameSelection::SetAncestorLimiter(nsIContent* aLimiter) {
   if (mLimiters.mAncestorLimiter != aLimiter) {
     mLimiters.mAncestorLimiter = aLimiter;
     int8_t index = GetIndexFromSelectionType(SelectionType::eNormal);
+    LogSelectionAPI(mDomSelections[index], __FUNCTION__, "aLimiter", aLimiter);
     if (!mDomSelections[index]) return;
 
     if (!IsValidSelectionPoint(mDomSelections[index]->GetFocusNode())) {
