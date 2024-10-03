@@ -269,8 +269,12 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                         state.extensionMenuState.addonInstallationInProgress
                     }
 
-                    val webExtensionMenuItems by store.observeAsState(initialValue = emptyList()) { state ->
-                        state.extensionMenuState.webExtensionMenuItems
+                    val browserWebExtensionMenuItem by store.observeAsState(initialValue = emptyList()) { state ->
+                        state.extensionMenuState.browserWebExtensionMenuItem
+                    }
+
+                    val pageWebExtensionMenuItems by store.observeAsState(initialValue = emptyList()) { state ->
+                        state.toolsMenuState.pageWebExtensionMenuItem
                     }
 
                     val initRoute = when (args.accesspoint) {
@@ -401,6 +405,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
 
                                 ToolsSubmenu(
                                     isPdf = isPdf,
+                                    webExtensionMenuItems = pageWebExtensionMenuItems,
                                     isReaderable = isReaderable,
                                     isReaderViewActive = isReaderViewActive,
                                     hasExternalApp = appLinksRedirect?.hasExternalApp() ?: false,
@@ -490,7 +495,7 @@ class MenuDialogFragment : BottomSheetDialogFragment() {
                                     recommendedAddons = recommendedAddons,
                                     addonInstallationInProgress = addonInstallationInProgress,
                                     showExtensionsOnboarding = recommendedAddons.isNotEmpty(),
-                                    webExtensionMenuItems = webExtensionMenuItems,
+                                    webExtensionMenuItems = browserWebExtensionMenuItem,
                                     onBackButtonClick = {
                                         contentState = Route.MainMenu
                                     },
