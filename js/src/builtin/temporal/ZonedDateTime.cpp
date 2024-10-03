@@ -1564,15 +1564,15 @@ static bool ZonedDateTime_era(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarEra(cx, zonedDateTime.calendar(), dateTime, args.rval());
+  // Step 6.
+  return CalendarEra(cx, zonedDateTime.calendar(), dateTime.date, args.rval());
 }
 
 /**
@@ -1591,15 +1591,16 @@ static bool ZonedDateTime_eraYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Steps 7-9.
-  return CalendarEraYear(cx, zonedDateTime.calendar(), dateTime, args.rval());
+  // Steps 6-8.
+  return CalendarEraYear(cx, zonedDateTime.calendar(), dateTime.date,
+                         args.rval());
 }
 
 /**
@@ -1618,15 +1619,15 @@ static bool ZonedDateTime_year(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarYear(cx, zonedDateTime.calendar(), dateTime, args.rval());
+  // Step 6.
+  return CalendarYear(cx, zonedDateTime.calendar(), dateTime.date, args.rval());
 }
 
 /**
@@ -1645,15 +1646,16 @@ static bool ZonedDateTime_month(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarMonth(cx, zonedDateTime.calendar(), dateTime, args.rval());
+  // Step 6.
+  return CalendarMonth(cx, zonedDateTime.calendar(), dateTime.date,
+                       args.rval());
 }
 
 /**
@@ -1672,15 +1674,16 @@ static bool ZonedDateTime_monthCode(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarMonthCode(cx, zonedDateTime.calendar(), dateTime, args.rval());
+  // Step 6.
+  return CalendarMonthCode(cx, zonedDateTime.calendar(), dateTime.date,
+                           args.rval());
 }
 
 /**
@@ -1700,21 +1703,15 @@ static bool ZonedDateTime_day(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Step 4. (Reordered)
-  Rooted<CalendarRecord> calendar(cx);
-  if (!CreateCalendarMethodsRecord(cx, zonedDateTime.calendar(), &calendar)) {
-    return false;
-  }
-
-  // Steps 3 and 5-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarDay(cx, calendar, dateTime, args.rval());
+  // Step 6.
+  return CalendarDay(cx, zonedDateTime.calendar(), dateTime.date, args.rval());
 }
 
 /**
@@ -1733,14 +1730,14 @@ static bool ZonedDateTime_hour(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
+  // Step 6.
   args.rval().setInt32(dateTime.time.hour);
   return true;
 }
@@ -1761,14 +1758,14 @@ static bool ZonedDateTime_minute(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
+  // Step 6.
   args.rval().setInt32(dateTime.time.minute);
   return true;
 }
@@ -1789,14 +1786,14 @@ static bool ZonedDateTime_second(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
+  // Step 6.
   args.rval().setInt32(dateTime.time.second);
   return true;
 }
@@ -1817,14 +1814,14 @@ static bool ZonedDateTime_millisecond(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
+  // Step 6.
   args.rval().setInt32(dateTime.time.millisecond);
   return true;
 }
@@ -1846,14 +1843,14 @@ static bool ZonedDateTime_microsecond(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
+  // Step 6.
   args.rval().setInt32(dateTime.time.microsecond);
   return true;
 }
@@ -1875,14 +1872,14 @@ static bool ZonedDateTime_nanosecond(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
+  // Step 6.
   args.rval().setInt32(dateTime.time.nanosecond);
   return true;
 }
@@ -1958,15 +1955,16 @@ static bool ZonedDateTime_dayOfWeek(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarDayOfWeek(cx, zonedDateTime.calendar(), dateTime, args.rval());
+  // Step 6.
+  return CalendarDayOfWeek(cx, zonedDateTime.calendar(), dateTime.date,
+                           args.rval());
 }
 
 /**
@@ -1986,15 +1984,16 @@ static bool ZonedDateTime_dayOfYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarDayOfYear(cx, zonedDateTime.calendar(), dateTime, args.rval());
+  // Step 6.
+  return CalendarDayOfYear(cx, zonedDateTime.calendar(), dateTime.date,
+                           args.rval());
 }
 
 /**
@@ -2014,15 +2013,15 @@ static bool ZonedDateTime_weekOfYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Steps 7-9.
-  return CalendarWeekOfYear(cx, zonedDateTime.calendar(), dateTime,
+  // Steps 6-8.
+  return CalendarWeekOfYear(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
 
@@ -2043,15 +2042,15 @@ static bool ZonedDateTime_yearOfWeek(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Steps 7-9.
-  return CalendarYearOfWeek(cx, zonedDateTime.calendar(), dateTime,
+  // Steps 6-8.
+  return CalendarYearOfWeek(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
 
@@ -2145,15 +2144,15 @@ static bool ZonedDateTime_daysInWeek(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarDaysInWeek(cx, zonedDateTime.calendar(), dateTime,
+  // Step 6.
+  return CalendarDaysInWeek(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
 
@@ -2174,15 +2173,15 @@ static bool ZonedDateTime_daysInMonth(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarDaysInMonth(cx, zonedDateTime.calendar(), dateTime,
+  // Step 6.
+  return CalendarDaysInMonth(cx, zonedDateTime.calendar(), dateTime.date,
                              args.rval());
 }
 
@@ -2203,15 +2202,15 @@ static bool ZonedDateTime_daysInYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarDaysInYear(cx, zonedDateTime.calendar(), dateTime,
+  // Step 6.
+  return CalendarDaysInYear(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
 
@@ -2232,15 +2231,15 @@ static bool ZonedDateTime_monthsInYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarMonthsInYear(cx, zonedDateTime.calendar(), dateTime,
+  // Step 6.
+  return CalendarMonthsInYear(cx, zonedDateTime.calendar(), dateTime.date,
                               args.rval());
 }
 
@@ -2262,15 +2261,15 @@ static bool ZonedDateTime_inLeapYear(JSContext* cx, const CallArgs& args) {
   Rooted<ZonedDateTime> zonedDateTime(
       cx, ZonedDateTime{&args.thisv().toObject().as<ZonedDateTimeObject>()});
 
-  // Steps 3-6.
+  // Steps 3-5.
   PlainDateTime dateTime;
   if (!GetPlainDateTimeFor(cx, zonedDateTime.timeZone(),
                            zonedDateTime.instant(), &dateTime)) {
     return false;
   }
 
-  // Step 7.
-  return CalendarInLeapYear(cx, zonedDateTime.calendar(), dateTime,
+  // Step 6.
+  return CalendarInLeapYear(cx, zonedDateTime.calendar(), dateTime.date,
                             args.rval());
 }
 
