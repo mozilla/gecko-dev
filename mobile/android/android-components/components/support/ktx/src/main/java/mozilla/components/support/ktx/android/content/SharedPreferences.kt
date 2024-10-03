@@ -20,10 +20,19 @@ interface PreferencesHolder {
 private class BooleanPreference(
     private val key: String,
     private val default: Boolean,
+    private val persistDefaultIfNotExists: Boolean = false,
 ) : ReadWriteProperty<PreferencesHolder, Boolean> {
 
     override fun getValue(thisRef: PreferencesHolder, property: KProperty<*>): Boolean =
-        thisRef.preferences.getBoolean(key, default)
+        if (thisRef.preferences.contains(key)) {
+            thisRef.preferences.getBoolean(key, default)
+        } else {
+            if (persistDefaultIfNotExists) {
+                thisRef.preferences.edit().putBoolean(key, default).apply()
+            }
+
+            default
+        }
 
     override fun setValue(thisRef: PreferencesHolder, property: KProperty<*>, value: Boolean) =
         thisRef.preferences.edit().putBoolean(key, value).apply()
@@ -101,17 +110,26 @@ private class StringSetPreference(
 
 /**
  * Property delegate for getting and setting a boolean shared preference.
+ * Optionally this will persist the default value if one is not already persisted.
  *
  * Example usage:
  * ```
  * class Settings : PreferenceHolder {
  *     ...
- *     val isTelemetryOn by booleanPreference("telemetry", default = false)
+ *     val isTelemetryOn by booleanPreference(
+ *         "telemetry",
+ *         default = false,
+ *         persistDefaultIfNotExists = true,
+ *     )
  * }
  * ```
  */
-fun booleanPreference(key: String, default: Boolean): ReadWriteProperty<PreferencesHolder, Boolean> =
-    BooleanPreference(key, default)
+fun booleanPreference(
+    key: String,
+    default: Boolean,
+    persistDefaultIfNotExists: Boolean = false,
+): ReadWriteProperty<PreferencesHolder, Boolean> =
+    BooleanPreference(key, default, persistDefaultIfNotExists)
 
 /**
  * Property delegate for getting and setting a float number shared preference.
