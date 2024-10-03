@@ -7996,6 +7996,7 @@ fn get_surface_rects(
                     ))).ceil();
         surface.raster_spatial_node_index = surface.surface_spatial_node_index;
         surface.device_pixel_scale = Scale::new(max_surface_size / max_dimension);
+        surface.local_scale = (1.0, 1.0);
 
         clipped = (clipped_local.cast_unit() * surface.device_pixel_scale).round();
         unclipped = unclipped_local.cast_unit() * surface.device_pixel_scale;

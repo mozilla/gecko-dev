@@ -1,0 +1,16 @@
+# Verify that we correctly blur a render task that has been downscaled due to
+# exceeding the maximum surface size. Should be run with max_surface_size(1024).
+# The reference yaml is identical to this except has a clip-rect that ensures the
+# gradient does not exceed the max surface size.
+---
+root:
+  items:
+    - type: stacking-context
+      transform: scale(10.0)
+      filters: blur(1, 1)
+      items:
+        - type: gradient
+          bounds: 0 0 100 100
+          start: 0 0
+          end: 50 50
+          stops: [0.0, black, 0.5, black, 0.5, white, 1.0, white]
